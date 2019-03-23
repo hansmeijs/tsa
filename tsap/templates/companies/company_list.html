@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block stylesheet %}
+   <!-- <link rel="stylesheet" href="{% static 'css/awpr_table.css' %}"> -->
+   <link rel="stylesheet" href="{% static 'css/customers.css' %}">
+   <link rel="stylesheet" href="{% static 'css/dateselector.css' %}">
+{% endblock %}
+
+{% block content %}
+  {% if user.is_role_system %}
+
+      <div class="mb-3">
+        <a href="{% url 'company_add_url' %}" class="btn btn-primary">{% trans 'Add company' %}</a>
+      </div>
+
+        <h4>{% trans 'Companies' %}</h4>
+
+        <table class="table table table-condensed tbl">
+          <thead class="thead-inverse">
+            <tr>
+              <th></th>
+              <th>{% trans 'Code' %}</th>
+              <th>{% trans 'Company name' %}</th>
+              <th>{% trans 'Start date' %}</th>
+              <th>{% trans 'End date' %}</th>
+              <th>{% trans 'Modified by' %}</th>
+              <th>{% trans 'Modified at' %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in companies.all %}
+              <tr>
+                <td>
+                    {% if not item.inactive %}<img src="{% static 'img/inactive.gif' %}" height="24" width="24">{% endif %}
+                </td>
+                <td>{{ item.code }}</td>
+                <td>
+                    <a>{{ item.name }}</a>
+                </td>
+                <td>{{ item.date_first_dte}}</td>
+                <td>{{ item.date_last_dte }}</td>
+                <td>{{ item.modified_by}}</td>
+                <td>{{ item.modified_at}}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+  {% else %}
+    <div class="alert alert-danger">Error</div>
+    <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+  {% endif %}
+{% endblock %}l>

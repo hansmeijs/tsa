@@ -1,0 +1,115 @@
+{% load i18n %}
+{% load static %}
+
+<!-- navbar -->
+<nav class="navbar navbar-default navbar-expand-sm headerbar">
+    <div class="container">
+        <div>
+            <a href="{% url 'home' %}">
+                <img src="{% static 'img/tsalogo.png' %}" href="{% url 'home' %}" height="24" width="72">
+            </a>
+        </div>
+
+        <button class="navbar-toggler nopadding"
+                type="button"
+                data-toggle="collapse"
+                data-target="#navbar_collapse"
+                aria-controls="navbarsExample04"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse nopadding" id="navbar_collapse">
+
+            {% if user.is_authenticated %}
+                <!-- Select company -->
+                <!-- <li class="nav-item dropdown navbar-brand">  -->
+                    {% if select_company %}
+                        <a class="btn dropdown-toggle nopadding" href="#" id="companyMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            {{ company }}
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="companyMenu">
+                            {% for row in company_list %}
+                                {% if row.selected %}
+                                    <a class="dropdown-item" style="color:darkgrey;">{{ row.company }}</a>
+                                {% else %}
+                                    <a  href="{% url 'company_selected_url' row.pk %}?next={{ request.path|urlencode }}" class="dropdown-item">
+                                        {{ row.company }}
+                                    </a>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <a class="navbar-brand navbar-default nopadding">{{ company }}</a>
+                    {% endif %}
+            {% else %}
+                <a class="navbar-brand navbar-default nopadding">secure</a>
+            {% endif %}
+
+
+            <!-- User -->
+            <button class="navbar-toggler nopadding" type="button" data-toggle="collapse" data-target="#mainMenu" aria-controls="mainMenu" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse nopadding" id="mainMenu">
+                {% if user.is_authenticated %}
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item dropdown">
+                            <a class="btn dropdown-toggle nopadding" href="#" id="userMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                {{ user.username_sliced }}
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right nopadding" aria-labelledby="userMenu">
+                                <!-- temporary for testing -->
+                                <a class="dropdown-item"  >{{ user.role_str }}</a>
+                                <a class="dropdown-item"  >{{ user.permits_str }}</a>
+                                <a class="dropdown-item"  >{{ user.school.name }}</a>
+
+                                <div class="dropdown-divider"></div>
+
+                                <a class="dropdown-item"  href="{% url 'language_set_url' user.pk 'en' %}" >{% trans 'English' %}</a>
+                                <a class="dropdown-item" href="{% url 'language_set_url' user.pk 'nl' %}">{% trans 'Dutch' %}</a>
+                                {% if user.is_perm_admin %}
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item"  href="{% url 'user_list_url' %}" >{% trans 'Users' %}</a>
+                                {% endif %}
+                                {% if user.is_superuser %}
+                                    <a class="dropdown-item"  href="/admin/" >Admin</a>
+                                {% endif %}
+
+                                <div class="dropdown-divider"></div>
+
+                                <a class="dropdown-item" href="{% url 'password_change' %}">{% trans 'Change password' %}</a>
+                            </div>
+                        </li>
+                        <li>
+                            <a href="{% url 'logout' %}" class="btn nopadding">{% trans 'Log out' %}</a>
+                        </li>
+                    </ul>
+                {% else %}
+                    <form class="form-inline ml-auto">
+                        <a href="{% url 'login' %}" class="btn nopadding">{% trans 'Log in' %}</a>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="menubar">
+    <div id="id_menubar" class="container">
+        <a id="id_hdr_comp" href="{% url 'company_list_url' %}">Companies</a>
+        <a id="id_hdr_cust" href="{% url 'customer_list_url' %}">Customers</a>
+        <a id="id_hdr_ordr" href="{% url 'order_import_url' %}">Orders</a>
+        <a id="id_hdr_empl" href="#">Employees</a>
+        <a id="id_hdr_rost" href="#about">Roster</a>
+        <a id="id_hdr_plan" href="#about">Planning</a>
+    </div>
+</div>
+
+<div class="submenubar">
+    <div id="id_submenu_empl" class="container">
+        <a id="id_sub_empl_list" href="{% url 'employee_list_url' %}">Employees</a>
+        <a id="id_sub_empl_imp" href="{% url 'employee_import_url' %}">Import employees</a>
+    </div>
+</div>

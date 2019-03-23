@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load i18n %} {% load l10n %}
+{% load static %}
+
+{% block stylesheet %}
+   <!-- <link rel="stylesheet" href="{% static 'css/awpr_table.css' %}"> -->
+   <link rel="stylesheet" href="{% static 'css/customers.css' %}">
+   <link rel="stylesheet" href="{% static 'css/dateselector.css' %}">
+{% endblock %}
+
+{% block script %}
+    <script src="{% static 'js/customers.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+  {% if user.is_authenticated %}
+
+        <div class="popup">
+            <span class="popuptext" id="id_msgbox"></span>
+        </div>
+
+        <div class="content_header">
+            <div class="content_header_left">
+                <h5 id="id_content_header_name" >{% trans 'Customers' %}</h5>
+            </div>
+            <div class="content_header_right">
+
+                <div class="content_subheader_right">
+                    <a href="{% url 'customer_add_url' %}" class="btn btn-add">{% trans 'New customer' %}</a>
+                </div>
+            </div>
+        </div>
+
+        <table class="table table table-condensed tsa-tbl">
+          <thead class="thead-inverse">
+            <tr>
+              <th></th>
+              <th>{% trans 'Code' %}</th>
+              <th>{% trans 'Customer name' %}</th>
+              <th>{% trans 'Start date' %}</th>
+              <th>{% trans 'End date' %}</th>
+              <th>{% trans 'Modified by' %}</th>
+              <th>{% trans 'Modified at' %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in customers.all %}
+              <tr>
+                <td>
+                    {% if not item.inactive %}<img src="{% static 'img/inactive.gif' %}" height="24" width="24">{% endif %}
+                </td>
+                <td>
+                    <!-- if autocomplete="off" doesn't work, use: autocomplete="new-password" -->
+                    <input id="{{ item.id_code }}"
+                           type="text"
+                           autocomplete="off"
+                           maxlength="{{ item.maxlen_code }}"
+                           value="{{ item.code}}"
+                           o_value="{{ item.code}}"
+                           class="input_text border-none" >
+                <td>
+                    <input id="{{ item.id_name }}"
+                           type="text"
+                           autocomplete="off"
+                           maxlength="{{ item.maxlen_name }}"
+                           value="{{ item.name}}"
+                           o_value="{{ item.name}}"
+                           class="input_text border-none" >
+                </td>
+                <td >
+                    <input id="{{ item.id_datefirst }}"
+                           type="date"
+                           autocomplete="off"
+                           value="{{ item.date_first_str}}"
+                           o_value="{{ item.date_first_str}}"
+                           max="{{ item.date_last_str}}"
+                           class="input_text border-none" >
+
+                </td>
+                <td >
+                    <input id="{{ item.id_datelast }}"
+                           type="date"
+                           autocomplete="off"
+                           value="{{ item.date_last_str}}"
+                           o_value="{{ item.date_last_str}}"
+                           min="{{ item.date_first_str}}"
+                           class="input_text border-none" >
+                </td>
+                <td >
+                    <input id= "{{ item.id_modby }}"
+                           type="text"
+                           autocomplete="off"
+                           value="{{ item.modified_by}}"
+                           readonly="readonly"
+                           class="border-none" >
+                </td>
+                <td>
+                    <input id= "{{ item.id_modat }}"
+                           type="text"
+                           autocomplete="off"
+                           value="{{ item.modified_at|date:'DATETIME_FORMAT'}}"
+                           readonly="readonly"
+                           class="border-none" >
+                </td>
+                <td>
+                    <a href="{% url 'customer_add_url' %}">
+                        <img src="{% static 'img/delete.gif' %}" height="24" width="24">
+                    </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="content_header">
+            <div class="content_header_left">
+                <a href="{% url 'customer_add_url' %}" class="btn btn-add">{% trans 'Add customer' %}</a>
+            </div>
+            <div class="content_header_right">
+            </div>
+        </div>
+    <div id="id_data"
+        data-customer_upload_url= "{% url 'customer_upload_url' %}"
+        data-info_ismand_cap="{% trans 'Subject is mandatory.' %}"
+        data-err_msg01= "{% trans 'An error occurred.' %}"
+    ></div>
+
+  {% else %}
+    <div class="alert alert-danger">{% trans 'Error' %}</div>
+    <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+  {% endif %}
+{% endblock %}l>

@@ -1,0 +1,15 @@
+
+.tsa-tbl  {
+    table-layout: auto;
+}
+
+.tsa-tbl th  {
+    padding: 0.2rem 0.25rem 0.05rem 0.25rem;
+    margin: 0px;
+    background: #f8f8f8; /*licht licht grijs; */
+}
+
+.tsa-tbl tr, .tsa-tbl td {
+    padding: 0.2rem 0.25rem 0.05rem 0.25rem;
+    margin: 0px;
+}

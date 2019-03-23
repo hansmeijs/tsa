@@ -1,0 +1,136 @@
+
+.headerbar {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  list-style: none;
+
+  display: block;
+  padding: 0 .5rem;
+  margin: 0;
+
+  text-decoration: none;
+  list-style: none;
+  color: #868e96;
+  background-color: #ffd01c;
+}
+
+.headerbutton {
+  display: inline-block;
+  font-weight: $btn-font-weight;
+  color: $body-color;
+  text-align: center;
+  vertical-align: middle;
+  user-select: none;
+  background-color: transparent;
+  padding: 0 .5rem;
+  margin: 0;
+
+}
+
+
+/* menubar */
+.menubar {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  list-style: none;
+
+  display: block;
+  padding: 0 .5rem;
+  margin: 0;
+
+  overflow: hidden;
+  text-decoration: none;
+  list-style: none;
+
+  background-color: #e0e0e0;
+}
+
+.menubar a {
+  float: left;
+  color: #212529;
+  text-align: center;
+  padding: 0 .5rem;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.menubar a:hover {
+  background-color: #c4c4c4;
+  color: black;
+}
+.menubar a.active {
+  background-color: #646464; /* #606060; */
+  color: white;
+}
+
+/* submenubar */
+.submenubar {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  list-style: none;
+
+  display: block;
+  padding: 0 .5rem;
+  margin: 0;
+
+  overflow: hidden;
+  text-decoration: none;
+  list-style: none;
+
+  background-color: #f2f2f2;
+}
+
+.submenubar a {
+  float: left;
+  color: #212529;
+  text-align: center;
+  padding: 0 .5rem;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.submenubar a:hover {
+  background-color: #c4c4c4;
+  color: black;
+}
+.submenubar a.active {
+  background-color: #646464; /* #606060; */
+  color: white;
+}
+
+.nopadding {
+    padding-top: 0.05rem;;
+    padding-bottom: 0.05rem;
+}
+
+.border-none {
+    border: 0;
+}
+
+.border-invalid {
+    border: 1px solid #dc3545;    /*  red like in django is-invalid */
+    border-radius: .25rem;
+    background-color: #f1b5b5;
+}
+
+.border-valid {
+    border: 1px solid  #4cbd67;  /*  #28a745; is green like in django is-invalid */
+    border-radius: .25rem;
+    background-color: #d7f4de; /*#ade8bb;*/
+}
+
+.display_show {
+  display: block;
+  /*margin-left: auto;*/
+ /* margin-right: auto;*/
+}
+
+.display_hide {
+  display: none;
+}
