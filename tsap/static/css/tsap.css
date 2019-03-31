@@ -1,3 +1,8 @@
+h4 h5 {
+  margin-top: .5rem;
+}
+
+
 
 .headerbar {
   display: -ms-flexbox;
@@ -111,6 +116,7 @@
 
 .border-none {
     border: 0;
+    background-color: transparent;
 }
 
 .border-invalid {
@@ -120,10 +126,12 @@
 }
 
 .border-valid {
-    border: 1px solid  #4cbd67;  /*  #28a745; is green like in django is-invalid */
+    border: 1px solid  #4cbd67;  /*  #28a745; is green like in django is-valid */
     border-radius: .25rem;
     background-color: #d7f4de; /*#ade8bb;*/
 }
+
+
 
 .display_show {
   display: block;

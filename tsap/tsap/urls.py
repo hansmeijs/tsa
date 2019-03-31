@@ -1,5 +1,5 @@
 # PR2019-03-01
-from django.urls import include, path, re_path
+from django.urls import include, path
 from django.conf.urls import url
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
@@ -47,6 +47,7 @@ urlpatterns = [
     path('reset/complete',
          auth_views.PasswordResetCompleteView.as_view(template_name='password_reset_complete.html'),
          name='password_reset_complete'),
+    #step 3: user clicked on 'create password' button. Login form opens
     path('settings/password',
          auth_views.PasswordChangeView.as_view(template_name='password_change.html'),
          name='password_change'),
@@ -60,10 +61,19 @@ urlpatterns = [
     # PR2018-04-24
     url(r'^account_activation_sent/$', account_views.account_activation_sent, name='account_activation_sent_url'),
     # PR2018-10-14
+
+    # step 2 in adding user: user has clicked on link in email, form account_activation_success.html opens
+    # - user clicks on button 'Create password:
+    #
+
     url(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
         account_views.UserActivate, name='activate_url'),
+
+    # UserActivateView doesnt work: goes to login form, user not activated
     url(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
         account_views.UserActivateView.as_view(), name='activate_url'),
+
+
     url(r'^users/(?P<pk>\d+)/activated$', account_views.UserActivatedSuccess.as_view(),
         name='account_activation_success_url'),
 
@@ -78,6 +88,10 @@ urlpatterns = [
     # PR2018-04-21 debug: don't forget the .as_view() with brackets in the urlpattern!!!
     path('user/', include([
         path('', account_views.UserListView.as_view(), name='user_list_url'),
+        #step 1 in adding user: create user in add form,
+        # click on 'create user' submit button:
+        # - user is added to table accounts_user, activated=false
+        # - mail 'account_activation_email.html' is sent to user with link with account_activation_token
         path('add', account_views.UserAddView.as_view(), name='user_add_url'),
         path('<int:pk>/edit', account_views.UserEditView.as_view(), name='user_edit_url'),
         path('<int:pk>/delete', account_views.UserDeleteView.as_view(), name='user_delete_url'),
@@ -94,12 +108,12 @@ urlpatterns = [
     ])),
 
     path('customer/', include([
-        path('', customer_views.CustomerListView.as_view(), name='customer_list_url'),
+        path('', company_views.CustomerListView.as_view(), name='customer_list_url'),
         path('add/', customer_views.CustomerAddView.as_view(), name='customer_add_url'),
-        path('<int:pk>/', include([
-            path('edit/', customer_views.CustomerEditView.as_view(), name='customer_edit_url'),
-            path('delete/', customer_views.CustomerDeleteView.as_view(), name='customer_delete_url'),
-        ])),
+        #path('<int:pk>/', include([
+        #    path('edit/', customer_views.CustomerEditView.as_view(), name='customer_edit_url'),
+        #   path('delete/', customer_views.CustomerDeleteView.as_view(), name='customer_delete_url'),
+        #])),
         path('ajax/', include([
             path('upload/', customer_views.CustomerUploadView.as_view(), name='customer_upload_url'),
         ])),
@@ -107,11 +121,11 @@ urlpatterns = [
 
     path('employee/', include([
         path('', employee_views.EmployeeListView.as_view(), name='employee_list_url'),
-        path('add/', employee_views.EmployeeAddView.as_view(), name='employee_add_url'),
-        path('<int:pk>/', include([
-            path('edit/', employee_views.EmployeeEditView.as_view(), name='employee_edit_url'),
-            path('delete/', employee_views.EmployeeDeleteView.as_view(), name='employee_delete_url'),
-        ])),
+    #    path('add/', employee_views.EmployeeAddView.as_view(), name='employee_add_url'),
+    #    path('<int:pk>/', include([
+    #        path('edit/', employee_views.EmployeeEditView.as_view(), name='employee_edit_url'),
+    #        path('delete/', employee_views.EmployeeDeleteView.as_view(), name='employee_delete_url'),
+    #    ])),
         path('import', employee_views.EmployeeImportView.as_view(), name='employee_import_url'),
         path('ajax/', include([
             path('upload/', employee_views.EmployeeUploadView.as_view(), name='employee_upload_url'),
@@ -121,15 +135,17 @@ urlpatterns = [
         ])),
     ])),
 
-    path('order/', include([
-        path('ajax/', include([
-            path('uploadsetting', customer_views.OrderImportUploadSetting.as_view(), name='orderimport_uploadsetting_url'),
-            path('uploaddata', customer_views.OrderImportUploadData.as_view(), name='orderimport_uploaddata_url'),
-        ])),
-        path('import', customer_views.OrderImportView.as_view(), name='order_import_url'),
+    #path('order/', include([
+    #    path('import', customer_views.OrderImportView.as_view(), name='order_import_url'),
+    #    path('ajax/', include([
+    #        path('uploadsetting', customer_views.OrderImportUploadSetting.as_view(), name='orderimport_uploadsetting_url'),
+    #        path('uploaddata', customer_views.OrderImportUploadData.as_view(), name='orderimport_uploaddata_url'),
+    #    ])),
+    #])),
 
+    #path('verify/', include([
+    #    path('', planning_views.VerifyListView.as_view(), name='verify_list_url'),
 
+    #])),
 
-    ])),
 ]
-

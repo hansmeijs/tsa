@@ -1,9 +1,7 @@
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
-from companies.models import Company
-from customers.models import Customer
-from employees.models import Employee
+from companies.models import Company, Customer, Employee
 
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS
 
@@ -105,7 +103,18 @@ def employee_email_exists(email, company, this_pk = None):
     return msg_dont_add
 
 
-def customer_exists(field, value, company, this_pk = None):
+def check_date_overlap(datefirst, datelast, datefirst_is_updated):
+    # PR2019-03-29 check if first date is after last date
+    msg_dont_add = None
+    if datefirst and datelast:
+        if datefirst > datelast:
+            if datefirst_is_updated:
+                msg_dont_add = _("First date cannot be after last date.")
+            else:
+                msg_dont_add = _("Last date cannot be before first date.")
+    return msg_dont_add
+
+def validate_customer(field, value, company, this_pk = None):
     # validate if customer code_already_exists already exists in this company PR2019-03-04
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
@@ -131,17 +140,6 @@ def customer_exists(field, value, company, this_pk = None):
                 msg_dont_add = _("This code already exists.")
     return msg_dont_add
 
-
-def check_date_overlap(datefirst_int, datelast_int, datefirst_is_updated):
-    # PR2019-03-10 check if first date is after last date
-    msg_dont_add = None
-    if datefirst_int and datelast_int:
-        if datefirst_int > datelast_int:
-            if datefirst_is_updated:
-                msg_dont_add = _("First date cannot be after last date.")
-            else:
-                msg_dont_add = _("Last date cannot be before first date.")
-    return msg_dont_add
 
 
 class validate_unique_company_code(object):  # PR2019-03-15
@@ -234,7 +232,6 @@ class validate_unique_code(object):  # PR2019-03-16
                     if self.field == 'name':
                         raise ValidationError(_('Name already exists.'))
         return value
-
 
 class validate_unique_employee_name(object):  # PR2019-03-15
     def __init__(self, instance=None):

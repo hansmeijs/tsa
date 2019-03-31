@@ -13,3 +13,11 @@
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
     margin: 0px;
 }
+
+.tsa-tr-highlighted {
+    background: #e0e0e0; /* licht grijs; */
+}
+
+.tsa-tr-error {
+    background: #f1b5b5; /* licht rood; */
+}

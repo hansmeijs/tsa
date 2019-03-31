@@ -1,11 +1,47 @@
 # PR2018-05-28
 from datetime import date, timedelta
 from django.utils import formats
+from django.utils.translation import ugettext_lazy as _
+
 from tsap.constants import BASE_DATE, MONTHS_ABBREV
 
 import logging
 logger = logging.getLogger(__name__)
 
+
+def get_date_from_str(date_str):  # PR2019-03-08
+    #logger.debug('............. get_date_from_str: ' + str(date_str))
+    dte = None
+    msg_txt = None
+    if date_str:
+        try:
+            date_list = []
+            list_ok = False
+            if '-' in date_str:
+                date_list = date_str.split('-')
+                list_ok = True
+            elif '/' in date_str:
+                date_list = date_str.split('/')
+                list_ok = True
+            if list_ok and date_list:
+                    #date format is yyyy-mm-dd
+                    if date_list[0].isnumeric():
+                        year_int = int(date_list[0])
+                        #logger.debug('year_int: ' + str(year_int) + str(type(year_int)))
+                        if date_list[1].isnumeric():
+                            month_int = int(date_list[1])
+                            #logger.debug('month_int: ' + str(month_int) + str(type(month_int)))
+                            if date_list[2].isnumeric():
+                                day_int = int(date_list[2])
+                                #logger.debug('day_int: ' + str(day_int) + str(type(day_int)))
+                                dte = date(year_int, month_int, day_int)
+
+                    #logger.debug('dte: ' + str(dte) + str(type(dte)))
+        except:
+            msg_txt = "'" + date_str + "'" + _("is not a valid date.")
+            #logger.debug('msg_txt: ' + str(msg_txt) + str(type(msg_txt)))
+            pass
+    return dte, msg_txt
 
 def get_date_from_dateint(date_int):  # PR2019-03-06
     # Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use dithis basedate)
@@ -32,6 +68,15 @@ def get_date_str_from_dateint(date_int):  # PR2019-03-08
         dte_str = year_str + '-' + month_str[-2:] + '-' + day_str[-2:]
     return dte_str
 
+def get_date_str(dte):
+    # Function return date 'yyyy-mm-dd' PR2019-03-27
+    dte_str = ''
+    if dte:
+        year_str = str(dte.strftime("%Y"))
+        month_str = str(dte.strftime("%m")) # %m is zero-padded
+        day_str = str(dte.strftime("%d"))  # %d is zero-padded
+        dte_str = '-'.join([year_str, month_str, day_str])
+    return dte_str
 
 def get_date_formatted(date_int):  # PR2019-03-07
     # Function gives formatted date from dat_int.
@@ -43,58 +88,17 @@ def get_date_formatted(date_int):  # PR2019-03-07
     return dte_str
 
 
-def get_date_int_from_yyyymmdd(date_str):  # PR2019-03-08
-    logger.debug('............. get_date_int_from_yyyymmdd: ' + str(date_str) + str(type(date_str)))
-    date_int = 0
-    if date_str:
-        try:
-            # date format is yyyy-mm-dd
-            date_list = date_str.split('-')
-            if date_list[0].isnumeric():
-                year_int = int(date_list[0])
-                logger.debug('year_int: ' + str(year_int) + str(type(year_int)))
-                if date_list[1].isnumeric():
-                    month_int = int(date_list[1])
-                    logger.debug('month_int: ' + str(year_int) + str(type(month_int)))
-                    if date_list[2].isnumeric():
-                        day_int = int(date_list[2])
-                        logger.debug('day_int: ' + str(day_int) + str(type(day_int)))
-                        dte = date(year_int, month_int, day_int)
-                        logger.debug('dte: ' + str(dte) + str(type(dte)))
-                        delta = dte - BASE_DATE
-                        date_int = delta.days
-                        logger.debug('date_int: ' + str(date_int) + str(type(date_int)))
-        except:
-            pass
-    return date_int
-
-
-def get_date_int_from_dte(date_dte):  # PR2019-03-15
-    logger.debug('............. get_date_int_from_dte: ' + str(date_dte) + str(type(date_dte)))
-    date_int = 0
-    if date_dte:
-        try:
-            delta = date_dte - BASE_DATE
-            date_int = delta.days
-            logger.debug('date_int: ' + str(date_int) + str(type(date_int)))
-        except:
-            pass
-    return date_int
-
-
 def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09
-    logger.debug('............. get_date_longstr_from_dte: ' + str(dte) + ' lang: ' + str(lang))
+    #logger.debug('............. get_date_longstr_from_dte: ' + str(dte) + ' lang: ' + str(lang))
     date_longstr = ''
     if dte:
         try:
             year_str = str(dte.year)
             day_str = str(dte.day)
-            logger.debug(' MONTHS_ABBREV: ' + str(MONTHS_ABBREV) + ' lang: ' + str(MONTHS_ABBREV))
+            month_lang = ''
             if lang in MONTHS_ABBREV:
                 month_lang = MONTHS_ABBREV[lang]
-            logger.debug(' month_lang: ' + str(month_lang) + ' lang: ' + str(month_lang))
             month_str = month_lang[dte.month]
-            logger.debug(' month_str: ' + str(month_str) + ' lang: ' + str(month_str))
 
             if lang == 'en':
                 time_longstr = dte.strftime("%H:%M %p")
@@ -105,7 +109,7 @@ def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09
                 date_longstr = ' '.join([day_str, month_str, year_str, time_longstr])
         except:
             pass
-    logger.debug('............. date_longstr: ' + str(date_longstr) + ' lang: ' + str(lang))
+    # logger.debug('............. date_longstr: ' + str(date_longstr) + ' lang: ' + str(lang))
     return date_longstr
 
 
@@ -180,5 +184,4 @@ def slice_firstlast_delim(list_str):  # PR2018-11-22
             if list_str[-1] == ';':
                 list_str = list_str[:-1]
     return list_str
-
 

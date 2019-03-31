@@ -20,7 +20,8 @@ from django.views.decorators.csrf import csrf_protect # PR2018-10-14
 from django.contrib.auth import update_session_auth_hash # PR2018-10-14
 from django.views.decorators.cache import never_cache # PR2018-10-14
 
-from tsap.functions import get_date_int_from_yyyymmdd
+from companies.models import Company
+
 from tsap.headerbar import get_headerbar_param
 
 from django.contrib.auth import (
@@ -133,81 +134,86 @@ class UserAddView(CreateView):
 
         if form.is_valid():
             logger.debug('UserAddView post is_valid form.data: ')
-            company = request.user.company
+            if request.user.company is not None:
         # create random password
-            randompassword = User.objects.make_random_password() + User.objects.make_random_password()
-            form.cleaned_data['password1'] = randompassword
-            form.cleaned_data['password2'] = randompassword
+                randompassword = User.objects.make_random_password() + User.objects.make_random_password()
+                form.cleaned_data['password1'] = randompassword
+                form.cleaned_data['password2'] = randompassword
 
         # save user without commit
-            user = form.save(commit=False)
-            # logger.debug('UserAddView post form.save after commit=False')
+                new_user = form.save(commit=False)
+                # logger.debug('UserAddView post form.save after commit=False')
+
+        # ======  save field 'company'  ============
+            # user.company cannot be changed, except for users with role.system. They can switch company in headerbar.
+                new_user.company = request.user.company
 
 # ======  save field 'Username'  ============
-            # Add comapnyprefix to username
-            prefixed_username = request.user.company.companyprefix + form.cleaned_data.get('username')
-            logger.debug('prefixed_username: ' + str(prefixed_username))
-            user.username = prefixed_username
+                # Add compayprefix to username
+                prefixed_username = new_user.company.companyprefix + form.cleaned_data.get('username')
+                logger.debug('prefixed_username: ' + str(prefixed_username))
+                new_user.username = prefixed_username
 
-# ======  save field 'Role'  ============
-        # only request.user with role=System and role=Insp kan set different role, School can only set its own role
-            logger.debug('UserAddView post form.is_valid request.user.role: '+ str(request.user.role))
-            role_int = form.cleaned_data.get('role_list')
+        # ======  save field 'Role'  ============
+                # only request.user with role=System  kan set different role, Company can only set its own role
+                if request.user.is_role_system:
+                    role_int = form.cleaned_data.get('role_list')
+                else:
+                    role_int = request.user.role
+                new_user.role = role_int
+                # logger.debug('UserAddView post form.is_valid user.username: '+ str(user.username))
+                # logger.debug('UserAddView post form.is_valid user.role: '+ str(user.role))
 
-            # logger.debug('UserAddView post form.is_valid user.username: '+ str(user.username))
-            # logger.debug('UserAddView post form.is_valid user.role: '+ str(user.role))
+        # ======  save field 'Permit'
+                permit_sum = 0
+                permit_list = form.cleaned_data.get('permit_list')
+                if permit_list:
+                    for item in permit_list:
+                        try:
+                            permit_sum = permit_sum + int(item)
+                        except:
+                            pass
+                new_user.permits = permit_sum
 
-# ======  save field 'Company'  ============ PR2019-03-13
-        # user.company cannot be changed, except for users with role.system. They can switch country in headerbar.
-            user.company = request.user.company
+                new_user.is_active = False
+                new_user.activated = False
 
+                new_user.save(self.request)  # PR 2018-08-04 debug: was: user.save()
+                # logger.debug('UserAddView post password: ' +  str(user.password))
 
-        # save field 'Permit'
-            permit_sum = 0
-            permit_list = form.cleaned_data.get('permit_list')
-            if permit_list:
-                for item in permit_list:
-                    try:
-                        permit_sum = permit_sum + int(item)
-                    except:
-                        pass
-            user.permits = permit_sum
+                current_site = get_current_site(request)
+                # logger.debug('UserAddView post current_site: ' +  str(current_site))
 
-            user.is_active = False
-            user.activated = False
+                # domain = current_site.domain
+                # logger.debug('UserAddView post domain: ' +  str(domain) + '\n')
 
-            user.save(self.request)  # PR 2018-08-04 debug: was: user.save()
-            # logger.debug('UserAddView post password: ' +  str(user.password))
+                # uid_code = urlsafe_base64_encode(force_bytes(user.pk))
+                # logger.debug('UserAddView post uid_code: ' + str(uid_code))
 
-            current_site = get_current_site(request)
-            # logger.debug('UserAddView post current_site: ' +  str(current_site))
+                # token = account_activation_token.make_token(user)
+                # logger.debug('UserAddView post token: ' + str(token))
 
-            # domain = current_site.domain
-            # logger.debug('UserAddView post domain: ' +  str(domain) + '\n')
+                subject = _('Activate your TSA-secure account')
+                from_email = 'TSA-secure <noreply@tsasecure.com>'
+                message = render_to_string('account_activation_email.html', {
+                    'user': new_user,
+                    'domain': current_site.domain,
+                    # PR2018-04-24 debug: In Django 2.0 you should call decode() after base64 encoding the uid, to convert it to a string:
+                    # 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'uid': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
+                    'token': account_activation_token.make_token(new_user),
+                })
+                # logger.debug('UserAddView post subject: ' + str(subject))
+                # PR2018-12-31 moved from accounts_user to here
+                # PR2018-04-25 arguments: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=None)
+                send_mail(subject, message, from_email, [new_user.email], fail_silently=False)
 
-            # uid_code = urlsafe_base64_encode(force_bytes(user.pk))
-            # logger.debug('UserAddView post uid_code: ' + str(uid_code))
+                # logger.debug('UserAddView post message sent. ')
+                return redirect('account_activation_sent_url')
+            else:
+                # TODO: message that company is not correct
+                 return render(request, 'user_add.html', {'form': form})
 
-            # token = account_activation_token.make_token(user)
-            # logger.debug('UserAddView post token: ' + str(token))
-
-            subject = 'Activate Your TSA secure Account'
-            from_email = 'TSA secure <noreply@tsasecure.com>'
-            message = render_to_string('account_activation_email.html', {
-                'user': user,
-                'domain': current_site.domain,
-                # PR2018-04-24 debug: In Django 2.0 you should call decode() after base64 encoding the uid, to convert it to a string:
-                # 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                'uid': urlsafe_base64_encode(force_bytes(user.pk)).decode(),
-                'token': account_activation_token.make_token(user),
-            })
-            # logger.debug('UserAddView post subject: ' + str(subject))
-            # PR2018-12-31 moved from accounts_user to here
-            # PR2018-04-25 arguments: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=None)
-            send_mail(subject, message, from_email, [user.email], fail_silently=False)
-
-            # logger.debug('UserAddView post message sent. ')
-            return redirect('account_activation_sent_url')
         else:
             # logger.debug('UserAddView post NOT is_valid form.data: ' + str(form.data))
             return render(request, 'user_add.html', {'form': form})
@@ -357,7 +363,7 @@ class UserActivateView(UpdateView):
     template_name = 'user_edit.html'  # without template_name Django searches for user_form.html
     pk_url_kwarg = 'pk'
     context_object_name = 'UserActivateForm'  # "context_object_name" changes the original parameter name "object_list"
-
+    # this one doesnt word: goes to login form, user not activated
     def activate(request, uidb64, token):
         logger.debug('UserActivateView def activate request: ' +  str(request))
 
@@ -413,7 +419,7 @@ def UserActivate(request, uidb64, token):
     #  'You have successfully activated your TSA-secure account.
     #  Before you can login you have to create a password.
     #  Click "Create password" and follow the instructions.
-    logger.debug('UserActivate def activate request: ' + str(request))
+    logger.debug('UserActivate request: ' + str(request) + str(uidb64))
 
     try:
         uid = force_text(urlsafe_base64_decode(uidb64))

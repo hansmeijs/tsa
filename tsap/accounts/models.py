@@ -11,8 +11,8 @@ from tsap.constants import USERNAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, \
     ROLE_00_EMPLOYEE, ROLE_01_COMPANY, ROLE_02_SYSTEM, \
     PERMIT_DICT, PERMIT_00_NONE, PERMIT_01_READ, PERMIT_02_WRITE, PERMIT_04_AUTH, PERMIT_08_ADMIN
 from tsap import authentication as auth
-from companies.models import Company, Department
-from employees.models import Employee
+from companies.models import Company
+from companies.models import Employee
 
 import logging
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ class User(AbstractUser):
     activated_at = DateTimeField(null=True)
     company = ForeignKey(Company, null=True, blank=True, related_name='users', on_delete=PROTECT)
     employee = ForeignKey(Employee, null=True, blank=True, related_name='users', on_delete=PROTECT)
-    department = ForeignKey(Department, null=True, blank=True, related_name='users', on_delete=PROTECT)
+   #  department = ForeignKey(Department, null=True, blank=True, related_name='users', on_delete=PROTECT)
     deplist = CharField(max_length=255, null=True, blank=True)
 
     lang = CharField(max_length=4, null=True, blank=True)
@@ -167,7 +167,8 @@ class User(AbstractUser):
 
     @property
     def permits_tuple(self):
-        # PR2018-05-27 permits_tuple converts self.permits string into tuple, e.g.: permits=15 will be converted to permits_tuple=(1,2,4,8)
+        # PR2018-05-27 permits_tuple converts self.permits string into tuple,
+        # e.g.: permits=15 will be converted to permits_tuple=(1,2,4,8)
         permits_int = self.permits
         permits_list = []
         if permits_int is not None:
@@ -328,12 +329,13 @@ class User(AbstractUser):
         return _("You must be logged in to view this page.")
 
     @property
-    def enable_user_view_modify(self):
-        return not bool(auth.get_message(self, 'user_view_modify'))
+    def permit_user_modify(self):  # PR2019-03-26
+        return not bool(auth.get_message(self, 'permit_user_modify'))
 
     @property
-    def message_user_view_modify(self):  # PR2018-08-18
-        return auth.get_message(self, 'user_view_modify')
+    def message_user_modify(self):  # PR2019-03-26
+        return auth.get_message(self, 'permit_user_modify')
+
 # +++++++++++++++++++  END OF FORM PERMITS  +++++++++++++++++++++++
 
 # PR2018-05-06

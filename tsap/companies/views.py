@@ -16,13 +16,23 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, DeleteView, View, ListView, CreateView, FormView
 
-from tsap.functions import get_date_int_from_dte
 from tsap.headerbar import get_headerbar_param
-from companies.models import Company
+from companies.models import Company, Customer
 from companies.forms import CompanyAddForm, CompanyEditForm
+
+from django.utils.functional import Promise
+from django.utils.encoding import force_text
+from django.core.serializers.json import DjangoJSONEncoder
 
 import logging
 logger = logging.getLogger(__name__)
+
+# === LazyEncoder ===================================== PR2019-03-04
+class LazyEncoder(DjangoJSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Promise):
+            return force_text(obj)
+        return super(LazyEncoder, self).default(obj)
 
 def home(request):
     # function get_headerbar_param sets:
@@ -99,20 +109,21 @@ class CompanyAddView(CreateView):
         form = CompanyAddForm(self.request.POST, request=self.request)  # this one doesn't work: form = ExamyearAddForm(request=request)
 
         if form.is_valid():
-            # logger.debug('ExamyearAddView post is_valid form.data: ' + str(form.data))
+            logger.debug('CompanyAddView post is_valid form.data: ' + str(form.data))
 
             # save without commit
             self.new_company = form.save(commit=False)
 
 
             # ======  save field 'depbase_list_field'  ============
-            self.clean_date_first_field = form.cleaned_data.get('date_first_field')  # Type: <class 'list'>
-            logger.debug('form.clean_date_first_field: ' + str(self.clean_date_first_field) + ' type: ' +  str(type(self.clean_date_first_field)))
-            if self.clean_date_first_field is not None:
-                self.date_first_int = get_date_int_from_dte(self.clean_date_first_field)  # PR2019-03-15
-                logger.debug('self.date_first_int: ' + str(self.date_first_int))
-                if self.date_first_int:
-                    self.new_company.date_first_int = self.date_first_int
+            #self.clean_date_first_field = form.cleaned_data.get('datefirst')
+            #logger.debug('form.clean_date_first_field: ' + str(self.clean_date_first_field) + ' type: ' +  str(type(self.clean_date_first_field)))
+            #if self.clean_date_first_field is not None:
+            #    self.date_first_int = get_date_int_from_dte(self.clean_date_first_field)  # PR2019-03-15
+            ##    logger.debug('self.date_first_int: ' + str(self.date_first_int))
+            #    if self.date_first_int:
+            #        self.new_company.date_first_int = self.date_first_int
+
             # save examyear with commit
             # PR2018-08-04 debug: don't forget argument (request), otherwise gives error 'tuple index out of range' at request = args[0]
             self.new_company.save(request=self.request)
@@ -153,5 +164,29 @@ class CompanyDeleteView(DeleteView):
         else:
             raise Http404  # or return HttpResponse('404_url')
 
+
+# === Customer ===================================== PR2019-03-27
+@method_decorator([login_required], name='dispatch')
+class CustomerListView(View):
+
+    def get(self, request):
+        param = {}
+
+        if request.user.company is not None:
+            # add customer_list to headerbar parameters PR2019-03-02
+
+            logger.debug('Customer: ' + str(Customer)+ str(type(Customer)))
+            logger.debug('Customer.objects: ' + str(Customer.objects) + str(type(Customer.objects)))
+            count = Customer.objects.filter(company=request.user.company).count()
+            logger.debug('count: ' + str(count)+ str(type(count)))
+
+            customers = Customer.objects.filter(company=request.user.company)
+
+            # set headerbar parameters PR 2018-08-06
+            param = get_headerbar_param(request, {'customers': customers})
+            #logger.debug('EmployeeListView param: ' + str(param))
+
+        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
+        return render(request, 'customers.html', param)
 
 

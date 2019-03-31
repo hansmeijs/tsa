@@ -5,12 +5,10 @@
 {% block stylesheet %}
    <!-- <link rel="stylesheet" href="{% static 'css/awpr_table.css' %}"> -->
    <link rel="stylesheet" href="{% static 'css/customers.css' %}">
-   <link rel="stylesheet" href="{% static 'css/dateselector.css' %}">
-   <link rel="stylesheet" href="{% static 'css/tsap.css' %}">
 {% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/employees.js' %}"></script>
+    <script src="{% static 'js/verify.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -22,7 +20,7 @@
 
         <div class="content_header">
             <div class="content_subheader_left">
-                <h5 id="id_content_header_name" title="test title">{% trans 'Employees' %} </h5>
+                <h5 id="id_content_header_name" title="test title">{% trans 'Verify' %} </h5>
             </div>
             <div class="content_subheader_right">
                 <input id="id_filter_name" type="text" class="fieldname pt-0 pb-0" colspan=2 placeholder="{% trans 'filter...' %}">
@@ -32,47 +30,37 @@
         <table class="table table table-condensed tsa-tbl">
           <thead class="thead-inverse">
             <tr>
-              <th>
-                <a id="id_filter_inactive" href="#"
-                   value="true">
-                    <img id="id_img_filter_inactive" src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
-                </a>
-              </th>
-              <th>{% trans 'Code' %}</th>
-              <th>{% trans 'Last name' %}</th>
-              <th>{% trans 'First name' %}</th>
-              <th>{% trans 'Prefix' %}</th>
-              <th>{% trans 'Email' %}</th>
-              <th>{% trans 'Telephone' %}</th>
-              <th>{% trans 'Start date' %}</th>
-              <th>{% trans 'Modified by' %}</th>
-              <th>{% trans 'Modified at' %}</th>
+              <th>{% trans 'Date' %}</th>
+              <th>{% trans 'Order' %}</th>
+              <th>{% trans 'Employee' %}</th>
+              <th>{% trans 'Shift' %}</th>
+              <th>{% trans 'Start time' %}</th>
+              <th>{% trans 'End time' %}</th>
+              <th>{% trans 'Working hours' %}</th>
+              <th>{% trans 'Status' %}</th>
+              <th>{% trans 'Billing hours' %}</th>
+              <th>{% trans 'Status' %}</th>
               <th></th>
             </tr>
           </thead>
           <tbody id="id_tbody">
-            {% for item in employees.all %}
+            {% for item in emplorderhours.all %}
               <tr id="{{ item.pk }}" class="display_hide" >
                 <td>
-                    <a name="inactive" href="#"
-                       value="{{ item.inactive }}"
-                       class="input_icon">
-                        {% if item.inactive %}
-                            <img src="{% static 'img/inactive_black.png' %}" height="24" width="24">
-                        {% else %}
-                            <img src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
-                        {% endif %}
-                    </a>
+                    <input name="rosterdate"
+                           type="date"
+                           autocomplete="off"
+                           value="{{ item.rosterdate }}}"
+                           o_value="{{ item.rosterdate}}"
+                           class="input_text border-none" >
                 </td>
                 <td>
-                    <!-- if autocomplete="off" doesn't work, use: autocomplete="new-password" -->
-                    <input name="code"
-                           type="text"
-                           autocomplete="off"
-                           maxlength="{{ item.maxlen_code }}"
-                           value="{{ item.code}}"
-                           o_value="{{ item.code}}"
-                           class="input_text border-none" >
+                    <select id="simple" name="simple">
+                          <option>Banana</option>
+                          <option>Cherry</option>
+                          <option>Lemon</option>
+                    </select>
+
                 </td>
                 <td>
                     <input name="name_last"
@@ -123,11 +111,10 @@
                     <input name="datefirst"
                            type="date"
                            autocomplete="off"
-                           value={{ item.datefirst_str}}
-                           o_value={{ item.datefirst_str}}
+                           value="{{ item.datefirst}}"
+                           o_value="{{ item.datefirst}}"
                            max="{{ item.datelast}}"
                            class="input_text border-none" >
-
                 </td>
                 <td >
                     <input name="modified_by"
@@ -167,6 +154,7 @@
         data-img_active_src = "{% static 'img/inactive_grey.png' %}"
         data-img_delete_src="{% static 'img/delete.gif' %}"
         data-employee_upload_url= "{% url 'employee_upload_url' %}"
+        data-info_ismand_cap="{% trans 'Subject is mandatory.' %}"
         data-err_msg01= "{% trans 'An error occurred.' %}"
     ></div>
 

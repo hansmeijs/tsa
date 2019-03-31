@@ -4,18 +4,18 @@ from django.core.exceptions import ValidationError
 from django.forms import ModelForm, IntegerField, ChoiceField, CharField, MultipleChoiceField, SelectMultiple
 from django.utils.translation import ugettext_lazy as _
 
-from customers.models import Customer
+from companies.models import Employee
 
 # === Customer ===================================== # PR1019-03-02
 class EmployeeAddForm(ModelForm):
 
     class Meta:
-        model = Customer
-        fields = ('code', 'name', 'date_first_int', 'date_last_int')
+        model = Employee
+        fields = ('code', 'name_last', 'datefirst', 'datelast')
         labels = {'code': _('Code'),
-                  'name': _('Name'),
-                  'date_first': _('First date'),
-                  'date_last': _('last date'),
+                  'name_last': _('Last name'),
+                  'datefirst': _('First date'),
+                  'datelast': _('last date'),
                   }
 
     def __init__(self, *args, **kwargs):
@@ -26,12 +26,12 @@ class EmployeeAddForm(ModelForm):
 class EmployeeEditForm(ModelForm):
 
     class Meta:
-        model = Customer
-        fields = ('code', 'name', 'date_first_int', 'date_last_int' , 'locked', 'inactive')
+        model = Employee
+        fields = ('code', 'name_last', 'datefirst', 'datelast' , 'locked', 'inactive')
         labels = {'code': _('Code'),
                   'name': _('Name'),
-                  'date_first': _('First date'),
-                  'date_last': _('Last date'),
+                  'datefirst': _('First date'),
+                  'datelast': _('Last date'),
                   'locked': _('Locked'),
                   'inactive': _('Inactive'),
                   }

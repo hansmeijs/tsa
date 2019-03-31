@@ -42,8 +42,8 @@ INSTALLED_APPS = [
 # PR2019-02-28
     'accounts',
     'companies',
-    'customers',
     'employees',
+    'customers',
     'planning',
 
     'session_security',  # PR2019-02-28
@@ -279,6 +279,13 @@ LOGGING = {
             'filename': config('LOGGER_BASEDIR') + 'employees.log',
             'formatter': 'verbose'
         },
+        'planning_log': {
+            'level': 'DEBUG',
+            'filters': ['require_debug_true'],
+            'class': 'logging.FileHandler',
+            'filename': config('LOGGER_BASEDIR') + 'planning.log',
+            'formatter': 'verbose'
+        },
         'tsap_log': {
             'level': 'DEBUG',
             'filters': ['require_debug_true'],
@@ -310,6 +317,7 @@ LOGGING = {
         'companies': {'handlers': ['companies_log'], 'level': 'DEBUG', 'propagate': True},
         'customers': {'handlers': ['customers_log'], 'level': 'DEBUG', 'propagate': True},
         'employees': {'handlers': ['employee_log'], 'level': 'DEBUG', 'propagate': True},
+        'planning': {'handlers': ['planning_log'], 'level': 'DEBUG', 'propagate': True},
         'tsap': {'handlers': ['tsap_log'], 'level': 'DEBUG', 'propagate': True},
     }
 }

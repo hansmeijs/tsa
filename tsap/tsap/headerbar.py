@@ -4,7 +4,9 @@ from django.utils.translation import activate, ugettext_lazy as _
 from datetime import date, timedelta, datetime
 from django.utils import formats
 from tsap.constants import BASE_DATE
-from companies.models import Company, Department
+from companies.models import Company
+
+from companies.functions import get_company_list
 
 #from awpr.menus import lookup_button_key_with_viewpermit, save_setting, set_menu_items
 
@@ -16,6 +18,8 @@ logger = logging.getLogger(__name__)
 from django.utils.functional import Promise
 from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
+
+from tsap.functions import id_found_in_list
 
 class LazyEncoder(DjangoJSONEncoder):
     def default(self, obj):
@@ -67,7 +71,7 @@ def get_headerbar_param(request, params):
         #   system and insp can choose from all examyear
         #   school can only choose from examyear from that school
 
-        company_list, rowcount = Company.get_company_list(request.user)
+        company_list, rowcount = get_company_list(request.user)
 
         if rowcount == 0:
             company = _('<No company found>')
@@ -81,7 +85,11 @@ def get_headerbar_param(request, params):
 
 # PR2018-08-24 select department
         if display_dep:
-            dep_list, allowed_dep_count = Department.get_dep_list(request)
+            # TODO debug in get_dep_list PR2019-03-24
+            dep_list = []
+            allowed_dep_count = 0
+            # dep_list, allowed_dep_count = get_dep_list(request.user)
+
             # logger.debug('------------ get_headerbar_param ------------------------')
             # logger.debug('depbase_list: <' + str(_depbase_list) + '> Type: ' + str(type(_depbase_list)))
             # logger.debug('depbase_count: <' + str(allowed_dep_count) + '> Type: ' + str(type(allowed_dep_count)))
@@ -92,10 +100,10 @@ def get_headerbar_param(request, params):
                     select_dep = True
 
                 depname = _('<Select department>')
-                if request.user.depbase:
-                    department = Department.objects.filter(base=request.user.depbase, examyear=request.user.examyear).first()
-                    if department:
-                        depname = department.code
+                # if request.user.depbase:
+                    # department = Department.objects.filter(base=request.user.depbase, examyear=request.user.examyear).first()
+                    #if department:
+                    #     depname = department.code
 
 # ------- set menu_items -------- PR2018-12-21
 
@@ -125,3 +133,5 @@ def get_headerbar_param(request, params):
     # logger.debug('get_headerbar_param headerbar: ' + str(headerbar))
 
     return headerbar
+
+

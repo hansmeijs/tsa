@@ -4,15 +4,10 @@
 {% block title %}{{ block.super }}{% endblock %}
 
 {% block breadcrumb %}
-  <ol class="breadcrumb my-3">
-    <li class="breadcrumb-item"><a href="{% url 'home' %}">TSA secure</a></li>
-    <li class="breadcrumb-item"><a href="{% url 'user_list_url' %}">{% trans 'Users' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'Add user' %}</li>
-  </ol>
 {% endblock %}
 
 {% block content %}
-  {% if user.enable_user_view_modify %}
+  {% if user.permit_user_modify %}
     <h4>{% trans 'Add user' %}</h4>
     <form method="post" novalidate>
       {% csrf_token %}
@@ -32,7 +27,7 @@
       </div>
     </form>
   {% else %}
-    <div class="alert alert-danger">{{ user.message_user_view_modify }}</div>
+    <div class="alert alert-danger">{{ user.message_user_modify }}</div>
     <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
   {% endif %}
 

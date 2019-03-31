@@ -217,39 +217,52 @@ console.log("=========  function AddTableRow =========");
                 //console.log("id_str: ", id_str);
                 let employee = {"pk": id_str};
 
-    // ---  loop through cells and input element of tr_changed
+    // ---  loop through cels and input element of tr_changed
                 for (let i = 0, el_input, el_name, n_value, o_value, len = tr_changed.cells.length; i < len; i++) {
                     // el_input is first child of td, td is cell of tr_changed
                     el_input = tr_changed.cells[i].children[0];
                     //console.log( "el_input: ", el_input, typeof el_input);
 
-                    if(el_input.hasAttribute("name")){
+                    if(el_input.hasAttribute("name") && el_input.hasAttribute("value")){
                         if(el_input.classList.contains("input_text")){
                             // PR2019-03-17 debug: getAttribute("value");does not get the current value
                             // The 'value' attribute determines the initial value (el_input.getAttribute("name").
                             // The 'value' property holds the current value (el_input.value).
                             el_name = el_input.getAttribute("name");
+                            n_value = el_input.value
+                            //console.log( "el_name: ", el_name, typeof el_name);
+                            //console.log( "n_value: ", n_value, typeof n_value);
+
                             if(!!el_name){
-                                n_value = "";
-                                o_value = "";
-                                if (!!el_input.value){
-                                    n_value = el_input.value;
-                                }
-                                if(el_input.hasAttribute("o_value")){
-                                    o_value = el_input.getAttribute("o_value");
-                                }
-                                // n_value is only added to dict when value has changed
-                                // n_value can be blank
-                                if(n_value !== o_value){
-                                    employee[el_name] = n_value
+                                //if(el_input.hasAttribute("o_value")){o_value = el_input.getAttribute("o_value")}
+                                //console.log( "o_value: ", o_value, typeof o_value);
+                                if (!!n_value){
+                                    //if (!!o_value) {
+                                        //skip if old and new value are the same'
+                                        // add both old and new value when they are different'
+                                    //    if(n_value !== o_value){
+                                    //        employee[el_name] = n_value
+                                    //        employee['o_' + el_name] = o_value
+                                   //     }
+                                   // } else {
+                                        //add new value when there is no old value (new entry)
+                                        employee[el_name] = n_value
+                                   // }
+                                } else {
+                                    //add old value when there is no new value (entry deleted)
+                                    //skip if both old and new value are blank
+                                    //if (!!o_value) {employee['o_' + el_name] = o_value }
+
+                                    employee['blank_' + el_name] = 'blank'
                                 }
                             }
                         }
                     }  //  if(el_input.classList.contains("input_text")
                 };  //  for (let i = 0, el_input,
 
+
                 //employee: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
-                console.log ("employee before ajax", employee);
+                console.log ("employee", employee);
                 let parameters = {"employee": JSON.stringify (employee)};
                 let url_str = $("#id_data").data("employee_upload_url");
 

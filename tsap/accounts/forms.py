@@ -7,14 +7,13 @@ from django.core.validators import RegexValidator
 from django.shortcuts import render
 from django.utils.translation import ugettext_lazy as _
 
-from tsap import constants as c
-from tsap import functions as f
+
 from companies.models import Company
-from companies.models import Department
+
 from django.forms.widgets import PasswordInput
 from django.core.exceptions import ValidationError
 
-from tsap.constants import NAME_MAX_LENGTH
+from tsap.constants import NAME_MAX_LENGTH, ROLE_01_COMPANY, ROLE_02_SYSTEM, PERMIT_01_READ, IS_ACTIVE_CHOICES
 
 from collections import OrderedDict
 
@@ -75,9 +74,6 @@ class UserAddForm(UserCreationForm):
         labels = {
             'username': _('Username'),
             'last_name': _('Full name'),
-            'role': _('Organization'),
-            'company': _('Company'),
-            'deplist': _('Departments'),
         }
 
     def __init__(self, *args, **kwargs):
@@ -90,16 +86,7 @@ class UserAddForm(UserCreationForm):
         if self.request_user.company:
             self.request_user_company = self.request_user.company
         # logger.debug('UserAddForm self.request_user_company: ' + str(self.request_user_company))
-#>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # ======= field 'name' ============
-           # self.fields['name'] = CharField(
-           #     max_length=50,
-           #     required=True,
-           #     validators=[validate_unique_level_name(self.request.user.examyear)]
-           # )
-           # self.fields['name'].widget.attrs.update(
-           #     {'autofocus': 'autofocus'})  # , 'placeholder': 'Default subject name'
-#>>>>>>>>>>>>>>>>>>>>>>>>>>
+
             # ======= field 'last_name' ============
             # field 'first_name' is not in use
             self.fields['last_name'] = CharField(
@@ -109,17 +96,14 @@ class UserAddForm(UserCreationForm):
                 help_text=_('Required, %(len)s characters or fewer.') % {'len': NAME_MAX_LENGTH},
             )
 
-        # ======= field 'email' ============
-
         # ======= field 'Role_list' ============
-        self.choices = []
-        if self.request_user.is_role_company:
-            self.choices = [(c.ROLE_00_EMPLOYEE, _('Employee')), ]
-            self.choices.append((c.ROLE_01_COMPANY, _('Company')))
+        # request.user with role=School: role = request.user.role, field is disabled
+        # request.user with role=Insp can set role=Insp and role=School
+        # request.user with role=System can set all roles
+        # PR2018-08-04
+        self.choices = [(ROLE_01_COMPANY, _('Company')), ]
         if self.request_user.is_role_system:
-            self.choices = [(c.ROLE_00_EMPLOYEE, _('Employee')), ]
-            self.choices.append((c.ROLE_01_COMPANY, _('Company')))
-            self.choices.append((c.ROLE_02_SYSTEM, _('System')))
+            self.choices.append((ROLE_02_SYSTEM, _('System')))
 
         self.fields['role_list'] = ChoiceField(
             required=True,
@@ -128,7 +112,8 @@ class UserAddForm(UserCreationForm):
             label=_('Organization'),
             initial=self.request_user.role
         )
-        self.fields['role_list'].disabled = self.request_user.is_role_employee
+        self.fields['role_list'].disabled = not self.request_user.is_role_system
+
 
 
     # ======= field 'Permits' ============
@@ -139,22 +124,23 @@ class UserAddForm(UserCreationForm):
             choices=self.request_user.permits_choices,  # choises must be tuple or list, dictionary gives error: 'int' object is not iterable
             label='Permissions',
             help_text=_('Select one or more permissions from the list. Press the Ctrl button to select multiple permissions.'),
-            initial= c.PERMIT_01_READ
+            initial= PERMIT_01_READ
         )
 
-    # ======= field 'Company_list' ============
-        # in AddMode: get examyear from request.user
-        company_choices = Company.company_choices(request_user=self.request.user)
-        self.fields['company'] = ChoiceField(
-            required=False,
-            widget=Select,
-            choices=company_choices,
-            label=_('Company')
-        )
 
     # remove fields 'password1'
         self.fields.pop('password1')
         self.fields.pop('password2')
+
+    # set field order
+        #self.fields_keyOrder = ['username', 'last_name', 'email', 'role_list', 'permit_list']
+        #if 'keyOrder' in self.fields:
+        #    self.fields.keyOrder = self.fields_keyOrder
+        #else:
+        #    self.fields = OrderedDict((k, self.fields[k]) for k in self.fields_keyOrder)
+
+
+
 
 # PR2018-04-23
 class UserActivateForm(ModelForm):
@@ -226,8 +212,8 @@ class UserEditForm(ModelForm):
         #   self.fields['role'].disabled = not self.request_user.is_role_system_perm_admin
         self.fields['role'].disabled = True
 
-    # ======= field 'Country' ============
-        # PR2018-11-03 lock filed Country.
+    # ======= field 'Company' ============
+        # PR2018-11-03 lock filed Company.
         self.fields['company'].disabled = True
 
 
@@ -287,7 +273,7 @@ class UserEditForm(ModelForm):
             __initial_is_active = int(self.this_instance.is_active)
         # logger.debug('UserEditForm __init__ instance ' + str(self.this_instance) + ' __initial_is_active: ' + str(__initial_is_active) + ' type : ' + str(type(__initial_is_active)))
         self.fields['field_is_active'] = ChoiceField(
-            choices=c.IS_ACTIVE_CHOICES,
+            choices=IS_ACTIVE_CHOICES,
             label=_('Active'),
             initial=__initial_is_active
         )

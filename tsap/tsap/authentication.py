@@ -11,7 +11,10 @@ def get_message(user, page_name ='None'):
     #         _has_permit = False
     # self.is_role_insp_or_system_and_perm_admin is: self.is_authenticated AND (self.is_role_system OR self.is_role_insp) AND (self.is_perm_admin:
 
-    _no_permission =_("You don't have permission to view this page.")
+    message_no_permission = _("You don't have permission to view this page.")
+
+    if user is None:
+        return message_no_permission
 
 # ===== every user must be authenticated
     if not user.is_authenticated:
@@ -19,7 +22,14 @@ def get_message(user, page_name ='None'):
         return _("You must be logged in to view this page.")
     # logger.debug('message : user is authenticated')
 
-# ===== every insp and school user must have a country PR2018-09-15
-    if not user.is_role_system:
-        if not user.company:
-            return _("You are not connected to a company. You cannot view this page.")
+# ===== every user must have a company PR2019-03-26
+    if not user.company:
+        return _("You are not connected to a company. You cannot view this page.")
+
+# === userlist: only admin can view and modify userlist
+    if page_name == 'permit_user_modify':
+        # only system and company admins can modify users
+        if user.is_role_system_and_perm_admin or user.is_role_company_and_perm_admin:
+            return None
+        else:
+            return message_no_permission

@@ -1,71 +1,28 @@
+
 # PR2019-03-02
-from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
+from django.http import HttpResponse
 
-from django.core.mail import send_mail
-from django.db import connection
-from django.db.models.functions import Lower
-from django.http import HttpResponse, HttpResponseRedirect, Http404
-
-from django.shortcuts import render, redirect #, get_object_or_404
-from django.urls import reverse_lazy
+from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.decorators import method_decorator
-from django.views.generic import UpdateView, DeleteView, View, ListView, CreateView, FormView
+from django.views.generic import UpdateView, CreateView
+
+from companies.models import Customer
+
+from customers.forms import CustomerAddForm#, CustomerEditForm
+from companies.views import LazyEncoder
+from tsap.headerbar import get_headerbar_param
+from tsap.validators import validate_customer, check_date_overlap
+from tsap.functions import get_date_from_str
 
 import json
-from django.utils.functional import Promise
-from django.utils.encoding import force_text
-from django.core.serializers.json import DjangoJSONEncoder
-
-from tsap.functions import get_date_int_from_yyyymmdd
-from tsap.headerbar import get_headerbar_param
-from tsap.constants import KEY_CUSTOMER_MAPPED_COLDEFS
-from companies.models import Company, Companysetting, Department
-from customers.models import Customer, Order
-from customers.forms import CustomerAddForm, CustomerEditForm
-from tsap.validators import customer_exists, check_date_overlap
 
 import logging
 logger = logging.getLogger(__name__)
 
 # PR2019-01-04 from https://stackoverflow.com/questions/19734724/django-is-not-json-serializable-when-using-ugettext-lazy
-
-# === LazyEncoder ===================================== PR2019-03-04
-class LazyEncoder(DjangoJSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Promise):
-            return force_text(obj)
-        return super(LazyEncoder, self).default(obj)
-
-
-# === Customer ===================================== PR2019-03-02
-@method_decorator([login_required], name='dispatch')
-class CustomerListView(View):
-
-    def get(self, request):
-        param = {}
-
-        if request.user.company is not None:
-            # add customer_list to headerbar parameters PR2019-03-02
-            customers = Customer.objects.filter(company=request.user.company)
-            customer_list = []
-            for customer in customers:
-                dict = {}
-                dict['id'] = customer.id
-                dict['name'] = customer.name
-                customer_list.append(dict)
-            customer_list = json.dumps(customer_list)
-            #logger.debug('customer_list: ' + str(customer_list))
-
-            # set headerbar parameters PR 2018-08-06
-            param = get_headerbar_param(request, {'customers': customers})
-            #logger.debug('CustomerListView param: ' + str(param))
-
-        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'customers.html', param)
 
 
 @method_decorator([login_required], name='dispatch')
@@ -107,9 +64,9 @@ class CustomerAddView(CreateView):
 
             return redirect('customer_list_url')
         else:
-            """If the form is invalid, render the invalid form."""
+            #If the form is invalid, render the invalid form.
             return render(self.request, 'customer_add.html', {'form': form})
-
+"""
 @method_decorator([login_required], name='dispatch')
 class CustomerEditView(UpdateView):
     # PR2018-04-17 debug: Specifying both 'fields' and 'form_class' is not permitted.
@@ -139,102 +96,220 @@ class CustomerDeleteView(DeleteView):
         else:
             raise Http404  # or return HttpResponse('404_url')
 
-
+"""
 @method_decorator([login_required], name='dispatch')
 class CustomerUploadView(UpdateView):# PR2019-03-04
 
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= CustomerUploadView ============= ')
+
+# --- Create empty row_dict with keys for all fields. Unused ones will be removed at the end
+        field_list = ('id', 'code', 'name', 'email', 'telephone',
+                      'datefirst', 'datelast', 'inactive', 'modified_by', 'modified_at')
+
+        row_dict = {}  # this one is not working: row_dict = dict.fromkeys(field_list, {})
+        for field in field_list:
+            row_dict[field] = {}
+
         if request.user is not None and request.user.company is not None:
+# --- Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-            activate(request.user.lang if request.user.lang else 'nl')
+            user_lang = request.user.lang if request.user.lang else 'nl'
+            activate(user_lang)
 
-            param = {}
             if 'customer' in request.POST:
-                customer_upload = json.loads(request.POST['customer'])
-                # {'pk': '4', 'code': 'mcb'}
-                if customer_upload is not None:
-                    logger.debug('customer_upload: ' + str(customer_upload))
-                    # field_list = ('code', 'name', 'datefirst', 'datelast')
-                                 # not use: 'deplist', 'locked', 'inactive', 'modby', 'modat')
+                # row_upload: {'pk': '4', 'code': 'mcb'}
+                row_upload = json.loads(request.POST['customer'])
+                if row_upload is not None:
+                    logger.debug('row_upload: ' + str(row_upload))
 
-                    if 'pk' in customer_upload:
-                        if customer_upload['pk']:
-                            this_pk = int(customer_upload['pk'])
-                            customer = Customer.objects.filter(id=this_pk, company=request.user.company).first()
+                    customer = None
+                    if 'pk' in row_upload and row_upload['pk']:
+# --- check if it is new record, get company if is existing record
+                        # new_record has pk 'new_1' etc
+                        if row_upload['pk'].isnumeric():
+                            pk_int = int(row_upload['pk'])
+                            customer = Customer.objects.filter(id=pk_int, company=request.user.company).first()
+                        else:
+                            # this attribute 'new': 'new_1' is necessary to lookup request row on page
+                            row_dict['id']['new'] = row_upload['pk']
+                            #row_dict: {'id': {'new': 'new_1'}, 'code': {},...
 
-                            if customer is not None:
-                                for field in ('code', 'name', 'datefirst', 'datelast'):
-                                    if field in customer_upload:
-                                        save_record = False
-                                        cust_dict = {}
-                                        id_str = 'id_' + field + '_' + str(customer.pk)
-                                        newvalue = customer_upload[field]
-                                        oldvalue = ''
-                                        date_first_int = 0
-                                        date_last_int = 0
+                        is_new_record = False
+                        save_changes = False
 
-                                        # validations #
-                                        # check if name already exists,
-                                        # function customer_exists also gives error on empty field
-                                        msg_dont_add = None
-                                        if field == 'code' or field == 'name':
-                                            msg_dont_add = customer_exists(field, newvalue, request.user.company, this_pk)
-                                        elif field == 'datefirst':
-                                            date_first_int = get_date_int_from_yyyymmdd(newvalue)
-                                            if date_first_int and customer.date_last:
-                                                msg_dont_add = check_date_overlap(date_first_int, customer.date_last, True)
-                                        elif field == 'datelast':
-                                            date_last_int = get_date_int_from_yyyymmdd(newvalue)
-                                            if customer.date_first and date_last_int:
-                                                msg_dont_add = check_date_overlap(customer.date_first, date_last_int, False)
+# ++++ enter new record ++++++++++++++++++++++++++++++++++++
+                        if customer is None:
+# --- validate if 'code' or 'name already exist and are not blank
+                            new_value = {'code': '', 'name': ''}
+                            for field in ('code', 'name'):
+                                if field in row_upload:
+                                    value_upload = row_upload[field] #if row_upload[field] else ''
+                                    msg_err = validate_customer(field, value_upload, request.user.company)
+                                    if msg_err:
+                                        row_dict[field]['err'] = msg_err
+                                    else:
+                                        new_value[field] = value_upload
 
-                                        if msg_dont_add:
-                                            cust_dict['err'] = msg_dont_add
+# --- add record if not has_error and both fields have value
+                            if new_value['code'] and new_value['name']:
+                                logger.debug('customer.save')
+                                customer = Customer(company=request.user.company,
+                                                    code=new_value['code'],
+                                                    name=new_value['name'])
+                                customer.save(request=self.request)
+                                row_dict['id']['new'] = True
+                                is_new_record = True
+
+# ++++ existing and new customer ++++++++++++++++++++++++++++++++++++
+                        if customer is not None:
+                            # logger.debug('field: ' + str(field))
+# --- add pk to row_dict
+                            pk_int = customer.pk
+                            row_dict['id']['pk'] = pk_int
+
+# --- delete record when key 'delete' exists in
+                            if 'delete' in row_upload:
+                                logger.debug('before delete ' + customer.name)
+                                customer.delete(request=self.request)
+                        # check if customer still exist
+                                customer = Customer.objects.filter(id=pk_int, company=request.user.company).first()
+                                if customer is None:
+                                    row_dict['id']['deleted'] = True
+                                else:
+                                    msg_err = _('This record could not be deleted.')
+                                    row_dict['id']['del_err'] = msg_err
+
+                                logger.debug('after delete row_dict: ' + str(row_dict))
+                            else:  # not a deleted record
+
+# --- validate if fields 'code' or 'name already exist and are not blank (when new record this is already done)
+                                if not is_new_record:
+                                    for field in ('code', 'name'):
+                                        if field in row_upload:
+                                            value_upload = row_upload[field] if row_upload[field] else ''
+                                            msg_err = validate_customer(field, value_upload, request.user.company)
+                                            if msg_err:
+                                                row_dict[field]['err'] = msg_err
+                                            else:
+                                                value_saved = getattr(customer, field, '')
+                                                logger.debug('value_saved: ' + str(value_saved))
+                                                if value_upload != value_saved:
+                                                    setattr(customer, field, value_upload)
+                                                    row_dict[field]['upd'] = True
+                                                    save_changes = True
+
+    # --- save changes in text fields
+                                for field in ('email', 'telephone'):
+                                    if field in row_upload:
+                                        new_value = row_upload[field] if row_upload[field] else ''
+                                        saved_value = getattr(customer, field, '')
+                                        # logger.debug('new_value: ' + str(new_value) + ', saved_value: ' + str(saved_value))
+                                        if new_value != saved_value:
+                                            setattr(customer, field, new_value)
+                                            row_dict[field]['upd'] = True
+                                            save_changes = True
+
+    # --- save changes in date fields
+                                for field in ('datefirst', 'datelast'):
+                                    if field in row_upload:
+                                        new_date, msg_err = get_date_from_str(row_upload[field])
+                                        logger.debug('new_date: ' + str(new_date))
+                                # check if date is valid (empty date is ok)
+                                        if msg_err is not None:
+                                            row_dict[field]['err'] = msg_err
                                         else:
-                                            if field == 'code':
-                                                oldvalue = customer.code if customer.code else ''
-                                            elif field == 'name':
-                                                oldvalue = customer.name if customer.name else ''
-                                            elif field == 'datefirst':
-                                                oldvalue = str(customer.date_first) if customer.date_first else ''
-                                            elif field == 'datelast':
-                                                oldvalue = str(customer.date_last) if customer.date_last else ''
+                                # check overlap, only when both fields have value
+                                            is_datefirst = True if field == 'datefirst' else False
+                                            date_first = new_date if is_datefirst else customer.datefirst
+                                            date_last = customer.datelast if is_datefirst else new_date
+                                            msg_err = check_date_overlap(date_first, date_last, is_datefirst)
+                                            if msg_err is not None:
+                                                row_dict[field]['err'] = msg_err
+                                            else:
+                                                saved_date = getattr(customer, field, None)
+                                                if new_date != saved_date:
+                                                    setattr(customer, field, new_date)
+                                                    row_dict[field]['upd'] = True
+                                                    save_changes = True
 
-                                            if newvalue != oldvalue:
-                                                save_record = True
-                                                cust_dict['upd'] = True
+    # --- save changes in inactive field
+                                for field in ('inactive', 'locked'):
+                                    if field in row_upload:
+                                        new_value = row_upload[field] if row_upload[field] else False
+                                        saved_value = getattr(customer, field, False)
+                                        if new_value != saved_value:
+                                            setattr(customer, field, new_value)
+                                            row_dict[field]['upd'] = True
+                                            save_changes = True
 
-                                            if field == 'code':
-                                                customer.code = newvalue
-                                            elif field == 'name':
-                                                customer.name = newvalue
-                                            elif field == 'datefirst':
-                                                customer.date_first = get_date_int_from_yyyymmdd(newvalue)
-                                            elif field == 'datelast':
-                                                customer.date_last = get_date_int_from_yyyymmdd(newvalue)
+    # --- save changes
+                                if save_changes:
+                                    customer.save(request=self.request)
+                                    logger.debug('customer updated: ' + str(customer.name) + ' pk: ' + str(customer.pk))
 
-                                        if save_record:
-                                            customer.save(request=self.request)
+    # enter saved value in row_dict when value is updated
+                                # add modified_by and modified_at here,
+                                # otherwise the attr row_dict['modified_by'] will be deleted in de next code block
+                                logger.debug('row_dict updated: ' + str(row_dict))
+                                is_updated = False
+                                for field in row_dict:
+                                    if 'upd' in row_dict[field] or 'err' in row_dict[field]:
+                                        if 'upd' in row_dict[field]:
+                                            is_updated = True
+                                        if field in ('datefirst', 'datelast'):
+                                            field_str = field + '_str'
+                                            logger.debug('field_str: ' + str(field_str))
+                                            saved_value_str = getattr(customer, field_str, None)
+                                            logger.debug('saved_value_str: ' + str(saved_value_str))
+                                            if saved_value_str:
+                                                row_dict[field]['val'] = saved_value_str
+                                        elif field in ('inactive', 'locked'):
+                                            row_dict[field]['val'] = getattr(customer, field, False)
+                                        else:
+                                            row_dict[field]['val'] = getattr(customer, field, '')
 
-                                        if field == 'code':
-                                            cust_dict['val'] = customer.code  # if customer.code else ''
-                                        elif field == 'name':
-                                            cust_dict['val'] = customer.name  # if customer.name else ''
-                                        elif field == 'datefirst':
-                                            cust_dict['val'] = customer.date_first_str
-                                        elif field == 'datelast':
-                                            cust_dict['val'] = customer.date_last_str
+                                    if 'err' in row_dict[field]:
+                                        is_updated = True
+                                        if field in ('datefirst', 'datelast'):
+                                            field_str = field + '_str'
+                                            logger.debug('field_str: ' + str(field_str))
+                                            saved_value_str = getattr(customer, field_str, None)
+                                            logger.debug('saved_value_str: ' + str(saved_value_str))
+                                            if saved_value_str:
+                                                row_dict[field]['val'] = saved_value_str
+                                        elif field in ('inactive', 'locked'):
+                                            row_dict[field]['val'] = getattr(customer, field, False)
+                                        else:
+                                            row_dict[field]['val'] = getattr(customer, field, '')
 
-                                        param[id_str] = cust_dict
+                                # add modified_by and modified_at attributes when updated
+                                #if is_updated:
+                                if is_updated:
+                                    row_dict['modified_by']['val'] = customer.modified_by
+                                    row_dict['modified_at']['val'] = customer.modified_at_str(user_lang)
 
-                                param['id_modby_' + str(customer.pk)] = {'val': customer.modified_by}
-                                param['id_modat_' + str(customer.pk)] = {'val': customer.modified_at}
+# --- remove empty attributes from row_dict
+        # cannot iterate through row_dict because it changes during iteration
+        for field in field_list:
+            if not row_dict[field]:
+                del row_dict[field]
 
-                                #logger.debug('param: ' + str(param))
 
-            return HttpResponse(json.dumps({'cust_upd': param}, cls=LazyEncoder))
+        update_dict = {'cust_upd': row_dict}
+       # update_dict = {'cust_upd': {'idx': {'pk': '1'}, 'code': {'status': 'upd'}, 'modified_by': {'val': 'Hans'},
+        #              'modified_at': {'val': '29 mrt 2019 10.20u.'}}}
 
+        logger.debug('update_dict: ')
+        logger.debug( str(update_dict))
+        update_dict_json = json.dumps(update_dict, cls=LazyEncoder)
+        logger.debug('update_dict_json:')
+        logger.debug(str(update_dict_json))
+
+
+        return HttpResponse(update_dict_json)
+
+"""
 # === Order ===================================== PR2019-03-09
 @method_decorator([login_required], name='dispatch')
 class OrderImportView(View):
@@ -396,6 +471,7 @@ class OrderImportUploadData(View):  # PR2018-12-04
 
                 orders = json.loads(request.POST['orders'])
                 params = []
+                logger.debug('Customer.objects: ' + str(Customer.objects) + str(type(Customer.objects)))
 
                 for order in orders:
 
@@ -471,4 +547,4 @@ class OrderImportUploadData(View):  # PR2018-12-04
 
                 # return HttpResponse(json.dumps(params))
                 return HttpResponse(json.dumps(params, cls=LazyEncoder))
-
+"""

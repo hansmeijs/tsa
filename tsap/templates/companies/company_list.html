@@ -33,14 +33,22 @@
             {% for item in companies.all %}
               <tr>
                 <td>
-                    {% if not item.inactive %}<img src="{% static 'img/inactive.gif' %}" height="24" width="24">{% endif %}
+                    <a name="inactive" href="#"
+                       value="{{ item.inactive }}"
+                       class="input_icon">
+                        {% if item.inactive %}
+                            <img src="{% static 'img/inactive_black.png' %}" height="24" width="24">
+                        {% else %}
+                            <img src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
+                        {% endif %}
+                    </a>
                 </td>
                 <td>{{ item.code }}</td>
                 <td>
                     <a>{{ item.name }}</a>
                 </td>
-                <td>{{ item.date_first_dte}}</td>
-                <td>{{ item.date_last_dte }}</td>
+                <td>{{ item.datefirst}}</td>
+                <td>{{ item.datelast }}</td>
                 <td>{{ item.modified_by}}</td>
                 <td>{{ item.modified_at}}</td>
               </tr>

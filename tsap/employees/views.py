@@ -1,3 +1,4 @@
+
 # PR2019-03-02
 
 from django.contrib.auth.decorators import login_required
@@ -17,12 +18,11 @@ from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
 
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS
-from tsap.functions import get_date_int_from_yyyymmdd
+from tsap.functions import get_date_from_str
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_employee_code, validate_employee_name,employee_email_exists, check_date_overlap
 
-from companies.models import Company, Companysetting, Department
-from employees.models import Employee
+from companies.models import Company, Companysetting, Employee
 from employees.forms import EmployeeAddForm, EmployeeEditForm
 
 import logging
@@ -46,6 +46,13 @@ class EmployeeListView(View):
         param = {}
 
         if request.user.company is not None:
+
+            testEmployee = Employee
+            logger.debug('testEmployee: ' + str(testEmployee)+ str(type(testEmployee)))
+
+            logger.debug('testEmployee.objects: ' + str(testEmployee.objects)+ str(type(testEmployee.objects)))
+
+
             # add employee_list to headerbar parameters PR2019-03-02
             employees = Employee.objects.filter(company=request.user.company)
             employee_list = []
@@ -104,8 +111,9 @@ class EmployeeAddView(CreateView):
 
             return redirect('employee_list_url')
         else:
-            """If the form is invalid, render the invalid form."""
+            # If the form is invalid, render the invalid form.
             return render(self.request, 'employee_add.html', {'form': form})
+
 
 @method_decorator([login_required], name='dispatch')
 class EmployeeEditView(UpdateView):
@@ -146,8 +154,9 @@ class EmployeeUploadView(UpdateView):# PR2019-03-04
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             activate(request.user.lang if request.user.lang else 'nl')
 
+            # create dict and empty field attributes for all fields (unused ones will be removed at the end
             field_list = ('id', 'code', 'name_last', 'name_first', 'prefix', 'email',
-                          'telephone', 'date_first_int',  'modified_by',  'modified_at')
+                          'telephone', 'datefirst',  'modified_by',  'modified_at')
             empl_dict = {}
             for field in field_list:
                 empl_dict[field] = {}
@@ -345,24 +354,37 @@ class EmployeeUploadView(UpdateView):# PR2019-03-04
 
 # update date field
                             msg_dont_add = None
-                            field = 'date_first_int'
-                            if 'blank_' + field in employee_upload:
-                                saved_date_first_int = getattr(employee, field)
-                                if saved_date_first_int:
-                                    setattr(employee, field, None)
-                                    empl_dict[field] = {'upd': True, 'val': ''}
-                                    save_record = True
-                            elif field in employee_upload:
-                                new_date_first_int = get_date_int_from_yyyymmdd(employee_upload[field])
-                                saved_date_first_int = getattr(employee, 'date_first_int')
-                                if new_date_first_int and employee.date_last_int:
-                                    msg_dont_add = check_date_overlap(new_date_first_int, employee.date_last_int, True)
-                                if msg_dont_add:
-                                    empl_dict[field] = {'err': msg_dont_add, 'val': employee.date_first_str}
-                                elif new_date_first_int != saved_date_first_int:
-                                    setattr(employee, field, new_date_first_int)
-                                    empl_dict[field] = {'upd': True, 'val': employee.date_first_str}
-                                    save_record = True
+                            field = 'datefirst'
+
+                            if field in employee_upload:
+                                if not field:
+                                    saved_datefirst = getattr(employee, field)
+                                    if saved_datefirst:
+                                        setattr(employee, field, None)
+                                        empl_dict[field] = {'upd': True}
+                                        save_record = True
+                                else:
+                                    new_value = employee_upload[field]
+                                    logger.debug('new_value: ' +  str(new_value))
+                                    new_datefirst = get_date_from_str(new_value)
+                                    logger.debug('new_date: ' + str(new_datefirst))
+
+                                    saved_datefirst = employee.datefirst
+                                    logger.debug('employee.datefirst: ' + str(employee.datefirst))
+
+                                    setattr(employee, 'datefirst', new_datefirst)
+                                    employee.save(request=self.request)
+
+                                    logger.debug('aftersave employee.datefirst: ' + str(employee.datefirst))
+
+                                    if new_datefirst and employee.datelast:
+                                        msg_dont_add = check_date_overlap(new_datefirst, employee.datelast, True)
+                                    if msg_dont_add:
+                                        empl_dict[field] = {'err': msg_dont_add, 'val': employee.datefirst}
+                                    elif new_datefirst != saved_datefirst:
+                                        setattr(employee, field, new_datefirst)
+                                        empl_dict[field] = {'upd': True, 'val': employee.datefirst}
+                                        save_record = True
 
 # ++++++++++++++ save ++++++++++++++++++
                             # remove empty elements from empl_dict
@@ -393,6 +415,9 @@ class EmployeeUploadView(UpdateView):# PR2019-03-04
 
 
                         logger.debug('empl_dict' + str(empl_dict) + str(type(empl_dict)))
+                        resp = json.dumps({'empl_upd': empl_dict}, cls=LazyEncoder)
+                        logger.debug('resp:')
+                        logger.debug(str(resp))
 
             return HttpResponse(json.dumps({'empl_upd': empl_dict}, cls=LazyEncoder))
 
@@ -417,7 +442,7 @@ class EmployeeImportView(View):
                     {'tsaKey': 'prefix', 'caption': 'Prefix'},
                     {'tsaKey': 'email', 'caption': 'Email address'},
                     {'tsaKey': 'tel', 'caption': 'Telephone'},
-                    {'tsaKey': 'date_first', 'caption': 'First date in service'}
+                    {'tsaKey': 'datefirst', 'caption': 'First date in service'}
                 ]
 
                 captions_dict = {'no_file': 'No file is currently selected',
@@ -435,7 +460,7 @@ class EmployeeImportView(View):
                     {'tsaKey': 'prefix', 'caption': 'Tussenvoegsel'},
                     {'tsaKey': 'email', 'caption': 'E-mail adres'},
                     {'tsaKey': 'tel', 'caption': 'Telefoon'},
-                    {'tsaKey': 'date_first', 'caption': 'Datum in dienst'},
+                    {'tsaKey': 'datefirst', 'caption': 'Datum in dienst'},
                 ]
 
                 captions_dict = {'no_file': 'Er is geen bestand geselecteerd',
@@ -575,7 +600,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                     logger.debug('stored_setting_json' + str(stored_setting_json))
 
                     # save stored_setting_json
-                    Companysetting.set_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, stored_setting_json, request.user)
+                    # Companysetting.set_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, stored_setting_json, request.user)
 
         return HttpResponse(json.dumps("Student import settings uploaded!", cls=LazyEncoder))
 
@@ -600,7 +625,7 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                     logger.debug('--------- import employee   ------------')
                     logger.debug('import employee:')
                     logger.debug(str(employee))
-                    # 'code', 'name_last', 'name_first',  'prefix', 'email', 'tel', 'date_first',
+                    # 'code', 'name_last', 'name_first',  'prefix', 'email', 'tel', 'datefirst',
                     data = {}
                     has_error = False
                     dont_add = False
@@ -612,7 +637,7 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                     prefix = employee.get('prefix', '')[0:CODE_MAX_LENGTH]
                     email = employee.get('email', '')[0:NAME_MAX_LENGTH]
                     telephone = employee.get('tel', '')[0:USERNAME_SLICED_MAX_LENGTH]
-                    date_first = employee.get('date_first', '')
+                    datefirst = employee.get('datefirst', '')
 
                     # check if employee already exists
                     msg_dont_add = validate_employee_code(code, request.user.company)
@@ -679,8 +704,8 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                                 data['s_email'] = new_employee.email
                             if new_employee.telephone:
                                 data['s_telephone'] = new_employee.telephone
-                            if new_employee.date_first_int:
-                                data['s_date_first_int'] = new_employee.date_first_int
+                            if new_employee.datefirst:
+                                data['s_datefirst'] = new_employee.datefirst_int
 
                         # logger.debug(str(new_student.id) + ': Student ' + new_student.lastname_firstname_initials + ' created ')
 
@@ -695,4 +720,3 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
 
                 # return HttpResponse(json.dumps(params))
                 return HttpResponse(json.dumps(params, cls=LazyEncoder))
-
