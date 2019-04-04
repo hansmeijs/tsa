@@ -1,5 +1,5 @@
 # PR2019-02-28
-from django.db.models import Model, ForeignKey, PROTECT, CASCADE
+from django.db.models import Model, ForeignKey, PROTECT, CASCADE, SET_NULL
 from django.db.models import CharField, IntegerField, PositiveSmallIntegerField, BooleanField, DateTimeField, EmailField
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.validators import RegexValidator
@@ -13,6 +13,7 @@ from tsap.constants import USERNAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, \
 from tsap import authentication as auth
 from companies.models import Company
 from companies.models import Employee
+from tsap.settings import AUTH_USER_MODEL
 
 import logging
 logger = logging.getLogger(__name__)
@@ -72,20 +73,19 @@ class User(AbstractUser):
 
     activated = BooleanField(default=False)
     activated_at = DateTimeField(null=True)
-    company = ForeignKey(Company, null=True, blank=True, related_name='users', on_delete=PROTECT)
-    employee = ForeignKey(Employee, null=True, blank=True, related_name='users', on_delete=PROTECT)
-   #  department = ForeignKey(Department, null=True, blank=True, related_name='users', on_delete=PROTECT)
-    deplist = CharField(max_length=255, null=True, blank=True)
+    company = ForeignKey(Company, related_name='users', on_delete=PROTECT, null=True, blank=True)
+    employee = ForeignKey(Employee, related_name='users', on_delete=PROTECT, null=True, blank=True)
 
     lang = CharField(max_length=4, null=True, blank=True)
-    modified_by =  CharField(max_length=USERNAME_MAX_LENGTH)
+
+    modified_by = ForeignKey(AUTH_USER_MODEL, null=True, related_name='+', on_delete=SET_NULL)
     modified_at = DateTimeField(null=True)
 
     class Meta:
         ordering = ['username',]
 
     def __str__(self):
-        return self.username
+        return self.username[6:]
 
     def __init__(self, *args, **kwargs):
         super(User, self).__init__(*args, **kwargs)

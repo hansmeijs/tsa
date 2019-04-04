@@ -16,7 +16,7 @@ console.log("Customers document.ready");
     SetMenubuttonActive(btn_clicked);
 
 //}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
-// still haveto try this one
+// still have to try this one
         //show popup when clicking the trigger
        // $('tbody').on('focus',".dateselector", function(){
        //     SetDateSelector();
@@ -169,8 +169,8 @@ console.log("Customers document.ready");
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        if ("cust_upd" in response) {
-                            UpdateFields(response["cust_upd"])
+                        if ("row_upd" in response) {
+                            UpdateFields(response["row_upd"])
                         }
                     },
                     error: function (xhr, msg) {
@@ -213,7 +213,9 @@ console.log("=========  function HandleDeleteRecord =========");
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        DeleteRow(response["cust_upd"])
+                        if ("row_upd" in response) {
+                            DeleteRow(response["row_upd"])
+                        }
                     },
                     error: function (xhr, msg) {
                         alert(msg + '\n' + xhr.responseText);
@@ -283,6 +285,9 @@ console.log("=========  function AddTableRow =========");
                     }
                     let el = document.createElement('input');
                     el.setAttribute("name", el_name);
+                    if (el_name === "code"){
+                        el.setAttribute("autofocus", true);
+                    }
                     el.setAttribute("type", "text");
                     el.setAttribute("value", "");
                     el.setAttribute("autocomplete", "off");
@@ -310,17 +315,16 @@ console.log("=========  function AddTableRow =========");
 // ---  get clicked tablerow
         let tr_changed = get_tablerow_changed(el_changed)
         //console.log("tr_changed: ", tr_changed);
-
         if(!!tr_changed) {
-// ---  get pk from id of tr_changed
 
+// ---  get pk from id of tr_changed
             if(tr_changed.hasAttribute("id")){
                 // id_str: "4"
                 const id_str = tr_changed.getAttribute("id");
                 //console.log("id_str: ", id_str);
                 let customer = {"pk": id_str};
 
-    // ---  loop through cells and input element of tr_changed
+// ---  loop through cells of tr_changed
                 for (let i = 0, el_input, el_name, n_value, o_value, len = tr_changed.cells.length; i < len; i++) {
                     // el_input is first child of td, td is cell of tr_changed
                     el_input = tr_changed.cells[i].children[0];
@@ -359,9 +363,11 @@ console.log("=========  function AddTableRow =========");
                 };  //  for (let i = 0, el_input,
 
                 //customer: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
-                // console.log ("customer dict before ajax: ");
-                // console.log (customer);
-                let parameters = {"customer": JSON.stringify (customer)};
+
+                let parameters = {"row_upload": JSON.stringify (customer)};
+console.log ("parameters: ");
+console.log (parameters);
+
                 let url_str = $("#id_data").data("customer_upload_url");
                 // console.log ("url_str", url_str);
 
@@ -372,11 +378,12 @@ console.log("=========  function AddTableRow =========");
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        if ("cust_upd" in response) {
-        // console.log( "response");
-        // console.log( response);
-
-                            UpdateFields(tr_changed, response["cust_upd"])
+                        if ("row_update" in response) {
+console.log( "response");
+console.log( response);
+console.log( "row_update");
+console.log( response.row_update);
+                            UpdateFields(tr_changed, response["row_update"])
                         }
                     },
                     error: function (xhr, msg) {
@@ -389,12 +396,12 @@ console.log("=========  function AddTableRow =========");
     };
 // #####################################################################################
 //========= DeleteRow  =============
-    function DeleteRow(cust_upd){
+    function DeleteRow(row_upd){
         console.log("-------------- DeleteRow  --------------");
-        if (!!cust_upd) {
-// get id_new and id_pk from cust_upd["id"]
-            if ("id" in cust_upd){
-                const id_dict = cust_upd["id"]
+        if (!!row_upd) {
+// get id_new and id_pk from row_upd["id"]
+            if ("id" in row_upd){
+                const id_dict = row_upd["id"]
                 if ("pk" in id_dict){
                     let tblrow = document.getElementById(id_dict.pk);
                     if (!!tblrow){
@@ -423,55 +430,65 @@ console.log("=========  function AddTableRow =========");
 
                     } // if (!!tblrow){
                 }; // if ("pk" in id_dict){
-            }  //  if (fieldname in cust_upd){
+            }  //  if (fieldname in row_update){
         }
     }
 
 // #####################################################################################
 //========= UpdateFields  =============
-    function UpdateFields(tr_changed, cust_upd){
+    function UpdateFields(tr_changed, row_update){
         console.log("-------------- UpdateFields  --------------");
-        console.log("tr_changed", tr_changed);
-        console.log(cust_upd);
-
-let txt = "cust_upd: {"
-for(let index in cust_upd) {
-    txt = txt + index + ": {";
-    for(let subindex in cust_upd[index]) {txt = txt  + subindex + ":" + cust_upd[index][subindex] + ", ";}
-    txt = txt + "}, "
-}
-txt = txt + "}"
-console.log(txt);
-
-        if (!!cust_upd) {
+        console.log("tr_changed:");
+        console.log(tr_changed);
+        console.log("row_update:");
+        console.log(row_update);
+        if (!!row_update) {
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
-            // cust_upd = {'id': {'pk': 7},
+            // row_update = {'id': {'pk': 7},
             // 'code': {'err': 'Customer code cannot be blank.', 'val': '1996.02.17.15'},
             // 'name_last': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'El Chami'},
             // 'name_first': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'Omar'}}<class 'dict'>
 
-// get id_new and id_pk from cust_upd["id"]
+// get id_new and id_pk from row_update["id"]
             let id_new = "", id_pk = ""
-            let fieldname = "id"
             let id_deleted = false
             let id_del_err = false
-            if (fieldname in cust_upd){
+
+            const fieldname = "id"
+            if (fieldname in row_update){
             // from: https://love2dev.com/blog/javascript-substring-substr-slice/
             // substring(indexStart[, indexEnd]): returns part between the start and end indexes, or to the end.
             // substr(start[, length]): returns part between the start index and a number of characters after it.
             // slice(beginIndex[, endIndex]): extracts a section of a string and returns it as a new string.
 
                 // 'id': {'new': 'new_1'}
-                let id_dict = cust_upd[fieldname]
-                if ("new" in id_dict){id_new = id_dict.new};
+                let id_dict = row_update[fieldname]
+                if ("new_id" in id_dict){id_new = id_dict.new_id};
                 if ("pk" in id_dict){id_pk = id_dict.pk};
                 if ("deleted" in id_dict){id_deleted = true};
                 if ("del_err" in id_dict){id_del_err = id_dict.del_err};
 
-            console.log("id_dict:<" + id_dict + ">")
-                // remove item after reading it, so it wont show in the next loop
-                delete cust_upd[fieldname];
+                // remove item after reading it, so it wont show in the loop further in this code
+                //delete row_update[fieldname];
             }
+
+        console.log("id_new:", id_new);
+        console.log("id_pk:", id_pk);
+
+// --- new record: replace id_new with id_pk when new record is saved
+            // if 'new' and 'pk both exist: it is a newly saved record. Change id of tablerow from new to pk
+            // if 'new' exists and 'pk' not: it is an unsaved record (happens when code is entered and name is blank)
+            if (!!id_new && !!id_pk ){
+                if(tr_changed.hasAttribute("id")){
+                    if (!!tr_changed.id) {
+                        id_attr = tr_changed.id  // or: id_attr = tr_changed.getAttribute("id")
+        console.log("id_attr:", id_attr);
+            // check if row_update.id 'new_1' is same as tablerow.id 'new_1'
+                        if(id_new === id_attr){
+            // update tablerow.id from id_new 'new_1' to id_pk '7'
+                            tr_changed.id = id_pk //or: tr_changed.setAttribute("id", id_pk);
+        console.log("tr_changed.id:", tr_changed.id);
+            }}}};
 
 // --- deleted record
             if (id_deleted){
@@ -504,23 +521,10 @@ console.log(txt);
             }
 
 
-// --- replace id_new with id_pk when new record is saved
-            // if 'new' and 'pk both exist: it is a newly saved record. Change id of tablerow from new to pk
-            // if 'new' exists and 'pk' not: it is an unsaved record (happens when code is entered and name is blank)
-            if (!!id_new && !!id_pk ){
-                if(tr_changed.hasAttribute("id")){
-                    if (!!tr_changed.id) {
-                        id_attr = tr_changed.id  // or: id_attr = tr_changed.getAttribute("id")
-            // check if cust_upd.id 'new_1' is same as tablerow.id
-                        if(id_new === id_attr){
-            // update tablerow.id from id_new to id_pk
-                            tr_changed.id = id_pk //or: tr_changed.setAttribute("id", id_pk);
-            }}}};
-
-// --- loop through keys of cust_upd
-            for (let fieldname in cust_upd) {
-                if (cust_upd.hasOwnProperty(fieldname)) {
-                    let item_dict = cust_upd[fieldname];
+// --- loop through keys of row_update
+            for (let fieldname in row_update) {
+                if (row_update.hasOwnProperty(fieldname)) {
+                    let item_dict = row_update[fieldname];
 
             // --- lookup input field with name: fieldname
                     //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
@@ -607,8 +611,8 @@ console.log(txt);
 
             FilterRows();
 
-        }  // if (!!cust_upd)
-    }  // function update_fields(cust_upd)
+        }  // if (!!row_update)
+    }  // function update_fields(row_update)
 
 //========= get_tablerow_changed  =============
     function get_tablerow_changed(el_changed){

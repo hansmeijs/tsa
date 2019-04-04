@@ -183,6 +183,7 @@ class UserAddView(CreateView):
 
                 current_site = get_current_site(request)
                 # logger.debug('UserAddView post current_site: ' +  str(current_site))
+                logger.debug('current_site.domain: ' +  str(current_site.domain))
 
                 # domain = current_site.domain
                 # logger.debug('UserAddView post domain: ' +  str(domain) + '\n')
@@ -193,7 +194,7 @@ class UserAddView(CreateView):
                 # token = account_activation_token.make_token(user)
                 # logger.debug('UserAddView post token: ' + str(token))
 
-                subject = _('Activate your TSA-secure account')
+                subject = 'Activate your TSA-secure account'
                 from_email = 'TSA-secure <noreply@tsasecure.com>'
                 message = render_to_string('account_activation_email.html', {
                     'user': new_user,

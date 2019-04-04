@@ -286,37 +286,6 @@ console.log("=========   handle_table_row_clicked   ======================") ;
         return col_index;
     }
 
-//========= function get_arrayRow_by_keyValue  ====================================
-    function get_arrayRow_by_keyValue (objArray, arrKey, keyValue) {
-        // Function returns row of array that contains Value in objKey PR2019-01-05
-        // stored_columns[3]: {awpCol: "lastname", caption: "Last name", excCol: "ANAAM" }
-        // excel_columns[0]:    {excCol: "ANAAM", awpCol: "lastname", awpCaption: "Achternaam"}
-        let row;
-        if (!!arrKey && !!keyValue){
-            for (let i = 0 ; i < objArray.length; i++) {
-                let obj = objArray[i];
-                if (!!obj && !!obj[arrKey] ){
-                    // convert number to string for text comparison
-                    let obj_value;
-                    if (typeof(obj[arrKey]) === "number"){
-                        obj_value = obj[arrKey].toString();
-                    } else {
-                        obj_value = obj[arrKey];
-                    }
-                    let isEqual = false;
-
-                    if (typeof(keyValue) === "string" && typeof(obj_value) === "string"){
-                        isEqual = (keyValue.toLowerCase() === obj_value.toLowerCase())
-                    } else {
-                        isEqual = (keyValue === obj_value)
-                    }
-                    if (isEqual){
-                        row = obj;
-                        break;
-        }}}}
-        return row;
-    }
-
 
 //========= function get_object_value_by_key  ====================================
     function get_obj_value_by_key (obj, objKey) {

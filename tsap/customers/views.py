@@ -117,23 +117,22 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
             user_lang = request.user.lang if request.user.lang else 'nl'
             activate(user_lang)
 
-            if 'customer' in request.POST:
+            if 'row_upload' in request.POST:
                 # row_upload: {'pk': '4', 'code': 'mcb'}
-                row_upload = json.loads(request.POST['customer'])
+                row_upload = json.loads(request.POST['row_upload'])
                 if row_upload is not None:
-                    logger.debug('row_upload: ' + str(row_upload))
+                    # logger.debug('row_upload ' + str(row_upload))
 
                     customer = None
                     if 'pk' in row_upload and row_upload['pk']:
 # --- check if it is new record, get company if is existing record
                         # new_record has pk 'new_1' etc
                         if row_upload['pk'].isnumeric():
-                            pk_int = int(row_upload['pk'])
+                            pk_int = int(row_upload["pk"])
                             customer = Customer.objects.filter(id=pk_int, company=request.user.company).first()
                         else:
-                            # this attribute 'new': 'new_1' is necessary to lookup request row on page
-                            row_dict['id']['new'] = row_upload['pk']
-                            #row_dict: {'id': {'new': 'new_1'}, 'code': {},...
+                            # this attribute 'new': 'new_1' is necessary to lookup unsaved request row on page
+                            row_dict['id']['new_id'] = row_upload['pk']
 
                         is_new_record = False
                         save_changes = False
@@ -158,7 +157,6 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                                     code=new_value['code'],
                                                     name=new_value['name'])
                                 customer.save(request=self.request)
-                                row_dict['id']['new'] = True
                                 is_new_record = True
 
 # ++++ existing and new customer ++++++++++++++++++++++++++++++++++++
@@ -188,7 +186,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                     for field in ('code', 'name'):
                                         if field in row_upload:
                                             value_upload = row_upload[field] if row_upload[field] else ''
-                                            msg_err = validate_customer(field, value_upload, request.user.company)
+                                            msg_err = validate_customer(field, value_upload, request.user.company, pk_int)
                                             if msg_err:
                                                 row_dict[field]['err'] = msg_err
                                             else:
@@ -286,7 +284,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 # add modified_by and modified_at attributes when updated
                                 #if is_updated:
                                 if is_updated:
-                                    row_dict['modified_by']['val'] = customer.modified_by
+                                    row_dict['modified_by']['val'] = customer.modified_by.username_sliced
                                     row_dict['modified_at']['val'] = customer.modified_at_str(user_lang)
 
 # --- remove empty attributes from row_dict
@@ -296,18 +294,14 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                 del row_dict[field]
 
 
-        update_dict = {'cust_upd': row_dict}
-       # update_dict = {'cust_upd': {'idx': {'pk': '1'}, 'code': {'status': 'upd'}, 'modified_by': {'val': 'Hans'},
+        row_update = {'row_update': row_dict}
+       # row_update = {'row_upd': {'idx': {'pk': '1'}, 'code': {'status': 'upd'}, 'modified_by': {'val': 'Hans'},
         #              'modified_at': {'val': '29 mrt 2019 10.20u.'}}}
 
-        logger.debug('update_dict: ')
-        logger.debug( str(update_dict))
-        update_dict_json = json.dumps(update_dict, cls=LazyEncoder)
-        logger.debug('update_dict_json:')
-        logger.debug(str(update_dict_json))
+        logger.debug('row_update: ')
+        logger.debug( str(row_update))
 
-
-        return HttpResponse(update_dict_json)
+        return HttpResponse(json.dumps(row_update, cls=LazyEncoder))
 
 """
 # === Order ===================================== PR2019-03-09

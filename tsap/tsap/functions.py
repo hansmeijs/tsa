@@ -68,7 +68,7 @@ def get_date_str_from_dateint(date_int):  # PR2019-03-08
         dte_str = year_str + '-' + month_str[-2:] + '-' + day_str[-2:]
     return dte_str
 
-def get_date_str(dte):
+def get_date_yyyymmdd(dte):
     # Function return date 'yyyy-mm-dd' PR2019-03-27
     dte_str = ''
     if dte:

@@ -21,3 +21,7 @@
 .tsa-tr-error {
     background: #f1b5b5; /* licht rood; */
 }
+
+.tsa-tr-ok {
+    background: #d7f4de; /* licht groen; */
+}

@@ -9,6 +9,7 @@ from accounts import views as account_views
 from companies import views as company_views
 from customers import views as customer_views
 from employees import views as employee_views
+from planning import views as planning_views
 
 from accounts.forms import CompanyAuthenticationForm
 
@@ -26,7 +27,6 @@ urlpatterns = [
     # url(r'^favicon\.ico$',RedirectView.as_view(url='/static/img/favicon.ico')),
     # path('favicon\.ico',RedirectView.as_view(url='/static/img/favicon.ico')),
     path('favicon\.ico', RedirectView.as_view(url='/static/img/favicon.ico')),
-
 
     path('logout', auth_views.LogoutView.as_view(), name='logout'),
 # PR2018-03-27
@@ -143,9 +143,11 @@ urlpatterns = [
     #    ])),
     #])),
 
-    #path('verify/', include([
-    #    path('', planning_views.VerifyListView.as_view(), name='verify_list_url'),
+    path('review/', include([
+        path('', planning_views.EmplhourView.as_view(), name='review_url'),
+        path('upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
+        path('datalist', planning_views.EmplhourDownloadDatalistView.as_view(), name='emplhour_datalist_url'),
 
-    #])),
+    ])),
 
 ]

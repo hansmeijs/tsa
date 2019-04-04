@@ -398,9 +398,10 @@ class EmployeeUploadView(UpdateView):# PR2019-03-04
 
                                 field = 'modified_by'
                                 saved_value = getattr(employee, field)
-                                logger.debug('saved_value: ' +  str(saved_value))
+                                logger.debug('saved_value: ' + str(saved_value))
+                                logger.debug('saved_value.username_sliced: ' + str(saved_value.username_sliced))
                                 if saved_value:
-                                    empl_dict[field] = {'upd': True, 'val': saved_value}
+                                    empl_dict[field] = {'upd': True, 'val': saved_value.username_sliced}
 
                                 field = 'modified_at'
                                 request_user_lang = '-'
