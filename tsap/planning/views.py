@@ -41,7 +41,7 @@ class EmplhourView(View):
             emplhours = Emplhour.objects.filter(company=request.user.company)
             param = get_headerbar_param(request, {'items': emplhours, 'employee_list': employee_json})
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'review.html', param)
+        return render(request, 'emplhours.html', param)
 
 
 @method_decorator([login_required], name='dispatch')
@@ -64,9 +64,9 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
             user_lang = request.user.lang if request.user.lang else 'nl'
             activate(user_lang)
 
-            if 'row_update' in request.POST:
+            if 'row_upload' in request.POST:
                 # row_upload: {'pk': 'new_1', 'rosterdate': '2019-04-01'}
-                row_upload = json.loads(request.POST['row_update'])
+                row_upload = json.loads(request.POST['row_upload'])
                 if row_upload is not None:
                     logger.debug('row_upload: ' + str(row_upload))
                     emplhour = None

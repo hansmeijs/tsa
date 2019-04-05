@@ -165,28 +165,3 @@ class CompanyDeleteView(DeleteView):
             raise Http404  # or return HttpResponse('404_url')
 
 
-# === Customer ===================================== PR2019-03-27
-@method_decorator([login_required], name='dispatch')
-class CustomerListView(View):
-
-    def get(self, request):
-        param = {}
-
-        if request.user.company is not None:
-            # add customer_list to headerbar parameters PR2019-03-02
-
-            logger.debug('Customer: ' + str(Customer)+ str(type(Customer)))
-            logger.debug('Customer.objects: ' + str(Customer.objects) + str(type(Customer.objects)))
-            count = Customer.objects.filter(company=request.user.company).count()
-            logger.debug('count: ' + str(count)+ str(type(count)))
-
-            customers = Customer.objects.filter(company=request.user.company)
-
-            # set headerbar parameters PR 2018-08-06
-            param = get_headerbar_param(request, {'customers': customers})
-            #logger.debug('EmployeeListView param: ' + str(param))
-
-        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'customers.html', param)
-
-
