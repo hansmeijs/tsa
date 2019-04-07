@@ -49,11 +49,13 @@ class TsaBaseModel(Model):
 
 
     def save(self, *args, **kwargs):
-        self.request = kwargs.pop('request', None)
+        # skip modified_by when adding entriesused PR20019-04-06
+        if 'request' in kwargs:
+            self.request = kwargs.pop('request', None)
 
-        self.modified_by = self.request.user
-        # timezone.now() is timezone aware, based on the USE_TZ setting; datetime.now() is timezone naive. PR2018-06-07
-        self.modified_at = timezone.now()
+            self.modified_by = self.request.user
+            # timezone.now() is timezone aware, based on the USE_TZ setting; datetime.now() is timezone naive. PR2018-06-07
+            self.modified_at = timezone.now()
 
         # when adding record: self.id=None, set force_insert=True; otherwise: set force_update=True PR2018-06-09
         super(TsaBaseModel, self).save()
@@ -88,21 +90,20 @@ class TsaBaseModel(Model):
             modby_str = self.modified_by.username_sliced
         return modby_str
 
-    def modified_at_str(self, lang):  # PR2019-03-23
+    def modified_at_str(self,  lang):  # PR2019-03-23
+        # This doesn't work in template tags
         dte_str = ''
-        logger.debug('lang: ' + lang)
         if self.modified_at:
-            dte_str = get_date_longstr_from_dte(self.modified_at, lang)  # PR2019-03-23
-
-        logger.debug('modified_at_str: ' + dte_str)
-        return dte_str
+            dte_str = get_date_longstr_from_dte(self.modified_at, lang)
+        return  dte_str
 
 
 class Company(TsaBaseModel):
     objects = TsaManager()
 
     issystem = BooleanField(default=False)
-    lic_status = PositiveSmallIntegerField(db_index=True, default=0)
+    haslic = BooleanField(default=False)
+    entriesused = IntegerField(default=0)
 
     @property
     def companyprefix(self):
@@ -234,7 +235,7 @@ class Orderhour(TsaBaseModel):
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
 
-    duration = DecimalField(max_digits=8, decimal_places=4, default=0)
+    duration = DecimalField(max_digits=8, decimal_places=2, default=0)
     status = PositiveSmallIntegerField(db_index=True, default=0)
     rate = DecimalField(max_digits=8, decimal_places=2, default=0)
     amount = DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -272,6 +273,7 @@ class Emplhour(TsaBaseModel):
 
     company = ForeignKey(Company, related_name='emplhours', on_delete=PROTECT)
     employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
+    order = ForeignKey(Order, related_name='emplhours', on_delete=SET_NULL, null=True, blank=True)
     orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=SET_NULL, null=True, blank=True)
     shift = ForeignKey(Shift, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
     wagecode = ForeignKey(Wagecode, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
@@ -279,9 +281,9 @@ class Emplhour(TsaBaseModel):
     rosterdate = DateField(db_index=True, null=True, blank=True)
     time_start = DateTimeField(db_index=True, null=True, blank=True)
     time_end = DateTimeField(db_index=True, null=True, blank=True)
-    time_duration = DecimalField(max_digits=8, decimal_places=4, default=0)
+    time_duration = DecimalField(max_digits=8, decimal_places=2, default=0)
     break_start = DateTimeField(null=True, blank=True)
-    break_duration = DecimalField(max_digits=8, decimal_places=4, default=0)
+    break_duration = DecimalField(max_digits=8, decimal_places=2, default=0)
     time_status = PositiveSmallIntegerField(db_index=True, default=0)
 
     class Meta:
@@ -311,12 +313,30 @@ class Emplhour(TsaBaseModel):
         return 'id_oeh_shift_' + str(self.pk)
 
 
+class Companyinvoice(Model):  # PR2019-04-06
+    objects = TsaManager()
+
+    company = ForeignKey(Company, related_name='companycredits', on_delete=CASCADE)
+    entries = IntegerField(default=0)
+    balance= IntegerField(default=0)
+    rate = DecimalField(max_digits=6, decimal_places=2, default=0)
+    dateinvoice = DateField(db_index=True, null=True, blank=True)
+    bonusexpired = DateField(db_index=True, null=True, blank=True)
+    note = CharField(db_index=True, max_length=NAME_MAX_LENGTH)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    code = None
+    name = None
+    datefirst = None
+    datelast = None
+    locked = None
+    inactive = None
+
 class Companysetting(Model):  # PR2019-03-09
     # PR2018-07-20 from https://stackoverflow.com/questions/3090302/how-do-i-get-the-object-if-it-exists-or-none-if-it-does-not-exist
     objects = TsaManager()
 
     company = ForeignKey(Company, related_name='companysettings', on_delete=CASCADE)
-    # department = ForeignKey(Department, null=True, related_name='companysettings', on_delete=SET_NULL)
     key_str = CharField(db_index=True, max_length=30)
 
     setting = CharField(max_length=2048, null=True, blank=True)

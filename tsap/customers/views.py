@@ -76,17 +76,9 @@ class CustomerListView(View):
 
     def get(self, request):
         param = {}
-
         if request.user.company is not None:
             # add customer_list to headerbar parameters PR2019-03-02
-
-            logger.debug('Customer: ' + str(Customer)+ str(type(Customer)))
-            logger.debug('Customer.objects: ' + str(Customer.objects) + str(type(Customer.objects)))
-            count = Customer.objects.filter(company=request.user.company).count()
-            logger.debug('count: ' + str(count)+ str(type(count)))
-
             customers = Customer.objects.filter(company=request.user.company)
-
             # set headerbar parameters PR 2018-08-06
             param = get_headerbar_param(request, {'customers': customers})
             #logger.debug('EmployeeListView param: ' + str(param))
@@ -119,7 +111,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                 # row_upload: {'pk': '4', 'code': 'mcb'}
                 row_upload = json.loads(request.POST['row_upload'])
                 if row_upload is not None:
-                    # logger.debug('row_upload ' + str(row_upload))
+                    logger.debug('row_upload ' + str(row_upload))
 
                     customer = None
                     if 'pk' in row_upload and row_upload['pk']:
@@ -283,7 +275,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 #if is_updated:
                                 if is_updated:
                                     row_dict['modified_by']['val'] = customer.modified_by.username_sliced
-                                    row_dict['modified_at']['val'] = customer.modified_at_str(user_lang)
+                                    row_dict['modified_at']['val'] = customer.modified_at
 
 # --- remove empty attributes from row_dict
         # cannot iterate through row_dict because it changes during iteration
@@ -366,7 +358,6 @@ class OrderUploadView(UpdateView):# PR2019-03-04
                             if 'customer' in row_upload and row_upload['customer']:
                                 customer_id = row_upload['customer']
                                 customer = Customer.objects.filter(id=customer_id, company=request.user.company).first()
-                            logger.debug('customer_id ' + str(customer_id))
 
                             new_value = {'code': '', 'name': ''}
                             for field in ('code', 'name'):

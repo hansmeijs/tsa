@@ -55,15 +55,14 @@ class UserListView(ListView):
         # - when role is company: all users of this company
         # - else (role is employee): not allowed to view users
 
-
         users = None  # User.objects.filter(False) gives error: 'bool' object is not iterable
         if request.user.role is not None:  # PR2018-05-31 debug: self.role = False when value = 0!!! Use is not None instead
             if request.user.is_role_system:
                 users = User.objects.all() # order_by('username') is in model class Meta
             elif request.user.is_role_company:
                 if request.user.company is not None:
-                    # filter only users from this country, with role == insp
-                    users = User.objects.filter(country=request.user.country, role__lte=c.ROLE_01_COMPANY)
+                    # filter only users from this company, no system role
+                    users = User.objects.filter(company=request.user.company, role__lte=c.ROLE_01_COMPANY)
 
         else:
             messages.error(request, _("User has no role."))
@@ -246,23 +245,20 @@ class UserEditView(UserPassesTestMixin, UpdateView):
         # is_role_system is_ok
                 if self.request.user.is_role_system:
                     is_ok = True
-        # request_user must have country
-                elif request_user.country is not None:
+        # other request_users must have company
+                elif request_user.company is not None:
                     selected_user_id = self.kwargs['pk']
                     if selected_user_id is not None:
                         selected_user = User.objects.filter(id=selected_user_id).first()
                         if selected_user is not None:
-        # selected_user must have country
-                            if selected_user.country is not None:
-        # request_user.country and selected_user.country must be the same
-                                if selected_user.country.id == request_user.country.id:
-        # is_role_insp is_ok
-                                    if self.request.user.is_role_insp:
+        # selected_user must have company
+                            if selected_user.company is not None:
+        # request_user.company and selected_user.company must be the same
+                                if selected_user.company.id == request_user.company.id:
+        # is_role_company is_ok
+                                    if self.request.user.is_role_company:
                                         is_ok = True
-        # request_user and selected_user must have schoolbase
-                                    elif request_user.schoolbase is not None and selected_user.schoolbase is not None:
-        # request_user.schoolbase and selected_user.schoolbase must be the same
-                                        is_ok = selected_user.schoolbase.id == request_user.schoolbase.id
+        # is_role_employee cannot change users: is_ok = False PR2019-04-05
         return is_ok
 
     # from https://stackoverflow.com/questions/7299973/django-how-to-access-current-request-user-in-modelform?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa

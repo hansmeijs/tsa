@@ -51,7 +51,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
         logger.debug(' ============= EmplhourUploadView ============= ')
 
         # --- Create empty row_dict with keys for all fields. Unused ones will be removed at the end
-        field_list = ('id', 'rosterdate', 'orderhour', 'employee', 'shift',
+        field_list = ('id', 'rosterdate', 'order', 'employee', 'shift',
                       'time_start', 'time_end', 'time_duration', 'time_status',
                        'orderhour_duration', 'orderhour_status', 'modified_by', 'modified_at')
         row_dict = {}  # this one is not working: row_dict = dict.fromkeys(field_list, {})
@@ -66,12 +66,16 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
 
             if 'row_upload' in request.POST:
                 # row_upload: {'pk': 'new_1', 'rosterdate': '2019-04-01'}
+                # row_upload: {'pk': '16', 'order': 2}
+                # row_upload: {'pk': '19', 'time_status': 3}
                 row_upload = json.loads(request.POST['row_upload'])
                 if row_upload is not None:
                     logger.debug('row_upload: ' + str(row_upload))
                     emplhour = None
+
+# ++++ check if a record with this pk exists
                     if 'pk' in row_upload and row_upload['pk']:
-                        # --- check if it is new record, get company if is existing record
+        # --- check if it is new record, get company if is existing record
                         # new_record has pk 'new_1' etc
                         if row_upload['pk'].isnumeric():
                             pk_int = int(row_upload['pk'])
@@ -81,9 +85,6 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                             row_dict['id']['new'] = row_upload['pk']
                             # row_dict: {'id': {'new': 'new_1'}, 'code': {},...
 
-                        is_new_record = False
-                        save_changes = False
-
 # ++++ save new record ++++++++++++++++++++++++++++++++++++
                         if emplhour is None:
                             # --- add record i
@@ -92,20 +93,24 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                 company=request.user.company
                             )
                             emplhour.save(request=self.request)
-                            is_new_record = True
+
+        # ---  after saving new record: add 1 to company.entriesused
+                            request.user.company.entriesused += 1
+                            request.user.company.save(request=self.request)
 
 # ++++ existing and new emplhour ++++++++++++++++++++++++++++++++++++
                         if emplhour is not None:
-                            # logger.debug('field: ' + str(field))
-                            # --- add pk to row_dict
+        # --- add pk to row_dict
                             pk_int = emplhour.pk
                             row_dict['id']['pk'] = pk_int
+                            logger.debug('emplhour.pk: ' + str(emplhour.pk))
 
-# ++++ delete record when key 'delete' exists in
+                            save_changes = False
+# ++++  delete record when key 'delete' exists in
                             if 'delete' in row_upload:
                                 logger.debug('before delete ' + str(emplhour.pk))
                                 emplhour.delete(request=self.request)
-                        # check if emplhour still exist
+        # --- check if emplhour still exist
                                 emplhour = Emplhour.objects.filter(id=pk_int, company=request.user.company).first()
                                 if emplhour is None:
                                     row_dict['id']['deleted'] = True
@@ -113,17 +118,39 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                     msg_err = _('This record could not be deleted.')
                                     row_dict['id']['del_err'] = msg_err
 
-                                logger.debug('after delete row_dict: ' + str(row_dict))
                             else:
-# ++++ not a deleted record
-
-                                # --- validate if fields 'code' or 'name already exist and are not blank (when new record this is already done)
-
-
-                                # --- save changes in text fields
+# ++++  not a deleted record
+# --- save changes in field order, employee and shift
+                                for field in ('order', 'employee'):
+                                    logger.debug('field ' + str(field))
+                                    logger.debug('row_upload ' + str(row_upload))
+                                    if field in row_upload:
+                                        pk_obj = row_upload[field]
+                                        object = None
+                                        if field == 'order':
+                                            object = Order.objects.filter(
+                                                id=pk_obj,
+                                                customer__company=request.user.company
+                                            ).first()
+                                            logger.debug('object ' + str(object))
+                                        elif field == 'employee':
+                                            object = Employee.objects.filter(
+                                                id=pk_obj,
+                                                company=request.user.company
+                                            ).first()
+                                        elif field == 'shift':
+                                            object = Shift.objects.filter(
+                                                id=pk_obj,
+                                                company=request.user.company
+                                            ).first()
+                                        if object:
+                                            logger.debug('setattr object' + str(object))
+                                            setattr(emplhour, field, object)
+                                            row_dict[field]['upd'] = True
+                                            save_changes = True
+                                            logger.debug('after setattr object' + str(object))
 
 # --- save changes in date fields
-                                save_changes = False
                                 field = 'rosterdate'
                                 if field in row_upload:
                                     new_date, msg_err = get_date_from_str(row_upload[field])
@@ -140,55 +167,37 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                             row_dict[field]['upd'] = True
                                             save_changes = True
 
-
-# --- save changes in field order, employee and shift
-                                for field in ('order', 'employee', 'shift'):
+# --- save changes in other fields
+                                for field in ('time_status', 'orderhour_status'):
                                     if field in row_upload:
-                                        # get object order, employee of shift
-                                        new_object = None
-                                        if row_upload[field]:
-                                            if field == 'order':
-                                                new_object = Order.objects.filter(
-                                                    customer__company=request.user.company, pk=row_upload[field]).first()
-                                            elif field == 'employee':
-                                                new_object = Employee.objects.filter(
-                                                    company=request.user.company,pk=row_upload[field]).first()
-                                            else:
-                                                new_object = Employee.objects.filter(
-                                                    company=request.user.company,pk=row_upload[field]).first()
-                                        if new_object is None:
-                                            row_dict[field]['err'] = _('Item not found.')
-                                        else:
-                                            saved_object = getattr(emplhour, field, None)
-                                            logger.debug('saved_object: ' + str(saved_object) + str(type(saved_object)))
-                                            if new_object != saved_object:
-                                                logger.debug('new_object: ' + str(new_object) + str(type(new_object)))
-                                                setattr(emplhour, field, new_object)
-                                                row_dict[field]['upd'] = True
-                                                save_changes = True
+                                        new_value = row_upload[field]
+                                        saved_value = getattr(emplhour, field, None)
+                                        if new_value != saved_value:
+                                            setattr(emplhour, field, new_value)
+                                            row_dict[field]['upd'] = True
+                                            save_changes = True
 
-                                # --- save changes in inactive field
-
-                                # --- save changes
+# --- save changes
                                 if save_changes:
                                     emplhour.save(request=self.request)
+                                    logger.debug('changes saved ')
                                     for field in row_dict:
                                         saved_value = None
-                                        try:
-                                            if field == 'order':
-                                                saved_value = emplhour.orderhour.order.code
-                                            elif field == 'employee':
-                                                saved_value = emplhour.employee.code
-                                            elif field == 'shift':
-                                                saved_value = emplhour.shift.code
-                                        except:
-                                            pass
+                                        # 'upd' has always value True, or it does not exist
+                                        if 'upd' in row_dict[field]:
+                                            try:
+                                                if field == 'order':
+                                                    saved_value = emplhour.order.code
+                                                elif field == 'employee':
+                                                    saved_value = emplhour.employee.code
+                                                elif field == 'shift':
+                                                    saved_value = emplhour.shift.code
+                                                else:
+                                                    saved_value = getattr(emplhour, field, None)
+                                            except:
+                                                pass
                                         if saved_value:
                                             row_dict[field]['val'] = saved_value
-
-                                # add modified_by and modified_at attributes when updated
-                                    row_dict['modified_by']['val'] = emplhour.modified_by.username_sliced
-                                    row_dict['modified_at']['val'] = emplhour.modified_at_str(user_lang)
 
 
         # --- remove empty attributes from row_dict
@@ -221,11 +230,7 @@ class EmplhourDownloadDatalistView(View):  # PR2019-03-10
         if request.user is not None:
             if request.user.company is not None:
                 # request.POST:
-                # {'setting': ['{"worksheetname":"Level",
-                #                "no_header":false,
-                #                "coldefs":{"employee":"level_name","ordername":"level_abbrev"}}']}>
-
-                # fieldlist = ["employee", "ordername", "orderdatefirst", "orderdatelast"]
+                # param_upload = {"rosterdatefirst": rosterdatefirst, 'rosterdatelast': rosterdatelast}
 
                 rosterdate_first = None
                 rosterdate_last = None

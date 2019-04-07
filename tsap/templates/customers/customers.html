@@ -48,8 +48,10 @@
               </th>
               <th>{% trans 'Code' %}</th>
               <th>{% trans 'Customer name' %}</th>
+                <!--
               <th>{% trans 'Email' %}</th>
               <th>{% trans 'Telephone' %}</th>
+              -->
               <th>{% trans 'Start date' %}</th>
               <th>{% trans 'End date' %}</th>
               <th>{% trans 'Modified by' %}</th>
@@ -59,6 +61,7 @@
           <tbody id="id_tbody">
             {% for item in customers.all %}
               <tr id="{{ item.pk }}" class="display_hide" >
+                  {{ item.modified_at_str}}
                 <td>
                     <a name="inactive" href="#"
                        value="{{ item.inactive }}"
@@ -93,6 +96,7 @@
                            o_value="{{ item.name|default_if_none:''}}"
                            class="input_text border-none" >
                 </td>
+              <!--
                 <td>
                     <input name="email"
                            type="text"
@@ -115,14 +119,15 @@
                            o_value="{{ item.telephone|default_if_none:''}}"
                            class="input_text border-none" >
                 </td>
+              -->
                 <td >
                     <input name="datefirst"
                            type="date"
                            autocomplete="off"
                            ondragstart="return false;"
                            ondrop="return false;"
-                           value={{ item.datefirst_str}}
-                           o_value={{ item.datefirst_str}}
+                           value="{{ item.datefirst_str }}"
+                           o_value="{{ item.datefirst_str }}"
                            max="{{ item.datelast_str}}"
                            class="input_text border-none" >
 
@@ -133,8 +138,8 @@
                            autocomplete="off"
                            ondragstart="return false;"
                            ondrop="return false;"
-                           value={{ item.datelast_str}}
-                           o_value={{ item.datelast_str}}
+                           value="{{ item.datelast_str }}"
+                           o_value="{{ item.datelast_str }}"
                            max="{{ item.datefirst_str}}"
                            class="input_text border-none" >
 
@@ -150,7 +155,6 @@
                 <td>
                     <input name="modified_at"
                            type="text"
-                           autocomplete="off"
                            value="{{ item.modified_at|date:'DATETIME_FORMAT'}}"
                            readonly="readonly"
                            class="border-none" >

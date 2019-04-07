@@ -25,6 +25,7 @@
               <th>{% trans 'Company name' %}</th>
               <th>{% trans 'Start date' %}</th>
               <th>{% trans 'End date' %}</th>
+              <th>{% trans 'Entries used' %}</th>
               <th>{% trans 'Modified by' %}</th>
               <th>{% trans 'Modified at' %}</th>
             </tr>
@@ -49,6 +50,7 @@
                 </td>
                 <td>{{ item.datefirst}}</td>
                 <td>{{ item.datelast }}</td>
+                <td>{{ item.entriesused}}</td>
                 <td>{{ item.modified_by}}</td>
                 <td>{{ item.modified_at}}</td>
               </tr>

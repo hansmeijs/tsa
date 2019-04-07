@@ -24,43 +24,43 @@
             <div class="content_subheader_left">
                 <h5 id="id_content_header_name" title="test title">{% trans 'Review shifts' %} </h5>
             </div>
-            <div class="content_subheader_right">
-
-            </div>
+            <div class="content_subheader_right"></div>
         </div>
         <div class="content_header">
             <div class="content_subheader_left">
-                <input id="id_filter_name" type="text" class="fieldname pt-0 pb-0" colspan=2 placeholder="{% trans 'filter...' %}">
+                <input id="id_filter_name"
+                       type="text"
+                       class="fieldname pt-0 pb-0"
+
+                       placeholder="{% trans 'filter...' %}">
             </div>
             <div class="content_subheader_right">
                 <a id="id_btn_add" class="btn btn-add">{% trans 'Add shift' %}</a>
                 <a id="id_btn_delete" class="btn btn-add">{% trans 'Delete shift' %}</a>
             </div>
         </div>
-
-
         <table class="table table table-condensed tsa-tbl">
-          <thead class="thead-inverse">
+
+         <thead class="thead-inverse">
             <tr>
               <th>{% trans 'Date' %}</th>
               <th>{% trans 'Order' %}</th>
               <th>{% trans 'Employee' %}</th>
-              <th>{% trans 'Shift' %}</th>
-              <th>{% trans 'Start time' %}</th>
-              <th>{% trans 'End time' %}</th>
-              <th>{% trans 'Break hours' %}</th>
-              <th>{% trans 'Working hours' %}</th>
-              <th><img src="{% static 'img/stat00.png' %}" height="24" width="24"></th>
-              <th>{% trans 'Billing hours' %}</th>
-              <th><img src="{% static 'img/stat10.png' %}" height="24" width="24"></th>
-              <th>{% trans 'Modified by' %}</th>
-              <th>{% trans 'Modified at' %}</th>
+              <th class="td_width_090">{% trans 'Shift' %}</th>
+              <th class="td_width_110">{% trans 'Start time' %}</th>
+              <th class="td_width_110">{% trans 'End time' %}</th>
+              <th class="td_width_060">{% trans 'Break hours' %}</th>
+              <th class="td_width_090">{% trans 'Working hours' %}</th>
+              <th class="td_width_032p"><img src="{% static 'img/stat04.png' %}" height="24" width="24"></th>
+              <th class="td_width_090">{% trans 'Billing hours' %}</th>
+              <th class="td_width_032p"><img src="{% static 'img/real02.png' %}" height="24" width="24"></th>
             </tr>
           </thead>
+
           <tbody id="id_tbody">
             {% for item in items.all %}
               <tr id="{{ item.pk }}">
-                <td >
+                <td>
                     <input name="rosterdate"
                            type="date"
                            autocomplete="off"
@@ -71,24 +71,20 @@
                            max="{{ record.datelast_str}}"
                            class="input_text border-none" >
                 </td>
-                <td >
-
-                        <!-- if autocomplete="off" doesn't work, use: autocomplete="new-password" -->
-                        <input name="order"
-                               type="text"
-                               id="{{ item.id_ordemplhour_order }}"
-                               list="id_datalist_orders"
-                               autocomplete="off"
-                               ondragstart="return false;"
-                               ondrop="return false;"
-                               maxlength="{{ item.maxlen_code }}"
-                               value="{{ item.order.code|default_if_none:''}}"
-                               o_value="{{ item.order.code|default_if_none:''}}"
-                               class="input_text border-none" >
-
+                <td>
+                    <input name="order"
+                           type="text"
+                           id="{{ item.order.code }}"
+                           list="id_datalist_orders"
+                           autocomplete="off"
+                           ondragstart="return false;"
+                           ondrop="return false;"
+                           maxlength="{{ item.maxlen_code }}"
+                           value="{{ item.order.code|default_if_none:''}}"
+                           o_value="{{ item.order.code|default_if_none:''}}"
+                           class="input_text border-none" >
                 </td>
-                <td >
-
+                <td>
                     <input name="employee"
                            type="text"
                            id="{{ item.id_ordemplhour_empl }}"
@@ -100,8 +96,8 @@
                            value="{{ item.employee.code|default_if_none:''}}"
                            o_value="{{ item.employee.code|default_if_none:''}}"
                            class="input_text border-none" >
-
-                <td >
+                </td>
+                <td>
                     <input name="shift"
                            type="text"
                            id="{{ item.id_ordemplhour_shift }}"
@@ -112,7 +108,7 @@
                            maxlength="{{ item.maxlen_code }}"
                            value="{{ item.shift.code|default_if_none:''}}"
                            o_value="{{ item.shift.code|default_if_none:''}}"
-                           class="input_text border-none" >
+                           class="input_text border-none td_width_090">
                 </td>
                 <td>
                     <input name="emplhour_start"
@@ -124,7 +120,7 @@
                            o_value="{{ item.emplhour_start }}"
                            class="input_text border-none" >
                 </td>
-                <td >
+                <td>
                     <input name="emplhour_end"
                            type="time"
                            autocomplete="off"
@@ -135,84 +131,93 @@
                            max="{{ item.datelast_str}}"
                            class="input_text border-none" >
                 </td>
-                <td >
+                <td class="td_width_060">
                     <input name="emplbreak_duration"
-                           type="date"
+                           type="number"
                            autocomplete="off"
                            ondragstart="return false;"
                            ondrop="return false;"
                            value="{{ item.emplbreak_duration}}"
                            o_value="{{ item.emplbreak_duration}}"
-                           max="{{ item.datefirst_str}}"
-                           class="input_text border-none" >
-
+                           min="0"
+                           max="72"
+                           class="input_text border-none td_width_060" >
                 </td>
-
-                <td >
+                <td class="td_width_090">
                     <input name="emplhour_duration"
-                           type="date"
+                           type="number"
                            autocomplete="off"
                            ondragstart="return false;"
                            ondrop="return false;"
                            value="{{ item.emplhour_duration}}"
                            o_value="{{ item.emplhour_duration}}"
-                           max="{{ item.datefirst_str}}"
+                           min="0"
+                           max="72"
                            class="input_text border-none" >
                 </td>
-                <td>
-                    <a name="emplhour_status" href="#"
-                       value="{{ item.emplhour_status }}"
+                <td class="td_width_032p">
+                    <a name="time_status" href="#"
+                       value="{{ item.time_status }}"
                        class="input_icon">
-                        {% if item.inactive %}
-                            <img src="{% static 'img/inactive_black.png' %}" height="24" width="24">
+                        {% if item.time_status == 5 %}
+                            <img src="{% static 'img/stat05.png' %}" height="24" width="24">
                         {% else %}
-                            <img src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
+                            {% if item.time_status == 4 %}
+                                <img src="{% static 'img/stat04.png' %}" height="24" width="24">
+                            {% else %}
+                                {% if item.time_status == 3 %}
+                                    <img src="{% static 'img/stat03.png' %}" height="24" width="24">
+                                {% else %}
+                                    {% if item.time_status == 2 %}
+                                        <img src="{% static 'img/stat02.png' %}" height="24" width="24">
+                                    {% else %}
+                                        {% if item.time_status == 1 %}
+                                            <img src="{% static 'img/stat01.png' %}" height="24" width="24">
+                                        {% else %}
+                                            <img src="{% static 'img/stat00.png' %}" height="24" width="24">
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
                         {% endif %}
                     </a>
                 </td>
-                <td >
+                <td class="td_width_090">
                     <input name="orderhour_duration"
-                           type="date"
+                           type="number"
                            autocomplete="off"
                            ondragstart="return false;"
                            ondrop="return false;"
                            value="{{ item.orderhour_duration}}"
                            o_value="{{ item.orderhour_duration}}"
-                           max="{{ item.datefirst_str}}"
-                           class="input_text border-none" >
+                           min="-72"
+                           max="72"
+                           class="inpXXut_text border-none td_width_060" >
                 </td>
-                <td>
+                <td class="td_width_032p">
                     <a name="orderhour_status" href="#"
-                       value="{{ item.orderhour_status }}"
-                       class="input_icon">
-                        {% if item.inactive %}
-                            <img src="{% static 'img/inactive_black.png' %}" height="24" width="24">
+                    value="{{ item.orderhour_status }}"
+                    class="input_icon">
+                        {% if item.time_status == 3 %}
+                            <img src="{% static 'img/real03.png' %}" height="24" width="24">
                         {% else %}
-                            <img src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
+                            {% if item.time_status == 2 %}
+                                <img src="{% static 'img/real02.png' %}" height="24" width="24">
+                            {% else %}
+                                {% if item.time_status == 1 %}
+                                    <img src="{% static 'img/real01.png' %}" height="24" width="24">
+                                {% else %}
+                                    <img src="{% static 'img/stat00.png' %}" height="24" width="24">
+                                {% endif %}
+                            {% endif %}
                         {% endif %}
                     </a>
-                </td>
-                <td >
-                    <input name="modified_by"
-                           type="text"
-                           autocomplete="off"
-                           value="{{ item.modified_by}}"
-                           readonly="readonly"
-                           class="border-none" >
-                </td>
-                <td>
-                    <input name="modified_at"
-                           type="text"
-                           autocomplete="off"
-                           value="{{ item.modified_at|date:'DATETIME_FORMAT'}}"
-                           readonly="readonly"
-                           class="border-none" >
                 </td>
               </tr>
             {% endfor %}
           </tbody>
-        </table>
 
+        </table>
     <div id="id_data"
         data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
         data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
@@ -222,6 +227,7 @@
         data-imgsrc_stat02="{% static 'img/stat02.png' %}"
         data-imgsrc_stat03="{% static 'img/stat03.png' %}"
         data-imgsrc_stat04="{% static 'img/stat04.png' %}"
+        data-imgsrc_stat05="{% static 'img/stat05.png' %}"
         data-imgsrc_real00="{% static 'img/real00.png' %}"
         data-imgsrc_real01="{% static 'img/real01.png' %}"
         data-imgsrc_real02="{% static 'img/real02.png' %}"
@@ -229,10 +235,11 @@
         data-emplhour_upload_url= "{% url 'emplhour_upload_url' %}"
         data-emplhour_datalist_url= "{% url 'emplhour_datalist_url' %}"
         data-err_msg01= "{% trans 'An error occurred.' %}"
-    ></div>
-    <datalist id="id_datalist_employees" class="nopadding"> > </datalist>
-    <datalist id="id_datalist_orders" class="nopadding"> </datalist>
-    <datalist id="id_datalist_shifts" class="nopadding"> </datalist>
+    >
+    </div>
+    <datalist id="id_datalist_employees" class="nopadding"></datalist>
+    <datalist id="id_datalist_orders" class="nopadding"></datalist>
+    <datalist id="id_datalist_shifts" class="nopadding"></datalist>
   {% else %}
     <div class="alert alert-danger">{% trans 'Error' %}</div>
     <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>

@@ -240,66 +240,36 @@ console.log("=========  function AddTableRow =========");
             tblRow.setAttribute("id", id_row_selected);
             tblRow.classList.add("tsa-tr-highlighted")
 
-            for (let j = 0 ; j < 10; j++) {
+            const el_cat = ["img", "input", "input", "input", "input", "input", "input"];
+            const el_name = ["img", "code", "name", "datefirst", "datelast", "modified_by", "modified_at"];
+            const el_type = ["img", "text", "text", "date", "date", "text", "text"];
+            const el_is_input = [true, true, true, true, true, false, false];
+            for (let j = 0 ; j < 7; j++) { // was: 10
                 //let td = document.createElement('td');          // TABLE DEFINITION.
                 //td = tr.insertCell(tblRow);
                 let td = tblRow.insertCell(-1); //index -1 results in that the new cell will be inserted at the last position.
-                if (j===0){
-                    let img = document.createElement("img");
-                    img.height="24"
-                    img.width="24"
-                    img.src = img_inactive_src;
-                    td.appendChild(img);
-                } else if (j===9){
-                    let img = document.createElement("img");
-                    img.height="24"
-                    img.width="24"
-                    img.src = img_delete_src;
-                    td.appendChild(img);
-                } else if (j===5){
-                    let el = document.createElement('input');
-                    el.setAttribute("name", "datefirst");
-                    el.setAttribute("type", "date");
-                    el.setAttribute("value", "");
-                    td.appendChild(el);
-                } else if (j===6){
-                    let el = document.createElement('input');
-                    el.setAttribute("name", "datelast");
-                    el.setAttribute("type", "date");
-                    el.setAttribute("value", "");
-                    td.appendChild(el);
-                } else {
-                    let el_name = ""
-                    if (j === 1){
-                        el_name = "code";
-                    } else if (j === 2) {
-                        el_name = "name";
-                    } else if (j === 3) {
-                        el_name = "email";
-                    } else if (j === 4) {
-                        el_name = "telephone";
-                    } else if (j === 7) {
-                        el_name = "_modified_by";
-                    } else if (j === 8) {
-                        el_name = "modified_at";
-                    }
-                    let el = document.createElement('input');
-                    el.setAttribute("name", el_name);
-                    if (el_name === "code"){
-                        el.setAttribute("autofocus", true);
-                    }
-                    el.setAttribute("type", "text");
-                    el.setAttribute("value", "");
-                    el.setAttribute("autocomplete", "off");
-                    el.setAttribute("ondragstart", "return false;");
-                    el.setAttribute("ondrop", "return false;");
 
+                let el = document.createElement(el_cat[j]);
+                el.setAttribute("name", el_name[j]);
+                el.setAttribute("type", el_type[j]);
+                if (el_type[j] === "img"){
+                    el.src = img_inactive_src;
+                    el.height="24"
+                    el.width="24"
+                    el.addEventListener("change", function() {UploadChanges(el);}, false )
+                } else if (el_is_input[j] ){
                     el.addEventListener("change", function() {UploadChanges(el);}, false )
                     el.classList.add("input_text");
-                    el.classList.add("border-none");
-
-                    td.appendChild(el);
                 }
+                if (el_name[j] === "code"){
+                    el.setAttribute("autofocus", true);
+                }
+                el.setAttribute("value", "");
+                el.setAttribute("autocomplete", "off");
+                el.setAttribute("ondragstart", "return false;");
+                el.setAttribute("ondrop", "return false;");
+                el.classList.add("border-none");
+                td.appendChild(el);
             }
     };//function AddTableRow
 

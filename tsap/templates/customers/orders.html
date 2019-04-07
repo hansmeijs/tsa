@@ -79,7 +79,7 @@
                            ondrop="return false;"
                            maxlength="{{ item.maxlen_code }}"
                            value="{{ item.customer.code|default_if_none:''}}"
-                           o_value="{{ item.code|default_if_none:''}}"
+                           o_value="{{ item.customer.code|default_if_none:''}}"
                            class="input_text border-none" >
                 </td>
                 <td>

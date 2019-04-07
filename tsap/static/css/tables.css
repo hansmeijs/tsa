@@ -1,17 +1,47 @@
 
-.tsa-tbl  {
-    table-layout: auto;
-}
+/* PR2019-04-06 from https://css-tricks.com/fixing-tables-long-strings/ */
 
+.tsa-tbl  {
+    /*table-layout: auto;*/
+    table-layout: fixed;
+    width: 100%; /* must have this set */
+}
 .tsa-tbl th  {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
     margin: 0px;
     background: #f8f8f8; /*licht licht grijs; */
 }
 
-.tsa-tbl tr, .tsa-tbl td {
+.tsa-tbl tr {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
     margin: 0px;
+
+}
+
+.tsa-tbl td {
+    padding: 0.2rem 0.25rem 0.05rem 0.25rem;
+    margin: 0px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.td_width_120 {
+    width: 120px;
+}
+.td_width_110 {
+    width: 110px;
+}
+.td_width_090 {
+    width: 90px;
+}
+.td_width_060 {
+    border-right: 1px solid #808080; /* grijs; */
+    width: 60px;
+}
+.td_width_032p {
+    border-right: 1px solid #808080; /* grijs; */
+    width: 32px;
 }
 
 .tsa-tr-highlighted {
@@ -24,4 +54,18 @@
 
 .tsa-tr-ok {
     background: #d7f4de; /* licht groen; */
+}
+
+
+.status_icon {
+  -o-object-fit: none;
+     object-fit: none;
+  -o-object-position: -48 0;
+     object-position: -48 0;
+  width: 24px;
+  height: 24px;
+}
+.book {
+  -o-object-position: 0 -234px;
+     object-position: 0 -234px;
 }

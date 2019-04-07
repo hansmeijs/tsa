@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-03-30 17:19-0400\n"
+"POT-Creation-Date: 2019-04-06 21:13-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -60,36 +60,36 @@ msgstr ""
 msgid "Active"
 msgstr "Aktief"
 
-#: .\accounts\models.py:43
+#: .\accounts\models.py:44
 #, python-format
 msgid ""
 "Required, %(len)s characters or fewer. Letters, digits and @/./+/-/_ only."
 msgstr ""
 "Verplicht, %(len)s tekens of minder. Alleen letters, cijfers en @/./+/-/_ ."
 
-#: .\accounts\models.py:46
+#: .\accounts\models.py:47
 msgid ""
 "Enter a valid username. This value may contain only letters, numbers and @/./"
 "+/-/_ characters."
 msgstr ""
 "Vul een geldige gebruikersnaam in. Alleen letters, cijfers en @/./+/-/_ "
-"tekenss."
+"tekens."
 
-#: .\accounts\models.py:51
+#: .\accounts\models.py:52
 msgid "A user with that username already exists."
 msgstr "Een gebruiker met deze gebruikersnaam komt al voor"
 
-#: .\accounts\models.py:56
+#: .\accounts\models.py:57
 msgid "Required. {} characters or fewer."
 msgstr "Verplicht. {} tekens or minder."
 
-#: .\accounts\models.py:59
+#: .\accounts\models.py:60
 msgid ""
 "Enter a valid name. This value may contain only letters, numbers and '/./-/_ "
 "characters."
 msgstr "Vul een geldige naam in. Alleen letters, cijfers en '/./-/_ tekenss."
 
-#: .\accounts\models.py:64
+#: .\accounts\models.py:65
 msgid "email address"
 msgstr "e-mail adres"
 
@@ -121,28 +121,24 @@ msgstr "U moet ingelogd zijn om deze pagina te kunnen bekijken."
 msgid "Level name already exists."
 msgstr ""
 
-#: .\accounts\views.py:69
+#: .\accounts\views.py:68
 msgid "User has no role."
 msgstr "Gebruiker heeft geen organisatie."
 
-#: .\accounts\views.py:196
-msgid "Activate your TSA-secure account"
-msgstr "Activeer je TSA-secure account."
-
-#: .\accounts\views.py:542
+#: .\accounts\views.py:539
 msgid "Import students"
 msgstr ""
 
-#: .\accounts\views.py:545
+#: .\accounts\views.py:542
 msgid "Subjects"
 msgstr ""
 
-#: .\accounts\views.py:546
+#: .\accounts\views.py:543
 msgid "Student subjects"
 msgstr ""
 
 #: .\companies\forms.py:56 .\templates\companies\company_list.html:26
-#: .\templates\customers\customers.html:53
+#: .\templates\customers\customers.html:55 .\templates\customers\orders.html:52
 #: .\templates\employees\employees.html:47
 msgid "Start date"
 msgstr "Begindatum"
@@ -192,7 +188,7 @@ msgstr "Niet aktief"
 msgid "last date"
 msgstr "Einddatum"
 
-#: .\customers\views.py:180
+#: .\customers\views.py:168 .\customers\views.py:397 .\planning\views.py:118
 msgid "This record could not be deleted."
 msgstr "Dit record kon niet worden gewist."
 
@@ -216,7 +212,7 @@ msgstr "Achternaam moet ingevuld zijn."
 msgid "Employee not found."
 msgstr "Werknemer niet gevonden"
 
-#: .\employees\views.py:692
+#: .\employees\views.py:693
 msgid "An error occurred. The employee data is not saved."
 msgstr "Er is een fout opgetreden. De gegevens zijn niet opgeslagen."
 
@@ -274,8 +270,7 @@ msgstr "We hebben een e-mail verzonden naar gebruiker"
 
 #: .\templates\accounts\account_activation_sent.html:13
 msgid "to verify the email address and enter a password."
-msgstr ""
-"om het e-mail adres te verifiëren en een wachtwoord in te vullen."
+msgstr "om het e-mail adres te verifiëren en een wachtwoord in te vullen."
 
 #: .\templates\accounts\account_activation_sent.html:14
 msgid ""
@@ -315,12 +310,13 @@ msgstr "Wachtwoord aanmaken"
 #: .\templates\accounts\user_set_password.html:18
 #: .\templates\accounts\users.html:43 .\templates\companies\company_add.html:20
 #: .\templates\companies\company_add.html:24
-#: .\templates\companies\company_list.html:60
+#: .\templates\companies\company_list.html:62
 #: .\templates\customers\customer_add.html:20
 #: .\templates\customers\customer_add.html:24
-#: .\templates\customers\customers.html:173
+#: .\templates\customers\customers.html:177
+#: .\templates\customers\orders.html:169
+#: .\templates\employees\emplhours.html:245
 #: .\templates\employees\employees.html:175
-#: .\templates\planning\verify.html:163
 msgid "Cancel"
 msgstr "Annuleren"
 
@@ -368,7 +364,6 @@ msgstr ""
 "maken."
 
 #: .\templates\accounts\password_reset.html:16
-
 msgid "Send password reset email"
 msgstr "Verzend e-mail voor nieuw wachtwoord"
 
@@ -379,15 +374,15 @@ msgstr "Je wachtwoord is gewijzigd!"
 #: .\templates\accounts\password_reset_complete.html:13
 msgid ""
 "You have successfully changed your password! You may now proceed to log in."
-msgstr "Je hebt met succes je TSA-secure account geactiveerd. Je kunt nu inloggen."
+msgstr ""
+"Je hebt met succes je TSA-secure account geactiveerd. Je kunt nu inloggen."
 
 #: .\templates\accounts\password_reset_complete.html:15
 #: .\templates\accounts\password_reset_done.html:13
 msgid "Return to log in"
-msgstr ""
+msgstr "Terug naar login scherm"
 
 #: .\templates\accounts\password_reset_confirm.html:18
-
 msgid "Change TSA-secure password for user "
 msgstr "Wijzig TSA-secure wachtwoord voor gebruiker "
 
@@ -395,7 +390,9 @@ msgstr "Wijzig TSA-secure wachtwoord voor gebruiker "
 msgid ""
 "It looks like you clicked on an invalid password reset link. Please try "
 "again."
-msgstr "De link voor het vernieuwen van je wachtwoord is niet geldig. Probeer het opnieuw."
+msgstr ""
+"De link voor het vernieuwen van je wachtwoord is niet geldig. Probeer het "
+"opnieuw."
 
 #: .\templates\accounts\password_reset_confirm.html:29
 msgid "Request a new password reset link"
@@ -403,8 +400,7 @@ msgstr "Vraag een link aan voor het vernieuwen van je wachtwoord."
 
 #: .\templates\accounts\password_reset_done.html:12
 msgid "Check your email for a link to reset your password."
-msgstr ""
-"Kijk in je e-mail voor een link voor een nieuw wachtwoord."
+msgstr "Kijk in je e-mail voor een link voor een nieuw wachtwoord."
 
 #: .\templates\accounts\password_reset_done.html:12
 msgid "If it doesn't appear within a few minutes, check your spam folder."
@@ -489,7 +485,7 @@ msgstr "Wissen"
 msgid "Please enter a password to finish the registration."
 msgstr "Vul een wachtwoord in om de registratie af te ronden"
 
-#: .\templates\accounts\users.html:14 .\templates\customers\customers.html:51
+#: .\templates\accounts\users.html:14 .\templates\customers\customers.html:52
 #: .\templates\employees\employees.html:45
 msgid "Email"
 msgstr "E-mail"
@@ -524,25 +520,29 @@ msgstr "Bedrijf toevoegen"
 #: .\templates\companies\company_add.html:19
 #: .\templates\customers\customer_add.html:19
 msgid "Save"
-msgstr ""
+msgstr "Opslaan"
 
 #: .\templates\companies\company_list.html:25
 msgid "Company name"
 msgstr "Bedrijfsnaam"
 
 #: .\templates\companies\company_list.html:27
-#: .\templates\customers\customers.html:54
+#: .\templates\customers\customers.html:56 .\templates\customers\orders.html:53
 msgid "End date"
 msgstr "Einddatum"
 
 #: .\templates\companies\company_list.html:28
-#: .\templates\customers\customers.html:55
+msgid "Entries used"
+msgstr ""
+
+#: .\templates\companies\company_list.html:29
+#: .\templates\customers\customers.html:57 .\templates\customers\orders.html:54
 #: .\templates\employees\employees.html:48
 msgid "Modified by"
 msgstr "Gewijzigd door"
 
-#: .\templates\companies\company_list.html:29
-#: .\templates\customers\customers.html:56
+#: .\templates\companies\company_list.html:30
+#: .\templates\customers\customers.html:58 .\templates\customers\orders.html:55
 #: .\templates\employees\employees.html:49
 msgid "Modified at"
 msgstr "Gewijzigd op"
@@ -560,8 +560,9 @@ msgstr "Nieuw"
 msgid "New customer"
 msgstr "Nieuwe klant"
 
-#: .\templates\customers\customers.html:33
-#: .\templates\employees\employees.html:28 .\templates\planning\verify.html:26
+#: .\templates\customers\customers.html:33 .\templates\customers\orders.html:33
+#: .\templates\employees\emplhours.html:35
+#: .\templates\employees\employees.html:28
 msgid "filter..."
 msgstr ""
 
@@ -570,7 +571,6 @@ msgid "Add customer"
 msgstr "Nieuwe klant"
 
 #: .\templates\customers\customers.html:37
-
 msgid "Delete customer"
 msgstr "Klant verwijderen"
 
@@ -578,20 +578,22 @@ msgstr "Klant verwijderen"
 msgid "Customer name"
 msgstr "Naam klant"
 
-#: .\templates\customers\customers.html:52
+#: .\templates\customers\customers.html:53
 #: .\templates\employees\employees.html:46
 msgid "Telephone"
 msgstr "Telefoon"
 
-#: .\templates\customers\customers.html:168
+#: .\templates\customers\customers.html:172
+#: .\templates\customers\orders.html:162
+#: .\templates\employees\emplhours.html:237
 #: .\templates\employees\employees.html:170
-#: .\templates\planning\verify.html:158
 msgid "An error occurred."
 msgstr "Er is een fout opgetreden"
 
-#: .\templates\customers\customers.html:172
+#: .\templates\customers\customers.html:176
+#: .\templates\customers\orders.html:168
+#: .\templates\employees\emplhours.html:244
 #: .\templates\employees\employees.html:174
-#: .\templates\planning\verify.html:162
 msgid "Error"
 msgstr "Fout"
 
@@ -629,6 +631,93 @@ msgstr "Je hebt geen permissie om deze pagina te bekijken."
 msgid "You must be logged in to view this page"
 msgstr "Je moet ingelogd zijn om deze pagina te bekijken."
 
+#: .\templates\customers\orders.html:25
+#, fuzzy
+#| msgid "Order"
+msgid "Orders"
+msgstr "Opdracht"
+
+#: .\templates\customers\orders.html:36
+#, fuzzy
+#| msgid "Add user"
+msgid "Add order"
+msgstr "Gebruiker toevoegen"
+
+#: .\templates\customers\orders.html:37
+#, fuzzy
+#| msgid "Delete customer"
+msgid "Delete order"
+msgstr "Klant verwijderen"
+
+#: .\templates\customers\orders.html:49
+#, fuzzy
+#| msgid "Customers"
+msgid "Customer"
+msgstr "Klanten"
+
+#: .\templates\customers\orders.html:50
+#, fuzzy
+#| msgid "Order"
+msgid "Order code"
+msgstr "Opdracht"
+
+#: .\templates\customers\orders.html:51
+#, fuzzy
+#| msgid "Order"
+msgid "Order name"
+msgstr "Opdracht"
+
+#: .\templates\employees\emplhours.html:25
+msgid "Review shifts"
+msgstr "Diensten controleren"
+
+#: .\templates\employees\emplhours.html:38
+msgid "Add shift"
+msgstr "Dienst toevoegen"
+
+#: .\templates\employees\emplhours.html:39
+msgid "Delete shift"
+msgstr "Dienst verwijderen"
+
+#: .\templates\employees\emplhours.html:46
+msgid "Date"
+msgstr "Datum"
+
+#: .\templates\employees\emplhours.html:47
+msgid "Order"
+msgstr "Opdracht"
+
+#: .\templates\employees\emplhours.html:48 .\tsap\constants.py:18
+#: .\tsap\constants.py:24
+msgid "Employee"
+msgstr "Werknemer"
+
+#: .\templates\employees\emplhours.html:49
+msgid "Shift"
+msgstr "Dienst"
+
+#: .\templates\employees\emplhours.html:50
+msgid "Start time"
+msgstr "Begintijd"
+
+#: .\templates\employees\emplhours.html:51
+msgid "End time"
+msgstr "Eindtijd"
+
+#: .\templates\employees\emplhours.html:52
+#, fuzzy
+#| msgid "Working hours"
+msgid "Break hours"
+msgstr "Werkuren"
+
+#: .\templates\employees\emplhours.html:53
+msgid "Working hours"
+msgstr "Werkuren"
+
+#: .\templates\employees\emplhours.html:55
+msgid "Billing hours"
+msgstr "Factuur-uren"
+
 #: .\templates\employees\employee_import.html:31
 msgid "Select employee file"
 msgstr "Selecteer werknemer bestand"
@@ -646,7 +735,6 @@ msgid "Prefix"
 msgstr "Tussenvoegsel"
 
 #: .\templates\employees\employees.html:160
-#: .\templates\planning\verify.html:147
 msgid "Add employee"
 msgstr "Werknemer toevoegen"
 
@@ -677,52 +765,6 @@ msgstr "Nederlands"
 msgid "Log out"
 msgstr "Uitloggen"
 
-#: .\templates\planning\verify.html:23
-msgid "Verify"
-msgstr "verifiëren"
-
-#: .\templates\planning\verify.html:33
-msgid "Date"
-msgstr "Datum"
-
-#: .\templates\planning\verify.html:34
-msgid "Order"
-msgstr "Opdracht"
-
-#: .\templates\planning\verify.html:35 .\tsap\constants.py:18
-#: .\tsap\constants.py:24
-msgid "Employee"
-msgstr "Werknemer"
-
-#: .\templates\planning\verify.html:36
-msgid "Shift"
-msgstr "Dienst"
-
-#: .\templates\planning\verify.html:37
-
-msgid "Start time"
-msgstr "Begintijd"
-
-#: .\templates\planning\verify.html:38
-msgid "End time"
-msgstr "Eindtijd"
-
-#: .\templates\planning\verify.html:39
-msgid "Working hours"
-msgstr "Werkuren"
-
-#: .\templates\planning\verify.html:40 .\templates\planning\verify.html:42
-msgid "Status"
-msgstr ""
-
-#: .\templates\planning\verify.html:41
-msgid "Billing hours"
-msgstr "Factuur-uren"
-
-#: .\templates\planning\verify.html:157
-msgid "Subject is mandatory."
-msgstr ""
-
 #: .\tsap\authentication.py:27
 msgid "You are not connected to a company. You cannot view this page."
 msgstr ""
@@ -734,7 +776,7 @@ msgstr ""
 
 #: .\tsap\constants.py:76
 msgid "V"
-msgstr ""
+msgstr "F"
 
 #: .\tsap\functions.py:41
 msgid "is not a valid date."
@@ -757,7 +799,6 @@ msgid "<Select department>"
 msgstr "<Selecteer afdeling>"
 
 #: .\tsap\validators.py:19 .\tsap\validators.py:47 .\tsap\validators.py:87
-
 msgid "No company."
 msgstr "Geen bedrijf gevonden."
 
@@ -767,21 +808,18 @@ msgstr "Code moet ingevuld zijn."
 
 #: .\tsap\validators.py:23
 msgid "Code is too long. "
-msgstr ""
+msgstr "Code is te lang"
 
 #: .\tsap\validators.py:23 .\tsap\validators.py:59 .\tsap\validators.py:61
 #: .\tsap\validators.py:63 .\tsap\validators.py:91
-
 msgid " characters or fewer."
 msgstr " tekens or minder."
 
 #: .\tsap\validators.py:34
-
 msgid "This employee code already exists."
 msgstr "De code van deze werknemer komt al voor."
 
 #: .\tsap\validators.py:51
-
 msgid "First and last name cannot be blank."
 msgstr "Voor- en achternaam moeten ingevuld zijn."
 
@@ -794,7 +832,6 @@ msgid "Last name is too long."
 msgstr "Achternaam is te lang."
 
 #: .\tsap\validators.py:63
-
 msgid "First name is too long."
 msgstr "Voornaam is te lang"
 
@@ -807,7 +844,6 @@ msgid "Email address cannot be blank."
 msgstr "E-mail adres moet ingevuld zijn."
 
 #: .\tsap\validators.py:91
-
 msgid "Email address is too long. "
 msgstr "E-mail adres is te lang"
 
@@ -858,6 +894,12 @@ msgstr "Deze code bestaat al."
 #: .\tsap\validators.py:233
 msgid "Name already exists."
 msgstr "Deze naam bestaat al."
+
+#~ msgid "Activate your TSA-secure account"
+#~ msgstr "Activeer je TSA-secure account."
+
+#~ msgid "Verify"
+#~ msgstr "verifiëren"
 
 #~ msgid "  - company:  "
 #~ msgstr " - bedrijf: "
