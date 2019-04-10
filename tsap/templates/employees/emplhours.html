@@ -45,12 +45,12 @@
             <tr>
               <th>{% trans 'Date' %}</th>
               <th>{% trans 'Order' %}</th>
-              <th>{% trans 'Employee' %}</th>
-              <th class="td_width_090">{% trans 'Shift' %}</th>
-              <th class="td_width_110">{% trans 'Start time' %}</th>
-              <th class="td_width_110">{% trans 'End time' %}</th>
+              <th> {% trans 'Employee' %}</th>
+              <th td_width_120>{% trans 'Shift' %}</th>
+              <th >{% trans 'Start time' %}</th>
+              <th>{% trans 'End time' %}</th>
               <th class="td_width_060">{% trans 'Break hours' %}</th>
-              <th class="td_width_090">{% trans 'Working hours' %}</th>
+              <th class="td_width_120">{% trans 'Working hours' %}</th>
               <th class="td_width_032p"><img src="{% static 'img/stat04.png' %}" height="24" width="24"></th>
               <th class="td_width_090">{% trans 'Billing hours' %}</th>
               <th class="td_width_032p"><img src="{% static 'img/real02.png' %}" height="24" width="24"></th>
@@ -82,7 +82,7 @@
                            maxlength="{{ item.maxlen_code }}"
                            value="{{ item.order.code|default_if_none:''}}"
                            o_value="{{ item.order.code|default_if_none:''}}"
-                           class="input_text border-none" >
+                           class="input_text border-none td_width_120" >
                 </td>
                 <td>
                     <input name="employee"
@@ -95,9 +95,9 @@
                            maxlength="{{ item.maxlen_code }}"
                            value="{{ item.employee.code|default_if_none:''}}"
                            o_value="{{ item.employee.code|default_if_none:''}}"
-                           class="input_text border-none" >
+                           class="input_text border-none td_width_120">
                 </td>
-                <td>
+                <td td_width_120>
                     <input name="shift"
                            type="text"
                            id="{{ item.id_ordemplhour_shift }}"
@@ -108,52 +108,53 @@
                            maxlength="{{ item.maxlen_code }}"
                            value="{{ item.shift.code|default_if_none:''}}"
                            o_value="{{ item.shift.code|default_if_none:''}}"
-                           class="input_text border-none td_width_090">
+                           class="input_text border-none td_width_090"
+                    >
                 </td>
                 <td>
-                    <input name="emplhour_start"
-                           type="time"
+                    <input name="time_start"
+                           type="datetime-local"
                            autocomplete="off"
                            ondragstart="return false;"
                            ondrop="return false;"
-                           value="{{ item.emplhour_start }}"
-                           o_value="{{ item.emplhour_start }}"
+                           value="{{ item.time_start_datetimelocal }}"
+                           o_value="{{ item.time_start_datetimelocal }}"
                            class="input_text border-none" >
                 </td>
                 <td>
-                    <input name="emplhour_end"
-                           type="time"
+                    <input name="time_end"
+                           type="datetime-local"
                            autocomplete="off"
                            ondragstart="return false;"
                            ondrop="return false;"
-                           value="{{ item.emplhour_end }}"
-                           o_value="{{ item.emplhour_end }}"
-                           max="{{ item.datelast_str}}"
+                           value="{{ item.time_end_datetimelocal }}"
+                           o_value="{{ item.time_end_datetimelocal }}"
+                           min="{{ item.time_start_datetimelocal }}"
                            class="input_text border-none" >
                 </td>
                 <td class="td_width_060">
-                    <input name="emplbreak_duration"
-                           type="number"
+                    <input name="break_duration"
+                           type="text"
                            autocomplete="off"
                            ondragstart="return false;"
                            ondrop="return false;"
-                           value="{{ item.emplbreak_duration}}"
-                           o_value="{{ item.emplbreak_duration}}"
+                           value="{{ item.break_hours}}"
+                           o_value="{{ item.break_hours}}"
                            min="0"
                            max="72"
                            class="input_text border-none td_width_060" >
                 </td>
-                <td class="td_width_090">
-                    <input name="emplhour_duration"
-                           type="number"
+                <td >
+                    <input name="time_duration"
+                           type="text"
                            autocomplete="off"
                            ondragstart="return false;"
                            ondrop="return false;"
-                           value="{{ item.emplhour_duration}}"
-                           o_value="{{ item.emplhour_duration}}"
+                           value="{{ item.time_hours}}"
+                           o_value="{{ item.time_hours}}"
                            min="0"
                            max="72"
-                           class="input_text border-none" >
+                           class="input_text border-none td_width_060" >
                 </td>
                 <td class="td_width_032p">
                     <a name="time_status" href="#"
@@ -184,7 +185,7 @@
                 </td>
                 <td class="td_width_090">
                     <input name="orderhour_duration"
-                           type="number"
+                           type="text"
                            autocomplete="off"
                            ondragstart="return false;"
                            ondrop="return false;"

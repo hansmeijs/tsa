@@ -118,8 +118,8 @@ def validate_customer(field, value, company, this_pk = None):
     # validate if customer code_already_exists already exists in this company PR2019-03-04
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
+    # logger.debug('cust_code_exists: ' + str(value) + ' ' + str(company) + ' ' + str(this_pk))
 
-    logger.debug('cust_code_exists: ' + str(value) + ' ' + str(company) + ' ' + str(this_pk))
     msg_dont_add = None
     if not value:
         msg_dont_add = _("This field cannot be blank.")

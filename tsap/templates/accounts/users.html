@@ -15,8 +15,6 @@
             <th>{% trans 'Activated' %}</th>
             <th>{% trans 'Active' %}</th>
             <th>{% trans 'Company' %}</th>
-            <th>{% trans 'Department' %}</th>
-            <th>{% trans 'Allowed departments' %}</th>
             <th>{% trans 'Organization' %}</th>
             <th>{% trans 'Permissions' %}</th>
           </tr>
@@ -30,8 +28,6 @@
               <td>{{ usr.activated }}</td>
               <td>{{ usr.is_active_str }}</td>
               <td>{{ usr.company }}</td>
-              <td>{{ usr.depbase_str }}</td>
-              <td>{{ usr.allowed_depbase_list_str }}</td>
               <td>{{ usr.role_str }}</td>
               <td>{{ usr.permits_str }}</td>
             </tr>

@@ -2,14 +2,18 @@
 /* PR2019-04-06 from https://css-tricks.com/fixing-tables-long-strings/ */
 
 .tsa-tbl  {
-    /*table-layout: auto;*/
-    table-layout: fixed;
+    table-layout: auto;
+    /*table-layout: fixed;*/
     width: 100%; /* must have this set */
 }
 .tsa-tbl th  {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
     margin: 0px;
     background: #f8f8f8; /*licht licht grijs; */
+
+    white-space: normal;
+    /*overflow: hidden;
+    text-overflow: ellipsis;*/
 }
 
 .tsa-tbl tr {
@@ -26,11 +30,17 @@
     text-overflow: ellipsis;
 }
 
+.td_width_180 {
+    width: 180px;
+}
+.td_width_150 {
+    width: 150px;
+}
 .td_width_120 {
     width: 120px;
 }
 .td_width_110 {
-    width: 110px;
+    width: 100px;
 }
 .td_width_090 {
     width: 90px;

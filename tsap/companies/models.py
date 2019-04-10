@@ -7,9 +7,9 @@ from django.db.models.functions import Lower
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from tsap.settings import AUTH_USER_MODEL
+from tsap.settings import AUTH_USER_MODEL, TIME_ZONE
 from tsap.constants import USERNAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, NAME_MAX_LENGTH
-from tsap.functions import get_date_yyyymmdd, get_date_str_from_dateint, id_found_in_list, get_date_longstr_from_dte
+from tsap.functions import get_date_yyyymmdd, get_time_HHmm, get_datetimelocal_from_datetime, get_date_longstr_from_dte
 
 import logging
 logger = logging.getLogger(__name__)
@@ -102,8 +102,8 @@ class Company(TsaBaseModel):
     objects = TsaManager()
 
     issystem = BooleanField(default=False)
-    haslic = BooleanField(default=False)
-    entriesused = IntegerField(default=0)
+    timezone = CharField(max_length=NAME_MAX_LENGTH, default=TIME_ZONE)
+    balance = IntegerField(default=0)
 
     @property
     def companyprefix(self):
@@ -150,9 +150,8 @@ class Object(TsaBaseModel):
 class Wagecode(TsaBaseModel):
     objects = TsaManager()
     company = ForeignKey(Company, related_name='wagecodes', on_delete=PROTECT)
-    # department = ForeignKey(Department, null=True, blank=True, related_name='wagecodes', on_delete=PROTECT)
 
-    rate = DecimalField(max_digits=8, decimal_places=2, default=0)
+    rate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -165,7 +164,7 @@ class Taxcode(TsaBaseModel):
     company = ForeignKey(Company, related_name='taxcodes', on_delete=PROTECT)
     code = CharField(max_length=4)
 
-    rate = DecimalField(max_digits=8, decimal_places=4, default=0)
+    rate = IntegerField(default=0) # /10.000
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -193,8 +192,8 @@ class Employee(TsaBaseModel):
     telephone = CharField(db_index=True, max_length=USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
 
     wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
-    workhours_permonth = DecimalField(max_digits=10, decimal_places=2, default=0)
-    leavedays_peryear_fulltime = DecimalField(max_digits=10, decimal_places=2, default=0)
+    workhours_permonth = IntegerField(default=0) # /10.000 unit is hour
+    leavedays_peryear_fulltime =  IntegerField(default=0) # /10.000 unit is day
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
@@ -235,10 +234,10 @@ class Orderhour(TsaBaseModel):
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
 
-    duration = DecimalField(max_digits=8, decimal_places=2, default=0)
+    duration = IntegerField(default=0)  # unit is hour * 100
     status = PositiveSmallIntegerField(db_index=True, default=0)
-    rate = DecimalField(max_digits=8, decimal_places=2, default=0)
-    amount = DecimalField(max_digits=10, decimal_places=2, default=0)
+    rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
+    amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     invoice_status = PositiveSmallIntegerField(db_index=True, default=0)
 
     class Meta:
@@ -281,9 +280,9 @@ class Emplhour(TsaBaseModel):
     rosterdate = DateField(db_index=True, null=True, blank=True)
     time_start = DateTimeField(db_index=True, null=True, blank=True)
     time_end = DateTimeField(db_index=True, null=True, blank=True)
-    time_duration = DecimalField(max_digits=8, decimal_places=2, default=0)
+    time_duration = IntegerField(default=0)  # unit is hour * 100
     break_start = DateTimeField(null=True, blank=True)
-    break_duration = DecimalField(max_digits=8, decimal_places=2, default=0)
+    break_duration = IntegerField(default=0) # unit is hour * 100
     time_status = PositiveSmallIntegerField(db_index=True, default=0)
 
     class Meta:
@@ -299,6 +298,38 @@ class Emplhour(TsaBaseModel):
     @property
     def rosterdate_yyyymmdd(self): # PR2019-04-01
         return get_date_yyyymmdd(self.rosterdate)
+
+    @property
+    def time_start_datetimelocal(self): # PR2019-04-08
+        return get_datetimelocal_from_datetime(self.time_start)
+
+    @property
+    def time_end_HHmm(self): # PR2019-04-07
+        return get_time_HHmm(self.time_end)
+
+    @property
+    def time_end_datetimelocal(self): # PR2019-04-08
+        return get_datetimelocal_from_datetime(self.time_end)
+
+    @property
+    def time_hours(self):
+        # minutes: 1
+        # hours: 1/60 = 0.1667
+        # 100* hours = 16.67
+        # + 0.5: 17.17
+        # int: 17
+        # /100: 0.17
+        value = self.time_duration / 100
+        if not value:  # i.e. if value == 0
+            value = ''
+        return value
+
+    @property
+    def break_hours(self):
+        value = self.break_duration / 100
+        if not value:  # i.e. if value == 0
+            value = ''
+        return value
 
     @property
     def id_ordemplhour_order(self):
@@ -319,7 +350,7 @@ class Companyinvoice(Model):  # PR2019-04-06
     company = ForeignKey(Company, related_name='companycredits', on_delete=CASCADE)
     entries = IntegerField(default=0)
     balance= IntegerField(default=0)
-    rate = DecimalField(max_digits=6, decimal_places=2, default=0)
+    rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     dateinvoice = DateField(db_index=True, null=True, blank=True)
     bonusexpired = DateField(db_index=True, null=True, blank=True)
     note = CharField(db_index=True, max_length=NAME_MAX_LENGTH)
@@ -391,4 +422,5 @@ class Companysetting(Model):  # PR2019-03-09
                 if request_user.department:
                     row.department = request_user.department
             row.save()
+
 

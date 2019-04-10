@@ -1,10 +1,12 @@
 # PR2018-05-28
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from django.utils import formats
 from django.utils.translation import ugettext_lazy as _
 
 from tsap.constants import BASE_DATE, MONTHS_ABBREV
+from tsap.settings import TIME_ZONE
 
+import pytz
 import logging
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,122 @@ def get_date_from_str(date_str):  # PR2019-03-08
             pass
     return dte, msg_txt
 
+
+def get_date_from_timestr(rosterdate, time_str):  # PR2019-04-07
+    logger.debug('............. get_date_from_str: ' + str(rosterdate) + 'time:' + str(time_str))
+    date_time = None
+    msg_txt = None
+    # time_str = "01:00"
+    if time_str:
+        try:
+            time_list = []
+            list_ok = False
+            if ':' in time_str:
+                time_list = time_str.split(':')
+                list_ok = True
+            elif '.' in time_str:
+                time_list = time_str.split('.')
+                list_ok = True
+            if list_ok and time_list:
+                logger.debug('time_list hours: ' + str(time_list[0]) + 'minutes: ' + str(time_list[1]))
+                #time format is hh:mm:ss
+                if time_list[0].isnumeric():
+                    hour_int = int(time_list[0])
+                    logger.debug('hour_int: ' + str(hour_int) + str(type(hour_int)))
+                    if time_list[1].isnumeric():
+                        minute_int = int(time_list[1])
+                        logger.debug('minute_int: ' + str(minute_int) + str(type(minute_int)))
+                        # datetime(year, month, day, hour, minute, second, microsecond)
+                        date_time = datetime(rosterdate.year, rosterdate.month, rosterdate.day,hour_int, minute_int )
+
+                        logger.debug('date_time: ' + str(date_time) + str(type(date_time)))
+        except:
+            msg_txt = "'" + time_str + "'" + _("is not a valid time.")
+            #logger.debug('msg_txt: ' + str(msg_txt) + str(type(msg_txt)))
+            pass
+    return date_time, msg_txt
+
+
+def get_date_from_datetimelocal(datetime_str):  # PR2019-04-08
+    logger.debug('............. get_date_from_datetimelocal: ')
+    logger.debug('datetime_local: ' + str(datetime_str))
+    #  date: "2018-02-25T19:24:23"
+    datetime_aware = None
+    msg_txt = None
+    if datetime_str:
+        try:
+            # split datetime_str in date_list and time_list
+            if 'T' in datetime_str:
+                datetime_list = datetime_str.split('T')
+                # split date
+                if '-' in datetime_list[0]:
+                    date_list = datetime_list[0].split('-')
+                    year = int(date_list[0]) if date_list[0] else 0
+                    month = int(date_list[1]) if date_list[1] else 0
+                    day = int(date_list[2]) if date_list[2] else 0
+
+                    # split time
+                    if ':' in datetime_list[1]:
+                        #time format is hh:mm:ss
+                        time_list = datetime_list[1].split(':')
+                        hour = int(time_list[0]) if time_list[0] else 0
+                        minute = int(time_list[1]) if time_list[1] else 0
+
+                        # datetime(year, month, day, hour, minute, second, microsecond)
+                        datetime_naive = datetime(year, month, day, hour, minute)
+                        #logger.debug('date_time: ' + str(date_time) + str(type(date_time)))
+
+                        # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
+                        # entered date is dattime-naive, make it datetime aware with  pytz.timezone
+                        timezone = pytz.timezone(TIME_ZONE)
+                        datetime_aware = timezone.localize(datetime_naive)
+                        logger.debug('datetime_aware: ' + str(datetime_aware) + 'timezone: ' + str(timezone))
+        except:
+            msg_txt = "'" + datetime_str + "'" + _("is not a valid time.")
+            #logger.debug('msg_txt: ' + str(msg_txt) + str(type(msg_txt)))
+            pass
+    return datetime_aware, msg_txt
+
+def get_datetimelocal_from_datetime(date_time):
+    logger.debug('............. get_datetimelocal_from_datetime: ' + str(date_time))
+    logger.debug('datetime      : ' + str(date_time))
+    # Function returns date: "2018-02-25T19:24:23" PR2019-04-08
+    # datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Out: '2016-07-18 18:26:18'
+
+    date_time_str = ''
+    if date_time:
+        logger.debug("date_time    :" + str(date_time))
+        logger.debug("timezone    :" + str(date_time.strftime("%z")))
+        # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
+        # entered date is dattime-naive, make it datetime aware with  pytz.timezone
+
+        # Convert time zone
+
+        timezone = pytz.timezone(TIME_ZONE)
+        datetime_aware = date_time.astimezone(timezone)
+        logger.debug('datetime_aware: ' + str(datetime_aware))
+
+        # get date
+        year_str = str(datetime_aware.strftime("%Y"))
+        month_str = str(datetime_aware.strftime("%m"))
+        day_str = str(datetime_aware.strftime("%d"))
+        date_str =  '-'.join([year_str, month_str, day_str])
+
+        hour_str = str(datetime_aware.strftime("%H"))
+        minute_str = str(datetime_aware.strftime("%M")) # %m is zero-padded
+        second_str = str(datetime_aware.strftime("%S"))
+        time_str = ':'.join([hour_str, minute_str, second_str])
+
+        date_time_str = 'T'.join([date_str, time_str])
+        logger.debug("date_time_str:" + str(date_time_str))
+    return date_time_str
+
+
+
+
+
+
 def get_date_from_dateint(date_int):  # PR2019-03-06
     # Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use dithis basedate)
 
@@ -77,6 +195,28 @@ def get_date_yyyymmdd(dte):
         day_str = str(dte.strftime("%d"))  # %d is zero-padded
         dte_str = '-'.join([year_str, month_str, day_str])
     return dte_str
+
+def get_time_HHmm(date_time):
+    # Function return date 'HH:mm' PR2019-04-07
+    date_time_str = ''
+    # datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Out: '2016-07-18 18:26:18'
+
+    if date_time:
+        logger.debug("date_time:" + str(date_time))
+        logger.debug("date_time.strftime(%Z)):" + str(date_time.strftime("%Z")))
+        logger.debug("date_time.strftime(%x)):" + str(date_time.strftime("%x")))
+        logger.debug("date_time.strftime(%X)):" + str(date_time.strftime("%X")))
+
+        hour_str = str(date_time.strftime("%H"))
+        logger.debug("hour_str:" + str(hour_str))
+        minute_str = str(date_time.strftime("%M")) # %m is zero-padded
+        logger.debug("minute_str:" + str(minute_str))
+        date_time_str = ':'.join([hour_str, minute_str])
+        logger.debug("date_time_str:" + str(date_time_str))
+    return date_time_str
+
+
 
 def get_date_formatted(date_int):  # PR2019-03-07
     # Function gives formatted date from dat_int.

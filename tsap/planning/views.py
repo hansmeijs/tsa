@@ -12,12 +12,13 @@ from django.views.generic import UpdateView, DeleteView, View, ListView, CreateV
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS
 
 from companies.views import LazyEncoder
-from tsap.functions import get_date_from_str
+from tsap.functions import get_date_from_str, get_date_from_datetimelocal
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_employee_code, validate_employee_name,employee_email_exists, check_date_overlap
 
 from companies.models import Order, Employee, Emplhour, Shift
 
+import pytz
 import json
 
 import logging
@@ -52,7 +53,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
 
         # --- Create empty row_dict with keys for all fields. Unused ones will be removed at the end
         field_list = ('id', 'rosterdate', 'order', 'employee', 'shift',
-                      'time_start', 'time_end', 'time_duration', 'time_status',
+                      'time_start', 'time_end', 'break_duration', 'time_duration', 'time_status',
                        'orderhour_duration', 'orderhour_status', 'modified_by', 'modified_at')
         row_dict = {}  # this one is not working: row_dict = dict.fromkeys(field_list, {})
         for field in field_list:
@@ -88,10 +89,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
 # ++++ save new record ++++++++++++++++++++++++++++++++++++
                         if emplhour is None:
                             # --- add record i
-                            logger.debug('emplhour.save')
-                            emplhour = Emplhour(
-                                company=request.user.company
-                            )
+                            emplhour = Emplhour(company=request.user.company)
                             emplhour.save(request=self.request)
 
         # ---  after saving new record: add 1 to company.entriesused
@@ -103,12 +101,10 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
         # --- add pk to row_dict
                             pk_int = emplhour.pk
                             row_dict['id']['pk'] = pk_int
-                            logger.debug('emplhour.pk: ' + str(emplhour.pk))
 
                             save_changes = False
 # ++++  delete record when key 'delete' exists in
                             if 'delete' in row_upload:
-                                logger.debug('before delete ' + str(emplhour.pk))
                                 emplhour.delete(request=self.request)
         # --- check if emplhour still exist
                                 emplhour = Emplhour.objects.filter(id=pk_int, company=request.user.company).first()
@@ -121,11 +117,12 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                             else:
 # ++++  not a deleted record
 # --- save changes in field order, employee and shift
-                                for field in ('order', 'employee'):
-                                    logger.debug('field ' + str(field))
-                                    logger.debug('row_upload ' + str(row_upload))
+                                for field in ('order', 'employee', 'shift'):
                                     if field in row_upload:
-                                        pk_obj = row_upload[field]
+                                        logger.debug('field ' + str(field))
+                                        logger.debug('row_upload ' + str(row_upload))
+
+                                        pk_obj = int(row_upload[field])
                                         object = None
                                         if field == 'order':
                                             object = Order.objects.filter(
@@ -151,32 +148,113 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                             logger.debug('after setattr object' + str(object))
 
 # --- save changes in date fields
-                                field = 'rosterdate'
-                                if field in row_upload:
-                                    new_date, msg_err = get_date_from_str(row_upload[field])
-                                    logger.debug('new_date: ' + str(new_date) + str(type(new_date)))
-                                    # check if date is valid (empty date is ok)
-                                    if msg_err is not None:
-                                        row_dict[field]['err'] = msg_err
-                                    else:
-                                        saved_date = getattr(emplhour, field, None)
-                                        logger.debug('saved_date: ' + str(saved_date) + str(type(saved_date)))
-                                        if new_date != saved_date:
-                                            logger.debug('save date: ' + str(new_date) + str(type(new_date)))
-                                            setattr(emplhour, field, new_date)
+                                for field  in ('rosterdate',):
+                                    if field in row_upload:
+                                        logger.debug('field ' + str(field))
+                                        logger.debug('row_upload ' + str(row_upload))
+
+                                        new_date, msg_err = get_date_from_str(row_upload[field])
+                                        logger.debug('new_date: ' + str(new_date) + str(type(new_date)))
+                                        # check if date is valid (empty date is ok)
+                                        if msg_err is not None:
+                                            row_dict[field]['err'] = msg_err
+                                        else:
+                                            saved_date = getattr(emplhour, field, None)
+                                            logger.debug('saved_date: ' + str(saved_date) + str(type(saved_date)))
+                                            if new_date != saved_date:
+                                                logger.debug('save date: ' + str(new_date) + str(type(new_date)))
+                                                setattr(emplhour, field, new_date)
+                                                row_dict[field]['upd'] = True
+                                                save_changes = True
+
+# --- save changes in time fields
+                                # {pk: "18", time_start: "2020-01-01T01:00"}
+                                for field in ('time_start', 'time_end'):
+                                    if field in row_upload:
+                                        logger.debug('row_upload[' + field + ']: ' + str(row_upload[field]))
+                                        new_datetime_aware, msg_err = get_date_from_datetimelocal(row_upload[field])
+                                        logger.debug('new_' + field + '_aware: ' + str(new_datetime_aware))
+
+                                        if msg_err is not None:
+                                            row_dict[field]['err'] = msg_err
+                                        else:
+                                            # TODO check if date is valid (empty date is ok)
+                                            if msg_err is not None:
+                                                row_dict[field]['err'] = msg_err
+                                            else:
+                                                saved_datetime = getattr(emplhour, field, None)
+                                                logger.debug('saved_' + field + ': ' + str(saved_datetime) + ' ' + str(type(saved_datetime)))
+                                                if new_datetime_aware != saved_datetime:
+                                                    logger.debug('save ' + field + ': ' + str(new_datetime_aware) + str(type(new_datetime_aware)))
+                                                    setattr(emplhour, field, new_datetime_aware)
+                                                    row_dict[field]['upd'] = True
+                                                    save_changes = True
+                                                    emplhour.save(request=self.request)
+                                                    logger.debug('datetimesaved: ' + str(getattr(emplhour, field, None)))
+# --- save changes in break_duration field
+                                for field in ('time_duration','break_duration',):
+                                    # row_upload: {'pk': '18', 'break_duration': '0.5'}
+                                    if field in row_upload:
+                                        logger.debug('row_upload[' + field + ']: ' + str(row_upload[field]))
+                                        value_str = row_upload[field]
+                                        logger.debug('value_str: <' + str(value_str) + '> type: ' + str(type(value_str)))
+                                        logger.debug([value_str])
+
+                                        # replace comma by dot
+                                        value_str = value_str.replace(',', '.')
+                                        value_str = value_str.replace(' ', '')
+                                        value_str = value_str.replace("'", "")
+                                        value = float(value_str) if value_str != '' else 0
+
+                                        # duration unit in database is hour * 100
+                                        new_value = 100 * value
+                                        logger.debug('new_value ' + str(new_value) + ' ' + str(type(new_value)))
+                                        saved_value = getattr(emplhour, field, None)
+                                        logger.debug('saved_value[' + field + ']: ' + str(saved_value))
+                                        if new_value != saved_value:
+                                            setattr(emplhour, field, new_value)
+                                            logger.debug('setattr ' + str(new_value))
                                             row_dict[field]['upd'] = True
                                             save_changes = True
-
+                                            logger.debug('row_dict[' + field + ']: ' + str(row_dict[field]))
+                                #TODO: change end time whem time_duration has changed
 # --- save changes in other fields
                                 for field in ('time_status', 'orderhour_status'):
                                     if field in row_upload:
-                                        new_value = row_upload[field]
+                                        logger.debug('row_upload[' + field + ']: ' + str(row_upload[field]))
+                                        new_value = int(row_upload[field])
+                                        logger.debug('new_value ' + str(new_value))
                                         saved_value = getattr(emplhour, field, None)
+                                        logger.debug('saved_value ' + str(saved_value))
                                         if new_value != saved_value:
                                             setattr(emplhour, field, new_value)
+                                            logger.debug('setattr ' + str(new_value))
                                             row_dict[field]['upd'] = True
                                             save_changes = True
+                                            logger.debug('row_dict[field] ' + str(row_dict[field]))
 
+
+# --- clcultare working hours
+                                if save_changes:
+                                    if emplhour.time_start and emplhour.time_end:
+                                        # duration unit in database is hour * 100
+                                        saved_break_hours_x_100 = int(getattr(emplhour, 'break_duration', 0))
+                                        logger.debug('saved_break_duration: ' + str(saved_break_hours_x_100) +  str(type(saved_break_hours_x_100)))
+
+                                        datediff = emplhour.time_end - emplhour.time_start
+                                        logger.debug('datediff: ' + str(datediff) +  str(type(datediff)))
+                                        datediff_hours_x_100 = (datediff.total_seconds() / 36)
+                                        logger.debug('datediff_hours_x_100: ' + str(datediff_hours_x_100) +  str(type(datediff_hours_x_100)))
+                                        new_time_hours_x_100 = datediff_hours_x_100 - saved_break_hours_x_100
+                                        logger.debug('new_duration: ' + str(new_time_hours_x_100) +  str(type(new_time_hours_x_100)))
+
+                                        saved_time_hours_x_100 = getattr(emplhour, 'time_duration', 0)
+                                        if new_time_hours_x_100 != saved_time_hours_x_100:
+                                            emplhour.time_duration = new_time_hours_x_100
+                                            row_dict['time_duration']['upd'] = True
+                                            save_changes = True
+
+                                            #logger.debug('time_duration: ' + str(emplhour.time_duration) + str(type(emplhour.time_duration)))
 # --- save changes
                                 if save_changes:
                                     emplhour.save(request=self.request)
@@ -192,6 +270,14 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                                     saved_value = emplhour.employee.code
                                                 elif field == 'shift':
                                                     saved_value = emplhour.shift.code
+                                                elif field == 'time_start':
+                                                    saved_value = emplhour.time_start_datetimelocal
+                                                elif field == 'time_end':
+                                                    saved_value = emplhour.time_end_datetimelocal
+                                                elif field == 'time_duration':
+                                                    saved_value = emplhour.time_hours
+                                                elif field == 'break_duration':
+                                                    saved_value = emplhour.break_hours
                                                 else:
                                                     saved_value = getattr(emplhour, field, None)
                                             except:

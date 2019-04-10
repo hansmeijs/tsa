@@ -169,7 +169,9 @@ ANYMAIL = {
 }
 DEFAULT_FROM_EMAIL = 'TSA secure <noreply@tsasecure.com>'
 
-TIME_ZONE = 'America/Curacao'
+#TIME_ZONE = 'America/Curacao'
+TIME_ZONE = 'Europe/Amsterdam'
+
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True

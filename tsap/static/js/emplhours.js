@@ -41,7 +41,11 @@ console.log("Customers document.ready");
         for (let i = 0, len = elements.length; i < len; i++) {
             let el = elements[i];
             // without << function() {UploadChanges(el);} >> UploadChanges is for each el invoked at this point
-            el.addEventListener("change", function() {UploadChanges(el);}, false )
+            el.addEventListener("change", function() {
+                setTimeout(function() {
+                    UploadChanges(el);
+                }, 250);
+            }, false )
         }
 
         let icons = document.getElementsByClassName("input_icon");
@@ -63,7 +67,7 @@ console.log("Customers document.ready");
 
         // ---  add 'keyup' event handler to filter input
         document.getElementById("id_filter_name").addEventListener("keyup", function() {
-            console.log( "addEventListener keyup ");
+            //console.log( "addEventListener keyup ");
             setTimeout(function() {
                 HandleSearchFilterEvent();
             }, 150);
@@ -286,7 +290,7 @@ console.log("=========  function HandleCreateRecord =========");
                 if (j === 4){
                     el_name = "emplhour_start";
                 } else if (j === 5) {
-                    el_name = "emplhour_end";
+                    el_name = "time_end";
                 }
                 el.setAttribute("type", "time");
                 el.setAttribute("value", "");

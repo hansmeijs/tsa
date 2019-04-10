@@ -9,12 +9,12 @@
 {% endblock %}
 
 {% block content %}
-  {% if user.is_role_system %}
-
-      <div class="mb-3">
-        <a href="{% url 'company_add_url' %}" class="btn btn-primary">{% trans 'Add company' %}</a>
-      </div>
-
+  {% if user.is_authenticated %}
+        {% if user.is_role_system %}
+            <div class="mb-3">
+                <a href="{% url 'company_add_url' %}" class="btn btn-primary">{% trans 'Add company' %}</a>
+            </div>
+        {% endif %}
         <h4>{% trans 'Companies' %}</h4>
 
         <table class="table table table-condensed tbl">
@@ -25,7 +25,8 @@
               <th>{% trans 'Company name' %}</th>
               <th>{% trans 'Start date' %}</th>
               <th>{% trans 'End date' %}</th>
-              <th>{% trans 'Entries used' %}</th>
+              <th>{% trans 'Balance' %}</th>
+              <th>{% trans 'Time zone' %}</th>
               <th>{% trans 'Modified by' %}</th>
               <th>{% trans 'Modified at' %}</th>
             </tr>
@@ -44,13 +45,14 @@
                         {% endif %}
                     </a>
                 </td>
-                <td>{{ item.code }}</td>
+                <td>{{ item.code|default_if_none:''}}</td>
                 <td>
-                    <a>{{ item.name }}</a>
+                    <a>{{ item.name|default_if_none:''}}</a>
                 </td>
-                <td>{{ item.datefirst}}</td>
-                <td>{{ item.datelast }}</td>
-                <td>{{ item.entriesused}}</td>
+                <td>{{ item.datefirst|default_if_none:''}}</td>
+                <td>{{ item.datelast|default_if_none:''}}</td>
+                <td>{{ item.balance|default_if_none:''}}</td>
+                <td>{{ item.timezone|default_if_none:''}}</td>
                 <td>{{ item.modified_by}}</td>
                 <td>{{ item.modified_at}}</td>
               </tr>

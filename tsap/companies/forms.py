@@ -54,7 +54,6 @@ class CompanyAddForm(ModelForm):
             required=False,
             widget=TextInput(attrs={'type': 'date'}),
             label=_('Start date'),
-            help_text=_('Select the departments where this level is available. Press the Ctrl button to select multiple departments.'),
            # initial=self.initial_value
         )
 

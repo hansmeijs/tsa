@@ -60,13 +60,12 @@
                                 {{ user.username_sliced }}
                             </a>
                             <div class="dropdown-menu dropdown-menu-right nopadding" aria-labelledby="userMenu">
-                                <!-- temporary for testing -->
+                                <!-- temporary for testing
                                 <a class="dropdown-item"  >{{ user.role_str }}</a>
                                 <a class="dropdown-item"  >{{ user.permits_str }}</a>
-                                <a class="dropdown-item"  >{{ user.school.name }}</a>
-
                                 <div class="dropdown-divider"></div>
 
+                                -->
                                 <a class="dropdown-item"  href="{% url 'language_set_url' user.pk 'en' %}" >{% trans 'English' %}</a>
                                 <a class="dropdown-item" href="{% url 'language_set_url' user.pk 'nl' %}">{% trans 'Dutch' %}</a>
                                 {% if user.is_perm_admin %}
@@ -99,15 +98,13 @@
 <div class="menubar">
     <div id="id_menubar" class="container">
         {% if user.is_authenticated %}
-            {% if user.is_role_system %}
-                <a id="id_hdr_comp" href="{% url 'company_list_url' %}">Companies</a>
-            {% endif %}
-            <a id="id_hdr_cust" href="{% url 'customer_list_url' %}">Customers</a>
-            <a id="id_hdr_ordr" href="{% url 'order_list_url' %}">Orders</a>
-            <a id="id_hdr_empl" href="employee_list_url">Employees</a>
-            <a id="id_hdr_rost" href="#">Roster</a>
-            <a id="id_hdr_plan" href="#">Planning</a>
-            <a id="id_hdr_revi" href="{% url 'emplhours_url' %}">Review</a>
+            <a id="id_hdr_comp" href="{% url 'company_list_url' %}">{% trans 'Companies' %}</a>
+            <a id="id_hdr_cust" href="{% url 'customer_list_url' %}">{% trans 'Customers' %}</a>
+            <a id="id_hdr_ordr" href="{% url 'order_list_url' %}">{% trans 'Orders' %}</a>
+            <a id="id_hdr_empl" href="{% url 'employee_list_url' %}">{% trans 'Employees' %}</a>
+            <a id="id_hdr_rost" href="#">{% trans 'Roster' %}</a>
+            <a id="id_hdr_plan" href="#">{% trans 'Planning' %}</a>
+            <a id="id_hdr_revi" href="{% url 'emplhours_url' %}">{% trans 'Review' %}</a>
         {% else %}
             <a href="{% url 'home' %}">Home</a>
         {% endif %}
@@ -116,7 +113,7 @@
 
 <div class="submenubar display_hide">
     <div id="id_submenu_empl" class="container">
-        <a id="id_sub_empl_list" href="{% url 'employee_list_url' %}">Employees</a>
-        <a id="id_sub_empl_imp" href="{% url 'employee_import_url' %}">Import employees</a>
+        <a id="id_sub_empl_list" href="{% url 'employee_list_url' %}">{% trans 'Employees' %}</a>
+        <a id="id_sub_empl_imp" href="{% url 'employee_import_url' %}">{% trans 'Import employees' %}</a>
     </div>
 </div>

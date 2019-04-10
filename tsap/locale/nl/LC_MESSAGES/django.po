@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-04-06 21:13-0400\n"
+"POT-Creation-Date: 2019-04-09 20:29-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -43,7 +43,7 @@ msgid "System"
 msgstr "Systeem"
 
 #: .\accounts\forms.py:112 .\accounts\forms.py:177
-#: .\templates\accounts\users.html:20
+#: .\templates\accounts\users.html:18
 msgid "Organization"
 msgstr "Organisatie"
 
@@ -143,43 +143,31 @@ msgstr ""
 msgid "Start date"
 msgstr "Begindatum"
 
-#: .\companies\forms.py:57
-#, fuzzy
-#| msgid ""
-#| "Select one or more permissions from the list. Press the Ctrl button to "
-#| "select multiple permissions."
-msgid ""
-"Select the departments where this level is available. Press the Ctrl button "
-"to select multiple departments."
-msgstr ""
-"Selecteer een of meer permissies in de lijst. Houd de Ctrl knop ingedrukt om "
-"meerdere permissies te selecteren"
-
-#: .\companies\forms.py:66 .\customers\forms.py:14 .\employees\forms.py:15
+#: .\companies\forms.py:65 .\customers\forms.py:14 .\employees\forms.py:15
 #: .\employees\forms.py:31 .\templates\companies\company_list.html:24
 #: .\templates\customers\customers.html:49
 #: .\templates\employees\employees.html:41
 msgid "Code"
 msgstr ""
 
-#: .\companies\forms.py:67 .\customers\forms.py:15 .\employees\forms.py:32
+#: .\companies\forms.py:66 .\customers\forms.py:15 .\employees\forms.py:32
 msgid "Name"
 msgstr "Naam"
 
-#: .\companies\forms.py:68 .\customers\forms.py:16 .\employees\forms.py:17
+#: .\companies\forms.py:67 .\customers\forms.py:16 .\employees\forms.py:17
 #: .\employees\forms.py:33
 msgid "First date"
 msgstr "Begindatum"
 
-#: .\companies\forms.py:69 .\employees\forms.py:34
+#: .\companies\forms.py:68 .\employees\forms.py:34
 msgid "Last date"
 msgstr "Einddatum"
 
-#: .\companies\forms.py:70 .\employees\forms.py:35
+#: .\companies\forms.py:69 .\employees\forms.py:35
 msgid "Locked"
 msgstr "Vergrendeld"
 
-#: .\companies\forms.py:71 .\employees\forms.py:36 .\tsap\constants.py:53
+#: .\companies\forms.py:70 .\employees\forms.py:36 .\tsap\constants.py:53
 #: .\tsap\constants.py:59
 msgid "Inactive"
 msgstr "Niet aktief"
@@ -188,7 +176,7 @@ msgstr "Niet aktief"
 msgid "last date"
 msgstr "Einddatum"
 
-#: .\customers\views.py:168 .\customers\views.py:397 .\planning\views.py:118
+#: .\customers\views.py:168 .\customers\views.py:397 .\planning\views.py:114
 msgid "This record could not be deleted."
 msgstr "Dit record kon niet worden gewist."
 
@@ -308,14 +296,14 @@ msgstr "Wachtwoord aanmaken"
 #: .\templates\accounts\account_activation_success.html:18
 #: .\templates\accounts\user_add.html:31 .\templates\accounts\user_edit.html:32
 #: .\templates\accounts\user_set_password.html:18
-#: .\templates\accounts\users.html:43 .\templates\companies\company_add.html:20
+#: .\templates\accounts\users.html:39 .\templates\companies\company_add.html:20
 #: .\templates\companies\company_add.html:24
-#: .\templates\companies\company_list.html:62
+#: .\templates\companies\company_list.html:64
 #: .\templates\customers\customer_add.html:20
 #: .\templates\customers\customer_add.html:24
 #: .\templates\customers\customers.html:177
 #: .\templates\customers\orders.html:169
-#: .\templates\employees\emplhours.html:245
+#: .\templates\employees\emplhours.html:246
 #: .\templates\employees\employees.html:175
 msgid "Cancel"
 msgstr "Annuleren"
@@ -324,16 +312,13 @@ msgstr "Annuleren"
 #: .\templates\accounts\password_change.html:11
 #: .\templates\accounts\password_change_done.html:11
 #: .\templates\accounts\password_reset_confirm.html:22
-#: .\templates\includes\dateselector.html:81
-#: .\templates\includes\header.html:82
+#: .\templates\includes\header.html:81
 msgid "Change password"
 msgstr "Wijzig wachtwoord"
 
 #: .\templates\accounts\password_change.html:9
 #: .\templates\accounts\password_change_done.html:9
-#: .\templates\accounts\user_edit.html:9
-#: .\templates\includes\dateselector.html:73
-#: .\templates\includes\header.html:74
+#: .\templates\accounts\user_edit.html:9 .\templates\includes\header.html:73
 msgid "Users"
 msgstr "Gebruikers"
 
@@ -448,8 +433,7 @@ msgstr "Wachtwoord e-mail verzenden"
 #: .\templates\accounts\registration\login.html:4
 #: .\templates\accounts\registration\login.html:11
 #: .\templates\accounts\registration\login.html:16
-#: .\templates\includes\dateselector.html:90
-#: .\templates\includes\header.html:91
+#: .\templates\includes\header.html:90
 msgid "Log in"
 msgstr "Inloggen"
 
@@ -494,20 +478,13 @@ msgstr "E-mail"
 msgid "Activated"
 msgstr "Geactiveerd"
 
-#: .\templates\accounts\users.html:18
-msgid "Department"
-msgstr "Afdeling"
-
 #: .\templates\accounts\users.html:19
-msgid "Allowed departments"
-msgstr "Toegestane afdelingen"
-
-#: .\templates\accounts\users.html:21
 msgid "Permissions"
 msgstr "Permissies"
 
 #: .\templates\companies\company_add.html:7
 #: .\templates\companies\company_list.html:18
+#: .\templates\includes\header.html:101
 msgid "Companies"
 msgstr "Bedrijven"
 
@@ -532,23 +509,27 @@ msgid "End date"
 msgstr "Einddatum"
 
 #: .\templates\companies\company_list.html:28
-msgid "Entries used"
-msgstr ""
+msgid "Balance"
+msgstr "Saldo"
 
 #: .\templates\companies\company_list.html:29
+msgid "Time zone"
+msgstr "Tijdzone"
+
+#: .\templates\companies\company_list.html:30
 #: .\templates\customers\customers.html:57 .\templates\customers\orders.html:54
 #: .\templates\employees\employees.html:48
 msgid "Modified by"
 msgstr "Gewijzigd door"
 
-#: .\templates\companies\company_list.html:30
+#: .\templates\companies\company_list.html:31
 #: .\templates\customers\customers.html:58 .\templates\customers\orders.html:55
 #: .\templates\employees\employees.html:49
 msgid "Modified at"
 msgstr "Gewijzigd op"
 
 #: .\templates\customers\customer_add.html:7
-#: .\templates\customers\customers.html:25
+#: .\templates\customers\customers.html:25 .\templates\includes\header.html:102
 msgid "Customers"
 msgstr "Klanten"
 
@@ -585,14 +566,14 @@ msgstr "Telefoon"
 
 #: .\templates\customers\customers.html:172
 #: .\templates\customers\orders.html:162
-#: .\templates\employees\emplhours.html:237
+#: .\templates\employees\emplhours.html:238
 #: .\templates\employees\employees.html:170
 msgid "An error occurred."
 msgstr "Er is een fout opgetreden"
 
 #: .\templates\customers\customers.html:176
 #: .\templates\customers\orders.html:168
-#: .\templates\employees\emplhours.html:244
+#: .\templates\employees\emplhours.html:245
 #: .\templates\employees\employees.html:174
 msgid "Error"
 msgstr "Fout"
@@ -631,41 +612,29 @@ msgstr "Je hebt geen permissie om deze pagina te bekijken."
 msgid "You must be logged in to view this page"
 msgstr "Je moet ingelogd zijn om deze pagina te bekijken."
 
-#: .\templates\customers\orders.html:25
-#, fuzzy
-#| msgid "Order"
+#: .\templates\customers\orders.html:25 .\templates\includes\header.html:103
 msgid "Orders"
-msgstr "Opdracht"
+msgstr "Opdrachten"
 
 #: .\templates\customers\orders.html:36
-#, fuzzy
-#| msgid "Add user"
 msgid "Add order"
-msgstr "Gebruiker toevoegen"
+msgstr "Opdracht toevoegen"
 
 #: .\templates\customers\orders.html:37
-#, fuzzy
-#| msgid "Delete customer"
 msgid "Delete order"
-msgstr "Klant verwijderen"
+msgstr "Opdracht verwijderen"
 
 #: .\templates\customers\orders.html:49
-#, fuzzy
-#| msgid "Customers"
 msgid "Customer"
-msgstr "Klanten"
+msgstr "Klant"
 
 #: .\templates\customers\orders.html:50
-#, fuzzy
-#| msgid "Order"
 msgid "Order code"
-msgstr "Opdracht"
+msgstr "Opdracht code"
 
 #: .\templates\customers\orders.html:51
-#, fuzzy
-#| msgid "Order"
 msgid "Order name"
-msgstr "Opdracht"
+msgstr "Opdracht naam"
 
 #: .\templates\employees\emplhours.html:25
 msgid "Review shifts"
@@ -705,10 +674,8 @@ msgid "End time"
 msgstr "Eindtijd"
 
 #: .\templates\employees\emplhours.html:52
-#, fuzzy
-#| msgid "Working hours"
 msgid "Break hours"
-msgstr "Werkuren"
+msgstr "Pauze uren"
 
 #: .\templates\employees\emplhours.html:53
 msgid "Working hours"
@@ -722,7 +689,8 @@ msgstr "Factuur-uren"
 msgid "Select employee file"
 msgstr "Selecteer werknemer bestand"
 
-#: .\templates\employees\employees.html:25
+#: .\templates\employees\employees.html:25 .\templates\includes\header.html:104
+#: .\templates\includes\header.html:116
 msgid "Employees"
 msgstr "Werknemers"
 
@@ -750,20 +718,33 @@ msgstr ""
 msgid "Please log in"
 msgstr "Log in"
 
-#: .\templates\includes\dateselector.html:69
-#: .\templates\includes\header.html:70 .\tsap\settings.py:215
+#: .\templates\includes\header.html:69 .\tsap\settings.py:217
 msgid "English"
 msgstr "Engels"
 
-#: .\templates\includes\dateselector.html:70
-#: .\templates\includes\header.html:71 .\tsap\settings.py:216
+#: .\templates\includes\header.html:70 .\tsap\settings.py:218
 msgid "Dutch"
 msgstr "Nederlands"
 
-#: .\templates\includes\dateselector.html:85
-#: .\templates\includes\header.html:86
+#: .\templates\includes\header.html:85
 msgid "Log out"
 msgstr "Uitloggen"
+
+#: .\templates\includes\header.html:105
+msgid "Roster"
+msgstr "Rooster"
+
+#: .\templates\includes\header.html:106
+msgid "Planning"
+msgstr ""
+
+#: .\templates\includes\header.html:107
+msgid "Review"
+msgstr "Controleren"
+
+#: .\templates\includes\header.html:117
+msgid "Import employees"
+msgstr "Werknemers importeren"
 
 #: .\tsap\authentication.py:27
 msgid "You are not connected to a company. You cannot view this page."
@@ -778,9 +759,13 @@ msgstr ""
 msgid "V"
 msgstr "F"
 
-#: .\tsap\functions.py:41
+#: .\tsap\functions.py:43
 msgid "is not a valid date."
 msgstr "is geen geldige datum."
+
+#: .\tsap\functions.py:78 .\tsap\functions.py:119
+msgid "is not a valid time."
+msgstr "is geen geldige tijd."
 
 #: .\tsap\headerbar.py:77
 msgid "<No company found>"
@@ -895,33 +880,8 @@ msgstr "Deze code bestaat al."
 msgid "Name already exists."
 msgstr "Deze naam bestaat al."
 
-#~ msgid "Activate your TSA-secure account"
-#~ msgstr "Activeer je TSA-secure account."
+#~ msgid "Department"
+#~ msgstr "Afdeling"
 
-#~ msgid "Verify"
-#~ msgstr "verifiëren"
-
-#~ msgid "  - company:  "
-#~ msgstr " - bedrijf: "
-
-#, fuzzy
-#~| msgid "Username"
-#~ msgid "  - username: "
-#~ msgstr " - gebruikersnaam"
-
-#~ msgid "Departments"
-#~ msgstr "Afdelingen"
-
-#~ msgid ""
-#~ "Code is a short name or code, that is used for display on the screen. "
-#~ "Required, 12 characters or fewer."
-#~ msgstr ""
-#~ "Code is een korte naam of code, die wordt gebruikt voor weergave op het "
-#~ "scherm. Verplicht, 12 tekens of minder."
-
-#~ msgid "Company name is used in reports. Required, 50 characters or fewer."
-#~ msgstr ""
-#~ "Bedrijfsnaam wordt gebruikt in rapportages. Verplicht. 50 tekens of minder"
-
-#~ msgid "An error occurred. The order data is not saved."
-#~ msgstr "Er is een fout opgetreden. De gegevens zijn niet opgeslagen."
+#~ msgid "Allowed departments"
+#~ msgstr "Toegestane afdelingen"

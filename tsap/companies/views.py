@@ -64,9 +64,15 @@ class CompanyListView(View):
 
     def get(self, request):
         params = get_headerbar_param(request, {'display_user': True})
-        companies = Company.objects.all()
+        companies = None
+        if request.user.is_role_system:
+            companies = Company.objects.all()
+        elif request.user.is_role_company:
+            if request.user.company:
+                companies = Company.objects.filter(id=request.user.company.id)
         # add companies to headerbar parameters PR2018-08-12
-        params.update({'companies': companies})
+        if companies:
+            params.update({'companies': companies})
 
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'company_list.html', params)
