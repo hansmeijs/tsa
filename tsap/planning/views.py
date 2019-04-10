@@ -92,8 +92,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                             emplhour = Emplhour(company=request.user.company)
                             emplhour.save(request=self.request)
 
-        # ---  after saving new record: add 1 to company.entriesused
-                            request.user.company.entriesused += 1
+        # ---  after saving new record: subtract 1 from company.balance
+                            request.user.company.balance -= 1
                             request.user.company.save(request=self.request)
 
 # ++++ existing and new emplhour ++++++++++++++++++++++++++++++++++++

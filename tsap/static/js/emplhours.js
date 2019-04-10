@@ -73,7 +73,7 @@ console.log("Customers document.ready");
             }, 150);
         });
 
-        // hide inactive empooyees
+        // get data
         let el_data = $("#id_data");
         let order_list = el_data.data("order_list");
         let employee_list = el_data.data("employee_list");
@@ -202,10 +202,10 @@ console.log("Customers document.ready");
 
 //=========  HandleDeleteRecord  ================ PR2019-03-16
     function HandleDeleteRecord() {
-console.log("=========  function HandleDeleteRecord =========");
+//console.log("=========  function HandleDeleteRecord =========");
 
         let tblRow = document.getElementById(id_row_selected)
-        console.log( "tblRow: ", tblRow, typeof tblRow);
+        //console.log( "tblRow: ", tblRow, typeof tblRow);
         if (!!tblRow){
             let cust_name = ""
             if (!!tblRow.cells[2].children[0]) {
@@ -214,7 +214,7 @@ console.log("=========  function HandleDeleteRecord =========");
 
 // ---  get pk from id of tblRow
             const id_str = tblRow.getAttribute("id");
-            console.log( "id_str: ", id_str, typeof id_str);
+
 // make row red
                 tblRow.classList.add("tsa-tr-error");
 // delete  record
@@ -374,7 +374,7 @@ console.log("=========  function HandleCreateRecord =========");
                 //console.log("id_str: ", id_str);
                 let row_upload = {"pk": id_str};
 
-    // ---  loop through cells and input element of tr_changed
+// ---  loop through cells and input element of tr_changed
                 for (let i = 0, el_input, el_name, n_value, o_value, len = tr_changed.cells.length; i < len; i++) {
                     // el_input is first child of td, td is cell of tr_changed
                     el_input = tr_changed.cells[i].children[0];
@@ -445,8 +445,8 @@ console.log("=========  function HandleCreateRecord =========");
                     dataType:'json',
                     success: function (response) {
                         if ("row_update" in response) {
-        console.log( "response");
-        console.log( response);
+        //console.log( "response");
+        //console.log( response);
 
                             UpdateFields(tr_changed, response["row_update"])
                         }
@@ -462,13 +462,13 @@ console.log("=========  function HandleCreateRecord =========");
 // #####################################################################################
 //========= DeleteRow  =============
     function DeleteRow(row_update){
-        console.log("-------------- DeleteRow  --------------");
-        console.log("row_update: " , row_update);
+       // console.log("-------------- DeleteRow  --------------");
+        //console.log("row_update: " , row_update);
         if (!!row_update) {
 // get id_new and id_pk from row_update["id"]
             if ("id" in row_update){
                 const id_dict = row_update["id"]
-                console.log("row_update: <" + row_update + ">")
+                //console.log("row_update: <" + row_update + ">")
                 if ("pk" in id_dict){
                     let tblrow = document.getElementById(id_dict.pk);
                     if (!!tblrow){
@@ -478,7 +478,7 @@ console.log("=========  function HandleCreateRecord =========");
 // --- when err: show error message
                         } else if ("del_err" in id_dict){
                             const id_del_err = id_dict.del_err
-                            console.log("id_del_err:<" + id_del_err + ">")
+                            //console.log("id_del_err:<" + id_del_err + ">")
                             let el_msg = document.getElementById("id_msgbox");
                             el_msg.innerHTML = id_del_err;
                             el_msg.classList.toggle("show");
@@ -506,16 +506,15 @@ console.log("=========  function HandleCreateRecord =========");
     function UpdateFields(tr_changed, row_update){
         console.log("-------------- UpdateFields  --------------");
         console.log("tr_changed", tr_changed);
-        console.log(row_update);
-
-let txt = "row_update: {"
-for(let index in row_update) {
-    txt = txt + index + ": {";
-    for(let subindex in row_update[index]) {txt = txt  + subindex + ":" + row_update[index][subindex] + ", ";}
-    txt = txt + "}, "
-}
-txt = txt + "}"
-console.log(txt);
+//console.log(row_update);
+//let txt = "row_update: {"
+//for(let index in row_update) {
+//    txt = txt + index + ": {";
+//    for(let subindex in row_update[index]) {txt = txt  + subindex + ":" + row_update[index][subindex] + ", ";}
+//    txt = txt + "}, "
+//}
+//txt = txt + "}"
+//console.log(txt);
 
         if (!!row_update) {
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
@@ -543,7 +542,7 @@ console.log(txt);
                 if ("deleted" in id_dict){id_deleted = true};
                 if ("del_err" in id_dict){id_del_err = id_dict.del_err};
 
-                console.log("id_dict:<" + id_dict + ">")
+                //console.log("id_dict:<" + id_dict + ">")
                 // remove item after reading it, so it wont show in the next loop
                 //delete row_update[fieldname];
             }
@@ -554,7 +553,6 @@ console.log(txt);
                 tblrow.parentNode.removeChild(tblrow);
                 id_pk = ""
             } else if (!!id_del_err){
-
                 let el_msg = document.getElementById("id_msgbox");
                // el_msg.innerHTML = id_del_err;
                 el_msg.classList.toggle("show");
@@ -563,9 +561,8 @@ console.log(txt);
                 let el_input = tblrow.querySelector("[name=code]");
                 el_input.classList.add("border-invalid");
 
-                console.log("el_input (" + fieldname + "): " ,el_input)
+                //console.log("el_input (" + fieldname + "): " ,el_input)
                 let elemRect = el_input.getBoundingClientRect();
-
                 let msgRect = el_msg.getBoundingClientRect();
                 let topPos = elemRect.top - (msgRect.height + 80);
                 let leftPos = elemRect.left - 160;
@@ -578,8 +575,7 @@ console.log(txt);
                     }, 2000);
             }
 
-
-// --- replace id_new with id_pk when new record is saved
+// --- new record: replace id_new with id_pk when new record is saved
             // if 'new' and 'pk both exist: it is a newly saved record. Change id of tablerow from new to pk
             // if 'new' exists and 'pk' not: it is an unsaved record (happens when code is entered and name is blank)
             if (!!id_new && !!id_pk ){
@@ -684,14 +680,14 @@ console.log(txt);
                             }
                         }  // if (!!el_input)
                     }  // if( row_update[fieldname] !== "id") {
-                }  // if (dictionary.hasOwnProperty(id_key))
-            }  // for (var id_key in dictionary)
+                }  // if (row_update.hasOwnProperty(fieldname))
+            }  // for (let fieldname in row_update)
             // update filter
 
             FilterRows();
 
         }  // if (!!row_update)
-    }  // function update_fields(row_update)
+    }  // function update_fields
 
 //========= get_tablerow_changed  =============
     function get_tablerow_changed(el_changed){

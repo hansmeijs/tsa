@@ -49,7 +49,7 @@ class TsaBaseModel(Model):
 
 
     def save(self, *args, **kwargs):
-        # skip modified_by when adding entriesused PR20019-04-06
+        # skip modified_by when subtracting balance PR20019-04-09
         if 'request' in kwargs:
             self.request = kwargs.pop('request', None)
 

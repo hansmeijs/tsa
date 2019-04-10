@@ -58,7 +58,7 @@ console.log("Customers document.ready");
         }
         document.addEventListener("click", function() {HandleOutsideClick();}, false )
 
-        document.getElementById("id_btn_add").addEventListener("click", AddTableRow);
+        document.getElementById("id_btn_add").addEventListener("click", HandleCreateRecord);
         document.getElementById("id_btn_delete").addEventListener("click", HandleDeleteRecord);
         document.getElementById("id_filter_inactive").addEventListener("click", HandleFilterInactive);
 
@@ -70,12 +70,14 @@ console.log("Customers document.ready");
             }, 150);
         });
 
+        // get data
+        let el_data = $("#id_data");
+        const url_upload_str = el_data.data("customer_upload_url");
 
-        // hide inactive empooyees
-        let img_inactive_src = $("#id_data").data("img_inactive_src");
-        let img_active_src = $("#id_data").data("img_active_src");
+        let img_inactive_src = el_data.data("img_inactive_src");
+        let img_active_src = el_data.data("img_active_src");
 
-        let img_delete_src = $("#id_data").data("img_delete_src");
+        let img_delete_src = el_data.data("img_delete_src");
 
         FilterRows()
 
@@ -161,11 +163,10 @@ console.log("Customers document.ready");
                 let customer = {"pk": id_str, 'inactive': is_inactive}
                 console.log("customer:",customer)
                 let parameters = {"customer": JSON.stringify (customer)};
-                let url_str = $("#id_data").data("customer_upload_url");
                 let response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_str,
+                    url: url_upload_str,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
@@ -183,10 +184,10 @@ console.log("Customers document.ready");
 
 //=========  HandleDeleteRecord  ================ PR2019-03-16
     function HandleDeleteRecord() {
-console.log("=========  function HandleDeleteRecord =========");
+//console.log("=========  function HandleDeleteRecord =========");
 
         let tblRow = document.getElementById(id_row_selected)
-        console.log( "tblRow: ", tblRow, typeof tblRow);
+        //console.log( "tblRow: ", tblRow, typeof tblRow);
         if (!!tblRow){
             let cust_name = ""
             if (!!tblRow.cells[2].children[0]) {
@@ -195,27 +196,26 @@ console.log("=========  function HandleDeleteRecord =========");
 
 // ---  get pk from id of tblRow
             const id_str = tblRow.getAttribute("id");
-            console.log( "id_str: ", id_str, typeof id_str);
+
 // delete if new record
             if (id_str.indexOf("new") !== -1) {
                 tblRow.parentNode.removeChild(tblRow);
+// ask if other record must be deleted
             } else if (window.confirm("Delete customer '" + cust_name + "'?")){
+// make row red
                 tblRow.classList.add("tsa-tr-error");
 // upload new value icon
-                let customer = {"pk": id_str, 'delete': true}
-                console.log("customer:",customer)
-                let parameters = {"customer": JSON.stringify (customer)};
-                let url_str = $("#id_data").data("customer_upload_url");
+                let row_upload = {"pk": id_str, 'delete': true}
+                console.log("row_upload:",row_upload)
+                let parameters = {"row_upload": JSON.stringify (row_upload)};
                 response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_str,
+                    url: url_upload_str,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        if ("row_upd" in response) {
-                            DeleteRow(response["row_upd"])
-                        }
+                        DeleteRow(response["row_update"])
                     },
                     error: function (xhr, msg) {
                         alert(msg + '\n' + xhr.responseText);
@@ -224,15 +224,16 @@ console.log("=========  function HandleDeleteRecord =========");
             }
         }
     }
-//=========  AddTableRow  ================ PR2019-03-16
-    function AddTableRow() {
-console.log("=========  function AddTableRow =========");
+//=========  HandleCreateRecord  ================ PR2019-03-16
+    function HandleCreateRecord() {
+console.log("=========  function HandleCreateRecord =========");
 
 //--------- increase id_new
             id_new = id_new + 1
             let id_str =  id_new.toString()
 
             let tblBody = document.getElementById('id_tbody');
+
 //--------- insert tblBody row
             let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
@@ -271,7 +272,7 @@ console.log("=========  function AddTableRow =========");
                 el.classList.add("border-none");
                 td.appendChild(el);
             }
-    };//function AddTableRow
+    };//function HandleCreateRecord
 
 //========= UploadChanges  ============= PR2019-03-03
 // PR2019-03-17 debug: Here you have written this script on document.ready function, that's why it returns obsolete value.
@@ -289,11 +290,11 @@ console.log("=========  function AddTableRow =========");
 
 // ---  get pk from id of tr_changed
             if(tr_changed.hasAttribute("id")){
-                // id_str: "4"
+                // id_str: "4" or "new_1"
                 const id_str = tr_changed.getAttribute("id");
                 //console.log("id_str: ", id_str);
                 let customer = {"pk": id_str};
-
+                let new_code_value = "";
 // ---  loop through cells of tr_changed
                 for (let i = 0, el_input, el_name, n_value, o_value, len = tr_changed.cells.length; i < len; i++) {
                     // el_input is first child of td, td is cell of tr_changed
@@ -301,16 +302,16 @@ console.log("=========  function AddTableRow =========");
                     //console.log( "el_input: ", el_input, typeof el_input);
 
                     if(el_input.hasAttribute("name")){
-                        if(el_input.classList.contains("input_text")){
-                            // PR2019-03-17 debug: getAttribute("value");does not get the current value
-                            // The 'value' attribute determines the initial value (el_input.getAttribute("name").
-                            // The 'value' property holds the current value (el_input.value).
+                        el_name = el_input.getAttribute("name");
+                        if(!!el_name){
+                            if(el_input.classList.contains("input_text")){
+                                // PR2019-03-17 debug: getAttribute("value");does not get the current value
+                                // The 'value' attribute determines the initial value (el_input.getAttribute("name").
+                                // The 'value' property holds the current value (el_input.value).
 
-                            // use of o_value is necessary, because in new record both code and name must be uploaded,
-                            // therefore only sending new value of selected input element not possible
-                            // sending values of all input elements is too much
-                            el_name = el_input.getAttribute("name");
-                            if(!!el_name){
+                                // use of o_value is necessary, because in new record both code and name must be uploaded,
+                                // therefore only sending new value of selected input element not possible
+                                // sending values of all input elements is too much
                                 n_value = "";
                                 o_value = "";
                                 if (!!el_input.value){
@@ -325,11 +326,17 @@ console.log("=========  function AddTableRow =========");
                                 // console.log( "el_name: ", el_name, " n_value: ", n_value, " o_value: ", o_value);
                                 if(n_value !== o_value){
                                     customer[el_name] = n_value
-                                }
-                                // console.log( "customer", customer);
-                            }
-                        }
-                    }  //  if(el_input.classList.contains("input_text")
+                                 }
+
+                    // Move help text up to the top so it isn't below the select
+                    // boxes or wrapped off on the side to the right of the add
+                    // button:
+                    //from_box.parentNode.insertBefore(ps[i], from_box.parentNode.firstChild);
+                //}
+
+                            }// if(el_input.classList.contains("input_text"))
+                        }  //  if(!!el_name)
+                    }  //  if(el_input.hasAttribute("name")){
                 };  //  for (let i = 0, el_input,
 
                 //customer: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
@@ -338,13 +345,10 @@ console.log("=========  function AddTableRow =========");
 console.log ("parameters: ");
 console.log (parameters);
 
-                let url_str = $("#id_data").data("customer_upload_url");
-                // console.log ("url_str", url_str);
-
                 response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_str,
+                    url: url_upload_str,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
@@ -366,12 +370,12 @@ console.log( response.row_update);
     };
 // #####################################################################################
 //========= DeleteRow  =============
-    function DeleteRow(row_upd){
+    function DeleteRow(row_update){
         console.log("-------------- DeleteRow  --------------");
-        if (!!row_upd) {
-// get id_new and id_pk from row_upd["id"]
-            if ("id" in row_upd){
-                const id_dict = row_upd["id"]
+        if (!!row_update) {
+// get id_new and id_pk from row_update["id"]
+            if ("id" in row_update){
+                const id_dict = row_update["id"]
                 if ("pk" in id_dict){
                     let tblrow = document.getElementById(id_dict.pk);
                     if (!!tblrow){
@@ -381,7 +385,7 @@ console.log( response.row_update);
 // --- when err: show error message
                         } else if ("del_err" in id_dict){
                             const id_del_err = id_dict.del_err
-                            console.log("id_del_err:<" + id_del_err + ">")
+                            //console.log("id_del_err:<" + id_del_err + ">")
                             let el_msg = document.getElementById("id_msgbox");
                             el_msg.innerHTML = id_del_err;
                             el_msg.classList.toggle("show");
@@ -412,6 +416,7 @@ console.log( response.row_update);
         console.log(tr_changed);
         console.log("row_update:");
         console.log(row_update);
+
         if (!!row_update) {
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
             // row_update = {'id': {'pk': 7},
@@ -424,7 +429,7 @@ console.log( response.row_update);
             let id_deleted = false
             let id_del_err = false
 
-            const fieldname = "id"
+            let fieldname = "id"
             if (fieldname in row_update){
             // from: https://love2dev.com/blog/javascript-substring-substr-slice/
             // substring(indexStart[, indexEnd]): returns part between the start and end indexes, or to the end.
@@ -442,23 +447,8 @@ console.log( response.row_update);
                 //delete row_update[fieldname];
             }
 
-        console.log("id_new:", id_new);
-        console.log("id_pk:", id_pk);
-
-// --- new record: replace id_new with id_pk when new record is saved
-            // if 'new' and 'pk both exist: it is a newly saved record. Change id of tablerow from new to pk
-            // if 'new' exists and 'pk' not: it is an unsaved record (happens when code is entered and name is blank)
-            if (!!id_new && !!id_pk ){
-                if(tr_changed.hasAttribute("id")){
-                    if (!!tr_changed.id) {
-                        id_attr = tr_changed.id  // or: id_attr = tr_changed.getAttribute("id")
-        console.log("id_attr:", id_attr);
-            // check if row_update.id 'new_1' is same as tablerow.id 'new_1'
-                        if(id_new === id_attr){
-            // update tablerow.id from id_new 'new_1' to id_pk '7'
-                            tr_changed.id = id_pk //or: tr_changed.setAttribute("id", id_pk);
-        console.log("tr_changed.id:", tr_changed.id);
-            }}}};
+       // console.log("id_new:", id_new);
+        //console.log("id_pk:", id_pk);
 
 // --- deleted record
             if (id_deleted){
@@ -466,7 +456,6 @@ console.log( response.row_update);
                 tblrow.parentNode.removeChild(tblrow);
                 id_pk = ""
             } else if (!!id_del_err){
-
                 let el_msg = document.getElementById("id_msgbox");
                // el_msg.innerHTML = id_del_err;
                 el_msg.classList.toggle("show");
@@ -475,9 +464,8 @@ console.log( response.row_update);
                 let el_input = tblrow.querySelector("[name=code]");
                 el_input.classList.add("border-invalid");
 
-                console.log("el_input (" + fieldname + "): " ,el_input)
+                //console.log("el_input (" + fieldname + "): " ,el_input)
                 let elemRect = el_input.getBoundingClientRect();
-
                 let msgRect = el_msg.getBoundingClientRect();
                 let topPos = elemRect.top - (msgRect.height + 80);
                 let leftPos = elemRect.left - 160;
@@ -490,99 +478,121 @@ console.log( response.row_update);
                     }, 2000);
             }
 
+// --- new record: replace id_new with id_pk when new record is saved
+            // if 'new' and 'pk both exist: it is a newly saved record. Change id of tablerow from new to pk
+            // if 'new' exists and 'pk' not: it is an unsaved record (happens when code is entered and name is blank)
+            if (!!id_new && !!id_pk ){
+                if(tr_changed.hasAttribute("id")){
+                    if (!!tr_changed.id) {
+                        id_attr = tr_changed.id  // or: id_attr = tr_changed.getAttribute("id")
+            // check if row_update.id 'new_1' is same as tablerow.id 'new_1'
+                        if(id_new === id_attr){
+            // update tablerow.id from id_new 'new_1' to id_pk '7'
+                            tr_changed.id = id_pk //or: tr_changed.setAttribute("id", id_pk);
+            // make row green, / --- remove class 'ok' after 2 seconds
+
+                console.log("tsa-tr-ok")
+                            tr_changed.classList.add("tsa-tr-ok");
+                            setTimeout(function (){
+                                tr_changed.classList.remove("tsa-tr-ok");
+                                }, 2000);
+            }}}};
 
 // --- loop through keys of row_update
             for (let fieldname in row_update) {
                 if (row_update.hasOwnProperty(fieldname)) {
-                    let item_dict = row_update[fieldname];
+
+            // --- skip field "id", is already retrieved at beginning
+                    if( row_update[fieldname] !== "id") {
+                        let item_dict = row_update[fieldname];
 
             // --- lookup input field with name: fieldname
-                    //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
-                    // CSS.escape not supported by IE, Chrome and Safaris,
-                    // CSS.escape is not necessaary, tehre are no special characters in fieldname
-                    let el_input = tr_changed.querySelector("[name=" + fieldname + "]");
-                    //console.log("el_input (" + fieldname + "): ", el_input)
-                    if (!!el_input) {
-                        let value = '';
-                        if('val' in item_dict) {
-                            // value = '2019-03-20'
-                            value = item_dict['val']
-                            console.log("item_dict[val]", value, typeof value);
-                            if(fieldname === "modified_at") {
-                                let newdate = new Date(value);
-                                //console.log("newdate", newdate, typeof newdate);
-                                value = newdate.toLocaleString()
-                                //console.log("new value", value, typeof value);
-                            }
-                        };
+                        //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
+                        // CSS.escape not supported by IE, Chrome and Safaris,
+                        // CSS.escape is not necessaary, tehre are no special characters in fieldname
+                        let el_input = tr_changed.querySelector("[name=" + fieldname + "]");
+                        //console.log("el_input (" + fieldname + "): ", el_input)
+                        if (!!el_input) {
+                            let value = '';
+                            if('val' in item_dict) {
+                                // value = '2019-03-20'
+                                value = item_dict['val']
+                                console.log("item_dict[val]", value, typeof value);
+                                if(fieldname === "modified_at") {
+                                    let newdate = new Date(value);
+                                    //console.log("newdate", newdate, typeof newdate);
+                                    value = newdate.toLocaleString()
+                                    //console.log("new value", value, typeof value);
+                                }
+                            };
 
-                        if('err' in item_dict){
-                    console.log("el_input (" + fieldname + "): ", el_input)
-                            el_input.classList.add("border-none");
-                            el_input.classList.add("border-invalid");
+                            if('err' in item_dict){
+                        console.log("el_input (" + fieldname + "): ", el_input)
+                                el_input.classList.add("border-none");
+                                el_input.classList.add("border-invalid");
 
-                            let el_msg = document.getElementById("id_msgbox");
-                            el_msg.innerHTML = item_dict['err'];
-                            el_msg.classList.toggle("show");
+                                let el_msg = document.getElementById("id_msgbox");
+                                el_msg.innerHTML = item_dict['err'];
+                                el_msg.classList.toggle("show");
 
-//var viewportWidth = document.documentElement.clientWidth;
-//var viewportHeight = document.documentElement.clientHeight;
-//console.log("viewportWidth: " + viewportWidth + " viewportHeight: " + viewportHeight  )
+    //var viewportWidth = document.documentElement.clientWidth;
+    //var viewportHeight = document.documentElement.clientHeight;
+    //console.log("viewportWidth: " + viewportWidth + " viewportHeight: " + viewportHeight  )
 
-//var docWidth = document.body.clientWidth;
-//var docHeight = document.body.clientHeight;
-//console.log("docWidth: " + docWidth + " docHeight: " + docHeight  )
+    //var docWidth = document.body.clientWidth;
+    //var docHeight = document.body.clientHeight;
+    //console.log("docWidth: " + docWidth + " docHeight: " + docHeight  )
 
-                            let msgRect = el_msg.getBoundingClientRect();
-                            const elemRect = el_input.getBoundingClientRect();
-                            let topPos = elemRect.top - msgRect.height -100;
-                            let leftPos = elemRect.left - 160;
-                            let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-                            el_msg.setAttribute("style", msgAttr)
+                                let msgRect = el_msg.getBoundingClientRect();
+                                const elemRect = el_input.getBoundingClientRect();
+                                let topPos = elemRect.top - msgRect.height -100;
+                                let leftPos = elemRect.left - 160;
+                                let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+                                el_msg.setAttribute("style", msgAttr)
 
+                                setTimeout(function (){
+                                    el_input.value = value;
+                                    el_input.setAttribute("o_value", value);
+                                    el_input.classList.remove("border-invalid");
+                                    el_msg.classList.toggle("show");
+                                    },2000);
 
-                            setTimeout(function (){
+                            } else if('upd' in item_dict){
                                 el_input.value = value;
                                 el_input.setAttribute("o_value", value);
-                                el_input.classList.remove("border-invalid");
-                                el_msg.classList.toggle("show");
-                                },2000);
+                                console.log("el_input.value upd: <" + el_input.value + ">");
 
-                        } else if('upd' in item_dict){
-                            el_input.value = value;
-                            el_input.setAttribute("o_value", value);
-                            console.log("el_input.value upd: <" + el_input.value + ">");
+                                // set min or max of other date field
+                                if (fieldname === 'datefirst'){
+                                    let el_datelast = tr_changed.querySelector("[name=datelast]");
+                                    console.log("el_datelast", el_datelast);
+                                    el_datelast.min = value
+                                    console.log("el_datelast.min", el_datelast.min);
+                                } else if (fieldname === 'datelast'){
+                                    let el_datefirst = tr_changed.querySelector("[name=datefirst]");
+                                    console.log("el_datefirst", el_datefirst);
+                                    el_datefirst.max = value
+                                    console.log("el_datefirst.max", el_datefirst.max);
+                                }
 
-                            // set min or max of other date field
-                            if (fieldname === 'datefirst'){
-                                let el_datelast = tr_changed.querySelector("[name=datelast]");
-                                console.log("el_datelast", el_datelast);
-                                el_datelast.min = value
-                                console.log("el_datelast.min", el_datelast.min);
-                            } else if (fieldname === 'datelast'){
-                                let el_datefirst = tr_changed.querySelector("[name=datefirst]");
-                                console.log("el_datefirst", el_datefirst);
-                                el_datefirst.max = value
-                                console.log("el_datefirst.max", el_datefirst.max);
+                                el_input.classList.add("border-valid");
+                                setTimeout(function (){
+                                    el_input.classList.remove("border-valid");
+                                    }, 2000);
+                            } else {
+                                el_input.value = value;
+                                el_input.setAttribute("o_value", value);
                             }
-
-                            el_input.classList.add("border-valid");
-                            setTimeout(function (){
-                                el_input.classList.remove("border-valid");
-                                }, 2000);
-                        } else {
-                            el_input.value = value;
-                            el_input.setAttribute("o_value", value);
-                        }
-                    }  // if (!!el_input)
-                }  // if (dictionary.hasOwnProperty(id_key))
-            }  // for (var id_key in dictionary)
+                        }  // if (!!el_input)
+                    }  //  if( row_update[fieldname] !== "id")
+                }  // if (row_update.hasOwnProperty(fieldname)))
+            }  // for (let fieldname in row_update)
             // update filter
 
             FilterRows();
 
         }  // if (!!row_update)
-    }  // function update_fields(row_update)
+    }  // function update_fields
 
 //========= get_tablerow_changed  =============
     function get_tablerow_changed(el_changed){
