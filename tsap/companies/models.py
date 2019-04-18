@@ -7,9 +7,9 @@ from django.db.models.functions import Lower
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from tsap.settings import AUTH_USER_MODEL, TIME_ZONE
+from tsap.settings import AUTH_USER_MODEL, TIME_ZONE, LANGUAGE_CODE
 from tsap.constants import USERNAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, NAME_MAX_LENGTH
-from tsap.functions import get_date_yyyymmdd, get_time_HHmm, get_datetimelocal_from_datetime, get_date_longstr_from_dte
+from tsap.functions import get_date_yyyymmdd, get_time_HHmm, get_datetimelocal_from_datetime, get_date_longstr_from_dte, get_datetimelocal_DHM
 
 import logging
 logger = logging.getLogger(__name__)
@@ -21,6 +21,7 @@ class TsaManager(Manager):
             return self.get(**kwargs)
         except:
             return None
+
 
 # PR2019-03-12 from https://godjango.com/blog/django-abstract-base-class-model-inheritance/
 # tables  inherit fields from this class
@@ -103,6 +104,8 @@ class Company(TsaBaseModel):
 
     issystem = BooleanField(default=False)
     timezone = CharField(max_length=NAME_MAX_LENGTH, default=TIME_ZONE)
+    interval = PositiveSmallIntegerField(default=1)
+    timeformat = CharField(max_length=4, null=True, blank=True)
     balance = IntegerField(default=0)
 
     @property
@@ -124,6 +127,7 @@ class Customer(TsaBaseModel):
     def id_str(self):
         return 'id_cust_' + self.pk
 
+
 class Order(TsaBaseModel):
     objects = TsaManager()
 
@@ -133,6 +137,7 @@ class Order(TsaBaseModel):
     @property
     def id_str(self):
         return 'id_ord_' + self.pk
+
 
 class Object(TsaBaseModel):
     objects = TsaManager()
@@ -147,11 +152,23 @@ class Object(TsaBaseModel):
     def id_str(self):
         return 'id_obj_' + self.pk
 
+
 class Wagecode(TsaBaseModel):
     objects = TsaManager()
     company = ForeignKey(Company, related_name='wagecodes', on_delete=PROTECT)
 
     rate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    datefirst = None
+    datelast = None
+
+
+class Wagefactor(TsaBaseModel):
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='wagefactors', on_delete=PROTECT)
+
+    rate = IntegerField(default=0)  # /10.000
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -171,9 +188,55 @@ class Taxcode(TsaBaseModel):
     datelast = None
 
 
+class Timecode(TsaBaseModel):
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='timecodes', on_delete=PROTECT)
+
+    rate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    datefirst = None
+    datelast = None
+
+
+
+class Scheme(TsaBaseModel):
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='schemes', on_delete=PROTECT)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    datefirst = None
+    datelast = None
+
+
 class Shift(TsaBaseModel):
     objects = TsaManager()
     company = ForeignKey(Company, related_name='shifts', on_delete=PROTECT)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    datefirst = None
+    datelast = None
+
+
+class Team(TsaBaseModel):
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='teams', on_delete=PROTECT)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    datefirst = None
+    datelast = None
+
+
+class SchemeShift(Model):
+    objects = TsaManager()
+    scheme = ForeignKey(Scheme, related_name='+', on_delete=CASCADE)
+    shift = ForeignKey(Shift, related_name='+', on_delete=CASCADE)
+
+
+class SchemeTeam(Model):
+    objects = TsaManager()
+    scheme = ForeignKey(Scheme, related_name='+', on_delete=CASCADE)
+    team = ForeignKey(Shift, related_name='+', on_delete=CASCADE)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -304,6 +367,14 @@ class Emplhour(TsaBaseModel):
         return get_datetimelocal_from_datetime(self.time_start)
 
     @property
+    def time_start_DHM(self): # PR2019-04-08
+        return get_datetimelocal_DHM(self.time_start, 'en')
+
+    @property
+    def time_end_DHM(self): # PR2019-04-08
+        return get_datetimelocal_DHM(self.time_end, 'nl')
+
+    @property
     def time_end_HHmm(self): # PR2019-04-07
         return get_time_HHmm(self.time_end)
 
@@ -362,6 +433,7 @@ class Companyinvoice(Model):  # PR2019-04-06
     datelast = None
     locked = None
     inactive = None
+
 
 class Companysetting(Model):  # PR2019-03-09
     # PR2018-07-20 from https://stackoverflow.com/questions/3090302/how-do-i-get-the-object-if-it-exists-or-none-if-it-does-not-exist

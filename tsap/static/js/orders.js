@@ -94,7 +94,7 @@ console.log("Orders document.ready");
 
 // ---  get clicked tablerow
         id_row_selected = ""
-       // let tr_changed = get_tablerow_changed(tr_clicked)
+       // let tr_changed = get_tablerow_clicked(tr_clicked)
         if(!!tr_clicked) {
             if(tr_clicked.hasAttribute("id")){
                 id_row_selected = tr_clicked.id;
@@ -133,7 +133,7 @@ console.log("Orders document.ready");
         console.log( "el_changed: ", el_changed, typeof el_changed);
 
 // ---  get clicked tablerow
-        let tr_changed = get_tablerow_changed(el_changed)
+        let tr_changed = get_tablerow_clicked(el_changed)
         if(!!tr_changed) {
             console.log( "tr_changed: ", tr_changed, typeof tr_changed);
             if(tr_changed.hasAttribute("id")){
@@ -310,7 +310,7 @@ console.log("=========  function HandleCreateRecord =========");
        // console.log( "el_changed: ", el_changed);
 
 // ---  get clicked tablerow
-        let tr_changed = get_tablerow_changed(el_changed)
+        let tr_changed = get_tablerow_clicked(el_changed)
         //console.log("tr_changed: ", tr_changed);
         if(!!tr_changed) {
 
@@ -621,32 +621,6 @@ console.log( response.row_update);
         }  // if (!!row_update)
     }  // function update_fields(row_update)
 
-//========= get_tablerow_changed  =============
-    function get_tablerow_changed(el_changed){
-        //console.log("=========  get_tablerow_changed =========");
-        // PR2019-02-09 function gets id of clicked tablerow, highlights this tablerow
-        // currentTarget refers to the element to which the event handler has been attached
-        // event.target identifies the element on which the event occurred.
-
-        let tr_changed;
-        if(!!el_changed) {
-            // el_changed can either be TR or TD (when clicked 2nd time, apparently)
-            //console.log ("el_changed.nodeName: ", el_changed.nodeName)
-            switch(el_changed.nodeName){
-            case "INPUT":
-            case "A":
-                tr_changed =  el_changed.parentNode.parentNode;
-                break;
-            case "TD":
-                tr_changed =  el_changed.parentNode;
-                break;
-            case "TR":
-                tr_changed =  el_changed;
-            }
-        };
-        //console.log(tr_changed);
-        return tr_changed;
-    }; // get_tablerow_changed UploadChanges
 
 //=========  HandleFilterInactive  ================ PR2019-03-23
     function HandleFilterInactive() {

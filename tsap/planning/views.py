@@ -11,8 +11,12 @@ from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, DeleteView, View, ListView, CreateView, FormView
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS
 
+from datetime import datetime, timedelta
+
 from companies.views import LazyEncoder
-from tsap.functions import get_date_from_str, get_date_from_datetimelocal
+from tsap.constants import WEEKDAYS_ABBREV, TIMEFORMATS
+from tsap.functions import get_date_from_str, get_datetimeaware_from_datetimeUTC
+from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_employee_code, validate_employee_name,employee_email_exists, check_date_overlap
 
@@ -32,15 +36,41 @@ class EmplhourView(View):
         param = {}
         logger.debug(' ============= EmplhourView ============= ')
         if request.user.company is not None:
+            emplhours = Emplhour.objects.filter(company=request.user.company)
+
             employees = Employee.objects.filter(company=request.user.company, inactive=False).order_by(Lower('code'))
             employee_list = []
             for employee in employees:
                 employee_list.append({'pk': employee.id, 'code': employee.code})
             employee_json = json.dumps(employee_list)
-            # logger.debug(employee_json)
 
-            emplhours = Emplhour.objects.filter(company=request.user.company)
-            param = get_headerbar_param(request, {'items': emplhours, 'employee_list': employee_json})
+            # get weekdays translated
+            lang = request.user.lang if request.user.lang else LANGUAGE_CODE
+            if not lang in WEEKDAYS_ABBREV:
+                lang = LANGUAGE_CODE
+            weekdays_json = json.dumps(WEEKDAYS_ABBREV[lang])
+
+            # get interval
+            interval = 1
+            if request.user.company.interval:
+                interval = request.user.company.interval
+            interval = 12 # for testing
+
+            # get timeformat
+            timeformat = 'AmPm'
+            if request.user.company.timeformat:
+                timeformat = request.user.company.timeformat
+            if not timeformat in TIMEFORMATS:
+                timeformat = '24h'
+
+            param = get_headerbar_param(request, {
+                'items': emplhours,
+                'employee_list': employee_json,
+                'lang': lang,
+                'weekdays': weekdays_json,
+                'interval': interval,
+                'timeformat': timeformat
+            })
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'emplhours.html', param)
 
@@ -105,7 +135,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                             save_changes = False
 # ++++  delete record when key 'delete' exists in
                             if 'delete' in row_upload:
-                                emplhour.delete(request=self.request)
+                                # emplhour.delete(request=self.request)
         # --- check if emplhour still exist
                                 emplhour = Emplhour.objects.filter(id=pk_int, company=request.user.company).first()
                                 if emplhour is None:
@@ -168,29 +198,70 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                                 save_changes = True
 
 # --- save changes in time fields
-                                # {pk: "18", time_start: "2020-01-01T01:00"}
+                                # row_upload: {'pk': '16', 'time_start': '0;17;12'}
                                 for field in ('time_start', 'time_end'):
                                     if field in row_upload:
-                                        logger.debug('row_upload[' + field + ']: ' + str(row_upload[field]))
-                                        new_datetime_aware, msg_err = get_date_from_datetimelocal(row_upload[field])
-                                        logger.debug('new_' + field + '_aware: ' + str(new_datetime_aware))
+                                        if ';' in row_upload[field]:
+                                            arr = row_upload[field].split(';')
+                                            day_offset = int(arr[0])
+                                            new_hour = int(arr[1])
+                                            new_minute = int(arr[2])
 
-                                        if msg_err is not None:
-                                            row_dict[field]['err'] = msg_err
-                                        else:
+                                            msg_err = None
                                             # TODO check if date is valid (empty date is ok)
                                             if msg_err is not None:
                                                 row_dict[field]['err'] = msg_err
                                             else:
+                                                # row_upload: {'pk': '26', 'time_start': '1;4;48'}
                                                 saved_datetime = getattr(emplhour, field, None)
-                                                logger.debug('saved_' + field + ': ' + str(saved_datetime) + ' ' + str(type(saved_datetime)))
-                                                if new_datetime_aware != saved_datetime:
-                                                    logger.debug('save ' + field + ': ' + str(new_datetime_aware) + str(type(new_datetime_aware)))
-                                                    setattr(emplhour, field, new_datetime_aware)
-                                                    row_dict[field]['upd'] = True
-                                                    save_changes = True
-                                                    emplhour.save(request=self.request)
-                                                    logger.debug('datetimesaved: ' + str(getattr(emplhour, field, None)))
+                                                # saved_datetime: 2019-03-30 03:48:00+00:00
+                                                logger.debug('saved_datetime: ' + str(saved_datetime))
+                                                # get rosterdate when no saved_datetime
+                                                dt_naive = None
+                                                if saved_datetime is None:
+                                                    if emplhour.rosterdate is not None:
+                                                        dt_naive = datetime(emplhour.rosterdate.year,
+                                                                            emplhour.rosterdate.month,
+                                                                            emplhour.rosterdate.day,
+                                                                            new_hour,
+                                                                            new_minute)
+                                                else:
+                                                    saved_datetime_aware = get_datetimeaware_from_datetimeUTC(saved_datetime, TIME_ZONE)
+                                                    # saved_datetime_aware: 2019-03-30 04:48:00+01:00
+                                                    logger.debug('saved_datetime_aware: ' + str(saved_datetime_aware))
+
+                                                    offset_datetime = saved_datetime_aware + timedelta(days=day_offset)
+                                                    # offset_datetime: 2019-03-31 04:48:00+01:00
+                                                    logger.debug('offset_datetime: ' + str(offset_datetime))
+
+                                                    dt_naive = datetime(offset_datetime.year,
+                                                                        offset_datetime.month,
+                                                                        offset_datetime.day,
+                                                                        new_hour,
+                                                                        new_minute)
+                                                # dt_naive: 2019-03-31 04:48:00
+                                                logger.debug( 'dt_naive: ' + str(dt_naive))
+
+                                                # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+                                                timezone = pytz.timezone(TIME_ZONE)
+                                                # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
+                                                logger.debug( 'timezone: ' + str(timezone) + str( type(timezone)))
+
+                                                dt_localized = timezone.localize(dt_naive)
+                                                # dt_localized: 2019-03-31 04:48:00+02:00
+                                                logger.debug('dt_localized: ' + str(dt_localized))
+
+                                                utc = pytz.UTC
+                                                dt_as_utc = dt_localized.astimezone(utc)
+                                                # dt_as_utc: 2019-03-31 02:48:00+00:00
+                                                logger.debug( 'dt_as_utc: ' + str(dt_as_utc))
+
+                                                setattr(emplhour, field, dt_as_utc)
+                                                row_dict[field]['upd'] = True
+                                                save_changes = True
+                                                emplhour.save(request=self.request)
+                                                # datetimesaved: 2019-03-31 02:48:00+00:00
+                                                logger.debug('datetimesaved: ' + str(getattr(emplhour, field, None)))
 # --- save changes in break_duration field
                                 for field in ('time_duration','break_duration',):
                                     # row_upload: {'pk': '18', 'break_duration': '0.5'}
@@ -234,8 +305,9 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                             logger.debug('row_dict[field] ' + str(row_dict[field]))
 
 
-# --- clcultare working hours
+# --- calculate working hours
                                 if save_changes:
+                                    logger.debug('calculate working hours')
                                     if emplhour.time_start and emplhour.time_end:
                                         # duration unit in database is hour * 100
                                         saved_break_hours_x_100 = int(getattr(emplhour, 'break_duration', 0))
@@ -246,9 +318,12 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                         datediff_hours_x_100 = (datediff.total_seconds() / 36)
                                         logger.debug('datediff_hours_x_100: ' + str(datediff_hours_x_100) +  str(type(datediff_hours_x_100)))
                                         new_time_hours_x_100 = datediff_hours_x_100 - saved_break_hours_x_100
-                                        logger.debug('new_duration: ' + str(new_time_hours_x_100) +  str(type(new_time_hours_x_100)))
+                                        logger.debug('new_time_hours_x_100: ' + str(new_time_hours_x_100) +  str(type(new_time_hours_x_100)))
 
                                         saved_time_hours_x_100 = getattr(emplhour, 'time_duration', 0)
+                                        logger.debug('saved_time_hours_x_100: ' + str(saved_time_hours_x_100) + str(
+                                            type(saved_time_hours_x_100)))
+
                                         if new_time_hours_x_100 != saved_time_hours_x_100:
                                             emplhour.time_duration = new_time_hours_x_100
                                             row_dict['time_duration']['upd'] = True
@@ -261,6 +336,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                     logger.debug('changes saved ')
                                     for field in row_dict:
                                         saved_value = None
+                                        saved_html = None
                                         # 'upd' has always value True, or it does not exist
                                         if 'upd' in row_dict[field]:
                                             try:
@@ -272,8 +348,10 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                                     saved_value = emplhour.shift.code
                                                 elif field == 'time_start':
                                                     saved_value = emplhour.time_start_datetimelocal
+                                                    saved_html = emplhour.time_start_DHM
                                                 elif field == 'time_end':
                                                     saved_value = emplhour.time_end_datetimelocal
+                                                    saved_html = emplhour.time_end_DHM
                                                 elif field == 'time_duration':
                                                     saved_value = emplhour.time_hours
                                                 elif field == 'break_duration':
@@ -284,6 +362,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                                 pass
                                         if saved_value:
                                             row_dict[field]['val'] = saved_value
+                                            if saved_html:
+                                                row_dict[field]['html'] = saved_html
 
 
         # --- remove empty attributes from row_dict
@@ -299,7 +379,6 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
         logger.debug('update_dict: ')
         logger.debug(str(update_dict))
         update_dict_json = json.dumps(update_dict, cls=LazyEncoder)
-        logger.debug('update_dict_json:')
         logger.debug(str(update_dict_json))
 
         return HttpResponse(update_dict_json)

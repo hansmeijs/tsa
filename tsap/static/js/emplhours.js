@@ -2,39 +2,36 @@
 $(function() {
 console.log("Customers document.ready");
 
-// ---  id of selecte record
+// ---  id of selected record
     let id_row_selected = "";
 
 // ---  id_new assigns fake id to new records
     let id_new = 0;
     let filter_name = "";
-    let filter_hide_inactive = true;
+     let filter_hide_inactive = true;
 
-// ---  set selected menu button active
-    const cls_active = "active";
-    //let btn_clicked = document.getElementById("id_sub_cust_list");
-    //SetMenubuttonActive(btn_clicked);
+        let popup_box = document.querySelector(".popup_box");
+        // Listen to all clicks on the document
+        document.addEventListener('click', function (event) {
+            // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
+            // close popup_box when clicked on "popup_close" (skip next code)
+            if (!event.target.classList.contains("popup_close")) {
+            // don't close popup_box when clicked on event.target or on "input_popup"
+                if (popup_box.contains(event.target)) return;
+                if (event.target.classList.contains("input_popup")) return;
+            }
 
-//}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
-// still haveto try this one
-        //show popup when clicking the trigger
-       // $('tbody').on('focus',".dateselector", function(){
-       //     SetDateSelector();
-       // });
+// get current value of start_time / endtime from input_popup and store it in el_popup
 
-        //hide it when clicking anywhere else except the popup and the trigger
-        //$(document).on('click touch', function(event) {
-        //  if (!$(event.target).parents().addBack().is('.datepicker')) {
-        //    $('#id_msgbox').hide();
-        //  }
-        //});
+            // TODO: deselect selected row when clicked outside table
+            //id_row_selected = "";
+            //DeselectOtherHighlightedRows();
 
-        // Stop propagation to prevent hiding "#tooltip" when clicking on it
-        //$('#id_msgbox').on('click touch', function(event) {
-        //  event.stopPropagation();
-        //});
-
-//}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+            // remove selected color from all input popups
+            inputpopup_removebackground();
+            // If user clicks outside the element, hide it!
+            popup_box.classList.add("display_hide");
+        }, false);
 
         // PR2019-03-03 from https://stackoverflow.com/questions/14377590/queryselector-and-queryselectorall-vs-getelementsbyclassname-and-getelementbyid
         let elements = document.getElementsByClassName("input_text");
@@ -54,6 +51,11 @@ console.log("Customers document.ready");
             icon.addEventListener("click", function() {HandleRowInactive(icon);}, false )
         }
 
+        elements = document.getElementsByClassName("input_popup");
+        for (let i = 0, len = elements.length; i < len; i++) {
+            let input_popup = elements[i];
+            input_popup.addEventListener("click", function() {HandlePopupClicked(input_popup);}, false )
+        }
         let tblBody = document.getElementById("id_tbody");
         let tblrows = tblBody.getElementsByTagName('tr');
         for (let i = 0, tblrow, len = tblrows.length; i < len; i++) {
@@ -63,7 +65,8 @@ console.log("Customers document.ready");
 
         document.getElementById("id_btn_add").addEventListener("click", HandleCreateRecord);
         document.getElementById("id_btn_delete").addEventListener("click", HandleDeleteRecord);
-        //document.getElementById("id_filter_inactive").addEventListener("click", HandleFilterInactive);
+        document.getElementById("id_popup_save").addEventListener("click", function() {HandlePopupSave();}, false )
+
 
         // ---  add 'keyup' event handler to filter input
         document.getElementById("id_filter_name").addEventListener("keyup", function() {
@@ -97,6 +100,10 @@ console.log("Customers document.ready");
         let imgsrc_real02 = el_data.data("imgsrc_real02");
         let imgsrc_real03 = el_data.data("imgsrc_real03");
 
+        let weekdays = el_data.data("weekdays");
+        let interval = el_data.data("interval");
+        let timeformat = el_data.data("timeformat");
+
         DownloadDatalists();
 
         FilterRows();
@@ -108,7 +115,7 @@ console.log("Customers document.ready");
 
 //=========  HandleRowClicked  ================ PR2019-03-30
     function HandleRowClicked(tr_clicked) {
-        //console.log("--------- function HandleRowClicked  --------------");
+        console.log("--------- function HandleRowClicked  --------------");
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows
@@ -117,11 +124,10 @@ console.log("Customers document.ready");
 
 // ---  get clicked tablerow
         if(!!tr_clicked) {
-            if(tr_clicked.hasAttribute("id")){
-                id_row_selected = tr_clicked.id;
+            id_row_selected = get_attr_from_element(tr_clicked, "id")
 // ---  highlight clicked row
-                tr_clicked.classList.add("tsa-tr-highlighted")
-        }}
+            tr_clicked.classList.add("tsa-tr-highlighted")
+        }
     }
 
 //=========  HandleOutsideClick  ================ PR2019-03-30
@@ -143,7 +149,7 @@ console.log("Customers document.ready");
         console.log( "el_changed: ", el_changed, typeof el_changed);
 
 // ---  get clicked tablerow
-        let tr_changed = get_tablerow_changed(el_changed)
+        let tr_changed = get_tablerow_clicked(el_changed)
         if(!!tr_changed) {
             console.log( "tr_changed: ", tr_changed, typeof tr_changed);
             if(tr_changed.hasAttribute("id")){
@@ -155,12 +161,11 @@ console.log("Customers document.ready");
 // ---  el_changed is cell 'time_status' or 'orderhour_status' of tr_changed
                 let el_value = el_changed.getAttribute("value");
                 console.log( "el_value : ", el_value, typeof el_value);
-                let el_value_int = parseInt(el_value, 10);
+;
                 el_value_int++;
                 if (el_value_int > 5){el_value_int = 0}
                 el_value = el_value_int.toString();
                 el_changed.setAttribute("value", el_value);
-
 
 // update icon
                 let img_src = imgsrc_stat00
@@ -202,22 +207,32 @@ console.log("Customers document.ready");
 
 //=========  HandleDeleteRecord  ================ PR2019-03-16
     function HandleDeleteRecord() {
-//console.log("=========  function HandleDeleteRecord =========");
+        console.log("=========  function HandleDeleteRecord =========");
 
         let tblRow = document.getElementById(id_row_selected)
         //console.log( "tblRow: ", tblRow, typeof tblRow);
         if (!!tblRow){
-            let cust_name = ""
-            if (!!tblRow.cells[2].children[0]) {
-                cust_name = tblRow.cells[2].children[0].value;
+            tblRow.classList.add("tsa-tr-error");
+            let cust_name = "", employee_name = ""
+            if (!!tblRow.cells[1].children[0]) { cust_name = tblRow.cells[1].children[0].value;}
+            if (!!tblRow.cells[2].children[0]) { employee_name = tblRow.cells[2].children[0].value;}
+            let msg_text = el_data.data("msg_confirm_del1");
+            if (!!cust_name && !!employee_name){
+                msg_text = msg_text + " " + cust_name + " / " + employee_name + "?"
+            } else if (!!cust_name || !!employee_name) {
+                msg_text = msg_text + " " + cust_name + employee_name + "?"
+            } else {
+                msg_text = el_data.data("msg_confirm_del2");
             }
+
 
 // ---  get pk from id of tblRow
             const id_str = tblRow.getAttribute("id");
-
 // make row red
-                tblRow.classList.add("tsa-tr-error");
+            if(confirm(msg_text)){
 // delete  record
+                // make row red
+                tblRow.classList.add("tsa-tr-error");
                 let row_upload = {"pk": id_str, 'delete': true}
                 console.log ("delete dict before ajax: ");
                 console.log (row_upload);
@@ -236,6 +251,7 @@ console.log("Customers document.ready");
                     }
                 });
 
+            } // if( confirm
         }
     }
 //=========  HandleCreateRecord  ================ PR2019-03-16
@@ -353,7 +369,7 @@ console.log("=========  function HandleCreateRecord =========");
         console.log("+++--------- UploadChanges  --------------");
 
        // ---  get clicked tablerow
-        let tr_changed = get_tablerow_changed(el_changed)
+        let tr_changed = get_tablerow_clicked(el_changed)
         UploadTblrowChanged(tr_changed);
     }
 //========= UploadTblrowChanged  ============= PR2019-03-03
@@ -363,26 +379,20 @@ console.log("=========  function HandleCreateRecord =========");
 // It also has a value property that holds the current value of the input
     function UploadTblrowChanged(tr_changed) {
         console.log("+++--------- UploadTblrowChanged  --------------");
-        //console.log( "tr_changed: ", tr_changed);
+        console.log( "tr_changed: ", tr_changed);
 
         if(!!tr_changed) {
 // ---  get pk from id of tr_changed
-
-            if(tr_changed.hasAttribute("id")){
-                // id_str: "4"
-                const id_str = tr_changed.getAttribute("id");
-                //console.log("id_str: ", id_str);
+            const id_str = get_attr_from_element(tr_changed, "id")
+            if(!!id_str){
                 let row_upload = {"pk": id_str};
 
 // ---  loop through cells and input element of tr_changed
                 for (let i = 0, el_input, el_name, n_value, o_value, len = tr_changed.cells.length; i < len; i++) {
                     // el_input is first child of td, td is cell of tr_changed
-                    el_input = tr_changed.cells[i].children[0];
-                    //console.log("el_input:");
-                    //console.log(el_input);
-
-                    if(el_input.hasAttribute("name")){
-                        el_name = el_input.getAttribute("name");
+                    if(!!tr_changed.cells[i].children[0]){
+                        el_input = tr_changed.cells[i].children[0];
+                        el_name = get_attr_from_element(el_input, "data-name")
                         if(!!el_name){
                             if(el_input.classList.contains("input_text")){
                             // PR2019-03-17 debug: getAttribute("value");does not get the current value
@@ -403,7 +413,7 @@ console.log("=========  function HandleCreateRecord =========");
                                 // n_value is only added to dict when value has changed
                                 // n_value can be blank
 
-                                // console.log( "el_name: ", el_name, " n_value: ", n_value, " o_value: ", o_value);
+                                 console.log( "el_name: ", el_name, " n_value: ", n_value, " o_value: ", o_value);
                                 if(n_value !== o_value){
                                     let arrObj, arr_key = "";
                                     switch (el_name) {
@@ -429,8 +439,11 @@ console.log("=========  function HandleCreateRecord =========");
                                 }
                                 // console.log( "row_upload", row_upload);
                             }  // if(el_input.classList.contains("input_text"))
-                        }
-                    }  //  if(el_input.classList.contains("input_text")
+                        }  // if(!!el_name)
+
+
+                    }  // if(!!tr_changed.cells[i].children[0])
+
                 };  //  for (let i = 0, el_input,
 
                 //row_upload: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
@@ -447,7 +460,6 @@ console.log("=========  function HandleCreateRecord =========");
                         if ("row_update" in response) {
         //console.log( "response");
         //console.log( response);
-
                             UpdateFields(tr_changed, response["row_update"])
                         }
                     },
@@ -460,6 +472,7 @@ console.log("=========  function HandleCreateRecord =========");
         };  // if(!!tr_changed)
     };
 // #####################################################################################
+
 //========= DeleteRow  =============
     function DeleteRow(row_update){
        // console.log("-------------- DeleteRow  --------------");
@@ -506,17 +519,9 @@ console.log("=========  function HandleCreateRecord =========");
     function UpdateFields(tr_changed, row_update){
         console.log("-------------- UpdateFields  --------------");
         console.log("tr_changed", tr_changed);
-//console.log(row_update);
-//let txt = "row_update: {"
-//for(let index in row_update) {
-//    txt = txt + index + ": {";
-//    for(let subindex in row_update[index]) {txt = txt  + subindex + ":" + row_update[index][subindex] + ", ";}
-//    txt = txt + "}, "
-//}
-//txt = txt + "}"
-//console.log(txt);
+        console.log("row_update", row_update);
 
-        if (!!row_update) {
+        if (!!row_update && !!tr_changed) {
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
             // row_update = {'id': {'pk': 7},
             // 'code': {'err': 'Customer code cannot be blank.', 'val': '1996.02.17.15'},
@@ -525,8 +530,7 @@ console.log("=========  function HandleCreateRecord =========");
 
 // get id_new and id_pk from row_update["id"]
             let id_new = "", id_pk = ""
-            let id_deleted = false
-            let id_del_err = false
+            let id_deleted = false, id_del_err = false
 
             let fieldname = "id"
             if (fieldname in row_update){
@@ -546,72 +550,74 @@ console.log("=========  function HandleCreateRecord =========");
                 // remove item after reading it, so it wont show in the next loop
                 //delete row_update[fieldname];
             }
-
+            if (!!id_pk){
+                let tblrow = document.getElementById(id_pk);
+                 if (!!tblrow){
 // --- deleted record
-            if (id_deleted){
-                let tblrow = document.getElementById(id_pk);
-                tblrow.parentNode.removeChild(tblrow);
-                id_pk = ""
-            } else if (!!id_del_err){
-                let el_msg = document.getElementById("id_msgbox");
-               // el_msg.innerHTML = id_del_err;
-                el_msg.classList.toggle("show");
+                    if (id_deleted){
+                        tblrow.parentNode.removeChild(tblrow);
+                        id_pk = ""
+                    } else if (!!id_del_err){
+                        let el_msg = document.getElementById("id_msgbox");
+                       // el_msg.innerHTML = id_del_err;
+                        el_msg.classList.toggle("show");
 
-                let tblrow = document.getElementById(id_pk);
-                let el_input = tblrow.querySelector("[name=code]");
-                el_input.classList.add("border-invalid");
+                        let el_input = tblrow.querySelector("[name=code]");
+                        el_input.classList.add("border-invalid");
 
-                //console.log("el_input (" + fieldname + "): " ,el_input)
-                let elemRect = el_input.getBoundingClientRect();
-                let msgRect = el_msg.getBoundingClientRect();
-                let topPos = elemRect.top - (msgRect.height + 80);
-                let leftPos = elemRect.left - 160;
-                let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-                el_msg.setAttribute("style", msgAttr)
+                        //console.log("el_input (" + fieldname + "): " ,el_input)
+                        let elemRect = el_input.getBoundingClientRect();
+                        let msgRect = el_msg.getBoundingClientRect();
+                        let topPos = elemRect.top - (msgRect.height + 80);
+                        let leftPos = elemRect.left - 160;
+                        let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+                        el_msg.setAttribute("style", msgAttr)
 
-                setTimeout(function (){
-                    tblrow.classList.remove("tsa-tr-error");
-                    el_msg.classList.toggle("show");
-                    }, 2000);
-            }
+                        setTimeout(function (){
+                            tblrow.classList.remove("tsa-tr-error");
+                            el_msg.classList.toggle("show");
+                            }, 2000);
+                    }
+                 } // if (!!tblrow)
 
 // --- new record: replace id_new with id_pk when new record is saved
             // if 'new' and 'pk both exist: it is a newly saved record. Change id of tablerow from new to pk
             // if 'new' exists and 'pk' not: it is an unsaved record (happens when code is entered and name is blank)
-            if (!!id_new && !!id_pk ){
-                if(tr_changed.hasAttribute("id")){
-                    if (!!tr_changed.id) {
-                        id_attr = tr_changed.id  // or: id_attr = tr_changed.getAttribute("id")
+
+                if (!!id_new){
+                    id_attr = get_attr_from_element(tr_changed,"id")
             // check if row_update.id 'new_1' is same as tablerow.id
-                        if(id_new === id_attr){
-            // update tablerow.id from id_new to id_pk
-                            tr_changed.id = id_pk //or: tr_changed.setAttribute("id", id_pk);
-            // make row green, / --- remove class 'ok' after 2 seconds a
-                            tr_changed.classList.add("tsa-tr-ok");
-                            setTimeout(function (){
-                                tr_changed.classList.remove("tsa-tr-ok");
-                                }, 2000);
-            }}}};
+                    if(id_new === id_attr){
+        // update tablerow.id from id_new to id_pk
+                        tr_changed.id = id_pk //or: tr_changed.setAttribute("id", id_pk);
+        // make row green, / --- remove class 'ok' after 2 seconds a
+                        tr_changed.classList.add("tsa-tr-ok");
+                        setTimeout(function (){
+                            tr_changed.classList.remove("tsa-tr-ok");
+                            }, 2000);
+                }}};
 
 // --- loop through keys of row_update
             for (let fieldname in row_update) {
                 if (row_update.hasOwnProperty(fieldname)) {
+
             // --- skip field "id", is already retrieved at beginning
-                    if( row_update[fieldname] !== "id") {
+                    console.log("}}} row_update[" + fieldname + "]: ", row_update[fieldname] , typeof row_update[fieldname] )
+                    if( fieldname !== "id") {
                         let item_dict = row_update[fieldname];
+                        console.log("item_dict ", item_dict)
 
                 // --- lookup input field with name: fieldname
                         //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
                         // CSS.escape not supported by IE, Chrome and Safaris,
-                        // CSS.escape is not necessaary, tehre are no special characters in fieldname
-                        let el_input = tr_changed.querySelector("[name=" + fieldname + "]");
-                        //console.log("el_input (" + fieldname + "): ", el_input)
+                        // CSS.escape is not necessaary, there are no special characters in fieldname
+                        let el_input = tr_changed.querySelector("[data-name=" + fieldname + "]");
+                        console.log("el_input (" + fieldname + "): ", el_input)
                         if (!!el_input) {
-                            let value = '';
-                            if('val' in item_dict) {
-                                // value = '2019-03-20'
-                                value = item_dict['val']
-                                console.log("item_dict[val]", value, typeof value);
+                            // set value of 'value', change to date when modified_at
+                            let value = "";
+                            if("val" in item_dict) {
+                                value = item_dict["val"]
                                 if(fieldname === "modified_at") {
                                     let newdate = new Date(value);
                                     //console.log("newdate", newdate, typeof newdate);
@@ -619,9 +625,11 @@ console.log("=========  function HandleCreateRecord =========");
                                     //console.log("new value", value, typeof value);
                                 }
                             };
-
+                            let html = "";
+                            if("html" in item_dict) {
+                                html = item_dict["html"]
+                            }
                             if('err' in item_dict){
-                        console.log("el_input (" + fieldname + "): ", el_input)
                                 el_input.classList.add("border-none");
                                 el_input.classList.add("border-invalid");
 
@@ -644,7 +652,6 @@ console.log("=========  function HandleCreateRecord =========");
                                 let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
                                 el_msg.setAttribute("style", msgAttr)
 
-
                                 setTimeout(function (){
                                     el_input.value = value;
                                     el_input.setAttribute("o_value", value);
@@ -653,9 +660,14 @@ console.log("=========  function HandleCreateRecord =========");
                                     },2000);
 
                             } else if('upd' in item_dict){
-                                el_input.value = value;
-                                el_input.setAttribute("o_value", value);
-                                console.log("el_input.value upd: <" + el_input.value + ">");
+                                if(el_input.classList.contains("input_popup")){
+                                    el_input.innerText = html
+                                    el_input.setAttribute("data-value", value)
+                                    console.log("data-value ", value)
+                                } else if(el_input.classList.contains("input_text")){
+                                    el_input.value = value;
+                                    el_input.setAttribute("o_value", value);
+                                }
                                 /*
                                 // set min or max of other date field
                                 //if (fieldname === 'datefirst'){
@@ -689,32 +701,6 @@ console.log("=========  function HandleCreateRecord =========");
         }  // if (!!row_update)
     }  // function update_fields
 
-//========= get_tablerow_changed  =============
-    function get_tablerow_changed(el_changed){
-        //console.log("=========  get_tablerow_changed =========");
-        // PR2019-02-09 function gets id of clicked tablerow, highlights this tablerow
-        // currentTarget refers to the element to which the event handler has been attached
-        // event.target identifies the element on which the event occurred.
-
-        let tr_changed;
-        if(!!el_changed) {
-            // el_changed can either be TR or TD (when clicked 2nd time, apparently)
-            //console.log ("el_changed.nodeName: ", el_changed.nodeName)
-            switch(el_changed.nodeName){
-            case "INPUT":
-            case "A":
-                tr_changed =  el_changed.parentNode.parentNode;
-                break;
-            case "TD":
-                tr_changed =  el_changed.parentNode;
-                break;
-            case "TR":
-                tr_changed =  el_changed;
-            }
-        };
-        //console.log(tr_changed);
-        return tr_changed;
-    }; // get_tablerow_changed UploadChanges
 
 //=========  HandleFilterInactive  ================ PR2019-03-23
     function HandleFilterInactive() {
@@ -890,6 +876,239 @@ console.log("=========  function HandleCreateRecord =========");
             if (tblrows[i].id !== id_row_selected){
                 tblrows[i].classList.remove("tsa-tr-highlighted")
             }
+        }
+    }
+
+/*
+
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// OPEN MODAL ON TRIGGER CLICK
+	$(".quickViewTrigger").on('click', function () {
+		var $quickview = $(this).next(".quickViewContainer");
+		$quickview.dequeue().stop().slideToggle(500, "easeInOutQuart");
+		$(".quickViewContainer").not($quickview).slideUp(200, "easeInOutQuart");
+	});
+
+	// CLOSE MODAL WITH MODAL CLOSE BUTTON
+	$(".close").click(function() {
+		$(".quickViewContainer").fadeOut("slow");
+	});
+
+
+
+// CLOSE MODAL ON ESC KEY PRESS
+$(document).on('keyup', function(e) {
+	"use strict";
+	if (e.keyCode === 27) {
+		$(".quickViewContainer").fadeOut("slow");
+	}
+});
+
+// CLOSE MODAL ON CLICK OUTSIDE MODAL
+$(document).mouseup(function (e) {
+	"use strict";
+    var container = $(".modal_container");
+    if (!container.is(e.target) && container.has(e.target).length === 0)
+    {
+       // $('.modal_container').fadeOut("slow");
+    }
+});
+//###################################
+*/
+//========= HandlePopupClicked  ====================================
+    function HandlePopupClicked(input_popup) {
+        console.log("===  HandlePopupClicked  =====") ;
+        let el_popup = document.getElementById("id_popup")
+
+// ---  get pk from id of input_popup, set as attribute in el_popup
+        let id_str = get_tablerow_id(input_popup)
+        el_popup.setAttribute("data-pk", id_str)
+
+// put current value of start_time / endtime in el_popup
+        el_popup.setAttribute("data-name", get_attr_from_element(input_popup, "data-name"))
+        //this one doesn't work: el_popup.data.name = input_popup.data.name
+
+// get current value of start_time / endtime from input_popup and store it in el_popup
+        let datetime_aware_iso = get_attr_from_element(input_popup, "data-value")
+
+// if no current value: get rosterdate
+        if (!datetime_aware_iso) {
+            let tr_selected = get_tablerow_selected(input_popup)
+            if (!!tr_selected){
+                console.log (tr_selected)
+                let el_rosterdate = tr_selected.querySelector("[name='rosterdate']");
+                if (el_rosterdate.hasAttribute("value")){
+                    datetime_aware_iso = el_rosterdate.getAttribute("value") + "T00:00:00"
+        }}}
+
+        el_popup.setAttribute("data-value", datetime_aware_iso)
+        // get array with year,month etcd from  saved_time_str
+        let data_arr = get_array_from_ISOstring(datetime_aware_iso)
+       // console.log("data_arr", data_arr[0],data_arr[1],data_arr[2],data_arr[3],data_arr[4])
+
+        let curHours = data_arr[3];
+        let curMinutes = data_arr[4];
+
+        let weekday_index = get_weekday_from_ISOstring(datetime_aware_iso)
+        let curWeekday = weekday_index;  //Sunday = 0
+
+// put current value of start_time / endtime in el_popup
+
+// ---  fill list of weekdays : curWeekday - 1 thru +1
+        let el_popup_days = document.getElementById("id_popup_days")
+        el_popup_days.innerText = null
+        let option_text = "";
+        let weekday = curWeekday - 1;
+        for (let i = -1; i < 2; i++) {
+            if (weekday < 0){weekday += 7};
+            if (weekday > 6) {weekday -= 7};
+            option_text += "<option value=\"" + i + "\"";
+            if (weekday === curWeekday) {option_text += " selected=true" };
+            option_text +=  ">" +  weekdays[weekday] + "</option>";
+            weekday += 1;
+        }
+        el_popup_days.innerHTML = option_text;
+
+// ---  fill list of hours
+        // timeformat = ('24h', 'AmPm')
+        let el_popup_hour = document.getElementById("id_popup_hours")
+        el_popup_hour.innerText = null
+        option_text = ""
+        let curAmPm = 0;
+        let HasAmPm = false;
+        let MaxHours = 23
+
+        if (timeformat === "AmPm") {
+            HasAmPm = true;
+            MaxHours = 12;
+            if (curHours > 12) {
+                curHours -= 12;
+                curAmPm = 1;}
+            } else if (curHours === 12 && curMinutes > 0 ) {
+                curAmPm = 1;
+            }
+
+        for (let hours = 0; hours <= MaxHours; hours += 1) {
+            option_text += "<option value=\"" + hours + "\""
+            if (hours === curHours) {option_text += " selected=true"};
+            option_text +=  ">" + hours + "</option>";
+        }
+        el_popup_hour.innerHTML = option_text;
+
+// ---  fill list of minutes per interval
+        let el_popup_minutes = document.getElementById("id_popup_minutes")
+        el_popup_minutes.innerText = null
+        option_text = ""
+        for (let minutes = 0; minutes < 60; minutes += interval) {
+            option_text += "<option value=\"" + minutes + "\""
+            if (minutes === curMinutes) {option_text += " selected=true" };
+            option_text +=  ">" + minutes + "</option>";
+        }
+        el_popup_minutes.innerHTML = option_text;
+
+// ---  fill list of am/pm
+        let el_popup_ampm = document.getElementById("id_popup_ampm")
+        el_popup_ampm.innerText = null
+        option_text = ""
+        for (let ampm = 0, ampm_text; ampm < 2; ampm += 1) {
+            if (ampm === 0){ampm_text = "a.m."} else {ampm_text = "p.m."}
+            option_text += "<option value=\"" + ampm + "\""
+            if (ampm === curAmPm) {option_text += " selected=true" };
+            option_text +=  ">" + ampm_text + "</option>";
+        }
+        el_popup_ampm.innerHTML = option_text;
+
+// ---  position popup under input_popup
+        let popRect = el_popup.getBoundingClientRect();
+        let inpRect = input_popup.getBoundingClientRect();
+        let topPos = inpRect.top + inpRect.height;
+        let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
+        let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+        el_popup.setAttribute("style", msgAttr)
+
+// ---  change background of input_popup
+        // first remove selected color from all imput popups
+        elements = document.getElementsByClassName("input_popup");
+        inputpopup_removebackground();
+        input_popup.classList.add("pop_background");
+
+// ---  show el_popup
+        el_popup.classList.remove("display_hide");
+        let name = get_attr_from_element(input_popup, "data-name")
+
+}; // function HandlePopupClicked
+
+//=========  HandlePopupSave  ================ PR2019-04-14
+    function HandlePopupSave() {
+console.log("=========  function HandlePopupSave =========");
+
+        let el_popup = document.getElementById("id_popup")
+// ---  get pk_str from id of el_popup
+        let id_str = ""// pk of record  of element clicked
+        let name_str = "" // nanme of element clicked
+        let saved_time_str = "" // value of element clicked "2019-03-30T19:00:00"
+        if (!!el_popup){
+            if (el_popup.hasAttribute("data-pk")){id_str = el_popup.getAttribute("data-pk")}
+            if (el_popup.hasAttribute("data-value")){saved_time_str = el_popup.getAttribute("data-value")}
+            if (el_popup.hasAttribute("data-name")){name_str = el_popup.getAttribute("data-name")}
+        }
+        console.log ("id_str",id_str)
+        console.log ("name_str",name_str)
+        console.log ("saved_time_str",saved_time_str)
+
+// get array with year,month etc from saved_time_str
+        let saved_arr = get_array_from_ISOstring(saved_time_str)
+        console.log(saved_arr)
+
+// get new values from popup
+        let new_day_offset = document.getElementById("id_popup_days").value
+        let new_hours_int  = parseInt(document.getElementById("id_popup_hours").value)
+        let new_minutes  = document.getElementById("id_popup_minutes").value
+        let new_ampm_index  = document.getElementById("id_popup_ampm").value
+
+// add 12 hours to new_hours_int when p.m.
+        if (new_ampm_index ==="1"){
+            if(new_hours_int < 12 ){new_hours_int += 12;}
+            }
+        let new_hours = new_hours_int.toString();
+
+// create new_datetime array
+        let new_datetime = new_day_offset + ";" + new_hours + ";" + new_minutes
+        let tr_selected = document.getElementById(id_str)
+        let row_upload = {"pk": id_str}
+        row_upload[name_str] = new_datetime;
+        console.log ("row_upload", row_upload);
+        let parameters = {"row_upload": JSON.stringify (row_upload)};
+        response = "";
+        $.ajax({
+            type: "POST",
+            url: url_upload_str,
+            data: parameters,
+            dataType:'json',
+            success: function (response) {
+                if ("row_update" in response) {
+
+
+
+                    UpdateFields(tr_selected, response["row_update"])
+                }
+            },
+            error: function (xhr, msg) {
+                alert(msg + '\n' + xhr.responseText);
+            }
+        });
+
+        inputpopup_removebackground();
+        popup_box.classList.add("display_hide");
+
+    }  // HandlePopupSave
+
+//========= function pop_background_remove  ====================================
+    function inputpopup_removebackground(){
+        // remove selected color from all input popups
+        let elements = document.getElementsByClassName("input_popup");
+        for (let i = 0, len = elements.length; i < len; i++) {
+            elements[i].classList.remove("pop_background");
         }
     }
 

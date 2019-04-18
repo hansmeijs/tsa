@@ -39,6 +39,18 @@
     }; //function SetMenubuttonActive()
 
 
+//========= get_attr_from_element  =============
+    function get_attr_from_element(element, key){
+    // ---  get attr value from key: i.e. element["name"] = "break_duration" PR2019-04-12
+        let value = "";
+        if(!!element){
+            if(element.hasAttribute(key)){
+                value = element.getAttribute(key);
+            };
+        }
+        return value;
+    };
+
 //========= function get_arrayRow_by_keyValue  ====================================
     function get_arrayRow_by_keyValue (objArray, arrKey, keyValue) {
         // Function returns row of array that contains Value in objKey PR2019-01-05
@@ -71,3 +83,43 @@
         }}}}
         return row;
     }
+
+
+//========= function get_weekday_from_ISOstring  ==================================== PR2019-04-15
+    function get_weekday_from_ISOstring(date_as_ISOstring) {
+        // date_as_ISOstring = "2019-03-30T19:05:00"
+        let date = get_date_from_ISOstring(date_as_ISOstring);
+        let weekday_index = date.getUTCDay();
+        return weekday_index
+    }
+
+
+//========= function get_date_from_ISOstring  ==================================== PR2019-04-15
+    function get_date_from_ISOstring(date_as_ISOstring) {
+        // date_as_ISOstring = "2019-03-30T19:05:00"
+
+        let arr_int = get_array_from_ISOstring(date_as_ISOstring);
+
+        // Month 4 april has index 3
+        arr_int[1] = arr_int[1] -1;
+
+        return new Date(Date.UTC(arr_int[0], arr_int[1], arr_int[2], arr_int[3], arr_int[4], arr_int[5],));
+    } // function get_date_from_ISOstring
+
+
+//========= function get_array_from_ISOstring  ==================================== PR2019-04-15
+    function get_array_from_ISOstring(datetime_aware_iso) {
+        // datetime_aware_iso = "2019-03-30T04:00:00-04:00"
+        // split string into array  ["2019", "03", "30", "19", "05", "00"]
+        // regez \d+ - matches one or more numeric digits
+        let arr = datetime_aware_iso.split(/\D+/);
+        let arr_int = [];
+
+        // convert strings to integer
+        for (let i = 0; i < 6; i++) {
+            arr_int[i] = parseInt(arr[i]);
+        }
+
+        return arr_int;
+
+    } // function get_array_from_ISOstring

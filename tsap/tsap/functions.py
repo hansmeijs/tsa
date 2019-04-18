@@ -3,8 +3,8 @@ from datetime import date, datetime, timedelta
 from django.utils import formats
 from django.utils.translation import ugettext_lazy as _
 
-from tsap.constants import BASE_DATE, MONTHS_ABBREV
-from tsap.settings import TIME_ZONE
+from tsap.constants import BASE_DATE, MONTHS_ABBREV, WEEKDAYS_ABBREV
+from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 
 import pytz
 import logging
@@ -121,26 +121,79 @@ def get_date_from_datetimelocal(datetime_str):  # PR2019-04-08
             pass
     return datetime_aware, msg_txt
 
-def get_datetimelocal_from_datetime(date_time):
-    logger.debug('............. get_datetimelocal_from_datetime: ' + str(date_time))
-    logger.debug('datetime      : ' + str(date_time))
-    # Function returns date: "2018-02-25T19:24:23" PR2019-04-08
-    # datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    # Out: '2016-07-18 18:26:18'
 
-    date_time_str = ''
-    if date_time:
-        logger.debug("date_time    :" + str(date_time))
-        logger.debug("timezone    :" + str(date_time.strftime("%z")))
+def get_datetimeaware_from_datetimeUTC(date_timeUTC, time_zone):  # PR2019-04-17
+    # logger.debug('............. get_datetimeaware_from_datetimeUTC: ' + str(date_timeUTC))
+    # Function returns date: "2018-02-25T19:24:23"
+
+    # date_time     :   2019-04-11 11:12:12+00:00
+    # strftime("%z"):   +0000
+    # TIME_ZONE     :   America/Curacao
+    # datetime_aware:   2019-04-11 07:12:12-04:00
+    # date_time_str :   2019-04-11T07:12:12
+
+    datetime_aware = None
+    if date_timeUTC:
+        # logger.debug("date_timeUTC    :" + str(date_timeUTC))
+        # logger.debug("timezone    :" + str(time_zone))
         # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
-        # entered date is dattime-naive, make it datetime aware with  pytz.timezone
+        # entered date is datetime-naive, make it datetime aware with  pytz.timezone
 
         # Convert time zone
+        timezone = None
+        try:
+            timezone = pytz.timezone(time_zone)
+        except:
+            timezone = pytz.timezone(TIME_ZONE)
+        # logger.debug("TIME_ZONE    :" + str(timezone))
+        if timezone:
+            datetime_aware = date_timeUTC.astimezone(timezone)
+        # logger.debug('datetime_aware: ' + str(datetime_aware))
 
+    return datetime_aware
+
+
+def get_datetimeUTC_from_datetimeaware(datetime_aware):  # PR2019-04-17
+    # from https://www.saltycrane.com/blog/2009/05/converting-time-zones-datetime-objects-python/
+    # entered date is datetime aware, make it datetime-naive with pytz.timezone
+
+    datetime_obj_utc = None
+    if datetime_aware:
+        timezone = pytz.timezone('UTC')
+        if timezone:
+            datetime_obj_utc = datetime_aware.replace(tzinfo=timezone)
+    return datetime_obj_utc
+
+def get_datetimelocal_from_datetime(date_time):  # PR2019-04-08
+    # logger.debug('............. get_datetimelocal_from_datetime: ' + str(date_time))
+    # Function returns date: "2018-02-25T19:24:23"
+    # used in model property time_start_datetimelocal snfd time_end_datetimelocal
+
+    # date_time     :   2019-04-11 11:12:12+00:00
+    # strftime("%z"):   +0000
+    # TIME_ZONE     :   America/Curacao
+    # datetime_aware:   2019-04-11 07:12:12-04:00
+    # date_time_str :   2019-04-11T07:12:12
+
+    datetime_aware_iso = ''
+    if date_time:
+        # logger.debug("date_time    :" + str(date_time))
+        # logger.debug("timezone    :" + str(date_time.strftime("%z")))
+        # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
+        # entered date is datetime-naive, make it datetime aware with  pytz.timezone
+
+        # Convert time zone
         timezone = pytz.timezone(TIME_ZONE)
-        datetime_aware = date_time.astimezone(timezone)
-        logger.debug('datetime_aware: ' + str(datetime_aware))
+        # logger.debug("TIME_ZONE    :" + str(timezone))
 
+        datetime_aware = date_time.astimezone(timezone)
+        # logger.debug('datetime_aware: ' + str(datetime_aware))
+
+        datetime_aware_iso = datetime_aware.isoformat()
+
+    return datetime_aware_iso
+
+"""
         # get date
         year_str = str(datetime_aware.strftime("%Y"))
         month_str = str(datetime_aware.strftime("%m"))
@@ -154,12 +207,47 @@ def get_datetimelocal_from_datetime(date_time):
 
         date_time_str = 'T'.join([date_str, time_str])
         logger.debug("date_time_str:" + str(date_time_str))
-    return date_time_str
+"""
 
 
+def get_datetimelocal_DHM(date_time, lang):
+    # Function returns date: "ma 18.15 u." or "Mon 6:15 p.m."
+    # 12.00 a.m is midnight, 12.00 p.m. is noon
 
+    time_str = ''
+    if date_time:
+        # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
+        # entered date is dattime-naive, make it datetime aware with  pytz.timezone
 
+        # Convert time zone
+        timezone = pytz.timezone(TIME_ZONE)
+        datetime_aware = date_time.astimezone(timezone)
 
+        # get weekdays translated
+        if not lang in WEEKDAYS_ABBREV:
+            lang = LANGUAGE_CODE
+        weekday_int = int(datetime_aware.strftime("%w"))
+        weekday = WEEKDAYS_ABBREV[lang][weekday_int]
+        hour_str = datetime_aware.strftime("%H")
+        hour_int = int(hour_str)
+        minutes_str = datetime_aware.strftime("%M") # %m is zero-padded
+        minutes_int = int(minutes_str) # %m is zero-padded
+
+        if lang == 'nl':
+            separator = '.'
+            suffix = 'u.'
+        else:  #if lang == 'en':
+            separator = ':'
+            if hour_int >= 12:
+                suffix = 'p.m.'
+                if hour_int > 12:
+                    hour_int -= 12
+                    hour_str = str(hour_int)
+            else:
+                suffix = 'a.m.'
+        hourstr = separator.join([hour_str, minutes_str])
+        time_str = ' '.join([weekday, hourstr, suffix])
+    return time_str
 
 def get_date_from_dateint(date_int):  # PR2019-03-06
     # Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use dithis basedate)
@@ -217,7 +305,6 @@ def get_time_HHmm(date_time):
     return date_time_str
 
 
-
 def get_date_formatted(date_int):  # PR2019-03-07
     # Function gives formatted date from dat_int.
     logger.debug('............. get_date_formatted: date_int: ' + str(date_int) + str(type(date_int)))
@@ -233,6 +320,40 @@ def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09
     date_longstr = ''
     if dte:
         try:
+            year_str = str(dte.year)
+            day_str = str(dte.day)
+            month_lang = ''
+            if lang in MONTHS_ABBREV:
+                month_lang = MONTHS_ABBREV[lang]
+            month_str = month_lang[dte.month]
+
+            if lang == 'en':
+                time_longstr = dte.strftime("%H:%M %p")
+                day_str = day_str + ','
+                date_longstr = ' '.join([month_str, day_str, year_str, time_longstr])
+            elif lang == 'nl':
+                time_longstr = dte.strftime("%H.%M") + 'u.'
+                date_longstr = ' '.join([day_str, month_str, year_str, time_longstr])
+        except:
+            pass
+    # logger.debug('............. date_longstr: ' + str(date_longstr) + ' lang: ' + str(lang))
+    return date_longstr
+
+
+def get_time_longstr_from_dte(dte, lang):  # PR2019-04-13
+    #logger.debug('............. get_date_longstr_from_dte: ' + str(dte) + ' lang: ' + str(lang))
+    date_longstr = ''
+    if dte:
+        try:
+
+            weekday_str = str(datetime_aware.strftime("%a"))
+            weekday_int = str(datetime_aware.strftime("%w"))
+            year_str = str(datetime_aware.strftime("%Y"))
+            month_str = str(datetime_aware.strftime("%m"))
+            day_str = str(datetime_aware.strftime("%d"))
+            date_str = '-'.join([year_str, month_str, day_str])
+
+
             year_str = str(dte.year)
             day_str = str(dte.day)
             month_lang = ''

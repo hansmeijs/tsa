@@ -140,3 +140,49 @@ h4 h5 {
 .display_hide {
   display: none;
 }
+
+/* from https://stackoverflow.com/questions/32459337/how-to-remove-bootstrap-modal-overlay*/
+/* remove grey background from modal  PR2019-04-12 */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1040;
+    background-color: #000;
+    background-color: transparent;
+}
+.modal-backdrop.in {
+    filter: alpha(opacity=50);
+    opacity: .5;
+}
+
+/* PR2019-04-13 */
+.popup_container {
+    position:relative;
+
+    z-index:99;
+    padding: 0px;
+    margin: 0px;
+}
+
+.popup_box {
+    position: absolute;
+    padding: 0px;
+    margin: 0px;
+
+    background-color: #808080; /* #e0e0e0; /* licht grijs; */
+    background-color: #ffd01c;
+
+    color: #868e96;
+    z-index: 99;
+}
+
+.popup_header {
+    display: flex;
+    align-items: flex-start; /* so the close btn always stays on the upper right corner */
+    justify-content: space-between; /* Put modal header elements (title and dismiss) on opposite ends */
+    border-bottom: 1px solid purple /*#808080; /* grijs; */
+
+  }

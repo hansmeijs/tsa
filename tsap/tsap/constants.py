@@ -85,3 +85,14 @@ KEY_EMPLOYEE_MAPPED_COLDEFS = "empl_mapped_coldefs"
 MONTHS_ABBREV = {'en': ('', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'),
              'nl': ('', 'jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec')
              }
+
+#PR2019-04-13
+WEEKDAYS_ABBREV = {'en': ('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'),
+             'nl': ('zo', 'ma', 'di', 'wo', 'do', 'vr', 'za')
+             }
+
+#PR2019-04-14
+TIMEFORMATS = ('24h', 'AmPm')
+
+#PR2019-04-14
+TIMEINTERVALS = (1, 5, 10, 15, 20, 30, 60)

@@ -262,7 +262,74 @@ console.log("=========   handle_table_row_clicked   ======================") ;
     };  // handle_EAL_row_clicked
 
 
+//========= get_tablerow_clicked  =============
+    function get_tablerow_clicked(el_clicked){
+        //console.log("=========  get_tablerow_clicked =========");
+        // PR2019-02-09 function gets id of clicked tablerow, highlights this tablerow
+        // currentTarget refers to the element to which the event handler has been attached
+        // event.target identifies the element on which the event occurred.
 
+        let tr_clicked;
+        if(!!el_clicked) {
+            // el_clicked can either be TR or TD (when clicked 2nd time, apparently)
+            //console.log ("el_clicked.nodeName: ", el_clicked.nodeName)
+            switch(el_clicked.nodeName){
+            case "INPUT":
+            case "SELECT":
+            case "A":
+                tr_clicked =  el_clicked.parentNode.parentNode;
+                break;
+            case "TD":
+                tr_clicked =  el_clicked.parentNode;
+                break;
+            case "TR":
+                tr_clicked =  el_clicked;
+            }
+        };
+        //console.log(tr_clicked);
+        return tr_clicked;
+    }; // get_tablerow_clicked UploadChanges
+
+
+//========= get_tablerow_selected  =============
+    function get_tablerow_selected(el_selected){
+        console.log("=========  get_tablerow_selected =========");
+        // PR2019-04-16 function 'bubbles up' till tablerow element is found
+        // currentTarget refers to the element to which the event handler has been attached
+        // event.target identifies the element on which the event occurred.
+        let tr_selected;
+        let el = el_selected
+        let break_it = false
+        while(!break_it){
+            if (!!el){
+                if (el.nodeName === "TR"){
+                    tr_selected = el;
+                    break_it = true
+                } else if (!!el.parentNode){
+                    el =  el.parentNode;
+                } else {
+                    break_it = true
+                }
+            } else {
+                break_it = true
+            }
+        }
+        return tr_selected;
+    };
+
+
+
+//========= get_tablerow_id  ============= PR2019-04-14
+    function get_tablerow_id(el_clicked){
+        let tablerow_id = ""
+        let tr_clicked = get_tablerow_clicked(el_clicked)
+        if (!!tr_clicked){
+            if (tr_clicked.hasAttribute("id")){
+                tablerow_id = tr_clicked.getAttribute("id")
+            }
+        }
+        return tablerow_id;
+    }
 
 
 

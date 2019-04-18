@@ -1,3 +1,37 @@
+/* PR2019-04-13 for popup box */
+.pop_tbl {
+    table-layout: auto;
+    /*table-layout: fixed;*/
+    width: 100%; /* must have this set */
+}
+.pop_tbl th  {
+    padding: 0px;
+    margin: 0px;
+    white-space: normal;
+    /*overflow: hidden;
+    text-overflow: ellipsis;*/
+}
+
+.pop_tbl tr {
+    padding: 0px;
+    margin: 0px;
+    background: #ffd01c; /* tsa yellow */
+}
+.pop_tbl td {
+    padding: 0px;
+    margin: 0px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.pop_background {
+    /* border: 1px solid  #4cbd67;  /*  #28a745; is green like in django is-valid */
+    /* border-radius: .25rem; */
+    background: #ffd01c; /* tsa yellow */
+}
+
+
 
 /* PR2019-04-06 from https://css-tricks.com/fixing-tables-long-strings/ */
 
@@ -30,6 +64,10 @@
     text-overflow: ellipsis;
 }
 
+.td_width_360 {
+    width: 360px;
+}
+
 .td_width_180 {
     width: 180px;
 }
@@ -42,9 +80,12 @@
 .td_width_110 {
     width: 100px;
 }
-.td_width_090 {
-    width: 90px;
-}
+.td_width_090 {width: 90px;}
+.td_width_hours {
+    padding = 2px;
+    width: 60px;
+    }
+
 .td_width_060 {
     border-right: 1px solid #808080; /* grijs; */
     width: 60px;
@@ -79,3 +120,4 @@
   -o-object-position: 0 -234px;
      object-position: 0 -234px;
 }
+

@@ -143,7 +143,7 @@ console.log("=========  function AddTableRow =========");
         console.log( "el_changed: ", el_changed, typeof el_changed);
 
 // ---  get clicked tablerow
-        let tr_changed = get_tablerow_changed(el_changed)
+        let tr_changed = get_tablerow_clicked(el_changed)
         if(!!tr_changed) {
             console.log( "tr_changed: ", tr_changed, typeof tr_changed);
             if(tr_changed.hasAttribute("id")){
@@ -205,7 +205,7 @@ console.log("=========  function AddTableRow =========");
        // console.log( "el_changed: ", el_changed);
 
 // ---  get clicked tablerow
-        let tr_changed = get_tablerow_changed(el_changed)
+        let tr_changed = get_tablerow_clicked(el_changed)
         //console.log("tr_changed: ", tr_changed);
 
         if(!!tr_changed) {
@@ -400,32 +400,6 @@ console.log("=========  function AddTableRow =========");
         }  // if (!!empl_upd)
     }  // function update_fields(empl_upd)
 
-//========= get_tablerow_changed  =============
-    function get_tablerow_changed(el_changed){
-        //console.log("=========  get_tablerow_changed =========");
-        // PR2019-02-09 function gets id of clicked tablerow, highlights this tablerow
-        // currentTarget refers to the element to which the event handler has been attached
-        // event.target identifies the element on which the event occurred.
-
-        let tr_changed;
-        if(!!el_changed) {
-            // el_changed can either be TR or TD (when clicked 2nd time, apparently)
-            //console.log ("el_changed.nodeName: ", el_changed.nodeName)
-            switch(el_changed.nodeName){
-            case "INPUT":
-            case "A":
-                tr_changed =  el_changed.parentNode.parentNode;
-                break;
-            case "TD":
-                tr_changed =  el_changed.parentNode;
-                break;
-            case "TR":
-                tr_changed =  el_changed;
-            }
-        };
-        //console.log(tr_changed);
-        return tr_changed;
-    }; // get_tablerow_changed UploadChanges
 
 //=========  HandleFilterInactive  ================ PR2019-03-23
     function HandleFilterInactive() {
