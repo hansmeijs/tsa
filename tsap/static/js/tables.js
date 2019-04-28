@@ -321,14 +321,25 @@ console.log("=========   handle_table_row_clicked   ======================") ;
 
 //========= get_tablerow_id  ============= PR2019-04-14
     function get_tablerow_id(el_clicked){
-        let tablerow_id = ""
+        let dict = {};
         let tr_clicked = get_tablerow_clicked(el_clicked)
         if (!!tr_clicked){
             if (tr_clicked.hasAttribute("id")){
-                tablerow_id = tr_clicked.getAttribute("id")
+                dict["id"] = tr_clicked.getAttribute("id")
+            }
+            if (tr_clicked.hasAttribute("parent_pk")){
+                dict["parent_pk"] = tr_clicked.getAttribute("parent_pk")
+            }
+
+            let el_rosterdate = tr_clicked.querySelector("[data-name='rosterdate']");
+            if (!!el_rosterdate){
+                if (el_rosterdate.hasAttribute("value")){
+                    // returnvalue is datetime_aware_iso
+                    dict["rosterdate"] = el_rosterdate.getAttribute("value") + "T00:00:00"
+                }
             }
         }
-        return tablerow_id;
+        return dict;
     }
 
 
@@ -355,8 +366,8 @@ console.log("=========   handle_table_row_clicked   ======================") ;
 
 
 //========= function get_object_value_by_key  ====================================
-    function get_obj_value_by_key (obj, objKey) {
-        // Function returns value of key in obj PR2019-02-19
+    function get_obj_value_by_key (obj, objKey, default_value) {
+        // Function returns value of key in obj PR2019-02-19 PR2019-04-27
         // obj:  {excCol: "ANAAM", awpCol: "lastname", awpCaption: "Achternaam"}
         let obj_value;
         if (!!obj && !!objKey){
@@ -364,11 +375,11 @@ console.log("=========   handle_table_row_clicked   ======================") ;
                 obj_value = obj[objKey];
             }
         }
+        if (!obj_value && !!default_value){
+            obj_value = default_value
+        }
         return obj_value;
     }
-
-
-
 
 //========= function found_in_list_str  ======== PR2019-01-22
     function found_in_list_str(value, list_str ){

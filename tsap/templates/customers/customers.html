@@ -3,10 +3,7 @@
 {% load static %}
 
 {% block stylesheet %}
-   <!-- <link rel="stylesheet" href="{% static 'css/awpr_table.css' %}"> -->
-   <link rel="stylesheet" href="{% static 'css/customers.css' %}">
    <link rel="stylesheet" href="{% static 'css/dateselector.css' %}">
-   <link rel="stylesheet" href="{% static 'css/tsap.css' %}">
 {% endblock %}
 
 {% block script %}
@@ -15,11 +12,11 @@
 
 {% block content %}
   {% if user.is_authenticated %}
-
+<!--
         <div class="popup display-show"  >
             <span class="popuptext" id="id_msgbox"></span>
         </div>
-
+-->
         <div class="content_header">
             <div class="content_subheader_left">
                 <h5 id="id_content_header_name" title="test title">{% trans 'Customers' %} </h5>

@@ -68,7 +68,6 @@ GENDER_NONE = '-'  # PR2018-09-05
 GENDER_MALE = 'M'
 GENDER_FEMALE = 'V'
 
-
 # PR2018-09-05
 GENDER_CHOICES = (
     (GENDER_NONE, '-'),
@@ -96,3 +95,12 @@ TIMEFORMATS = ('24h', 'AmPm')
 
 #PR2019-04-14
 TIMEINTERVALS = (1, 5, 10, 15, 20, 30, 60)
+
+
+# PR2019-04-21
+WEEKEND_CHOICES = {'en': ('also on weekends', 'only on weekends', 'not on weekends'),
+             'nl': ('ook in het weekeinde', 'alleen in het weekeinde', 'niet in het weekeinde')}
+
+# PR2019-04-21
+PUBLICHOLIDAY_CHOICES = {'en': ('also on public holidays', 'only on public holidays', 'not on public holidays'),
+             'nl': ('ook op feestdagen', 'alleen op feestdagen', 'niet op feestdagen')}

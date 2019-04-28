@@ -108,6 +108,9 @@ class Company(TsaBaseModel):
     timeformat = CharField(max_length=4, null=True, blank=True)
     balance = IntegerField(default=0)
 
+    class Meta:
+        ordering = [Lower('code')]
+
     @property
     def companyprefix(self):
         #PR2019-03-13 CompanyPrefix is added at front of username, to make usernames unique per company
@@ -123,6 +126,9 @@ class Customer(TsaBaseModel):
     email = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
 
+    class Meta:
+        ordering = [Lower('code')]
+
     @property
     def id_str(self):
         return 'id_cust_' + self.pk
@@ -133,6 +139,9 @@ class Order(TsaBaseModel):
 
     customer = ForeignKey(Customer, related_name='orders', on_delete=PROTECT)
     issystem = BooleanField(default=False)
+
+    class Meta:
+        ordering = [Lower('code')]
 
     @property
     def id_str(self):
@@ -148,9 +157,105 @@ class Object(TsaBaseModel):
     datefirst = None
     datelast = None
 
+    class Meta:
+        ordering = [Lower('code')]
+
     @property
     def id_str(self):
         return 'id_obj_' + self.pk
+
+
+class Scheme(TsaBaseModel):
+    objects = TsaManager()
+    order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    datefirst = None
+    datelast = None
+
+    cycle = PositiveSmallIntegerField(default=1)
+    weekend = PositiveSmallIntegerField(default=0)
+    publicholiday = PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = [Lower('code')]
+
+
+class Team(TsaBaseModel):
+    objects = TsaManager()
+    scheme = ForeignKey(Scheme, related_name='teams', on_delete=CASCADE)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    datefirst = None
+    datelast = None
+
+    class Meta:
+        ordering = [Lower('code')]
+
+
+class SchemeItem(TsaBaseModel):
+    objects = TsaManager()
+    scheme = ForeignKey(Scheme, related_name='+', on_delete=CASCADE)
+    team = ForeignKey(Team, related_name='+', on_delete=PROTECT, null=True, blank=True)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    code = None
+    name = None
+    datefirst = None
+    datelast = None
+
+    rosterdate = DateField(db_index=True, null=True, blank=True)
+    shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH)
+    time_start = DateTimeField(db_index=True, null=True, blank=True)
+    time_end = DateTimeField(db_index=True, null=True, blank=True)
+    time_duration = IntegerField(default=0)  # unit is hour * 100
+    break_start = DateTimeField(null=True, blank=True)
+    break_duration = IntegerField(default=0) # unit is hour * 100
+
+    class Meta:
+        ordering = ['rosterdate', 'time_start']
+
+    def __str__(self):
+        return  'schemeitem_pk_' + str(self.pk)
+
+    @property
+    def time_start_datetimelocal(self): # PR2019-04-28
+        return get_datetimelocal_from_datetime(self.time_start)
+
+    @property
+    def time_start_DHM(self): # PR2019-04-28
+        return get_datetimelocal_DHM(self.time_start, 'nl')
+
+    @property
+    def time_end_datetimelocal(self): # PR2019-04-28
+        return get_datetimelocal_from_datetime(self.time_end)
+
+    @property
+    def time_end_DHM(self):  # PR2019-04-28
+        return get_datetimelocal_DHM(self.time_end, 'nl')
+
+    @property
+    def break_start_datetimelocal(self):  # PR2019-04-28
+        return get_datetimelocal_from_datetime(self.break_start)
+
+    @property
+    def break_start_DHM(self):  # PR2019-04-28
+        return get_datetimelocal_DHM(self.break_start, 'nl')
+
+    @property
+    def time_hours(self): # PR2019-04-28
+        # minutes: 1
+        # hours: 1/60 = 0.1667
+        # 100* hours = 16.67
+        # + 0.5: 17.17
+        # int: 17
+        # /100: 0.17
+        value = self.time_duration / 100
+        if not value:  # i.e. if value == 0
+            value = ''
+        return value
 
 
 class Wagecode(TsaBaseModel):
@@ -163,6 +268,9 @@ class Wagecode(TsaBaseModel):
     datefirst = None
     datelast = None
 
+    class Meta:
+        ordering = [Lower('code')]
+
 
 class Wagefactor(TsaBaseModel):
     objects = TsaManager()
@@ -173,6 +281,9 @@ class Wagefactor(TsaBaseModel):
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
     datelast = None
+
+    class Meta:
+        ordering = [Lower('code')]
 
 
 class Taxcode(TsaBaseModel):
@@ -187,6 +298,9 @@ class Taxcode(TsaBaseModel):
     datefirst = None
     datelast = None
 
+    class Meta:
+        ordering = [Lower('code')]
+
 
 class Timecode(TsaBaseModel):
     objects = TsaManager()
@@ -198,49 +312,8 @@ class Timecode(TsaBaseModel):
     datefirst = None
     datelast = None
 
-
-
-class Scheme(TsaBaseModel):
-    objects = TsaManager()
-    company = ForeignKey(Company, related_name='schemes', on_delete=PROTECT)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    datefirst = None
-    datelast = None
-
-
-class Shift(TsaBaseModel):
-    objects = TsaManager()
-    company = ForeignKey(Company, related_name='shifts', on_delete=PROTECT)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    datefirst = None
-    datelast = None
-
-
-class Team(TsaBaseModel):
-    objects = TsaManager()
-    company = ForeignKey(Company, related_name='teams', on_delete=PROTECT)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    datefirst = None
-    datelast = None
-
-
-class SchemeShift(Model):
-    objects = TsaManager()
-    scheme = ForeignKey(Scheme, related_name='+', on_delete=CASCADE)
-    shift = ForeignKey(Shift, related_name='+', on_delete=CASCADE)
-
-
-class SchemeTeam(Model):
-    objects = TsaManager()
-    scheme = ForeignKey(Scheme, related_name='+', on_delete=CASCADE)
-    team = ForeignKey(Shift, related_name='+', on_delete=CASCADE)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    datefirst = None
-    datelast = None
+    class Meta:
+        ordering = [Lower('code')]
 
 
 class Employee(TsaBaseModel):
@@ -287,6 +360,19 @@ class Employee(TsaBaseModel):
         if self.datelast:
             dte_str = get_date_yyyymmdd(self.datelast)
         return dte_str
+
+
+class TeamMember(TsaBaseModel):
+    objects = TsaManager()
+
+    team = ForeignKey(Team, related_name='teammembers', on_delete=CASCADE)
+    employee = ForeignKey(Employee, related_name='teammembers', on_delete=CASCADE)
+    replacement = ForeignKey(Employee, related_name='+', on_delete=SET_NULL, null=True, blank=True)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    code = None
+    name = None
+
 
 class Orderhour(TsaBaseModel):
     objects = TsaManager()
@@ -337,7 +423,7 @@ class Emplhour(TsaBaseModel):
     employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
     order = ForeignKey(Order, related_name='emplhours', on_delete=SET_NULL, null=True, blank=True)
     orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=SET_NULL, null=True, blank=True)
-    shift = ForeignKey(Shift, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
+    schemeitem = ForeignKey(SchemeItem, related_name='emplhours', on_delete=SET_NULL, null=True, blank=True)
     wagecode = ForeignKey(Wagecode, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
@@ -368,7 +454,11 @@ class Emplhour(TsaBaseModel):
 
     @property
     def time_start_DHM(self): # PR2019-04-08
-        return get_datetimelocal_DHM(self.time_start, 'en')
+        return get_datetimelocal_DHM(self.time_start, 'nl')
+
+    @property
+    def time_end_datetimelocal(self): # PR2019-04-08
+        return get_datetimelocal_from_datetime(self.time_end)
 
     @property
     def time_end_DHM(self): # PR2019-04-08
@@ -377,10 +467,6 @@ class Emplhour(TsaBaseModel):
     @property
     def time_end_HHmm(self): # PR2019-04-07
         return get_time_HHmm(self.time_end)
-
-    @property
-    def time_end_datetimelocal(self): # PR2019-04-08
-        return get_datetimelocal_from_datetime(self.time_end)
 
     @property
     def time_hours(self):

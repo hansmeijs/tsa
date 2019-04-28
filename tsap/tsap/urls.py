@@ -150,6 +150,14 @@ urlpatterns = [
         path('datalist', customer_views.OrderDownloadDatalistView.as_view(), name='order_datalist_url'),
     ])),
 
+    path('schemes/', include([
+        path('', planning_views.SchemesView.as_view(), name='schemes_url'),
+        path('upload', planning_views.SchemeUploadView.as_view(), name='scheme_upload_url'),
+        path('schemeitem_upload', planning_views.SchemeItemUploadView.as_view(), name='schemeitem_upload_url'),
+        path('datalist', planning_views.SchemeDownloadDatalistView.as_view(), name='scheme_datalist_url'),
+        path('download', planning_views.SchemeItemDownloadView.as_view(), name='schemeitems_download_url'),
+    ])),
+
     path('emplhours/', include([
         path('', planning_views.EmplhourView.as_view(), name='emplhours_url'),
         path('upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),

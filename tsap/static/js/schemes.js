@@ -1,25 +1,47 @@
 // PR2019-02-07 deprecated: $(document).ready(function() {
 $(function() {
-console.log("Customers document.ready");
+        console.log("Schemes document.ready");
+
+// ---  set selected menu button active
+        const cls_active = "active";
+        let btn_clicked = document.getElementById("id_hdr_schm");
+        SetMenubuttonActive(btn_clicked);
+
+// ---  id of selected order
+        let selected_customer_pk = 0;
+        let selected_order_pk = 0;
+        let selected_scheme_pk = 0;
 
 // ---  id of selected record
-    let id_row_selected = "";
+        let id_row_selected = "";
 
 // ---  id_new assigns fake id to new records
-    let id_new = 0;
-    let filter_name = "";
-     let filter_hide_inactive = true;
+        let id_new = 0;
+        let filter_name = "";
+        let filter_hide_inactive = true;
 
+// ---  create EventListener for Customer select element
+        let el_customer = document.getElementById("id_customer");
+        el_customer.addEventListener("change", function() {HandleCustomerSelect(el_customer);}, false )
+
+// ---  create EventListener for Order select element
+        let el_order = document.getElementById("id_order")
+        el_order.addEventListener("click", function(event) {HandleOrderSelect(el_order);}, false )
+
+// ---  create EventListener for Scheme select element
+        let el_scheme = document.getElementById("id_scheme")
+        el_scheme.addEventListener("click", function(event) {HandleSchemeSelect(el_scheme);}, false )
+
+// ---  create EventListener for all clicks on the document
         let popup_box = document.querySelector(".popup_box");
-        // Listen to all clicks on the document
         document.addEventListener('click', function (event) {
             // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
-            // close popup_box when clicked on "popup_close" (skip next code)
-            if (!event.target.classList.contains("popup_close")) {
-            // don't close popup_box when clicked on event.target or on "input_popup"
-                if (popup_box.contains(event.target)) return;
-                if (event.target.classList.contains("input_popup")) return;
-            }
+            // don't close popup when clicked on row cell with class input_popup
+            if (event.target.classList.contains("input_popup")) {return}
+            // don't close popup when clicked on popup box, except for close button
+            if (popup_box.contains(event.target)){
+                if (!event.target.classList.contains("popup_close")) {return};
+            };
             // get current value of start_time / endtime from input_popup and store it in el_popup
             // TODO: deselect selected row when clicked outside table
             //id_row_selected = "";
@@ -28,8 +50,10 @@ console.log("Customers document.ready");
             inputpopup_removebackground();
             // If user clicks outside the element, hide it!
             popup_box.classList.add("display_hide");
+
         }, false);
 
+// ---  create EventListener for class input_text
         // PR2019-03-03 from https://stackoverflow.com/questions/14377590/queryselector-and-queryselectorall-vs-getelementsbyclassname-and-getelementbyid
         let elements = document.getElementsByClassName("input_text");
         for (let i = 0, len = elements.length; i < len; i++) {
@@ -42,74 +66,145 @@ console.log("Customers document.ready");
             }, false )
         }
 
-        let icons = document.getElementsByClassName("input_icon");
-        for (let i = 0, len = icons.length; i < len; i++) {
-            let icon = icons[i];
-            icon.addEventListener("click", function() {HandleRowInactive(icon);}, false )
-        }
-
-        elements = document.getElementsByClassName("input_popup");
-        for (let i = 0, len = elements.length; i < len; i++) {
-            let input_popup = elements[i];
-            input_popup.addEventListener("click", function() {HandlePopupClicked(input_popup);}, false )
-            //TODO test if it works on touchscreen
-            // input_popup.addEventListener("touchstart", function() {HandlePopupClicked(input_popup);}, false )
-        }
+// ---  create EventListener for tablerow clicked
         let tblBody = document.getElementById("id_tbody");
         let tblrows = tblBody.getElementsByTagName('tr');
         for (let i = 0, tblrow, len = tblrows.length; i < len; i++) {
             tblrow = tblrows[i];
             tblrow.addEventListener("click", function() {HandleRowClicked(tblrow);}, false )
             //TODO test if it works on touchscreen
-            tblrow.addEventListener("touchstart", function() {HandleRowClicked(tblrow);}, false )
+            //tblrow.addEventListener("touchstart", function() {HandleRowClicked(tblrow);}, false )
         }
 
-        document.getElementById("id_btn_add").addEventListener("click", HandleCreateRecord);
-        document.getElementById("id_btn_delete").addEventListener("click", HandleDeleteRecord);
+// ---  create EventListener for buttons
+        let el_btn_add_scheme = document.getElementById("id_btn_add_scheme")
+        el_btn_add_scheme.addEventListener("click", OpenModal);
+        el_btn_add_scheme.disabled = true;
+
+        let el_btn_delete_scheme = document.getElementById("id_btn_delete_scheme")
+        el_btn_delete_scheme.addEventListener("click", HandleDeleteScheme);
+        el_btn_delete_scheme.disabled = true;
+
+        let el_btn_add_schemeitem = document.getElementById("id_btn_add_shift")
+        el_btn_add_schemeitem.addEventListener("click", HandleCreateSchemeItem);
+        el_btn_add_schemeitem.disabled = true;
+
+        let el_btn_delete_schemeitem = document.getElementById("id_btn_delete_shift")
+        el_btn_delete_schemeitem.addEventListener("click", HandleDeleteSchemeitem);
+        el_btn_delete_schemeitem.disabled = true;
+
         document.getElementById("id_popup_save").addEventListener("click", function() {HandlePopupSave();}, false )
 
+        let el_mod_btn_save = document.getElementById("id_mod_btn_save")
+        el_mod_btn_save.addEventListener("click", HandleCreateScheme);
 
-        // ---  add 'keyup' event handler to filter input
+// ---  add 'keyup' event handler to filter input
         document.getElementById("id_filter_name").addEventListener("keyup", function() {
-            //console.log( "addEventListener keyup ");
-            setTimeout(function() {
-                HandleSearchFilterEvent();
-            }, 150);
+            setTimeout(function() {HandleSearchFilterEvent();}, 150);
         });
 
         // get data
         let el_data = $("#id_data");
+        let customer_list = el_data.data("customer_list");
         let order_list = el_data.data("order_list");
-        let employee_list = el_data.data("employee_list");
+        let scheme_list = el_data.data("scheme_list");
+        let shift_list;
+        let team_list;
 
-        const url_upload_str = el_data.data("emplhour_upload_url");
-        const url_datalist_str = $("#id_data").data("emplhour_datalist_url");
+        FillSelectOptions(el_customer, customer_list,el_data.data("txt_select_customer"))
+
+        const url_scheme_upload = el_data.data("scheme_upload_url");
+        const url_schemeitem_upload = el_data.data("schemeitem_upload_url");
+        const url_datalist_str = $("#id_data").data("scheme_datalist_url");
+        const url_schemeitems_download = $("#id_data").data("schemeitems_download_url");
 
         let imgsrc_inactive = el_data.data("imgsrc_inactive");
         let imgsrc_active = el_data.data("imgsrc_active");
         let imgsrc_delete = el_data.data("imgsrc_delete");
-        let imgsrc_stat00 = el_data.data("imgsrc_stat00");
-        let imgsrc_stat01 = el_data.data("imgsrc_stat01");
-        let imgsrc_stat02 = el_data.data("imgsrc_stat02");
-        let imgsrc_stat03 = el_data.data("imgsrc_stat03");
-        let imgsrc_stat04 = el_data.data("imgsrc_stat04");
-        let imgsrc_stat05 = el_data.data("imgsrc_stat05");
-        let imgsrc_real00 = el_data.data("imgsrc_real00");
-        let imgsrc_real01 = el_data.data("imgsrc_real01");
-        let imgsrc_real02 = el_data.data("imgsrc_real02");
-        let imgsrc_real03 = el_data.data("imgsrc_real03");
 
         let weekdays = el_data.data("weekdays");
         let interval = el_data.data("interval");
         let timeformat = el_data.data("timeformat");
 
-        DownloadDatalists();
+        let weekend_choices = el_data.data("weekend_choices");
+        let publicholiday_choices = el_data.data("publicholiday_choices");
+
+        FillListWeekendPubliholiday();
 
         FilterRows();
 
           //  let attrib = {};
           //  $("<input>").appendTo(el_td)
           //      .addClass("popup");
+
+//========= OpenModal  ====================================
+    function OpenModal() {
+console.log("===  OpenModal  =====") ;
+//console.log("tr_clicked", tr_clicked);
+
+// ---  reset variables of selected order
+
+        //sel_studsubj_id = 0;
+        //sel_studsubj = {};
+
+// ---  empty input boxes
+        let pws_title = "";
+        let pws_subjects = "";
+        let el_mod_weekend = document.getElementById("id_mod_weekend");
+        FillSelectChoices(el_mod_weekend, weekend_choices, 0);
+
+        let  el_mod_publicholiday = document.getElementById("id_mod_publicholiday");
+        FillSelectChoices(el_mod_publicholiday, publicholiday_choices, 0);
+
+// ---  get attr 'studsubj_id' of tr_clicked (attribute is always string, function converts it to number)
+        // new new_studsubj_id is negative ssi_id: -1592
+        //sel_studsubj_id = get_attr_from_tablerow(tr_clicked, "studsubj_id");
+
+
+/*
+        if (!!sel_studsubj){
+
+
+            let show_pws = false;
+            if (!!sel_studsubj.sjtp_has_pws) {
+                show_pws = true;
+                pws_title = sel_studsubj.pws_title;
+                pws_subjects = sel_studsubj.pws_subjects;
+            }
+
+            let extra_counts = true // (!!sel_studsubj.extra_counts && sel_studsubj.extra_counts === 1);
+            let mod_checkbox = $("#id_mod_checkbox");
+            // remove all checkboxes
+            mod_checkbox.empty();
+            if (!!sel_studsubj.sjtp_has_prac) {
+                CreateInfo(mod_checkbox, "hasprac", databox.data("info_hasprac_cap"))
+            }
+            if (!!sel_studsubj.mand) {
+                CreateInfo(mod_checkbox, "ismand", databox.data("info_ismand_cap"))
+            }
+            // check if "chal" in scheme.fields, if so: add checkbox
+
+            // CreateCheckbox(sel_checkbox, field, caption, is_checked, disabled, tooltiptext)
+            // CreateCheckbox(mod_checkbox, "extracounts", databox.data("chk_extracounts_cap"), sel_studsubj.extra_counts, false);
+
+            //let input_pws_title = $("#id_input_pws_title")
+            //let label_pws_title = $("#id_label_pws_title")
+            //let input_pws_subjects = $("#id_input_pws_subjects")
+            //let label_pws_subjects = $("#id_label_pws_subjects")
+            //input_pws_title.val(pws_title);
+            //input_pws_subjects.val(pws_subjects);
+
+        }
+*/
+
+// ---  show modal
+            $("#id_modal_cont").modal({backdrop: true});
+}; // function OpenModal
+
+//========= function closeModal  =============
+    function closeModal() {
+        $('#id_modal_cont').modal('hide');
+    }
 
 
 //=========  HandleRowClicked  ================ PR2019-03-30
@@ -184,11 +279,11 @@ console.log("Customers document.ready");
 // upload new value icon
                 let row_upload = {"pk": id_str, 'time_status': el_value_int}
                 console.log(">>>>>>>>row_upload:", row_upload)
-                let parameters = {"row_upload": JSON.stringify (row_upload)};
+                let parameters = {"schemeitem_upload": JSON.stringify (row_upload)};
                 let response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_upload_str,
+                    url: url_scheme_upload,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
@@ -204,168 +299,244 @@ console.log("Customers document.ready");
         };  // if(!!tr_changed)
     };
 
-//=========  HandleDeleteRecord  ================ PR2019-03-16
-    function HandleDeleteRecord() {
-        console.log("=========  function HandleDeleteRecord =========");
+//=========  HandleDeleteSchemeitem  ================ PR2019-03-16
+    function HandleDeleteSchemeitem() {
+        console.log("=========  function HandleDeleteSchemeitem =========");
 
         let tblRow = document.getElementById(id_row_selected)
         //console.log( "tblRow: ", tblRow, typeof tblRow);
         if (!!tblRow){
-            tblRow.classList.add("tsa-tr-error");
-            let cust_name = "", employee_name = ""
-            if (!!tblRow.cells[1].children[0]) { cust_name = tblRow.cells[1].children[0].value;}
-            if (!!tblRow.cells[2].children[0]) { employee_name = tblRow.cells[2].children[0].value;}
-            let msg_text = el_data.data("msg_confirm_del1");
-            if (!!cust_name && !!employee_name){
-                msg_text = msg_text + " " + cust_name + " / " + employee_name + "?"
-            } else if (!!cust_name || !!employee_name) {
-                msg_text = msg_text + " " + cust_name + employee_name + "?"
-            } else {
-                msg_text = el_data.data("msg_confirm_del2");
-            }
-
 
 // ---  get pk from id of tblRow
             const id_str = tblRow.getAttribute("id");
-// make row red
-            if(confirm(msg_text)){
-// delete  record
-                // make row red
-                tblRow.classList.add("tsa-tr-error");
-                let row_upload = {"pk": id_str, 'delete': true}
-                console.log ("delete dict before ajax: ");
-                console.log (row_upload);
-                let parameters = {"row_upload": JSON.stringify (row_upload)};
-                response = "";
-                $.ajax({
-                    type: "POST",
-                    url: url_upload_str,
-                    data: parameters,
-                    dataType:'json',
-                    success: function (response) {
-                        DeleteRow(response["row_update"])
-                    },
-                    error: function (xhr, msg) {
-                        alert(msg + '\n' + xhr.responseText);
-                    }
-                });
 
-            } // if( confirm
+
+// ---  create param
+            let param = {"schemeitem_pk": id_str, "scheme_pk": selected_scheme_pk};
+
+// delete  record
+            // make row red
+            tblRow.classList.add("tsa-tr-error");
+            let parameters = {"schemeitem_delete": JSON.stringify (param)};
+        console.log( "parameters: ", parameters, typeof parameters);
+            response = "";
+            $.ajax({
+                type: "POST",
+                url: url_schemeitem_upload,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                    DeleteRow(response["row_update"])
+                },
+                error: function (xhr, msg) {
+                    alert(msg + '\n' + xhr.responseText);
+                }
+            });
+
         }
     }
-//=========  HandleCreateRecord  ================ PR2019-03-16
-    function HandleCreateRecord() {
-console.log("=========  function HandleCreateRecord =========");
+
+
+
+//=========  HandleCreateScheme  ================ PR2019-04-23
+    function HandleCreateScheme() {
+       console.log("=========  function HandleCreateScheme =========");
+
+    // get id of selected order
+        let el_order = document.getElementById("id_order")
+        let order_pk = el_order.value
+
+    // get scheme code from input box
+        let el_mod_scheme = document.getElementById("id_mod_scheme");
+        let scheme_code = el_mod_scheme.value
+        if(!!scheme_code){
+
+            let param = {"order_pk": order_pk, "scheme_code": scheme_code}
+
+    // get cycle length from input box
+            let cycle = parseInt(document.getElementById("id_mod_cycle").value)
+            if (!!cycle) {param["cycle"] = cycle}
+
+    // get weekend from input box
+            let el_weekend = document.getElementById("id_mod_weekend")
+            console.log("el_weekend", el_weekend);
+
+            let weekend = parseInt(el_weekend.value)
+            console.log("el_weekend", el_weekend);
+            if (!weekend) {weekend = 0}
+            param["weekend"] = weekend
+
+    // get publicholiday from input box
+            let publicholiday = parseInt(document.getElementById("id_mod_publicholiday").value)
+            if (!publicholiday) {publicholiday = 0}
+            param["publicholiday"] = publicholiday
+
+            let param_json = {"scheme_upload": JSON.stringify (param)};
+            console.log("param_json", param_json)
+
+            let response = "";
+            $.ajax({
+                type: "POST",
+                url: url_scheme_upload,
+                data: param_json,
+                dataType:'json',
+                success: function (response) {
+                    CreateScheme(response);
+                },
+                error: function (xhr, msg) {
+                    alert(msg + '\n' + xhr.responseText);
+                }
+            });
+            closeModal();
+
+        } //  if(!!scheme_code){
+
+    }
+
+//=========  HandleDeleteScheme  ================ PR2019-04-23
+    function HandleDeleteScheme() {
+console.log("=========  function HandleDeleteScheme =========");
+
+}
+
+
+//=========  HandleCreateSchemeItem  ================ PR2019-03-16
+    function HandleCreateSchemeItem() {
+console.log("=== HandleCreateSchemeItem =========");
 
 // ---  deselect all highlighted rows
         id_row_selected = ""
         DeselectOtherHighlightedRows()
 
+
+    CreateTableRow()
+
+}
+
+
+//=========  CreateTableRow  ================ PR2019-04-27
+    function CreateTableRow(schemeitem) {
+        //console.log("=========  function CreateTableRow =========");
+        //console.log(schemeitem);
+
 //--------- increase id_new
         id_new = id_new + 1
         let id_str =  id_new.toString()
 
+//--------- get value from  schemeitem_list item
+        pk = get_obj_value_by_key (schemeitem, "pk", "")
+        scheme_pk = get_obj_value_by_key (schemeitem, "scheme_pk", "")
+        rosterdate = get_obj_value_by_key (schemeitem, "rosterdate", "")
+        team_pk = get_obj_value_by_key (schemeitem, "team_pk", "")
+        team = get_obj_value_by_key (schemeitem, "team", "")
+        shift = get_obj_value_by_key (schemeitem, "shift", "")
+        time_start = get_obj_value_by_key (schemeitem, "time_start", "")
+        time_end = get_obj_value_by_key (schemeitem, "time_end", "")
+        time_duration = get_obj_value_by_key (schemeitem, "time_duration", "")
+        break_start = get_obj_value_by_key (schemeitem, "break_start", "")
+        break_duration = get_obj_value_by_key (schemeitem, "break_duration", "")
+
+        if(!pk){
+            pk = "new_" + id_str;
+        }
+
 //--------- insert tblBody row
         let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
-        id_row_selected = "new_" + id_str;
-        tblRow.setAttribute("id", id_row_selected);
-        tblRow.classList.add("tsa-tr-highlighted")
+        tblRow.setAttribute("id", pk);
+        tblRow.setAttribute("parent_pk", scheme_pk);
+        // 00 'Date'  01 'Shift'  02 'Team'  03 'Start time'  04 'End time'  05 'Break start'  06 'Break hours'  07 'Working hours'
 
-
-        // 00 'Date'
-        // 01 'Order'
-        // 02 'Employee'
-        // 03 'Shift'
-        // 04 'Start time'
-        // 05 'End time'
-        // 06 'Break hours'
-        // 07 'Working hours'
-        // 08 'Status'
-        // 09 'Billing hours'
-        // 10 'Status'
-
-        for (let j = 0 ; j < 11; j++) {
+        for (let j = 0, el_name, el_list, value, data_value; j < 8; j++) {
             //let td = document.createElement('td');          // TABLE DEFINITION.
-            //td = tr.insertCell(tblRow);
+            el_name = "";
+            el_list = "";
+            value = "";
+            data_value = "";
+
             let td = tblRow.insertCell(-1); //index -1 results in that the new cell will be inserted at the last position.
+
+            td.classList.add("td_width_090");
+
+            let el = document.createElement('input');
             if (j===0){
                 //let dte_today = new Date()//.toDateInputValue;
                // console.log('dte_today', dte_today.toDateInputValue())
-                let el = document.createElement('input');
                 el.setAttribute("type", "date");
-                el.valueAsDate = new Date();
-                el.setAttribute("name", "rosterdate");
-                //el.setAttribute("value", today);
+                //el.valueAsDate = new Date();
+                el.setAttribute("data-name", "rosterdate");
+                if(!!rosterdate){el.setAttribute("value", rosterdate)};
+
+         //TODO create bootstrap datepicker
+         // https://bootstrap-datepicker.readthedocs.io/en/latest/index.html
+               // el.setAttribute("data-provide", "datepicker");
+
                 el.classList.add("border-none");
                 el.classList.add("input_text");
-                td.appendChild(el);
-            } else if (j===4 || j===5){
-                let el = document.createElement('input');
-                if (j === 4){
-                    el_name = "emplhour_start";
-                } else if (j === 5) {
-                    el_name = "time_end";
-                }
-                el.setAttribute("type", "time");
-                el.setAttribute("value", "");
-                el.classList.add("border-none");
-                el.classList.add("input_text");
-                td.appendChild(el);
-                td.appendChild(el);
-            } else if (j===8 || j===10){
-                let img = document.createElement("img");
-                if (j === 8){
-                    el_name = "time_status";
-                    img.src = imgsrc_stat04
-                } else if (j === 10) {
-                    el_name = "orderhour_status";
-                    img.src = imgsrc_real02
-                }
-                img.height="24"
-                img.width="24"
-                td.appendChild(img);
+
+                el.addEventListener("change", function() {UploadChanges(el);}, false )
 
             } else {
-                let el_name = "", el_list = ""
-                if (j === 1){
-                    el_name = "order";
-                    el_list = "id_datalist_orders";
-                } else if (j === 2) {
-                    el_name = "employee";
-                    el_list = "id_datalist_employees";
-                } else if (j === 3) {
-                    el_name = "shift";
-                    el_list = "id_datalist_shifts";
-                } else if (j === 6) {
-                    el_name = "emplbreak_duration";
-                } else if (j === 7) {
-                    el_name = "emplhour_duration";
-                } else if (j === 9) {
-                    el_name = "orderhour_duration";
-                }
-                let el = document.createElement('input');
-                el.setAttribute("name", el_name);
                 el.setAttribute("type", "text");
-                el.setAttribute("value", "");
-                if (!!el_list){ el.setAttribute("list", el_list) };
+                let field;
+                if (j === 1){
+                    field = "shift";
+                } else if (j === 2) {
+                    field = "team";
+                    el.setAttribute("data-pk", team_pk);
+                } else if (j === 3){
+                    field = "time_start";
+                } else if (j === 4) {
+                    field = "time_end";
+                } else if (j === 5) {
+                    field = "break_start";
+                } else if (j === 6) {
+                    field = "break_duration";
+                } else if (j === 7) {
+                    field = "time_duration";
+                }
+                if (j === 1 || j === 2) {
+                // add change event handler
+                    el.setAttribute("list", "id_datalist_" + field + "s");
+                    el.classList.add("input_text");
+                    el.addEventListener("change", function() {UploadChanges(el);}, false )
+                } else if (j === 3 || j === 4 || j === 5 || j === 6 || j === 7) {
+                // add popup event handler
+                    el.classList.add("input_popup");
+                    el.addEventListener("click", function() {HandlePopupClicked(el);}, false )
+                }
+                el.setAttribute("data-name", field)
+
+                if ([0, 1, 2].indexOf( j ) > -1){
+                    value = get_obj_value_by_key (schemeitem, field, "")
+                } else if ([3, 4, 5, 6, 7].indexOf( j ) > -1){
+                    value = get_obj_value_by_key (schemeitem, field + "_DHM", "")
+                    data_value = get_obj_value_by_key (schemeitem, field , "")
+                }
+                //console.log("schemeitem value", value)
+                // value contains formatted field: time_start_DHM: "Tue 11:36 p.m."}]}
+                if(!!value){el.setAttribute("value", value)};
+                // data-value contains ISO string time_start_datetimelocal: "2019-04-30T23:36:00+02:00",
+                if(!!data_value){el.setAttribute("data-value", data_value)};
+
+
                 el.setAttribute("autocomplete", "off");
                 el.setAttribute("ondragstart", "return false;");
                 el.setAttribute("ondrop", "return false;");
 
-                el.addEventListener("change", function() {UploadChanges(el);}, false )
-                el.classList.add("input_text");
                 el.classList.add("border-none");
+                el.classList.add("td_width_090");
 
-                td.appendChild(el);
             }
+            td.appendChild(el);
         }
-        UploadTblrowChanged(tblRow);
+
+        //tblRow.classList.add("tsa-tr-highlighted")
     };//function AddTableRow
 
 //========= UploadChanges  ============= PR2019-03-03
     function UploadChanges(el_changed) {
-        console.log("+++--------- UploadChanges  --------------");
+        console.log(">>>--------- UploadChanges  --------------");
 
        // ---  get clicked tablerow
         let tr_changed = get_tablerow_clicked(el_changed)
@@ -378,13 +549,12 @@ console.log("=========  function HandleCreateRecord =========");
 // It also has a value property that holds the current value of the input
     function UploadTblrowChanged(tr_changed) {
         console.log("+++--------- UploadTblrowChanged  --------------");
-        console.log( "tr_changed: ", tr_changed);
 
         if(!!tr_changed) {
 // ---  get pk from id of tr_changed
             const id_str = get_attr_from_element(tr_changed, "id")
             if(!!id_str){
-                let row_upload = {"pk": id_str};
+                let row_upload = {"schemeitem_pk": id_str, "scheme_pk": selected_scheme_pk};
 
 // ---  loop through cells and input element of tr_changed
                 for (let i = 0, el_input, el_name, n_value, o_value, len = tr_changed.cells.length; i < len; i++) {
@@ -392,11 +562,8 @@ console.log("=========  function HandleCreateRecord =========");
                     if(!!tr_changed.cells[i].children[0]){
                         el_input = tr_changed.cells[i].children[0];
                         el_name = get_attr_from_element(el_input, "data-name")
-
-                        console.log( "el_name: ", el_name,  "el_input.value: ", el_input.value);
                         if(!!el_name){
                             if(el_input.classList.contains("input_text")){
-                        console.log( "el_name: ", el_name,  "el_input.value: ", el_input.value);
                             // PR2019-03-17 debug: getAttribute("value");does not get the current value
                             // The 'value' attribute determines the initial value (el_input.getAttribute("name").
                             // The 'value' property holds the current value (el_input.value).
@@ -412,33 +579,35 @@ console.log("=========  function HandleCreateRecord =========");
                                 if(el_input.hasAttribute("o_value")){
                                     o_value = el_input.getAttribute("o_value");
                                 }
-
-                        console.log( "n_value: ", n_value,  "o_value: ", o_value);
                                 // n_value is only added to dict when value has changed
                                 // n_value can be blank
 
-                                // console.log( "el_name: ", el_name, " n_value: ", n_value, " o_value: ", o_value);
+                                console.log( "el_name: ", el_name, " n_value: ", n_value, " o_value: ", o_value);
                                 if(n_value !== o_value){
                                     let arrObj, arr_key = "";
                                     switch (el_name) {
-                                    case "order":
-                                        arrObj = order_list
+                                    case "team":
+                                        arrObj = team_list
                                         break;
-                                    case "employee":
-                                        arrObj = employee_list
                                     }
+                                    // lookup team in datalist, return pk if found
                                     if (!!arrObj) {
-                                        let row = get_arrayRow_by_keyValue (arrObj, "code", n_value)
+                                        console.log( "arrObj: ", arrObj);
+                                        // lookup row with key 'code' with value that matches n_value
+                                        let row = get_arrayRow_by_keyValue (arrObj,  "code", n_value);
                                         if (!!row){
-                                            row_upload[el_name] = row.pk;
+                                            console.log( "row : ", row);
+                                            row_upload[el_name + "_pk"] = row.pk;
                                         } else {
-                                            el_input.value = o_value;
+                                            row_upload[el_name] = n_value;
                                         }
+
                                     } else {
+                                    // otherwise: put new value in row_upload
                                         row_upload[el_name] = n_value
                                     } // if (!!arrObj)
+                                    console.log( "row_upload[el_name] : ", row_upload[el_name]);
                                 }
-                                // console.log( "row_upload", row_upload);
                             }  // if(el_input.classList.contains("input_text"))
                         }  // if(!!el_name)
 
@@ -448,20 +617,19 @@ console.log("=========  function HandleCreateRecord =========");
                 };  //  for (let i = 0, el_input,
 
                 //row_upload: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
-                console.log ("row_upload dict before ajax: ");
-                console.log (row_upload);
-                let parameters = {"row_upload": JSON.stringify (row_upload)};
+                let parameters = {"schemeitem_upload": JSON.stringify (row_upload)};
+                console.log ("parameters", parameters);
                 response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_upload_str,
+                    url: url_schemeitem_upload,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        if ("row_update" in response) {
-        //console.log( "response");
-        //console.log( response);
-                            UpdateFields(tr_changed, response["row_update"])
+                        if ("schemeitem_update" in response) {
+        console.log( "response");
+        console.log( response);
+                            UpdateFields(tr_changed, response["schemeitem_update"])
                         }
                     },
                     error: function (xhr, msg) {
@@ -703,6 +871,139 @@ console.log("=========  function HandleCreateRecord =========");
     }  // function update_fields
 
 
+//=========  HandleCustomerSelect  ================ PR2019-03-23
+    function HandleCustomerSelect(el_customer) {
+        let select_text = el_data.data("txt_select_order");
+  console.log("------- HandleCustomerSelect -----------")
+
+        //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+        let selected_option =  parseInt(el_customer.value);
+
+        // reset order when customer changes
+        if(!!selected_option && selected_option !== selected_customer_pk){
+            selected_customer_pk = selected_option
+            selected_order_pk = 0
+            selected_scheme_pk = 0
+            el_order.innerText = null
+            el_scheme.innerText = null
+        }
+  console.log("selected_customer_pk", selected_customer_pk, typeof selected_customer_pk)
+
+        FillSelectOptions(el_order, order_list, select_text, selected_customer_pk)
+        // if there is only 1 order, that one is selected
+        selected_order_pk = parseInt(el_order.value);
+
+        if (!!selected_order_pk){
+            FillSelectOptions(el_scheme, scheme_list, select_text, selected_order_pk)
+            // if there is only 1 scheme, that one is selected
+            selected_scheme_pk = parseInt(el_scheme.value);
+        };
+    }
+
+//=========  HandleOrderSelect  ================ PR2019-03-24
+    function HandleOrderSelect(el_order) {
+  console.log("------- HandleOrderSelect -----------")
+        const select_text = el_data.data("txt_select_scheme");
+
+        selected_order_pk = 0
+        if(!!el_order.value){selected_order_pk = el_order.value}
+  console.log("selected_order_pk", selected_order_pk, typeof selected_order_pk)
+
+        FillSelectOptions(el_scheme, scheme_list, select_text, selected_order_pk)
+
+
+        el_btn_add_scheme.disabled = (!selected_order_pk);
+        el_btn_delete_scheme.disabled = (!selected_order_pk);
+        el_btn_add_schemeitem.disabled = (!selected_scheme_pk);
+        el_btn_delete_schemeitem.disabled = (!selected_scheme_pk);
+    }
+
+//=========  HandleSchemeSelect  ================ PR2019-03-24
+    function HandleSchemeSelect(el_scheme) {
+        //console.log("-%%%--- HandleSchemeSelect -----------")
+
+    // get id of selected scheme
+        // selected_scheme_pk gets value in FillScheme, after ajax response
+        let scheme_pk = parseInt(el_scheme.value);
+        if(!!scheme_pk){
+
+
+            tblBody.innerText = null;
+
+            let param = {"scheme_pk": scheme_pk};
+            let param_json = {"scheme_download": JSON.stringify (param)};
+            let response = "";
+            $.ajax({
+                type: "POST",
+                url: url_schemeitems_download,
+                data: param_json,
+                dataType:'json',
+                success: function (response) {
+                    console.log( "response", response);
+
+                    if ("shift_list" in response) {
+                        shift_list= response["shift_list"]
+                        console.log( "shift_list", shift_list);
+                        FillDatalist(shift_list, "id_datalist_shifts")}
+
+
+                    if ("scheme" in response) {
+                        FillScheme(response["scheme"])}
+                    if ("team_list" in response) {
+                        team_list= response["team_list"]
+                        FillDatalist(team_list, "id_datalist_teams")}
+                    if ("schemeitem_list" in response) {
+                        schemeitem_list= response["schemeitem_list"]
+                        FillSchemeItemlists(schemeitem_list)}
+                },
+                error: function (xhr, msg) {
+                    alert(msg + '\n' + xhr.responseText);
+                }
+            });
+        }
+    }; //function HandleSchemeSelect
+
+//========= FillScheme  ====================================
+    function FillScheme(scheme_dict) {
+        console.log( "===== FillScheme  ========= ");
+        console.log( scheme_dict);
+        // {pk: 4, code: "Nog een test", cycle: 1, weekend: 0, publicholiday: 0, …}
+        selected_scheme_pk = 0;
+        if ("pk" in scheme_dict) {
+            selected_scheme_pk =  scheme_dict["pk"];
+            console.log( "selected_scheme_pk", selected_scheme_pk);
+
+            document.getElementById("id_scheme").value = selected_scheme_pk;
+
+        };
+
+        el_btn_add_schemeitem.disabled = (!selected_scheme_pk);
+        el_btn_delete_schemeitem.disabled = (!selected_scheme_pk);
+
+        if ("cycle" in scheme_dict) { document.getElementById("id_cycle").value = scheme_dict["cycle"]};
+        if ("weekend" in scheme_dict) { document.getElementById("id_weekend").value = scheme_dict["weekend"].toString()};
+        if ("publicholiday" in scheme_dict) { document.getElementById("id_publicholiday").value = scheme_dict["publicholiday"].toString()};
+
+    }
+
+//========= FillScheme  ====================================
+    function FillSchemeItemlists(schemeitem_list) {
+        console.log( "===== FillSchemeItemlists  ========= ");
+        console.log(schemeitem_list);
+
+        tblBody.innerText = null;
+
+        for (let i = 0, value, len = schemeitem_list.length; i < len; i++) {
+            schemeitem = schemeitem_list[i]
+            CreateTableRow(schemeitem)
+        }
+
+
+
+
+    }
+
+
 //=========  HandleFilterInactive  ================ PR2019-03-23
     function HandleFilterInactive() {
         console.log("=========  function HandleFilterInactive =========");
@@ -744,17 +1045,28 @@ console.log("=========  function HandleCreateRecord =========");
     }; // function HandleSearchFilterEvent
 
 
+
+//=========  CreateScheme  ================ PR2019-04-23
+    function CreateScheme(respnse) {
+console.log("=========  function CreateScheme =========");
+console.log("respnse", respnse);
+
+}
+
+
 //========= DownloadDatalists  ====================================
     function DownloadDatalists() {
-        //console.log( "===== DownloadDatalists  ========= ");
-// TODO
-        let rosterdatefirst = "2019-04-03";
-        let rosterdatelast = "2019-04-05";
-        let param_upload = {"rosterdatefirst": rosterdatefirst, 'rosterdatelast': rosterdatelast}
+        console.log( "===== DownloadDatalists  ========= ");
+    // get id of selected order
+        let el_order = document.getElementById("id_order")
+        let order_pk = el_order.value
+
+        let param_upload = {"order_pk": order_pk}
         let param = {"param_upload": JSON.stringify (param_upload)};
         order_list = [];
         employee_list = [];
-        // console.log("param", param)
+        shift_list = [];
+        console.log("param", param)
 
         let response = "";
         $.ajax({
@@ -763,14 +1075,22 @@ console.log("=========  function HandleCreateRecord =========");
             data: param,
             dataType:'json',
             success: function (response) {
-                //console.log( response)
+                console.log( response)
                 if ("orders" in response) {
                     order_list= response["orders"]
-                    FillDatalists(order_list, "id_datalist_orders")
+                    FillDatalist(order_list, "id_datalist_orders")
                 }
                 if ("employees" in response) {
                     employee_list= response["employees"]
-                    FillDatalists(employee_list, "id_datalist_employees")
+                    FillDatalist(employee_list, "id_datalist_employees")
+                }
+                if ("shifts" in response) {
+                    shift_list= response["shifts"]
+                    FillDatalist(shift_list, "id_datalist_shifts")
+                }
+                if ("schemes" in response) {
+                    scheme_list= response["schemes"]
+                    FillDatalist(shift_list, "id_datalist_schemes")
                 }
             },
             error: function (xhr, msg) {
@@ -779,23 +1099,26 @@ console.log("=========  function HandleCreateRecord =========");
         });
 }
 
-//========= FillDatalists  ====================================
-    function FillDatalists(data_list, id_datalist) {
-        //console.log( "===== FillDatalists  ========= ");
+//========= FillDatalist  ====================================
+    function FillDatalist(data_list, id_datalist) {
+        //console.log( "===== FillDatalist  ========= ");
         //console.log( data_list)
 
         let el_datalist = document.getElementById(id_datalist);
+
+        el_datalist.innerText = null
+
         for (let row_index = 0, tblRow, hide_row, len = data_list.length; row_index < len; row_index++) {
             listitem = data_list[row_index];
             let el = document.createElement('option');
             el.setAttribute("value", listitem["code"]);
-            el.setAttribute("pk",listitem["pk"]);
-            if (!!listitem["datefirst"]){
-                el.setAttribute("datefirst", listitem["datefirst"]);
+
+            const list = ['pk', 'code']
+            for (let i = 0, key, len = list.length; i < len; i++) {
+                key = list[i]
+                if (!!key){el.setAttribute(key, listitem[key])}
             }
-            if (!!listitem["datelast"]){
-               el.setAttribute("datelast", listitem["datelast"]);
-            }
+
             el_datalist.appendChild(el);
         }
 
@@ -805,8 +1128,152 @@ console.log("=========  function HandleCreateRecord =========");
        // el_input.classList.remove("border-valid");
         //}, 2000);
 
-    }; // function FillDatalists
+    }; // function FilterRows
 
+//========= FillListWeekendPubliholiday  ====================================
+    function FillListWeekendPubliholiday() {
+        //console.log( "===== FillListWeekendPubliholiday  ========= ");
+
+        let curPublHol = 0
+        let curWeekend = 0
+
+// ---  fill select box of public holiday
+        let el_weekend = document.getElementById("id_weekend")
+        el_weekend.innerText = null
+        let option_text = "";
+        for (let i = 0, value, len = weekend_choices.length; i < len; i++) {
+            option_text += "<option value=\"" + i + "\"";
+            if (i === curWeekend) {option_text += " selected=true" };
+            option_text +=  ">" + weekend_choices[i] + "</option>";
+        }
+        el_weekend.innerHTML = option_text;
+
+
+// ---  fill select box of public holiday
+        let el_publhol = document.getElementById("id_publicholiday")
+        el_publhol.innerText = null
+        option_text = "";
+        for (let i = 0, value, len = publicholiday_choices.length; i < len; i++) {
+            option_text += "<option value=\"" + i + "\"";
+            if (i === curPublHol) {option_text += " selected=true" };
+            option_text +=  ">" + publicholiday_choices[i] + "</option>";
+        }
+        el_publhol.innerHTML = option_text;
+
+
+
+
+    }; // function FillListWeekendPubliholiday
+
+//========= FillSelectChoices  ====================================
+    function FillSelectChoices(el_select, option_choices, selected_option) {
+        //console.log( "===== FillSelectChoices  ========= ");
+        // ---  fill select box of weekend and public holiday
+        el_select.innerText = null
+        let option_text = "";
+        for (let i = 0, value, len = option_choices.length; i < len; i++) {
+            option_text += "<option value=\"" + i + "\"";
+            if (i === selected_option) {option_text += " selected=true" };
+            option_text +=  ">" + option_choices[i] + "</option>";
+        }
+        el_select.innerHTML = option_text;
+    }; // function FillSelectChoices
+
+
+//========= FillSelectOptions  ====================================
+    function FillSelectOptions(el_select, option_list, select_text, parent_id_str) {
+     console.log( "===== FillSelectOptions  ========= ");
+     console.log( "el_select ", el_select);
+     console.log( "option_list ", option_list);
+
+        let curOption;
+// ---  fill options of select box
+        el_select.innerText = null
+        let option_text = "";
+        let parent_id = 0
+        let row_count = 0
+
+        if (!!parent_id_str){parent_id = parseInt(parent_id_str)};
+     console.log( "parent_id ", parent_id, typeof parent_id );
+
+        for (let i = 0, id, value, addrow, len = option_list.length; i < len; i++) {
+
+        // skip if parent_id does not match,
+            addrow = false;
+            if (!!parent_id_str){
+                parent_id = parseInt(parent_id_str);
+                // addrow when parent_id of order marches the id of customer
+                addrow = (!!option_list[i]["parent_id"] && option_list[i]["parent_id"] === parent_id)
+            } else {
+                // addrow if no parent_id (is the case when filling customer_list)
+                addrow = true
+            }
+            if (addrow) {
+                id = option_list[i]["pk"]
+                value = option_list[i]["val"]
+                option_text += "<option value=\"" + id + "\"";
+                if (value === curOption) {option_text += " selected=true" };
+                option_text +=  ">" + value + "</option>";
+                row_count += 1
+            }
+        }
+        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
+        if (row_count > 1){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text + "...</option>" + option_text
+        }
+        el_select.innerHTML = option_text;
+
+        // if there is only 1 option: select first option
+        if ((row_count === 1)){
+             el_select.selectedIndex = 0
+        }
+
+    }
+
+
+//========= FillSchemeItems  ====================================
+    function FillSchemeItems(response) {
+     console.log( "===== FillSchemeItems  ========= ");
+     console.log( "response ", response);
+
+
+        let curOption;
+// ---  fill options of select box
+        el_select.innerText = null
+        let option_text = "";
+        let parent_id = 0
+        let row_count = 0
+
+        if (!!parent_id_str){parent_id = parseInt(parent_id_str)};
+         console.log( "parent_id ", parent_id, typeof parent_id );
+
+        for (let i = 0, id, value, addrow, len = option_list.length; i < len; i++) {
+
+        // skip if parent_id does not match,
+            addrow = false;
+            if (!!parent_id_str){
+                parent_id = parseInt(parent_id_str);
+                // addrow when parent_id of order marches the id of customer
+                addrow = (!!option_list[i]["parent_id"] && option_list[i]["parent_id"] === parent_id)
+            } else {
+                // addrow if no parent_id (is the case when filling customer_list)
+                addrow = true
+            }
+            if (addrow) {
+                id = option_list[i]["pk"]
+                value = option_list[i]["val"]
+                option_text += "<option value=\"" + id + "\"";
+                if (value === curOption) {option_text += " selected=true" };
+                option_text +=  ">" + value + "</option>";
+                row_count += 1
+            }
+        }
+        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
+        if (row_count > 1){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text + "...</option>" + option_text
+        }
+        el_select.innerHTML = option_text;
+    }
 
 //========= FilterRows  ====================================
     function FilterRows() {
@@ -928,12 +1395,10 @@ $(document).mouseup(function (e) {
         el_popup_minutes.innerText = null
         el_popup_ampm.innerText = null
 
-// ---  get pk and parent_pk from id of input_popup, set as attribute in el_popup
+// ---  get pk parent_pk and rosterdate from id of input_popup, set as attribute in el_popup
         let dict = get_tablerow_id(input_popup)
-        let id_str = dict["id"];
-        let parent_pk = dict["parent_pk"];
-        el_popup.setAttribute("data-pk", id_str)
-        el_popup.setAttribute("data-parent_pk", parent_pk)
+        el_popup.setAttribute("data-pk", dict["id"])
+        el_popup.setAttribute("data-parent_pk", dict["parent_pk"])
 
 // put current value of start_time / endtime in el_popup
         el_popup.setAttribute("data-name", get_attr_from_element(input_popup, "data-name"))
@@ -1039,7 +1504,7 @@ $(document).mouseup(function (e) {
         let name = get_attr_from_element(input_popup, "data-name")
 
 // ---  set focus to input element 'hours'
-        el_popup_hour.focus();
+        document.getElementById("id_popup_hours").focus();
 
 }; // function HandlePopupClicked
 
@@ -1049,15 +1514,13 @@ console.log("=========  function HandlePopupSave =========");
 
         let el_popup = document.getElementById("id_popup")
 // ---  get pk_str from id of el_popup
-        let id_str = ""// pk of record  of element clicked
-        let name_str = "" // nanme of element clicked
-        let saved_time_str = "" // value of element clicked "2019-03-30T19:00:00"
-        if (!!el_popup){
-            if (el_popup.hasAttribute("data-pk")){id_str = el_popup.getAttribute("data-pk")}
-            if (el_popup.hasAttribute("data-value")){saved_time_str = el_popup.getAttribute("data-value")}
-            if (el_popup.hasAttribute("data-name")){name_str = el_popup.getAttribute("data-name")}
-        }
+        let id_str = el_popup.getAttribute("data-pk")// pk of record  of element clicked
+        let parent_pk = el_popup.getAttribute("data-parent_pk")
+        let name_str = el_popup.getAttribute("data-name") // nanme of element clicked
+        let saved_time_str = el_popup.getAttribute("data-value") // value of element clicked "2019-03-30T19:00:00"
+
         console.log ("id_str",id_str)
+        console.log ("parent_pk",parent_pk)
         console.log ("name_str",name_str)
         console.log ("saved_time_str",saved_time_str)
 
@@ -1080,21 +1543,20 @@ console.log("=========  function HandlePopupSave =========");
 // create new_datetime array
         let new_datetime = new_day_offset + ";" + new_hours + ";" + new_minutes
         let tr_selected = document.getElementById(id_str)
-        let row_upload = {"pk": id_str}
+        let row_upload = {"pk": id_str, "parent_pk": parent_pk}
         row_upload[name_str] = new_datetime;
-        console.log ("row_upload", row_upload);
-        let parameters = {"row_upload": JSON.stringify (row_upload)};
+        console.log ("schemeitem_upload", row_upload);
+
+        let parameters = {"schemeitem_upload": JSON.stringify (row_upload)};
         response = "";
         $.ajax({
             type: "POST",
-            url: url_upload_str,
+            url: url_schemeitem_upload,
             data: parameters,
             dataType:'json',
             success: function (response) {
+        console.log ("response", response);
                 if ("row_update" in response) {
-
-
-
                     UpdateFields(tr_selected, response["row_update"])
                 }
             },
@@ -1108,6 +1570,7 @@ console.log("=========  function HandlePopupSave =========");
 
     }  // HandlePopupSave
 
+
 //========= function pop_background_remove  ====================================
     function inputpopup_removebackground(){
         // remove selected color from all input popups
@@ -1115,6 +1578,43 @@ console.log("=========  function HandlePopupSave =========");
         for (let i = 0, len = elements.length; i < len; i++) {
             elements[i].classList.remove("pop_background");
         }
+    }
+//========= CreateCheckbox  ============= PR2019-02-11
+    function CreateCheckbox(sel_checkbox, field, caption, is_checked, disabled, tooltiptext) {
+        const id_chk = "id_mod_" + field;
+        $("<div>").appendTo(sel_checkbox)
+            .attr({"id": id_chk + "_div"})
+            .addClass("checkbox ");
+        let chk_div = $("#" +id_chk + "_div");
+
+        // add tooltip
+        if (!!tooltiptext){
+            chk_div.attr({"data-toggle": "tooltip", "title": tooltiptext});
+            chk_div.tooltip();
+        }
+
+        $("<input>").appendTo(chk_div)
+                    .attr({"id": id_chk + "_chk",  "type": "checkbox", "checked": is_checked})
+                    .prop("disabled", disabled)
+                    .addClass("check_list mr-2");
+                    //.html("<input id='" + id_chk + "' class='check_list mr-2' type='checkbox' checked='false'>" + caption );
+
+        $("<label>").appendTo("#" + id_chk + "_div")
+                    .attr({"id": id_chk + "_lbl", "for": id_chk + "_chk" })
+                    .html(caption);
+
+    }
+
+//========= CreateInfo  ============= PR2019-02-21
+    function CreateInfo(sel_checkbox, field, caption) {
+        const id_chk = "id_mod_" + field;
+        $("<div>").appendTo(sel_checkbox)
+            .attr({"id": id_chk + "_div"})
+            .addClass("checkbox ");
+        let chk_div = $("#" +id_chk + "_div");
+
+        $("<p>").appendTo("#" + id_chk + "_div")
+             .html(caption);
     }
 
 }); //$(document).ready(function()

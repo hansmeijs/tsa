@@ -1,3 +1,39 @@
+
+/* PR2019-04-13 */
+.popup_container {
+    position:relative;
+
+    z-index:99;
+    padding: 0px;
+    margin: 0px;
+}
+
+.popup_box {
+    position: absolute;
+    padding: 0px;
+    margin: 0px;
+
+    /*background-color: #808080; /* #e0e0e0; /* licht grijs; */
+    /*background: #ffd01c; /* tsa yellow */
+    /*background: #fdf7e1; /* more lighter shade of tsa yellow */
+    background: #fbedba; /* lighter shade of tsa yellow */
+
+
+    color: #868e96;
+    z-index: 99;
+}
+
+.popup_header {
+    display: flex;
+    align-items: flex-start; /* so the close btn always stays on the upper right corner */
+    justify-content: space-between; /* Put modal header elements (title and dismiss) on opposite ends */
+    border-bottom: 1px solid purple /*#808080; /* grijs; */
+
+  }
+
+
+
+
 /* PR2019-04-13 for popup box */
 .pop_tbl {
     table-layout: auto;
@@ -5,7 +41,7 @@
     width: 100%; /* must have this set */
 }
 .pop_tbl th  {
-    padding: 0px;
+    padding: 4px;
     margin: 0px;
     white-space: normal;
     /*overflow: hidden;
@@ -15,10 +51,15 @@
 .pop_tbl tr {
     padding: 0px;
     margin: 0px;
-    background: #ffd01c; /* tsa yellow */
+
+    /*background-color: #808080; /* #e0e0e0; /* licht grijs; */
+    /*background: #ffd01c; /* tsa yellow */
+    /*background: #fdf7e1; /* more lighter shade of tsa yellow */
+    background: #fbedba; /* lighter shade of tsa yellow */
 }
 .pop_tbl td {
-    padding: 0px;
+    /* padding: <top><right><bottom><left> */
+    padding: 2px 4px 0px 4px;
     margin: 0px;
     overflow: hidden;
     white-space: nowrap;
@@ -26,9 +67,11 @@
 }
 
 .pop_background {
-    /* border: 1px solid  #4cbd67;  /*  #28a745; is green like in django is-valid */
-    /* border-radius: .25rem; */
+    /*border: 1px solid  #4cbd67;  /*  #28a745; is green like in django is-valid */
+    /*border-radius: .25rem; */
     background: #ffd01c; /* tsa yellow */
+    background: #fdf7e1; /* more lighter shade of tsa yellow */
+    /*background: #fbedba; /* lighter shade of tsa yellow */
 }
 
 

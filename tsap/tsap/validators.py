@@ -186,9 +186,10 @@ class validate_unique_company_name(object):  # PR2019-03-15
         return value
 
 
-class validate_unique_code(object):  # PR2019-03-16
-    def __init__(self, model=None, field=None, instance=None):
+class validate_unique_code(object):  # PR2019-03-16, PR2019-04-25
+    def __init__(self, model=None, company=None ,field=None, instance=None):
         self.model=model
+        self.company=company
         self.field=field
         if instance:
             self.instance_id = instance.id
@@ -200,6 +201,8 @@ class validate_unique_code(object):  # PR2019-03-16
         # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
         if self.model is None:
             raise ValidationError(_('Error: Model is None.'))
+        if self.company is None:
+            raise ValidationError(_('Error: Company not found.'))
         else:
             cls = None
             if self.model == 'company':
@@ -214,18 +217,32 @@ class validate_unique_code(object):  # PR2019-03-16
                     self.value_exists = False
                 elif self.instance_id is None:
                     if self.field == 'code':
-                        self.value_exists = cls.objects.filter(code__iexact=value).exists()
+                        if self.model == 'company':
+                            self.value_exists = cls.objects.filter(code__iexact=value).exists()
+                        else:
+                            self.value_exists = cls.objects.filter(company=self.company, code__iexact=value).exists()
                     elif self.field == 'name':
-                        self.value_exists = cls.objects.filter(name__iexact=value).exists()
+                        if self.model == 'company':
+                            self.value_exists = cls.objects.filter(name__iexact=value).exists()
+                        else:
+                            self.value_exists = cls.objects.filter(company=self.company, name__iexact=value).exists()
                     else:
                         raise ValidationError(_('Error: Field error.'))
                 else:
                     if self.field == 'code':
-                        self.value_exists = cls.objects.filter(code__iexact=value).exclude(
-                            pk=self.instance_id).exists()
+                        if self.model == 'company':
+                            self.value_exists = cls.objects.filter(code__iexact=value).exclude(
+                                pk=self.instance_id).exists()
+                        else:
+                            self.value_exists = cls.objects.filter(company=self.company, code__iexact=value).exclude(
+                                pk=self.instance_id).exists()
                     elif self.field == 'name':
-                        self.value_exists = cls.objects.filter(name__iexact=value).exclude(
-                            pk=self.instance_id).exists()
+                        if self.model == 'company':
+                            self.value_exists = cls.objects.filter(name__iexact=value).exclude(
+                                pk=self.instance_id).exists()
+                        else:
+                            self.value_exists = cls.objects.filter(company=self.company, name__iexact=value).exclude(
+                                pk=self.instance_id).exists()
                 if self.value_exists:
                     if self.field == 'code':
                         raise ValidationError(_('Code already exists.'))

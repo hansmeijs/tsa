@@ -14,13 +14,13 @@ from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX
 from datetime import datetime, timedelta
 
 from companies.views import LazyEncoder
-from tsap.constants import WEEKDAYS_ABBREV, TIMEFORMATS
+from tsap.constants import WEEKDAYS_ABBREV, TIMEFORMATS, WEEKEND_CHOICES, PUBLICHOLIDAY_CHOICES
 from tsap.functions import get_date_from_str, get_datetimeaware_from_datetimeUTC
 from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_employee_code, validate_employee_name,employee_email_exists, check_date_overlap
 
-from companies.models import Order, Employee, Emplhour, Shift
+from companies.models import Customer, Order, Scheme, SchemeItem, Team, Employee, Emplhour
 
 import pytz
 import json
@@ -54,7 +54,6 @@ class EmplhourView(View):
             interval = 1
             if request.user.company.interval:
                 interval = request.user.company.interval
-            interval = 12 # for testing
 
             # get timeformat
             timeformat = 'AmPm'
@@ -135,7 +134,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                             save_changes = False
 # ++++  delete record when key 'delete' exists in
                             if 'delete' in row_upload:
-                                # emplhour.delete(request=self.request)
+                                emplhour.delete(request=self.request)
         # --- check if emplhour still exist
                                 emplhour = Emplhour.objects.filter(id=pk_int, company=request.user.company).first()
                                 if emplhour is None:
@@ -437,13 +436,7 @@ class EmplhourDownloadDatalistView(View):  # PR2019-03-10
                         dict['datelast'] = employee.datelast
                     employee_list.append(dict)
 
-                shifts = Shift.objects.filter(company=request.user.company, inactive=False).order_by(Lower('code'))
-                shift_list = []
-                for shift in shifts:
-                    dict = {'pk': shift.id, 'code': shift.code}
-                    shift_list.append(dict)
-
-                datalists = {'orders': order_list, 'employees': employee_list, 'shifts': shift_list}
+                datalists = {'orders': order_list, 'employees': employee_list}
 
 
         datalists_json = json.dumps(datalists, cls=LazyEncoder)
@@ -451,3 +444,678 @@ class EmplhourDownloadDatalistView(View):  # PR2019-03-10
         # logger.debug(str(datalists_json))
 
         return HttpResponse(datalists_json)
+
+
+# === EmplhourView ===================================== PR2019-03-24
+@method_decorator([login_required], name='dispatch')
+class SchemesView(View):
+
+    def get(self, request):
+        param = {}
+        # logger.debug(' ============= SchemesView ============= ')
+        if request.user.company is not None:
+            emplhours = Emplhour.objects.filter(company=request.user.company)
+
+# --- create list of all active customers of this company
+            customers = Customer.objects.filter(
+                company=request.user.company,
+                inactive=False
+            ).order_by(Lower('code'))
+            customer_list = []
+            for customer in customers:
+                customer_list.append({'pk': customer.id, 'val': customer.code})
+            customer_json = json.dumps(customer_list)
+
+# --- create list of all active orders of this company
+            orders = Order.objects.filter(
+                customer__company=request.user.company,
+                inactive=False
+            ).order_by(Lower('customer__code'), Lower('code'))
+            order_list = []
+            for order in orders:
+                value = order.code
+                parent_id = order.customer.id
+                order_list.append({'pk': order.id, 'parent_id': parent_id, 'val': value})
+            order_json = json.dumps(order_list)
+
+# --- create list of all active schemes of this company
+            schemes = Scheme.objects.filter(
+                order__customer__company=request.user.company,
+                inactive=False
+            ).order_by( Lower('code'))
+            scheme_list = []
+            for scheme in schemes:
+                value = scheme.code
+                parent_id = scheme.order.id
+                scheme_list.append({'pk': scheme.id, 'parent_id': parent_id, 'val': value})
+            scheme_json = json.dumps(scheme_list)
+
+            # --- create list of all active employees of this company
+            employees = Employee.objects.filter(
+                company=request.user.company,
+                inactive=False
+            ).order_by(Lower('code'))
+            employee_list = []
+            for employee in employees:
+                employee_list.append({'pk': employee.id, 'code': employee.code})
+            employee_json = json.dumps(employee_list)
+
+# --- get weekend_choices and publicholidays_choices translated
+            lang = request.user.lang if request.user.lang else LANGUAGE_CODE
+            if not lang in WEEKDAYS_ABBREV:
+                lang = LANGUAGE_CODE
+            weekend_choices = json.dumps(WEEKEND_CHOICES[lang])
+            publicholiday_choices = json.dumps(PUBLICHOLIDAY_CHOICES[lang])
+
+# --- get weekdays translated
+            lang = request.user.lang if request.user.lang else LANGUAGE_CODE
+            if not lang in WEEKDAYS_ABBREV:
+                lang = LANGUAGE_CODE
+            weekdays_json = json.dumps(WEEKDAYS_ABBREV[lang])
+
+# ---  get interval
+            interval = 1
+            if request.user.company.interval:
+                interval = request.user.company.interval
+
+            # get timeformat
+            timeformat = 'AmPm'
+            if request.user.company.timeformat:
+                timeformat = request.user.company.timeformat
+            if not timeformat in TIMEFORMATS:
+                timeformat = '24h'
+
+            param = get_headerbar_param(request, {
+                'items': emplhours,
+                'customer_list': customer_json,
+                'order_list': order_json,
+                'scheme_list': scheme_json,
+                'employee_list': employee_json,
+                'lang': lang,
+                'weekend_choices': weekend_choices,
+                'publicholiday_choices': publicholiday_choices,
+                'weekdays': weekdays_json,
+                'interval': interval,
+                'timeformat': timeformat
+            })
+        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
+        return render(request, 'schemes.html', param)
+
+
+
+@method_decorator([login_required], name='dispatch')
+class SchemeUploadView(View):  # PR2019-03-10
+    # function updates employee, customer and shift list
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ============= SchemeUploadView ============= ')
+        logger.debug('request.POST' + str(request.POST) )
+        # {'param': ['{"order_pk":"6","scheme_code":"MCB scheme","cycle":23,"weekend":1,"publicholiday":1}']}>
+
+        row_dict = {}
+        if request.user.company is not None:
+            param_json = request.POST.get('scheme_upload', None)
+            if param_json:
+                param = json.loads(param_json)
+                logger.debug('param: ' + str(param) )
+                # param: {'order_pk': '6', 'scheme_code': 'MCB scheme', 'cycle': 3, 'weekend': 1, 'publicholiday': 1}
+                order_pk = int(param.get('order_pk', 0))
+                if order_pk:
+                    scheme_code = param.get('scheme_code', '')
+                    cycle = int(param.get('cycle', 1))
+                    weekend = int(param.get('weekend', 0))
+                    publicholiday = int(param.get('publicholiday', 0))
+
+                    if order_pk and scheme_code:
+                        order = Order.objects.filter(id=order_pk, customer__company=request.user.company).first()
+                        logger.debug('order: ' + str(order) + str(type(order)))
+                        if order:
+                            # check if scheme already exist
+                            if not Scheme.objects.filter(
+                                        order__customer__company=request.user.company,
+                                        order__id=order_pk,
+                                        code=scheme_code
+                            ).exists():
+                                # create new scheme
+                                new_scheme = Scheme(order=order,
+                                                    code=scheme_code,
+                                                    cycle=cycle,
+                                                    weekend=weekend,
+                                                    publicholiday=publicholiday,
+                                                    )
+                                new_scheme.save(request=self.request)
+                                logger.debug('new_scheme: ' + str(new_scheme) + str(type(new_scheme)))
+
+                                # check if scheme is saved
+                                if new_scheme.pk:
+                                    scheme_pk = new_scheme.pk
+                                    row_dict = {"scheme_pk": new_scheme.id,
+                                                "code": new_scheme.code,
+                                                "cycle": new_scheme.cycle,
+                                                "weekend": new_scheme.weekend,
+                                                "publicholiday": new_scheme.publicholiday,
+                                                }
+        update_dict = {'scheme_update': row_dict}
+        # update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
+        update_dict_json = json.dumps(update_dict, cls=LazyEncoder)
+        return HttpResponse(update_dict_json)
+
+
+@method_decorator([login_required], name='dispatch')
+class SchemeDownloadDatalistView(View):  # PR2019-03-10
+    # function updates employee, customer and shift list
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ============= EmplhourDownloadDatalistView ============= ')
+        logger.debug('request.POST' + str(request.POST) )
+
+        datalists = {}
+        if request.user is not None:
+            if request.user.company is not None:
+                if request.POST['param_upload']:
+                    param_upload = json.loads(request.POST['param_upload'])
+                    logger.debug('new_setting' + str(param_upload) + str(type(param_upload)))
+                    order_pk = None
+                    if param_upload:
+                        if 'order_pk' in param_upload:
+                            order_pk = int(param_upload['order_pk'])
+                    logger.debug('order_pk' + str(order_pk) + str(type(order_pk)))
+
+                    schemes = Scheme.objects.filter(order__customer__company=request.user.company,
+                                                    order__id=order_pk,
+                                                    ).order_by(Lower('code'))
+
+                    scheme_list = []
+                    for scheme in schemes:
+                        dict = {'pk': scheme.id,
+                                'code': scheme.code,
+                                'cycle': scheme.cycle,
+                                'weekend': scheme.weekend,
+                                'publicholiday': scheme.publicholiday,
+                                'inactive': scheme.inactive}
+
+                        scheme_list.append(dict)
+                    datalists = {'schemes': scheme_list}
+
+        datalists_json = json.dumps(datalists, cls=LazyEncoder)
+        logger.debug('datalists_json:')
+        logger.debug(str(datalists_json))
+
+        return HttpResponse(datalists_json)
+
+
+@method_decorator([login_required], name='dispatch')
+class SchemeItemDownloadView(View):  # PR2019-03-10
+    # function downloads scheme, teams and schemeitems of selected scheme
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ====++++++++==== SchemeItemDownloadView ============= ')
+        logger.debug('request.POST' + str(request.POST) )
+        # {'scheme_download': ['{"scheme_pk":18}']}
+
+        datalists = {}
+        if request.user is not None:
+            if request.user.company is not None:
+                if request.POST['scheme_download']:
+                    scheme_download = json.loads(request.POST['scheme_download'])
+                    logger.debug('scheme_download: ' + str(scheme_download) + str(type(scheme_download)))
+                    # scheme_download: {'scheme_pk': 18}
+                    scheme_pk = int(scheme_download.get('scheme_pk', '0'))
+                    logger.debug('scheme_pk' + str(scheme_pk) + str(type(scheme_pk)))
+
+                    scheme = Scheme.objects.filter(order__customer__company=request.user.company,
+                                                    pk=scheme_pk,
+                                                    ).first()
+                    if scheme:
+                        dict = {'pk': scheme.id,
+                                'code': scheme.code,
+                                'cycle': scheme.cycle,
+                                'weekend': scheme.weekend,
+                                'publicholiday': scheme.publicholiday,
+                                'inactive': scheme.inactive}
+                        datalists = {'scheme': dict}
+
+                        # create team_list
+                        teams = Team.objects.filter(scheme=scheme)
+                        team_list = []
+                        if teams:
+                            for team in teams:
+                                dict = {'pk': team.id,
+                                        'code': team.code}
+                                team_list.append(dict)
+                        if team_list:
+                            datalists['team_list'] = team_list
+
+                        schemeitems = SchemeItem.objects.filter(scheme=scheme)
+                        schemeitem_list = []
+                        shift_list = []
+                        for schemeitem in schemeitems:
+                            shift = {}
+
+                            dict = {'pk': schemeitem.id, 'scheme_pk': schemeitem.scheme.id}
+                            if schemeitem.team:
+                                dict['team_pk'] = schemeitem.team.id
+                                dict['team'] = schemeitem.team.code
+                            if schemeitem.shift:
+                                dict['shift'] = schemeitem.shift
+                                # create shift dict, only when shift name exists
+                                shift['code'] = schemeitem.shift
+                            # rosterdate goes after shift, because shift dict must be created first
+                            if schemeitem.rosterdate:
+                                dict['rosterdate'] = schemeitem.rosterdate
+                                if shift:
+                                    shift['rosterdate'] = schemeitem.rosterdate
+                            if schemeitem.time_start:
+                                dict['time_start'] = schemeitem.time_start_datetimelocal
+                                dict['time_start_DHM'] = schemeitem.time_start_DHM
+                                if shift:
+                                    shift['time_start'] = schemeitem.time_start_datetimelocal
+                                    shift['time_start_DHM'] = schemeitem.time_start_DHM
+                            if schemeitem.time_end:
+                                dict['time_end'] = schemeitem.time_end_datetimelocal
+                                dict['time_end_DHM'] = schemeitem.time_end_DHM
+                                if shift:
+                                    shift['time_end'] = schemeitem.time_start_datetimelocal
+                                    shift['time_end_DHM'] = schemeitem.time_end_DHM
+                            if schemeitem.time_duration:
+                                dict['time_duration'] = schemeitem.time_duration
+                                #  shift['time_duration'] not necessary
+                            if schemeitem.break_start:
+                                dict['break_start'] = schemeitem.break_start_datetimelocal
+                                dict['break_start_DHM'] = schemeitem.break_start_DHM
+                                if shift:
+                                    shift['break_start'] = schemeitem.break_start_datetimelocal
+                                    shift['break_start_DHM'] = schemeitem.break_start_DHM
+                            if schemeitem.break_duration:
+                                dict['break_duration'] = schemeitem.break_duration
+                                if shift:
+                                    shift['break_duration'] = schemeitem.break_duration
+                            schemeitem_list.append(dict)
+
+                            logger.debug('shift: ' + str(shift) + str(type(shift)))
+                            if shift:
+                                # skip if same shift already exists
+                                skip_append = False
+                                for item in shift_list:
+                                    if 'shift' in item:
+                                        if item['shift'] == shift['shift']:
+                                            skip_append = True
+                                            break
+                                        else:
+                                            # TODO: skip only when all fields are equal
+                                            pass
+                                if not skip_append:
+                                    shift_list.append(shift)
+
+                                logger.debug('schemeitem.shift: ' + str(schemeitem.shift) + str(type(schemeitem.shift)))
+                                logger.debug('shift_list: ' + str(shift_list) + str(type(shift_list)))
+                                if not schemeitem.shift in shift_list:
+                                    logger.debug('shift_list.append: ' + str(shift_list) + str(type(shift_list)))
+
+                            logger.debug('shift_list.appended: ' + str(shift_list) + str(type(shift_list)))
+
+                        if schemeitem_list:
+                            datalists['schemeitem_list'] = schemeitem_list
+
+                        if shift_list:
+                            shift_list.sort()
+                            datalists['shift_list'] = shift_list
+
+
+        datalists_json = json.dumps(datalists, cls=LazyEncoder)
+        logger.debug('datalists_json:')
+        logger.debug(str(datalists_json))
+
+        # {"scheme": {"pk": 18, "code": "MCB scheme", "cycle": 7, "weekend": 1, "publicholiday": 1, "inactive": false},
+        #  "team_list": [{"pk": 1, "code": "Team A"}],
+        #  "schemeitem_list": [{"pk": 4, "rosterdate": "2019-04-27", "shift": ""},
+        #                      {"pk": 5, "rosterdate": "2019-04-27", "shift": ""},
+
+        return HttpResponse(datalists_json)
+
+
+@method_decorator([login_required], name='dispatch')
+class SchemeItemUploadView(UpdateView):  # PR2019-04-26
+
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ============= SchemeItemUploadView ============= ')
+        logger.debug('request.POST: ' + str(request.POST))
+        # schemeitem_upload: ['{"schemeitem_pk":"6","scheme_pk":18,"rosterdate":"2019-04-27","shift":"Shift 2","team":"Team B"}']}
+# - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+        field_list = ('id', 'scheme', 'rosterdate', 'shift', 'team',
+                      'time_start', 'time_end', 'time_duration', 'break_start', 'break_duration'
+                      )
+
+        update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
+        for field in field_list:
+            update_dict[field] = {}
+
+        if request.user is not None and request.user.company is not None:
+# - Reset language
+            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+            user_lang = request.user.lang if request.user.lang else 'nl'
+            activate(user_lang)
+
+# ===== Delete scehemeitem
+            #  schemeitem_delete: ['{"schemeitem_pk":"new_1","scheme_pk":21}
+            delete_json = request.POST.get('schemeitem_delete', None)
+            if delete_json:
+                delete_dict = json.loads(delete_json)
+                pk_int = int(delete_dict.get('schemeitem_pk', 0))
+                if pk_int:
+                    schemeitem = SchemeItem.objects.filter(
+                        id=pk_int,
+                        scheme__order__customer__company=request.user.company
+                    ).first()
+                    if schemeitem:
+                        # delete record when exists
+                        schemeitem.delete(request=self.request)
+                        # check if record still exist
+                        schemeitem = SchemeItem.objects.filter(
+                            id=pk_int,
+                            scheme__order__customer__company=request.user.company
+                        ).first()
+                        if schemeitem is None:
+                            update_dict['id']['deleted'] = True
+                        else:
+                            msg_err = _('This record could not be deleted.')
+                            update_dict['id']['del_err'] = msg_err
+
+# ===== Upload scehemeitem
+            row_upload_json = request.POST.get('schemeitem_upload', None)
+            if row_upload_json:
+                # schemeitem_upload: {'schemeitem_pk': '6', 'scheme_pk': 18, 'rosterdate': '2019-04-27', 'shift': 'Shift 2', 'team': 'Team B'}
+                row_upload = json.loads(row_upload_json)
+                if row_upload is not None:
+                    logger.debug('schemeitem_upload: ' + str(row_upload))
+                    # schemeitem_upload: {'pk': '12', 'parent_pk': '18', 'rosterdate': '2019-03-31T00:00:00', 'time_start_offset': '-1;3;36'}
+                    schemeitem = None
+
+# --- get scheme
+                    scheme = None
+                    scheme_pk_int = row_upload.get('parent_pk', None)
+                    if scheme_pk_int:
+                        scheme = Scheme.objects.filter(
+                            id=scheme_pk_int,
+                            order__customer__company=request.user.company
+                        ).first()
+                    logger.debug('scheme: ' + str(scheme) + ' type: ' + str(type(scheme)))
+
+                    if scheme:
+# --- check if schemeitem exists
+                        pk_str = row_upload.get('pk', None)
+                        if pk_str:
+# --- check if it is new record, get company if is existing record
+                            # new_record has pk 'new_1' etc
+                            if pk_str.isnumeric():
+                                pk_int = int(pk_str)
+                                schemeitem = SchemeItem.objects.filter(id=pk_int, scheme=scheme).first()
+                            else:
+                                # this attribute 'new': 'new_1' is necessary to lookup request row on page
+                                update_dict['id']['new'] = pk_str
+                                # update_dict: {'id': {'new': 'new_1'}, 'code': {},...
+                                logger.debug('update_dict: ' + str(update_dict))
+                                # schemeitem_upload: {'schemeitem_pk': 'new_1', 'scheme_pk': 21, 'rosterdate': '2019-04-27'}
+                                # 'shift': {}, 'time_start': {}, 'time_end': {}, 'time_duration': {},
+                                # 'break_start': {}, 'break_duration': {}, 'modified_by': {}, 'modified_at': {}}
+# ++++ save new record ++++++++++++++++++++++++++++++++++++
+
+                            logger.debug('schemeitem: ' + str(schemeitem) + ' type: ' + str(type(schemeitem)))
+
+                            if schemeitem is None:
+                                logger.debug('save new record' )
+                                schemeitem = SchemeItem(scheme=scheme)
+                                schemeitem.save(request=self.request)
+
+            # TODO change: ---  after saving new record: subtract 1 from company.balance
+                                request.user.company.balance -= 1
+                                request.user.company.save(request=self.request)
+
+# ++++ existing and new schemeitem ++++++++++++++++++++++++++++++++++++
+                            if schemeitem is not None:
+            # --- add pk to update_dict
+                                pk_int = schemeitem.pk
+                                update_dict['id']['pk'] = pk_int
+
+                                save_changes = False
+# --- save changes in other fields
+                                field = 'shift'
+                                if field in row_upload:
+                                    new_value = row_upload[field]
+                                    saved_value = getattr(schemeitem, field, None)
+                                    if new_value != saved_value:
+                                        setattr(schemeitem, field, new_value)
+                                        logger.debug('setattr ' + str(new_value))
+                                        update_dict[field]['upd'] = True
+                                        save_changes = True
+                                        logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+
+# --- save changes in field team
+                                field = 'team'
+                                if field in row_upload:
+                                    field_str = row_upload[field]
+                                    # check if team exists
+                                    team = Team.objects.filter(scheme=scheme, code__iexact=field_str).first()
+                                    logger.debug('team ' + str(team))
+
+                                    # create team if it does not exist
+                                    if team is None:
+                                        team = Team(scheme=scheme, code=field_str)
+                                        team.save(request=self.request)
+
+                                    if team:
+                                        logger.debug('setattr team' + str(team))
+                                        setattr(schemeitem, field, team)
+                                        update_dict[field]['upd'] = True
+                                        save_changes = True
+                                        logger.debug('after setattr team.pk' + str(team.pk))
+
+
+# --- save changes in date fields
+                                for field in ('rosterdate',):
+                                    if field in row_upload:
+                                        logger.debug('field ' + str(field))
+                                        new_date, msg_err = get_date_from_str(row_upload[field])
+                                        logger.debug('new_date: ' + str(new_date) + str(type(new_date)))
+                                        # check if date is valid (empty date is ok)
+                                        if msg_err is not None:
+                                            update_dict[field]['err'] = msg_err
+                                        else:
+                                            saved_date = getattr(schemeitem, field, None)
+                                            logger.debug('saved_date: ' + str(saved_date) + str(type(saved_date)))
+                                            if new_date != saved_date:
+                                                logger.debug('save date: ' + str(new_date) + str(type(new_date)))
+                                                setattr(schemeitem, field, new_date)
+                                                update_dict[field]['upd'] = True
+                                                save_changes = True
+
+# --- save changes in time fields
+                                # row_upload: {'pk': '16', 'time_start': '0;17;12'}
+                                for field in ('time_start', 'time_end', 'break_start'):
+                                    if field in row_upload:
+                                        if ';' in row_upload[field]:
+                                            logger.debug('row_upload[' + field + ']: ' + str(row_upload[field]))
+
+                                            arr = row_upload[field].split(';')
+                                            day_offset = int(arr[0])
+                                            new_hour = int(arr[1])
+                                            new_minute = int(arr[2])
+
+                                            msg_err = None
+                                            # TODO check if date is valid (empty date is ok)
+                                            if msg_err is not None:
+                                                update_dict[field]['err'] = msg_err
+                                                logger.debug('msg_err: ' + str(msg_err))
+                                            else:
+                                                # row_upload: {'pk': '26', 'time_start': '1;4;48'}
+                                                saved_datetime = getattr(schemeitem, field, None)
+                                                # saved_datetime: 2019-03-30 03:48:00+00:00
+                                                logger.debug('saved_datetime: ' + str(saved_datetime))
+                                                # get rosterdate when no saved_datetime
+                                                dt_naive = None
+                                                if saved_datetime is None:
+                                                    if schemeitem.rosterdate is not None:
+                                                        dt_naive = datetime(schemeitem.rosterdate.year,
+                                                                            schemeitem.rosterdate.month,
+                                                                            schemeitem.rosterdate.day,
+                                                                            new_hour,
+                                                                            new_minute)
+                                                else:
+                                                    saved_datetime_aware = get_datetimeaware_from_datetimeUTC(saved_datetime, TIME_ZONE)
+                                                    # saved_datetime_aware: 2019-03-30 04:48:00+01:00
+                                                    logger.debug('saved_datetime_aware: ' + str(saved_datetime_aware))
+
+                                                    offset_datetime = saved_datetime_aware + timedelta(days=day_offset)
+                                                    # offset_datetime: 2019-03-31 04:48:00+01:00
+                                                    logger.debug('offset_datetime: ' + str(offset_datetime))
+
+                                                    dt_naive = datetime(offset_datetime.year,
+                                                                        offset_datetime.month,
+                                                                        offset_datetime.day,
+                                                                        new_hour,
+                                                                        new_minute)
+                                                # dt_naive: 2019-03-31 04:48:00
+                                                logger.debug( 'dt_naive: ' + str(dt_naive))
+
+                                                # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+                                                timezone = pytz.timezone(TIME_ZONE)
+                                                # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
+                                                logger.debug( 'timezone: ' + str(timezone) + str( type(timezone)))
+
+                                                dt_localized = timezone.localize(dt_naive)
+                                                # dt_localized: 2019-03-31 04:48:00+02:00
+                                                logger.debug('dt_localized: ' + str(dt_localized))
+
+                                                utc = pytz.UTC
+                                                dt_as_utc = dt_localized.astimezone(utc)
+                                                # dt_as_utc: 2019-03-31 02:48:00+00:00
+                                                logger.debug( 'dt_as_utc: ' + str(dt_as_utc))
+
+                                                setattr(schemeitem, field, dt_as_utc)
+                                                update_dict[field]['upd'] = True
+                                                save_changes = True
+                                                schemeitem.save(request=self.request)
+                                                # datetimesaved: 2019-03-31 02:48:00+00:00
+                                                logger.debug('datetimesaved: ' + str(getattr(schemeitem, field, None)))
+# --- save changes in break_duration field
+                                for field in ('time_duration','break_duration',):
+                                    # row_upload: {'pk': '18', 'break_duration': '0.5'}
+                                    if field in row_upload:
+                                        logger.debug('row_upload[' + field + ']: ' + str(row_upload[field]))
+                                        value_str = row_upload[field]
+                                        logger.debug('value_str: <' + str(value_str) + '> type: ' + str(type(value_str)))
+                                        logger.debug([value_str])
+
+                                        # replace comma by dot
+                                        value_str = value_str.replace(',', '.')
+                                        value_str = value_str.replace(' ', '')
+                                        value_str = value_str.replace("'", "")
+                                        value = float(value_str) if value_str != '' else 0
+
+                                        # duration unit in database is hour * 100
+                                        new_value = 100 * value
+                                        logger.debug('new_value ' + str(new_value) + ' ' + str(type(new_value)))
+                                        saved_value = getattr(schemeitem, field, None)
+                                        logger.debug('saved_value[' + field + ']: ' + str(saved_value))
+                                        if new_value != saved_value:
+                                            setattr(schemeitem, field, new_value)
+                                            logger.debug('setattr ' + str(new_value))
+                                            update_dict[field]['upd'] = True
+                                            save_changes = True
+                                            logger.debug('update_dict[' + field + ']: ' + str(update_dict[field]))
+                                #TODO: change end time whem time_duration has changed
+# --- save changes in other fields
+                                for field in ('time_status', 'orderhour_status'):
+                                    if field in row_upload:
+                                        logger.debug('row_upload[' + field + ']: ' + str(row_upload[field]))
+                                        new_value = int(row_upload[field])
+                                        logger.debug('new_value ' + str(new_value))
+                                        saved_value = getattr(schemeitem, field, None)
+                                        logger.debug('saved_value ' + str(saved_value))
+                                        if new_value != saved_value:
+                                            setattr(schemeitem, field, new_value)
+                                            logger.debug('setattr ' + str(new_value))
+                                            update_dict[field]['upd'] = True
+                                            save_changes = True
+                                            logger.debug('update_dict[field] ' + str(update_dict[field]))
+
+
+# --- calculate working hours
+                                if save_changes:
+                                    logger.debug('calculate working hours')
+                                    if schemeitem.time_start and schemeitem.time_end:
+                                        # duration unit in database is hour * 100
+                                        saved_break_hours_x_100 = int(getattr(schemeitem, 'break_duration', 0))
+                                        logger.debug('saved_break_duration: ' + str(saved_break_hours_x_100) +  str(type(saved_break_hours_x_100)))
+
+                                        datediff = schemeitem.time_end - schemeitem.time_start
+                                        logger.debug('datediff: ' + str(datediff) +  str(type(datediff)))
+                                        datediff_hours_x_100 = (datediff.total_seconds() / 36)
+                                        logger.debug('datediff_hours_x_100: ' + str(datediff_hours_x_100) +  str(type(datediff_hours_x_100)))
+                                        new_time_hours_x_100 = datediff_hours_x_100 - saved_break_hours_x_100
+                                        logger.debug('new_time_hours_x_100: ' + str(new_time_hours_x_100) +  str(type(new_time_hours_x_100)))
+
+                                        saved_time_hours_x_100 = getattr(schemeitem, 'time_duration', 0)
+                                        logger.debug('saved_time_hours_x_100: ' + str(saved_time_hours_x_100) + str(
+                                            type(saved_time_hours_x_100)))
+
+                                        if new_time_hours_x_100 != saved_time_hours_x_100:
+                                            schemeitem.time_duration = new_time_hours_x_100
+                                            update_dict['time_duration']['upd'] = True
+                                            save_changes = True
+
+                                            #logger.debug('time_duration: ' + str(schemeitem.time_duration) + str(type(schemeitem.time_duration)))
+# --- save changes
+                                if save_changes:
+                                    schemeitem.save(request=self.request)
+                                    logger.debug('changes saved ')
+                                    for field in update_dict:
+                                        saved_value = None
+                                        saved_html = None
+                                        saved_pk = None
+                                        # 'upd' has always value True, or it does not exist
+                                        if 'upd' in update_dict[field]:
+                                            try:
+                                                if field == 'team':
+                                                    saved_value = schemeitem.team.code
+                                                    saved_pk = schemeitem.team.id
+                                                elif field == 'shift':
+                                                    saved_value = schemeitem.shift.code
+                                                elif field == 'time_start':
+                                                    saved_value = schemeitem.time_start_datetimelocal
+                                                    saved_html = schemeitem.time_start_DHM
+                                                elif field == 'time_end':
+                                                    saved_value = schemeitem.time_end_datetimelocal
+                                                    saved_html = schemeitem.time_end_DHM
+                                                elif field == 'break_start':
+                                                    saved_value = schemeitem.break_start_datetimelocal
+                                                    saved_html = schemeitem.break_start_DHM
+                                                elif field == 'time_duration':
+                                                    saved_value = schemeitem.time_hours
+                                                elif field == 'break_duration':
+                                                    saved_value = schemeitem.break_hours
+                                                else:
+                                                    saved_value = getattr(schemeitem, field, None)
+                                            except:
+                                                pass
+                                        if saved_value:
+                                            update_dict[field]['val'] = saved_value
+                                            if saved_html:
+                                                update_dict[field]['html'] = saved_html
+                                            if saved_pk:
+                                                update_dict[field]['pk'] = saved_pk
+
+
+        # --- remove empty attributes from update_dict
+        # cannot iterate through update_dict because it changes during iteration
+        for field in field_list:
+            if not update_dict[field]:
+                del update_dict[field]
+
+        scheme_item_update_dict = {'scheme_item_update': update_dict}
+        # update_dict = {'row_update': {'idx': {'pk': '1'}, 'code': {'status': 'upd'}, 'modified_by': {'val': 'Hans'},
+        #              'modified_at': {'val': '29 mrt 2019 10.20u.'}}}
+
+        logger.debug('scheme_item_update_dict: ')
+        logger.debug(str(scheme_item_update_dict))
+        update_dict_json = json.dumps(scheme_item_update_dict, cls=LazyEncoder)
+        logger.debug(str(update_dict_json))
+
+        return HttpResponse(update_dict_json)

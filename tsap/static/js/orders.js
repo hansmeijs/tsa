@@ -1,6 +1,12 @@
 // PR2019-02-07 deprecated: $(document).ready(function() {
 $(function() {
-console.log("Orders document.ready");
+// console.log("Orders document.ready");
+
+
+// ---  set selected menu button active
+    const cls_active = "active";
+    let btn_clicked = document.getElementById("id_hdr_ordr");
+    SetMenubuttonActive(btn_clicked);
 
 // ---  id of selecte record
     let id_row_selected = "";
@@ -9,11 +15,6 @@ console.log("Orders document.ready");
     let id_new = 0;
     let filter_name = "";
     let filter_hide_inactive = true;
-
-// ---  set selected menu button active
-    const cls_active = "active";
-    let btn_clicked = document.getElementById("id_sub_cust_list");
-    SetMenubuttonActive(btn_clicked);
 
 //}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
 // still have to try this one

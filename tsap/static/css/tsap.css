@@ -116,7 +116,7 @@ h4 h5 {
 
 .border-none {
     border: 0;
-    background-color: transparent;
+    /*background-color: transparent;*/
 }
 
 .border-invalid {
@@ -157,32 +157,3 @@ h4 h5 {
     filter: alpha(opacity=50);
     opacity: .5;
 }
-
-/* PR2019-04-13 */
-.popup_container {
-    position:relative;
-
-    z-index:99;
-    padding: 0px;
-    margin: 0px;
-}
-
-.popup_box {
-    position: absolute;
-    padding: 0px;
-    margin: 0px;
-
-    background-color: #808080; /* #e0e0e0; /* licht grijs; */
-    background-color: #ffd01c;
-
-    color: #868e96;
-    z-index: 99;
-}
-
-.popup_header {
-    display: flex;
-    align-items: flex-start; /* so the close btn always stays on the upper right corner */
-    justify-content: space-between; /* Put modal header elements (title and dismiss) on opposite ends */
-    border-bottom: 1px solid purple /*#808080; /* grijs; */
-
-  }
