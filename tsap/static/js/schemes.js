@@ -36,21 +36,28 @@ $(function() {
         let popup_box = document.querySelector(".popup_box");
         document.addEventListener('click', function (event) {
             // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
+            let close_popup = true
             // don't close popup when clicked on row cell with class input_popup
-            if (event.target.classList.contains("input_popup")) {return}
+            if (event.target.classList.contains("input_popup")) {
+                close_popup = false
             // don't close popup when clicked on popup box, except for close button
-            if (popup_box.contains(event.target)){
-                if (!event.target.classList.contains("popup_close")) {return};
+            } else if (popup_box.contains(event.target) && !event.target.classList.contains("popup_close")) {
+                close_popup = false
+            }
+            if (close_popup) {
+                // get current value of start_time / endtime from input_popup and store it in el_popup
+                // TODO: deselect selected row when clicked outside table
+                //id_row_selected = "";
+                //DeselectHighlightedRows();
+                // remove selected color from all input popups
+                popupbox_removebackground();
+                popup_box.classList.add("display_hide");
             };
-            // get current value of start_time / endtime from input_popup and store it in el_popup
-            // TODO: deselect selected row when clicked outside table
-            //id_row_selected = "";
-            //DeselectOtherHighlightedRows();
-            // remove selected color from all input popups
-            inputpopup_removebackground();
-            // If user clicks outside the element, hide it!
-            popup_box.classList.add("display_hide");
-
+            // remove highlighted row when clicked outside tabelrows
+            // skip if clicked on button delete delete_schemeitem
+            if(event.target.getAttribute("id") !== "id_btn_delete_schemeitem" && !get_tablerow_selected(event.target)) {
+                DeselectHighlightedRows();
+            }
         }, false);
 
 // ---  create EventListener for class input_text
@@ -66,15 +73,7 @@ $(function() {
             }, false )
         }
 
-// ---  create EventListener for tablerow clicked
         let tblBody = document.getElementById("id_tbody");
-        let tblrows = tblBody.getElementsByTagName('tr');
-        for (let i = 0, tblrow, len = tblrows.length; i < len; i++) {
-            tblrow = tblrows[i];
-            tblrow.addEventListener("click", function() {HandleRowClicked(tblrow);}, false )
-            //TODO test if it works on touchscreen
-            //tblrow.addEventListener("touchstart", function() {HandleRowClicked(tblrow);}, false )
-        }
 
 // ---  create EventListener for buttons
         let el_btn_add_scheme = document.getElementById("id_btn_add_scheme")
@@ -85,11 +84,11 @@ $(function() {
         el_btn_delete_scheme.addEventListener("click", HandleDeleteScheme);
         el_btn_delete_scheme.disabled = true;
 
-        let el_btn_add_schemeitem = document.getElementById("id_btn_add_shift")
+        let el_btn_add_schemeitem = document.getElementById("id_btn_add_schemeitem")
         el_btn_add_schemeitem.addEventListener("click", HandleCreateSchemeItem);
         el_btn_add_schemeitem.disabled = true;
 
-        let el_btn_delete_schemeitem = document.getElementById("id_btn_delete_shift")
+        let el_btn_delete_schemeitem = document.getElementById("id_btn_delete_schemeitem")
         el_btn_delete_schemeitem.addEventListener("click", HandleDeleteSchemeitem);
         el_btn_delete_schemeitem.disabled = true;
 
@@ -207,14 +206,14 @@ console.log("===  OpenModal  =====") ;
     }
 
 
-//=========  HandleRowClicked  ================ PR2019-03-30
-    function HandleRowClicked(tr_clicked) {
-        console.log("--------- function HandleRowClicked  --------------");
+//=========  HandleTableRowClicked  ================ PR2019-03-30
+    function HandleTableRowClicked(tr_clicked) {
+        console.log("=== HandleTableRowClicked");
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows
         id_row_selected = ""
-        DeselectOtherHighlightedRows()
+        DeselectHighlightedRows()
 
 // ---  get clicked tablerow
         if(!!tr_clicked) {
@@ -237,103 +236,51 @@ console.log("===  OpenModal  =====") ;
             }
         }
     }
-//=========  HandleRowInactive  ================ PR2019-03-17
-    function HandleRowInactive(el_changed) {
-        console.log("--------- function HandleRowInactive  --------------");
-        console.log( "el_changed: ", el_changed, typeof el_changed);
 
-// ---  get clicked tablerow
-        let tr_changed = get_tablerow_clicked(el_changed)
-        if(!!tr_changed) {
-            console.log( "tr_changed: ", tr_changed, typeof tr_changed);
-            if(tr_changed.hasAttribute("id")){
-// ---  get pk from id of tr_changed
-                // id_str: "4"
-                const id_str = tr_changed.getAttribute("id");
-                console.log( "id_str: ", id_str, typeof id_str);
+//=========  HandleDeleteSchemeitem  ================ PR2019-03-16
+    function HandleDeleteSchemeitem() {
+        //console.log("=== HandleDeleteSchemeitem");
 
-// ---  el_changed is cell 'time_status' or 'orderhour_status' of tr_changed
-                let el_value = el_changed.getAttribute("value");
-                console.log( "el_value : ", el_value, typeof el_value);
-;
-                el_value_int++;
-                if (el_value_int > 5){el_value_int = 0}
-                el_value = el_value_int.toString();
-                el_changed.setAttribute("value", el_value);
+        let tblRow = document.getElementById(id_row_selected)
+        if (!!tblRow){
 
-// update icon
-                let img_src = imgsrc_stat00
-                if (el_value_int === 5) {
-                    img_src = imgsrc_stat05
-                } else if (el_value_int === 4) {
-                    img_src = imgsrc_stat04
-                } else if (el_value_int === 3){
-                    img_src = imgsrc_stat03
-                } else if (el_value_int === 2){
-                    img_src = imgsrc_stat02
-                } else if (el_value_int === 1){
-                    img_src = imgsrc_stat01
-                }
-                el_changed.children[0].setAttribute("src", img_src);
+// ---  get pk from id of tblRow
+            const pk_str = tblRow.getAttribute("id");
 
-// upload new value icon
-                let row_upload = {"pk": id_str, 'time_status': el_value_int}
-                console.log(">>>>>>>>row_upload:", row_upload)
-                let parameters = {"schemeitem_upload": JSON.stringify (row_upload)};
-                let response = "";
+            let pk_int = parseInt(pk_str)
+
+            //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+            if (!pk_int) {
+            // row is new row and is not yet saved, , can be deleted without ajax
+                tblRow.parentNode.removeChild(tblRow);
+            } else {
+
+// ---  create param
+                let id_dict = {"pk": pk_int, "parent_pk": selected_scheme_pk, "delete": true};
+                let param = {"id": id_dict}
+                console.log( "param: ", param, typeof param);
+// delete  record
+                // make row red
+                tblRow.classList.add("tsa-tr-error");
+                let parameters = {"schemeitem_upload": JSON.stringify (param)};
+                response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_scheme_upload,
+                    url: url_schemeitem_upload,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        if ("row_update" in response) {
-                            UpdateFields(response["row_update"])
-                        }
+                        console.log (response);
+                        if ("schemeitem_update" in response){
+                            DeleteTableRow(response["schemeitem_update"])
+                        };
                     },
                     error: function (xhr, msg) {
                         alert(msg + '\n' + xhr.responseText);
                     }
                 });
-            }  //  if(tr_changed.hasAttribute("id")){
-        };  // if(!!tr_changed)
-    };
-
-//=========  HandleDeleteSchemeitem  ================ PR2019-03-16
-    function HandleDeleteSchemeitem() {
-        console.log("=========  function HandleDeleteSchemeitem =========");
-
-        let tblRow = document.getElementById(id_row_selected)
-        //console.log( "tblRow: ", tblRow, typeof tblRow);
-        if (!!tblRow){
-
-// ---  get pk from id of tblRow
-            const id_str = tblRow.getAttribute("id");
-
-
-// ---  create param
-            let param = {"schemeitem_pk": id_str, "scheme_pk": selected_scheme_pk};
-
-// delete  record
-            // make row red
-            tblRow.classList.add("tsa-tr-error");
-            let parameters = {"schemeitem_delete": JSON.stringify (param)};
-        console.log( "parameters: ", parameters, typeof parameters);
-            response = "";
-            $.ajax({
-                type: "POST",
-                url: url_schemeitem_upload,
-                data: parameters,
-                dataType:'json',
-                success: function (response) {
-                    DeleteRow(response["row_update"])
-                },
-                error: function (xhr, msg) {
-                    alert(msg + '\n' + xhr.responseText);
-                }
-            });
-
-        }
+            }; // if (!pk_int) {
+       }; // if (!!tblRow)
     }
 
 
@@ -400,18 +347,34 @@ console.log("=========  function HandleDeleteScheme =========");
 }
 
 
+//========= FillScheme  ====================================
+    function FillSchemeItemlists(schemeitem_list) {
+        // console.log( "===== FillSchemeItemlists  ========= ");
+        // console.log(schemeitem_list);
+
+        tblBody.innerText = null;
+
+        for (let i = 0, value, len = schemeitem_list.length; i < len; i++) {
+            schemeitem = schemeitem_list[i]
+            CreateTableRow(schemeitem)
+        }
+        // add empty row at the end
+        CreateTableRow()
+    }
+
+
+
 //=========  HandleCreateSchemeItem  ================ PR2019-03-16
     function HandleCreateSchemeItem() {
 console.log("=== HandleCreateSchemeItem =========");
 
 // ---  deselect all highlighted rows
         id_row_selected = ""
-        DeselectOtherHighlightedRows()
-
-
-    CreateTableRow()
+        DeselectHighlightedRows()
+        CreateTableRow()
 
 }
+
 
 
 //=========  CreateTableRow  ================ PR2019-04-27
@@ -421,7 +384,7 @@ console.log("=== HandleCreateSchemeItem =========");
 
 //--------- increase id_new
         id_new = id_new + 1
-        let id_str =  id_new.toString()
+        let pk_str =  id_new.toString()
 
 //--------- get value from  schemeitem_list item
         pk = get_obj_value_by_key (schemeitem, "pk", "")
@@ -437,15 +400,18 @@ console.log("=== HandleCreateSchemeItem =========");
         break_duration = get_obj_value_by_key (schemeitem, "break_duration", "")
 
         if(!pk){
-            pk = "new_" + id_str;
+            pk = "new_" + pk_str;
         }
 
 //--------- insert tblBody row
         let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
         tblRow.setAttribute("id", pk);
-        tblRow.setAttribute("parent_pk", scheme_pk);
+        tblRow.setAttribute("data-parent_pk", scheme_pk);
         // 00 'Date'  01 'Shift'  02 'Team'  03 'Start time'  04 'End time'  05 'Break start'  06 'Break hours'  07 'Working hours'
+
+        tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
+
 
         for (let j = 0, el_name, el_list, value, data_value; j < 8; j++) {
             //let td = document.createElement('td');          // TABLE DEFINITION.
@@ -465,7 +431,10 @@ console.log("=== HandleCreateSchemeItem =========");
                 el.setAttribute("type", "date");
                 //el.valueAsDate = new Date();
                 el.setAttribute("data-name", "rosterdate");
-                if(!!rosterdate){el.setAttribute("value", rosterdate)};
+                if(!!rosterdate){
+                    el.setAttribute("value", rosterdate);
+                    el.setAttribute("data-value", rosterdate);
+                };
 
          //TODO create bootstrap datepicker
          // https://bootstrap-datepicker.readthedocs.io/en/latest/index.html
@@ -500,7 +469,7 @@ console.log("=== HandleCreateSchemeItem =========");
                     el.setAttribute("list", "id_datalist_" + field + "s");
                     el.classList.add("input_text");
                     el.addEventListener("change", function() {UploadChanges(el);}, false )
-                } else if (j === 3 || j === 4 || j === 5 || j === 6 || j === 7) {
+                } else if ([3, 4, 5, 6, 7].indexOf( j ) > -1){
                 // add popup event handler
                     el.classList.add("input_popup");
                     el.addEventListener("click", function() {HandlePopupClicked(el);}, false )
@@ -511,15 +480,16 @@ console.log("=== HandleCreateSchemeItem =========");
                     value = get_obj_value_by_key (schemeitem, field, "")
                 } else if ([3, 4, 5, 6, 7].indexOf( j ) > -1){
                     value = get_obj_value_by_key (schemeitem, field + "_DHM", "")
-                    data_value = get_obj_value_by_key (schemeitem, field , "")
+                    data_value = get_obj_value_by_key (schemeitem, field)
                 }
                 //console.log("schemeitem value", value)
                 // value contains formatted field: time_start_DHM: "Tue 11:36 p.m."}]}
-                if(!!value){el.setAttribute("value", value)};
+                if(!!value){
+                    el.setAttribute("value", value);
+                    el.setAttribute("data-value", value);
+                };
                 // data-value contains ISO string time_start_datetimelocal: "2019-04-30T23:36:00+02:00",
                 if(!!data_value){el.setAttribute("data-value", data_value)};
-
-
                 el.setAttribute("autocomplete", "off");
                 el.setAttribute("ondragstart", "return false;");
                 el.setAttribute("ondrop", "return false;");
@@ -536,34 +506,91 @@ console.log("=== HandleCreateSchemeItem =========");
 
 //========= UploadChanges  ============= PR2019-03-03
     function UploadChanges(el_changed) {
-        console.log(">>>--------- UploadChanges  --------------");
-
-       // ---  get clicked tablerow
+        console.log("--- UploadChanges  --------------");
         let tr_changed = get_tablerow_clicked(el_changed)
         UploadTblrowChanged(tr_changed);
     }
+
 //========= UploadTblrowChanged  ============= PR2019-03-03
 // PR2019-03-17 debug: Here you have written this script on document.ready function, that's why it returns obsolete value.
 // Put this script in some event i.e click, keypress,blur,onchange etc... So that you can get the changed value.
 // An input has a value attribute that determines the initial value of the input.
 // It also has a value property that holds the current value of the input
     function UploadTblrowChanged(tr_changed) {
-        console.log("+++--------- UploadTblrowChanged  --------------");
+        console.log("--- UploadTblrowChanged");
+        //console.log(tr_changed);
 
         if(!!tr_changed) {
 // ---  get pk from id of tr_changed
-            const id_str = get_attr_from_element(tr_changed, "id")
-            if(!!id_str){
-                let row_upload = {"schemeitem_pk": id_str, "scheme_pk": selected_scheme_pk};
+            const pk_str = get_attr_from_element(tr_changed, "id")
+            const parent_pk = get_attr_from_element(tr_changed, "data-parent_pk")
+            // console.log("pk_str", pk_str, "parent_pk", parent_pk);
+            if(!!pk_str && !! parent_pk){
+                let id_dict = {}
+        //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+                let pk_int = parseInt(pk_str)
+        // if pk_int is not numeric, then row is an unsaved row with pk 'new_1'  etc
+                if (!pk_int){
+                    id_dict = {"temp_pk": pk_str, "parent_pk": selected_scheme_pk, "create": true};
+                } else {
+        // if pk_int exists: row is saved row
+                    id_dict = {"pk": pk_int, "parent_pk": selected_scheme_pk};
+                };
+                // console.log("id_dict: ", id_dict);
+
+//####### change time fields when shift has changed
+                el_input = tr_changed.cells[1].children[0];
+console.log("SHIFT??", el_input )
+                let new_value = el_input.value
+                let old_value =  el_input.getAttribute("value")
+                let datavalue =  get_attr_from_element(el_input, "data-value")
+console.log("new_value: ", new_value )
+console.log("old_value: ", old_value )
+console.log("datavalue: ", datavalue )
+                if (!!new_value && new_value !== old_value){
+                // lookup shift in shift_list
+                    shift = get_arrayRow_by_keyValue (shift_list, 'code', new_value)
+                    console.log("shift: ", shift )
+                    // {code: "dd", time_start: "2019-04-27T02:36:00+02:00", time_end: "2019-04-27T05:15:00+02:00", break_start: "2019-04-27T06:00:00+02:00"}
+                    if (!!shift){
+                        if(!!shift["time_start"]){
+                            el = tr_changed.cells[3].children[0];
+                            el.setAttribute("value", shift["time_start_DHM"]);
+                            el.setAttribute("data-value", shift["time_start"]);
+                        }
+                        if(!!shift["time_end"]){
+                            el = tr_changed.cells[4].children[0];
+                            el.setAttribute("value", shift["time_end_DHM"]);
+                            el.setAttribute("data-value", shift["time_end"]);
+                        }
+                        if(!!shift["break_start"]){
+                            el = tr_changed.cells[5].children[0];
+                            el.setAttribute("value", shift["break_start_DHM"]);
+                            el.setAttribute("data-value", shift["break_start"]);
+                        }
+                        if(!!shift["break_duration"]){
+                            el = tr_changed.cells[6].children[0];
+                            el.setAttribute("value", shift["break_duration_DHM"]);
+                            el.setAttribute("data-value", shift["break_duration"]);
+                        }
+                    }
+                }
+
+
+                let row_upload = {};
+                if (!!id_dict){row_upload["id"] = id_dict};
 
 // ---  loop through cells and input element of tr_changed
-                for (let i = 0, el_input, el_name, n_value, o_value, len = tr_changed.cells.length; i < len; i++) {
+                for (let i = 0, el_input, el_name, field_dict, len = tr_changed.cells.length; i < len; i++) {
                     // el_input is first child of td, td is cell of tr_changed
-                    if(!!tr_changed.cells[i].children[0]){
-                        el_input = tr_changed.cells[i].children[0];
+                    el_input = tr_changed.cells[i].children[0];
+                    if(!!el_input){
+                        field_dict = {};
+                        let o_value;
+                        let n_value;
                         el_name = get_attr_from_element(el_input, "data-name")
-                        if(!!el_name){
-                            if(el_input.classList.contains("input_text")){
+                        if (["rosterdate", "shift", "team", 6, 7].indexOf( el_name ) > -1){
+
                             // PR2019-03-17 debug: getAttribute("value");does not get the current value
                             // The 'value' attribute determines the initial value (el_input.getAttribute("name").
                             // The 'value' property holds the current value (el_input.value).
@@ -571,54 +598,50 @@ console.log("=== HandleCreateSchemeItem =========");
                             // use of o_value is necessary, because in new record both code and name must be uploaded,
                             // therefore only sending new value of selected input element not possible
                             // sending values of all input elements is too much
-                                n_value = "";
-                                o_value = "";
-                                if (!!el_input.value){
-                                    n_value = el_input.value;
-                                }
-                                if(el_input.hasAttribute("o_value")){
-                                    o_value = el_input.getAttribute("o_value");
-                                }
-                                // n_value is only added to dict when value has changed
-                                // n_value can be blank
 
-                                console.log( "el_name: ", el_name, " n_value: ", n_value, " o_value: ", o_value);
-                                if(n_value !== o_value){
-                                    let arrObj, arr_key = "";
-                                    switch (el_name) {
-                                    case "team":
-                                        arrObj = team_list
-                                        break;
-                                    }
-                                    // lookup team in datalist, return pk if found
-                                    if (!!arrObj) {
-                                        console.log( "arrObj: ", arrObj);
-                                        // lookup row with key 'code' with value that matches n_value
-                                        let row = get_arrayRow_by_keyValue (arrObj,  "code", n_value);
-                                        if (!!row){
-                                            console.log( "row : ", row);
-                                            row_upload[el_name + "_pk"] = row.pk;
-                                        } else {
-                                            row_upload[el_name] = n_value;
-                                        }
+                            // put value in field_dict
 
+                            if (!!el_input["value"]){
+                                n_value = el_input["value"];
+                                field_dict["value"] = n_value;
+                            }
+                            o_value = get_attr_from_element(el_input, "data-value");
+                            if (!!o_value){field_dict["o_value"] = o_value};
+
+                            // n_value is only added to dict when value has changed
+                            // n_value can be blank
+
+                            console.log( "el_name: ", el_name, " n_value: ", n_value, " o_value: ", o_value);
+                            if(n_value !== o_value){
+                                let arrObj, arr_key = "";
+                                switch (el_name) {
+                                case "team":
+                                    arrObj = team_list
+                                    break;
+                                }
+                                // lookup team in datalist, return pk if found
+                                if (!!arrObj && !! el_input.value) {
+                                    // console.log( "arrObj: ", arrObj);
+                                    // lookup row with key 'code' with value that matches el_input.value
+                                    let row = get_arrayRow_by_keyValue (arrObj,  "code", el_input.value);
+                                    if (!!row){
+                                        // console.log( "row : ", row);
+                                        field_dict["pk"] = row.pk;
                                     } else {
-                                    // otherwise: put new value in row_upload
-                                        row_upload[el_name] = n_value
-                                    } // if (!!arrObj)
-                                    console.log( "row_upload[el_name] : ", row_upload[el_name]);
-                                }
-                            }  // if(el_input.classList.contains("input_text"))
+                                        row_upload[el_name] = el_input.value;
+                                    }
+                                } // if (!!arrObj)
+                            }
+                            // console.log( "row_upload[" + el_name +"] : ", field_dict);
+                            if (!!field_dict){row_upload[el_name] = field_dict}
                         }  // if(!!el_name)
-
-
                     }  // if(!!tr_changed.cells[i].children[0])
-
                 };  //  for (let i = 0, el_input,
+                console.log ("row_upload:");
+                console.log (row_upload);
 
                 //row_upload: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
                 let parameters = {"schemeitem_upload": JSON.stringify (row_upload)};
-                console.log ("parameters", parameters);
                 response = "";
                 $.ajax({
                     type: "POST",
@@ -626,10 +649,11 @@ console.log("=== HandleCreateSchemeItem =========");
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        if ("schemeitem_update" in response) {
         console.log( "response");
         console.log( response);
-                            UpdateFields(tr_changed, response["schemeitem_update"])
+
+                        if ("schemeitem_update" in response) {
+                            UpdateTableRow(tr_changed, response["schemeitem_update"])
                         }
                     },
                     error: function (xhr, msg) {
@@ -642,27 +666,28 @@ console.log("=== HandleCreateSchemeItem =========");
     };
 // #####################################################################################
 
-//========= DeleteRow  =============
-    function DeleteRow(row_update){
-       // console.log("-------------- DeleteRow  --------------");
-        //console.log("row_update: " , row_update);
-        if (!!row_update) {
-// get id_new and id_pk from row_update["id"]
-            if ("id" in row_update){
-                const id_dict = row_update["id"]
-                //console.log("row_update: <" + row_update + ">")
+//========= DeleteTableRow  =============
+    function DeleteTableRow(schemeitem_update){
+        console.log("=== DeleteTableRo");
+        console.log("schemeitem_update: " , schemeitem_update);
+        // 'schemeitem_update': {'id': {'del_err': 'This record could not be deleted.'}}}
+        if (!!schemeitem_update) {
+// get id_new and id_pk from schemeitem_update["id"]
+            if ("id" in schemeitem_update){
+                const id_dict = schemeitem_update["id"]
                 if ("pk" in id_dict){
-                    let tblrow = document.getElementById(id_dict.pk);
+                    console.log("id_dict[pk]:" , id_dict["pk"] )
+                    let tblrow = document.getElementById(id_dict["pk"]);
+                    console.log("tblrow]: ",  tblrow )
                     if (!!tblrow){
 // --- remove deleted record from list
                         if ("deleted" in id_dict) {
                             tblrow.parentNode.removeChild(tblrow);
 // --- when err: show error message
                         } else if ("del_err" in id_dict){
-                            const id_del_err = id_dict.del_err
-                            //console.log("id_del_err:<" + id_del_err + ">")
+                            const msg_err = id_dict.del_err
                             let el_msg = document.getElementById("id_msgbox");
-                            el_msg.innerHTML = id_del_err;
+                            el_msg.innerHTML = msg_err;
                             el_msg.classList.toggle("show");
                             let elemRect = tblrow.getBoundingClientRect();
                             let msgRect = el_msg.getBoundingClientRect();
@@ -684,9 +709,9 @@ console.log("=== HandleCreateSchemeItem =========");
     }
 
 // #####################################################################################
-//========= UpdateFields  =============
-    function UpdateFields(tr_changed, row_update){
-        console.log("-------------- UpdateFields  --------------");
+//========= UpdateTableRow  =============
+    function UpdateTableRow(tr_changed, row_update){
+        console.log("--- UpdateTableRow  --------------");
         console.log("tr_changed", tr_changed);
         console.log("row_update", row_update);
 
@@ -772,7 +797,13 @@ console.log("=== HandleCreateSchemeItem =========");
 
             // --- skip field "id", is already retrieved at beginning
                     console.log("}}} row_update[" + fieldname + "]: ", row_update[fieldname] , typeof row_update[fieldname] )
-                    if( fieldname !== "id") {
+                    if( fieldname === "id") {
+                        // already handled at beginning of this function
+                    } else if ( fieldname === "team_list") {
+                        // update team_list
+                        team_list= row_update[fieldname]
+                        FillDatalist(team_list, "id_datalist_teams")
+                    } else {
                         let item_dict = row_update[fieldname];
                         console.log("item_dict ", item_dict)
 
@@ -785,8 +816,8 @@ console.log("=== HandleCreateSchemeItem =========");
                         if (!!el_input) {
                             // set value of 'value', change to date when modified_at
                             let value = "";
-                            if("val" in item_dict) {
-                                value = item_dict["val"]
+                            if("value" in item_dict) {
+                                value = item_dict["value"]
                                 if(fieldname === "modified_at") {
                                     let newdate = new Date(value);
                                     //console.log("newdate", newdate, typeof newdate);
@@ -794,6 +825,9 @@ console.log("=== HandleCreateSchemeItem =========");
                                     //console.log("new value", value, typeof value);
                                 }
                             };
+
+
+
                             let html = "";
                             if("html" in item_dict) {
                                 html = item_dict["html"]
@@ -823,19 +857,19 @@ console.log("=== HandleCreateSchemeItem =========");
 
                                 setTimeout(function (){
                                     el_input.value = value;
-                                    el_input.setAttribute("o_value", value);
+                                    el_input.setAttribute("data-value", value);
                                     el_input.classList.remove("border-invalid");
                                     el_msg.classList.toggle("show");
                                     },2000);
 
-                            } else if('upd' in item_dict){
+                            } else if('updated' in item_dict){
                                 if(el_input.classList.contains("input_popup")){
                                     el_input.innerText = html
                                     el_input.setAttribute("data-value", value)
                                     console.log("data-value ", value)
                                 } else if(el_input.classList.contains("input_text")){
                                     el_input.value = value;
-                                    el_input.setAttribute("o_value", value);
+                                    el_input.setAttribute("data-value", value);
                                 }
                                 /*
                                 // set min or max of other date field
@@ -927,6 +961,9 @@ console.log("=== HandleCreateSchemeItem =========");
         let scheme_pk = parseInt(el_scheme.value);
         if(!!scheme_pk){
 
+            shift_list = [];
+            team_list = [];
+            schemeitem_list = [];
 
             tblBody.innerText = null;
 
@@ -945,8 +982,6 @@ console.log("=== HandleCreateSchemeItem =========");
                         shift_list= response["shift_list"]
                         console.log( "shift_list", shift_list);
                         FillDatalist(shift_list, "id_datalist_shifts")}
-
-
                     if ("scheme" in response) {
                         FillScheme(response["scheme"])}
                     if ("team_list" in response) {
@@ -955,6 +990,9 @@ console.log("=== HandleCreateSchemeItem =========");
                     if ("schemeitem_list" in response) {
                         schemeitem_list= response["schemeitem_list"]
                         FillSchemeItemlists(schemeitem_list)}
+                    // always fill table, last row is empty
+                    FillSchemeItemlists(schemeitem_list)
+
                 },
                 error: function (xhr, msg) {
                     alert(msg + '\n' + xhr.responseText);
@@ -965,16 +1003,15 @@ console.log("=== HandleCreateSchemeItem =========");
 
 //========= FillScheme  ====================================
     function FillScheme(scheme_dict) {
-        console.log( "===== FillScheme  ========= ");
-        console.log( scheme_dict);
+        //console.log( "===== FillScheme  ========= ");
+        //console.log( scheme_dict);
         // {pk: 4, code: "Nog een test", cycle: 1, weekend: 0, publicholiday: 0, …}
         selected_scheme_pk = 0;
         if ("pk" in scheme_dict) {
             selected_scheme_pk =  scheme_dict["pk"];
-            console.log( "selected_scheme_pk", selected_scheme_pk);
+            //console.log( "selected_scheme_pk", selected_scheme_pk);
 
             document.getElementById("id_scheme").value = selected_scheme_pk;
-
         };
 
         el_btn_add_schemeitem.disabled = (!selected_scheme_pk);
@@ -983,26 +1020,7 @@ console.log("=== HandleCreateSchemeItem =========");
         if ("cycle" in scheme_dict) { document.getElementById("id_cycle").value = scheme_dict["cycle"]};
         if ("weekend" in scheme_dict) { document.getElementById("id_weekend").value = scheme_dict["weekend"].toString()};
         if ("publicholiday" in scheme_dict) { document.getElementById("id_publicholiday").value = scheme_dict["publicholiday"].toString()};
-
     }
-
-//========= FillScheme  ====================================
-    function FillSchemeItemlists(schemeitem_list) {
-        console.log( "===== FillSchemeItemlists  ========= ");
-        console.log(schemeitem_list);
-
-        tblBody.innerText = null;
-
-        for (let i = 0, value, len = schemeitem_list.length; i < len; i++) {
-            schemeitem = schemeitem_list[i]
-            CreateTableRow(schemeitem)
-        }
-
-
-
-
-    }
-
 
 //=========  HandleFilterInactive  ================ PR2019-03-23
     function HandleFilterInactive() {
@@ -1090,7 +1108,7 @@ console.log("respnse", respnse);
                 }
                 if ("schemes" in response) {
                     scheme_list= response["schemes"]
-                    FillDatalist(shift_list, "id_datalist_schemes")
+                    FillDatalist(scheme_list, "id_datalist_schemes")
                 }
             },
             error: function (xhr, msg) {
@@ -1181,10 +1199,10 @@ console.log("respnse", respnse);
 
 
 //========= FillSelectOptions  ====================================
-    function FillSelectOptions(el_select, option_list, select_text, parent_id_str) {
-     console.log( "===== FillSelectOptions  ========= ");
-     console.log( "el_select ", el_select);
-     console.log( "option_list ", option_list);
+    function FillSelectOptions(el_select, option_list, select_text, parent_pk_str) {
+        // console.log( "===== FillSelectOptions  ========= ");
+        // console.log( "el_select ", el_select);
+        // console.log( "option_list ", option_list);
 
         let curOption;
 // ---  fill options of select box
@@ -1193,15 +1211,15 @@ console.log("respnse", respnse);
         let parent_id = 0
         let row_count = 0
 
-        if (!!parent_id_str){parent_id = parseInt(parent_id_str)};
-     console.log( "parent_id ", parent_id, typeof parent_id );
+        if (!!parent_pk_str){parent_id = parseInt(parent_pk_str)};
+        // console.log( "parent_id ", parent_id, typeof parent_id );
 
         for (let i = 0, id, value, addrow, len = option_list.length; i < len; i++) {
 
         // skip if parent_id does not match,
             addrow = false;
-            if (!!parent_id_str){
-                parent_id = parseInt(parent_id_str);
+            if (!!parent_pk_str){
+                parent_id = parseInt(parent_pk_str);
                 // addrow when parent_id of order marches the id of customer
                 addrow = (!!option_list[i]["parent_id"] && option_list[i]["parent_id"] === parent_id)
             } else {
@@ -1244,15 +1262,15 @@ console.log("respnse", respnse);
         let parent_id = 0
         let row_count = 0
 
-        if (!!parent_id_str){parent_id = parseInt(parent_id_str)};
+        if (!!parent_pk_str){parent_id = parseInt(parent_pk_str)};
          console.log( "parent_id ", parent_id, typeof parent_id );
 
         for (let i = 0, id, value, addrow, len = option_list.length; i < len; i++) {
 
         // skip if parent_id does not match,
             addrow = false;
-            if (!!parent_id_str){
-                parent_id = parseInt(parent_id_str);
+            if (!!parent_pk_str){
+                parent_id = parseInt(parent_pk_str);
                 // addrow when parent_id of order marches the id of customer
                 addrow = (!!option_list[i]["parent_id"] && option_list[i]["parent_id"] === parent_id)
             } else {
@@ -1331,14 +1349,16 @@ console.log("respnse", respnse);
     }; // function SetHideRow
 
 
-//=========  HandleRowClicked  ================ PR2019-04-01
-    function DeselectOtherHighlightedRows() {
-//console.log("=========  function DeselectOtherHighlightedRows =========");
+//=========  DeselectHighlightedRows  ================ PR2019-04-30
+    function DeselectHighlightedRows() {
+//console.log("=========  DeselectHighlightedRows =========");
         let tblrows = document.getElementsByClassName("tsa-tr-highlighted");
         for (let i = 0, len = tblrows.length; i < len; i++) {
-            if (tblrows[i].id !== id_row_selected){
-                tblrows[i].classList.remove("tsa-tr-highlighted")
-            }
+            tblrows[i].classList.remove("tsa-tr-highlighted")
+        }
+        tblrows = document.getElementsByClassName("tsa-tr-error");
+        for (let i = 0, len = tblrows.length; i < len; i++) {
+            tblrows[i].classList.remove("tsa-tr-error")
         }
     }
 
@@ -1380,7 +1400,7 @@ $(document).mouseup(function (e) {
 */
 //========= HandlePopupClicked  ====================================
     function HandlePopupClicked(input_popup) {
-        console.log("===  HandlePopupClicked  =====") ;
+        //console.log("===  HandlePopupClicked  =====") ;
 
 // ---  set references to elements
         let el_popup = document.getElementById("id_popup")
@@ -1397,7 +1417,7 @@ $(document).mouseup(function (e) {
 
 // ---  get pk parent_pk and rosterdate from id of input_popup, set as attribute in el_popup
         let dict = get_tablerow_id(input_popup)
-        el_popup.setAttribute("data-pk", dict["id"])
+        el_popup.setAttribute("data-pk", dict["pk"])
         el_popup.setAttribute("data-parent_pk", dict["parent_pk"])
 
 // put current value of start_time / endtime in el_popup
@@ -1496,7 +1516,7 @@ $(document).mouseup(function (e) {
 // ---  change background of input_popup
         // first remove selected color from all imput popups
         elements = document.getElementsByClassName("input_popup");
-        inputpopup_removebackground();
+        popupbox_removebackground();
         input_popup.classList.add("pop_background");
 
 // ---  show el_popup
@@ -1510,16 +1530,17 @@ $(document).mouseup(function (e) {
 
 //=========  HandlePopupSave  ================ PR2019-04-14
     function HandlePopupSave() {
-console.log("=========  function HandlePopupSave =========");
+console.log("===  function HandlePopupSave =========");
 
         let el_popup = document.getElementById("id_popup")
+
 // ---  get pk_str from id of el_popup
-        let id_str = el_popup.getAttribute("data-pk")// pk of record  of element clicked
+        let pk_str = el_popup.getAttribute("data-pk")// pk of record  of element clicked
         let parent_pk = el_popup.getAttribute("data-parent_pk")
         let name_str = el_popup.getAttribute("data-name") // nanme of element clicked
         let saved_time_str = el_popup.getAttribute("data-value") // value of element clicked "2019-03-30T19:00:00"
 
-        console.log ("id_str",id_str)
+        console.log ("pk_str", pk_str)
         console.log ("parent_pk",parent_pk)
         console.log ("name_str",name_str)
         console.log ("saved_time_str",saved_time_str)
@@ -1542,8 +1563,10 @@ console.log("=========  function HandlePopupSave =========");
 
 // create new_datetime array
         let new_datetime = new_day_offset + ";" + new_hours + ";" + new_minutes
-        let tr_selected = document.getElementById(id_str)
-        let row_upload = {"pk": id_str, "parent_pk": parent_pk}
+        let tr_selected = document.getElementById(pk_str)
+        console.log ("tr_selected", tr_selected);
+
+        let row_upload = {"pk": pk_str, "parent_pk": parent_pk}
         row_upload[name_str] = new_datetime;
         console.log ("schemeitem_upload", row_upload);
 
@@ -1556,8 +1579,10 @@ console.log("=========  function HandlePopupSave =========");
             dataType:'json',
             success: function (response) {
         console.log ("response", response);
-                if ("row_update" in response) {
-                    UpdateFields(tr_selected, response["row_update"])
+
+        console.log ("tr_selected", tr_selected);
+                if ("schemeitem_update" in response) {
+                    UpdateTableRow(tr_selected, response["schemeitem_update"])
                 }
             },
             error: function (xhr, msg) {
@@ -1565,14 +1590,14 @@ console.log("=========  function HandlePopupSave =========");
             }
         });
 
-        inputpopup_removebackground();
+        popupbox_removebackground();
         popup_box.classList.add("display_hide");
 
     }  // HandlePopupSave
 
 
 //========= function pop_background_remove  ====================================
-    function inputpopup_removebackground(){
+    function popupbox_removebackground(){
         // remove selected color from all input popups
         let elements = document.getElementsByClassName("input_popup");
         for (let i = 0, len = elements.length; i < len; i++) {

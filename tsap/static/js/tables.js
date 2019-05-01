@@ -293,7 +293,6 @@ console.log("=========   handle_table_row_clicked   ======================") ;
 
 //========= get_tablerow_selected  =============
     function get_tablerow_selected(el_selected){
-        console.log("=========  get_tablerow_selected =========");
         // PR2019-04-16 function 'bubbles up' till tablerow element is found
         // currentTarget refers to the element to which the event handler has been attached
         // event.target identifies the element on which the event occurred.
@@ -317,18 +316,17 @@ console.log("=========   handle_table_row_clicked   ======================") ;
         return tr_selected;
     };
 
-
-
-//========= get_tablerow_id  ============= PR2019-04-14
+//========= get_tablerow_id  ============= PR2019-04-28
     function get_tablerow_id(el_clicked){
         let dict = {};
         let tr_clicked = get_tablerow_clicked(el_clicked)
         if (!!tr_clicked){
             if (tr_clicked.hasAttribute("id")){
-                dict["id"] = tr_clicked.getAttribute("id")
+                dict["pk"] = tr_clicked.getAttribute("id")
             }
-            if (tr_clicked.hasAttribute("parent_pk")){
-                dict["parent_pk"] = tr_clicked.getAttribute("parent_pk")
+
+            if (tr_clicked.hasAttribute("data-parent_pk")){
+                dict["parent_pk"] = tr_clicked.getAttribute("data-parent_pk")
             }
 
             let el_rosterdate = tr_clicked.querySelector("[data-name='rosterdate']");

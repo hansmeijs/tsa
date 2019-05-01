@@ -51,13 +51,16 @@
         return value;
     };
 
-//========= function get_arrayRow_by_keyValue  ====================================
+//========= get_arrayRow_by_keyValue  ====================================
     function get_arrayRow_by_keyValue (objArray, arrKey, keyValue) {
         // Function returns row of array that contains Value in objKey PR2019-01-05
         // stored_columns[3]: {awpCol: "lastname", caption: "Last name", excCol: "ANAAM" }
         // excel_columns[0]:    {excCol: "ANAAM", awpCol: "lastname", awpCaption: "Achternaam"}
-
-        // used by import, review PR2019-04-04
+console.log("== get_arrayRow_by_keyValue  ===")
+console.log("objArray: ", objArray)
+console.log("arrKey: ", arrKey)
+console.log("keyValue: ", keyValue)
+        // used by import, review scheme PR2019-04-04
         let row;
         if (!!arrKey && !!keyValue){
             for (let i = 0 ; i < objArray.length; i++) {

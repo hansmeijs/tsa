@@ -11,11 +11,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_date_from_str(date_str):  # PR2019-03-08
+def get_date_from_str(date_str, blank_not_allowed):  # PR2019-04-28
     #logger.debug('............. get_date_from_str: ' + str(date_str))
+    # function retrieves date from string format " yyyy-mm-dd" or  " yyyy/mm/dd"
     dte = None
     msg_txt = None
-    if date_str:
+    if not date_str:
+        if blank_not_allowed:
+            msg_txt = _("Date cannot be blank.")
+    else:
         try:
             date_list = []
             list_ok = False
@@ -37,7 +41,6 @@ def get_date_from_str(date_str):  # PR2019-03-08
                                 day_int = int(date_list[2])
                                 #logger.debug('day_int: ' + str(day_int) + str(type(day_int)))
                                 dte = date(year_int, month_int, day_int)
-
                     #logger.debug('dte: ' + str(dte) + str(type(dte)))
         except:
             msg_txt = "'" + date_str + "'" + _("is not a valid date.")

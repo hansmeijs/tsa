@@ -74,6 +74,9 @@
 
 {% block content %}
     {% if user.is_authenticated %}
+        <div class="popup display_hide" >
+            <span class="popuptext" id="id_msgbox"></span>
+        </div>
 
         <div class="content_header">
             <div class="content_subheader_left">
@@ -131,8 +134,8 @@
                 placeholder="{% trans 'filter...' %}">
             </div>
             <div class="content_subheader_right">
-                <button id="id_btn_add_shift" class="btn btn-add">{% trans 'Add shift' %}</button>
-                <button id="id_btn_delete_shift" class="btn btn-add">{% trans 'Delete shift' %}</button>
+                <button id="id_btn_add_schemeitem" class="btn btn-add">{% trans 'Add shift' %}</button>
+                <button id="id_btn_delete_schemeitem" class="btn btn-add">{% trans 'Delete shift' %}</button>
             </div>
         </div>
         <div class="content_body">

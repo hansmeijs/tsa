@@ -207,7 +207,7 @@ class SchemeItem(TsaBaseModel):
     datelast = None
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
-    shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH)
+    shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     time_start = DateTimeField(db_index=True, null=True, blank=True)
     time_end = DateTimeField(db_index=True, null=True, blank=True)
     time_duration = IntegerField(default=0)  # unit is hour * 100
@@ -246,13 +246,16 @@ class SchemeItem(TsaBaseModel):
 
     @property
     def time_hours(self): # PR2019-04-28
-        # minutes: 1
-        # hours: 1/60 = 0.1667
-        # 100* hours = 16.67
-        # + 0.5: 17.17
-        # int: 17
-        # /100: 0.17
-        value = self.time_duration / 100
+        # duration unit is minutes
+        value = self.time_duration / 60
+        if not value:  # i.e. if value == 0
+            value = ''
+        return value
+
+    @property
+    def break_hours(self): # PR2019-04-28
+        # duration unit is minutes
+        value = self.break_duration / 60
         if not value:  # i.e. if value == 0
             value = ''
         return value
@@ -470,20 +473,16 @@ class Emplhour(TsaBaseModel):
 
     @property
     def time_hours(self):
-        # minutes: 1
-        # hours: 1/60 = 0.1667
-        # 100* hours = 16.67
-        # + 0.5: 17.17
-        # int: 17
-        # /100: 0.17
-        value = self.time_duration / 100
+        # duration unit is minutes
+        value = self.time_duration / 60
         if not value:  # i.e. if value == 0
             value = ''
         return value
 
     @property
     def break_hours(self):
-        value = self.break_duration / 100
+        # duration unit is minutes
+        value = self.break_duration / 60
         if not value:  # i.e. if value == 0
             value = ''
         return value

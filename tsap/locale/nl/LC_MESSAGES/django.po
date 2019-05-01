@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-04-17 21:42-0400\n"
+"POT-Creation-Date: 2019-05-01 07:40-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -137,16 +137,16 @@ msgstr ""
 msgid "Student subjects"
 msgstr ""
 
-#: .\companies\forms.py:56 .\templates\companies\company_list.html:26
-#: .\templates\customers\customers.html:55 .\templates\customers\orders.html:52
-#: .\templates\employees\employees.html:47
+#: .\companies\forms.py:56 .\templates\companies\company_list.html:24
+#: .\templates\customers\customers.html:52 .\templates\customers\orders.html:49
+#: .\templates\employees\employees.html:44
 msgid "Start date"
 msgstr "Begindatum"
 
 #: .\companies\forms.py:65 .\customers\forms.py:14 .\employees\forms.py:15
-#: .\employees\forms.py:31 .\templates\companies\company_list.html:24
-#: .\templates\customers\customers.html:49
-#: .\templates\employees\employees.html:41
+#: .\employees\forms.py:31 .\templates\companies\company_list.html:22
+#: .\templates\customers\customers.html:46
+#: .\templates\employees\employees.html:38
 msgid "Code"
 msgstr ""
 
@@ -176,11 +176,11 @@ msgstr "Niet aktief"
 msgid "last date"
 msgstr "Einddatum"
 
-#: .\customers\views.py:168 .\customers\views.py:397 .\planning\views.py:144
+#: .\customers\views.py:168 .\customers\views.py:397 .\planning\views.py:143
 msgid "This record could not be deleted."
 msgstr "Dit record kon niet worden gewist."
 
-#: .\employees\forms.py:16 .\templates\employees\employees.html:42
+#: .\employees\forms.py:16 .\templates\employees\employees.html:39
 msgid "Last name"
 msgstr "Achternaam"
 
@@ -203,6 +203,10 @@ msgstr "Werknemer niet gevonden"
 #: .\employees\views.py:693
 msgid "An error occurred. The employee data is not saved."
 msgstr "Er is een fout opgetreden. De gegevens zijn niet opgeslagen."
+
+#: .\planning\views.py:811
+msgid "This shift could not be deleted."
+msgstr "Deze dienst kon niet worden gewist."
 
 #: .\templates\accounts\TODOuser_confirm_delete.html:9
 #: .\templates\accounts\password_change.html:9
@@ -238,14 +242,16 @@ msgstr "Nee, annuleer"
 #: .\templates\accounts\user_set_password.html:18
 #: .\templates\accounts\users.html:39 .\templates\companies\company_add.html:20
 #: .\templates\companies\company_add.html:24
-#: .\templates\companies\company_list.html:64
+#: .\templates\companies\company_list.html:62
 #: .\templates\customers\customer_add.html:20
 #: .\templates\customers\customer_add.html:24
-#: .\templates\customers\customers.html:177
-#: .\templates\customers\orders.html:169
+#: .\templates\customers\customers.html:174
+#: .\templates\customers\orders.html:166
 #: .\templates\employees\emplhours.html:65
-#: .\templates\employees\emplhours.html:275
-#: .\templates\employees\employees.html:175
+#: .\templates\employees\emplhours.html:260
+#: .\templates\employees\employees.html:172
+#: .\templates\planning\schemes.html:66 .\templates\planning\schemes.html:170
+#: .\templates\planning\schemes.html:318
 msgid "Cancel"
 msgstr "Annuleren"
 
@@ -489,8 +495,8 @@ msgstr ""
 msgid "Please enter a password to finish the registration."
 msgstr "Vul een wachtwoord in om de registratie af te ronden"
 
-#: .\templates\accounts\users.html:14 .\templates\customers\customers.html:52
-#: .\templates\employees\employees.html:45
+#: .\templates\accounts\users.html:14 .\templates\customers\customers.html:49
+#: .\templates\employees\employees.html:42
 msgid "Email"
 msgstr "E-mail"
 
@@ -503,54 +509,55 @@ msgid "Permissions"
 msgstr "Permissies"
 
 #: .\templates\companies\company_add.html:7
-#: .\templates\companies\company_list.html:18
+#: .\templates\companies\company_list.html:16
 #: .\templates\includes\header.html:101
 msgid "Companies"
 msgstr "Bedrijven"
 
 #: .\templates\companies\company_add.html:8
 #: .\templates\companies\company_add.html:17
-#: .\templates\companies\company_list.html:15
+#: .\templates\companies\company_list.html:13
 msgid "Add company"
 msgstr "Bedrijf toevoegen"
 
 #: .\templates\companies\company_add.html:19
 #: .\templates\customers\customer_add.html:19
 #: .\templates\employees\emplhours.html:66
+#: .\templates\planning\schemes.html:171
 msgid "Save"
 msgstr "Opslaan"
 
-#: .\templates\companies\company_list.html:25
+#: .\templates\companies\company_list.html:23
 msgid "Company name"
 msgstr "Bedrijfsnaam"
 
-#: .\templates\companies\company_list.html:27
-#: .\templates\customers\customers.html:56 .\templates\customers\orders.html:53
+#: .\templates\companies\company_list.html:25
+#: .\templates\customers\customers.html:53 .\templates\customers\orders.html:50
 msgid "End date"
 msgstr "Einddatum"
 
-#: .\templates\companies\company_list.html:28
+#: .\templates\companies\company_list.html:26
 msgid "Balance"
 msgstr "Saldo"
 
-#: .\templates\companies\company_list.html:29
+#: .\templates\companies\company_list.html:27
 msgid "Time zone"
 msgstr "Tijdzone"
 
-#: .\templates\companies\company_list.html:30
-#: .\templates\customers\customers.html:57 .\templates\customers\orders.html:54
-#: .\templates\employees\employees.html:48
+#: .\templates\companies\company_list.html:28
+#: .\templates\customers\customers.html:54 .\templates\customers\orders.html:51
+#: .\templates\employees\employees.html:45
 msgid "Modified by"
 msgstr "Gewijzigd door"
 
-#: .\templates\companies\company_list.html:31
-#: .\templates\customers\customers.html:58 .\templates\customers\orders.html:55
-#: .\templates\employees\employees.html:49
+#: .\templates\companies\company_list.html:29
+#: .\templates\customers\customers.html:55 .\templates\customers\orders.html:52
+#: .\templates\employees\employees.html:46
 msgid "Modified at"
 msgstr "Gewijzigd op"
 
 #: .\templates\customers\customer_add.html:7
-#: .\templates\customers\customers.html:25 .\templates\includes\header.html:102
+#: .\templates\customers\customers.html:22 .\templates\includes\header.html:102
 msgid "Customers"
 msgstr "Klanten"
 
@@ -562,40 +569,43 @@ msgstr "Nieuw"
 msgid "New customer"
 msgstr "Nieuwe klant"
 
-#: .\templates\customers\customers.html:33 .\templates\customers\orders.html:33
+#: .\templates\customers\customers.html:30 .\templates\customers\orders.html:30
 #: .\templates\employees\emplhours.html:34
-#: .\templates\employees\employees.html:28
+#: .\templates\employees\employees.html:25
+#: .\templates\planning\schemes.html:134
 msgid "filter..."
 msgstr ""
 
-#: .\templates\customers\customers.html:36
+#: .\templates\customers\customers.html:33
 msgid "Add customer"
 msgstr "Nieuwe klant"
 
-#: .\templates\customers\customers.html:37
+#: .\templates\customers\customers.html:34
 msgid "Delete customer"
 msgstr "Klant verwijderen"
 
-#: .\templates\customers\customers.html:50
+#: .\templates\customers\customers.html:47
 msgid "Customer name"
 msgstr "Naam klant"
 
-#: .\templates\customers\customers.html:53
-#: .\templates\employees\employees.html:46
+#: .\templates\customers\customers.html:50
+#: .\templates\employees\employees.html:43
 msgid "Telephone"
 msgstr "Telefoon"
 
-#: .\templates\customers\customers.html:172
-#: .\templates\customers\orders.html:162
-#: .\templates\employees\emplhours.html:263
-#: .\templates\employees\employees.html:170
+#: .\templates\customers\customers.html:169
+#: .\templates\customers\orders.html:159
+#: .\templates\employees\emplhours.html:249
+#: .\templates\employees\employees.html:167
+#: .\templates\planning\schemes.html:301
 msgid "An error occurred."
 msgstr "Er is een fout opgetreden"
 
-#: .\templates\customers\customers.html:176
-#: .\templates\customers\orders.html:168
-#: .\templates\employees\emplhours.html:274
-#: .\templates\employees\employees.html:174
+#: .\templates\customers\customers.html:173
+#: .\templates\customers\orders.html:165
+#: .\templates\employees\emplhours.html:259
+#: .\templates\employees\employees.html:171
+#: .\templates\planning\schemes.html:317
 msgid "Error"
 msgstr "Fout"
 
@@ -633,27 +643,27 @@ msgstr "Je hebt geen permissie om deze pagina te bekijken."
 msgid "You must be logged in to view this page"
 msgstr "Je moet ingelogd zijn om deze pagina te bekijken."
 
-#: .\templates\customers\orders.html:25 .\templates\includes\header.html:103
+#: .\templates\customers\orders.html:22 .\templates\includes\header.html:103
 msgid "Orders"
 msgstr "Opdrachten"
 
-#: .\templates\customers\orders.html:36
+#: .\templates\customers\orders.html:33
 msgid "Add order"
 msgstr "Opdracht toevoegen"
 
-#: .\templates\customers\orders.html:37
+#: .\templates\customers\orders.html:34
 msgid "Delete order"
 msgstr "Opdracht verwijderen"
 
-#: .\templates\customers\orders.html:49
+#: .\templates\customers\orders.html:46 .\templates\planning\schemes.html:84
 msgid "Customer"
 msgstr "Klant"
 
-#: .\templates\customers\orders.html:50
+#: .\templates\customers\orders.html:47
 msgid "Order code"
 msgstr "Opdracht code"
 
-#: .\templates\customers\orders.html:51
+#: .\templates\customers\orders.html:48
 msgid "Order name"
 msgstr "Opdracht naam"
 
@@ -662,71 +672,85 @@ msgid "Review shifts"
 msgstr "Diensten controleren"
 
 #: .\templates\employees\emplhours.html:37
+#: .\templates\planning\schemes.html:137
 msgid "Add shift"
 msgstr "Dienst toevoegen"
 
 #: .\templates\employees\emplhours.html:38
+#: .\templates\planning\schemes.html:138
 msgid "Delete shift"
 msgstr "Dienst verwijderen"
 
 #: .\templates\employees\emplhours.html:49
+#: .\templates\planning\schemes.html:154
 msgid "Day"
 msgstr "Dag"
 
 #: .\templates\employees\emplhours.html:50
+#: .\templates\planning\schemes.html:155
 msgid "Hour"
 msgstr "Uur"
 
 #: .\templates\employees\emplhours.html:51
+#: .\templates\planning\schemes.html:156
 msgid "Minutes"
 msgstr "Minuten"
 
 #: .\templates\employees\emplhours.html:52
+#: .\templates\planning\schemes.html:157
 msgid "am/pm"
 msgstr ""
 
-#: .\templates\employees\emplhours.html:78
+#: .\templates\employees\emplhours.html:77
+#: .\templates\planning\schemes.html:182
 msgid "Date"
 msgstr "Datum"
 
-#: .\templates\employees\emplhours.html:79
+#: .\templates\employees\emplhours.html:78 .\templates\planning\schemes.html:90
 msgid "Order"
 msgstr "Opdracht"
 
-#: .\templates\employees\emplhours.html:80 .\tsap\constants.py:18
+#: .\templates\employees\emplhours.html:79 .\tsap\constants.py:18
 #: .\tsap\constants.py:24
 msgid "Employee"
 msgstr "Werknemer"
 
-#: .\templates\employees\emplhours.html:81
+#: .\templates\employees\emplhours.html:80
+#: .\templates\planning\schemes.html:183
 msgid "Shift"
 msgstr "Dienst"
 
-#: .\templates\employees\emplhours.html:82
+#: .\templates\employees\emplhours.html:81
+#: .\templates\planning\schemes.html:185
 msgid "Start time"
 msgstr "Begintijd"
 
-#: .\templates\employees\emplhours.html:83
+#: .\templates\employees\emplhours.html:82
+#: .\templates\planning\schemes.html:186
 msgid "End time"
 msgstr "Eindtijd"
 
-#: .\templates\employees\emplhours.html:84
+#: .\templates\employees\emplhours.html:83
+#: .\templates\planning\schemes.html:188
 msgid "Break hours"
 msgstr "Pauze uren"
 
-#: .\templates\employees\emplhours.html:85
+#: .\templates\employees\emplhours.html:84
+#: .\templates\planning\schemes.html:189
 msgid "Working hours"
 msgstr "Werkuren"
 
-#: .\templates\employees\emplhours.html:87
+#: .\templates\employees\emplhours.html:86
 msgid "Billing hours"
 msgstr "Factuur-uren"
 
-#: .\templates\employees\emplhours.html:264
+#: .\templates\employees\emplhours.html:250
+#: .\templates\planning\schemes.html:305
 msgid "Do you want to delete the shift of"
 msgstr "Wilt u de dienst verwijderen van"
 
-#: .\templates\employees\emplhours.html:265
+#: .\templates\employees\emplhours.html:251
+#: .\templates\planning\schemes.html:306
 msgid "Do you want to delete this shift?"
 msgstr "Wilt u deze dienst verwijderen?"
 
@@ -734,20 +758,20 @@ msgstr "Wilt u deze dienst verwijderen?"
 msgid "Select employee file"
 msgstr "Selecteer werknemer bestand"
 
-#: .\templates\employees\employees.html:25 .\templates\includes\header.html:104
-#: .\templates\includes\header.html:116
+#: .\templates\employees\employees.html:22 .\templates\includes\header.html:105
+#: .\templates\includes\header.html:117
 msgid "Employees"
 msgstr "Werknemers"
 
-#: .\templates\employees\employees.html:43
+#: .\templates\employees\employees.html:40
 msgid "First name"
 msgstr "Voornaam"
 
-#: .\templates\employees\employees.html:44
+#: .\templates\employees\employees.html:41
 msgid "Prefix"
 msgstr "Tussenvoegsel"
 
-#: .\templates\employees\employees.html:160
+#: .\templates\employees\employees.html:157
 msgid "Add employee"
 msgstr "Werknemer toevoegen"
 
@@ -775,40 +799,105 @@ msgstr "Nederlands"
 msgid "Log out"
 msgstr "Uitloggen"
 
-#: .\templates\includes\header.html:105
+#: .\templates\includes\header.html:104
+msgid "Schemes"
+msgstr "Schemas"
+
+#: .\templates\includes\header.html:106
 msgid "Roster"
 msgstr "Rooster"
 
-#: .\templates\includes\header.html:106
+#: .\templates\includes\header.html:107
 msgid "Planning"
 msgstr ""
 
-#: .\templates\includes\header.html:107
+#: .\templates\includes\header.html:108
 msgid "Review"
 msgstr "Controleren"
 
-#: .\templates\includes\header.html:117
+#: .\templates\includes\header.html:118
 msgid "Import employees"
 msgstr "Werknemers importeren"
+
+#: .\templates\planning\schemes.html:22 .\templates\planning\schemes.html:121
+msgid "Add scheme"
+msgstr "Schema toevoegen"
+
+#: .\templates\planning\schemes.html:33
+msgid "or copy existing scheme"
+msgstr "of kopieer een bestaand schema"
+
+#: .\templates\planning\schemes.html:41
+msgid "Scheme name"
+msgstr "Naam schema"
+
+#: .\templates\planning\schemes.html:47 .\templates\planning\schemes.html:48
+#: .\templates\planning\schemes.html:105 .\templates\planning\schemes.html:106
+msgid "Cycle length"
+msgstr "Cyclus lengte"
+
+#: .\templates\planning\schemes.html:51 .\templates\planning\schemes.html:109
+msgid "Weekends"
+msgstr "Weekeinde"
+
+#: .\templates\planning\schemes.html:55 .\templates\planning\schemes.html:113
+msgid "Public holidays"
+msgstr "Feestdagen"
+
+#: .\templates\planning\schemes.html:67
+msgid "Save scheme"
+msgstr "Schema opslaan"
+
+#: .\templates\planning\schemes.html:85 .\templates\planning\schemes.html:302
+msgid "Select customer"
+msgstr "Selecteer klant"
+
+#: .\templates\planning\schemes.html:101
+msgid "Scheme"
+msgstr "Schema"
+
+#: .\templates\planning\schemes.html:122
+msgid "Delete scheme"
+msgstr "Schema verwijderen"
+
+#: .\templates\planning\schemes.html:184
+msgid "Team"
+msgstr "Ploeg"
+
+#: .\templates\planning\schemes.html:187
+msgid "Break start"
+msgstr "Begin pauze"
+
+#: .\templates\planning\schemes.html:303
+msgid "Select order"
+msgstr "Selecteer opdracht"
+
+#: .\templates\planning\schemes.html:304
+msgid "Select scheme"
+msgstr "Selecteer schema"
 
 #: .\tsap\authentication.py:27
 msgid "You are not connected to a company. You cannot view this page."
 msgstr ""
 "Je bent niet verbonden aan een bedrijf, Je kunt deze pagina niet bekijken."
 
-#: .\tsap\constants.py:75
+#: .\tsap\constants.py:74
 msgid "M"
 msgstr ""
 
-#: .\tsap\constants.py:76
+#: .\tsap\constants.py:75
 msgid "V"
 msgstr "F"
 
-#: .\tsap\functions.py:43
+#: .\tsap\functions.py:21
+msgid "Date cannot be blank."
+msgstr "Dayum moet ingevuld zijn."
+
+#: .\tsap\functions.py:46
 msgid "is not a valid date."
 msgstr "is geen geldige datum."
 
-#: .\tsap\functions.py:78 .\tsap\functions.py:119
+#: .\tsap\functions.py:81 .\tsap\functions.py:122
 msgid "is not a valid time."
 msgstr "is geen geldige tijd."
 
@@ -905,23 +994,27 @@ msgstr "Deze code bestaat al."
 msgid "Company code already exists."
 msgstr "Bedrijfscode bestaat al."
 
-#: .\tsap\validators.py:185 .\tsap\validators.py:254
+#: .\tsap\validators.py:185 .\tsap\validators.py:271
 msgid "Company name already exists."
 msgstr "Bedrijfsnaam bestaat al."
 
-#: .\tsap\validators.py:202
+#: .\tsap\validators.py:203
 msgid "Error: Model is None."
 msgstr ""
 
-#: .\tsap\validators.py:221
+#: .\tsap\validators.py:205
+msgid "Error: Company not found."
+msgstr "Fout: bedrijf niet gevonden"
+
+#: .\tsap\validators.py:230
 msgid "Error: Field error."
 msgstr ""
 
-#: .\tsap\validators.py:231
+#: .\tsap\validators.py:248
 msgid "Code already exists."
 msgstr "Deze code bestaat al."
 
-#: .\tsap\validators.py:233
+#: .\tsap\validators.py:250
 msgid "Name already exists."
 msgstr "Deze naam bestaat al."
 
