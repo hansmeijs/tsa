@@ -25,6 +25,7 @@
               <th>{% trans 'End date' %}</th>
               <th>{% trans 'Balance' %}</th>
               <th>{% trans 'Time zone' %}</th>
+              <th>{% trans 'Time format' %}</th>
               <th>{% trans 'Modified by' %}</th>
               <th>{% trans 'Modified at' %}</th>
             </tr>
@@ -51,6 +52,7 @@
                 <td>{{ item.datelast|default_if_none:''}}</td>
                 <td>{{ item.balance|default_if_none:''}}</td>
                 <td>{{ item.timezone|default_if_none:''}}</td>
+                <td>{{ item.timeformat|default_if_none:''}}</td>
                 <td>{{ item.modified_by}}</td>
                 <td>{{ item.modified_at}}</td>
               </tr>

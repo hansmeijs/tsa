@@ -209,56 +209,19 @@ class SchemeItem(TsaBaseModel):
     rosterdate = DateField(db_index=True, null=True, blank=True)
     shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     time_start = DateTimeField(db_index=True, null=True, blank=True)
+    time_start_dhm = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
     time_end = DateTimeField(db_index=True, null=True, blank=True)
-    time_duration = IntegerField(default=0)  # unit is hour * 100
+    time_end_dhm = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    time_duration = IntegerField(default=0)  # unit is minute
     break_start = DateTimeField(null=True, blank=True)
-    break_duration = IntegerField(default=0) # unit is hour * 100
+    break_start_dhm = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    break_duration = IntegerField(default=0) # unit is minute
 
     class Meta:
         ordering = ['rosterdate', 'time_start']
 
     def __str__(self):
         return  'schemeitem_pk_' + str(self.pk)
-
-    @property
-    def time_start_datetimelocal(self): # PR2019-04-28
-        return get_datetimelocal_from_datetime(self.time_start)
-
-    @property
-    def time_start_DHM(self): # PR2019-04-28
-        return get_datetimelocal_DHM(self.time_start, 'nl')
-
-    @property
-    def time_end_datetimelocal(self): # PR2019-04-28
-        return get_datetimelocal_from_datetime(self.time_end)
-
-    @property
-    def time_end_DHM(self):  # PR2019-04-28
-        return get_datetimelocal_DHM(self.time_end, 'nl')
-
-    @property
-    def break_start_datetimelocal(self):  # PR2019-04-28
-        return get_datetimelocal_from_datetime(self.break_start)
-
-    @property
-    def break_start_DHM(self):  # PR2019-04-28
-        return get_datetimelocal_DHM(self.break_start, 'nl')
-
-    @property
-    def time_hours(self): # PR2019-04-28
-        # duration unit is minutes
-        value = self.time_duration / 60
-        if not value:  # i.e. if value == 0
-            value = ''
-        return value
-
-    @property
-    def break_hours(self): # PR2019-04-28
-        # duration unit is minutes
-        value = self.break_duration / 60
-        if not value:  # i.e. if value == 0
-            value = ''
-        return value
 
 
 class Wagecode(TsaBaseModel):

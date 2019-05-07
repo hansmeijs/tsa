@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from tsap.constants import BASE_DATE, MONTHS_ABBREV, WEEKDAYS_ABBREV
 from tsap.settings import TIME_ZONE, LANGUAGE_CODE
-
+import json
 import pytz
 import logging
 logger = logging.getLogger(__name__)
@@ -213,6 +213,105 @@ def get_datetimelocal_from_datetime(date_time):  # PR2019-04-08
 """
 
 
+def get_timeDHM_from_dhm(rosterdate, dhm_str, lang):
+    # logger.debug('=== get_timeDHM_from_dhm ')
+    # logger.debug('rosterdate: ' + str(rosterdate) + str(type(rosterdate)))
+    # logger.debug('dhm_str: ' + str(dhm_str) + str(type(dhm_str)))
+    # convert rosterdate and dhm_str into loacl date
+    # dt_localized: 2019-03-31 04:48:00+02:00
+    dt_localized = get_datetimelocal_from_DHM(rosterdate, dhm_str)
+    # logger.debug('dt_localized: ' + str(dt_localized) + str(type(dt_localized)))
+    # format to 'zo 31 mrt'
+    return get_datetimelocal_DHM(dt_localized, lang)
+
+
+def get_datetimeUTC_from_DHM(rosterdate, dhm_str):
+
+    # dt_localized: 2019-03-31 04:48:00+02:00
+    dt_localized = get_datetimelocal_from_DHM(rosterdate, dhm_str)
+
+    utc = pytz.UTC
+    dt_as_utc = dt_localized.astimezone(utc)
+
+    # dt_as_utc: 2019-03-31 02:48:00+00:00
+    # logger.debug('dt_as_utc: ' + str(dt_as_utc))
+
+    return dt_as_utc
+
+
+def get_weekdaylist_for_DHM(rosterdate, lang):
+    # create dict with {-1: 'wo'. 0: 'do', 1: 'vr'} PR2019-05-03
+
+    weekdaylist = ''
+
+    # weekday_dict = {}
+    if rosterdate:
+
+        # get weekdays translated
+        if not lang in WEEKDAYS_ABBREV:
+            lang = LANGUAGE_CODE
+
+        datetime = rosterdate + timedelta(days=-1)
+        weekday_int = int(datetime.strftime("%w"))
+        weekday = WEEKDAYS_ABBREV[lang][weekday_int]
+        weekdaylist = '-1:' + weekday + ','
+        # weekday_dict[-1] = weekday
+
+        weekday_int = int(rosterdate.strftime("%w"))
+        weekday = WEEKDAYS_ABBREV[lang][weekday_int]
+        weekdaylist = weekdaylist + '0:' + weekday + ','
+        # weekday_dict[0] = weekday
+
+        datetime = rosterdate + timedelta(days=1)
+        weekday_int = int(datetime.strftime("%w"))
+        weekday = WEEKDAYS_ABBREV[lang][weekday_int]
+        weekdaylist = weekdaylist +  '1:' + weekday
+        # weekday_dict[1] = weekday
+
+        # weekday_json = json.dumps(weekday_dict)
+
+    return weekdaylist
+
+def get_datetimelocal_from_DHM(rosterdate, dhm_str):
+    # logger.debug('=== get_datetimelocal_from_DHM ' + dhm_str + '  ' + str(rosterdate))
+    dt_localized = None
+    if rosterdate and dhm_str:
+        # time_start': {'value': '0;3;45', 'o_value': '2019-04-27T02:36:00+02:00'}}
+        if ';' in dhm_str:
+            arr = dhm_str.split(';')
+            day_offset = int(arr[0])
+            new_hour = int(arr[1])
+            new_minute = int(arr[2])
+
+            date_no_offset = datetime(rosterdate.year,
+                                rosterdate.month,
+                                rosterdate.day,
+                                new_hour,
+                                new_minute)
+
+            # offset date
+            dt_naive = date_no_offset + timedelta(days=day_offset)
+            # dt_naive: 2019-03-31 04:48:00
+            # logger.debug('dt_naive: ' + str(dt_naive))
+
+            # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+            timezone = pytz.timezone(TIME_ZONE)
+            # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
+            # logger.debug('timezone: ' + str(timezone) + str(type(timezone)))
+
+            dt_localized = timezone.localize(dt_naive)
+            # dt_localized: 2019-03-31 04:48:00+02:00
+            # logger.debug('dt_localized: ' + str(dt_localized))
+
+            # Not in use
+            utc = pytz.UTC
+            dt_as_utc = dt_localized.astimezone(utc)
+            # dt_as_utc: 2019-03-31 02:48:00+00:00
+            # logger.debug('dt_as_utc: ' + str(dt_as_utc))
+
+    return dt_localized
+
+
 def get_datetimelocal_DHM(date_time, lang):
     # Function returns date: "ma 18.15 u." or "Mon 6:15 p.m."
     # 12.00 a.m is midnight, 12.00 p.m. is noon
@@ -253,7 +352,7 @@ def get_datetimelocal_DHM(date_time, lang):
     return time_str
 
 def get_date_from_dateint(date_int):  # PR2019-03-06
-    # Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use dithis basedate)
+# Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use dithis basedate)
 
     return_date = None
     if date_int:
@@ -294,28 +393,92 @@ def get_time_HHmm(date_time):
     # Out: '2016-07-18 18:26:18'
 
     if date_time:
-        logger.debug("date_time:" + str(date_time))
-        logger.debug("date_time.strftime(%Z)):" + str(date_time.strftime("%Z")))
-        logger.debug("date_time.strftime(%x)):" + str(date_time.strftime("%x")))
-        logger.debug("date_time.strftime(%X)):" + str(date_time.strftime("%X")))
+        # logger.debug("date_time:" + str(date_time))
+        # logger.debug("date_time.strftime(%Z)):" + str(date_time.strftime("%Z")))
+        # logger.debug("date_time.strftime(%x)):" + str(date_time.strftime("%x")))
+        # logger.debug("date_time.strftime(%X)):" + str(date_time.strftime("%X")))
 
         hour_str = str(date_time.strftime("%H"))
-        logger.debug("hour_str:" + str(hour_str))
         minute_str = str(date_time.strftime("%M")) # %m is zero-padded
-        logger.debug("minute_str:" + str(minute_str))
         date_time_str = ':'.join([hour_str, minute_str])
-        logger.debug("date_time_str:" + str(date_time_str))
     return date_time_str
 
 
-def get_date_formatted(date_int):  # PR2019-03-07
-    # Function gives formatted date from dat_int.
-    logger.debug('............. get_date_formatted: date_int: ' + str(date_int) + str(type(date_int)))
-    dte_str = ''
-    if date_int:
-        dte = get_date_from_dateint(date_int)
-        dte_str = formats.date_format(dte, "DATE_FORMAT")
-    return dte_str
+
+def get_date_HM_from_minutes(minutes, lang):  # PR2019-05-07
+    # logger.debug('.... get_date_WDM_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) +' lang: ' + str(lang))
+    date_HM = ''
+    if minutes:
+        hour = int(minutes / 60)
+        minute = minutes - hour * 60
+
+        hour_str = str(hour)
+        minute_str = '00' + str(minute)
+        minute_str = minute_str[-2:]
+
+        # get weekdays translated
+        if not lang:
+            lang = LANGUAGE_CODE
+        if lang == 'nl':
+            date_HM = hour_str + '.' + minute_str
+        else:
+            date_HM = hour_str + ':' + minute_str
+
+    return date_HM
+
+
+def get_date_WDM_from_dte(dte, lang):  # PR2019-05-01
+    # logger.debug('.... get_date_WDM_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) +' lang: ' + str(lang))
+    date_WDM = ''
+    if dte:
+        try:
+            year_str = str(dte.year)
+            day_str = str(dte.day)
+            month_lang = ''
+
+            if lang in MONTHS_ABBREV:
+                month_lang = MONTHS_ABBREV[lang]
+            month_str = month_lang[dte.month]
+
+            # get weekdays translated
+            if not lang in WEEKDAYS_ABBREV:
+                lang = LANGUAGE_CODE
+            weekday_int = int(dte.strftime("%w"))
+            weekday_str = WEEKDAYS_ABBREV[lang][weekday_int]
+
+            date_WDM = ' '.join([weekday_str, day_str, month_str])
+        except:
+            pass
+
+    return date_WDM
+
+
+def get_date_WDMY_from_dte(dte, lang):  # PR2019-05-01
+    # logger.debug('... get_date_WDM_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) + ' lang: ' + str(lang))
+    date_WDMY = ''
+    if dte:
+        try:
+            year_str = str(dte.year)
+            day_str = str(dte.day)
+            month_lang = ''
+
+            if lang in MONTHS_ABBREV:
+                month_lang = MONTHS_ABBREV[lang]
+            month_str = month_lang[dte.month]
+
+            # get weekdays translated
+            if not lang in WEEKDAYS_ABBREV:
+                lang = LANGUAGE_CODE
+            weekday_int = int(dte.strftime("%w"))
+            weekday_str = WEEKDAYS_ABBREV[lang][weekday_int]
+
+            date_WDMY = ' '.join([weekday_str, day_str, month_str, year_str])
+        except:
+            pass
+    return date_WDMY
+
+
+
 
 
 def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09

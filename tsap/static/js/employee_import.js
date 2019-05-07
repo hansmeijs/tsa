@@ -509,7 +509,7 @@ console.log("datarow: ", i , datarow );
 //o_lastname: "Frans"
 
 // if s_idnumber is not present, the record is not saved
-                let s_idnumber = get_obj_value_by_key (datarow, "s_idnumber")
+                let s_idnumber = get_dict_value_by_key (datarow, "s_idnumber")
                 let record_is_saved = !!s_idnumber
 
 //--------- iterate through columns of response row
@@ -542,14 +542,14 @@ console.log("datarow: ", i , datarow );
                              .attr({"id": id_datacell});
                     let tblCell = $("#" + id_datacell);
 
-                    let key = get_obj_value_by_key (excel_columns[j], "tsaKey");
+                    let key = get_dict_value_by_key (excel_columns[j], "tsaKey");
 // ---  skip if column not linked
                     if (!!key) {
 
                         let o_value, e_value, s_value;
-                        o_value = get_obj_value_by_key (datarow, "o_" + key);
-                        e_value = get_obj_value_by_key (datarow, "e_" + key);
-                        s_value = get_obj_value_by_key (datarow, "s_" + key);
+                        o_value = get_dict_value_by_key (datarow, "o_" + key);
+                        e_value = get_dict_value_by_key (datarow, "e_" + key);
+                        s_value = get_dict_value_by_key (datarow, "s_" + key);
 
 
                         if(!!o_value){

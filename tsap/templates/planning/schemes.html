@@ -10,66 +10,65 @@
     <script src="{% static 'js/schemes.js' %}"></script>
 {% endblock %}
 
-{% block modal %}
-<div class="container">
-
   <!-- Modal -->
-  <div class="modal fade" id="id_modal_cont" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
-      <div class="modal-content">
+{% block modal %}
+    <div class="container">
+        <div class="modal fade" id="id_modal_cont" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+              <div class="modal-content">
 
-        <div id="id_mod_div_header" class="modal-header">
-          <h4 id="id_mod_header" class="modal-title mx-2" >{% trans 'Add scheme' %}</h4>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
+                <div id="id_mod_div_header" class="modal-header">
+                  <h4 id="id_mod_header" class="modal-title mx-2" >{% trans 'Add scheme' %}</h4>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
 
 
-        </div>
-        <div class="modal-header">
+                </div>
+                <div class="modal-header">
 
-          <div class="content_header">
-                <input id="id_mod_checkbox" type="checkbox">
-                <label for="id_mod_checkbox" class="mx-4">{% trans 'or copy existing scheme' %}</label>
-          </div>
-        </div>
+                  <div class="content_header">
+                        <input id="id_mod_checkbox" type="checkbox">
+                        <label for="id_mod_checkbox" class="mx-4">{% trans 'or copy existing scheme' %}</label>
+                  </div>
+                </div>
 
-        <div class="modal-body">
+                <div class="modal-body">
 
-          <div id="id_div_mod_flex" class="mod_flex">
-            <div class="form-group">
-                <label for="id_mod_scheme" class="mx-2">{% trans 'Scheme name' %}:</label>
-                <input id="id_mod_scheme" type="text" class="form-control">
+                  <div id="id_div_mod_flex" class="mod_flex">
+                    <div class="form-group">
+                        <label for="id_mod_scheme" class="mx-2">{% trans 'Scheme name' %}:</label>
+                        <input id="id_mod_scheme" type="text" class="form-control">
+                    </div>
+
+                    <div class="content_header">
+                        <div class="content_subheader_left">
+                            <label for="id_mod_cycle" >{% trans 'Cycle length' %}</label>
+                            <input id="id_mod_cycle" type="number" min="1" max="366" style="width:95%;margin:4px;" placeholder="{% trans 'Cycle length' %}...">
+                        </div>
+                        <div class="content_subheader_left">
+                            <label for="id_mod_weekend" >{% trans 'Weekends' %}</label>
+                            <select id="id_mod_weekend" style="width:95%;margin:4px;" ></select>
+                        </div>
+                        <div class="content_subheader_left">
+                            <label for="id_mod_publicholiday" > {% trans 'Public holidays' %}</label>
+                            <select id="id_mod_publicholiday" style="width:95%;margin:4px;" >text</select>
+                        </div>
+                    </div>
+
+                  </div>
+
+                </div>
+
+                <div class="modal-footer">
+                  <div id="id_mod_ftr_msg"></div>
+                  <button id="id_mod_btn_cancel" type="button"  class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                  <button id="id_mod_btn_save" type="button" class="btn btn-primary">{% trans 'Save scheme' %}</button>
+                </div>
+              </div>
             </div>
-
-            <div class="content_header">
-                <div class="content_subheader_left">
-                    <label for="id_mod_cycle" >{% trans 'Cycle length' %}</label>
-                    <input id="id_mod_cycle" type="number" min="1" max="366" style="width:95%;margin:4px;" placeholder="{% trans 'Cycle length' %}...">
-                </div>
-                <div class="content_subheader_left">
-                    <label for="id_mod_weekend" >{% trans 'Weekends' %}</label>
-                    <select id="id_mod_weekend" style="width:95%;margin:4px;" ></select>
-                </div>
-                <div class="content_subheader_left">
-                    <label for="id_mod_publicholiday" > {% trans 'Public holidays' %}</label>
-                    <select id="id_mod_publicholiday" style="width:95%;margin:4px;" >text</select>
-                </div>
-            </div>
-
-          </div>
-
         </div>
-
-        <div class="modal-footer">
-          <div id="id_mod_ftr_msg"></div>
-          <button id="id_mod_btn_cancel" type="button"  class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
-          <button id="id_mod_btn_save" type="button" class="btn btn-primary">{% trans 'Save scheme' %}</button>
-        </div>
-      </div>
     </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block content %}
@@ -91,11 +90,9 @@
                     <select id="id_order" style="width: 95%"></select>
                 </h6>
             </div>
-
         </div>
 
         <div class="content_wrapper">
-
              <div class="content_header">
                 <div class="content_subheader_left">
                     <label for="id_scheme" >{% trans 'Scheme' %}</label>
@@ -114,15 +111,12 @@
                     <select id="id_publicholiday" style="width:95%;margin:4px;" >text</select>
                 </div>
             </div>
-
-
             <div class="content_header">
                 <div class="content_subheader_right">
                     <button id="id_btn_add_scheme" class="btn btn-add">{% trans 'Add scheme' %}</button>
                     <button id="id_btn_delete_scheme" class="btn btn-add">{% trans 'Delete scheme' %}</button>
                 </div>
             </div>
-
         </div>
 
         <div class="content_header">
@@ -130,155 +124,91 @@
                 <input id="id_filter_name"
                 type="text"
                 class="fieldname pt-0 pb-0"
-
                 placeholder="{% trans 'filter...' %}">
             </div>
-            <div class="content_subheader_right">
-                <button id="id_btn_add_schemeitem" class="btn btn-add">{% trans 'Add shift' %}</button>
-                <button id="id_btn_delete_schemeitem" class="btn btn-add">{% trans 'Delete shift' %}</button>
-            </div>
         </div>
+
         <div class="content_body">
 
+            <div class="popup-container">
+  <!-- =================== POPUP WDY  =================== -->
+                 <div id="id_popup_wdy" class="popup_box display_hide td_width_220">
+                     <div class="popup_header">
+                        <label  class="mx-4 my-1" >{% trans 'Roster date' %}</label>
+                        <button id="id_popup_wdy_close" type="button" class="close my-1" aria-label="Close">
+                            <span class="popup_close" aria-hidden="true">&times;</span>
+                        </button>
+                     </div>
+                    <div class="content_header_middle">
+                        <input id="id_popup_wdy_rosterdate" class="input_text mx-4 my-1" ></input>
+                    </div>
+                    <div class="content_header_middle" >
+                        <button id="id_popup_wdy_prev_month"  class=" btn btn-add" title="{% trans 'Previous month' %}"><<</button>
+                        <button id="id_popup_wdy_prev_day" class="btn btn-add" title="{% trans 'Previous day' %}"><</button>
+                        <button id="id_popup_wdy_today" class="btn btn-add" >{% trans 'Today' %}</button>
+                        <button id="id_popup_wdy_nextday" class="btn btn-add" title="{% trans 'Next day' %}">></button>
+                        <button id="id_popup_wdy_nextmonth" class="btn btn-add" title="{% trans 'Next month' %}">>></button>
+                    </div>
+                 </div>
 
-
-
-
-        <div class="popup-container">
-  <!-- =================== POPUP  =================== -->
-            <div id="id_popup" class="popup_box display_hide td_width_360">
-                <div class="popup-body">
-                <table class="pop_tbl">
-                    <thead>
-                        <tr>
-                            <td class="td_width_hours">{% trans "Day" %}</td>
-                            <td class="td_width_hours"> {% trans "Hour" %}</td>
-                            <td class="td_width_hours">{% trans "Minutes" %}</td>
-                            <td class="td_width_hours">{% trans "am/pm" %}</td>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><select id="id_popup_days" class="td_width_hours"></select></td>
-                            <td><select id="id_popup_hours" class="td_width_hours"></select></td>
-                            <td><select id="id_popup_minutes" class="td_width_hours"></select></td>
-                            <td><select id="id_popup_ampm" class="td_width_hours"></select></td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div class="content_subheader_right">
-                    <button class="popup_close btn btn-add">{% trans 'Cancel' %}</button>
-                    <button id="id_popup_save" class="btn btn-add">{% trans 'Save' %}</button>
+  <!-- =================== POPUP DHM  =================== -->
+                <div id="id_popup_dhm" class="popup_box display_hide td_width_360">
+                    <div class="popup-body">
+                        <table class="pop_tbl">
+                            <thead>
+                                <tr>
+                                    <td class="td_width_hours">{% trans "Day" %}</td>
+                                    <td class="td_width_hours"> {% trans "Hour" %}</td>
+                                    <td class="td_width_hours">{% trans "Minutes" %}</td>
+                                    <td id="td_label_ampm" class="td_width_hours">{% trans "am/pm" %}</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><select id="id_popup_days" class="td_width_hours"></select></td>
+                                    <td><select id="id_popup_hours" class="td_width_hours"></select></td>
+                                    <td><select id="id_popup_minutes" class="td_width_hours"></select></td>
+                                    <td id="td_input_ampm" class="td_width_hours">
+                                        <select id="id_popup_ampm" class="td_width_hours"></select>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="content_subheader_right">
+                            <button class="popup_close btn btn-add">{% trans 'Cancel' %}</button>
+                            <button id="id_popup_save" class="btn btn-add">{% trans 'Save' %}</button>
+                        </div>
+                    </div>
                 </div>
-
-                </div>
-            </div>
   <!-- =================== END POPUP  =================== -->
 
+                <table class="table table table-condensed tsa-tbl">
+                    <thead class="thead-inverse">
+                    <tr>
+                        <th>{% trans 'Date' %}</th>
+                        <th>{% trans 'Shift' %}</th>
+                        <th> {% trans 'Team' %}</th>
+                        <th>{% trans 'Start time' %}</th>
+                        <th>{% trans 'End time' %}</th>
+                        <th>{% trans 'Break start' %}</th>
+                        <th>{% trans 'Break hours' %}</th>
+                        <th>{% trans 'Working hours' %}</th>
+                    </tr>
+                    </thead>
+                    <tbody id="id_tbody">
+                    </tbody>
+                </table>
+            </div>
 
-            <table class="table table table-condensed tsa-tbl">
-                <thead class="thead-inverse">
-                <tr>
-                    <th>{% trans 'Date' %}</th>
-                    <th>{% trans 'Shift' %}</th>
-                    <th> {% trans 'Team' %}</th>
-                    <th >{% trans 'Start time' %}</th>
-                    <th>{% trans 'End time' %}</th>
-                    <th >{% trans 'Break start' %}</th>
-                    <th class="td_width_120">{% trans 'Break hours' %}</th>
-                    <th class="td_width_120">{% trans 'Working hours' %}</th>
-                </tr>
-                </thead>
-                <tbody id="id_tbody">
-<!--
-                        <tr id="{{ item.pk }}">
-                            <td>
-                                <input data-name="rosterdate"
-                                       type="date"
-                                       autocomplete="off"
-                                       ondragstart="return false;"
-                                       ondrop="return false;"
-                                       value="{{ item.rosterdate_yyyymmdd }}"
-                                       o_value="{{ item.rosterdate_yyyymmdd}}"
-                                       max="{{ record.datelast_str}}"
-                                       class="input_text border-none" >
-                            </td>
-                            <td >
-                                <input data-name="shift"
-                                       type="text"
-                                       id="{{ item.shift }}"
-                                       list="id_datalist_shifts"
-                                       autocomplete="off"
-                                       ondragstart="return false;"
-                                       ondrop="return false;"
-                                       maxlength="{{ item.maxlen_code }}"
-                                       value="{{ item.employee.code|default_if_none:''}}"
-                                       o_value="{{ item.employee.code|default_if_none:''}}"
-                                       class="input_text border-none td_width_120">
-                            </td>
-                            <td>
-                                <input data-name="team"
-                                       type="text"
-                                       id="{{ item.id_ordemplhour_empl }}"
-                                       list="id_datalist_teams"
-                                       autocomplete="off"
-                                       ondragstart="return false;"
-                                       ondrop="return false;"
-                                       maxlength="{{ item.maxlen_code }}"
-                                       value="{{ item.employee.code|default_if_none:''}}"
-                                       o_value="{{ item.employee.code|default_if_none:''}}"
-                                       class="input_text border-none td_width_120">
-                            </td>
-                            <td class="input_popup td_width_120" data-name="time_start" data-value="{{ item.time_start_datetimelocal }}">
-                                {{ item.time_start_DHM }}
-                             </td>
-                            <td class="input_popup td_width_120" data-name="time_end" data-value="{{ item.time_end_datetimelocal }}">
-                                {{ item.time_end_DHM }}
-                            </td>
-                            <td class="input_popup td_width_120" data-name="break_start" data-value="{{ item.break_start_datetimelocal }}">
-                                {{ item.break_start_DHM }}
-                            </td>
-                            <td class="input_text td_width_090">
-                                <input data-name="break_hours"
-                                       type="text"
-                                       autocomplete="off"
-                                       ondragstart="return false;"
-                                       ondrop="return false;"
-                                       value="{{ item.break_hours}}"
-                                       o_value="{{ item.break_hours}}"
-                                       min="0"
-                                       max="72"
-                                       class=" border-none td_width_060" >
-                            </td>
-                            <td class="input_text td_width_090">
-                                <input data-name="time_duration"
-                                       type="text"
-                                       autocomplete="off"
-                                       ondragstart="return false;"
-                                       ondrop="return false;"
-                                       value="{{ item.time_hours}}"
-                                       o_value="{{ item.time_hours}}"
-                                       min="0"
-                                       max="72"
-                                       class="input_text border-none td_width_060" >
-                            </td>
-                        </tr>
--->
-                </tbody>
-            </table>
-        </div>
-
-
-
-
-
+            <div class="content_header">
+                <div class="content_subheader_left">
+                    <button id="id_btn_add_schemeitem" class="btn btn-add">{% trans 'Add shift' %}</button>
+                    <button id="id_btn_delete_schemeitem" class="btn btn-add">{% trans 'Delete shift' %}</button>
+                    <button id="id_btn_fill_scheme" class="btn btn-add">{% trans 'Fill scheme' %}</button>
+                </div>
+            </div>
 
         </div>
-
-
-
-
-
 
 
         <div id="id_data"
@@ -289,6 +219,7 @@
             data-interval ="{{ interval }}"
             data-timeformat ="{{ timeformat }}"
             data-weekdays ="{{ weekdays }}"
+            data-months ="{{ months }}"
             data-weekend_choices ="{{ weekend_choices }}"
             data-publicholiday_choices ="{{ publicholiday_choices }}"
             data-customer_list ="{{ customer_list }}"

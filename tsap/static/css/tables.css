@@ -1,3 +1,19 @@
+/* PR2019-05-02 */
+.input_text {
+    background: transparent;
+    border: none;
+    margin: 0;
+	padding: 0;
+}
+
+.input_popup {
+    text-align: right;
+    background: transparent;
+    border: none;
+    margin: 0;
+	padding: 0;
+}
+
 
 /* PR2019-04-13 */
 .popup_container {
@@ -30,8 +46,6 @@
     border-bottom: 1px solid purple /*#808080; /* grijs; */
 
   }
-
-
 
 
 /* PR2019-04-13 for popup box */
@@ -109,6 +123,14 @@
 
 .td_width_360 {
     width: 360px;
+}
+
+.td_width_270 {
+    width: 270px;
+}
+
+.td_width_220 {
+    width: 220px;
 }
 
 .td_width_180 {

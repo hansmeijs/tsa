@@ -316,6 +316,7 @@ console.log("=========   handle_table_row_clicked   ======================") ;
         return tr_selected;
     };
 
+
 //========= get_tablerow_id  ============= PR2019-04-28
     function get_tablerow_id(el_clicked){
         let dict = {};
@@ -363,21 +364,56 @@ console.log("=========   handle_table_row_clicked   ======================") ;
     }
 
 
-//========= function get_object_value_by_key  ====================================
-    function get_obj_value_by_key (obj, objKey, default_value) {
+//========= function get_dict_value_by_key  ====================================
+    function get_dict_value_by_key (dict, key, default_value) {
         // Function returns value of key in obj PR2019-02-19 PR2019-04-27
-        // obj:  {excCol: "ANAAM", awpCol: "lastname", awpCaption: "Achternaam"}
-        let obj_value;
-        if (!!obj && !!objKey){
-            if (objKey in obj) {
-                obj_value = obj[objKey];
+        // dict:  {excCol: "ANAAM", awpCol: "lastname", awpCaption: "Achternaam"}
+        let value;
+        if (!!dict && !!key){
+            if (key in dict) {
+                value = dict[key];
             }
         }
-        if (!obj_value && !!default_value){
-            obj_value = default_value
+        if (!value && !!default_value){
+            value = default_value
         }
-        return obj_value;
+        return value;
     }
+
+
+//=========  get_offset_dict  ====================================
+    function get_offset_dict (offset_str) {
+        // Function returns dict with offset days PR2019-05-03
+        // offset_str "-1:ma,0:di,1:wo"
+        // offset_dict:  {0: "di", 1: "wo", -1: "ma"}
+        let offset_dict = {}
+        if (!!offset_str){
+            let offset_arr = offset_str.split(",")
+            for (let i = 0, len = offset_arr.length; i < len; i++) {
+                let item_arr = offset_arr[i].split(":")
+                offset_dict[item_arr[0]] = item_arr[1]
+            }
+        }
+        return offset_dict;
+    }
+
+//=========  get_dhm_dict  ====================================
+    function get_dhm_dict (dhm_str) {
+        // Function returns dict with offset days PR2019-05-03
+        // offset_str "-1:ma,0:di,1:wo"
+        // offset_dict:  {0: "di", 1: "wo", -1: "ma"}
+        let dhm_dict = {};
+        if (!!dhm_str){
+            let dhm_arr = dhm_str.split(";")
+            if(!!dhm_arr){
+                dhm_dict["offset"] = dhm_arr[0]
+                dhm_dict["hours"] = dhm_arr[1]
+                dhm_dict["minutes"] = dhm_arr[2]
+            }
+        }
+        return dhm_dict;
+    }
+
 
 //========= function found_in_list_str  ======== PR2019-01-22
     function found_in_list_str(value, list_str ){
