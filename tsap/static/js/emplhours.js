@@ -125,7 +125,7 @@ console.log("Customers document.ready");
         if(!!tr_clicked) {
             id_row_selected = get_attr_from_element(tr_clicked, "id")
 // ---  highlight clicked row
-            tr_clicked.classList.add("tsa-tr-highlighted")
+            tr_clicked.classList.add("tsa_tr_selected")
         }
     }
 
@@ -137,7 +137,7 @@ console.log("Customers document.ready");
         if(tg_name !== "INPUT" && tg_name !== "TH" && tg_name !== "A" && tg_name !== "IMG"){
             if(!!id_row_selected){
                 let tblrow = document.getElementById(id_row_selected);
-                tblrow.classList.remove("tsa-tr-highlighted")
+                tblrow.classList.remove("tsa_tr_selected")
                 id_row_selected = ""
             }
         }
@@ -270,7 +270,7 @@ console.log("=========  function HandleCreateRecord =========");
 
         id_row_selected = "new_" + id_str;
         tblRow.setAttribute("id", id_row_selected);
-        tblRow.classList.add("tsa-tr-highlighted")
+        tblRow.classList.add("tsa_tr_selected")
 
 
         // 00 'Date'
@@ -867,10 +867,10 @@ console.log("=========  function HandleCreateRecord =========");
 //=========  HandleRowClicked  ================ PR2019-04-01
     function DeselectOtherHighlightedRows() {
 //console.log("=========  function DeselectOtherHighlightedRows =========");
-        let tblrows = document.getElementsByClassName("tsa-tr-highlighted");
+        let tblrows = document.getElementsByClassName("tsa_tr_selected");
         for (let i = 0, len = tblrows.length; i < len; i++) {
             if (tblrows[i].id !== id_row_selected){
-                tblrows[i].classList.remove("tsa-tr-highlighted")
+                tblrows[i].classList.remove("tsa_tr_selected")
             }
         }
     }

@@ -99,16 +99,15 @@ console.log("Customers document.ready");
                 id_row_selected = tr_clicked.id;
             }
 // ---  unselect highlighted rows
-            let tblrows = document.getElementsByClassName("tsa-tr-highlighted");
+            let tblrows = document.getElementsByClassName("tsa_tr_selected");
 
             for (let i = 0, tblrow , len = tblrows.length; i < len; i++) {
                 tblrow = tblrows[i];
-                tblrow.classList.remove("tsa-tr-highlighted")
+                tblrow.classList.remove("tsa_tr_selected")
             }
 // ---  select clicked row
-            tr_clicked.classList.add("tsa-tr-highlighted")
+            tr_clicked.classList.add("tsa_tr_selected")
         }
-        console.log( "id_row_selected: ", id_row_selected);
     }
 
 //=========  HandleOutsideClick  ================ PR2019-03-30
@@ -119,7 +118,7 @@ console.log("Customers document.ready");
         if(tg_name !== "INPUT" && tg_name !== "TH" && tg_name !== "A" && tg_name !== "IMG"){
             if(!!id_row_selected){
                 let tblrow = document.getElementById(id_row_selected);
-                tblrow.classList.remove("tsa-tr-highlighted")
+                tblrow.classList.remove("tsa_tr_selected")
                 id_row_selected = ""
             }
         }
@@ -239,7 +238,7 @@ console.log("=========  function HandleCreateRecord =========");
 
             id_row_selected = "new_" + id_str;
             tblRow.setAttribute("id", id_row_selected);
-            tblRow.classList.add("tsa-tr-highlighted")
+            tblRow.classList.add("tsa_tr_selected")
 
             const el_cat = ["img", "input", "input", "input", "input", "input", "input"];
             const el_name = ["img", "code", "name", "datefirst", "datelast", "modified_by", "modified_at"];

@@ -38,12 +38,21 @@
         }; //if(!!e.target)
     }; //function SetMenubuttonActive()
 
+//========= isEmpty  ============= PR2019-05-11
+function isEmpty(myObject) {
+    for(var key in myObject) {
+        if (myObject.hasOwnProperty(key)) {
+            return false;
+        }
+    }
 
+    return true;
+}
 //========= get_attr_from_element  =============
     function get_attr_from_element(element, key){
     // ---  get attr value from key: i.e. element["name"] = "break_duration" PR2019-04-12
         let value = "";
-        if(!!element){
+        if(!!element && !!key){
             if(element.hasAttribute(key)){
                 value = element.getAttribute(key);
             };
@@ -88,23 +97,27 @@ console.log("keyValue: ", keyValue)
     }
 
 
-//=========  GetNewDate  ================ PR2019-05-06
-    function GetNewDate(o_date, add_day, add_month, add_year) {
-        console.log("===  function GetNewDate =========");
-        //console.log("o_date", o_date , typeof o_date)
-        //console.log("add_day", add_day , "add_month", add_month, "add_year", add_year, )
+//=========  GetNewDateFromDate  ================ PR2019-05-06
+    function GetNewDateFromDate(o_date, add_day, add_month, add_year) {
+        // console.log("===  function GetNewDateFromDate =========");
+        // console.log("o_date", o_date , typeof o_date)
+        // console.log("add_day", add_day , "add_month", add_month, "add_year", add_year, )
 
         let o_date_iso = o_date.toISOString();
-        //console.log("o_date_iso", o_date_iso , typeof o_date_iso)
+        // console.log("o_date_iso", o_date_iso , typeof o_date_iso)
+
+        if (!add_day){add_day = 0}
+        if (!add_month){add_month = 0}
+        if (!add_year){add_year = 0}
+
         let arr = get_array_from_ISOstring(o_date_iso)
-        //console.log("arr", arr , typeof arr)
+
         // in array: month is index
         arr[1] =  arr[1] -1;
 
-        let n_date = new Date(o_date);
         if(!!o_date && !!add_day){
             arr[2] = arr[2] + add_day
-        } else if (!!o_date && !!add_month){
+         } else if (!!o_date && !!add_month){
             arr[1] =arr[1] + add_month
         } else if (!!o_date && !!add_year){
             arr[0] = arr[0] + add_year
@@ -114,8 +127,12 @@ console.log("keyValue: ", keyValue)
             arr[1] = today.getMonth();
             arr[2] = today.getDate();
         }
-        n_date = new Date(arr[0], arr[1], arr[2]);
-        //console.log("n_date", n_date , typeof n_date)
+
+        // add midday
+        let n_date = new Date(Date.UTC(arr[0], arr[1], arr[2], 12, 0, 0));
+
+        // console.log("n_date", n_date , typeof n_date)
+
         return n_date
     }
 

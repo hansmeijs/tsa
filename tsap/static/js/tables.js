@@ -368,7 +368,7 @@ console.log("=========   handle_table_row_clicked   ======================") ;
     function get_dict_value_by_key (dict, key, default_value) {
         // Function returns value of key in obj PR2019-02-19 PR2019-04-27
         // dict:  {excCol: "ANAAM", awpCol: "lastname", awpCaption: "Achternaam"}
-        let value;
+        let value = "";
         if (!!dict && !!key){
             if (key in dict) {
                 value = dict[key];

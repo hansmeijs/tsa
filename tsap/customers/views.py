@@ -201,7 +201,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
     # --- save changes in date fields
                                 for field in ('datefirst', 'datelast'):
                                     if field in row_upload:
-                                        new_date, msg_err = get_date_from_str(row_upload[field])
+                                        new_date, msg_err = get_date_from_str(row_upload[field], False) # False = blank_allowed
                                         logger.debug('new_date: ' + str(new_date))
                                 # check if date is valid (empty date is ok)
                                         if msg_err is not None:
@@ -419,7 +419,7 @@ class OrderUploadView(UpdateView):# PR2019-03-04
     # --- save changes in date fields
                                 for field in ('datefirst', 'datelast'):
                                     if field in row_upload:
-                                        new_date, msg_err = get_date_from_str(row_upload[field])
+                                        new_date, msg_err = get_date_from_str(row_upload[field], False) # False = blank_allowed
                                         logger.debug('new_date: ' + str(new_date))
                                 # check if date is valid (empty date is ok)
                                         if msg_err is not None:

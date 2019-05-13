@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-05-07 09:08-0400\n"
+"POT-Creation-Date: 2019-05-13 09:39-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -204,7 +204,7 @@ msgstr "Werknemer niet gevonden"
 msgid "An error occurred. The employee data is not saved."
 msgstr "Er is een fout opgetreden. De gegevens zijn niet opgeslagen."
 
-#: .\planning\views.py:823
+#: .\planning\views.py:836
 msgid "This shift could not be deleted."
 msgstr "Deze dienst kon niet worden gewist."
 
@@ -250,8 +250,7 @@ msgstr "Nee, annuleer"
 #: .\templates\employees\emplhours.html:65
 #: .\templates\employees\emplhours.html:260
 #: .\templates\employees\employees.html:172
-#: .\templates\planning\schemes.html:65 .\templates\planning\schemes.html:178
-#: .\templates\planning\schemes.html:249
+#: .\templates\planning\schemes.html:62 .\templates\planning\schemes.html:253
 msgid "Cancel"
 msgstr "Annuleren"
 
@@ -523,7 +522,7 @@ msgstr "Bedrijf toevoegen"
 #: .\templates\companies\company_add.html:19
 #: .\templates\customers\customer_add.html:19
 #: .\templates\employees\emplhours.html:66
-#: .\templates\planning\schemes.html:179
+#: .\templates\planning\schemes.html:150 .\templates\planning\schemes.html:178
 msgid "Save"
 msgstr "Opslaan"
 
@@ -576,7 +575,7 @@ msgstr "Nieuwe klant"
 #: .\templates\customers\customers.html:30 .\templates\customers\orders.html:30
 #: .\templates\employees\emplhours.html:34
 #: .\templates\employees\employees.html:25
-#: .\templates\planning\schemes.html:127
+#: .\templates\planning\schemes.html:124
 msgid "filter..."
 msgstr ""
 
@@ -601,7 +600,7 @@ msgstr "Telefoon"
 #: .\templates\customers\orders.html:159
 #: .\templates\employees\emplhours.html:249
 #: .\templates\employees\employees.html:167
-#: .\templates\planning\schemes.html:232
+#: .\templates\planning\schemes.html:236
 msgid "An error occurred."
 msgstr "Er is een fout opgetreden"
 
@@ -609,7 +608,7 @@ msgstr "Er is een fout opgetreden"
 #: .\templates\customers\orders.html:165
 #: .\templates\employees\emplhours.html:259
 #: .\templates\employees\employees.html:171
-#: .\templates\planning\schemes.html:248
+#: .\templates\planning\schemes.html:252
 msgid "Error"
 msgstr "Fout"
 
@@ -659,7 +658,7 @@ msgstr "Opdracht toevoegen"
 msgid "Delete order"
 msgstr "Opdracht verwijderen"
 
-#: .\templates\customers\orders.html:46 .\templates\planning\schemes.html:83
+#: .\templates\customers\orders.html:46 .\templates\planning\schemes.html:80
 msgid "Customer"
 msgstr "Klant"
 
@@ -676,12 +675,12 @@ msgid "Review shifts"
 msgstr "Diensten controleren"
 
 #: .\templates\employees\emplhours.html:37
-#: .\templates\planning\schemes.html:205
+#: .\templates\planning\schemes.html:206
 msgid "Add shift"
 msgstr "Dienst toevoegen"
 
 #: .\templates\employees\emplhours.html:38
-#: .\templates\planning\schemes.html:206
+#: .\templates\planning\schemes.html:207
 msgid "Delete shift"
 msgstr "Dienst verwijderen"
 
@@ -706,11 +705,11 @@ msgid "am/pm"
 msgstr ""
 
 #: .\templates\employees\emplhours.html:77
-#: .\templates\planning\schemes.html:188
+#: .\templates\planning\schemes.html:187
 msgid "Date"
 msgstr "Datum"
 
-#: .\templates\employees\emplhours.html:78 .\templates\planning\schemes.html:89
+#: .\templates\employees\emplhours.html:78 .\templates\planning\schemes.html:86
 msgid "Order"
 msgstr "Opdracht"
 
@@ -720,27 +719,27 @@ msgid "Employee"
 msgstr "Werknemer"
 
 #: .\templates\employees\emplhours.html:80
-#: .\templates\planning\schemes.html:189
+#: .\templates\planning\schemes.html:188
 msgid "Shift"
 msgstr "Dienst"
 
 #: .\templates\employees\emplhours.html:81
-#: .\templates\planning\schemes.html:191
+#: .\templates\planning\schemes.html:190
 msgid "Start time"
 msgstr "Begintijd"
 
 #: .\templates\employees\emplhours.html:82
-#: .\templates\planning\schemes.html:192
+#: .\templates\planning\schemes.html:191
 msgid "End time"
 msgstr "Eindtijd"
 
 #: .\templates\employees\emplhours.html:83
-#: .\templates\planning\schemes.html:194
+#: .\templates\planning\schemes.html:193
 msgid "Break hours"
 msgstr "Pauze uren"
 
 #: .\templates\employees\emplhours.html:84
-#: .\templates\planning\schemes.html:195
+#: .\templates\planning\schemes.html:194
 msgid "Working hours"
 msgstr "Werkuren"
 
@@ -749,12 +748,12 @@ msgid "Billing hours"
 msgstr "Factuur-uren"
 
 #: .\templates\employees\emplhours.html:250
-#: .\templates\planning\schemes.html:236
+#: .\templates\planning\schemes.html:240
 msgid "Do you want to delete the shift of"
 msgstr "Wilt u de dienst verwijderen van"
 
 #: .\templates\employees\emplhours.html:251
-#: .\templates\planning\schemes.html:237
+#: .\templates\planning\schemes.html:241
 msgid "Do you want to delete this shift?"
 msgstr "Wilt u deze dienst verwijderen?"
 
@@ -823,88 +822,88 @@ msgstr "Controleren"
 msgid "Import employees"
 msgstr "Werknemers importeren"
 
-#: .\templates\planning\schemes.html:21 .\templates\planning\schemes.html:116
+#: .\templates\planning\schemes.html:21 .\templates\planning\schemes.html:113
 msgid "Add scheme"
 msgstr "Schema toevoegen"
 
-#: .\templates\planning\schemes.html:32
+#: .\templates\planning\schemes.html:30
 msgid "or copy existing scheme"
 msgstr "of kopieer een bestaand schema"
 
-#: .\templates\planning\schemes.html:40
+#: .\templates\planning\schemes.html:37
 msgid "Scheme name"
 msgstr "Naam schema"
 
-#: .\templates\planning\schemes.html:46 .\templates\planning\schemes.html:47
-#: .\templates\planning\schemes.html:102 .\templates\planning\schemes.html:103
+#: .\templates\planning\schemes.html:43 .\templates\planning\schemes.html:44
+#: .\templates\planning\schemes.html:99 .\templates\planning\schemes.html:100
 msgid "Cycle length"
 msgstr "Cyclus lengte"
 
-#: .\templates\planning\schemes.html:50 .\templates\planning\schemes.html:106
+#: .\templates\planning\schemes.html:47 .\templates\planning\schemes.html:103
 msgid "Weekends"
 msgstr "Weekeinde"
 
-#: .\templates\planning\schemes.html:54 .\templates\planning\schemes.html:110
+#: .\templates\planning\schemes.html:51 .\templates\planning\schemes.html:107
 msgid "Public holidays"
 msgstr "Feestdagen"
 
-#: .\templates\planning\schemes.html:66
+#: .\templates\planning\schemes.html:63
 msgid "Save scheme"
 msgstr "Schema opslaan"
 
-#: .\templates\planning\schemes.html:84 .\templates\planning\schemes.html:233
+#: .\templates\planning\schemes.html:81 .\templates\planning\schemes.html:237
 msgid "Select customer"
 msgstr "Selecteer klant"
 
-#: .\templates\planning\schemes.html:98
+#: .\templates\planning\schemes.html:95
 msgid "Scheme"
 msgstr "Schema"
 
-#: .\templates\planning\schemes.html:117
+#: .\templates\planning\schemes.html:114
 msgid "Delete scheme"
 msgstr "Schema verwijderen"
 
-#: .\templates\planning\schemes.html:137
+#: .\templates\planning\schemes.html:134
 msgid "Roster date"
 msgstr "Rooster datum"
 
-#: .\templates\planning\schemes.html:146
+#: .\templates\planning\schemes.html:143
 msgid "Previous month"
 msgstr "Vorige maand"
 
-#: .\templates\planning\schemes.html:147
+#: .\templates\planning\schemes.html:144
 msgid "Previous day"
 msgstr "Vorige dag"
 
-#: .\templates\planning\schemes.html:148
+#: .\templates\planning\schemes.html:145
 msgid "Today"
 msgstr "Vandaag"
 
-#: .\templates\planning\schemes.html:149
+#: .\templates\planning\schemes.html:146
 msgid "Next day"
 msgstr "Volgende dag"
 
-#: .\templates\planning\schemes.html:150
+#: .\templates\planning\schemes.html:147
 msgid "Next month"
 msgstr "Volgende maand"
 
-#: .\templates\planning\schemes.html:190
+#: .\templates\planning\schemes.html:189
 msgid "Team"
 msgstr "Ploeg"
 
-#: .\templates\planning\schemes.html:193
+#: .\templates\planning\schemes.html:192
 msgid "Break start"
 msgstr "Begin pauze"
 
-#: .\templates\planning\schemes.html:207
+#: .\templates\planning\schemes.html:212
 msgid "Fill scheme"
 msgstr "Schema vullen"
 
-#: .\templates\planning\schemes.html:234
+#: .\templates\planning\schemes.html:238
 msgid "Select order"
 msgstr "Selecteer opdracht"
 
-#: .\templates\planning\schemes.html:235
+#: .\templates\planning\schemes.html:239
 msgid "Select scheme"
 msgstr "Selecteer schema"
 

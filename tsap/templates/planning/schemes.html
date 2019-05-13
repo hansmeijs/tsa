@@ -22,8 +22,6 @@
                   <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                   </button>
-
-
                 </div>
                 <div class="modal-header">
 
@@ -32,7 +30,6 @@
                         <label for="id_mod_checkbox" class="mx-4">{% trans 'or copy existing scheme' %}</label>
                   </div>
                 </div>
-
                 <div class="modal-body">
 
                   <div id="id_div_mod_flex" class="mod_flex">
@@ -52,7 +49,7 @@
                         </div>
                         <div class="content_subheader_left">
                             <label for="id_mod_publicholiday" > {% trans 'Public holidays' %}</label>
-                            <select id="id_mod_publicholiday" style="width:95%;margin:4px;" >text</select>
+                            <select id="id_mod_publicholiday" style="width:95%;margin:4px;" ></select>
                         </div>
                     </div>
 
@@ -149,6 +146,9 @@
                         <button id="id_popup_wdy_nextday" class="btn btn-add" title="{% trans 'Next day' %}">></button>
                         <button id="id_popup_wdy_nextmonth" class="btn btn-add" title="{% trans 'Next month' %}">>></button>
                     </div>
+                     <div class="content_subheader_right">
+                            <button id="id_popup_wdy_save" class="btn btn-add">{% trans 'Save' %}</button>
+                        </div>
                  </div>
 
   <!-- =================== POPUP DHM  =================== -->
@@ -175,7 +175,6 @@
                             </tbody>
                         </table>
                         <div class="content_subheader_right">
-                            <button class="popup_close btn btn-add">{% trans 'Cancel' %}</button>
                             <button id="id_popup_save" class="btn btn-add">{% trans 'Save' %}</button>
                         </div>
                     </div>
@@ -200,16 +199,20 @@
                 </table>
             </div>
 
-            <div class="content_header">
-                <div class="content_subheader_left">
-                    <button id="id_btn_add_schemeitem" class="btn btn-add">{% trans 'Add shift' %}</button>
-                    <button id="id_btn_delete_schemeitem" class="btn btn-add">{% trans 'Delete shift' %}</button>
-                    <button id="id_btn_fill_scheme" class="btn btn-add">{% trans 'Fill scheme' %}</button>
-                </div>
+        </div>
+
+        <div class="content_header">
+            <div class="content_subheader_left">
+                <button id="id_btn_add_schemeitem" class="btn btn-add">{% trans 'Add shift' %}</button>
+                <button id="id_btn_delete_schemeitem" class="btn btn-add">{% trans 'Delete shift' %}</button>
+            </div>
+
+
+            <div class="content_subheader_right">
+                <button id="id_btn_fill_scheme" class="btn btn-add">{% trans 'Fill scheme' %}</button>
             </div>
 
         </div>
-
 
         <div id="id_data"
             data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
@@ -220,6 +223,7 @@
             data-timeformat ="{{ timeformat }}"
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
+            data-today ="{{ today }}"
             data-weekend_choices ="{{ weekend_choices }}"
             data-publicholiday_choices ="{{ publicholiday_choices }}"
             data-customer_list ="{{ customer_list }}"

@@ -366,7 +366,7 @@ class EmployeeUploadView(UpdateView):# PR2019-03-04
                                 else:
                                     new_value = employee_upload[field]
                                     logger.debug('new_value: ' +  str(new_value))
-                                    new_datefirst = get_date_from_str(new_value)
+                                    new_datefirst = get_date_from_str(new_value, False) # False = blank_allowed
                                     logger.debug('new_date: ' + str(new_datefirst))
 
                                     saved_datefirst = employee.datefirst

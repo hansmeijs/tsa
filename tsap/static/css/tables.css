@@ -13,7 +13,13 @@
     margin: 0;
 	padding: 0;
 }
-
+.input_popup_dhm {
+    text-align: right;
+    background: transparent;
+    border: none;
+    margin: 0;
+	padding: 0;
+}
 
 /* PR2019-04-13 */
 .popup_container {
@@ -160,7 +166,7 @@
     width: 32px;
 }
 
-.tsa-tr-highlighted {
+.tsa_tr_selected {
     background: #e0e0e0; /* licht grijs; */
 }
 

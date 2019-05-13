@@ -185,7 +185,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                         logger.debug('field ' + str(field))
                                         logger.debug('row_upload ' + str(row_upload))
 
-                                        new_date, msg_err = get_date_from_str(row_upload[field])
+                                        new_date, msg_err = get_date_from_str(row_upload[field], True) # True = blank_not_allowed
                                         logger.debug('new_date: ' + str(new_date) + str(type(new_date)))
                                         # check if date is valid (empty date is ok)
                                         if msg_err is not None:
@@ -503,23 +503,28 @@ class SchemesView(View):
             employee_json = json.dumps(employee_list)
 
 # --- get weekend_choices and publicholidays_choices translated
-            lang = request.user.lang if request.user.lang else LANGUAGE_CODE
-            if not lang in WEEKDAYS_ABBREV:
-                lang = LANGUAGE_CODE
-            weekend_choices = json.dumps(WEEKEND_CHOICES[lang])
-            publicholiday_choices = json.dumps(PUBLICHOLIDAY_CHOICES[lang])
+            user_lang = request.user.lang if request.user.lang else LANGUAGE_CODE
+            if not user_lang in WEEKDAYS_ABBREV:
+                user_lang = LANGUAGE_CODE
+            weekend_choices = json.dumps(WEEKEND_CHOICES[user_lang])
+            publicholiday_choices = json.dumps(PUBLICHOLIDAY_CHOICES[user_lang])
 
 # --- get weekdays translated
-            lang = request.user.lang if request.user.lang else LANGUAGE_CODE
-            if not lang in WEEKDAYS_ABBREV:
-                lang = LANGUAGE_CODE
-            weekdays_json = json.dumps(WEEKDAYS_ABBREV[lang])
+            if not user_lang in WEEKDAYS_ABBREV:
+                user_lang = LANGUAGE_CODE
+            weekdays_json = json.dumps(WEEKDAYS_ABBREV[user_lang])
 
 # --- get months translated
-            lang = request.user.lang if request.user.lang else LANGUAGE_CODE
-            if not lang in MONTHS_ABBREV:
-                lang = LANGUAGE_CODE
-            months_json = json.dumps(MONTHS_ABBREV[lang])
+            if not user_lang in MONTHS_ABBREV:
+                user_lang = LANGUAGE_CODE
+            months_json = json.dumps(MONTHS_ABBREV[user_lang])
+
+# --- get today
+            today_dict = {'value': str(date.today()),
+                          'wdm': get_date_WDM_from_dte(date.today(), user_lang),
+                          'wdmy': get_date_WDMY_from_dte(date.today(), user_lang),
+                          'offset': get_weekdaylist_for_DHM(date.today(), user_lang)}
+            today_json = json.dumps(today_dict)
 
 # ---  get interval
             interval = 1
@@ -540,11 +545,12 @@ class SchemesView(View):
                 'order_list': order_json,
                 'scheme_list': scheme_json,
                 'employee_list': employee_json,
-                'lang': lang,
+                'lang': user_lang,
                 'weekend_choices': weekend_choices,
                 'publicholiday_choices': publicholiday_choices,
                 'weekdays': weekdays_json,
                 'months': months_json,
+                'today': today_json,
                 'interval': interval,
                 'timeformat': timeformat
             })
@@ -660,7 +666,7 @@ class SchemeDownloadView(View):  # PR2019-03-10
 class SchemeItemDownloadView(View):  # PR2019-03-10
     # function downloads scheme, teams and schemeitems of selected scheme
     def post(self, request, *args, **kwargs):
-        logger.debug(' ====++++++++==== SchemeItemDownloadView ============= ')
+        # logger.debug(' ====++++++++==== SchemeItemDownloadView ============= ')
         # logger.debug('request.POST' + str(request.POST) )
         # {'scheme_download': ['{"scheme_pk":18}']}
 
@@ -739,9 +745,10 @@ class SchemeItemUploadView(UpdateView):  # PR2019-04-26
         logger.debug(' ============= SchemeItemUploadView ============= ')
 
 # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+        schemeitem_update_dict = {}
+        update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
         field_list = ('id', 'scheme', 'rosterdate', 'shift', 'team',
                       'time_start', 'time_end', 'break_start', 'time_duration', 'break_duration')
-        update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
         for field in field_list:
             update_dict[field] = {}
 
@@ -765,17 +772,23 @@ class SchemeItemUploadView(UpdateView):  # PR2019-04-26
             is_delete_schemeitem = False
 
             if upload_dict:
-    # --- get id_dict
+# --- get id_dict
                 id_dict = upload_dict.get('id', None)
-                logger.debug('id_dict: ' + str(id_dict))
                 # id_dict: {'temp_pk': 'new_1', 'create': True, 'parent_pk': 18}
                 if id_dict:
-                    pk_int = int(id_dict.get('pk', 0))
+                    pk_str = str(id_dict.get('pk', ''))
+                    if 'new' in pk_str:
+                        temp_pk_str = pk_str
+                    else:
+                        pk_int = int(id_dict.get('pk', 0))
+                        temp_pk_str = id_dict.get('temp_pk', '')
+
                     parent_pk_int = int(id_dict.get('parent_pk', 0))
+
                     is_new_schemeitem = ('create' in id_dict)
                     is_delete_schemeitem = ('delete' in id_dict)
-                    temp_pk_str = id_dict.get('temp_pk', '')
-            logger.debug('pk_int: ' + str(pk_int) + ' type: ' + str(type(pk_int)))
+
+                    logger.debug('pk_int: ' + str(pk_int) + ' type: ' + str(type(pk_int)))
 
     # check if parent exists
             scheme = None
@@ -796,16 +809,16 @@ class SchemeItemUploadView(UpdateView):  # PR2019-04-26
                 # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
                 if temp_pk_str:
                     update_dict['id']['temp_pk'] = temp_pk_str
-                # update_dict: {'id': {'temp_pk': 'new_1'}, 'code': {},...
 
                 schemeitem = SchemeItem(scheme=scheme)
                 schemeitem.save(request=self.request)
+                logger.debug('new_schemeitem: ' + str(schemeitem))
+
                 update_dict['id']['created'] = True
 
                 # TODO change: ---  after saving new record: subtract 1 from company.balance
                 request.user.company.balance -= 1
                 request.user.company.save(request=self.request)
-            logger.debug('schemeitem: ' + str(schemeitem))
 
             if schemeitem:
                 update_dict['id']['pk'] = schemeitem.pk
@@ -824,301 +837,346 @@ class SchemeItemUploadView(UpdateView):  # PR2019-04-26
                         update_dict['id']['del_err'] = msg_err
                 else:
 
-# ++++ update existing and new schemeitem ++++++++++++++++++++++++++++++++++++
-                    save_changes = False
-                    calculate_hours = False
-
-# - save changes in rosterdate field
-                    field = 'rosterdate'
-                    if field in upload_dict:
-                        field_dict = upload_dict.get(field)
-                        logger.debug('upload_dict[' + field + ']: ' + str(field_dict) + str(type(field_dict)))
-                        # field_dict: {'value': '2019-04-12'}
-                        field_value = field_dict.get('value')
-                        # field_value: '2019-04-12' <class 'str'>
-                        new_date, msg_err = get_date_from_str(field_value, True)  # True = blank_not_allowed
-                        # new_date: 2019-04-12 <class 'datetime.date'>
-        # check if date is valid (empty date is not allowed)
-                        if msg_err is not None:
-                            update_dict[field]['err'] = msg_err
-                        else:
-                            saved_date = getattr(schemeitem, field, None)
-                            if new_date != saved_date:
-                                setattr(schemeitem, field, new_date)
-                                update_dict[field]['updated'] = True
-
-        # calculate new time_start_dte etc
-                                for field in ['time_start', 'time_end', 'break_start']:
-                                    new_time_dte = None
-                                    if new_date:
-                                        dhm_str = getattr(schemeitem, field + '_dhm', '0,0,0')
-                                        new_time_dte = get_datetimelocal_from_DHM(new_date, dhm_str)
-                                    setattr(schemeitem, field, new_time_dte)
-                                    # show new time_start_dhm etc in tablerow (weekday is updated, rest stays the same)
-                                    update_dict[field]['updated'] = True
-
-                                save_changes = True
-                                calculate_hours = True
-
-# --- save changes in field 'shift
-                    field = 'shift'
-                    if field in upload_dict:
-                        field_dict = upload_dict.get(field)
-                        new_value = field_dict.get('value')
-                        saved_value = getattr(schemeitem, field, None)
-                        if new_value != saved_value:
-                            setattr(schemeitem, field, new_value)
-                            logger.debug('setattr ' + str(new_value))
-                            update_dict[field]['updated'] = True
-                            save_changes = True
-                            logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
-
-                # update create_shift_list when shift has changed
-                            shift_list = create_shift_list(scheme)
-                            if shift_list:
-                                update_dict['shift_list'] = shift_list
-
-                # lookup first shift with this name in
-
-                            lookup_schemeitem = SchemeItem.objects.filter(
-                                scheme=scheme,
-                                shift__iexact=new_value
-                            ).first()
-                            if lookup_schemeitem:
-                                logger.debug('lookup_schemeitem' + str(lookup_schemeitem))
-                                logger.debug('lookup_schemeitem.time_start_dhm' + str(lookup_schemeitem.time_start_dhm))
-                                logger.debug('lookup_schemeitem.time_end_dhm' + str(lookup_schemeitem.time_end_dhm))
-                                logger.debug('lookup_schemeitem.break_start_dhm' + str(lookup_schemeitem.break_start_dhm))
-                                logger.debug('lookup_schemeitem.break_duration' + str(lookup_schemeitem.break_duration))
-
-                                if schemeitem.time_start_dhm != lookup_schemeitem.time_start_dhm:
-                                    schemeitem.time_start_dhm = lookup_schemeitem.time_start_dhm
-                                    schemeitem.time_start = lookup_schemeitem.time_start
-                                    update_dict["time_start"]['updated'] = True
-
-                                if schemeitem.time_end_dhm != lookup_schemeitem.time_end_dhm:
-                                    schemeitem.time_end_dhm = lookup_schemeitem.time_end_dhm
-                                    schemeitem.time_end = lookup_schemeitem.time_end
-                                    update_dict["time_end"]['updated'] = True
-
-                                if schemeitem.break_start_dhm != lookup_schemeitem.break_start_dhm:
-                                    schemeitem.break_start_dhm = lookup_schemeitem.break_start_dhm
-                                    schemeitem.break_start = lookup_schemeitem.break_start
-                                    update_dict["break_start"]['updated'] = True
-
-                                if schemeitem.break_duration != lookup_schemeitem.break_duration:
-                                    schemeitem.break_duration = lookup_schemeitem.break_duration
-                                    update_dict["break_duration"]['updated'] = True
-
-                                schemeitem.time_duration = lookup_schemeitem.time_duration
-
-                                logger.debug('update_dict' + str(update_dict))
-                    # update time_start etc
-
-# --- save changes in field 'team'
-                    field = 'team'
-                    if field in upload_dict:
-                        field_dict = upload_dict.get(field)
-                        logger.debug('upload_dict[' + field + ']: ' + str(field_dict) + ' ' + str(type(field_dict)))
-                        team_code = field_dict.get('value')
-                        team_pk = field_dict.get('pk')
-
-                # remove team from schemeitem when team_code is None
-                        if not team_code:
-                            # set field blank
-                            if schemeitem.team:
-                                schemeitem.team = None
-                                update_dict[field]['updated'] = True
-                                save_changes = True
-                        else:
-                            team = None
-                            if team_pk:
-                                # check if team exists
-                                team = Team.objects.filter(scheme=scheme, pk=team_pk).first()
-
-                # create team if it does not exist
-                            if team is None:
-                                team = Team(scheme=scheme, code=team_code)
-                                team.save(request=self.request)
-
-                # update team_list when new team is created
-                                team_list = create_team_list(scheme)
-                                if team_list:
-                                    update_dict['team_list'] = team_list
-                # update schemeitem
-                            if team:
-                                setattr(schemeitem, field, team)
-                                update_dict[field]['updated'] = True
-                                save_changes = True
-
-# --- save changes in time fields
-                        # upload_dict: {'id': {'pk': 4, 'parent_pk': 18}, 'break_start': {'value': '0;11;15', 'update': True}}
-
-                    for field in ('time_start', 'time_end', 'break_start'):
-                        if field in upload_dict:
-                            field_dict = upload_dict.get(field)
-                            # logger.debug('upload_dict[' + field + ']: ' + str(field_dict) + ' ' + str(type(field_dict)))
-                            if 'value' in field_dict:
-                                # time_start': {'value': '0;3;45', 'o_value': '2019-04-27T02:36:00+02:00'}}
-                                new_value = field_dict.get('value')
-                                saved_value = getattr(schemeitem, field, None)
-                                if new_value != saved_value:
-                                    # save in field 'time_start_dhm' etc'
-                                    setattr(schemeitem, field + '_dhm', new_value)
-                                    update_dict[field]['updated'] = True
-
-                                    save_changes = True
-                                    calculate_hours = True
-
-                                    # calculate new time_start_dte etc
-                                    new_time_dte = None
-                                    if new_value:
-                                        rosterdate = getattr(schemeitem, 'rosterdate')
-                                        if rosterdate:
-                                            dhm_str = getattr(schemeitem, field + '_dhm', '0,0,0')
-                                            new_time_dte = get_datetimelocal_from_DHM(rosterdate, dhm_str)
-                                    setattr(schemeitem, field, new_time_dte)
-
-# --- save changes in break_duration field
-                    for field in ('break_duration',):
-                        # row_upload: {'pk': '18', 'break_duration': '0.5'}
-                        if field in upload_dict:
-                            logger.debug('row_upload[' + field + ']: ' + str(upload_dict[field]))
-                            value_str = upload_dict[field]
-                            logger.debug('value_str: <' + str(value_str) + '> type: ' + str(type(value_str)))
-                            logger.debug([value_str])
-
-                            # replace comma by dot
-                            value_str = value_str.replace(',', '.')
-                            value_str = value_str.replace(' ', '')
-                            value_str = value_str.replace("'", "")
-                            value = float(value_str) if value_str != '' else 0
-
-                            # duration unit in database is minutes
-                            new_value = 60 * value
-                            logger.debug('new_value ' + str(new_value) + ' ' + str(type(new_value)))
-                            saved_value = getattr(schemeitem, field, None)
-                            logger.debug('saved_value[' + field + ']: ' + str(saved_value))
-                            if new_value != saved_value:
-                                setattr(schemeitem, field, new_value)
-                                logger.debug('setattr ' + str(new_value))
-                                update_dict[field]['updated'] = True
-
-                                save_changes = True
-                                calculate_hours = True
-
-# --- calculate working hours
-                    if calculate_hours:
-                        logger.debug('calculate working hours')
-                        field = 'time_duration'
-                        if schemeitem.time_start and schemeitem.time_end:
-                            # duration unit in database is minutes
-                            saved_break_minutes = int(getattr(schemeitem, 'break_duration', 0))
-                            logger.debug('saved_break_minutes: ' + str(saved_break_minutes) +  str(type(saved_break_minutes)))
-
-                            datediff = schemeitem.time_end - schemeitem.time_start
-                            logger.debug('datediff: ' + str(datediff) +  str(type(datediff)))
-                            datediff_minutes = int((datediff.total_seconds() / 60))
-                            logger.debug('datediff_minutes: ' + str(datediff_minutes) + str(type(datediff_minutes)))
-                            new_time_minutes = int(datediff_minutes - saved_break_minutes)
-                            logger.debug('new_time_minutes: ' + str(new_time_minutes) + str(type(new_time_minutes)))
-
-                            saved_time_minutes = getattr(schemeitem, field, 0)
-                            logger.debug('saved_time_minutes: ' + str(saved_time_minutes) + str(type(saved_time_minutes)))
-
-                            if new_time_minutes != saved_time_minutes:
-                                setattr(schemeitem, field, new_time_minutes)
-                                logger.debug('setattr new_time_minutes' + str(new_time_minutes))
-
-                                update_dict[field]['updated'] = True
-                                save_changes = True
-
-                                            #logger.debug('time_duration: ' + str(schemeitem.time_duration) + str(type(schemeitem.time_duration)))
-# --- save changes
-                    if save_changes:
-                        schemeitem.save(request=self.request)
-                        logger.debug('changes saved ')
-                        logger.debug(str(update_dict))
-                        for field in update_dict:
-                            # 'updated' has always value True, or it does not exist
-                            if 'updated' in update_dict[field]:
-                                if field == 'rosterdate':
-                                    update_dict[field]['value'] = str(schemeitem.rosterdate)
-                                    update_dict[field]['html'] = get_date_WDM_from_dte(schemeitem.rosterdate, user_lang)
-                                    update_dict[field]['wdm'] = get_date_WDM_from_dte(schemeitem.rosterdate, user_lang)
-                                    update_dict[field]['wdmy'] = get_date_WDMY_from_dte(schemeitem.rosterdate, user_lang)
-                                    update_dict[field]['offset'] = get_weekdaylist_for_DHM(schemeitem.rosterdate, user_lang)
-                                elif field == 'team':
-                                    update_dict[field]['value'] = schemeitem.team.code
-                                    update_dict[field]['pk'] = schemeitem.team.id
-                                    update_dict[field]['parent_pk'] = schemeitem.team.scheme.id
-                                elif field == 'shift':
-                                    update_dict[field]['value'] = schemeitem.shift
-                                elif field == 'time_start':
-                                    update_dict[field]['value'] = schemeitem.time_start_dhm
-                                    update_dict[field]['html'] = get_timeDHM_from_dhm(
-                                        schemeitem.rosterdate,
-                                        schemeitem.time_start_dhm,
-                                        user_lang)
-                                elif field == 'time_end':
-                                    update_dict[field]['value'] = schemeitem.time_end_dhm
-                                    update_dict[field]['html'] = get_timeDHM_from_dhm(
-                                        schemeitem.rosterdate,
-                                        schemeitem.time_end_dhm,
-                                        user_lang)
-                                elif field == 'break_start':
-                                    update_dict[field]['value'] = schemeitem.break_start_dhm
-                                    update_dict[field]['html'] = get_timeDHM_from_dhm(
-                                        schemeitem.rosterdate,
-                                        schemeitem.break_start_dhm,
-                                        user_lang)
-                                elif field == 'time_duration':
-                                    update_dict[field]['value'] = schemeitem.time_duration
-                                    update_dict[field]['html'] = get_date_HM_from_minutes(
-                                        schemeitem.time_duration,
-                                        user_lang)
-                                elif field == 'break_duration':
-                                    update_dict[field]['value'] = schemeitem.break_duration
-                                    update_dict[field]['html'] = get_date_HM_from_minutes(
-                                        schemeitem.break_duration,
-                                        user_lang)
-                                else:
-                                    update_dict[field]['value'] = getattr(schemeitem, field, None)
-
-                                # logger.debug( field + ': ' + str(update_dict[field]))
-
-                # --- remove empty attributes from update_dict
-                # cannot iterate through update_dict because it changes during iteration
-                for field in field_list:
-                    if not update_dict[field]:
-                        del update_dict[field]
+# update_schemeitem
+                    logger.debug('update_dict before: ')
+                    logger.debug(str(update_dict))
+                    update_schemeitem(scheme, schemeitem, upload_dict, update_dict, field_list, self.request, user_lang)
+                    logger.debug('update_dict after: ')
+                    logger.debug(str(update_dict))
 
                 # update schemeitem_list when changes are made
-                team_list = create_team_list(scheme)
-                if team_list:
-                    update_dict['team_list'] = team_list
+                if 'team' in update_dict:
+                    if 'updated' in update_dict['team']:
+                        team_list = create_team_list(scheme)
+                        if team_list:
+                            schemeitem_update_dict['team_list'] = team_list
+
+            if update_dict:
+                schemeitem_update_dict['schemeitem_update'] = update_dict
 
                 # update schemeitem_list when changes are made
                 schemeitem_list = create_schemeitem_list(scheme, user_lang)
                 if schemeitem_list:
-                    update_dict['schemeitem_list'] = schemeitem_list
-
-        schemeitem_update_dict = {'schemeitem_update': update_dict}
-        # update_dict = {'row_update': {'idx': {'pk': '1'}, 'code': {'status': 'upd'}, 'modified_by': {'val': 'Hans'},
-        #              'modified_at': {'val': '29 mrt 2019 10.20u.'}}}
-
-# schemeitem_update:
-        # id: {pk: 15}
-        # shift: {upd: true}
-        # time_duration: {upd: true, val: 1604.75}
-
-        # logger.debug('schemeitem_update_dict: ')
-        # logger.debug(str(schemeitem_update_dict))
+                    schemeitem_update_dict['schemeitem_list'] = schemeitem_list
 
         update_dict_json = json.dumps(schemeitem_update_dict, cls=LazyEncoder)
 
         return HttpResponse(update_dict_json)
 
+
+def update_schemeitem(scheme, schemeitem, upload_dict, update_dict, field_list, request, user_lang):
+    # --- update existing and new schemeitem PR2-019-05-08
+    logger.debug(' ============= update_schemeitem ============= ')
+    logger.debug(upload_dict)
+
+    # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+    # - update_dict is created in SchemeItemUploadView, contains id_dict with pk etc.
+
+    save_changes = False
+    calculate_hours = False
+    recalc_time_fields = False
+
+    # if upload_dict:
+    #    # --- get id_dict
+    #    id_dict = upload_dict.get('id', None)
+    #    # id_dict: {'temp_pk': 'new_1', 'create': True, 'parent_pk': 18}
+    #    if id_dict:
+    #        pk_int = int(id_dict.get('pk', 0))
+    #        parent_pk_int = int(id_dict.get('parent_pk', 0))
+    #
+    #        is_new_schemeitem = ('create' in id_dict)
+    #        is_delete_schemeitem = ('delete' in id_dict)
+    #
+    #        temp_pk_str = id_dict.get('temp_pk', '')
+    #        logger.debug('pk_int: ' + str(pk_int) + ' type: ' + str(type(pk_int)))
+
+    # - save changes in rosterdate field
+    field = 'rosterdate'
+    if field in upload_dict:
+        field_dict = upload_dict.get(field)
+        logger.debug('field_dict ' + field + ': ' + str(field_dict) + str(type(field_dict)))
+        # field_dict: {'value': '2019-04-12'}
+        field_value = field_dict.get('value') # field_value: '2019-04-12'
+        new_date, msg_err = get_date_from_str(field_value, True)  # True = blank_not_allowed
+        # new_date: 2019-04-12 <class 'datetime.date'>
+        # check if date is valid (empty date is not allowed)
+        if msg_err is not None:
+            update_dict[field]['err'] = msg_err
+        else:
+            saved_date = getattr(schemeitem, field, None)
+            if new_date != saved_date:
+                setattr(schemeitem, field, new_date)
+                update_dict[field]['updated'] = True
+
+                # calculate new time_start_dte etc at the end
+                recalc_time_fields = True
+
+                save_changes = True
+                calculate_hours = True
+
+    # --- save changes in field 'shift
+    field = 'shift'
+    if field in upload_dict:
+        field_dict = upload_dict.get(field)
+        new_value = field_dict.get('value')
+        saved_value = getattr(schemeitem, field, None)
+        if new_value != saved_value:
+            setattr(schemeitem, field, new_value)
+            logger.debug('attr ' + field + 'saved to: ' + str(new_value))
+
+            update_dict[field]['updated'] = True
+            save_changes = True
+            logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+
+            # update create_shift_list when shift has changed
+            shift_list = create_shift_list(scheme)
+            if shift_list:
+                update_dict['shift_list'] = shift_list
+
+            # lookup first shift with this name in
+
+            lookup_schemeitem = SchemeItem.objects.filter(
+                scheme=scheme,
+                shift__iexact=new_value
+            ).first()
+            if lookup_schemeitem:
+                logger.debug('lookup_schemeitem' + str(lookup_schemeitem))
+                logger.debug('lookup_schemeitem.time_start_dhm' + str(lookup_schemeitem.time_start_dhm))
+                logger.debug('lookup_schemeitem.time_end_dhm' + str(lookup_schemeitem.time_end_dhm))
+                logger.debug('lookup_schemeitem.break_start_dhm' + str(lookup_schemeitem.break_start_dhm))
+                logger.debug('lookup_schemeitem.break_duration' + str(lookup_schemeitem.break_duration))
+
+                if schemeitem.time_start_dhm != lookup_schemeitem.time_start_dhm:
+                    schemeitem.time_start_dhm = lookup_schemeitem.time_start_dhm
+                    schemeitem.time_start = lookup_schemeitem.time_start
+                    update_dict["time_start"]['updated'] = True
+
+                if schemeitem.time_end_dhm != lookup_schemeitem.time_end_dhm:
+                    schemeitem.time_end_dhm = lookup_schemeitem.time_end_dhm
+                    schemeitem.time_end = lookup_schemeitem.time_end
+                    update_dict["time_end"]['updated'] = True
+
+                if schemeitem.break_start_dhm != lookup_schemeitem.break_start_dhm:
+                    schemeitem.break_start_dhm = lookup_schemeitem.break_start_dhm
+                    schemeitem.break_start = lookup_schemeitem.break_start
+                    update_dict["break_start"]['updated'] = True
+
+                if schemeitem.break_duration != lookup_schemeitem.break_duration:
+                    schemeitem.break_duration = lookup_schemeitem.break_duration
+                    update_dict["break_duration"]['updated'] = True
+
+                schemeitem.time_duration = lookup_schemeitem.time_duration
+
+                logger.debug('update_dict' + str(update_dict))
+    # update time_start etc
+
+    # --- save changes in field 'team'
+    field = 'team'
+    if field in upload_dict:
+        field_dict = upload_dict.get(field)
+        logger.debug('upload_dict[' + field + ']: ' + str(field_dict) + ' ' + str(type(field_dict)))
+        team_code = field_dict.get('value')
+        team_pk = field_dict.get('pk')
+
+        # remove team from schemeitem when team_code is None
+        if not team_code:
+            # set field blank
+            if schemeitem.team:
+                schemeitem.team = None
+                update_dict[field]['updated'] = True
+                save_changes = True
+        else:
+            team = None
+            if team_pk:
+                # check if team exists
+                team = Team.objects.filter(scheme=scheme, pk=team_pk).first()
+
+            # create team if it does not exist
+            if team is None:
+                team = Team(scheme=scheme, code=team_code)
+                team.save(request=request)
+
+                # update team_list when new team is created
+                team_list = create_team_list(scheme)
+                if team_list:
+                    update_dict['team_list'] = team_list
+            # update schemeitem
+            if team:
+                setattr(schemeitem, field, team)
+                update_dict[field]['updated'] = True
+                save_changes = True
+
+    # --- save changes in time fields
+    # upload_dict: {'id': {'pk': 4, 'parent_pk': 18}, 'break_start': {'value': '0;11;15', 'update': True}}
+
+    for field in ('time_start', 'time_end', 'break_start'):
+        if field in upload_dict:
+            field_dict = upload_dict.get(field)
+            logger.debug('upload_dict[' + field + ']: ' + str(field_dict) + ' ' + str(type(field_dict)))
+            if 'value' in field_dict:
+                # time_start': {'value': '0;3;45', 'o_value': '2019-04-27T02:36:00+02:00'}}
+                new_value_dhm = field_dict.get('value')
+                saved_value_dhm = getattr(schemeitem, field + '_dhm', None)
+                logger.debug('new_value_dhm: <' + str(new_value_dhm) + '> type: ' + str(type(new_value_dhm)))
+                logger.debug('saved_value_dhm: <' + str(saved_value_dhm) + '> type: ' + str(type(saved_value_dhm)))
+                if new_value_dhm != saved_value_dhm:
+                    # save in field 'time_start_dhm' etc'
+                    setattr(schemeitem, field + '_dhm', new_value_dhm)
+                    update_dict[field]['updated'] = True
+
+                    save_changes = True
+                    calculate_hours = True
+                    recalc_time_fields = True
+                    # calculate new time_start_dte etc
+                    new_time_dte = None
+                    if new_value_dhm:
+                        # is rosterdate has changed: schemeitem already contains new value, rosterdate has changed above
+                        rosterdate = getattr(schemeitem, 'rosterdate')
+                        logger.debug('rosterdate: <' + str(rosterdate) + '> type: ' + str(type(rosterdate)))
+
+                        if rosterdate:
+                            new_time_dte = get_datetimelocal_from_DHM(rosterdate, new_value_dhm)
+                            logger.debug('new_time_dte: <' + str(new_time_dte) + '> type: ' + str(type(new_time_dte)))
+                    setattr(schemeitem, field, new_time_dte)
+
+
+        # calculate new time_start_dte etc
+    if recalc_time_fields:
+        # if rosterdate has changed: schemeitem already contains new value, rosterdate has changed above
+        rosterdate = getattr(schemeitem, 'rosterdate')
+        for field in ['time_start', 'time_end', 'break_start']:
+            new_time_dte = None
+            dhm_str = getattr(schemeitem, field + '_dhm', '0,0,0')
+            new_time_dte = get_datetimelocal_from_DHM(rosterdate, dhm_str)
+            old_time_dte = getattr(schemeitem, field)
+            if not new_time_dte == old_time_dte:
+                setattr(schemeitem, field, new_time_dte)
+                # show new time_start_dhm etc in tablerow (weekday is updated, rest stays the same)
+                update_dict[field]['updated'] = True
+
+    # --- save changes in break_duration field
+    for field in ('break_duration',):
+        # row_upload: {'pk': '18', 'break_duration': '0.5'}
+        if field in upload_dict:
+            logger.debug('row_upload[' + field + ']: ' + str(upload_dict[field]))
+            value_str = upload_dict[field]
+            logger.debug('value_str: <' + str(value_str) + '> type: ' + str(type(value_str)))
+            logger.debug([value_str])
+
+            # replace comma by dot
+            value_str = value_str.replace(',', '.')
+            value_str = value_str.replace(' ', '')
+            value_str = value_str.replace("'", "")
+            value = float(value_str) if value_str != '' else 0
+
+            # duration unit in database is minutes
+            new_value = 60 * value
+            logger.debug('new_value ' + str(new_value) + ' ' + str(type(new_value)))
+            saved_value = getattr(schemeitem, field, None)
+            logger.debug('saved_value[' + field + ']: ' + str(saved_value))
+            if new_value != saved_value:
+                setattr(schemeitem, field, new_value)
+                logger.debug('setattr ' + str(new_value))
+                update_dict[field]['updated'] = True
+
+                save_changes = True
+                calculate_hours = True
+
+    # --- calculate working hours
+    if calculate_hours:
+        logger.debug('calculate working hours')
+        field = 'time_duration'
+        new_time_minutes = 0
+        saved_time_minutes = int(getattr(schemeitem, field, 0))
+
+        if schemeitem.time_start and schemeitem.time_end:
+            # duration unit in database is minutes
+            saved_break_minutes = int(getattr(schemeitem, 'break_duration', 0))
+            logger.debug('saved_time_start: ' + str(schemeitem.time_start) + str(type(schemeitem.time_start)))
+            logger.debug('saved_time_end: ' + str(schemeitem.time_end) + str(type(schemeitem.time_end)))
+            logger.debug('saved_break_minutes: ' + str(saved_break_minutes) + str(type(saved_break_minutes)))
+
+            datediff = schemeitem.time_end - schemeitem.time_start
+            logger.debug('datediff: ' + str(datediff) + str(type(datediff)))
+
+            datediff_minutes = int((datediff.total_seconds() / 60))
+            logger.debug('datediff_minutes: ' + str(datediff_minutes) + str(type(datediff_minutes)))
+
+            new_time_minutes = int(datediff_minutes - saved_break_minutes)
+            logger.debug('new_time_minutes: ' + str(new_time_minutes) + str(type(new_time_minutes)))
+
+            saved_time_minutes = getattr(schemeitem, field, 0)
+            logger.debug('saved_time_minutes: ' + str(saved_time_minutes) + str(type(saved_time_minutes)))
+
+        if new_time_minutes != saved_time_minutes:
+            setattr(schemeitem, field, new_time_minutes)
+            logger.debug('setattr new_time_minutes: ' + str(new_time_minutes))
+
+            update_dict[field]['updated'] = True
+            save_changes = True
+
+    logger.debug('update_dict: ' + str(update_dict))
+
+            # logger.debug('time_duration: ' + str(schemeitem.time_duration) + str(type(schemeitem.time_duration)))
+    # --- save changes
+    if save_changes:
+        schemeitem.save(request=request)
+
+        for field in update_dict:
+            if field == 'rosterdate':
+                if schemeitem.rosterdate:
+                    update_dict[field]['value'] = str(schemeitem.rosterdate)
+                    update_dict[field]['wdm'] = get_date_WDM_from_dte(schemeitem.rosterdate, user_lang)
+                    update_dict[field]['wdmy'] = get_date_WDMY_from_dte(schemeitem.rosterdate, user_lang)
+                    update_dict[field]['offset'] = get_weekdaylist_for_DHM(schemeitem.rosterdate, user_lang)
+            elif field == 'team':
+                if schemeitem.team:
+                    update_dict[field]['value'] = schemeitem.team.code
+                    update_dict[field]['team_pk'] = schemeitem.team.id
+            elif field == 'shift':
+                if schemeitem.shift:
+                    update_dict[field]['value'] = schemeitem.shift
+            elif field == 'time_start':
+                if schemeitem.time_start_dhm:
+                    update_dict[field]['value'] = schemeitem.time_start_dhm
+                    update_dict[field]['dhm'] = get_timeDHM_from_dhm(
+                        schemeitem.rosterdate,
+                        schemeitem.time_start_dhm,
+                        user_lang)
+            elif field == 'time_end':
+                if schemeitem.time_end_dhm:
+                    update_dict[field]['value'] = schemeitem.time_end_dhm
+                    update_dict[field]['dhm'] = get_timeDHM_from_dhm(
+                        schemeitem.rosterdate,
+                        schemeitem.time_end_dhm,
+                        user_lang)
+            elif field == 'break_start':
+                if schemeitem.break_start_dhm:
+                    update_dict[field]['value'] = schemeitem.break_start_dhm
+                    update_dict[field]['dhm'] = get_timeDHM_from_dhm(
+                        schemeitem.rosterdate,
+                        schemeitem.break_start_dhm,
+                        user_lang)
+            elif field == 'break_duration':
+                if schemeitem.break_duration:
+                    update_dict[field]['value'] = schemeitem.break_duration
+                    update_dict[field]['hm'] = get_date_HM_from_minutes(
+                        schemeitem.break_duration,
+                        user_lang)
+            elif field == 'time_duration':
+                if schemeitem.time_duration:
+                    update_dict[field]['value'] = schemeitem.time_duration
+                    update_dict[field]['hm'] = get_date_HM_from_minutes(
+                        schemeitem.time_duration,
+                        user_lang)
+
+    # --- remove empty attributes from update_dict
+    # cannot iterate through update_dict because it changes during iteration
+    for field in field_list:
+        if not update_dict[field]:
+            del update_dict[field]
+
+    logger.debug('update_dict: ' + str(update_dict))
 
 def create_shift_list(scheme):
     # create list of shifts of this scheme PR2019-05-01
@@ -1163,50 +1221,89 @@ def create_team_list(scheme):
     return team_list
 
 
+def create_schemeitem_dict(schemeitem, user_lang, temp_pk = None,
+                           is_created = False, is_deleted = False, updated_list = None):
+    # create list of schemeitems of this scheme PR2019-05-12
+    schemeitem_dict = {}
+    field_list = ('id', 'scheme', 'rosterdate', 'shift', 'team',
+                  'time_start', 'time_end', 'break_start', 'time_duration', 'break_duration')
+
+    for field in field_list:
+        schemeitem_dict[field] = {}
+        if updated_list:
+            if field in updated_list:
+                schemeitem_dict[field]['updated'] = True
+
+    if schemeitem:
+        for field in ['id']:
+            schemeitem_dict[field] = {'pk': schemeitem.id, 'parent_pk': schemeitem.scheme.id}
+            if temp_pk:
+                schemeitem_dict[field]['temp_pk'] = temp_pk
+            if is_created:
+                schemeitem_dict[field]['created'] = True
+            if is_deleted:
+                schemeitem_dict[field]['deleted'] = True
+
+        if not is_deleted:
+            for field in ['rosterdate']:
+                value = getattr(schemeitem, field)
+                if value:
+                    field_dict = {'value': value,
+                                  'wdm': get_date_WDM_from_dte(value, user_lang),
+                                  'wdmy': get_date_WDMY_from_dte(value, user_lang),
+                                  'offset': get_weekdaylist_for_DHM(value, user_lang)}
+                    schemeitem_dict[field] = field_dict
+
+            for field in ['shift']:
+                value = getattr(schemeitem, field)
+                if value:
+                    field_dict = {'value': value}
+                    schemeitem_dict[field] = field_dict
+
+            for field in ['team']:
+                team_pk = None
+                field_dict = {}
+                if schemeitem.team:
+                    value = schemeitem.team.code
+                    team_pk = schemeitem.team.id
+                    field_dict = {'value': value, 'team_pk':team_pk}
+                    if field_dict:
+                        schemeitem_dict[field] = field_dict
+
+            for field in ['time_start', 'time_end', 'break_start']:
+                value = getattr(schemeitem, field + '_dhm')
+                rosterdate = getattr(schemeitem, 'rosterdate')
+                if value:
+                    field_dict = {'value': value, 'dhm': get_timeDHM_from_dhm(rosterdate, value, user_lang)}
+                    schemeitem_dict[field] = field_dict
+
+            for field in ['time_duration', 'break_duration']:
+                value = getattr(schemeitem, field)
+                if value:
+                    field_dict = {'value': value, 'hm': get_date_HM_from_minutes( value, user_lang)}
+                    schemeitem_dict[field] = field_dict
+
+
+    # --- remove empty attributes from update_dict
+    # cannot iterate through update_dict because it changes during iteration
+    for field in field_list:
+        if not schemeitem_dict[field]:
+            del schemeitem_dict[field]
+
+    return schemeitem_dict
+
 def create_schemeitem_list(scheme, user_lang):
-    # create list of schemeitems of this scheme PR2019-05-06
+    # create list of schemeitems of this scheme PR2019-05-12
     schemeitems = SchemeItem.objects.filter(scheme=scheme)
+
     schemeitem_list = []
     for schemeitem in schemeitems:
-        schemeitem_dict = {}
-        if schemeitem.id:
-            schemeitem_dict['id'] = {'pk': schemeitem.id, 'parent_pk': schemeitem.scheme.id}
-        if schemeitem.team:
-            schemeitem_dict['team'] = {'pk': schemeitem.team.id, 'value': schemeitem.team.code}
-        if schemeitem.shift:
-            schemeitem_dict['shift'] = {'value': schemeitem.shift}
-        # rosterdate goes after shift, because shift dict must be created first
-        if schemeitem.rosterdate:
-            field_dict = {'value': schemeitem.rosterdate,
-                          'wdm': get_date_WDM_from_dte(schemeitem.rosterdate, user_lang),
-                          'wdmy': get_date_WDMY_from_dte(schemeitem.rosterdate, user_lang),
-                          'offset': get_weekdaylist_for_DHM(schemeitem.rosterdate, user_lang)}
-            schemeitem_dict['rosterdate'] = field_dict
-        if schemeitem.time_start_dhm:
-            field_dict = {'value': schemeitem.time_start_dhm,
-                          'html': get_timeDHM_from_dhm(schemeitem.rosterdate, schemeitem.time_start_dhm, user_lang)}
-            schemeitem_dict['time_start'] = field_dict
-
-        if schemeitem.time_end_dhm:
-            field_dict = {'value': schemeitem.time_end_dhm,
-                          'html': get_timeDHM_from_dhm(schemeitem.rosterdate, schemeitem.time_end_dhm, user_lang)}
-            schemeitem_dict['time_end'] = field_dict
-
-        if schemeitem.time_duration:
-            field_dict = {'value': schemeitem.time_duration}
-            schemeitem_dict['time_duration'] = field_dict
-
-        if schemeitem.break_start_dhm:
-            field_dict = {'value': schemeitem.break_start_dhm,
-                          'html': get_timeDHM_from_dhm(schemeitem.rosterdate, schemeitem.break_start_dhm, user_lang)}
-            schemeitem_dict['break_start'] = field_dict
-
-        if schemeitem.break_duration:
-            field_dict = {'value': schemeitem.break_duration}
-            schemeitem_dict['break_duration'] = field_dict
+        schemeitem_dict = create_schemeitem_dict(schemeitem, user_lang)
         schemeitem_list.append(schemeitem_dict)
 
     return schemeitem_list
+
+
 """
 # dont forget to  update create_shift_list when time fields have changed
                         for field in ('time_start', 'time_end', 'break_start'):
