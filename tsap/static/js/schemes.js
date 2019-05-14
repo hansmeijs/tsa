@@ -160,10 +160,6 @@ $(function() {
 
         const interval = el_data.data("interval");
         const timeformat = el_data.data("timeformat");
-        const weekend_choices = el_data.data("weekend_choices");
-        const publicholiday_choices = el_data.data("publicholiday_choices");
-
-        FillListWeekendPubliholiday();
 
         FilterRows();
 
@@ -184,11 +180,8 @@ console.log("===  OpenModal  =====") ;
 // ---  empty input boxes
         let pws_title = "";
         let pws_subjects = "";
-        let el_mod_weekend = document.getElementById("id_mod_weekend");
-        FillSelectChoices(el_mod_weekend, weekend_choices, 0);
 
-        let  el_mod_publicholiday = document.getElementById("id_mod_publicholiday");
-        FillSelectChoices(el_mod_publicholiday, publicholiday_choices, 0);
+
 
 // ---  get attr 'studsubj_id' of tr_clicked (attribute is always string, function converts it to number)
         // new new_studsubj_id is negative ssi_id: -1592
@@ -265,31 +258,20 @@ console.log("===  OpenModal  =====") ;
         let el_order = document.getElementById("id_order")
         let order_pk = el_order.value
 
-    // get scheme code from input box
+    // get scheme code from input box, empty inpout box
         let el_mod_scheme = document.getElementById("id_mod_scheme");
         let scheme_code = el_mod_scheme.value
+        el_mod_scheme.value = null
+
         if(!!scheme_code){
 
-            let param = {"order_pk": order_pk, "scheme_code": scheme_code}
+    // get cycle length from input box, empty inpout box
+            let el_mod_cycle = document.getElementById("id_mod_cycle");
+            let cycle = 0
+            if (!!el_mod_cycle.value) {cycle = parseInt(el_mod_cycle.value)}
+            el_mod_cycle.value = null
 
-    // get cycle length from input box
-            let cycle = parseInt(document.getElementById("id_mod_cycle").value)
-            if (!!cycle) {param["cycle"] = cycle}
-
-    // get weekend from input box
-            let el_weekend = document.getElementById("id_mod_weekend")
-            console.log("el_weekend", el_weekend);
-
-            let weekend = parseInt(el_weekend.value)
-            console.log("el_weekend", el_weekend);
-            if (!weekend) {weekend = 0}
-            param["weekend"] = weekend
-
-    // get publicholiday from input box
-            let publicholiday = parseInt(document.getElementById("id_mod_publicholiday").value)
-            if (!publicholiday) {publicholiday = 0}
-            param["publicholiday"] = publicholiday
-
+            let param = {"order_pk": order_pk, "scheme_code": scheme_code, "cycle": cycle}
             let param_json = {"scheme_upload": JSON.stringify (param)};
             console.log("param_json", param_json)
 
@@ -300,7 +282,22 @@ console.log("===  OpenModal  =====") ;
                 data: param_json,
                 dataType:'json',
                 success: function (response) {
-                    CreateScheme(response);
+                    console.log("response")
+                    console.log( response)
+
+                    if ("schemes" in response) {
+                        selected_order_pk = parseInt(el_order.value);
+                        scheme_list = response["schemes"]
+                        if (!!selected_order_pk){
+                            let select_text = el_data.data("txt_select_scheme");
+                            FillSelectOptions(el_scheme, scheme_list, select_text, selected_order_pk)
+                            // if there is only 1 scheme, that one is selected
+                            //selected_scheme_pk = parseInt(el_scheme.value);
+                        };
+                    };
+                    if ("scheme" in response) {
+                        FillScheme(response["scheme"])}
+
                 },
                 error: function (xhr, msg) {
                     alert(msg + '\n' + xhr.responseText);
@@ -332,10 +329,6 @@ console.log("=========  function HandleDeleteScheme =========");
 // --- get info from scheme
         let cycle = parseInt(el_cycle.value)
         if(!cycle){cycle = 0}
-        let el_weekend = document.getElementById("id_weekend")
-        let weekend_only = parseInt(el_weekend.value)
-        let el_publicholiday = document.getElementById("id_publicholiday")
-        let publicholiday_only =parseInt(el_publicholiday.value)
 
         const list_count = schemeitem_list.length
 
@@ -1135,12 +1128,12 @@ console.log("=========  function HandleDeleteScheme =========");
     // get id of selected scheme
         const scheme_pk = parseInt(el_scheme.value);
         if(!!scheme_pk){
-
             shift_list = [];
             team_list = [];
             schemeitem_list = [];
 
             tblBody.innerText = null;
+            el_cycle.value = null;
 
             let param = {"scheme_pk": scheme_pk};
             let param_json = {"scheme_download": JSON.stringify (param)};
@@ -1153,17 +1146,19 @@ console.log("=========  function HandleDeleteScheme =========");
                 success: function (response) {
                     console.log( "response", response);
 
+                    if ("scheme" in response) {
+                        FillScheme(response["scheme"])}
+                    if ("scheme_list" in response) {
+                        scheme_list= response["scheme_list"]
+                        FillDatalist(scheme_list, "id_datalist_schemes")}
                     if ("shift_list" in response) {
                         shift_list= response["shift_list"]
                         FillDatalist(shift_list, "id_datalist_shifts")}
-                    if ("scheme" in response) {
-                        FillScheme(response["scheme"])}
                     if ("team_list" in response) {
                         team_list= response["team_list"]
                         FillDatalist(team_list, "id_datalist_teams")}
                     if ("schemeitem_list" in response) {
                         schemeitem_list= response["schemeitem_list"]
-                    console.log( "schemeitem_list", schemeitem_list);
                         FillTableRows(schemeitem_list)
                         }
                 },
@@ -1177,17 +1172,16 @@ console.log("=========  function HandleDeleteScheme =========");
 //========= FillScheme  ====================================
     function FillScheme(scheme_dict) {
         console.log( "===== FillScheme  ========= ");
+        console.log("scheme_dict");
         console.log( scheme_dict);
-
-        // {'scheme': {'id': {'pk': 4, 'parent_pk': 5},
-        //             'code': {'value': 'Nog een test'},
-        //             'cycle': {'value': 1}, 'weekend': {'value': 0},
-        //              'publicholiday': {'value': 0}, 'inactive': {'value': False}},
-
+        // scheme_update: {id: {pk: 36, parent_pk: 12, created: true}}, code: {value: "oo"}, cycle: {value: 2} }
 
         let scheme_pk = 0;
         const id_dict =  get_dict_value_by_key (scheme_dict, "id")
-        if (!!id_dict){scheme_pk =  get_dict_value_by_key (id_dict, "pk")};
+        if (!!id_dict){scheme_pk = get_dict_value_by_key (id_dict, "pk")};
+
+        console.log("scheme_dict", scheme_dict);
+        console.log("scheme_pk", scheme_pk);
         // put value back in select box, to show it is the same schem
         document.getElementById("id_scheme").value = scheme_pk;
 
@@ -1203,16 +1197,7 @@ console.log("=========  function HandleDeleteScheme =========");
             value =  get_dict_value_by_key (cycle_dict, "value")
             if (!!value){document.getElementById("id_cycle").value = value}
         }
-        let weekend_dict = get_dict_value_by_key (scheme_dict, "weekend")
-        if (!!weekend_dict){
-            value =  get_dict_value_by_key (weekend_dict, "value")
-            if (!!value){document.getElementById("id_weekend").value = value.toString()}
-        }
-        let publicholiday_dict = get_dict_value_by_key (scheme_dict, "weekend")
-        if (!!publicholiday_dict){
-            value =  get_dict_value_by_key (publicholiday_dict, "value")
-            if (!!value){document.getElementById("id_publicholiday").value = value.toString()}
-        }
+
     }
 
 
@@ -1305,14 +1290,6 @@ console.log("=========  function HandleDeleteScheme =========");
 
 
 
-//=========  CreateScheme  ================ PR2019-04-23
-    function CreateScheme(respnse) {
-console.log("=========  function CreateScheme =========");
-console.log("respnse", respnse);
-
-}
-
-
 //========= DownloadDatalists  ====================================
     function DownloadDatalists() {
         console.log( "===== DownloadDatalists  ========= ");
@@ -1389,61 +1366,14 @@ console.log("respnse", respnse);
 
     }; // function FilterRows
 
-//========= FillListWeekendPubliholiday  ====================================
-    function FillListWeekendPubliholiday() {
-        //console.log( "===== FillListWeekendPubliholiday  ========= ");
-
-        let curPublHol = 0
-        let curWeekend = 0
-
-// ---  fill select box of public holiday
-        let el_weekend = document.getElementById("id_weekend")
-        el_weekend.innerText = null
-        let option_text = "";
-        for (let i = 0, value, len = weekend_choices.length; i < len; i++) {
-            option_text += "<option value=\"" + i + "\"";
-            if (i === curWeekend) {option_text += " selected=true" };
-            option_text +=  ">" + weekend_choices[i] + "</option>";
-        }
-        el_weekend.innerHTML = option_text;
-
-
-// ---  fill select box of public holiday
-        let el_publhol = document.getElementById("id_publicholiday")
-        el_publhol.innerText = null
-        option_text = "";
-        for (let i = 0, value, len = publicholiday_choices.length; i < len; i++) {
-            option_text += "<option value=\"" + i + "\"";
-            if (i === curPublHol) {option_text += " selected=true" };
-            option_text +=  ">" + publicholiday_choices[i] + "</option>";
-        }
-        el_publhol.innerHTML = option_text;
-
-
-
-
-    }; // function FillListWeekendPubliholiday
-
-//========= FillSelectChoices  ====================================
-    function FillSelectChoices(el_select, option_choices, selected_option) {
-        //console.log( "===== FillSelectChoices  ========= ");
-        // ---  fill select box of weekend and public holiday
-        el_select.innerText = null
-        let option_text = "";
-        for (let i = 0, value, len = option_choices.length; i < len; i++) {
-            option_text += "<option value=\"" + i + "\"";
-            if (i === selected_option) {option_text += " selected=true" };
-            option_text +=  ">" + option_choices[i] + "</option>";
-        }
-        el_select.innerHTML = option_text;
-    }; // function FillSelectChoices
-
-
 //========= FillSelectOptions  ====================================
     function FillSelectOptions(el_select, option_list, select_text, parent_pk_str) {
-        // console.log( "===== FillSelectOptions  ========= ");
-        // console.log( "el_select ", el_select);
-        // console.log( "option_list ", option_list);
+        console.log( "===== FillSelectOptions  ========= ");
+        console.log( "el_select ", el_select);
+        console.log( "select_text ", select_text);
+        console.log( "parent_pk_str ", parent_pk_str);
+        console.log( "option_list ");
+        console.log( option_list);
 
         let curOption;
 // ---  fill options of select box
@@ -1453,7 +1383,7 @@ console.log("respnse", respnse);
         let row_count = 0
 
         if (!!parent_pk_str){parent_pk = parseInt(parent_pk_str)};
-        // console.log( "parent_pk ", parent_pk, typeof parent_pk );
+        console.log( "parent_pk ", parent_pk, typeof parent_pk );
 
         for (let i = 0, id, value, addrow, len = option_list.length; i < len; i++) {
 

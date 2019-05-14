@@ -448,7 +448,7 @@ class EmplhourDownloadDatalistView(View):  # PR2019-03-10
         return HttpResponse(datalists_json)
 
 
-# === EmplhourView ===================================== PR2019-03-24
+# === SchemesView ===================================== PR2019-03-24
 @method_decorator([login_required], name='dispatch')
 class SchemesView(View):
 
@@ -456,7 +456,6 @@ class SchemesView(View):
         param = {}
         # logger.debug(' ============= SchemesView ============= ')
         if request.user.company is not None:
-            emplhours = Emplhour.objects.filter(company=request.user.company)
 
 # --- create list of all active customers of this company
             customers = Customer.objects.filter(
@@ -492,22 +491,9 @@ class SchemesView(View):
                 scheme_list.append({'pk': scheme.id, 'parent_pk': parent_id, 'val': value})
             scheme_json = json.dumps(scheme_list)
 
-            # --- create list of all active employees of this company
-            employees = Employee.objects.filter(
-                company=request.user.company,
-                inactive=False
-            ).order_by(Lower('code'))
-            employee_list = []
-            for employee in employees:
-                employee_list.append({'pk': employee.id, 'code': employee.code})
-            employee_json = json.dumps(employee_list)
-
-# --- get weekend_choices and publicholidays_choices translated
             user_lang = request.user.lang if request.user.lang else LANGUAGE_CODE
             if not user_lang in WEEKDAYS_ABBREV:
                 user_lang = LANGUAGE_CODE
-            weekend_choices = json.dumps(WEEKEND_CHOICES[user_lang])
-            publicholiday_choices = json.dumps(PUBLICHOLIDAY_CHOICES[user_lang])
 
 # --- get weekdays translated
             if not user_lang in WEEKDAYS_ABBREV:
@@ -540,14 +526,10 @@ class SchemesView(View):
                 timeformat = '24h'
 
             param = get_headerbar_param(request, {
-                'items': emplhours,
                 'customer_list': customer_json,
                 'order_list': order_json,
                 'scheme_list': scheme_json,
-                'employee_list': employee_json,
                 'lang': user_lang,
-                'weekend_choices': weekend_choices,
-                'publicholiday_choices': publicholiday_choices,
                 'weekdays': weekdays_json,
                 'months': months_json,
                 'today': today_json,
@@ -566,8 +548,9 @@ class SchemeUploadView(View):  # PR2019-03-10
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= SchemeUploadView ============= ')
         logger.debug('request.POST' + str(request.POST) )
-        # {'param': ['{"order_pk":"6","scheme_code":"MCB scheme","cycle":23,"weekend":1,"publicholiday":1}']}>
 
+        # scheme_upload: {'order_pk': '12', 'scheme_code': 'mm', 'cycle': 3, 'weekend': 0, 'publicholiday': 0}
+        update_dict = {}
         row_dict = {}
         if request.user.company is not None:
             param_json = request.POST.get('scheme_upload', None)
@@ -579,8 +562,6 @@ class SchemeUploadView(View):  # PR2019-03-10
                 if order_pk:
                     scheme_code = param.get('scheme_code', '')
                     cycle = int(param.get('cycle', 1))
-                    weekend = int(param.get('weekend', 0))
-                    publicholiday = int(param.get('publicholiday', 0))
 
                     if order_pk and scheme_code:
                         order = Order.objects.filter(id=order_pk, customer__company=request.user.company).first()
@@ -595,23 +576,32 @@ class SchemeUploadView(View):  # PR2019-03-10
                                 # create new scheme
                                 new_scheme = Scheme(order=order,
                                                     code=scheme_code,
-                                                    cycle=cycle,
-                                                    weekend=weekend,
-                                                    publicholiday=publicholiday,
+                                                    cycle=cycle
                                                     )
                                 new_scheme.save(request=self.request)
                                 logger.debug('new_scheme: ' + str(new_scheme) + str(type(new_scheme)))
 
                                 # check if scheme is saved
                                 if new_scheme.pk:
-                                    scheme_pk = new_scheme.pk
-                                    row_dict = {"scheme_pk": new_scheme.id,
-                                                "code": new_scheme.code,
-                                                "cycle": new_scheme.cycle,
-                                                "weekend": new_scheme.weekend,
-                                                "publicholiday": new_scheme.publicholiday,
-                                                }
-        update_dict = {'scheme_update': row_dict}
+                                    row_dict = {"id": {"pk": new_scheme.pk, 'parent_pk': new_scheme.order.pk, 'created': True},
+                                                'code': {'value': new_scheme.code},
+                                                'cycle': {'value': new_scheme.cycle}}
+                                    update_dict['scheme'] = row_dict
+
+                                    # --- create list of all active schemes of this company
+                                    schemes = Scheme.objects.filter(
+                                        order__customer__company=request.user.company,
+                                        inactive=False
+                                    ).order_by(Lower('code'))
+                                    scheme_list = []
+                                    for scheme in schemes:
+                                        value = scheme.code
+                                        parent_id = scheme.order.id
+                                        scheme_list.append({'pk': scheme.id, 'parent_pk': parent_id, 'val': value})
+                                    if scheme_list:
+                                        update_dict['schemes'] = scheme_list
+
+
         # update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
         update_dict_json = json.dumps(update_dict, cls=LazyEncoder)
         return HttpResponse(update_dict_json)
@@ -645,12 +635,9 @@ class SchemeDownloadView(View):  # PR2019-03-10
 
                     scheme_list = []
                     for scheme in schemes:
-                        dict = {'pk': scheme.id,
-                                'code': scheme.code,
-                                'cycle': scheme.cycle,
-                                'weekend': scheme.weekend,
-                                'publicholiday': scheme.publicholiday,
-                                'inactive': scheme.inactive}
+                        dict = {"id": {"pk": scheme.pk, 'parent_pk': scheme.order.pk},
+                                    'code': {'value': scheme.code},
+                                    'cycle': {'value': scheme.cycle}}
 
                         scheme_list.append(dict)
                     datalists = {'schemes': scheme_list}

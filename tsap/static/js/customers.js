@@ -12,7 +12,7 @@ console.log("Customers document.ready");
 
 // ---  set selected menu button active
     const cls_active = "active";
-    let btn_clicked = document.getElementById("id_sub_cust_list");
+    let btn_clicked = document.getElementById("id_hdr_cust");
     SetMenubuttonActive(btn_clicked);
 
 //}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}

@@ -43,18 +43,8 @@
                             <label for="id_mod_cycle" >{% trans 'Cycle length' %}</label>
                             <input id="id_mod_cycle" type="number" min="1" max="366" style="width:95%;margin:4px;" placeholder="{% trans 'Cycle length' %}...">
                         </div>
-                        <div class="content_subheader_left">
-                            <label for="id_mod_weekend" >{% trans 'Weekends' %}</label>
-                            <select id="id_mod_weekend" style="width:95%;margin:4px;" ></select>
-                        </div>
-                        <div class="content_subheader_left">
-                            <label for="id_mod_publicholiday" > {% trans 'Public holidays' %}</label>
-                            <select id="id_mod_publicholiday" style="width:95%;margin:4px;" ></select>
-                        </div>
                     </div>
-
                   </div>
-
                 </div>
 
                 <div class="modal-footer">
@@ -97,15 +87,7 @@
                 </div>
                 <div class="content_subheader_left">
                     <label for="id_cycle" >{% trans 'Cycle length' %}</label>
-                     <input id="id_cycle" type="number" min="1" max="366" style="width:95%;margin:4px;" placeholder="{% trans 'Cycle length' %}...">
-                </div>
-                <div class="content_subheader_left">
-                    <label for="id_weekend" >{% trans 'Weekends' %}</label>
-                    <select id="id_weekend" style="width:95%;margin:4px;" ></select>
-                </div>
-                <div class="content_subheader_left">
-                    <label for="id_publicholiday" > {% trans 'Public holidays' %}</label>
-                    <select id="id_publicholiday" style="width:95%;margin:4px;" >text</select>
+                     <input id="id_cycle" type="number" min="1" max="366" style="width:95%;margin:4px;" >
                 </div>
             </div>
             <div class="content_header">
@@ -224,8 +206,6 @@
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
             data-today ="{{ today }}"
-            data-weekend_choices ="{{ weekend_choices }}"
-            data-publicholiday_choices ="{{ publicholiday_choices }}"
             data-customer_list ="{{ customer_list }}"
             data-order_list ="{{ order_list }}"
             data-scheme_list ="{{ scheme_list }}"

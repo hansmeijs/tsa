@@ -72,8 +72,9 @@ $(function() {
         });
 
         let customer_list = [];
-        const el_data = $("#id_data");
-        const url_upload_str = el_data.data("order_upload_url");
+
+        let el_data = $("#id_data");
+        const order_upload_url = el_data.data("order_upload_url");
         const url_datalist_str = el_data.data("order_datalist_url");
         const imgsrc_inactive = el_data.data("imgsrc_inactive");
         const imgsrc_active = el_data.data("imgsrc_active");
@@ -163,12 +164,11 @@ $(function() {
 // upload new value icon
                 let customer = {"pk": id_str, 'inactive': is_inactive}
                 console.log("customer:",customer)
-                let parameters = {"customer": JSON.stringify (customer)};
-                let url_str = $("#id_data").data("customer_upload_url");
+                let parameters = {"row_upload": JSON.stringify (customer)};
                 let response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_str,
+                    url: order_upload_url,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
@@ -186,14 +186,17 @@ $(function() {
 
 //=========  HandleDeleteRecord  ================ PR2019-03-16
     function HandleDeleteRecord() {
-console.log("=========  function HandleDeleteRecord =========");
+        console.log("=========  function HandleDeleteRecord =========");
 
         let tblRow = document.getElementById(id_row_selected)
         console.log( "tblRow: ", tblRow, typeof tblRow);
         if (!!tblRow){
-            let cust_name = ""
+            let cust_name = "", order_code = ""
+            if (!!tblRow.cells[1].children[0]) {
+                cust_name = tblRow.cells[1].children[0].value;
+            }
             if (!!tblRow.cells[2].children[0]) {
-                cust_name = tblRow.cells[2].children[0].value;
+                order_code = tblRow.cells[2].children[0].value;
             }
 
 // ---  get pk from id of tblRow
@@ -202,22 +205,23 @@ console.log("=========  function HandleDeleteRecord =========");
 // delete if new record
             if (id_str.indexOf("new") !== -1) {
                 tblRow.parentNode.removeChild(tblRow);
-            } else if (window.confirm("Delete customer '" + cust_name + "'?")){
+            } else if (window.confirm("Do you want to delete order '" + order_code + "' from customer '" + cust_name + "'?")){
                 tblRow.classList.add("tsa-tr-error");
-// upload new value icon
-                let customer = {"pk": id_str, 'delete': true}
-                console.log("customer:",customer)
-                let parameters = {"customer": JSON.stringify (customer)};
-                let url_str = $("#id_data").data("customer_upload_url");
+// upload
+                let row_upload = {"pk": id_str, 'delete': true}
+                console.log("row_upload:",row_upload)
+                let parameters = {"row_upload": JSON.stringify (row_upload)};
                 response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_str,
+                    url: order_upload_url,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        if ("row_upd" in response) {
-                            DeleteRow(response["row_upd"])
+                        console.log("response:")
+                        console.log(response)
+                        if ("row_update" in response) {
+                            DeleteRow(response["row_update"])
                         }
                     },
                     error: function (xhr, msg) {
@@ -382,7 +386,7 @@ console.log (parameters);
                 response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_upload_str,
+                    url: order_upload_url,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
@@ -404,12 +408,12 @@ console.log( response.row_update);
     };
 // #####################################################################################
 //========= DeleteRow  =============
-    function DeleteRow(row_upd){
+    function DeleteRow(row_update){
         console.log("-------------- DeleteRow  --------------");
-        if (!!row_upd) {
-// get id_new and id_pk from row_upd["id"]
-            if ("id" in row_upd){
-                const id_dict = row_upd["id"]
+        if (!!row_update) {
+// get id_new and id_pk from row_update["id"]
+            if ("id" in row_update){
+                const id_dict = row_update["id"]
                 if ("pk" in id_dict){
                     let tblrow = document.getElementById(id_dict.pk);
                     if (!!tblrow){
