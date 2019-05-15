@@ -172,57 +172,21 @@ $(function() {
 console.log("===  OpenModal  =====") ;
 //console.log("tr_clicked", tr_clicked);
 
-// ---  reset variables of selected order
-
-        //sel_studsubj_id = 0;
-        //sel_studsubj = {};
-
 // ---  empty input boxes
         let pws_title = "";
         let pws_subjects = "";
 
+        let el_mod_scheme = document.getElementById("id_mod_scheme");
+        el_mod_scheme.innerText = null;
+
+    // get cycle length from input box, empty inpout box
+        let el_mod_cycle = document.getElementById("id_mod_cycle");
+        el_mod_cycle.value = null
+
+    // empty tblBody
+        tblBody.innerText = null;
 
 
-// ---  get attr 'studsubj_id' of tr_clicked (attribute is always string, function converts it to number)
-        // new new_studsubj_id is negative ssi_id: -1592
-        //sel_studsubj_id = get_attr_from_tablerow(tr_clicked, "studsubj_id");
-
-
-/*
-        if (!!sel_studsubj){
-
-
-            let show_pws = false;
-            if (!!sel_studsubj.sjtp_has_pws) {
-                show_pws = true;
-                pws_title = sel_studsubj.pws_title;
-                pws_subjects = sel_studsubj.pws_subjects;
-            }
-
-            let extra_counts = true // (!!sel_studsubj.extra_counts && sel_studsubj.extra_counts === 1);
-            let mod_checkbox = $("#id_mod_checkbox");
-            // remove all checkboxes
-            mod_checkbox.empty();
-            if (!!sel_studsubj.sjtp_has_prac) {
-                CreateInfo(mod_checkbox, "hasprac", databox.data("info_hasprac_cap"))
-            }
-            if (!!sel_studsubj.mand) {
-                CreateInfo(mod_checkbox, "ismand", databox.data("info_ismand_cap"))
-            }
-            // check if "chal" in scheme.fields, if so: add checkbox
-
-            // CreateCheckbox(sel_checkbox, field, caption, is_checked, disabled, tooltiptext)
-            // CreateCheckbox(mod_checkbox, "extracounts", databox.data("chk_extracounts_cap"), sel_studsubj.extra_counts, false);
-
-            //let input_pws_title = $("#id_input_pws_title")
-            //let label_pws_title = $("#id_label_pws_title")
-            //let input_pws_subjects = $("#id_input_pws_subjects")
-            //let label_pws_subjects = $("#id_label_pws_subjects")
-            //input_pws_title.val(pws_title);
-            //input_pws_subjects.val(pws_subjects);
-
-        }
-*/
 
 // ---  show modal
             $("#id_modal_cont").modal({backdrop: true});
@@ -263,14 +227,17 @@ console.log("===  OpenModal  =====") ;
         let scheme_code = el_mod_scheme.value
         el_mod_scheme.value = null
 
-        if(!!scheme_code){
-
     // get cycle length from input box, empty inpout box
-            let el_mod_cycle = document.getElementById("id_mod_cycle");
-            let cycle = 0
-            if (!!el_mod_cycle.value) {cycle = parseInt(el_mod_cycle.value)}
-            el_mod_cycle.value = null
+        let el_mod_cycle = document.getElementById("id_mod_cycle");
+        let cycle;
+        if (!!el_mod_cycle.value) {cycle = parseInt(el_mod_cycle.value)}
+        if (!cycle){cycle = 0}
+        el_mod_cycle.value = null
 
+    // empty tblBody
+        tblBody.innerText = null;
+
+        if(!!scheme_code){
             let param = {"order_pk": order_pk, "scheme_code": scheme_code, "cycle": cycle}
             let param_json = {"scheme_upload": JSON.stringify (param)};
             console.log("param_json", param_json)
@@ -360,7 +327,7 @@ console.log("=========  function HandleDeleteScheme =========");
                 date_add = parseInt( (last_rosterdate_plusone - first_rosterdate) /(1000*60*60*24))
                 console.log("date_add", date_add, typeof date_add)
 
-// --- make cyceldate one day after rosterdate of last tablerow
+// --- make cycledate one day after rosterdate of last tablerow
                 let cycle_date = last_rosterdate_plusone
                 let new_index = list_count
                 let from_index = 0
@@ -551,11 +518,11 @@ console.log("=========  function HandleDeleteScheme =========");
         schemeitem_dict["rosterdate"] = rosterdate_dict;
         if(!!time_end_dict){ schemeitem_dict["time_start"] = time_end_dict}
 
-        let tblRow =  CreateTableRow(pk, parent_pk)
+        let tblRow = CreateTableRow(pk, parent_pk)
+
+// Update TableRow
         console.log("schemeitem_dict", schemeitem_dict);
         UpdateTableRow(tblRow, schemeitem_dict)
-
-
     }
 
 //=========  CreateTableRow  ================ PR2019-04-27
@@ -669,12 +636,6 @@ console.log("=========  function HandleDeleteScheme =========");
             const is_deleted = get_dict_value_by_key (id_dict, "deleted", false);
             const del_err = get_dict_value_by_key (id_dict, "del_err");
 
-            // console.log("id_dict", id_dict);
-            // console.log("id_pk", id_pk);
-            // console.log("temp_pk_str", temp_pk_str);
-            // console.log("is_created", is_created);
-
-
             if (!!id_pk){
 
 // --- deleted record
@@ -707,6 +668,7 @@ console.log("=========  function HandleDeleteScheme =========");
                     let id_attr = get_attr_from_element(tblRow,"id")
                 // check if schemeitem_dict.id 'new_1' is same as tablerow.id
                     if(temp_pk_str === id_attr){
+
                 // update tablerow.id from temp_pk_str to id_pk
                         tblRow.id = id_pk //or: tblRow.setAttribute("id", id_pk);
                         // console.log("tblRow.id", tblRow.id);
@@ -943,9 +905,15 @@ console.log("=========  function HandleDeleteScheme =========");
                 success: function (response) {
     console.log( "response");
     console.log( response);
+
                     if ("schemeitem_update" in response) {
                         UpdateTableRow(tr_changed, response["schemeitem_update"])
                     }
+                    if ("schemeitem_list" in response) {
+                        schemeitem_list= response["schemeitem_list"]
+                       //Dont fill , Was:   FillTableRows(schemeitem_list)
+                    }
+
                 },
                 error: function (xhr, msg) {
                     alert(msg + '\n' + xhr.responseText);
@@ -1159,8 +1127,7 @@ console.log("=========  function HandleDeleteScheme =========");
                         FillDatalist(team_list, "id_datalist_teams")}
                     if ("schemeitem_list" in response) {
                         schemeitem_list= response["schemeitem_list"]
-                        FillTableRows(schemeitem_list)
-                        }
+                        FillTableRows(schemeitem_list)}
                 },
                 error: function (xhr, msg) {
                     alert(msg + '\n' + xhr.responseText);
@@ -1171,9 +1138,9 @@ console.log("=========  function HandleDeleteScheme =========");
 
 //========= FillScheme  ====================================
     function FillScheme(scheme_dict) {
-        console.log( "===== FillScheme  ========= ");
-        console.log("scheme_dict");
-        console.log( scheme_dict);
+        // console.log( "===== FillScheme  ========= ");
+        // console.log("scheme_dict");
+        // console.log( scheme_dict);
         // scheme_update: {id: {pk: 36, parent_pk: 12, created: true}}, code: {value: "oo"}, cycle: {value: 2} }
 
         let scheme_pk = 0;
@@ -1236,9 +1203,7 @@ console.log("=========  function HandleDeleteScheme =========");
                             FillDatalist(team_list, "id_datalist_teams")}
                         if ("schemeitem_list" in response) {
                             schemeitem_list= response["schemeitem_list"]
-                            FillTableRows(schemeitem_list)
-                            }
-
+                            FillTableRows(schemeitem_list)}
                     },
                     error: function (xhr, msg) {
                         alert(msg + '\n' + xhr.responseText);
