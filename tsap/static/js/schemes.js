@@ -304,6 +304,9 @@ console.log("=========  function HandleDeleteScheme =========");
             let field_dict, value, last_schemeitem, first_rosterdate
             let last_rosterdate, last_rosterdate_plusone, date_add, max_cycledate_plusone, new_rosterdate;
 
+// --- first refresh  FillTableRows
+            FillTableRows(schemeitem_list)
+
 // --- get info from first item in  schemeitem_list
             let schemeitem = schemeitem_list[0]
                 //value = get_attr_from_element(first_schemeitem.cells[0].children[0], "data-value") + "T12:0:0";
