@@ -128,11 +128,11 @@ class UserAddView(CreateView):
         # data = request.POST.copy()
         # logger.debug('UserAddView def post(self, request:data = ' + str(data))
         form = UserAddForm(request.POST, request=request)  # form = UserAddForm(request.POST)
-        logger.debug('UserAddView post form.data: ' + str(form.data))
+        # logger.debug('UserAddView post form.data: ' + str(form.data))
         print('UserAddView post form.data: ' + str(form.data))
 
         if form.is_valid():
-            logger.debug('UserAddView post is_valid form.data: ')
+            # logger.debug('UserAddView post is_valid form.data: ')
             if request.user.company is not None:
         # create random password
                 randompassword = User.objects.make_random_password() + User.objects.make_random_password()
@@ -150,7 +150,7 @@ class UserAddView(CreateView):
 # ======  save field 'Username'  ============
                 # Add compayprefix to username
                 prefixed_username = new_user.company.companyprefix + form.cleaned_data.get('username')
-                logger.debug('prefixed_username: ' + str(prefixed_username))
+                # logger.debug('prefixed_username: ' + str(prefixed_username))
                 new_user.username = prefixed_username
 
         # ======  save field 'Role'  ============
@@ -182,7 +182,7 @@ class UserAddView(CreateView):
 
                 current_site = get_current_site(request)
                 # logger.debug('UserAddView post current_site: ' +  str(current_site))
-                logger.debug('current_site.domain: ' +  str(current_site.domain))
+                # logger.debug('current_site.domain: ' +  str(current_site.domain))
 
                 # domain = current_site.domain
                 # logger.debug('UserAddView post domain: ' +  str(domain) + '\n')
@@ -350,7 +350,6 @@ def account_activation_sent(request):
     # PR2018-05-27
     # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
     return render(request, 'account_activation_sent.html')
-
 
 # PR2018-04-24
 @method_decorator([login_required], name='dispatch')

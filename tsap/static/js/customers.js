@@ -72,7 +72,7 @@ console.log("Customers document.ready");
 
         // get data
         let el_data = $("#id_data");
-        const url_upload_str = el_data.data("customer_upload_url");
+        const url_emplhour_upload = el_data.data("customer_upload_url");
 
         let img_inactive_src = el_data.data("img_inactive_src");
         let img_active_src = el_data.data("img_active_src");
@@ -165,7 +165,7 @@ console.log("Customers document.ready");
                 let response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_upload_str,
+                    url: url_emplhour_upload,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
@@ -202,7 +202,7 @@ console.log("Customers document.ready");
 // ask if other record must be deleted
             } else if (window.confirm("Delete customer '" + cust_name + "'?")){
 // make row red
-                tblRow.classList.add("tsa-tr-error");
+                tblRow.classList.add("tsa_tr_error");
 // upload new value icon
                 let row_upload = {"pk": id_str, 'delete': true}
                 console.log("row_upload:",row_upload)
@@ -210,7 +210,7 @@ console.log("Customers document.ready");
                 response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_upload_str,
+                    url: url_emplhour_upload,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
@@ -347,7 +347,7 @@ console.log (parameters);
                 response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_upload_str,
+                    url: url_emplhour_upload,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
@@ -396,7 +396,7 @@ console.log( response.row_update);
                             el_msg.setAttribute("style", msgAttr)
 // --- close error box after 2 seconds and remove class 'error'
                             setTimeout(function (){
-                                tblrow.classList.remove("tsa-tr-error");
+                                tblrow.classList.remove("tsa_tr_error");
                                 el_msg.classList.toggle("show");
                                 }, 2000);
                         }  // if (id_deleted){
@@ -472,7 +472,7 @@ console.log( response.row_update);
                 el_msg.setAttribute("style", msgAttr)
 
                 setTimeout(function (){
-                    tblrow.classList.remove("tsa-tr-error");
+                    tblrow.classList.remove("tsa_tr_error");
                     el_msg.classList.toggle("show");
                     }, 2000);
             }
@@ -489,11 +489,9 @@ console.log( response.row_update);
             // update tablerow.id from id_new 'new_1' to id_pk '7'
                             tr_changed.id = id_pk //or: tr_changed.setAttribute("id", id_pk);
             // make row green, / --- remove class 'ok' after 2 seconds
-
-                console.log("tsa-tr-ok")
-                            tr_changed.classList.add("tsa-tr-ok");
+                            tr_changed.classList.add("tsa_tr_ok");
                             setTimeout(function (){
-                                tr_changed.classList.remove("tsa-tr-ok");
+                                tr_changed.classList.remove("tsa_tr_ok");
                                 }, 2000);
             }}}};
 

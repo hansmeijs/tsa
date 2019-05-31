@@ -104,3 +104,10 @@ WEEKEND_CHOICES = {'en': ('also on weekends', 'only on weekends', 'not on weeken
 # PR2019-04-21
 PUBLICHOLIDAY_CHOICES = {'en': ('also on public holidays', 'only on public holidays', 'not on public holidays'),
              'nl': ('ook op feestdagen', 'alleen op feestdagen', 'niet op feestdagen')}
+
+STATUS_EMPLHOUR_00_NONE = 0
+STATUS_EMPLHOUR_01_CREATED = 1
+STATUS_EMPLHOUR_02_START_CHECKED = 2
+STATUS_EMPLHOUR_03_END_CHECKED = 3
+STATUS_EMPLHOUR_04_ALL_CHECKED = 4
+STATUS_EMPLHOUR_05_APPROVED = 5

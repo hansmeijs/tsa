@@ -10,11 +10,9 @@ class CustomerAddForm(ModelForm):
 
     class Meta:
         model = Customer
-        fields = ('code', 'name', 'datefirst', 'datelast')
+        fields = ('code', 'name')
         labels = {'code': _('Code'),
-                  'name': _('Name'),
-                  'datefirst': _('First date'),
-                  'datelast': _('last date'),
+                  'name': _('Name')
                   }
 
     def __init__(self, *args, **kwargs):

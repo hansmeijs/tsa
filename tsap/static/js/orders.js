@@ -206,7 +206,7 @@ $(function() {
             if (id_str.indexOf("new") !== -1) {
                 tblRow.parentNode.removeChild(tblRow);
             } else if (window.confirm("Do you want to delete order '" + order_code + "' from customer '" + cust_name + "'?")){
-                tblRow.classList.add("tsa-tr-error");
+                tblRow.classList.add("tsa_tr_error");
 // upload
                 let row_upload = {"pk": id_str, 'delete': true}
                 console.log("row_upload:",row_upload)
@@ -435,7 +435,7 @@ console.log( response.row_update);
                             el_msg.setAttribute("style", msgAttr)
 // --- close error box after 2 seconds and remove class 'error'
                             setTimeout(function (){
-                                tblrow.classList.remove("tsa-tr-error");
+                                tblrow.classList.remove("tsa_tr_error");
                                 el_msg.classList.toggle("show");
                                 }, 2000);
                         }  // if (id_deleted){
@@ -524,7 +524,7 @@ console.log( response.row_update);
                 el_msg.setAttribute("style", msgAttr)
 
                 setTimeout(function (){
-                    tblrow.classList.remove("tsa-tr-error");
+                    tblrow.classList.remove("tsa_tr_error");
                     el_msg.classList.toggle("show");
                     }, 2000);
             }

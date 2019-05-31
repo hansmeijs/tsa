@@ -8,9 +8,11 @@ $(function() {
         let btn_clicked = document.getElementById("id_hdr_schm");
         SetMenubuttonActive(btn_clicked);
 
-// ---  id of selected order
+// ---  id of selected customer and selected order
         let selected_customer_pk = 0;
         let selected_order_pk = 0;
+        let selected_scheme_pk = 0;
+        let selected_team_pk = 0;
 
 // ---  id_new assigns fake id to new records
         let id_new = 0;
@@ -18,20 +20,26 @@ $(function() {
         let filter_hide_inactive = true;
 
 // ---  create EventListener for Customer select element
-        let el_customer = document.getElementById("id_customer");
-        el_customer.addEventListener("click", function() {HandleCustomerSelect(el_customer);}, false )
+        let el_select_customer = document.getElementById("id_select_customer");
+        el_select_customer.addEventListener("change", function() {HandleSelectCustomer();}, false )
 
 // ---  create EventListener for Order select element
-        let el_order = document.getElementById("id_order")
-        el_order.addEventListener("click", function(event) {HandleOrderSelect(el_order);}, false )
+        let el_select_order = document.getElementById("id_select_order")
+        el_select_order.addEventListener("change", function(event) {HandleSelectOrder();}, false )
 
-// ---  create EventListener for Scheme select element
-        let el_scheme = document.getElementById("id_scheme")
-        el_scheme.addEventListener("click", function(event) {HandleSchemeSelect(el_scheme);}, false )
+// ---  create EventListener for Scheme select
+        // in FillSelectTable is created function HandleSelectScheme
 
-// ---  create EventListener for Cycle input element
-        let el_cycle = document.getElementById("id_cycle");
-        el_cycle.addEventListener("change", function() {HandleCycleChanged(el_cycle);}, false )
+// ---  create EventListener for input elements
+        let el_input_scheme = document.getElementById("id_input_scheme")
+        let el_input_cycle = document.getElementById("id_input_cycle");
+        let el_input_datefirst = document.getElementById("id_input_datefirst");
+        let el_input_datelast = document.getElementById("id_input_datelast");
+
+        el_input_scheme.addEventListener("change", function() {HandleInputScheme()}, false )
+        el_input_cycle.addEventListener("change", function() {HandleInputCycle()}, false )
+        el_input_datefirst.addEventListener("change", function() {HandleInputDatefirst()}, false )
+        el_input_datelast.addEventListener("change", function() {HandleInputDatelast()}, false )
 
 // ---  create EventListener for all clicks on the document
         let el_popup_dhm = document.getElementById("id_popup_dhm");
@@ -65,8 +73,6 @@ $(function() {
                 popupbox_removebackground();
                 el_popup_wdy.classList.add("display_hide");
             };
-
-
             // remove highlighted row when clicked outside tabelrows
             // skip if clicked on button delete delete_schemeitem
             if(event.target.getAttribute("id") !== "id_btn_delete_schemeitem" && !get_tablerow_selected(event.target)) {
@@ -87,24 +93,13 @@ $(function() {
             }, false )
         }
 
-        let tblBody = document.getElementById("id_tbody");
+        let tblBody_scheme_select = document.getElementById("id_tbody_scheme_select")
+        let tblBody_team_select = document.getElementById("id_tbody_team_select")
+
+        let tblBody = document.getElementById("id_tbody_schemeitems");
+        let tblHead = document.getElementById("id_thead_schemeitems");
 
 // ---  create EventListener for buttons
-        let el_btn_add_scheme = document.getElementById("id_btn_add_scheme")
-            el_btn_add_scheme.addEventListener("click", OpenModal);
-            // el_btn_add_scheme.disabled = true;
-
-        let el_btn_delete_scheme = document.getElementById("id_btn_delete_scheme")
-            el_btn_delete_scheme.addEventListener("click", HandleDeleteScheme);
-            // el_btn_delete_scheme.disabled = true;
-
-        let el_btn_add_schemeitem = document.getElementById("id_btn_add_schemeitem")
-            el_btn_add_schemeitem.addEventListener("click", HandleCreateSchemeItem);
-            // el_btn_add_schemeitem.disabled = true;
-
-        let el_btn_delete_schemeitem = document.getElementById("id_btn_delete_schemeitem")
-            el_btn_delete_schemeitem.addEventListener("click", HandleDeleteSchemeitem);
-        // el_btn_delete_schemeitem.disabled = true;
 
         let el_btn_fill_scheme = document.getElementById("id_btn_fill_scheme")
             el_btn_fill_scheme.addEventListener("click", HandleAutofillSchemeitems);
@@ -127,28 +122,25 @@ $(function() {
             setTimeout(function() {HandleSearchFilterEvent();}, 150);
         });
 
-        // get data
+// --- get header elements
+        let hdr_customer = document.getElementById("id_hdr_customer")
+        let hdr_order = document.getElementById("id_hdr_order")
+
+// --- get data stored in page
         let el_data = $("#id_data");
         let customer_list = el_data.data("customer_list");
-        // console.log( "customer_list")
-        // console.log(customer_list)
-        let order_list = el_data.data("order_list");
-        // console.log( "order_list")
-        // console.log(order_list)
-        let scheme_list = el_data.data("scheme_list");
-        // console.log( "scheme_list")
-        // console.log(scheme_list)
-
-        let shift_list;
-        let team_list;
-        let schemeitem_list;
-
-        FillSelectOptions(el_customer, customer_list,el_data.data("txt_select_customer"))
+        let order_list = [];
+        let scheme_list = [];
+        let schemeitem_list = [];
+        let shift_list = [];
+        let team_list = [];
+        let teammember_list = [];
+        let employee_list = [];
 
         const url_scheme_upload = el_data.data("scheme_upload_url");
         const url_schemeitem_upload = el_data.data("schemeitem_upload_url");
-        const url_datalist_str = el_data.data("scheme_datalist_url");
         const url_schemeitems_download = el_data.data("schemeitems_download_url");
+        const url_team_upload = el_data.data("schemeorteam_upload_url");
 
         const imgsrc_inactive = el_data.data("imgsrc_inactive");
         const imgsrc_active = el_data.data("imgsrc_active");
@@ -161,41 +153,115 @@ $(function() {
         const interval = el_data.data("interval");
         const timeformat = el_data.data("timeformat");
 
-        FilterRows();
+// --- create header row
+        CreateTableHeader("schemeitems");
 
-          //  let attrib = {};
-          //  $("<input>").appendTo(el_td)
-          //      .addClass("popup");
+        DatalistDownload({"customers": true, "orders": true, "employees": true});
 
-//========= OpenModal  ====================================
-    function OpenModal() {
-console.log("===  OpenModal  =====") ;
-//console.log("tr_clicked", tr_clicked);
+//  #############################################################################################################
 
-// ---  empty input boxes
-        let pws_title = "";
-        let pws_subjects = "";
+//=========  HandleSelectCustomer  ================ PR2019-03-23
+    function HandleSelectCustomer() {
+        // console.log("--- HandleSelectCustomer")
 
-        let el_mod_scheme = document.getElementById("id_mod_scheme");
-        el_mod_scheme.innerText = null;
+// reset lists
+        schemeitem_list = [];
+        team_list = [];
+        teammember_list = [];
+        shift_list = [];
 
-    // get cycle length from input box, empty inpout box
-        let el_mod_cycle = document.getElementById("id_mod_cycle");
-        el_mod_cycle.value = null
+// reset selected order
+        selected_order_pk = 0
+        selected_scheme_pk = 0;
+        selected_team_pk = 0;
 
-    // empty tblBody
+// reset tables scheme_select, schemeitems and teams
+        tblBody_scheme_select.innerText = null;
+        tblBody_team_select.innerText = null;
         tblBody.innerText = null;
 
+// get selected customer, put name in header
+        //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+        let selected_option =  parseInt(el_select_customer.value);
+        let selected_customer =  el_select_customer.options[el_select_customer.selectedIndex].text;
+        hdr_customer.innerText = "Customer: " + selected_customer
 
+// reset when customer changes
+        if(!!selected_option && selected_option !== selected_customer_pk){
+            selected_customer_pk = selected_option
+            selected_order_pk = 0
+            selected_scheme_pk = 0
 
-// ---  show modal
-            $("#id_modal_cont").modal({backdrop: true});
-}; // function OpenModal
+            el_select_order.innerText = null
+            hdr_order.innerText = null
 
-//========= function closeModal  =============
-    function closeModal() {
-        $('#id_modal_cont').modal('hide');
+            el_input_scheme.innerText = null
+            el_input_cycle.innerText = null
+            el_input_datefirst.innerText = null
+            el_input_datelast.innerText = null
+
+// reset tables
+            tblBody_scheme_select.innerText = null;
+            tblBody_team_select.innerText = null;
+
+            tblBody.innerText = null;
+        }
+        // console.log("selected_customer_pk", selected_customer_pk, typeof selected_customer_pk)
+
+        let select_text = el_data.data("txt_select_order");
+        let select_text_none = el_data.data("txt_select_order_none");
+
+// fill select order
+        FillSelectOptions(el_select_order, order_list, select_text, select_text_none, selected_customer_pk)
+
+// if there is only 1 order, that one is selected
+        selected_order_pk = parseInt(el_select_order.value);
+        if (!!selected_order_pk){
+            HandleSelectOrder();
+        };
     }
+
+//=========  HandleSelectOrder  ================ PR2019-03-24
+    function HandleSelectOrder() {
+        // console.log("--- HandleSelectOrder")
+
+// reset lists
+        schemeitem_list = [];
+        team_list = [];
+        teammember_list = [];
+        shift_list = [];
+
+// reset selected scheme and team
+        selected_scheme_pk = 0;
+        selected_team_pk = 0;
+
+// reset tables scheme_select, schemeitems and teams
+        tblBody_scheme_select.innerText = null;
+        tblBody_team_select.innerText = null;
+        tblBody.innerText = null;
+
+// get selected order
+        //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+        if(!!el_select_order.value){selected_order_pk = parseInt(el_select_order.value)}
+        hdr_order.innerText = "Order: " + el_select_order.options[el_select_order.selectedIndex].text;
+
+// download lists of this order: schemes, schemeitems, shifts, teams
+        const datalist_request = {"order_pk": selected_order_pk,
+                                  "schemes": true,
+                                  "schemeitems": true,
+                                  "shifts": true,
+                                  "teams": true,
+                                  "teammembers": true}
+        DatalistDownload(datalist_request);
+
+// after response in DatalistDownload the follwoing fuctions are called:
+        // FillSelectTable("scheme")}}
+        // FillSelectTable("team")}}
+        // FillDatalist(team_list, "id_datalist_teams");
+        // FillDatalist(shift_list, "id_datalist_shifts")}}
+
+
+    }  // HandleSelectOrder
 
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
@@ -219,8 +285,7 @@ console.log("===  OpenModal  =====") ;
        console.log("=========  function HandleCreateScheme =========");
 
     // get id of selected order
-        let el_order = document.getElementById("id_order")
-        let order_pk = el_order.value
+        let order_pk = el_select_order.value
 
     // get scheme code from input box, empty inpout box
         let el_mod_scheme = document.getElementById("id_mod_scheme");
@@ -253,13 +318,13 @@ console.log("===  OpenModal  =====") ;
                     console.log( response)
 
                     if ("schemes" in response) {
-                        selected_order_pk = parseInt(el_order.value);
+                        selected_order_pk = parseInt(el_select_order.value);
                         scheme_list = response["schemes"]
                         if (!!selected_order_pk){
                             let select_text = el_data.data("txt_select_scheme");
-                            FillSelectOptions(el_scheme, scheme_list, select_text, selected_order_pk)
+                            FillSelectOptions(el_input_scheme, scheme_list, select_text, "", selected_order_pk)
                             // if there is only 1 scheme, that one is selected
-                            //selected_scheme_pk = parseInt(el_scheme.value);
+                            //selected_scheme_pk = parseInt(el_input_scheme.value);
                         };
                     };
                     if ("scheme" in response) {
@@ -267,207 +332,23 @@ console.log("===  OpenModal  =====") ;
 
                 },
                 error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
             closeModal();
-
         } //  if(!!scheme_code){
-
-    }
-
-//=========  HandleDeleteScheme  ================ PR2019-04-23
-    function HandleDeleteScheme() {
-console.log("=========  function HandleDeleteScheme =========");
-
-}
-
-//=========  HandleAutofillSchemeitems  ================ PR2019-03-16
-    function HandleAutofillSchemeitems() {
-        console.log("=== HandleAutofillSchemeitems =========");
-        //scheme_item:
-        // id: {pk: 121, parent_pk: 24}
-        // rosterdate: {value: "2019-05-07", wdm: "di 7 mei", wdmy: "di 7 mei 2019", offset: "-1:ma,0:di,1:wo"}
-        // shift: {value: "nacht"}
-        // time_duration: {value: 480}
-        // time_end: {value: "0;6;0", html: "di 06.00 u."}
-        // time_start: {value: "-1;22;0", html: "ma 22.00 u."
-
-// --- get info from scheme
-        let cycle = parseInt(el_cycle.value)
-        if(!cycle){cycle = 0}
-
-        const list_count = schemeitem_list.length
-
-        if (cycle > 1 && !!schemeitem_list){
-            let pk, parent_pk, rosterdate, shift, time_start, time_end, break_start, break_duration;
-            let field_dict, value, last_schemeitem, first_rosterdate
-            let last_rosterdate, last_rosterdate_plusone, date_add, max_cycledate_plusone, new_rosterdate;
-
-// --- first refresh  FillTableRows
-            FillTableRows(schemeitem_list)
-
-// --- get info from first item in  schemeitem_list
-            let schemeitem = schemeitem_list[0]
-                //value = get_attr_from_element(first_schemeitem.cells[0].children[0], "data-value") + "T12:0:0";
-
-            field_dict = get_dict_value_by_key (schemeitem, "rosterdate");
-                value = get_dict_value_by_key (field_dict, "value");
-                first_rosterdate = get_date_from_ISOstring(value + "T12:0:0")
-
-                max_cycledate_plusone = GetNewDateFromDate(first_rosterdate, cycle)
-                console.log("max_cycledate_plusone", max_cycledate_plusone, typeof max_cycledate_plusone)
-
-// --- get info from last item in  schemeitem_list
-            last_schemeitem = schemeitem_list[list_count -1]
-                field_dict = get_dict_value_by_key (last_schemeitem, "rosterdate");
-                    value = get_dict_value_by_key (field_dict, "value");
-                    last_rosterdate = get_date_from_ISOstring(value + "T12:0:0")
-                    last_rosterdate_plusone = GetNewDateFromDate(last_rosterdate, 1)
-                console.log("last_rosterdate_plusone", last_rosterdate_plusone, typeof last_rosterdate_plusone)
-
-            if (!!first_rosterdate && !!last_rosterdate_plusone ){
-                date_add = parseInt( (last_rosterdate_plusone - first_rosterdate) /(1000*60*60*24))
-                console.log("date_add", date_add, typeof date_add)
-
-// --- make cycledate one day after rosterdate of last tablerow
-                let cycle_date = last_rosterdate_plusone
-                let new_index = list_count
-                let from_index = 0
-                let tr_row;
-
-// --- loop through schemeitem_list till last day ofscheme
-                let max_iterations =  cycle
-                let break_iter = false
-                for (let iteration = 0; iteration < max_iterations; iteration++) {
-                    for (let x = 0, field_dict, value, rosterdate; x < list_count; x++) {
-// --- get schemeitem from schemeitem_list
-                        console.log("iteration", iteration,   "x: ", x)
-
-// --- make a deep_copy from the schemeitem in the schemeitem_list
-                        let new_schemeitem = JSON.parse(JSON.stringify(schemeitem_list[x]))
-                        console.log("new_schemeitem", new_schemeitem)
-
-            // create new pk
-                        delete new_schemeitem["id"]["pk"]
-                        //-- increase id_new
-                        id_new = id_new + 1
-                        let pk_str =  "new_" + id_new.toString()
-                        const parent_pk = get_dict_value_by_key (new_schemeitem["id"], "parent_pk");
-
-                        new_schemeitem["id"]["pk"] =  pk_str
-                        new_schemeitem["id"]["parent_pk"] =  parent_pk
-                        new_schemeitem["id"]["create"] = true;
-                        console.log("id_dict")
-                        console.log(new_schemeitem["id"])
-
-                        let field_dict = new_schemeitem["rosterdate"]
-                        console.log("old rosterdate dict")
-                        console.log(field_dict)
-
-                            let rosterdate = get_date_from_ISOstring(field_dict["value"] + "T12:0:0")
-                            console.log("rosterdate", rosterdate)
-
-                            const add = date_add * (iteration + 1)
-                            console.log("date_add", date_add, " add days:", add)
-
-                            new_rosterdate =  GetNewDateFromDate(rosterdate, add)
-                            console.log("new_rosterdate", new_rosterdate)
-
-                            let date_offset = parseInt( (max_cycledate_plusone - new_rosterdate) /(1000*60*60*24))
-                            console.log("date_offset", date_offset, typeof date_offset)
-
-                // change n_date to format "2019-05-06"
-                            const n_date_iso = new_rosterdate.toISOString();
-                            const n_date_arr = n_date_iso.split("T");
-                            const n_date_yyymmdd = n_date_arr[0]
-                            // console.log("n_date_yyymmdd", n_date_yyymmdd, typeof n_date_yyymmdd)
-
-                // put n_date in field_dict
-                            new_schemeitem["rosterdate"]["value"] = n_date_yyymmdd // value: "2019-03-31"
-                            new_schemeitem["rosterdate"]["wdm"] = n_date_yyymmdd  // wdm: "zo 31 mrt"
-                            new_schemeitem["rosterdate"]["wdmy"] = n_date_yyymmdd // wdmy: "zo 31 mrt 2019"
-
-                // delete time_duration dict (can be incorrect on change of daylight saving time)
-                            delete new_schemeitem["time_duration"];
-
-                        new_schemeitem["rosterdate"] = field_dict
-                        console.log(">>>> new_schemeitem", new_schemeitem)
-
-                        if (date_offset > 0 ){
-
-                            let tblRow =  CreateTableRow(pk_str, parent_pk)
-                            UpdateTableRow(tblRow, new_schemeitem)
-
-
-                            console.log ("??? new_schemeitem:");
-                            console.log (new_schemeitem);
-
-                            //upload_dict: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
-                            let parameters = {"schemeitem_upload": JSON.stringify (new_schemeitem)};
-                            let response = "";
-                            $.ajax({
-                                type: "POST",
-                                url: url_schemeitem_upload,
-                                data: parameters,
-                                dataType:'json',
-                                success: function (response) {
-                    // console.log( "response");
-                    // console.log( response);
-
-                                    if ("schemeitem_update" in response) {
-                                        UpdateTableRow(tblRow, response["schemeitem_update"])
-                                    }
-                                },
-                                error: function (xhr, msg) {
-                                    alert(msg + '\n' + xhr.responseText);
-                                }
-                            });
-                        } else {
-                            break_iter = true;
-                            break;
-                        } //  if (date_offset <= 0 ){
-                    }
-                    if (break_iter ){break};
-
-                }  // for (let iteration = 0
-            }  // if (!!first_rosterdate && !!last_rosterdate_plusone )
-        }  // if (cycle > 1 && !!list_count)
-    }  // HandleFillScheme
-
-
-
-//========= FillTableRows  ====================================
-    function FillTableRows(schemeitem_list) {
-        // called by HandleSchemeSelect, HandleCycleChanged
-        console.log( "===== FillTableRows  ========= ");
-        console.log(schemeitem_list);
-
-        tblBody.innerText = null;
-        for (let i = 0, schemeitem_dict, len = schemeitem_list.length; i < len; i++) {
-            schemeitem_dict = schemeitem_list[i];
-
-            let pk, parent_pk;
-            if ("id" in schemeitem_dict){
-                let id_dict = schemeitem_dict["id"]
-                if ("pk" in id_dict){pk = id_dict.pk};
-                if ("parent_pk" in id_dict){parent_pk = id_dict.parent_pk};
-            }
-            let tblRow =  CreateTableRow(pk, parent_pk)
-            UpdateTableRow(tblRow, schemeitem_dict)
-        }
-
-        // el_btn_add_schemeitem.disabled = false;
-        // el_btn_delete_schemeitem.disabled = false;
-        // console.log("el_btn_add_schemeitem.disabled: false");
-    }
+    }  // HandleCreateScheme
 
 //=========  HandleCreateSchemeItem  ================ PR2019-03-16
     function HandleCreateSchemeItem() {
         console.log("=== HandleCreateSchemeItem =========");
 
+        tbody_clicked =  tblRow.parentNode;
+        console.log( "tbody_clicked ", tbody_clicked);
+
 // ---  deselect all highlighted rows
-        DeselectHighlightedRows()
+        DeselectHighlightedRows(tbody_clicked)
 
 //-- increase id_new
         id_new = id_new + 1
@@ -489,7 +370,7 @@ console.log("=========  function HandleDeleteScheme =========");
             let tblRow = tblBody.rows[len -1];
 
             // el_input is first child of td, td is cell of tblRow
-            const el_rosterdate = tblRow.cells[0].children[0];
+            const el_rosterdate = tblRow.cells[1].children[0];
                 value = get_attr_from_element(el_rosterdate, "data-value"); // data-value = "2019-05-11"
                 if(!!value){rosterdate_dict["value"] = value}
                 const wdm = el_rosterdate.value; // value = "wo 1 mei"
@@ -501,7 +382,8 @@ console.log("=========  function HandleDeleteScheme =========");
                 // unknown o_value triggers save action in uploadcahnges
                 rosterdate_dict["data_value"] = value
                 rosterdate_dict["data_o_value"] = "---"
-            const el_time_end = tblRow.cells[4].children[0];
+
+            const el_time_end = tblRow.cells[5].children[0];
             if(!!el_time_end){
                 value = get_attr_from_element(el_time_end, "data-value"); // data-value = "0;5;0"
                 if(!!value){ time_end_dict["value"] = value };
@@ -521,118 +403,270 @@ console.log("=========  function HandleDeleteScheme =========");
         schemeitem_dict["rosterdate"] = rosterdate_dict;
         if(!!time_end_dict){ schemeitem_dict["time_start"] = time_end_dict}
 
-        let tblRow = CreateTableRow(pk, parent_pk)
+        let tblRow = CreateTableRow("schemeitems", pk, parent_pk)
 
 // Update TableRow
         console.log("schemeitem_dict", schemeitem_dict);
-        UpdateTableRow(tblRow, schemeitem_dict)
+        UpdateTableRow("schemeitems", tblRow, schemeitem_dict)
     }
 
+//=========  GetLastTableRow  === PR2019-05-29
+    function GetLastTableRow(tblName) {
+
+// get last tblRow
+        let rosterdate, time_end, value;
+        let rosterdate_dict = {};
+        let time_end_dict = {};
+        const len = tblBody.rows.length
+        if (!!len) {
+            let tblRow = tblBody.rows[len -1];
+
+            // el_input is first child of td, td is cell of tblRow
+            const el_rosterdate = tblRow.cells[1].children[0];
+                value = get_attr_from_element(el_rosterdate, "data-value"); // data-value = "2019-05-11"
+                if(!!value){rosterdate_dict["value"] = value}
+                const wdm = el_rosterdate.value; // value = "wo 1 mei"
+                if(!!wdm){ rosterdate_dict["wdm"] = wdm}
+                const wdmy = get_attr_from_element(el_rosterdate, "data-wdmy"); // data-wdmy = "wo 1 mei 2019"
+                if(!!wdmy){ rosterdate_dict["wdmy"] = wdmy}
+                const offset = get_attr_from_element(el_rosterdate, "data-offset"); // data-offset: "-1:di,0:wo,1:do"
+                if(!!offset){ rosterdate_dict["offset"] = offset}
+                // unknown o_value triggers save action in uploadcahnges
+                rosterdate_dict["data_value"] = value
+                rosterdate_dict["data_o_value"] = "---"
+
+            const el_time_end = tblRow.cells[5].children[0];
+            if(!!el_time_end){
+                value = get_attr_from_element(el_time_end, "data-value"); // data-value = "0;5;0"
+                if(!!value){ time_end_dict["value"] = value };
+                const dhm = el_time_end.value; // value = "wo 1 mei"
+                if(!!dhm){ time_end_dict["dhm"] = dhm }
+                // unknown o_value triggers save action in uploadcahnges
+                time_end_dict["data_o_value"] = "---"
+            }
+        } else {
+            rosterdate_dict = today_dict
+            rosterdate_dict["data_value"] = rosterdate_dict["value"];
+            // unknown o_value triggers save action in uploadcahnges
+            rosterdate_dict["data_o_value"] = "---"
+        };
+
+        schemeitem_dict["id"] = {"pk": pk, "parent_pk": parent_pk, "create": true};
+        schemeitem_dict["rosterdate"] = rosterdate_dict;
+        if(!!time_end_dict){ schemeitem_dict["time_start"] = time_end_dict}
+
+    }
+
+
+
+//=========  CreateTableHeader  === PR2019-05-27
+    function CreateTableHeader(tblName) {
+        console.log("===  CreateTableHeader == ", tblName);
+        // console.log("pk", pk, "parent_pk", parent_pk);
+
+        tblHead.innerText = null
+        // index -1 results in that the new cell will be inserted at the last position.
+        let tblRow = tblHead.insertRow (-1);
+
+//--- insert td's to tblHead
+        let column_count;
+        if (tblName === "teammembers"){column_count = 7} else {column_count = 9};
+
+        for (let j = 0; j < column_count; j++) {
+// --- add th to tblRow.
+            let th = document.createElement("th");
+            tblRow.appendChild(th);
+// --- add img to first th and last th
+            let img_src
+            if (j === 0){img_src = el_data.data("imgsrc_stat04")} else {img_src = el_data.data("imgsrc_delete")}
+            if ([0, column_count - 1].indexOf( j ) > -1){
+                let img = document.createElement("img");
+                img.setAttribute("src", img_src);
+                img.setAttribute("height", "18");
+                img.setAttribute("width", "18");
+                th.appendChild(img);
+// --- add width to th
+                th.classList.add("td_width_032")
+            };
+// --- add text_align to th
+            if ([1, 2, 3].indexOf( j ) > -1){th.classList.add("text_align_left")}
+            if (tblName === "schemeitems"){
+    // --- add text to th
+                if (j === 1){th.innerText = el_data.data("txt_date")} else
+                if (j === 2){th.innerText = el_data.data("txt_shift")} else
+                if (j === 3){th.innerText = el_data.data("txt_team")} else
+                if (j === 4){th.innerText = el_data.data("txt_time_start")} else
+                if (j === 5){th.innerText = el_data.data("txt_time_end")} else
+                if (j === 6){th.innerText = el_data.data("txt_break_hours")} else
+                if (j === 7){th.innerText = el_data.data("txt_working_hours")};
+    // --- add width to th
+                if ([4, 5].indexOf( j ) > -1){th.classList.add("td_width_120")}
+                else {th.classList.add("td_width_090")};
+        } else if (tblName === "teammembers"){
+// --- add text to th
+                if (j === 1){th.innerText = el_data.data("txt_team")} else
+                if (j === 2){th.innerText = el_data.data("txt_employee")} else
+                if (j === 3){th.innerText = el_data.data("txt_replaces")} else
+                if (j === 4){th.innerText = el_data.data("txt_date_start")} else
+                if (j === 5){th.innerText = el_data.data("txt_date_end")};
+// --- add width to th
+                if ([1, 2, 3, 4, 5].indexOf( j ) > -1){th.classList.add("td_width_120")}
+            }  //  if (tblName === "schemeitems")
+        }  // for (let j = 0; j < column_count; j++)
+    };//function CreateTableHeader
+
 //=========  CreateTableRow  ================ PR2019-04-27
-    function CreateTableRow(id, parent_pk) {
-        // called by HandleSchemeSelect > FillTableRows , HandleCreateSchemeItem, HandleAutofillSchemeitems
+    function CreateTableRow(tblName, pk, parent_pk) {
         // console.log("=========  function CreateTableRow =========");
         // console.log("pk", pk, "parent_pk", parent_pk);
 
-//--------- insert tblBody row
+// check if row is addnew row - when pk is NaN
+        let is_new_item = !parseInt(pk);
+
+//+++ insert tblRow ino tblBody
         let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-
-        tblRow.setAttribute("id", id);
+        tblRow.setAttribute("id", pk);
         tblRow.setAttribute("data-parent_pk", parent_pk);
-
+// --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
 
-        for (let j = 0; j < 8; j++) {
-// --- add td to tblRow.
+        let column_count;
+        if (tblName === "teammembers"){column_count = 7} else {column_count = 9};
+
+//+++ insert td's ino tblRow
+        for (let j = 0; j < column_count; j++) {
             // index -1 results in that the new cell will be inserted at the last position.
             let td = tblRow.insertCell(-1);
-            td.classList.add("td_width_090");
+            let el;
+// --- add img to first th and last td
+            if ([0, column_count - 1].indexOf( j ) > -1){
+                if (!is_new_item){
+                // create img
+                    let img = document.createElement("img");
+                    if (j === 0){
+                        img.setAttribute("src", el_data.data("imgsrc_warning"))
+                    } else {
+                        img.setAttribute("src", el_data.data("imgsrc_delete"))
+                    }
+                    img.setAttribute("height", "18");
+                    img.setAttribute("width", "18");
+                    if (j === 0){
+                        el = img;
+                    } else {
 
-// --- add input element to td.
-            let el = document.createElement("input");
-            el.setAttribute("type", "text");
-
-// --- add data-name to td.
-            let fieldname;
-            if (j === 0){
-                fieldname = "rosterdate";
-            } else if (j === 1){
-                fieldname = "shift";
-            } else if (j === 2) {
-                fieldname = "team";
-            } else if (j === 3){
-                fieldname = "time_start";
-            } else if (j === 4) {
-                fieldname = "time_end";
-            } else if (j === 5) {
-                fieldname = "break_start";
-            } else if (j === 6) {
-                fieldname = "break_duration";
-            } else if (j === 7) {
-                fieldname = "time_duration";
-            };
-            el.setAttribute("data-name", fieldname);
-
-// --- add EventListener to td
-            if (j === 0) {
-                el.addEventListener("click", function() {OpenPopupWDY(el);}, false )
-            } else if ([1, 2].indexOf( j ) > -1){
-                el.addEventListener("change", function() {UploadChanges(el);}, false )
-            } else if ([3, 4, 5, 6, 7].indexOf( j ) > -1){
-                el.addEventListener("click", function() {OpenPopupDHM(el);}, false )
-            };
-
-// --- add width to time fields
-            if ([3, 4, 5].indexOf( j ) > -1){
-                el.classList.add("td_width_120");
+                // --- first add <a> element wuth EventListener to td
+                        el = document.createElement("a");
+                        el.setAttribute("href", "#");
+                        if (tblName === "schemeitems"){
+                            el.addEventListener("click", function() {HandleDeleteSchemeitem(tblRow);}, false )
+                        } else {
+                            el.addEventListener("click", function() {HandleDeleteTeammember(tblRow);}, false )
+                        }
+                        el.appendChild(img);
+                     }
+                    td.appendChild(el);
+                }
+// --- add width to td
+                td.classList.add("td_width_032")
             } else {
-                el.classList.add("td_width_090");
-            };
-// --- add other classes to td
-            el.classList.add("border-none");
-            el.classList.add("input_text");
-            if (j === 0) {
-                el.classList.add("input_popup_wdy");
-            } else if ([1, 2].indexOf( j ) > -1){
+// --- add input element to td.
+                let el = document.createElement("input");
+                el.setAttribute("type", "text");
+                if (is_new_item){
+                    if (j === 1){
+                        let placeholder = el_data.data("txt_shift_add") + "..."
+                        if (tblName === "teammembers"){ el_data.data("txt_employee_add")}
+                        el.setAttribute("placeholder", placeholder);
+                        }
+                }
+
+    // --- add data-name to td.
+                let fieldname;
+                if (tblName === "schemeitems"){
+                    if (j === 1){fieldname = "rosterdate"} else
+                    if (j === 2){fieldname = "shift"} else
+                    if (j === 3){fieldname = "team"} else
+                    if (j === 4){fieldname = "time_start"} else
+                    if (j === 5){fieldname = "time_end"} else
+                    if (j === 6){fieldname = "break_duration"} else
+                    if (j === 7){fieldname = "time_duration"};
+                } else {
+                    if (j === 1){fieldname = "team"} else
+                    if (j === 2){fieldname = "employee"} else
+                    if (j === 3){fieldname = "replaces"} else
+                    if (j === 4){fieldname = "date_start"} else
+                    if (j === 5){fieldname = "date_end"}
+                }
+                el.setAttribute("data-name", fieldname);
+
+    // --- add EventListener to td
+                if (tblName === "schemeitems"){
+                    if (j === 1) {
+                        el.addEventListener("click", function() {OpenPopupWDY(el);}, false )} else
+                    if ([2, 3].indexOf( j ) > -1){
+                        el.addEventListener("change", function() {UploadChanges(el);}, false )} else
+                    if ([4, 5, 6, 7].indexOf( j ) > -1){
+                        el.addEventListener("click", function() {OpenPopupDHM(el);}, false )};
+                } else {
+                    if ([1, 2, 3].indexOf( j ) > -1){
+                        el.addEventListener("change", function() {UploadChanges(el);}, false )} else
+                    if ([4, 5].indexOf( j ) > -1){
+                        el.addEventListener("click", function() {OpenPopupDHM(el);}, false )};
+                }
+    // --- add width to time fields and date fileds
+                if ([1,].indexOf( j ) > -1){
+                    el.classList.add("td_width_120");
+                } else {
+                    el.classList.add("td_width_090");
+                };
+
+    // --- add other classes to td
+                el.classList.add("border-none");
                 el.classList.add("input_text");
-            } else if ([3, 4, 5, 6, 7].indexOf( j ) > -1){
-                el.classList.add("input_popup_dhm");
-            };
+                if (j === 1) {
+                    el.classList.add("input_popup_wdy");
+                } else if ([2, 3].indexOf( j ) > -1){
+                    el.classList.add("input_text");
+                } else if ([4, 5, 6, 7].indexOf( j ) > -1){
+                    el.classList.add("input_popup_dhm");
+                };
 
-// --- add datalist_ to td shift, team
-            if ([1, 2].indexOf( j ) > -1){
-                el.setAttribute("list", "id_datalist_" + fieldname + "s");
-            };
+    // --- add datalist_ to td shift, team
+                if ([2, 3].indexOf( j ) > -1){
+                    el.setAttribute("list", "id_datalist_" + fieldname + "s");
+                };
 
-// --- add other attributes to td
-            el.setAttribute("autocomplete", "off");
-            el.setAttribute("ondragstart", "return false;");
-            el.setAttribute("ondrop", "return false;");
+    // --- add other attributes to td
+                el.setAttribute("autocomplete", "off");
+                el.setAttribute("ondragstart", "return false;");
+                el.setAttribute("ondrop", "return false;");
 
-            td.appendChild(el);
+                td.appendChild(el);
+            }  //if (j === 0)
+
         }  // for (let j = 0; j < 8; j++)
 
         return tblRow
     };//function CreateTableRow
 
 //========= UpdateTableRow  =============
-    function UpdateTableRow(tblRow, schemeitem_dict){
+    function UpdateTableRow(tblName, tblRow, item_dict){
         // console.log("--- UpdateTableRow  --------------");
         // console.log(tblRow);
 
-        if (!!schemeitem_dict && !!tblRow) {
+        if (!!item_dict && !!tblRow) {
             // console.log("tblRow", tblRow);
-            // console.log("schemeitem_dict", schemeitem_dict);
+            // console.log("item_dict", item_dict);
 
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
-            // schemeitem_dict = {'id': {'pk': 7},
+            // item_dict = {'id': {'pk': 7},
             // 'code': {'err': 'Customer code cannot be blank.', 'val': '1996.02.17.15'},
             // 'name_last': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'El Chami'},
             // 'name_first': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'Omar'}}<class 'dict'>
 
-// get temp_pk_str and id_pk from schemeitem_dict["id"]
+// get temp_pk_str and id_pk from item_dict["id"]
             // id: {temp_pk: "new_1", created: true, pk: 32, parent_pk: 18}
-            const id_dict = get_dict_value_by_key (schemeitem_dict, "id");
+            const id_dict = get_dict_value_by_key (item_dict, "id");
             const id_pk = get_dict_value_by_key (id_dict, "pk");
             const temp_pk_str = get_dict_value_by_key (id_dict, "temp_pk");
             const is_created = get_dict_value_by_key (id_dict, "created", false);
@@ -662,24 +696,24 @@ console.log("=========  function HandleDeleteScheme =========");
                     el_msg.setAttribute("style", msgAttr)
 
                     setTimeout(function (){
-                        tblRow.classList.remove("tsa-tr-error");
+                        tblRow.classList.remove("tsa_tr_error");
                         el_msg.classList.toggle("show");
                         }, 2000);
 
 // --- new record
                 } else if (is_created){
                     let id_attr = get_attr_from_element(tblRow,"id")
-                // check if schemeitem_dict.id 'new_1' is same as tablerow.id
+                // check if item_dict.id 'new_1' is same as tablerow.id
                     if(temp_pk_str === id_attr){
 
                 // update tablerow.id from temp_pk_str to id_pk
                         tblRow.id = id_pk //or: tblRow.setAttribute("id", id_pk);
                         // console.log("tblRow.id", tblRow.id);
 
-                // make row green, / --- remove class 'ok' after 2 seconds a
-                        tblRow.classList.add("tsa-tr-ok");
+                // make row green, / --- remove class 'ok' after 2 seconds
+                        tblRow.classList.add("tsa_tr_ok");
                         setTimeout(function (){
-                            tblRow.classList.remove("tsa-tr-ok");
+                            tblRow.classList.remove("tsa_tr_ok");
                         }, 2000);
                     }
                 };  // if (is_deleted){
@@ -696,14 +730,14 @@ console.log("=========  function HandleDeleteScheme =========");
                         let field_dict = {}, fieldname, updated, err;
                         let value = "", o_value, n_value, data_value, data_o_value;
                         let wdm = "", wdmy = "", offset = "", team_pk = "", dhm = "", hm = "";
-
+                        let employee_pk, replaces_pk;
                         // el_input is first child of td, td is cell of tblRow
                         let el_input = tblRow.cells[i].children[0];
                         if(!!el_input){
                             fieldname = get_attr_from_element(el_input, "data-name");
 
-// --- lookup field in schemeitem_dict, get data from field_dict
-                            field_dict = get_dict_value_by_key (schemeitem_dict, fieldname);
+// --- lookup field in item_dict, get data from field_dict
+                            field_dict = get_dict_value_by_key (item_dict, fieldname);
                             updated = get_dict_value_by_key (field_dict, "updated");
                             err = get_dict_value_by_key (field_dict, "err");
 
@@ -743,34 +777,55 @@ console.log("=========  function HandleDeleteScheme =========");
                                     el_input.classList.remove("border-valid");
                                     }, 2000);
                             }
-
-
-                            if (fieldname === "rosterdate") {
-                                value = get_dict_value_by_key (field_dict, "value");
-                                wdm = get_dict_value_by_key (field_dict, "wdm");
-                                wdmy = get_dict_value_by_key (field_dict, "wdmy");
-                                offset = get_dict_value_by_key (field_dict, "offset");
-                                el_input.value = wdm
-                                el_input.title = wdmy
-                                el_input.setAttribute("data-wdmy", wdmy)
-                                el_input.setAttribute("data-offset", offset)
-                            } else if (fieldname === "shift") {
-                                value = get_dict_value_by_key (field_dict, "value");
-                                el_input.value = value
-                            } else if (fieldname === "team") {
-                                value = get_dict_value_by_key (field_dict, "value");
-                                team_pk = get_dict_value_by_key (field_dict, "team_pk");
-                                el_input.value = value
-                                el_input.setAttribute("data-team_pk", team_pk)
-                            } else if (["time_start", "time_end", "break_start"].indexOf( fieldname ) > -1){
-                                value = get_dict_value_by_key (field_dict, "value");
-                                dhm = get_dict_value_by_key (field_dict, "dhm");
-                                el_input.value = dhm
-                            } else if (["time_duration", "break_duration"].indexOf( fieldname ) > -1){
-                                value = get_dict_value_by_key (field_dict, "value");
-                                hm = get_dict_value_by_key (field_dict, "hm");
-                                el_input.value = hm
-                            };
+                            if (tblName === "schemeitems"){
+                                if (fieldname === "rosterdate") {
+                                    value = get_dict_value_by_key (field_dict, "value");
+                                    wdm = get_dict_value_by_key (field_dict, "wdm");
+                                    wdmy = get_dict_value_by_key (field_dict, "wdmy");
+                                    offset = get_dict_value_by_key (field_dict, "offset");
+                                    el_input.value = wdm
+                                    el_input.title = wdmy
+                                    el_input.setAttribute("data-wdmy", wdmy)
+                                    el_input.setAttribute("data-offset", offset)
+                                } else if (fieldname === "shift") {
+                                    value = get_dict_value_by_key (field_dict, "value");
+                                    el_input.value = value
+                                } else if (fieldname === "team") {
+                                    value = get_dict_value_by_key (field_dict, "value");
+                                    team_pk = get_dict_value_by_key (field_dict, "team_pk");
+                                    el_input.value = value
+                                    el_input.setAttribute("data-team_pk", team_pk)
+                                } else if (["time_start", "time_end"].indexOf( fieldname ) > -1){
+                                    value = get_dict_value_by_key (field_dict, "value");
+                                    dhm = get_dict_value_by_key (field_dict, "dhm");
+                                    el_input.value = dhm
+                                } else if (["time_duration", "break_duration"].indexOf( fieldname ) > -1){
+                                    value = get_dict_value_by_key (field_dict, "value");
+                                    hm = get_dict_value_by_key (field_dict, "hm");
+                                    el_input.value = hm
+                                };
+                            } else  if (tblName === "teammembers"){
+                                if (fieldname === "team") {
+                                    value = get_dict_value_by_key (field_dict, "value");
+                                    team_pk = get_dict_value_by_key (field_dict, "team_pk");
+                                    el_input.value = value
+                                    el_input.setAttribute("data-team_pk", team_pk)
+                                } else if (fieldname === "employee") {
+                                    value = get_dict_value_by_key (field_dict, "value");
+                                    employee_pk = get_dict_value_by_key (field_dict, "pk");
+                                    el_input.value = value
+                                    el_input.setAttribute("data-employee_pk", employee_pk)
+                                } else if (fieldname === "replaces") {
+                                    value = get_dict_value_by_key (field_dict, "value");
+                                    replaces_pk = get_dict_value_by_key (field_dict, "pk");
+                                    el_input.value = value
+                                    el_input.setAttribute("data-replaces_pk", replaces_pk)
+                                } else if (["date_start", "date_end"].indexOf( fieldname ) > -1){
+                                    value = get_dict_value_by_key (field_dict, "value");
+                                    dhm = get_dict_value_by_key (field_dict, "dhm");
+                                    el_input.value = dhm
+                                }
+                            }
                             // use data_value if it exists in field_dict, otherwise use value
                             data_value = get_dict_value_by_key (field_dict, "data_value", value);
                             if(!!data_value){el_input.setAttribute("data-value", data_value)};
@@ -780,28 +835,26 @@ console.log("=========  function HandleDeleteScheme =========");
                                 /*
                                 // set min or max of other date field
                                 //if (fieldname === 'datefirst'){
-                                //    let el_datelast = tblRow.querySelector("[name=datelast]");
-                                    console.log("el_datelast", el_datelast);
-                                    el_datelast.min = value
-                                    console.log("el_datelast.min", el_datelast.min);
+                                //    let el_input_datelast = tblRow.querySelector("[name=datelast]");
+                                    console.log("el_input_datelast", el_input_datelast);
+                                    el_input_datelast.min = value
+                                    console.log("el_input_datelast.min", el_input_datelast.min);
                                 } else if (fieldname === 'datelast'){
-                                    let el_datefirst = tblRow.querySelector("[name=datefirst]");
-                                    console.log("el_datefirst", el_datefirst);
-                                    el_datefirst.max = value
-                                    console.log("el_datefirst.max", el_datefirst.max);
+                                    let el_input_datefirst = tblRow.querySelector("[name=datefirst]");
+                                    console.log("el_input_datefirst", el_input_datefirst);
+                                    el_input_datefirst.max = value
+                                    console.log("el_input_datefirst.max", el_input_datefirst.max);
                                 }
                                 */
-
-
                         };  // if(!!el_input)
                     }  //  for (let j = 0; j < 8; j++)
 
 //---  update filter
-                    FilterRows();
+                    FilterRows(tblRow);
 
                 } // if (!!tblRow)
             }; // if (!!id_pk)
-        };  // if (!!schemeitem_dict && !!tblRow)
+        };  // if (!!item_dict && !!tblRow)
     }  // function UpdateTableRow
 
 
@@ -910,15 +963,16 @@ console.log("=========  function HandleDeleteScheme =========");
     console.log( response);
 
                     if ("schemeitem_update" in response) {
-                        UpdateTableRow(tr_changed, response["schemeitem_update"])
+                        UpdateTableRow("schemeitems", tr_changed, response["schemeitem_update"])
                     }
                     if ("schemeitem_list" in response) {
                         schemeitem_list= response["schemeitem_list"]
-                       //Dont fill , Was:   FillTableRows(schemeitem_list)
+                       //Dont fill , Was:   Fill-Table-Schemeitems(schemeitem_list)
                     }
 
                 },
                 error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
@@ -957,7 +1011,7 @@ console.log("=========  function HandleDeleteScheme =========");
 
 // delete  record
                 // make row red
-                tblRow.classList.add("tsa-tr-error");
+                tblRow.classList.add("tsa_tr_error");
                 let parameters = {"schemeitem_upload": JSON.stringify (param)};
                 let response = "";
                 $.ajax({
@@ -974,214 +1028,93 @@ console.log("=========  function HandleDeleteScheme =========");
                         };
                     },
                     error: function (xhr, msg) {
+                        console.log(msg + '\n' + xhr.responseText);
                         alert(msg + '\n' + xhr.responseText);
                     }
                 });
-            }; // if (!pk_int) {
+            }; // if (!pk_int)
        };  // for (let i = 0, len = tblrows.length; i < len; i++) {
     }
 
 
-
-
-//========= DeleteTableRow  =============
-    function DeleteTableRow(update_dict){
-        console.log("=== DeleteTableRo");
+//========= UpdateSchemeOrTeam  =============
+    function UpdateSchemeOrTeam(tblName, tblRow, update_dict){
+        console.log("=== UpdateSchemeOrTeam ===", tblName);
         console.log("update_dict: " , update_dict);
         // 'update_dict': {'id': {'del_err': 'This record could not be deleted.'}}}
         // 'update_dict': {'id': {'pk': 169, 'parent_pk': 24, deleted: true}
+
+        // update_dict': {id: {temp_pk: "new_4", pk: 97, parent_pk: 21, created: true}, code: {updated: true, value: "AA"}}
+
         if (!!update_dict) {
 // get id_new and id_pk from update_dict["id"]
-            if ("id" in update_dict){
-                const id_dict = update_dict["id"]
-                if ("pk" in id_dict){
-                    const pk = id_dict["pk"];
-        console.log("pk: ", pk, typeof pk);
-                    let tblrow = document.getElementById(id_dict["pk"]);
-        console.log("tblrow: ");
-        console.log(tblrow);
-                    if (!!tblrow){
+            const pk = get_pk_from_id(update_dict);
+            const parent_pk = get_parent_pk(update_dict);
+            console.log("pk: ", pk, "parent_pk: ", parent_pk);
+
+            let id_dict = get_dict_value_by_key (update_dict, "id")
+            if (!!tblRow){
 // --- remove deleted record from list
-                        if ("deleted" in id_dict) {
-                            tblrow.parentNode.removeChild(tblrow);
-        console.log("tblrow deleted ");
+                if ("created" in id_dict) {
+                    tblRow.classList.add("tsa_tr_ok");
+                    setTimeout(function (){
+                        tblRow.classList.remove("tsa_tr_ok");
+                        FillSelectTable(tblName)
+                        let tblRowSelected = document.getElementById(tblName + "_" + pk.toString())
+                        HandleSelectTeam(tblRowSelected)
+                    }, 2000);
+// --- remove deleted record from list
+                } else if ("deleted" in id_dict) {
+                    tblRow.parentNode.removeChild(tblRow);
+console.log("tblRow deleted ");
 // --- when err: show error message
-                        } else if ("del_err" in id_dict){
-                            const msg_err = id_dict.del_err
-                            let el_msg = document.getElementById("id_msgbox");
-                            el_msg.innerHTML = msg_err;
-                            el_msg.classList.toggle("show");
-                            let elemRect = tblrow.getBoundingClientRect();
-                            let msgRect = el_msg.getBoundingClientRect();
-                            let topPos = elemRect.top - (msgRect.height + 80);
-                            let leftPos = elemRect.left; // let leftPos = elemRect.left - 160;
-                            let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-                            el_msg.setAttribute("style", msgAttr)
+                } else if ("del_err" in id_dict){
+                    const msg_err = id_dict.del_err
+                    let el_msg = document.getElementById("id_msgbox");
+                    el_msg.innerHTML = msg_err;
+                    el_msg.classList.toggle("show");
+                    let elemRect = tblRow.getBoundingClientRect();
+                    let msgRect = el_msg.getBoundingClientRect();
+                    let topPos = elemRect.top - (msgRect.height + 80);
+                    let leftPos = elemRect.left; // let leftPos = elemRect.left - 160;
+                    let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+                    el_msg.setAttribute("style", msgAttr)
 // --- close error box after 2 seconds and remove class 'error'
-                            setTimeout(function (){
-                                tblrow.classList.remove("tsa-tr-error");
-                                el_msg.classList.toggle("show");
-                                }, 2000);
-                        }  // if (id_deleted){
-                    } // if (!!tblrow){
-                }; // if ("pk" in id_dict){
-            }  //  if (fieldname in update_dict){
-        }
-    }  // DeleteTableRow
+                    setTimeout(function (){
+                        tblRow.classList.remove("tsa_tr_error");
+                        el_msg.classList.toggle("show");
+                        }, 2000);
+                } // if (id_deleted){
 
-// #####################################################################################
 
-//=========  HandleCustomerSelect  ================ PR2019-03-23
-    function HandleCustomerSelect(el_customer) {
-        // console.log("------- HandleCustomerSelect -----------")
+            } // if (!!tblRow){
+        }  // if (!!update_dict)
+    }  // UpdateSchemeOrTeam
 
-        shift_list = [];
-        team_list = [];
-        schemeitem_list = [];
-
-        tblBody.innerText = null;
-
-        //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-        let selected_option =  parseInt(el_customer.value);
-
-        // reset order when customer changes
-        if(!!selected_option && selected_option !== selected_customer_pk){
-            selected_customer_pk = selected_option
-            selected_order_pk = 0
-
-            el_order.innerText = null
-            el_scheme.innerText = null
-        }
-        // console.log("selected_customer_pk", selected_customer_pk, typeof selected_customer_pk)
-
-        let select_text = el_data.data("txt_select_order");
-        FillSelectOptions(el_order, order_list, select_text, selected_customer_pk)
-        // if there is only 1 order, that one is selected
-        selected_order_pk = parseInt(el_order.value);
-
-        if (!!selected_order_pk){
-
-            select_text = el_data.data("txt_select_scheme");
-            FillSelectOptions(el_scheme, scheme_list, select_text, selected_order_pk)
-            // if there is only 1 scheme, that one is selected
-            //selected_scheme_pk = parseInt(el_scheme.value);
-        };
+//=========  HandleInputScheme  ================ PR2019-05-24
+    function HandleInputScheme() {
+        console.log("=========  HandleInputScheme =========");
     }
 
-//=========  HandleOrderSelect  ================ PR2019-03-24
-    function HandleOrderSelect(el_order) {
-  console.log("------- HandleOrderSelect -----------")
-        const select_text = el_data.data("txt_select_scheme");
-
-
-        shift_list = [];
-        team_list = [];
-        schemeitem_list = [];
-
-        tblBody.innerText = null;
-
-        selected_order_pk = 0
-        if(!!el_order.value){selected_order_pk = el_order.value}
-  console.log("selected_order_pk", selected_order_pk, typeof selected_order_pk)
-
-        FillSelectOptions(el_scheme, scheme_list, select_text, selected_order_pk)
-
-        el_btn_add_scheme.disabled = (!selected_order_pk);
-        el_btn_delete_scheme.disabled = (!selected_order_pk);
-        //el_btn_add_schemeitem.disabled = (!selected_scheme_pk);
-        //el_btn_delete_schemeitem.disabled = (!selected_scheme_pk);
+//=========  HandleInputDatefirst  ================ PR2019-05-24
+    function HandleInputDatefirst() {
+        console.log("=========  HandleInputDatefirst =========");
+    }
+//=========  HandleInputDatelast  ================ PR2019-05-24
+    function HandleInputDatelast() {
+        console.log("=========  HandleInputDatelast =========");
     }
 
-//=========  HandleSchemeSelect  ================ PR2019-03-24
-    function HandleSchemeSelect(el_scheme) {
-        console.log("--- HandleSchemeSelect -----------")
+//=========  HandleInputCycle  ================ PR2019-05-09
+    function HandleInputCycle() {
+        console.log("=========  HandleInputCycle =========");
 
     // get id of selected scheme
-        const scheme_pk = parseInt(el_scheme.value);
-        if(!!scheme_pk){
-            shift_list = [];
-            team_list = [];
-            schemeitem_list = [];
-
-            tblBody.innerText = null;
-            el_cycle.value = null;
-
-            let param = {"scheme_pk": scheme_pk};
-            let param_json = {"scheme_download": JSON.stringify (param)};
-            let response = "";
-            $.ajax({
-                type: "POST",
-                url: url_schemeitems_download,
-                data: param_json,
-                dataType:'json',
-                success: function (response) {
-                    console.log( "response", response);
-
-                    if ("scheme" in response) {
-                        FillScheme(response["scheme"])}
-                    if ("scheme_list" in response) {
-                        scheme_list= response["scheme_list"]
-                        FillDatalist(scheme_list, "id_datalist_schemes")}
-                    if ("shift_list" in response) {
-                        shift_list= response["shift_list"]
-                        FillDatalist(shift_list, "id_datalist_shifts")}
-                    if ("team_list" in response) {
-                        team_list= response["team_list"]
-                        FillDatalist(team_list, "id_datalist_teams")}
-                    if ("schemeitem_list" in response) {
-                        schemeitem_list= response["schemeitem_list"]
-                        FillTableRows(schemeitem_list)}
-                },
-                error: function (xhr, msg) {
-                    alert(msg + '\n' + xhr.responseText);
-                }
-            });
-        }
-    }; //function HandleSchemeSelect
-
-//========= FillScheme  ====================================
-    function FillScheme(scheme_dict) {
-        // console.log( "===== FillScheme  ========= ");
-        // console.log("scheme_dict");
-        // console.log( scheme_dict);
-        // scheme_update: {id: {pk: 36, parent_pk: 12, created: true}}, code: {value: "oo"}, cycle: {value: 2} }
-
-        let scheme_pk = 0;
-        const id_dict =  get_dict_value_by_key (scheme_dict, "id")
-        if (!!id_dict){scheme_pk = get_dict_value_by_key (id_dict, "pk")};
-
-        console.log("scheme_dict", scheme_dict);
-        console.log("scheme_pk", scheme_pk);
-        // put value back in select box, to show it is the same schem
-        document.getElementById("id_scheme").value = scheme_pk;
-
-        // console.log( "scheme_pk: ", scheme_pk , typeof scheme_pk);
-        // console.log( "(!scheme_pk ): ", (!scheme_pk ) , typeof (!scheme_pk ));
-
-        // el_btn_add_schemeitem.disabled = (!scheme_pk);
-        // el_btn_delete_schemeitem.disabled = (!scheme_pk);
-
-        let value
-        let cycle_dict = get_dict_value_by_key (scheme_dict, "cycle")
-        if (!!cycle_dict){
-            value =  get_dict_value_by_key (cycle_dict, "value")
-            if (!!value){document.getElementById("id_cycle").value = value}
-        }
-
-    }
-
-
-
-//=========  HandleCycleChanged  ================ PR2019-05-09
-    function HandleCycleChanged() {
-        console.log("=========  function HandleCycleChanged =========");
-
-    // get id of selected scheme
-        const scheme_pk = parseInt(el_scheme.value);
+        const scheme_pk = parseInt(el_input_scheme.value);
         if(!!scheme_pk){
 
-            // get value of el_cycle
-            let cycle_int = el_cycle.value
+            // get value of el_input_cycle
+            let cycle_int = el_input_cycle.value
             if (!!cycle_int) {
                 let param = {"scheme_pk": scheme_pk, "cycle": cycle_int}
                 let param_json = {"scheme_download": JSON.stringify (param)};
@@ -1198,17 +1131,20 @@ console.log("=========  function HandleDeleteScheme =========");
 
                         if ("shift_list" in response) {
                             shift_list= response["shift_list"]
-                            FillDatalist(shift_list, "id_datalist_shifts")}
+                            FillDatalist("id_datalist_shifts", shift_list, scheme_pk)}
                         if ("scheme" in response) {
                             FillScheme(response["scheme"])}
                         if ("team_list" in response) {
-                            team_list= response["team_list"]
-                            FillDatalist(team_list, "id_datalist_teams")}
+                            team_list = response["team_list"]
+                            FillDatalist("id_datalist_teams", team_list, scheme_pk)}
+                        if ("teammember_list" in response) {
+                            teammember_list= response["teammember_list"]}
                         if ("schemeitem_list" in response) {
-                            schemeitem_list= response["schemeitem_list"]
-                            FillTableRows(schemeitem_list)}
+                            schemeitem_list= response["schemeitem_list"];
+                            FillTableItems("schemeitems")}
                     },
                     error: function (xhr, msg) {
+                        console.log(msg + '\n' + xhr.responseText);
                         alert(msg + '\n' + xhr.responseText);
                     }
                 });
@@ -1228,7 +1164,7 @@ console.log("=========  function HandleDeleteScheme =========");
         } else {
             el_img_filter_inactive.setAttribute("src", imgsrc_inactive);
         }
-        FilterRows();
+        FilterRows(tblRow);
     }  // function HandleFilterInactive
 
 
@@ -1252,142 +1188,288 @@ console.log("=========  function HandleDeleteScheme =========");
             }
         }
         if (!skip_filter) {
-            FilterRows()
+            FilterRows(tblRow)
         } //  if (!skip_filter) {
     }; // function HandleSearchFilterEvent
 
 
+//========= DatalistDownload  ====================================
+    function DatalistDownload(datalist_request) {
+        console.log( "=== DatalistDownload ", datalist_request)
+        // datalist_request: {"schemeitems": {"parent_pk": pk}, "teams": {"parent_pk": pk}, "shifts": {"parent_pk": pk}
 
-//========= DownloadDatalists  ====================================
-    function DownloadDatalists() {
-        console.log( "===== DownloadDatalists  ========= ");
-    // get id of selected order
-        let el_order = document.getElementById("id_order")
-        let order_pk = el_order.value
-
-        let param_upload = {"order_pk": order_pk}
-        let param = {"param_upload": JSON.stringify (param_upload)};
-        order_list = [];
-        employee_list = [];
-        shift_list = [];
-        console.log("param", param)
-
+// reset requested lists
+        for (let key in datalist_request) {
+            // check if the property/key is defined in the object itself, not in parent
+            if (key === "customers") {customer_list = []};
+            if (key === "orders") {order_list = []};
+            if (key === "schemes") {scheme_list = []};
+            if (key === "schemeitems") {schemeitem_list = []};
+            if (key === "shifts") {shift_list = []};
+            if (key === "teams") {team_list = []};
+            if (key === "teammembers") {teammember_list = []};
+            if (key === "employees") {employee_list = []};
+        }
+        let param = {"param_upload": JSON.stringify (datalist_request)};
         let response = "";
         $.ajax({
             type: "POST",
-            url: url_datalist_str,
+            url: el_data.data("datalist_download_url"),
             data: param,
-            dataType:'json',
+            dataType: 'json',
             success: function (response) {
-                console.log( response)
-                if ("orders" in response) {
-                    order_list= response["orders"]
-                    FillDatalist(order_list, "id_datalist_orders")
-                }
-                if ("employees" in response) {
-                    employee_list= response["employees"]
-                    FillDatalist(employee_list, "id_datalist_employees")
-                }
-                if ("shifts" in response) {
-                    shift_list= response["shifts"]
-                    FillDatalist(shift_list, "id_datalist_shifts")
-                }
-                if ("schemes" in response) {
-                    scheme_list= response["schemes"]
-                    FillDatalist(scheme_list, "id_datalist_schemes")
-                }
+                console.log("response")
+                console.log(response)
+
+                if ("customers" in datalist_request) {
+                    if ("customers" in response) {customer_list= response["customers"]}
+                    let txt_select = el_data.data("txt_select_customer");
+                    let txt_select_none = el_data.data("txt_select_customer_none");
+                    FillSelectOptions(el_select_customer, customer_list, txt_select, txt_select_none)}
+                if ("orders" in datalist_request) {
+                    if ("orders" in response) {order_list= response["orders"]}}
+                if ("schemes" in datalist_request) {
+                    if ("schemes" in response) {
+                        scheme_list= response["schemes"];
+                        FillSelectTable("scheme")}}
+                if ("schemeitems" in datalist_request) {
+                    if ("schemeitems" in response) {
+                        schemeitem_list = response["schemeitems"]}}
+                if ("shifts" in datalist_request) {
+                    if ("shifts" in response) {
+                        shift_list= response["shifts"]}}
+                if ("teams" in datalist_request) {
+                    if ("teams" in response) {
+                        team_list= response["teams"]}}
+                if ("teammembers" in datalist_request) {
+                    if ("teammembers" in response) {teammember_list= response["teammembers"]}}
+                if ("employees" in datalist_request) {
+                    if ("employees" in response) {
+                        employee_list= response["employees"];
+                        FillDatalist("id_datalist_employees", employee_list)}}
             },
             error: function (xhr, msg) {
+                console.log(msg + '\n' + xhr.responseText);
                 alert(msg + '\n' + xhr.responseText);
             }
         });
 }
 
 //========= FillDatalist  ====================================
-    function FillDatalist(data_list, id_datalist) {
-        //console.log( "===== FillDatalist  ========= ");
-        //console.log( data_list)
+    function FillDatalist(id_datalist, data_list, scheme_pk) {
+        console.log( "===== FillDatalist  ========= ");
 
         let el_datalist = document.getElementById(id_datalist);
-
         el_datalist.innerText = null
-
         for (let row_index = 0, tblRow, hide_row, len = data_list.length; row_index < len; row_index++) {
-            let listitem = data_list[row_index];
-            let el = document.createElement('option');
-            el.setAttribute("value", listitem["code"]);
 
-            const list = ['pk', 'code']
-            for (let i = 0, key, len = list.length; i < len; i++) {
-                key = list[i]
-                if (!!key){el.setAttribute(key, listitem[key])}
+            let dict = data_list[row_index];
+            let pk = get_pk_from_id (dict)
+            let parent_pk = get_parent_pk (dict)
+            let code = get_subdict_value_by_key (dict, "code", "value", "")
+
+            let skip = (!!scheme_pk && scheme_pk !== parent_pk)
+            if (!skip){
+                // console.log( "listitem", listitem)
+                // listitem = {id: {pk: 12, parent_pk: 29}, code: {value: "ab"}}
+                let el = document.createElement('option');
+                el.setAttribute("value", code);
+                if (!!pk){el.setAttribute("pk", pk)};
+
+                el_datalist.appendChild(el);
+            }
+        }
+    }; // function FillDatalist
+
+//========= FillTableItems  ====================================
+    function FillTableItems(tblName) {
+        console.log( "===== FillTableItems  ========= ");
+
+        tblBody.innerText = null;
+        let item_list, selected_pk;
+        if (tblName === "teammembers"){
+            item_list = teammember_list;
+            selected_pk = selected_team_pk
+        } else {
+            item_list = schemeitem_list;
+            selected_pk = selected_scheme_pk
+        };
+        //console.log(item_list);
+
+        let len = item_list.length;
+        if (!!len && selected_pk){
+            for (let i = 0; i < len; i++) {
+                let dict = item_list[i];
+
+                let pk = get_pk_from_id (dict)
+                let parent_pk = get_parent_pk (dict)
+
+                if (!!selected_pk && parent_pk === selected_pk){
+                    let tblRow =  CreateTableRow(tblName, pk, selected_pk)
+                    UpdateTableRow(tblName, tblRow, dict)
+                }
+            }
+        }  // if (!!len)
+
+// add row 'add new'
+//-- increase id_new
+        id_new = id_new + 1
+        const pk_new = "new_" + id_new.toString()
+
+        CreateTableRow(tblName, pk_new, selected_pk)
+
+    }
+
+//=========  UploadSchemeOrTeam  ================ PR2019-05-31
+    function UploadSchemeOrTeam(el_clicked, action) {
+        let tblRow = get_tablerow_clicked(el_clicked)
+        let tblName = get_attr_from_element(tblRow, "data-name");
+        console.log("========= UploadSchemeOrTeam", tblName, action);
+
+        let dict = {};
+        if (!!tblRow){
+
+// ---  get pk from id of tblRow
+            const pk_str = tblRow.getAttribute("data-pk");
+            let pk_int = parseInt(pk_str)
+
+// ---  create id_dict
+            let id_dict = {}
+            //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+            if (!pk_int){
+                id_dict["temp_pk"] = pk_str
+            } else {
+    // if pk_int exists: row is saved row
+                id_dict["pk"] = pk_int;
+            };
+            id_dict[action] = true;
+
+            if (action === 'delete'){
+                alert (tblRow.classList)
+                tblRow.classList.remove("tsa_tr_selected");
+                tblRow.classList.add("tsa_tr_error");
+                alert (tblRow.classList)
             }
 
-            el_datalist.appendChild(el);
-        }
+    // get parent_pk
+            const parent_pk_int = parseInt(get_attr_from_element(tblRow, "data-parent_pk"));
+            id_dict["parent_pk"] = parent_pk_int;
 
-        //let el_datalist_employees = document.getElementById("id_datalist_employees");
-       // el_input.classList.add("border-valid");
-       // setTimeout(function (){
-       // el_input.classList.remove("border-valid");
-        //}, 2000);
+        console.log("id_dict", id_dict);
 
-    }; // function FilterRows
+    // add id_dict to dict
+            if (!!id_dict){
+                dict["id"] = id_dict
+                // el_input is first child of td, td is cell of tblRow
+                let fieldname, value, o_value, n_value, field_dict = {};
+                let el_input = tblRow.cells[0].children[0];
+
+                if(!!el_input){
+                    // PR2019-03-17 debug: getAttribute("value");does not get the current value
+                    // The 'value' attribute determines the initial value (el_input.getAttribute("name").
+                    // The 'value' property holds the current value (el_input.value).
+                    n_value = el_input.value // data-value="2019-05-11"
+
+                    field_dict["update"] = true;
+                    if(!!n_value){field_dict["value"] = n_value};
+                };
+                // add field_dict to dict
+                if (!isEmpty(field_dict)){dict["code"] = field_dict;};
+            };  // if (!!id_dict){
+            console.log(tblName, dict);
+
+            let parameters = {};
+            parameters[tblName] = JSON.stringify (dict);
+
+            let response = "";
+            $.ajax({
+                type: "POST",
+                url: url_team_upload,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                    console.log ("response:");
+                    console.log (response);
+                    if ("team_list" in response){
+                        team_list = response["team_list"]
+                        FillDatalist("id_datalist_teams", team_list, parent_pk_int)
+                    };
+                    if ("scheme_list" in response){
+                        scheme_list = response["scheme_list"]
+                    };
+                    if ("team_update" in response){
+                        UpdateSchemeOrTeam(tblName, tblRow, response["team_update"])
+                    };
+                    if ("scheme_update" in response){
+                        UpdateSchemeOrTeam(tblName, tblRow, response["scheme_update"])
+                    };
+                },
+                error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
+                    alert(msg + '\n' + xhr.responseText);
+                }
+            });
+
+        }  // if (!!tblRow)
+    }  // function UploadSchemeOrTeam
+
 
 //========= FillSelectOptions  ====================================
-    function FillSelectOptions(el_select, option_list, select_text, parent_pk_str) {
-        console.log( "===== FillSelectOptions  ========= ");
-        console.log( "el_select ", el_select);
-        console.log( "select_text ", select_text);
-        console.log( "parent_pk_str ", parent_pk_str);
-        console.log( "option_list ");
-        console.log( option_list);
+    function FillSelectOptions(el_select, option_list, select_text, select_text_none, parent_pk_str) {
+        //console.log( "=== FillSelectOptions  ", option_list);
+        // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
+        //console.log(select_text, select_text_none);
 
-        let curOption;
 // ---  fill options of select box
-        el_select.innerText = null
+        let curOption;
         let option_text = "";
-        let parent_pk = 0
         let row_count = 0
-
+        let parent_pk = 0
         if (!!parent_pk_str){parent_pk = parseInt(parent_pk_str)};
-        console.log( "parent_pk ", parent_pk, typeof parent_pk );
 
-        for (let i = 0, id, value, addrow, len = option_list.length; i < len; i++) {
+        el_select.innerText = null
 
-        // skip if parent_pk does not match,
-            addrow = false;
-            if (!!parent_pk_str){
-                parent_pk = parseInt(parent_pk_str);
-                // addrow when parent_pk of order marches the id of customer
-                addrow = (!!option_list[i]["parent_pk"] && option_list[i]["parent_pk"] === parent_pk)
+// --- loop through option list
+        for (let i = 0, len = option_list.length; i < len; i++) {
+            let dict = option_list[i];
+            let pk = get_pk_from_id(dict);
+            let parent_pk_in_dict = get_parent_pk(dict)
+
+// skip if parent_pk exists and does not match parent_pk_in_dict
+            let addrow = false;
+            if (!!parent_pk){
+                addrow = (parent_pk_in_dict === parent_pk)
             } else {
-                // addrow if no parent_pk (is the case when filling customer_list)
                 addrow = true
             }
             if (addrow) {
-                id = option_list[i]["pk"]
-                value = option_list[i]["val"]
-                option_text += "<option value=\"" + id + "\"";
+                const field = "code";
+                let value = "-";
+                if (field in dict) {if ("value" in dict[field]) {value = dict[field]["value"]}}
+                option_text += "<option value=\"" + pk + "\"";
                 option_text += " data-parent_pk=\"" + parent_pk + "\"";
                 if (value === curOption) {option_text += " selected=true" };
                 option_text +=  ">" + value + "</option>";
                 row_count += 1
             }
-        }
+
+        }  // for (let i = 0, len = option_list.length;
         // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
-        if (row_count > 1){
+        let select_first_option = false
+        if (!row_count){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text_none + "...</option>"
+        } else if (row_count === 1) {
+// if there is only 1 option: select first option
+            select_first_option = true
+        } else if (row_count > 1){
             option_text = "<option value=\"\" disabled selected hidden>" + select_text + "...</option>" + option_text
         }
         el_select.innerHTML = option_text;
 
-        // if there is only 1 option: select first option
-        if ((row_count === 1)){
-             el_select.selectedIndex = 0
-        }
+// if there is only 1 option: select first option
+        if (select_first_option){el_select.selectedIndex = 0}
 
-    }
-
+    }  //function FillSelectOptions
 
 //========= FillSchemeItems  ====================================
     function FillSchemeItems(response) {
@@ -1419,7 +1501,7 @@ console.log("=========  function HandleDeleteScheme =========");
             }
             if (addrow) {
                 id = option_list[i]["pk"]
-                value = option_list[i]["val"]
+                value = option_list[i]["value"]
                 option_text += "<option value=\"" + id + "\"";
                 option_text += " data-parent_pk=\"" + parent_pk + "\"";
                 if (value === curOption) {option_text += " selected=true" };
@@ -1434,72 +1516,490 @@ console.log("=========  function HandleDeleteScheme =========");
         el_select.innerHTML = option_text;
     }
 
+
+//========= FillScheme  ====================================
+    function FillScheme(scheme_dict) {
+        // console.log( "===== FillScheme  ========= ");
+        // console.log("scheme_dict");
+        // console.log( scheme_dict);
+        // scheme_update: {id: {pk: 36, parent_pk: 12, created: true}}, code: {value: "oo"}, cycle: {value: 2} }
+
+        let scheme_pk = 0;
+        const id_dict =  get_dict_value_by_key (scheme_dict, "id")
+        if (!!id_dict){scheme_pk = get_dict_value_by_key (id_dict, "pk")};
+
+        console.log("scheme_dict", scheme_dict);
+        console.log("scheme_pk", scheme_pk);
+        // put value back in select box, to show it is the same schem
+        document.getElementById("id_scheme").value = scheme_pk;
+
+        let value;
+        let cycle_dict = get_dict_value_by_key (scheme_dict, "cycle")
+        if (!!cycle_dict){
+            value =  get_dict_value_by_key (cycle_dict, "value")
+            if (!!value){document.getElementById("id_input_cycle").value = value}
+        }
+
+    }
+
+//========= FillSelectTable  ============= PR2019-05-25
+    function FillSelectTable(table_name) {
+        // console.log( "=== FillSelectTable ", table_name);
+
+        let selected_parent_pk = 0
+        let tblBody, item_list;
+        let caption_one, caption_multiple ;
+
+        if (table_name === "scheme"){
+            selected_parent_pk = selected_order_pk
+            item_list = scheme_list
+            tblBody = tblBody_scheme_select
+
+            caption_one = el_data.data("txt_scheme");
+            caption_multiple = el_data.data("txt_select_scheme") + ":";
+
+            tblBody_scheme_select.innerText = null;
+
+        } else  if (table_name === "team"){
+            selected_parent_pk = selected_scheme_pk
+            item_list = team_list
+            tblBody = tblBody_team_select
+
+            caption_one = el_data.data("txt_team") + ":";
+            caption_multiple = caption_one
+        }
+        // always delete team_select tblBody
+        tblBody_team_select.innerText = null;
+
+        let len = item_list.length;
+        let row_count = 0
+
+//--- loop through item_list
+        for (let i = 0; i < len; i++) {
+            let item_dict = item_list[i];
+            // item_dict = {id: {pk: 12, parent_pk: 2}, code: {value: "13 uur"},  cycle: {value: 13}}
+            // team_list dict: {pk: 21, id: {pk: 21, parent_pk: 20}, code: {value: "C"}}
+            const pk = get_pk_from_id (item_dict)
+            const parent_pk = get_parent_pk (item_dict)
+
+//--- only show items of selected_parent_pk
+            if (parent_pk === selected_parent_pk){
+
+//--------- insert tblBody row
+                let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+                tblRow.setAttribute("id", table_name + "_" + pk.toString());
+                tblRow.setAttribute("data-pk", pk);
+                tblRow.setAttribute("data-parent_pk", parent_pk);
+                tblRow.setAttribute("data-name", table_name);
+
+// --- add first td to tblRow.
+                // index -1 results in that the new cell will be inserted at the last position.
+                let code = get_subdict_value_by_key (item_dict, "code", "value", "")
+                let td = tblRow.insertCell(-1);
+                td.innerText = code;
+                if (table_name === "scheme"){
+                    tblRow.addEventListener("click", function() {HandleSelectScheme(tblRow);}, false )
+                } else if (table_name === "team"){
+                    td.addEventListener("click", function() {HandleSelectTeam(tblRow);}, false )
+                }
+
+// --- add second td to tblRow.
+                td = tblRow.insertCell(-1);
+
+// --- add delete img to second td in team table
+                let el_a = document.createElement("a");
+                el_a.setAttribute("href", "#");
+                el_a.addEventListener("click", function() {UploadSchemeOrTeam(el_a, "delete")}, false )
+
+                AppendIcon(el_a, imgsrc_delete);
+
+                td.appendChild(el_a);
+                td.classList.add("td_width_032")
+
+// --- count tblRow
+                row_count += 1
+            } //  if (parent_pk === selected_order_pk)
+        } // for (let i = 0; i < len; i++)
+
+
+// ++++++ add addnew row  ++++++
+
+//-- increase id_new
+        id_new = id_new + 1
+        const pk_new = "new_" + id_new.toString()
+
+//--------- insert tblBody row
+        let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+        tblRow.setAttribute("id", table_name + "_" + pk_new);
+        tblRow.setAttribute("data-pk", pk_new);
+        tblRow.setAttribute("data-parent_pk", selected_parent_pk)
+        tblRow.setAttribute("data-name", table_name);
+
+// --- add event listener
+
+// --- add first td to tblRow.
+        // index -1 results in that the new cell will be inserted at the last position.
+        let td = tblRow.insertCell(-1);
+// --- add input element to td.
+        let el = document.createElement("input");
+            el.setAttribute("type", "text");
+            //el.setAttribute("data-name", table_name);
+
+            let placeholder = el_data.data("txt_scheme_add") + "..."
+            if (table_name === "team"){placeholder = el_data.data("txt_team_add") + "..."};
+            el.setAttribute("placeholder", placeholder)
+
+// --- add EventListener to input element
+            el.addEventListener("change", function() {UploadSchemeOrTeam(el, "create")}, false )
+            el.classList.add("border-none");
+            el.classList.add("tsa_bc_transparent");
+
+           // el.classList.add("input_text");
+            td.classList.add("td_width_090")
+    // --- add other attributes to td
+            el.setAttribute("autocomplete", "off");
+            el.setAttribute("ondragstart", "return false;");
+            el.setAttribute("ondrop", "return false;");
+        td.appendChild(el);
+        td.setAttribute("colspan", "2");
+
+        let tbl = tblBody.parentNode
+        if (row_count ===  0){
+            tbl.tHead.innerText = null
+        } else  if (row_count === 1){
+            tbl.tHead.innerHTML = caption_one
+        } else {
+            tbl.tHead.innerText = caption_multiple
+        }
+
+    } // FillSelectTable
+
+
+
+//=========  HandleSelectScheme  ================ PR2019-05-24
+    function HandleSelectScheme(tr_clicked) {
+        // console.log( "===== HandleSelectScheme  ========= ");
+
+// ---  deselect all highlighted rows
+        let tbody_clicked = tr_clicked.parentNode;
+        DeselectHighlightedRows(tbody_clicked)
+
+// ---  get clicked tablerow
+        if(!!tr_clicked) {
+// ---  highlight clicked row
+            tr_clicked.classList.add("tsa_tr_selected")
+
+// ---  fill selected scheme
+            let scheme_pk = parseInt(get_attr_from_element(tr_clicked, "data-pk"))
+            SelectScheme(scheme_pk)
+        }
+    }
+
+//=========  SelectScheme  ================ PR2019-05-24
+    function SelectScheme(scheme_pk) {
+        console.log("--- SelectScheme --- scheme_pk:", scheme_pk, typeof scheme_pk)
+
+// reset input fields and tables
+        selected_scheme_pk = 0
+
+        tblBody.innerText = null;
+
+        el_input_scheme.innerText = null;
+        el_input_cycle.innerText = null;
+        el_input_datefirst.innerText = null;
+        el_input_datelast.innerText = null;
+
+        if(!!scheme_pk){
+            selected_scheme_pk = scheme_pk
+
+// get selected scheme from scheme_dict
+            let scheme_dict = get_arrayRow_by_keyValue (scheme_list, "pk", scheme_pk)
+            //scheme_dict: {pk: 18, id: {pk: 18, parent_pk: 6, code: {value: "MCB scheme"}, cycle: {value: 7}}}
+
+// fill scheme fields
+            if (!!scheme_dict){
+                let code = get_subdict_value_by_key (scheme_dict, "code", "value", "-")
+                if (!!code){el_input_scheme.value = code}
+
+                let cycle = get_subdict_value_by_key (scheme_dict, "cycle", "value", "Once only")
+                if (!!cycle){el_input_cycle.value = cycle}
+
+                let datefirst = get_subdict_value_by_key (scheme_dict, "datefirst", "value")
+                if (!!datefirst){el_input_datefirst.value = datefirst}
+
+                let datelast = get_subdict_value_by_key (scheme_dict, "datelast", "value")
+                if (!!datelast){el_input_datelast.value = datelast}
+
+// --- Fill select table Teams
+                FillDatalist("id_datalist_teams", team_list, scheme_pk);
+                FillSelectTable("team")
+
+// --- fill data table schemeitems
+                CreateTableHeader("schemeitems");
+                FillTableItems("schemeitems")
+
+            }  // if (!!scheme_dict){
+        }
+    }; //function SelectScheme
+
+//=========  HandleSelectTeam  ================ PR2019-05-24
+    function HandleSelectTeam(tr_clicked) {
+        console.log( "===== HandleSelectTeam  ========= ");
+
+// ---  deselect all highlighted rows
+        selected_team_pk = 0;
+        let tbody_clicked = tr_clicked.parentNode;
+        DeselectHighlightedRows(tbody_clicked);
+
+// ---  get clicked tablerow
+        if(!!tr_clicked) {
+// ---  highlight clicked row
+            tr_clicked.classList.add("tsa_tr_selected")
+
+// ---  get selected team
+            selected_team_pk = parseInt(get_attr_from_element(tr_clicked, "id"))
+// --- create header row
+            CreateTableHeader("teammembers");
+// --- fill data table schemeitems
+            FillTableItems("teammembers")
+        }
+    }  // HandleSelectTeam
+
+// +++++++++  HandleAutofillSchemeitems  ++++++++++++++++++++++++++++++ PR2019-03-16
+    function HandleAutofillSchemeitems() {
+        console.log("=== HandleAutofillSchemeitems =========");
+        //scheme_item:
+        // id: {pk: 121, parent_pk: 24}
+        // rosterdate: {value: "2019-05-07", wdm: "di 7 mei", wdmy: "di 7 mei 2019", offset: "-1:ma,0:di,1:wo"}
+        // shift: {value: "nacht"}
+        // time_duration: {value: 480}
+        // time_end: {value: "0;6;0", html: "di 06.00 u."}
+        // time_start: {value: "-1;22;0", html: "ma 22.00 u."
+
+// --- get info from scheme
+        let cycle = parseInt(el_input_cycle.value)
+        if(!cycle){cycle = 0}
+
+        const list_count = schemeitem_list.length
+
+        if (cycle > 1 && !!schemeitem_list){
+            let pk, parent_pk, rosterdate, shift, time_start, time_end, break_duration;
+            let field_dict, value, last_schemeitem, first_rosterdate
+            let last_rosterdate, last_rosterdate_plusone, date_add, max_cycledate_plusone, new_rosterdate;
+
+// --- first refresh  FillTableItems
+            FillTableItems("schemeitems")
+
+// --- get info from first item in  schemeitem_list
+            let schemeitem = schemeitem_list[0]
+                //value = get_attr_from_element(first_schemeitem.cells[1].children[0], "data-value") + "T12:0:0";
+
+            field_dict = get_dict_value_by_key (schemeitem, "rosterdate");
+                value = get_dict_value_by_key (field_dict, "value");
+                first_rosterdate = get_date_from_ISOstring(value + "T12:0:0")
+
+                max_cycledate_plusone = GetNewDateFromDate(first_rosterdate, cycle)
+                console.log("max_cycledate_plusone", max_cycledate_plusone, typeof max_cycledate_plusone)
+
+// --- get info from last item in  schemeitem_list
+            last_schemeitem = schemeitem_list[list_count -1]
+                field_dict = get_dict_value_by_key (last_schemeitem, "rosterdate");
+                    value = get_dict_value_by_key (field_dict, "value");
+                    last_rosterdate = get_date_from_ISOstring(value + "T12:0:0")
+                    last_rosterdate_plusone = GetNewDateFromDate(last_rosterdate, 1)
+                console.log("last_rosterdate_plusone", last_rosterdate_plusone, typeof last_rosterdate_plusone)
+
+            if (!!first_rosterdate && !!last_rosterdate_plusone ){
+                date_add = parseInt( (last_rosterdate_plusone - first_rosterdate) /(1000*60*60*24))
+                console.log("date_add", date_add, typeof date_add)
+
+// --- make cycledate one day after rosterdate of last tablerow
+                let cycle_date = last_rosterdate_plusone
+                let new_index = list_count
+                let from_index = 0
+                let tr_row;
+
+// --- loop through schemeitem_list till last day ofscheme
+                let max_iterations =  cycle
+                let break_iter = false
+                for (let iteration = 0; iteration < max_iterations; iteration++) {
+                    for (let x = 0, field_dict, value, rosterdate; x < list_count; x++) {
+// --- get schemeitem from schemeitem_list
+                        console.log("iteration", iteration,   "x: ", x)
+
+// --- make a deep_copy from the schemeitem in the schemeitem_list
+                        let new_schemeitem = JSON.parse(JSON.stringify(schemeitem_list[x]))
+                        console.log("new_schemeitem", new_schemeitem)
+
+            // create new pk
+                        delete new_schemeitem["id"]["pk"]
+                        //-- increase id_new
+                        id_new = id_new + 1
+                        let pk_str =  "new_" + id_new.toString()
+                        const parent_pk = get_dict_value_by_key (new_schemeitem["id"], "parent_pk");
+
+                        new_schemeitem["id"]["pk"] =  pk_str
+                        new_schemeitem["id"]["parent_pk"] =  parent_pk
+                        new_schemeitem["id"]["create"] = true;
+                        console.log("id_dict")
+                        console.log(new_schemeitem["id"])
+
+                        let field_dict = new_schemeitem["rosterdate"]
+                        console.log("old rosterdate dict")
+                        console.log(field_dict)
+
+                            let rosterdate = get_date_from_ISOstring(field_dict["value"] + "T12:0:0")
+                            console.log("rosterdate", rosterdate)
+
+                            const add = date_add * (iteration + 1)
+                            console.log("date_add", date_add, " add days:", add)
+
+                            new_rosterdate =  GetNewDateFromDate(rosterdate, add)
+                            console.log("new_rosterdate", new_rosterdate)
+
+                            let date_offset = parseInt( (max_cycledate_plusone - new_rosterdate) /(1000*60*60*24))
+                            console.log("date_offset", date_offset, typeof date_offset)
+
+                // change n_date to format "2019-05-06"
+                            const n_date_iso = new_rosterdate.toISOString();
+                            const n_date_arr = n_date_iso.split("T");
+                            const n_date_yyymmdd = n_date_arr[0]
+                            // console.log("n_date_yyymmdd", n_date_yyymmdd, typeof n_date_yyymmdd)
+
+                // put n_date in field_dict
+                            new_schemeitem["rosterdate"]["value"] = n_date_yyymmdd // value: "2019-03-31"
+                            new_schemeitem["rosterdate"]["wdm"] = n_date_yyymmdd  // wdm: "zo 31 mrt"
+                            new_schemeitem["rosterdate"]["wdmy"] = n_date_yyymmdd // wdmy: "zo 31 mrt 2019"
+
+                // delete time_duration dict (can be incorrect on change of daylight saving time)
+                            delete new_schemeitem["time_duration"];
+
+                        new_schemeitem["rosterdate"] = field_dict
+                        console.log(">>>> new_schemeitem", new_schemeitem)
+
+                        if (date_offset > 0 ){
+
+                            let tblRow =  CreateTableRow("schemeitems", pk_str, parent_pk)
+                            UpdateTableRow(tblRow, new_schemeitem)
+                            console.log ("??? new_schemeitem:");
+                            console.log (new_schemeitem);
+
+                            //upload_dict: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
+                            let parameters = {"schemeitem_upload": JSON.stringify (new_schemeitem)};
+                            let response = "";
+                            $.ajax({
+                                type: "POST",
+                                url: url_schemeitem_upload,
+                                data: parameters,
+                                dataType:'json',
+                                success: function (response) {
+                    // console.log( "response");
+                    // console.log( response);
+
+                                    if ("schemeitem_update" in response) {
+                                        UpdateTableRow("schemeitems", tblRow, response["schemeitem_update"])
+                                    }
+                                },
+                                error: function (xhr, msg) {
+                                    console.log(msg + '\n' + xhr.responseText);
+                                    alert(msg + '\n' + xhr.responseText);
+                                }
+                            });
+                        } else {
+                            break_iter = true;
+                            break;
+                        } //  if (date_offset <= 0 ){
+                    }
+                    if (break_iter ){break};
+
+                }  // for (let iteration = 0
+            }  // if (!!first_rosterdate && !!last_rosterdate_plusone )
+        }  // if (cycle > 1 && !!list_count)
+    }  // HandleAutofillSchemeitems
+
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 //========= FilterRows  ====================================
     function FilterRows() {
         //console.log( "===== FilterRows  ========= ");
+
+        // TODO >> value of show_teams. Was: const show_teams = get_attr_from_element(el_btn_show_team, "data-show_teams")
+        let show_teams;
+        let colLength = 0;
+        if (show_teams === "shifts") {
+            colLength = 7;
+        } else {
+            colLength = 4;
+        }
+
         // filter by inactive and substring of fields
-        for (let row_index = 0, tblRow, hide_row, len = tblBody.rows.length; row_index < len; row_index++) {
-            tblRow = tblBody.rows[row_index];
+        let len = tblBody.rows.length;
+        if(!!len){
+            for (let row_index = 0; row_index < len; row_index++) {
+                let tblRow = tblBody.rows[row_index];
 
-            hide_row = SetHideRow(tblRow);
+                let hide_row = SetHideRow(tblRow);
 
-            if (hide_row) {
-                tblRow.classList.add("display_hide")
-            } else {
-                tblRow.classList.remove("display_hide")
-            };
+                if (hide_row) {
+                    tblRow.classList.add("display_hide")
+                } else {
+                    tblRow.classList.remove("display_hide")
+                };
+            }
         }
     }; // function FilterRows
 
-
-//========= SetHideRow  ====================================
-    function SetHideRow(tblRow) {
-        //console.log( "===== FilterRows  ========= ");
-        // filter by inactive and substring of fields
+//========= SetHideRow  ========= PR2019-05-25
+    function SetHideRow(tblRow, colLength) {
+        // function filters by inactive and substring of fields
 
         let hide_row = false
-        if (!!tblRow){
-    // hide inactive rows if filter_hide_inactive
+        if (!!tblRow && !!colLength){
+// --- hide inactive rows if filter_hide_inactive
             if (filter_hide_inactive) {
                 if (!!tblRow.cells[0].children[0]) {
                     let el_inactive = tblRow.cells[0].children[0];
                     if (!!el_inactive){
                         if(el_inactive.hasAttribute("value")){
                             hide_row = (el_inactive.getAttribute("value").toLowerCase() === "true")
-                        }
-                    }
-            }};
-    // show all rows  if filter_name = ""
+            }}}};
+// --- show all rows if filter_name = ""
             if (!hide_row && !!filter_name){
                 let found = false
-                for (let col_index = 1, el_code; col_index < 7; col_index++) {
+                for (let col_index = 1, el_code; col_index < colLength; col_index++) {
                     if (!!tblRow.cells[col_index].children[0]) {
                         let el_value = tblRow.cells[col_index].children[0].value;
                         if (!!el_value){
                             el_value = el_value.toLowerCase();
-                            //console.log( "el_value:", el_value);
                             if (el_value.indexOf(filter_name) !== -1) {
                                 found = true
                                 break;
                     }}}
-                };  // for (let col_index = 1,
+                };
                 if (!found){hide_row = true}
-            }  // if (!hide_row && !!filter_name){
+            }
         }
         return hide_row
     }; // function SetHideRow
 
 
 //=========  DeselectHighlightedRows  ================ PR2019-04-30
-    function DeselectHighlightedRows() {
-//console.log("=========  DeselectHighlightedRows =========");
-        let tblrows = document.getElementsByClassName("tsa_tr_selected");
-        for (let i = 0, len = tblrows.length; i < len; i++) {
-            tblrows[i].classList.remove("tsa_tr_selected")
-        }
-        tblrows = document.getElementsByClassName("tsa-tr-error");
-        for (let i = 0, len = tblrows.length; i < len; i++) {
-            tblrows[i].classList.remove("tsa-tr-error")
+    function DeselectHighlightedRows(tblBody) {
+        //console.log("=========  DeselectHighlightedRows =========");
+        if(!!tblBody){
+            let tblrows = tblBody.getElementsByClassName("tsa_tr_selected");
+            for (let i = 0, len = tblrows.length; i < len; i++) {
+                tblrows[i].classList.remove("tsa_tr_selected")
+            }
+            tblrows = tblBody.getElementsByClassName("tsa_tr_error");
+            for (let i = 0, len = tblrows.length; i < len; i++) {
+                tblrows[i].classList.remove("tsa_tr_error")
+            }
+            tblrows = tblBody.getElementsByClassName("tsa_bc_yellow_lightlight");
+            for (let i = 0, len = tblrows.length; i < len; i++) {
+                tblrows[i].classList.remove("tsa_bc_yellow_lightlight")
+            }
         }
     }
 
@@ -1517,8 +2017,6 @@ console.log("=========  function HandleDeleteScheme =========");
 	$(".close").click(function() {
 		$(".quickViewContainer").fadeOut("slow");
 	});
-
-
 
 // CLOSE MODAL ON ESC KEY PRESS
 $(document).on('keyup', function(e) {
@@ -1613,8 +2111,8 @@ $(document).mouseup(function (e) {
         el_popup.setAttribute("data-value", get_attr_from_element(el_input, "data-value"))
 
 // ---  get rosterdate data
-        // cells[0] is <td>, children[0] = input rosterdate
-        let el_rosterdate = tr_selected.cells[0].children[0];
+        // cells[1] is <td>, children[0] = input rosterdate
+        let el_rosterdate = tr_selected.cells[1].children[0];
             let offset_str = get_attr_from_element(el_rosterdate, "data-offset");
             let offset_dict = get_offset_dict (offset_str)
 
@@ -1837,10 +2335,11 @@ console.log("fieldname: ", fieldname, typeof fieldname)
                     success: function (response) {
                 console.log ("response", response);
                         if ("schemeitem_update" in response) {
-                            UpdateTableRow(tr_selected, response["schemeitem_update"])
+                            UpdateTableRow("schemeitems", tr_selected, response["schemeitem_update"])
                         }
                     },
                     error: function (xhr, msg) {
+                        console.log(msg + '\n' + xhr.responseText);
                         alert(msg + '\n' + xhr.responseText);
                     }
                 });
@@ -1939,10 +2438,11 @@ console.log("fieldname: ", fieldname, typeof fieldname)
 
                 console.log ("tr_selected", tr_selected);
                         if ("schemeitem_update" in response) {
-                            UpdateTableRow(tr_selected, response["schemeitem_update"])
+                            UpdateTableRow("schemeitems", tr_selected, response["schemeitem_update"])
                         }
                     },
                     error: function (xhr, msg) {
+                        console.log(msg + '\n' + xhr.responseText);
                         alert(msg + '\n' + xhr.responseText);
                     }
                 });
@@ -1963,6 +2463,38 @@ console.log("fieldname: ", fieldname, typeof fieldname)
             elements[i].classList.remove("pop_background");
         }
     }
+
+
+//========= OpenModal  ====================================
+    function OpenModal() {
+console.log("===  OpenModal  =====") ;
+//console.log("tr_clicked", tr_clicked);
+
+// ---  empty input boxes
+        let pws_title = "";
+        let pws_subjects = "";
+
+        let el_mod_scheme = document.getElementById("id_mod_scheme");
+        el_mod_scheme.innerText = null;
+
+    // get cycle length from input box, empty inpout box
+        let el_mod_cycle = document.getElementById("id_mod_cycle");
+        el_mod_cycle.value = null
+
+    // empty tblBody
+        tblBody.innerText = null;
+
+
+// ---  show modal
+            $("#id_modal_cont").modal({backdrop: true});
+}; // function OpenModal
+
+//========= function closeModal  =============
+    function closeModal() {
+        $('#id_modal_cont').modal('hide');
+    }
+
+
 //========= CreateCheckbox  ============= PR2019-02-11
     function CreateCheckbox(sel_checkbox, field, caption, is_checked, disabled, tooltiptext) {
         const id_chk = "id_mod_" + field;

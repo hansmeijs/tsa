@@ -29,17 +29,34 @@ urlpatterns = [
     path('favicon\.ico', RedirectView.as_view(url='/static/img/favicon.ico')),
 
     path('logout', auth_views.LogoutView.as_view(), name='logout'),
-# PR2018-03-27
+# PR2018-03-27 PR2019-05-22
     path('reset',
-        auth_views.PasswordResetView.as_view(
-            template_name='password_reset.html',
-            email_template_name='password_reset_email.html',
-            subject_template_name='password_reset_subject.txt'
-        ),
-        name='password_reset'),
-    path('reset/done',
-        auth_views.PasswordResetDoneView.as_view(template_name='password_reset_done.html'),
-        name='password_reset_done'),
+         auth_views.PasswordResetView.as_view(
+             template_name='password_reset.html',
+             # 'Reset your password. Enter your email address and we will send you a link'
+             email_template_name='password_reset_email.html',  # 'Hi there, Someone asked for a password reset'
+             subject_template_name='password_reset_subject.txt'  # 'Please reset your password
+         ),
+         name='password_reset'),
+
+    path('passwordcreate',
+         auth_views.PasswordResetView.as_view(
+             template_name='password_create.html',
+             # 'Create your password. Enter your email address and we will send you a link'
+             email_template_name='password_create_email.html',  # 'Hi there, Someone asked for a password reset'
+             subject_template_name='password_create_subject.txt'  # 'Please reset your password
+         ),
+         name='password_create'),
+
+    path('passwordcreate/complete',
+         auth_views.PasswordResetCompleteView.as_view(template_name='password_create_complete.html'),
+         name='password_create_complete'),
+
+    path('passwordcreate/done',
+         auth_views.PasswordResetDoneView.as_view(template_name='password_create_done.html'),
+         name='passwordcreate_done'),
+
+
     # PR2019-03-02 from https://github.com/django/django/blob/2.0/django/contrib/auth/urls.py
     path('reset/<uidb64>/<token>/',
          auth_views.PasswordResetConfirmView.as_view(template_name='password_reset_confirm.html'),
@@ -47,6 +64,10 @@ urlpatterns = [
     path('reset/complete',
          auth_views.PasswordResetCompleteView.as_view(template_name='password_reset_complete.html'),
          name='password_reset_complete'),
+    path('reset/done',
+         auth_views.PasswordResetDoneView.as_view(template_name='password_reset_done.html'),
+         name='password_reset_done'),
+
     #step 3: user clicked on 'create password' button. Login form opens
     path('settings/password',
          auth_views.PasswordChangeView.as_view(template_name='password_change.html'),
@@ -150,18 +171,30 @@ urlpatterns = [
         path('datalist', customer_views.OrderDownloadDatalistView.as_view(), name='order_datalist_url'),
     ])),
 
-    path('schemes/', include([
+    path('planning/', include([
         path('', planning_views.SchemesView.as_view(), name='schemes_url'),
-        path('download', planning_views.SchemeDownloadView.as_view(), name='scheme_datalist_url'),
+        path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),
         path('upload', planning_views.SchemeUploadView.as_view(), name='scheme_upload_url'),
         path('schemeitem_download', planning_views.SchemeItemDownloadView.as_view(), name='schemeitems_download_url'),
         path('schemeitem_upload', planning_views.SchemeItemUploadView.as_view(), name='schemeitem_upload_url'),
+        path('schemeorteam_upload', planning_views.SchemeOrTeamUploadView.as_view(), name='schemeorteam_upload_url'),
     ])),
 
     path('emplhours/', include([
         path('', planning_views.EmplhourView.as_view(), name='emplhours_url'),
+
+        path('fill', planning_views.EmplhourFillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
         path('upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
         path('datalist', planning_views.EmplhourDownloadDatalistView.as_view(), name='emplhour_datalist_url'),
     ])),
+
+    path('realization/', include([
+        path('', planning_views.RealizationView.as_view(), name='realization_url'),
+
+        #path('fill', planning_views.EmplhourFillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
+        #path('upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
+        #path('datalist', planning_views.EmplhourDownloadDatalistView.as_view(), name='emplhour_datalist_url'),
+    ])),
+
 
 ]

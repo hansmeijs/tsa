@@ -45,9 +45,6 @@ class TsaBaseModel(Model):
         abstract = True
         ordering = [Lower('code')]
 
-    def __str__(self):
-        return self.code
-
 
     def save(self, *args, **kwargs):
         # skip modified_by when subtracting balance PR20019-04-09
@@ -96,7 +93,7 @@ class TsaBaseModel(Model):
         dte_str = ''
         if self.modified_at:
             dte_str = get_date_longstr_from_dte(self.modified_at, lang)
-        return  dte_str
+        return dte_str
 
 
 class Company(TsaBaseModel):
@@ -110,6 +107,9 @@ class Company(TsaBaseModel):
 
     class Meta:
         ordering = [Lower('code')]
+
+    def __str__(self):
+        return self.code
 
     @property
     def companyprefix(self):
@@ -126,8 +126,15 @@ class Customer(TsaBaseModel):
     email = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
 
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    datefirst = None
+    datelast = None
+
     class Meta:
         ordering = [Lower('code')]
+
+    def __str__(self):
+        return self.code
 
     @property
     def id_str(self):
@@ -138,10 +145,15 @@ class Order(TsaBaseModel):
     objects = TsaManager()
 
     customer = ForeignKey(Customer, related_name='orders', on_delete=PROTECT)
+    rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
+    taxrate = IntegerField(default=0) # /10000 unit
     issystem = BooleanField(default=False)
 
     class Meta:
         ordering = [Lower('code')]
+
+    def __str__(self):
+        return self.code
 
     @property
     def id_str(self):
@@ -160,6 +172,9 @@ class Object(TsaBaseModel):
     class Meta:
         ordering = [Lower('code')]
 
+    def __str__(self):
+        return self.code
+
     @property
     def id_str(self):
         return 'id_obj_' + self.pk
@@ -171,15 +186,14 @@ class Scheme(TsaBaseModel):
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
-    datefirst = None
-    datelast = None
 
-    cycle = PositiveSmallIntegerField(default=1)
-    weekend = PositiveSmallIntegerField(default=0)
-    publicholiday = PositiveSmallIntegerField(default=0)
+    cycle = PositiveSmallIntegerField(default=0)
 
     class Meta:
         ordering = [Lower('code')]
+
+    def __str__(self):
+        return self.code
 
 
 class Team(TsaBaseModel):
@@ -194,34 +208,8 @@ class Team(TsaBaseModel):
     class Meta:
         ordering = [Lower('code')]
 
-
-class SchemeItem(TsaBaseModel):
-    objects = TsaManager()
-    scheme = ForeignKey(Scheme, related_name='+', on_delete=CASCADE)
-    team = ForeignKey(Team, related_name='+', on_delete=PROTECT, null=True, blank=True)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    code = None
-    name = None
-    datefirst = None
-    datelast = None
-
-    rosterdate = DateField(db_index=True, null=True, blank=True)
-    shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
-    time_start = DateTimeField(db_index=True, null=True, blank=True)
-    time_start_dhm = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
-    time_end = DateTimeField(db_index=True, null=True, blank=True)
-    time_end_dhm = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
-    time_duration = IntegerField(default=0)  # unit is minute
-    break_start = DateTimeField(null=True, blank=True)
-    break_start_dhm = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
-    break_duration = IntegerField(default=0) # unit is minute
-
-    class Meta:
-        ordering = ['rosterdate', 'time_start']
-
     def __str__(self):
-        return  'schemeitem_pk_' + str(self.pk)
+        return self.code
 
 
 class Wagecode(TsaBaseModel):
@@ -237,6 +225,9 @@ class Wagecode(TsaBaseModel):
     class Meta:
         ordering = [Lower('code')]
 
+    def __str__(self):
+        return self.code
+
 
 class Wagefactor(TsaBaseModel):
     objects = TsaManager()
@@ -251,21 +242,8 @@ class Wagefactor(TsaBaseModel):
     class Meta:
         ordering = [Lower('code')]
 
-
-class Taxcode(TsaBaseModel):
-    objects = TsaManager()
-
-    company = ForeignKey(Company, related_name='taxcodes', on_delete=PROTECT)
-    code = CharField(max_length=4)
-
-    rate = IntegerField(default=0) # /10.000
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    datefirst = None
-    datelast = None
-
-    class Meta:
-        ordering = [Lower('code')]
+    def __str__(self):
+        return self.code
 
 
 class Timecode(TsaBaseModel):
@@ -280,6 +258,9 @@ class Timecode(TsaBaseModel):
 
     class Meta:
         ordering = [Lower('code')]
+
+    def __str__(self):
+        return self.code
 
 
 class Employee(TsaBaseModel):
@@ -328,7 +309,7 @@ class Employee(TsaBaseModel):
         return dte_str
 
 
-class TeamMember(TsaBaseModel):
+class Teammember(TsaBaseModel):
     objects = TsaManager()
 
     team = ForeignKey(Team, related_name='teammembers', on_delete=CASCADE)
@@ -336,23 +317,20 @@ class TeamMember(TsaBaseModel):
     replacement = ForeignKey(Employee, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    code = None
     name = None
 
 
 class Orderhour(TsaBaseModel):
     objects = TsaManager()
 
-    company = ForeignKey(Company, related_name='orderhours', on_delete=PROTECT)
     order = ForeignKey(Order, related_name='orderhours', on_delete=PROTECT, null=True, blank=True)
-    taxcode = ForeignKey(Taxcode, related_name='orderhours', on_delete=PROTECT, null=True, blank=True)
-
     rosterdate = DateField(db_index=True, null=True, blank=True)
 
     duration = IntegerField(default=0)  # unit is hour * 100
     status = PositiveSmallIntegerField(db_index=True, default=0)
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+    taxrate = IntegerField(default=0) # /10000 unit
     invoice_status = PositiveSmallIntegerField(db_index=True, default=0)
 
     class Meta:
@@ -385,18 +363,14 @@ class Orderhour(TsaBaseModel):
 class Emplhour(TsaBaseModel):
     objects = TsaManager()
 
-    company = ForeignKey(Company, related_name='emplhours', on_delete=PROTECT)
     employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
-    order = ForeignKey(Order, related_name='emplhours', on_delete=SET_NULL, null=True, blank=True)
     orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=SET_NULL, null=True, blank=True)
-    schemeitem = ForeignKey(SchemeItem, related_name='emplhours', on_delete=SET_NULL, null=True, blank=True)
     wagecode = ForeignKey(Wagecode, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
     time_start = DateTimeField(db_index=True, null=True, blank=True)
     time_end = DateTimeField(db_index=True, null=True, blank=True)
     time_duration = IntegerField(default=0)  # unit is hour * 100
-    break_start = DateTimeField(null=True, blank=True)
     break_duration = IntegerField(default=0) # unit is hour * 100
     time_status = PositiveSmallIntegerField(db_index=True, default=0)
 
@@ -420,7 +394,8 @@ class Emplhour(TsaBaseModel):
 
     @property
     def time_start_DHM(self): # PR2019-04-08
-        return get_datetimelocal_DHM(self.time_start, 'nl')
+        # TODO: lang
+        return get_datetimelocal_DHM(self.rosterdate, self.time_start, 'nl')
 
     @property
     def time_end_datetimelocal(self): # PR2019-04-08
@@ -428,7 +403,8 @@ class Emplhour(TsaBaseModel):
 
     @property
     def time_end_DHM(self): # PR2019-04-08
-        return get_datetimelocal_DHM(self.time_end, 'nl')
+        # TODO: lang
+        return get_datetimelocal_DHM(self.rosterdate, self.time_end, 'nl')
 
     @property
     def time_end_HHmm(self): # PR2019-04-07
@@ -463,22 +439,51 @@ class Emplhour(TsaBaseModel):
         return 'id_oeh_shift_' + str(self.pk)
 
 
-class Companyinvoice(Model):  # PR2019-04-06
+class SchemeItem(TsaBaseModel):
     objects = TsaManager()
-
-    company = ForeignKey(Company, related_name='companycredits', on_delete=CASCADE)
-    entries = IntegerField(default=0)
-    balance= IntegerField(default=0)
-    rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
-    dateinvoice = DateField(db_index=True, null=True, blank=True)
-    bonusexpired = DateField(db_index=True, null=True, blank=True)
-    note = CharField(db_index=True, max_length=NAME_MAX_LENGTH)
+    scheme = ForeignKey(Scheme, related_name='schemeitems', on_delete=CASCADE)
+    team = ForeignKey(Team, related_name='schemeitems', on_delete=SET_NULL, null=True, blank=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
     name = None
     datefirst = None
     datelast = None
+
+    rosterdate = DateField(db_index=True, null=True, blank=True)
+
+    orderhour = ForeignKey(Orderhour, related_name='+', on_delete=SET_NULL, null=True, blank=True)
+    emplhour = ForeignKey(Emplhour, related_name='+', on_delete=SET_NULL, null=True, blank=True)
+
+    shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    time_start = DateTimeField(db_index=True, null=True, blank=True)
+    time_start_dhm = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)  # dhm" "-1;17;45"
+    time_end = DateTimeField(db_index=True, null=True, blank=True)
+    time_end_dhm = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    time_duration = IntegerField(default=0)  # unit is minute
+    break_duration = IntegerField(default=0) # unit is minute
+
+    class Meta:
+        ordering = ['rosterdate', 'time_start']
+
+    def __str__(self):
+        return  'schemeitem_pk_' + str(self.pk)
+
+
+class Companyinvoice(Model):  # PR2019-04-06
+    objects = TsaManager()
+
+    company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
+    entries = IntegerField(default=0)
+    balance= IntegerField(default=0)
+    rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
+    dateinvoice = DateField(db_index=True, null=True, blank=True)
+    note = CharField(db_index=True, max_length=NAME_MAX_LENGTH)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    code = None
+    name = None
+    datefirst = None
     locked = None
     inactive = None
 

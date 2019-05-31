@@ -38,26 +38,32 @@
         }; //if(!!e.target)
     }; //function SetMenubuttonActive()
 
-//========= isEmpty  ============= PR2019-05-11
-function isEmpty(myObject) {
-    for(var key in myObject) {
-        if (myObject.hasOwnProperty(key)) {
-            return false;
-        }
-    }
 
+//========= isEmpty  ============= PR2019-05-11
+    'PR2019-05-05 from https://coderwall.com/p/_g3x9q/how-to-check-if-javascript-object-is-empty'
+    function isEmpty(obj) {
+    for(var key in obj) {
+        if(obj.hasOwnProperty(key))
+            {return false}
+    }
     return true;
 }
-//========= get_attr_from_element  =============
-    function get_attr_from_element(element, key){
-    // ---  get attr value from key: i.e. element["name"] = "break_duration" PR2019-04-12
-        let value = "";
+
+//========= get_attr_from_element  ============= PR2019-04-12
+    function get_attr_from_element(element, key, parse_int){
+    // ---  get attr value from key: i.e. element["name"] = "break_duration"
+        let value_str = "", value_int = 0
         if(!!element && !!key){
             if(element.hasAttribute(key)){
-                value = element.getAttribute(key);
+                value_str = element.getAttribute(key);
+                if(parse_int){value_int = parseInt(value_str)}
             };
         }
-        return value;
+        if(parse_int){
+            return value_int;
+        } else {
+            return value_str;
+        }
     };
 
 //========= get_arrayRow_by_keyValue  ====================================
@@ -65,25 +71,15 @@ function isEmpty(myObject) {
         // Function returns row of array that contains Value in objKey PR2019-01-05
         // stored_columns[3]: {awpCol: "lastname", caption: "Last name", excCol: "ANAAM" }
         // excel_columns[0]:    {excCol: "ANAAM", awpCol: "lastname", awpCaption: "Achternaam"}
-console.log("== get_arrayRow_by_keyValue  ===")
-console.log("objArray: ", objArray)
-console.log("arrKey: ", arrKey)
-console.log("keyValue: ", keyValue)
-        // used by import, review scheme PR2019-04-04
+
+        // used by select scheme PR2019-05-24
         let row;
         if (!!arrKey && !!keyValue){
             for (let i = 0 ; i < objArray.length; i++) {
                 let obj = objArray[i];
                 if (!!obj && !!obj[arrKey] ){
-                    // convert number to string for text comparison
-                    let obj_value;
-                    if (typeof(obj[arrKey]) === "number"){
-                        obj_value = obj[arrKey].toString();
-                    } else {
-                        obj_value = obj[arrKey];
-                    }
                     let isEqual = false;
-
+                    let obj_value = obj[arrKey]
                     if (typeof(keyValue) === "string" && typeof(obj_value) === "string"){
                         isEqual = (keyValue.toLowerCase() === obj_value.toLowerCase())
                     } else {
@@ -176,13 +172,3 @@ console.log("keyValue: ", keyValue)
 
     } // function get_array_from_ISOstring
 
-
-//========= function isEmpty
-    'PR2019-05-05 from https://coderwall.com/p/_g3x9q/how-to-check-if-javascript-object-is-empty'
-    function isEmpty(obj) {
-    for(var key in obj) {
-        if(obj.hasOwnProperty(key))
-            return false;
-    }
-    return true;
-}

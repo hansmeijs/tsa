@@ -64,6 +64,7 @@ console.log("Customers document.ready");
             tblrow.addEventListener("touchstart", function() {HandleRowClicked(tblrow);}, false )
         }
 
+        document.getElementById("id_btn_fill_rosterdate").addEventListener("click", HandleFillRosterdate);
         document.getElementById("id_btn_add").addEventListener("click", HandleCreateRecord);
         document.getElementById("id_btn_delete").addEventListener("click", HandleDeleteRecord);
         document.getElementById("id_popup_save").addEventListener("click", function() {HandlePopupSave();}, false )
@@ -82,7 +83,8 @@ console.log("Customers document.ready");
         let order_list = el_data.data("order_list");
         let employee_list = el_data.data("employee_list");
 
-        const url_upload_str = el_data.data("emplhour_upload_url");
+        const url_fill_rosterdate = el_data.data("url_fill_rosterdate");
+        const url_emplhour_upload = el_data.data("url_emplhour_upload");
         const url_datalist_str = $("#id_data").data("emplhour_datalist_url");
 
         let imgsrc_inactive = el_data.data("imgsrc_inactive");
@@ -188,7 +190,7 @@ console.log("Customers document.ready");
                 let response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_upload_str,
+                    url: url_emplhour_upload,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
@@ -211,7 +213,7 @@ console.log("Customers document.ready");
         let tblRow = document.getElementById(id_row_selected)
         //console.log( "tblRow: ", tblRow, typeof tblRow);
         if (!!tblRow){
-            tblRow.classList.add("tsa-tr-error");
+            tblRow.classList.add("tsa_tr_error");
             let cust_name = "", employee_name = ""
             if (!!tblRow.cells[1].children[0]) { cust_name = tblRow.cells[1].children[0].value;}
             if (!!tblRow.cells[2].children[0]) { employee_name = tblRow.cells[2].children[0].value;}
@@ -231,7 +233,7 @@ console.log("Customers document.ready");
             if(confirm(msg_text)){
 // delete  record
                 // make row red
-                tblRow.classList.add("tsa-tr-error");
+                tblRow.classList.add("tsa_tr_error");
                 let row_upload = {"pk": id_str, 'delete': true}
                 console.log ("delete dict before ajax: ");
                 console.log (row_upload);
@@ -239,7 +241,7 @@ console.log("Customers document.ready");
                 response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_upload_str,
+                    url: url_emplhour_upload,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
@@ -253,6 +255,39 @@ console.log("Customers document.ready");
             } // if( confirm
         }
     }
+
+    HandleFillRosterdate
+
+//=========  HandleFillRosterdate  ================ PR2019-05-26
+    function HandleFillRosterdate() {
+console.log("=========  function HandleFillRosterdate =========");
+
+        //row_upload: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
+        let rosterdate = "2019-04-03"
+        let row_upload = {"rosterdate": rosterdate};
+        console.log (row_upload);
+        let parameters = {"fill_rosterdate": JSON.stringify (row_upload)};
+        console.log ("parameters", parameters);
+        response = "";
+        $.ajax({
+            type: "POST",
+            url: url_fill_rosterdate,
+            data: parameters,
+            dataType:'json',
+            success: function (response) {
+                if ("row_update" in response) {
+                //console.log( "response");
+                //console.log( response);
+                    UpdateFields(tr_changed, response["row_update"])
+                }
+            },
+            error: function (xhr, msg) {
+                alert(msg + '\n' + xhr.responseText);
+            }
+        });
+    }  // HandleFillRosterdate
+
+
 //=========  HandleCreateRecord  ================ PR2019-03-16
     function HandleCreateRecord() {
 console.log("=========  function HandleCreateRecord =========");
@@ -454,7 +489,7 @@ console.log("=========  function HandleCreateRecord =========");
                 response = "";
                 $.ajax({
                     type: "POST",
-                    url: url_upload_str,
+                    url: url_emplhour_upload,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
@@ -504,7 +539,7 @@ console.log("=========  function HandleCreateRecord =========");
                             el_msg.setAttribute("style", msgAttr)
 // --- close error box after 2 seconds and remove class 'error'
                             setTimeout(function (){
-                                tblrow.classList.remove("tsa-tr-error");
+                                tblrow.classList.remove("tsa_tr_error");
                                 el_msg.classList.toggle("show");
                                 }, 2000);
                         }  // if (id_deleted){
@@ -575,7 +610,7 @@ console.log("=========  function HandleCreateRecord =========");
                         el_msg.setAttribute("style", msgAttr)
 
                         setTimeout(function (){
-                            tblrow.classList.remove("tsa-tr-error");
+                            tblrow.classList.remove("tsa_tr_error");
                             el_msg.classList.toggle("show");
                             }, 2000);
                     }
@@ -592,9 +627,9 @@ console.log("=========  function HandleCreateRecord =========");
         // update tablerow.id from id_new to id_pk
                         tr_changed.id = id_pk //or: tr_changed.setAttribute("id", id_pk);
         // make row green, / --- remove class 'ok' after 2 seconds a
-                        tr_changed.classList.add("tsa-tr-ok");
+                        tr_changed.classList.add("tsa_tr_ok");
                         setTimeout(function (){
-                            tr_changed.classList.remove("tsa-tr-ok");
+                            tr_changed.classList.remove("tsa_tr_ok");
                             }, 2000);
                 }}};
 
@@ -1087,7 +1122,7 @@ console.log("=========  function HandlePopupSave =========");
         response = "";
         $.ajax({
             type: "POST",
-            url: url_upload_str,
+            url: url_emplhour_upload,
             data: parameters,
             dataType:'json',
             success: function (response) {

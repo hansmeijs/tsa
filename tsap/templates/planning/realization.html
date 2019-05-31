@@ -21,7 +21,7 @@
 
         <div class="content_header">
             <div class="content_subheader_left">
-                <h5 id="id_content_header_name" title="test title">{% trans 'Review shifts' %} </h5>
+                <h5 id="id_content_header_name" title="realization">{% trans 'Realization' %} </h5>
             </div>
             <div class="content_subheader_right"></div>
         </div>
@@ -84,8 +84,6 @@
                     <th class="td_width_060">{% trans 'Break hours' %}</th>
                     <th class="td_width_120">{% trans 'Working hours' %}</th>
                     <th class="td_width_032"><img src="{% static 'img/stat04.png' %}" height="24" width="24"></th>
-                    <th class="td_width_090">{% trans 'Billing hours' %}</th>
-                    <th class="td_width_032"><img src="{% static 'img/real02.png' %}" height="24" width="24"></th>
                 </tr>
                 </thead>
                 <tbody id="id_tbody">
@@ -162,7 +160,7 @@
                                        max="72"
                                        class="input_text border-none td_width_060" >
                             </td>
-                            <td class="td_width_032">
+                            <td class="td_width_03p">
                                 <a data-name="time_status" href="#"
                                    value="{{ item.time_status }}"
                                    class="input_icon">
@@ -189,37 +187,6 @@
                                     {% endif %}
                                 </a>
                             </td>
-                            <td class="td_width_090">
-                                <input data-name="orderhour_duration"
-                                       type="text"
-                                       autocomplete="off"
-                                       ondragstart="return false;"
-                                       ondrop="return false;"
-                                       value="{{ item.orderhour_duration}}"
-                                       o_value="{{ item.orderhour_duration}}"
-                                       min="-72"
-                                       max="72"
-                                       class="inpXXut_text border-none td_width_060" >
-                            </td>
-                            <td class="td_width_032">
-                                <a data-name="orderhour_status" href="#"
-                                value="{{ item.orderhour_status }}"
-                                class="input_icon">
-                                    {% if item.time_status == 3 %}
-                                        <img src="{% static 'img/real03.png' %}" height="24" width="24">
-                                    {% else %}
-                                        {% if item.time_status == 2 %}
-                                            <img src="{% static 'img/real02.png' %}" height="24" width="24">
-                                        {% else %}
-                                            {% if item.time_status == 1 %}
-                                                <img src="{% static 'img/real01.png' %}" height="24" width="24">
-                                            {% else %}
-                                                <img src="{% static 'img/stat00.png' %}" height="24" width="24">
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endif %}
-                                </a>
-                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -237,10 +204,6 @@
         data-imgsrc_stat03="{% static 'img/stat03.png' %}"
         data-imgsrc_stat04="{% static 'img/stat04.png' %}"
         data-imgsrc_stat05="{% static 'img/stat05.png' %}"
-        data-imgsrc_real00="{% static 'img/real00.png' %}"
-        data-imgsrc_real01="{% static 'img/real01.png' %}"
-        data-imgsrc_real02="{% static 'img/real02.png' %}"
-        data-imgsrc_real03="{% static 'img/real03.png' %}"
         data-lang ="{{ lang }}"
         data-interval ="{{ interval }}"
         data-timeformat ="{{ timeformat }}"

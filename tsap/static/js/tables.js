@@ -1,78 +1,6 @@
 
 
-//========= CreateTable  ====================================
-    function CreateTable(tableBase, header1, header2, headExc, headAwp, headLnk ) {
-console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2, headExc, headAwp, headLnk);
-        let base_div = $("#id_basediv_" + tableBase);  // BaseDivID = "sct", "lvl", "col"
-        // delete existing rows of tblColExcel, tblColAwp, tblColLinked
-        base_div.html("");
 
-
-        //append column header to base_div
-        if(!!header1 || !!header2) {
-            $("<div>").appendTo(base_div)
-                .attr({id: "id_div_hd_" + tableBase})
-                .addClass("c_columns_header");
-
-            if(!!header1) {
-                $("<p>").appendTo( "#id_div_hd_" + tableBase)
-                    //header1 = "Link sectors"
-                    .html("<b>" + header1 + "</b>");
-            }
-            if(!!header2) {
-                $("<p>").appendTo( "#id_div_hd_" + tableBase)
-                    //header2 = "Click to link or unlink sector"
-                    .html("<b>###" + header2 + "</b>");
-            }
-        }
-        // append flex div for table Excel and Awp
-        $("<div>").appendTo(base_div)
-                .attr({id: "id_ea_flex_" + tableBase})
-                .addClass("ea_flex");
-
-        // append div for table Excel
-            $("<div>").appendTo("#id_ea_flex_" + tableBase)
-                    .attr({id: "id_exc_div_" + tableBase});
-
-                $("<table>").appendTo("#id_exc_div_" + tableBase)
-                        .attr({id: "id_exc_table_" + tableBase})
-                        .addClass("c_grid_colExcel")
-                        .on("click", handle_table_row_clicked);
-
-                    $("<thead>").appendTo("#id_exc_table_" + tableBase)
-                            .html("<tr><td>" + headExc + "</td></tr>"); // headExc: "Excel sectors"
-                    $("<tbody>").appendTo("#id_exc_table_" + tableBase)
-                            .attr({id: "id_exc_tbody_" + tableBase});
-
-        // append div for table Awp
-            $("<div>").appendTo("#id_ea_flex_" + tableBase)
-                    .attr({id: "id_awp_div_" + tableBase});
-                $("<table>").appendTo("#id_awp_div_" + tableBase)
-                        .attr({id: "id_awp_table_" + tableBase})
-                        .addClass("c_grid_colExcel")
-                        .on("click", handle_table_row_clicked);
-                    $("<thead>").appendTo("#id_awp_table_" + tableBase)
-                            .html("<tr><td>" + headAwp + "</td></tr>"); // headAwp: "AWP columns"
-                    $("<tbody>").appendTo("#id_awp_table_" + tableBase)
-                            .attr({id: "id_awp_tbody_" + tableBase});
-
-        // append flex div for table Linked
-        $("<div>").appendTo(base_div)
-                .attr({id: "id_li_flex_" + tableBase})
-                .addClass("li_flex");
-            $("<div>").appendTo("#id_li_flex_" + tableBase)
-                    .attr({id: "id_lnk_div_" + tableBase});
-                $("<table>").appendTo("#id_lnk_div_" + tableBase)
-                        .attr({id: "id_lnk_table_" + tableBase})
-                        .addClass("c_grid_colLinked")
-                        .on("click", handle_table_row_clicked);
-                    $("<thead>").appendTo("#id_lnk_table_" + tableBase)
-                            .attr({id: "id_sct_th_lnk_" + tableBase})
-                            .html("<tr><td colspan=2>" + headLnk + "</td></tr>"); // headLnk: "Linked sectors"
-                    $("<tbody>").appendTo("#id_lnk_table_" + tableBase)
-                            .attr({id: "id_lnk_tbody_" + tableBase});
-
-         }; //function CreateTable()
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= CreateTableRows  ====================================
     function CreateTableRows(tableBase, stored_items, excel_items,
@@ -364,6 +292,28 @@ console.log("=========   handle_table_row_clicked   ======================") ;
     }
 
 
+//========= function get_parent_pk  ================= PR2019-05-24
+    function get_pk_from_id (dict) {
+        return parseInt(get_subdict_value_by_key (dict, "id", "pk", 0))
+    }
+//========= function get_parent_pk  ================= PR2019-05-24
+    function get_parent_pk (dict) {
+        return parseInt(get_subdict_value_by_key (dict, "id", "parent_pk", 0))
+    }
+
+//========= function get_subdict_value_by_key  ================= PR2019-05-24
+    function get_subdict_value_by_key (dict, key, subkey, default_value) {
+        let value;
+        let subdict = get_dict_value_by_key (dict, key)
+        if (!!subdict){
+            value = get_dict_value_by_key (subdict, subkey)
+        }
+        if (!value && !!default_value){
+            value = default_value
+        }
+        return value
+    }
+
 //========= function get_dict_value_by_key  ====================================
     function get_dict_value_by_key (dict, key, default_value) {
         // Function returns value of key in obj PR2019-02-19 PR2019-04-27
@@ -461,3 +411,22 @@ console.log("=========   handle_table_row_clicked   ======================") ;
       timer = setTimeout(callback, ms);
      };
     })();
+
+//=========  AppendIcon  ================ PR2019-05-31
+    function AppendIcon(el, img_src ) {
+        let img = document.createElement("img");
+            img.setAttribute("src", img_src);
+            img.setAttribute("height", "18");
+            img.setAttribute("width", "18");
+        el.appendChild(img);
+    }
+//=========  ShowOkClass  ================ PR2019-05-31
+    function ShowOkClass(tblRow ) {
+    // make row green, / --- remove class 'ok' after 2 seconds
+        tblRow.classList.add("tsa_tr_ok");
+        setTimeout(function (){
+            tblRow.classList.remove("tsa_tr_ok");
+        }, 2000);
+    }
+
+

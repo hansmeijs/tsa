@@ -157,3 +157,38 @@ h4 h5 {
     filter: alpha(opacity=50);
     opacity: .5;
 }
+
+.tsa_bc_yellow {
+    background-color: #ffd01c; /* tsa yellow */
+}
+.tsa_bc_yellow_light {
+    background-color: #fbedba; /* lighter shade of tsa yellow */
+}
+.tsa_bc_yellow_lightlight {
+    background-color: #fdf7e1; /* more lighter shade of tsa yellow */
+}
+
+
+.tsa_bc_lightgrey {
+    background-color: #e0e0e0; /* licht grijs; */
+}
+
+.tsa_bc_lightlightgrey {
+    background: #f8f8f8; /*licht licht grijs; */
+}
+.tsa_bc_lightred {
+    background-color: #f1b5b5; /* licht rood; */
+}
+
+.tsa_bc_lightgreen {
+    background-color: #d7f4de; /* licht groen; */
+}
+
+.tsa_bc_white {
+    background-color: white;
+}
+
+
+.tsa_bc_transparent {
+    background-color: transparent;
+}

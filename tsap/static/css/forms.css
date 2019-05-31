@@ -8,7 +8,7 @@
     -webkit-box-orient: horizontal;
     -webkit-box-direction: reverse;
         -ms-flex-direction: row-reverse;
-            flex-direction: row-reverse; /* flex-direction: row | row-reverse | column | column-reverse; */
+            flex-direction: row /*  row-reverse; /* flex-direction: row | row-reverse | column | column-reverse; */
 
     -ms-flex-wrap: wrap;
         flex-wrap: wrap;  /* flex-wrap: nowrap | wrap | wrap-reverse;  */
@@ -31,7 +31,7 @@
     padding: 0px;
     margin: 0px;
 
-    /*background: #F5FAFF; /*licht licht blauw; */
+    /* background: #F5FAFF; /*licht licht blauw; */
 }
 
 .content_wrapper {
@@ -179,6 +179,9 @@
     padding: 0px;
     /*border: 2px solid purple;    /*  #2D4E77; HeaderBackColor Default Schema Blauw donkerblauw */
     margin: 0px;
+
+    background-color:  #e0e0e0;
+    border-color: #c4c4c4;
 }
 
 

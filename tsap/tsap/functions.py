@@ -222,7 +222,7 @@ def get_timeDHM_from_dhm(rosterdate, dhm_str, lang):
     dt_localized = get_datetimelocal_from_DHM(rosterdate, dhm_str)
     # logger.debug('dt_localized: ' + str(dt_localized) + str(type(dt_localized)))
     # format to 'zo 31 mrt'
-    return get_datetimelocal_DHM(dt_localized, lang)
+    return get_datetimelocal_DHM(rosterdate, dt_localized, lang)
 
 
 def get_datetimeUTC_from_DHM(rosterdate, dhm_str):
@@ -312,8 +312,9 @@ def get_datetimelocal_from_DHM(rosterdate, dhm_str):
     return dt_localized
 
 
-def get_datetimelocal_DHM(date_time, lang):
+def get_datetimelocal_DHM(rosterdate, date_time, lang):
     # Function returns date: "ma 18.15 u." or "Mon 6:15 p.m."
+    # skip weekday when date equals rosterdate PR201`9-05-25
     # 12.00 a.m is midnight, 12.00 p.m. is noon
 
     time_str = ''
@@ -324,16 +325,19 @@ def get_datetimelocal_DHM(date_time, lang):
         # Convert time zone
         timezone = pytz.timezone(TIME_ZONE)
         datetime_aware = date_time.astimezone(timezone)
+        # logger.debug('datetime_aware: ' + str(datetime_aware))
+        # check if date equals rosterdate
+        dates_are_equal = datetime_aware.date() == rosterdate
 
         # get weekdays translated
         if not lang in WEEKDAYS_ABBREV:
             lang = LANGUAGE_CODE
         weekday_int = int(datetime_aware.strftime("%w"))
         weekday = WEEKDAYS_ABBREV[lang][weekday_int]
+        # .strftime("%H") returns zero-padded 24 hour based string '03' or '22'
         hour_str = datetime_aware.strftime("%H")
         hour_int = int(hour_str)
         minutes_str = datetime_aware.strftime("%M") # %m is zero-padded
-        minutes_int = int(minutes_str) # %m is zero-padded
 
         if lang == 'nl':
             separator = '.'
@@ -344,11 +348,16 @@ def get_datetimelocal_DHM(date_time, lang):
                 suffix = 'p.m.'
                 if hour_int > 12:
                     hour_int -= 12
-                    hour_str = str(hour_int)
+                    hour_zero_padded = '00' + str(hour_int)
+                    hour_str = hour_zero_padded[-2:]
             else:
                 suffix = 'a.m.'
         hourstr = separator.join([hour_str, minutes_str])
-        time_str = ' '.join([weekday, hourstr, suffix])
+
+        if dates_are_equal:
+            time_str = ' '.join([hourstr, suffix])
+        else:
+            time_str = ' '.join([weekday, hourstr, suffix])
     return time_str
 
 def get_date_from_dateint(date_int):  # PR2019-03-06
@@ -512,13 +521,12 @@ def get_time_longstr_from_dte(dte, lang):  # PR2019-04-13
     if dte:
         try:
 
-            weekday_str = str(datetime_aware.strftime("%a"))
-            weekday_int = str(datetime_aware.strftime("%w"))
-            year_str = str(datetime_aware.strftime("%Y"))
-            month_str = str(datetime_aware.strftime("%m"))
-            day_str = str(datetime_aware.strftime("%d"))
-            date_str = '-'.join([year_str, month_str, day_str])
-
+            #weekday_str = str(datetime_aware.strftime("%a"))
+            #weekday_int = str(datetime_aware.strftime("%w"))
+            #year_str = str(datetime_aware.strftime("%Y"))
+            #month_str = str(datetime_aware.strftime("%m"))
+            #day_str = str(datetime_aware.strftime("%d"))
+            #date_str = '-'.join([year_str, month_str, day_str])
 
             year_str = str(dte.year)
             day_str = str(dte.day)
