@@ -194,7 +194,7 @@
                             </tbody>
                         </table>
                         <div class="content_subheader_right">
-                            <button id="id_popup_save" class="btn btn-add">{% trans 'Save' %}</button>
+                            <button id="id_popup_dhm_save" class="btn btn-add">{% trans 'Save' %}</button>
                         </div>
                     </div>
                 </div>
@@ -251,7 +251,7 @@
             data-txt_scheme_add= "{% trans 'Add new scheme' %}"
 
             data-txt_shift= "{% trans 'Shift' %}"
-            data-txt_shift_add= "{% trans 'Add new shift' %}"
+            data-txt_shift_add= "{% trans 'Enter shift' %}"
             data-txt_shift_delete= "{% trans 'Delete shift' %}"
             data-txt_show_shifts= "{% trans 'Go to shifts' %}"
 
@@ -271,17 +271,18 @@
             data-txt_date_start= "{% trans 'Start date' %}"
             data-txt_date_end= "{% trans 'End date' %}"
 
-            data-txt_employee_add= "{% trans 'Add new employee' %}"
+            data-txt_employee_add= "{% trans 'Enter employee' %}"
             data-msg_confirm_del1= "{% trans 'Do you want to delete the shift of' %}"
             data-msg_confirm_del2= "{% trans 'Do you want to delete this shift?' %}"
         >
         </div>
 
-        <datalist id="id_datalist_customers" class="nopadding"></datalist>
-        <datalist id="id_datalist_orders" class="nopadding"></datalist>
-        <datalist id="id_datalist_shifts" class="nopadding"></datalist>
-        <datalist id="id_datalist_teams" class="nopadding"></datalist>
-        <datalist id="id_datalist_employees" class="nopadding"></datalist>
+        <datalist id="id_datalist_customers"></datalist>
+        <datalist id="id_datalist_orders"></datalist>
+        <datalist id="id_datalist_shifts"></datalist>
+        <datalist id="id_datalist_teams"></datalist>
+        <datalist id="id_datalist_employees"></datalist>
+        <datalist id="id_datalist_replacements"></datalist>
 
     {% else %}
         <div class="alert alert-danger">{% trans 'Error' %}</div>

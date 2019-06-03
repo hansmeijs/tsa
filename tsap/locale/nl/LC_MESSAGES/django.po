@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-05-31 11:45-0400\n"
+"POT-Creation-Date: 2019-06-02 21:28-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -172,7 +172,7 @@ msgstr "Vergrendeld"
 msgid "Inactive"
 msgstr "Niet aktief"
 
-#: .\customers\views.py:168 .\customers\views.py:397 .\planning\views.py:327
+#: .\customers\views.py:168 .\customers\views.py:397 .\planning\views.py:325
 msgid "This record could not be deleted."
 msgstr "Dit record kon niet worden gewist."
 
@@ -204,13 +204,29 @@ msgstr "Werknemer niet gevonden"
 msgid "An error occurred. The employee data is not saved."
 msgstr "Er is een fout opgetreden. De gegevens zijn niet opgeslagen."
 
-#: .\planning\views.py:913
+#: .\planning\views.py:886
+msgid "This scheme could not be deleted."
+msgstr "Dit schema kon niet worden gewist."
+
+#: .\planning\views.py:997
 msgid "This team could not be deleted."
 msgstr "Dit team kon niet worden gewist."
 
-#: .\planning\views.py:1142
+#: .\planning\views.py:1255
 msgid "This shift could not be deleted."
 msgstr "Deze dienst kon niet worden gewist."
+
+#: .\planning\views.py:1264
+msgid "This teammember could not be deleted."
+msgstr "Dit teamlid kon niet worden gewist."
+
+#: .\planning\views.py:1301
+msgid "This item could not be created."
+msgstr "Dit item kon niet worden gewist."
+
+#: .\planning\views.py:1379 .\tsap\validators.py:125
+msgid "This field cannot be blank."
+msgstr "Dit veld moet ingevuld worden."
 
 #: .\templates\accounts\TODOuser_confirm_delete.html:9
 #: .\templates\accounts\password_change.html:9
@@ -256,7 +272,7 @@ msgstr "Nee, annuleer"
 #: .\templates\employees\employees.html:172
 #: .\templates\planning\realization.html:66
 #: .\templates\planning\realization.html:225
-#: .\templates\planning\schemes.html:52 .\templates\planning\schemes.html:288
+#: .\templates\planning\schemes.html:52 .\templates\planning\schemes.html:289
 msgid "Cancel"
 msgstr "Annuleren"
 
@@ -674,7 +690,7 @@ msgstr "Er is een fout opgetreden"
 #: .\templates\employees\emplhours.html:261
 #: .\templates\employees\employees.html:171
 #: .\templates\planning\realization.html:224
-#: .\templates\planning\schemes.html:287
+#: .\templates\planning\schemes.html:288
 msgid "Error"
 msgstr "Fout"
 
@@ -993,8 +1009,8 @@ msgid "Add new scheme"
 msgstr "Schema toevoegen"
 
 #: .\templates\planning\schemes.html:254
-msgid "Add new shift"
-msgstr "Dienst toevoegen"
+msgid "Enter shift"
+msgstr "Vul dienst in"
 
 #: .\templates\planning\schemes.html:256
 msgid "Go to shifts"
@@ -1025,8 +1041,8 @@ msgid "Replaces"
 msgstr "Vervangt"
 
 #: .\templates\planning\schemes.html:274
-msgid "Add new employee"
-msgstr "Werknemer toevoegen"
+msgid "Enter employee"
+msgstr "Vul werknemer in"
 
 #: .\tsap\authentication.py:27
 msgid "You are not connected to a company. You cannot view this page."
@@ -1130,10 +1146,6 @@ msgstr "Begindatum kan niet na einddatum liggen"
 msgid "Last date cannot be before first date."
 msgstr "Einddatum kan niet voor begindatum liggen"
 
-#: .\tsap\validators.py:125
-msgid "This field cannot be blank."
-msgstr "Dit veld moet ingevuld worden."
-
 #: .\tsap\validators.py:133
 msgid "This name already exists."
 msgstr "Deze naam bestaat al."
@@ -1170,26 +1182,6 @@ msgstr "Deze code bestaat al."
 msgid "Name already exists."
 msgstr "Deze naam bestaat al."
 
-#~ msgid "Delete scheme"
-#~ msgstr "Schema verwijderen"
-
-#~ msgid "No active customers"
-#~ msgstr "Geen actieve klanten"
-
-#~ msgid "Break start"
-#~ msgstr "Begin pauze"
-
-#~ msgid "Reset your TSA-secure password"
-#~ msgstr "Nieuw TSA-secure wachtwoord aanmaken"
-
-#~ msgid "Weekends"
-#~ msgstr "Weekeinde"
-
-#~ msgid "Public holidays"
-#~ msgstr "Feestdagen"
-
-#~ msgid "Department"
-#~ msgstr "Afdeling"
-
-#~ msgid "Allowed departments"
-#~ msgstr "Toegestane afdelingen"
+#: .\tsap\validators.py:285
+msgid "This employee already exists."
+msgstr "Deze werknemer komt al voor."

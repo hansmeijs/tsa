@@ -40,7 +40,7 @@
 
 
 //========= isEmpty  ============= PR2019-05-11
-    'PR2019-05-05 from https://coderwall.com/p/_g3x9q/how-to-check-if-javascript-object-is-empty'
+    //PR2019-05-05 from https://coderwall.com/p/_g3x9q/how-to-check-if-javascript-object-is-empty'
     function isEmpty(obj) {
     for(var key in obj) {
         if(obj.hasOwnProperty(key))
@@ -91,6 +91,36 @@
         }}}}
         return row;
     }
+
+
+//========= get_listitem_by_subkeyValue  ===== PR2018-06-01
+    function get_listitem_by_subkeyValue (objArray, arrKey, arrSubKey, keyValue) {
+        // gets item with value 'abdul' from 0: {code: {value: "Abdul"}, id: {pk: 248, parent_pk: 2}, pk: 248 }
+        let item;
+        if (!!arrKey && !!arrSubKey && !!keyValue){
+            for (let i = 0 ; i < objArray.length; i++) {
+                let dict = objArray[i];
+                if (!!dict && !!dict[arrKey] ){
+                    let subdict = dict[arrKey]
+                    if (arrSubKey in subdict){
+                        let isEqual = false;
+                        let value = subdict[arrSubKey]
+                        if (typeof(keyValue) === "string" && typeof(obj_value) === "string"){
+                            isEqual = (keyValue.toLowerCase() === value.toLowerCase())
+                        } else {
+                            isEqual = (keyValue === value)
+                        }
+                        if (isEqual){
+                            item = dict;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return item;
+    }
+
 
 
 //=========  GetNewDateFromDate  ================ PR2019-05-06

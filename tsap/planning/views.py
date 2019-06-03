@@ -15,7 +15,10 @@ from tsap.constants import MONTHS_ABBREV, WEEKDAYS_ABBREV, TIMEFORMATS, STATUS_E
 
 from tsap.functions import get_date_from_str, get_datetimeaware_from_datetimeUTC, \
                     get_timeDHM_from_dhm, get_datetimelocal_from_DHM, get_date_WDM_from_dte, get_date_WDMY_from_dte, \
-                    get_weekdaylist_for_DHM, get_date_HM_from_minutes
+                    get_weekdaylist_for_DHM, get_date_HM_from_minutes, create_dict_with_empty_attr, remove_empty_attr_from_dict
+
+from tsap.validators import validate_employee_already_exists_in_teammember
+
 from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_employee_code, validate_employee_name,employee_email_exists, check_date_overlap
@@ -170,14 +173,11 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
                 if upload_dict is not None:
                     logger.debug('upload_dict: ' + str(upload_dict))
                     # rosterdate: "2019-05-26"
-                    # --- Create empty row_dict with keys for all fields. Unused ones will be removed at the end
+                    # --- Create empty update_dict with keys for all fields. Unused ones will be removed at the end
                     field_list = ('id', 'rosterdate', 'order', 'employee', 'shift',
                                   'time_start', 'time_end', 'break_duration', 'time_duration', 'time_status',
                                    'orderhour_duration', 'orderhour_status', 'modified_by', 'modified_at')
-                    row_dict = {}  # this one is not working: row_dict = dict.fromkeys(field_list, {})
-                    for field in field_list:
-                        row_dict[field] = {}
-
+                    update_dict = create_dict_with_empty_attr(field_list)
 
 # create recordset of schemeitem records with rosterdate = fill_rosterdate
 
@@ -264,13 +264,11 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= EmplhourUploadView ============= ')
 
-        # --- Create empty row_dict with keys for all fields. Unused ones will be removed at the end
+        # --- Create empty update_dict with keys for all fields. Unused ones will be removed at the end
         field_list = ('id', 'rosterdate', 'order', 'employee', 'shift',
                       'time_start', 'time_end', 'break_duration', 'time_duration', 'time_status',
                        'orderhour_duration', 'orderhour_status', 'modified_by', 'modified_at')
-        row_dict = {}  # this one is not working: row_dict = dict.fromkeys(field_list, {})
-        for field in field_list:
-            row_dict[field] = {}
+        update_dict = create_dict_with_empty_attr(field_list)
 
         if request.user is not None and request.user.company is not None:
             # --- Reset language
@@ -296,8 +294,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                             emplhour = Emplhour.objects.filter(id=pk_int, employee__company=request.user.company).first()
                         else:
                             # this attribute 'new': 'new_1' is necessary to lookup request row on page
-                            row_dict['id']['new'] = row_upload['pk']
-                            # row_dict: {'id': {'new': 'new_1'}, 'code': {},...
+                            update_dict['id']['new'] = row_upload['pk']
+                            # update_dict: {'id': {'new': 'new_1'}, 'code': {},...
 
 # ++++ save new record ++++++++++++++++++++++++++++++++++++
                         if emplhour is None:
@@ -311,9 +309,9 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
 
 # ++++ existing and new emplhour ++++++++++++++++++++++++++++++++++++
                         if emplhour is not None:
-        # --- add pk to row_dict
+        # --- add pk to update_dict
                             pk_int = emplhour.pk
-                            row_dict['id']['pk'] = pk_int
+                            update_dict['id']['pk'] = pk_int
 
                             save_changes = False
 # ++++  delete record when key 'delete' exists in
@@ -322,10 +320,10 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
         # --- check if emplhour still exist
                                 emplhour = Emplhour.objects.filter(id=pk_int, employee__company=request.user.company).first()
                                 if emplhour is None:
-                                    row_dict['id']['deleted'] = True
+                                    update_dict['id']['deleted'] = True
                                 else:
                                     msg_err = _('This record could not be deleted.')
-                                    row_dict['id']['del_err'] = msg_err
+                                    update_dict['id']['del_err'] = msg_err
 
                             else:
 # ++++  not a deleted record
@@ -358,7 +356,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                         if object:
                                             logger.debug('setattr object' + str(object))
                                             setattr(emplhour, field, object)
-                                            row_dict[field]['upd'] = True
+                                            update_dict[field]['upd'] = True
                                             save_changes = True
                                             logger.debug('after setattr object' + str(object))
 
@@ -372,14 +370,14 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                         logger.debug('new_date: ' + str(new_date) + str(type(new_date)))
                                         # check if date is valid (empty date is ok)
                                         if msg_err is not None:
-                                            row_dict[field]['err'] = msg_err
+                                            update_dict[field]['err'] = msg_err
                                         else:
                                             saved_date = getattr(emplhour, field, None)
                                             logger.debug('saved_date: ' + str(saved_date) + str(type(saved_date)))
                                             if new_date != saved_date:
                                                 logger.debug('save date: ' + str(new_date) + str(type(new_date)))
                                                 setattr(emplhour, field, new_date)
-                                                row_dict[field]['upd'] = True
+                                                update_dict[field]['upd'] = True
                                                 save_changes = True
 
 # --- save changes in time fields
@@ -395,7 +393,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                             msg_err = None
                                             # TODO check if date is valid (empty date is ok)
                                             if msg_err is not None:
-                                                row_dict[field]['err'] = msg_err
+                                                update_dict[field]['err'] = msg_err
                                             else:
                                                 # row_upload: {'pk': '26', 'time_start': '1;4;48'}
                                                 saved_datetime = getattr(emplhour, field, None)
@@ -442,7 +440,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                                 logger.debug( 'dt_as_utc: ' + str(dt_as_utc))
 
                                                 setattr(emplhour, field, dt_as_utc)
-                                                row_dict[field]['upd'] = True
+                                                update_dict[field]['upd'] = True
                                                 save_changes = True
                                                 emplhour.save(request=self.request)
                                                 # datetimesaved: 2019-03-31 02:48:00+00:00
@@ -470,9 +468,9 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                         if new_value != saved_value:
                                             setattr(emplhour, field, new_value)
                                             logger.debug('setattr ' + str(new_value))
-                                            row_dict[field]['upd'] = True
+                                            update_dict[field]['upd'] = True
                                             save_changes = True
-                                            logger.debug('row_dict[' + field + ']: ' + str(row_dict[field]))
+                                            logger.debug('update_dict[' + field + ']: ' + str(update_dict[field]))
                                 #TODO: change end time whem time_duration has changed
 # --- save changes in other fields
                                 for field in ('time_status', 'orderhour_status'):
@@ -485,9 +483,9 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                         if new_value != saved_value:
                                             setattr(emplhour, field, new_value)
                                             logger.debug('setattr ' + str(new_value))
-                                            row_dict[field]['upd'] = True
+                                            update_dict[field]['upd'] = True
                                             save_changes = True
-                                            logger.debug('row_dict[field] ' + str(row_dict[field]))
+                                            logger.debug('update_dict[field] ' + str(update_dict[field]))
 
 
 # --- calculate working hours
@@ -510,7 +508,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
 
                                         if new_time_minutes != saved_time_minutes:
                                             emplhour.time_duration = new_time_minutes
-                                            row_dict['time_duration']['upd'] = True
+                                            update_dict['time_duration']['upd'] = True
                                             save_changes = True
 
                                             #logger.debug('time_duration: ' + str(emplhour.time_duration) + str(type(emplhour.time_duration)))
@@ -518,11 +516,11 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                 if save_changes:
                                     emplhour.save(request=self.request)
                                     logger.debug('changes saved ')
-                                    for field in row_dict:
+                                    for field in update_dict:
                                         saved_value = None
                                         saved_html = None
                                         # 'upd' has always value True, or it does not exist
-                                        if 'upd' in row_dict[field]:
+                                        if 'upd' in update_dict[field]:
                                             try:
                                                 if field == 'order':
                                                     saved_value = emplhour.order.code
@@ -545,27 +543,23 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                             except:
                                                 pass
                                         if saved_value:
-                                            row_dict[field]['val'] = saved_value
+                                            update_dict[field]['val'] = saved_value
                                             if saved_html:
-                                                row_dict[field]['html'] = saved_html
+                                                update_dict[field]['html'] = saved_html
 
+# --- remove empty attributes from update_dict
+        remove_empty_attr_from_dict(update_dict)
 
-        # --- remove empty attributes from row_dict
-        # cannot iterate through row_dict because it changes during iteration
-        for field in field_list:
-            if not row_dict[field]:
-                del row_dict[field]
-
-        update_dict = {'row_update': row_dict}
-        # update_dict = {'row_update': {'idx': {'pk': '1'}, 'code': {'status': 'upd'}, 'modified_by': {'val': 'Hans'},
+        row_update = {'row_update': update_dict}
+        # row_update = {'row_update': {'idx': {'pk': '1'}, 'code': {'status': 'upd'}, 'modified_by': {'val': 'Hans'},
         #              'modified_at': {'val': '29 mrt 2019 10.20u.'}}}
 
-        logger.debug('update_dict: ')
-        logger.debug(str(update_dict))
-        update_dict_json = json.dumps(update_dict, cls=LazyEncoder)
-        logger.debug(str(update_dict_json))
+        logger.debug('row_update: ')
+        logger.debug(str(row_update))
+        row_update_json = json.dumps(row_update, cls=LazyEncoder)
+        logger.debug(str(row_update_json))
 
-        return HttpResponse(update_dict_json)
+        return HttpResponse(row_update_json)
 
 
 @method_decorator([login_required], name='dispatch')
@@ -754,7 +748,6 @@ class SchemeUploadView(View):  # PR2019-03-10
                                     if scheme_list:
                                         update_dict['schemes'] = scheme_list
 
-
         # update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
         update_dict_json = json.dumps(update_dict, cls=LazyEncoder)
         return HttpResponse(update_dict_json)
@@ -854,9 +847,11 @@ def SchemeUpload(request, upload_dict, user_lang):  # PR2019-05-31
 # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
     scheme_update_dict = {}
     field_list = ('id', 'order', 'code', 'cycle')
-    update_dict = create_update_dict(field_list)
+    update_dict = create_dict_with_empty_attr(field_list)
+
 # --- get id_dict  id_dict: {'temp_pk': 'new_1', 'create': True, 'parent_pk': 18}
-    id_dict, pk_int, parent_pk_int, temp_pk_str = get_id_dict(upload_dict)
+    id_dict = upload_dict.get('id')
+    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename = get_iddict_variables(id_dict)
 # check if parent exists
     order = get_order(request.user.company, parent_pk_int)
 # check if scheme exists
@@ -945,11 +940,7 @@ def SchemeUpload(request, upload_dict, user_lang):  # PR2019-05-31
                 scheme_update_dict['scheme_list'] = scheme_list
 
 # --- remove empty attributes from update_dict
-    # cannot iterate through update_dict because it changes during iteration
-    for field in field_list:
-        if not update_dict[field]:
-            del update_dict[field]
-    logger.debug('update_dict: ' + str(update_dict))
+    remove_empty_attr_from_dict(update_dict)
 
     if update_dict:
         scheme_update_dict['scheme_update'] = update_dict
@@ -967,9 +958,12 @@ def TeamUpload(request, upload_dict):  # PR2019-05-31
 # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
         team_update_dict = {}
         field_list = ('id', 'scheme', 'code')
-        update_dict = create_update_dict(field_list)
+        update_dict = create_dict_with_empty_attr(field_list)
+
 # --- get id_dict  id_dict: {'temp_pk': 'new_1', 'create': True, 'parent_pk': 18}
-        id_dict, pk_int, parent_pk_int, temp_pk_str = get_id_dict(upload_dict)
+        id_dict = upload_dict.get('id')
+        pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename = get_iddict_variables(id_dict)
+
 # check if parent exists
         scheme = get_scheme(request.user.company, parent_pk_int)
 # check if team exists
@@ -1027,12 +1021,9 @@ def TeamUpload(request, upload_dict):  # PR2019-05-31
                 team_list = create_team_list(scheme.order)
                 if team_list:
                     team_update_dict['team_list'] = team_list
+
 # --- remove empty attributes from update_dict
-        # cannot iterate through update_dict because it changes during iteration
-        for field in field_list:
-            if not update_dict[field]:
-                del update_dict[field]
-        logger.debug('update_dict: ' + str(update_dict))
+        remove_empty_attr_from_dict(update_dict)
         if update_dict:
             team_update_dict['team_update'] = update_dict
         # update_dict: {'id': {'temp_pk': 'new_2', 'created': True, 'pk': 109, 'parent_pk': 20},
@@ -1042,29 +1033,26 @@ def TeamUpload(request, upload_dict):  # PR2019-05-31
         return team_update_dict
 
 
-def create_update_dict(field_list):
-# - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
-    update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
-    for field in field_list:
-        update_dict[field] = {}
-    return update_dict
+def get_iddict_variables(id_dict):
+# - get id_dict from upload_dict
+    # 'id': {'temp_pk': 'new_26', 'create': True, 'parent_pk': 1, 'table': 'teammembers'}
 
-def get_id_dict(upload_dict):
-# --- get id_dict  id_dict: {'temp_pk': 'new_1', 'create': True, 'parent_pk': 18} PR2019-05-31
-    id_dict = upload_dict.get('id', None)
+    tablename = ''
+    temp_pk_str = ''
     pk_int = 0
     parent_pk_int = 0
-    temp_pk_str = ''
-    if id_dict:
-        pk_str = str(id_dict.get('pk', ''))
-        if 'new' in pk_str:
-            temp_pk_str = pk_str
-        else:
-            pk_int = int(id_dict.get('pk', 0))
-            temp_pk_str = id_dict.get('temp_pk', '')
-        parent_pk_int = int(id_dict.get('parent_pk', 0))
+    is_create = False
+    is_delete = False
 
-    return id_dict, pk_int, parent_pk_int, temp_pk_str
+    if id_dict:
+        tablename = id_dict.get('table', '')
+        pk_int = int(id_dict.get('pk', 0))
+        parent_pk_int = int(id_dict.get('parent_pk', 0))
+        temp_pk_str = id_dict.get('temp_pk', '')
+        is_create = ('create' in id_dict)
+        is_delete = ('delete' in id_dict)
+
+    return pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename
 
 
 def get_order(company, order_pk):
@@ -1158,12 +1146,12 @@ class SchemeItemDownloadView(View):  # PR2019-03-10
 
 
 @method_decorator([login_required], name='dispatch')
-class SchemeItemUploadView(UpdateView):  # PR2019-04-26
-
+class SchemeItemUploadView(UpdateView):  # PR2019-06-01
+    # also for teammembers
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= SchemeItemUploadView ============= ')
 
-        schemeitem_update_dict = {}
+        item_update_dict = {}
 
         if request.user is not None and request.user.company is not None:
 # - Reset language
@@ -1177,117 +1165,286 @@ class SchemeItemUploadView(UpdateView):  # PR2019-04-26
             if upload_json:
                 upload_dict = json.loads(upload_json)
                 logger.debug('upload_dict: ' + str(upload_dict))
-                # upload_dict: {'id': {'temp_pk': 'new_1', 'create': True, 'parent_pk': 18}, 'shift': {'value': 'dag', 'update': True}}
+
+    # upload_dict: {'id': {'temp_pk': 'new_4', 'create': True, 'parent_pk': 82, 'table': 'teammembers'},
+    #             'team': {'update': True, 'value': 'PLoeg B', 'pk': 82},
+    #         'employee': {'update': True, 'value': 'Arlienne', 'pk': 282}}
+
+# upload_dict: {'id': {'pk': 682, 'parent_pk': 19}, 'rosterdate': {'value': '2019-04-03', 'update': True}}
+            pk_int = 0
+            parent_pk_int = 0
+            temp_pk_str = ''
+            is_create = False
+            is_delete = False
+            tablename = ''
+            msg_err = ''
+
+            scheme = None
+            team = None
+            employee = None
+            replacement = None
+            schemeitem = None
+            teammember = None
+
+# - get_iddict_variables
+            id_dict = upload_dict.get('id')
+            if id_dict:
+                pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename = get_iddict_variables(id_dict)
 
 # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
             update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
-            field_list = ('id', 'scheme', 'rosterdate', 'shift', 'team',
-                          'time_start', 'time_end', 'time_duration', 'break_duration')
+            field_list = ()
+            if tablename == 'schemeitems':
+                field_list = ('id', 'scheme', 'rosterdate', 'shift', 'team',
+                              'time_start', 'time_end', 'time_duration', 'break_duration')
+            elif tablename == 'teammembers':
+                field_list = ('id', 'team', 'employee', 'replacement', 'datefirst', 'datelast')
+            update_dict = create_dict_with_empty_attr(field_list)
 
-            for field in field_list:
-                update_dict[field] = {}
+# - check if parent exists (scheme is parent of schemeitem, team is parent of teammember (and scheme is parent of team)
+            parent_exists = False
+            if parent_pk_int:
+                if tablename == 'schemeitems':
+                    scheme = Scheme.objects.filter(id=parent_pk_int, order__customer__company=request.user.company).first()
+                    if scheme:
+                        parent_exists = True
+                elif tablename == 'teammembers':
+                    team = Team.objects.filter( id=parent_pk_int,scheme__order__customer__company=request.user.company).first()
+                    if team:
+                        scheme = team.scheme
+                        parent_exists = True
+            if parent_exists:
+                update_dict['id']['parent_pk'] = parent_pk_int
+                update_dict['id']['table'] = tablename
 
-
-# - get id_dict
-            field = 'id'
-            # id_dict: {'temp_pk': 'new_1', 'create': True, 'parent_pk': 18}
-            id_dict = upload_dict.get(field, None)
-
-            if id_dict:
-                pk_int = 0
-                pk_str = str(id_dict.get('pk', ''))
-                if 'new' in pk_str:
-                    temp_pk_str = pk_str
-                else:
-                    pk_int = int(id_dict.get('pk', 0))
-                    temp_pk_str = id_dict.get('temp_pk', '')
-
-                parent_pk_int = int(id_dict.get('parent_pk', 0))
-
-                is_create = ('create' in id_dict)
-                is_delete = ('delete' in id_dict)
-
-                logger.debug('pk_int: ' + str(pk_int) + ' type: ' + str(type(pk_int)))
-
-# - check if parent exists
-                scheme = None
-                if parent_pk_int:
-                    scheme = Scheme.objects.filter(
-                        id=parent_pk_int,
-                        order__customer__company=request.user.company
-                    ).first()
-                logger.debug('scheme: ' + str(scheme))
-
-    # check if schemeitem exists
-                schemeitem = None
-                if scheme:
+# check if item exists
+            item_exists = False
+            if pk_int and parent_exists and not is_create:
+                if tablename == 'schemeitems':
                     schemeitem = SchemeItem.objects.filter(id=pk_int, scheme=scheme).first()
-                    logger.debug('schemeitem: ' + str(schemeitem))
+                    if schemeitem:
+                        item_exists = True
+                elif tablename == 'teammembers':
+                    teammember = Teammember.objects.filter(id=pk_int, team=team).first()
+                    if teammember:
+                        item_exists = True
+                if item_exists:
+                    update_dict['id']['pk_int'] = pk_int
 
-# ===== Create new  schemeitem
-                if is_create:
-                    # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
-                    if temp_pk_str:
-                        update_dict['id']['temp_pk'] = temp_pk_str
-
-                    schemeitem = SchemeItem(scheme=scheme)
-                    schemeitem.save(request=self.request)
-                    logger.debug('new_schemeitem: ' + str(schemeitem))
-
-                    update_dict['id']['created'] = True
-
-                    # TODO change: ---  after saving new record: subtract 1 from company.balance
-                    request.user.company.balance -= 1
-                    request.user.company.save(request=self.request)
-
-                if schemeitem:
-                    update_dict['id']['pk'] = schemeitem.pk
-                    update_dict['id']['parent_pk'] = schemeitem.scheme.pk
+# - check if employee exists - employee is required field of teammember, is skipped in schemeitems (no field employee)
+            employee_exists = False
+            if tablename == 'teammembers':
+                employee_dict = upload_dict.get('employee')
+                if employee_dict:
+                    employee_pk = employee_dict.get('pk')
+                    if employee_pk:
+                        employee = Employee.objects.filter(id=employee_pk, company=request.user.company).first()
+                        if employee:
+                            employee_exists = True
 
 # ===== Delete schemeitem
-                if is_delete:
-                    # delete record when exists
-                    schemeitem.delete(request=self.request)
-# check if record still exist
-                    schemeitem = SchemeItem.objects.filter(id=pk_int, scheme=scheme).first()
-                    if schemeitem is None:
-                        update_dict['id']['deleted'] = True
+            if is_delete:
+                if item_exists:
+                    if tablename == 'schemeitems':
+                        schemeitem.delete(request=self.request)
+            # check if record still exists
+                        schemeitem = SchemeItem.objects.filter(id=pk_int, scheme=scheme).first()
+                        if schemeitem is None:
+                            update_dict['id']['deleted'] = True
+                        else:
+                            msg_err = _('This shift could not be deleted.')
+                            update_dict['id']['del_err'] = msg_err
+                    elif tablename == 'teammembers':
+                        teammember.delete(request=self.request)
+            # check if record still exists
+                        teammember = Teammember.objects.filter(id=pk_int, team=team).first()
+                        if teammember is None:
+                            update_dict['id']['deleted'] = True
+                        else:
+                            msg_err = _('This teammember could not be deleted.')
+                            update_dict['id']['error'] = msg_err
+
+# === Create new schemeitem or teammember
+            elif is_create:
+                if parent_exists:
+                    if tablename == 'schemeitems':
+                        schemeitem = SchemeItem(scheme=scheme)
+                        schemeitem.save(request=self.request)
+                        test_pk_int = schemeitem.pk
+                    # check if record exists
+                        schemeitem = SchemeItem.objects.filter(id=test_pk_int, scheme=scheme).first()
+                        if schemeitem:
+                            item_exists = True
+                            pk_int = schemeitem.pk
+# ===== Subtract 1 from company.balance
+                            # TODO change: ---  after saving new record: subtract 1 from company.balance
+                            request.user.company.balance -= 1
+                            request.user.company.save(request=self.request)
+
+                    elif tablename == 'teammembers':
+                        if employee_exists:
+# check if this employee already existst in this team
+                            msg_err = validate_employee_already_exists_in_teammember(employee, team, 0)
+                            if not msg_err:
+                    # create new teammember with this team and this employee
+                                teammember = Teammember(team=team, employee=employee)
+                                teammember.save(request=self.request)
+                                test_pk_int = teammember.pk
+                    # check if record exists
+                                teammember = Teammember.objects.filter(id=test_pk_int, team=team).first()
+                                if teammember:
+                                    item_exists = True
+                                    pk_int = teammember.pk
+
+                    if not item_exists:
+                        if not msg_err:
+                            msg_err = _('This item could not be created.')
+                        update_dict['id']['error'] = msg_err
                     else:
-                        msg_err = _('This shift could not be deleted.')
-                        update_dict['id']['del_err'] = msg_err
-                else:
+                        update_dict['id']['created'] = True
+                        update_dict['id']['pk'] = pk_int
+                        update_dict['id']['parent_pk'] = parent_pk_int
+                    # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
+                        if temp_pk_str:
+                            update_dict['id']['temp_pk'] = temp_pk_str
 
+                        if tablename == 'teammembers':
+                            # also create team dict, for display in table
+                            update_dict['team']['pk'] = teammember.team.pk
+                            update_dict['team']['value'] = teammember.team.code
+                            update_dict['team']['updated'] = True
+
+                            # also create employee dict, for display in table
+                            update_dict['employee']['pk'] = teammember.employee.pk
+                            update_dict['employee']['value'] = teammember.employee.code
+                            update_dict['employee']['updated'] = True
+
+            else:  # existing record
+                if item_exists:
 # update_schemeitem
-                    logger.debug('update_dict before: ')
-                    logger.debug(str(update_dict))
-                    update_schemeitem(scheme, schemeitem, upload_dict, update_dict, field_list, self.request, user_lang)
-                    logger.debug('update_dict after: ')
-                    logger.debug(str(update_dict))
+                    if tablename == 'schemeitems':
+                        update_schemeitem(scheme, schemeitem, upload_dict, update_dict, field_list, self.request, user_lang)
+                        schemeitem.save(request=self.request)
+                    elif tablename == 'teammembers':
+                        update_teammember(teammember, team, upload_dict, update_dict, self.request, user_lang)
+                        teammember.save(request=self.request)
 
-                # update schemeitem_list when changes are made
-                if 'team' in update_dict:
-                    if 'updated' in update_dict['team']:
-                        team_list = create_team_list(scheme.order)
-                        if team_list:
-                            schemeitem_update_dict['team_list'] = team_list
+# --- remove empty attributes from update_dict
+            remove_empty_attr_from_dict(update_dict)
+            if update_dict:
+                item_update_dict['item_update'] = update_dict
 
-                if update_dict:
-                    schemeitem_update_dict['schemeitem_update'] = update_dict
+            # update schemeitem_list when changes are made
+            if tablename == 'schemeitems':
+                schemeitem_list = create_schemeitem_list(scheme.order, user_lang)
+                if schemeitem_list:
+                    item_update_dict['schemeitem_list'] = schemeitem_list
+            elif tablename == 'teammembers':
+                teammember_list = create_teammember_list(scheme.order)
+                if teammember_list:
+                    item_update_dict['teammember_list'] = teammember_list
 
-                    # update schemeitem_list when changes are made
-                    schemeitem_list = create_schemeitem_list(scheme.order, user_lang)
-                    if schemeitem_list:
-                        schemeitem_update_dict['schemeitem_list'] = schemeitem_list
-
-        update_dict_json = json.dumps(schemeitem_update_dict, cls=LazyEncoder)
+        update_dict_json = json.dumps(item_update_dict, cls=LazyEncoder)
 
         return HttpResponse(update_dict_json)
 
 
+def update_teammember(teammember, team, upload_dict, update_dict, request, user_lang):
+    # --- update existing and new teammmber PR2-019-06-01
+    # add new values to update_dict (don't reset update_dict, it has values)
+    logger.debug(' ============= update_teammmber')
+    logger.debug('upload_dict' + str(upload_dict))
+    logger.debug('update_dict' + str(update_dict))
+    # {'id': {'temp_pk': 'new_26', 'create': True, 'parent_pk': 1, 'table': 'teammembers'},
+    # 'team': {'update': True, 'value': 'Team A', 'pk': 1},
+    # 'employee': {'update': True, 'value': 'Camila', 'pk': 243}}
+
+    save_changes = False
+
+# --- save changes in field 'employee'
+    # 'employee': {'update': True, 'value': 'Camila', 'pk': 243}}
+    for field in ['employee', 'replacement']:
+        if field in upload_dict:
+            field_dict = upload_dict.get(field)
+            logger.debug('upload_dict[' + field + ']: ' + str(field_dict) + ' ' + str(type(field_dict)))
+            if 'update' in field_dict:
+                pk = field_dict.get('pk')
+                employee = None
+                if pk:
+                    employee = Employee.objects.filter(id=pk, company=request.user.company).first()
+                logger.debug('employee]: ' + str(employee) + ' ' + str(type(employee)))
+                add_employee = False
+                if field == 'employee':
+                    if employee == None:
+                        update_dict[field]['error'] = _('This field cannot be blank.')
+                    else:
+                        msg_err = validate_employee_already_exists_in_teammember(employee, team, teammember.pk)
+                        if msg_err:
+                            update_dict[field]['error'] = msg_err
+                        else:
+                            add_employee = True
+
+                elif field == 'replacement':
+                    add_employee = True
+                if add_employee:
+                    setattr(teammember, field, employee)
+                    update_dict[field]['updated'] = True
+                    save_changes = True
+
+# - save changes in rosterdate field
+    for field in ['datefirst', 'datelast']:
+        if field in upload_dict:
+            field_dict = upload_dict.get(field)
+            logger.debug('field_dict ' + field + ': ' + str(field_dict) + str(type(field_dict)))
+            # field_dict datefirst: {'value': '2019-05-31', 'update':
+            field_value = field_dict.get('value') # field_value: '2019-04-12'
+            new_date, msg_err = get_date_from_str(field_value, True)  # True = blank_not_allowed
+            # new_date: 2019-04-12 <class 'datetime.date'>
+            # check if date is valid (empty date is not allowed)
+
+            if msg_err is not None:
+                update_dict[field]['err'] = msg_err
+            else:
+                saved_date = getattr(teammember, field, None)
+                if new_date != saved_date:
+                    # setattr() sets the value 'new_date' of the attribute 'field' of the object 'teammember'
+                    setattr(teammember, field, new_date)
+                    update_dict[field]['updated'] = True
+
+                    save_changes = True
+
+# --- save changes
+    if save_changes:
+        teammember.save(request=request)
+
+        for field in update_dict:
+            if field in ['datefirst', 'datelast']:
+                date = getattr(teammember, field)
+                if date:
+                    update_dict[field]['value'] = str(date)
+                    update_dict[field]['wdm'] = get_date_WDM_from_dte(date, user_lang)
+                    update_dict[field]['wdmy'] = get_date_WDMY_from_dte(date, user_lang)
+                    update_dict[field]['offset'] = get_weekdaylist_for_DHM(date, user_lang)
+            elif field in ['employee', 'replacement']:
+                employee = getattr(teammember, field)
+                if employee:
+                    update_dict[field]['value'] = teammember.employee.code
+                    update_dict[field]['team_pk'] = teammember.employee.id
+
+# --- remove empty attributes from update_dict
+    remove_empty_attr_from_dict(update_dict)
+
+    logger.debug('update_dict: ' + str(update_dict))
+
+
 def update_schemeitem(scheme, schemeitem, upload_dict, update_dict, field_list, request, user_lang):
-    # --- update existing and new schemeitem PR2-019-05-08
-    logger.debug(' ============= update_schemeitem ============= ')
+    # --- update existing and new schemeitem and teammmber PR2-019-06-01
+    # add new values to update_dict (don't reset update_dict, it has values)
+    logger.debug(' ============= update_schemeitem / teammmber')
     logger.debug(upload_dict)
+    # {'id': {'temp_pk': 'new_26', 'create': True, 'parent_pk': 1, 'table': 'teammembers'},
+    # 'team': {'update': True, 'value': 'Team A', 'pk': 1},
+    # 'employee': {'update': True, 'value': 'Camila', 'pk': 243}}
 
     # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
     # - update_dict is created in SchemeItemUploadView, contains id_dict with pk etc.
@@ -1296,21 +1453,11 @@ def update_schemeitem(scheme, schemeitem, upload_dict, update_dict, field_list, 
     calculate_hours = False
     recalc_time_fields = False
 
-    # if upload_dict:
-    #    # --- get id_dict
-    #    id_dict = upload_dict.get('id', None)
-    #    # id_dict: {'temp_pk': 'new_1', 'create': True, 'parent_pk': 18}
-    #    if id_dict:
-    #        pk_int = int(id_dict.get('pk', 0))
-    #        parent_pk_int = int(id_dict.get('parent_pk', 0))
-    #
-    #        is_new_schemeitem = ('create' in id_dict)
-    #        is_delete_schemeitem = ('delete' in id_dict)
-    #
-    #        temp_pk_str = id_dict.get('temp_pk', '')
-    #        logger.debug('pk_int: ' + str(pk_int) + ' type: ' + str(type(pk_int)))
+# - get_iddict_variables
+    id_dict = upload_dict.get('id')
+    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename = get_iddict_variables(id_dict)
 
-    # - save changes in rosterdate field
+# - save changes in rosterdate field
     field = 'rosterdate'
     if field in upload_dict:
         field_dict = upload_dict.get(field)
@@ -1385,7 +1532,8 @@ def update_schemeitem(scheme, schemeitem, upload_dict, update_dict, field_list, 
                 logger.debug('update_dict' + str(update_dict))
     # update time_start etc
 
-    # --- save changes in field 'team'
+# --- save changes in field 'team'
+    # 'team': {'update': True, 'value': 'Team A', 'pk': 1},
     field = 'team'
     if field in upload_dict:
         field_dict = upload_dict.get(field)
@@ -1417,6 +1565,7 @@ def update_schemeitem(scheme, schemeitem, upload_dict, update_dict, field_list, 
                     update_dict['team_list'] = team_list
             # update schemeitem
             if team:
+                # setattr() sets the value ('team') of the specified attribute ('field') of the specified object (schemeitem)
                 setattr(schemeitem, field, team)
                 update_dict[field]['updated'] = True
                 save_changes = True
@@ -1578,13 +1727,12 @@ def update_schemeitem(scheme, schemeitem, upload_dict, update_dict, field_list, 
                         schemeitem.time_duration,
                         user_lang)
 
-    # --- remove empty attributes from update_dict
-    # cannot iterate through update_dict because it changes during iteration
-    for field in field_list:
-        if not update_dict[field]:
-            del update_dict[field]
+# --- remove empty attributes from update_dict
+    remove_empty_attr_from_dict(update_dict)
 
     logger.debug('update_dict: ' + str(update_dict))
+
+
 
 
 def create_customer_list(company):
@@ -1664,10 +1812,9 @@ def create_team_list(order):
 
 def create_teammember_list(order):
     # create list of teams of this order PR2019-05-27
-    logger.debug('create_teammember_list')
     teammember_list = []
     if order:
-        teammembers = Teammember.objects.filter(team__scheme__order=order)
+        teammembers = Teammember.objects.filter(team__scheme__order=order).order_by('employee__code')
 
         for teammember in teammembers:
             dict = {'pk': teammember.pk,
@@ -1685,7 +1832,6 @@ def create_teammember_list(order):
 
 def create_shift_list(order):
     # create list of shifts of this scheme PR2019-05-01
-
     shift_list = []
     if order:
         # return all shifts that have value from the scheemitems of this scheme
@@ -1717,17 +1863,12 @@ def create_shift_list(order):
 
 def create_schemeitem_list(order, user_lang):
     # create list of schemeitems of this scheme PR2019-05-12
-    logger.debug("create_schemeitem_list")
-
     schemeitem_list = []
-    logger.debug("order: " + str(order))
     if order:
         schemeitems = SchemeItem.objects.filter(scheme__order=order)
-
         for schemeitem in schemeitems:
             schemeitem_dict = create_schemeitem_dict(schemeitem, user_lang)
             schemeitem_list.append(schemeitem_dict)
-
     return schemeitem_list
 
 
@@ -1794,11 +1935,8 @@ def create_schemeitem_dict(schemeitem, user_lang, temp_pk = None,
                     schemeitem_dict[field] = field_dict
 
 
-    # --- remove empty attributes from update_dict
-    # cannot iterate through update_dict because it changes during iteration
-    for field in field_list:
-        if not schemeitem_dict[field]:
-            del schemeitem_dict[field]
+# --- remove empty attributes from update_dict
+    remove_empty_attr_from_dict(schemeitem_dict)
 
     return schemeitem_dict
 

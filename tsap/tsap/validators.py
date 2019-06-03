@@ -1,7 +1,7 @@
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
-from companies.models import Company, Customer, Employee
+from companies.models import Company, Customer, Employee, Teammember
 
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS
 
@@ -270,4 +270,18 @@ class validate_unique_employee_name(object):  # PR2019-03-15
         if _value_exists:
             raise ValidationError(_('Company name already exists.'))
         return value
+
+
+def validate_employee_already_exists_in_teammember(employee, team, this_pk):
+    # - check if employee exists - employee is required field of teammember, is skipped in schemeitems (no field employee)
+    msg_err = None
+    exists = False
+    if employee and team:
+        if this_pk:
+            exists = Teammember.objects.filter(team=team, employee=employee).exclude(pk=this_pk).exists()
+        else:
+            exists = Teammember.objects.filter(team=team, employee=employee).exists()
+    if exists:
+        msg_err = _('This employee already exists.')
+    return msg_err
 

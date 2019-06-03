@@ -201,12 +201,12 @@ console.log("=========  function AddTableRow =========");
 // An input has a value attribute that determines the initial value of the input.
 // It also has a value property that holds the current value of the input
     function UploadChanges(el_changed) {
-        console.log("+++--------- UploadChanges  --------------");
-       // console.log( "el_changed: ", el_changed);
+        console.log("==== UploadChanges ");
+        console.log( "el_changed: ", el_changed);
 
 // ---  get clicked tablerow
         let tr_changed = get_tablerow_clicked(el_changed)
-        //console.log("tr_changed: ", tr_changed);
+        console.log("tr_changed: ", tr_changed);
 
         if(!!tr_changed) {
 // ---  get pk from id of tr_changed

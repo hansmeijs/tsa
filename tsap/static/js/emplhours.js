@@ -396,7 +396,7 @@ console.log("=========  function HandleCreateRecord =========");
             }
         }
         UploadTblrowChanged(tblRow);
-    };//function AddTableRow
+    };//function HandleCreateRecord
 
 //========= UploadChanges  ============= PR2019-03-03
     function UploadChanges(el_changed) {

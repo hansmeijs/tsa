@@ -439,6 +439,19 @@ class Emplhour(TsaBaseModel):
         return 'id_oeh_shift_' + str(self.pk)
 
 
+class EmplhourLog(TsaBaseModel):
+    objects = TsaManager()
+
+    emplhour = ForeignKey(Emplhour, related_name='emplhours', on_delete=CASCADE)
+
+    class Meta:
+        ordering = ['modified_at']
+
+    name = None
+    datefirst = None
+    datelast = None
+    inactive = None
+
 class SchemeItem(TsaBaseModel):
     objects = TsaManager()
     scheme = ForeignKey(Scheme, related_name='schemeitems', on_delete=CASCADE)

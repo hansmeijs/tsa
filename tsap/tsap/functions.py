@@ -620,3 +620,28 @@ def slice_firstlast_delim(list_str):  # PR2018-11-22
                 list_str = list_str[:-1]
     return list_str
 
+def create_dict_with_empty_attr(field_list):
+# - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+    update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
+    for field in field_list:
+        update_dict[field] = {}
+    return update_dict
+
+def remove_empty_attr_from_dict(dict):
+# --- function removes empty attributes from dict  PR2019-06-02
+    # logger.debug('--- remove_empty_attr_from_dict')
+    # logger.debug('dict: ' + str(dict))
+# create list of fields in dict
+    list = []
+    for field in dict:
+        list.append(field)
+    # logger.debug('list: ' + str(list))
+# iterate through list of fields in dict
+    # cannot iterate through dict because it changes during iteration
+    for field in list:
+        if field in dict:
+# remove empty attributes from dict
+            if not dict[field]:
+                del dict[field]
+                # logger.debug('deleted: ' + str(field))
+    #logger.debug('dict: ' + str(dict))
