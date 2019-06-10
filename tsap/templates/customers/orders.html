@@ -2,167 +2,140 @@
 {% load i18n %} {% load l10n %}
 {% load static %}
 
-{% block stylesheet %}
-   <link rel="stylesheet" href="{% static 'css/dateselector.css' %}">
-{% endblock %}
-
 {% block script %}
     <script src="{% static 'js/orders.js' %}"></script>
 {% endblock %}
 
 {% block content %}
-  {% if user.is_authenticated %}
-
-        <div class="popup display-show"  >
+    {% if user.is_authenticated %}
+        <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
         </div>
 
-        <div class="content_header">
-            <div class="content_subheader_left">
-                <h5 id="id_content_header_name" title="test title">{% trans 'Orders' %} </h5>
+        <!-- flex_container -->
+        <div class="flex_container mx-1 my-2">
+
+<!-- customer select table -->    <!-- flex_content -->
+            <div class="flex_content mx-1 my-2 tsa_bc_lightlightgrey">
+                <div class="content_subheader_left mx-2 my-1">
+                    <div>
+                        <table class="table table-condensed tsa-tbl">
+                            <thead class="mx-1 my-1 border_none">
+                                <tr class="mx-1 my-1">
+                                    <td class="mx-1 my-1 ">{% trans 'Select customer' %}:</td>
+                                </tr>
+                                <tr>
+                                    <td class="mx-1 my-1">
+                                        <input id="id_filter_customers" type="text" class="fieldname pt-0 pb-0" colspan=2 placeholder="{% trans 'filter name...' %}">
+                                    </td>
+                                </tr>
+                            </thead>
+                            <tbody id="id_tbody_select"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="content_subheader_right">
+<!-- customer select table -->   <!-- flex_content -->
+
+            <!-- content_wrapper -->
+            <div class="content_wrapper tsa_bc_transparent border_none">
+
+
+                <!-- customer header -->
+                <div class="content_subheader_right">
+                    <div class="content_header">
+                        <div class="content_subheader_left mx-2">
+                            <h5 id="id_hdr_customer">{% trans "Orders of customer" %}: </h5>
+                        </div>
+                    </div>
+                    <div class="content_header">
+                        <div class="content_subheader_left">
+                            <input id="id_filter_orders"
+                            type="text"
+                            class="fieldname pt-0 pb-0"
+                            placeholder="{% trans 'filter...' %}">
+                        </div>
+                    </div>
+                </div>
+                <!-- customer header -->
+
+                <!-- content body -->
+                <div class="content_body mx-2">
+
+                    <!-- popup container -->
+                    <div class="popup-container">
+
+                        <!-- =================== POPUP WDY  ===================
+                         <div id="id_popup_wdy" class="popup_box display_hide td_width_270">-->
+                         <div id="id_popup_wdy" class="popup_box tsa_bc_lightlightgrey display_hide">
+                             <!--<div class="popup_header">-->
+                                <input id="id_popup_date"  type="date" class="input_text mx-4 my-1" ></input>
+                             <!--</div>-->
+                         </div>
+                         <!-- =================== END POPUP  =================== -->
+
+                        <!-- =================== table orders  =================== -->
+                        <table class="table tsa-tbl">
+                            <thead>
+                                <th>{% trans 'Code' %}</th>
+                                <th>{% trans 'Order name' %}</th>
+                                <th>{% trans 'Start date' %}</th>
+                                <th>{% trans 'End date' %}</th>
+                                <th>
+                                    <a id="id_filter_inactive" href="#" data-value="false" title="{% trans 'Show inactive' %} {% trans 'orders' %}">
+                                        <img id="id_img_filter_inactive" src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
+                                    </a>
+                                </th>
+                            </thead>
+                            <tbody id="id_tbody_items"></tbody>
+                        </table>
+                        <!-- =================== table orders  =================== -->
+
+                    </div>
+                    <!-- popup container -->
+
+                </div>
+                <!-- content body -->
 
             </div>
+            <!-- content_wrapper -->
+
+                    </div> <!-- flex_container -->
+
+
+
+
+        <div id="id_data"
+            data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
+            data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
+            data-imgsrc_delete="{% static 'img/delete.gif' %}"
+            data-imgsrc_warning="{% static 'img/warning.gif' %}"
+
+            data-lang ="{{ lang }}"
+            data-interval ="{{ interval }}"
+            data-timeformat ="{{ timeformat }}"
+            data-weekdays ="{{ weekdays }}"
+            data-months ="{{ months }}"
+            data-today ="{{ today }}"
+
+            data-order_upload_url="{% url 'order_upload_url' %}"
+            data-datalist_download_url="{% url 'datalist_download_url' %}"
+            data-err_msg01= "{% trans 'An error occurred.' %}"
+
+            data-txt_orders_of_customer= "{% trans 'Orders of customer' %}"
+            data-txt_select_customer_none= "{% trans 'No customers' %}"
+            data-txt_order_add= "{% trans 'Add new order' %}"
+
+            data-txt_datefirst= "{% trans 'Start date' %}"
+            data-txt_datelast= "{% trans 'End date' %}"
+
+        >
         </div>
-        <div class="content_header">
-            <div class="content_subheader_left">
-                <input id="id_filter_name" type="text" class="fieldname pt-0 pb-0" colspan=2 placeholder="{% trans 'filter...' %}">
-            </div>
-            <div class="content_subheader_right">
-                <a id="id_btn_add" class="btn btn-add">{% trans 'Add order' %}</a>
-                <a id="id_btn_delete" class="btn btn-add">{% trans 'Delete order' %}</a>
-            </div>
-        </div>
-        <table class="table table table-condensed tsa-tbl">
-          <thead class="thead-inverse">
-            <tr>
-              <th>
-                <a id="id_filter_inactive" href="#"
-                   value="true">
-                    <img id="id_img_filter_inactive" src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
-                </a>
-              </th>
-              <th>{% trans 'Customer' %}</th>
-              <th>{% trans 'Order code' %}</th>
-              <th>{% trans 'Order name' %}</th>
-              <th>{% trans 'Start date' %}</th>
-              <th>{% trans 'End date' %}</th>
-              <th>{% trans 'Modified by' %}</th>
-              <th>{% trans 'Modified at' %}</th>
-            </tr>
-          </thead>
-          <tbody id="id_tbody">
-            {% for item in orders.all %}
-              <tr id="{{ item.pk }}" class="display_hide" >
-                <td>
-                    <a name="inactive" href="#"
-                       value="{{ item.inactive }}"
-                       class="input_icon">
-                        {% if item.inactive %}
-                            <img src="{% static 'img/inactive_black.png' %}" height="24" width="24">
-                        {% else %}
-                            <img src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
-                        {% endif %}
-                    </a>
-                </td>
-                <td>
-                    <!-- if autocomplete="off" doesn't work, use: autocomplete="new-password" -->
-                    <input name="customer"
-                           type="text"
-                           list="id_datalist_customers"
-                           autocomplete="off"
-                           ondragstart="return false;"
-                           ondrop="return false;"
-                           maxlength="{{ item.maxlen_code }}"
-                           value="{{ item.customer.code|default_if_none:''}}"
-                           o_value="{{ item.customer.code|default_if_none:''}}"
-                           class="input_text border-none" >
-                </td>
-                <td>
-                    <!-- if autocomplete="off" doesn't work, use: autocomplete="new-password" -->
-                    <input name="code"
-                           type="text"
-                           autocomplete="off"
-                           ondragstart="return false;"
-                           ondrop="return false;"
-                           maxlength="{{ item.maxlen_code }}"
-                           value="{{ item.code|default_if_none:''}}"
-                           o_value="{{ item.code|default_if_none:''}}"
-                           class="input_text border-none" >
-                </td>
-                <td>
-                    <input name="name"
-                           type="text"
-                           autocomplete="off"
-                           ondragstart="return false;"
-                           ondrop="return false;"
-                           maxlength="{{ item.maxlen_name }}"
-                           value="{{ item.name|default_if_none:''}}"
-                           o_value="{{ item.name|default_if_none:''}}"
-                           class="input_text border-none" >
-                </td>
-                <td >
-                    <input name="datefirst"
-                           type="date"
-                           autocomplete="off"
-                           ondragstart="return false;"
-                           ondrop="return false;"
-                           value={{ item.datefirst_str}}
-                           o_value={{ item.datefirst_str}}
-                           max="{{ item.datelast_str|default_if_none:''}}"
-                           class="input_text border-none" >
 
-                </td>
-                <td >
-                    <input name="datelast"
-                           type="date"
-                           autocomplete="off"
-                           ondragstart="return false;"
-                           ondrop="return false;"
-                           value={{ item.datelast_str}}
-                           o_value={{ item.datelast_str}}
-                           min="{{ item.datefirst_str|default_if_none:''}}"
-                           class="input_text border-none" >
+        <datalist id="id_datalist_customers"></datalist>
 
-                </td>
-                <td >
-                    <input name="modified_by"
-                           type="text"
-                           autocomplete="off"
-                           value="{{ item.modified_by}}"
-                           readonly="readonly"
-                           class="border-none" >
-                </td>
-                <td>
-                    <input name="modified_at"
-                           type="text"
-                           autocomplete="off"
-                           value="{{ item.modified_at|date:'DATETIME_FORMAT'}}"
-                           readonly="readonly"
-                           class="border-none" >
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-
-
-
-
-    <div id="id_data"
-        data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
-        data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
-        data-imgsrc_delete="{% static 'img/delete.gif' %}"
-        data-order_upload_url= "{% url 'order_upload_url' %}"
-        data-order_datalist_url= "{% url 'order_datalist_url' %}"
-        data-err_msg01= "{% trans 'An error occurred.' %}"
-    ></div>
-
-    <datalist id="id_datalist_customers"> </datalist>
-
-  {% else %}
-    <div class="alert alert-danger">{% trans 'Error' %}</div>
-    <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
-  {% endif %}
-{% endblock %}l>
+    {% else %}
+        <div class="alert alert-danger">{% trans 'Error' %}</div>
+        <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+    {% endif %}
+{% endblock %}

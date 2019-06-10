@@ -320,32 +320,6 @@ color: #000;
 }
 
 
-.tr_hover {
-   /* background-color: #7e98b5; /*lgreyish lightblue PR2019-01-05*/
-   /* background-color: #2d4e7780;
-   /* background: #2d4e7705 /* as #2d4e7780, but  25% opaque */
-
-   /* color: #ffffff;*/
-    -webkit-box-shadow: 3px 3px 5px 6px rgba(68, 68, 68, 0.6);  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */  /* Firefox 3.5 - 3.6 */
-    /* box-shadow: [horizontal offset] [vertical offset] [blur radius] [optional spread radius] [color]; */
-    box-shadow:         3px 3px 5px 6px rgba(68, 68, 68, 0.6);  /* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */
-}
-
-
-.tr_highlighted {
-    background-color:  #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
-    background:  #2d4e77cc;
-    color: #ffffff;
-
-        -webkit-transition: background 0.25s ease-in-out;
-               -o-transition: background 0.25s ease-in-out;
-               transition: background 0.25s ease-in-out;
-}
-
-.tr_disabled {
-    color: grey; /* #e0e0e0; /* default light grey */
-}
-
 .icon_show {
     display: ""
 

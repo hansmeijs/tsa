@@ -64,8 +64,6 @@
             <span class="popuptext" id="id_msgbox"></span>
         </div>
 
-
-
 <div class="flex_container">
 
     <div class="flex_content tsa_bc_lightlightgrey">
@@ -103,35 +101,42 @@
             </div>
 
             <div class="content_subheader_right mx-4 my-1">
-                <a id="id_btn_fill_rosterdate" class="btn btn-add">{% trans 'Fill rosterdate' %}</a>
+                <a id="id_btn_fill_rosterdate" class="btn btn-add">{% trans 'Fill roster' %} ...</a>
+                <a id="id_btn_fill_rosterdate2" class="btn btn-add">+++</a>
+                <a id="id_btn_fill_rosterdate3" class="btn btn-add">---</a>
 
             </div>
         </div>
         <div class="content_wrapper">
              <div class="content_header">
                 <div class="content_subheader_left">
-                    <label for="id_input_scheme" >{% trans 'Scheme' %}*</label>
-                    <input id="id_input_scheme"
+                    <label for="id_scheme_code" >{% trans 'Scheme' %}*</label>
+                    <input id="id_scheme_code"
                     type="text"
+                    data-field="code"
                     class="fieldname pt-0 pb-0">
                 </div>
                 <div class="content_subheader_left">
-                    <label for="id_input_cycle" >{% trans 'Cycle length' %}*</label>
-                    <input id="id_input_cycle"
-                    type="text"
+                    <label for="id_scheme_cycle" >{% trans 'Cycle length' %}*</label>
+                    <input id="id_scheme_cycle"
+                    type="number"
+                    data-field="cycle"
                     class="fieldname pt-0 pb-0">
+
                 </div>
                 <div class="content_subheader_left">
-                    <label for="id_input_datefirst" >{% trans 'Start date' %}</label>
-                    <input id="id_input_datefirst"
+                    <label for="id_scheme_datefirst" >{% trans 'Start date' %}</label>
+                    <input id="id_scheme_datefirst"
                     type="text"
-                    class="fieldname pt-0 pb-0">
+                    data-field="datefirst"
+                    class="fieldname pt-0 pb-0 input_popup_wdy">
                 </div>
                 <div class="content_subheader_left">
-                    <label for="id_input_datelast" >{% trans 'End date' %}</label>
-                    <input id="id_input_datelast"
+                    <label for="id_scheme_datelast" >{% trans 'End date' %}</label>
+                    <input id="id_scheme_datelast"
                     type="text"
-                    class="fieldname pt-0 pb-0">
+                    data-field="datelast"
+                    class="fieldname pt-0 pb-0 input_popup_wdy">
                 </div>
             </div>
         </div>
@@ -150,7 +155,7 @@
   <!-- =================== POPUP WDY  =================== -->
                  <div id="id_popup_wdy" class="popup_box display_hide td_width_220">
                      <div class="popup_header">
-                        <label  class="mx-4 my-1" >{% trans 'Roster date' %}</label>
+                        <label id="id_popup_wdy_header" class="mx-4 my-1" >{% trans 'Roster date' %}</label>
                         <button id="id_popup_wdy_close" type="button" class="close my-1" aria-label="Close">
                             <span class="popup_close" aria-hidden="true">&times;</span>
                         </button>
@@ -232,11 +237,15 @@
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
             data-today ="{{ today }}"
+
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-scheme_upload_url="{% url 'scheme_upload_url' %}"
             data-schemeitem_upload_url= "{% url 'schemeitem_upload_url' %}"
+            data-schemeitem_fill_url= "{% url 'schemeitem_fill_url' %}"
             data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
             data-schemeorteam_upload_url="{% url 'schemeorteam_upload_url' %}"
+            data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
+
             data-err_msg01= "{% trans 'An error occurred.' %}"
 
             data-txt_select_customer= "{% trans 'Select customer' %}"
@@ -249,7 +258,11 @@
             data-txt_date= "{% trans 'Date' %}"
             data-txt_scheme= "{% trans 'Scheme' %}"
             data-txt_scheme_add= "{% trans 'Add new scheme' %}"
+            data-txt_cycle_once= "{% trans 'Once only' %}"
 
+            data-txt_rosterdate= "{% trans 'Rosterdate' %}"
+            data-txt_fill_roster = "{% trans 'Fill roster' %}"
+            data-txt_of = "{% trans 'of' %}"
             data-txt_shift= "{% trans 'Shift' %}"
             data-txt_shift_add= "{% trans 'Enter shift' %}"
             data-txt_shift_delete= "{% trans 'Delete shift' %}"
@@ -268,8 +281,8 @@
 
             data-txt_employee= "{% trans 'Employee' %}"
             data-txt_replaces= "{% trans 'Replaces' %}"
-            data-txt_date_start= "{% trans 'Start date' %}"
-            data-txt_date_end= "{% trans 'End date' %}"
+            data-txt_datefirst= "{% trans 'Start date' %}"
+            data-txt_datelast= "{% trans 'End date' %}"
 
             data-txt_employee_add= "{% trans 'Enter employee' %}"
             data-msg_confirm_del1= "{% trans 'Do you want to delete the shift of' %}"
@@ -282,7 +295,6 @@
         <datalist id="id_datalist_shifts"></datalist>
         <datalist id="id_datalist_teams"></datalist>
         <datalist id="id_datalist_employees"></datalist>
-        <datalist id="id_datalist_replacements"></datalist>
 
     {% else %}
         <div class="alert alert-danger">{% trans 'Error' %}</div>

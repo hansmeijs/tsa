@@ -323,8 +323,8 @@ class UserEditView(UserPassesTestMixin, UpdateView):
         _is_active = bool(int(field_is_active))
         user.is_active = _is_active
 
-        user.modified_by = self.request.user
-        # user.modified_at will be updated in model.save
+        user.modifiedby = self.request.user
+        # user.modifiedat will be updated in model.save
 
         user.save(self.request)  # was: user.save()
         return redirect('user_list_url')
@@ -434,7 +434,7 @@ def UserActivate(request, uidb64, token):
         user.is_active = True
         user.activated = True
         # timezone.now() is timezone aware, based on the USE_TZ setting; datetime.now() is timezone naive. PR2018-06-07
-        user.activated_at = timezone.now()
+        user.activatedat = timezone.now()
         user.save()
         logger.debug('UserActivate def activate user.saved: ' + str(user))
 
@@ -526,12 +526,12 @@ class DownloadSubmenusView(View):  # PR2018-12-19
                 if key == c.KEY_USER_MENU_SELECTED:
                     selected_index = request.POST[key]
                     if Usersetting.objects.filter(
-                            user=request.user, key_str=c.KEY_USER_MENU_SELECTED).exists():
+                            user=request.user, code=c.KEY_USER_MENU_SELECTED).exists():
                         setting = Usersetting.objects.filter(
-                            user=request.user, key_str=c.KEY_USER_MENU_SELECTED).first()
+                            user=request.user, code=c.KEY_USER_MENU_SELECTED).first()
                     else:
                         setting = Usersetting(
-                            user=request.user, key_str=c.KEY_USER_MENU_SELECTED)
+                            user=request.user, code=c.KEY_USER_MENU_SELECTED)
                     setting.char01 = selected_index
                     setting.save()
                     href = reverse_lazy('import_student_url')

@@ -49,23 +49,37 @@
     return true;
 }
 
-//========= get_attr_from_element  ============= PR2019-04-12
+//========= get_attr_from_element  =============PR2019-06-07
     function get_attr_from_element(element, key, parse_int){
     // ---  get attr value from key: i.e. element["name"] = "break_duration"
-        let value_str = "", value_int = 0
+        let value;
+        if(!!element && !!key){
+            if(element.hasAttribute(key)){
+                value = element.getAttribute(key);
+            };
+        }
+        return value;
+    };
+//========= get_attr_from_element_str  ============= PR2019-06-07
+    function get_attr_from_element_str(element, key){
+        let value_str = "";
         if(!!element && !!key){
             if(element.hasAttribute(key)){
                 value_str = element.getAttribute(key);
-                if(parse_int){value_int = parseInt(value_str)}
             };
         }
-        if(parse_int){
-            return value_int;
-        } else {
-            return value_str;
-        }
+        return value_int;
     };
-
+//========= get_attr_from_element_int  ============= PR2019-06-07
+    function get_attr_from_element_int(element, key){
+        let value_int = 0;
+        if(!!element && !!key){
+            if(element.hasAttribute(key)){
+                value_int = parseInt(element.getAttribute(key))
+            };
+        }
+        return value_int;
+    };
 //========= get_arrayRow_by_keyValue  ====================================
     function get_arrayRow_by_keyValue (objArray, arrKey, keyValue) {
         // Function returns row of array that contains Value in objKey PR2019-01-05
@@ -123,9 +137,9 @@
 
 
 
-//=========  GetNewDateFromDate  ================ PR2019-05-06
-    function GetNewDateFromDate(o_date, add_day, add_month, add_year) {
-        // console.log("===  function GetNewDateFromDate =========");
+//=========  get_newdate_from_date  ================ PR2019-05-06
+    function get_newdate_from_date(o_date, add_day, add_month, add_year) {
+        // console.log("===  function get_newdate_from_date =========");
         // console.log("o_date", o_date , typeof o_date)
         // console.log("add_day", add_day , "add_month", add_month, "add_year", add_year, )
 
@@ -202,3 +216,15 @@
 
     } // function get_array_from_ISOstring
 
+//========= function value_has_changed  ==== PR2019-06-08
+    function value_has_changed(value,o_value ) {
+        let has_changed = false;
+        if (!!value){
+            if (!!o_value) {
+                has_changed = (value !== o_value);
+            } else {
+                has_changed = true}
+        } else {
+            has_changed = (!!o_value)};
+        return has_changed
+    }

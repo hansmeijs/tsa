@@ -262,7 +262,7 @@ console.log("Customers document.ready");
     function HandleFillRosterdate() {
 console.log("=========  function HandleFillRosterdate =========");
 
-        //row_upload: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
+        //row_upload: {pk: "11", code: "20", namelast: "Bom", blank_namefirst: "blank", prefix: "None", …}
         let rosterdate = "2019-04-03"
         let row_upload = {"rosterdate": rosterdate};
         console.log (row_upload);
@@ -332,7 +332,7 @@ console.log("=========  function HandleCreateRecord =========");
                 el.valueAsDate = new Date();
                 el.setAttribute("name", "rosterdate");
                 //el.setAttribute("value", today);
-                el.classList.add("border-none");
+                el.classList.add("border_none");
                 el.classList.add("input_text");
                 td.appendChild(el);
             } else if (j===4 || j===5){
@@ -344,7 +344,7 @@ console.log("=========  function HandleCreateRecord =========");
                 }
                 el.setAttribute("type", "time");
                 el.setAttribute("value", "");
-                el.classList.add("border-none");
+                el.classList.add("border_none");
                 el.classList.add("input_text");
                 td.appendChild(el);
                 td.appendChild(el);
@@ -390,7 +390,7 @@ console.log("=========  function HandleCreateRecord =========");
 
                 el.addEventListener("change", function() {UploadChanges(el);}, false )
                 el.classList.add("input_text");
-                el.classList.add("border-none");
+                el.classList.add("border_none");
 
                 td.appendChild(el);
             }
@@ -426,7 +426,7 @@ console.log("=========  function HandleCreateRecord =========");
                     // el_input is first child of td, td is cell of tr_changed
                     if(!!tr_changed.cells[i].children[0]){
                         el_input = tr_changed.cells[i].children[0];
-                        el_name = get_attr_from_element(el_input, "data-name")
+                        el_name = get_attr_from_element_str(el_input, "data-field")
 
                         console.log( "el_name: ", el_name,  "el_input.value: ", el_input.value);
                         if(!!el_name){
@@ -482,7 +482,6 @@ console.log("=========  function HandleCreateRecord =========");
 
                 };  //  for (let i = 0, el_input,
 
-                //row_upload: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
                 console.log ("row_upload dict before ajax: ");
                 console.log (row_upload);
                 let parameters = {"row_upload": JSON.stringify (row_upload)};
@@ -561,8 +560,8 @@ console.log("=========  function HandleCreateRecord =========");
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
             // row_update = {'id': {'pk': 7},
             // 'code': {'err': 'Customer code cannot be blank.', 'val': '1996.02.17.15'},
-            // 'name_last': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'El Chami'},
-            // 'name_first': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'Omar'}}<class 'dict'>
+            // 'namelast': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'El Chami'},
+            // 'namefirst': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'Omar'}}<class 'dict'>
 
 // get id_new and id_pk from row_update["id"]
             let id_new = "", id_pk = ""
@@ -599,7 +598,7 @@ console.log("=========  function HandleCreateRecord =========");
                         el_msg.classList.toggle("show");
 
                         let el_input = tblrow.querySelector("[name=code]");
-                        el_input.classList.add("border-invalid");
+                        el_input.classList.add("border_invalid");
 
                         //console.log("el_input (" + fieldname + "): " ,el_input)
                         let elemRect = el_input.getBoundingClientRect();
@@ -621,7 +620,7 @@ console.log("=========  function HandleCreateRecord =========");
             // if 'new' exists and 'pk' not: it is an unsaved record (happens when code is entered and name is blank)
 
                 if (!!id_new){
-                    id_attr = get_attr_from_element(tr_changed,"id")
+                    id_attr = get_attr_from_element_int(tr_changed,"id")
             // check if row_update.id 'new_1' is same as tablerow.id
                     if(id_new === id_attr){
         // update tablerow.id from id_new to id_pk
@@ -650,11 +649,11 @@ console.log("=========  function HandleCreateRecord =========");
                         let el_input = tr_changed.querySelector("[data-name=" + fieldname + "]");
                         console.log("el_input (" + fieldname + "): ", el_input)
                         if (!!el_input) {
-                            // set value of 'value', change to date when modified_at
+                            // set value of 'value', change to date when modifiedat
                             let value = "";
                             if("val" in item_dict) {
                                 value = item_dict["val"]
-                                if(fieldname === "modified_at") {
+                                if(fieldname === "modifiedat") {
                                     let newdate = new Date(value);
                                     //console.log("newdate", newdate, typeof newdate);
                                     value = newdate.toLocaleString()
@@ -666,8 +665,8 @@ console.log("=========  function HandleCreateRecord =========");
                                 html = item_dict["html"]
                             }
                             if('err' in item_dict){
-                                el_input.classList.add("border-none");
-                                el_input.classList.add("border-invalid");
+                                el_input.classList.add("border_none");
+                                el_input.classList.add("border_invalid");
 
                                 let el_msg = document.getElementById("id_msgbox");
                                 el_msg.innerHTML = item_dict['err'];
@@ -691,7 +690,7 @@ console.log("=========  function HandleCreateRecord =========");
                                 setTimeout(function (){
                                     el_input.value = value;
                                     el_input.setAttribute("o_value", value);
-                                    el_input.classList.remove("border-invalid");
+                                    el_input.classList.remove("border_invalid");
                                     el_msg.classList.toggle("show");
                                     },2000);
 
@@ -718,9 +717,9 @@ console.log("=========  function HandleCreateRecord =========");
                                     console.log("el_datefirst.max", el_datefirst.max);
                                 }
                                 */
-                                el_input.classList.add("border-valid");
+                                el_input.classList.add("border_valid");
                                 setTimeout(function (){
-                                    el_input.classList.remove("border-valid");
+                                    el_input.classList.remove("border_valid");
                                     }, 2000);
                             } else {
                                 el_input.value = value;
@@ -785,8 +784,8 @@ console.log("=========  function HandleCreateRecord =========");
 // TODO
         let rosterdatefirst = "2019-04-03";
         let rosterdatelast = "2019-04-05";
-        let param_upload = {"rosterdatefirst": rosterdatefirst, 'rosterdatelast': rosterdatelast}
-        let param = {"param_upload": JSON.stringify (param_upload)};
+        let datalist_download = {"rosterdatefirst": rosterdatefirst, 'rosterdatelast': rosterdatelast}
+        let param = {"datalist_download": JSON.stringify (datalist_download)};
         order_list = [];
         employee_list = [];
         // console.log("param", param)
@@ -835,9 +834,9 @@ console.log("=========  function HandleCreateRecord =========");
         }
 
         //let el_datalist_employees = document.getElementById("id_datalist_employees");
-       // el_input.classList.add("border-valid");
+       // el_input.classList.add("border_valid");
        // setTimeout(function (){
-       // el_input.classList.remove("border-valid");
+       // el_input.classList.remove("border_valid");
         //}, 2000);
 
     }; // function FillDatalists
@@ -971,7 +970,7 @@ $(document).mouseup(function (e) {
         el_popup.setAttribute("data-parent_pk", parent_pk)
 
 // put current value of start_time / endtime in el_popup
-        el_popup.setAttribute("data-name", get_attr_from_element(input_popup, "data-name"))
+        el_popup.setAttribute("data-field", get_attr_from_element(input_popup, "data-field"))
         //this one doesn't work: el_popup.data.name = input_popup.data.name
 
 // get current value of start_time / endtime from input_popup and store it in el_popup
@@ -1071,7 +1070,7 @@ $(document).mouseup(function (e) {
 
 // ---  show el_popup
         el_popup.classList.remove("display_hide");
-        let name = get_attr_from_element(input_popup, "data-name")
+        let name = get_attr_from_element(input_popup, "data-field")
 
 // ---  set focus to input element 'hours'
         el_popup_hour.focus();
@@ -1090,7 +1089,7 @@ console.log("=========  function HandlePopupSave =========");
         if (!!el_popup){
             if (el_popup.hasAttribute("data-pk")){id_str = el_popup.getAttribute("data-pk")}
             if (el_popup.hasAttribute("data-value")){saved_time_str = el_popup.getAttribute("data-value")}
-            if (el_popup.hasAttribute("data-name")){name_str = el_popup.getAttribute("data-name")}
+            if (el_popup.hasAttribute("data-field")){name_str = el_popup.getAttribute("data-field")}
         }
         console.log ("id_str",id_str)
         console.log ("name_str",name_str)

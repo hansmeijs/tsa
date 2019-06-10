@@ -100,7 +100,7 @@
                                        value="{{ item.rosterdate_yyyymmdd }}"
                                        o_value="{{ item.rosterdate_yyyymmdd}}"
                                        max="{{ record.datelast_str}}"
-                                       class="input_text border-none" >
+                                       class="input_text border_none" >
                             </td>
                             <td>
                                 <input data-name="order"
@@ -113,7 +113,7 @@
                                        maxlength="{{ item.maxlen_code }}"
                                        value="{{ item.order.code|default_if_none:''}}"
                                        o_value="{{ item.order.code|default_if_none:''}}"
-                                       class="input_text border-none td_width_120" >
+                                       class="input_text border_none td_width_120" >
                             </td>
                             <td>
                                 <input data-name="employee"
@@ -127,7 +127,7 @@
                                        maxlength="{{ item.maxlen_code }}"
                                        value="{{ item.employee.code|default_if_none:''}}"
                                        o_value="{{ item.employee.code|default_if_none:''}}"
-                                       class="input_text border-none td_width_120">
+                                       class="input_text border_none td_width_120">
                             </td>
                             <td td_width_180>
                                 {{ item.schemeitem.shift|default_if_none:''}}
@@ -148,7 +148,7 @@
                                        o_value="{{ item.break_hours}}"
                                        min="0"
                                        max="72"
-                                       class="input_text border-none td_width_060" >
+                                       class="input_text border_none td_width_060" >
                             </td>
                             <td class="input_text td_width_060">
                                 <input data-name="time_duration"
@@ -160,7 +160,7 @@
                                        o_value="{{ item.time_hours}}"
                                        min="0"
                                        max="72"
-                                       class="input_text border-none td_width_060" >
+                                       class="input_text border_none td_width_060" >
                             </td>
                             <td class="td_width_032">
                                 <a data-name="time_status" href="#"
@@ -199,7 +199,7 @@
                                        o_value="{{ item.orderhour_duration}}"
                                        min="-72"
                                        max="72"
-                                       class="inpXXut_text border-none td_width_060" >
+                                       class="inpXXut_text border_none td_width_060" >
                             </td>
                             <td class="td_width_032">
                                 <a data-name="orderhour_status" href="#"

@@ -11,9 +11,9 @@ class EmployeeAddForm(ModelForm):
 
     class Meta:
         model = Employee
-        fields = ('code', 'name_last', 'datefirst', 'datelast')
+        fields = ('code', 'namelast', 'datefirst', 'datelast')
         labels = {'code': _('Code'),
-                  'name_last': _('Last name'),
+                  'namelast': _('Last name'),
                   'datefirst': _('First date'),
                   'datelast': _('last date'),
                   }
@@ -27,7 +27,7 @@ class EmployeeEditForm(ModelForm):
 
     class Meta:
         model = Employee
-        fields = ('code', 'name_last', 'datefirst', 'datelast' , 'locked', 'inactive')
+        fields = ('code', 'namelast', 'datefirst', 'datelast' , 'locked', 'inactive')
         labels = {'code': _('Code'),
                   'name': _('Name'),
                   'datefirst': _('First date'),

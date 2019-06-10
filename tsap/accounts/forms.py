@@ -332,13 +332,13 @@ class UserResetPasswordForm(Form):
         if commit:
             logger.debug('UserResetPasswordForm before save password: ' + self.user.password)
             logger.debug('UserResetPasswordForm before save has_usable_password: ' + str(self.user.has_usable_password()))
-            logger.debug('UserResetPasswordForm before save modified_at: ' + str(self.user.modified_at))
-            self.user.modified_at = timezone.now
+            logger.debug('UserResetPasswordForm before save modifiedat: ' + str(self.user.modifiedat))
+            self.user.modifiedat = timezone.now
             self.user.save()
             logger.debug('UserResetPasswordForm password saved')
             logger.debug('UserResetPasswordForm after save password: ' + self.user.password)
             logger.debug('UserResetPasswordForm after save has_usable_password: ' + str(self.user.has_usable_password()))
-            logger.debug('UserResetPasswordForm after save modified_at: ' + str(self.user.modified_at))
+            logger.debug('UserResetPasswordForm after save modifiedat: ' + str(self.user.modifiedat))
 
             checked = self.user.check_password('jumper77')
             logger.debug('UserResetPasswordForm password checked: ' + str(checked))

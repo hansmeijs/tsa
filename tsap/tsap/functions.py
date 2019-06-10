@@ -217,13 +217,15 @@ def get_timeDHM_from_dhm(rosterdate, dhm_str, lang):
     # logger.debug('=== get_timeDHM_from_dhm ')
     # logger.debug('rosterdate: ' + str(rosterdate) + str(type(rosterdate)))
     # logger.debug('dhm_str: ' + str(dhm_str) + str(type(dhm_str)))
-    # convert rosterdate and dhm_str into loacl date
+    # convert rosterdate and dhm_str into local ISO date
     # dt_localized: 2019-03-31 04:48:00+02:00
     dt_localized = get_datetimelocal_from_DHM(rosterdate, dhm_str)
     # logger.debug('dt_localized: ' + str(dt_localized) + str(type(dt_localized)))
     # format to 'zo 31 mrt'
-    return get_datetimelocal_DHM(rosterdate, dt_localized, lang)
 
+    # function get_timelocal_formatDHM returns formatted time: "ma 18.15 u." or "Mon 6:15 p.m."
+    time_str = get_timelocal_formatDHM(rosterdate, dt_localized, lang)
+    return time_str
 
 def get_datetimeUTC_from_DHM(rosterdate, dhm_str):
 
@@ -290,17 +292,17 @@ def get_datetimelocal_from_DHM(rosterdate, dhm_str):
                                 new_minute)
 
             # offset date
-            dt_naive = date_no_offset + timedelta(days=day_offset)
             # dt_naive: 2019-03-31 04:48:00
+            dt_naive = date_no_offset + timedelta(days=day_offset)
             # logger.debug('dt_naive: ' + str(dt_naive))
 
             # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
-            timezone = pytz.timezone(TIME_ZONE)
             # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
+            timezone = pytz.timezone(TIME_ZONE)
             # logger.debug('timezone: ' + str(timezone) + str(type(timezone)))
 
-            dt_localized = timezone.localize(dt_naive)
             # dt_localized: 2019-03-31 04:48:00+02:00
+            dt_localized = timezone.localize(dt_naive)
             # logger.debug('dt_localized: ' + str(dt_localized))
 
             # Not in use
@@ -312,7 +314,7 @@ def get_datetimelocal_from_DHM(rosterdate, dhm_str):
     return dt_localized
 
 
-def get_datetimelocal_DHM(rosterdate, date_time, lang):
+def get_timelocal_formatDHM(rosterdate, date_time, lang):
     # Function returns date: "ma 18.15 u." or "Mon 6:15 p.m."
     # skip weekday when date equals rosterdate PR201`9-05-25
     # 12.00 a.m is midnight, 12.00 p.m. is noon
@@ -360,6 +362,7 @@ def get_datetimelocal_DHM(rosterdate, date_time, lang):
             time_str = ' '.join([weekday, hourstr, suffix])
     return time_str
 
+
 def get_date_from_dateint(date_int):  # PR2019-03-06
 # Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use dithis basedate)
 
@@ -385,6 +388,7 @@ def get_date_str_from_dateint(date_int):  # PR2019-03-08
         dte_str = year_str + '-' + month_str[-2:] + '-' + day_str[-2:]
     return dte_str
 
+
 def get_date_yyyymmdd(dte):
     # Function return date 'yyyy-mm-dd' PR2019-03-27
     dte_str = ''
@@ -394,6 +398,7 @@ def get_date_yyyymmdd(dte):
         day_str = str(dte.strftime("%d"))  # %d is zero-padded
         dte_str = '-'.join([year_str, month_str, day_str])
     return dte_str
+
 
 def get_time_HHmm(date_time):
     # Function return date 'HH:mm' PR2019-04-07
@@ -411,7 +416,6 @@ def get_time_HHmm(date_time):
         minute_str = str(date_time.strftime("%M")) # %m is zero-padded
         date_time_str = ':'.join([hour_str, minute_str])
     return date_time_str
-
 
 
 def get_date_HM_from_minutes(minutes, lang):  # PR2019-05-07
@@ -487,6 +491,24 @@ def get_date_WDMY_from_dte(dte, lang):  # PR2019-05-01
     return date_WDMY
 
 
+def get_date_DMY_from_dte(dte, lang):  # PR2019-06-09
+    # logger.debug('... get_date_WDM_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) + ' lang: ' + str(lang))
+    date_DMY = ''
+    if dte:
+        try:
+            year_str = str(dte.year)
+            day_str = str(dte.day)
+            month_lang = ''
+
+            if lang in MONTHS_ABBREV:
+                month_lang = MONTHS_ABBREV[lang]
+            month_str = month_lang[dte.month]
+
+            date_DMY = ' '.join([day_str, month_str, year_str])
+        except:
+            pass
+    return date_DMY
+
 
 
 
@@ -547,6 +569,29 @@ def get_time_longstr_from_dte(dte, lang):  # PR2019-04-13
     # logger.debug('............. date_longstr: ' + str(date_longstr) + ' lang: ' + str(lang))
     return date_longstr
 
+
+def get_date_diff_plusone(firstdate, lastdate): # PR2019-06-05
+    date_add = 0
+    if firstdate and lastdate:
+        date_add_timedelta = lastdate - firstdate + timedelta(days=1)
+        date_add = date_add_timedelta.days
+    return date_add
+
+def get_time_minutes(time_start, time_end, break_minutes):  # PR2019-06-05
+    # --- calculate working hours
+    new_time_minutes = 0
+    if time_start and time_end:
+        # duration unit in database is minutes
+        datediff = time_end - time_start
+        #logger.debug('datediff: ' + str(datediff) + str(type(datediff)))
+
+        datediff_minutes = int((datediff.total_seconds() / 60))
+        #logger.debug('datediff_minutes: ' + str(datediff_minutes) + str(type(datediff_minutes)))
+
+        new_time_minutes = int(datediff_minutes - break_minutes)
+        #logger.debug('new_time_minutes: ' + str(new_time_minutes) + str(type(new_time_minutes)))
+
+    return new_time_minutes
 
 def get_depbase_list_field_sorted_zerostripped(depbase_list):  # PR2018-08-23
     # sort depbase_list. List ['16', '15', '0', '18'] becomes ['0', '15', '16', '18'].
@@ -645,3 +690,28 @@ def remove_empty_attr_from_dict(dict):
                 del dict[field]
                 # logger.debug('deleted: ' + str(field))
     #logger.debug('dict: ' + str(dict))
+
+
+def get_iddict_variables(id_dict):
+# - get id_dict from upload_dict
+    # 'id': {'temp_pk': 'new_26', 'create': True, 'parent_pk': 1, 'table': 'teammembers'}
+
+    tablename = ''
+    temp_pk_str = ''
+    pk_int = 0
+    parent_pk_int = 0
+    is_create = False
+    is_delete = False
+
+    if id_dict:
+        tablename = id_dict.get('table', '')
+        pk_int = int(id_dict.get('pk', 0))
+        parent_pk_int = int(id_dict.get('parent_pk', 0))
+        temp_pk_str = id_dict.get('temp_pk', '')
+        is_create = ('create' in id_dict)
+        is_delete = ('delete' in id_dict)
+
+    return pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename
+
+
+

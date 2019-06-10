@@ -61,7 +61,7 @@ class CompanyAddForm(ModelForm):
 class CompanyEditForm(ModelForm):
     class Meta:
         model = Company
-        fields = ('code', 'name', 'datefirst', 'datelast', 'locked', 'inactive', 'modified_by', 'modified_at')
+        fields = ('code', 'name', 'datefirst', 'datelast', 'locked', 'inactive', 'modifiedby', 'modifiedat')
         labels = {'code': _('Code'),
                   'name': _('Name'),
                   'datefirst': _('First date'),

@@ -270,80 +270,154 @@ console.log("=========   handle_table_row_clicked   ======================") ;
     }
 //====================================================================
 
+//========= format_text_element  ======== PR2019-06-09
+    function format_text_element (el_input, field_dict) {
+        if(!!el_input && !!field_dict){
+            value = get_dict_value_by_key (field_dict, "value");
+            el_input.value = value;
+            el_input.setAttribute("data-value", value);
+            el_input.setAttribute("data-o_value", value);
+        }
+    }
+
+
+//========= format_duration_element format_time_element  ======== PR2019-06-09
+    function format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active ) {
+        // inactive: {value: true}
+        // console.log("+++++++++ format_inactive_element")
+        // console.log(field_dict)
+        // console.log(el_input)
+        if(!!el_input){
+            let is_inactive = false;
+            if(!isEmpty(field_dict)){
+                is_inactive = get_dict_value_by_key (field_dict, "value")
+            }
+            //console.log("is_inactive: ", is_inactive, typeof is_inactive)
+
+            el_input.setAttribute("data-value", is_inactive);
+            el_input.setAttribute("data-o_value", is_inactive);
+
+            // update icon
+            let imgsrc;
+            if (is_inactive) {imgsrc = imgsrc_inactive} else  {imgsrc = imgsrc_active}
+            el_input.children[0].setAttribute("src", imgsrc);
+        }
+    }
+
+//========= format_duration_element format_time_element  ======== PR2019-06-03
+    function format_duration_element (el_input, field_dict) {
+        // time_duration: {value: 540, hm: "9:00"}
+        if(!!el_input && !!field_dict){
+
+            let value = get_dict_value_by_key (field_dict, "value");
+            let hm = get_dict_value_by_key (field_dict, "hm");
+            let updated = get_dict_value_by_key (field_dict, "updated");
+            let msg_err = get_dict_value_by_key (field_dict, "error");
+
+            if(!!msg_err){
+               ShowMsgError(el_input, msg_err, - 160, true, value)
+            } else if(updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){
+                    el_input.classList.remove("border_valid");
+                    }, 2000);
+            }
+
+            if(!!value){
+                el_input.setAttribute("data-value", value);
+                el_input.setAttribute("data-o_value", value);
+            }
+            if(!!hm){
+                el_input.value = hm;
+            }
+        }
+    }  // function format_duration_element
+
+
+//========= function format_time_element  ======== PR2019-06-03
+    function format_time_element (el_input, field_dict) {
+        // time_start: {dhm: "Sun 10:00 p.m.", value: "-1;22;0"}
+        if(!!el_input && !!field_dict){
+
+            let value = get_dict_value_by_key (field_dict, "value");
+            let dhm = get_dict_value_by_key (field_dict, "dhm");
+            let updated = get_dict_value_by_key (field_dict, "updated");
+            let msg_err = get_dict_value_by_key (field_dict, "error");
+
+            if(!!msg_err){
+               ShowMsgError(el_input, msg_err, - 160, true, value)
+            } else if(updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){
+                    el_input.classList.remove("border_valid");
+                    }, 2000);
+            }
+
+            if(!!value){
+                el_input.setAttribute("data-value", value);
+                el_input.setAttribute("data-o_value", value);
+            }
+            if(!!dhm){
+                el_input.value = dhm;
+            }
+        }
+    }  // function format_time_element
+
 
 //========= function format_date_element  ======== PR2019-06-02
-    function format_date_element (el_input, field_dict) {
+    function format_date_element (el_input, field_dict, show_weekday, show_year) {
         // 'rosterdate': {'value': '1901-01-18', 'wdm': '1901-01-18', 'wdmy': '1901-01-18', 'offset': '-1:wo,0:do,1:vr'},
         if(!!el_input && !!field_dict){
 
             let value = get_dict_value_by_key (field_dict, "value");
             let wdm = get_dict_value_by_key (field_dict, "wdm");
             let wdmy = get_dict_value_by_key (field_dict, "wdmy");
+            let dmy = get_dict_value_by_key (field_dict, "dmy");
             let offset = get_dict_value_by_key (field_dict, "offset");
             let updated = get_dict_value_by_key (field_dict, "updated");
             let msg_err = get_dict_value_by_key (field_dict, "error");
 
-            let data_value = get_dict_value_by_key (field_dict, "data_value", value);
-            let data_o_value = get_dict_value_by_key (field_dict, "data_o_value", value);
-
             if(!!msg_err){
 
-                ShowMsgError(el_input, msg_err, - 160, true, value)
-
-                el_input.classList.add("border-none");
-                el_input.classList.add("border-invalid");
-
-                let el_msg = document.getElementById("id_msgbox");
-                el_msg.innerHTML = msg_err;
-                el_msg.classList.toggle("show");
-
-                let msgRect = el_msg.getBoundingClientRect();
-                const elemRect = el_input.getBoundingClientRect();
-                let topPos = elemRect.top - msgRect.height -100;
-                let leftPos = elemRect.left - 160;
-                let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-                el_msg.setAttribute("style", msgAttr)
-
-                setTimeout(function (){
-                    el_input.value = value;
-                    el_input.setAttribute("data-value", value);
-                    el_input.classList.remove("border-invalid");
-                    el_msg.classList.toggle("show");
-                    },2000);
+               ShowMsgError(el_input, msg_err, - 160, true, value)
 
             } else if(updated){
-                el_input.classList.add("border-valid");
+                el_input.classList.add("border_valid");
                 setTimeout(function (){
-                    el_input.classList.remove("border-valid");
+                    el_input.classList.remove("border_valid");
                     }, 2000);
             }
 
-
-            if(!!wdm){
-                el_input.value = wdm
-            }
-            if(!!wdmy){
-                el_input.title = wdmy
-                el_input.setAttribute("data-wdmy", wdmy)
-            }
-            if(!!offset){
-                el_input.setAttribute("data-offset", offset)
-            }
             if(!!value){
                 el_input.setAttribute("data-value", value);
                 el_input.setAttribute("data-o_value", value);
+            }
 
+            if(!!wdm){el_input.setAttribute("data-wdm", wdm)}
+            if(!!wdmy){el_input.setAttribute("data-wdmy", wdmy)}
+            if(!!dmy){el_input.setAttribute("data-dmy", dmy)}
+            if(!!offset){el_input.setAttribute("data-offset", offset)}
+
+            if (show_year) {
+                if (show_weekday){
+                    el_input.value = wdmy;
+                } else {
+                    el_input.value = dmy;
+                }
+            } else{
+                el_input.value = wdm;
+                el_input.title = wdmy
             }
 
         };  // if(!!el_input)
-    }
+    }  // function format_date_element
 
 //=========  ShowMsgError  ================ PR2019-06-01
     function ShowMsgError(el_input, msg_err, offset, set_value, value) {
     // show MsgBox with msg_err , offset shifts horizontal position
 
-        el_input.classList.add("border-none");
-        el_input.classList.add("border-invalid");
+        el_input.classList.add("border_none");
+        el_input.classList.add("border_invalid");
 
         let el_msg = document.getElementById("id_msgbox");
         el_msg.innerHTML = msg_err;
@@ -363,33 +437,21 @@ console.log("=========   handle_table_row_clicked   ======================") ;
                     el_input.value = value;
                     el_input.setAttribute("data-value", value);
                 }
-                el_input.classList.remove("border-invalid");
+                el_input.classList.remove("border_invalid");
                 el_msg.classList.toggle("show");
             }, 2000);
     }
 
 
-
-// ===================================================================
-//========= function get_data_pk_from_tblrow  ======== PR2019-06-02
-    function get_data_pk_from_tblrow (tblRow) {
-        let pk_int = 0;
-        if(!!tblRow) {
-            //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-            pk_int = parseInt( get_attr_from_element(tblRow, "data-pk"));
-        }
-        return pk_int
-    }
-
-//========= function create_iddict_from_tblrow  ======== PR2019-06-01
-    function create_iddict_from_tblrow (tblRow) {
-        // function gets 'data-pk' and 'data-parent_pk' from tblRow
+//========= function get_iddict_from_element  ======== PR2019-06-01
+    function get_iddict_from_element (el) {
+        // function gets 'data-pk' and 'data-parent_pk' from el
         // and puts it as 'pk', 'parent_pk', 'temp_pk' and 'create' in id_dict
         // id_dict = {'temp_pk': 'new_4', 'create': True, 'parent_pk': 120}
         let id_dict = {};
-        if(!!tblRow) {
-// ---  get pk from data-pk in tblRow
-            const pk_str = get_attr_from_element(tblRow, "data-pk"); // or: const pk_str = tblRow.id
+        if(!!el) {
+// ---  get pk from data-pk in el
+            const pk_str = get_attr_from_element(el, "data-pk"); // or: const pk_str = el.id
             //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
             let pk_int = parseInt(pk_str);
             // if pk_int is not numeric, then row is a new row with pk 'new_1' and 'create'=true
@@ -399,17 +461,37 @@ console.log("=========   handle_table_row_clicked   ======================") ;
             } else {
                 id_dict["pk"] = pk_int;
             };
-// get parent_pk from data-parent_pk in tblRow
-            const parent_pk_int = parseInt(get_attr_from_element(tblRow, "data-parent_pk"));
+// get parent_pk from data-parent_pk in el
+            const parent_pk_int = get_dataparentpk_from_element(el);
             if (!!parent_pk_int){id_dict["parent_pk"] = parent_pk_int}
 
-// get table_name from data-table in tblRow
-            const tblName = get_attr_from_element(tblRow, "data-table");
-            if (!!parent_pk_int){id_dict["table"] = tblName}
+// get table_name from data-table in el
+            const tblName = get_attr_from_element(el, "data-table");
+            if (!!tblName){id_dict["table"] = tblName}
         }
         return id_dict
-    }  // function create_iddict_from_tblrow
+    }  // function get_iddict_from_element
 
+
+//========= function get_datapk_from_element  ======== PR2019-06-02
+    function get_datapk_from_element (el) {
+        let pk_int = 0;
+        if(!!el) {
+            //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+            pk_int = get_attr_from_element_int(el, "data-pk");
+        }
+        return pk_int
+    }
+
+//========= function get_dataparentpk_from_element  ======== PR2019-06-06
+    function get_dataparentpk_from_element (el) {
+        let pk_int = 0;
+        if(!!el) {
+            //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+            pk_int = get_attr_from_element_int(el, "data-parent_pk");
+        }
+        return pk_int
+    }
 
 
 //========= function get_index_by_awpkey  ====================================
@@ -463,6 +545,16 @@ console.log("=========   handle_table_row_clicked   ======================") ;
         return parseInt(get_subdict_value_by_key (dict, "id", "parent_pk", 0))
     }
 
+//========= function is_updated  ================= PR2019-06-06
+    function is_updated (field_dict){
+        let updated = false
+        if (field_dict){
+            updated = ("updated" in field_dict)
+        }
+        return updated
+    }
+
+
 //========= function get_subdict_value_by_key  ================= PR2019-05-24
     function get_subdict_value_by_key (dict, key, subkey, default_value) {
         let value;
@@ -491,7 +583,6 @@ console.log("=========   handle_table_row_clicked   ======================") ;
         }
         return value;
     }
-
 
 //=========  get_offset_dict  ====================================
     function get_offset_dict (offset_str) {
@@ -590,3 +681,111 @@ console.log("=========   handle_table_row_clicked   ======================") ;
             tblRow.classList.remove("tsa_tr_ok");
         }, 2000);
     }
+
+
+//========= FilterRows  ====================================
+    function FilterTableRows(tblBody, filter, show_inactive) {
+        console.log( "===== FilterRows  ========= ");
+        console.log( "filter", filter, "show_inactive", show_inactive, typeof show_inactive);
+        // filter by inactive and substring of fields PR2019-06-09
+        for (let row_index = 0, tblRow, show_row, len = tblBody.rows.length; row_index < len; row_index++) {
+            tblRow = tblBody.rows[row_index]
+            show_row = ShowTableRow(tblRow, filter, show_inactive)
+            console.log( "show_row", show_row, typeof show_row);
+            if (show_row) {
+                tblRow.classList.remove("display_hide")
+            } else {
+                tblRow.classList.add("display_hide")
+            };
+        }
+    }; // function FilterRows
+
+
+//========= FilterTableRow  ====================================
+    function ShowTableRow(tblRow, filter_name, show_inactive) {
+        console.log( "===== ShowTableRow  ========= ");
+        console.log( "filter_name", filter_name, "show_inactive", show_inactive);
+        // filter by inactive and substring of fields
+
+        let show_row = true;
+        if (!!tblRow){
+// hide inactive rows if filter_hide_inactive
+            const col_last = tblRow.cells.length - 1
+            if (!show_inactive) {
+// last field may be field 'inactive'
+                let cell = tblRow.cells[col_last];
+                        console.log( "cell-value", cell);
+                if (!!cell){
+                    let el_inactive = cell.children[0];
+                        console.log( "el_inactive", el_inactive);
+                    if (!!el_inactive){
+                        let value = get_attr_from_element(el_inactive,"data-value","")
+                        console.log( "data-value", value, typeof value);
+                        if (!!value) {
+                            if (value.toLowerCase() === "true") {
+                                show_row = false;
+                            }
+                        }
+                    }
+                }
+            };
+    // show all rows  if filter_name = ""
+        // console.log( "show_row", show_row, typeof show_row);
+            if (show_row && !!filter_name){
+        // console.log( "show_row && !!filter_name", show_row, typeof show_row);
+                found = false
+                for (let col_index = 0, el_code; col_index < col_last; col_index++) {
+                    if (!!tblRow.cells[col_index].children[0]) {
+                        el_value = tblRow.cells[col_index].children[0].value;
+                        if (!!el_value){
+                            el_value = el_value.toLowerCase();
+                            console.log( "el_value:", el_value);
+                            if (el_value.indexOf(filter_name) !== -1) {
+                                found = true
+                                break;
+                    }}}
+                };  // for (let col_index = 1,
+                if (!found){show_row = false}
+            }  // if (show_row && !!filter_name){
+        }
+        return show_row
+    }; // function FilterTableRows
+
+
+
+
+//========= ShowRow ========= PR2019-06-09
+    function ShowRow(row_dict, field_list, filter, inactive_included) {
+        console.log("==== ShowRow ===")
+
+        // function filters by substring of filter, get value from attr "data-value" from element
+        let show_row = false;
+
+        const len = field_list.length
+        if (!len) {
+            show_row = true;
+        } else {
+
+            for (let i = 0, field_name, field_dict, value; i <len; i++) {
+                field_name = field_list[i];
+                field_dict = get_dict_value_by_key(row_dict, field_name)
+                value = get_dict_value_by_key(field_dict, "value")
+                console.log("field_name: ", field_name, "value: ", value, "field_dict: ", field_dict)
+
+// --- show active rows, when inactive_included: show also inactive rows
+        if (inactive_included || !inactive){
+// --- hide rows with empty value
+            if (!!value){
+    // --- show all rows if filter = ""
+                if (!filter){
+                    show_row = true
+                } else {
+                    value = value.toLowerCase();
+// --- show rows when substring 'filter' is  found in string 'value'
+                    show_row = (value.indexOf(filter) !== -1)
+        }}}
+
+            }  // for (let i = 0 ; i
+        }  // if (!len)
+        return show_row
+    }; // function ShowRow

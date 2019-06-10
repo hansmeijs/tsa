@@ -241,7 +241,7 @@ console.log("=========  function HandleCreateRecord =========");
             tblRow.classList.add("tsa_tr_selected")
 
             const el_cat = ["img", "input", "input", "input", "input", "input", "input"];
-            const el_name = ["img", "code", "name", "datefirst", "datelast", "modified_by", "modified_at"];
+            const el_name = ["img", "code", "name", "datefirst", "datelast", "modifiedby", "modifiedat"];
             const el_type = ["img", "text", "text", "date", "date", "text", "text"];
             const el_is_input = [true, true, true, true, true, false, false];
             for (let j = 0 ; j < 7; j++) { // was: 10
@@ -268,7 +268,7 @@ console.log("=========  function HandleCreateRecord =========");
                 el.setAttribute("autocomplete", "off");
                 el.setAttribute("ondragstart", "return false;");
                 el.setAttribute("ondrop", "return false;");
-                el.classList.add("border-none");
+                el.classList.add("border_none");
                 td.appendChild(el);
             }
     };//function HandleCreateRecord
@@ -338,7 +338,7 @@ console.log("=========  function HandleCreateRecord =========");
                     }  //  if(el_input.hasAttribute("name")){
                 };  //  for (let i = 0, el_input,
 
-                //customer: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
+                //customer: {pk: "11", code: "20", namelast: "Bom", blank_namefirst: "blank", prefix: "None", …}
 
                 let parameters = {"row_upload": JSON.stringify (customer)};
 console.log ("parameters: ");
@@ -420,8 +420,8 @@ console.log( response.row_update);
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
             // row_update = {'id': {'pk': 7},
             // 'code': {'err': 'Customer code cannot be blank.', 'val': '1996.02.17.15'},
-            // 'name_last': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'El Chami'},
-            // 'name_first': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'Omar'}}<class 'dict'>
+            // 'namelast': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'El Chami'},
+            // 'namefirst': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'Omar'}}<class 'dict'>
 
 // get id_new and id_pk from row_update["id"]
             let id_new = "", id_pk = ""
@@ -461,7 +461,7 @@ console.log( response.row_update);
 
                 let tblrow = document.getElementById(id_pk);
                 let el_input = tblrow.querySelector("[name=code]");
-                el_input.classList.add("border-invalid");
+                el_input.classList.add("border_invalid");
 
                 //console.log("el_input (" + fieldname + "): " ,el_input)
                 let elemRect = el_input.getBoundingClientRect();
@@ -511,13 +511,13 @@ console.log( response.row_update);
                         //console.log("el_input (" + fieldname + "): ", el_input)
                         if (!!el_input) {
 
-                            // set value of 'value', change to date when modified_at
+                            // set value of 'value', change to date when modifiedat
                             let value = '';
                             if('val' in item_dict) {
                                 // value = '2019-03-20'
                                 value = item_dict['val']
                                 console.log("item_dict[val]", value, typeof value);
-                                if(fieldname === "modified_at") {
+                                if(fieldname === "modifiedat") {
                                     let newdate = new Date(value);
                                     //console.log("newdate", newdate, typeof newdate);
                                     value = newdate.toLocaleString()
@@ -527,8 +527,8 @@ console.log( response.row_update);
 
                             if('err' in item_dict){
                         console.log("el_input (" + fieldname + "): ", el_input)
-                                el_input.classList.add("border-none");
-                                el_input.classList.add("border-invalid");
+                                el_input.classList.add("border_none");
+                                el_input.classList.add("border_invalid");
 
                                 let el_msg = document.getElementById("id_msgbox");
                                 el_msg.innerHTML = item_dict['err'];
@@ -552,7 +552,7 @@ console.log( response.row_update);
                                 setTimeout(function (){
                                     el_input.value = value;
                                     el_input.setAttribute("o_value", value);
-                                    el_input.classList.remove("border-invalid");
+                                    el_input.classList.remove("border_invalid");
                                     el_msg.classList.toggle("show");
                                     },2000);
 
@@ -574,9 +574,9 @@ console.log( response.row_update);
                                     console.log("el_datefirst.max", el_datefirst.max);
                                 }
 
-                                el_input.classList.add("border-valid");
+                                el_input.classList.add("border_valid");
                                 setTimeout(function (){
-                                    el_input.classList.remove("border-valid");
+                                    el_input.classList.remove("border_valid");
                                     }, 2000);
                             } else {
                                 el_input.value = value;

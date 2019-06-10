@@ -175,8 +175,9 @@ urlpatterns = [
         path('', planning_views.SchemesView.as_view(), name='schemes_url'),
         path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),
         path('upload', planning_views.SchemeUploadView.as_view(), name='scheme_upload_url'),
-        path('schemeitem_download', planning_views.SchemeItemDownloadView.as_view(), name='schemeitems_download_url'),
+        path('schemeitem_download', planning_views.SchemeitemDownloadView.as_view(), name='schemeitems_download_url'),
         path('schemeitem_upload', planning_views.SchemeItemUploadView.as_view(), name='schemeitem_upload_url'),
+        path('schemeitem_fill', planning_views.SchemeitemFillView.as_view(), name='schemeitem_fill_url'),
         path('schemeorteam_upload', planning_views.SchemeOrTeamUploadView.as_view(), name='schemeorteam_upload_url'),
     ])),
 

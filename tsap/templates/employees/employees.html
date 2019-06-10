@@ -69,25 +69,25 @@
                            maxlength="{{ item.maxlen_code }}"
                            value="{{ item.code}}"
                            o_value="{{ item.code}}"
-                           class="input_text border-none" >
+                           class="input_text border_none" >
                 </td>
                 <td>
-                    <input name="name_last"
+                    <input name="namelast"
                            type="text"
                            autocomplete="off"
-                           maxlength="{{ item.maxlen_name_last }}"
-                           value="{{ item.name_last}}"
-                           o_value="{{ item.name_last}}"
-                           class="input_text border-none" >
+                           maxlength="{{ item.maxlen_namelast }}"
+                           value="{{ item.namelast}}"
+                           o_value="{{ item.namelast}}"
+                           class="input_text border_none" >
                 </td>
                 <td>
-                    <input name="name_first"
+                    <input name="namefirst"
                            type="text"
                            autocomplete="off"
-                           maxlength="{{ item.maxlen_name_first }}"
-                           value="{{ item.name_first}}"
-                           o_value="{{ item.name_first}}"
-                           class="input_text border-none" >
+                           maxlength="{{ item.maxlen_namefirst }}"
+                           value="{{ item.namefirst}}"
+                           o_value="{{ item.namefirst}}"
+                           class="input_text border_none" >
                 </td>
                 <td>
                     <input name="prefix"
@@ -96,7 +96,7 @@
                            maxlength="{{ item.maxlen_prefix|default_if_none:'' }}"
                            value="{{ item.prefix}}"
                            o_value="{{ item.prefix}}"
-                           class="input_text border-none" >
+                           class="input_text border_none" >
                 </td>
                 <td>
                     <input name="email"
@@ -105,7 +105,7 @@
                            maxlength="{{ item.maxlen_email|default_if_none:'' }}"
                            value="{{ item.email}}"
                            o_value="{{ item.email}}"
-                           class="input_text border-none" >
+                           class="input_text border_none" >
                 </td>
                 <td>
                     <input name="telephone"
@@ -114,7 +114,7 @@
                            maxlength="{{ item.maxlen_telephone|default_if_none:'' }}"
                            value="{{ item.telephone|default_if_none:'-'}}"
                            o_value="{{ item.telephone}}"
-                           class="input_text border-none" >
+                           class="input_text border_none" >
                 </td>
                 <td >
                     <input name="datefirst"
@@ -123,24 +123,24 @@
                            value={{ item.datefirst_str}}
                            o_value={{ item.datefirst_str}}
                            max="{{ item.datelast}}"
-                           class="input_text border-none" >
+                           class="input_text border_none" >
 
                 </td>
                 <td >
-                    <input name="modified_by"
+                    <input name="modifiedby"
                            type="text"
                            autocomplete="off"
-                           value={{ item.modified_by }}
+                           value={{ item.modifiedby }}
                            readonly="readonly"
-                           class="border-none" >
+                           class="border_none" >
                 </td>
                 <td>
-                    <input name="modified_at"
+                    <input name="modifiedat"
                            type="text"
                            autocomplete="off"
-                           value="{{ item.modified_at|date:'DATETIME_FORMAT'}}"
+                           value="{{ item.modifiedat|date:'DATETIME_FORMAT'}}"
                            readonly="readonly"
-                           class="border-none" >
+                           class="border_none" >
                 </td>
                 <td>
                     <a name="delete"

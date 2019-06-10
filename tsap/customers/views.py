@@ -10,13 +10,15 @@ from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, CreateView, View
 
-from companies.models import Customer, Order
+from companies.models import Customer, Order, Scheme, Team
 
 from customers.forms import CustomerAddForm
 from companies.views import LazyEncoder
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_customer, check_date_overlap
-from tsap.functions import get_date_from_str
+from tsap.functions import get_date_from_str, create_dict_with_empty_attr, get_iddict_variables, \
+                        get_date_WDM_from_dte, get_date_WDMY_from_dte, get_date_DMY_from_dte, get_weekdaylist_for_DHM, \
+                        remove_empty_attr_from_dict
 
 import json
 
@@ -55,9 +57,9 @@ class CustomerAddView(CreateView):
                 # save examyear without commit
                 self.new_customer = form.save(commit=False)
                 self.new_customer.company = self.request.user.company
-                self.new_customer.modified_by = self.request.user
+                self.new_customer.modifiedby = self.request.user
                 # PR2018-06-07 datetime.now() is timezone naive, whereas timezone.now() is timezone aware, based on the USE_TZ setting
-                self.new_customer.modified_at = timezone.now()
+                self.new_customer.modifiedat = timezone.now()
 
                 # save examyear with commit
                 # PR2018-08-04 debug: don't forget argument (request), otherwise gives error 'tuple index out of range' at request = args[0]
@@ -95,7 +97,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # --- Create empty row_dict with keys for all fields. Unused ones will be removed at the end
         field_list = ('id', 'code', 'name', 'email', 'telephone',
-                      'datefirst', 'datelast', 'inactive', 'modified_by', 'modified_at')
+                      'datefirst', 'datelast', 'inactive', 'modifiedby', 'modifiedat')
 
         row_dict = {}  # this one is not working: row_dict = dict.fromkeys(field_list, {})
         for field in field_list:
@@ -237,7 +239,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                     logger.debug('customer updated: ' + str(customer.name) + ' pk: ' + str(customer.pk))
 
     # enter saved value in row_dict when value is updated
-                                # add modified_by and modified_at here,
+                                # add modified_by and modifiedat here,
                                 # otherwise the attr row_dict['modified_by'] will be deleted in de next code block
                                 logger.debug('row_dict updated: ' + str(row_dict))
                                 is_updated = False
@@ -271,11 +273,11 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                         else:
                                             row_dict[field]['val'] = getattr(customer, field, '')
 
-                                # add modified_by and modified_at attributes when updated
+                                # add modified_by and modifiedat attributes when updated
                                 #if is_updated:
                                 if is_updated:
-                                    row_dict['modified_by']['val'] = customer.modified_by.username_sliced
-                                    row_dict['modified_at']['val'] = customer.modified_at
+                                    row_dict['modifiedby']['val'] = customer.modifiedby.username_sliced
+                                    row_dict['modifiedat']['val'] = customer.modifiedat
 
 # --- remove empty attributes from row_dict
         # cannot iterate through row_dict because it changes during iteration
@@ -286,7 +288,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
         row_update = {'row_update': row_dict}
        # row_update = {'row_upd': {'idx': {'pk': '1'}, 'code': {'status': 'upd'}, 'modified_by': {'val': 'Hans'},
-        #              'modified_at': {'val': '29 mrt 2019 10.20u.'}}}
+        #              'modifiedat': {'val': '29 mrt 2019 10.20u.'}}}
 
         logger.debug('row_update: ')
         logger.debug( str(row_update))
@@ -315,211 +317,95 @@ class OrderUploadView(UpdateView):# PR2019-03-04
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= OrderUploadView ============= ')
 
-# --- Create empty row_dict with keys for all fields. Unused ones will be removed at the end
-        field_list = ('id', 'customer', 'code', 'name',
-                      'datefirst', 'datelast', 'inactive', 'modified_by', 'modified_at')
-
-        row_dict = {}  # this one is not working: row_dict = dict.fromkeys(field_list, {})
-        for field in field_list:
-            row_dict[field] = {}
-
+        item_update_dict = {}
         if request.user is not None and request.user.company is not None:
-# --- Reset language
+            # - Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else 'nl'
             activate(user_lang)
 
-            if 'row_upload' in request.POST:
-                # row_upload: "{"pk":"new_1","customer":10,"code":"post"}"
-                row_upload = json.loads(request.POST['row_upload'])
-                if row_upload is not None:
-                    logger.debug('row_upload ' + str(row_upload))
+# - get upload_dict from request.POST
+            upload_dict = {}
+            upload_json = request.POST.get('upload', None)
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+                logger.debug('upload_dict: ' + str(upload_dict))
+                # upload_dict: {'id': {'temp_pk': 'new_1', 'create': True, 'parent_pk': 3, 'table': 'orders'},
+                #               'code': {'update': True, 'value': 'ee'}}
 
-                    order = None
-                    if 'pk' in row_upload and row_upload['pk']:
-# --- check if it is new record, get company if is existing record
-                        # new_record has pk 'new_1' etc
-                        if row_upload['pk'].isnumeric():
-                            pk_int = int(row_upload["pk"])
-                            order = Order.objects.filter(id=pk_int, customer__company=request.user.company).first()
+                instance = None
+
+# - get_iddict_variables
+                id_dict = upload_dict.get('id')
+                if id_dict:
+                    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
+
+# - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+                    field_list = ('id', 'code', 'name', 'datefirst', 'datelast', 'inactive')
+                    update_dict = create_dict_with_empty_attr(field_list)
+
+# - check if parent exists (customer is parent of order)
+                    parent_instance = Order.get_parent_instance(parent_pk_int, update_dict, request.user.company)
+                    logger.debug('parent_instance: ' + str(parent_instance))
+                    if parent_instance:
+# - Delete item
+                        if is_delete:
+                            Order.delete_instance(pk_int, parent_pk_int, update_dict, request.user.company)
+
+# === Create new order or customer
+                        elif is_create:
+                            code = None
+                            name = None
+                            code_dict = upload_dict.get('code')
+                            if code_dict:
+                                code = code_dict.get('value')
+                            name_dict = upload_dict.get('name')
+                            if name_dict:
+                                name = name_dict.get('value')
+                            if name is None:
+                                name = code
+                            instance = Order.create_instance(parent_instance, code, name, temp_pk_str, update_dict, request)
+                            logger.debug('new instance: ' + str(instance))
+
+# - update instance
                         else:
-                            # this attribute 'new': 'new_1' is necessary to lookup unsaved request row on page
-                            row_dict['id']['new_id'] = row_upload['pk']
+                            instance = Order.get_instance(pk_int, update_dict, request.user.company)
+                            logger.debug('instance: ' + str(instance))
 
-                        logger.debug('row_dict ' + str(row_dict))
+                            # update_item, also when it is a created item
+                            if instance:
+                                update_instance(instance, upload_dict, update_dict, request, user_lang)
+                            logger.debug('updated instance: ' + str(instance))
 
-                        is_new_record = False
-                        save_changes = False
+                    # --- remove empty attributes from update_dict
+                    remove_empty_attr_from_dict(update_dict)
+                    logger.debug('update_dict: ' + str(update_dict))
 
-# ++++ enter new record ++++++++++++++++++++++++++++++++++++
-                        if order is None:
-# --- validate if 'code' or 'name already exist and are not blank
-                            customer = None
-                            if 'customer' in row_upload and row_upload['customer']:
-                                customer_id = row_upload['customer']
-                                customer = Customer.objects.filter(id=customer_id, company=request.user.company).first()
+                    if update_dict:
+                        item_update_dict['item_update'] = update_dict
 
-                            new_value = {'code': '', 'name': ''}
-                            for field in ('code', 'name'):
-                                if field in row_upload:
-                                    value_upload = row_upload[field] #if row_upload[field] else ''
-                                    msg_err = validate_customer(field, value_upload, request.user.company)
-                                    if msg_err:
-                                        row_dict[field]['err'] = msg_err
-                                    else:
-                                        new_value[field] = value_upload
+    # update schemeitem_list when changes are made
+                    if table == 'customer':
+                        scheme_list = Scheme.create_scheme_list(instance.order, user_lang)
+                        if scheme_list:
+                            item_update_dict['scheme_list'] = scheme_list
+                    elif table == 'team':
+                        team_list = Team.create_team_list(instance.scheme)
+                        if team_list:
+                            item_update_dict['team_list'] = team_list
 
-# --- add record if not has_error and both fields have value
-                            if customer and new_value['code'] and new_value['name']:
-                                logger.debug('order.save')
-                                order = Order(customer=customer,
-                                            code=new_value['code'],
-                                            name=new_value['name'])
-                                order.save(request=self.request)
-                                is_new_record = True
-
-# ++++ existing and new order ++++++++++++++++++++++++++++++++++++
-                        if order is not None:
-                            # logger.debug('field: ' + str(field))
-# --- add pk to row_dict
-                            pk_int = order.pk
-                            row_dict['id']['pk'] = pk_int
-
-# --- delete record when key 'delete' exists in
-                            if 'delete' in row_upload:
-                                logger.debug('before delete ' + order.name)
-                                order.delete(request=self.request)
-                        # check if order still exist
-                                order = Order.objects.filter(id=pk_int, customer__company=request.user.company).first()
-                                if order is None:
-                                    row_dict['id']['deleted'] = True
-                                else:
-                                    msg_err = _('This record could not be deleted.')
-                                    row_dict['id']['del_err'] = msg_err
-
-                                logger.debug('after delete row_dict: ' + str(row_dict))
-                            else:  # not a deleted record
-
-# --- validate if fields 'code' or 'name already exist and are not blank (when new record this is already done)
-                                if not is_new_record:
-                                    for field in ('code', 'name'):
-                                        if field in row_upload:
-                                            value_upload = row_upload[field] if row_upload[field] else ''
-                                            msg_err = validate_customer(field, value_upload, request.user.company, pk_int)
-                                            if msg_err:
-                                                row_dict[field]['err'] = msg_err
-                                            else:
-                                                value_saved = getattr(order, field, '')
-                                                logger.debug('value_saved: ' + str(value_saved))
-                                                if value_upload != value_saved:
-                                                    setattr(order, field, value_upload)
-                                                    row_dict[field]['upd'] = True
-                                                    save_changes = True
-
-    # --- save changes in date fields
-                                for field in ('datefirst', 'datelast'):
-                                    if field in row_upload:
-                                        new_date, msg_err = get_date_from_str(row_upload[field], False) # False = blank_allowed
-                                        logger.debug('new_date: ' + str(new_date))
-                                # check if date is valid (empty date is ok)
-                                        if msg_err is not None:
-                                            row_dict[field]['err'] = msg_err
-                                        else:
-                                # check overlap, only when both fields have value
-                                            is_datefirst = True if field == 'datefirst' else False
-                                            date_first = new_date if is_datefirst else order.datefirst
-                                            date_last = order.datelast if is_datefirst else new_date
-                                            msg_err = check_date_overlap(date_first, date_last, is_datefirst)
-                                            if msg_err is not None:
-                                                row_dict[field]['err'] = msg_err
-                                            else:
-                                                saved_date = getattr(order, field, None)
-                                                if new_date != saved_date:
-                                                    setattr(order, field, new_date)
-                                                    row_dict[field]['upd'] = True
-                                                    save_changes = True
-
-    # --- save changes in inactive field
-                                for field in ('inactive', 'locked'):
-                                    if field in row_upload:
-                                        new_value = row_upload[field] if row_upload[field] else False
-                                        saved_value = getattr(order, field, False)
-                                        if new_value != saved_value:
-                                            setattr(order, field, new_value)
-                                            row_dict[field]['upd'] = True
-                                            save_changes = True
-
-    # --- save changes
-                                if save_changes:
-                                    order.save(request=self.request)
-                                    logger.debug('order updated: ' + str(order.name) + ' pk: ' + str(order.pk))
-
-    # enter saved value in row_dict when value is updated
-                                # add modified_by and modified_at here,
-                                # otherwise the attr row_dict['modified_by'] will be deleted in de next code block
-                                logger.debug('row_dict updated: ' + str(row_dict))
-                                is_updated = False
-                                for field in row_dict:
-                                    if 'upd' in row_dict[field] or 'err' in row_dict[field]:
-                                        if 'upd' in row_dict[field]:
-                                            is_updated = True
-                                        if field in ('datefirst', 'datelast'):
-                                            field_str = field + '_str'
-                                            logger.debug('field_str: ' + str(field_str))
-                                            saved_value_str = getattr(order, field_str, None)
-                                            logger.debug('saved_value_str: ' + str(saved_value_str))
-                                            if saved_value_str:
-                                                row_dict[field]['val'] = saved_value_str
-                                        elif field in ('inactive', 'locked'):
-                                            row_dict[field]['val'] = getattr(order, field, False)
-                                        else:
-                                            row_dict[field]['val'] = getattr(order, field, '')
-
-                                    if 'err' in row_dict[field]:
-                                        is_updated = True
-                                        if field in ('datefirst', 'datelast'):
-                                            field_str = field + '_str'
-                                            logger.debug('field_str: ' + str(field_str))
-                                            saved_value_str = getattr(order, field_str, None)
-                                            logger.debug('saved_value_str: ' + str(saved_value_str))
-                                            if saved_value_str:
-                                                row_dict[field]['val'] = saved_value_str
-                                        elif field in ('inactive', 'locked'):
-                                            row_dict[field]['val'] = getattr(order, field, False)
-                                        else:
-                                            row_dict[field]['val'] = getattr(order, field, '')
-
-                                # add modified_by and modified_at attributes when updated
-                                #if is_updated:
-                                if is_updated:
-                                    row_dict['modified_by']['val'] = order.modified_by.username_sliced
-                                    row_dict['modified_at']['val'] = order.modified_at_str(user_lang)
-
-# --- remove empty attributes from row_dict
-        # cannot iterate through row_dict because it changes during iteration
-        for field in field_list:
-            if not row_dict[field]:
-                del row_dict[field]
-
-
-        row_update = {'row_update': row_dict}
-       # row_update = {'row_upd': {'idx': {'pk': '1'}, 'code': {'status': 'upd'}, 'modified_by': {'val': 'Hans'},
-        #              'modified_at': {'val': '29 mrt 2019 10.20u.'}}}
-
-        logger.debug('row_update: ')
-        logger.debug( str(row_update))
-
-        return HttpResponse(json.dumps(row_update, cls=LazyEncoder))
-
+            # update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
+            update_dict_json = json.dumps(item_update_dict, cls=LazyEncoder)
+            return HttpResponse(update_dict_json)
 
 
 @method_decorator([login_required], name='dispatch')
 class OrderDownloadDatalistView(View):  # PR2019-03-10
     # function updates customers list
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= OrderDownloadDatalistView ============= ')
-        # logger.debug('request.POST' + str(request.POST) )
-
+        logger.debug(' ============= OrderDownloadDatalistView ============= ')
+        logger.debug('request.POST' + str(request.POST) )
+        # 'datalist_download': ['{"customers": true,"orders":true}']}>
         datalists = {}
         if request.user is not None:
             if request.user.company is not None:
@@ -541,6 +427,177 @@ class OrderDownloadDatalistView(View):  # PR2019-03-10
         # logger.debug(str(datalists_json))
 
         return HttpResponse(datalists_json)
+
+def get_parent_instance(table, parent_pk_int, update_dict, company):
+    # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-06-06
+    parent_instance = None
+    if parent_pk_int:
+        if table == 'order':
+            parent_instance = Customer.objects.filter(id=parent_pk_int, company=company).first()
+        if parent_instance:
+            update_dict['id']['parent_pk'] = parent_pk_int
+            update_dict['id']['table'] = table
+    return parent_instance
+
+
+def get_instance(table, pk_int, parent_instance, update_dict):
+    # function returns instance of table PR2019-06-06
+    instance = None
+    if pk_int and parent_instance:
+        if table == 'customer':
+            instance = Customer.objects.filter(id=pk_int, company=parent_instance).first()
+        elif table == 'order':
+            instance = Order.objects.filter(id=pk_int, customer=parent_instance).first()
+        if instance:
+            update_dict['id']['pk_int'] = pk_int
+    return instance
+
+
+# === Create new order
+def create_instance(table, parent_instance, code, name, temp_pk_str, update_dict, request):
+    instance = None
+    pk_int = None
+    parent_pk_int = None
+# - parent and code are required
+    if parent_instance and code:
+# - create instance
+        if table == 'order':
+            instance = Order(customer=parent_instance, code=code, name=name)
+        elif table == 'customer':
+            instance = Customer(company=parent_instance, code=code, name=name)
+# - save instance
+        instance.save(request=request)
+# - create error when instance not created
+        if instance is None:
+            msg_err = _('This %(instancename) could not be created.') % {'instancename': table}
+            update_dict['id']['error'] = msg_err
+        else:
+# - put info in id_dict
+            update_dict['id']['created'] = True
+            update_dict['id']['pk'] = instance.pk
+            if table == 'order':
+                update_dict['id']['parent_pk'] = instance.customer.pk
+            elif table == 'customer':
+                update_dict['id']['parent_pk'] = instance.company.pk
+
+# this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
+        if temp_pk_str:
+            update_dict['id']['temp_pk'] = temp_pk_str
+
+    return instance
+
+
+#######################################################
+def update_instance(instance, upload_dict, update_dict, request, user_lang):
+    # --- update existing and new instance PR2019-06-06
+    # add new values to update_dict (don't reset update_dict, it has values)
+    logger.debug(' --- update_instance')
+    logger.debug(upload_dict)
+    # upload_dict: {'id': {'temp_pk': 'new_2', 'create': True, 'parent_pk': 3, 'table': 'orders'},
+    # 'code': {'update': True, 'value': 'ee'}}
+
+    save_changes = False
+
+# - get_iddict_variables
+    id_dict = upload_dict.get('id')
+    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename = get_iddict_variables(id_dict)
+
+# --- save changes in field 'code', required field
+    for field in ['code', 'name']:
+        if field in upload_dict:
+            field_dict = upload_dict.get(field)
+            logger.debug('field_dict: ' + str(field_dict))
+
+            new_value = field_dict.get('value')
+            saved_value = getattr(instance, field, None)
+            logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
+
+            # fields are required
+            if new_value and new_value != saved_value:
+                setattr(instance, field, new_value)
+                logger.debug('attr ' + field + 'saved to: ' + str(new_value))
+                update_dict[field]['updated'] = True
+                update_dict[field]['value'] = new_value
+                save_changes = True
+                logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+
+# update scheme_list when code has changed
+            update_scheme_list = True
+
+# --- save changes in date fields
+    for field in ['datefirst', 'datelast']:
+        # field_dict rosterdate: {'value': '2019-05-31', 'update':
+        if field in upload_dict:
+            field_dict = upload_dict.get(field)
+            logger.debug('field_dict ' + field + ': ' + str(field_dict) + str(type(field_dict)))
+            field_value = field_dict.get('value')  # field_value: '2019-04-12'
+            new_date, msg_err = get_date_from_str(field_value, False)  # False = blank_allowed
+            if msg_err is not None:
+                update_dict[field]['err'] = msg_err
+            else:
+                saved_date = getattr(instance, field, None)
+                if new_date != saved_date:
+                    setattr(instance, field, new_date)
+                    update_dict[field]['updated'] = True
+                    save_changes = True
+
+    # --- save changes in date fields
+    for field in ['inactive']:
+        if field in upload_dict:
+            logger.debug('upload_dict: ' + str(upload_dict))
+            field_dict = upload_dict.get(field)
+            logger.debug('field_dict: ' + str(field_dict))
+
+            is_inactive = False
+            value = field_dict.get('value')
+            logger.debug('value: ' + str(value))
+            if value == 'true':
+                is_inactive = True
+            logger.debug('is_inactive: ' + str(is_inactive) + ' type: ' + str(type(is_inactive)))
+
+            saved_value = getattr(instance, field, None)
+            logger.debug('saved_value: ' + str(saved_value) + ' type: ' + str(type(saved_value)))
+
+            # fields are required
+            if is_inactive != saved_value:
+                setattr(instance, field, is_inactive)
+                logger.debug('attr ' + field + 'saved to: ' + str(is_inactive))
+                update_dict[field]['updated'] = True
+                update_dict[field]['value'] = is_inactive
+                save_changes = True
+                logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+
+    # logger.debug('update_dict: ' + str(update_dict))
+
+            # logger.debug('time_duration: ' + str(schemeitem.time_duration) + str(type(schemeitem.time_duration)))
+    # --- save changes
+    if save_changes:
+        instance.save(request=request)
+
+        for field in update_dict:
+            saved_value = getattr(instance, field)
+
+            date_fields = ['datefirst', 'datelast']
+            if field in date_fields:
+                if saved_value:
+                    update_dict[field]['value'] = str(saved_value)
+                    update_dict[field]['wdm'] = get_date_WDM_from_dte(saved_value, user_lang)
+                    update_dict[field]['wdmy'] = get_date_WDMY_from_dte(saved_value, user_lang)
+                    update_dict[field]['dmy'] = get_date_DMY_from_dte(saved_value, user_lang)
+                    update_dict[field]['offset'] = get_weekdaylist_for_DHM(saved_value, user_lang)
+            elif field == 'code':
+                if saved_value:
+                    update_dict[field]['value'] = saved_value
+            elif field == 'cycle':
+                update_dict[field]['value'] = saved_value
+
+
+# --- remove empty attributes from update_dict
+    remove_empty_attr_from_dict(update_dict)
+
+    logger.debug('update_dict: ' + str(update_dict))
+
+
 
 """
 # === Order ===================================== PR2019-03-09

@@ -101,9 +101,9 @@ class EmployeeAddView(CreateView):
                 # save examyear without commit
                 self.new_employee = form.save(commit=False)
                 self.new_employee.company = self.request.user.company
-                self.new_employee.modified_by = self.request.user
+                self.new_employee.modifiedby = self.request.user
                 # PR2018-06-07 datetime.now() is timezone naive, whereas timezone.now() is timezone aware, based on the USE_TZ setting
-                self.new_employee.modified_at = timezone.now()
+                self.new_employee.modifiedat = timezone.now()
 
                 # save examyear with commit
                 # PR2018-08-04 debug: don't forget argument (request), otherwise gives error 'tuple index out of range' at request = args[0]
@@ -155,8 +155,8 @@ class EmployeeUploadView(UpdateView):# PR2019-03-04
             activate(request.user.lang if request.user.lang else 'nl')
 
             # create dict and empty field attributes for all fields (unused ones will be removed at the end
-            field_list = ('id', 'code', 'name_last', 'name_first', 'prefix', 'email',
-                          'telephone', 'datefirst',  'modified_by',  'modified_at')
+            field_list = ('id', 'code', 'namelast', 'namefirst', 'prefix', 'email',
+                          'telephone', 'datefirst',  'modifiedby',  'modifiedat')
             empl_dict = {}
             for field in field_list:
                 empl_dict[field] = {}
@@ -166,7 +166,7 @@ class EmployeeUploadView(UpdateView):# PR2019-03-04
                 if employee_upload is not None:
                     logger.debug('employee_upload: ' + str(employee_upload))
                     #  employee_upload: {'pk': '9', 'blank_code': 'blank',
-                    #  'name_last': 'Regales', 'name_first': 'Ruëny David Tadeo',
+                    #  'namelast': 'Regales', 'namefirst': 'Ruëny David Tadeo',
                     #  'prefix': 'None', 'email': 'None', 'telephone': 'None', 'blank_datefirst': 'blank'}
                     if 'pk' in employee_upload and employee_upload['pk']:
                         this_pk = None
@@ -178,8 +178,8 @@ class EmployeeUploadView(UpdateView):# PR2019-03-04
                             empl_dict['id']['new'] = employee_upload['pk']
 
                         new_code = None
-                        new_name_last = None
-                        new_name_first = None
+                        new_namelast = None
+                        new_namefirst = None
                         save_record = False
 
 # ++++++++++++++ new record ++++++++++++++++++
@@ -198,53 +198,53 @@ class EmployeeUploadView(UpdateView):# PR2019-03-04
                             else:
                                 new_code = employee_upload[field]
 
-                    # validate if name_last is not blank
-                            field = 'name_last'
+                    # validate if namelast is not blank
+                            field = 'namelast'
                             if 'blank_' + field in employee_upload:
                                 msg_dont_add = _("Last name cannot be blank.")
                                 empl_dict[field]['err'] = msg_dont_add
                             elif field in employee_upload:
-                                new_name_last = employee_upload[field]
+                                new_namelast = employee_upload[field]
 
-                    # validate if name_first is not blank
-                            field = 'name_first'
+                    # validate if namefirst is not blank
+                            field = 'namefirst'
                             if 'blank_' + field in employee_upload:
                                 msg_dont_add = _("First name cannot be blank.")
                                 empl_dict[field]['err'] = msg_dont_add
                             elif field in employee_upload:
-                                new_name_first = employee_upload[field]
+                                new_namefirst = employee_upload[field]
 
                     # validate if name already exists
-                            if new_name_last and new_name_first:
-                                msg_dont_add = validate_employee_name(new_name_last,
-                                                               new_name_first,
+                            if new_namelast and new_namefirst:
+                                msg_dont_add = validate_employee_name(new_namelast,
+                                                               new_namefirst,
                                                                request.user.company)
                                 if msg_dont_add is not None:
-                                    new_name_last = None
-                                    new_name_first = None
-                                    empl_dict['name_last']['err'] = msg_dont_add
-                                    empl_dict['name_first']['err'] = msg_dont_add
+                                    new_namelast = None
+                                    new_namefirst = None
+                                    empl_dict['namelast']['err'] = msg_dont_add
+                                    empl_dict['namefirst']['err'] = msg_dont_add
 
                     # add record if not has_error
-                            if new_code and new_name_last and new_name_first:
+                            if new_code and new_namelast and new_namefirst:
                                 employee = Employee(company=request.user.company,
                                                     code=new_code,
-                                                    name_last=new_name_last,
-                                                    name_first=new_name_first,
+                                                    namelast=new_namelast,
+                                                    namefirst=new_namefirst,
                                                     )
                                 employee.save(request=self.request)
-                                logger.debug('employee_added: ' + str(employee.name_last))
+                                logger.debug('employee_added: ' + str(employee.namelast))
                                 empl_dict['id']['pk'] = employee.pk
 # ++++++++++++++ existing record ++++++++++++++++++
                         else:  # if not is_new_record
                     # get employee record
                             employee = Employee.objects.filter(id=this_pk, company=request.user.company).first()
-                            logger.debug('existing employee: ' + str(employee.name_last) + str(type(employee.name_last)))
+                            logger.debug('existing employee: ' + str(employee.namelast) + str(type(employee.nam_last)))
 
                     # validate if employee is None
                             if employee is None:
                                 msg_dont_add = _("Employee not found.")
-                                empl_dict['name_last']['err'] = msg_dont_add
+                                empl_dict['namelast']['err'] = msg_dont_add
                             else:
                                 empl_dict['id']['pk'] = employee.pk
                                 # logger.debug('empl_dict[id][pk]: ' + str(empl_dict['id']['pk']))
@@ -272,54 +272,54 @@ class EmployeeUploadView(UpdateView):# PR2019-03-04
                                             empl_dict[field]['val'] = new_value
                                             save_record = True
 
-                    # validate if name_last is not blank
+                    # validate if namelast is not blank
                                 msg_dont_add = None
-                                field = 'name_last'
-                                saved_name_last = getattr(employee, field, '')
+                                field = 'namelast'
+                                saved_namelast = getattr(employee, field, '')
                                 if 'blank_' + field in employee_upload:
                                     msg_dont_add = _("Last name cannot be blank.")
                                     empl_dict[field]['err'] = msg_dont_add
-                                    empl_dict[field]['val'] = saved_name_last
+                                    empl_dict[field]['val'] = saved_namelast
                                 elif field in employee_upload:
-                                    new_name_last = employee_upload[field]
+                                    new_namelast = employee_upload[field]
 
-                    # validate if name_first is not blank
-                                field = 'name_first'
-                                saved_name_first = getattr(employee, field, '')
+                    # validate if namefirst is not blank
+                                field = 'namefirst'
+                                saved_namefirst = getattr(employee, field, '')
                                 if 'blank_' + field in employee_upload:
                                     msg_dont_add = _("First name cannot be blank.")
                                     empl_dict[field]['err'] = msg_dont_add
-                                    empl_dict[field]['val'] = saved_name_first
+                                    empl_dict[field]['val'] = saved_namefirst
                                 elif field in employee_upload:
-                                    new_name_first = employee_upload[field]
+                                    new_namefirst = employee_upload[field]
 
                     # validate if name already exists
-                                if new_name_last or new_name_first:
-                                    check_name_last = new_name_last if new_name_last else saved_name_last
-                                    check_name_first = new_name_first if new_name_first else saved_name_first
-                                    msg_dont_add = validate_employee_name(check_name_last,
-                                                                        check_name_first,
+                                if new_namelast or new_namefirst:
+                                    check_namelast = new_namelast if new_namelast else saved_namelast
+                                    check_namefirst = new_namefirst if new_namefirst else saved_namefirst
+                                    msg_dont_add = validate_employee_name(check_namelast,
+                                                                        check_namefirst,
                                                                         request.user.company,
                                                                         this_pk)
                                     if msg_dont_add is not None:
-                                        new_name_last = None
-                                        new_name_first = None
-                                        empl_dict['name_last']['err'] = msg_dont_add
-                                        empl_dict['name_last']['val'] = saved_name_last
-                                        empl_dict['name_first']['err'] = msg_dont_add
-                                        empl_dict['name_first']['val'] = saved_name_first
+                                        new_namelast = None
+                                        new_namefirst = None
+                                        empl_dict['namelast']['err'] = msg_dont_add
+                                        empl_dict['namelast']['val'] = saved_namelast
+                                        empl_dict['namefirst']['err'] = msg_dont_add
+                                        empl_dict['namefirst']['val'] = saved_namefirst
                                     else:
-                                        if new_name_last:
-                                            if new_name_last != saved_name_last:
-                                                setattr(employee, 'name_last', new_name_last)
-                                                empl_dict['name_last']['upd'] = True
-                                                empl_dict['name_last']['val'] = new_name_last
+                                        if new_namelast:
+                                            if new_namelast != saved_namelast:
+                                                setattr(employee, 'namelast', new_namelast)
+                                                empl_dict['namelast']['upd'] = True
+                                                empl_dict['namelast']['val'] = new_namelast
                                                 save_record = True
-                                        if new_name_first:
-                                            if new_name_first != saved_name_first:
-                                                setattr(employee, 'name_first', new_name_first)
-                                                empl_dict['name_first']['upd'] = True
-                                                empl_dict['name_first']['val'] = new_name_first
+                                        if new_namefirst:
+                                            if new_namefirst != saved_namefirst:
+                                                setattr(employee, 'namefirst', new_namefirst)
+                                                empl_dict['namefirst']['upd'] = True
+                                                empl_dict['namefirst']['val'] = new_namefirst
                                                 save_record = True
 
 
@@ -396,20 +396,20 @@ class EmployeeUploadView(UpdateView):# PR2019-03-04
                             if save_record:
                                 employee.save(request=self.request)
 
-                                field = 'modified_by'
+                                field = 'modifiedby'
                                 saved_value = getattr(employee, field)
                                 logger.debug('saved_value: ' + str(saved_value))
                                 logger.debug('saved_value.username_sliced: ' + str(saved_value.username_sliced))
                                 if saved_value:
                                     empl_dict[field] = {'upd': True, 'val': saved_value.username_sliced}
 
-                                field = 'modified_at'
+                                field = 'modifiedat'
                                 request_user_lang = '-'
                                 if request.user.lang:
                                     request_user_lang = request.user.lang
                                 logger.debug('request_user_lang: ' +  str(request_user_lang))
 
-                                saved_value = employee.modified_at_str(request_user_lang)
+                                saved_value = employee.modifiedat_str(request_user_lang)
                                 logger.debug('saved_value: (' +  str(request_user_lang) + ') ' + str(saved_value))
                                 if saved_value:
                                     empl_dict[field] = {'upd': True, 'val': saved_value}
@@ -438,8 +438,8 @@ class EmployeeImportView(View):
             if request.user.lang == 'en':
                 coldef_list = [
                     {'tsaKey': 'code', 'caption': 'Code'},
-                    {'tsaKey': 'name_last', 'caption': 'Last name'},
-                    {'tsaKey': 'name_first', 'caption': 'First name'},
+                    {'tsaKey': 'namelast', 'caption': 'Last name'},
+                    {'tsaKey': 'namefirst', 'caption': 'First name'},
                     {'tsaKey': 'prefix', 'caption': 'Prefix'},
                     {'tsaKey': 'email', 'caption': 'Email address'},
                     {'tsaKey': 'tel', 'caption': 'Telephone'},
@@ -456,8 +456,8 @@ class EmployeeImportView(View):
             else:
                 coldef_list = [
                     {'tsaKey': 'code', 'caption': 'Code'},
-                    {'tsaKey': 'name_last', 'caption': 'Achternaam'},
-                    {'tsaKey': 'name_first', 'caption': 'Voornaam'},
+                    {'tsaKey': 'namelast', 'caption': 'Achternaam'},
+                    {'tsaKey': 'namefirst', 'caption': 'Voornaam'},
                     {'tsaKey': 'prefix', 'caption': 'Tussenvoegsel'},
                     {'tsaKey': 'email', 'caption': 'E-mail adres'},
                     {'tsaKey': 'tel', 'caption': 'Telefoon'},
@@ -570,7 +570,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                     if stored_setting_json:
                         stored_setting = json.loads(stored_setting_json)
                     # stored_setting = {'worksheetname': 'Compleetlijst',
-                    #                   'coldefs': {'name_last': 'R_NAAM', 'name_first': 'Voor_namen'}}
+                    #                   'coldefs': {'namelast': 'R_NAAM', 'namefirst': 'Voor_namen'}}
                     logger.debug('stored_setting: <' + str(stored_setting) + '>')
 
                     if stored_setting:
@@ -626,15 +626,15 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                     logger.debug('--------- import employee   ------------')
                     logger.debug('import employee:')
                     logger.debug(str(employee))
-                    # 'code', 'name_last', 'name_first',  'prefix', 'email', 'tel', 'datefirst',
+                    # 'code', 'namelast', 'namefirst',  'prefix', 'email', 'tel', 'datefirst',
                     data = {}
                     has_error = False
                     dont_add = False
 
                     # truncate input if necessary
                     code = employee.get('code', '')[0:CODE_MAX_LENGTH]
-                    name_last = employee.get('name_last', '')[0:NAME_MAX_LENGTH]
-                    name_first = employee.get('name_first', '')[0:NAME_MAX_LENGTH]
+                    namelast = employee.get('namelast', '')[0:NAME_MAX_LENGTH]
+                    namefirst = employee.get('namefirst', '')[0:NAME_MAX_LENGTH]
                     prefix = employee.get('prefix', '')[0:CODE_MAX_LENGTH]
                     email = employee.get('email', '')[0:NAME_MAX_LENGTH]
                     telephone = employee.get('tel', '')[0:USERNAME_SLICED_MAX_LENGTH]
@@ -648,7 +648,7 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                         logger.debug('employee does not exists')
 
                     # check if employee already exists
-                    msg_dont_add = validate_employee_name(name_last, name_first, request.user.company)
+                    msg_dont_add = validate_employee_name(namelast, namefirst, request.user.company)
                     if msg_dont_add:
                         logger.debug('employee_exists: ' + str(msg_dont_add))
                     else:
@@ -673,12 +673,12 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                         new_employee = Employee(
                             company=request.user.company,
                             code=code,
-                            name_last=name_last
+                            namelast=namelast
                         )
 
-                        logger.debug('new_employee.name_last: ' + str(new_employee.name_last))
-                        if name_first:
-                            new_employee.name_first = name_first
+                        logger.debug('new_employee.namelast: ' + str(new_employee.namelast))
+                        if namefirst:
+                            new_employee.namefirst = namefirst
                         if prefix:
                             new_employee.prefix = prefix
                         if email:
@@ -695,10 +695,10 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                         if new_employee.pk:
                             if new_employee.code:
                                 data['s_code'] = new_employee.code
-                            if new_employee.name_last:
-                                data['s_name_last'] = new_employee.name_last
-                            if new_employee.name_first:
-                                data['s_name_first'] = new_employee.name_first
+                            if new_employee.namelast:
+                                data['s_namelast'] = new_employee.namelast
+                            if new_employee.namefirst:
+                                data['s_namefirst'] = new_employee.namefirst
                             if new_employee.prefix:
                                 data['s_prefix'] = new_employee.prefix
                             if new_employee.email:
@@ -706,7 +706,7 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                             if new_employee.telephone:
                                 data['s_telephone'] = new_employee.telephone
                             if new_employee.datefirst:
-                                data['s_datefirst'] = new_employee.datefirst_int
+                                data['s_datefirst'] = new_employee.datefirst
 
                         # logger.debug(str(new_student.id) + ': Student ' + new_student.lastname_firstname_initials + ' created ')
 

@@ -13,7 +13,7 @@ def validate_employee_code(code, company, this_pk=None):
     # validate if employee code already_exists in this company PR2019-03-16
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    #logger.debug('employee_exists: ' + str(code) + ' ' + str(name_last) + ' ' + str(name_first) + ' ' + str(company) + ' ' + str(this_pk))
+    #logger.debug('employee_exists: ' + str(code) + ' ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(company) + ' ' + str(this_pk))
     msg_dont_add = None
     if not company:
         msg_dont_add = _("No company.")
@@ -35,43 +35,43 @@ def validate_employee_code(code, company, this_pk=None):
 
     return msg_dont_add
 
-def validate_employee_name(name_last, name_first,  company, this_pk = None):
+def validate_employee_name(namelast, namefirst,  company, this_pk = None):
     # validate if employee already_exists in this company PR2019-03-16
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    #logger.debug('employee_exists: ' + str(code) + ' ' + str(name_last) + ' ' + str(name_first) + ' ' + str(company) + ' ' + str(this_pk))
+    #logger.debug('employee_exists: ' + str(code) + ' ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(company) + ' ' + str(this_pk))
     msg_dont_add = None
 
     msg_dont_add = None
     if not company:
         msg_dont_add = _("No company.")
     else:
-        if not name_last:
-            if not name_first:
+        if not namelast:
+            if not namefirst:
                 msg_dont_add = _("First and last name cannot be blank.")
             else:
                 msg_dont_add = _("Last name cannot be blank.")
-        elif not name_first:
+        elif not namefirst:
             msg_dont_add = _("First name cannot be blank.")
     if msg_dont_add is None:
-        if len(name_last) > NAME_MAX_LENGTH:
-            if len(name_first) > NAME_MAX_LENGTH:
+        if len(namelast) > NAME_MAX_LENGTH:
+            if len(namefirst) > NAME_MAX_LENGTH:
                 msg_dont_add = _("First and last name are too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
             else:
                 msg_dont_add = _("Last name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
-        elif len(name_first) > NAME_MAX_LENGTH:
+        elif len(namefirst) > NAME_MAX_LENGTH:
             msg_dont_add = _("First name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
 
         # check if first + lastname already exists
         if msg_dont_add is None:
             if this_pk:
-                name_exists = Employee.objects.filter(name_last__iexact=name_last,
-                                                   name_first__iexact=name_first,
+                name_exists = Employee.objects.filter(namelast__iexact=namelast,
+                                                   namefirst__iexact=namefirst,
                                                    company=company
                                                    ).exclude(pk=this_pk).exists()
             else:
-                name_exists = Employee.objects.filter(name_last__iexact=name_last,
-                                                   name_first__iexact=name_first,
+                name_exists = Employee.objects.filter(namelast__iexact=namelast,
+                                                   namefirst__iexact=namefirst,
                                                    company=company
                                                    ).exists()
             if name_exists:
@@ -285,3 +285,31 @@ def validate_employee_already_exists_in_teammember(employee, team, this_pk):
         msg_err = _('This employee already exists.')
     return msg_err
 
+def daterange_overlap(outer_datefirst, outer_datelast, inner_datefirst, inner_datelast=None ):
+    # check if inner range falls within outer range PR2019-06-05
+    within_range = True
+    if inner_datefirst is None:
+        within_range = False
+    else:
+        if inner_datelast is None:
+            inner_datelast = inner_datefirst
+        if outer_datefirst:
+            if inner_datelast < outer_datefirst:
+                within_range = False
+        if outer_datelast:
+            if inner_datefirst > outer_datelast:
+                within_range = False
+    return within_range
+
+
+def date_within_range(outer_datefirst, outer_datelast, inner_date):
+    # check if inner_date falls within outer range PR2019-06-05
+    within_range = True
+    if inner_date is None:
+        within_range = False
+    else:
+        if outer_datefirst and inner_date < outer_datefirst:
+            within_range = False
+        if outer_datelast and inner_date > outer_datelast:
+            within_range = False
+    return within_range

@@ -114,18 +114,18 @@ h4 h5 {
     padding-bottom: 0.05rem;
 }
 
-.border-none {
+.border_none {
     border: 0;
     /*background-color: transparent;*/
 }
 
-.border-invalid {
+.border_invalid {
     border: 1px solid #dc3545;    /*  red like in django is-invalid */
     border-radius: .25rem;
     background-color: #f1b5b5;
 }
 
-.border-valid {
+.border_valid {
     border: 1px solid  #4cbd67;  /*  #28a745; is green like in django is-valid */
     border-radius: .25rem;
     background-color: #d7f4de; /*#ade8bb;*/
@@ -172,10 +172,17 @@ h4 h5 {
 .tsa_bc_lightgrey {
     background-color: #e0e0e0; /* licht grijs; */
 }
+ /*background-color: #808080; /* #e0e0e0; /* licht grijs; */
+
+.tsa_bc_darkgrey {
+    background-color: #808080; /* #e0e0e0; /* licht grijs; */
+}
 
 .tsa_bc_lightlightgrey {
     background: #f8f8f8; /*licht licht grijs; */
 }
+
+
 .tsa_bc_lightred {
     background-color: #f1b5b5; /* licht rood; */
 }

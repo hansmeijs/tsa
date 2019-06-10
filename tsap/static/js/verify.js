@@ -109,9 +109,9 @@ console.log("=========  function AddTableRow =========");
                     if (j === 1){
                         el_name = "code";
                     } else if (j === 2) {
-                        el_name = "name_last";
+                        el_name = "namelast";
                     } else if (j === 3) {
-                        el_name = "name_first";
+                        el_name = "namefirst";
                     } else if (j === 4) {
                         el_name = "prefix";
                     } else if (j === 5) {
@@ -260,8 +260,6 @@ console.log("=========  function AddTableRow =========");
                     }  //  if(el_input.classList.contains("input_text")
                 };  //  for (let i = 0, el_input,
 
-
-                //employee: {pk: "11", code: "20", name_last: "Bom", blank_name_first: "blank", prefix: "None", …}
                 console.log ("employee", employee);
                 let parameters = {"employee": JSON.stringify (employee)};
                 let url_str = $("#id_data").data("employee_upload_url");
@@ -295,8 +293,8 @@ console.log("=========  function AddTableRow =========");
             // new, not saved: empl_dict{'id': {'new': 'new_1'},
             // empl_upd = {'id': {'pk': 7},
             // 'code': {'err': 'Employee code cannot be blank.', 'val': '1996.02.17.15'},
-            // 'name_last': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'El Chami'},
-            // 'name_first': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'Omar'}}<class 'dict'>
+            // 'namelast': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'El Chami'},
+            // 'namefirst': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'Omar'}}<class 'dict'>
             let id_new = "", id_pk = ""
             let fieldname = "id"
             if (fieldname in empl_upd){
@@ -343,7 +341,7 @@ console.log("=========  function AddTableRow =========");
                         if('err' in item_dict){
                             //console.log("item_dict[err]", item_dict['err']);
 
-                            el_input.classList.add("border-invalid");
+                            el_input.classList.add("border_invalid");
 
                             let el_msg = document.getElementById("id_msgbox");
                             el_msg.innerHTML =  item_dict['err'];
@@ -358,7 +356,7 @@ console.log("=========  function AddTableRow =========");
 
                             setTimeout(function (){
                                 el_input.value = value;
-                                el_input.classList.remove("border-invalid");
+                                el_input.classList.remove("border_invalid");
                                 el_msg.classList.toggle("show");
                                 }, 2000);
 
@@ -383,9 +381,9 @@ console.log("=========  function AddTableRow =========");
                                 console.log("el_datefirst.max", el_datefirst.max);
                             }
 
-                            el_input.classList.add("border-valid");
+                            el_input.classList.add("border_valid");
                             setTimeout(function (){
-                                el_input.classList.remove("border-valid");
+                                el_input.classList.remove("border_valid");
                                 }, 2000);
                         } else {
                             el_input.value = value;
@@ -440,56 +438,5 @@ console.log("=========  function AddTableRow =========");
             FilterRows()
         } //  if (!skip_filter) {
     }; // function HandleSearchFilterEvent
-
-//========= FilterRows  ====================================
-    function FilterRows() {
-        console.log( "===== FilterRows  ========= ");
-        // filter by inactive and substring of fields
-        let tblBody = document.getElementById('id_tbody');
-        for (let row_index = 0, tblRow, hide_row, len = tblBody.rows.length; row_index < len; row_index++) {
-            tblRow = tblBody.rows[row_index];
-
-            hide_row = SetHideRow(tblRow);
-
-            if (hide_row) {
-                tblRow.classList.add("display_hide")
-            } else {
-                tblRow.classList.remove("display_hide")
-            };
-        }
-    }; // function FilterRows
-
-//========= SetHideRow  ====================================
-    function SetHideRow(tblRow) {
-        //console.log( "===== FilterRows  ========= ");
-        // filter by inactive and substring of fields
-
-        hide_row = false
-        if (!!tblRow){
-    // hide inactive rows if filter_hide_inactive
-            if (filter_hide_inactive) {
-                if (!!tblRow.cells[0].children[0]) {
-                    let el_inactive = tblRow.cells[0].children[0];
-                    hide_row = (el_inactive.getAttribute("value").toLowerCase() === "true")
-            }};
-    // show all rows  if filter_name = ""
-            if (!hide_row && !!filter_name){
-                found = false
-                for (let col_index = 1, el_code; col_index < 7; col_index++) {
-                    if (!!tblRow.cells[col_index].children[0]) {
-                        el_value = tblRow.cells[col_index].children[0].value;
-                        if (!!el_value){
-                            el_value = el_value.toLowerCase();
-                            //console.log( "el_value:", el_value);
-                            if (el_value.indexOf(filter_name) !== -1) {
-                                found = true
-                                break;
-                    }}}
-                };  // for (let col_index = 1,
-                if (!found){hide_row = true}
-            }  // if (!hide_row && !!filter_name){
-        }
-        return hide_row
-    }; // function SetHideRow
 
 }); //$(document).ready(function()

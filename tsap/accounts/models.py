@@ -6,7 +6,7 @@ from django.core.validators import RegexValidator
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from tsap.constants import USERNAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, \
+from tsap.constants import USERNAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, \
     CHOICES_ROLE, CHOICES_ROLE_DICT, IS_ACTIVE_DICT, \
     ROLE_00_EMPLOYEE, ROLE_01_COMPANY, ROLE_02_SYSTEM, \
     PERMIT_DICT, PERMIT_00_NONE, PERMIT_01_READ, PERMIT_02_WRITE, PERMIT_04_AUTH, PERMIT_08_ADMIN
@@ -72,14 +72,14 @@ class User(AbstractUser):
     permits = PositiveSmallIntegerField(default=0)
 
     activated = BooleanField(default=False)
-    activated_at = DateTimeField(null=True)
+    activatedat = DateTimeField(null=True)
     company = ForeignKey(Company, related_name='users', on_delete=PROTECT, null=True, blank=True)
     employee = ForeignKey(Employee, related_name='users', on_delete=PROTECT, null=True, blank=True)
 
     lang = CharField(max_length=4, null=True, blank=True)
 
-    modified_by = ForeignKey(AUTH_USER_MODEL, null=True, related_name='+', on_delete=SET_NULL)
-    modified_at = DateTimeField(null=True)
+    modifiedby = ForeignKey(AUTH_USER_MODEL, null=True, related_name='+', on_delete=SET_NULL)
+    modifiedat = DateTimeField(null=True)
 
     class Meta:
         ordering = ['username',]
@@ -101,7 +101,7 @@ class User(AbstractUser):
             if self.request.user:
                 self.modified_by = self.request.user.username_sliced
         # timezone.now() is timezone aware, based on the USE_TZ setting; datetime.now() is timezone naive. PR2018-06-07
-        self.modified_at = timezone.now()
+        self.modifiedat = timezone.now()
 
         # when adding record: self.id=None, set force_insert=True; otherwise: set force_update=True PR2018-06-09
         # super(User, self).save(force_insert=not is_update, force_update=is_update, **kwargs)
@@ -343,12 +343,5 @@ class Usersetting(Model):
     objects = CustomUserManager()
 
     user = ForeignKey(User, related_name='usr_settings', on_delete=CASCADE)
-    key_str = CharField(max_length=20)
-    char01 = CharField(max_length=2048, null=True)
-    char02 = CharField(max_length=2048, null=True)
-    int01 = IntegerField(null=True)
-    int02 = IntegerField(null=True)
-    bool01 = BooleanField(default=False)
-    bool02 = BooleanField(default=False)
-    date01 = DateTimeField(null=True)
-    date02 = DateTimeField(null=True)
+    key = CharField(db_index=True, max_length=CODE_MAX_LENGTH)
+    setting = CharField(max_length=2048, null=True, blank=True)
