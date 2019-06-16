@@ -111,7 +111,10 @@ $(function() {
         const interval = get_attr_from_element(el_data, "data-interval");
         const timeformat = get_attr_from_element(el_data, "data-timeformat");
 
-        DatalistDownload({"customers": true, "orders": true});
+        const title_inactive = get_attr_from_element(el_data, "data-txt_order_make_inactive");
+        const title_active = get_attr_from_element(el_data, "data-txt_order_make_active");
+
+        DatalistDownload({"customers": {inactive: false}, "orders": {inactive: true}});
 
 //  #############################################################################################################
 
@@ -377,10 +380,6 @@ $(function() {
                             let tblRow = CreateTableRow(tblName, pk_new, parent_pk, {})
                             UpdateTableRow(tblRow, new_dict)
                         }
-
-
-
-
                     }
                 },
                 error: function (xhr, msg) {
@@ -746,7 +745,7 @@ $(function() {
 // --- add img inactive to last td
             if ([column_count - 1].indexOf( j ) > -1){
                 if (!is_new_item){
-            // --- add <a> element wuth EventListener to td
+            // --- add <a> element with EventListener to td
                     el = document.createElement("a");
                     el.addEventListener("click", function(){HandleInactiveClicked(el);}, false )
                     el.setAttribute("href", "#");
@@ -792,10 +791,10 @@ $(function() {
                 }
 
 // --- add width to time fields and date fileds
-                if (j === 1 ){
-                    el.classList.add("td_width_240");
+                if ( ([0, 1].indexOf( j ) > -1) ){
+                    el.classList.add("td_width_180");
                 } else {
-                    el.classList.add("td_width_120");
+                    el.classList.add("td_width_180");
                 };
 
 // --- add other classes to td
@@ -822,13 +821,11 @@ $(function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, item_dict){
-        // console.log("--++- UpdateTableRow  --------------");
-        // console.log("item_dict");
-        // console.log(item_dict);
+        console.log("--++- UpdateTableRow  --------------");
 
         if (!!item_dict && !!tblRow) {
-            // console.log("tblRow", tblRow);
-            // console.log("item_dict", item_dict);
+            console.log("tblRow", tblRow);
+            console.log("item_dict", item_dict);
 
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
             // item_dict = {'id': {'pk': 7},
@@ -850,6 +847,8 @@ $(function() {
             if (is_deleted){
                 tblRow.parentNode.removeChild(tblRow);
             } else if (!!msg_err){
+                //console.log("msg_err", msg_err);
+
                 // was: let el_input = tblRow.querySelector("[name=code]");
                 //console.log("tblRow", tblRow)
                 let td = tblRow.cells[2];
@@ -864,6 +863,8 @@ $(function() {
 // --- new created record
             } else if (is_created){
                 let id_attr = get_attr_from_element_int(tblRow,"id")
+                console.log("id_attr", id_attr)
+
             // check if item_dict.id 'new_1' is same as tablerow.id
                 if(temp_pk_str === id_attr){
                     // if 'created' exists then 'pk' also exists in id_dict
@@ -924,7 +925,8 @@ $(function() {
 
                             if (fieldname === "inactive") {
                                if(!field_dict){field_dict = {value: false}}
-                               format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active )
+
+                               format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active, title_inactive, title_active)
                             };
 
                         };  // if(!!el_input)

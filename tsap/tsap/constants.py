@@ -82,7 +82,7 @@ KEY_EMPLOYEE_MAPPED_COLDEFS = "empl_mapped_coldefs"
 
 #PR2019-03-23
 MONTHS_ABBREV = {'en': ('', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'),
-             'nl': ('', 'jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec')
+             'nl': ('', 'jan', 'feb', 'mrt', 'apr', 'mei', 'juni', 'juli', 'aug', 'sep', 'okt', 'nov', 'dec')
              }
 
 #PR2019-04-13
@@ -111,3 +111,5 @@ STATUS_EMPLHOUR_02_START_CHECKED = 2
 STATUS_EMPLHOUR_03_END_CHECKED = 3
 STATUS_EMPLHOUR_04_ALL_CHECKED = 4
 STATUS_EMPLHOUR_05_APPROVED = 5
+
+KEY_COMP_NEXT_ROSTERDATE_FILL = 'next_rosterdate_fill'

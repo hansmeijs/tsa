@@ -2,7 +2,7 @@
 from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL
 from django.db.models import CharField, BooleanField, PositiveSmallIntegerField, IntegerField, \
     DateField, DateTimeField, Q, Count
-from django.db.models.functions import Lower
+from django.db.models.functions import Upper, Lower
 
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -10,8 +10,10 @@ from django.utils.translation import ugettext_lazy as _
 from tsap.settings import AUTH_USER_MODEL, TIME_ZONE
 from tsap.constants import USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, NAME_MAX_LENGTH
 from tsap.functions import get_date_yyyymmdd, get_time_HHmm, get_datetimelocal_from_datetime, \
-    get_date_longstr_from_dte, get_timelocal_formatDHM, get_date_WDMY_from_dte, get_date_WDM_from_dte, get_date_DMY_from_dte, \
-    get_weekdaylist_for_DHM, get_timeDHM_from_dhm, get_date_HM_from_minutes, remove_empty_attr_from_dict
+    get_date_longstr_from_dte, get_timelocal_formatDHM, formatDMYHM_from_datetime, format_WDMY_from_dte, get_date_WDM_from_dte, format_DMY_from_dte, \
+    get_weekdaylist_for_DHM, get_timeDHM_from_dhm, get_date_HM_from_minutes, remove_empty_attr_from_dict, \
+    fielddict_date
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -175,12 +177,17 @@ class Order(TsaBaseModel):
         instance = None
         pk_int = None
         parent_pk_int = None
-        # - parent and code are required
-        if customer and code:
+        # - parent, code and name are required
+        if customer:
+            # TODO
+            code_ok = True  # TODO validate_code_or_name('order', 'code', code, update_dict, request.user.company)
+            name_ok = True  # TODO  validate_code_or_name('order', 'name', name, update_dict, request.user.company)
+
 # - create instance
-            instance = cls(customer=customer, code=code, name=name)
+            if code_ok and name_ok:
+                instance = cls(customer=customer, code=code, name=name)
 # - save instance
-            instance.save(request=request)
+                instance.save(request=request)
 # - create error when instance not created
             if instance is None:
                 msg_err = _('This order could not be created.')
@@ -240,7 +247,6 @@ class Order(TsaBaseModel):
             instance = cls.objects.filter(id=pk_int, customer__id=parent_pk_int).first()
 
         if instance:
-            pk_int = instance.id
             try:
                 instance.delete(request=request)
                 update_dict['id']['deleted'] = True
@@ -279,8 +285,8 @@ class Order(TsaBaseModel):
                     if value:
                         dict[field] = {'value': value,
                                       'wdm': get_date_WDM_from_dte(value, user_lang),
-                                      'wdmy': get_date_WDMY_from_dte(value, user_lang),
-                                      'dmy': get_date_DMY_from_dte(value, user_lang),
+                                      'wdmy': format_WDMY_from_dte(value, user_lang),
+                                      'dmy': format_DMY_from_dte(value, user_lang),
                                       'offset': get_weekdaylist_for_DHM(value, user_lang)}
 
                 order_list.append(dict)
@@ -340,8 +346,8 @@ class Scheme(TsaBaseModel):
                         if value:
                             dict[field] = {'value': value,
                                           'wdm': get_date_WDM_from_dte(value, user_lang),
-                                          'wdmy': get_date_WDMY_from_dte(value, user_lang),
-                                          'dmy': get_date_DMY_from_dte(value, user_lang)}
+                                          'wdmy': format_WDMY_from_dte(value, user_lang),
+                                          'dmy': format_DMY_from_dte(value, user_lang)}
                     scheme_list.append(dict)
         return scheme_list
 
@@ -519,10 +525,24 @@ class Teammember(TsaBaseModel):
                     if value:
                         dict[field] = {'value': value,
                                       'wdm': get_date_WDM_from_dte(value, user_lang),
-                                      'wdmy': get_date_WDMY_from_dte(value, user_lang),
-                                      'dmy': get_date_DMY_from_dte(value, user_lang)}
+                                      'wdmy': format_WDMY_from_dte(value, user_lang),
+                                      'dmy': format_DMY_from_dte(value, user_lang)}
                 teammember_list.append(dict)
         return teammember_list
+
+    @classmethod
+    def validate_employee_exists_in_teammembers(cls, employee, team, this_pk):  # PR2019-06-11
+        # - check if employee exists - employee is required field of teammember, is skipped in schemeitems (no field employee)
+        msg_err = None
+        exists = False
+        if employee and team:
+            crit = Q(team=team) & Q(employee=employee)
+            if this_pk:
+                crit.add(~Q(pk=this_pk), crit.connector)
+            exists = cls.objects.filter(crit).exists()
+        if exists:
+            msg_err = _('This employee already exists.')
+        return msg_err
 
 
 # =================
@@ -558,26 +578,25 @@ class Schemeitem(TsaBaseModel):
         ordering = ['rosterdate', 'timestart']
 
     def __str__(self):
-        return  'schemeitem_pk_' + str(self.pk)
+        return 'schemeitem_pk_' + str(self.pk)
 
     @classmethod
-    def create_schemeitem_list(cls, order, user_lang):
+    def create_schemeitem_list(cls, order, comp_timezone, user_lang):
         # create list of schemeitems of this scheme PR2019-05-12
         schemeitem_list = []
         if order:
             schemeitems = cls.objects.filter(scheme__order=order)
             for schemeitem in schemeitems:
-                schemeitem_dict = cls.create_schemeitem_dict(schemeitem, user_lang)
+                schemeitem_dict = cls.create_schemeitem_dict(schemeitem, comp_timezone, user_lang)
                 schemeitem_list.append(schemeitem_dict)
         return schemeitem_list
 
     @staticmethod
-    def create_schemeitem_dict(schemeitem, user_lang, temp_pk=None,
-                               is_created=False, is_deleted=False, updated_list=None):
+    def create_schemeitem_dict(schemeitem, comp_timezone, user_lang, temp_pk=None, is_created=False, is_deleted=False, updated_list=None):
         # create list of schemeitems of this scheme PR2019-05-12
         schemeitem_dict = {}
         field_list = ('id', 'scheme', 'rosterdate', 'shift', 'team',
-                      'time_start', 'time_end', 'time_duration', 'break_duration')
+                      'timestart', 'timeend', 'timeduration', 'breakduration')
 
         for field in field_list:
             schemeitem_dict[field] = {}
@@ -601,10 +620,10 @@ class Schemeitem(TsaBaseModel):
                     if value:
                         field_dict = {'value': value,
                                       'wdm': get_date_WDM_from_dte(value, user_lang),
-                                      'wdmy': get_date_WDMY_from_dte(value, user_lang),
-                                      'dmy': get_date_DMY_from_dte(value, user_lang),
+                                      'wdmy': format_WDMY_from_dte(value, user_lang),
+                                      'dmy': format_DMY_from_dte(value, user_lang),
                                       'offset': get_weekdaylist_for_DHM(value, user_lang)}
-                        schemeitem_dict[field] = field_dict
+                        schemeitem_dict[field] = fielddict_date(value, user_lang)
 
                 for field in ['shift']:
                     value = getattr(schemeitem, field)
@@ -620,14 +639,18 @@ class Schemeitem(TsaBaseModel):
                         if field_dict:
                             schemeitem_dict[field] = field_dict
 
-                for field in ['time_start', 'time_end']:
-                    value = getattr(schemeitem, field + '_dhm')
+                for field in ['timestart', 'timeend']:
+                    value = getattr(schemeitem, field + 'dhm')
                     rosterdate = getattr(schemeitem, 'rosterdate')
+                    datetime = getattr(schemeitem, field)
                     if value:
-                        field_dict = {'value': value, 'dhm': get_timeDHM_from_dhm(rosterdate, value, user_lang)}
+                        field_dict = {'value': value,
+                                      'dhm': get_timeDHM_from_dhm(rosterdate, value, comp_timezone, user_lang),
+                                      'dmyhm': formatDMYHM_from_datetime(datetime, comp_timezone, user_lang)
+                                      }
                         schemeitem_dict[field] = field_dict
 
-                for field in ['time_duration', 'break_duration']:
+                for field in ['timeduration', 'breakduration']:
                     value = getattr(schemeitem, field)
                     if value:
                         field_dict = {'value': value, 'hm': get_date_HM_from_minutes( value, user_lang)}
@@ -639,9 +662,6 @@ class Schemeitem(TsaBaseModel):
 
         return schemeitem_dict
 
-
-
-
     @classmethod
     def create_shift_list(cls, order):
         # create list of shifts of this scheme PR2019-05-01
@@ -651,17 +671,17 @@ class Schemeitem(TsaBaseModel):
             shifts = cls.objects.filter(scheme__order=order).\
                 exclude(shift__exact='').\
                 exclude(shift__isnull=True).\
-                values('scheme_id', 'shift', 'time_start_dhm', 'time_end_dhm', 'break_duration')\
+                values('scheme_id', 'shift', 'timestartdhm', 'timeenddhm', 'breakduration')\
                 .annotate(count=Count('shift'))\
                 .order_by(Lower('shift'))
 
             for shift in shifts:
-                # schemeitem: {'shift': 'Shift 2', 'time_start': None, 'time_end': None, 'break_duration': 0, 'total': 1}
+                # schemeitem: {'shift': 'Shift 2', 'timestart': None, 'timeend': None, 'breakduration': 0, 'total': 1}
 
                 # add scheme.pk and total to dict 'id'
                 dict = {'id': {'parent_pk': shift.get('scheme_id'), 'count': shift.get('count')}}
 
-                for field in ['shift', 'time_start_dhm', 'time_end_dhm', 'break_duration']:
+                for field in ['shift', 'timestartdhm', 'timeenddhm', 'breakduration']:
                     value = shift.get(field)
                     if value:
                         fieldname = field
@@ -672,12 +692,6 @@ class Schemeitem(TsaBaseModel):
                 if dict:
                     shift_list.append(dict)
         return shift_list
-
-
-
-
-
-
 
 
 class Orderhour(TsaBaseModel):
@@ -694,7 +708,7 @@ class Orderhour(TsaBaseModel):
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     taxrate = IntegerField(default=0) # /10000 unit
-    invoicestatus = PositiveSmallIntegerField(db_index=True, default=0)
+    orderhourstatus = PositiveSmallIntegerField(db_index=True, default=0)
 
     class Meta:
         ordering = ['rosterdate']
@@ -742,26 +756,20 @@ class Emplhour(TsaBaseModel):
     def rosterdate_yyyymmdd(self): # PR2019-04-01
         return get_date_yyyymmdd(self.rosterdate)
 
-    @property
-    def time_start_datetimelocal(self): # PR2019-04-08
-        return get_datetimelocal_from_datetime(self.timestart)
+    def timestart_datetimelocal(self, comp_timezone): # PR2019-04-08
+        return get_datetimelocal_from_datetime(self.timestart, comp_timezone)
+
+    def timestartdhm(self, comp_timezone, user_lang): # PR2019-04-08
+        return get_timelocal_formatDHM(self.rosterdate, self.timestart, comp_timezone, user_lang)
+
+    def timeend_datetimelocal(self, comp_timezone):  # PR2019-04-08
+        return get_datetimelocal_from_datetime(self.timeend, comp_timezone)
+
+    def timeenddhm(self, comp_timezone, user_lang): # PR2019-04-08
+        return get_timelocal_formatDHM(self.rosterdate, self.timeend, comp_timezone, user_lang)
 
     @property
-    def time_start_DHM(self): # PR2019-04-08
-        # TODO: lang
-        return get_timelocal_formatDHM(self.rosterdate, self.timestart, 'nl')
-
-    @property
-    def time_end_datetimelocal(self): # PR2019-04-08
-        return get_datetimelocal_from_datetime(self.timeend)
-
-    @property
-    def time_end_DHM(self): # PR2019-04-08
-        # TODO: lang
-        return get_timelocal_formatDHM(self.rosterdate, self.timeend, 'nl')
-
-    @property
-    def time_end_HHmm(self): # PR2019-04-07
+    def timeend_HHmm(self): # PR2019-04-07
         return get_time_HHmm(self.timeend)
 
     @property
@@ -773,7 +781,7 @@ class Emplhour(TsaBaseModel):
         return value
 
     @property
-    def break_hours(self):
+    def breakhours(self):
         # duration unit is minutes
         value = self.breakduration / 60
         if not value:  # i.e. if value == 0
@@ -837,41 +845,153 @@ class Companysetting(Model):  # PR2019-03-09
         logger.debug('---  get_setting  ------- ')
         setting = ''
         if request_user.company and key_str:
-            #if request_user.department:
-            #    row = cls.objects.filter(
-            #        company=request_user.company,
-            #        department=request_user.department,
-             #       key_str=key_str).first()
-            #else:
-            row = cls.objects.filter(
-                company=request_user.company,
-                key=key_str).first()
+            row = cls.objects.filter( company=request_user.company, key=key_str).first()
             if row:
                 if row.setting:
                     setting = row.setting
         return setting
 
     @classmethod
-    def set_setting(cls, key_str, setting, request_user): #PR2019-03-09
+    def set_setting(cls, key_str, setting, company): #PR2019-03-09
         # function returns list of setting rows that match the filter
         logger.debug('---  set_setting  ------- ')
         logger.debug('setting: ' + str(setting))
         # get
-        if request_user.company and key_str:
-
-            row = cls.objects.filter(
-                company=request_user.company,
-                key=key_str).first()
+        if company and key_str:
+            row = cls.objects.filter(company=company, key=key_str).first()
             if row:
                 row.setting = setting
             else:
-                row = cls(
-                    company=request_user.company,
-                    key=key_str,
-                    setting=setting
-                )
+                if setting:
+                    row = cls(company=company, key=key_str, setting=setting)
             row.save()
 
 
+def validate_code_or_name(model, field, value, update_dict, company, this_pk=None):
+    # validate if order code already_exists in this company PR2019-06-10
+    # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
+                    # if all(k in student for k in ('idnumber','lastname', 'firstname')):
+    #logger.debug('employee_exists: ' + str(code) + ' ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(company) + ' ' + str(this_pk))
+    msg_err = None
+    if not company:
+        msg_err = _("No company.")
+    else:
+        field_text = Upper(field[0]) + Lower(field[1:])
+        max_len = NAME_MAX_LENGTH
+        if field == 'code':
+            max_len = CODE_MAX_LENGTH
+
+        length = len(value)
+        if length == 0:
+            if field == 'name':
+                msg_err = _('Name cannot be blank.')
+            else:
+                msg_err = _('Code cannot be blank.')
+        elif length > max_len:
+            if field == 'name':
+                msg_err = _('Name is too long. ') + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
+            else:
+                msg_err = _('Code is too long. ') + str(CODE_MAX_LENGTH) + _(' characters or fewer.')
+
+        if not msg_err:
+    # check if code already exists
+            crit = Q(code__iexact=value)
+            if field == 'name':
+                crit = Q(name__iexact=value)
+            if this_pk:
+                crit.add(~Q(pk=this_pk), crit.connector)
+
+            exists = False
+            if model == 'customer':
+                crit.add(Q(company=company), crit.connector)
+                exists = Customer.objects.filter(crit).exists()
+            elif model == 'order':
+                crit.add(Q(customer__company=company), crit.connector)
+                exists = Order.objects.filter(crit).exists()
+            elif model == 'scheme':
+                crit.add(Q(order__customer__company=company), crit.connector)
+                exists = Scheme.objects.filter(crit).exists()
+            elif model == 'employee':
+                crit.add(Q(company=company), crit.connector)
+                exists = Employee.objects.filter(crit).exists()
+            if exists:
+                if field == 'name':
+                    msg_err = _('Name already exists.')
+                else:
+                    msg_err = _('Code already exists.')
+    no_error = True
+    if msg_err:
+        no_error = False
+        update_dict[field]['error'] = msg_err
+    return no_error
+
+
+
+def validate_employee_name(namelast, namefirst,  company, this_pk = None):
+    # validate if employee already_exists in this company PR2019-03-16
+    # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
+                    # if all(k in student for k in ('idnumber','lastname', 'firstname')):
+    #logger.debug('employee_exists: ' + str(code) + ' ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(company) + ' ' + str(this_pk))
+    msg_dont_add = None
+
+    msg_dont_add = None
+    if not company:
+        msg_dont_add = _("No company.")
+    else:
+        if not namelast:
+            if not namefirst:
+                msg_dont_add = _("First and last name cannot be blank.")
+            else:
+                msg_dont_add = _("Last name cannot be blank.")
+        elif not namefirst:
+            msg_dont_add = _("First name cannot be blank.")
+    if msg_dont_add is None:
+        if len(namelast) > NAME_MAX_LENGTH:
+            if len(namefirst) > NAME_MAX_LENGTH:
+                msg_dont_add = _("First and last name are too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
+            else:
+                msg_dont_add = _("Last name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
+        elif len(namefirst) > NAME_MAX_LENGTH:
+            msg_dont_add = _("First name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
+
+        # check if first + lastname already exists
+        if msg_dont_add is None:
+            if this_pk:
+                name_exists = Employee.objects.filter(namelast__iexact=namelast,
+                                                   namefirst__iexact=namefirst,
+                                                   company=company
+                                                   ).exclude(pk=this_pk).exists()
+            else:
+                name_exists = Employee.objects.filter(namelast__iexact=namelast,
+                                                   namefirst__iexact=namefirst,
+                                                   company=company
+                                                   ).exists()
+            if name_exists:
+                msg_dont_add = _("This employee name already exists.")
+
+    return msg_dont_add
+
+def employee_email_exists(email, company, this_pk = None):
+    # validate if email address already_exists in this company PR2019-03-16
+
+    msg_dont_add = None
+    if not company:
+        msg_dont_add = _("No company.")
+    elif not email:
+        msg_dont_add = _("Email address cannot be blank.")
+    elif len(email) > NAME_MAX_LENGTH:
+        msg_dont_add = _('Email address is too long. ') + str(CODE_MAX_LENGTH) + _(' characters or fewer.')
+    else:
+        if this_pk:
+            email_exists = Employee.objects.filter(email__iexact=email,
+                                                  company=company
+                                                  ).exclude(pk=this_pk).exists()
+        else:
+            email_exists = Employee.objects.filter(email__iexact=email,
+                                                  company=company).exists()
+        if email_exists:
+            msg_dont_add = _("This email address already exists.")
+
+    return msg_dont_add
 
 

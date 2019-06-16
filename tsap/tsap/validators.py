@@ -1,106 +1,15 @@
 
 from django.core.exceptions import ValidationError
+from django.db.models import Q
+from django.db.models.functions import Upper, Lower
+
 from django.utils.translation import ugettext_lazy as _
-from companies.models import Company, Customer, Employee, Teammember
 
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS
 
+
 import logging
 logger = logging.getLogger(__name__)
-
-
-def validate_employee_code(code, company, this_pk=None):
-    # validate if employee code already_exists in this company PR2019-03-16
-    # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
-                    # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    #logger.debug('employee_exists: ' + str(code) + ' ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(company) + ' ' + str(this_pk))
-    msg_dont_add = None
-    if not company:
-        msg_dont_add = _("No company.")
-    elif not code:
-        msg_dont_add = _("Code cannot be blank.")
-    elif len(code) > CODE_MAX_LENGTH:
-        msg_dont_add = _('Code is too long. ') + str(CODE_MAX_LENGTH) + _(' characters or fewer.')
-    else:
-# check if code already exists
-        if this_pk:
-            code_exists = Employee.objects.filter(code__iexact=code,
-                                                  company=company
-                                                  ).exclude(pk=this_pk).exists()
-        else:
-            code_exists = Employee.objects.filter(code__iexact=code,
-                                                  company=company).exists()
-        if code_exists:
-            msg_dont_add = _("This employee code already exists.")
-
-    return msg_dont_add
-
-def validate_employee_name(namelast, namefirst,  company, this_pk = None):
-    # validate if employee already_exists in this company PR2019-03-16
-    # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
-                    # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    #logger.debug('employee_exists: ' + str(code) + ' ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(company) + ' ' + str(this_pk))
-    msg_dont_add = None
-
-    msg_dont_add = None
-    if not company:
-        msg_dont_add = _("No company.")
-    else:
-        if not namelast:
-            if not namefirst:
-                msg_dont_add = _("First and last name cannot be blank.")
-            else:
-                msg_dont_add = _("Last name cannot be blank.")
-        elif not namefirst:
-            msg_dont_add = _("First name cannot be blank.")
-    if msg_dont_add is None:
-        if len(namelast) > NAME_MAX_LENGTH:
-            if len(namefirst) > NAME_MAX_LENGTH:
-                msg_dont_add = _("First and last name are too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
-            else:
-                msg_dont_add = _("Last name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
-        elif len(namefirst) > NAME_MAX_LENGTH:
-            msg_dont_add = _("First name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
-
-        # check if first + lastname already exists
-        if msg_dont_add is None:
-            if this_pk:
-                name_exists = Employee.objects.filter(namelast__iexact=namelast,
-                                                   namefirst__iexact=namefirst,
-                                                   company=company
-                                                   ).exclude(pk=this_pk).exists()
-            else:
-                name_exists = Employee.objects.filter(namelast__iexact=namelast,
-                                                   namefirst__iexact=namefirst,
-                                                   company=company
-                                                   ).exists()
-            if name_exists:
-                msg_dont_add = _("This employee name already exists.")
-
-    return msg_dont_add
-
-def employee_email_exists(email, company, this_pk = None):
-    # validate if email address already_exists in this company PR2019-03-16
-
-    msg_dont_add = None
-    if not company:
-        msg_dont_add = _("No company.")
-    elif not email:
-        msg_dont_add = _("Email address cannot be blank.")
-    elif len(email) > NAME_MAX_LENGTH:
-        msg_dont_add = _('Email address is too long. ') + str(CODE_MAX_LENGTH) + _(' characters or fewer.')
-    else:
-        if this_pk:
-            email_exists = Employee.objects.filter(email__iexact=email,
-                                                  company=company
-                                                  ).exclude(pk=this_pk).exists()
-        else:
-            email_exists = Employee.objects.filter(email__iexact=email,
-                                                  company=company).exists()
-        if email_exists:
-            msg_dont_add = _("This email address already exists.")
-
-    return msg_dont_add
 
 
 def check_date_overlap(datefirst, datelast, datefirst_is_updated):
@@ -187,7 +96,7 @@ class validate_unique_company_name(object):  # PR2019-03-15
 
 
 class validate_unique_code(object):  # PR2019-03-16, PR2019-04-25
-    def __init__(self, model=None, company=None ,field=None, instance=None):
+    def __init__(self, model=None, company=None, field=None, instance=None):
         self.model=model
         self.company=company
         self.field=field
@@ -271,19 +180,6 @@ class validate_unique_employee_name(object):  # PR2019-03-15
             raise ValidationError(_('Company name already exists.'))
         return value
 
-
-def validate_employee_already_exists_in_teammember(employee, team, this_pk):
-    # - check if employee exists - employee is required field of teammember, is skipped in schemeitems (no field employee)
-    msg_err = None
-    exists = False
-    if employee and team:
-        if this_pk:
-            exists = Teammember.objects.filter(team=team, employee=employee).exclude(pk=this_pk).exists()
-        else:
-            exists = Teammember.objects.filter(team=team, employee=employee).exists()
-    if exists:
-        msg_err = _('This employee already exists.')
-    return msg_err
 
 def daterange_overlap(outer_datefirst, outer_datelast, inner_datefirst, inner_datelast=None ):
     # check if inner range falls within outer range PR2019-06-05

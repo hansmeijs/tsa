@@ -77,12 +77,12 @@
                         <!-- =================== table orders  =================== -->
                         <table class="table tsa-tbl">
                             <thead>
-                                <th>{% trans 'Code' %}</th>
+                                <th >{% trans 'Code' %}</th>
                                 <th>{% trans 'Order name' %}</th>
                                 <th>{% trans 'Start date' %}</th>
                                 <th>{% trans 'End date' %}</th>
                                 <th>
-                                    <a id="id_filter_inactive" href="#" data-value="false" title="{% trans 'Show inactive' %} {% trans 'orders' %}">
+                                    <a id="id_filter_inactive" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
                                         <img id="id_img_filter_inactive" src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
                                     </a>
                                 </th>
@@ -125,6 +125,8 @@
             data-txt_orders_of_customer= "{% trans 'Orders of customer' %}"
             data-txt_select_customer_none= "{% trans 'No customers' %}"
             data-txt_order_add= "{% trans 'Add new order' %}"
+            data-txt_order_make_inactive= "{% trans 'Make order inactive' %}"
+            data-txt_order_make_active= "{% trans 'Make order active' %}"
 
             data-txt_datefirst= "{% trans 'Start date' %}"
             data-txt_datelast= "{% trans 'End date' %}"

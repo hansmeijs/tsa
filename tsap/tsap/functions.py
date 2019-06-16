@@ -84,7 +84,7 @@ def get_date_from_timestr(rosterdate, time_str):  # PR2019-04-07
     return date_time, msg_txt
 
 
-def get_date_from_datetimelocal(datetime_str):  # PR2019-04-08
+def get_date_from_datetimelocal(datetime_str, comp_timezone):  # PR2019-04-08
     logger.debug('............. get_date_from_datetimelocal: ')
     logger.debug('datetime_local: ' + str(datetime_str))
     #  date: "2018-02-25T19:24:23"
@@ -115,7 +115,7 @@ def get_date_from_datetimelocal(datetime_str):  # PR2019-04-08
 
                         # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
                         # entered date is dattime-naive, make it datetime aware with  pytz.timezone
-                        timezone = pytz.timezone(TIME_ZONE)
+                        timezone = pytz.timezone(comp_timezone)
                         datetime_aware = timezone.localize(datetime_naive)
                         logger.debug('datetime_aware: ' + str(datetime_aware) + 'timezone: ' + str(timezone))
         except:
@@ -125,7 +125,7 @@ def get_date_from_datetimelocal(datetime_str):  # PR2019-04-08
     return datetime_aware, msg_txt
 
 
-def get_datetimeaware_from_datetimeUTC(date_timeUTC, time_zone):  # PR2019-04-17
+def get_datetimeaware_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-04-17
     # logger.debug('............. get_datetimeaware_from_datetimeUTC: ' + str(date_timeUTC))
     # Function returns date: "2018-02-25T19:24:23"
 
@@ -138,19 +138,13 @@ def get_datetimeaware_from_datetimeUTC(date_timeUTC, time_zone):  # PR2019-04-17
     datetime_aware = None
     if date_timeUTC:
         # logger.debug("date_timeUTC    :" + str(date_timeUTC))
-        # logger.debug("timezone    :" + str(time_zone))
+        # logger.debug("comp_timezone    :" + str(comp_timezone))
         # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
         # entered date is datetime-naive, make it datetime aware with  pytz.timezone
 
         # Convert time zone
-        timezone = None
-        try:
-            timezone = pytz.timezone(time_zone)
-        except:
-            timezone = pytz.timezone(TIME_ZONE)
-        # logger.debug("TIME_ZONE    :" + str(timezone))
-        if timezone:
-            datetime_aware = date_timeUTC.astimezone(timezone)
+        timezone = pytz.timezone(comp_timezone)
+        datetime_aware = date_timeUTC.astimezone(timezone)
         # logger.debug('datetime_aware: ' + str(datetime_aware))
 
     return datetime_aware
@@ -167,10 +161,11 @@ def get_datetimeUTC_from_datetimeaware(datetime_aware):  # PR2019-04-17
             datetime_obj_utc = datetime_aware.replace(tzinfo=timezone)
     return datetime_obj_utc
 
-def get_datetimelocal_from_datetime(date_time):  # PR2019-04-08
+
+def get_datetimelocal_from_datetime(date_time, comp_timezone):  # PR2019-04-08
     # logger.debug('............. get_datetimelocal_from_datetime: ' + str(date_time))
     # Function returns date: "2018-02-25T19:24:23"
-    # used in model property time_start_datetimelocal snfd time_end_datetimelocal
+    # used in model property timestart_datetimelocal snfd timeend_datetimelocal
 
     # date_time     :   2019-04-11 11:12:12+00:00
     # strftime("%z"):   +0000
@@ -186,8 +181,8 @@ def get_datetimelocal_from_datetime(date_time):  # PR2019-04-08
         # entered date is datetime-naive, make it datetime aware with  pytz.timezone
 
         # Convert time zone
-        timezone = pytz.timezone(TIME_ZONE)
-        # logger.debug("TIME_ZONE    :" + str(timezone))
+        timezone = pytz.timezone(comp_timezone)
+        # logger.debug("comp_timezone    :" + str(comp_timezone))
 
         datetime_aware = date_time.astimezone(timezone)
         # logger.debug('datetime_aware: ' + str(datetime_aware))
@@ -213,24 +208,25 @@ def get_datetimelocal_from_datetime(date_time):  # PR2019-04-08
 """
 
 
-def get_timeDHM_from_dhm(rosterdate, dhm_str, lang):
+def get_timeDHM_from_dhm(rosterdate, dhm_str, comp_timezone, lang):
     # logger.debug('=== get_timeDHM_from_dhm ')
     # logger.debug('rosterdate: ' + str(rosterdate) + str(type(rosterdate)))
     # logger.debug('dhm_str: ' + str(dhm_str) + str(type(dhm_str)))
     # convert rosterdate and dhm_str into local ISO date
     # dt_localized: 2019-03-31 04:48:00+02:00
-    dt_localized = get_datetimelocal_from_DHM(rosterdate, dhm_str)
+    dt_localized = get_datetimelocal_from_DHM(rosterdate, dhm_str, comp_timezone)
     # logger.debug('dt_localized: ' + str(dt_localized) + str(type(dt_localized)))
     # format to 'zo 31 mrt'
 
     # function get_timelocal_formatDHM returns formatted time: "ma 18.15 u." or "Mon 6:15 p.m."
-    time_str = get_timelocal_formatDHM(rosterdate, dt_localized, lang)
+    time_str = get_timelocal_formatDHM(rosterdate, dt_localized, comp_timezone, lang)
     return time_str
 
-def get_datetimeUTC_from_DHM(rosterdate, dhm_str):
+
+def get_datetimeUTC_from_DHM(rosterdate, dhm_str, comp_timezone):
 
     # dt_localized: 2019-03-31 04:48:00+02:00
-    dt_localized = get_datetimelocal_from_DHM(rosterdate, dhm_str)
+    dt_localized = get_datetimelocal_from_DHM(rosterdate, dhm_str, comp_timezone)
 
     utc = pytz.UTC
     dt_as_utc = dt_localized.astimezone(utc)
@@ -274,11 +270,23 @@ def get_weekdaylist_for_DHM(rosterdate, lang):
 
     return weekdaylist
 
-def get_datetimelocal_from_DHM(rosterdate, dhm_str):
+
+def get_minutes_from_DHM(dhm_str):  #PR2019-06-13
+    # breakduration: {'value': '0;0;15', 'update': True}
+    duration = 0
+    if dhm_str:
+        if ';' in dhm_str:
+            arr = dhm_str.split(';')
+            hours = int(arr[1])
+            minutes = int(arr[2])
+            duration = 60 * hours + minutes
+    return duration
+
+def get_datetimelocal_from_DHM(rosterdate, dhm_str, comp_timezone):
     # logger.debug('=== get_datetimelocal_from_DHM ' + dhm_str + '  ' + str(rosterdate))
     dt_localized = None
     if rosterdate and dhm_str:
-        # time_start': {'value': '0;3;45', 'o_value': '2019-04-27T02:36:00+02:00'}}
+        # timestart': {'value': '0;3;45', 'o_value': '2019-04-27T02:36:00+02:00'}}
         if ';' in dhm_str:
             arr = dhm_str.split(';')
             day_offset = int(arr[0])
@@ -298,7 +306,7 @@ def get_datetimelocal_from_DHM(rosterdate, dhm_str):
 
             # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
             # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
-            timezone = pytz.timezone(TIME_ZONE)
+            timezone = pytz.timezone(comp_timezone)
             # logger.debug('timezone: ' + str(timezone) + str(type(timezone)))
 
             # dt_localized: 2019-03-31 04:48:00+02:00
@@ -314,7 +322,7 @@ def get_datetimelocal_from_DHM(rosterdate, dhm_str):
     return dt_localized
 
 
-def get_timelocal_formatDHM(rosterdate, date_time, lang):
+def get_timelocal_formatDHM(rosterdate, date_time, comp_timezone, lang):
     # Function returns date: "ma 18.15 u." or "Mon 6:15 p.m."
     # skip weekday when date equals rosterdate PR201`9-05-25
     # 12.00 a.m is midnight, 12.00 p.m. is noon
@@ -325,7 +333,7 @@ def get_timelocal_formatDHM(rosterdate, date_time, lang):
         # entered date is dattime-naive, make it datetime aware with  pytz.timezone
 
         # Convert time zone
-        timezone = pytz.timezone(TIME_ZONE)
+        timezone = pytz.timezone(comp_timezone)
         datetime_aware = date_time.astimezone(timezone)
         # logger.debug('datetime_aware: ' + str(datetime_aware))
         # check if date equals rosterdate
@@ -343,7 +351,7 @@ def get_timelocal_formatDHM(rosterdate, date_time, lang):
 
         if lang == 'nl':
             separator = '.'
-            suffix = 'u.'
+            suffix = 'u'
         else:  #if lang == 'en':
             separator = ':'
             if hour_int >= 12:
@@ -376,7 +384,7 @@ def get_date_from_dateint(date_int):  # PR2019-03-06
         # logger.debug('return_date: ' + str(return_date) + str(type(return_date)))
     return return_date
 
-
+# NOT IN USE
 def get_date_str_from_dateint(date_int):  # PR2019-03-08
     # Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use this basedate)
     dte_str = ''
@@ -466,18 +474,22 @@ def get_date_WDM_from_dte(dte, lang):  # PR2019-05-01
     return date_WDM
 
 
-def get_date_WDMY_from_dte(dte, lang):  # PR2019-05-01
-    # logger.debug('... get_date_WDM_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) + ' lang: ' + str(lang))
+def formatDMYHM_from_datetime(dte, timezone, lang):
+    # returns 'zo 16 juni 2019 16.30 u' PR2019-06-14
+    date_DMYHM = ''
+    date_WDMY =  format_WDMY_from_dte(dte, lang)
+    date_HM = format_HM_from_dtetime(dte, timezone, lang)
+
+    date_DMYHM = ' '.join([date_WDMY, date_HM])
+    return date_DMYHM
+
+
+def format_WDMY_from_dte(dte, lang):
+    # returns 'zo 16 juni 2019'
     date_WDMY = ''
     if dte:
         try:
-            year_str = str(dte.year)
-            day_str = str(dte.day)
-            month_lang = ''
-
-            if lang in MONTHS_ABBREV:
-                month_lang = MONTHS_ABBREV[lang]
-            month_str = month_lang[dte.month]
+            date_DMY = format_DMY_from_dte(dte, lang)
 
             # get weekdays translated
             if not lang in WEEKDAYS_ABBREV:
@@ -485,14 +497,55 @@ def get_date_WDMY_from_dte(dte, lang):  # PR2019-05-01
             weekday_int = int(dte.strftime("%w"))
             weekday_str = WEEKDAYS_ABBREV[lang][weekday_int]
 
-            date_WDMY = ' '.join([weekday_str, day_str, month_str, year_str])
+            date_WDMY = ' '.join([weekday_str, date_DMY])
         except:
             pass
+    # logger.debug('... format_WDMY_from_dte: ' + str(date_WDMY) + ' type:: ' + str(type(date_WDMY)) + ' lang: ' + str(lang))
     return date_WDMY
 
 
-def get_date_DMY_from_dte(dte, lang):  # PR2019-06-09
-    # logger.debug('... get_date_WDM_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) + ' lang: ' + str(lang))
+def format_HM_from_dtetime(date_time, comp_timezone, lang):
+    # Function returns time : "18.15 u." or "6:15 p.m."
+    # 12.00 a.m is midnight, 12.00 p.m. is noon
+
+    time_str = ''
+    if date_time:
+        # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
+        # entered date is dattime-naive, make it datetime aware with  pytz.timezone
+
+        # Convert time zone
+        timezone = pytz.timezone(comp_timezone)
+        datetime_aware = date_time.astimezone(timezone)
+        # logger.debug('datetime_aware: ' + str(datetime_aware))
+
+
+        # .strftime("%H") returns zero-padded 24 hour based string '03' or '22'
+        hour_str = datetime_aware.strftime("%H")
+        hour_int = int(hour_str)
+        minutes_str = datetime_aware.strftime("%M") # %m is zero-padded
+
+        if lang == 'nl':
+            separator = '.'
+            suffix = 'u'
+        else:  #if lang == 'en':
+            separator = ':'
+            if hour_int >= 12:
+                suffix = 'p.m.'
+                if hour_int > 12:
+                    hour_int -= 12
+                    hour_zero_padded = '00' + str(hour_int)
+                    hour_str = hour_zero_padded[-2:]
+            else:
+                suffix = 'a.m.'
+        hourstr = separator.join([hour_str, minutes_str])
+
+        time_str = ' '.join([hourstr, suffix])
+    return time_str
+
+
+def format_DMY_from_dte(dte, lang):  # PR2019-06-09
+    # logger.debug('... format_DMY_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) + ' lang: ' + str(lang))
+    # returns '16 juni 2019'
     date_DMY = ''
     if dte:
         try:
@@ -507,9 +560,8 @@ def get_date_DMY_from_dte(dte, lang):  # PR2019-06-09
             date_DMY = ' '.join([day_str, month_str, year_str])
         except:
             pass
+    # logger.debug('... date_DMY: ' + str(date_DMY) + ' type:: ' + str(type(dte)) + ' lang: ' + str(lang))
     return date_DMY
-
-
 
 
 def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09
@@ -529,7 +581,7 @@ def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09
                 day_str = day_str + ','
                 date_longstr = ' '.join([month_str, day_str, year_str, time_longstr])
             elif lang == 'nl':
-                time_longstr = dte.strftime("%H.%M") + 'u.'
+                time_longstr = dte.strftime("%H.%M") + 'u'
                 date_longstr = ' '.join([day_str, month_str, year_str, time_longstr])
         except:
             pass
@@ -562,7 +614,7 @@ def get_time_longstr_from_dte(dte, lang):  # PR2019-04-13
                 day_str  = day_str + ','
                 date_longstr = ' '.join([month_str, day_str, year_str, time_longstr])
             elif lang == 'nl':
-                time_longstr = dte.strftime("%H.%M") + 'u.'
+                time_longstr = dte.strftime("%H.%M") + 'u'
                 date_longstr = ' '.join([day_str, month_str, year_str, time_longstr])
         except:
             pass
@@ -577,12 +629,13 @@ def get_date_diff_plusone(firstdate, lastdate): # PR2019-06-05
         date_add = date_add_timedelta.days
     return date_add
 
-def get_time_minutes(time_start, time_end, break_minutes):  # PR2019-06-05
+
+def get_time_minutes(timestart, timeend, break_minutes):  # PR2019-06-05
     # --- calculate working hours
     new_time_minutes = 0
-    if time_start and time_end:
+    if timestart and timeend:
         # duration unit in database is minutes
-        datediff = time_end - time_start
+        datediff = timeend - timestart
         #logger.debug('datediff: ' + str(datediff) + str(type(datediff)))
 
         datediff_minutes = int((datediff.total_seconds() / 60))
@@ -592,6 +645,8 @@ def get_time_minutes(time_start, time_end, break_minutes):  # PR2019-06-05
         #logger.debug('new_time_minutes: ' + str(new_time_minutes) + str(type(new_time_minutes)))
 
     return new_time_minutes
+
+# ################### DICT FUNCTIONS ###################
 
 def get_depbase_list_field_sorted_zerostripped(depbase_list):  # PR2018-08-23
     # sort depbase_list. List ['16', '15', '0', '18'] becomes ['0', '15', '16', '18'].
@@ -669,8 +724,10 @@ def create_dict_with_empty_attr(field_list):
 # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
     update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
     for field in field_list:
-        update_dict[field] = {}
+        if not field in update_dict:
+            update_dict[field] = {}
     return update_dict
+
 
 def remove_empty_attr_from_dict(dict):
 # --- function removes empty attributes from dict  PR2019-06-02
@@ -714,4 +771,60 @@ def get_iddict_variables(id_dict):
     return pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename
 
 
+def get_fielddict_variables(upload_dict, field):
+# - get dict from upload_dict PR2019-06-12
+    # 'rosterdate': {'update': True, 'value': '2019-06-12'}
+    value = None
+    is_update = False
+    # logger.debug('get_fielddict_variables upload_dict: ' + str(upload_dict) + ' field' + str(field))
 
+    # {'id': {'temp_pk': 'new_3', 'create': True, 'parent_pk': 2, 'table': 'schemeitems'},
+    # 'shift': {'update': True, 'value': 'nacht'},
+    # 'team': {'update': True, 'value': 'A'}}
+    # field: rosterdate
+
+    if field:
+        if field in upload_dict:
+            if upload_dict[field]:
+                dict = upload_dict[field]
+                logger.debug('dict: ' + str(dict))
+                if 'value' in dict:
+                    value = dict.get('value', '')
+                if 'update' in dict:
+                    is_update = dict.get('update', False)
+    return is_update, value
+
+
+def fielddict_str(value):
+    dict = {}
+    if value:
+        dict = {'value': value}
+    return dict
+
+
+def fielddict_date(date, user_lang):
+    dict = {}
+    if date:
+        dict = {'value': date,
+                'wdm': get_date_WDM_from_dte(date, user_lang),
+                'wdmy': format_WDMY_from_dte(date, user_lang),
+                'dmy': format_DMY_from_dte(date, user_lang),
+                'offset': get_weekdaylist_for_DHM(date, user_lang)}
+    return dict
+
+
+def fielddict_datetime(rosterdate, dhm, datetime, comp_timezone, user_lang):
+    dict = {}
+    if rosterdate and dhm:
+        dict = {'value': dhm,
+                'dhm': get_timeDHM_from_dhm(rosterdate, dhm, comp_timezone, user_lang),
+                'dmyhm': formatDMYHM_from_datetime(datetime, comp_timezone, user_lang)}
+    return dict
+
+
+def fielddict_duration(duration, user_lang):
+    dict = {}
+    if duration:
+        dict = {'value': duration,
+                'hm': get_date_HM_from_minutes(duration, user_lang)}
+    return dict

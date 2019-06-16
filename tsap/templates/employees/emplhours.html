@@ -132,26 +132,26 @@
                             <td td_width_180>
                                 {{ item.schemeitem.shift|default_if_none:''}}
                             </td>
-                            <td class="input_popup td_width_120" data-name="time_start" data-value="{{ item.time_start_datetimelocal }}">
-                                {{ item.time_start_DHM }}
+                            <td class="input_popup td_width_120" data-name="timestart" data-value="{{ item.timestart_datetimelocal }}">
+                                {{ item.timestartdhm }}
                              </td>
-                            <td class="input_popup td_width_120" data-name="time_end" data-value="{{ item.time_end_datetimelocal }}">
-                                {{ item.time_end_DHM }}
+                            <td class="input_popup td_width_120" data-name="timeend" data-value="{{ item.timeend_datetimelocal }}">
+                                {{ item.timeenddhm }}
                             </td>
                             <td class="td_width_060">
-                                <input data-name="break_hours"
+                                <input data-name="breakhours"
                                        type="text"
                                        autocomplete="off"
                                        ondragstart="return false;"
                                        ondrop="return false;"
-                                       value="{{ item.break_hours}}"
-                                       o_value="{{ item.break_hours}}"
+                                       value="{{ item.breakhours}}"
+                                       o_value="{{ item.breakhours}}"
                                        min="0"
                                        max="72"
                                        class="input_text border_none td_width_060" >
                             </td>
                             <td class="input_text td_width_060">
-                                <input data-name="time_duration"
+                                <input data-name="timeduration"
                                        type="text"
                                        autocomplete="off"
                                        ondragstart="return false;"
@@ -163,22 +163,22 @@
                                        class="input_text border_none td_width_060" >
                             </td>
                             <td class="td_width_032">
-                                <a data-name="time_status" href="#"
-                                   value="{{ item.time_status }}"
+                                <a data-name="timestatus" href="#"
+                                   value="{{ item.timestatus }}"
                                    class="input_icon">
-                                    {% if item.time_status == 5 %}
+                                    {% if item.timestatus == 5 %}
                                         <img src="{% static 'img/stat05.png' %}" height="24" width="24">
                                     {% else %}
-                                        {% if item.time_status == 4 %}
+                                        {% if item.timestatus == 4 %}
                                             <img src="{% static 'img/stat04.png' %}" height="24" width="24">
                                         {% else %}
-                                            {% if item.time_status == 3 %}
+                                            {% if item.timestatus == 3 %}
                                                 <img src="{% static 'img/stat03.png' %}" height="24" width="24">
                                             {% else %}
-                                                {% if item.time_status == 2 %}
+                                                {% if item.timestatus == 2 %}
                                                     <img src="{% static 'img/stat02.png' %}" height="24" width="24">
                                                 {% else %}
-                                                    {% if item.time_status == 1 %}
+                                                    {% if item.timestatus == 1 %}
                                                         <img src="{% static 'img/stat01.png' %}" height="24" width="24">
                                                     {% else %}
                                                         <img src="{% static 'img/stat00.png' %}" height="24" width="24">
@@ -190,28 +190,28 @@
                                 </a>
                             </td>
                             <td class="td_width_090">
-                                <input data-name="orderhour_duration"
+                                <input data-name="orderhourduration"
                                        type="text"
                                        autocomplete="off"
                                        ondragstart="return false;"
                                        ondrop="return false;"
-                                       value="{{ item.orderhour_duration}}"
-                                       o_value="{{ item.orderhour_duration}}"
+                                       value="{{ item.orderhourduration}}"
+                                       o_value="{{ item.orderhourduration}}"
                                        min="-72"
                                        max="72"
                                        class="inpXXut_text border_none td_width_060" >
                             </td>
                             <td class="td_width_032">
-                                <a data-name="orderhour_status" href="#"
-                                value="{{ item.orderhour_status }}"
+                                <a data-name="orderhourstatus" href="#"
+                                value="{{ item.orderhourstatus }}"
                                 class="input_icon">
-                                    {% if item.time_status == 3 %}
+                                    {% if item.timestatus == 3 %}
                                         <img src="{% static 'img/real03.png' %}" height="24" width="24">
                                     {% else %}
-                                        {% if item.time_status == 2 %}
+                                        {% if item.timestatus == 2 %}
                                             <img src="{% static 'img/real02.png' %}" height="24" width="24">
                                         {% else %}
-                                            {% if item.time_status == 1 %}
+                                            {% if item.timestatus == 1 %}
                                                 <img src="{% static 'img/real01.png' %}" height="24" width="24">
                                             {% else %}
                                                 <img src="{% static 'img/stat00.png' %}" height="24" width="24">

@@ -1,6 +1,7 @@
 
 # PR2019-03-02
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.db.models.functions import Lower
 from django.http import HttpResponse
 
@@ -10,16 +11,15 @@ from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, CreateView, View
 
-from companies.models import Customer, Order, Scheme, Team
+from companies.models import Customer, Order, Scheme, Team, validate_code_or_name
 
 from customers.forms import CustomerAddForm
 from companies.views import LazyEncoder
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_customer, check_date_overlap
 from tsap.functions import get_date_from_str, create_dict_with_empty_attr, get_iddict_variables, \
-                        get_date_WDM_from_dte, get_date_WDMY_from_dte, get_date_DMY_from_dte, get_weekdaylist_for_DHM, \
+                        get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, get_weekdaylist_for_DHM, \
                         remove_empty_attr_from_dict
-
 import json
 
 import logging
@@ -354,17 +354,26 @@ class OrderUploadView(UpdateView):# PR2019-03-04
 
 # === Create new order or customer
                         elif is_create:
+                            # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
+                            if temp_pk_str:
+                                update_dict['id']['temp_pk'] = temp_pk_str
+
                             code = None
                             name = None
                             code_dict = upload_dict.get('code')
                             if code_dict:
                                 code = code_dict.get('value')
+                            code_ok = True # TODO validate_code_or_name('order', 'code', code, update_dict, request.user.company)
+
                             name_dict = upload_dict.get('name')
                             if name_dict:
                                 name = name_dict.get('value')
                             if name is None:
                                 name = code
-                            instance = Order.create_instance(parent_instance, code, name, temp_pk_str, update_dict, request)
+
+                            name_ok = True # TODO validate_code_or_name('order', 'name', name, update_dict, request.user.company)
+                            if code_ok  and name_ok:
+                                instance = Order.create_instance(parent_instance, code, name, temp_pk_str, update_dict, request)
                             logger.debug('new instance: ' + str(instance))
 
 # - update instance
@@ -405,7 +414,7 @@ class OrderDownloadDatalistView(View):  # PR2019-03-10
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= OrderDownloadDatalistView ============= ')
         logger.debug('request.POST' + str(request.POST) )
-        # 'datalist_download': ['{"customers": true,"orders":true}']}>
+        # 'datalist_download': ['{"customers": {inactive: false},"orders":{inactive: false}}']}>
         datalists = {}
         if request.user is not None:
             if request.user.company is not None:
@@ -469,7 +478,7 @@ def create_instance(table, parent_instance, code, name, temp_pk_str, update_dict
         instance.save(request=request)
 # - create error when instance not created
         if instance is None:
-            msg_err = _('This %(instancename) could not be created.') % {'instancename': table}
+            msg_err = _('This item could not be created.')
             update_dict['id']['error'] = msg_err
         else:
 # - put info in id_dict
@@ -569,7 +578,7 @@ def update_instance(instance, upload_dict, update_dict, request, user_lang):
 
     # logger.debug('update_dict: ' + str(update_dict))
 
-            # logger.debug('time_duration: ' + str(schemeitem.time_duration) + str(type(schemeitem.time_duration)))
+            # logger.debug('timeduration: ' + str(schemeitem.timeduration) + str(type(schemeitem.timeduration)))
     # --- save changes
     if save_changes:
         instance.save(request=request)
@@ -582,8 +591,8 @@ def update_instance(instance, upload_dict, update_dict, request, user_lang):
                 if saved_value:
                     update_dict[field]['value'] = str(saved_value)
                     update_dict[field]['wdm'] = get_date_WDM_from_dte(saved_value, user_lang)
-                    update_dict[field]['wdmy'] = get_date_WDMY_from_dte(saved_value, user_lang)
-                    update_dict[field]['dmy'] = get_date_DMY_from_dte(saved_value, user_lang)
+                    update_dict[field]['wdmy'] = format_WDMY_from_dte(saved_value, user_lang)
+                    update_dict[field]['dmy'] = format_DMY_from_dte(saved_value, user_lang)
                     update_dict[field]['offset'] = get_weekdaylist_for_DHM(saved_value, user_lang)
             elif field == 'code':
                 if saved_value:

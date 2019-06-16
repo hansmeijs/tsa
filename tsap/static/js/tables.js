@@ -1,7 +1,6 @@
 
+// ++++++++++++  TABLE ROWS +++++++++++++++++++++++++++++++++++++++
 
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= CreateTableRows  ====================================
     function CreateTableRows(tableBase, stored_items, excel_items,
                     JustLinkedAwpId, JustUnlinkedAwpId, JustUnlinkedExcId) {
@@ -91,8 +90,6 @@
                     setTimeout(function () {$(XidExcRow).removeClass(cae_hv);}, 1000);
         }}};
      }; //function CreateTableRows()
-
-
 
 //=========   handle_table_row_clicked   ======================
     function handle_table_row_clicked(e) {  //// EAL: Excel Awp Linked table
@@ -189,7 +186,6 @@ console.log("=========   handle_table_row_clicked   ======================") ;
        }}}
     };  // handle_EAL_row_clicked
 
-
 //========= get_tablerow_clicked  =============
     function get_tablerow_clicked(el_clicked){
         //console.log("=========  get_tablerow_clicked =========");
@@ -218,7 +214,6 @@ console.log("=========   handle_table_row_clicked   ======================") ;
         return tr_clicked;
     }; // get_tablerow_clicked UploadChanges
 
-
 //========= get_tablerow_selected  =============
     function get_tablerow_selected(el_selected){
         // PR2019-04-16 function 'bubbles up' till tablerow element is found
@@ -244,7 +239,6 @@ console.log("=========   handle_table_row_clicked   ======================") ;
         return tr_selected;
     };
 
-
 //========= get_tablerow_id  ============= PR2019-04-28
     function get_tablerow_id(el_clicked){
         let dict = {};
@@ -268,179 +262,8 @@ console.log("=========   handle_table_row_clicked   ======================") ;
         }
         return dict;
     }
-//====================================================================
 
-//========= format_text_element  ======== PR2019-06-09
-    function format_text_element (el_input, field_dict) {
-        if(!!el_input && !!field_dict){
-            value = get_dict_value_by_key (field_dict, "value");
-            el_input.value = value;
-            el_input.setAttribute("data-value", value);
-            el_input.setAttribute("data-o_value", value);
-        }
-    }
-
-
-//========= format_duration_element format_time_element  ======== PR2019-06-09
-    function format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active ) {
-        // inactive: {value: true}
-        // console.log("+++++++++ format_inactive_element")
-        // console.log(field_dict)
-        // console.log(el_input)
-        if(!!el_input){
-            let is_inactive = false;
-            if(!isEmpty(field_dict)){
-                is_inactive = get_dict_value_by_key (field_dict, "value")
-            }
-            //console.log("is_inactive: ", is_inactive, typeof is_inactive)
-
-            el_input.setAttribute("data-value", is_inactive);
-            el_input.setAttribute("data-o_value", is_inactive);
-
-            // update icon
-            let imgsrc;
-            if (is_inactive) {imgsrc = imgsrc_inactive} else  {imgsrc = imgsrc_active}
-            el_input.children[0].setAttribute("src", imgsrc);
-        }
-    }
-
-//========= format_duration_element format_time_element  ======== PR2019-06-03
-    function format_duration_element (el_input, field_dict) {
-        // time_duration: {value: 540, hm: "9:00"}
-        if(!!el_input && !!field_dict){
-
-            let value = get_dict_value_by_key (field_dict, "value");
-            let hm = get_dict_value_by_key (field_dict, "hm");
-            let updated = get_dict_value_by_key (field_dict, "updated");
-            let msg_err = get_dict_value_by_key (field_dict, "error");
-
-            if(!!msg_err){
-               ShowMsgError(el_input, msg_err, - 160, true, value)
-            } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){
-                    el_input.classList.remove("border_valid");
-                    }, 2000);
-            }
-
-            if(!!value){
-                el_input.setAttribute("data-value", value);
-                el_input.setAttribute("data-o_value", value);
-            }
-            if(!!hm){
-                el_input.value = hm;
-            }
-        }
-    }  // function format_duration_element
-
-
-//========= function format_time_element  ======== PR2019-06-03
-    function format_time_element (el_input, field_dict) {
-        // time_start: {dhm: "Sun 10:00 p.m.", value: "-1;22;0"}
-        if(!!el_input && !!field_dict){
-
-            let value = get_dict_value_by_key (field_dict, "value");
-            let dhm = get_dict_value_by_key (field_dict, "dhm");
-            let updated = get_dict_value_by_key (field_dict, "updated");
-            let msg_err = get_dict_value_by_key (field_dict, "error");
-
-            if(!!msg_err){
-               ShowMsgError(el_input, msg_err, - 160, true, value)
-            } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){
-                    el_input.classList.remove("border_valid");
-                    }, 2000);
-            }
-
-            if(!!value){
-                el_input.setAttribute("data-value", value);
-                el_input.setAttribute("data-o_value", value);
-            }
-            if(!!dhm){
-                el_input.value = dhm;
-            }
-        }
-    }  // function format_time_element
-
-
-//========= function format_date_element  ======== PR2019-06-02
-    function format_date_element (el_input, field_dict, show_weekday, show_year) {
-        // 'rosterdate': {'value': '1901-01-18', 'wdm': '1901-01-18', 'wdmy': '1901-01-18', 'offset': '-1:wo,0:do,1:vr'},
-        if(!!el_input && !!field_dict){
-
-            let value = get_dict_value_by_key (field_dict, "value");
-            let wdm = get_dict_value_by_key (field_dict, "wdm");
-            let wdmy = get_dict_value_by_key (field_dict, "wdmy");
-            let dmy = get_dict_value_by_key (field_dict, "dmy");
-            let offset = get_dict_value_by_key (field_dict, "offset");
-            let updated = get_dict_value_by_key (field_dict, "updated");
-            let msg_err = get_dict_value_by_key (field_dict, "error");
-
-            if(!!msg_err){
-
-               ShowMsgError(el_input, msg_err, - 160, true, value)
-
-            } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){
-                    el_input.classList.remove("border_valid");
-                    }, 2000);
-            }
-
-            if(!!value){
-                el_input.setAttribute("data-value", value);
-                el_input.setAttribute("data-o_value", value);
-            }
-
-            if(!!wdm){el_input.setAttribute("data-wdm", wdm)}
-            if(!!wdmy){el_input.setAttribute("data-wdmy", wdmy)}
-            if(!!dmy){el_input.setAttribute("data-dmy", dmy)}
-            if(!!offset){el_input.setAttribute("data-offset", offset)}
-
-            if (show_year) {
-                if (show_weekday){
-                    el_input.value = wdmy;
-                } else {
-                    el_input.value = dmy;
-                }
-            } else{
-                el_input.value = wdm;
-                el_input.title = wdmy
-            }
-
-        };  // if(!!el_input)
-    }  // function format_date_element
-
-//=========  ShowMsgError  ================ PR2019-06-01
-    function ShowMsgError(el_input, msg_err, offset, set_value, value) {
-    // show MsgBox with msg_err , offset shifts horizontal position
-
-        el_input.classList.add("border_none");
-        el_input.classList.add("border_invalid");
-
-        let el_msg = document.getElementById("id_msgbox");
-        el_msg.innerHTML = msg_err;
-        el_msg.classList.toggle("show");
-
-        const elemRect = el_input.getBoundingClientRect();
-        const msgRect = el_msg.getBoundingClientRect();
-        const topPos = elemRect.top - (msgRect.height + 80);
-        const leftPos = elemRect.left + offset;
-        const msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-
-        el_msg.setAttribute("style", msgAttr)
-
-        setTimeout(function (){
-                // tblRow.classList.remove("tsa_tr_error");
-                if (set_value){
-                    el_input.value = value;
-                    el_input.setAttribute("data-value", value);
-                }
-                el_input.classList.remove("border_invalid");
-                el_msg.classList.toggle("show");
-            }, 2000);
-    }
+// +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 //========= function get_iddict_from_element  ======== PR2019-06-01
@@ -492,7 +315,6 @@ console.log("=========   handle_table_row_clicked   ======================") ;
         }
         return pk_int
     }
-
 
 //========= function get_index_by_awpkey  ====================================
     function get_index_by_awpkey (objArray, awpKeyValue) {
@@ -570,11 +392,11 @@ console.log("=========   handle_table_row_clicked   ======================") ;
 
 //========= function get_dict_value_by_key  ====================================
     function get_dict_value_by_key (dict, key, default_value) {
-        // Function returns value of key in obj PR2019-02-19 PR2019-04-27
-        // dict:  {excCol: "ANAAM", awpCol: "lastname", awpCaption: "Achternaam"}
+        // Function returns value of key in obj PR2019-02-19 PR2019-04-27 PR2019-06-12
         let value;
         if (!!dict && !!key){
-            if (key in dict) {
+            // or: if (key in dict) { value = dict[key];}
+            if (dict.hasOwnProperty(key)) {
                 value = dict[key];
             }
         }
@@ -617,6 +439,208 @@ console.log("=========   handle_table_row_clicked   ======================") ;
         return dhm_dict;
     }
 
+
+// +++++++++++++++++ FORMAT ++++++++++++++++++++++++++++++++++++++++++++++++++
+
+//========= format_text_element  ======== PR2019-06-09
+    function format_text_element (el_input, field_dict) {
+        if(!!el_input && !!field_dict){
+            value = get_dict_value_by_key (field_dict, "value");
+            el_input.value = value;
+            el_input.setAttribute("data-value", value);
+            el_input.setAttribute("data-o_value", value);
+        }
+    }
+
+
+//========= format_duration_element format_time_element  ======== PR2019-06-09
+    function format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active, title_inactive, title_active) {
+        // inactive: {value: true}
+        // console.log("+++++++++ format_inactive_element")
+        // console.log(field_dict)
+        // console.log(el_input)
+        if(!!el_input){
+            let is_inactive = false;
+            if(!isEmpty(field_dict)){
+                is_inactive = get_dict_value_by_key (field_dict, "value")
+            }
+            //console.log("is_inactive: ", is_inactive, typeof is_inactive)
+
+            el_input.setAttribute("data-value", is_inactive);
+            el_input.setAttribute("data-o_value", is_inactive);
+
+            // update icon
+            let imgsrc, title;
+            if (is_inactive) {
+                imgsrc = imgsrc_inactive;
+                title = title_inactive;
+            } else  {
+                imgsrc = imgsrc_active
+                title = title_active;
+            }
+            el_input.children[0].setAttribute("src", imgsrc);
+            el_input.setAttribute("title", title);
+        }
+    }
+
+//========= format_duration_element format_time_element  ======== PR2019-06-03
+    function format_duration_element (el_input, field_dict) {
+        // timeduration: {value: 540, hm: "9:00"}
+        if(!!el_input && !!field_dict){
+
+            let value = get_dict_value_by_key (field_dict, "value");
+            let hm = get_dict_value_by_key (field_dict, "hm");
+            let updated = get_dict_value_by_key (field_dict, "updated");
+            let msg_err = get_dict_value_by_key (field_dict, "error");
+
+            if(!!msg_err){
+               ShowMsgError(el_input, msg_err, - 160, true, value)
+            } else if(updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){
+                    el_input.classList.remove("border_valid");
+                    }, 2000);
+            }
+
+            if(!!value){
+                el_input.setAttribute("data-value", value);
+                el_input.setAttribute("data-o_value", value);
+            }
+            if(!!hm){
+                el_input.value = hm;
+            }
+        }
+    }  // function format_duration_element
+
+
+//========= function format_time_element  ======== PR2019-06-03
+    function format_time_element (el_input, field_dict) {
+        // timestart: {dhm: "Sun 10:00 p.m.", value: "-1;22;0"}
+        if(!!el_input && !!field_dict){
+
+            let value = get_dict_value_by_key (field_dict, "value");
+            let dhm = get_dict_value_by_key (field_dict, "dhm");
+            let dmyhm = get_dict_value_by_key (field_dict, "dmyhm");
+            let updated = get_dict_value_by_key (field_dict, "updated");
+            let msg_err = get_dict_value_by_key (field_dict, "error");
+
+            if(!!msg_err){
+               ShowMsgError(el_input, msg_err, - 160, true, value)
+            } else if(updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){
+                    el_input.classList.remove("border_valid");
+                    }, 2000);
+            }
+            if(!!value){
+                el_input.setAttribute("data-value", value);
+                el_input.setAttribute("data-o_value", value)};
+            if(!!dhm){
+                el_input.value = dhm};
+            if(!!dmyhm){
+                el_input.title = dmyhm}  ;
+
+        }
+    }  // function format_time_element
+
+
+//========= function format_date_element  ======== PR2019-06-02
+    function format_date_element (el_input, field_dict, show_weekday, show_year) {
+        // 'rosterdate': {'value': '1901-01-18', 'wdm': '1901-01-18', 'wdmy': '1901-01-18', 'offset': '-1:wo,0:do,1:vr'},
+        if(!!el_input && !!field_dict){
+
+            let value = get_dict_value_by_key (field_dict, "value");
+            let wdm = get_dict_value_by_key (field_dict, "wdm");
+            let wdmy = get_dict_value_by_key (field_dict, "wdmy");
+            let dmy = get_dict_value_by_key (field_dict, "dmy");
+            let offset = get_dict_value_by_key (field_dict, "offset");
+            let updated = get_dict_value_by_key (field_dict, "updated");
+            let msg_err = get_dict_value_by_key (field_dict, "error");
+
+            if(!!msg_err){
+
+               ShowMsgError(el_input, msg_err, - 160, true, value)
+
+            } else if(updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){
+                    el_input.classList.remove("border_valid");
+                    }, 2000);
+            }
+
+            if(!!value){
+                el_input.setAttribute("data-value", value);
+                el_input.setAttribute("data-o_value", value);
+            }
+
+            if(!!wdm){el_input.setAttribute("data-wdm", wdm)}
+            if(!!wdmy){el_input.setAttribute("data-wdmy", wdmy)}
+            if(!!dmy){el_input.setAttribute("data-dmy", dmy)}
+            if(!!offset){el_input.setAttribute("data-offset", offset)}
+
+            if (show_year) {
+                if (show_weekday){
+                    el_input.value = wdmy;
+                } else {
+                    el_input.value = dmy;
+                }
+            } else{
+                el_input.value = wdm;
+                el_input.title = wdmy
+            }
+
+        };  // if(!!el_input)
+    }  // function format_date_element
+
+// +++++++++++++++++ OTHER ++++++++++++++++++++++++++++++++++++++++++++++++++
+
+//=========  ShowMsgError  ================ PR2019-06-01
+    function ShowMsgError(el_input, msg_err, offset, set_value, value) {
+    // show MsgBox with msg_err , offset shifts horizontal position
+
+        el_input.classList.add("border_none");
+        el_input.classList.add("border_invalid");
+
+        let el_msg = document.getElementById("id_msgbox");
+        el_msg.innerHTML = msg_err;
+        el_msg.classList.toggle("show");
+
+        const elemRect = el_input.getBoundingClientRect();
+        const msgRect = el_msg.getBoundingClientRect();
+        const topPos = elemRect.top - (msgRect.height + 80);
+        const leftPos = elemRect.left + offset;
+        const msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+
+        el_msg.setAttribute("style", msgAttr)
+
+        setTimeout(function (){
+                // tblRow.classList.remove("tsa_tr_error");
+                if (set_value){
+                    el_input.value = value;
+                    el_input.setAttribute("data-value", value);
+                }
+                el_input.classList.remove("border_invalid");
+                el_msg.classList.toggle("show");
+            }, 2000);
+    }
+
+//=========  ShowOkClass  ================ PR2019-05-31
+    function ShowOkClass(tblRow ) {
+    // make row green, / --- remove class 'ok' after 2 seconds
+        tblRow.classList.add("tsa_tr_ok");
+        setTimeout(function (){
+            tblRow.classList.remove("tsa_tr_ok");
+        }, 2000);
+    }
+
+//=========  AppendIcon  ================ PR2019-05-31
+    function AppendChildIcon(el, img_src ) {
+        let img = document.createElement("img");
+            img.setAttribute("src", img_src);
+            img.setAttribute("height", "18");
+            img.setAttribute("width", "18");
+        el.appendChild(img);
+    }
 
 //========= function found_in_list_str  ======== PR2019-01-22
     function found_in_list_str(value, list_str ){
@@ -664,23 +688,6 @@ console.log("=========   handle_table_row_clicked   ======================") ;
       timer = setTimeout(callback, ms);
      };
     })();
-
-//=========  AppendIcon  ================ PR2019-05-31
-    function AppendChildIcon(el, img_src ) {
-        let img = document.createElement("img");
-            img.setAttribute("src", img_src);
-            img.setAttribute("height", "18");
-            img.setAttribute("width", "18");
-        el.appendChild(img);
-    }
-//=========  ShowOkClass  ================ PR2019-05-31
-    function ShowOkClass(tblRow ) {
-    // make row green, / --- remove class 'ok' after 2 seconds
-        tblRow.classList.add("tsa_tr_ok");
-        setTimeout(function (){
-            tblRow.classList.remove("tsa_tr_ok");
-        }, 2000);
-    }
 
 
 //========= FilterRows  ====================================
@@ -750,8 +757,6 @@ console.log("=========   handle_table_row_clicked   ======================") ;
         }
         return show_row
     }; // function FilterTableRows
-
-
 
 
 //========= ShowRow ========= PR2019-06-09

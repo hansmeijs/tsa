@@ -159,7 +159,7 @@ console.log("Customers document.ready");
                 const id_str = tr_changed.getAttribute("id");
                 console.log( "id_str: ", id_str, typeof id_str);
 
-// ---  el_changed is cell 'time_status' or 'orderhour_status' of tr_changed
+// ---  el_changed is cell 'timestatus' or 'orderhourstatus' of tr_changed
                 let el_value = el_changed.getAttribute("value");
                 console.log( "el_value : ", el_value, typeof el_value);
 ;
@@ -184,7 +184,7 @@ console.log("Customers document.ready");
                 el_changed.children[0].setAttribute("src", img_src);
 
 // upload new value icon
-                let row_upload = {"pk": id_str, 'time_status': el_value_int}
+                let row_upload = {"pk": id_str, 'timestatus': el_value_int}
                 console.log(">>>>>>>>row_upload:", row_upload)
                 let parameters = {"row_upload": JSON.stringify (row_upload)};
                 let response = "";
@@ -340,7 +340,7 @@ console.log("=========  function HandleCreateRecord =========");
                 if (j === 4){
                     el_name = "emplhour_start";
                 } else if (j === 5) {
-                    el_name = "time_end";
+                    el_name = "timeend";
                 }
                 el.setAttribute("type", "time");
                 el.setAttribute("value", "");
@@ -351,10 +351,10 @@ console.log("=========  function HandleCreateRecord =========");
             } else if (j===8 || j===10){
                 let img = document.createElement("img");
                 if (j === 8){
-                    el_name = "time_status";
+                    el_name = "timestatus";
                     img.src = imgsrc_stat04
                 } else if (j === 10) {
-                    el_name = "orderhour_status";
+                    el_name = "orderhourstatus";
                     img.src = imgsrc_real02
                 }
                 img.height="24"
@@ -373,11 +373,11 @@ console.log("=========  function HandleCreateRecord =========");
                     el_name = "shift";
                     el_list = "id_datalist_shifts";
                 } else if (j === 6) {
-                    el_name = "emplbreak_duration";
+                    el_name = "emplbreakduration";
                 } else if (j === 7) {
-                    el_name = "emplhour_duration";
+                    el_name = "emplhourduration";
                 } else if (j === 9) {
-                    el_name = "orderhour_duration";
+                    el_name = "orderhourduration";
                 }
                 let el = document.createElement('input');
                 el.setAttribute("name", el_name);

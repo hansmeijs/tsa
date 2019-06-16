@@ -51,7 +51,7 @@
 
 //========= get_attr_from_element  =============PR2019-06-07
     function get_attr_from_element(element, key, parse_int){
-    // ---  get attr value from key: i.e. element["name"] = "break_duration"
+    // ---  get attr value from key: i.e. element["name"] = "breakduration"
         let value;
         if(!!element && !!key){
             if(element.hasAttribute(key)){
@@ -68,8 +68,9 @@
                 value_str = element.getAttribute(key);
             };
         }
-        return value_int;
+        return value_str;
     };
+
 //========= get_attr_from_element_int  ============= PR2019-06-07
     function get_attr_from_element_int(element, key){
         let value_int = 0;
@@ -79,6 +80,16 @@
             };
         }
         return value_int;
+    };
+    //========= get_attr_from_element_dict  ============= PR2019-06-13
+    function get_attr_from_element_dict(element, key){
+        let value_dict = {};
+        if(!!element && !!key){
+            if(element.hasAttribute(key)){
+                value_dict = JSON.parse(element.getAttribute(key))
+            };
+        }
+        return value_dict;
     };
 //========= get_arrayRow_by_keyValue  ====================================
     function get_arrayRow_by_keyValue (objArray, arrKey, keyValue) {

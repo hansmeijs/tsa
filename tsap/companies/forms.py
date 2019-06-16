@@ -61,13 +61,16 @@ class CompanyAddForm(ModelForm):
 class CompanyEditForm(ModelForm):
     class Meta:
         model = Company
-        fields = ('code', 'name', 'datefirst', 'datelast', 'locked', 'inactive', 'modifiedby', 'modifiedat')
+        fields = ('code', 'name', 'datefirst', 'datelast', 'locked', 'inactive', 'timeformat', 'timezone', 'interval')
         labels = {'code': _('Code'),
                   'name': _('Name'),
                   'datefirst': _('First date'),
                   'datelast': _('Last date'),
                   'locked': _('Locked'),
                   'inactive': _('Inactive'),
+                  'timeformat': _('Time format'),
+                  'timezone': _('Timezone'),
+                  'interval': _('Interval'),
                   }
 
     def __init__(self, *args, **kwargs):

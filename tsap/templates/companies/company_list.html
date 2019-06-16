@@ -26,8 +26,7 @@
               <th>{% trans 'Balance' %}</th>
               <th>{% trans 'Time zone' %}</th>
               <th>{% trans 'Time format' %}</th>
-              <th>{% trans 'Modified by' %}</th>
-              <th>{% trans 'Modified at' %}</th>
+              <th>{% trans 'Interval' %}</th>
             </tr>
           </thead>
           <tbody>
@@ -46,15 +45,14 @@
                 </td>
                 <td>{{ item.code|default_if_none:''}}</td>
                 <td>
-                    <a>{{ item.name|default_if_none:''}}</a>
+                    <a href="{% url 'company_edit_url' item.pk %}" >{{ item.name|default_if_none:''}}</a>
                 </td>
                 <td>{{ item.datefirst|default_if_none:''}}</td>
                 <td>{{ item.datelast|default_if_none:''}}</td>
                 <td>{{ item.balance|default_if_none:''}}</td>
                 <td>{{ item.timezone|default_if_none:''}}</td>
                 <td>{{ item.timeformat|default_if_none:''}}</td>
-                <td>{{ item.modified_by}}</td>
-                <td>{{ item.modified_at}}</td>
+                <td>{{ item.interval|default_if_none:''}}</td>
               </tr>
             {% endfor %}
           </tbody>
