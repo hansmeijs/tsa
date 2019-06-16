@@ -137,22 +137,6 @@ class Customer(TsaBaseModel):
     def __str__(self):
         return self.code
 
-    @classmethod
-    def create_customer_list(cls, company, include_inactive):
-    # --- create list of all active customers of this company PR2019-06-09
-
-        crit = Q(company=company)
-        if not include_inactive:
-            crit.add(Q(inactive=False), crit.connector)
-        customers = cls.objects.filter(crit).order_by(Lower('code'))
-
-        customer_list = []
-        for customer in customers:
-            dict = {'pk': customer.pk, 'id': {'pk': customer.pk, 'parent_pk': customer.company.pk},
-                    'code': {'value': customer.code}}
-            customer_list.append(dict)
-        return customer_list
-
 
 class Order(TsaBaseModel):
     objects = TsaManager()
@@ -255,42 +239,6 @@ class Order(TsaBaseModel):
                 update_dict['id']['error'] = msg_err
 
         return update_dict
-
-    @classmethod
-    def create_order_list(cls, company, user_lang, include_inactive):
-    # --- create list of all active orders of this company PR2019-06-09
-
-        crit = Q(customer__company=company)
-        if not include_inactive:
-            crit.add(Q(inactive=False), crit.connector)
-        orders = cls.objects.filter(crit).order_by(Lower('customer__code'), Lower('code'))
-
-        order_list = []
-        if orders:
-            for order in orders:
-                dict = {'pk': order.pk}
-                dict['id'] = {'pk': order.pk, 'parent_pk': order.customer.pk}
-                if order.code:
-                    dict['code'] = {'value': order.code}
-                if order.name:
-                    dict['name'] = {'value': order.name}
-
-                for field in ['code', 'name', 'inactive']:
-                    value = getattr(order, field)
-                    if value:
-                        dict[field] = {'value': value}
-
-                for field in ['datefirst', 'datelast']:
-                    value = getattr(order, field)
-                    if value:
-                        dict[field] = {'value': value,
-                                      'wdm': get_date_WDM_from_dte(value, user_lang),
-                                      'wdmy': format_WDMY_from_dte(value, user_lang),
-                                      'dmy': format_DMY_from_dte(value, user_lang),
-                                      'offset': get_weekdaylist_for_DHM(value, user_lang)}
-
-                order_list.append(dict)
-        return order_list
 
 
 class Object(TsaBaseModel):
@@ -479,19 +427,6 @@ class Employee(TsaBaseModel):
             dte_str = get_date_yyyymmdd(self.datelast)
         return dte_str
 
-    @classmethod
-    def create_employee_list(cls, company):
-    # --- create list of all active employees of this company PR2019-05-30
-        employees = cls.objects.filter(
-            company=company,
-            inactive=False
-        ).order_by(Lower('code'))
-        employee_list = []
-        for employee in employees:
-            dict = {'pk': employee.pk, 'id': {'pk': employee.pk, 'parent_pk': employee.company.pk},
-                    'code': {'value': employee.code}}
-            employee_list.append(dict)
-        return employee_list
 
 
 class Teammember(TsaBaseModel):

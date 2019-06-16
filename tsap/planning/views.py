@@ -671,7 +671,7 @@ class SchemesView(View):
 
 # --- create list of all active customers of this company
             include_inactive = False
-            customer_json = json.dumps(Customer.create_customer_list(request.user.company, include_inactive))
+            customer_json = json.dumps(create_customer_list(request.user.company, include_inactive))
 
 # --- create list of all active orders of this company
             # order_json = json.dumps(create_order_list(request.user.company))
@@ -852,11 +852,11 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                         list = []
                         if table == 'customers':
-                            list = Customer.create_customer_list(request.user.company, include_inactive)
+                            list = create_customer_list(request.user.company, include_inactive)
                         if table == 'orders':
-                            list = Order.create_order_list(request.user.company, user_lang, include_inactive)
+                            list = create_order_list(request.user.company, user_lang, include_inactive)
                         if table == 'employees':
-                            list = Employee.create_employee_list(request.user.company)
+                            list = create_employee_list(request.user.company)
                         if order:
                             if table == 'schemes':
                                 list = Scheme.create_scheme_list(order, user_lang)
@@ -2005,6 +2005,71 @@ def update_schemeitem(scheme, schemeitem, upload_dict, update_dict, request, com
     remove_empty_attr_from_dict(update_dict)
 
     # logger.debug('update_dict: ' + str(update_dict))
+
+
+def create_customer_list(company, include_inactive):
+# --- create list of all active customers of this company PR2019-06-09
+    crit = Q(company=company)
+    if not include_inactive:
+        crit.add(Q(inactive=False), crit.connector)
+    customers = Customer.objects.filter(crit).order_by(Lower('code'))
+
+    customer_list = []
+    for customer in customers:
+        dict = {'pk': customer.pk, 'id': {'pk': customer.pk, 'parent_pk': customer.company.pk},
+                'code': {'value': customer.code}}
+        customer_list.append(dict)
+    return customer_list
+
+
+def create_order_list(company, user_lang, include_inactive):
+    # --- create list of all active orders of this company PR2019-06-09
+
+    crit = Q(customer__company=company)
+    if not include_inactive:
+        crit.add(Q(inactive=False), crit.connector)
+    orders = Order.objects.filter(crit).order_by(Lower('customer__code'), Lower('code'))
+
+    order_list = []
+    if orders:
+        for order in orders:
+            dict = {'pk': order.pk}
+            dict['id'] = {'pk': order.pk, 'parent_pk': order.customer.pk}
+            if order.code:
+                dict['code'] = {'value': order.code}
+            if order.name:
+                dict['name'] = {'value': order.name}
+
+            for field in ['code', 'name', 'inactive']:
+                value = getattr(order, field)
+                if value:
+                    dict[field] = {'value': value}
+
+            for field in ['datefirst', 'datelast']:
+                value = getattr(order, field)
+                if value:
+                    dict[field] = {'value': value,
+                                   'wdm': get_date_WDM_from_dte(value, user_lang),
+                                   'wdmy': format_WDMY_from_dte(value, user_lang),
+                                   'dmy': format_DMY_from_dte(value, user_lang),
+                                   'offset': get_weekdaylist_for_DHM(value, user_lang)}
+
+            order_list.append(dict)
+    return order_list
+
+
+def create_employee_list(company):
+# --- create list of all active employees of this company PR2019-05-30
+    employees = Employee.objects.filter(
+        company=company,
+        inactive=False
+    ).order_by(Lower('code'))
+    employee_list = []
+    for employee in employees:
+        dict = {'pk': employee.pk, 'id': {'pk': employee.pk, 'parent_pk': employee.company.pk},
+                'code': {'value': employee.code}}
+        employee_list.append(dict)
+    return employee_list
 
 
 def get_parent_instance(table, parent_pk_int, update_dict, company):
