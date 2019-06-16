@@ -8,24 +8,29 @@ $(function() {
         const cls_hide = "display_hide";
         const index_el_inactive = 2;
         const col_count = 3;
-
+console.log ("cls_hide", cls_hide)
         SetMenubuttonActive(document.getElementById("id_hdr_cust"));
 
 // ---  id_new assigns fake id to new records
         let id_new = 0;
         let filter_name = "";
         let filter_inactive_included = false;
-        let customer_list = []
+        let customer_list = [];
 // ---  id of selected customer
         let selected_customer_pk = 0;
 
+console.log ("filter_inactive_included", filter_inactive_included)
+
         let tblBody_items = document.getElementById("id_tbody_items");
+console.log ("tblBody_items", tblBody_items)
 
 // remove highlighted row when clicked outside tabelrows
         document.addEventListener('click', function (event) {
             let tr_selected = get_tablerow_selected(event.target)
             if(!tr_selected) {DeselectHighlightedRows(tblBody_items)}
         }, false);
+
+console.log ("DeselectHighlightedRows")
 
 // ---  create EventListener for class input_text
         // PR2019-03-03 from https://stackoverflow.com/questions/14377590/queryselector-and-queryselectorall-vs-getelementsbyclassname-and-getelementbyid
@@ -39,22 +44,27 @@ $(function() {
             }, false )
         }
 
+console.log ("UploadChanges")
 // ---  event handler to filter inactive in
         document.getElementById("id_filter_inactive").addEventListener("click", function() {
             HandleFilterInactive();}, false )
 
+console.log ("HandleFilterInactive")
 // ---  add 'keyup' event handler to filter orders and customers
         document.getElementById("id_filter").addEventListener("keyup", function() {
             setTimeout(function() {HandleFilterEvent();}, 25)});
 
+console.log ("HandleFilterEvent")
 // --- get header elements
-        let hdr_customer = document.getElementById("id_hdr_customer")
+        let hdr_customer = document.getElementById("id_hdr_customer");
 
         let el_loader = document.getElementById("id_loading_img");
 
+console.log ("el_loader", el_loader)
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
 
+console.log ("el_data")
         const url_customer_upload = get_attr_from_element(el_data, "data-customer_upload_url");
         const url_datalist_download = get_attr_from_element(el_data, "data-datalist_download_url");
 
@@ -67,6 +77,7 @@ $(function() {
 
         DatalistDownload({"customers": {inactive: true}});
 
+console.log ("DatalistDownload", DatalistDownload)
 //  #############################################################################################################
 
 //========= DatalistDownload  ====================================
