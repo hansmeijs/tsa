@@ -817,12 +817,12 @@ class Companysetting(Model):  # PR2019-03-09
 
 #===========  Classmethod
     @classmethod
-    def get_setting(cls, key_str, request_user): #PR2019-03-09
+    def get_setting(cls, key_str, company): #PR2019-03-09
         # function returns value of setting row that match the filter
         logger.debug('---  get_setting  ------- ')
-        setting = ''
-        if request_user.company and key_str:
-            row = cls.objects.filter( company=request_user.company, key=key_str).first()
+        setting = None
+        if company and key_str:
+            row = cls.objects.filter(company=company, key=key_str).first()
             if row:
                 if row.setting:
                     setting = row.setting
@@ -832,6 +832,7 @@ class Companysetting(Model):  # PR2019-03-09
     def set_setting(cls, key_str, setting, company): #PR2019-03-09
         # function returns list of setting rows that match the filter
         logger.debug('---  set_setting  ------- ')
+        logger.debug('setting: ' + str(setting))
         logger.debug('setting: ' + str(setting))
         # get
         if company and key_str:

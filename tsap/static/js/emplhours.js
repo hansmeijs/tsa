@@ -1,6 +1,6 @@
 // PR2019-02-07 deprecated: $(document).ready(function() {
 $(function() {
-console.log("Customers document.ready");
+    console.log("Emplhours document.ready");
 
 // ---  id of selected record
     let id_row_selected = "";
@@ -79,40 +79,32 @@ console.log("Customers document.ready");
         });
 
         // get data
-        let el_data = $("#id_data");
-        let order_list = el_data.data("order_list");
-        let employee_list = el_data.data("employee_list");
-
-        const url_fill_rosterdate = el_data.data("url_fill_rosterdate");
-        const url_emplhour_upload = el_data.data("url_emplhour_upload");
-        const url_datalist_str = $("#id_data").data("datalist_download_url");
-
-        let imgsrc_inactive = el_data.data("imgsrc_inactive");
-        let imgsrc_active = el_data.data("imgsrc_active");
-        let imgsrc_delete = el_data.data("imgsrc_delete");
-        let imgsrc_stat00 = el_data.data("imgsrc_stat00");
-        let imgsrc_stat01 = el_data.data("imgsrc_stat01");
-        let imgsrc_stat02 = el_data.data("imgsrc_stat02");
-        let imgsrc_stat03 = el_data.data("imgsrc_stat03");
-        let imgsrc_stat04 = el_data.data("imgsrc_stat04");
-        let imgsrc_stat05 = el_data.data("imgsrc_stat05");
-        let imgsrc_real00 = el_data.data("imgsrc_real00");
-        let imgsrc_real01 = el_data.data("imgsrc_real01");
-        let imgsrc_real02 = el_data.data("imgsrc_real02");
-        let imgsrc_real03 = el_data.data("imgsrc_real03");
-
-        let weekdays = el_data.data("weekdays");
-        let interval = el_data.data("interval");
-        let timeformat = el_data.data("timeformat");
+        let el_data = document.getElementById("id_data");
+        let order_list = get_attr_from_element(el_data, "data-order_list");
+        let employee_list = get_attr_from_element(el_data, "data-employee_list");
+        const url_fill_rosterdate = get_attr_from_element(el_data, "data-url_fill_rosterdate");
+        const url_emplhour_upload = get_attr_from_element(el_data, "data-url_emplhour_upload");
+        const url_datalist_download = get_attr_from_element(el_data, "data-datalist_download_url");
+        const imgsrc_inactive = get_attr_from_element(el_data, "data-imgsrc_inactive");
+        const imgsrc_active = get_attr_from_element(el_data, "data-imgsrc_active");
+        const imgsrc_delete = get_attr_from_element(el_data, "data-imgsrc_delete");
+        const imgsrc_stat00 = get_attr_from_element(el_data, "data-imgsrc_stat00");
+        const imgsrc_stat01 = get_attr_from_element(el_data, "data-imgsrc_stat01");
+        const imgsrc_stat02 = get_attr_from_element(el_data, "data-imgsrc_stat02");
+        const imgsrc_stat03 = get_attr_from_element(el_data, "data-imgsrc_stat03");
+        const imgsrc_stat04 = get_attr_from_element(el_data, "data-imgsrc_stat04");
+        const imgsrc_stat05 = get_attr_from_element(el_data, "data-imgsrc_stat05");
+        const imgsrc_real00 = get_attr_from_element(el_data, "data-imgsrc_real00");
+        const imgsrc_real01 = get_attr_from_element(el_data, "data-imgsrc_real01");
+        const imgsrc_real02 = get_attr_from_element(el_data, "data-imgsrc_real02");
+        const imgsrc_real03 = get_attr_from_element(el_data, "data-imgsrc_real03");
+        const weekdays = get_attr_from_element(el_data, "data-weekdays");
+        const timeformat = get_attr_from_element(el_data, "data-timeformat");
+        const interval = get_attr_from_element(el_data, "data-interval");
 
         DownloadDatalists();
 
         FilterRows();
-
-          //  let attrib = {};
-          //  $("<input>").appendTo(el_td)
-          //      .addClass("popup");
-
 
 //=========  HandleRowClicked  ================ PR2019-03-30
     function HandleRowClicked(tr_clicked) {
@@ -777,23 +769,22 @@ console.log("=========  function HandleCreateRecord =========");
         } //  if (!skip_filter) {
     }; // function HandleSearchFilterEvent
 
-
 //========= DownloadDatalists  ====================================
     function DownloadDatalists() {
-        //console.log( "===== DownloadDatalists  ========= ");
+        console.log( "===== DownloadDatalists  ========= ");
 // TODO
         let rosterdatefirst = "2019-04-03";
         let rosterdatelast = "2019-04-05";
-        let datalist_download = {"rosterdatefirst": rosterdatefirst, 'rosterdatelast': rosterdatelast}
+        let datalist_download = {"rosterdatefirst": {"value": rosterdatefirst}, "rosterdatelast": {"value": rosterdatelast}}
         let param = {"datalist_download": JSON.stringify (datalist_download)};
         order_list = [];
         employee_list = [];
-        // console.log("param", param)
+        console.log("param", param)
 
         let response = "";
         $.ajax({
             type: "POST",
-            url: url_datalist_str,
+            url: url_datalist_download,
             data: param,
             dataType:'json',
             success: function (response) {

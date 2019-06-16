@@ -196,7 +196,8 @@ class OrderUploadView(UpdateView):# PR2019-03-04
                     update_dict = create_dict_with_empty_attr(field_list)
 
 # - check if parent exists (customer is parent of order)
-                    parent_instance = Order.get_parent_instance(parent_pk_int, update_dict, request.user.company)
+
+                    parent_instance = get_parent_instance('order', parent_pk_int, update_dict, request.user.company)
                     logger.debug('parent_instance: ' + str(parent_instance))
                     if parent_instance:
 # - Delete item

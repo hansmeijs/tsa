@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_date_from_str(date_str, blank_not_allowed):  # PR2019-04-28
-    #logger.debug('............. get_date_from_str: ' + str(date_str))
+    logger.debug('............. get_date_from_str: ' + str(date_str))
     # function retrieves date from string format " yyyy-mm-dd" or  " yyyy/mm/dd"
     dte = None
     msg_txt = None
@@ -41,7 +41,7 @@ def get_date_from_str(date_str, blank_not_allowed):  # PR2019-04-28
                                 day_int = int(date_list[2])
                                 #logger.debug('day_int: ' + str(day_int) + str(type(day_int)))
                                 dte = date(year_int, month_int, day_int)
-                    #logger.debug('dte: ' + str(dte) + str(type(dte)))
+                    logger.debug('dte: ' + str(dte) + str(type(dte)))
         except:
             msg_txt = "'" + date_str + "'" + _("is not a valid date.")
             #logger.debug('msg_txt: ' + str(msg_txt) + str(type(msg_txt)))
@@ -787,7 +787,6 @@ def get_fielddict_variables(upload_dict, field):
         if field in upload_dict:
             if upload_dict[field]:
                 dict = upload_dict[field]
-                logger.debug('dict: ' + str(dict))
                 if 'value' in dict:
                     value = dict.get('value', '')
                 if 'update' in dict:
