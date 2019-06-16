@@ -129,17 +129,15 @@ urlpatterns = [
     ])),
 
     path('customer/', include([
-        path('', customer_views.CustomerListView.as_view(), name='customer_list_url'),
-        path('add/', customer_views.CustomerAddView.as_view(), name='customer_add_url'),
-        path('orders', customer_views.OrderListView.as_view(), name='order_list_url'),
-        path('order_upload/', customer_views.OrderUploadView.as_view(), name='order_upload_url'),
-        #path('<int:pk>/', include([
-        #    path('edit/', customer_views.CustomerEditView.as_view(), name='customer_edit_url'),
-        #   path('delete/', customer_views.CustomerDeleteView.as_view(), name='customer_delete_url'),
-        #])),
-        path('customer_upload/', customer_views.CustomerUploadView.as_view(), name='customer_upload_url'),
 
+        path('customer_list/', customer_views.CustomerListView.as_view(), name='customer_list_url'),
+        path('order_list/', customer_views.OrderListView.as_view(), name='order_list_url'),
+        path('order_upload/', customer_views.OrderUploadView.as_view(), name='order_upload_url'),
+        path('customer_upload/', customer_views.CustomerUploadView.as_view(), name='customer_upload_url'),
     ])),
+
+
+
 
     path('employee/', include([
         path('', employee_views.EmployeeListView.as_view(), name='employee_list_url'),
@@ -157,19 +155,7 @@ urlpatterns = [
         ])),
     ])),
 
-    #path('order/', include([
-    #    path('import', customer_views.OrderImportView.as_view(), name='order_import_url'),
-    #    path('ajax/', include([
-    #        path('uploadsetting', customer_views.OrderImportUploadSetting.as_view(), name='orderimport_uploadsetting_url'),
-    #        path('uploaddata', customer_views.OrderImportUploadData.as_view(), name='orderimport_uploaddata_url'),
-    #    ])),
-    #])),
 
-    path('orders/', include([
-        path('', customer_views.OrderListView.as_view(), name='orders_url'),
-        path('upload', customer_views.OrderUploadView.as_view(), name='order_upload_url'),
-        path('datalist', customer_views.OrderDownloadDatalistView.as_view(), name='order_datalist_url'),
-    ])),
 
     path('planning/', include([
         path('', planning_views.SchemesView.as_view(), name='schemes_url'),
@@ -186,7 +172,6 @@ urlpatterns = [
 
         path('fill', planning_views.EmplhourFillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
         path('upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
-        path('datalist', planning_views.EmplhourDownloadDatalistView.as_view(), name='emplhour_datalist_url'),
     ])),
 
     path('realization/', include([

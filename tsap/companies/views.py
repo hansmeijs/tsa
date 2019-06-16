@@ -58,6 +58,7 @@ def home(request):
     else:
         return redirect('login')
 
+
 # === Company ===================================== PR2019-03-02
 @method_decorator([login_required], name='dispatch')
 class CompanyListView(View):
@@ -76,6 +77,7 @@ class CompanyListView(View):
 
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'company_list.html', params)
+
 
 @method_decorator([login_required], name='dispatch')
 class CompanySelectView(View):

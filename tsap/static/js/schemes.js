@@ -199,7 +199,7 @@ $(function() {
 
 //=========  HandleSelectCustomer  ================ PR2019-03-23
     function HandleSelectCustomer() {
-        // console.log("--- HandleSelectCustomer")
+        console.log("--- HandleSelectCustomer")
 
 // reset lists
         schemeitem_list = [];
@@ -948,7 +948,11 @@ $(function() {
                     if ("customers" in response) {customer_list= response["customers"]}
                     let txt_select = get_attr_from_element(el_data, "data-txt_select_customer");
                     let txt_select_none = get_attr_from_element(el_data, "data-txt_select_customer_none");
-                    FillSelectOptions(el_select_customer, customer_list, txt_select, txt_select_none)}
+                    FillSelectOptions(el_select_customer, customer_list, txt_select, txt_select_none)
+            // if there is only 1 customer, that one is selected
+                    selected_customer_pk = parseInt(el_select_customer.value);
+                    if (!!selected_customer_pk){HandleSelectCustomer()};
+                }
                 if ("orders" in datalist_request) {
                     if ("orders" in response) {order_list= response["orders"]}}
                 if ("schemes" in datalist_request) {
@@ -1131,6 +1135,7 @@ $(function() {
         let option_text = "";
         let row_count = 0
         let parent_pk = 0
+        // customer list has no parent_pk_str
         if (!!parent_pk_str){parent_pk = parseInt(parent_pk_str)};
 
         el_select.innerText = null
@@ -1158,14 +1163,13 @@ $(function() {
                 option_text +=  ">" + value + "</option>";
                 row_count += 1
             }
-
         }  // for (let i = 0, len = option_list.length;
+
         // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
         let select_first_option = false
         if (!row_count){
             option_text = "<option value=\"\" disabled selected hidden>" + select_text_none + "...</option>"
         } else if (row_count === 1) {
-// if there is only 1 option: select first option
             select_first_option = true
         } else if (row_count > 1){
             option_text = "<option value=\"\" disabled selected hidden>" + select_text + "...</option>" + option_text
@@ -1173,7 +1177,9 @@ $(function() {
         el_select.innerHTML = option_text;
 
 // if there is only 1 option: select first option
-        if (select_first_option){el_select.selectedIndex = 0}
+        if (select_first_option){
+            el_select.selectedIndex = 0
+        }
 
     }  //function FillSelectOptions
 

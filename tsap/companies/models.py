@@ -137,6 +137,61 @@ class Customer(TsaBaseModel):
     def __str__(self):
         return self.code
 
+    @classmethod
+    def get_instance(cls, pk_int, update_dict, company):
+        # function returns instance of table, puts int in  PR2019-06-06
+        logger.debug('---get_instance')
+        logger.debug('pk_int: ' + str(pk_int))
+        logger.debug('company: ' + str(company))
+
+        instance = None
+        if pk_int:
+            try:
+                instance = cls.objects.get(id=pk_int, company=company)
+            except:
+                pass
+        if instance:
+            update_dict['id']['pk'] = pk_int
+            update_dict['id']['table'] = 'order'
+        return instance
+
+    @classmethod
+    def create_instance(cls, company, code, name, temp_pk_str, update_dict, request):
+        instance = None
+        pk_int = None
+        parent_pk_int = None
+        # - parent, code and name are required
+        if company:
+            # TODO
+            code_ok = True  # TODO validate_code_or_name('order', 'code', code, update_dict, request.user.company)
+            name_ok = True  # TODO  validate_code_or_name('order', 'name', name, update_dict, request.user.company)
+
+# - create instance
+            if code_ok and name_ok:
+                instance = cls(company=company, code=code, name=name)
+# - save instance
+                instance.save(request=request)
+# - create error when instance not created
+            if instance is None:
+                msg_err = _('This customer could not be created.')
+                update_dict['id']['error'] = msg_err
+            else:
+# - put info in id_dict
+                update_dict['id']['created'] = True
+                update_dict['id']['pk'] = instance.pk
+                update_dict['id']['parent_pk'] = company.pk
+                update_dict['code']['value'] = instance.code
+                update_dict['code']['updated'] = True
+                update_dict['name']['value'] = instance.name
+                update_dict['name']['updated'] = True
+
+            # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
+            if temp_pk_str:
+                update_dict['id']['temp_pk'] = temp_pk_str
+
+        return instance
+
+
 
 class Order(TsaBaseModel):
     objects = TsaManager()
@@ -194,34 +249,21 @@ class Order(TsaBaseModel):
 
     @classmethod
     def get_instance(cls, pk_int, update_dict, company):
-        # function returns instance of table, puts int in  PR2019-06-06
-        logger.debug('---get_instance')
-        logger.debug('pk_int: ' + str(pk_int))
-        logger.debug('company: ' + str(company))
-
-        instance = None
+        # function returns instance of order, adds to  update_dict  PR2019-06-06
+        order = None
+        parent_pk_int = None
         if pk_int:
             try:
-                instance = cls.objects.get(id=pk_int, customer__company=company)
+                order = cls.objects.get(id=pk_int, customer__company=company)
+                parent_pk_int = order.customer.pk
             except:
                 pass
-        if instance:
-            update_dict['id']['pk_int'] = pk_int
-            update_dict['id']['table'] = 'order'
-        return instance
-
-    @classmethod
-    def get_parent_instance(cls, parent_pk_int, update_dict, company):
-        # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-06-06
-        parent_instance = None
-        if parent_pk_int:
-            try:
-                parent_instance = Customer.objects.get(id=parent_pk_int, company=company)
-            except:
-                pass
-            if parent_instance:
+        if order:
+            update_dict['id']['pk'] = pk_int
+            if parent_pk_int:
                 update_dict['id']['parent_pk'] = parent_pk_int
-        return parent_instance
+            update_dict['id']['table'] = 'order'
+        return order
 
     @classmethod
     def delete_instance(cls, pk_int, parent_pk_int, update_dict, request):
@@ -800,6 +842,37 @@ class Companysetting(Model):  # PR2019-03-09
                 if setting:
                     row = cls(company=company, key=key_str, setting=setting)
             row.save()
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def create_customer_list(company, user_lang, include_inactive):
+# --- create list of all active customers of this company PR2019-06-16
+    crit = Q(company=company)
+    if not include_inactive:
+        crit.add(Q(inactive=False), crit.connector)
+    customers = Customer.objects.filter(crit).order_by(Lower('code'))
+
+    customer_list = []
+    for customer in customers:
+        dict = {'pk': customer.pk,
+                'id': {'pk': customer.pk, 'parent_pk': customer.company.pk}}
+        if customer.code:
+            dict['code'] = {'value': customer.code}
+        if customer.name:
+            dict['name'] = {'value': customer.name}
+        if customer.inactive:
+            dict['inactive'] = {'value': customer.inactive}
+    # NOT IN USE
+        if customer.datefirst:
+            dict['datefirst'] = {
+                'value': get_date_yyyymmdd(customer.datefirst),
+                'wdmy': format_WDMY_from_dte(customer.datefirst, user_lang)}
+        if customer.datelast:
+            dict['datelast'] = {
+                'value': get_date_yyyymmdd(customer.datelast),
+                'wdmy': format_WDMY_from_dte(customer.datelast, user_lang)
+            }
+        customer_list.append(dict)
+    return customer_list
 
 
 def validate_code_or_name(model, field, value, update_dict, company, this_pk=None):

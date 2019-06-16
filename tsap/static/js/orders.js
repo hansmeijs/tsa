@@ -19,6 +19,15 @@ $(function() {
         let filter_orders = "";
         let filter_inactive_included = false;
 
+        let customer_list = [];
+        let order_list = [];
+        let scheme_list = [];
+        let schemeitem_list = [];
+        let shift_list = [];
+        let team_list = [];
+        let teammember_list = [];
+        let employee_list = [];
+
         let tblBody_select_customers = document.getElementById("id_tbody_select")
         let tblBody_items = document.getElementById("id_tbody_items");
 
@@ -61,8 +70,6 @@ $(function() {
         }
 
         // buttons in  popup_wdy)
-
-        id_popup_date
         let el_popup_date = document.getElementById("id_popup_date")
         el_popup_date.addEventListener("change", function() {HandlePopupWdySave();}, false )
 
@@ -82,14 +89,6 @@ $(function() {
         let hdr_customer = document.getElementById("id_hdr_customer")
         let hdr_order = document.getElementById("id_hdr_order")
 
-        let customer_list = [];
-        let order_list = [];
-        let scheme_list = [];
-        let schemeitem_list = [];
-        let shift_list = [];
-        let team_list = [];
-        let teammember_list = [];
-        let employee_list = [];
 
 
 // --- get data stored in page

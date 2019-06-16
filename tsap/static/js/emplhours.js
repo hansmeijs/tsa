@@ -85,7 +85,7 @@ console.log("Customers document.ready");
 
         const url_fill_rosterdate = el_data.data("url_fill_rosterdate");
         const url_emplhour_upload = el_data.data("url_emplhour_upload");
-        const url_datalist_str = $("#id_data").data("emplhour_datalist_url");
+        const url_datalist_str = $("#id_data").data("datalist_download_url");
 
         let imgsrc_inactive = el_data.data("imgsrc_inactive");
         let imgsrc_active = el_data.data("imgsrc_active");

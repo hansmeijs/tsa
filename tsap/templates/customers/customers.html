@@ -2,175 +2,95 @@
 {% load i18n %} {% load l10n %}
 {% load static %}
 
-{% block stylesheet %}
-   <link rel="stylesheet" href="{% static 'css/dateselector.css' %}">
-{% endblock %}
-
 {% block script %}
     <script src="{% static 'js/customers.js' %}"></script>
 {% endblock %}
 
 {% block content %}
-  {% if user.is_authenticated %}
-<!--
-        <div class="popup display-show"  >
+    {% if user.is_authenticated %}
+        <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
         </div>
--->
-        <div class="content_header">
-            <div class="content_subheader_left">
-                <h5 id="id_content_header_name" title="test title">{% trans 'Customers' %} </h5>
-            </div>
-            <div class="content_subheader_right">
 
+        <!-- flex_container -->
+        <div class="flex_container mx-1 my-2">
+
+            <!-- content_wrapper -->
+            <div class="content_wrapper tsa_bc_transparent border_none">
+
+                <!-- customer header -->
+                <div class="content_subheader_right">
+                    <div class="content_header">
+                        <div class="content_subheader_left mx-2">
+                            <h5 id="id_hdr_customer">{% trans "Customers" %}</h5>
+                        </div>
+                    </div>
+                    <div class="content_header">
+                        <div class="content_subheader_left">
+                            <input id="id_filter"
+                            type="text"
+                            class="fieldname pt-0 pb-0"
+                            placeholder="{% trans 'filter...' %}">
+                        </div>
+                    </div>
+                </div>
+                <!-- customer header -->
+
+                <!-- content body -->
+                <div class="content_body mx-2">
+
+                    <!-- =================== table Customers  =================== -->
+                    <table class="table tsa-tbl">
+                        <thead>
+                            <th >{% trans 'Code' %}</th>
+                            <th>{% trans 'Customer name' %}</th>
+                            <th>
+                                <a id="id_filter_inactive" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
+                                    <img id="id_img_filter_inactive" src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
+                                </a>
+                            </th>
+                        </thead>
+                        <tbody id="id_tbody_items"></tbody>
+                    </table>
+                    <!-- =================== loader  =================== -->
+                    <div class="content_header">
+                        <div class="content_subheader_right">
+                            <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
+                        </div>
+                        <div class="content_subheader_right">
+                        </div>
+                    </div>
+                </div>
+                <!-- content body -->
             </div>
+            <!-- content_wrapper -->
+        </div> <!-- flex_container -->
+
+        <div id="id_data"
+            data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
+            data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
+            data-imgsrc_delete="{% static 'img/delete.gif' %}"
+
+            data-lang ="{{ lang }}"
+            data-timeformat ="{{ timeformat }}"
+            data-weekdays ="{{ weekdays }}"
+            data-months ="{{ months }}"
+            data-today ="{{ today }}"
+
+            data-customer_upload_url="{% url 'customer_upload_url' %}"
+            data-datalist_download_url="{% url 'datalist_download_url' %}"
+            data-err_msg01= "{% trans 'An error occurred.' %}"
+
+            data-txt_customer_add= "{% trans 'Add new customer' %}"
+            data-txt_make_inactive= "{% trans 'Make customer inactive' %}"
+            data-txt_make_active= "{% trans 'Make customer active' %}"
+
+            data-txt_datefirst= "{% trans 'Start date' %}"
+            data-txt_datelast= "{% trans 'End date' %}"
+        >
         </div>
-        <div class="content_header">
-            <div class="content_subheader_left">
-                <input id="id_filter_name" type="text" class="fieldname pt-0 pb-0" colspan=2 placeholder="{% trans 'filter...' %}">
-            </div>
-            <div class="content_subheader_right">
-                <a id="id_btn_add" class="btn btn-add">{% trans 'Add customer' %}</a>
-                <a id="id_btn_delete" class="btn btn-add">{% trans 'Delete customer' %}</a>
-            </div>
-        </div>
-        <table class="table table table-condensed tsa-tbl">
-          <thead class="thead-inverse">
-            <tr>
-              <th>
-                <a id="id_filter_inactive" href="#"
-                   value="true">
-                    <img id="id_img_filter_inactive" src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
-                </a>
-              </th>
-              <th>{% trans 'Code' %}</th>
-              <th>{% trans 'Customer name' %}</th>
-                <!--
-              <th>{% trans 'Email' %}</th>
-              <th>{% trans 'Telephone' %}</th>
-              -->
-              <th>{% trans 'Start date' %}</th>
-              <th>{% trans 'End date' %}</th>
-              <th>{% trans 'Modified by' %}</th>
-              <th>{% trans 'Modified at' %}</th>
-            </tr>
-          </thead>
-          <tbody id="id_tbody">
-            {% for item in customers.all %}
-              <tr id="{{ item.pk }}" class="display_hide" >
-                  {{ item.modifiedat_str}}
-                <td>
-                    <a name="inactive" href="#"
-                       value="{{ item.inactive }}"
-                       class="input_icon">
-                        {% if item.inactive %}
-                            <img src="{% static 'img/inactive_black.png' %}" height="24" width="24">
-                        {% else %}
-                            <img src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
-                        {% endif %}
-                    </a>
-                </td>
-                <td>
-                    <!-- if autocomplete="off" doesn't work, use: autocomplete="new-password" -->
-                    <input name="code"
-                           type="text"
-                           autocomplete="off"
-                           ondragstart="return false;"
-                           ondrop="return false;"
-                           maxlength="{{ item.maxlen_code }}"
-                           value="{{ item.code|default_if_none:''}}"
-                           o_value="{{ item.code|default_if_none:''}}"
-                           class="input_text border_none" >
-                </td>
-                <td>
-                    <input name="name"
-                           type="text"
-                           autocomplete="off"
-                           ondragstart="return false;"
-                           ondrop="return false;"
-                           maxlength="{{ item.maxlen_name }}"
-                           value="{{ item.name|default_if_none:''}}"
-                           o_value="{{ item.name|default_if_none:''}}"
-                           class="input_text border_none" >
-                </td>
-              <!--
-                <td>
-                    <input name="email"
-                           type="text"
-                           autocomplete="off"
-                           ondragstart="return false;"
-                           ondrop="return false;"
-                           maxlength="{{ item.maxlen_email}}"
-                           value="{{ item.email|default_if_none:''}}"
-                           o_value="{{ item.email|default_if_none:''}}"
-                           class="input_text border_none" >
-                </td>
-                <td>
-                    <input name="telephone"
-                           type="text"
-                           autocomplete="off"
-                           ondragstart="return false;"
-                           ondrop="return false;"
-                           maxlength="{{ item.maxlen_telephone}}"
-                           value="{{ item.telephone|default_if_none:''}}"
-                           o_value="{{ item.telephone|default_if_none:''}}"
-                           class="input_text border_none" >
-                </td>
-              -->
-                <td >
-                    <input name="datefirst"
-                           type="date"
-                           autocomplete="off"
-                           ondragstart="return false;"
-                           ondrop="return false;"
-                           value="{{ item.datefirst_str }}"
-                           o_value="{{ item.datefirst_str }}"
-                           max="{{ item.datelast_str}}"
-                           class="input_text border_none" >
-
-                </td>
-                <td >
-                    <input name="datelast"
-                           type="date"
-                           autocomplete="off"
-                           ondragstart="return false;"
-                           ondrop="return false;"
-                           value="{{ item.datelast_str }}"
-                           o_value="{{ item.datelast_str }}"
-                           max="{{ item.datefirst_str}}"
-                           class="input_text border_none" >
-
-                </td>
-                <td >
-                    <input name="modifiedby"
-                           type="text"
-                           autocomplete="off"
-                           value="{{ item.modifiedby}}"
-                           readonly="readonly"
-                           class="border_none" >
-                </td>
-                <td>
-                    <input name="modifiedat"
-                           type="text"
-                           value="{{ item.modifiedat|date:'DATETIME_FORMAT'}}"
-                           readonly="readonly"
-                           class="border_none" >
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-
-    <div id="id_data"
-        data-img_inactive_src = "{% static 'img/inactive_black.png' %}"
-        data-img_active_src = "{% static 'img/inactive_grey.png' %}"
-        data-img_delete_src="{% static 'img/delete.gif' %}"
-        data-customer_upload_url= "{% url 'customer_upload_url' %}"
-        data-err_msg01= "{% trans 'An error occurred.' %}"
-    ></div>
-
-  {% else %}
-    <div class="alert alert-danger">{% trans 'Error' %}</div>
-    <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
-  {% endif %}
-{% endblock %}l>
+    {% else %}
+        <div class="alert alert-danger">{% trans 'Error' %}</div>
+        <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+    {% endif %}
+{% endblock %}

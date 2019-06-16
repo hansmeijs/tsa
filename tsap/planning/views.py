@@ -27,7 +27,7 @@ from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 from tsap.headerbar import get_headerbar_param
 
 from companies.models import Customer, Order, Scheme, Schemeitembase, Schemeitem, Team, Teammember, \
-    Employee, Emplhour, Orderhour, Companysetting
+    Employee, Emplhour, Orderhour, Companysetting, create_customer_list
 
 import pytz
 import json
@@ -669,17 +669,19 @@ class SchemesView(View):
         # logger.debug(' ============= SchemesView ============= ')
         if request.user.company is not None:
 
-# --- create list of all active customers of this company
-            include_inactive = False
-            customer_json = json.dumps(create_customer_list(request.user.company, include_inactive))
-
-# --- create list of all active orders of this company
-            # order_json = json.dumps(create_order_list(request.user.company))
 
 # --- get user_lang
             user_lang = request.user.lang if request.user.lang else LANGUAGE_CODE
             if not user_lang in WEEKDAYS_ABBREV:
                 user_lang = LANGUAGE_CODE
+
+# --- create list of all active customers of this company
+            include_inactive = False
+            customer_json = json.dumps(create_customer_list(request.user.company, user_lang, include_inactive))
+
+# --- create list of all active orders of this company
+            # order_json = json.dumps(create_order_list(request.user.company))
+
 
 # --- get weekdays translated
             if not user_lang in WEEKDAYS_ABBREV:
@@ -852,7 +854,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                         list = []
                         if table == 'customers':
-                            list = create_customer_list(request.user.company, include_inactive)
+                            list = create_customer_list(request.user.company, user_lang, include_inactive)
                         if table == 'orders':
                             list = create_order_list(request.user.company, user_lang, include_inactive)
                         if table == 'employees':
@@ -1486,7 +1488,7 @@ class SchemeItemUploadView(UpdateView):  # PR2019-06-01
                     if teammember:
                         item_exists = True
                 if item_exists:
-                    update_dict['id']['pk_int'] = pk_int
+                    update_dict['id']['pk'] = pk_int
                     # logger.debug('item_exists: ' + str(update_dict))
             logger.debug('update_dict: ' + str(update_dict))
 
@@ -2007,21 +2009,6 @@ def update_schemeitem(scheme, schemeitem, upload_dict, update_dict, request, com
     # logger.debug('update_dict: ' + str(update_dict))
 
 
-def create_customer_list(company, include_inactive):
-# --- create list of all active customers of this company PR2019-06-09
-    crit = Q(company=company)
-    if not include_inactive:
-        crit.add(Q(inactive=False), crit.connector)
-    customers = Customer.objects.filter(crit).order_by(Lower('code'))
-
-    customer_list = []
-    for customer in customers:
-        dict = {'pk': customer.pk, 'id': {'pk': customer.pk, 'parent_pk': customer.company.pk},
-                'code': {'value': customer.code}}
-        customer_list.append(dict)
-    return customer_list
-
-
 def create_order_list(company, user_lang, include_inactive):
     # --- create list of all active orders of this company PR2019-06-09
 
@@ -2095,7 +2082,7 @@ def get_instance(table, pk_int, parent_instance, update_dict):
         elif table == 'team':
             instance = Team.objects.filter(id=pk_int, scheme=parent_instance).first()
         if instance:
-            update_dict['id']['pk_int'] = pk_int
+            update_dict['id']['pk'] = pk_int
     return instance
 
 
