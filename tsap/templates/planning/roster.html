@@ -3,11 +3,11 @@
 {% load static %}
 
 {% block stylesheet %}
-   <link rel="stylesheet" href="{% static 'css/dateselector.css' %}">
+   <!-- <link rel="stylesheet" href="{% static 'css/dateselector.css' %}">-->
 {% endblock %}
 
 {% block script %}
-    <script src="{% static 'js/schemes.js' %}"></script>
+    <script src="{% static 'js/roster.js' %}"></script>
 {% endblock %}
 
   <!-- Modal -->
@@ -66,80 +66,20 @@
 
 <div class="flex_container">
 
-    <div class="flex_content tsa_bc_lightlightgrey">
-        <div class="content_subheader_left mx-2 my-1">
-            <h6>
-                <select id="id_select_customer" class="td_width_180"></select>
-                <option value="" disabled selected hidden>{% trans 'Select customer' %}...</option>
-            </h6>
-            <h6>
-                <select id="id_select_order" class="td_width_180"></select>
-            </h6>
-            <div>
-                <table class="table table-condensed tsa-tbl ">
-                    <thead id="id_thead_scheme_select" class="mx-1 my-1"></thead>
-                    <tbody id="id_tbody_scheme_select"></tbody>
-                </table>
-            </div>
-            <div>
-                <table class="table table-condensed tsa-tbl ">
-                    <thead id="id_thead_team_select"class="mx-1 my-1 "></thead>
-                    <tbody id="id_tbody_team_select"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <div class="content_subheader_right">
 
         <div class="content_header">
             <div class="content_subheader_left mx-4 my-1">
-                <h6 id="id_hdr_customer">{% trans "Customer" %}</h6>
-            </div>
-            <div class="content_subheader_left mx-4 my-1">
-                <h6 id="id_hdr_order">{% trans 'Order' %}</h6>
-            </div>
+                <h6 id="id_hdr_customer">{% trans "Roster date" %}:</h6>
 
+            </div>
+            <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
             <div class="content_subheader_right mx-4 my-1">
-                <a id="id_btn_fill_rosterdate" class="btn btn-add">{% trans 'Fill roster' %} ...</a>
-                <a id="id_btn_fill_rosterdate2" class="btn btn-add">+++</a>
-                <a id="id_btn_fill_rosterdate3" class="btn btn-add">---</a>
-
+                <a id="id_btn_rosterdate_fill" class="btn btn-add">{% trans 'Fill roster date ' %} ...</a>
+                <a id="id_btn_rosterdate_remove" class="btn btn-add">{% trans 'Remove roster date' %} ...</a>
             </div>
         </div>
-        <div class="content_wrapper">
-             <div class="content_header">
-                <div class="content_subheader_left">
-                    <label for="id_scheme_code" >{% trans 'Scheme' %}*</label>
-                    <input id="id_scheme_code"
-                    type="text"
-                    data-field="code"
-                    class="fieldname pt-0 pb-0">
-                </div>
-                <div class="content_subheader_left">
-                    <label for="id_scheme_cycle" >{% trans 'Cycle length' %}*</label>
-                    <input id="id_scheme_cycle"
-                    type="number"
-                    data-field="cycle"
-                    class="fieldname pt-0 pb-0">
 
-                </div>
-                <div class="content_subheader_left">
-                    <label for="id_scheme_datefirst" >{% trans 'Start date' %}</label>
-                    <input id="id_scheme_datefirst"
-                    type="text"
-                    data-field="datefirst"
-                    class="fieldname pt-0 pb-0 input_popup_wdy">
-                </div>
-                <div class="content_subheader_left">
-                    <label for="id_scheme_datelast" >{% trans 'End date' %}</label>
-                    <input id="id_scheme_datelast"
-                    type="text"
-                    data-field="datelast"
-                    class="fieldname pt-0 pb-0 input_popup_wdy">
-                </div>
-            </div>
-        </div>
         <div class="content_header">
             <div class="content_subheader_left">
                 <input id="id_filter_name"
@@ -228,9 +168,9 @@
                 </div>
   <!-- =================== END POPUP  =================== -->
 
-                <table id="id_table_schemeitems" class="table table-condensed tsa-tbl ">
-                    <thead id="id_thead_schemeitems" class="thead-inverse"></thead>
-                    <tbody id="id_tbody_schemeitems"></tbody>
+                <table class="table table-condensed tsa-tbl ">
+                    <thead id="id_thead_items" class="thead-inverse"></thead>
+                    <tbody id="id_tbody_items"></tbody>
                 </table>
             </div>
 
@@ -238,13 +178,9 @@
 
         <div class="content_header">
             <div class="content_subheader_right">
-                <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
+
             </div>
             <div class="content_subheader_right">
-                <button id="id_btn_dayup" title="{% trans 'Set all rosterdates one day earlier' %}" class="btn btn-add"> &uarr; </button>
-                <button id="id_btn_dayselect" title="{% trans 'Change first rosterdate and adapt the rest' %}" class="btn btn-add"> &bull; </button>
-                <button id="id_btn_daydown" title="{% trans 'Set all rosterdates one day later' %}" class="btn btn-add"> &darr; </button>
-                <button id="id_btn_autofill" class="btn btn-add">{% trans 'Fill scheme' %}</button>
             </div>
 
         </div>

@@ -9,6 +9,7 @@ from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, View
 
 from datetime import date, datetime, timedelta
+from timeit import default_timer as timer
 
 from companies.views import LazyEncoder
 from tsap.constants import MONTHS_ABBREV, WEEKDAYS_ABBREV, TIMEFORMATS, STATUS_EMPLHOUR_01_CREATED, \
@@ -35,9 +36,9 @@ import json
 import logging
 logger = logging.getLogger(__name__)
 
-# === RealizationView ===================================== PR2019-05-26
+# === RosterView ===================================== PR2019-05-26
 @method_decorator([login_required], name='dispatch')
-class RealizationView(View):
+class RosterView(View):
 
     def get(self, request):
         param = {}
@@ -93,7 +94,7 @@ class RealizationView(View):
                 'timeformat': timeformat
             })
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'realization.html', param)
+        return render(request, 'roster.html', param)
 
 
 # === EmplhourView ===================================== PR2019-03-24
@@ -166,12 +167,11 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
 
         update_dict = {}
         if request.user is not None and request.user.company is not None:
-            # --- Reset language
+# - reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else 'nl'
             activate(user_lang)
-
-            # - get comp_timezone PR2019-06-14
+# - get comp_timezone PR2019-06-14
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
             logger.debug('request.POST: ' + str(request.POST))
@@ -180,108 +180,23 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
                 # NOT IN USE: upload_dict = json.loads(request.POST['rosterdate_fill'])
 
 #  get fill_rosterdate from Companysetting
-                fill_rosterdate = None
+                next_rosterdate = None
                 setting = Companysetting.get_setting(KEY_COMP_NEXT_ROSTERDATE_FILL, request.user.company)
                 if setting:
-                    fill_rosterdate, msg_err = get_date_from_str(setting, False) # False = blank allowed
-            # if not found: make fill_rosterdate = first schemeitem rosterdate
-                if not fill_rosterdate:
+                    next_rosterdate, msg_err = get_date_from_str(setting, False) # False = blank allowed
+            # if not found: make next_rosterdate = first schemeitem rosterdate
+                if not next_rosterdate:
                     schemeitem = Schemeitem.objects.filter(
                                     scheme__order__customer__company=request.user.company).first()
                     if schemeitem:
-                        fill_rosterdate = schemeitem.rosterdate
+                        next_rosterdate = schemeitem.rosterdate
 
-                if fill_rosterdate:
-# create recordset of schemeitem records with rosterdate = fill_rosterdate
-
-                    # from: https://stackoverflow.com/questions/5235209/django-order-by-position-ignoring-null
-                    # Coalesce works by taking the first non-null value.  So we give it
-                    # a date far before any non-null values of last_active.  Then it will
-                    # naturally sort behind instances of Box with a non-null last_active value.
-                    crit = (Q(rosterdate=fill_rosterdate)) & \
-                           (Q(scheme__order__issystem=False)) & \
-                           (Q(scheme__order__inactive=False)) & \
-                           (Q(scheme__order__datefirst__lte=fill_rosterdate) | Q(scheme__order__datefirst__isnull=True)) & \
-                           (Q(scheme__order__datelast__gte=fill_rosterdate) | Q(scheme__order__datelast__isnull=True)) & \
-                           (Q(scheme__order__customer__issystem=False)) & \
-                           (Q(scheme__order__customer__inactive=False)) & \
-                           (Q(scheme__order__customer__company=request.user.company))
-                    schemeitems = Schemeitem.objects.filter(crit)
-                    # logger.debug(schemeitems.query)
-
-                    for schemeitem in schemeitems:
-
-                # create new_orderhour
-                        new_orderhour = Orderhour(
-                            order=schemeitem.scheme.order,
-                            rosterdate=fill_rosterdate,
-                            schemeitem=schemeitem,
-                            taxrate=schemeitem.scheme.order.taxrate,
-                            duration=schemeitem.timeduration,
-                            status=STATUS_EMPLHOUR_01_CREATED,
-                            rate=schemeitem.scheme.order.rate,
-                            amount=(schemeitem.timeduration / 60) * (schemeitem.scheme.order.rate))
-                        new_orderhour.save(request=self.request)
-
-                # lookup employee
-                        team = schemeitem.team
-                        employee = None
-                        teammembers = Teammember.objects.annotate(
-                            new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
-                            )).filter(employee__isnull=False, team=team).order_by('-new_datelast')
-                        for teammember in teammembers:
-                            logger.debug('teammember.employee: ' + str(teammember.employee) + ' datelast: ' + str(teammember.datelast))
-                            employee = teammember.employee
-                        wagecode = None
-                        if employee:
-                            wagecode = employee.wagecode
-
-                # create new emplhour
-                        if new_orderhour:
-                            new_emplhour = Emplhour(
-                                orderhour=new_orderhour,
-                                schemeitem=schemeitem,
-                                rosterdate=fill_rosterdate,
-                                timestart = schemeitem.timestart,
-                                timeend = schemeitem.timeend,
-                                timeduration=schemeitem.timeduration,
-                                breakduration=schemeitem.breakduration,
-                                employee=employee,
-                                wagecode=wagecode,
-                                timestatus=STATUS_EMPLHOUR_01_CREATED)
-                            new_emplhour.save(request=self.request)
-
-
-                # update rosterdate in schemeitem
-                        # after filling orderhours and emplhours: add cycle days to rosterdate, except when cycle = 0
-                        # recalc timestart timeend
-                        cycle = schemeitem.scheme.cycle
-                        new_rosterdate = None
-                        if cycle:
-                            new_rosterdate = schemeitem.rosterdate + timedelta(days=cycle)
-                            schemeitem.rosterdate = new_rosterdate
-                            schemeitem.save(request=self.request)
-
-                            # get new_schemeitem.time_start
-                            new_time_start = None
-                            if new_rosterdate and schemeitem.timestartdhm:
-                                new_time_start = get_datetimelocal_from_DHM(
-                                    new_rosterdate, schemeitem.timestartdhm, comp_timezone)
-                            # get new_schemeitem.time_start
-                            new_time_end = None
-                            if new_rosterdate and schemeitem.timeenddhm:
-                                new_time_end = get_datetimelocal_from_DHM(
-                                    new_rosterdate, schemeitem.timeenddhm, comp_timezone)
-                            # get new_schemeitem.timeduration
-                            new_timeduration = None
-                            if new_time_start and new_time_end:
-                                new_timeduration = get_time_minutes(
-                                    new_time_start,
-                                    new_time_end,
-                                    schemeitem.breakduration)
+                if next_rosterdate:
+#  --- fill_rosterdate
+                    FillRosterdate(next_rosterdate, request, comp_timezone)
 
                 # update next_rosterdate_fill in companysettings
-                    new_fill_rosterdate = fill_rosterdate + timedelta(days=1)
+                    new_fill_rosterdate = next_rosterdate + timedelta(days=1)
                     setting = get_date_yyyymmdd(new_fill_rosterdate)
                     Companysetting.set_setting(KEY_COMP_NEXT_ROSTERDATE_FILL, setting, request.user.company)
                     update_dict = {'next_rosterdate': setting}
@@ -813,15 +728,14 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= DatalistDownloadView ============= ')
-        logger.debug(request)
 
         datalists = {}
         if request.user is not None:
             if request.user.company is not None:
                 if request.POST['datalist_download']:
+# - get user_lang
                     user_lang = request.user.lang if request.user.lang else 'nl'
                     activate(user_lang)
-
 # - get comp_timezone PR2019-06-14
                     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
                     # logger.debug('request.user.company.timezone: ' + str(request.user.company.timezone))
@@ -860,6 +774,17 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             list = create_order_list(request.user.company, user_lang, include_inactive)
                         if table == 'employees':
                             list = create_employee_list(request.user.company)
+                        if table == 'emplhours':
+
+                            logger.debug(' table: ' + str(table))
+                            datefirst = None
+                            datelast = None
+                            if 'datefirst' in table_dict:
+                                datefirst = table_dict['datefirst']
+                            if 'datelast' in table_dict:
+                                datelast = table_dict['datelast']
+                            list = create_emplhour_list(datefirst, datelast, request.user.company, comp_timezone, user_lang)
+
                         if order:
                             if table == 'schemes':
                                 list = Scheme.create_scheme_list(order, user_lang)
@@ -2015,6 +1940,109 @@ def update_schemeitem(scheme, schemeitem, upload_dict, update_dict, request, com
 
     # logger.debug('update_dict: ' + str(update_dict))
 
+# 5555555555555555555555555555555555555555555555555555555555555555555555555555
+
+def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-06-17
+    logger.debug(' ============= FillRosterdate ============= ')
+
+    if new_rosterdate:
+# - create recordset of schemeitem records with rosterdate = new_rosterdate
+        # from: https://stackoverflow.com/questions/5235209/django-order-by-position-ignoring-null
+        # Coalesce works by taking the first non-null value.  So we give it
+        # a date far before any non-null values of last_active.  Then it will
+        # naturally sort behind instances of Box with a non-null last_active value.
+        crit = (Q(rosterdate=new_rosterdate)) & \
+               (Q(scheme__order__customer__company=request.user.company)) & \
+               (Q(scheme__order__datefirst__lte=new_rosterdate) | Q(scheme__order__datefirst__isnull=True)) & \
+               (Q(scheme__order__datelast__gte=new_rosterdate) | Q(scheme__order__datelast__isnull=True)) & \
+               (Q(scheme__order__issystem=False)) & (Q(scheme__order__customer__issystem=False)) & \
+               (Q(scheme__order__inactive=False)) & (Q(scheme__order__customer__inactive=False))
+        schemeitems = Schemeitem.objects.filter(crit)
+        # logger.debug(schemeitems.query)
+
+        for schemeitem in schemeitems:
+            logger.debug('order: ' + schemeitem.scheme.order.code + ' rosterdate: ' + str(schemeitem.rosterdate))
+# - create new_orderhour
+            new_orderhour = Orderhour(
+                order=schemeitem.scheme.order,
+                rosterdate=new_rosterdate,
+                schemeitem=schemeitem,
+                taxrate=schemeitem.scheme.order.taxrate,
+                duration=schemeitem.timeduration,
+                status=STATUS_EMPLHOUR_01_CREATED,
+                rate=schemeitem.scheme.order.rate,
+                amount=(schemeitem.timeduration / 60) * (schemeitem.scheme.order.rate))
+            new_orderhour.save(request=request)
+
+# - lookup employee
+            logger.debug('lookup employee ')
+            team = schemeitem.team
+            employee = None
+            wagecode = None
+            logger.debug('team: ' + str(team))
+            if team:
+                # filters teammmebers that have new_rosterdate within range datefirst/datelast
+                # order_by datelast, null comes last (with Coalesce changes to '2200-01-01'
+                crit = (Q(team=team)) & \
+                       (Q(employee__isnull=False)) & \
+                       (Q(datefirst__lte=new_rosterdate) | Q(datefirst__isnull=True)) & \
+                       (Q(datelast__gte=new_rosterdate) | Q(datelast__isnull=True))
+                teammember = Teammember.objects.annotate(
+                    new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
+                    )).filter(crit).order_by('new_datelast').first()
+                if teammember:
+                    logger.debug('teammember.employee: ' + str(teammember.employee) + ' datelast: ' + str(teammember.datelast))
+                    employee = teammember.employee
+                    if employee:
+                        wagecode = employee.wagecode
+
+    # create new emplhour
+            if new_orderhour:
+                new_emplhour = Emplhour(
+                    orderhour=new_orderhour,
+                    schemeitem=schemeitem,
+                    rosterdate=new_rosterdate,
+                    timestart = schemeitem.timestart,
+                    timeend = schemeitem.timeend,
+                    timeduration=schemeitem.timeduration,
+                    breakduration=schemeitem.breakduration,
+                    employee=employee,
+                    wagecode=wagecode,
+                    timestatus=STATUS_EMPLHOUR_01_CREATED)
+                new_emplhour.save(request=request)
+
+# - update rosterdate in schemeitem
+            # after filling orderhours and emplhours: add cycle days to rosterdate, except when cycle = 0
+            # recalc timestart timeend
+            cycle = schemeitem.scheme.cycle
+            next_rosterdate = None
+            if cycle:
+                next_rosterdate = schemeitem.rosterdate + timedelta(days=cycle)
+                schemeitem.rosterdate = next_rosterdate
+                schemeitem.save(request=request)
+
+        # get new_schemeitem.time_start
+                new_timestart = None
+                if next_rosterdate and schemeitem.timestartdhm:
+                    new_timestart = get_datetimelocal_from_DHM(
+                        next_rosterdate, schemeitem.timestartdhm, comp_timezone)
+                    schemeitem.timestart = new_timestart
+        # get new_schemeitem.time_start
+                new_timeend = None
+                if next_rosterdate and schemeitem.timeenddhm:
+                    new_timeend = get_datetimelocal_from_DHM(
+                        next_rosterdate, schemeitem.timeenddhm, comp_timezone)
+                    schemeitem.timeend = new_timeend
+
+        # get new_schemeitem.timeduration
+                if new_timestart and new_timeend:
+                    new_timeduration = get_time_minutes(
+                        new_timestart,
+                        new_timeend,
+                        schemeitem.breakduration)
+                    schemeitem.breakduration = new_timeduration
+
+# 5555555555555555555555555555555555555555555555555555555555555555555555555555
 
 def create_order_list(company, user_lang, include_inactive):
     # --- create list of all active orders of this company PR2019-06-09
@@ -2065,6 +2093,31 @@ def create_employee_list(company):
         employee_list.append(dict)
     return employee_list
 
+
+def create_emplhour_list(datefirst, datelast, company, comp_timezone, user_lang): # PR2019-06-16
+    logger.debug(' ============= create_emplhour_list ============= ')
+
+    starttime = timer()
+
+    crit = (Q(orderhour__order__customer__company=company) | Q(employee__company=company))
+    if datefirst:
+        crit.add(Q(rosterdate__gte=datefirst), crit.connector)
+    if datelast:
+        crit.add(Q(rosterdate__lte=datelast), crit.connector)
+    emplhours = Emplhour.objects.filter(crit)
+
+    print('sql elapsed time  is :')
+    print(timer() - starttime)
+
+    emplhour_list = []
+    for emplhour in emplhours:
+        dict = Emplhour.create_emplhour_dict(emplhour, comp_timezone, user_lang)
+        emplhour_list.append(dict)
+
+    print('list elapsed time  is :')
+    print(timer() - starttime)
+
+    return emplhour_list
 
 def get_parent_instance(table, parent_pk_int, update_dict, company):
     # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-06-06
@@ -2150,7 +2203,6 @@ def create_instance(table, parent_instance, code, temp_pk_str, update_dict, requ
             update_dict['id']['temp_pk'] = temp_pk_str
 
     return instance
-
 
 
 def create_date_dict(rosterdate, user_lang, status_text):

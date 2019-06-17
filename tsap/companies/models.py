@@ -12,7 +12,7 @@ from tsap.constants import USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, NAME_MAX
 from tsap.functions import get_date_yyyymmdd, get_time_HHmm, get_datetimelocal_from_datetime, \
     get_date_longstr_from_dte, get_timelocal_formatDHM, formatDMYHM_from_datetime, format_WDMY_from_dte, get_date_WDM_from_dte, format_DMY_from_dte, \
     get_weekdaylist_for_DHM, get_timeDHM_from_dhm, get_date_HM_from_minutes, remove_empty_attr_from_dict, \
-    fielddict_date
+    fielddict_date, fielddict_datetime, fielddict_duration, formatWHM_from_datetime, format_HM_from_dtetime
 
 
 import logging
@@ -470,7 +470,6 @@ class Employee(TsaBaseModel):
         return dte_str
 
 
-
 class Teammember(TsaBaseModel):
     objects = TsaManager()
 
@@ -595,11 +594,6 @@ class Schemeitem(TsaBaseModel):
                 for field in ['rosterdate']:
                     value = getattr(schemeitem, field)
                     if value:
-                        field_dict = {'value': value,
-                                      'wdm': get_date_WDM_from_dte(value, user_lang),
-                                      'wdmy': format_WDMY_from_dte(value, user_lang),
-                                      'dmy': format_DMY_from_dte(value, user_lang),
-                                      'offset': get_weekdaylist_for_DHM(value, user_lang)}
                         schemeitem_dict[field] = fielddict_date(value, user_lang)
 
                 for field in ['shift']:
@@ -705,8 +699,8 @@ class Orderhour(TsaBaseModel):
 class Emplhour(TsaBaseModel):
     objects = TsaManager()
 
-    employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
     orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=SET_NULL, null=True, blank=True)
+    employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
     wagecode = ForeignKey(Wagecode, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
 
     schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True, blank=True)
@@ -718,7 +712,6 @@ class Emplhour(TsaBaseModel):
     breakduration = IntegerField(default=0) # unit is hour * 100
     timestatus = PositiveSmallIntegerField(db_index=True, default=0)
 
-
     class Meta:
         ordering = ['rosterdate', 'timestart']
 
@@ -729,42 +722,73 @@ class Emplhour(TsaBaseModel):
     datelast = None
     inactive = None
 
-    @property
-    def rosterdate_yyyymmdd(self): # PR2019-04-01
-        return get_date_yyyymmdd(self.rosterdate)
+    @staticmethod
+    def create_emplhour_dict(emplhour, comp_timezone, user_lang):
+        # create dict of this scheme PR2019-05-12
+        emplhour_dict = {}
+        field_list = ('id', 'rosterdate', 'customer', 'order', 'shift', 'employee',
+                      'timestart', 'timeend', 'breakduration', 'timeduration','timestatus' )
 
-    def timestart_datetimelocal(self, comp_timezone): # PR2019-04-08
-        return get_datetimelocal_from_datetime(self.timestart, comp_timezone)
+        for field in field_list:
+            emplhour_dict[field] = {}
 
-    def timestartdhm(self, comp_timezone, user_lang): # PR2019-04-08
-        return get_timelocal_formatDHM(self.rosterdate, self.timestart, comp_timezone, user_lang)
+        if emplhour:
+            field = 'id'
+            emplhour_dict[field] = {'pk': emplhour.id, 'parent_pk': emplhour.orderhour.id}
 
-    def timeend_datetimelocal(self, comp_timezone):  # PR2019-04-08
-        return get_datetimelocal_from_datetime(self.timeend, comp_timezone)
+            field = 'rosterdate'
+            rosterdate = getattr(emplhour, field)
+            if rosterdate:
+                emplhour_dict[field] = fielddict_date(rosterdate, user_lang)
 
-    def timeenddhm(self, comp_timezone, user_lang): # PR2019-04-08
-        return get_timelocal_formatDHM(self.rosterdate, self.timeend, comp_timezone, user_lang)
+            field = 'customer'
+            if emplhour.orderhour:
+                value = emplhour.orderhour.order.customer.code
+                if value:
+                    emplhour_dict[field] = {'value': value, 'customer_pk':emplhour.orderhour.order.customer.id}
 
-    @property
-    def timeend_HHmm(self): # PR2019-04-07
-        return get_time_HHmm(self.timeend)
+            field = 'order'
+            if emplhour.orderhour:
+                value = emplhour.orderhour.order.code
+                if value:
+                    emplhour_dict[field] = {'value': value, 'order_pk':emplhour.orderhour.order.id}
 
-    @property
-    def time_hours(self):
-        # duration unit is minutes
-        value = self.timeduration / 60
-        if not value:  # i.e. if value == 0
-            value = ''
-        return value
+            field = 'shift'
+            if emplhour.schemeitem:
+                value = emplhour.schemeitem.shift
+                if value:
+                    emplhour_dict[field] = {'value': value}
 
-    @property
-    def breakhours(self):
-        # duration unit is minutes
-        value = self.breakduration / 60
-        if not value:  # i.e. if value == 0
-            value = ''
-        return value
+            field = 'employee'
+            if emplhour.employee:
+                value = emplhour.employee.code
+                if value:
+                    emplhour_dict[field] = {'value': value, 'employee_pk':emplhour.employee.id}
 
+            for field in ['timestart', 'timeend']:
+                datetime = getattr(emplhour, field)
+                if datetime:
+                    field_dict = {'value': datetime}
+                    if rosterdate == datetime.date():
+                        field_dict['dhm'] = format_HM_from_dtetime(datetime, comp_timezone, user_lang)
+                    else:
+                        field_dict['dhm'] = formatWHM_from_datetime(datetime, comp_timezone, user_lang)
+                    field_dict['dmyhm'] = formatDMYHM_from_datetime(datetime, comp_timezone, user_lang)
+                    emplhour_dict[field] = field_dict
+
+            for field in ['timeduration', 'breakduration']:
+                value = getattr(emplhour, field)
+                if value:
+                    emplhour_dict[field] = fielddict_duration(value, user_lang)
+
+            field = 'timestatus'
+            value = emplhour.timestatus
+            field_dict = {'value': value}
+            emplhour_dict[field] = field_dict
+
+# --- remove empty attributes from update_dict
+        remove_empty_attr_from_dict(emplhour_dict)
+        return emplhour_dict
 
 class Emplhourlog(TsaBaseModel):
     objects = TsaManager()

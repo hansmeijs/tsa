@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_date_from_str(date_str, blank_not_allowed):  # PR2019-04-28
-    logger.debug('............. get_date_from_str: ' + str(date_str))
+    # logger.debug('............. get_date_from_str: ' + str(date_str))
     # function retrieves date from string format " yyyy-mm-dd" or  " yyyy/mm/dd"
     dte = None
     msg_txt = None
@@ -41,7 +41,7 @@ def get_date_from_str(date_str, blank_not_allowed):  # PR2019-04-28
                                 day_int = int(date_list[2])
                                 #logger.debug('day_int: ' + str(day_int) + str(type(day_int)))
                                 dte = date(year_int, month_int, day_int)
-                    logger.debug('dte: ' + str(dte) + str(type(dte)))
+                    # logger.debug('dte: ' + str(dte) + str(type(dte)))
         except:
             msg_txt = "'" + date_str + "'" + _("is not a valid date.")
             #logger.debug('msg_txt: ' + str(msg_txt) + str(type(msg_txt)))
@@ -472,6 +472,22 @@ def get_date_WDM_from_dte(dte, lang):  # PR2019-05-01
             pass
 
     return date_WDM
+
+
+def formatWHM_from_datetime(dte, timezone, lang):
+    # returns 'zo 16.30 u' PR2019-06-16
+
+    date_HM = format_HM_from_dtetime(dte, timezone, lang)
+
+    # get weekdays translated
+    if not lang in WEEKDAYS_ABBREV:
+        lang = LANGUAGE_CODE
+    weekday_int = int(dte.strftime("%w"))
+    weekday_str = WEEKDAYS_ABBREV[lang][weekday_int]
+
+    date_WHM = ' '.join([weekday_str, date_HM])
+
+    return date_WHM
 
 
 def formatDMYHM_from_datetime(dte, timezone, lang):

@@ -158,29 +158,20 @@ urlpatterns = [
 
 
     path('planning/', include([
-        path('', planning_views.SchemesView.as_view(), name='schemes_url'),
+        path('schemes', planning_views.SchemesView.as_view(), name='schemes_url'),
         path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),
         path('upload', planning_views.SchemeUploadView.as_view(), name='scheme_upload_url'),
         path('schemeitem_download', planning_views.SchemeitemDownloadView.as_view(), name='schemeitems_download_url'),
         path('schemeitem_upload', planning_views.SchemeItemUploadView.as_view(), name='schemeitem_upload_url'),
         path('schemeitem_fill', planning_views.SchemeitemFillView.as_view(), name='schemeitem_fill_url'),
         path('schemeorteam_upload', planning_views.SchemeOrTeamUploadView.as_view(), name='schemeorteam_upload_url'),
+
+        path('roster', planning_views.RosterView.as_view(), name='roster_url'),
     ])),
 
     path('emplhours/', include([
         path('', planning_views.EmplhourView.as_view(), name='emplhours_url'),
-
         path('fill', planning_views.EmplhourFillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
         path('upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
     ])),
-
-    path('realization/', include([
-        path('', planning_views.RealizationView.as_view(), name='realization_url'),
-
-        #path('fill', planning_views.EmplhourFillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
-        #path('upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
-        #path('datalist', planning_views.EmplhourDownloadDatalistView.as_view(), name='emplhour_datalist_url'),
-    ])),
-
-
 ]

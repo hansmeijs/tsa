@@ -86,7 +86,10 @@
         let value_dict = {};
         if(!!element && !!key){
             if(element.hasAttribute(key)){
-                value_dict = JSON.parse(element.getAttribute(key))
+                const atr = element.getAttribute(key)
+                if(!!atr) {
+                    value_dict = JSON.parse(atr)
+                }
             };
         }
         return value_dict;
