@@ -1,414 +1,887 @@
-// PR2019-02-07 deprecated: $(document).ready(function() {
+// PR2019-6-17
 $(function() {
-console.log("Employees document.ready");
-// ---  id_new assigns fake id to new records
-    let id_new = 0;
-    let filter_name = "";
-    let filter_hide_inactive = true;
+        "use strict";
+        console.log("Employee document.ready");
 
 // ---  set selected menu button active
-    const cls_active = "active";
-    let btn_clicked = document.getElementById("id_sub_empl_list");
-    SetMenubuttonActive(btn_clicked);
+        const cls_active = "active";
+        const cls_hover = "tr_hover";
+        const cls_selected = "tsa_tr_selected";
 
-//}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
-// still haveto try this one
-        //show popup when clicking the trigger
-       // $('tbody').on('focus',".dateselector", function(){
-       //     SetDateSelector();
-       // });
+        const cls_hide = "display_hide";
+        const index_el_inactive = 5;
+        const col_count = 6;
+        SetMenubuttonActive(document.getElementById("id_hdr_empl"));
 
-        //hide it when clicking anywhere else except the popup and the trigger
-        //$(document).on('click touch', function(event) {
-        //  if (!$(event.target).parents().addBack().is('.datepicker')) {
-        //    $('#id_msgbox').hide();
-        //  }
-        //});
+        let id_new = 0;
+        let filter_name = "";
+        let filter_inactive_included = false;
+        let employee_list = [];
+        let selected_employee_pk = 0;
 
-        // Stop propagation to prevent hiding "#tooltip" when clicking on it
-        //$('#id_msgbox').on('click touch', function(event) {
-        //  event.stopPropagation();
-        //});
+        let tblBody_items = document.getElementById("id_tbody_items");
 
-//}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+// add event listener to all elements for closing popup window
+        // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
+        document.addEventListener('click', function (event) {
+            let close_popup = true
+            // don't close popup_dhm when clicked on row cell with class input_popup_dhm
+            if (event.target.classList.contains("input_popup_wdy")) {
+                close_popup = false
+            // don't close popup when clicked on popup box, except for close button
+            } else if (el_popup_wdy.contains(event.target) && !event.target.classList.contains("popup_close")) {
+                close_popup = false
+            }
+            if (close_popup) {
+                // remove selected color from all input popups
+                popupbox_removebackground();
+                el_popup_wdy.classList.add("display_hide");
+            };
+            // remove highlighted row when clicked outside tabelrows
+            let tr_selected = get_tablerow_selected(event.target)
+            if(!tr_selected) {
+                selected_employee_pk = 0;
+                DeselectHighlightedRows(tblBody_items)};
+        }, false);
 
+
+// remove highlighted row when clicked outside tabelrows
+        document.addEventListener('click', function (event) {
+            let tr_selected = get_tablerow_selected(event.target)
+            if(!tr_selected) {DeselectHighlightedRows(tblBody_items)}}, false);
+
+// buttons in  popup_wdy)
+        let el_popup_wdy = document.getElementById("id_popup_wdy");
+        let el_popup_date = document.getElementById("id_popup_date")
+            el_popup_date.addEventListener("change", function() {HandlePopupWdySave();}, false )
+        //let el_popup_wdy_save = document.getElementById("id_popup_wdy_save")
+        //el_popup_wdy_save.addEventListener("click", function() {HandlePopupWdySave();}, false )
+
+// ---  create EventListener for class input_text
         // PR2019-03-03 from https://stackoverflow.com/questions/14377590/queryselector-and-queryselectorall-vs-getelementsbyclassname-and-getelementbyid
-        let elements = document.getElementsByClassName("input_text");
+/*        let elements = document.getElementsByClassName("input_text");
         for (let i = 0, len = elements.length; i < len; i++) {
             let el = elements[i];
-            // without << function() {UploadChanges(el);} >> UploadChanges is for each el invoked at this point
-            el.addEventListener("change", function() {UploadChanges(el);}, false )
+            el.addEventListener("change", function() {
+                setTimeout(function() {
+                    UploadChanges(el);
+                }, 250);
+            }, false )
+        }
+*/
+// ---  event handler to filter elements
+        let el_filter_inactive = document.getElementById("id_filter_inactive");
+            el_filter_inactive.addEventListener("click", function(){HandleFilterInactive()}, false );
+        let el_filter_text = document.getElementById("id_filter_text");
+            el_filter_text.addEventListener("keyup", function() {setTimeout(function() {HandleFilterEvent()}, 50)});
+
+// --- get header elements
+        let hdr_employee = document.getElementById("id_hdr_employee");
+
+        let el_loader = document.getElementById("id_loading_img");
+
+// --- get data stored in page
+        let el_data = document.getElementById("id_data");
+        const url_employee_upload = get_attr_from_element(el_data, "data-employee_upload_url");
+        const url_datalist_download = get_attr_from_element(el_data, "data-datalist_download_url");
+        const imgsrc_inactive = get_attr_from_element(el_data, "data-imgsrc_inactive");
+        const imgsrc_active = get_attr_from_element(el_data, "data-imgsrc_active");
+        const imgsrc_delete = get_attr_from_element(el_data, "data-imgsrc_delete");
+        const title_inactive = get_attr_from_element(el_data, "data-txt_make_inactive");
+        const title_active = get_attr_from_element(el_data, "data-txt_make_active");
+
+        DatalistDownload({"employees": {inactive: true}});
+
+//  #############################################################################################################
+
+//========= DatalistDownload  ====================================
+    function DatalistDownload(datalist_request) {
+        console.log( "=== DatalistDownload ")
+        console.log( datalist_request)
+        // datalist_request: {"employees": {inactive: true}}
+
+// reset requested lists
+        for (let key in datalist_request) {
+            if (key === "employees") {employee_list = []};
         }
 
-        let icons = document.getElementsByClassName("input_icon");
-        for (let i = 0, len = icons.length; i < len; i++) {
-            let icon = icons[i];
-            icon.addEventListener("click", function() {HandleRowInactive(icon);}, false )
-        }
-        document.getElementById("id_btn_add").addEventListener("click", AddTableRow);
-        document.getElementById("id_filter_inactive").addEventListener("click", HandleFilterInactive);
+// show loader
+        el_loader.classList.remove(cls_hide)
 
-        // ---  add 'keyup' event handler to filter input
-        document.getElementById("id_filter_name").addEventListener("keyup", function() {
-            console.log( "addEventListener keyup ");
-            setTimeout(function() {
-                HandleSearchFilterEvent();
-            }, 150);
-        });
+        let param = {"datalist_download": JSON.stringify (datalist_request)};
+        let response = "";
+        $.ajax({
+            type: "POST",
+            url: url_datalist_download,
+            data: param,
+            dataType: 'json',
+            success: function (response) {
+                 console.log("response")
+                 console.log(response)
 
+                // hide loader
+                el_loader.classList.add(cls_hide)
 
-        // hide inactive empooyees
-        let img_inactive_src = $("#id_data").data("img_inactive_src");
-        let img_active_src = $("#id_data").data("img_active_src");
+                if ("employees" in datalist_request) {
+                    if ("employees" in response) {employee_list= response["employees"]}
+                    FillTableRows();
+                    FilterRows();
+                }
+            },
+            error: function (xhr, msg) {
+                // hide loader
+                el_loader.classList.add(cls_hide)
 
-        let img_delete_src = $("#id_data").data("img_delete_src");
+                console.log(msg + '\n' + xhr.responseText);
+                alert(msg + '\n' + xhr.responseText);
+            }});
+}
 
-        FilterRows()
+//========= FillTableRows  ====================================
+    function FillTableRows() {
+        // console.log( "===== FillTableRows  ========= ");
 
-          //  let attrib = {};
-          //  $("<input>").appendTo(el_td)
-          //      .addClass("popup");
+// --- reset tblBody_items
+        tblBody_items.innerText = null;
 
+// --- get  item_list and  selected_parent_pk
+        let item_list = employee_list;
+        let tblRow, parent_pk;
 
-//=========  AddTableRow  ================ PR2019-03-16
-    function AddTableRow() {
-console.log("=========  function AddTableRow =========");
+// --- loop through item_list
+        const len = item_list.length;
+        if (!!len){
+            for (let i = 0; i < len; i++) {
+                const item_dict = item_list[i];
+                const pk = get_pk_from_id (item_dict)
+                const parent_pk = get_parent_pk (item_dict)
 
-//--------- increase id_new
-            id_new = id_new + 1
-            let id_str =  id_new.toString()
+                tblRow = CreateTableRow(pk, parent_pk)
+                UpdateTableRow(tblRow, item_dict)
 
-            let tblBody = document.getElementById('id_tbody');
-//--------- insert tblBody row
-            let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            tblRow.setAttribute('id', 'new_' + id_str);
-            for (let j = 0 ; j < 11; j++) {
-                //let td = document.createElement('td');          // TABLE DEFINITION.
-                //td = tr.insertCell(tblRow);
-                let td = tblRow.insertCell(-1); //index -1 results in that the new cell will be inserted at the last position.
-                if (j===0){
-                    let img = document.createElement("img");
-                    img.height="24"
-                    img.width="24"
-                    img.src = img_inactive_src;
-                    td.appendChild(img);
-                } else if (j===10){
-                    let img = document.createElement("img");
-                    img.height="24"
-                    img.width="24"
-                    img.src = img_delete_src;
-                    td.appendChild(img);
-                } else if (j===7){
-                    let el = document.createElement('input');
-                    el.setAttribute("name", "datefirst");
-                    el.setAttribute("type", "date");
-                    el.setAttribute("value", "");
-                    td.appendChild(el);
-                } else {
-                    let el_name = ""
-                    if (j === 1){
-                        el_name = "code";
-                    } else if (j === 2) {
-                        el_name = "namelast";
-                    } else if (j === 3) {
-                        el_name = "namefirst";
-                    } else if (j === 4) {
-                        el_name = "prefix";
-                    } else if (j === 5) {
-                        el_name = "email";
-                    } else if (j === 6) {
-                        el_name = "telephone";
-                    } else if (j === 8) {
-                        el_name = "_modby";
-                    } else if (j === 9) {
-                        el_name = "modat";
-                    }
-                    let el = document.createElement('input');
-                    el.setAttribute('name', el_name);
-                    el.setAttribute('type', 'text');
-                    el.setAttribute('value', '');
-                    el.addEventListener("change", function() {UploadChanges(el);}, false )
-                    el.classList.add("input_text");
-                    td.appendChild(el);
+// --- highlight selected row
+                if (pk === selected_employee_pk) {
+                    tblRow.classList.add(cls_selected)
+                }
+            }  // for (let i = 0; i
+        }  //  if (!!len){
+
+// === add row 'add new'
+        let new_dict = {};
+        id_new = id_new + 1
+        const pk_new = "new_" + id_new.toString()
+        new_dict["id"] = {"pk": pk_new, "new": true}
+
+        tblRow = CreateTableRow(pk_new, parent_pk)
+        UpdateTableRow(tblRow, new_dict)
+    }  // FillTableRows
+
+//=========  CreateTableRow  ================ PR2019-06-16
+    function CreateTableRow(pk, parent_pk) {
+        // console.log("=========  function CreateTableRow =========");
+        // console.log("pk", pk, "parent_pk", parent_pk, "new_name_or_date", rosterdate_or_teamname);
+
+// check if row is addnew row - when pk is NaN
+        let is_new_item = !parseInt(pk);
+
+//+++ insert tblRow ino tblBody_items
+        let tblRow = tblBody_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+        tblRow.setAttribute("id", pk);
+        tblRow.setAttribute("data-pk", pk);
+        tblRow.setAttribute("data-parent_pk", parent_pk);
+        tblRow.setAttribute("data-table", "employees");
+
+// --- add EventListener to tblRow.
+        tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
+
+//+++ insert td's ino tblRow
+        for (let j = 0, td, el; j < col_count; j++) {
+            td = tblRow.insertCell(-1);
+
+// --- add img inactive to index_el_inactive
+            if (j === index_el_inactive){
+                if(!is_new_item){
+        // --- add <a> element with EventListener to td
+                    el = document.createElement("a");
+                    el.setAttribute("href", "#");
+                    AppendChildIcon(el, imgsrc_active)}
+// --- add input element to td.
+            } else {
+                el = document.createElement("input");
+                el.setAttribute("type", "text")
+            };
+            if(!!el){
+// --- add data-field Attribute.
+                let fieldname;
+                if (j === 0){fieldname = "code"} else
+                if (j === 1){fieldname = "namefirst"} else
+                if (j === 2){ fieldname = "namelast"} else
+                if (j === 3){ fieldname = "datefirst"} else
+                if (j === 4){ fieldname = "datelast"} else
+                if (j === index_el_inactive){ fieldname = "inactive"}
+                el.setAttribute("data-field", fieldname);
+
+                if (j === 0 && is_new_item ){
+                    el.setAttribute("placeholder", get_attr_from_element(el_data, "data-txt_employee_add") + "...")
                 }
 
-            }
+    // --- add EventListener to td
+                if ([0, 1, 2].indexOf( j ) > -1){
+                    el.addEventListener("change", function() {UploadChanges(el)}, false )} else
+                if ([3, 4].indexOf( j ) > -1){
+                    el.addEventListener("click", function() {OpenPopupWDY(el);}, false )};
+                if (j === index_el_inactive) {
+                    el.addEventListener("click", function(){HandleInactiveClicked(el)}, false )
+                }
+    // --- add text_align
+                if ( ([0, 1, 2].indexOf( j ) > -1) ){
+                    td.classList.add("text_align_left")
+                }
+
+    // --- add margin to first column
+                if (j === 0 ){el.classList.add("mx-2")}
+
+    // --- add width to time fields and date fileds
+                if (j === 0 ){el.classList.add("td_width_180")} else
+                if ([1, 2].indexOf( j ) > -1){el.classList.add("td_width_240")} else
+                if (j === index_el_inactive ){el.classList.add("td_width_032")} else
+                {el.classList.add("td_width_090")};
+
+    // --- add other classes to td
+                el.classList.add("border_none");
+                el.classList.add("input_text");
+
+                if ([3, 4].indexOf( j ) > -1){
+                    el.classList.add("input_popup_wdy");
+                };
 
 
-    };//function AddTableRow
+    // --- add other attributes to td
+                el.setAttribute("autocomplete", "off");
+                el.setAttribute("ondragstart", "return false;");
+                el.setAttribute("ondrop", "return false;");
 
-//=========  HandleRowInactive  ================ PR2019-03-17
-    function HandleRowInactive(el_changed) {
-        console.log("--------- function HandleRowInactive  --------------");
-        console.log( "el_changed: ", el_changed, typeof el_changed);
+                td.appendChild(el);
+            }  // if(!!el){
+
+        }  // for (let j = 0; j < 8; j++)
+
+        return tblRow
+    };//function CreateTableRow
+
+//========= UpdateTableRow  =============
+    function UpdateTableRow(tblRow, item_dict){
+        // console.log("--++- UpdateTableRow  --------------");
+
+        if (!!item_dict && !!tblRow) {
+            // console.log("tblRow", tblRow);
+            // console.log("item_dict", item_dict);
+
+            // new, not saved: cust_dict{'id': {'new': 'new_1'},
+            // item_dict = {'id': {'pk': 7},
+            // 'code': {'err': 'employee code cannot be blank.', 'val': '1996.02.17.15'},
+            // 'namelast': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'El Chami'},
+            // 'namefirst': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'Omar'}}<class 'dict'>
+
+// get temp_pk_str and id_pk from item_dict["id"]
+            // id: {temp_pk: "new_1", created: true, pk: 32, parent_pk: 18}
+            const id_dict = get_dict_value_by_key (item_dict, "id");
+            let temp_pk_str, msg_err, is_new = false, is_created = false, is_deleted = false;
+            if ("new" in id_dict) {is_new = true};
+            if ("created" in id_dict) {is_created = true};
+            if ("deleted" in id_dict) {is_deleted = true};
+            if ("error" in id_dict) {msg_err = id_dict["error"]};
+            if ("temp_pk" in id_dict) {temp_pk_str = id_dict["temp_pk"]};
+
+// --- deleted record
+            if (is_deleted){
+                tblRow.parentNode.removeChild(tblRow);
+            } else if (!!msg_err){
+                //console.log("msg_err", msg_err);
+
+                // was: let el_input = tblRow.querySelector("[name=code]");
+                //console.log("tblRow", tblRow)
+                let td = tblRow.cells[1];
+                //console.log("td", td)
+                //console.log("td.child[0]",td.child[0])
+                let el_input = td.firstChild
+                //console.log("el_input",el_input)
+                el_input.classList.add("border_invalid");
+
+                ShowMsgError(el_input, msg_err, -60)
+
+// --- new created record
+            } else if (is_created){
+                let id_attr = get_attr_from_element_int(tblRow,"id")
+                // console.log("id_attr", id_attr)
+
+            // check if item_dict.id 'new_1' is same as tablerow.id
+                if(temp_pk_str === id_attr){
+                    // if 'created' exists then 'pk' also exists in id_dict
+                    const id_pk = get_dict_value_by_key (id_dict, "pk");
+
+            // update tablerow.id from temp_pk_str to id_pk
+                    tblRow.setAttribute("id", id_pk);  // or tblRow.id = id_pk
+                    tblRow.setAttribute("data-pk", id_pk)
+
+            // make row green, / --- remove class 'ok' after 2 seconds
+                    ShowOkClass(tblRow )
+                }  //  if(temp_pk_str === id_attr){
+            };  // if (is_deleted){
+
+            // tblRow can be deleted in  if (is_deleted){
+            if (!!tblRow){
+
+// --- new record: replace temp_pk_str with id_pk when new record is saved
+        // if 'new' and 'pk both exist: it is a newly saved record. Change id of tablerow from new to pk
+        // if 'new' exists and 'pk' not: it is an unsaved record (happens when code is entered and name is blank)
+                if(!!tblRow.cells){
+// --- loop through cells of tablerow
+                    for (let i = 0, len = tblRow.cells.length; i < len; i++) {
+                        let field_dict = {}, fieldname, updated, err;
+                        let value = "", o_value, n_value, data_value, data_o_value;
+                        let wdm = "", wdmy = "", dmy = "", offset = "", team_pk = "", dhm = "", hm = "";
+                        let employee_pk;
+
+                        // el_input is first child of td, td is cell of tblRow
+                        let el_input = tblRow.cells[i].children[0];
+                        if(!!el_input){
+    // --- lookup field in item_dict, get data from field_dict
+                            fieldname = get_attr_from_element(el_input, "data-field");
+                            // console.log("fieldname: ", fieldname)
+                            field_dict = {};
+                            if (fieldname in item_dict){
+                                field_dict = get_dict_value_by_key (item_dict, fieldname);
+                                updated = get_dict_value_by_key (field_dict, "updated");
+                                msg_err = get_dict_value_by_key (field_dict, "error");
+                                // console.log("field_dict: ", field_dict)
+                                // console.log("updated: ", updated)
+
+                                if(!!err){
+                                    ShowMsgError(el_input, msg_err, -60)
+                                } else if(updated){
+                                    el_input.classList.add("border_valid");
+                                    setTimeout(function (){
+                                        el_input.classList.remove("border_valid");
+                                        }, 2000);
+                                }
+
+                                if (["code", "namefirst", "namelast"].indexOf( fieldname ) > -1){
+                                   format_text_element (el_input, field_dict)
+                                } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
+                                   format_date_element (el_input, field_dict, false,true) // show_weekday=false, show_year=true
+                                };
+                            };
+                            if (fieldname === "inactive") {
+                               if(isEmpty(field_dict)){field_dict = {value: false}}
+                               format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active, title_inactive, title_active)
+                            };
+                        };  // if(!!el_input)
+                    }  //  for (let j = 0; j < 8; j++)
+                }  // if(!!tblRow.cells){
+            } // if (!!tblRow)
+        };  // if (!!item_dict && !!tblRow)
+    }  // function UpdateTableRow
+
+//=========  HandleTableRowClicked  ================ PR2019-03-30
+    function HandleTableRowClicked(tr_clicked) {
+        // console.log("=== HandleTableRowClicked");
+        //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
+
+// ---  deselect all highlighted rows
+        DeselectHighlightedRows(tr_clicked.parentNode)
 
 // ---  get clicked tablerow
-        let tr_changed = get_tablerow_clicked(el_changed)
-        if(!!tr_changed) {
-            console.log( "tr_changed: ", tr_changed, typeof tr_changed);
-            if(tr_changed.hasAttribute("id")){
-// ---  get pk from id of tr_changed
-                // id_str: "4"
-                const id_str = tr_changed.getAttribute("id");
-                console.log( "id_str: ", id_str, typeof id_str);
-// ---  el_changed is cell 'inactive' of tr_changed
-                //el_changed.innerHTML = "";
-                const src_active = el_changed.getAttribute("src_active");
-                const src_inactive = el_changed.getAttribute("src_inactive");
-                let el_value = el_changed.getAttribute("value");
-                console.log( "is_inactive : ", el_value, typeof el_value);
-// toggle is_inactive
-                let is_inactive = false;
-                if (el_value.toLowerCase() !== "true") {is_inactive = true}
-                console.log( "is_inactive toggled: ", is_inactive, typeof is_inactive);
-                el_changed.setAttribute("value", is_inactive.toString());
-// update icon
-                let img_src = img_active_src
-                if (is_inactive) {img_src = img_inactive_src};
-                el_changed.children[0].setAttribute("src", img_src);
-// hide tablerow if inactive and filter is on
-                if (filter_hide_inactive && is_inactive){
-                    tr_changed.classList.add("display_hide")
-                }
-// upload new value icon
-                let employee = {"pk": id_str, 'inactive': is_inactive}
-                console.log("employee:",employee)
-                let parameters = {"employee": JSON.stringify (employee)};
-                let url_str = $("#id_data").data("employee_upload_url");
-                let response = "";
-                $.ajax({
-                    type: "POST",
-                    url: url_str,
-                    data: parameters,
-                    dataType:'json',
-                    success: function (response) {
-                        if ("empl_upd" in response) {
-                            UpdateFields(response["empl_upd"])
-                        }
-                    },
-                    error: function (xhr, msg) {
-                        alert(msg + '\n' + xhr.responseText);
-                    }
-                });
-            }  //  if(tr_changed.hasAttribute("id")){
-        };  // if(!!tr_changed)
-    };
+        if(!!tr_clicked) {
+// ---  highlight clicked row
+            selected_employee_pk = get_datapk_from_element(tr_clicked)
+            tr_clicked.classList.add(cls_selected)
+        }
+    }
 
+
+//========= HandleInactiveClicked  ============= PR2019-03-03
+    function HandleInactiveClicked(el_changed) {
+        // console.log("======== HandleInactiveClicked  ========");
+        // console.log(el_changed);
+
+        let is_inactive_str = get_attr_from_element(el_changed, "data-value")
+        // toggle value of is_inactive
+        if (is_inactive_str === "true"){is_inactive_str = "false"} else {is_inactive_str = "true"}
+        // console.log("is_inactive_str: ", is_inactive_str, typeof is_inactive_str);
+        el_changed.setAttribute("data-value", is_inactive_str);
+
+        // update icon
+        let imgsrc;
+        if (is_inactive_str === "true") {imgsrc = imgsrc_inactive} else  {imgsrc = imgsrc_active}
+        el_changed.children[0].setAttribute("src", imgsrc);
+
+        if (is_inactive_str === "true" && !filter_inactive_included) {
+            let tr_clicked = get_tablerow_clicked(el_changed);
+            tr_clicked.classList.add("display_hide")
+        }
+
+        UploadChanges(el_changed)
+    }
 
 //========= UploadChanges  ============= PR2019-03-03
+    function UploadChanges(el_changed) {
+        let tr_changed = get_tablerow_clicked(el_changed)
+        UploadTblrowChanged(tr_changed);
+    }
+
+//========= UploadTblrowChanged  ============= PR2019-03-03
 // PR2019-03-17 debug: Here you have written this script on document.ready function, that's why it returns obsolete value.
 // Put this script in some event i.e click, keypress,blur,onchange etc... So that you can get the changed value.
 // An input has a value attribute that determines the initial value of the input.
 // It also has a value property that holds the current value of the input
-    function UploadChanges(el_changed) {
-        console.log("+++--------- UploadChanges  --------------");
-       // console.log( "el_changed: ", el_changed);
+    function UploadTblrowChanged(tr_changed) {
+        console.log("=== UploadTblrowChanged");
+        let new_item = GetItemDictFromTablerow(tr_changed);
+        console.log("upload", new_item);
 
-// ---  get clicked tablerow
-        let tr_changed = get_tablerow_clicked(el_changed)
-        //console.log("tr_changed: ", tr_changed);
+        if(!!new_item) {
 
-        if(!!tr_changed) {
-// ---  get pk from id of tr_changed
+        // show loader
+            el_loader.classList.remove(cls_hide)
 
-            if(tr_changed.hasAttribute("id")){
-                // id_str: "4"
-                const id_str = tr_changed.getAttribute("id");
-                //console.log("id_str: ", id_str);
-                let employee = {"pk": id_str};
+            let parameters = {"upload": JSON.stringify (new_item)};
+            let response = "";
+            $.ajax({
+                type: "POST",
+                url: url_employee_upload,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                    console.log( "response");
+                    console.log( response);
+        // hide loader
+                    el_loader.classList.add(cls_hide)
 
-    // ---  loop through cells and input element of tr_changed
-                for (let i = 0, el_input, el_name, n_value, o_value, len = tr_changed.cells.length; i < len; i++) {
-                    // el_input is first child of td, td is cell of tr_changed
-                    el_input = tr_changed.cells[i].children[0];
-                    //console.log( "el_input: ", el_input, typeof el_input);
+                    if ("employee_list" in response) {
+                        employee_list= response["employee_list"]}
 
-                    if(el_input.hasAttribute("name")){
-                        if(el_input.classList.contains("input_text")){
-                            // PR2019-03-17 debug: getAttribute("value");does not get the current value
-                            // The 'value' attribute determines the initial value (el_input.getAttribute("name").
-                            // The 'value' property holds the current value (el_input.value).
-                            el_name = el_input.getAttribute("name");
-                            if(!!el_name){
-                                n_value = "";
-                                o_value = "";
-                                if (!!el_input.value){
-                                    n_value = el_input.value;
-                                }
-                                if(el_input.hasAttribute("o_value")){
-                                    o_value = el_input.getAttribute("o_value");
-                                }
-                                // n_value is only added to dict when value has changed
-                                // n_value can be blank
-                                if(n_value !== o_value){
-                                    employee[el_name] = n_value
-                                }
-                            }
+                    if ("item_update" in response) {
+                        let item_dict =response["item_update"]
+                        const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
+                        UpdateTableRow(tr_changed, item_dict)
+                        // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
+                        //id: {parent_pk: 126, table: "teammembers", created: true, pk: 57, temp_pk: "new_4"}
+                        //team: {pk: 126, value: "A", updated: true}
+                        const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
+
+                    // add new empty row
+                        if (is_created){
+                            id_new = id_new + 1
+                            const pk_new = "new_" + id_new.toString()
+                            const parent_pk = get_parent_pk (item_dict)
+
+                            let new_dict = {}
+                            new_dict["id"] = {"pk": pk_new, "parent_pk": parent_pk}
+
+                            let tblRow = CreateTableRow(pk_new)
+                            UpdateTableRow(tblRow, new_dict)
                         }
-                    }  //  if(el_input.classList.contains("input_text")
-                };  //  for (let i = 0, el_input,
-
-                //employee: {pk: "11", code: "20", namelast: "Bom", blank_namefirst: "blank", prefix: "None", …}
-                console.log ("employee before ajax", employee);
-                let parameters = {"employee": JSON.stringify (employee)};
-                let url_str = $("#id_data").data("employee_upload_url");
-
-                response = "";
-                $.ajax({
-                    type: "POST",
-                    url: url_str,
-                    data: parameters,
-                    dataType:'json',
-                    success: function (response) {
-                        if ("empl_upd" in response) {
-                            UpdateFields(tr_changed, response["empl_upd"])
-                        }
-                    },
-                    error: function (xhr, msg) {
-                        alert(msg + '\n' + xhr.responseText);
                     }
-                });
-
-            }  //  if(tr_changed.hasAttribute("id")){
-        };  // if(!!tr_changed)
-    };
-
-//========= UpdateFields  =============
-    function UpdateFields(tr_changed, empl_upd){
-        console.log("-------------- UpdateFields  --------------");
-        // console.log("tr_changed", tr_changed);
-        console.log(empl_upd);
-        if (!!empl_upd) {
-            // new, not saved: empl_dict{'id': {'new': 'new_1'},
-            // empl_upd = {'id': {'pk': 7},
-            // 'code': {'err': 'Employee code cannot be blank.', 'val': '1996.02.17.15'},
-            // 'namelast': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'El Chami'},
-            // 'namefirst': {'err': 'De naam van deze werknemer komt al voor.', 'val': 'Omar'}}<class 'dict'>
-            let id_new = "", id_pk = ""
-            let fieldname = "id"
-            if (fieldname in empl_upd){
-            // from: https://love2dev.com/blog/javascript-substring-substr-slice/
-            // substring(indexStart[, indexEnd]): returns part between the start and end indexes, or to the end.
-            // substr(start[, length]): returns part between the start index and a number of characters after it.
-            // slice(beginIndex[, endIndex]): extracts a section of a string and returns it as a new string.
-
-                // 'id': {'new': 'new_1'}
-                let id_dict = empl_upd[fieldname]
-                if ("new" in id_dict){
-                    id_new = id_dict.new
-                } else if ("pk" in id_dict){
-                    id_pk = id_dict.pk
+                },
+                error: function (xhr, msg) {
+                    // hide loader
+                    el_loader.classList.add(cls_hide)
+                    console.log(msg + '\n' + xhr.responseText);
+                    alert(msg + '\n' + xhr.responseText);
                 }
-                // remove item after reading it, so it wont show in the next loop
-                delete empl_upd[fieldname];
-            }
-            //console.log("id_new", id_new,"id_pk", id_pk)
+            });
+        }  //  if(!!new_item)
+    };  // UploadTblrowChanged
 
-            for (let fieldname in empl_upd) {
-                if (empl_upd.hasOwnProperty(fieldname)) {
-                    let item_dict = empl_upd[fieldname];
-                    console.log("item_dict", item_dict,)
 
-                    let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
-                    console.log("el_input",el_input)
-                    if (!!el_input) {
-                        // const field_id = empl_upd[fieldname];
-                        let value = '';
-                        if('val' in item_dict) {
-                            // value = '1986101906'
-                            value = item_dict['val']
-                            //console.log("item_dict[val]", value, typeof value);
-                            if(fieldname === "modat") {
-                                let newdate = new Date(value);
-                                //console.log("newdate", newdate, typeof newdate);
-                                value = newdate.toLocaleString()
-                                //console.log("new value", value, typeof value);
-                            }
-                        };
 
-                        let elemRect = el_input.getBoundingClientRect();
-                        if('err' in item_dict){
-                            //console.log("item_dict[err]", item_dict['err']);
+//=========  HandleDeleteTblrow  ================ PR2019-03-16
+    function HandleDeleteTblrow(tblName, tblRow) {
+        // console.log("=== HandleDeleteTblrow");
 
-                            el_input.classList.add("border_invalid");
+// ---  get pk from id of tblRow
+            const pk_int = get_datapk_from_element (tblRow)
+            const parent_pk_int = parseInt(get_attr_from_element(tblRow, "data-parent_pk"))
 
-                            let el_msg = document.getElementById("id_msgbox");
-                            el_msg.innerHTML = item_dict['err'];
+            //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+            if (!pk_int) {
+            // when pk_int = 'new_2' row is new row and is not yet saved, can be deleted without ajax
+                tblRow.parentNode.removeChild(tblRow);
+            } else {
 
-                            el_msg.classList.toggle("show");
-                            let msgRect = el_msg.getBoundingClientRect();
+// ---  create id_dict
+                const id_dict = get_iddict_from_element(tblRow);
+                // add id_dict to new_item
+                if (!!id_dict){
+    // ---  create param
+                    id_dict["delete"] = true;
+                    let param = {"id": id_dict}
+                    console.log( "param: ");
+                    console.log(param);
+    // delete  record
+                    // make row red
+                    tblRow.classList.add("tsa_tr_error");
 
-                            let topPos = elemRect.top - (msgRect.height + 80);
-                            let leftPos = elemRect.left - 160;
-                            el_msg.setAttribute('style',
-                                    'top:'+topPos+'px;'+'left:'+leftPos+'px;')
+        // show loader
+        el_loader.classList.remove(cls_hide)
 
-                            setTimeout(function (){
-                                el_input.value = value;
-                                el_input.classList.remove("border_invalid");
-                                el_msg.classList.toggle("show");
-                                }, 2000);
+                    let parameters = {"schemeitem_upload": JSON.stringify (param)};
+                    let response = "";
 
-                        } else if('upd' in item_dict){
-                            el_input.value = value;
-                            //console.log("el_input.value", el_input.value);
+                    $.ajax({
+                        type: "POST",
+                        url: url_employee_upload,
+                        data: parameters,
+                        dataType:'json',
+                        success: function (response) {
+                            console.log ("response:");
+                            console.log (response);
+        // hide loader
+                            el_loader.classList.add(cls_hide)
 
-                            // set min or max of other date field
-                            if (fieldname === 'datefirst'){
-                                let id_datelast = "id_datelast_" + field_id;
-                                console.log("id_datelast", id_datelast);
-                                let el_datelast = document.getElementById(id_datelast);
-                                console.log("el_datelast", el_datelast);
-                                el_datelast.min = value
-                                console.log("el_datelast.min", el_datelast.min);
-                            } else if (fieldname === 'datelast'){
-                                let id_datefirst = "id_datefirst_" + field_id;
-                                console.log("id_datefirst", id_datefirst);
-                                let el_datefirst = document.getElementById(id_datefirst);
-                                console.log("el_datefirst", el_datefirst);
-                                el_datefirst.max = value
-                                console.log("el_datefirst.max", el_datefirst.max);
-                            }
-
-                            el_input.classList.add("border_valid");
-                            setTimeout(function (){
-                                el_input.classList.remove("border_valid");
-                                }, 2000);
-                        } else {
-                            el_input.value = value;
+                            if ("item_update" in response){
+                                let update_dict = response["item_update"]
+                                UpdateSchemeitemOrTeammmember(tblRow, update_dict)
+                            };
+                        },
+                        error: function (xhr, msg) {
+                            // hide loader
+                            el_loader.classList.add(cls_hide)
+                            console.log(msg + '\n' + xhr.responseText);
+                            alert(msg + '\n' + xhr.responseText);
                         }
-                    }  // if (!!el_input)
-                }  // if (dictionary.hasOwnProperty(id_key))
-            }  // for (var id_key in dictionary)
-            // update filter
+                    });
 
-            FilterRows();
+                }  // if (!!id_dict)
+            }; // if (!pk_int)
 
-        }  // if (!!empl_upd)
-    }  // function update_fields(empl_upd)
+    }
+
+
+
+//========= UpdateSchemeitemOrTeammmember  =============
+    function UpdateSchemeitemOrTeammmember(tblRow, update_dict){
+        console.log("=== UpdateSchemeitemOrTeammmember ===");
+        console.log("update_dict: " , update_dict);
+        // 'update_dict': {'id': {'error': 'This record could not be deleted.'}}}
+        // 'update_dict': {'id': {'pk': 169, 'parent_pk': 24, deleted: true}
+
+        // update_dict': {id: {temp_pk: "new_4", pk: 97, parent_pk: 21, created: true}, code: {updated: true, value: "AA"}}
+
+        if (!!update_dict) {
+// get id_new and id_pk from update_dict["id"]
+            const pk = get_pk_from_id(update_dict);
+            const parent_pk = get_parent_pk(update_dict);
+            console.log("pk: ", pk, "parent_pk: ", parent_pk);
+
+            let id_dict = get_dict_value_by_key (update_dict, "id")
+            if (!!tblRow){
+// --- remove deleted record from list
+                if ("created" in id_dict) {
+                    let tblName = get_dict_value_by_key (id_dict, "table");
+                    FillTableRows()
+                    let tblRowSelected = document.getElementById(pk.toString())
+                    tblRowSelected.classList.remove(cls_selected);
+                    tblRowSelected.classList.add("tsa_tr_ok");
+                    setTimeout(function (){
+                        tblRowSelected.classList.remove("tsa_tr_ok");
+                        tblRowSelected.classList.add(cls_selected);
+                    }, 2000);
+// --- remove deleted record from list
+                } else if ("deleted" in id_dict) {
+                    tblRow.parentNode.removeChild(tblRow);
+
+// --- when err: show error message
+                } else if ("error" in id_dict){
+                    ShowMsgError(tblRow.cells[0], id_dict.error, -60)
+                } // if (id_deleted){
+
+
+            } // if (!!tblRow){
+        }  // if (!!update_dict)
+    }  // UpdateSchemeitemOrTeammmember
+
 
 
 //=========  HandleFilterInactive  ================ PR2019-03-23
     function HandleFilterInactive() {
         console.log("=========  function HandleFilterInactive =========");
 // toggle value
-        filter_hide_inactive = !filter_hide_inactive
+        filter_inactive_included = !filter_inactive_included
 // toggle icon
         let el_img_filter_inactive = document.getElementById("id_img_filter_inactive");
-        if (filter_hide_inactive) {
-            el_img_filter_inactive.setAttribute("src", img_active_src);
+        if (filter_inactive_included) {
+            el_img_filter_inactive.setAttribute("src", imgsrc_inactive);
+            el_img_filter_inactive.setAttribute("data-value", "true");
         } else {
-            el_img_filter_inactive.setAttribute("src", img_inactive_src);
+            el_img_filter_inactive.setAttribute("src", imgsrc_active);
+            el_img_filter_inactive.setAttribute("data-value", "false");
+        }
+        FilterTableRows(tblBody_items, filter_employees, filter_inactive_included)
+    }  // function HandleFilterInactive
+
+
+//========= HandleFilterEmployees  ====================================
+    function HandleFilterEmployees() {
+        console.log( "===== HandleFilterEmployees  ========= ");
+        // don't skip, must run this code also when employee has changed. Was: skip filter if filter value has not changed, update variable filter_employees
+        let new_filter = el_filter_text.value;
+        filter_employees = new_filter.toLowerCase();
+
+        FilterTableRows(tblBody_items, filter_employees, filter_inactive_included)
+
+    }; // function HandleFilterEmployees
+
+
+//=========  DeselectHighlightedRows  ================ PR2019-04-30
+    function DeselectHighlightedRows(tableBody) {
+        //console.log("=========  DeselectHighlightedRows =========");
+        if(!!tableBody){
+            let tblrows = tableBody.getElementsByClassName(cls_selected);
+            for (let i = 0, len = tblrows.length; i < len; i++) {
+                tblrows[i].classList.remove(cls_selected)
+            }
+// don't remove tsa_tr_error
+            //tblrows = tableBody.getElementsByClassName("tsa_tr_error");
+            //for (let i = 0, len = tblrows.length; i < len; i++) {
+            //   tblrows[i].classList.remove("tsa_tr_error")
+            //}
+            tblrows = tableBody.getElementsByClassName("tsa_bc_yellow_lightlight");
+            for (let i = 0, len = tblrows.length; i < len; i++) {
+                tblrows[i].classList.remove("tsa_bc_yellow_lightlight")
+            }
+        }
+    }
+
+
+//========= OpenPopupWDY  ====================================
+    function OpenPopupWDY(el_input) {
+        console.log("===  OpenPopupWDY  =====") ;
+
+        let el_popup_wdy = document.getElementById("id_popup_wdy")
+
+// ---  reset textbox 'date'
+
+        //el_popup_date.innerText = null
+
+// get tr_selected
+        let tr_selected = get_tablerow_selected(el_input)
+
+// get info pk etc from tr_selected,
+
+        if (!!tr_selected){
+            const data_table = get_attr_from_element(tr_selected, "data-table")
+            const id_str = get_attr_from_element(tr_selected, "data-pk")
+            const parent_pk_str = get_attr_from_element(tr_selected, "data-parent_pk");
+            console.log("data_table", data_table, "id_str", id_str, "parent_pk_str", parent_pk_str)
+
+// get values from el_input
+            const data_field = get_attr_from_element(el_input, "data-field");
+            const data_value = get_attr_from_element(el_input, "data-value");
+            const wdmy =  get_attr_from_element(el_input, "data-wdmy");
+            console.log("data_field", data_field, "data_value", data_value, "wdmy", wdmy)
+
+    // put values in el_popup_wdy
+            el_popup_wdy.setAttribute("data-table", data_table);
+            el_popup_wdy.setAttribute("data-pk", id_str);
+            el_popup_wdy.setAttribute("data-parent_pk", parent_pk_str);
+
+            el_popup_wdy.setAttribute("data-field", data_field);
+            el_popup_wdy.setAttribute("data-value", data_value);
+            el_popup_wdy.setAttribute("data-o_value", data_value);
+
+            if (!!data_value){el_popup_date.value = data_value};
+
+
+    // ---  position popup under el_input
+            let popRect = el_popup_wdy.getBoundingClientRect();
+            let inpRect = el_input.getBoundingClientRect();
+            let topPos = inpRect.top; // + inpRect.height;
+            let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
+            let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+            el_popup_wdy.setAttribute("style", msgAttr)
+
+    // ---  change background of el_input
+            // first remove selected color from all imput popups
+            // elements = document.getElementsByClassName("el_input");
+            popupbox_removebackground();
+            el_input.classList.add("pop_background");
+
+    // ---  show el_popup
+            el_popup_wdy.classList.remove("display_hide");
+
+        }  // if (!!tr_selected){
+
+}; // function OpenPopupWDY
+
+
+//=========  HandlePopupWdmySave  ================ PR2019-04-14
+    function HandlePopupWdySave() {
+console.log("===  function HandlePopupWdySave =========");
+
+        //let el_popup_wdy = document.getElementById("id_popup_wdy")
+
+// ---  get pk_str from id of el_popup
+        const pk_str = el_popup_wdy.getAttribute("data-pk")// pk of record  of element clicked
+        const parent_pk =  parseInt(el_popup_wdy.getAttribute("data-parent_pk"))
+        const fieldname =  el_popup_wdy.getAttribute("data-field")
+        const tablename =  el_popup_wdy.getAttribute("data-table")
+        console.log("pk_str: ", pk_str, typeof pk_str)
+        console.log("parent_pk: ", parent_pk, typeof parent_pk)
+        console.log("fieldname: ", fieldname, typeof fieldname)
+        console.log("tablename: ", tablename, typeof tablename)
+
+        if(!!pk_str && !! parent_pk){
+            let row_upload = {};
+            let id_dict = {}
+        //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+            let pk_int = parseInt(pk_str)
+        // if pk_int is not numeric, then row is an unsaved row with pk 'new_1'  etc
+            if (!pk_int){
+                id_dict["temp_pk"] = pk_str;
+                id_dict["create"] = true;
+            } else {
+        // if pk_int exists: row is saved row
+                id_dict["pk"] = pk_int;
+            };
+            id_dict["parent_pk"] = parent_pk
+            id_dict["table"] = tablename
+
+            if (!!id_dict){row_upload["id"] = id_dict};
+
+            const name_str = el_popup_wdy.getAttribute("data-field") // nanme of element clicked
+            //const n_value = el_popup_wdy.getAttribute("data-value") // value of element clicked "-1;17;45"
+            const n_value = el_popup_date.value
+            const o_value = el_popup_wdy.getAttribute("data-o_value") // value of element clicked "-1;17;45"
+                console.log ("name_str: ",name_str );
+                console.log ("n_value: ",n_value );
+                console.log ("o_value: ",o_value );
+
+// create new_dhm string
+
+            if (n_value !== o_value) {
+
+                let tr_changed = document.getElementById(pk_str)
+
+                let field_dict = {"value": n_value, "update": true}
+                row_upload[name_str] =  field_dict;
+                console.log ("upload: ", field_dict);
+
+                let parameters = {};
+                parameters["upload"] = JSON.stringify (row_upload);
+
+                let response;
+                $.ajax({
+                    type: "POST",
+                    url: url_employee_upload,
+                    data: parameters,
+                    dataType:'json',
+                    success: function (response) {
+                        console.log ("response", response);
+            // hide loader
+                        el_loader.classList.add(cls_hide)
+
+                        if ("employee_list" in response) {
+                            employee_list= response["employee_list"]}
+
+                        if ("item_update" in response) {
+                            let item_dict =response["item_update"]
+                            UpdateTableRow(tr_changed, item_dict)
+                            const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
+
+                        // add new empty row
+                            if (is_created){
+                                id_new = id_new + 1
+                                const pk_new = "new_" + id_new.toString()
+                                const parent_pk = get_parent_pk (item_dict)
+
+                                let new_dict = {}
+                                new_dict["id"] = {"pk": pk_new, "parent_pk": parent_pk}
+
+                                let tblRow = CreateTableRow(pk_new)
+                                UpdateTableRow(tblRow, new_dict)
+                            }
+                        }
+                    },
+                    error: function (xhr, msg) {
+                        console.log(msg + '\n' + xhr.responseText);
+                        alert(msg + '\n' + xhr.responseText);
+                    }
+                });
+            }  // if (new_dhm_str !== old_dhm_str)
+
+            //popupbox_removebackground();
+            //el_popup_wdy.classList.add("display_hide");
+
+
+            setTimeout(function() {
+                popupbox_removebackground();
+                el_popup_wdy.classList.add("display_hide");
+            }, 2000);
+
+
+        }  // if(!!pk_str && !! parent_pk){
+    }  // HandlePopupWdySave
+
+
+//========= function pop_background_remove  ====================================
+    function popupbox_removebackground(){
+        // remove selected color from all input popups
+        // was: let elements = document.getElementsByClassName("input_popup_dhm");
+        let elements =  document.querySelectorAll(".input_popup_dhm, .input_popup_wdy")
+        for (let i = 0, len = elements.length; i < len; i++) {
+            elements[i].classList.remove("pop_background");
+        }
+    }
+
+
+
+
+
+
+//=========  DeselectHighlightedRows  ================ PR2019-04-30
+    function DeselectHighlightedRows(tableBody) {
+        //console.log("=========  DeselectHighlightedRows =========");
+        if(!!tableBody){
+            let tblrows = tableBody.getElementsByClassName(cls_selected);
+            for (let i = 0, len = tblrows.length; i < len; i++) {
+                tblrows[i].classList.remove(cls_selected)
+            }
+// don't remove tsa_tr_error
+            //tblrows = tableBody.getElementsByClassName("tsa_tr_error");
+            //for (let i = 0, len = tblrows.length; i < len; i++) {
+            //   tblrows[i].classList.remove("tsa_tr_error")
+            //}
+            tblrows = tableBody.getElementsByClassName("tsa_bc_yellow_lightlight");
+            for (let i = 0, len = tblrows.length; i < len; i++) {
+                tblrows[i].classList.remove("tsa_bc_yellow_lightlight")
+            }
+        }
+    }
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+//=========  HandleFilterInactive  ================ PR2019-03-23
+    function HandleFilterInactive() {
+        console.log("=========  function HandleFilterInactive =========");
+// toggle value
+        filter_inactive_included = !filter_inactive_included
+// toggle icon
+        let el_img_filter_inactive = document.getElementById("id_img_filter_inactive");
+        if (filter_inactive_included) {
+            el_img_filter_inactive.setAttribute("src", imgsrc_inactive);
+        } else {
+            el_img_filter_inactive.setAttribute("src", imgsrc_active);
         }
         FilterRows();
     }  // function HandleFilterInactive
 
 
 //========= HandleSearchFilterEvent  ====================================
-    function HandleSearchFilterEvent() {
+    function HandleFilterEvent() {
         console.log( "===== HandleSearchFilterEvent  ========= ");
         // skip filter if filter value has not changed, update variable filter_name
-        let new_filter = document.getElementById("id_filter_name").value;
+        let new_filter = el_filter_text.value;
         let skip_filter = false
         if (!new_filter){
             if (!filter_name){
@@ -432,46 +905,65 @@ console.log("=========  function AddTableRow =========");
     function FilterRows() {
         console.log( "===== FilterRows  ========= ");
         // filter by inactive and substring of fields
-        let tblBody = document.getElementById('id_tbody');
-        for (let row_index = 0, tblRow, hide_row, len = tblBody.rows.length; row_index < len; row_index++) {
-            tblRow = tblBody.rows[row_index];
-
-            hide_row = SetHideRow(tblRow);
-
-            if (hide_row) {
-                tblRow.classList.add("display_hide")
-            } else {
-                tblRow.classList.remove("display_hide")
-            };
+        let tblBody = document.getElementById('id_tbody_items');
+        const len = tblBody.rows.length
+        if (!!len){
+            for (let row_index = 0, tblRow, hide_row; row_index < len; row_index++) {
+                tblRow = tblBody.rows[row_index];
+                hide_row = SetHideRow(tblRow);
+                if (hide_row) {
+                    tblRow.classList.add("display_hide")
+                } else {
+                    tblRow.classList.remove("display_hide")
+                };
+            }
         }
     }; // function FilterRows
 
 //========= SetHideRow  ====================================
     function SetHideRow(tblRow) {
-        //console.log( "===== FilterRows  ========= ");
+        // console.log( "===== SetHideRow  ========= filter_inactive_included: ", filter_inactive_included);
         // filter by inactive and substring of fields
 
-        hide_row = false
+        // console.log("tblRow]", tblRow)
+        let hide_row = false
         if (!!tblRow){
-    // hide inactive rows if filter_hide_inactive
-            if (filter_hide_inactive) {
-                if (!!tblRow.cells[0].children[0]) {
-                    let el_inactive = tblRow.cells[0].children[0];
-                    hide_row = (el_inactive.getAttribute("value").toLowerCase() === "true")
+            let td_inactive = tblRow.cells[index_el_inactive];
+            // console.log("td_inactive]", td_inactive)
+    // show inactive rows if filter_inactive_included
+            if (!filter_inactive_included) {
+                if (!!td_inactive) {
+                    const el_a = td_inactive.children[0];
+                    // console.log("el_a]", el_a)
+                    if(!!el_a){
+                        const value = el_a.getAttribute("data-value")
+                        if (!!value){
+                            hide_row = (value.toLowerCase() === "true")
+                        }
+                    }
             }};
     // show all rows  if filter_name = ""
             if (!hide_row && !!filter_name){
-                found = false
-                for (let col_index = 1, el_code; col_index < 7; col_index++) {
-                    if (!!tblRow.cells[col_index].children[0]) {
-                        el_value = tblRow.cells[col_index].children[0].value;
-                        if (!!el_value){
-                            el_value = el_value.toLowerCase();
-                            //console.log( "el_value:", el_value);
-                            if (el_value.indexOf(filter_name) !== -1) {
-                                found = true
-                                break;
-                    }}}
+                let found = false
+                for (let col_index = 0, el_code; col_index < col_count; col_index++) {
+                    if (col_index !== index_el_inactive){
+                        let td = tblRow.cells[col_index];
+                            // console.log("td", td)
+                        let el = td.children[0];
+                            // console.log("el", el)
+
+                        if (!!el) {
+                            const value = el.value;
+                            if(!!value){
+                                // console.log("value", value)
+                                let value_str = value.toString().toLowerCase();
+                                if (!!value_str){
+                                    // console.log( "el_value:", el_value);
+                                    if (value_str.indexOf(filter_name) !== -1) {
+                                        found = true
+                                        break;
+                            }
+                    }}}}
                 };  // for (let col_index = 1,
                 if (!found){hide_row = true}
             }  // if (!hide_row && !!filter_name){

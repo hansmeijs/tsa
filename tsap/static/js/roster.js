@@ -18,6 +18,9 @@ $(function() {
         let selected_team_pk = 0;
         let selected_item_pk = 0;
 
+        let rosterdate_fill;
+        let rosterdate_remove;
+
 // ---  id_new assigns fake id to new records
         let id_new = 0;
         let filter_name = "";
@@ -623,16 +626,24 @@ $(function() {
 
 //========= SetNewRosterdate  ================ PR2019-06-07
     function SetNewRosterdate(rosterdate_dict) {
-        // console.log( "===== SetNewRosterdate  ========= ");
-        // console.log(rosterdate_dict);
-        let text = "Fil roster ...";
-        if (!!rosterdate_dict){
-            let wdm  = get_dict_value_by_key (rosterdate_dict, "wdm")
-            text = "Fill roster of " + wdm
-            el_btn_rosterdate_fill.setAttribute("data-value",  get_dict_value_by_key (rosterdate_dict, "value"));
+        console.log( "===== SetNewRosterdate  ========= ");
+        console.log(rosterdate_dict);
 
+        let text_fill = get_attr_from_element(el_data, "data-txt_rosterdate_fill");
+        let text_remove = get_attr_from_element(el_data, "data-txt_rosterdate_remove");
+
+        rosterdate_fill = null;
+        rosterdate_remove = null;
+        if (!!rosterdate_dict){
+            rosterdate_remove  = get_subdict_value_by_key (rosterdate_dict, "current", "value")
+            text_remove = text_remove + " " + get_subdict_value_by_key (rosterdate_dict, "current", "dm")
+
+            rosterdate_fill = get_subdict_value_by_key (rosterdate_dict, "next", "value")
+            text_fill = text_fill + " " + get_subdict_value_by_key (rosterdate_dict, "next", "dm")
         }
-        el_btn_rosterdate_fill.innerText = text
+        el_btn_rosterdate_fill.innerText = text_fill
+        el_btn_rosterdate_remove.innerText = text_remove
+
     }; // function SetNewRosterdate
 
 //=========  UploadSchemeOrTeam  ================ PR2019-05-31
@@ -887,24 +898,21 @@ $(function() {
 
         console.log( "item_list ", item_list);
 
-// --- loop through item_list
-        let rosterdate_dict = {};
+        let previous_rosterdate_dict = {};
         let tblRow;
 
+// --- loop through item_list
         let len = item_list.length;
         if (len > 0){
             for (let i = 0; i < len; i++) {
                 let item_dict = item_list[i];
                 let pk = get_pk_from_id (item_dict)
                 let parent_pk = get_parent_pk (item_dict)
-
-                // console.log("item_dict[" + i.toString() + "]:", item_dict , typeof item_dict);
+// get rosterdate to be used in addnew row
+                previous_rosterdate_dict = get_dict_value_by_key(item_dict, 'rosterdate')
 
                 tblRow =  CreateTableRow( pk)
                 UpdateTableRow(tblRow, item_dict)
-
-// get rosterdate to be used in addnew row
-                //item_dict =  item_dict(item_dict, 'rosterdate')
 
 // --- highlight selected row
                 if (pk === selected_item_pk) {
@@ -920,8 +928,8 @@ $(function() {
 
         dict["id"] = {"pk": pk_new, "temp_pk": pk_new}
 
-        if(isEmpty(rosterdate_dict)){ rosterdate_dict = today_dict};
-        dict["rosterdate"] = rosterdate_dict;
+        if(isEmpty(previous_rosterdate_dict)){ previous_rosterdate_dict = today_dict};
+        dict["rosterdate"] = previous_rosterdate_dict;
 
 // console.log("FillTableRows 'add new' --> dict:", dict)
         tblRow = CreateTableRow( pk_new)
@@ -930,7 +938,7 @@ $(function() {
 
 //=========  CreateTableRow  ================ PR2019-04-27
     function CreateTableRow( pk, parent_pk) {
-        console.log("=========  function CreateTableRow =========");
+        // console.log("=========  function CreateTableRow =========");
         // console.log("pk", pk, "parent_pk", parent_pk);
 
 // check if row is addnew row - when pk is NaN
@@ -1010,9 +1018,9 @@ $(function() {
                     if (is_new_item){el.setAttribute("list", "id_datalist_" + fieldname + "s")}  } else
                 if (j === 4){
                     el.setAttribute("list", "id_datalist_" + fieldname + "s") }
-// --- disable 'team' in teammembers
+// --- disable 'customer, 'order' and 'shift', except in new_item
                 if ([0, 1, 2, 3].indexOf( j ) > -1){
-                    el.disabled = true};
+                    el.disabled = !is_new_item};
 // --- add text_align
                 if ( ([0, 1, 2, 3, 4, 5].indexOf( j ) > -1) ){
                     td.classList.add("text_align_left")}
@@ -1051,7 +1059,7 @@ $(function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, item_dict){
-        console.log("========= UpdateTableRow  =========");
+        // console.log("========= UpdateTableRow  =========");
         // console.log(item_dict);
 
         if (!!item_dict && !!tblRow) {
@@ -1219,15 +1227,19 @@ $(function() {
 // +++++++++  HandleFillRosterdate  ++++++++++++++++++++++++++++++ PR2019-06-07
     function HandleFillRosterdate(action) {
         console.log("=== HandleFillRosterdate =========");
+        let rosterdate_dict = {};
+        if (action === "fill"){
+            rosterdate_dict = {"fill": rosterdate_fill};
+        } else if (action === "remove"){
+            rosterdate_dict = {"remove": rosterdate_remove};
+        }
+        console.log("rosterdate_dict", rosterdate_dict);
 
-        let rosterdate = get_attr_from_element(el_btn_rosterdate_fill, "data-value");
-        console.log("rosterdate", rosterdate);
-
-        if (!!rosterdate){
+        if (!!rosterdate_dict){
             // show loader
             el_loader.classList.remove(cls_hide)
 
-            let parameters = {"rosterdate_fill": JSON.stringify ({"rosterdate": rosterdate})};
+            let parameters = {"rosterdate_fill": JSON.stringify (rosterdate_dict)};
             let response = "";
             $.ajax({
                 type: "POST",
@@ -1241,6 +1253,10 @@ $(function() {
                         emplhour_list= response["emplhours"];
                         FillTableRows()
                     };
+                    if ("rosterdate" in response) {
+                        SetNewRosterdate(response["rosterdate"])
+                    };
+
                     // hide loader
                     el_loader.classList.add(cls_hide)
 
@@ -1575,15 +1591,12 @@ $(function() {
         el_popup_hour.innerHTML = option_text;
 
 // ---  fill list of minutes per interval
-        console.log ("interval", interval, typeof interval)
         option_text = ""
         for (let minutes = 0; minutes < 60; minutes += interval) {
-            console.log ("minutes", minutes, typeof minutes)
             option_text += "<option value=\"" + minutes + "\""
             if (minutes === curMinutes) {option_text += " selected=true" };
             option_text +=  ">" + minutes + "</option>";
         }
-        console.log ("option_text", option_text)
         el_popup_minutes.innerHTML = option_text;
 
 // ---  fill list of am/pm
@@ -1639,11 +1652,11 @@ $(function() {
 
 //=========  HandlePopupBtnWdy  ================ PR2019-04-14
     function HandlePopupBtnWdy() {
-        console.log("===  function HandlePopupBtnWdy ");
+        // console.log("===  function HandlePopupBtnWdy ");
         // set date to midday to prevent timezone shifts ( I dont know if this works or is neecessary)
         const o_value = el_popup_wdy.getAttribute("data-value") + "T12:0:0"
         const o_date = get_date_from_ISOstring(o_value)
-        console.log("o_date: ", o_date, "o_value: ", o_value)
+        // console.log("o_date: ", o_date, "o_value: ", o_value)
 
         const id = event.target.id
         if (id === "id_popup_wdy_today"){
@@ -1662,24 +1675,24 @@ $(function() {
 
 //=========  GetNewRosterdate  ================ PR2019-04-14
     function GetNewRosterdate(o_date, add_day, add_month, add_year) {
-        console.log("---  function GetNewRosterdate ---");
+        // console.log("---  function GetNewRosterdate ---");
 
 // change o_date to next/previous day, month (year), or get Today if add_day=0, add_month=0 and add_year=0.
         let n_date = get_newdate_from_date(o_date, add_day, add_month, add_year)
-        console.log("n_date: ", n_date, typeof n_date)
+        // console.log("n_date: ", n_date, typeof n_date)
 
-        console.log("weekday_list: ", weekday_list, typeof weekday_list)
+        // console.log("weekday_list: ", weekday_list, typeof weekday_list)
 // create new_wdy from n_date
         const n_year = n_date.getFullYear();
         const n_month_index = n_date.getMonth();
         const n_day = n_date.getDate();
         const n_weekday = n_date.getDay();
-        console.log("n_weekday: ", n_weekday, typeof n_weekday)
-        console.log("weekday_list[n_weekday]: ", weekday_list[n_weekday])
-        console.log("n_month_index: ", n_month_index, typeof n_month_index)
-        console.log(" month_list[n_month_index + 1]: ",  month_list[n_month_index + 1])
+        // console.log("n_weekday: ", n_weekday, typeof n_weekday)
+        // console.log("weekday_list[n_weekday]: ", weekday_list[n_weekday])
+        // console.log("n_month_index: ", n_month_index, typeof n_month_index)
+        // console.log(" month_list[n_month_index + 1]: ",  month_list[n_month_index + 1])
         const new_wdy = weekday_list[n_weekday] + ' ' + n_day + ' ' + month_list[n_month_index + 1] + ' ' + n_year
-        console.log("new_wdy: ", new_wdy, typeof new_wdy)
+        // console.log("new_wdy: ", new_wdy, typeof new_wdy)
 
 
 // put new_wdy in el_popup_wdy_rosterdate

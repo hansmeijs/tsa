@@ -451,23 +451,108 @@ class Employee(TsaBaseModel):
         self.n_prefix = str(self.prefix) if self.prefix else ''
         return ' '.join((self.n_first, self.n_prefix, self.n_last))
 
-    @property
-    def id_str(self):
-        return 'id_empl_' + self.pk
+    @classmethod
+    def create_instance(cls, company, code, namelast, temp_pk_str, update_dict, request):
 
-    @property
-    def datefirst_str(self):  # PR2019-03-27
-        dte_str = ''
-        if self.datefirst:
-            dte_str = get_date_yyyymmdd(self.datefirst)
-        return dte_str
+        instance = None
+# - parent, code and namelast are required
+        if company:
+            # TODO
+            code_ok = True  # TODO validate_code_or_name('employee', 'code', code, update_dict, request.user.company)
+            namelast_ok = True  # TODO  validate_code_or_name('employee', 'name', name, update_dict, request.user.company)
 
-    @property
-    def datelast_str(self):   # PR2019-03-27
-        dte_str = ''
-        if self.datelast:
-            dte_str = get_date_yyyymmdd(self.datelast)
-        return dte_str
+# - create instance
+            if code_ok and namelast_ok:
+                instance = cls(company=company, code=code, name=namelast)
+# - save instance
+                instance.save(request=request)
+# - create error when instance not created
+            if instance is None:
+                msg_err = _('This employee could not be created.')
+                update_dict['id']['error'] = msg_err
+            else:
+# - put info in id_dict
+                update_dict['id']['created'] = True
+                update_dict['id']['pk'] = instance.pk
+                update_dict['id']['parent_pk'] = company.pk
+                update_dict['code']['value'] = instance.code
+                update_dict['code']['updated'] = True
+                update_dict['namelast']['value'] = instance.namelast
+                update_dict['namelast']['updated'] = True
+
+            # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
+            if temp_pk_str:
+                update_dict['id']['temp_pk'] = temp_pk_str
+
+        return instance
+
+    @classmethod
+    def get_instance(cls, pk_int, update_dict, company):
+        # function returns instance of employee, adds to  update_dict  PR2019-06-06
+        logger.debug('----- get_instance -----')
+        employee = None
+        parent_pk_int = None
+        if pk_int:
+            try:
+                employee = cls.objects.get(id=pk_int, company=company)
+                parent_pk_int = employee.company.pk
+            except:
+                pass
+        logger.debug('pk_int: ' + str(pk_int), 'parent_pk_int: ' + str(parent_pk_int))
+        logger.debug('employee: ' + str(employee))
+
+        if employee:
+            update_dict['id']['pk'] = pk_int
+            if parent_pk_int:
+                update_dict['id']['parent_pk'] = parent_pk_int
+            update_dict['id']['table'] = 'employee'
+        return employee
+
+    @classmethod
+    def delete_instance(cls, pk_int, parent_pk_int, update_dict, request):
+        # function deletes instance of table,  PR2019-06-06
+        instance = None
+        if pk_int and parent_pk_int:
+            instance = cls.objects.filter(id=pk_int, customer__id=parent_pk_int).first()
+
+        if instance:
+            try:
+                instance.delete(request=request)
+                update_dict['id']['deleted'] = True
+            except:
+                msg_err = _('This order could not be deleted.')
+                update_dict['id']['error'] = msg_err
+
+        return update_dict
+
+    @classmethod
+    def create_employee_list(cls, exclude_inactive, company, user_lang):
+    # --- create list of all active employees of this company PR2019-06-17
+        crit = Q(company=company)
+        if exclude_inactive:
+            crit.add(~Q(inactive=False), crit.connector)
+        employees = cls.objects.filter(crit).order_by(Lower('code'))
+
+        employee_list = []
+        if employees:
+            for employee in employees:
+                dict = {'pk': employee.pk}
+                dict['id'] = {'pk': employee.pk, 'parent_pk': employee.company.pk}
+
+                for field in ['code', 'namefirst', 'namelast', 'inactive']:
+                    value = getattr(employee, field)
+                    if value:
+                        dict[field] = {'value': value}
+
+                for field in ['datefirst', 'datelast']:
+                    date = getattr(employee, field)
+                    if date:
+                        dict[field] = fielddict_date(date, user_lang)
+
+                employee_list.append(dict)
+        return employee_list
+
+
 
 
 class Teammember(TsaBaseModel):
@@ -668,12 +753,10 @@ class Schemeitem(TsaBaseModel):
 class Orderhour(TsaBaseModel):
     objects = TsaManager()
 
-    order = ForeignKey(Order, related_name='orderhours', on_delete=PROTECT, null=True, blank=True)
-
+    order = ForeignKey(Order, related_name='orderhours', on_delete=PROTECT)
     schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
-
     duration = IntegerField(default=0)  # unit is hour * 100
     status = PositiveSmallIntegerField(db_index=True, default=0)
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
@@ -702,8 +785,6 @@ class Emplhour(TsaBaseModel):
     orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=SET_NULL, null=True, blank=True)
     employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
     wagecode = ForeignKey(Wagecode, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
-
-    schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
     timestart = DateTimeField(db_index=True, null=True, blank=True)

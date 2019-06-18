@@ -18,7 +18,8 @@ from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
 
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS
-from tsap.functions import get_date_from_str
+from tsap.functions import get_date_from_str, get_iddict_variables, create_dict_with_empty_attr, fielddict_date, \
+    remove_empty_attr_from_dict
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import check_date_overlap
 
@@ -145,8 +146,98 @@ class EmployeeDeleteView(DeleteView):
             raise Http404  # or return HttpResponse('404_url')
 
 
+
 @method_decorator([login_required], name='dispatch')
-class EmployeeUploadView(UpdateView):# PR2019-03-04
+class EmployeeUploadView(UpdateView):# PR2019-06-174
+
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ============= EmployeeUploadView ============= ')
+        # upload_dict: {'id': {'pk': 107, 'parent_pk': 1, 'table': 'employees'}, 'code': {'value': 'Abdula', 'update': True}}
+
+        item_update_dict = {}
+        if request.user is not None and request.user.company is not None:
+# - Reset language
+            user_lang = request.user.lang if request.user.lang else 'nl'
+            activate(user_lang)
+
+# - get upload_dict from request.POST
+            upload_json = request.POST.get('upload', None)
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+                logger.debug('upload_dict: ' + str(upload_dict))
+
+# - get_iddict_variables
+                id_dict = upload_dict.get('id')
+                if id_dict:
+                    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
+
+# - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+                    field_list = ('id', 'code', 'namefirst', 'namelast', 'datefirst', 'datelast', 'inactive')
+                    update_dict = create_dict_with_empty_attr(field_list)
+
+# - check if parent exists (customer is parent of order)
+                    instance = None
+                    parent_instance = get_parent_instance('employee', parent_pk_int, update_dict, request.user.company)
+                    logger.debug('parent_instance: ' + str(parent_instance))
+
+                    if parent_instance:
+# - Delete item
+                        if is_delete:
+                            Employee.delete_instance(pk_int, parent_pk_int, update_dict, request.user.company)
+
+# === Create new employee
+                        elif is_create:
+                            # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
+                            if temp_pk_str:
+                                update_dict['id']['temp_pk'] = temp_pk_str
+
+                            code = None
+                            namelast = None
+                            code_dict = upload_dict.get('code')
+                            if code_dict:
+                                code = code_dict.get('value')
+                            code_ok = True # TODO validate_code_or_name('employee', 'code', code, update_dict, request.user.company)
+
+                            name_dict = upload_dict.get('namelast')
+                            if name_dict:
+                                namelast = name_dict.get('value')
+                            if namelast is None:
+                                namelast = code
+
+                            name_ok = True # TODO validate_code_or_name('order', 'name', name, update_dict, request.user.company)
+                            if code_ok  and name_ok:
+                                instance = Employee.create_instance(parent_instance, code, namelast, temp_pk_str, update_dict, request)
+                            logger.debug('new instance: ' + str(instance))
+# - update instance
+                        else:
+                            instance = Employee.get_instance(pk_int, update_dict, request.user.company)
+                            logger.debug('instance: ' + str(instance))
+
+                            # update_item, also when it is a created item
+                            if instance:
+                                update_employee_instance(instance, upload_dict, update_dict, request, user_lang)
+                            logger.debug('updated instance: ' + str(instance))
+
+# --- remove empty attributes from update_dict
+                    remove_empty_attr_from_dict(update_dict)
+                    logger.debug('update_dict: ' + str(update_dict))
+
+                    if update_dict:
+                        item_update_dict['item_update'] = update_dict
+
+# update schemeitem_list when changes are made
+                    if instance:
+                        employee_list = Employee.create_employee_list(False, instance.company, user_lang)
+                        if employee_list:
+                            item_update_dict['employee_list'] = employee_list
+
+
+            # update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
+            update_dict_json = json.dumps(item_update_dict, cls=LazyEncoder)
+            return HttpResponse(update_dict_json)
+
+@method_decorator([login_required], name='dispatch')
+class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
 
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= EmployeeUploadView ============= ')
@@ -488,10 +579,10 @@ class EmployeeImportView(View):
 
             # get mapped coldefs from table Companysetting
             # get stored setting from Companysetting
-            settings = Companysetting.get_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, request.user)
+            settings = Companysetting.get_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, request.user.company)
             stored_setting = {}
             if settings:
-                stored_setting = json.loads(Companysetting.get_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, request.user))
+                stored_setting = json.loads(Companysetting.get_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, request.user.company))
             # stored_setting = {'worksheetname': 'VakschemaQuery', 'no_header': False,
             #                   'coldefs': {'employee': 'level_abbrev', 'orderdatefirst': 'sector_abbrev'}}
 
@@ -564,7 +655,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                     logger.debug('new_coldefs' + str(new_coldefs) + str(type(new_coldefs)))
 
                     # get stored setting from Companysetting
-                    stored_setting_json = Companysetting.get_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, request.user)
+                    stored_setting_json = Companysetting.get_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, request.user.company)
                     stored_setting = {}
                     stored_coldefs = {}
                     if stored_setting_json:
@@ -641,18 +732,18 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                     datefirst = employee.get('datefirst', '')
 
                     # check if employee already exists
-                    msg_dont_add = validate_employee_code(code, request.user.company)
-                    if msg_dont_add:
-                        logger.debug('employee_exists: ' + str(msg_dont_add))
-                    else:
-                        logger.debug('employee does not exists')
+                    # msg_dont_add = validate_employee_code(code, request.user.company)
+                    # if msg_dont_add:
+                    #     logger.debug('employee_exists: ' + str(msg_dont_add))
+                    # else:
+                    #     logger.debug('employee does not exists')
 
                     # check if employee already exists
-                    msg_dont_add = validate_employee_name(namelast, namefirst, request.user.company)
-                    if msg_dont_add:
-                        logger.debug('employee_exists: ' + str(msg_dont_add))
-                    else:
-                        logger.debug('employee does not exists')
+                    #  msg_dont_add = validate_employee_name(namelast, namefirst, request.user.company)
+                    # if msg_dont_add:
+                    #     logger.debug('employee_exists: ' + str(msg_dont_add))
+                    #  else:
+                    #    logger.debug('employee does not exists')
 
                     # check if email address already exists
                     #if email:
@@ -664,7 +755,7 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                     #    skip_email = bool(msg_dont_add)
                     #else:
                     #    skip_email = True
-
+                    msg_dont_add = None
                     # ========== create new employee, but only if no errors found
                     if msg_dont_add:
                         logger.debug('employee not created: ' + str(msg_dont_add))
@@ -675,6 +766,7 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                             code=code,
                             namelast=namelast
                         )
+                        logger.debug('new_employee: ' + str(new_employee))
 
                         logger.debug('new_employee.namelast: ' + str(new_employee.namelast))
                         if namefirst:
@@ -687,10 +779,12 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                             new_employee.tel = telephone
 
                         try:
-                             new_employee.save(request=request)
+                            new_employee.save(request=request)
+                            logger.debug('saved new_employee: ' + str(new_employee))
                         except:
                             has_error = True
                             data['e_lastname'] = _('An error occurred. The employee data is not saved.')
+                            logger.debug('has_error: ' + str(new_employee))
 
                         if new_employee.pk:
                             if new_employee.code:
@@ -721,3 +815,125 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
 
                 # return HttpResponse(json.dumps(params))
                 return HttpResponse(json.dumps(params, cls=LazyEncoder))
+
+
+def get_parent_instance(table, parent_pk_int, update_dict, company):
+    # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-06-06
+    parent_instance = None
+    if parent_pk_int:
+        if table == 'employee':
+            parent_instance = Company.objects.filter(id=parent_pk_int).first()
+        if parent_instance:
+            update_dict['id']['parent_pk'] = parent_pk_int
+            update_dict['id']['table'] = table
+    return parent_instance
+
+
+
+
+#######################################################
+def update_employee_instance(instance, upload_dict, update_dict, request, user_lang):
+    # --- update existing and new instance PR2019-06-06
+    # add new values to update_dict (don't reset update_dict, it has values)
+    logger.debug(' --- update_instance')
+    logger.debug(upload_dict)
+    # upload_dict: {'id': {'temp_pk': 'new_2', 'create': True, 'parent_pk': 3, 'table': 'orders'},
+    # 'code': {'update': True, 'value': 'ee'}}
+
+    save_changes = False
+
+# - get_iddict_variables
+    id_dict = upload_dict.get('id')
+    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename = get_iddict_variables(id_dict)
+
+# --- save changes in field 'code', required field
+    for field in ['code', 'namefirst', 'namelast']:
+        if field in upload_dict:
+            field_dict = upload_dict.get(field)
+            logger.debug('field_dict: ' + str(field_dict))
+
+            new_value = field_dict.get('value')
+            saved_value = getattr(instance, field, None)
+            logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
+
+            # fields are required
+            if new_value and new_value != saved_value:
+                setattr(instance, field, new_value)
+                logger.debug('attr ' + field + 'saved to: ' + str(new_value))
+                update_dict[field]['updated'] = True
+                update_dict[field]['value'] = new_value
+                save_changes = True
+                logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+
+# update scheme_list when code has changed
+            update_scheme_list = True
+
+# --- save changes in date fields
+    for field in ['datefirst', 'datelast']:
+        # field_dict rosterdate: {'value': '2019-05-31', 'update':
+        if field in upload_dict:
+            field_dict = upload_dict.get(field)
+            logger.debug('field_dict ' + field + ': ' + str(field_dict) + str(type(field_dict)))
+            field_value = field_dict.get('value')  # field_value: '2019-04-12'
+            new_date, msg_err = get_date_from_str(field_value, False)  # False = blank_allowed
+            if msg_err is not None:
+                update_dict[field]['err'] = msg_err
+            else:
+                saved_date = getattr(instance, field, None)
+                if new_date != saved_date:
+                    setattr(instance, field, new_date)
+                    update_dict[field]['updated'] = True
+                    save_changes = True
+
+    # --- save changes in date fields
+    for field in ['inactive']:
+        if field in upload_dict:
+            logger.debug('upload_dict: ' + str(upload_dict))
+            field_dict = upload_dict.get(field)
+            logger.debug('field_dict: ' + str(field_dict))
+
+            is_inactive = False
+            value = field_dict.get('value')
+            logger.debug('value: ' + str(value))
+            if value == 'true':
+                is_inactive = True
+            logger.debug('is_inactive: ' + str(is_inactive) + ' type: ' + str(type(is_inactive)))
+
+            saved_value = getattr(instance, field, None)
+            logger.debug('saved_value: ' + str(saved_value) + ' type: ' + str(type(saved_value)))
+
+            # fields are required
+            if is_inactive != saved_value:
+                setattr(instance, field, is_inactive)
+                logger.debug('attr ' + field + 'saved to: ' + str(is_inactive))
+                update_dict[field]['updated'] = True
+                update_dict[field]['value'] = is_inactive
+                save_changes = True
+                logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+
+    # logger.debug('update_dict: ' + str(update_dict))
+
+            # logger.debug('timeduration: ' + str(schemeitem.timeduration) + str(type(schemeitem.timeduration)))
+    # --- save changes
+    if save_changes:
+        instance.save(request=request)
+
+        for field in update_dict:
+            saved_value = getattr(instance, field)
+
+            date_fields = ['datefirst', 'datelast']
+            if field in date_fields:
+                if saved_value:
+                    update_dict[field] = fielddict_date(saved_value, user_lang)
+
+            text_fields = ['code', 'namelast', 'namefirst']
+            if field in text_fields:
+                if saved_value:
+                    update_dict[field]['value'] = saved_value
+
+
+
+# --- remove empty attributes from update_dict
+    remove_empty_attr_from_dict(update_dict)
+
+

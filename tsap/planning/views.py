@@ -9,11 +9,12 @@ from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, View
 
 from datetime import date, datetime, timedelta
+
 from timeit import default_timer as timer
 
 from companies.views import LazyEncoder
 from tsap.constants import MONTHS_ABBREV, WEEKDAYS_ABBREV, TIMEFORMATS, STATUS_EMPLHOUR_01_CREATED, \
-    KEY_COMP_NEXT_ROSTERDATE_FILL
+    KEY_COMP_ROSTERDATE_CURRENT
 
 from tsap.functions import get_date_from_str, get_datetimeaware_from_datetimeUTC, \
                     get_timeDHM_from_dhm, get_datetimelocal_from_DHM, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
@@ -175,31 +176,40 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
             logger.debug('request.POST: ' + str(request.POST))
-            # request.POST: <QueryDict: {'fill_rosterdate': ['{"rosterdate":"2019-05-26"}']}>
             if 'rosterdate_fill' in request.POST:
-                # NOT IN USE: upload_dict = json.loads(request.POST['rosterdate_fill'])
+                rosterdate_fill_dict = json.loads(request.POST['rosterdate_fill'])
+                # rosterdate_fill_dict: {'fill': '2019-06-18'} type: <class 'dict'>
 
-#  get fill_rosterdate from Companysetting
-                next_rosterdate = None
-                setting = Companysetting.get_setting(KEY_COMP_NEXT_ROSTERDATE_FILL, request.user.company)
-                if setting:
-                    next_rosterdate, msg_err = get_date_from_str(setting, False) # False = blank allowed
-            # if not found: make next_rosterdate = first schemeitem rosterdate
-                if not next_rosterdate:
-                    schemeitem = Schemeitem.objects.filter(
-                                    scheme__order__customer__company=request.user.company).first()
-                    if schemeitem:
-                        next_rosterdate = schemeitem.rosterdate
+                rosterdate_fill = None
+                rosterdate_remove = None
+                if 'fill' in rosterdate_fill_dict:
+                    rosterdate_str = rosterdate_fill_dict['fill']
+                    rosterdate_fill_dte, msg_txt = get_date_from_str(rosterdate_str)
 
-                if next_rosterdate:
-#  --- fill_rosterdate
-                    FillRosterdate(next_rosterdate, request, comp_timezone)
+                    FillRosterdate(rosterdate_fill_dte, request, comp_timezone)
 
-                # update next_rosterdate_fill in companysettings
-                    new_fill_rosterdate = next_rosterdate + timedelta(days=1)
-                    setting = get_date_yyyymmdd(new_fill_rosterdate)
-                    Companysetting.set_setting(KEY_COMP_NEXT_ROSTERDATE_FILL, setting, request.user.company)
-                    update_dict = {'next_rosterdate': setting}
+                # update rosterdate_current in companysettings
+                    Companysetting.set_setting(KEY_COMP_ROSTERDATE_CURRENT, rosterdate_fill_dte, request.user.company)
+                    update_dict['rosterdate'] = get_rosterdatefill_dict(request.user.company, user_lang)
+
+
+
+                elif 'remove' in rosterdate_fill_dict:
+                    rosterdate_str = rosterdate_fill_dict['remove']
+                    rosterdate_remove_dte, msg_txt = get_date_from_str(rosterdate_str)
+                    RemoveRosterdate(rosterdate_remove_dte, request, comp_timezone)
+
+
+                # update rosterdate_current in companysettings
+                    rosterdate_current_dte = rosterdate_remove_dte + timedelta(days=-1)
+                    Companysetting.set_setting(KEY_COMP_ROSTERDATE_CURRENT, rosterdate_current_dte, request.user.company)
+                    update_dict['rosterdate'] = get_rosterdatefill_dict(request.user.company, user_lang)
+
+                datefirst = None
+                datelast = None
+                list = create_emplhour_list(datefirst, datelast, request.user.company, comp_timezone, user_lang)
+                if list:
+                    update_dict['emplhours'] = list
 
         update_dict_json = json.dumps(update_dict, cls=LazyEncoder)
         return HttpResponse(update_dict_json)
@@ -773,7 +783,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         if table == 'orders':
                             list = create_order_list(request.user.company, user_lang, include_inactive)
                         if table == 'employees':
-                            list = create_employee_list(request.user.company)
+                            list = Employee.create_employee_list(False, request.user.company, user_lang)
                         if table == 'emplhours':
 
                             logger.debug(' table: ' + str(table))
@@ -800,7 +810,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             datalists[table] = list
 
                         if table == 'rosterdatefill':
-                            datalists[table] = get_next_rosterdate(request.user.company, user_lang)
+                            datalists[table] = get_rosterdatefill_dict(request.user.company, user_lang)
 
         datalists_json = json.dumps(datalists, cls=LazyEncoder)
 
@@ -2015,11 +2025,9 @@ def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-06-17
             # after filling orderhours and emplhours: add cycle days to rosterdate, except when cycle = 0
             # recalc timestart timeend
             cycle = schemeitem.scheme.cycle
-            next_rosterdate = None
             if cycle:
                 next_rosterdate = schemeitem.rosterdate + timedelta(days=cycle)
                 schemeitem.rosterdate = next_rosterdate
-                schemeitem.save(request=request)
 
         # get new_schemeitem.time_start
                 new_timestart = None
@@ -2033,7 +2041,6 @@ def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-06-17
                     new_timeend = get_datetimelocal_from_DHM(
                         next_rosterdate, schemeitem.timeenddhm, comp_timezone)
                     schemeitem.timeend = new_timeend
-
         # get new_schemeitem.timeduration
                 if new_timestart and new_timeend:
                     new_timeduration = get_time_minutes(
@@ -2041,6 +2048,64 @@ def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-06-17
                         new_timeend,
                         schemeitem.breakduration)
                     schemeitem.breakduration = new_timeduration
+                schemeitem.save(request=request)
+
+# 5555555555555555555555555555555555555555555555555555555555555555555555555555
+
+def RemoveRosterdate(rosterdate_current, request, comp_timezone):  # PR2019-06-17
+    logger.debug(' ============= RemoveRosterdate ============= ')
+
+    if rosterdate_current:
+# - create recordset of emplhour records with rosterdate = rosterdate_current and schemeitem Not Null
+        crit = Q(rosterdate=rosterdate_current) & \
+               Q(schemeitem__isnull=False) & \
+               Q(order__customer__company=request.user.company)
+        orderhours = Orderhour.objects.filter(crit)
+
+        for orderhour in orderhours:
+
+# set rosterdate in schemeitem <cycle> days back
+            schemeitem = orderhour.schemeitem
+            if schemeitem:
+                scheme = schemeitem.scheme
+                if scheme:
+                    cycle = getattr(scheme, 'cycle')
+                    if cycle:
+                        old_rosterdate = getattr(schemeitem, 'rosterdate')
+                        if old_rosterdate:
+                            new_rosterdate = old_rosterdate + timedelta(days=-cycle)
+
+                            schemeitem.rosterdate = new_rosterdate
+                    # get new_schemeitem.time_start
+                            new_timestart = None
+                            if new_rosterdate and schemeitem.timestartdhm:
+                                new_timestart = get_datetimelocal_from_DHM(
+                                    new_rosterdate, schemeitem.timestartdhm, comp_timezone)
+                                schemeitem.timestart = new_timestart
+                    # get new_schemeitem.time_start
+                            new_timeend = None
+                            if new_rosterdate and schemeitem.timeenddhm:
+                                new_timeend = get_datetimelocal_from_DHM(
+                                    new_rosterdate
+                                    , schemeitem.timeenddhm, comp_timezone)
+                                schemeitem.timeend = new_timeend
+                    # get new_schemeitem.timeduration
+                            if new_timestart and new_timeend:
+                                new_timeduration = get_time_minutes(
+                                    new_timestart,
+                                    new_timeend,
+                                    schemeitem.breakduration)
+                                schemeitem.breakduration = new_timeduration
+                            schemeitem.save(request=request)
+
+
+# delete emplhours of orderhour
+            emplhours = Emplhour.objects.filter(orderhour=orderhour)
+            for emplhour in emplhours:
+                emplhour.delete(request=request)
+
+# delete orderhour
+            orderhour.delete(request=request)
 
 # 5555555555555555555555555555555555555555555555555555555555555555555555555555
 
@@ -2079,19 +2144,6 @@ def create_order_list(company, user_lang, include_inactive):
             order_list.append(dict)
     return order_list
 
-
-def create_employee_list(company):
-# --- create list of all active employees of this company PR2019-05-30
-    employees = Employee.objects.filter(
-        company=company,
-        inactive=False
-    ).order_by(Lower('code'))
-    employee_list = []
-    for employee in employees:
-        dict = {'pk': employee.pk, 'id': {'pk': employee.pk, 'parent_pk': employee.company.pk},
-                'code': {'value': employee.code}}
-        employee_list.append(dict)
-    return employee_list
 
 
 def create_emplhour_list(datefirst, datelast, company, comp_timezone, user_lang): # PR2019-06-16
@@ -2221,24 +2273,41 @@ def create_date_dict(rosterdate, user_lang, status_text):
 
     return dict
 
-def get_next_rosterdate(company, user_lang): # PR2019-06-16
+def get_rosterdate_current(company): # PR2019-06-16
 #get next rosterdate from companysetting
-    next_rosterdate_dict = {}
-    next_date_str = Companysetting.get_setting(KEY_COMP_NEXT_ROSTERDATE_FILL, company)
-    next_date, msg_err = get_date_from_str(next_date_str, False)
+    rstdte_current_str = Companysetting.get_setting(KEY_COMP_ROSTERDATE_CURRENT, company)
+    rosterdate, msg_err = get_date_from_str(rstdte_current_str)
 
-    logger.debug('next_rosterdate: ' + str(next_date) + ' type: ' + str(type(next_date)))
-# if no date found in settings: get first rosterdate of all schemitems of companay PR2019-06-07
-    if next_date is None:
+    logger.debug('rosterdate: ' + str(rosterdate) + ' type: ' + str(type(rosterdate)))
+# if no date found in settings: get first rosterdate of all schemitems of company PR2019-06-07
+    if rosterdate is None:
         schemeitem = Schemeitem.objects.filter(scheme__order__customer__company=company).first()
         if schemeitem:
-            next_date = schemeitem.rosterdate
-            logger.debug('schemeitem.rosterdate: ' +  str(next_date) + ' type: ' + str(type(next_date)))
-    if next_date:
-        next_rosterdate_dict = create_date_dict(next_date, user_lang, 'updated')
+            rosterdate = schemeitem.rosterdate
+    if rosterdate is None:
+        rosterdate = date.today()
+    return rosterdate
 
-    return next_rosterdate_dict
+def get_rosterdate_next(company): # PR2019-06-17
+    #get current rosterdate from companysetting and add one day
+    rosterdate_current = get_rosterdate_current(company)
+    rosterdate_next = rosterdate_current + timedelta(days=1)
+    return rosterdate_next
 
+def get_rosterdate_previous(company): # PR2019-06-17
+    #get current rosterdate from companysetting and add one day
+    rosterdate_current = get_rosterdate_current(company)
+    rosterdate_previous = rosterdate_current + timedelta(days=-1)
+    return rosterdate_previous
+
+def get_rosterdatefill_dict(company, user_lang):# PR2019-06-17
+    rosterdate_dict = {}
+    rosterdate_current = get_rosterdate_current(company)
+    rosterdate_next = rosterdate_current + timedelta(days=1)
+    rosterdate_previous = rosterdate_current + timedelta(days=-1)
+    rosterdate_dict['current'] = fielddict_date(rosterdate_current, user_lang)
+    rosterdate_dict['next'] = fielddict_date(rosterdate_next, user_lang)
+    return rosterdate_dict
 """
 # dont forget to  update create_shift_list when time fields have changed
                         for field in ('timestart', 'timeend'):

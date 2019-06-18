@@ -196,7 +196,6 @@ class OrderUploadView(UpdateView):# PR2019-03-04
                     update_dict = create_dict_with_empty_attr(field_list)
 
 # - check if parent exists (customer is parent of order)
-
                     parent_instance = get_parent_instance('order', parent_pk_int, update_dict, request.user.company)
                     logger.debug('parent_instance: ' + str(parent_instance))
                     if parent_instance:
@@ -288,16 +287,7 @@ class OrderDownloadDatalistView(View):  # PR2019-03-10
 
         return HttpResponse(datalists_json)
 
-def get_parent_instance(table, parent_pk_int, update_dict, company):
-    # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-06-06
-    parent_instance = None
-    if parent_pk_int:
-        if table == 'order':
-            parent_instance = Customer.objects.filter(id=parent_pk_int, company=company).first()
-        if parent_instance:
-            update_dict['id']['parent_pk'] = parent_pk_int
-            update_dict['id']['table'] = table
-    return parent_instance
+
 
 
 def get_instance(table, pk_int, parent_instance, update_dict):
@@ -456,6 +446,17 @@ def update_instance(instance, upload_dict, update_dict, request, user_lang):
     remove_empty_attr_from_dict(update_dict)
 
 
+def get_parent_instance(table, parent_pk_int, update_dict, company):
+    # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-06-17
+    parent_instance = None
+    if parent_pk_int:
+        if table == 'order':
+            parent_instance = Customer.objects.filter(id=parent_pk_int, company=company).first()
+        if parent_instance:
+            update_dict['id']['parent_pk'] = parent_pk_int
+            update_dict['id']['table'] = table
+    return parent_instance
+
 
 """
 # === Order ===================================== PR2019-03-09
@@ -518,10 +519,10 @@ class OrderImportView(View):
 
             # get mapped coldefs from table Companysetting
             # get stored setting from Companysetting
-            settings = Companysetting.get_setting(KEY_CUSTOMER_MAPPED_COLDEFS, request.user)
+            settings = Companysetting.get_setting(KEY_CUSTOMER_MAPPED_COLDEFS, request.user.company)
             stored_setting = {}
             if settings:
-                stored_setting = json.loads(Companysetting.get_setting(KEY_CUSTOMER_MAPPED_COLDEFS, request.user))
+                stored_setting = json.loads(Companysetting.get_setting(KEY_CUSTOMER_MAPPED_COLDEFS, request.user.company))
 
             # stored_setting = {'worksheetname': 'VakschemaQuery', 'no_header': False,
             #                   'coldefs': {'customer': 'level_abbrev', 'orderdatefirst': 'sector_abbrev'}}
@@ -588,7 +589,7 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
                 if request.POST['setting']:
                     new_setting = json.loads(request.POST['setting'])
                     # get stored setting from Companysetting
-                    stored_setting = json.loads(Companysetting.get_setting(KEY_CUSTOMER_MAPPED_COLDEFS, request.user))
+                    stored_setting = json.loads(Companysetting.get_setting(KEY_CUSTOMER_MAPPED_COLDEFS, request.user.company))
                     # stored_setting = {'worksheetname': 'VakschemaQuery', 'no_header': False,
                     #                   'coldefs': {'customer': 'level_abbrev', 'orderdatefirst': 'sector_abbrev'}}
 

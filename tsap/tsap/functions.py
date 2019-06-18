@@ -5,13 +5,14 @@ from django.utils.translation import ugettext_lazy as _
 
 from tsap.constants import BASE_DATE, MONTHS_ABBREV, WEEKDAYS_ABBREV
 from tsap.settings import TIME_ZONE, LANGUAGE_CODE
+
 import json
 import pytz
 import logging
 logger = logging.getLogger(__name__)
 
 
-def get_date_from_str(date_str, blank_not_allowed):  # PR2019-04-28
+def get_date_from_str(date_str, blank_not_allowed=False):  # PR2019-04-28
     # logger.debug('............. get_date_from_str: ' + str(date_str))
     # function retrieves date from string format " yyyy-mm-dd" or  " yyyy/mm/dd"
     dte = None
@@ -474,6 +475,22 @@ def get_date_WDM_from_dte(dte, lang):  # PR2019-05-01
     return date_WDM
 
 
+def get_date_DM_from_dte(dte, lang):  # PR2019-06-17
+    date_DM = ''
+    if dte:
+        try:
+            day_str = str(dte.day)
+            month_lang = ''
+            if lang in MONTHS_ABBREV:
+                month_lang = MONTHS_ABBREV[lang]
+            month_str = month_lang[dte.month]
+            date_DM = ' '.join([ day_str, month_str])
+        except:
+            pass
+    return date_DM
+
+
+
 def formatWHM_from_datetime(dte, timezone, lang):
     # returns 'zo 16.30 u' PR2019-06-16
 
@@ -821,6 +838,7 @@ def fielddict_date(date, user_lang):
     dict = {}
     if date:
         dict = {'value': date,
+                'dm': get_date_DM_from_dte(date, user_lang),
                 'wdm': get_date_WDM_from_dte(date, user_lang),
                 'wdmy': format_WDMY_from_dte(date, user_lang),
                 'dmy': format_DMY_from_dte(date, user_lang),
@@ -843,3 +861,4 @@ def fielddict_duration(duration, user_lang):
         dict = {'value': duration,
                 'hm': get_date_HM_from_minutes(duration, user_lang)}
     return dict
+

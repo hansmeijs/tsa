@@ -2,12 +2,18 @@
 //    xls:"application/vnd.ms-excel",
 //    xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"};
 
-$(document).ready(function() {
+$(function() {
 console.log("employee_import.js")
 // ---  set selected menu button active
     const cls_active = "active";
+    const cls_hover = "tr_hover";
+    const cls_selected = "tsa_tr_selected";
+
+
+
     let btn_clicked = document.getElementById("id_sub_empl_imp");
     SetMenubuttonActive(btn_clicked);
+
 
 // set global variables
     let div_info = document.getElementById('div_infoID');
@@ -164,20 +170,17 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
             let row_other_key = "";
 
             if((tableName === "exc")|| (tableName === "tsa") ) {
-                const cls_hl = "c_colTsaExcel_highlighted";
-                const cls_hv = "c_colTsaExcel_hover";
-
-                if(row_clicked.classList.contains(cls_hl)) {
-                    row_clicked.classList.remove(cls_hl, cls_hv);
+                    if(row_clicked.classList.contains(cls_selected)) {
+                    row_clicked.classList.remove(cls_selected, cls_hover);
                 } else {
-                    row_clicked.classList.add(cls_hl);
+                    row_clicked.classList.add(cls_selected);
                     // remove clas from all other rows in theis table
                     if(!!table_body_clicked.rows){
                         for (let i = 0, row; row = table_body_clicked.rows[i]; i++) {
                             if(row === row_clicked){
-                                row.classList.add(cls_hl);
+                                row.classList.add(cls_selected);
                             } else {
-                                row.classList.remove(cls_hl, cls_hv);
+                                row.classList.remove(cls_selected, cls_hover);
                             }
                         }
                     }
@@ -189,7 +192,7 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
                     let table_body_other = document.getElementById(row_other_tbody_id);
 //console.log("table_body_other",table_body_other)
                     for (let j = 0, row_other; row_other = table_body_other.rows[j]; j++) {
-                       if(row_other.classList.contains(cls_hl)) {
+                       if(row_other.classList.contains(cls_selected)) {
                            link_rows = true;
                            if(row_other.hasAttribute("id")){row_other_id = row_other.getAttribute("id");}
                            if(row_other.hasAttribute("key")){row_other_key = row_other.getAttribute("key");}
@@ -206,19 +209,16 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
                 }
 
             } else if (tableName === "lnk") {
-                const cls_hl = "c_colLinked_highlighted";
-                const cls_hv = "c_colLinked_hover";
-
-                if(row_clicked.classList.contains(cls_hl)) {
-                    row_clicked.classList.remove(cls_hl, cls_hv);
+                if(row_clicked.classList.contains(cls_selected)) {
+                    row_clicked.classList.remove(cls_selected, cls_hover);
                 } else {
-                    row_clicked.classList.add(cls_hl);
+                    row_clicked.classList.add(cls_selected);
                    // remove clas from all other rows in theis table
                     for (let i = 0, row; row = table_body_clicked.rows[i]; i++) {
                         if(row === row_clicked){
-                            row.classList.add(cls_hl);
+                            row.classList.add(cls_selected);
                         } else {
-                            row.classList.remove(cls_hl);
+                            row.classList.remove(cls_selected);
                         }
                     }
                     // unlink row_clicked  with delay of 250ms (to show selected Tsa and Excel row)
@@ -858,9 +858,7 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
                     JustLinkedTsaId, JustUnlinkedTsaId, JustUnlinkedExcId) {
 
     console.log("==== CreateMapTableRows  =========>> ", tableBase);
-        const cae_hv = "c_colTsaExcel_hover";
         //const cae_hl = "c_colTsaExcel_highlighted";
-        const cli_hv = "c_colLinked_hover";
         //const cli_hi = "c_colLinked_highlighted";
 
         const Xid_exc_tbody = "#id_exc_tbody_" + tableBase;
@@ -889,16 +887,16 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
                 $("<tr>").appendTo(Xid_lnk_tbody)
                     .attr({"id": idTsaRow, "key": row.tsaKey})
                     .addClass("c_colLinked_tr")
-                    .mouseenter(function(){$(XidTsaRow).addClass(cli_hv);})
-                    .mouseleave(function(){$(XidTsaRow).removeClass(cli_hv);})
+                    .mouseenter(function(){$(XidTsaRow).addClass(cls_hover);})
+                    .mouseleave(function(){$(XidTsaRow).removeClass(cls_hover);})
         // append cells to row Linked
                     .append("<td>" + row.excKey + "</td>")
                     .append("<td>" + row.caption + "</td>");
 
         //if new appended row: highlight row for 1 second
                 if (!!JustLinkedTsaId && !!idTsaRow && JustLinkedTsaId === idTsaRow) {
-                   $(XidTsaRow).addClass(cli_hv);
-                   setTimeout(function (){$(XidTsaRow).removeClass(cli_hv);}, 1000);
+                   $(XidTsaRow).addClass(cls_hover);
+                   setTimeout(function (){$(XidTsaRow).removeClass(cls_hover);}, 1000);
                 }
             } else {
 
@@ -906,14 +904,14 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
                 $("<tr>").appendTo(Xid_tsa_tbody)
                     .attr({"id": idTsaRow, "key": row.tsaKey})
                     .addClass("c_colExcelTsa_tr")
-                    .mouseenter(function(){$(XidTsaRow).addClass(cae_hv);})
-                    .mouseleave(function(){$(XidTsaRow).removeClass(cae_hv);})
+                    .mouseenter(function(){$(XidTsaRow).addClass(cls_hover);})
+                    .mouseleave(function(){$(XidTsaRow).removeClass(cls_hover);})
         // append cell to row ExcKey
                     .append("<td>" + row.caption + "</td>");
         // if new unlinked row: highlight row for 1 second
                 if (!!JustUnlinkedTsaId && !!idTsaRow && JustUnlinkedTsaId === idTsaRow) {
-                    $(XidTsaRow).addClass(cae_hv);
-                    setTimeout(function () {$(XidTsaRow).removeClass(cae_hv);}, 1000);
+                    $(XidTsaRow).addClass(cls_hover);
+                    setTimeout(function () {$(XidTsaRow).removeClass(cls_hover);}, 1000);
             }}};
 
     //======== loop through array excel_items ========
@@ -931,14 +929,14 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
                     .attr({"id": idExcRow})
                     .attr({"id": idExcRow, "key": row.excKey})
                     .addClass("c_colExcelTsa_tr")
-                    .mouseenter(function(){$(XidExcRow).addClass(cae_hv);})
-                    .mouseleave(function(){$(XidExcRow).removeClass(cae_hv);})
+                    .mouseenter(function(){$(XidExcRow).addClass(cls_hover);})
+                    .mouseleave(function(){$(XidExcRow).removeClass(cls_hover);})
         // append cell to row ExcKey
                     .append("<td>" + row.excKey + "</td>");
         // if new unlinked row: highlight row ColExc
                 if (!!JustUnlinkedExcId && !!idExcRow && JustUnlinkedExcId === idExcRow) {
-                    $(XidExcRow).addClass(cae_hv);
-                    setTimeout(function () {$(XidExcRow).removeClass(cae_hv);}, 1000);
+                    $(XidExcRow).addClass(cls_hover);
+                    setTimeout(function () {$(XidExcRow).removeClass(cls_hover);}, 1000);
         }}};
      }; //function CreateMapTableRows()
 
@@ -955,10 +953,10 @@ console.log("---------  function UpdateDatatableHeader ---------");
             let tblColHead = document.getElementById("idTblCol_" + ExcCol);
             if (!!TsaCaption){
                 tblColHead.innerHTML = TsaCaption;
-                tblColHead.classList.add("c_table_stud_thead_td_selected");
+                tblColHead.classList.add(cls_selected);
             } else {
                 tblColHead.innerHTML = ExcCol;
-                tblColHead.classList.remove("c_table_stud_thead_td_selected");
+                tblColHead.classList.remove(cls_selected);
             }
         }
    } // function UpdateDatatableHeader

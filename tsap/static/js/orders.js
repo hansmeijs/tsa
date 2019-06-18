@@ -31,7 +31,6 @@ $(function() {
         let tblBody_select_customers = document.getElementById("id_tbody_select")
         let tblBody_items = document.getElementById("id_tbody_items");
 
-        let el_popup_wdy = document.getElementById("id_popup_wdy");
 
         document.addEventListener('click', function (event) {
             // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
@@ -52,9 +51,7 @@ $(function() {
             let tr_selected = get_tablerow_selected(event.target)
             if(!tr_selected) {
                 selected_order_pk = 0;
-                DeselectHighlightedRows(tblBody_items);
-            }
-
+                DeselectHighlightedRows(tblBody_items)};
         }, false);
 
 // ---  create EventListener for class input_text
@@ -69,10 +66,10 @@ $(function() {
             }, false )
         }
 
-        // buttons in  popup_wdy)
+// buttons in  popup_wdy)
+        let el_popup_wdy = document.getElementById("id_popup_wdy");
         let el_popup_date = document.getElementById("id_popup_date")
-        el_popup_date.addEventListener("change", function() {HandlePopupWdySave();}, false )
-
+            el_popup_date.addEventListener("change", function() {HandlePopupWdySave();}, false )
         let el_popup_wdy_save = document.getElementById("id_popup_wdy_save")
         //el_popup_wdy_save.addEventListener("click", function() {HandlePopupWdySave();}, false )
 
@@ -1026,7 +1023,6 @@ $(function() {
 }; // function OpenPopupWDY
 
 
-
 //=========  HandlePopupWdmySave  ================ PR2019-04-14
     function HandlePopupWdySave() {
 console.log("===  function HandlePopupWdySave =========");
@@ -1117,7 +1113,6 @@ console.log("===  function HandlePopupWdySave =========");
 
         }  // if(!!pk_str && !! parent_pk){
     }  // HandlePopupWdySave
-
 
 
 //========= function pop_background_remove  ====================================

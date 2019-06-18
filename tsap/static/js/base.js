@@ -38,7 +38,6 @@
         }; //if(!!e.target)
     }; //function SetMenubuttonActive()
 
-
 //========= isEmpty  ============= PR2019-05-11
     //PR2019-05-05 from https://coderwall.com/p/_g3x9q/how-to-check-if-javascript-object-is-empty'
     function isEmpty(obj) {
@@ -60,6 +59,7 @@
         }
         return value;
     };
+
 //========= get_attr_from_element_str  ============= PR2019-06-07
     function get_attr_from_element_str(element, key){
         let value_str = "";
@@ -81,7 +81,8 @@
         }
         return value_int;
     };
-    //========= get_attr_from_element_dict  ============= PR2019-06-13
+
+//========= get_attr_from_element_dict  ============= PR2019-06-13
     function get_attr_from_element_dict(element, key){
         let value_dict = {};
         if(!!element && !!key){
@@ -94,6 +95,7 @@
         }
         return value_dict;
     };
+
 //========= get_arrayRow_by_keyValue  ====================================
     function get_arrayRow_by_keyValue (objArray, arrKey, keyValue) {
         // Function returns row of array that contains Value in objKey PR2019-01-05
@@ -119,7 +121,6 @@
         }}}}
         return row;
     }
-
 
 //========= get_listitem_by_subkeyValue  ===== PR2018-06-01
     function get_listitem_by_subkeyValue (objArray, arrKey, arrSubKey, keyValue) {
@@ -148,7 +149,6 @@
         }
         return item;
     }
-
 
 
 //=========  get_newdate_from_date  ================ PR2019-05-06

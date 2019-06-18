@@ -4,7 +4,7 @@
 
 //========= GetItemDictFromTablerow  ============= PR2019-05-11
     function GetItemDictFromTablerow(tr_changed) {
-        console.log("======== GetItemDictFromTablerow");
+        // console.log("======== GetItemDictFromTablerow");
         // console.log(tr_changed);
 
         let item_dict = {};
@@ -30,7 +30,7 @@
                             // PR2019-03-17 debug: getAttribute("value");does not get the current value
                             // The 'value' attribute determines the initial value (el_input.getAttribute("name").
                             // The 'value' property holds the current value (el_input.value).
-                            if (["code", "name", "shift", "team", "employee"].indexOf( fieldname ) > -1){
+                            if (["code", "name", "namefirst", "namelast", "shift", "team", "employee"].indexOf( fieldname ) > -1){
                                 n_value = el_input.value;
                             } else { // if (["datefirst", "datelast", "inactive"].indexOf( fieldname ) > -1){
                                 n_value = get_attr_from_element(el_input, "data-value"); // data-value="2019-05-11"
@@ -38,9 +38,8 @@
                             if(!!n_value){
                                 field_dict["value"] = n_value
                             };
-
                             o_value = get_attr_from_element(el_input, "data-o_value"); // data-value="2019-03-29"
-                            console.log(">>>>>>>>>> fieldname", fieldname, "n_value", n_value, "o_value", o_value);
+                            // console.log("fieldname", fieldname, "n_value", n_value, "o_value", o_value);
 
                             let value_has_changed = false
                             if(!!n_value){
@@ -157,7 +156,6 @@
     }
 
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
 //========= function get_iddict_from_element  ======== PR2019-06-01
     function get_iddict_from_element (el) {
@@ -349,9 +347,9 @@
 //========= format_duration_element format_time_element  ======== PR2019-06-09
     function format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active, title_inactive, title_active) {
         // inactive: {value: true}
-        console.log("+++++++++ format_inactive_element")
-        console.log(field_dict)
-        console.log(el_input)
+        // console.log("+++++++++ format_inactive_element")
+        // console.log(field_dict)
+        // console.log(el_input)
         if(!!el_input){
             let is_inactive = false;
             if(!isEmpty(field_dict)){
@@ -362,17 +360,21 @@
             el_input.setAttribute("data-value", is_inactive);
             el_input.setAttribute("data-o_value", is_inactive);
 
-            // update icon
-            let imgsrc, title;
-            if (is_inactive) {
-                imgsrc = imgsrc_inactive;
-                title = title_inactive;
-            } else  {
-                imgsrc = imgsrc_active
-                title = title_active;
-            }
-            el_input.children[0].setAttribute("src", imgsrc);
-            el_input.setAttribute("title", title);
+            // update icon if img existst
+            let el_img = el_input.children[0];
+            // console.log ("el_img", el_img)
+            if (!!el_img){
+                let imgsrc, title;
+                if (is_inactive) {
+                    imgsrc = imgsrc_inactive;
+                    title = title_inactive;
+                } else  {
+                    imgsrc = imgsrc_active
+                    title = title_active;
+                }
+                el_img.setAttribute("src", imgsrc);
+                el_input.setAttribute("title", title);
+             }
         }
     }
 
