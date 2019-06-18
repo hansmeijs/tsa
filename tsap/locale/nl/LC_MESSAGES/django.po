@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-06-17 21:58-0400\n"
+"POT-Creation-Date: 2019-06-18 07:04-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -139,10 +139,8 @@ msgstr ""
 
 #: .\companies\forms.py:56 .\templates\companies\company_list.html:24
 #: .\templates\customers\customers.html:88 .\templates\customers\orders.html:80
-#: .\templates\customers\orders.html:129
-#: .\templates\employees\employeesCOPY.html:44
-#: .\templates\planning\roster.html:252 .\templates\planning\schemes.html:74
-#: .\templates\planning\schemes.html:259
+#: .\templates\customers\orders.html:129 .\templates\planning\roster.html:252
+#: .\templates\planning\schemes.html:74 .\templates\planning\schemes.html:259
 msgid "Start date"
 msgstr "Begindatum"
 
@@ -150,7 +148,6 @@ msgstr "Begindatum"
 #: .\employees\forms.py:31 .\templates\companies\company_list.html:22
 #: .\templates\customers\customers.html:45 .\templates\customers\orders.html:78
 #: .\templates\employees\employees.html:58
-#: .\templates\employees\employeesCOPY.html:38
 msgid "Code"
 msgstr ""
 
@@ -289,7 +286,6 @@ msgid "This item could not be created."
 msgstr "Dit item kon niet worden gewist."
 
 #: .\employees\forms.py:16 .\templates\employees\employees.html:60
-#: .\templates\employees\employeesCOPY.html:39
 msgid "Last name"
 msgstr "Achternaam"
 
@@ -377,7 +373,6 @@ msgstr "Nee, annuleer"
 #: .\templates\employees\emplhours.html:66
 #: .\templates\employees\emplhours.html:262
 #: .\templates\employees\employees.html:104
-#: .\templates\employees\employeesCOPY.html:172
 #: .\templates\planning\realization.html:66
 #: .\templates\planning\realization.html:225
 #: .\templates\planning\roster.html:52 .\templates\planning\roster.html:269
@@ -681,7 +676,6 @@ msgid "Please enter a password to finish the registration."
 msgstr "Vul een wachtwoord in om de registratie af te ronden"
 
 #: .\templates\accounts\users.html:14
-#: .\templates\employees\employeesCOPY.html:42
 msgid "Email"
 msgstr "E-mail"
 
@@ -757,7 +751,6 @@ msgstr "Nieuwe klant"
 #: .\templates\customers\customers.html:33 .\templates\customers\orders.html:57
 #: .\templates\employees\emplhours.html:34
 #: .\templates\employees\employees.html:33
-#: .\templates\employees\employeesCOPY.html:25
 #: .\templates\planning\realization.html:34 .\templates\planning\roster.html:88
 #: .\templates\planning\schemes.html:94
 msgid "filter..."
@@ -776,7 +769,6 @@ msgstr "Niet aktieve opdrachten weergeven"
 #: .\templates\customers\orders.html:121
 #: .\templates\employees\emplhours.html:251
 #: .\templates\employees\employees.html:92
-#: .\templates\employees\employeesCOPY.html:167
 #: .\templates\planning\realization.html:214
 #: .\templates\planning\roster.html:214 .\templates\planning\schemes.html:222
 msgid "An error occurred."
@@ -798,7 +790,6 @@ msgstr "Maak klant aktief"
 #: .\templates\customers\orders.html:138
 #: .\templates\employees\emplhours.html:261
 #: .\templates\employees\employees.html:103
-#: .\templates\employees\employeesCOPY.html:171
 #: .\templates\planning\realization.html:224
 #: .\templates\planning\roster.html:268 .\templates\planning\schemes.html:275
 msgid "Error"
@@ -988,9 +979,8 @@ msgstr "Wilt u deze dienst verwijderen?"
 msgid "Select employee file"
 msgstr "Selecteer werknemer bestand"
 
-#: .\templates\employees\employees.html:25
-#: .\templates\employees\employeesCOPY.html:22
-#: .\templates\includes\header.html:102 .\templates\includes\header.html:116
+#: .\templates\employees\employees.html:25 .\templates\includes\header.html:102
+#: .\templates\includes\header.html:116
 msgid "Employees"
 msgstr "Werknemers"
 
@@ -999,17 +989,14 @@ msgid "Import employees"
 msgstr "Werknemers importeren"
 
 #: .\templates\employees\employees.html:59
-#: .\templates\employees\employeesCOPY.html:40
 msgid "First name"
 msgstr "Voornaam"
 
 #: .\templates\employees\employees.html:61
-
 msgid "First date in service"
 msgstr "Datum in dienst"
 
 #: .\templates\employees\employees.html:62
-
 msgid "Last date in service"
 msgstr "Laatste datum in dienst"
 
@@ -1018,33 +1005,12 @@ msgid "Add new employee"
 msgstr "Werknemer toevoegen"
 
 #: .\templates\employees\employees.html:95
-
 msgid "Make employee inactive"
 msgstr "Maak werknemer niet-aktief"
 
 #: .\templates\employees\employees.html:96
 msgid "Make employee active"
 msgstr "Maak werknemer aktief"
-
-#: .\templates\employees\employeesCOPY.html:41
-msgid "Prefix"
-msgstr "Tussenvoegsel"
-
-#: .\templates\employees\employeesCOPY.html:43
-msgid "Telephone"
-msgstr "Telefoon"
-
-#: .\templates\employees\employeesCOPY.html:45
-msgid "Modified by"
-msgstr "Gewijzigd door"
-
-#: .\templates\employees\employeesCOPY.html:46
-msgid "Modified at"
-msgstr "Gewijzigd op"
-
-#: .\templates\employees\employeesCOPY.html:157
-msgid "Add employee"
-msgstr "Werknemer toevoegen"
 
 #: .\templates\home.html:10
 msgid "Welcome at"
@@ -1183,7 +1149,6 @@ msgid "Rosterdate"
 msgstr "Rooster datum"
 
 #: .\templates\planning\roster.html:231
-
 msgid "Fill roster of"
 msgstr "Vul rooster van"
 
@@ -1327,6 +1292,21 @@ msgstr "Fout: bedrijf niet gevonden"
 #: .\tsap\validators.py:140
 msgid "Error: Field error."
 msgstr ""
+
+#~ msgid "Prefix"
+#~ msgstr "Tussenvoegsel"
+
+#~ msgid "Telephone"
+#~ msgstr "Telefoon"
+
+#~ msgid "Modified by"
+#~ msgstr "Gewijzigd door"
+
+#~ msgid "Modified at"
+#~ msgstr "Gewijzigd op"
+
+#~ msgid "Add employee"
+#~ msgstr "Werknemer toevoegen"
 
 #~ msgid "Add customer"
 #~ msgstr "Nieuwe klant"

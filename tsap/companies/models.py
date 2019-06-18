@@ -167,7 +167,7 @@ class Customer(TsaBaseModel):
             name_ok = True  # TODO  validate_code_or_name('order', 'name', name, update_dict, request.user.company)
 
 # - create instance
-            if code_ok and name_ok:
+            if company and code and name:
                 instance = cls(company=company, code=code, name=name)
 # - save instance
                 instance.save(request=request)
@@ -463,7 +463,7 @@ class Employee(TsaBaseModel):
 
 # - create instance
             if code_ok and namelast_ok:
-                instance = cls(company=company, code=code, name=namelast)
+                instance = cls(company=company, code=code, namelast=namelast)
 # - save instance
                 instance.save(request=request)
 # - create error when instance not created
@@ -498,8 +498,8 @@ class Employee(TsaBaseModel):
                 parent_pk_int = employee.company.pk
             except:
                 pass
-        logger.debug('pk_int: ' + str(pk_int), 'parent_pk_int: ' + str(parent_pk_int))
-        logger.debug('employee: ' + str(employee))
+        # logger.debug('pk_int: ' + str(pk_int), 'parent_pk_int: ' + str(parent_pk_int))
+        # logger.debug('employee: ' + str(employee))
 
         if employee:
             update_dict['id']['pk'] = pk_int
@@ -835,8 +835,8 @@ class Emplhour(TsaBaseModel):
                     emplhour_dict[field] = {'value': value, 'order_pk':emplhour.orderhour.order.id}
 
             field = 'shift'
-            if emplhour.schemeitem:
-                value = emplhour.schemeitem.shift
+            if emplhour.orderhour:
+                value = emplhour.orderhour.schemeitem.shift
                 if value:
                     emplhour_dict[field] = {'value': value}
 

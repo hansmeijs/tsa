@@ -9,7 +9,6 @@ $(function() {
         const cls_selected = "tsa_tr_selected";
 
         const cls_hide = "display_hide";
-        const index_el_inactive = 5;
         const col_count = 6;
         SetMenubuttonActive(document.getElementById("id_hdr_empl"));
 
@@ -197,9 +196,9 @@ $(function() {
 //+++ insert td's ino tblRow
         for (let j = 0, td, el; j < col_count; j++) {
             td = tblRow.insertCell(-1);
-
+                if(!is_new_item){ console.log("td", td)}
 // --- add img inactive to index_el_inactive
-            if (j === index_el_inactive){
+            if (j === 5){
                 if(!is_new_item){
         // --- add <a> element with EventListener to td
                     el = document.createElement("a");
@@ -209,6 +208,7 @@ $(function() {
             } else {
                 el = document.createElement("input");
                 el.setAttribute("type", "text")
+                if(!is_new_item){ console.log("el", el)}
             };
             if(!!el){
 // --- add data-field Attribute.
@@ -218,7 +218,7 @@ $(function() {
                 if (j === 2){ fieldname = "namelast"} else
                 if (j === 3){ fieldname = "datefirst"} else
                 if (j === 4){ fieldname = "datelast"} else
-                if (j === index_el_inactive){ fieldname = "inactive"}
+                if (j === 5){ fieldname = "inactive"}
                 el.setAttribute("data-field", fieldname);
 
                 if (j === 0 && is_new_item ){
@@ -230,7 +230,7 @@ $(function() {
                     el.addEventListener("change", function() {UploadChanges(el)}, false )} else
                 if ([3, 4].indexOf( j ) > -1){
                     el.addEventListener("click", function() {OpenPopupWDY(el);}, false )};
-                if (j === index_el_inactive) {
+                if (j === 5) {
                     el.addEventListener("click", function(){HandleInactiveClicked(el)}, false )
                 }
     // --- add text_align
@@ -244,7 +244,7 @@ $(function() {
     // --- add width to time fields and date fileds
                 if (j === 0 ){el.classList.add("td_width_180")} else
                 if ([1, 2].indexOf( j ) > -1){el.classList.add("td_width_240")} else
-                if (j === index_el_inactive ){el.classList.add("td_width_032")} else
+                if (j === 5 ){el.classList.add("td_width_032")} else
                 {el.classList.add("td_width_090")};
 
     // --- add other classes to td
@@ -287,11 +287,16 @@ $(function() {
             // id: {temp_pk: "new_1", created: true, pk: 32, parent_pk: 18}
             const id_dict = get_dict_value_by_key (item_dict, "id");
             let temp_pk_str, msg_err, is_new = false, is_created = false, is_deleted = false;
+            let pk_int, parent_pk;
             if ("new" in id_dict) {is_new = true};
             if ("created" in id_dict) {is_created = true};
             if ("deleted" in id_dict) {is_deleted = true};
             if ("error" in id_dict) {msg_err = id_dict["error"]};
+            if ("pk" in id_dict) {pk_int = id_dict["pk"]};
+            if ("parent_pk" in id_dict) {parent_pk = id_dict["parent_pk"]};
             if ("temp_pk" in id_dict) {temp_pk_str = id_dict["temp_pk"]};
+            // console.log("is_created:", is_created, "temp_pk_str:", temp_pk_str)
+            // console.log("pk_int:", pk_int, "parent_pk:", parent_pk)
 
 // --- deleted record
             if (is_deleted){
@@ -312,17 +317,21 @@ $(function() {
 
 // --- new created record
             } else if (is_created){
-                let id_attr = get_attr_from_element_int(tblRow,"id")
+                let id_attr = get_attr_from_element(tblRow,"id")
                 // console.log("id_attr", id_attr)
 
             // check if item_dict.id 'new_1' is same as tablerow.id
                 if(temp_pk_str === id_attr){
                     // if 'created' exists then 'pk' also exists in id_dict
-                    const id_pk = get_dict_value_by_key (id_dict, "pk");
 
             // update tablerow.id from temp_pk_str to id_pk
-                    tblRow.setAttribute("id", id_pk);  // or tblRow.id = id_pk
-                    tblRow.setAttribute("data-pk", id_pk)
+                    tblRow.setAttribute("id", pk_int);  // or tblRow.id = id_pk
+                    tblRow.setAttribute("data-pk", pk_int)
+                    tblRow.setAttribute("data-parent_pk", parent_pk)
+
+            // remove placeholder from element 'code
+                    let el_code = tblRow.cells[0].children[0];
+                    if (!!el_code){el_code.removeAttribute("placeholder")}
 
             // make row green, / --- remove class 'ok' after 2 seconds
                     ShowOkClass(tblRow )
@@ -924,11 +933,17 @@ console.log("===  function HandlePopupWdySave =========");
     function SetHideRow(tblRow) {
         // console.log( "===== SetHideRow  ========= filter_inactive_included: ", filter_inactive_included);
         // filter by inactive and substring of fields
+        // TODO: use function in tables.js
 
         // console.log("tblRow]", tblRow)
         let hide_row = false
         if (!!tblRow){
-            let td_inactive = tblRow.cells[index_el_inactive];
+
+            const pk_int = parseInt(get_attr_from_element(tblRow, "id")); // or: const pk_str = el.id
+            // skip new row (parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+            if(!!pk_int){
+
+            let td_inactive = tblRow.cells[5];
             // console.log("td_inactive]", td_inactive)
     // show inactive rows if filter_inactive_included
             if (!filter_inactive_included) {
@@ -946,7 +961,7 @@ console.log("===  function HandlePopupWdySave =========");
             if (!hide_row && !!filter_name){
                 let found = false
                 for (let col_index = 0, el_code; col_index < col_count; col_index++) {
-                    if (col_index !== index_el_inactive){
+                    if (col_index !== 5){  // index_el_inactive
                         let td = tblRow.cells[col_index];
                             // console.log("td", td)
                         let el = td.children[0];
@@ -967,7 +982,9 @@ console.log("===  function HandlePopupWdySave =========");
                 };  // for (let col_index = 1,
                 if (!found){hide_row = true}
             }  // if (!hide_row && !!filter_name){
-        }
+
+        }  // if(!!pk_int)
+        }  // if (!!tblRow){
         return hide_row
     }; // function SetHideRow
 

@@ -175,9 +175,9 @@ class EmployeeUploadView(UpdateView):# PR2019-06-174
                     field_list = ('id', 'code', 'namefirst', 'namelast', 'datefirst', 'datelast', 'inactive')
                     update_dict = create_dict_with_empty_attr(field_list)
 
-# - check if parent exists (customer is parent of order)
+# - check if parent exists (company is parent of employee)
                     instance = None
-                    parent_instance = get_parent_instance('employee', parent_pk_int, update_dict, request.user.company)
+                    parent_instance = get_parent_instance_employee(update_dict, request.user.company)
                     logger.debug('parent_instance: ' + str(parent_instance))
 
                     if parent_instance:
@@ -817,15 +817,14 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                 return HttpResponse(json.dumps(params, cls=LazyEncoder))
 
 
-def get_parent_instance(table, parent_pk_int, update_dict, company):
+def get_parent_instance_employee(update_dict, company):
     # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-06-06
     parent_instance = None
-    if parent_pk_int:
-        if table == 'employee':
-            parent_instance = Company.objects.filter(id=parent_pk_int).first()
+    if company:
+        parent_instance = company
         if parent_instance:
-            update_dict['id']['parent_pk'] = parent_pk_int
-            update_dict['id']['table'] = table
+            update_dict['id']['parent_pk'] = company.pk
+            update_dict['id']['table'] = 'employee'
     return parent_instance
 
 

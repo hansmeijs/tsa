@@ -587,9 +587,10 @@
 
 //========= FilterRows  ====================================
     function FilterTableRows(tblBody, filter, show_inactive) {
-        console.log( "===== FilterRows  ========= ");
-        console.log( "filter", filter, "show_inactive", show_inactive, typeof show_inactive);
+        // console.log( "===== FilterRows  ========= ");
+        // console.log( "filter", filter, "show_inactive", show_inactive, typeof show_inactive);
         // filter by inactive and substring of fields PR2019-06-09
+        // don't filter new row
         for (let row_index = 0, tblRow, show_row, len = tblBody.rows.length; row_index < len; row_index++) {
             tblRow = tblBody.rows[row_index]
             show_row = ShowTableRow(tblRow, filter, show_inactive)
@@ -605,51 +606,56 @@
 
 //========= FilterTableRow  ====================================
     function ShowTableRow(tblRow, filter_name, show_inactive) {
-        console.log( "===== ShowTableRow  ========= ");
-        console.log( "filter_name", filter_name, "show_inactive", show_inactive);
+        // console.log( "===== ShowTableRow  ========= ");
+        // console.log( "filter_name", filter_name, "show_inactive", show_inactive);
         // filter by inactive and substring of fields
 
         let show_row = true;
         if (!!tblRow){
-// hide inactive rows if filter_hide_inactive
-            const col_last = tblRow.cells.length - 1
-            if (!show_inactive) {
-// last field may be field 'inactive'
-                let cell = tblRow.cells[col_last];
-                        console.log( "cell-value", cell);
-                if (!!cell){
-                    let el_inactive = cell.children[0];
-                        console.log( "el_inactive", el_inactive);
-                    if (!!el_inactive){
-                        let value = get_attr_from_element(el_inactive,"data-value","")
-                        console.log( "data-value", value, typeof value);
-                        if (!!value) {
-                            if (value.toLowerCase() === "true") {
-                                show_row = false;
+            const pk_int = parseInt(get_attr_from_element(el, "id")); // or: const pk_str = el.id
+            // skip new row (parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+            console.log( "pk_int: ", pk_int);
+            if(!!pk_int){
+    // hide inactive rows if filter_hide_inactive
+                const col_last = tblRow.cells.length - 1
+                if (!show_inactive) {
+    // last field may be field 'inactive'
+                    let cell = tblRow.cells[col_last];
+                            // console.log( "cell-value", cell);
+                    if (!!cell){
+                        let el_inactive = cell.children[0];
+                            // console.log( "el_inactive", el_inactive);
+                        if (!!el_inactive){
+                            let value = get_attr_from_element(el_inactive,"data-value","")
+                            // console.log( "data-value", value, typeof value);
+                            if (!!value) {
+                                if (value.toLowerCase() === "true") {
+                                    show_row = false;
+                                }
                             }
                         }
                     }
-                }
-            };
-    // show all rows  if filter_name = ""
-        // console.log( "show_row", show_row, typeof show_row);
-            if (show_row && !!filter_name){
-        // console.log( "show_row && !!filter_name", show_row, typeof show_row);
-                found = false
-                for (let col_index = 0, el_code; col_index < col_last; col_index++) {
-                    if (!!tblRow.cells[col_index].children[0]) {
-                        el_value = tblRow.cells[col_index].children[0].value;
-                        if (!!el_value){
-                            el_value = el_value.toLowerCase();
-                            console.log( "el_value:", el_value);
-                            if (el_value.indexOf(filter_name) !== -1) {
-                                found = true
-                                break;
-                    }}}
-                };  // for (let col_index = 1,
-                if (!found){show_row = false}
-            }  // if (show_row && !!filter_name){
-        }
+                };  // if (!show_inactive) {
+        // show all rows  if filter_name = ""
+            // console.log( "show_row", show_row, typeof show_row);
+                if (show_row && !!filter_name){
+            // console.log( "show_row && !!filter_name", show_row, typeof show_row);
+                    found = false
+                    for (let col_index = 0, el_code; col_index < col_last; col_index++) {
+                        if (!!tblRow.cells[col_index].children[0]) {
+                            el_value = tblRow.cells[col_index].children[0].value;
+                            if (!!el_value){
+                                el_value = el_value.toLowerCase();
+                                console.log( "el_value:", el_value);
+                                if (el_value.indexOf(filter_name) !== -1) {
+                                    found = true
+                                    break;
+                        }}}
+                    };  // for (let col_index = 1,
+                    if (!found){show_row = false}
+                }  // if (show_row && !!filter_name){
+            }//  if(!!pk_int)
+        }  // if (!!tblRow)
         return show_row
     }; // function FilterTableRows
 

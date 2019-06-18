@@ -820,8 +820,8 @@ $(function() {
         console.log("--++- UpdateTableRow  --------------");
 
         if (!!item_dict && !!tblRow) {
-            console.log("tblRow", tblRow);
-            console.log("item_dict", item_dict);
+            // console.log("tblRow", tblRow);
+            // console.log("item_dict", item_dict);
 
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
             // item_dict = {'id': {'pk': 7},
@@ -833,10 +833,13 @@ $(function() {
             // id: {temp_pk: "new_1", created: true, pk: 32, parent_pk: 18}
             const id_dict = get_dict_value_by_key (item_dict, "id");
             let temp_pk_str, msg_err, is_new = false, is_created = false, is_deleted = false;
+            let pk_int, parent_pk;
             if ("new" in id_dict) {is_new = true};
             if ("created" in id_dict) {is_created = true};
             if ("deleted" in id_dict) {is_deleted = true};
             if ("error" in id_dict) {msg_err = id_dict["error"]};
+            if ("pk" in id_dict) {pk_int = id_dict["pk"]};
+            if ("parent_pk" in id_dict) {parent_pk = id_dict["parent_pk"]};
             if ("temp_pk" in id_dict) {temp_pk_str = id_dict["temp_pk"]};
 
 // --- deleted record
@@ -859,16 +862,20 @@ $(function() {
 // --- new created record
             } else if (is_created){
                 let id_attr = get_attr_from_element_int(tblRow,"id")
-                console.log("id_attr", id_attr)
+                // console.log("id_attr", id_attr)
 
             // check if item_dict.id 'new_1' is same as tablerow.id
                 if(temp_pk_str === id_attr){
                     // if 'created' exists then 'pk' also exists in id_dict
-                    const id_pk = get_dict_value_by_key (id_dict, "pk");
-
+// TODO new order still gives error when name is changed
             // update tablerow.id from temp_pk_str to id_pk
-                    tblRow.setAttribute("id", id_pk);  // or tblRow.id = id_pk
-                    tblRow.setAttribute("data-pk", id_pk)
+                    tblRow.setAttribute("id", pk_int);  // or tblRow.id = id_pk
+                    tblRow.setAttribute("data-pk", pk_int)
+                    tblRow.setAttribute("data-parent_pk", parent_pk)
+
+            // remove placeholder from element 'code
+                    let el_code = tblRow.cells[0].children[0];
+                    if (!!el_code){el_code.removeAttribute("placeholder")}
 
             // make row green, / --- remove class 'ok' after 2 seconds
                     ShowOkClass(tblRow )

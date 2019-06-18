@@ -562,8 +562,8 @@ $(function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+                    // console.log( "response");
+                    // console.log( response);
 
                     if ("schemeitem_list" in response) {
                         schemeitem_list= response["schemeitem_list"]}
@@ -571,8 +571,8 @@ $(function() {
                         team_list= response["team_list"]}
                     if ("teammember_list" in response) {
                         teammember_list = response["teammember_list"]}
-                        console.log(">>>>>>>>>>>> teammember_list >>>>>>>>>>>>")
-                        console.log(teammember_list)
+                        // console.log(">>>>>>>>>>>> teammember_list >>>>>>>>>>>>")
+                        // console.log(teammember_list)
                     if ("item_update" in response) {
                         let item_dict =response["item_update"]
                         const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
@@ -583,7 +583,7 @@ $(function() {
                         const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
                         if (is_created){
 // add new empty row
-                    console.log( "UploadTblrowChanged >>> add new empty row");
+                    // console.log( "UploadTblrowChanged >>> add new empty row");
                             id_new = id_new + 1
                             const pk_new = "new_" + id_new.toString()
                             const parent_pk = get_parent_pk (item_dict)
@@ -1463,15 +1463,15 @@ $(function() {
         } else if (tblName === "teammembers"){
             dict["team"] = {"pk": selected_parent_pk, "value": team_code}
         };
-console.log("FillTableRows 'add new' --> dict:", dict)
+// console.log("FillTableRows 'add new' --> dict:", dict)
         tblRow = CreateTableRow(tblName, pk_new, selected_parent_pk)
         UpdateTableRow(tblName, tblRow, dict)
     }
 
 //=========  CreateTableRow  ================ PR2019-04-27
     function CreateTableRow(tblName, pk, parent_pk, rosterdate_or_teamname) {
-        console.log("=========  function CreateTableRow =========");
-        console.log("pk", pk, "parent_pk", parent_pk, "new_name_or_date", rosterdate_or_teamname);
+        // console.log("=========  function CreateTableRow =========");
+        // console.log("pk", pk, "parent_pk", parent_pk, "new_name_or_date", rosterdate_or_teamname);
 
 // check if row is addnew row - when pk is NaN
         let is_new_item = !parseInt(pk);
@@ -1619,8 +1619,8 @@ console.log("FillTableRows 'add new' --> dict:", dict)
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblName, tblRow, item_dict){
-        console.log("========= UpdateTableRow  =========");
-        console.log(item_dict);
+        // console.log("========= UpdateTableRow  =========");
+        // console.log(item_dict);
 
         if (!!item_dict && !!tblRow) {
             // console.log("tblRow", tblRow);
@@ -1798,7 +1798,7 @@ console.log("FillTableRows 'add new' --> dict:", dict)
 
 // +++++++++  HandleAutofillDayupDown  ++++++++++++++++++++++++++++++ PR2019-03-16 PR2019-06-14
     function HandleAutofillDayupDown(param_name) {
-        console.log("=== HandleAutofillDayupDown =========");
+        // console.log("=== HandleAutofillDayupDown =========");
         if (!!selected_scheme_pk){
             let parameters = {};
             if (param_name === "schemeitem_dayup") {
@@ -1826,7 +1826,7 @@ console.log("FillTableRows 'add new' --> dict:", dict)
                     el_loader.classList.add(cls_hide)
                     if ("schemeitem_list" in response) {
                         schemeitem_list= response["schemeitem_list"];
-                        console.log( "schemeitem_list", schemeitem_list);
+                        // console.log( "schemeitem_list", schemeitem_list);
                         FillTableRows("schemeitems")
                     }
                 },

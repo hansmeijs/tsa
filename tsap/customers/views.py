@@ -115,7 +115,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 name = code
 
                             name_ok = True  # TODO validate_code_or_name('order', 'name', name, update_dict, request.user.company)
-                            if code_ok and name_ok:
+                            if code and name:
                                 instance = Customer.create_instance(parent_instance, code, name, temp_pk_str, update_dict,
                                                                  request)
                             logger.debug('new instance: ' + str(instance))
