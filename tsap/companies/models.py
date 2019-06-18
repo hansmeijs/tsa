@@ -836,9 +836,10 @@ class Emplhour(TsaBaseModel):
 
             field = 'shift'
             if emplhour.orderhour:
-                value = emplhour.orderhour.schemeitem.shift
-                if value:
-                    emplhour_dict[field] = {'value': value}
+                if emplhour.orderhour.schemeitem:
+                    value = emplhour.orderhour.schemeitem.shift
+                    if value:
+                        emplhour_dict[field] = {'value': value}
 
             field = 'employee'
             if emplhour.employee:
