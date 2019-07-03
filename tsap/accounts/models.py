@@ -76,7 +76,7 @@ class User(AbstractUser):
     company = ForeignKey(Company, related_name='users', on_delete=PROTECT, null=True, blank=True)
     employee = ForeignKey(Employee, related_name='users', on_delete=PROTECT, null=True, blank=True)
 
-    lang = CharField(max_length=4, null=True, blank=True)
+    lang = CharField(max_length=8, null=True, blank=True)
 
     modifiedby = ForeignKey(AUTH_USER_MODEL, null=True, related_name='+', on_delete=SET_NULL)
     modifiedat = DateTimeField(null=True)
@@ -345,3 +345,31 @@ class Usersetting(Model):
     user = ForeignKey(User, related_name='usr_settings', on_delete=CASCADE)
     key = CharField(db_index=True, max_length=CODE_MAX_LENGTH)
     setting = CharField(max_length=2048, null=True, blank=True)
+
+#===========  Classmethod
+    @classmethod
+    def get_setting(cls, key_str, user): #PR2019-07-02
+        # function returns value of setting row that match the filter
+        # logger.debug('---  get_setting  ------- ')
+        setting = None
+        if user and key_str:
+            row = cls.objects.filter(user=user, key=key_str).first()
+            if row:
+                if row.setting:
+                    setting = row.setting
+        return setting
+
+    @classmethod
+    def set_setting(cls, key_str, setting, user): #PR2019-07-02
+        # function returns list of setting rows that match the filter
+        # logger.debug('---  set_setting  ------- ')
+        # logger.debug('setting: ' + str(setting))
+        # get
+        if user and key_str:
+            row = cls.objects.filter(user=user, key=key_str).first()
+            if row:
+                row.setting = setting
+            else:
+                if setting:
+                    row = cls(user=user, key=key_str, setting=setting)
+            row.save()

@@ -8,7 +8,8 @@
 
 {% block content %}
     {% if user.is_authenticated %}
-        <div class="popup display_hide" >
+        <!-- =================== id_msgbox  =================== -->
+        <div class="popup" >
             <span class="popuptext" id="id_msgbox"></span>
         </div>
 
@@ -37,8 +38,8 @@
                 <!-- customer header -->
 
                 <!-- content body -->
-                <div class="content_body mx-2">
 
+                <div class="content_body mx-2">
                     <!-- =================== table Customers  =================== -->
                     <table class="table tsa-tbl">
                         <thead>
@@ -64,6 +65,9 @@
                 <!-- content body -->
             </div>
             <!-- content_wrapper -->
+
+
+
         </div> <!-- flex_container -->
 
         <div id="id_data"
@@ -72,10 +76,7 @@
             data-imgsrc_delete="{% static 'img/delete.gif' %}"
 
             data-lang ="{{ lang }}"
-            data-timeformat ="{{ timeformat }}"
-            data-weekdays ="{{ weekdays }}"
-            data-months ="{{ months }}"
-            data-today ="{{ today }}"
+            data-ppk ="{{ ppk }}"
 
             data-customer_upload_url="{% url 'customer_upload_url' %}"
             data-datalist_download_url="{% url 'datalist_download_url' %}"
@@ -85,8 +86,6 @@
             data-txt_make_inactive= "{% trans 'Make customer inactive' %}"
             data-txt_make_active= "{% trans 'Make customer active' %}"
 
-            data-txt_datefirst= "{% trans 'Start date' %}"
-            data-txt_datelast= "{% trans 'End date' %}"
         >
         </div>
     {% else %}

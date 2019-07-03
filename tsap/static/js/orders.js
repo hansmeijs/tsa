@@ -2,12 +2,12 @@
 $(function() {
         "use strict";
 
-// ---  set selected menu button active
         const cls_active = "active";
         const cls_hover = "tr_hover";
+        const cls_hide = "display_hide";
 
-        let btn_clicked = document.getElementById("id_hdr_ordr");
-        SetMenubuttonActive(btn_clicked);
+// ---  set selected menu button active
+        SetMenubuttonActive(document.getElementById("id_hdr_ordr"));
 
 // ---  id of selected customer and selected order
         let selected_customer_pk = 0;
@@ -15,43 +15,42 @@ $(function() {
 
 // ---  id_new assigns fake id to new records
         let id_new = 0;
+
         let filter_customers = "";
         let filter_orders = "";
         let filter_inactive_included = false;
 
         let customer_list = [];
         let order_list = [];
-        let scheme_list = [];
-        let schemeitem_list = [];
-        let shift_list = [];
-        let team_list = [];
-        let teammember_list = [];
-        let employee_list = [];
 
         let tblBody_select_customers = document.getElementById("id_tbody_select")
         let tblBody_items = document.getElementById("id_tbody_items");
 
+        let el_loader = document.getElementById("id_loading_img");
+        let el_msg = document.getElementById("id_msgbox");
+// --- get header elements
+        let hdr_customer = document.getElementById("id_hdr_customer")
+        let hdr_order = document.getElementById("id_hdr_order")
+
 
         document.addEventListener('click', function (event) {
-            // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
-            let close_popup = true
-            // don't close popup_dhm when clicked on row cell with class input_popup_dhm
-            if (event.target.classList.contains("input_popup_wdy")) {
-                close_popup = false
-            // don't close popup when clicked on popup box, except for close button
-            } else if (el_popup_wdy.contains(event.target) && !event.target.classList.contains("popup_close")) {
-                close_popup = false
-            }
-            if (close_popup) {
-                // remove selected color from all input popups
-                popupbox_removebackground();
-                el_popup_wdy.classList.add("display_hide");
-            };
-            // remove highlighted row when clicked outside tabelrows
+// hide msgbox
+            el_msg.classList.remove("show");
+// remove highlighted row when clicked outside tabelrows
             let tr_selected = get_tablerow_selected(event.target)
             if(!tr_selected) {
                 selected_order_pk = 0;
                 DeselectHighlightedRows(tblBody_items)};
+
+            // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
+            let close_popup = true
+            // don't close popup_dhm when clicked on row cell with class input_popup_dhm
+            if (event.target.classList.contains("input_popup_wdy")) {close_popup = false} else
+            // don't close popup when clicked on popup box, except for close button
+            if (el_popup_wdy.contains(event.target) && !event.target.classList.contains("popup_close")){close_popup = false}
+            if (close_popup) {
+                popupbox_removebackground();
+                el_popup_wdy.classList.add(cls_hide)};
         }, false);
 
 // ---  create EventListener for class input_text
@@ -66,13 +65,6 @@ $(function() {
             }, false )
         }
 
-// buttons in  popup_wdy)
-        let el_popup_wdy = document.getElementById("id_popup_wdy");
-        let el_popup_date = document.getElementById("id_popup_date")
-            el_popup_date.addEventListener("change", function() {HandlePopupWdySave();}, false )
-        let el_popup_wdy_save = document.getElementById("id_popup_wdy_save")
-        //el_popup_wdy_save.addEventListener("click", function() {HandlePopupWdySave();}, false )
-
 // ---  event handler to filter inactive in
         document.getElementById("id_filter_inactive").addEventListener("click", function() {HandleFilterInactive();}, false )
 
@@ -82,11 +74,13 @@ $(function() {
         document.getElementById("id_filter_customers").addEventListener("keyup", function() {
             setTimeout(function() {HandleFilterCustomers();}, 25)});
 
-// --- get header elements
-        let hdr_customer = document.getElementById("id_hdr_customer")
-        let hdr_order = document.getElementById("id_hdr_order")
 
-
+// buttons in  popup_wdy)
+        let el_popup_wdy = document.getElementById("id_popup_wdy");
+        let el_popup_date = document.getElementById("id_popup_date")
+            el_popup_date.addEventListener("change", function() {HandlePopupWdySave();}, false )
+        let el_popup_wdy_save = document.getElementById("id_popup_wdy_save")
+        //el_popup_wdy_save.addEventListener("click", function() {HandlePopupWdySave();}, false )
 
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
@@ -110,7 +104,7 @@ $(function() {
         const title_inactive = get_attr_from_element(el_data, "data-txt_order_make_inactive");
         const title_active = get_attr_from_element(el_data, "data-txt_order_make_active");
 
-        DatalistDownload({"customers": {inactive: false}, "orders": {inactive: true}});
+        DatalistDownload({"customer": {inactive: false}, "order": {inactive: true}});
 
 //  #############################################################################################################
 
@@ -126,12 +120,14 @@ $(function() {
         let len = item_list.length;
         let row_count = 0
 
-//--- loop through item_list
+//--- when no items found: show 'select_customer_none'
         if (len === 0){
             let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
             let td = tblRow.insertCell(-1);
-            td.innerText = get_attr_from_element(el_data, "data-txt_select_customer_none");
+            td.innerText = caption_none;
         } else {
+
+//--- loop through item_list
             for (let i = 0; i < len; i++) {
                 let item_dict = item_list[i];
                 // item_dict = {id: {pk: 12, parent_pk: 2}, code: {value: "13 uur"},  cycle: {value: 13}}
@@ -141,43 +137,36 @@ $(function() {
                 const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
                 // console.log( "pk: ", pk, " parent_pk: ", parent_pk, " code_value: ", code_value);
 
-    //--- only show items of selected_parent_pk
+//- only show items of selected_parent_pk
                 // NIU:  if (parent_pk === selected_parent_pk){
                 if(true) {   // if (ShowSearchRow(code_value, filter_customers)) {
 
-    //--------- insert tableBody row
+//- insert tableBody row
                     let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-                    tblRow.setAttribute("id", tablename + "_" + pk.toString());
+                    // NOT IN USE tblRow.setAttribute("id", tablename + "_" + pk.toString());
                     tblRow.setAttribute("data-pk", pk);
-                    tblRow.setAttribute("data-parent_pk", parent_pk);
-                    tblRow.setAttribute("data-value", code_value);
-                    tblRow.setAttribute("data-table", tablename);
+                    tblRow.setAttribute("data-ppk", parent_pk);
+                    // NOT IN USE, put in tableBody. Was:  tblRow.setAttribute("data-table", tablename);
 
-//--------- add hover to tableBody row
+//- add hover to tableBody row
                     tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
                     tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
 
-//--------- add EventListener to tableBody row
+//- add EventListener to tableBody row
                     tblRow.addEventListener("click", function() {HandleSelectCustomer(tblRow)}, false )
 
-// --- add first td to tblRow.
+// - add first td to tblRow.
                     // index -1 results in that the new cell will be inserted at the last position.
                     let code = get_subdict_value_by_key (item_dict, "code", "value", "")
                     let td = tblRow.insertCell(-1);
-                    td.innerText = code;
 
-    // --- add second td to tblRow.
-                    // NIU: td = tblRow.insertCell(-1);
-
-    // --- add delete img to second td in team table
-                    // NIU: let el_a = document.createElement("a");
-                    // NIU: el_a.setAttribute("href", "#");
-                    // NIU: el_a.addEventListener("click", function() {UploadSchemeOrTeam(el_a, "delete")}, false )
-
-                    // NIU: AppendChildIcon(el_a, imgsrc_delete);
-
-                    // NIU: td.appendChild(el_a);
-                    td.classList.add("td_width_032")
+// --- add a element to td., necessary to get same structure as item_table, used for filtering
+                    let el = document.createElement("div");
+                        el.innerText = code;
+                        el.classList.add("mx-1")
+                        el.setAttribute("data-value", code_value);
+                        el.setAttribute("data-field", "code");
+                    td.appendChild(el);
 
     // --- count tblRow
                     row_count += 1
@@ -203,7 +192,7 @@ $(function() {
 
 // ---  get pk from id of tblRow
             selected_customer_pk = get_datapk_from_element (tblRow)
-            const customer_code = get_attr_from_element(tblRow, "data-value");
+            const customer_code = get_attr_from_element_str(tblRow.cells[0].children[0], "data-value");
             const header_text = get_attr_from_element(el_data, "data-txt_orders_of_customer");
 
 // ---  highlight clicked row
@@ -213,8 +202,7 @@ $(function() {
 // ---  fill table with orders of  selected customer
             FillTableRows()
 
-            console.log( "filter_inactive_included ", filter_inactive_included);
-
+// ---  filter table rows
             FilterTableRows(tblBody_items, filter_orders, filter_inactive_included)
         }
     }
@@ -303,7 +291,7 @@ $(function() {
 
         if (is_inactive_str === "true" && !filter_inactive_included) {
             let tr_clicked = get_tablerow_clicked(el_changed);
-            tr_clicked.classList.add("display_hide")
+            tr_clicked.classList.add(cls_hide)
         }
 
 
@@ -363,7 +351,7 @@ $(function() {
                             const parent_pk = get_parent_pk (item_dict)
 
                             let new_dict = {}
-                            new_dict["id"] = {"pk": pk_new, "parent_pk": parent_pk}
+                            new_dict["id"] = {"pk": pk_new, "ppk": parent_pk}
 
                             if (tblName === "schemeitems"){
                                 let rosterdate_dict = get_dict_value_by_key (item_dict, "rosterdate")
@@ -392,7 +380,7 @@ $(function() {
 
 // ---  get pk from id of tblRow
             const pk_int = get_datapk_from_element (tblRow)
-            const parent_pk_int = parseInt(get_attr_from_element(tblRow, "data-parent_pk"))
+            const parent_pk_int = parseInt(get_attr_from_element(tblRow, "data-ppk"))
 
             //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
             if (!pk_int) {
@@ -475,7 +463,7 @@ $(function() {
 
 // --- when err: show error message
                 } else if ("error" in id_dict){
-                    ShowMsgError(tblRow.cells[0], id_dict.error, -60)
+                    ShowMsgError(tblRow.cells[0], el_msg, id_dict.error, -60)
                 } // if (id_deleted){
 
 
@@ -518,6 +506,7 @@ $(function() {
 //========= HandleFilterCustomers  ====================================
     function HandleFilterCustomers() {
         console.log( "===== HandleFilterCustomers  ========= ");
+
         // skip filter if filter value has not changed, update variable filter_customers
         let new_filter = document.getElementById("id_filter_customers").value;
         let skip_filter = false
@@ -535,7 +524,7 @@ $(function() {
             }
         }
         if (!skip_filter) {
-            FillSelectTable("customers", tblBody_select_customers, customer_list)
+            FilterTableRows(tblBody_select_customers, new_filter, true) // table has no column inactive, teherefore set show_inactive = true
         } //  if (!skip_filter) {
     }; // function HandleFilterCustomers
 
@@ -544,13 +533,13 @@ $(function() {
     function DatalistDownload(datalist_request) {
         console.log( "=== DatalistDownload ")
         console.log( datalist_request)
-        // datalist_request: {"schemeitems": {"parent_pk": pk}, "teams": {"parent_pk": pk}, "shifts": {"parent_pk": pk}
+        // datalist_request: {"schemeitems": {"ppk": pk}, "teams": {"ppk": pk}, "shifts": {"ppk": pk}
 
 // reset requested lists
         for (let key in datalist_request) {
             // check if the property/key is defined in the object itself, not in parent
-            if (key === "customers") {customer_list = []};
-            if (key === "orders") {order_list = []};
+            if (key === "customer") {customer_list = []};
+            if (key === "order") {order_list = []};
         }
         let param = {"datalist_download": JSON.stringify (datalist_request)};
         let response = "";
@@ -563,14 +552,14 @@ $(function() {
                 console.log("response")
                 console.log(response)
 
-                if ("customers" in datalist_request) {
-                    if ("customers" in response) {customer_list= response["customers"]}
+                if ("customer" in datalist_request) {
+                    if ("customer" in response) {customer_list= response["customer"]}
                     let txt_select = get_attr_from_element(el_data, "data-txt_select_customer");
                     let txt_select_none = get_attr_from_element(el_data, "data-txt_select_customer_none");
-                    FillSelectTable("customers", tblBody_select_customers, customer_list)
+                    FillSelectTable("customer", tblBody_select_customers, customer_list)
                 }
-                if ("orders" in datalist_request) {
-                    if ("orders" in response) {order_list= response["orders"]}
+                if ("order" in datalist_request) {
+                    if ("order" in response) {order_list= response["order"]}
                 }
             },
             error: function (xhr, msg) {
@@ -641,7 +630,7 @@ $(function() {
                 let value = "-";
                 if (field in dict) {if ("value" in dict[field]) {value = dict[field]["value"]}}
                 option_text += "<option value=\"" + pk + "\"";
-                option_text += " data-parent_pk=\"" + parent_pk + "\"";
+                option_text += " data-ppk=\"" + parent_pk + "\"";
                 if (value === curOption) {option_text += " selected=true" };
                 option_text +=  ">" + value + "</option>";
                 row_count += 1
@@ -705,7 +694,7 @@ $(function() {
         id_new = id_new + 1
         const pk_new = "new_" + id_new.toString()
 
-        dict["id"] = {"pk": pk_new, "parent_pk": selected_customer_pk, "new": true}
+        dict["id"] = {"pk": pk_new, "ppk": selected_customer_pk, "new": true}
 
         tblRow = CreateTableRow(pk_new, selected_parent_pk)
         UpdateTableRow(tblRow, dict)
@@ -714,7 +703,7 @@ $(function() {
 //=========  CreateTableRow  ================ PR2019-04-27
     function CreateTableRow(pk, parent_pk, rosterdate_or_teamname) {
         // console.log("=========  function CreateTableRow =========");
-        // console.log("pk", pk, "parent_pk", parent_pk, "new_name_or_date", rosterdate_or_teamname);
+        // console.log("pk", pk, "ppk", parent_pk, "new_name_or_date", rosterdate_or_teamname);
 
 // check if row is addnew row - when pk is NaN
         let is_new_item = !parseInt(pk);
@@ -724,8 +713,8 @@ $(function() {
         let tblRow = tblBody_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
         tblRow.setAttribute("id", pk);
         tblRow.setAttribute("data-pk", pk);
-        tblRow.setAttribute("data-parent_pk", parent_pk);
-        tblRow.setAttribute("data-table", "orders");
+        tblRow.setAttribute("data-ppk", parent_pk);
+        tblRow.setAttribute("data-table", "order");
 
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
@@ -839,8 +828,11 @@ $(function() {
             if ("deleted" in id_dict) {is_deleted = true};
             if ("error" in id_dict) {msg_err = id_dict["error"]};
             if ("pk" in id_dict) {pk_int = id_dict["pk"]};
-            if ("parent_pk" in id_dict) {parent_pk = id_dict["parent_pk"]};
+            if ("ppk" in id_dict) {parent_pk = id_dict["ppk"]};
             if ("temp_pk" in id_dict) {temp_pk_str = id_dict["temp_pk"]};
+            console.log("id_dict:", id_dict);
+            console.log("is_created:", is_created, "temp_pk_str:", temp_pk_str)
+            console.log("pk_int:", pk_int, "parent_pk:", parent_pk)
 
 // --- deleted record
             if (is_deleted){
@@ -857,21 +849,22 @@ $(function() {
                 //console.log("el_input",el_input)
                 el_input.classList.add("border_invalid");
 
-                ShowMsgError(el_input, msg_err, -60)
+                ShowMsgError(el_input, el_msg, msg_err, -60)
 
 // --- new created record
             } else if (is_created){
-                let id_attr = get_attr_from_element_int(tblRow,"id")
-                // console.log("id_attr", id_attr)
+                let id_attr = get_attr_from_element(tblRow,"id")
+                console.log(" is_created   id_attr:", id_attr)
+                console.log(" temp_pk_str:", temp_pk_str)
 
             // check if item_dict.id 'new_1' is same as tablerow.id
                 if(temp_pk_str === id_attr){
                     // if 'created' exists then 'pk' also exists in id_dict
-// TODO new order still gives error when name is changed
+
             // update tablerow.id from temp_pk_str to id_pk
                     tblRow.setAttribute("id", pk_int);  // or tblRow.id = id_pk
                     tblRow.setAttribute("data-pk", pk_int)
-                    tblRow.setAttribute("data-parent_pk", parent_pk)
+                    tblRow.setAttribute("data-ppk", parent_pk)
 
             // remove placeholder from element 'code
                     let el_code = tblRow.cells[0].children[0];
@@ -893,25 +886,25 @@ $(function() {
                     for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                         let field_dict = {}, fieldname, updated, err;
                         let value = "", o_value, n_value, data_value, data_o_value;
-                        let wdm = "", wdmy = "", dmy = "", offset = "", team_pk = "", dhm = "", hm = "";
-                        let employee_pk;
+                        let wdm = "", wdmy = "", dmy = "", offset = "", dhm = "", hm = "";
 
                         // el_input is first child of td, td is cell of tblRow
                         let el_input = tblRow.cells[i].children[0];
                         if(!!el_input){
     // --- lookup field in item_dict, get data from field_dict
                             fieldname = get_attr_from_element(el_input, "data-field");
-                            // console.log("fieldname: ", fieldname)
+                            console.log("fieldname: ", fieldname)
+
                             field_dict = {};
                             if (fieldname in item_dict){
                                 field_dict = get_dict_value_by_key (item_dict, fieldname);
                                 updated = get_dict_value_by_key (field_dict, "updated");
                                 msg_err = get_dict_value_by_key (field_dict, "error");
-                                // console.log("field_dict: ", field_dict)
-                                // console.log("updated: ", updated)
+                                console.log("field_dict: ", field_dict)
+                                console.log("updated: ", updated)
 
                                 if(!!err){
-                                    ShowMsgError(el_input, msg_err, -60)
+                                    ShowMsgError(el_input, el_msg, msg_err, -60)
                                 } else if(updated){
                                     el_input.classList.add("border_valid");
                                     setTimeout(function (){
@@ -919,16 +912,15 @@ $(function() {
                                         }, 2000);
                                 }
 
-                                if (["code", "name"].indexOf( fieldname ) > -1){
-                                   format_text_element (el_input, field_dict)
+                                if (["code", "name", "identifier"].indexOf( fieldname ) > -1){
+                                   format_text_element (el_input, el_msg, field_dict)
                                 } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
-                                   format_date_element (el_input, field_dict, false,true) // show_weekday=false, show_year=true
+                                   format_date_element (el_input, el_msg, field_dict, comp_timezone, true) // show_weekday=false, show_year=true
                                 };
                             }  // if (fieldname in item_dict)
 
                             if (fieldname === "inactive") {
-                               if(!field_dict){field_dict = {value: false}}
-
+                               if(isEmpty(field_dict)){field_dict = {value: false}}
                                format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active, title_inactive, title_active)
                             };
 
@@ -987,7 +979,7 @@ $(function() {
         if (!!tr_selected){
             const data_table = get_attr_from_element(tr_selected, "data-table")
             const id_str = get_attr_from_element(tr_selected, "data-pk")
-            const parent_pk_str = get_attr_from_element(tr_selected, "data-parent_pk");
+            const parent_pk_str = get_attr_from_element(tr_selected, "data-ppk");
             console.log("data_table", data_table, "id_str", id_str, "parent_pk_str", parent_pk_str)
 
 // get values from el_input
@@ -999,7 +991,7 @@ $(function() {
     // put values in el_popup_wdy
             el_popup_wdy.setAttribute("data-table", data_table);
             el_popup_wdy.setAttribute("data-pk", id_str);
-            el_popup_wdy.setAttribute("data-parent_pk", parent_pk_str);
+            el_popup_wdy.setAttribute("data-ppk", parent_pk_str);
 
             el_popup_wdy.setAttribute("data-field", data_field);
             el_popup_wdy.setAttribute("data-value", data_value);
@@ -1023,7 +1015,7 @@ $(function() {
             el_input.classList.add("pop_background");
 
     // ---  show el_popup
-            el_popup_wdy.classList.remove("display_hide");
+            el_popup_wdy.classList.remove(cls_hide);
 
         }  // if (!!tr_selected){
 
@@ -1038,7 +1030,7 @@ console.log("===  function HandlePopupWdySave =========");
 
 // ---  get pk_str from id of el_popup
         const pk_str = el_popup_wdy.getAttribute("data-pk")// pk of record  of element clicked
-        const parent_pk =  parseInt(el_popup_wdy.getAttribute("data-parent_pk"))
+        const parent_pk =  parseInt(el_popup_wdy.getAttribute("data-ppk"))
         const fieldname =  el_popup_wdy.getAttribute("data-field")
         const tablename =  el_popup_wdy.getAttribute("data-table")
         // console.log("pk_str: ", pk_str, typeof pk_str)
@@ -1059,7 +1051,7 @@ console.log("===  function HandlePopupWdySave =========");
         // if pk_int exists: row is saved row
                 id_dict["pk"] = pk_int;
             };
-            id_dict["parent_pk"] = parent_pk
+            id_dict["ppk"] = parent_pk
             id_dict["table"] = tablename
 
             if (!!id_dict){row_upload["id"] = id_dict};
@@ -1109,12 +1101,12 @@ console.log("===  function HandlePopupWdySave =========");
             }  // if (new_dhm_str !== old_dhm_str)
 
             //popupbox_removebackground();
-            //el_popup_wdy.classList.add("display_hide");
+            //el_popup_wdy.classList.add(cls_hide);
 
 
             setTimeout(function() {
                 popupbox_removebackground();
-                el_popup_wdy.classList.add("display_hide");
+                el_popup_wdy.classList.add(cls_hide);
             }, 2000);
 
 

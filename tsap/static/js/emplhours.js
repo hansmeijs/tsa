@@ -789,12 +789,12 @@ console.log("=========  function HandleCreateRecord =========");
             dataType:'json',
             success: function (response) {
                 //console.log( response)
-                if ("orders" in response) {
-                    order_list= response["orders"]
+                if ("order" in response) {
+                    order_list= response["order"]
                     FillDatalists(order_list, "id_datalist_orders")
                 }
-                if ("employees" in response) {
-                    employee_list= response["employees"]
+                if ("employee" in response) {
+                    employee_list= response["employee"]
                     FillDatalists(employee_list, "id_datalist_employees")
                 }
             },
@@ -956,9 +956,9 @@ $(document).mouseup(function (e) {
 // ---  get pk and parent_pk from id of input_popup, set as attribute in el_popup
         let dict = get_tablerow_id(input_popup)
         let id_str = dict["id"];
-        let parent_pk = dict["parent_pk"];
+        let parent_pk = dict["ppk"];
         el_popup.setAttribute("data-pk", id_str)
-        el_popup.setAttribute("data-parent_pk", parent_pk)
+        el_popup.setAttribute("data-ppk", parent_pk)
 
 // put current value of start_time / endtime in el_popup
         el_popup.setAttribute("data-field", get_attr_from_element(input_popup, "data-field"))

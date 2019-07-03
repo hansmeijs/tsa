@@ -3,13 +3,21 @@ from datetime import date, datetime, timedelta
 from django.utils import formats
 from django.utils.translation import ugettext_lazy as _
 
-from tsap.constants import BASE_DATE, MONTHS_ABBREV, WEEKDAYS_ABBREV
-from tsap.settings import TIME_ZONE, LANGUAGE_CODE
+from tsap.constants import BASE_DATE, MONTHS_ABBREV, WEEKDAYS_ABBREV, LANG_EN, LANG_NL, LANG_DEFAULT
 
+import re
 import json
 import pytz
 import logging
 logger = logging.getLogger(__name__)
+
+# TODO find better way to convert time in ISO format to datetime object.
+# from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+    #format = '%Y-%m-%dT%H:%M:%S%z'
+    #datestring = '2016-09-20T16:43:45-07:00'
+    #d = dateutil.parser.parse(datestring) # python 2.7
+    #d = d.replace(tzinfo=utc) - d.utcoffset()
+    # >>> datetime.datetime(2016, 9, 20, 23, 43, 45, tzinfo=<UTC>)
 
 
 def get_date_from_str(date_str, blank_not_allowed=False):  # PR2019-04-28
@@ -224,6 +232,59 @@ def get_timeDHM_from_dhm(rosterdate, dhm_str, comp_timezone, lang):
     return time_str
 
 
+def get_datetime_from_ISO_no_offset(datetime_iso, comp_timezone):   # PR2019-06-27
+    # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+
+    logger.debug('---------------- get_datetime_from_ISO_no_offset  -------------')
+    # datetime_iso: 2019-06-23 T 08:24 :00.000Z <class 'str'>
+    logger.debug('datetime_iso: ' + str(datetime_iso) + ' type: ' + str(type(datetime_iso)))
+
+    # convert iso string to dattime naive: datetime_naive: 2019-06-23 18:45:00 <class 'datetime.datetime'>
+    datetime_naive = get_datetime_from_ISOstring(datetime_iso)
+    logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
+    logger.debug('tzinfo: ' + str(datetime_naive.tzinfo) + ' type: ' + str(type(datetime_naive.tzinfo)))
+
+    timezone = pytz.utc
+    # convert datetime_naive to datetime with timezone utc: datetime__utc: 2019-06-23  18:45:00+00:00
+    datetime_utc = timezone.localize(datetime_naive)
+    logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
+    logger.debug('tzinfo: ' + str(datetime_utc.tzinfo) + ' type: ' + str(type(datetime_utc.tzinfo)))
+
+    return datetime_utc
+
+
+def get_datetime_from_ISOstring(datetime_iso):  # PR2019-06-27
+    #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
+    #  split string into array  ["2019", "03", "30", "19", "05", "00"]
+    #  regex \d+ - matches one or more numeric digits
+    dte_time = None
+    regex = re.compile('\D+')
+    arr = regex.split(datetime_iso)
+    length = len(arr)
+
+    if length >= 2:
+        if length < 3:
+            arr.append('0')
+        if length < 4:
+            arr.append('0')
+        try:
+            dte_time = datetime(int(arr[0]), int(arr[1]), int(arr[2]), int(arr[3]), int(arr[4]))
+        except:
+            pass
+    return dte_time
+
+
+
+
+
+
+
+
+
+
+
+
+
 def get_datetimeUTC_from_DHM(rosterdate, dhm_str, comp_timezone):
 
     # dt_localized: 2019-03-31 04:48:00+02:00
@@ -248,7 +309,7 @@ def get_weekdaylist_for_DHM(rosterdate, lang):
 
         # get weekdays translated
         if not lang in WEEKDAYS_ABBREV:
-            lang = LANGUAGE_CODE
+            lang = LANG_DEFAULT
 
         datetime = rosterdate + timedelta(days=-1)
         weekday_int = int(datetime.strftime("%w"))
@@ -342,7 +403,7 @@ def get_timelocal_formatDHM(rosterdate, date_time, comp_timezone, lang):
 
         # get weekdays translated
         if not lang in WEEKDAYS_ABBREV:
-            lang = LANGUAGE_CODE
+            lang = LANG_DEFAULT
         weekday_int = int(datetime_aware.strftime("%w"))
         weekday = WEEKDAYS_ABBREV[lang][weekday_int]
         # .strftime("%H") returns zero-padded 24 hour based string '03' or '22'
@@ -350,10 +411,10 @@ def get_timelocal_formatDHM(rosterdate, date_time, comp_timezone, lang):
         hour_int = int(hour_str)
         minutes_str = datetime_aware.strftime("%M") # %m is zero-padded
 
-        if lang == 'nl':
+        if lang == LANG_NL:
             separator = '.'
             suffix = 'u'
-        else:  #if lang == 'en':
+        else:  #if lang == LANG_EN:
             separator = ':'
             if hour_int >= 12:
                 suffix = 'p.m.'
@@ -440,8 +501,8 @@ def get_date_HM_from_minutes(minutes, lang):  # PR2019-05-07
 
         # get weekdays translated
         if not lang:
-            lang = LANGUAGE_CODE
-        if lang == 'nl':
+            lang = LANG_DEFAULT
+        if lang == LANG_NL:
             date_HM = hour_str + '.' + minute_str
         else:
             date_HM = hour_str + ':' + minute_str
@@ -464,7 +525,7 @@ def get_date_WDM_from_dte(dte, lang):  # PR2019-05-01
 
             # get weekdays translated
             if not lang in WEEKDAYS_ABBREV:
-                lang = LANGUAGE_CODE
+                lang = LANG_DEFAULT
             weekday_int = int(dte.strftime("%w"))
             weekday_str = WEEKDAYS_ABBREV[lang][weekday_int]
 
@@ -498,7 +559,7 @@ def formatWHM_from_datetime(dte, timezone, lang):
 
     # get weekdays translated
     if not lang in WEEKDAYS_ABBREV:
-        lang = LANGUAGE_CODE
+        lang = LANG_DEFAULT
     weekday_int = int(dte.strftime("%w"))
     weekday_str = WEEKDAYS_ABBREV[lang][weekday_int]
 
@@ -526,7 +587,7 @@ def format_WDMY_from_dte(dte, lang):
 
             # get weekdays translated
             if not lang in WEEKDAYS_ABBREV:
-                lang = LANGUAGE_CODE
+                lang = LANG_DEFAULT
             weekday_int = int(dte.strftime("%w"))
             weekday_str = WEEKDAYS_ABBREV[lang][weekday_int]
 
@@ -609,11 +670,11 @@ def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09
                 month_lang = MONTHS_ABBREV[lang]
             month_str = month_lang[dte.month]
 
-            if lang == 'en':
+            if lang == LANG_EN:
                 time_longstr = dte.strftime("%H:%M %p")
                 day_str = day_str + ','
                 date_longstr = ' '.join([month_str, day_str, year_str, time_longstr])
-            elif lang == 'nl':
+            elif lang == LANG_NL:
                 time_longstr = dte.strftime("%H.%M") + 'u'
                 date_longstr = ' '.join([day_str, month_str, year_str, time_longstr])
         except:
@@ -642,11 +703,11 @@ def get_time_longstr_from_dte(dte, lang):  # PR2019-04-13
                 month_lang = MONTHS_ABBREV[lang]
             month_str = month_lang[dte.month]
 
-            if lang == 'en':
+            if lang == LANG_EN:
                 time_longstr = dte.strftime("%H:%M %p")
                 day_str  = day_str + ','
                 date_longstr = ' '.join([month_str, day_str, year_str, time_longstr])
-            elif lang == 'nl':
+            elif lang == LANG_NL:
                 time_longstr = dte.strftime("%H.%M") + 'u'
                 date_longstr = ' '.join([day_str, month_str, year_str, time_longstr])
         except:
@@ -796,7 +857,7 @@ def get_iddict_variables(id_dict):
     if id_dict:
         tablename = id_dict.get('table', '')
         pk_int = int(id_dict.get('pk', 0))
-        parent_pk_int = int(id_dict.get('parent_pk', 0))
+        parent_pk_int = int(id_dict.get('ppk', 0))
         temp_pk_str = id_dict.get('temp_pk', '')
         is_create = ('create' in id_dict)
         is_delete = ('delete' in id_dict)
@@ -834,15 +895,42 @@ def fielddict_str(value):
     return dict
 
 
-def fielddict_date(date, user_lang):
+def fielddict_date(dte, user_lang):
     dict = {}
-    if date:
-        dict = {'value': date,
-                'dm': get_date_DM_from_dte(date, user_lang),
-                'wdm': get_date_WDM_from_dte(date, user_lang),
-                'wdmy': format_WDMY_from_dte(date, user_lang),
-                'dmy': format_DMY_from_dte(date, user_lang),
-                'offset': get_weekdaylist_for_DHM(date, user_lang)}
+    if dte:
+        dict['value'] = dte
+        dict['dm'] = get_date_DM_from_dte(dte, user_lang)
+        dict['wdm'] = get_date_WDM_from_dte(dte, user_lang)
+        dict['wdmy'] = format_WDMY_from_dte(dte, user_lang)
+        dict['dmy'] = format_DMY_from_dte(dte, user_lang)
+        dict['offset'] = get_weekdaylist_for_DHM(dte, user_lang)
+    return dict
+
+
+def set_fielddict_date(dict, dte, user_lang, rosterdate=None, format_list=None):
+    # PR2019-06-25
+    logger.debug('new set_fielddict_date dict: ' +  str(dict) + ' type: ' + str(type(dict)))
+    logger.debug('rosterdate: ' +  str(rosterdate) + ' type: ' + str(type(rosterdate)))
+    if dte:
+        if format_list is None:
+            format_list = ['value', 'dm', 'wdm', 'wdmy', 'dmy', 'offset']
+
+        for format in format_list:
+            if format == 'value':
+                dict[format] = dte.isoformat()
+            if format == 'dm':
+                dict[format] = get_date_DM_from_dte(dte, user_lang)
+            if format == 'wdm':
+                dict[format] = get_date_WDM_from_dte(dte, user_lang)
+            if format == 'wdmy':
+                dict[format] = format_WDMY_from_dte(dte, user_lang)
+            if format == 'dmy':
+                dict[format] = format_DMY_from_dte(dte, user_lang)
+            if format == 'offset':
+                dict[format] = get_weekdaylist_for_DHM(dte, user_lang)
+        if rosterdate is not None:
+            dict['rosterdate'] = rosterdate.isoformat()
+    logger.debug('new dict dict: ' +  str(dict) + ' type: ' + str(type(dict)))
     return dict
 
 

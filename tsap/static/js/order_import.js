@@ -1146,7 +1146,7 @@ console.log ("==========  UPLOAD DATA ==========");
 
 console.log("orders ==>");
 console.log( orders);
-            let parameters = {"orders": JSON.stringify (orders)};
+            let parameters = {"order": JSON.stringify (orders)};
 
             $.ajax({
                 type: "POST",

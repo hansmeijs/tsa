@@ -123,7 +123,9 @@ class Customer(TsaBaseModel):
     objects = TsaManager()
 
     company = ForeignKey(Company, related_name='customers', on_delete=PROTECT)
-    issystem = BooleanField(default=False)
+    type = IntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
+
+    identifier = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     email = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
 
@@ -137,69 +139,17 @@ class Customer(TsaBaseModel):
     def __str__(self):
         return self.code
 
-    @classmethod
-    def get_instance(cls, pk_int, update_dict, company):
-        # function returns instance of table, puts int in  PR2019-06-06
-        logger.debug('---get_instance')
-        logger.debug('pk_int: ' + str(pk_int))
-        logger.debug('company: ' + str(company))
-
-        instance = None
-        if pk_int:
-            try:
-                instance = cls.objects.get(id=pk_int, company=company)
-            except:
-                pass
-        if instance:
-            update_dict['id']['pk'] = pk_int
-            update_dict['id']['table'] = 'order'
-        return instance
-
-    @classmethod
-    def create_instance(cls, company, code, name, temp_pk_str, update_dict, request):
-        instance = None
-        pk_int = None
-        parent_pk_int = None
-        # - parent, code and name are required
-        if company:
-            # TODO
-            code_ok = True  # TODO validate_code_or_name('order', 'code', code, update_dict, request.user.company)
-            name_ok = True  # TODO  validate_code_or_name('order', 'name', name, update_dict, request.user.company)
-
-# - create instance
-            if company and code and name:
-                instance = cls(company=company, code=code, name=name)
-# - save instance
-                instance.save(request=request)
-# - create error when instance not created
-            if instance is None:
-                msg_err = _('This customer could not be created.')
-                update_dict['id']['error'] = msg_err
-            else:
-# - put info in id_dict
-                update_dict['id']['created'] = True
-                update_dict['id']['pk'] = instance.pk
-                update_dict['id']['parent_pk'] = company.pk
-                update_dict['code']['value'] = instance.code
-                update_dict['code']['updated'] = True
-                update_dict['name']['value'] = instance.name
-                update_dict['name']['updated'] = True
-
-            # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
-            if temp_pk_str:
-                update_dict['id']['temp_pk'] = temp_pk_str
-
-        return instance
-
-
 
 class Order(TsaBaseModel):
     objects = TsaManager()
 
     customer = ForeignKey(Customer, related_name='orders', on_delete=PROTECT)
+    type = IntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
+
+    identifier = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     taxrate = IntegerField(default=0) # /10000 unit
-    issystem = BooleanField(default=False)
+    ishourlybasis = BooleanField(default=False)
 
     class Meta:
         ordering = [Lower('code')]
@@ -233,9 +183,10 @@ class Order(TsaBaseModel):
                 update_dict['id']['error'] = msg_err
             else:
 # - put info in id_dict
-                update_dict['id']['created'] = True
+                update_dict['pk'] = instance.pk
                 update_dict['id']['pk'] = instance.pk
-                update_dict['id']['parent_pk'] = customer.pk
+                update_dict['id']['ppk'] = customer.pk
+                update_dict['id']['created'] = True
                 update_dict['code']['value'] = instance.code
                 update_dict['code']['updated'] = True
                 update_dict['name']['value'] = instance.name
@@ -246,41 +197,6 @@ class Order(TsaBaseModel):
                 update_dict['id']['temp_pk'] = temp_pk_str
 
         return instance
-
-    @classmethod
-    def get_instance(cls, pk_int, update_dict, company):
-        # function returns instance of order, adds to  update_dict  PR2019-06-06
-        order = None
-        parent_pk_int = None
-        if pk_int:
-            try:
-                order = cls.objects.get(id=pk_int, customer__company=company)
-                parent_pk_int = order.customer.pk
-            except:
-                pass
-        if order:
-            update_dict['id']['pk'] = pk_int
-            if parent_pk_int:
-                update_dict['id']['parent_pk'] = parent_pk_int
-            update_dict['id']['table'] = 'order'
-        return order
-
-    @classmethod
-    def delete_instance(cls, pk_int, parent_pk_int, update_dict, request):
-        # function deletes instance of table,  PR2019-06-06
-        instance = None
-        if pk_int and parent_pk_int:
-            instance = cls.objects.filter(id=pk_int, customer__id=parent_pk_int).first()
-
-        if instance:
-            try:
-                instance.delete(request=request)
-                update_dict['id']['deleted'] = True
-            except:
-                msg_err = _('This order could not be deleted.')
-                update_dict['id']['error'] = msg_err
-
-        return update_dict
 
 
 class Object(TsaBaseModel):
@@ -298,48 +214,40 @@ class Object(TsaBaseModel):
     def __str__(self):
         return self.code
 
-    @property
-    def id_str(self):
-        return 'id_obj_' + self.pk
+
+class OrderObject(TsaBaseModel): # PR2019-06-23 added
+    objects = TsaManager()
+
+    order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
+    object = ForeignKey(Object, related_name='+', on_delete=CASCADE)
+
+    code = None
+    name = None
+    datefirst = None
+    datelast = None
+
+    locked = None
+    inactive = None
 
 
 class Scheme(TsaBaseModel):
     objects = TsaManager()
     order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
+    type = IntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
+
+    cycle = PositiveSmallIntegerField(default=0)
+    issystem = BooleanField(default=False)
+    excludeweekend  = BooleanField(default=False)
+    excludepublicholiday  = BooleanField(default=False)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
-
-    cycle = PositiveSmallIntegerField(default=0)
 
     class Meta:
         ordering = [Lower('code')]
 
     def __str__(self):
         return self.code
-
-    @classmethod
-    def create_scheme_list(cls, order, user_lang):
-    # --- create list of all active schemes of this order PR2019-05-23
-        scheme_list = []
-        if order:
-            schemes = cls.objects.filter(order=order, inactive=False).order_by( Lower('code'))
-            if schemes:
-                for scheme in schemes:
-                    dict = {'pk': scheme.pk,
-                            'id': {'pk': scheme.pk,
-                            'parent_pk': scheme.order.pk},
-                            'code': {'value': scheme.code},
-                            'cycle': {'value': getattr(scheme, 'cycle', 0)}}
-                    for field in ['datefirst', 'datelast']:
-                        value = getattr(scheme, field)
-                        if value:
-                            dict[field] = {'value': value,
-                                          'wdm': get_date_WDM_from_dte(value, user_lang),
-                                          'wdmy': format_WDMY_from_dte(value, user_lang),
-                                          'dmy': format_DMY_from_dte(value, user_lang)}
-                    scheme_list.append(dict)
-        return scheme_list
 
 
 class Team(TsaBaseModel):
@@ -367,7 +275,7 @@ class Team(TsaBaseModel):
                 for team in teams:
                     dict = {'pk': team.pk,
                             'id': {'pk': team.pk,
-                                   'parent_pk': team.scheme.pk},
+                                   'ppk': team.scheme.pk},
                             'code': {'value': team.code}}
                     team_list.append(dict)
         return team_list
@@ -434,6 +342,7 @@ class Employee(TsaBaseModel):
     prefix = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     email = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
+    identifier  = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
 
     wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
     workhours = IntegerField(default=0) # /hours per month
@@ -474,7 +383,7 @@ class Employee(TsaBaseModel):
 # - put info in id_dict
                 update_dict['id']['created'] = True
                 update_dict['id']['pk'] = instance.pk
-                update_dict['id']['parent_pk'] = company.pk
+                update_dict['id']['ppk'] = company.pk
                 update_dict['code']['value'] = instance.code
                 update_dict['code']['updated'] = True
                 update_dict['namelast']['value'] = instance.namelast
@@ -504,7 +413,7 @@ class Employee(TsaBaseModel):
         if employee:
             update_dict['id']['pk'] = pk_int
             if parent_pk_int:
-                update_dict['id']['parent_pk'] = parent_pk_int
+                update_dict['id']['ppk'] = parent_pk_int
             update_dict['id']['table'] = 'employee'
         return employee
 
@@ -537,7 +446,7 @@ class Employee(TsaBaseModel):
         if employees:
             for employee in employees:
                 dict = {'pk': employee.pk}
-                dict['id'] = {'pk': employee.pk, 'parent_pk': employee.company.pk}
+                dict['id'] = {'pk': employee.pk, 'ppk': employee.company.pk}
 
                 for field in ['code', 'namefirst', 'namelast', 'inactive']:
                     value = getattr(employee, field)
@@ -551,8 +460,6 @@ class Employee(TsaBaseModel):
 
                 employee_list.append(dict)
         return employee_list
-
-
 
 
 class Teammember(TsaBaseModel):
@@ -576,7 +483,7 @@ class Teammember(TsaBaseModel):
             for teammember in teammembers:
                 dict = {'pk': teammember.pk,
                         'id': {'pk': teammember.pk,
-                               'parent_pk': teammember.team.pk}}
+                               'ppk': teammember.team.pk}}
                 if teammember.team:
                     dict['team'] = {'pk': teammember.team.pk, 'value': teammember.team.code}
                 if teammember.employee:
@@ -667,7 +574,7 @@ class Schemeitem(TsaBaseModel):
 
         if schemeitem:
             for field in ['id']:
-                schemeitem_dict[field] = {'pk': schemeitem.id, 'parent_pk': schemeitem.scheme.id}
+                schemeitem_dict[field] = {'pk': schemeitem.id, 'ppk': schemeitem.scheme.id}
                 if temp_pk:
                     schemeitem_dict[field]['temp_pk'] = temp_pk
                 if is_created:
@@ -735,7 +642,7 @@ class Schemeitem(TsaBaseModel):
                 # schemeitem: {'shift': 'Shift 2', 'timestart': None, 'timeend': None, 'breakduration': 0, 'total': 1}
 
                 # add scheme.pk and total to dict 'id'
-                dict = {'id': {'parent_pk': shift.get('scheme_id'), 'count': shift.get('count')}}
+                dict = {'id': {'ppk': shift.get('scheme_id'), 'count': shift.get('count')}}
 
                 for field in ['shift', 'timestartdhm', 'timeenddhm', 'breakduration']:
                     value = shift.get(field)
@@ -757,6 +664,7 @@ class Orderhour(TsaBaseModel):
     schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
+    shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     duration = IntegerField(default=0)  # unit is hour * 100
     status = PositiveSmallIntegerField(db_index=True, default=0)
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
@@ -803,74 +711,6 @@ class Emplhour(TsaBaseModel):
     datelast = None
     inactive = None
 
-    @staticmethod
-    def create_emplhour_dict(emplhour, comp_timezone, user_lang):
-        # create dict of this scheme PR2019-05-12
-        emplhour_dict = {}
-        field_list = ('id', 'rosterdate', 'customer', 'order', 'shift', 'employee',
-                      'timestart', 'timeend', 'breakduration', 'timeduration','timestatus' )
-
-        for field in field_list:
-            emplhour_dict[field] = {}
-
-        if emplhour:
-            field = 'id'
-            emplhour_dict[field] = {'pk': emplhour.id, 'parent_pk': emplhour.orderhour.id}
-
-            field = 'rosterdate'
-            rosterdate = getattr(emplhour, field)
-            if rosterdate:
-                emplhour_dict[field] = fielddict_date(rosterdate, user_lang)
-
-            field = 'customer'
-            if emplhour.orderhour:
-                value = emplhour.orderhour.order.customer.code
-                if value:
-                    emplhour_dict[field] = {'value': value, 'customer_pk':emplhour.orderhour.order.customer.id}
-
-            field = 'order'
-            if emplhour.orderhour:
-                value = emplhour.orderhour.order.code
-                if value:
-                    emplhour_dict[field] = {'value': value, 'order_pk':emplhour.orderhour.order.id}
-
-            field = 'shift'
-            if emplhour.orderhour:
-                if emplhour.orderhour.schemeitem:
-                    value = emplhour.orderhour.schemeitem.shift
-                    if value:
-                        emplhour_dict[field] = {'value': value}
-
-            field = 'employee'
-            if emplhour.employee:
-                value = emplhour.employee.code
-                if value:
-                    emplhour_dict[field] = {'value': value, 'employee_pk':emplhour.employee.id}
-
-            for field in ['timestart', 'timeend']:
-                datetime = getattr(emplhour, field)
-                if datetime:
-                    field_dict = {'value': datetime}
-                    if rosterdate == datetime.date():
-                        field_dict['dhm'] = format_HM_from_dtetime(datetime, comp_timezone, user_lang)
-                    else:
-                        field_dict['dhm'] = formatWHM_from_datetime(datetime, comp_timezone, user_lang)
-                    field_dict['dmyhm'] = formatDMYHM_from_datetime(datetime, comp_timezone, user_lang)
-                    emplhour_dict[field] = field_dict
-
-            for field in ['timeduration', 'breakduration']:
-                value = getattr(emplhour, field)
-                if value:
-                    emplhour_dict[field] = fielddict_duration(value, user_lang)
-
-            field = 'timestatus'
-            value = emplhour.timestatus
-            field_dict = {'value': value}
-            emplhour_dict[field] = field_dict
-
-# --- remove empty attributes from update_dict
-        remove_empty_attr_from_dict(emplhour_dict)
-        return emplhour_dict
 
 class Emplhourlog(TsaBaseModel):
     objects = TsaManager()
@@ -925,7 +765,7 @@ class Companysetting(Model):  # PR2019-03-09
     @classmethod
     def get_setting(cls, key_str, company): #PR2019-03-09
         # function returns value of setting row that match the filter
-        logger.debug('---  get_setting  ------- ')
+        # logger.debug('---  get_setting  ------- ')
         setting = None
         if company and key_str:
             row = cls.objects.filter(company=company, key=key_str).first()
@@ -937,9 +777,8 @@ class Companysetting(Model):  # PR2019-03-09
     @classmethod
     def set_setting(cls, key_str, setting, company): #PR2019-03-09
         # function returns list of setting rows that match the filter
-        logger.debug('---  set_setting  ------- ')
-        logger.debug('setting: ' + str(setting))
-        logger.debug('setting: ' + str(setting))
+        # logger.debug('---  set_setting  ------- ')
+        # logger.debug('setting: ' + str(setting))
         # get
         if company and key_str:
             row = cls.objects.filter(company=company, key=key_str).first()
@@ -949,96 +788,67 @@ class Companysetting(Model):  # PR2019-03-09
                 if setting:
                     row = cls(company=company, key=key_str, setting=setting)
             row.save()
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def create_customer_list(company, user_lang, include_inactive):
-# --- create list of all active customers of this company PR2019-06-16
-    crit = Q(company=company)
-    if not include_inactive:
-        crit.add(Q(inactive=False), crit.connector)
-    customers = Customer.objects.filter(crit).order_by(Lower('code'))
-
-    customer_list = []
-    for customer in customers:
-        dict = {'pk': customer.pk,
-                'id': {'pk': customer.pk, 'parent_pk': customer.company.pk}}
-        if customer.code:
-            dict['code'] = {'value': customer.code}
-        if customer.name:
-            dict['name'] = {'value': customer.name}
-        if customer.inactive:
-            dict['inactive'] = {'value': customer.inactive}
-    # NOT IN USE
-        if customer.datefirst:
-            dict['datefirst'] = {
-                'value': get_date_yyyymmdd(customer.datefirst),
-                'wdmy': format_WDMY_from_dte(customer.datefirst, user_lang)}
-        if customer.datelast:
-            dict['datelast'] = {
-                'value': get_date_yyyymmdd(customer.datelast),
-                'wdmy': format_WDMY_from_dte(customer.datelast, user_lang)
-            }
-        customer_list.append(dict)
-    return customer_list
-
-
-def validate_code_or_name(model, field, value, update_dict, company, this_pk=None):
-    # validate if order code already_exists in this company PR2019-06-10
+def validate_code_or_name(table, field, new_value, parent_pk, this_pk=None):
+    # validate if order code already_exists in this table PR2019-06-10
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    #logger.debug('employee_exists: ' + str(code) + ' ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(company) + ' ' + str(this_pk))
+    logger.debug('validate_code_or_name: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent_pk) + ' ' + str(this_pk))
     msg_err = None
-    if not company:
-        msg_err = _("No company.")
+    if not parent_pk:
+        msg_err = _("Error.")
     else:
-        field_text = Upper(field[0]) + Lower(field[1:])
-        max_len = NAME_MAX_LENGTH
-        if field == 'code':
-            max_len = CODE_MAX_LENGTH
+        max_len = CODE_MAX_LENGTH  if field == 'code' else NAME_MAX_LENGTH
 
-        length = len(value)
+        length = 0
+        if new_value:
+            length = len(new_value)
+        logger.debug('length: ' + str(length))
+
+        fld = _('Code') if field == 'code' else _('Name')
         if length == 0:
             if field == 'name':
                 msg_err = _('Name cannot be blank.')
             else:
-                msg_err = _('Code cannot be blank.')
+                msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
         elif length > max_len:
-            if field == 'name':
-                msg_err = _('Name is too long. ') + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
-            else:
-                msg_err = _('Code is too long. ') + str(CODE_MAX_LENGTH) + _(' characters or fewer.')
-
+            # msg_err = _('%(fld)s is too long. %(max)s characters or fewer.') % {'fld': fld, 'max': max_len}
+            msg_err = _("%(fld)s '%(val)s' is too long, %(max)s characters or fewer.") % {'fld': fld, 'val': new_value, 'max': max_len}
+            # msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
         if not msg_err:
     # check if code already exists
-            crit = Q(code__iexact=value)
-            if field == 'name':
-                crit = Q(name__iexact=value)
+            crit = None
+            if field == 'code':
+                crit = Q(code__iexact=new_value)
+            elif field == 'name':
+                crit = Q(name__iexact=new_value)
             if this_pk:
                 crit.add(~Q(pk=this_pk), crit.connector)
 
+            #logger.debug('validate_code_or_name')
+            #logger.debug('table: ' + str(table) + 'field: ' + str(field) + ' new_value: ' + str(new_value))
+
             exists = False
-            if model == 'customer':
-                crit.add(Q(company=company), crit.connector)
+            if table == 'customer':
+                crit.add(Q(company=parent_pk), crit.connector)
                 exists = Customer.objects.filter(crit).exists()
-            elif model == 'order':
-                crit.add(Q(customer__company=company), crit.connector)
+            elif table == 'order':
+                crit.add(Q(customer=parent_pk), crit.connector)
                 exists = Order.objects.filter(crit).exists()
-            elif model == 'scheme':
-                crit.add(Q(order__customer__company=company), crit.connector)
+            elif table == 'scheme':
+                crit.add(Q(order=parent_pk), crit.connector)
                 exists = Scheme.objects.filter(crit).exists()
-            elif model == 'employee':
-                crit.add(Q(company=company), crit.connector)
+            elif table == 'employee':
+                crit.add(Q(company=parent_pk), crit.connector)
                 exists = Employee.objects.filter(crit).exists()
+            else:
+                msg_err = _("Model '%(mdl)s' not found.") % {'mdl': table}
             if exists:
-                if field == 'name':
-                    msg_err = _('Name already exists.')
-                else:
-                    msg_err = _('Code already exists.')
-    no_error = True
-    if msg_err:
-        no_error = False
-        update_dict[field]['error'] = msg_err
-    return no_error
+                msg_err = _("%(fld)s '%(val)s' already exists.") % {'fld': fld, 'val': new_value}
+
+    return msg_err
 
 
 

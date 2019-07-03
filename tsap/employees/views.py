@@ -157,7 +157,7 @@ class EmployeeUploadView(UpdateView):# PR2019-06-174
         item_update_dict = {}
         if request.user is not None and request.user.company is not None:
 # - Reset language
-            user_lang = request.user.lang if request.user.lang else 'nl'
+            user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
             activate(user_lang)
 
 # - get upload_dict from request.POST
@@ -243,7 +243,7 @@ class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
         logger.debug(' ============= EmployeeUploadView ============= ')
         if request.user is not None and request.user.company is not None:
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-            activate(request.user.lang if request.user.lang else 'nl')
+            activate(request.user.lang if request.user.lang else LANG_DEFAULT)
 
             # create dict and empty field attributes for all fields (unused ones will be removed at the end
             field_list = ('id', 'code', 'namelast', 'namefirst', 'prefix', 'email',
@@ -526,7 +526,7 @@ class EmployeeImportView(View):
             #                      {'tsaKey': 'orderdatefirst', 'caption': _('First date order')},
             #                      {'tsaKey': 'orderdatelast', 'caption': _('Last date order')} ]
 # LOCALE #
-            if request.user.lang == 'en':
+            if request.user.lang == LANG_EN:
                 coldef_list = [
                     {'tsaKey': 'code', 'caption': 'Code'},
                     {'tsaKey': 'namelast', 'caption': 'Last name'},
@@ -823,7 +823,7 @@ def get_parent_instance_employee(update_dict, company):
     if company:
         parent_instance = company
         if parent_instance:
-            update_dict['id']['parent_pk'] = company.pk
+            update_dict['id']['ppk'] = company.pk
             update_dict['id']['table'] = 'employee'
     return parent_instance
 
@@ -836,7 +836,7 @@ def update_employee_instance(instance, upload_dict, update_dict, request, user_l
     # add new values to update_dict (don't reset update_dict, it has values)
     logger.debug(' --- update_instance')
     logger.debug(upload_dict)
-    # upload_dict: {'id': {'temp_pk': 'new_2', 'create': True, 'parent_pk': 3, 'table': 'orders'},
+    # upload_dict: {'id': {'temp_pk': 'new_2', 'create': True, 'parent_pk': 3, 'table': 'order'},
     # 'code': {'update': True, 'value': 'ee'}}
 
     save_changes = False

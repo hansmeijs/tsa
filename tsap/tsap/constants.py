@@ -4,8 +4,8 @@ from django.utils.translation import ugettext_lazy as _
 
 USERNAME_MAX_LENGTH = 30
 USERNAME_SLICED_MAX_LENGTH = 24
-CODE_MAX_LENGTH = 15
-NAME_MAX_LENGTH = 80
+CODE_MAX_LENGTH = 15  # number is also hardcoded in _()
+NAME_MAX_LENGTH = 80  # number is also hardcoded in _()
 
 BASE_DATE = date(1899, 12, 31)
 
@@ -80,14 +80,20 @@ GENDER_CHOICES = (
 KEY_CUSTOMER_MAPPED_COLDEFS = "cust_mapped_coldefs"
 KEY_EMPLOYEE_MAPPED_COLDEFS = "empl_mapped_coldefs"
 
+
+LANG_NL = 'nl'
+LANG_EN = 'en'
+
+LANG_DEFAULT = LANG_NL
+
 #PR2019-03-23
-MONTHS_ABBREV = {'en': ('', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'),
-             'nl': ('', 'jan', 'feb', 'mrt', 'apr', 'mei', 'juni', 'juli', 'aug', 'sep', 'okt', 'nov', 'dec')
+MONTHS_ABBREV = {LANG_EN: ('', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'),
+             LANG_NL: ('', 'jan', 'feb', 'mrt', 'apr', 'mei', 'juni', 'juli', 'aug', 'sep', 'okt', 'nov', 'dec')
              }
 
 #PR2019-04-13
-WEEKDAYS_ABBREV = {'en': ('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'),
-             'nl': ('zo', 'ma', 'di', 'wo', 'do', 'vr', 'za')
+WEEKDAYS_ABBREV = {LANG_EN: ('', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'),
+             LANG_NL: ('', 'ma', 'di', 'wo', 'do', 'vr', 'za', 'zo')
              }
 
 #PR2019-04-14
@@ -98,12 +104,37 @@ TIMEINTERVALS = (1, 5, 10, 15, 20, 30, 60)
 
 
 # PR2019-04-21
-WEEKEND_CHOICES = {'en': ('also on weekends', 'only on weekends', 'not on weekends'),
-             'nl': ('ook in het weekeinde', 'alleen in het weekeinde', 'niet in het weekeinde')}
+WEEKEND_CHOICES = {LANG_EN: ('also on weekends', 'only on weekends', 'not on weekends'),
+                   LANG_NL: ('ook in het weekeinde', 'alleen in het weekeinde', 'niet in het weekeinde')}
 
 # PR2019-04-21
-PUBLICHOLIDAY_CHOICES = {'en': ('also on public holidays', 'only on public holidays', 'not on public holidays'),
-             'nl': ('ook op feestdagen', 'alleen op feestdagen', 'niet op feestdagen')}
+PUBLICHOLIDAY_CHOICES = {LANG_EN: ('also on public holidays', 'only on public holidays', 'not on public holidays'),
+                         LANG_NL: ('ook op feestdagen', 'alleen op feestdagen', 'niet op feestdagen')}
+
+# PR2019-06-25
+TYPE_00_NORMAL = 0
+TYPE_01_INTERNAL = 1
+TYPE_02_ABSENCE = 2
+TYPE_03_TEMPLATE = 3
+
+# PR2019-06-24
+ABSENCE_CATEGORY = {LANG_EN: (
+                        ('0', 'Vacation', 'Vacation leave'),
+                        ('1', 'Sick leave', 'Sick leave'),
+                        ('2', 'Special leave', 'Special leave'),
+                        ('3', 'Unpaid leave', 'Unpaid leave'),
+                        ('4', 'Unauthorized', 'Unauthorized absence'),
+                        ('5', 'Unknown', 'Unknown absence')),
+                    LANG_NL: (
+                        ('0', 'Vakantie', 'Vakantie'),
+                        ('1', 'Ziekte', 'Ziekteverzuim'),
+                        ('2', 'Buitengewoon', 'Buitengewoon verlof'),
+                        ('3', 'Onbetaald', 'Onbetaald verlof'),
+                        ('4', 'Ongeoorloofd', 'Ongeoorloofd verzuim'),
+                        ('5', 'Onbekend', 'Onbekend verzuim'))
+                    }
+# PR2019-06-24
+ABSENCE = {LANG_EN: 'Absence', LANG_NL: 'Afwezigheid'}
 
 STATUS_EMPLHOUR_00_NONE = 0
 STATUS_EMPLHOUR_01_CREATED = 1
@@ -113,3 +144,4 @@ STATUS_EMPLHOUR_04_ALL_CHECKED = 4
 STATUS_EMPLHOUR_05_APPROVED = 5
 
 KEY_COMP_ROSTERDATE_CURRENT = 'rstdte_current'
+KEY_USER_QUICKSAVE = 'quicksave'

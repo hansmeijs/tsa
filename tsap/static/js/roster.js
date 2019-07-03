@@ -1,91 +1,84 @@
 // PR2019-02-07 deprecated: $(document).ready(function() {
 $(function() {
         "use strict";
-        console.log("Roster document.ready");
 
-// ---  set selected menu button active
         const cls_active = "active";
         const cls_hover = "tr_hover";
+        const cls_highl = "tr_highlighted";
         const cls_hide = "display_hide";
 
-        let btn_clicked = document.getElementById("id_hdr_rost");
-        SetMenubuttonActive(btn_clicked);
+// ---  set selected menu button active
+        SetMenubuttonActive(document.getElementById("id_hdr_rost"));
 
 // ---  id of selected customer and selected order
-        let selected_customer_pk = 0;
-        let selected_order_pk = 0;
-        let selected_scheme_pk = 0;
-        let selected_team_pk = 0;
         let selected_item_pk = 0;
 
         let rosterdate_fill;
         let rosterdate_remove;
 
+        let companyoffset = 0 // # in seconds
+        const useroffset = get_userOffset();
+
 // ---  id_new assigns fake id to new records
         let id_new = 0;
-        let filter_name = "";
+
+        let filter_text = "";
         let filter_hide_inactive = true;
+        let filter_mod_employee = "";
 
-// ---  create EventListener for input elements
-        let el_scheme_code = document.getElementById("id_scheme_code")
-        let el_scheme_cycle = document.getElementById("id_scheme_cycle");
-        let el_scheme_datefirst = document.getElementById("id_scheme_datefirst");
-        let el_scheme_datelast = document.getElementById("id_scheme_datelast");
+        let customer_list = [];
+        let order_list = [];
+        let shift_list = [];
+        let abscat_list = [];
+        let employee_list = [];
+        let emplhour_list = [];
 
-// ---  create EventListener for popups
+        let tblBody_select = document.getElementById("id_tbody_select");
+        let tblBody_items = document.getElementById("id_tbody_items");
+        let tblHead_items = document.getElementById("id_thead_items");
+
+        let el_mod_tbody_select =  document.getElementById("id_mod_tbody_select");
+
+        let el_modal_body = document.getElementById("id_modal_body")
+        let el_modal_body_right = document.getElementById("id_modal_body_right")
+        let el_modal_header = document.getElementById("id_modal_header")
+
+        let el_timepicker = document.getElementById("id_timepicker")
+        let el_timepicker_tbody_hour = document.getElementById("id_timepicker_tbody_hour");
+        let el_timepicker_tbody_minute = document.getElementById("id_timepicker_tbody_minute");
+
         let el_popup_wdy = document.getElementById("id_popup_wdy");
-        let el_popup_dhm = document.getElementById("id_popup_dhm");
-        let el_popup_hm = document.getElementById("id_popup_hm");
+
+// --- get header elements
+        let hdr_customer = document.getElementById("id_hdr_customer")
+        let hdr_order = document.getElementById("id_hdr_order")
+
+        let el_loader = document.getElementById("id_loading_img");
+        let el_msg = document.getElementById("id_msgbox");
 
         document.addEventListener('click', function (event) {
-            // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
+// hide msgbox
+            el_msg.classList.remove("show");
+ // remove highlighted row when clicked outside tabelrows
+            let tr_selected = get_tablerow_selected(event.target)
+            if(!tr_selected) {
+                DeselectHighlightedRows(tblBody_items)};
 
+// close el_popup_wdy
             let close_popup = true
-            // don't close popup_dhm when clicked on row cell with class input_popup_dhm
-            if (event.target.classList.contains("input_popup_dhm")) {
-                close_popup = false
-            // don't close popup when clicked on popup box, except for close button
-            } else if (el_popup_hm.contains(event.target) && !event.target.classList.contains("popup_close")) {
-                close_popup = false
-            }
+            if (event.target.classList.contains("input_popup_wdy")) {close_popup = false} else
+            if (el_popup_wdy.contains(event.target) && !event.target.classList.contains("popup_close")) {close_popup = false}
             if (close_popup) {
-                // remove selected color from all input popups
-                popupbox_removebackground();
-                el_popup_hm.classList.add("display_hide");
-            };
-
+                popupbox_removebackground("input_popup_wdy");
+                el_popup_wdy.classList.add(cls_hide)};
+// close el_timepicker
             close_popup = true
-            // don't close popup_dhm when clicked on row cell with class input_popup_dhm
-            if (event.target.classList.contains("input_popup_dhm")) {
-                close_popup = false
-            // don't close popup when clicked on popup box, except for close button
-            } else if (el_popup_dhm.contains(event.target) && !event.target.classList.contains("popup_close")) {
-                close_popup = false
-            }
+            if (event.target.classList.contains("input_timepicker")) {close_popup = false} else
+            if (el_timepicker.contains(event.target) && !event.target.classList.contains("timepicker_close")) {close_popup = false}
             if (close_popup) {
-                // remove selected color from all input popups
-                popupbox_removebackground();
-                el_popup_dhm.classList.add("display_hide");
-            };
+                popupbox_removebackground("input_timepicker");
+                el_timepicker.classList.add(cls_hide)};
 
-            close_popup = true
-            // don't close popup_dhm when clicked on row cell with class input_popup_dhm
-            if (event.target.classList.contains("input_popup_wdy")) {
-                close_popup = false
-            // don't close popup when clicked on popup box, except for close button
-            } else if (el_popup_wdy.contains(event.target) && !event.target.classList.contains("popup_close")) {
-                close_popup = false
-            }
-            if (close_popup) {
-                // remove selected color from all input popups
-                popupbox_removebackground();
-                el_popup_wdy.classList.add("display_hide");
-            };
-            // remove highlighted row when clicked outside tabelrows
-            // skip if clicked on button delete delete_schemeitem
-            if(event.target.getAttribute("id") !== "id_btn_delete_schemeitem" && !get_tablerow_selected(event.target)) {
-                DeselectHighlightedRows();
-            }
         }, false);
 
 // ---  create EventListener for class input_text
@@ -100,24 +93,39 @@ $(function() {
             }, false )
         }
 
-        let tblBody_items = document.getElementById("id_tbody_items");
-        let tblHead_items = document.getElementById("id_thead_items");
-
-        let el_loader = document.getElementById("id_loading_img");
+// ---  create EventListener for popups
+        document.getElementById("id_timepicker_prevday").addEventListener("click", function() {HandleTimepickerEvent("prevday");}, false )
+        document.getElementById("id_timepicker_nextday").addEventListener("click", function() {HandleTimepickerEvent("nextday");}, false )
+        let el_timepicker_save = document.getElementById("id_timepicker_save")
+            el_timepicker_save.addEventListener("click", function() {HandleTimepickerSave()}, false )
+        let el_timepicker_quicksave = document.getElementById("id_timepicker_quicksave")
+            el_timepicker_quicksave.addEventListener("click", function() {HandleTimepickerSave("quicksave")}, false )
+            el_timepicker_quicksave.addEventListener("mouseenter", function(){el_timepicker_quicksave.classList.add(cls_hover);});
+            el_timepicker_quicksave.addEventListener("mouseleave", function(){el_timepicker_quicksave.classList.remove(cls_hover);});
 
 // ---  create EventListener for buttons
-
         let el_btn_rosterdate_fill = document.getElementById("id_btn_rosterdate_fill")
             el_btn_rosterdate_fill.addEventListener("click", function(){HandleFillRosterdate("fill")}, false)
         let el_btn_rosterdate_remove = document.getElementById("id_btn_rosterdate_remove")
             el_btn_rosterdate_remove.addEventListener("click", function(){HandleFillRosterdate("remove")}, false)
 
-        document.getElementById("id_popup_dhm_save").addEventListener("click", function(){
-            HandlePopupDhmSave();}, false)
-        document.getElementById("id_popup_hm_save").addEventListener("click", function(){
-            HandlePopupHmSave();}, false)
+// ---  add 'keyup' event handler to filter input
+        let el_filter_name = document.getElementById("id_filter_name")
+        el_filter_name.addEventListener("keyup", function(){setTimeout(function() {HandleSearchFilterEvent()}, 50)});
+        let el_mod_filter_employee = document.getElementById("id_mod_filter_employee")
+        el_mod_filter_employee.addEventListener("keyup", function(){setTimeout(function() {HandleModalFilterEmployee("filter")}, 50)});
 
-        // buttons in  popup_wdy
+        let el_mod_employee = document.getElementById("id_mod_employee")
+        el_mod_employee.addEventListener("keyup", function(){setTimeout(function() {HandleModalFilterEmployee("input")}, 50)});
+
+// buttons in  modal
+        id_mod_btn_absent
+        document.getElementById("id_mod_btn_absent").addEventListener("click", function() {HandleModalSelect("absent");}, false )
+        document.getElementById("id_mod_btn_switch").addEventListener("click", function() {HandleModalSelect("switch");}, false )
+        document.getElementById("id_mod_btn_split").addEventListener("click", function() {HandleModalSelect("split");}, false )
+        document.getElementById("id_mod_btn_save").addEventListener("click", function() {HandleModalSave();}, false )
+
+// buttons in  popup_wdy
         document.getElementById("id_popup_wdy_prev_month").addEventListener("click", function() {HandlePopupBtnWdy();}, false )
         document.getElementById("id_popup_wdy_prev_day").addEventListener("click", function() {HandlePopupBtnWdy();}, false )
         document.getElementById("id_popup_wdy_today").addEventListener("click", function() {HandlePopupBtnWdy();}, false )
@@ -125,75 +133,131 @@ $(function() {
         document.getElementById("id_popup_wdy_nextmonth").addEventListener("click", function() {HandlePopupBtnWdy();}, false )
         document.getElementById("id_popup_wdy_save").addEventListener("click", function() {HandlePopupWdySave();}, false )
 
-// ---  add 'keyup' event handler to filter input
-        document.getElementById("id_filter_name").addEventListener("keyup", function() {
-            setTimeout(function() {HandleSearchFilterEvent();}, 150);
-        });
-
-// --- get header elements
-        let hdr_customer = document.getElementById("id_hdr_customer")
-        let hdr_order = document.getElementById("id_hdr_order")
-
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
-        let customer_list = [];
-        let order_list = [];
-        let scheme_list = [];
-        let schemeitem_list = [];
-        let shift_list = [];
-        let team_list = [];
-
-        let employee_list = [];
-        let emplhour_list = [];
-
         const url_datalist_download = get_attr_from_element(el_data, "data-datalist_download_url");
-        const url_scheme_upload = get_attr_from_element(el_data, "data-scheme_upload_url");
-        const url_schemeitem_upload = get_attr_from_element(el_data, "data-schemeitem_upload_url");
-        const url_schemeitem_fill = get_attr_from_element(el_data, "data-schemeitem_fill_url");
-        const url_schemeitems_download = get_attr_from_element(el_data, "data-schemeitems_download_url");
-        const url_team_upload = get_attr_from_element(el_data, "data-schemeorteam_upload_url");
+        const url_emplhour_upload = get_attr_from_element(el_data, "data-emplhour_upload_url");
         const url_emplhour_fill_rosterdate = get_attr_from_element(el_data, "data-emplhour_fill_rosterdate_url");
 
         const imgsrc_inactive = get_attr_from_element(el_data, "data-imgsrc_inactive");
         const imgsrc_active = get_attr_from_element(el_data, "data-imgsrc_active");
         const imgsrc_delete = get_attr_from_element(el_data, "data-imgsrc_delete");
         const imgsrc_warning = get_attr_from_element(el_data, "data-imgsrc_warning");
+        const imgsrc_questionmark = get_attr_from_element(el_data, "data-imgsrc_questionmark");
         const imgsrc_stat04 = get_attr_from_element(el_data, "data-imgsrc_stat04");
 
         const weekday_list = get_attr_from_element_dict(el_data, "data-weekdays");
         const month_list = get_attr_from_element_dict(el_data, "data-months");
         const today_dict = get_attr_from_element_dict(el_data, "data-today");
         const interval = get_attr_from_element_int(el_data, "data-interval");
-        const timeformat = get_attr_from_element(el_data, "data-timeformat");
+
+        let timeformat = get_attr_from_element(el_data, "data-timeformat");
+        let quicksave = false
+        if (get_attr_from_element_int(el_data, "data-quicksave") === 1 ) { quicksave = true};
+        let comp_timezone = get_attr_from_element(el_data, "data-timezone");
+        let user_lang = get_attr_from_element(el_data, "data-lang");
+
+        // from https://stackoverflow.com/questions/17493309/how-do-i-change-the-language-of-moment-js
+        // console.log(moment.locales())
+        moment.locale(user_lang)
+
+        const select_text_abscat = get_attr_from_element(el_data, "data-txt_select_abscat");
+        const select_text_abscat_none = get_attr_from_element(el_data, "data-txt_select_abscat_none");
+
+        // let intervalID = window.setInterval(CheckStatus, 5000);
 
 // --- create header row
-        CreateTableHeader("schemeitems");
+        CreateTableHeader();
 
-        const datalist_request = {"customers": {inactive: false},
-                                  "orders": {inactive: false},
-                                  "emplhours": {"dateXXXfirst": false, "dateXXXlast": false},
-                                  "rosterdatefill": {next: true}};
+        CreateTimepickerHours();
+        CreateTimepickerMinutes()
+
+        const datalist_request = {"customer": {inactive: false},
+                                  "order": {inactive: false},
+                                  "employee": {inactive: false},
+                                  "emplhour": {"dateXXXfirst": false, "dateXXXlast": false},
+                                  "rosterdatefill": {next: true},
+                                  "abscat": {inactive: false}};
         DatalistDownload(datalist_request);
 
 //  #############################################################################################################
 
+function CheckStatus() {
+        console.log( "=== CheckStatus ")
+    // function loops through emplhours, set questingsmark or warning when toimestrat / enb reached
+
+    // this code converts ISO to date
+    // var s = '2014-11-03T19:38:34.203Z';
+    //   var b = s.split(/\D+/);
+    //  let testdate =  new Date(Date.UTC(b[0], --b[1], b[2], b[3], b[4], b[5], b[6]));
+    //         console.log( "testdate: ", testdate)
+
+    // new Date gives now in local time:  Thu Jun 20 2019 07:42:39 GMT-0400 (Bolivia Time) type: object
+    const now_datetime_local = new Date;
+
+    // The Date.now() method returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC
+    const now_timestamp_local = Date.now();  // timestamp_now_local : 1561030959379 type: number
+    // console.log( "now_timestamp_local: ", new Date(now_timestamp_local) )
+
+
+
+    // get now in UTC time
+    const now_timestamp_UTC = now_timestamp_local - useroffset * 1000 // # useroffset is in seconds
+    // console.log( "now_timestamp_UTC: ", new Date(now_timestamp_UTC) )
+
+    // get now in dbase time
+    const now_timestamp_dbase = now_timestamp_UTC - companyoffset * 1000 // # companyoffset is in seconds
+    // console.log( "now_timestamp_dbase: ", new Date(now_timestamp_dbase) )
+
+// --- loop through item_list
+        let len = emplhour_list.length;
+        if (len > 0){
+            for (let i = 0, dict, timestart, timeend; i < len; i++) {
+                dict = emplhour_list[i];
+                // console.log( "emplhour_dict ", dict);
+
+                // calculate time difference with 'now' in minutes
+                timestart = get_subdict_value_by_key ( dict, "timestart", "value")
+                const timestart_datetime_dbase = new Date(timestart);
+                const timestart_timestamp_dbase = timestart_datetime_dbase.getTime();
+                const diff_timestamp_dbase = (timestart_timestamp_dbase - now_timestamp_dbase) / 60000
+// console.log();
+
+                // console.log( "timestart ", timestart);
+                // console.log( "timestart_timestamp_dbase: ", new Date(timestart_timestamp_dbase) )
+                // console.log( "diff_timestamp_dbase ", diff_timestamp_dbase);
+                // console.log( "hours ", diff_timestamp_dbase/60 );
+
+                timeend = get_subdict_value_by_key ( dict, "timeend", "value")
+                const timeend_datetime_dbase = new Date(timeend);
+                const timeend_timestamp_dbase = timeend_datetime_dbase.getTime();
+                const timeend_diff_dbase = (timeend_timestamp_dbase - now_timestamp_dbase) / 60000
+// console.log();
+                // console.log( "timeend ", timeend);
+                // console.log( "timeend_timestamp_dbase date: ", new Date(timeend_timestamp_dbase) )
+                // console.log( "timeend_diff_dbase ", timeend_diff_dbase);
+                // console.log( "hours ", diff_timestamp_dbase/60 );
+            }
+        }
+    }  // function CheckStatus
+
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request) {
         console.log( "=== DatalistDownload ")
-        console.log("datalist_request")
-        console.log( datalist_request)
-        // datalist_request: {"schemeitems": {"parent_pk": pk}, "teams": {"parent_pk": pk}, "shifts": {"parent_pk": pk}
+        // console.log("datalist_request")
+        // console.log( datalist_request)
+        // datalist_request: {"schemeitems": {"ppk": pk}, "teams": {"ppk": pk}, "shifts": {"ppk": pk}
 
 // reset requested lists
         for (let key in datalist_request) {
             // check if the property/key is defined in the object itself, not in parent
-            if (key === "customers") {customer_list = []};
-            if (key === "orders") {order_list = []};
-            if (key === "schemes") {scheme_list = []};
-            if (key === "schemeitems") {schemeitem_list = []};
-            if (key === "shifts") {shift_list = []};
-            if (key === "employees") {employee_list = []};
-            if (key === "emplhours") {emplhour_list = []};
+            if (key === "customer") {customer_list = []};
+            if (key === "order") {order_list = []};
+            if (key === "scheme") {scheme_list = []};
+            if (key === "schemeitem") {schemeitem_list = []};
+            if (key === "shift") {shift_list = []};
+            if (key === "employee") {employee_list = []};
+            if (key === "emplhour") {emplhour_list = []};
             // "rosterdatefill" for fill rosterdate
         }
 
@@ -211,21 +275,28 @@ $(function() {
                 console.log(response)
                 // hide loader
                 el_loader.classList.add(cls_hide)
-
-                if ("employees" in datalist_request) {
-                    if ("employees" in response) {
-                        employee_list= response["employees"];}
-                    FillDatalist("id_datalist_employees", employee_list)}
-                if ("rosterdatefill" in datalist_request) {
-                    if ("rosterdatefill" in response) {
-                        SetNewRosterdate(response["rosterdatefill"])
-                        if ("emplhours" in response) {
-                            emplhour_list= response["emplhours"];
-                            FillTableRows()}}}
-                if ("emplhours" in datalist_request) {
-                    if ("emplhours" in response) {
-                        emplhour_list= response["emplhours"];
-                        FillTableRows()}}
+                let fill_table = false;
+                if ("abscat" in response) {
+                    abscat_list= response["abscat"];
+                    FillSelectAbscat(abscat_list)
+                }
+                if ("employee" in response) {
+                    employee_list= response["employee"];
+                }
+                if ("rosterdatefill" in response) {
+                    SetNewRosterdate(response["rosterdatefill"])
+                    if ("emplhour" in response) {
+                        emplhour_list= response["emplhour"];
+                        console.log( " rosterdatefill FillTableRows");
+                        fill_table = true;}
+                }
+                if ("emplhour" in response) {
+                    emplhour_list= response["emplhour"];
+                    console.log( " emplhour FillTableRows");
+                    fill_table = true;
+                    CheckStatus()
+                }
+                if (fill_table) {FillTableRows()}
             },
             error: function (xhr, msg) {
                 console.log(msg + '\n' + xhr.responseText);
@@ -234,7 +305,7 @@ $(function() {
                 alert(msg + '\n' + xhr.responseText);
             }
         });
-}
+    }  // function DatalistDownload
 
 //========= FillDatalist  ====================================
     function FillDatalist(id_datalist, data_list, scheme_pk) {
@@ -243,8 +314,8 @@ $(function() {
         let el_datalist = document.getElementById(id_datalist);
         el_datalist.innerText = null
         for (let row_index = 0, tblRow, hide_row, len = data_list.length; row_index < len; row_index++) {
-
             let dict = data_list[row_index];
+
             let pk = get_pk_from_id (dict)
             let parent_pk = get_parent_pk (dict)
             let code = get_subdict_value_by_key (dict, "code", "value", "")
@@ -264,591 +335,12 @@ $(function() {
         }
     }; // function FillDatalist
 
-//=========  HandleTableRowClicked  ================ PR2019-03-30
-    function HandleTableRowClicked(tr_clicked) {
-        // console.log("=== HandleTableRowClicked");
-        //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
-
-// ---  deselect all highlighted rows
-        DeselectHighlightedRows(tr_clicked.parentNode)
-
-// ---  get clicked tablerow
-        if(!!tr_clicked) {
-// ---  highlight clicked row
-            selected_item_pk = get_datapk_from_element(tr_clicked)
-            tr_clicked.classList.add("tsa_tr_selected")
-        }
-    }
-
-//=========  HandleCreateSchemeItem  ================ PR2019-03-16
-    function HandleCreateSchemeItem() {
-        console.log("=== HandleCreateSchemeItem =========");
-
-        tbody_clicked =  tblRow.parentNode;
-        console.log( "tbody_clicked ", tbody_clicked);
-
-// ---  deselect all highlighted rows
-        DeselectHighlightedRows(tbody_clicked)
-
-//-- increase id_new
-        id_new = id_new + 1
-        const pk = "new_" + id_new.toString()
-        const parent_pk = document.getElementById("id_scheme").value
-        console.log("pk", pk, "parent_pk", parent_pk);
-
-// get rosterdate from previous tablerow or today
-        let schemeitem_dict = {};
-        schemeitem_dict["id"] = {"pk": pk, "parent_pk": parent_pk};
-
-// get last tblRow
-        let rosterdate, timeend, value;
-
-        let rosterdate_dict = {};
-        let timeend_dict = {};
-        const len = tblBody_items.rows.length
-        if (len > 0) {
-            let tblRow = tblBody_items.rows[len -1];
-
-            // el_input is first child of td, td is cell of tblRow
-            const el_rosterdate = tblRow.cells[1].children[0];
-                value = get_attr_from_element(el_rosterdate, "data-value"); // data-value = "2019-05-11"
-                if(!!value){rosterdate_dict["value"] = value}
-                const wdm = el_rosterdate.value; // value = "wo 1 mei"
-                if(!!wdm){ rosterdate_dict["wdm"] = wdm}
-                const wdmy = get_attr_from_element(el_rosterdate, "data-wdmy"); // data-wdmy = "wo 1 mei 2019"
-                if(!!wdmy){ rosterdate_dict["wdmy"] = wdmy}
-                const offset = get_attr_from_element(el_rosterdate, "data-offset"); // data-offset: "-1:di,0:wo,1:do"
-                if(!!offset){ rosterdate_dict["offset"] = offset}
-                // unknown o_value triggers save action in uploadcahnges
-                rosterdate_dict["data_value"] = value
-                rosterdate_dict["data_o_value"] = "---"
-
-            const el_time_end = tblRow.cells[5].children[0];
-            if(!!el_timeend){
-                value = get_attr_from_element(el_timeend, "data-value"); // data-value = "0;5;0"
-                if(!!value){ timeend_dict["value"] = value };
-                const dhm = el_timeend.value; // value = "wo 1 mei"
-                if(!!dhm){ timeend_dict["dhm"] = dhm }
-                // unknown o_value triggers save action in uploadcahnges
-                timeend_dict["data_o_value"] = "---"
-            }
-        } else {
-            rosterdate_dict = today_dict
-            rosterdate_dict["data_value"] = rosterdate_dict["value"];
-            // unknown o_value triggers save action in uploadcahnges
-            rosterdate_dict["data_o_value"] = "---"
-        };
-
-        schemeitem_dict["id"] = {"pk": pk, "parent_pk": parent_pk, "create": true};
-        schemeitem_dict["rosterdate"] = rosterdate_dict;
-        if(!!timeend_dict){ schemeitem_dict["timestart"] = timeend_dict}
-
-        let tblRow = CreateTableRow("schemeitems", pk, parent_pk)
-
-// Update TableRow
-        console.log("schemeitem_dict", schemeitem_dict);
-        UpdateTableRow("schemeitems", tblRow, schemeitem_dict)
-    }
-
-//========= GetSchemeDictFromInputElements  ============= PR2019-06-06
-    function GetSchemeDictFromInputElements() {
-        // console.log("======== GetSchemeDictFromInputElements");
-
-        let item_dict = {};
-
-// ---  create id_dict
-        let id_dict = get_iddict_from_element(el_scheme_code);
-        // console.log("--- id_dict", id_dict);
-
-// add id_dict to item_dict
-        if (!!id_dict){
-            item_dict["id"] = id_dict
-
-// ---  loop through cells of tr_changed
-            let field_list = ["code", "cycle", "datefirst", "datelast"];
-
-            for(let i = 0, fieldname, n_value, o_value, len = field_list.length; i < len; i++){
-                fieldname = field_list[i];
-                let el_input = document.getElementById("id_scheme_" + fieldname )
-                let field_dict = {};
-
-// get value
-                    // PR2019-03-17 debug: getAttribute("value");does not get the current value
-                    // The 'value' attribute determines the initial value (el_input.getAttribute("name").
-                    // The 'value' property holds the current value (el_input.value).
-
-                if (["code", "cycle"].indexOf( fieldname ) > -1){
-                    n_value = el_input.value;
-                } else {
-                    n_value = get_attr_from_element(el_input, "data-value"); // data-value="2019-05-11"
-                };
-                o_value = get_attr_from_element(el_input, "data-o_value"); // data-value="2019-03-29"
-                //console.log("fieldname", fieldname, "n_value", n_value, "o_value", o_value);
-
-                    // n_value can be blank when deleted, skip when both are blank
-                    if(n_value !== o_value){
-                        field_dict["update"] = true;
-
-                        if(!!n_value){field_dict["value"] = n_value};
-// get pk from element
-                        let pk;
-                        if (["team", "employee"].indexOf( fieldname ) > -1){
-                // get pk from datalist
-                            if (!!n_value){
-                                pk = parseInt(get_pk_from_datalist("id_datalist_" + fieldname + "s", n_value));
-                            }
-                        } else {
-                // get pk from attribute 'data-pk'
-                            pk = parseInt(get_attr_from_element(el_input, "data-pk"));
-                        }
-                        if(!!pk){field_dict["pk"] = pk};
-                    };  // if(n_value !== o_value)
-                    //console.log("field_dict", field_dict);
-
-// add field_dict to item_dict
-                    if (!isEmpty(field_dict)){
-                        item_dict[fieldname] = field_dict;
-                    };
-            };  //  for (let i = 0, el_input,
-        };  // if (!!id_dict){
-        return item_dict;
-    };  // function GetSchemeDictFromInputElements
-
-//========= UploadChanges  ============= PR2019-03-03
-    function UploadChanges(el_changed) {
-        //console.log("--- UploadChanges  --------------");
-        let tr_changed = get_tablerow_clicked(el_changed)
-        UploadTblrowChanged(tr_changed);
-    }
-
-//========= UploadTblrowChanged  ============= PR2019-03-03
-// PR2019-03-17 debug: Here you have written this script on document.ready function, that's why it returns obsolete value.
-// Put this script in some event i.e click, keypress,blur,onchange etc... So that you can get the changed value.
-// An input has a value attribute that determines the initial value of the input.
-// It also has a value property that holds the current value of the input
-    function UploadTblrowChanged(tr_changed) {
-        console.log("=== UploadTblrowChanged");
-        let new_item = GetItemDictFromTablerow(tr_changed);
-        console.log("schemeitem_upload: " );
-        console.log(new_item );
-
-        if(!!new_item) {
-            let parameters = {"schemeitem_upload": JSON.stringify (new_item)};
-
-            let response = "";
-            $.ajax({
-                type: "POST",
-                url: url_schemeitem_upload,
-                data: parameters,
-                dataType:'json',
-                success: function (response) {
-                    console.log( "response");
-                    console.log( response);
-
-                    if ("schemeitem_list" in response) {
-                        schemeitem_list= response["schemeitem_list"]}
-
-                    if ("item_update" in response) {
-                        let item_dict =response["item_update"]
-                        const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
-                        UpdateTableRow(tblName, tr_changed, item_dict)
-                        // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
-                        //id: {parent_pk: 126, table: "teammembers", created: true, pk: 57, temp_pk: "new_4"}
-                        //team: {pk: 126, value: "A", updated: true}
-                        const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
-                        if (is_created){
-// add new empty row
-                    console.log( "UploadTblrowChanged >>> add new empty row");
-                            id_new = id_new + 1
-                            const pk_new = "new_" + id_new.toString()
-                            const parent_pk = get_parent_pk (item_dict)
-
-                            let new_dict = {}
-                            new_dict["id"] = {"pk": pk_new, "parent_pk": parent_pk, "temp_pk": pk_new}
-
-                            if (tblName === "schemeitems"){
-                                let rosterdate_dict = get_dict_value_by_key (item_dict, "rosterdate")
-                    // remove 'updated' from dict, otherwise rosterdate in new row will become green also
-                                delete rosterdate_dict["updated"];
-                                // rosterdate_dict["update"] = true;
-
-                                if(isEmpty(rosterdate_dict)){rosterdate_dict = today_dict}
-                                new_dict["rosterdate"] = rosterdate_dict
-                            } else  if (tblName === "teammembers"){
-                                const team_code = get_subdict_value_by_key (item_dict, "team", "value")
-                                new_dict["team"] = {"pk": parent_pk, "value": team_code}
-                            }
-                            let tblRow = CreateTableRow(tblName, pk_new, parent_pk, {})
-                            UpdateTableRow(tblName, tblRow, new_dict)
-                        }
-                    }
-                },
-                error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
-                    alert(msg + '\n' + xhr.responseText);
-                }
-            });
-        }  //  if(!!new_item)
-    };  // UploadTblrowChanged
-
-//=========  HandleDeleteTblrow  ================ PR2019-03-16
-    function HandleDeleteTblrow(tblName, tblRow) {
-        // console.log("=== HandleDeleteTblrow");
-
-// ---  get pk from id of tblRow
-            const pk_int = get_datapk_from_element (tblRow)
-            const parent_pk_int = parseInt(get_attr_from_element(tblRow, "data-parent_pk"))
-
-            //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-            if (!pk_int) {
-            // when pk_int = 'new_2' row is new row and is not yet saved, can be deleted without ajax
-                tblRow.parentNode.removeChild(tblRow);
-            } else {
-
-// ---  create id_dict
-                const id_dict = get_iddict_from_element(tblRow);
-                // add id_dict to new_item
-                if (!!id_dict){
-    // ---  create param
-                    id_dict["delete"] = true;
-                    let param = {"id": id_dict}
-                    console.log( "param: ");
-                    console.log(param);
-    // delete  record
-                    // make row red
-                    tblRow.classList.add("tsa_tr_error");
-                    let parameters = {"schemeitem_upload": JSON.stringify (param)};
-                    let response = "";
-
-                    $.ajax({
-                        type: "POST",
-                        url: url_schemeitem_upload,
-                        data: parameters,
-                        dataType:'json',
-                        success: function (response) {
-                            console.log ("response:");
-                            console.log (response);
-                            if ("item_update" in response){
-                                let update_dict = response["item_update"]
-                                UpdateSchemeitemOrTeammmember(tblRow, update_dict)
-                            };
-                        },
-                        error: function (xhr, msg) {
-                            console.log(msg + '\n' + xhr.responseText);
-                            alert(msg + '\n' + xhr.responseText);
-                        }
-                    });
-
-                }  // if (!!id_dict)
-            }; // if (!pk_int)
-
-    }
-
-//========= UpdateSchemeitemOrTeammmember  =============
-    function UpdateSchemeitemOrTeammmember(tblRow, update_dict){
-        console.log("=== UpdateSchemeitemOrTeammmember ===");
-        console.log("update_dict: " , update_dict);
-        // 'update_dict': {'id': {'error': 'This record could not be deleted.'}}}
-        // 'update_dict': {'id': {'pk': 169, 'parent_pk': 24, deleted: true}
-
-        // update_dict': {id: {temp_pk: "new_4", pk: 97, parent_pk: 21, created: true}, code: {updated: true, value: "AA"}}
-
-        if (!!update_dict) {
-// get id_new and id_pk from update_dict["id"]
-            const pk = get_pk_from_id(update_dict);
-            const parent_pk = get_parent_pk(update_dict);
-            console.log("pk: ", pk, "parent_pk: ", parent_pk);
-
-            let id_dict = get_dict_value_by_key (update_dict, "id")
-            if (!!tblRow){
-// --- remove deleted record from list
-                if ("created" in id_dict) {
-                    FillTableRows()
-                    let tblRowSelected = document.getElementById(pk.toString())
-                    tblRowSelected.classList.remove("tsa_tr_selected");
-                    tblRowSelected.classList.add("tsa_tr_ok");
-                    setTimeout(function (){
-                        tblRowSelected.classList.remove("tsa_tr_ok");
-                        tblRowSelected.classList.add("tsa_tr_selected");
-                    }, 2000);
-// --- remove deleted record from list
-                } else if ("deleted" in id_dict) {
-                    tblRow.parentNode.removeChild(tblRow);
-
-// --- when err: show error message
-                } else if ("error" in id_dict){
-                    ShowMsgError(tblRow.cells[0], id_dict.error, -60)
-                } // if (id_deleted){
-
-
-            } // if (!!tblRow){
-        }  // if (!!update_dict)
-    }  // UpdateSchemeitemOrTeammmember
-
-//=========  HandleFilterInactive  ================ PR2019-03-23
-    function HandleFilterInactive() {
-        console.log("=========  function HandleFilterInactive =========");
-// toggle value
-        filter_hide_inactive = !filter_hide_inactive
-// toggle icon
-        let el_img_filter_inactive = document.getElementById("id_img_filter_inactive");
-        if (filter_hide_inactive) {
-            el_img_filter_inactive.setAttribute("src", imgsrc_active);
-        } else {
-            el_img_filter_inactive.setAttribute("src", imgsrc_inactive);
-        }
-        FilterRows(tblRow);
-    }  // function HandleFilterInactive
-
-//========= HandleSearchFilterEvent  ====================================
-    function HandleSearchFilterEvent() {
-        console.log( "===== HandleSearchFilterEvent  ========= ");
-        // skip filter if filter value has not changed, update variable filter_name
-        let new_filter = document.getElementById("id_filter_name").value;
-        let skip_filter = false
-        if (!new_filter){
-            if (!filter_name){
-                skip_filter = true
-            } else {
-                filter_name = "";
-            }
-        } else {
-            if (new_filter.toLowerCase() === filter_name) {
-                skip_filter = true
-            } else {
-                filter_name = new_filter.toLowerCase();
-            }
-        }
-        if (!skip_filter) {
-            FilterRows(tblRow)
-        } //  if (!skip_filter) {
-    }; // function HandleSearchFilterEvent
-
-//========= SetNewRosterdate  ================ PR2019-06-07
-    function SetNewRosterdate(rosterdate_dict) {
-        console.log( "===== SetNewRosterdate  ========= ");
-        console.log(rosterdate_dict);
-
-        let text_fill = get_attr_from_element(el_data, "data-txt_rosterdate_fill");
-        let text_remove = get_attr_from_element(el_data, "data-txt_rosterdate_remove");
-
-        rosterdate_fill = null;
-        rosterdate_remove = null;
-        if (!!rosterdate_dict){
-            rosterdate_remove  = get_subdict_value_by_key (rosterdate_dict, "current", "value")
-            text_remove = text_remove + " " + get_subdict_value_by_key (rosterdate_dict, "current", "dm")
-
-            rosterdate_fill = get_subdict_value_by_key (rosterdate_dict, "next", "value")
-            text_fill = text_fill + " " + get_subdict_value_by_key (rosterdate_dict, "next", "dm")
-        }
-        el_btn_rosterdate_fill.innerText = text_fill
-        el_btn_rosterdate_remove.innerText = text_remove
-
-    }; // function SetNewRosterdate
-
-//=========  UploadSchemeOrTeam  ================ PR2019-05-31
-    function UploadSchemeOrTeam(tblRow, action) {
-        console.log("========= UploadSchemeOrTeam");
-        console.log(" tblRow", tblRow);
-
-        let tblName = get_attr_from_element(tblRow, "data-table");
-        console.log(" tblName", tblName);
-        console.log(" action", action);
-
-        let dict = {};
-        if (!!tblRow){
-
-// ---  get pk from id of tblRow
-            const pk_str = tblRow.getAttribute("data-pk");
-            let pk_int = parseInt(pk_str)
-
-// ---  create id_dict
-            let id_dict = {}
-            //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-            if (!pk_int){
-                id_dict["temp_pk"] = pk_str
-            } else {
-    // if pk_int exists: row is saved row
-                id_dict["pk"] = pk_int;
-            };
-            id_dict[action] = true;
-
-            if (action === 'delete'){
-                tblRow.classList.remove("tsa_tr_selected");
-                tblRow.classList.add("tsa_tr_error");
-            }
-
-    // get parent_pk
-            const parent_pk_int = get_attr_from_element_int(tblRow, "data-parent_pk");
-            id_dict["parent_pk"] = parent_pk_int;
-
-        console.log("id_dict", id_dict);
-
-    // add id_dict to dict
-            if (!!id_dict){
-                dict["id"] = id_dict
-                // el_input is first child of td, td is cell of tblRow
-                let fieldname, value, o_value, n_value, field_dict = {};
-                let el_input = tblRow.cells[0].children[0];
-
-                if(!!el_input){
-                    // PR2019-03-17 debug: getAttribute("value");does not get the current value
-                    // The 'value' attribute determines the initial value (el_input.getAttribute("name").
-                    // The 'value' property holds the current value (el_input.value).
-                    n_value = el_input.value // data-value="2019-05-11"
-
-                    field_dict["update"] = true;
-                    if(!!n_value){field_dict["value"] = n_value};
-                };
-                // add field_dict to dict
-                if (!isEmpty(field_dict)){dict["code"] = field_dict;};
-            };  // if (!!id_dict){
-            console.log("tblName", tblName);
-            console.log("dict", dict);
-
-            let parameters = {};
-            parameters[tblName] = JSON.stringify (dict);
-
-            let response = "";
-            $.ajax({
-                type: "POST",
-                url: url_team_upload,
-                data: parameters,
-                dataType:'json',
-                success: function (response) {
-                    console.log ("response:");
-                    console.log (response);
-                    if ("team_list" in response){
-                        team_list = response["team_list"]
-                        FillDatalist("id_datalist_teams", team_list, parent_pk_int)
-                    };
-                    if ("scheme_list" in response){
-                        scheme_list = response["scheme_list"]
-                    };
-                    if ("team_update" in response){
-                        UpdateSchemeOrTeam(tblName, tblRow, response["team_update"])
-                    };
-                    if ("scheme_update" in response){
-                        UpdateSchemeOrTeam(tblName, tblRow, response["scheme_update"])
-                    };
-                },
-                error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
-                    alert(msg + '\n' + xhr.responseText);
-                }
-            });
-
-        }  // if (!!tblRow)
-    }  // function UploadSchemeOrTeam
-
-//========= UpdateSchemeOrTeam  =============
-    function UpdateSchemeOrTeam(tblName, tblRow, update_dict){
-        console.log("=== UpdateSchemeOrTeam ===", tblName);
-        console.log("update_dict: " , update_dict);
-        // 'update_dict': {'id': {'error': 'This record could not be deleted.'}}}
-        // 'update_dict': {'id': {'pk': 169, 'parent_pk': 24, deleted: true}
-
-        // update_dict': {id: {temp_pk: "new_4", pk: 97, parent_pk: 21, created: true}, code: {updated: true, value: "AA"}}
-
-        if (!!update_dict) {
-// get id_new and id_pk from update_dict["id"]
-            const pk = get_pk_from_id(update_dict);
-            const parent_pk = get_parent_pk(update_dict);
-            console.log("pk: ", pk, "parent_pk: ", parent_pk);
-
-            let id_dict = get_dict_value_by_key (update_dict, "id")
-            if (!!tblRow){
-// --- remove deleted record from list
-                if ("created" in id_dict) {
-                    tblRow.classList.add("tsa_tr_ok");
-                    setTimeout(function (){
-                        tblRow.classList.remove("tsa_tr_ok");
-                        FillSelectTable(tblName)
-                        let tblRowSelected = document.getElementById(tblName + "_" + pk.toString())
-                        if (tblName ==="scheme"){
-                            HandleSelectScheme(tblRowSelected)
-                        } else if (tblName ==="team"){
-                            HandleSelectTeam(tblRowSelected)
-                        }
-                    }, 2000);
-// --- remove deleted record from list
-                } else if ("deleted" in id_dict) {
-                    tblRow.parentNode.removeChild(tblRow);
-// --- when err: show error message
-                } else if ("error" in id_dict){
-                    ShowMsgError(tblRow.cells[0], id_dict.error, -60)
-                } // if (id_deleted){
-            } // if (!!tblRow){
-        }  // if (!!update_dict)
-    }  // UpdateSchemeOrTeam
-
-
-//========= FillSelectOptions  ====================================
-    function FillSelectOptions(el_select, option_list, select_text, select_text_none, parent_pk_str) {
-        //console.log( "=== FillSelectOptions  ", option_list);
-        // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
-        //console.log(select_text, select_text_none);
-
-// ---  fill options of select box
-        let curOption;
-        let option_text = "";
-        let row_count = 0
-        let parent_pk = 0
-        // customer list has no parent_pk_str
-        if (!!parent_pk_str){parent_pk = parseInt(parent_pk_str)};
-
-        el_select.innerText = null
-
-// --- loop through option list
-        for (let i = 0, len = option_list.length; i < len; i++) {
-            let dict = option_list[i];
-            let pk = get_pk_from_id(dict);
-            let parent_pk_in_dict = get_parent_pk(dict)
-
-// skip if parent_pk exists and does not match parent_pk_in_dict
-            let addrow = false;
-            if (!!parent_pk){
-                addrow = (parent_pk_in_dict === parent_pk)
-            } else {
-                addrow = true
-            }
-            if (addrow) {
-                const field = "code";
-                let value = "-";
-                if (field in dict) {if ("value" in dict[field]) {value = dict[field]["value"]}}
-                option_text += "<option value=\"" + pk + "\"";
-                option_text += " data-parent_pk=\"" + parent_pk + "\"";
-                if (value === curOption) {option_text += " selected=true" };
-                option_text +=  ">" + value + "</option>";
-                row_count += 1
-            }
-        }  // for (let i = 0, len = option_list.length;
-
-        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
-        let select_first_option = false
-        if (!row_count){
-            option_text = "<option value=\"\" disabled selected hidden>" + select_text_none + "...</option>"
-        } else if (row_count === 1) {
-            select_first_option = true
-        } else if (row_count > 1){
-            option_text = "<option value=\"\" disabled selected hidden>" + select_text + "...</option>" + option_text
-        }
-        el_select.innerHTML = option_text;
-
-// if there is only 1 option: select first option
-        if (select_first_option){
-            el_select.selectedIndex = 0
-        }
-
-    }  //function FillSelectOptions
-
-
 //=========  CreateTableHeader  === PR2019-05-27
     function CreateTableHeader() {
         // console.log("===  CreateTableHeader == ");
-        // console.log("pk", pk, "parent_pk", parent_pk);
+        // console.log("pk", pk, "ppk", parent_pk);
 
-        const column_count = 9;
+        const column_count = 10;
         tblHead_items.innerText = null
         // index -1 results in that the new cell will be inserted at the last position.
 
@@ -863,40 +355,171 @@ $(function() {
             if (j === column_count - 1){AppendChildIcon(th, imgsrc_delete)}
             th.classList.add("td_width_032")
 // --- add text_align
-            if ( ([0, 1, 2, 3, 4, 5].indexOf( j ) > -1) ){
+            if ( ([0, 1, 2, 3].indexOf( j ) > -1) ){
                 th.classList.add("text_align_left")}
 // --- add text to th
             if (j === 0){th.innerText = get_attr_from_element(el_data, "data-txt_date")} else
-            if (j === 1){th.innerText = get_attr_from_element(el_data, "data-txt_customer")} else
-            if (j === 2){th.innerText = get_attr_from_element(el_data, "data-txt_order")} else
-            if (j === 3){th.innerText = get_attr_from_element(el_data, "data-txt_shift")} else
-            if (j === 4){th.innerText = get_attr_from_element(el_data, "data-txt_employee")} else
-            if (j === 5){th.innerText = get_attr_from_element(el_data, "data-txt_timestart")} else
+            if (j === 1){th.innerText = get_attr_from_element(el_data, "data-txt_order")} else
+            if (j === 2){th.innerText = get_attr_from_element(el_data, "data-txt_shift")} else
+            if (j === 3){th.innerText = get_attr_from_element(el_data, "data-txt_employee")} else
+            if (j === 4){th.innerText = get_attr_from_element(el_data, "data-txt_timestart")} else
+            if (j === 5){th.innerText = "XX"} else
             if (j === 6){th.innerText = get_attr_from_element(el_data, "data-txt_timeend")} else
-            if (j === 7){th.innerText = get_attr_from_element(el_data, "data-txt_breakhours")};
+            if (j === 7){th.innerText = "XX"} else
+            if (j === 8){th.innerText = get_attr_from_element(el_data, "data-txt_breakhours")} else
+            if (j === 9){th.innerText = "XX"}
 // --- add width to th
 
 // --- add width to time fields and date fileds
-            if (([1, 2, 4].indexOf( j ) > -1) ){
-                th.classList.add("td_width_120");
+            if (j === 1){
+                th.classList.add("td_width_180")} else
+            if (([2, 3].indexOf( j ) > -1) ){
+                th.classList.add("td_width_120")
             } else {
                 th.classList.add("td_width_090")};
-
         }
- // for (let j = 0; j < column_count; j++)
     };//function CreateTableHeader
+
+//=========  CreateTableRow  ================ PR2019-04-27
+    function CreateTableRow( pk, parent_pk) {
+        // console.log("=========  function CreateTableRow =========");
+        // console.log("pk", pk, "ppk", parent_pk);
+
+// check if row is addnew row - when pk is NaN
+        let is_new_item = !parseInt(pk);
+        // console.log("is_new_item", is_new_item)
+
+//+++ insert tblRow ino tblBody_items
+        let tblRow = tblBody_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+        tblRow.setAttribute("id", pk);
+        tblRow.setAttribute("data-pk", pk);
+        tblRow.setAttribute("data-ppk", parent_pk);
+        tblRow.setAttribute("data-table", "emplhour");
+
+// --- add EventListener to tblRow.
+        tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
+
+        let column_count;
+        column_count = 10;
+
+//+++ insert td's ino tblRow
+        for (let j = 0; j < column_count; j++) {
+            // index -1 results in that the new cell will be inserted at the last position.
+            let td = tblRow.insertCell(-1);
+            let el;
+
+// --- add img to first and last td, first column not in new_item, first column not in teammembers
+            if ([5, 7, 9].indexOf( j ) > -1){
+                if (!is_new_item){
+                    let img_src;
+                    if (j === 5){img_src = imgsrc_questionmark} else
+                    if (j === 7){img_src = imgsrc_warning} else {}
+                    if (j === 9){img_src = imgsrc_stat04}
+
+                // --- first add <a> element with EventListener to td
+                    el = document.createElement("a");
+                    el.setAttribute("href", "#");
+                    el.addEventListener("click", function() {HandleDeleteTblrow(tblRow);}, false )
+
+                    AppendChildIcon(el, img_src, "20")
+                    td.appendChild(el);
+
+                    td.classList.add("td_width_032")
+                }
+            } else {
+
+// --- add input element to td.
+                let el = document.createElement("input");
+                el.setAttribute("type", "text");
+
+// --- add data-name Attribute.
+                let fieldname;
+                if (j === 0){fieldname = "rosterdate"} else
+                if (j === 1){fieldname = "order"} else
+                if (j === 2){fieldname = "shift"} else
+                if (j === 3){fieldname = "employee"} else
+                if (j === 4){fieldname = "timestart"} else
+                if (j === 5){fieldname = "confirmstart"} else
+                if (j === 6){fieldname = "timeend"} else
+                if (j === 7){fieldname = "confirmend"} else
+                if (j === 8){fieldname = "breakduration"} else
+                if (j === 9){fieldname = "status"};
+
+                el.setAttribute("data-field", fieldname);
+
+// --- add EventListener to td
+                if (j === 0) {
+                    if (is_new_item){el.addEventListener("click", function() {OpenPopupWDY(el);}, false )} } else
+                if ([1, 2].indexOf( j ) > -1){
+                    if (is_new_item){el.addEventListener("change", function() {UploadChanges(el);}, false )} } else
+                if (j === 3){
+                    el.addEventListener("click", function() {OpenModal(el);}, false ) } else
+                if ([4, 6].indexOf( j ) > -1){
+                    el.addEventListener("click", function() {OpenTimepicker(el)}, false )} else
+                if (j === 8){
+                    // el.addEventListener("click", function() {OpenPopupHM(el)}, false )
+                };
+
+// --- add datalist_ to td shift, team, employee
+                if ([1, 2, 3].indexOf( j ) > -1){
+                    if (is_new_item){el.setAttribute("list", "id_datalist_" + fieldname + "s")}  } else
+                if (j === 4){
+                    el.setAttribute("list", "id_datalist_" + fieldname + "s") }
+// --- disable 'rosterdate', 'order' and 'shift', except in new_item
+                if ([0, 1, 2].indexOf( j ) > -1){
+                    if (!is_new_item){el.disabled = true}
+                }
+// --- add text_align
+                if ( [0, 1, 2, 3].indexOf( j ) > -1 ){
+                    el.classList.add("text_align_left")} else
+                if ( [4, 5, 6].indexOf( j ) > -1 ){
+                    el.classList.add("text_align_right")}
+
+// --- add width to time fields and date fields
+                if (j === 1){
+                    el.classList.add("td_width_240")
+                } else if (j === 1){
+                    el.classList.add("td_width_180");
+                } else {
+                    el.classList.add("td_width_090")};
+
+// --- add other classes to td
+                el.classList.add("border_none");
+
+                if (j === 0) {
+                    el.classList.add("input_text"); // makes background transparent
+                    el.classList.add("input_popup_wdy");
+                } else if ([1, 2, 3].indexOf( j ) > -1){
+                    el.classList.add("input_text"); // makes background transparent
+                } else if ([4, 6].indexOf( j ) > -1){
+                    el.classList.add("input_text"); // makes background transparent
+                    el.classList.add("input_timepicker")
+                } else if (j === 8){
+                    el.classList.add("input_text"); // makes background transparent
+                    //el.classList.add("input_popup_hm")
+                };
+
+    // --- add other attributes to td
+                el.setAttribute("autocomplete", "off");
+                el.setAttribute("ondragstart", "return false;");
+                el.setAttribute("ondrop", "return false;");
+
+                td.appendChild(el);
+            }  //if (j === 0)
+        }  // for (let j = 0; j < 8; j++)
+
+        return tblRow
+    };//function CreateTableRow
 
 //========= FillTableRows  ====================================
     function FillTableRows() {
-        console.log( "===== FillTableRows  ========= ");
+        console.log( "         FillTableRows");
 
 // --- reset tblBody_items
         tblBody_items.innerText = null;
 
 // --- get  item_list
         let item_list = emplhour_list;
-
-        console.log( "item_list ", item_list);
 
         let previous_rosterdate_dict = {};
         let tblRow;
@@ -908,10 +531,11 @@ $(function() {
                 let item_dict = item_list[i];
                 let pk = get_pk_from_id (item_dict)
                 let parent_pk = get_parent_pk (item_dict)
+
 // get rosterdate to be used in addnew row
                 previous_rosterdate_dict = get_dict_value_by_key(item_dict, 'rosterdate')
 
-                tblRow =  CreateTableRow( pk)
+                tblRow =  CreateTableRow(pk, parent_pk)
                 UpdateTableRow(tblRow, item_dict)
 
 // --- highlight selected row
@@ -932,135 +556,14 @@ $(function() {
         dict["rosterdate"] = previous_rosterdate_dict;
 
 // console.log("FillTableRows 'add new' --> dict:", dict)
-        tblRow = CreateTableRow( pk_new)
+        tblRow = CreateTableRow(pk_new)
         UpdateTableRow(tblRow, dict)
-    }
-
-//=========  CreateTableRow  ================ PR2019-04-27
-    function CreateTableRow( pk, parent_pk) {
-        // console.log("=========  function CreateTableRow =========");
-        // console.log("pk", pk, "parent_pk", parent_pk);
-
-// check if row is addnew row - when pk is NaN
-        let is_new_item = !parseInt(pk);
-        // console.log("is_new_item", is_new_item)
-
-//+++ insert tblRow ino tblBody_items
-        let tblRow = tblBody_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-        tblRow.setAttribute("id", pk);
-        tblRow.setAttribute("data-pk", pk);
-        tblRow.setAttribute("data-parent_pk", parent_pk);
-        tblRow.setAttribute("data-table", "emplhour");
-
-// --- add EventListener to tblRow.
-        tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
-
-        let column_count;
-        column_count = 9;
-
-//+++ insert td's ino tblRow
-        for (let j = 0; j < column_count; j++) {
-            // index -1 results in that the new cell will be inserted at the last position.
-            let td = tblRow.insertCell(-1);
-            let el;
-
-// --- add img to first and last td, first column not in new_item, first column not in teammembers
-            if ([column_count - 1].indexOf( j ) > -1){
-                if (j === 0) {
-                    //if (!is_new_item){
-                    //    if (tblName === "schemeitems"){
-                    //        AppendChildIcon(td, imgsrc_warning)
-                    //    }
-                   // }
-                } else {
-            // --- first add <a> element with EventListener to td
-                    el = document.createElement("a");
-                    el.setAttribute("href", "#");
-                    el.addEventListener("click", function() {HandleDeleteTblrow(tblRow);}, false )
-
-                    AppendChildIcon(el, imgsrc_delete)
-                    td.appendChild(el);
-                }
-                td.classList.add("td_width_032")
-            } else {
-
-// --- add input element to td.
-                let el = document.createElement("input");
-                el.setAttribute("type", "text");
-
-// --- add data-name Attribute.
-                let fieldname;
-                if (j === 0){fieldname = "rosterdate"} else
-                if (j === 1){fieldname = "customer"} else
-                if (j === 2){fieldname = "order"} else
-                if (j === 3){fieldname = "shift"} else
-                if (j === 4){fieldname = "employee"} else
-                if (j === 5){fieldname = "timestart"} else
-                if (j === 6){fieldname = "timeend"} else
-                if (j === 7){fieldname = "breakduration"};
-
-                el.setAttribute("data-field", fieldname);
-
-// --- add EventListener to td
-                if (j === 0) {
-                    if (is_new_item){el.addEventListener("click", function() {OpenPopupWDY(el);}, false )} } else
-                if ([1, 2, 3].indexOf( j ) > -1){
-                    if (is_new_item){el.addEventListener("change", function() {UploadChanges(el);}, false )} } else
-                if (j === 4){
-                    el.addEventListener("change", function() {UploadChanges(el);}, false ) } else
-                if ([5, 6].indexOf( j ) > -1){
-                    el.addEventListener("click", function() {OpenPopupDHM(el)}, false )} else
-                if (j === 7){
-                    el.addEventListener("click", function() {OpenPopupHM(el)}, false )};
-
-// --- add datalist_ to td shift, team, employee
-                if ([1, 2, 3].indexOf( j ) > -1){
-                    if (is_new_item){el.setAttribute("list", "id_datalist_" + fieldname + "s")}  } else
-                if (j === 4){
-                    el.setAttribute("list", "id_datalist_" + fieldname + "s") }
-// --- disable 'customer, 'order' and 'shift', except in new_item
-                if ([0, 1, 2, 3].indexOf( j ) > -1){
-                    el.disabled = !is_new_item};
-// --- add text_align
-                if ( ([0, 1, 2, 3, 4, 5].indexOf( j ) > -1) ){
-                    td.classList.add("text_align_left")}
-
-
-// --- add width to time fields and date fields
-            if (([1, 2, 4].indexOf( j ) > -1) ){
-                el.classList.add("td_width_120");
-            } else {
-                el.classList.add("td_width_090")};
-
-// --- add other classes to td
-                el.classList.add("border_none");
-
-                if (j === 0) {
-                    el.classList.add("input_text"); // makes background transparent
-                    el.classList.add("input_popup_wdy");
-                } else if ([1, 2, 3, 4].indexOf( j ) > -1){
-                    el.classList.add("input_text"); // makes background transparent
-                } else if ([5, 6, 7].indexOf( j ) > -1){
-                    el.classList.add("input_popup_dhm")
-                } else if ([5, 6, 7].indexOf( j ) > -1){
-                    el.classList.add("input_popup_hm")};
-
-    // --- add other attributes to td
-                el.setAttribute("autocomplete", "off");
-                el.setAttribute("ondragstart", "return false;");
-                el.setAttribute("ondrop", "return false;");
-
-                td.appendChild(el);
-            }  //if (j === 0)
-        }  // for (let j = 0; j < 8; j++)
-
-        return tblRow
-    };//function CreateTableRow
+    }  // FillTableRows
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, item_dict){
-        // console.log("========= UpdateTableRow  =========");
-        // console.log(item_dict);
+        console.log(" ---------  UpdateTableRow");
+        console.log(item_dict);
 
         if (!!item_dict && !!tblRow) {
 
@@ -1086,7 +589,7 @@ $(function() {
                 //console.log("el_input",el_input)
                 el_input.classList.add("border_invalid");
 
-                ShowMsgError(el_input, msg_err, -60)
+                ShowMsgError(el_input, el_msg, msg_err, -60)
 
 // --- new created record
             } else if (is_created){
@@ -1111,7 +614,7 @@ $(function() {
                 if (!!msg_err){
                    console.log("show msg_err", msg_err);
                     tblRow.classList.add("border_invalid");
-                    ShowMsgError(el_input, msg_err, -60)
+                    ShowMsgError(el_input, el_msg, msg_err, -60)
                 }
 */
             };  // if (is_deleted){
@@ -1127,17 +630,17 @@ $(function() {
                 for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                     let field_dict = {}, fieldname, updated, err;
                     let value = "", o_value, n_value, data_value, data_o_value;
-                    let wdm = "", wdmy = "", offset = "", team_pk = "", dhm = "", hm = "";
+                    let wdm = "", wdmy = "", offset = "", team_pk = "", hm = "";
                     let employee_pk;
                     // el_input is first child of td, td is cell of tblRow
                     let el_input = tblRow.cells[i].children[0];
                     if(!!el_input){
 // --- lookup field in item_dict, get data from field_dict
                         fieldname = get_attr_from_element(el_input, "data-field");
-                        // console.log("fieldname", fieldname);
+                        console.log("fieldname", fieldname);
                         if (fieldname in item_dict){
                             field_dict = get_dict_value_by_key (item_dict, fieldname);
-                            // console.log("field_dict", field_dict);
+                            console.log("field_dict", field_dict);
 
                             updated = get_dict_value_by_key (field_dict, "updated");
                             err = get_dict_value_by_key (field_dict, "error");
@@ -1172,7 +675,7 @@ $(function() {
                             }
 
                             if (fieldname === "rosterdate") {
-                                format_date_element (el_input, field_dict, true, false) // show_weekday=true, show_year=false
+                                format_date_element (el_input, el_msg, field_dict, comp_timezone, false,month_list,  weekday_list) // show_weekday=true, show_year=false
 
                       // when row is new row: remove data-o_value from dict,
                       // otherwise will not recognize rosterdate as a new value and will not be saved
@@ -1199,19 +702,11 @@ $(function() {
                                 el_input.value = value
 
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
+                                format_time_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
 
-                                // console.log("}}}}}}}}}}field_dict", field_dict);
-                                format_time_element (el_input, field_dict)
-                                // value = get_dict_value_by_key (field_dict, "value");
-                                // dhm = get_dict_value_by_key (field_dict, "dhm");
-                                // el_input.value = dhm
                             } else if (["timeduration", "breakduration"].indexOf( fieldname ) > -1){
-                                format_duration_element (el_input, field_dict)
-                                // value = get_dict_value_by_key (field_dict, "value");
-                                // hm = get_dict_value_by_key (field_dict, "hm");
-                                // el_input.value = hm
+                                format_duration_element (el_input, el_msg, field_dict)
                             };
-
                         }  // if (fieldname in item_dict)
                     };  // if(!!el_input)
                 }  //  for (let j = 0; j < 8; j++)
@@ -1223,6 +718,934 @@ $(function() {
 
         };  // if (!!item_dict && !!tblRow)
     }  // function UpdateTableRow
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+//=========  HandleModalFilterEmployee  ================ PR2019-05-26
+    function HandleModalFilterEmployee(option) {
+        console.log( "===== HandleModalFilterEmployee  ========= ");
+
+        let new_filter = "";
+        let skip_filter = false
+        if (option === "input") {
+             if (!!el_mod_employee.value) {new_filter = el_mod_employee.value}
+        } else {
+            new_filter = el_mod_filter_employee.value;
+        }  //  if (option === "input") {
+
+ // skip filter if filter value has not changed, update variable filter_mod_employee
+
+        if (!new_filter){
+            if (!filter_mod_employee){
+                skip_filter = true
+            } else {
+                filter_mod_employee = "";
+            }
+        } else {
+            if (new_filter.toLowerCase() === filter_mod_employee) {
+                skip_filter = true
+            } else {
+                filter_mod_employee = new_filter.toLowerCase();
+            }
+        }
+
+        let has_selection = false, has_multiple = false;
+        let select_value, select_pk, select_parentpk;
+        let len = el_mod_tbody_select.rows.length;
+        if (!skip_filter && !!len){
+            for (let row_index = 0, tblRow, show_row, el, el_value; row_index < len; row_index++) {
+                tblRow = el_mod_tbody_select.rows[row_index];
+                el = tblRow.cells[0].children[0]
+                show_row = false;
+                if (!filter_mod_employee){
+// --- show all rows if filter_text = ""
+                     show_row = true;
+                } else {
+
+                    if (!!el){
+                        el_value = get_attr_from_element(el, "data-value");
+                        if (!!el_value){
+                            el_value = el_value.toLowerCase();
+                            show_row = (el_value.indexOf(filter_mod_employee) !== -1)
+                        }
+                    }
+                }
+                if (show_row) {
+                    tblRow.classList.remove(cls_hide)
+                    // put values from first selected row in select_value
+                    if(!has_selection ) {
+                        select_value = get_attr_from_element(el, "data-value");
+                        select_pk = get_attr_from_element(el, "data-pk");
+                        select_parentpk = get_attr_from_element(el, "data-ppk");
+                    }
+                    if (has_selection) {has_multiple = true}
+                    has_selection = true;
+                } else {
+                    tblRow.classList.add(cls_hide)
+                };
+            }  //  for (let row_index = 0, show
+        } //  if (!skip_filter) {
+        if (has_selection && !has_multiple ) {
+                el_mod_employee.value = select_value
+                el_mod_employee.setAttribute("data-pk",select_pk)
+                el_mod_employee.setAttribute("data-ppk",select_parentpk)
+        }
+
+    }; // function HandleModalFilterEmployee
+
+//=========  HandleModalSelect  ================ PR2019-05-25
+    function HandleModalSelect(btn_name) {
+        console.log( "===== HandleModalSelect ========= ");
+
+        el_modal_body.setAttribute("data-select", btn_name);
+
+        let el_div_mod_absent = document.getElementById("id_div_mod_absent")
+        let el_div_mod_switch = document.getElementById("id_div_mod_switch")
+        let el_div_mod_split = document.getElementById("id_div_mod_split")
+        let el_labl_mod_employee =  document.getElementById("id_labl_mod_employee")
+
+// ---  deselect all highlighted row
+        switch (btn_name) {
+        case "absent":
+            el_div_mod_absent.classList.remove("display_hide")
+            el_div_mod_switch.classList.add("display_hide")
+            el_div_mod_split.classList.add("display_hide")
+            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_replaces")
+            break;
+        case "switch":
+            el_div_mod_absent.classList.add("display_hide")
+            el_div_mod_switch.classList.remove("display_hide")
+            el_div_mod_split.classList.add("display_hide")
+            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_empl_switch")
+            break;
+        case "split":
+            el_div_mod_absent.classList.add("display_hide")
+            el_div_mod_switch.classList.add("display_hide")
+            el_div_mod_split.classList.remove("display_hide")
+            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_replaces")
+		}
+
+    }
+
+//=========  HandleModalSelectEmployee  ================ PR2019-05-24
+    function HandleModalSelectEmployee(tblRow) {
+        console.log( "===== HandleModalSelectEmployee ========= ");
+        console.log( tblRow);
+
+// ---  deselect all highlighted rows
+        DeselectHighlightedRows(tblBody_select)
+
+// ---  get clicked tablerow
+        if(!!tblRow) {
+
+// ---  highlight clicked row
+            tblRow.classList.add("tsa_tr_selected")
+            console.log( "tblRow: "), tblRow;
+
+            // el_input is first child of td, td is cell of tblRow
+            const el_select = tblRow.cells[0].children[0];
+            const value = get_attr_from_element(el_select, "data-value");
+            console.log("value: ", value)
+
+    // ---  get pk from id of select_tblRow
+            let employee_pk = get_datapk_from_element (tblRow)
+            let employee_parent_pk = get_datappk_from_element (tblRow)
+
+            console.log("employee_pk: ", employee_pk)
+            console.log("employee_parent_pk: ", employee_parent_pk)
+
+            let el_input_replacement = document.getElementById("id_mod_employee")
+            console.log("el_input_replacement: ", el_input_replacement)
+            el_input_replacement.value = value
+
+            el_input_replacement.setAttribute("data-pk", employee_pk);
+            el_input_replacement.setAttribute("data-ppk", employee_parent_pk);
+        }
+    }  // HandleModalSelectEmployee
+
+
+//=========  HandleModalSave  ================ PR2019-06-23
+    function HandleModalSave() {
+        console.log("===  HandleModalSave =========");
+
+
+
+// get emplhour pk and parent_pk , create id_dict Emplhour
+        let emplhour_dict = get_iddict_from_element(el_modal_body);
+            console.log("--- emplhour_dict", emplhour_dict)
+            // emplhour_dict: {pk: 137, parent_pk: 141, table: "emplhour"}
+        let emplhour_pk = get_datapk_from_element(el_modal_body);
+            console.log("emplhour_pk", emplhour_pk)
+        let emplhour_tblRow = document.getElementById(emplhour_pk)
+            console.log("emplhour_tblRow")
+            console.log(emplhour_tblRow)
+
+        let abscat_dict = {};
+        let employee_dict = {};
+
+// get employee pk and employee parent_pk , create id_dict Employee
+        let el_select_employee = document.getElementById("id_mod_employee")
+        let employee_pk =  get_datapk_from_element(el_select_employee);
+        let employee_parent_pk = get_datappk_from_element(el_select_employee);
+        let employee_code = el_select_employee.value
+        employee_dict["field"] = "employee";
+        employee_dict["pk"] = employee_pk;
+        employee_dict["ppk"] = employee_parent_pk;
+        employee_dict["code"] = employee_code;
+
+// get selected button
+        const btn_name = el_modal_body.getAttribute("data-select");
+        console.log("btn_name: ", btn_name);
+        switch (btn_name) {
+        case "absent":
+        // get absence category
+            let el_select_abscat = document.getElementById("id_mod_select_abscat")
+            let abscat_pk = parseInt(el_select_abscat.value)
+            let abscat_parent_pk = get_datappk_from_element(el_select_abscat)
+
+            abscat_dict["field"] = "abscat";
+            abscat_dict["pk"] = abscat_pk;
+            abscat_dict["ppk"] = abscat_parent_pk;
+
+            break;
+        case "switch":
+
+            break;
+        case "split":
+		}
+
+        ModalClose()
+
+// field_dict gets info of selected employee
+
+        if(!isEmpty(emplhour_dict)){
+            // {pk: 605, parent_pk: 1, table: "employee"}
+            let row_upload= {};
+
+
+
+            row_upload["id"] = emplhour_dict;
+
+            //let field_dict = get_iddict_from_element(select_tblRow);
+
+            row_upload["select"] = btn_name;
+            row_upload["employee"] = employee_dict;
+            row_upload["abscat"] = abscat_dict;
+            console.log ("emplhour_upload: ", row_upload);
+
+            let parameters = {"emplhour_upload": JSON.stringify (row_upload)};
+
+            let response;
+            $.ajax({
+                type: "POST",
+                url: url_emplhour_upload,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                console.log ("response", response);
+                    if ("item_update" in response) {
+                        UpdateTableRow(emplhour_tblRow, response["item_update"])
+                    }
+                },
+                error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
+                    alert(msg + '\n' + xhr.responseText);
+                }
+            });
+
+        }  // if(!isEmpty(id_dict)
+    }  // HandleModalSave
+
+//=========  HandleTableRowClicked  ================ PR2019-03-30
+    function HandleTableRowClicked(tr_clicked) {
+        // console.log("=== HandleTableRowClicked");
+        //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
+
+// ---  deselect all highlighted rows
+        DeselectHighlightedRows(tr_clicked.parentNode)
+
+// ---  get clicked tablerow
+        if(!!tr_clicked) {
+// ---  highlight clicked row
+            selected_item_pk = get_datapk_from_element(tr_clicked)
+            tr_clicked.classList.add("tsa_tr_selected")
+        }
+    }
+
+//========= UploadChanges  ============= PR2019-03-03
+    function UploadChanges(el_changed) {
+        //console.log("--- UploadChanges  --------------");
+        let tr_changed = get_tablerow_clicked(el_changed)
+        UploadTblrowChanged(tr_changed);
+    }
+
+//========= UploadTblrowChanged  ============= PR2019-03-03
+// PR2019-03-17 debug: Here you have written this script on document.ready function, that's why it returns obsolete value.
+// Put this script in some event i.e click, keypress,blur,onchange etc... So that you can get the changed value.
+// An input has a value attribute that determines the initial value of the input.
+// It also has a value property that holds the current value of the input
+    function UploadTblrowChanged(tr_changed) {
+        console.log("=== UploadTblrowChanged");
+        let new_item = GetItemDictFromTablerow(tr_changed);
+        console.log("emplhour_upload: " );
+        console.log(new_item );
+
+        if(!!new_item) {
+            let parameters = {"emplhour_upload": JSON.stringify (new_item)};
+
+            let response = "";
+            $.ajax({
+                type: "POST",
+                url: url_emplhour_upload,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                    console.log( "response");
+                    console.log( response);
+
+                    if ("schemeitem_list" in response) {
+                        schemeitem_list= response["schemeitem_list"]}
+
+                    if ("item_update" in response) {
+                        let item_dict =response["item_update"]
+                        const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
+
+                        console.log("ooo UpdateTableRow ooo");
+                        UpdateTableRow(tblName, tr_changed, item_dict)
+                        // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
+                        //id: {parent_pk: 126, table: "teammembers", created: true, pk: 57, temp_pk: "new_4"}
+                        //team: {pk: 126, value: "A", updated: true}
+                        const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
+                        if (is_created){
+// add new empty row
+                    console.log( "UploadTblrowChanged >>> add new empty row");
+                            id_new = id_new + 1
+                            const pk_new = "new_" + id_new.toString()
+                            const parent_pk = get_parent_pk (item_dict)
+
+                            let new_dict = {}
+                            new_dict["id"] = {"pk": pk_new, "ppk": parent_pk, "temp_pk": pk_new}
+
+                            if (tblName === "schemeitems"){
+                                let rosterdate_dict = get_dict_value_by_key (item_dict, "rosterdate")
+                    // remove 'updated' from dict, otherwise rosterdate in new row will become green also
+                                delete rosterdate_dict["updated"];
+                                // rosterdate_dict["update"] = true;
+
+                                if(isEmpty(rosterdate_dict)){rosterdate_dict = today_dict}
+                                new_dict["rosterdate"] = rosterdate_dict
+                            } else  if (tblName === "teammembers"){
+                                const team_code = get_subdict_value_by_key (item_dict, "team", "value")
+                                new_dict["team"] = {"pk": parent_pk, "value": team_code}
+                            }
+                            let tblRow = CreateTableRow(pk_new, parent_pk)
+
+                        console.log("<<< UpdateTableRow <<<");
+                            UpdateTableRow(tblName, tblRow, new_dict)
+                        }
+                    }
+                },
+                error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
+                    alert(msg + '\n' + xhr.responseText);
+                }
+            });
+        }  //  if(!!new_item)
+    };  // UploadTblrowChanged
+
+//=========  HandleDeleteTblrow  ================ PR2019-03-16
+    function HandleDeleteTblrow(tblName, tblRow) {
+        // console.log("=== HandleDeleteTblrow");
+
+// ---  get pk from id of tblRow
+        const pk_int = get_datapk_from_element (tblRow)
+        const parent_pk_int = parseInt(get_attr_from_element(tblRow, "data-ppk"))
+
+        //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+        if (!pk_int) {
+        // when pk_int = 'new_2' row is new row and is not yet saved, can be deleted without ajax
+            tblRow.parentNode.removeChild(tblRow);
+        } else {
+
+// ---  create id_dict
+            const id_dict = get_iddict_from_element(tblRow);
+            // add id_dict to new_item
+            if (!!id_dict){
+// ---  create param
+                id_dict["delete"] = true;
+                let param = {"id": id_dict}
+                console.log( "param: ");
+                console.log(param);
+// delete  record
+                // make row red
+                tblRow.classList.add("tsa_tr_error");
+                let parameters = {"emplhour_upload": JSON.stringify (param)};
+                let response = "";
+
+                $.ajax({
+                    type: "POST",
+                    url: url_emplhour_upload,
+                    data: parameters,
+                    dataType:'json',
+                    success: function (response) {
+                        console.log ("response:");
+                        console.log (response);
+                        if ("item_update" in response){
+                            let update_dict = response["item_update"]
+                            //UpdateSchemeitemOrTeammmember(tblRow, update_dict)
+                        };
+                    },
+                    error: function (xhr, msg) {
+                        console.log(msg + '\n' + xhr.responseText);
+                        alert(msg + '\n' + xhr.responseText);
+                    }
+                });
+            }  // if (!!id_dict)
+        }; // if (!pk_int)
+        FilterRows(tblRow);
+    }  // function HandleFilterInactive
+
+//========= HandleSearchFilterEvent  ====================================
+    function HandleSearchFilterEvent() {
+        console.log( "===== HandleSearchFilterEvent  ========= ");
+        // skip filter if filter value has not changed, update variable filter_text
+        let new_filter = document.getElementById("filter_text").value;
+        let skip_filter = false
+        if (!new_filter){
+            if (!filter_text){
+                skip_filter = true
+            } else {
+                filter_text = "";
+            }
+        } else {
+            if (new_filter.toLowerCase() === filter_text) {
+                skip_filter = true
+            } else {
+                filter_text = new_filter.toLowerCase();
+            }
+        }
+        if (!skip_filter) {
+            FilterRows(tblRow)
+        } //  if (!skip_filter) {
+    }; // function HandleSearchFilterEvent
+
+//========= SetNewRosterdate  ================ PR2019-06-07
+    function SetNewRosterdate(rosterdate_dict) {
+        // console.log( "===== SetNewRosterdate  ========= ");
+        // console.log(rosterdate_dict);
+
+        let text_fill = get_attr_from_element(el_data, "data-txt_rosterdate_fill");
+        let text_remove = get_attr_from_element(el_data, "data-txt_rosterdate_remove");
+
+        rosterdate_fill = null;
+        rosterdate_remove = null;
+        if (!!rosterdate_dict){
+            rosterdate_remove  = get_subdict_value_by_key (rosterdate_dict, "current", "value")
+            text_remove = text_remove + " " + get_subdict_value_by_key (rosterdate_dict, "current", "dm")
+
+            rosterdate_fill = get_subdict_value_by_key (rosterdate_dict, "next", "value")
+            text_fill = text_fill + " " + get_subdict_value_by_key (rosterdate_dict, "next", "dm")
+            //companyoffset stores offset from UTC to company_timezone in seconds
+            companyoffset = get_subdict_value_by_key (rosterdate_dict, "companyoffset", "value", 0)
+
+        }
+        el_btn_rosterdate_fill.innerText = text_fill
+        el_btn_rosterdate_remove.innerText = text_remove
+
+    }; // function SetNewRosterdate
+
+//========= FillSelectAbscat  ====================================
+    function FillSelectAbscat(option_list) {
+        // console.log( "=== FillSelectAbscat  ", option_list);
+        // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
+
+
+// ---  fill options of select box
+        let curOption;
+        let option_text = "";
+        let row_count = 0
+
+        let el_select_abscat = document.getElementById("id_mod_select_abscat")
+        el_select_abscat.innerText = null
+
+
+// --- loop through option list
+        let len = option_list.length;
+        if (!!len) {
+
+            for (let i = 0; i < len; i++) {
+                let dict = option_list[i];
+                // dict = { pk: 72,  id: {pk: 72, parent_pk: 61, table: "order"}, code: {value: "Vakantie"} }
+                // console.log("dict", dict);
+
+                let pk = get_pk_from_id(dict);
+                let parent_pk = get_parent_pk(dict)
+
+                // --- put abscat_parent_pk  in data-oparent_pk of el_select_abscat
+                if (i === 0) {
+                    el_select_abscat.setAttribute("data-ppk", parent_pk);
+                }
+
+                const field = "code";
+                let value = "-";
+                if (field in dict) {if ("value" in dict[field]) {value = dict[field]["value"]}}
+                option_text += "<option value=\"" + pk + "\"";
+                if (value === curOption) {option_text += " selected=true" };
+                option_text +=  ">" + value + "</option>";
+                row_count += 1
+
+            }  // for (let i = 0, len = option_list.length;
+
+        }  // if (!!len)
+
+        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
+
+        let select_first_option = false
+        if (!row_count){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text_abscat_none + "...</option>"
+        } else if (row_count === 1) {
+            select_first_option = true
+        } else if (row_count > 1){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text_abscat + "...</option>" + option_text
+        }
+        el_select_abscat.innerHTML = option_text;
+
+// if there is only 1 option: select first option
+        if (select_first_option){
+            el_select_abscat.selectedIndex = 0
+        }
+
+    }  //function FillSelectAbscat
+
+//========= FillSelectTableEmployee  ============= PR2019-06-26
+    function FillSelectTableEmployee(caption_one, caption_none) {
+        // console.log( "=== FillSelectTableEmployee ");
+
+        let tableBody = el_mod_tbody_select
+        let item_list = employee_list
+        tableBody.innerText = null;
+
+        let len = item_list.length;
+        let row_count = 0
+
+//--- when no items found: show 'select_customer_none'
+        if (len === 0){
+            let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+            let td = tblRow.insertCell(-1);
+            td.innerText = caption_none;
+        } else {
+
+//--- loop through item_list
+            for (let i = 0; i < len; i++) {
+                let item_dict = item_list[i];
+                // item_dict = {id: {pk: 12, parent_pk: 2}, code: {value: "13 uur"},  cycle: {value: 13}}
+                // team_list dict: {pk: 21, id: {pk: 21, parent_pk: 20}, code: {value: "C"}}
+                const pk = get_pk_from_id (item_dict)
+                const parent_pk = get_parent_pk (item_dict)
+                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
+                // console.log( "pk: ", pk, " parent_pk: ", parent_pk, " code_value: ", code_value);
+
+//- only show items of selected_parent_pk
+                // NIU:  if (parent_pk === selected_parent_pk){
+                if(true) {   // if (ShowSearchRow(code_value, filter_customers)) {
+
+//- insert tableBody row
+                    let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+                    // NOT IN USE tblRow.setAttribute("id", tablename + "_" + pk.toString());
+                    tblRow.setAttribute("data-pk", pk);
+                    tblRow.setAttribute("data-ppk", parent_pk);
+                    // NOT IN USE, put in tableBody. Was:  tblRow.setAttribute("data-table", tablename);
+
+//- add hover to tableBody row
+                    tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
+                    tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+
+//- add EventListener to Modal SelectEmployee row
+                    tblRow.addEventListener("click", function() {HandleModalSelectEmployee(tblRow)}, false )
+
+// - add first td to tblRow.
+                    // index -1 results in that the new cell will be inserted at the last position.
+                    let code = get_subdict_value_by_key (item_dict, "code", "value", "")
+                    let td = tblRow.insertCell(-1);
+
+// --- add a element to td., necessary to get same structure as item_table, used for filtering
+                    let el = document.createElement("div");
+                        el.innerText = code;
+                        el.classList.add("mx-1")
+                        el.setAttribute("data-value", code_value);
+                        el.setAttribute("data-field", "code");
+                    td.appendChild(el);
+
+    // --- count tblRow
+                    row_count += 1
+                } //  if (ShowSearchRow(code_value, filter_customers)) {
+            } // for (let i = 0; i < len; i++)
+        }  // if (len === 0)
+    } // FillSelectTableEmployee
+
+//========= OpenTimepicker  ====================================
+    function OpenTimepicker(el_input) {
+        console.log("===  OpenTimepicker  =====") ;
+
+        let tr_selected = get_tablerow_selected(el_input)
+
+// get info pk etc from tr_selected
+        const data_table = get_attr_from_element(tr_selected, "data-table")
+        const id_str = get_attr_from_element(tr_selected, "data-pk")
+        const ppk_str = get_attr_from_element(tr_selected, "data-ppk");
+        // console.log("data_table", data_table, "id_str", id_str, "ppk_str", ppk_str)
+
+// get values from el_input
+        const data_field = get_attr_from_element(el_input, "data-field");
+        let data_value = get_attr_from_element(el_input, "data-value");
+        console.log("data_value:", data_value)
+
+
+        let datetime_local;
+
+// if no current value: get rosterdate
+        if (!data_value) {
+            if (!!tr_selected){
+                let el_rosterdate = tr_selected.querySelector("[data-field='rosterdate']");
+                if (!!el_rosterdate) {
+                    data_value = get_attr_from_element(el_rosterdate, "data-value") + "T00:00:00"
+                    datetime_local = moment.tz(data_value, comp_timezone );
+                }
+            }
+        } else {
+            datetime_local = moment.tz(data_value, comp_timezone );
+
+            // PR2019-07-01 before moment.tz it was:
+                // date_as_ISOstring: "2019-06-25T07:00:00Z"  on screen: 9.00
+                // datetime_utc = get_date_from_ISOstring(datetime_iso)
+                // datetime_utc: Tue Jun 25 2019 03:00:00 GMT-0400 (Bolivia Time) datetime object
+                // companyoffset stores offset from UTC to company_timezone in seconds
+                // datetime_offset = datetime_utc.setSeconds(companyoffset + useroffset)
+                // datetime_offset: 1561467600000 number
+                // datetime_local = new Date(datetime_offset);
+                // datetime_local: Tue Jun 25 2019 09:00:00 GMT-0400 (Bolivia Time) datetime object
+
+                // datetime_iso     2019-06-25 T 20:15 :00Z string
+                // datetime_utc     Tue Jun 25 2019 16:15:00 GMT-0400 (Bolivia Time) object
+                // datetime_offset  1561515300000 number (timestamp)
+                // datetime_local   Tue Jun 25 2019 22:15:00 GMT-0400 (Bolivia Time) object
+
+                // date onscreen    is 22.15 u, timezone +2 u, stored als UTC time: 20.15 u
+                // datetime_iso     is the ISO-string of the date stored in the database, UTC time: 20.15 u
+                // datetime_utc     is the representation of the utc time in local timezone(-4 u):  16.15 u
+                //                  function: new Date(Date.UTC(y,m,d,h,m)
+                // datetime_offset  is the timestamp with correction for local timezone (-4 u) and company timezone (+2 u)
+                //                  function: datetime.setSeconds(companyoffset + useroffset)
+                //                  companyoffset: 7200 number (+2 u * 3600) useroffset: 14400 number (-4 u * -3600)
+                // datetime_local   is the date format as shown on the screen: 22:15
+                //                  function: new Date(datetime_offset)
+        }
+
+        if (!!datetime_local) {
+            console.log("datetime_local:  ", datetime_local.format());
+
+// put values in el_timepicker
+            el_timepicker.setAttribute("data-table", data_table);
+            el_timepicker.setAttribute("data-pk", id_str);
+            el_timepicker.setAttribute("data-ppk", ppk_str);
+
+            el_timepicker.setAttribute("data-field", data_field);
+            el_timepicker.setAttribute("data-value", data_value);
+
+            let date_str = format_datelong_from_datetimelocal(datetime_local)
+            document.getElementById("id_timepicker_date").innerText = date_str
+
+            let curHours = datetime_local.hour();
+            let curMinutes = datetime_local.minutes();
+
+            HighlightTimepickerHour(curHours, curMinutes)
+            HighlightTimepickerMinute(curMinutes)
+
+    // ---  position popup under el_input
+            let popRect = el_timepicker.getBoundingClientRect();
+            let inpRect = el_input.getBoundingClientRect();
+            let topPos = inpRect.top + inpRect.height;
+            let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
+            let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+            el_timepicker.setAttribute("style", msgAttr)
+
+    // ---  change background of el_input
+            // first remove selected color from all imput popups
+            elements = document.getElementsByClassName("el_input");
+            popupbox_removebackground("input_timepicker");
+            el_input.classList.add("pop_background");
+
+    // hide save button on quicksave
+
+            let txt_quicksave = get_attr_from_element(el_data, "data-txt_quicksave");
+            if (quicksave){
+                el_timepicker_save.classList.add(cls_hide);
+                txt_quicksave = get_attr_from_element(el_data, "data-txt_quicksave_remove");
+            } else {
+                el_timepicker_save.classList.remove(cls_hide);
+            }
+            el_timepicker_quicksave.innerText = txt_quicksave
+
+    // ---  show el_popup
+            el_timepicker.classList.remove(cls_hide);
+        }
+    }; // function OpenTimepicker
+
+//========= CreateTimepickerHours  ====================================
+    function CreateTimepickerHours() {
+        //console.log( "--- CreateTimepickerHours  ");
+
+        let tbody = el_timepicker_tbody_hour;
+        tbody.innerText = null
+
+        //timeformat = 'AmPm' or '24h'
+        const is_ampm = (timeformat === 'AmPm')
+        let maxHours = 24;
+        let hourRows = 4;
+
+        if (is_ampm) {
+            hourRows = 2
+            maxHours = 12;
+        }
+
+        let tblRow;
+
+// --- loop through option list
+        for (let i = 0; i < hourRows; i++) {
+            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+
+            for (let j = 0, td, el_a, hours, hour_text; j < 6; j++) {
+                hours = (1+j) + (i*6)
+                if (hours === maxHours) {hours = 0 }
+                hour_text = "00" + hours.toString()
+                hour_text = hour_text.slice(-2);
+
+                td = tblRow.insertCell(-1);
+
+                td.setAttribute("data-hour", hours);
+                td.addEventListener("mouseenter", function(){td.classList.add(cls_hover);});
+                td.addEventListener("mouseleave", function(){td.classList.remove(cls_hover);});
+                td.addEventListener("click", function() {HandleTimepickerEvent("timepicker_hour", tbody, td)}, false)
+
+                td.classList.add("timepicker_hour");
+                td.setAttribute("align","center")
+
+                el_a = document.createElement("a");
+                el_a.innerText = hour_text
+                td.appendChild(el_a);
+            }
+        }  // for (let i = 0,
+        if(is_ampm){
+            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+            let td = tblRow.insertCell(-1);
+
+            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+            td.setAttribute("colspan",6)
+
+            for (let j = 0, td, el_a, ampm_text; j < 2; j++) {
+                if(j === 0) {ampm_text = "AM"} else {ampm_text = "PM"}
+
+                td = tblRow.insertCell(-1);
+
+                td.setAttribute("data-ampm", j);
+                td.addEventListener("mouseenter", function(){td.classList.add(cls_hover);});
+                td.addEventListener("mouseleave", function(){td.classList.remove(cls_hover);});
+                td.addEventListener("click", function() {HandleTimepickerEvent("timepicker_ampm", tbody, td)}, false )
+
+                td.setAttribute("colspan",3)
+                td.setAttribute("align","center")
+
+                td.classList.add("timepicker_ampm");
+
+                el_a = document.createElement("a");
+                el_a.innerText = ampm_text
+                td.appendChild(el_a);
+            }
+        }
+    }  //function CreateTimepickerHours
+
+//========= CreateTimepickerMinutes  ====================================
+    function CreateTimepickerMinutes() {
+        //console.log( "=== CreateTimepickerMinutes  ", option_list);
+
+// ---  set references to elements
+        let tbody = el_timepicker_tbody_minute;
+        tbody.innerText = null
+
+        let minutes = 0, minutes_text;
+        let rows = 0
+        let columns = 0;
+
+        switch (interval) {
+        case 1:
+            rows = 6; columns = 10
+            break;
+        case 2:
+            rows = 6; columns = 5
+            break;
+        case 3:
+            rows = 4; columns = 5
+            break;
+        case 5:
+            rows = 4; columns = 3
+            break;
+        case 10:
+            rows = 2; columns = 3
+            break;
+        case 12:
+            rows = 1; columns = 5
+            break;
+        case 15:
+            rows = 2; columns = 2
+            break;
+        case 20:
+            rows = 1; columns = 3
+            break;
+        case 30:
+            rows = 1; columns = 2
+            break;
+		}
+
+// --- loop through option list
+        for (let i = 0, tblRow; i < rows; i++) {
+            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+
+            for (let j = 0, td, el_a ; j < columns; j++) {
+                minutes = minutes + interval
+                if (minutes === 60) {minutes = 0 }
+                minutes_text = "00" + minutes.toString()
+                minutes_text = minutes_text.slice(-2);
+
+                td = tblRow.insertCell(-1);
+
+                td.setAttribute("data-minute", minutes);
+                td.addEventListener("mouseenter", function(){td.classList.add(cls_hover);});
+                td.addEventListener("mouseleave", function(){td.classList.remove(cls_hover);});
+
+                td.addEventListener("click", function() {HandleTimepickerEvent("timepicker_minute", tbody, td);}, false )
+
+                td.classList.add("timepicker_minute");
+
+                el_a = document.createElement("a");
+                el_a.innerText = minutes_text
+                td.appendChild(el_a);
+            }
+        }  // for (let i = 0,
+    }  //function CreateTimepickerMinutes
+
+
+
+//========= HighlightTimepickerHour  ====================================
+    function HighlightTimepickerHour(curHours, curMinutes) {
+        //console.log( "=== HighlightTimepickerHour  ");
+        //console.log( "curHours:", curHours, "curMinutes:", curMinutes);
+
+        let tbody = el_timepicker_tbody_hour;
+
+        let curAmPm = 0;
+        if (timeformat === 'AmPm') {
+            if (curHours >= 12) {
+                curHours -= 12;
+                curAmPm = 1;
+            }
+            HighlightTimepickerCell(tbody, "ampm", curAmPm)
+        }
+        HighlightTimepickerCell(tbody, "hour", curHours)
+    }  //function HighlightTimepickerHour
+
+
+//========= HighlightTimepickerMinute  ====================================
+    function HighlightTimepickerMinute(curMinutes) {
+        HighlightTimepickerCell(el_timepicker_tbody_minute, "minute", curMinutes)
+    }
+
+//========= HighlightTimepickerCell  ====================================
+    function HighlightTimepickerCell(tbody, name, curValue) {
+// from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
+        let tds = tbody.getElementsByClassName("timepicker_" + name)
+        for (let i=0, td, value; td = tds[i]; i++) {
+            value = get_attr_from_element_int(td, "data-" + name)
+            if (curValue === value){td.classList.add(cls_highl)} else {td.classList.remove(cls_highl)}
+        }
+    }
+
+
+//========= HandleTimepickerEvent  ====================================
+    function HandleTimepickerEvent(type_str, tbody, td) {
+        console.log("==== HandleTimepickerEvent  =====", type_str);
+
+    // get datetime_utc_iso from el_timepicker data-value, convert to local (i.e. comp_timezone)
+        const data_value = get_attr_from_element(el_timepicker, "data-value");
+        let datetime_local = moment.tz(data_value, comp_timezone );
+        // console.log("datetime_local: ", datetime_local.format());
+
+        if (["prevday", "nextday"].indexOf( type_str ) > -1){
+        // set  day_add to 1 or -1
+            let day_add = 1;
+            if (type_str === "prevday") { day_add = -1};
+        // add / subtract day from datetime_local
+            datetime_local.add(day_add, 'day')
+        // display new date in el_timepicker
+            let date_str = format_datelong_from_datetimelocal(datetime_local)
+            document.getElementById("id_timepicker_date").innerText = date_str
+
+        } else if (type_str === "timepicker_hour" ) {
+        // get new hour from data-hour of td
+            const new_hour = get_attr_from_element_int(td, "data-hour");
+        // set new hour in datetime_local
+            datetime_local.hour(new_hour);
+        // select new hour  td
+            SelectTimepickerCell(tbody, td, type_str)
+
+        } else if (type_str === "timepicker_minute" ) {
+        // get new minutes from data-minute of td
+            const new_minute = get_attr_from_element_int(td, "data-minute");
+        // set new minutes in datetime_local
+            datetime_local.minute(new_minute);
+        // select new minutes td
+            SelectTimepickerCell(tbody, td, type_str)
+
+        } else if (type_str === "timepicker_ampm" ) {
+        // get new ampm from td
+            const new_ampm = get_attr_from_element_int(td, "data-ampm");
+        // get hour form local datetime
+            const hour_local = datetime_local.hour();
+        // set value of hour_add
+            let hour_add = 0;
+            if(new_ampm === 0) {
+                if (hour_local >= 12) {hour_add =  -12}
+            } else {
+                if (hour_local < 12) {hour_add =  12}
+            }
+        // update moment_datetime
+            if (!!hour_add) {datetime_local.add(hour_add, 'hour')}
+            //console.log(moment_datetime.format())
+        // select new ampm td
+            SelectTimepickerCell(tbody, td, type_str)
+        }
+
+    // convert datetime_local to datetime_utc
+        const datetime_utc = datetime_local.utc()
+        // console.log("new datetime_utc hour: ", datetime_utc.format());
+        const datetime_utc_iso = datetime_utc.toISOString()
+        // console.log("datetime_utc_iso: ", datetime_utc_iso);
+    // put new value back in el_timepicker data-value
+        el_timepicker.setAttribute("data-value", datetime_utc_iso);
+
+
+    // save in quicksave mode
+        if (quicksave && type_str === "timepicker_hour" ){HandleTimepickerSave()}
+
+    }
+
+//========= SelectTimepickerCell  ====================================
+    function SelectTimepickerCell(tbody, td, type_str) {
+        let tds = tbody.getElementsByClassName(type_str);
+        for (let x = 0, len = tds.length; x < len; x++) {
+            tds[x].classList.remove(cls_highl);
+        }
+        td.classList.add(cls_highl)
+    }
 
 // +++++++++  HandleFillRosterdate  ++++++++++++++++++++++++++++++ PR2019-06-07
     function HandleFillRosterdate(action) {
@@ -1249,8 +1672,8 @@ $(function() {
                 success: function (response) {
                 console.log( "response");
                 console.log( response);
-                    if ("emplhours" in response) {
-                        emplhour_list= response["emplhours"];
+                    if ("emplhour" in response) {
+                        emplhour_list= response["emplhour"];
                         FillTableRows()
                     };
                     if ("rosterdate" in response) {
@@ -1270,8 +1693,6 @@ $(function() {
             });
         }
     }  // function HandleFillRosterdate
-
-
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1297,9 +1718,9 @@ $(function() {
                 let hide_row = SetHideRow(tblRow);
 
                 if (hide_row) {
-                    tblRow.classList.add("display_hide")
+                    tblRow.classList.add(cls_hide)
                 } else {
-                    tblRow.classList.remove("display_hide")
+                    tblRow.classList.remove(cls_hide)
                 };
             }
         }
@@ -1319,15 +1740,15 @@ $(function() {
                         if(el_inactive.hasAttribute("value")){
                             hide_row = (el_inactive.getAttribute("value").toLowerCase() === "true")
             }}}};
-// --- show all rows if filter_name = ""
-            if (!hide_row && !!filter_name){
+// --- show all rows if filter_text = ""
+            if (!hide_row && !!filter_text){
                 let found = false
                 for (let col_index = 1, el_code; col_index < colLength; col_index++) {
                     if (!!tblRow.cells[col_index].children[0]) {
                         let el_value = tblRow.cells[col_index].children[0].value;
                         if (!!el_value){
                             el_value = el_value.toLowerCase();
-                            if (el_value.indexOf(filter_name) !== -1) {
+                            if (el_value.indexOf(filter_text) !== -1) {
                                 found = true
                                 break;
                     }}}
@@ -1337,7 +1758,6 @@ $(function() {
         }
         return hide_row
     }; // function SetHideRow
-
 
 //=========  DeselectHighlightedRows  ================ PR2019-04-30
     function DeselectHighlightedRows(tableBody) {
@@ -1380,7 +1800,7 @@ $(function() {
         if (!!tr_selected){el_info = tr_selected} else {el_info = el_scheme_code}
         const data_table = get_attr_from_element(el_info, "data-table")
         const id_str = get_attr_from_element(el_info, "data-pk")
-        const parent_pk_str = get_attr_from_element(el_info, "data-parent_pk");
+        const parent_pk_str = get_attr_from_element(el_info, "data-ppk");
         console.log("data_table", data_table, "id_str", id_str, "parent_pk_str", parent_pk_str)
 
 // get values from el_input
@@ -1392,7 +1812,7 @@ $(function() {
 // put values in el_popup_wdy
         el_popup_wdy.setAttribute("data-table", data_table);
         el_popup_wdy.setAttribute("data-pk", id_str);
-        el_popup_wdy.setAttribute("data-parent_pk", parent_pk_str);
+        el_popup_wdy.setAttribute("data-ppk", parent_pk_str);
 
         el_popup_wdy.setAttribute("data-field", data_field);
         el_popup_wdy.setAttribute("data-value", data_value);
@@ -1417,237 +1837,13 @@ $(function() {
 // ---  change background of el_input
         // first remove selected color from all imput popups
         elements = document.getElementsByClassName("el_input");
-        popupbox_removebackground();
+         popupbox_removebackground("input_popup_wdy");
         el_input.classList.add("pop_background");
 
 // ---  show el_popup
-        el_popup_wdy.classList.remove("display_hide");
+        el_popup_wdy.classList.remove(cls_hide);
 
 }; // function OpenPopupWDY
-
-//========= OpenPopupHM  ====================================
-    function OpenPopupHM(el_input) {
-        console.log("===  OpenPopupHM  =====") ;
-
-        let tr_selected = get_tablerow_selected(el_input)
-
-// ---  set references to elements
-        let el_popup_hour = document.getElementById("id_popup_hm_hours")
-        let el_popup_minutes = document.getElementById("id_popup_hm_minutes")
-
-// ---  reset input values
-        el_popup_hour.innerText = null
-        el_popup_minutes.innerText = null
-
-// ---  get tablename from tr_selected, set as attribute in el_popup_hm
-        const data_table = get_attr_from_element(tr_selected, "data-table");
-        el_popup_hm.setAttribute("data-table", data_table);
-
-// ---  get pk parent_pk and rosterdate from id of el_input, set as attribute in el_popup_hm
-        el_popup_hm.setAttribute("data-pk", get_attr_from_element_int(tr_selected, "id"))
-        el_popup_hm.setAttribute("data-parent_pk", get_attr_from_element_int(tr_selected, "data-parent_pk"))
-
-// ---  get data-name from el_input, set as attribute in el_popup_hm
-        el_popup_hm.setAttribute("data-field", get_attr_from_element(el_input, "data-field"))
-        el_popup_hm.setAttribute("data-value", get_attr_from_element(el_input, "data-value"))
-
-// ---  get hm data from el_input
-        const hm_str = get_attr_from_element(el_input, "data-value")
-
-        let curDuration = 0;
-        let curHours = 0;
-        let curMinutes = 0;
-        if (!!hm_str){
-            curDuration = parseInt(hm_str);
-            curHours = parseInt(curDuration/60);
-            curMinutes = curDuration - curHours * 60;
-        }
-        console.log("curDuration:", curDuration, "curHours:", curHours, "curMinutes:", curMinutes)
-
-// ---  fill list of hours
-        // timeformat = ('24h', 'AmPm')
-        let option_text = ""
-        let MaxHours = 23
-        for (let hours = 0; hours <= MaxHours; hours += 1) {
-            option_text += "<option value=\"" + hours + "\""
-            if (hours === curHours) {option_text += " selected=true"};
-            option_text +=  ">" + hours + "</option>";
-        }
-        el_popup_hour.innerHTML = option_text;
-
-// ---  fill list of minutes per interval
-        console.log ("interval", interval, typeof interval)
-        option_text = ""
-        for (let minutes = 0; minutes < 60; minutes += interval) {
-            console.log ("minutes", minutes, typeof minutes)
-            option_text += "<option value=\"" + minutes + "\""
-            if (minutes === curMinutes) {option_text += " selected=true" };
-            option_text +=  ">" + minutes + "</option>";
-        }
-        console.log ("option_text", option_text)
-        el_popup_minutes.innerHTML = option_text;
-
-// ---  position popup under el_input
-        let popRect = el_popup_hm.getBoundingClientRect();
-        let inpRect = el_input.getBoundingClientRect();
-        let topPos = inpRect.top + inpRect.height;
-        let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
-        let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-        el_popup_hm.setAttribute("style", msgAttr)
-
-// ---  change background of el_input
-        // first remove selected color from all imput popups
-        elements = document.getElementsByClassName("el_input");
-        popupbox_removebackground();
-        el_input.classList.add("pop_background");
-
-// ---  show el_popup_hm
-        el_popup_hm.classList.remove("display_hide");
-        let name = get_attr_from_element(el_input, "data-field")
-
-// ---  set focus to input element 'hours'
-        el_popup_hour.focus();
-
-}  // function OpenPopupHM
-
-//========= OpenPopupDHM  ====================================
-    function OpenPopupDHM(el_input) {
-        console.log("===  OpenPopupDHM  =====") ;
-
-        let tr_selected = get_tablerow_selected(el_input)
-
-// ---  set references to elements
-        let el_popup = document.getElementById("id_popup_dhm")
-        let el_popup_days = document.getElementById("id_popup_days")
-        let el_popup_hour = document.getElementById("id_popup_hours")
-        let el_popup_minutes = document.getElementById("id_popup_minutes")
-        let el_popup_ampm = document.getElementById("id_popup_ampm")
-
-// ---  reset input values
-        el_popup_days.innerText = null
-        el_popup_hour.innerText = null
-        el_popup_minutes.innerText = null
-        el_popup_ampm.innerText = null
-
-// ---  get tablename from tr_selected, set as attribute in el_popup
-        const data_table = get_attr_from_element(tr_selected, "data-table");
-            el_popup_wdy.setAttribute("data-table", data_table);
-
-// ---  get pk parent_pk and rosterdate from id of el_input, set as attribute in el_popup
-        el_popup.setAttribute("data-pk", get_attr_from_element_int(tr_selected, "id"))
-        el_popup.setAttribute("data-parent_pk", get_attr_from_element_int(tr_selected, "data-parent_pk"))
-
-// ---  get data-name from el_input, set as attribute in el_popup
-        el_popup.setAttribute("data-field", get_attr_from_element(el_input, "data-field"))
-        el_popup.setAttribute("data-value", get_attr_from_element(el_input, "data-value"))
-
-// ---  get rosterdate data
-        // cells[1] is <td>, children[0] = input rosterdate
-        let el_rosterdate = tr_selected.cells[1].children[0];
-            let offset_str = get_attr_from_element(el_rosterdate, "data-offset");
-            let offset_dict = get_offset_dict (offset_str)
-
-// ---  get dhm data from el_input
-        let dhm_str = get_attr_from_element(el_input, "data-value")
-            let dhm_dict = get_dhm_dict (dhm_str)
-            let curOffset = parseInt(dhm_dict["offset"]);
-            if (!curOffset){curOffset = 0}
-            let curHours = parseInt(dhm_dict["hours"]);
-            let curMinutes = parseInt(dhm_dict["minutes"]);
-
-// ---  fill list of weekdays : curWeekday - 1 thru +1
-        let option_text = "";
-        for (let i = -1, weekday; i < 2; i++) {
-            option_text += "<option value=\"" + i + "\"";
-            if (i === curOffset) {option_text += " selected=true" };
-            option_text +=  ">" +   offset_dict[i] + "</option>";
-            weekday += 1;
-        }
-        el_popup_days.innerHTML = option_text;
-
-// ---  fill list of hours
-        // timeformat = ('24h', 'AmPm')
-        option_text = ""
-        let curAmPm = 0;
-        let HasAmPm = false;
-        let MaxHours = 23
-
-        if (timeformat === "AmPm") {
-            HasAmPm = true;
-            MaxHours = 12;
-            if (curHours > 12) {
-                curHours -= 12;
-                curAmPm = 1;
-            }
-        } else if (curHours === 12 && curMinutes > 0 ) {
-            curAmPm = 1;
-        }
-
-        for (let hours = 0; hours <= MaxHours; hours += 1) {
-            option_text += "<option value=\"" + hours + "\""
-            if (hours === curHours) {option_text += " selected=true"};
-            option_text +=  ">" + hours + "</option>";
-        }
-        el_popup_hour.innerHTML = option_text;
-
-// ---  fill list of minutes per interval
-        option_text = ""
-        for (let minutes = 0; minutes < 60; minutes += interval) {
-            option_text += "<option value=\"" + minutes + "\""
-            if (minutes === curMinutes) {option_text += " selected=true" };
-            option_text +=  ">" + minutes + "</option>";
-        }
-        el_popup_minutes.innerHTML = option_text;
-
-// ---  fill list of am/pm
-        if (timeformat === "AmPm") {
-            option_text = ""
-            for (let ampm = 0, ampm_text; ampm < 2; ampm += 1) {
-                if (ampm === 0){ampm_text = "a.m."} else {ampm_text = "p.m."}
-                option_text += "<option value=\"" + ampm + "\""
-                if (ampm === curAmPm) {option_text += " selected=true" };
-                option_text +=  ">" + ampm_text + "</option>";
-            }
-            el_popup_ampm.innerHTML = option_text;
-        }
-
-// ---  show/hide field am/pm, adjust width of popup box
-        let td_label_ampm = document.getElementById("td_label_ampm")
-        let td_input_ampm = document.getElementById("td_input_ampm")
-        if (timeformat === "AmPm") {
-            td_label_ampm.classList.remove("display_hide")
-            td_input_ampm.classList.remove("display_hide")
-            el_popup.classList.remove("td_width_270")
-            el_popup.classList.add("td_width_360")
-        } else {
-            td_label_ampm.classList.add("display_hide")
-            td_input_ampm.classList.add("display_hide")
-            el_popup.classList.remove("td_width_360")
-            el_popup.classList.add("td_width_270")
-        }
-
-// ---  position popup under el_input
-        let popRect = el_popup.getBoundingClientRect();
-        let inpRect = el_input.getBoundingClientRect();
-        let topPos = inpRect.top + inpRect.height;
-        let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
-        let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-        el_popup.setAttribute("style", msgAttr)
-
-// ---  change background of el_input
-        // first remove selected color from all imput popups
-        elements = document.getElementsByClassName("el_input");
-        popupbox_removebackground();
-        el_input.classList.add("pop_background");
-
-// ---  show el_popup
-        el_popup.classList.remove("display_hide");
-        let name = get_attr_from_element(el_input, "data-field")
-
-// ---  set focus to input element 'hours'
-        el_popup_hour.focus();
-
-}; // function OpenPopupDHM
 
 
 //=========  HandlePopupBtnWdy  ================ PR2019-04-14
@@ -1720,9 +1916,9 @@ console.log("===  function HandlePopupWdySave =========");
 
         let url_str, upload_str;
         if (tablename === "scheme"){
-            url_str = url_scheme_upload;
+            url_str = url_emplhour_upload;
         } else {
-            url_str = url_schemeitem_upload;
+            url_str = url_emplhour_upload;
         }
 
 // ---  create id_dict
@@ -1748,7 +1944,7 @@ console.log("===  function HandlePopupWdySave =========");
                 row_upload[field_name] = field_dict;
                 console.log ("row_upload: ", row_upload);
 
-                let parameters = {"schemeitem_upload": JSON.stringify (row_upload)};
+                let parameters = {"emplhour_upload": JSON.stringify (row_upload)};
 
                 let response;
                 $.ajax({
@@ -1762,6 +1958,8 @@ console.log("===  function HandlePopupWdySave =========");
                             if (tablename === "scheme"){
                                 FillScheme( response["item_update"])
                             } else {
+
+                        console.log(">>> UpdateTableRow >>>");
                                 UpdateTableRow("schemeitems", tr_selected, response["item_update"])
                             }
                         }
@@ -1771,34 +1969,48 @@ console.log("===  function HandlePopupWdySave =========");
                         alert(msg + '\n' + xhr.responseText);
                     }
                 });
-            }  // if (new_dhm_str !== old_dhm_str)
+            }
 
             //popupbox_removebackground();
-            //el_popup_wdy.classList.add("display_hide");
+            //el_popup_wdy.classList.add(cls_hide);
 
             setTimeout(function() {
                 popupbox_removebackground();
-                el_popup_wdy.classList.add("display_hide");
+                el_popup_wdy.classList.add(cls_hide);
             }, 2000);
 
         }  // if(!isEmpty(id_dict)
     }  // HandlePopupWdySave
 
 
+//=========  HandleTimepickerSave  ================ PR2019-06-27
+    function HandleTimepickerSave(mode) {
+        console.log("===  function HandleTimepickerSave =========");
 
-//=========  HandlePopupHmSave  ================ PR2019-04-14
-    function HandlePopupHmSave() {
-console.log("===  function HandlePopupHmSave =========");
+        let quicksave_haschanged = false;
+        if(mode === "quicksave") {
+            quicksave = !quicksave
+            if(quicksave){
+                el_timepicker_save.classList.add(cls_hide);
+            } else {
+                el_timepicker_save.classList.remove(cls_hide);
+            }
+            quicksave_haschanged = true
+        }
 
-// ---  get pk_str from id of el_popup_hm
-        const pk_str = el_popup_hm.getAttribute("data-pk")// pk of record  of element clicked
-        const parent_pk =  parseInt(el_popup_hm.getAttribute("data-parent_pk"))
-        const fieldname =  el_popup_hm.getAttribute("data-field")
-        const tablename =  el_popup_hm.getAttribute("data-table")
-        console.log("pk_str: ", pk_str, typeof pk_str)
-        console.log("parent_pk: ", parent_pk, typeof parent_pk)
-        console.log("fieldname: ", fieldname, typeof fieldname)
-        console.log("tablename: ", tablename, typeof tablename)
+// ---  get pk_str from id of el_timepicker
+        const pk_str = el_timepicker.getAttribute("data-pk")// pk of record  of element clicked
+        const parent_pk =  parseInt(el_timepicker.getAttribute("data-ppk"))
+        const field =  el_timepicker.getAttribute("data-field")
+        const table =  el_timepicker.getAttribute("data-table")
+
+    // get moment_dte from el_timepicker data-value
+        const data_value = get_attr_from_element(el_timepicker, "data-value");
+        console.log ("data_value = ", data_value)
+        const datetime_utc = moment.utc(data_value);
+        // console.log ("datetime_utc = ", datetime_utc.format())
+        const datetime_utc_iso =  datetime_utc.toISOString();
+        // console.log ("datetime_utc_iso = ", datetime_utc_iso)
 
         if(!!pk_str && !! parent_pk){
             let id_dict = {}
@@ -1813,151 +2025,34 @@ console.log("===  function HandlePopupHmSave =========");
                 id_dict["pk"] = pk_int;
             };
 
-            id_dict["parent_pk"] =  parent_pk
-            id_dict["table"] =  tablename
+            id_dict["ppk"] =  parent_pk
+            id_dict["table"] =  table
 
             let row_upload = {};
             if (!!id_dict){row_upload["id"] = id_dict};
 
-            // console.log ("id_dict: ");
-            // console.log (id_dict);
+            if (quicksave_haschanged){row_upload["quicksave"] = quicksave};
 
-            const field_name = el_popup_hm.getAttribute("data-field") // nanme of element clicked
-            const old_dhm_str = el_popup_hm.getAttribute("data-value") // value of element clicked "-1;17;45"
-
-            // console.log ("field_name",field_name)
-            // console.log ("old_dhm_str",old_dhm_str)
-
-// get new values from popup
-            let new_hours_int  = parseInt(document.getElementById("id_popup_hm_hours").value)
-            let new_minutes  = document.getElementById("id_popup_hm_minutes").value
-
-            console.log("new_minutes: ", new_minutes, typeof new_minutes)
-            console.log("new_hours_int: ", new_hours_int, typeof new_hours_int)
-
-// create new_dhm string
-            let new_dhm_str = "0;" + new_hours_int.toString() + ";" + new_minutes
-            if (new_dhm_str !== old_dhm_str) {
-
+            if (!!datetime_utc_iso){
                 let tr_selected = document.getElementById(pk_str)
 
-                let field_dict = {"value": new_dhm_str, "update": true}
-                row_upload[field_name] =  field_dict;
-
-                console.log ("row_upload: ", row_upload);
-
-                let parameters = {"schemeitem_upload": JSON.stringify (row_upload)};
-
-                let response;
-                $.ajax({
-                    type: "POST",
-                    url: url_schemeitem_upload,
-                    data: parameters,
-                    dataType:'json',
-                    success: function (response) {
-                console.log ("response", response);
-                        if ("item_update" in response) {
-                            UpdateTableRow("schemeitems", tr_selected, response["item_update"])
-                        }
-                    },
-                    error: function (xhr, msg) {
-                        console.log(msg + '\n' + xhr.responseText);
-                        alert(msg + '\n' + xhr.responseText);
-                    }
-                });
-            }  // if (new_dhm_str !== old_dhm_str)
-
-            popupbox_removebackground();
-            el_popup_hm.classList.add("display_hide");
-        }  // if(!!pk_str && !! parent_pk){
-
-
-}  // HandlePopupHmSave
-
-//=========  HandlePopupDhmSave  ================ PR2019-04-14
-    function HandlePopupDhmSave() {
-console.log("===  function HandlePopupDhmSave =========");
-
-        let el_popup = document.getElementById("id_popup_dhm")
-
-// ---  get pk_str from id of el_popup
-        const pk_str = el_popup.getAttribute("data-pk")// pk of record  of element clicked
-        const parent_pk =  parseInt(el_popup.getAttribute("data-parent_pk"))
-        const fieldname =  el_popup.getAttribute("data-field")
-        const tablename =  el_popup_wdy.getAttribute("data-table")
-console.log("pk_str: ", pk_str, typeof pk_str)
-console.log("parent_pk: ", parent_pk, typeof parent_pk)
-console.log("fieldname: ", fieldname, typeof fieldname)
-console.log("tablename: ", tablename, typeof tablename)
-
-        if(!!pk_str && !! parent_pk){
-            let id_dict = {}
-        //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-            const pk_int = parseInt(pk_str)
-        // if pk_int is not numeric, then row is an unsaved row with pk 'new_1'  etc
-            if (!pk_int){
-                id_dict["temp_pk"] = pk_str;
-                id_dict["create"] = true;
-            } else {
-        // if pk_int exists: row is saved row
-                id_dict["pk"] = pk_int;
-            };
-
-            id_dict["parent_pk"] =  parent_pk
-            id_dict["table"] =  tablename
-
-            let row_upload = {};
-            if (!!id_dict){row_upload["id"] = id_dict};
-
-            // console.log ("id_dict: ");
-            // console.log (id_dict);
-
-            const field_name = el_popup.getAttribute("data-field") // nanme of element clicked
-            const old_dhm_str = el_popup.getAttribute("data-value") // value of element clicked "-1;17;45"
-
-            // console.log ("field_name",field_name)
-            // console.log ("old_dhm_str",old_dhm_str)
-
-// get new values from popup
-            let new_day_offset = document.getElementById("id_popup_days").value
-            let new_hours_int  = parseInt(document.getElementById("id_popup_hours").value)
-            let new_minutes  = document.getElementById("id_popup_minutes").value
-            let new_ampm_index  = document.getElementById("id_popup_ampm").value
-
-            // console.log("new_day_offset: ", new_day_offset, typeof new_day_offset)
-            // console.log("new_hours_int: ", new_hours_int, typeof new_hours_int)
-            // console.log("new_minutes: ", new_minutes, typeof new_minutes)
-            // console.log("new_ampm_index: ", new_day_offset, typeof new_ampm_index)
-
-// add 12 hours to new_hours_int when p.m.
-            if (new_ampm_index ==="1"){
-                if(new_hours_int < 12 ){new_hours_int += 12;}
-                }
-            let new_hours = new_hours_int.toString();
-
-// create new_dhm string
-            let new_dhm_str = new_day_offset + ";" + new_hours + ";" + new_minutes
-            if (new_dhm_str !== old_dhm_str) {
-
-                let tr_selected = document.getElementById(pk_str)
-
-                let field_dict = {"value": new_dhm_str, "update": true}
-                row_upload[field_name] =  field_dict;
+                row_upload[field] = {"value": datetime_utc_iso, "update": true};
 
                 console.log ("row_upload: ");
                 console.log (row_upload);
 
-                let parameters = {"schemeitem_upload": JSON.stringify (row_upload)};
+                let parameters = {"emplhour_upload": JSON.stringify (row_upload)};
                 let response;
                 $.ajax({
                     type: "POST",
-                    url: url_schemeitem_upload,
+                    url: url_emplhour_upload,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
                 console.log ("response", response);
                         if ("item_update" in response) {
-                            UpdateTableRow("schemeitems", tr_selected, response["item_update"])
+                        console.log("...... UpdateTableRow .....");
+                            UpdateTableRow(tr_selected, response["item_update"])
                         }
                     },
                     error: function (xhr, msg) {
@@ -1965,23 +2060,77 @@ console.log("tablename: ", tablename, typeof tablename)
                         alert(msg + '\n' + xhr.responseText);
                     }
                 });
-            }  // if (new_dhm_str !== old_dhm_str)
+            }
 
-            popupbox_removebackground();
-            el_popup_dhm.classList.add("display_hide");
+             popupbox_removebackground("input_timepicker");
+            el_timepicker.classList.add(cls_hide);
         }  // if(!!pk_str && !! parent_pk){
-    }  // HandlePopupDhmSave
+    }  // HandleTimepickerSave
 
 
 //========= function pop_background_remove  ====================================
-    function popupbox_removebackground(){
+    function popupbox_removebackground(type_str){
         // remove selected color from all input popups
-        // was: let elements = document.getElementsByClassName("input_popup_dhm");
-        let elements =  document.querySelectorAll(".input_popup_dhm, .input_popup_wdy")
+        let elements = document.getElementsByClassName(type_str);
         for (let i = 0, len = elements.length; i < len; i++) {
             elements[i].classList.remove("pop_background");
         }
     }
 
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    // OPEN MODAL ON TRIGGER CLICK
+    function OpenModal(el_input) {
+        console.log(" -----  OpenModal   ----")
+        // console.log(el_input)
+            el_modal_header.innerText = null
+            el_mod_employee.value = null
+
+    // get tr_selected
+            let tr_selected = get_tablerow_selected(el_input)
+
+    // get info pk etc from tr_selected
+            const data_table = get_attr_from_element(tr_selected, "data-table")
+            const eplh_id_str = get_attr_from_element(tr_selected, "data-pk")
+            const eplh_parent_pk_str = get_attr_from_element(tr_selected, "data-ppk");
+            // console.log("data_table", data_table, "eplh_id_str", eplh_id_str, "eplh_parent_pk_str", eplh_parent_pk_str)
+
+    // get values from el_input
+            const field_pk = get_attr_from_element(el_input, "data-pk");
+            const field_parent_pk = get_attr_from_element(el_input, "data-ppk");
+            const data_field = get_attr_from_element(el_input, "data-field");
+            const field_value = get_attr_from_element(el_input, "data-value");
+            // console.log("data_field", data_field, "field_value", field_value)
+
+    // put values in el_modal_body
+            el_modal_body.setAttribute("data-table", data_table);
+            el_modal_body.setAttribute("data-pk", eplh_id_str);
+            el_modal_body.setAttribute("data-ppk", eplh_parent_pk_str);
+
+            el_modal_body.setAttribute("data-field", data_field);
+            el_modal_body.setAttribute("data-value", field_value);
+            el_modal_body.setAttribute("data-o_value", field_value);
+
+
+        let header_text;
+        if (!!el_input.value) {
+            header_text = el_input.value
+        } else {
+            header_text = get_attr_from_element(el_data, "data-txt_select_employee") + ":";
+            // el_modal_body_right.classList.add(cls_hide)
+        }
+        el_modal_header.innerText = header_text
+        // fill select table employees
+            const caption_one = get_attr_from_element(el_data, "data-txt_select_employee") + ":";
+            const caption_none = get_attr_from_element(el_data, "data-txt_select_employee_none") + ":";
+            FillSelectTableEmployee("employee", tblBody_select, employee_list, caption_one, caption_none)
+
+    // ---  show modal
+        $("#id_modal_cont").modal({backdrop: true});
+
+    };
+    //========= function ModalClose  =============
+    function ModalClose() {
+        $('#id_modal_cont').modal('hide');
+    }
 
 }); //$(document).ready(function()

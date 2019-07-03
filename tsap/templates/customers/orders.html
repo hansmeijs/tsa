@@ -19,19 +19,19 @@
             <!-- flex_content -->
             <div class="flex_content mx-1 my-2 tsa_bc_lightlightgrey">
                 <div class="content_subheader_left mx-2 my-1">
-                    <div>
-                        <table class="table table-condensed tsa-tbl">
-                            <thead class="mx-1 my-1 border_none">
-                                <tr class="mx-1 my-1">
-                                    <td class="mx-1 my-1 ">{% trans 'Select customer' %}:</td>
+                    <div> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                        <table class="table table-condensed tsa-tbl mx-1 my-1 border_none">
+                            <thead>
+                                <tr>
+                                    <td>{% trans 'Select customer' %}:</td>
                                 </tr>
                                 <tr>
-                                    <td class="mx-1 my-1">
+                                    <td >
                                         <input id="id_filter_customers" type="text" class="fieldname pt-0 pb-0" colspan=2 placeholder="{% trans 'filter name...' %}">
                                     </td>
                                 </tr>
                             </thead>
-                            <tbody id="id_tbody_select"></tbody>
+                            <tbody id="id_tbody_select" data-table="customer"></tbody>
                         </table>
                     </div>
                 </div>

@@ -49,13 +49,16 @@
 }
 
 //========= get_attr_from_element  =============PR2019-06-07
-    function get_attr_from_element(element, key, parse_int){
+    function get_attr_from_element(element, key, default_value){
     // ---  get attr value from key: i.e. element["name"] = "breakduration"
         let value;
         if(!!element && !!key){
             if(element.hasAttribute(key)){
                 value = element.getAttribute(key);
             };
+        }
+        if (!value && !!default_value){
+            value = default_value
         }
         return value;
     };
@@ -201,23 +204,26 @@
 
 //========= function get_date_from_ISOstring  ==================================== PR2019-04-15
     function get_date_from_ISOstring(date_as_ISOstring) {
-        // date_as_ISOstring = "2019-03-30T19:05:00"
+        // date_as_ISOstring: 2019-06-25T07:00:00Z
 
         let arr_int = get_array_from_ISOstring(date_as_ISOstring);
 
         // Month 4 april has index 3
         arr_int[1] = arr_int[1] -1;
 
-        return new Date(Date.UTC(arr_int[0], arr_int[1], arr_int[2], arr_int[3], arr_int[4], arr_int[5]));
+        // datetime_utc: Tue Jun 25 2019 03:00:00 GMT-0400 (Bolivia Time)
+        let datetime_utc =  new Date(Date.UTC(arr_int[0], arr_int[1], arr_int[2], arr_int[3], arr_int[4], arr_int[5]));
+        return datetime_utc
+
     } // function get_date_from_ISOstring
 
 
 //========= function get_array_from_ISOstring  ==================================== PR2019-04-15
-    function get_array_from_ISOstring(datetime_aware_iso) {
+    function get_array_from_ISOstring(datetime_iso) {
         // datetime_aware_iso = "2019-03-30T04:00:00-04:00"
         // split string into array  ["2019", "03", "30", "19", "05", "00"]
         // regez \d+ - matches one or more numeric digits
-        let arr = datetime_aware_iso.split(/\D+/);
+        let arr = datetime_iso.split(/\D+/);
         let arr_int = [];
 
         // convert strings to integer
@@ -229,6 +235,147 @@
         return arr_int;
 
     } // function get_array_from_ISOstring
+
+
+//========= function get_yyyymmdd_from_ISOstring  ========== PR2019-06-21
+    function get_yyyymmdd_from_ISOstring(datetime_iso) {
+        // datetime_iso = "2019-03-30T04:00:00-04:00"
+        let date_str = "";
+        if (!!datetime_iso){
+            if (datetime_iso.indexOf("T") > -1){
+                let arr = datetime_iso.split("T");
+                if(!!arr[0]){date_str = arr[0]}
+        }}
+        return date_str;
+    }
+
+
+//========= function get_datetimearrLOCAL_from_UTCiso  ========== PR2019-06-29
+    function get_datetimearrLOCAL_from_UTCiso(datetimeUTCiso, companyoffset, useroffset) {
+        // console.log("--------- get_datetimearrLOCAL_from_UTCiso -------------")
+        // this function converts array from local time displayed on screen to utc time in iso-format stored in database
+        const offset = companyoffset
+
+        // datetime_iso = "2019-03-30T04:00:00-04:00"
+        let datetimearr = [];
+        if (!!datetimeUTCiso){
+
+            // console.log("datetimeUTCiso: ", datetimeUTCiso)
+            let datUTC = get_date_from_ISOstring(datetimeUTCiso)
+            // console.log("datUTC: ", datUTC, typeof datUTC)
+
+            let arr = get_array_from_ISOstring(datetimeUTCiso)
+            // Month 4 april has index 3
+            arr[1] = arr[1] -1;
+
+            // datetime_local is date as shown on screen: Tue Jun 25 2019  11:39
+            const datetime_local = new Date(arr[0], arr[1], arr[2], arr[3], arr[4]);
+            // datetime_local:  Tue Jun 25 2019 11:39:00 GMT-0400 (Bolivia Time) object
+            // console.log("datetime_local: ", datetime_local, typeof datetime_local)
+
+            // console.log("companyoffset: ", companyoffset)
+            // console.log("useroffset: ", useroffset)
+
+            // datetime_offset  is the timestamp with correction for local timezone (-4 u) and company timezone (+2 u)
+            //companyoffset stores offset from UTC to company_timezone in seconds
+            const datetime_offset = datetime_local.setSeconds(offset)
+            // datetime_offset:  1561455540000 number
+            // console.log("datetime_offset: ", datetime_offset, typeof datetime_offset)
+
+            const datetime_new = new Date(datetime_offset);
+            //  datetime_new:  Tue Jun 25 2019 05:39:00 GMT-0400 (Bolivia Time) object
+            // console.log("datetime_new: ", datetime_new, typeof datetime_new)
+            datetimearr[0] = datetime_new.getFullYear()
+            datetimearr[1]  = datetime_new.getMonth()
+            datetimearr[2] = datetime_new.getDate()
+            datetimearr[3]  = datetime_new.getHours()
+            datetimearr[4]  = datetime_new.getMinutes()
+
+            // console.log(datetimearr[0], datetimearr[1], datetimearr[2], datetimearr[3], datetimearr[4])
+
+        }
+        return datetimearr ;
+    }
+
+
+
+
+//========= function get_datetime_iso_from_ints  ========== PR2019-06-28
+    function get_datetime_iso_from_ints(year, month_index, day_int, hours, minutes, companyoffset, useroffset) {
+        console.log("--------- get_datetime_iso_from_ints -------------")
+        // this function converts array from local time displayed on screen to utc time in iso-format stored in database
+        const offset = -companyoffset - useroffset
+
+        // datetime_iso = "2019-03-30T04:00:00-04:00"
+        let new_datetime_iso = "";
+        if (!!year){
+            // datetime_local is date as shown on screen: Tue Jun 25 2019  11:39
+            const datetime_local = new Date(year, month_index, day_int, hours, minutes);
+            // datetime_local:  Tue Jun 25 2019 11:39:00 GMT-0400 (Bolivia Time) object
+            console.log("datetime_local: ", datetime_local, typeof datetime_local)
+
+            // datetime_offset  is the timestamp with correction for local timezone (-4 u) and company timezone (+2 u)
+            //companyoffset stores offset from UTC to company_timezone in seconds
+            const datetime_offset = datetime_local.setSeconds(offset)
+            // datetime_offset:  1561455540000 number
+            console.log("datetime_offset: ", datetime_offset, typeof datetime_offset)
+
+            const datetime_new = new Date(datetime_offset);
+            //  datetime_new:  Tue Jun 25 2019 05:39:00 GMT-0400 (Bolivia Time) object
+            console.log("datetime_new: ", datetime_new, typeof datetime_new)
+
+            new_datetime_iso = datetime_new.toISOString()
+            // new_datetime_iso:  2019-06-25T09:39:00.000Z string
+            console.log(">--> new_datetime_iso", new_datetime_iso, typeof new_datetime_iso)
+
+        }
+        return new_datetime_iso;
+    }
+
+//========= format_datelong_from_datetimelocal  ========== PR2019-06-27
+    function format_datelong_from_datetimelocal(datetime_local) {
+        // PR2019-07-01 was:
+            //const this_date = datetime_local.date();   //Sunday = 0
+            //const this_month_index = 1 + datetime_local.month();   //January = 0
+            //const this_month = month_list[this_month_index];
+            //const this_year = datetime_local.year();   //January = 0
+            //const weekday_index = datetime_local.day();   //Sunday = 0
+            //const weekday = weekday_list[weekday_index];
+
+        let date_str = "";
+        //  moment.locale(user_lang) is set at beginning of script, applies to all moment objjects in this page
+        if (!!datetime_local){
+            if(moment.locale() === "en") {
+                //date_str = weekday + " " + this_month + " " + this_date + ", " + this_year
+                date_str = datetime_local.format("dddd, MMMM D, YYYY")
+            } else {
+                //date_str = weekday + " " + this_date + " " + this_month + " " + this_year
+                date_str = datetime_local.format("dddd D MMMM YYYY")
+            }
+        }
+        return date_str;
+    }
+
+
+
+
+//========= function new  ========== PR2019-06-27
+    function get_userOffset() {
+    // get_userOffset calculates offset from local computer timezone to UTC in seconds
+
+        // new Date gives now in local time:  Thu Jun 20 2019 07:42:39 GMT-0400 (Bolivia Time) type: object
+        const now_datetime_local = new Date;
+        // date.getTimezoneOffset() returns the time difference UTC and local time, in minutes.
+        // If your time zone is GMT+5, -300 (60*5) minutes will be returned. Daylight savings prevent this value from being a constant.
+        const userOffset = now_datetime_local.getTimezoneOffset()
+
+        return userOffset * 60
+
+}
+
+
+
+
 
 //========= function value_has_changed  ==== PR2019-06-08
     function value_has_changed(value,o_value ) {

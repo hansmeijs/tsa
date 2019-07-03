@@ -2,13 +2,8 @@
 {% load i18n %} {% load l10n %}
 {% load static %}
 
-{% block stylesheet %}
-   <link rel="stylesheet" href="{% static 'css/dateselector.css' %}">
-{% endblock %}
-
-{% block script %}
-    <script src="{% static 'js/schemes.js' %}"></script>
-{% endblock %}
+{% block stylesheet %}{% endblock %}
+{% block script %}<script src="{% static 'js/schemes.js' %}"></script>{% endblock %}
 
 {% block content %}
     {% if user.is_authenticated %}
@@ -60,32 +55,52 @@
                     <input id="id_scheme_code"
                     type="text"
                     data-field="code"
-                    class="fieldname pt-0 pb-0">
+                    data-table="scheme"
+                    class="pt-0 pb-0"
+                    readonly>
                 </div>
                 <div class="content_subheader_left">
                     <label for="id_scheme_cycle" >{% trans 'Cycle length' %}*</label>
                     <input id="id_scheme_cycle"
                     type="number"
                     data-field="cycle"
-                    class="fieldname pt-0 pb-0">
-
+                    data-table="scheme"
+                    class="pt-0 pb-0"
+                    readonly>
                 </div>
                 <div class="content_subheader_left">
                     <label for="id_scheme_datefirst" >{% trans 'Start date' %}</label>
                     <input id="id_scheme_datefirst"
+                    name="datefirst"
                     type="text"
                     data-field="datefirst"
-                    class="fieldname pt-0 pb-0 input_popup_wdy">
+                    data-table="scheme"
+                    autocomplete="off"
+                    class="pt-0 pb-0"
+                    readonly>
+                    <a id="id_scheme_datefirst_delete" href="#">
+                        <img src="{% static 'img/delete.gif' %}" height="18" width="18">
+                    </a>
                 </div>
                 <div class="content_subheader_left">
                     <label for="id_scheme_datelast" >{% trans 'End date' %}</label>
                     <input id="id_scheme_datelast"
+                    name="datelast"
                     type="text"
                     data-field="datelast"
-                    class="fieldname pt-0 pb-0 input_popup_wdy">
+                    data-table="scheme"
+                    autocomplete="off"
+                    class="pt-0 pb-0"
+                    readonly>
+                    <a id="id_scheme_datelast_delete" href="#">
+                        <img src="{% static 'img/delete.gif' %}" height="18" width="18">
+                    </a>
                 </div>
+
             </div>
         </div>
+
+
         <div class="content_header">
             <div class="content_subheader_left">
                 <input id="id_filter_name"
@@ -99,7 +114,7 @@
 
             <div class="popup-container">
   <!-- =================== POPUP WDY  =================== -->
-                 <div id="id_popup_wdy" class="popup_box display_hide td_width_220">
+                 <div id="id_popup_wdy" class="popup_box display_hide td_wiXXXdth_220">
                      <div class="popup_header">
                         <label id="id_popup_wdy_header" class="mx-4 my-1" >{% trans 'Roster date' %}</label>
                         <button id="id_popup_wdy_close" type="button" class="close my-1" aria-label="Close">
@@ -110,15 +125,16 @@
                         <input id="id_popup_wdy_rosterdate" class="input_text mx-4 my-1" ></input>
                      </div>
                      <div class="content_header_middle" >
-                         <button id="id_popup_wdy_prev_month"  class=" btn btn-add" title="{% trans 'Previous month' %}"><<</button>
-                         <button id="id_popup_wdy_prev_day" class="btn btn-add" title="{% trans 'Previous day' %}"><</button>
+                         <button id="id_popup_wdy_prev_month"  class=" btn btn-add" title="{% trans 'Previous month' %}">&#171;</button>
+                         <button id="id_popup_wdy_prev_day" class="btn btn-add" title="{% trans 'Previous day' %}">&#8249;</button>
                          <button id="id_popup_wdy_today" class="btn btn-add" >{% trans 'Today' %}</button>
-                         <button id="id_popup_wdy_nextday" class="btn btn-add" title="{% trans 'Next day' %}">></button>
-                         <button id="id_popup_wdy_nextmonth" class="btn btn-add" title="{% trans 'Next month' %}">>></button>
+                         <button id="id_popup_wdy_nextday" class="btn btn-add" title="{% trans 'Next day' %}">&#8250;</button>
+                         <button id="id_popup_wdy_nextmonth" class="btn btn-add" title="{% trans 'Next month' %}">&#187;</button>
                      </div>
                      <div class="content_subheader_right">
                          <button id="id_popup_wdy_save" class="btn btn-add">{% trans 'Save' %}</button>
                      </div>
+
                  </div>
 
   <!-- =================== POPUP DHM  =================== -->
@@ -162,8 +178,31 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><select id="id_popup_hm_hours" class="td_width_hours"></select></td>
-                                    <td><select id="id_popup_hm_minutes" class="td_width_hours"></select></td>
+                                    <td>
+
+                                        <input id="id_popup_hm_hours"
+                                        type="number"
+                                        data-field="cycle"
+                                        data-table="scheme"
+                                               max = 23
+                                               min = 0
+                                        class="td_width_hours"
+                                        >
+                                    </td>
+
+                                    <td>
+                                        <input id="id_popup_hm_minutes"
+                                        type="number"
+                                        data-field="cycle"
+                                        data-table="scheme"
+                                               step = 15
+                                               max = 60
+                                               min = 0
+                                        class="td_width_hours"
+                                        >
+
+
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -181,7 +220,8 @@
             </div>
 
         </div>
-
+    </div>
+</div>
         <div class="content_header">
             <div class="content_subheader_right">
                 <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
@@ -194,8 +234,7 @@
             </div>
 
         </div>
-    </div>
-</div>
+
 
         <div id="id_data"
             data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
@@ -265,8 +304,6 @@
         >
         </div>
 
-        <datalist id="id_datalist_customers"></datalist>
-        <datalist id="id_datalist_orders"></datalist>
         <datalist id="id_datalist_shifts"></datalist>
         <datalist id="id_datalist_teams"></datalist>
         <datalist id="id_datalist_employees"></datalist>

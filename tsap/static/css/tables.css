@@ -49,8 +49,11 @@
     display: flex;
     align-items: flex-start; /* so the close btn always stays on the upper right corner */
     justify-content: space-between; /* Put modal header elements (title and dismiss) on opposite ends */
-    border-bottom: 1px solid purple /*#808080; /* grijs; */
+    /*border-bottom: 1px solid purple /*#808080; /* grijs; */
 
+    background-color: #808080;
+    color: #ffffff;
+    /*font-weight: bold;*/
   }
 
 
@@ -169,6 +172,11 @@
     /* border-right: 1px solid #808080; /* grijs; */
     width: 32px;
 }
+
+.tbl_border {
+    border: 1px solid #808080; /* grijs; */
+}
+
 .td_border_right {
     border-right: 1px solid #808080; /* grijs; */
 }
@@ -215,10 +223,11 @@
 
 
 .tr_highlighted {
-    background-color:  #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
-    background:  #2d4e77cc;
+    /* background-color:   #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
+    /* background:  #2d4e77cc;*/
+    background-color: #808080;
     color: #ffffff;
-
+    font-weight: bold;
         -webkit-transition: background 0.25s ease-in-out;
                -o-transition: background 0.25s ease-in-out;
                transition: background 0.25s ease-in-out;
@@ -227,3 +236,66 @@
 .tr_disabled {
     color: grey; /* #e0e0e0; /* default light grey */
 }
+
+/* for datetimepicker */
+.fa-chevron-left::before {
+  content: "<";
+}
+
+.fa-chevron-right::before {
+  content: ">";
+}
+
+i.fa-chevron-left::before, i.fa-chevron-right::before {
+  font-style: normal !important; // override wrapping <i>
+}
+
+.fa-arrow-left::before {
+  content: "<";
+}
+
+.fa-arrow-right::before {
+  content: ">";
+}
+
+i.fa-arrow-left::before, i.fa-arrow-right::before {
+  font-style: normal !important; // override wrapping <i>
+}
+
+/*----*/
+
+.glyphicon-chevron-left::before {
+  content: "<";
+}
+
+.glyphicon-chevron-right::before {
+  content: ">";
+}
+
+i.glyphicon-chevron-left::before, i.glyphicon-chevron-right::before {
+  font-style: normal !important; // override wrapping <i>
+}
+
+.fa-arrow-left::before {
+  content: "<";
+}
+
+.fa-arrow-right::before {
+  content: ">";
+}
+
+i.fa-arrow-left::before, i.fa-arrow-right::before {
+  font-style: normal !important; // override wrapping <i>
+}
+
+
+/*
+icons:{time:"glyphicon glyphicon-time",
+        date:"glyphicon glyphicon-calendar",
+        up:"glyphicon glyphicon-chevron-up",
+        down:"glyphicon glyphicon-chevron-down",
+        previous:"glyphicon glyphicon-chevron-left",
+        next:"glyphicon glyphicon-chevron-right",
+        today:"glyphicon glyphicon-screenshot",
+        clear:"glyphicon glyphicon-trash",
+        close:"glyphicon glyphicon-remove"}*/

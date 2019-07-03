@@ -130,10 +130,10 @@ urlpatterns = [
 
     path('customer/', include([
 
-        path('customer_list/', customer_views.CustomerListView.as_view(), name='customer_list_url'),
-        path('order_list/', customer_views.OrderListView.as_view(), name='order_list_url'),
-        path('order_upload/', customer_views.OrderUploadView.as_view(), name='order_upload_url'),
+        path('customers/', customer_views.CustomerListView.as_view(), name='customer_list_url'),
         path('customer_upload/', customer_views.CustomerUploadView.as_view(), name='customer_upload_url'),
+        path('orders/', customer_views.OrderListView.as_view(), name='order_list_url'),
+        path('order_upload/', customer_views.OrderUploadView.as_view(), name='order_upload_url'),
     ])),
 
 
@@ -155,11 +155,11 @@ urlpatterns = [
         ])),
     ])),
 
+    path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),
 
 
     path('planning/', include([
         path('schemes', planning_views.SchemesView.as_view(), name='schemes_url'),
-        path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),
         path('upload', planning_views.SchemeUploadView.as_view(), name='scheme_upload_url'),
         path('schemeitem_download', planning_views.SchemeitemDownloadView.as_view(), name='schemeitems_download_url'),
         path('schemeitem_upload', planning_views.SchemeItemUploadView.as_view(), name='schemeitem_upload_url'),
@@ -167,11 +167,12 @@ urlpatterns = [
         path('schemeorteam_upload', planning_views.SchemeOrTeamUploadView.as_view(), name='schemeorteam_upload_url'),
 
         path('roster', planning_views.RosterView.as_view(), name='roster_url'),
+        path('roster_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
     ])),
 
     path('emplhours/', include([
         path('', planning_views.EmplhourView.as_view(), name='emplhours_url'),
         path('fill', planning_views.EmplhourFillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
-        path('upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
+        # path('upload', planning_views.EmplhourUploadXXXView.as_view(), name='emplhour_upload_url'),
     ])),
 ]

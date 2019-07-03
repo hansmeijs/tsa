@@ -1,6 +1,7 @@
 
 // ++++++++++++  TABLE ROWS +++++++++++++++++++++++++++++++++++++++
-
+    "use strict";
+    const cls_hide = "display_hide";
 
 //========= GetItemDictFromTablerow  ============= PR2019-05-11
     function GetItemDictFromTablerow(tr_changed) {
@@ -75,9 +76,6 @@
         return item_dict;
     };  // function GetItemDictFromTablerow
 
-
-
-
 //========= get_tablerow_clicked  =============
     function get_tablerow_clicked(el_clicked){
         //console.log("=========  get_tablerow_clicked =========");
@@ -140,8 +138,8 @@
                 dict["pk"] = tr_clicked.getAttribute("id")
             }
 
-            if (tr_clicked.hasAttribute("data-parent_pk")){
-                dict["parent_pk"] = tr_clicked.getAttribute("data-parent_pk")
+            if (tr_clicked.hasAttribute("data-ppk")){
+                dict["ppk"] = tr_clicked.getAttribute("data-ppk")
             }
 
             let el_rosterdate = tr_clicked.querySelector("[data-name='rosterdate']");
@@ -159,7 +157,7 @@
 
 //========= function get_iddict_from_element  ======== PR2019-06-01
     function get_iddict_from_element (el) {
-        // function gets 'data-pk' and 'data-parent_pk' from el
+        // function gets 'data-pk' and 'data-ppk' from el
         // and puts it as 'pk', 'parent_pk', 'temp_pk' and 'create' in id_dict
         // id_dict = {'temp_pk': 'new_4', 'create': True, 'parent_pk': 120}
         let id_dict = {};
@@ -170,14 +168,15 @@
             let pk_int = parseInt(pk_str);
             // if pk_int is not numeric, then row is a new row with pk 'new_1' and 'create'=true
             if (!pk_int){
-                id_dict["temp_pk"] = pk_str;
-                id_dict["create"] = true;
+                if (!!pk_str){
+                    id_dict["temp_pk"] = pk_str;
+                    id_dict["create"] = true}
             } else {
-                id_dict["pk"] = pk_int;
-            };
-// get parent_pk from data-parent_pk in el
-            const parent_pk_int = get_dataparentpk_from_element(el);
-            if (!!parent_pk_int){id_dict["parent_pk"] = parent_pk_int}
+                id_dict["pk"] = pk_int};
+
+// get parent_pk from data-ppk in el
+            const parent_pk_int = get_datappk_from_element(el);
+            if (!!parent_pk_int){id_dict["ppk"] = parent_pk_int}
 
 // get table_name from data-table in el
             const tblName = get_attr_from_element(el, "data-table");
@@ -185,7 +184,6 @@
         }
         return id_dict
     }  // function get_iddict_from_element
-
 
 //========= function get_datapk_from_element  ======== PR2019-06-02
     function get_datapk_from_element (el) {
@@ -197,12 +195,12 @@
         return pk_int
     }
 
-//========= function get_dataparentpk_from_element  ======== PR2019-06-06
-    function get_dataparentpk_from_element (el) {
+//========= function get_datappk_from_element  ======== PR2019-06-06
+    function get_datappk_from_element (el) {
         let pk_int = 0;
         if(!!el) {
             //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-            pk_int = get_attr_from_element_int(el, "data-parent_pk");
+            pk_int = get_attr_from_element_int(el, "data-ppk");
         }
         return pk_int
     }
@@ -249,24 +247,32 @@
         return dict_pk;
     }
 
-//========= function get_parent_pk  ================= PR2019-05-24
+//========= function get_pk_from_id  ================= PR2019-05-24
     function get_pk_from_id (dict) {
         return parseInt(get_subdict_value_by_key (dict, "id", "pk", 0))
     }
 //========= function get_parent_pk  ================= PR2019-05-24
     function get_parent_pk (dict) {
-        return parseInt(get_subdict_value_by_key (dict, "id", "parent_pk", 0))
+        return parseInt(get_subdict_value_by_key (dict, "id", "ppk", 0))
     }
 
 //========= function is_updated  ================= PR2019-06-06
     function is_updated (field_dict){
         let updated = false
-        if (field_dict){
+        if (!isEmpty(field_dict)){
             updated = ("updated" in field_dict)
         }
         return updated
     }
 
+//========= function is_updated  ================= PR2019-06-22
+    function key_found (field_dict, key){
+        let key_found = false
+        if (!!key && !isEmpty(field_dict)){
+            key_found = (key in field_dict)
+        }
+        return key_found
+    }
 
 //========= function get_subdict_value_by_key  ================= PR2019-05-24
     function get_subdict_value_by_key (dict, key, subkey, default_value) {
@@ -285,14 +291,16 @@
     function get_dict_value_by_key (dict, key, default_value) {
         // Function returns value of key in obj PR2019-02-19 PR2019-04-27 PR2019-06-12
         let value;
-        if (!!dict && !!key){
+        if (!!key && !isEmpty(dict) ){
             // or: if (key in dict) { value = dict[key];}
             if (dict.hasOwnProperty(key)) {
                 value = dict[key];
             }
         }
-        if (!value && !!default_value){
-            value = default_value
+        if (value === undefined || value === null) {
+            if (default_value !== null) {
+                value = default_value
+            }
         }
         return value;
     }
@@ -333,18 +341,277 @@
 
 // +++++++++++++++++ FORMAT ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//========= format_text_element  ======== PR2019-06-09
-    function format_text_element (el_input, field_dict) {
-        if(!!el_input && !!field_dict){
-            value = get_dict_value_by_key (field_dict, "value");
-            el_input.value = value;
-            el_input.setAttribute("data-value", value);
-            el_input.setAttribute("data-o_value", value);
+//========= format_element  ======== PR2019-06-22
+    function format_element (el_input, el_msg, field_dict, el_type, show_year, month_list, weekday_list) {
+
+        if(!!el_input && !!field_dict && !!el_type){
+            switch ( el_type ) {
+            case "text":
+                format_text_element (el_input, el_msg, field_dict);
+                break;
+            case "date":
+                format_date_element (el_input, el_msg, field_dict, comp_timezone, show_year, month_list, weekday_list) ;
+                break;
+            case "time":
+                format_time_element (el_input, el_msg, field_dict, comp_timezone, month_list, weekday_list);
+                break;
+            case "duration":
+                format_duration_element (el_input, el_msg, field_dict);
+                break;
+            case "duration":
+                format_duration_element (el_input, el_msg, field_dict);
+                break;
+            default:
+                break;
+            }
         }
     }
 
+//========= format_text_element  ======== PR2019-06-09
+    function format_text_element (el_input, el_msg, field_dict) {
+        // console.log("--- format_text_element ---")
+        // console.log("field_dict: ", field_dict)
 
-//========= format_duration_element format_time_element  ======== PR2019-06-09
+        if(!!el_input && !!field_dict){
+            let value = get_dict_value_by_key (field_dict, "value");
+            let updated = get_dict_value_by_key (field_dict, "updated");
+            let msg_err = get_dict_value_by_key (field_dict, "error");
+
+            // console.log("value: ", value)
+
+            if(!!msg_err){
+                if(!value) { value = null} // otherwise 'undefined will show in tetbox
+                ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+            } else if(updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){
+                    el_input.classList.remove("border_valid");
+                    }, 2000);
+            }
+
+            if (!!value){
+                el_input.value = value;
+                el_input.setAttribute("data-value", value);
+                el_input.setAttribute("data-o_value", value);
+            } else {
+                el_input.value = '';
+                el_input.removeAttribute("data-value");
+                el_input.removeAttribute("data-o_value");
+            }
+        }
+    }
+
+//========= function format_date_element  ======== PR2019-07-02
+    function format_date_element (el_input, el_msg, field_dict, comp_timezone, show_year, month_list, weekday_list, rosterdate) {
+        // 'rosterdate': {'value': '1901-01-18', 'wdm': '1901-01-18', 'wdmy': '1901-01-18', 'offset': '-1:wo,0:do,1:vr'},
+        if(!!el_input && !!field_dict && !!comp_timezone ){
+            //console.log(" --- format_date_element --- ");
+            //console.log("field_dict: ", field_dict);
+
+        // get datetime_utc_iso from el_timepicker data-value, convert to local (i.e. comp_timezone)
+            const data_value = get_dict_value_by_key (field_dict, "value", "");
+            let datetime_local = moment.tz(data_value, comp_timezone );
+            //console.log("datetime_local: ", datetime_local.format());
+            //console.log("weekday_list: ", weekday_list);
+            //console.log("month_list: ", month_list);
+
+            let wdm, wdmy, dmy, weekday_str = "", month_str = ""
+
+            if (!!weekday_list){
+                const weekday_iso = datetime_local.isoWeekday();
+                weekday_str = weekday_list[weekday_iso];
+                //console.log("weekday_str: ", weekday_str);
+            }
+            if (!!month_list){
+                const month_iso = datetime_local.month() + 1;
+                month_str = month_list[month_iso];
+                //console.log("month_str: ", month_str);
+            }
+
+            if (!!datetime_local){
+                if(moment.locale() === "en") {
+                //date_str = weekday + " " + this_month + " " + this_date + ", " + this_year
+                    wdmy = datetime_local.format("dddd, MMM D, YYYY")
+                   //  wdm = datetime_local.format("ddd, MMM D")
+                    wdm = weekday_str + ", "  + month_str + " " + datetime_local.date();
+                    dmy = datetime_local.format("MMM D, YYYY")
+                } else {
+                //date_str = weekday + " " + this_date + " " + this_month + " " + this_year
+                    wdmy = datetime_local.format("dddd D MMM YYYY")
+                   //  wdm = datetime_local.format("ddd D MMM")
+                    wdm = weekday_str + " " + datetime_local.date() + " " + month_str;
+                    dmy = datetime_local.format("D MMM YYYY")
+                }
+            }
+
+            let offset = get_dict_value_by_key (field_dict, "offset", "");
+            let updated = get_dict_value_by_key (field_dict, "updated", false);
+            let msg_err = get_dict_value_by_key (field_dict, "error");
+            //console.log("data_value: ", data_value, "updated: ", updated);
+            //console.log("wdm: ", wdm, "wdmy: ", wdmy, "dmy: ", dmy, "offset: ", offset);
+
+            if(!!msg_err){
+
+               ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+
+            } else if(updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){
+                    el_input.classList.remove("border_valid");
+                    }, 2000);
+            }
+
+            if(!!data_value){
+                el_input.setAttribute("data-value", data_value);
+                el_input.setAttribute("data-o_value", data_value);
+            }
+
+            if(!!wdm){el_input.setAttribute("data-wdm", wdm)}
+            if(!!wdmy){el_input.setAttribute("data-wdmy", wdmy)}
+            if(!!dmy){el_input.setAttribute("data-dmy", dmy)}
+            if(!!offset){el_input.setAttribute("data-offset", offset)}
+
+            if (show_year) {
+                if (show_weekday){
+                    el_input.value = wdmy;
+                } else {
+                    el_input.value = dmy;
+                }
+            } else{
+                el_input.value = wdm;
+                el_input.title = wdmy
+            }
+
+        };  // if(!!el_input)
+    }  // function format_date_element
+
+//========= function format_time_element  ======== PR2019-06-03
+    function format_time_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list) {
+        // timestart: {dhm: "Sun 10:00 p.m.", value: "-1;22;0"}
+        if(!!el_input && !!field_dict){
+            // console.log("------ format_time_element --------------")
+            // console.log("field_dict: ", field_dict)
+
+            const value = get_dict_value_by_key (field_dict, "value"); // value = datetime_utc_iso
+            const updated = get_dict_value_by_key (field_dict, "updated");
+            const msg_err = get_dict_value_by_key (field_dict, "error");
+
+            let datetime_local, rosterdate_local, datetime_date, rosterdate_date, show_weekday = false;
+            if (!!value) {
+                datetime_local = moment.tz(value, comp_timezone );
+                datetime_date = datetime_local.date()
+                // console.log("datetime_local: ",  datetime_local.format())
+            }
+            const rosterdate_utc_iso = get_dict_value_by_key (field_dict, "rosterdate", "");
+            if (!!rosterdate_utc_iso){
+                //let rosterdate_local = moment.tz(rosterdate_str + "T00:00:00", comp_timezone );
+                rosterdate_local = moment.utc(rosterdate_utc_iso);
+                rosterdate_date = rosterdate_local.date()
+                if (datetime_date !== rosterdate_date){show_weekday = true}
+                // console.log("rosterdate_local: ",  rosterdate_local.format())
+            }
+// from https://www.techrepublic.com/article/convert-the-local-time-to-another-time-zone-with-this-javascript/
+// from  https://momentjs.com/timezone/
+            let fulldate, fulltime, wdmyhm, dhm, weekday_str = "", month_str = ""
+
+            if (show_weekday && !!weekday_list){
+                const weekday_iso = datetime_local.isoWeekday();
+                weekday_str = weekday_list[weekday_iso];
+                // console.log("weekday_str: ", weekday_str);
+            }
+            if (!!month_list){
+                const month_iso = datetime_local.month() + 1;
+                month_str = month_list[month_iso];
+                // console.log("month_str: ", month_str);
+            }
+
+            let isAmPm = false
+            if (timeformat === "AmPm"){isAmPm = true};
+
+            let isEN = false
+            if (moment.locale() === "en"){isEN = true};
+
+            if (!!datetime_local){
+            // format time
+                if(isEN) {
+                    if(isAmPm){fulltime = datetime_local.format("hh:mm a")} else {fulltime = datetime_local.format("HH:mm")}
+                } else {
+                    if(isAmPm){fulltime = datetime_local.format("hh.mm a")} else {fulltime = datetime_local.format("HH.mm") + " u"}
+                }
+                // console.log("fulltime: ", fulltime);
+
+            // format full date
+                if(isEN) {
+                    fulldate = datetime_local.format("dddd, MMMM D, YYYY")
+                } else {
+                    fulldate = datetime_local.format("dddd D MMMM YYYY")
+                }
+                wdmyhm = fulldate + " " + fulltime
+                // console.log("wdmyhm: ", wdmyhm);
+
+            // format time with weekday if different from rosterdate
+                if(!!weekday_str){
+                    dhm = weekday_str + " " + fulltime
+                } else {
+                    dhm =  fulltime
+                }
+
+            // format za 23 mei NOT IN USE
+                let wdm;
+                if(moment.locale() === "en") {
+                    wdm = weekday_str + ", "  + month_str + " " + datetime_local.date();
+                } else {
+                    wdm = weekday_str + " " + datetime_local.date() + " " + month_str;
+                }
+            }
+
+            if(!!msg_err){
+               ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+            } else if(updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){
+                    el_input.classList.remove("border_valid");
+                    }, 2000);
+            }
+            if(!!value){
+                el_input.setAttribute("data-value", value)};
+            if(!!dhm){
+                el_input.value = dhm};
+            if(!!wdmyhm){
+                el_input.title = wdmyhm};
+        }  // if(!!el_input && !!field_dict){
+    }  // function format_time_element
+
+//========= format_duration_element  ======== PR2019-06-03
+    function format_duration_element (el_input, el_msg, field_dict) {
+        // timeduration: {value: 540, hm: "9:00"}
+        if(!!el_input && !!field_dict){
+
+            let value = get_dict_value_by_key (field_dict, "value");
+            let hm = get_dict_value_by_key (field_dict, "hm");
+            let updated = get_dict_value_by_key (field_dict, "updated");
+            let msg_err = get_dict_value_by_key (field_dict, "error");
+
+            if(!!msg_err){
+               ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+            } else if(updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){
+                    el_input.classList.remove("border_valid");
+                    }, 2000);
+            }
+
+            if(!!value){
+                el_input.setAttribute("data-value", value);
+                el_input.setAttribute("data-o_value", value);
+            }
+            if(!!hm){
+                el_input.value = hm;
+            }
+        }
+    }  // function format_duration_element
+
+//========= format_inactive_element  ======== PR2019-06-09
     function format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active, title_inactive, title_active) {
         // inactive: {value: true}
         // console.log("+++++++++ format_inactive_element")
@@ -378,150 +645,42 @@
         }
     }
 
-//========= format_duration_element format_time_element  ======== PR2019-06-03
-    function format_duration_element (el_input, field_dict) {
-        // timeduration: {value: 540, hm: "9:00"}
-        if(!!el_input && !!field_dict){
-
-            let value = get_dict_value_by_key (field_dict, "value");
-            let hm = get_dict_value_by_key (field_dict, "hm");
-            let updated = get_dict_value_by_key (field_dict, "updated");
-            let msg_err = get_dict_value_by_key (field_dict, "error");
-
-            if(!!msg_err){
-               ShowMsgError(el_input, msg_err, - 160, true, value)
-            } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){
-                    el_input.classList.remove("border_valid");
-                    }, 2000);
-            }
-
-            if(!!value){
-                el_input.setAttribute("data-value", value);
-                el_input.setAttribute("data-o_value", value);
-            }
-            if(!!hm){
-                el_input.value = hm;
-            }
-        }
-    }  // function format_duration_element
-
-
-//========= function format_time_element  ======== PR2019-06-03
-    function format_time_element (el_input, field_dict) {
-        // timestart: {dhm: "Sun 10:00 p.m.", value: "-1;22;0"}
-        if(!!el_input && !!field_dict){
-
-            let value = get_dict_value_by_key (field_dict, "value");
-            let dhm = get_dict_value_by_key (field_dict, "dhm");
-            let dmyhm = get_dict_value_by_key (field_dict, "dmyhm");
-            let updated = get_dict_value_by_key (field_dict, "updated");
-            let msg_err = get_dict_value_by_key (field_dict, "error");
-
-            if(!!msg_err){
-               ShowMsgError(el_input, msg_err, - 160, true, value)
-            } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){
-                    el_input.classList.remove("border_valid");
-                    }, 2000);
-            }
-            if(!!value){
-                el_input.setAttribute("data-value", value);
-                el_input.setAttribute("data-o_value", value)};
-            if(!!dhm){
-                el_input.value = dhm};
-            if(!!dmyhm){
-                el_input.title = dmyhm}  ;
-
-        }
-    }  // function format_time_element
-
-
-//========= function format_date_element  ======== PR2019-06-02
-    function format_date_element (el_input, field_dict, show_weekday, show_year) {
-        // 'rosterdate': {'value': '1901-01-18', 'wdm': '1901-01-18', 'wdmy': '1901-01-18', 'offset': '-1:wo,0:do,1:vr'},
-        if(!!el_input && !!field_dict){
-
-            let value = get_dict_value_by_key (field_dict, "value");
-            let wdm = get_dict_value_by_key (field_dict, "wdm");
-            let wdmy = get_dict_value_by_key (field_dict, "wdmy");
-            let dmy = get_dict_value_by_key (field_dict, "dmy");
-            let offset = get_dict_value_by_key (field_dict, "offset");
-            let updated = get_dict_value_by_key (field_dict, "updated");
-            let msg_err = get_dict_value_by_key (field_dict, "error");
-
-            if(!!msg_err){
-
-               ShowMsgError(el_input, msg_err, - 160, true, value)
-
-            } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){
-                    el_input.classList.remove("border_valid");
-                    }, 2000);
-            }
-
-            if(!!value){
-                el_input.setAttribute("data-value", value);
-                el_input.setAttribute("data-o_value", value);
-            }
-
-            if(!!wdm){el_input.setAttribute("data-wdm", wdm)}
-            if(!!wdmy){el_input.setAttribute("data-wdmy", wdmy)}
-            if(!!dmy){el_input.setAttribute("data-dmy", dmy)}
-            if(!!offset){el_input.setAttribute("data-offset", offset)}
-
-            if (show_year) {
-                if (show_weekday){
-                    el_input.value = wdmy;
-                } else {
-                    el_input.value = dmy;
-                }
-            } else{
-                el_input.value = wdm;
-                el_input.title = wdmy
-            }
-
-        };  // if(!!el_input)
-    }  // function format_date_element
-
 // +++++++++++++++++ OTHER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //=========  ShowMsgError  ================ PR2019-06-01
-    function ShowMsgError(el_input, msg_err, offset, set_value, value) {
-    // show MsgBox with msg_err , offset shifts horizontal position
+    function ShowMsgError(el_input, el_msg, msg_err, offset, set_value, value) {
+        // show MsgBox with msg_err , offset shifts horizontal position
+        if(!!el_input && msg_err) {
+            el_input.classList.add("border_invalid");
+                // el_input.parentNode.classList.add("tsa_tr_error");
 
-        el_input.classList.add("border_none");
-        el_input.classList.add("border_invalid");
+            el_msg.innerHTML = msg_err;
+            el_msg.classList.add("show");
+                const elemRect = el_input.getBoundingClientRect();
+                const msgRect = el_msg.getBoundingClientRect();
+                const topPos = elemRect.top - (msgRect.height + 80);
+                const leftPos = elemRect.left + offset;
+                const msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+            el_msg.setAttribute("style", msgAttr)
 
-        let el_msg = document.getElementById("id_msgbox");
-        el_msg.innerHTML = msg_err;
-        el_msg.classList.toggle("show");
+            setTimeout(function (){
+                    // el_input.parentNode.classList.remove("tsa_tr_error");
+                    if (set_value){
+                        el_input.value = value;
+                        el_input.setAttribute("data-value", value);
+                    }
+                    el_input.classList.remove("border_invalid");
+                    el_msg.classList.remove("show");
+                }, 3000);
 
-        const elemRect = el_input.getBoundingClientRect();
-        const msgRect = el_msg.getBoundingClientRect();
-        const topPos = elemRect.top - (msgRect.height + 80);
-        const leftPos = elemRect.left + offset;
-        const msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-
-        el_msg.setAttribute("style", msgAttr)
-
-        setTimeout(function (){
-                // tblRow.classList.remove("tsa_tr_error");
-                if (set_value){
-                    el_input.value = value;
-                    el_input.setAttribute("data-value", value);
-                }
-                el_input.classList.remove("border_invalid");
-                el_msg.classList.toggle("show");
-            }, 2000);
+        } // if(!!el_input && msg_err)
     }
 
 //=========  ShowOkClass  ================ PR2019-05-31
     function ShowOkClass(tblRow ) {
     // make row green, / --- remove class 'ok' after 2 seconds
+    console.log ("---- ShowOkClass ---- ")
+    console.log (tblRow )
         tblRow.classList.add("tsa_tr_ok");
         setTimeout(function (){
             tblRow.classList.remove("tsa_tr_ok");
@@ -529,11 +688,12 @@
     }
 
 //=========  AppendIcon  ================ PR2019-05-31
-    function AppendChildIcon(el, img_src ) {
+    function AppendChildIcon(el, img_src, height ) {
+        if (!height) {height = "18"}
         let img = document.createElement("img");
             img.setAttribute("src", img_src);
-            img.setAttribute("height", "18");
-            img.setAttribute("width", "18");
+            img.setAttribute("height", height);
+            img.setAttribute("width", height);
         el.appendChild(img);
     }
 
@@ -585,16 +745,16 @@
     })();
 
 
-//========= FilterRows  ====================================
-    function FilterTableRows(tblBody, filter, show_inactive) {
+// +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
+
+//========= FilterTableRows  ====================================
+    function FilterTableRows(tblBody, filter, show_inactive) {  // PR2019-06-09
         // console.log( "===== FilterRows  ========= ");
         // console.log( "filter", filter, "show_inactive", show_inactive, typeof show_inactive);
-        // filter by inactive and substring of fields PR2019-06-09
-        // don't filter new row
+
         for (let row_index = 0, tblRow, show_row, len = tblBody.rows.length; row_index < len; row_index++) {
             tblRow = tblBody.rows[row_index]
             show_row = ShowTableRow(tblRow, filter, show_inactive)
-            console.log( "show_row", show_row, typeof show_row);
             if (show_row) {
                 tblRow.classList.remove("display_hide")
             } else {
@@ -604,30 +764,34 @@
     }; // function FilterRows
 
 
-//========= FilterTableRow  ====================================
-    function ShowTableRow(tblRow, filter_name, show_inactive) {
+//========= ShowTableRow  ====================================
+    function ShowTableRow(tblRow, filter_name, show_inactive) {  // PR2019-06-09
         // console.log( "===== ShowTableRow  ========= ");
-        // console.log( "filter_name", filter_name, "show_inactive", show_inactive);
         // filter by inactive and substring of fields
+        // don't filter new row
 
         let show_row = true;
         if (!!tblRow){
-            const pk_int = parseInt(get_attr_from_element(el, "id")); // or: const pk_str = el.id
-            // skip new row (parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-            console.log( "pk_int: ", pk_int);
-            if(!!pk_int){
-    // hide inactive rows if filter_hide_inactive
-                const col_last = tblRow.cells.length - 1
+            const pk_str = get_attr_from_element(tblRow, "data-pk");
+
+// check if row is_new_row. This is the case when pk is a string ('new_3'). Not all search tables have "id" (select customer has no id in tblrow)
+            let is_new_row = false;
+            if(!!pk_str){
+// skip new row (parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+               //  is_new_row = (! parseInt(pk_str))
+            }
+            // console.log( "pk_str", pk_str, "is_new_row", is_new_row, "show_inactive",  show_inactive);
+            if(!is_new_row){
+
+// hide inactive rows if filter_hide_inactive
+                const col_length = tblRow.cells.length
                 if (!show_inactive) {
-    // last field may be field 'inactive'
-                    let cell = tblRow.cells[col_last];
-                            // console.log( "cell-value", cell);
-                    if (!!cell){
-                        let el_inactive = cell.children[0];
-                            // console.log( "el_inactive", el_inactive);
+                    // last field is field 'inactive'
+                    let cell_last = tblRow.cells[col_length -1];
+                    if (!!cell_last){
+                        let el_inactive = cell_last.children[0];
                         if (!!el_inactive){
-                            let value = get_attr_from_element(el_inactive,"data-value","")
-                            // console.log( "data-value", value, typeof value);
+                            let value = get_attr_from_element(el_inactive,"data-value")
                             if (!!value) {
                                 if (value.toLowerCase() === "true") {
                                     show_row = false;
@@ -636,31 +800,157 @@
                         }
                     }
                 };  // if (!show_inactive) {
-        // show all rows  if filter_name = ""
-            // console.log( "show_row", show_row, typeof show_row);
+
+// show all rows if filter_name = ""
+            // console.log(  "show_row", show_row, "filter_name",  filter_name,  "col_length",  col_length);
                 if (show_row && !!filter_name){
-            // console.log( "show_row && !!filter_name", show_row, typeof show_row);
-                    found = false
-                    for (let col_index = 0, el_code; col_index < col_last; col_index++) {
-                        if (!!tblRow.cells[col_index].children[0]) {
-                            el_value = tblRow.cells[col_index].children[0].value;
-                            if (!!el_value){
-                                el_value = el_value.toLowerCase();
-                                console.log( "el_value:", el_value);
-                                if (el_value.indexOf(filter_name) !== -1) {
-                                    found = true
-                                    break;
-                        }}}
+                    let found = false
+                    for (let col_index = 0, el_value; col_index < col_length; col_index++) {
+                        let tbl_cell = tblRow.cells[col_index];
+                        if (!!tbl_cell){
+                            let el = tbl_cell.children[0];
+                            if (!!el) {
+// get value from el.value, from data-value if not found
+                                el_value = el.value;
+                                if (!el_value){el_value = get_attr_from_element(el, "data-value")}
+                                // console.log(  "el_value", el_value);
+
+                                if (!!el_value){
+                                    el_value = el_value.toLowerCase();
+                                    if (el_value.indexOf(filter_name) !== -1) {
+                                        found = true
+                                        break;
+                                    }
+                                }   // if (!!el_value){
+
+                            }  // if (!!el) {
+                        }  //  if (!!tbl_cell){
                     };  // for (let col_index = 1,
                     if (!found){show_row = false}
                 }  // if (show_row && !!filter_name){
-            }//  if(!!pk_int)
+            } //  if(!is_new_row){
         }  // if (!!tblRow)
+
+        // console.log(  "show_row", show_row, typeof show_row);
         return show_row
     }; // function FilterTableRows
 
 
-//========= ShowRow ========= PR2019-06-09
+//  ======= ReplaceItemDict ========
+    function ReplaceItemDict (item_list, item_dict){
+        // console.log ("======= ReplaceItemDict ========")
+        const len = item_list.length;
+        // function searches dict in list and replaces it with updated dict
+        if (!!len && !isEmpty(item_dict)){
+            if ('pk' in item_dict) {
+                for (let i = 0, dict; i < len; i++) {
+                    dict = item_list[i]
+                    if ('pk' in dict) {
+                        if (dict['pk'] === item_dict['pk']) {
+                            item_list[i] = item_dict;
+                            break;
+        }}}}}
+    }
+// TODO sort items when code has changed
+
+//  ======= SortItemList ========
+    function SortItemList (item_list, field, user_lang){
+        // console.log ("======= SortItemList ========")
+
+        let sorted_list = []
+        const item_list_len = item_list.length;
+        if (!!item_list_len) {
+    // loop through item_list
+            for (let i = 0, item_dict, insert_index; i < item_list_len; i++) {
+
+    // copy item_dict from item_list (deep copy necessary?)
+                // dict = JSON.parse(JSON.stringify(item_list[i]));
+                item_dict = item_list[i];
+                const item_val = get_subdict_value_by_key(item_dict, field, "value", "")
+                let item_str = ""; // ref_val.toString();
+                if (!!item_val){item_str = item_val.toString()}
+
+                insert_index = SortItem (sorted_list, item_str, field, user_lang )
+    // insert item
+                sorted_list.splice(insert_index, 0, item_dict); // sorted_list.splice(idx, 0, item_dict);
+
+            } // for (let i = 0, item_dict; i < len; i++) {
+
+        }  //  if (!!len)
+        // console.log (sorted_list)
+        return sorted_list
+    };  // SortItemList
+
+
+//  ======= SortItem ========
+    function SortItem (sorted_list, item_str, field,user_lang ){
+        // console.log ("--- SortItem ---> ", item_str)
+        // function searches dict in list and replaces it with updated dict
+
+        // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
+        // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
+        //string_a.localeCompare(string_b, user_lang, { sensitivity: 'base' })
+        //let newObj = JSON.parse(JSON.stringify(obj)
+
+        let insert_index = 0
+
+
+        if (!!sorted_list && item_str) {
+            let idx = 0, min_index = 0, max_index = 0;
+
+            let sorted_len = sorted_list.length;
+            let less_than_index = sorted_len
+            let greater_than_index = -1
+            if (!!sorted_len) { max_index = sorted_len - 1}
+
+// make index halfway min_index and max_index
+            idx = Math.floor((max_index - min_index)/2)
+            // console.log ( "---idx: ", idx, "min_index", min_index, "max_index", max_index)
+
+// find item in middle of sorted_list
+            for (let x = 0; x < sorted_len; x++) {
+                let sorted_dict = sorted_list[idx];
+                const sorted_val = get_subdict_value_by_key(sorted_dict, field, "value", "")
+                let sorted_str = "";
+                if (!!sorted_val){sorted_str = sorted_val.toString()}
+
+
+
+                // check if item_str should be inserted before or after sorted_str
+
+                 // A negative number if the reference string occurs before the compare string;
+                 // positive if the reference string occurs after the compare string;
+                 // 0 if they are equivalent.
+
+                let compare = item_str.localeCompare(sorted_str, user_lang, { sensitivity: 'base' });
+
+                if (compare < 0) {
+                    less_than_index = idx
+                    max_index = idx
+                    idx = Math.floor((max_index + min_index)/2)
+                } else {
+                    greater_than_index = idx
+                    min_index = idx
+                    idx = Math.ceil((max_index + min_index)/2)
+                }
+
+                // console.log (item_str, " <> ", sorted_str, "compare: ", compare, "less_than_index: ", less_than_index, "greater_than_index: ", greater_than_index)
+
+// repeat till less_than_index and greater_than_index havedifference <=1
+                if( (less_than_index - greater_than_index ) <= 1){
+                    insert_index = greater_than_index + 1
+                    break;
+                }
+
+            } // for (let x = 0; x < list_len; x++) {
+        }  //   if (!!sorted_len && item_str)
+
+        // console.log ("insert_index: ", insert_index)
+        return insert_index
+    };  // SortItem
+
+/*
+//NOT IN USE ========= ShowRow ========= PR2019-06-09
     function ShowRow(row_dict, field_list, filter, inactive_included) {
         console.log("==== ShowRow ===")
 
@@ -695,7 +985,7 @@
         }  // if (!len)
         return show_row
     }; // function ShowRow
-
+*/
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

@@ -136,10 +136,14 @@ class CompanyAddView(CreateView):
             # PR2018-08-04 debug: don't forget argument (request), otherwise gives error 'tuple index out of range' at request = args[0]
             self.new_company.save(request=self.request)
 
+            # TODO create absence customer after adding company
+            # create_absence_customer(request)
+
+
             return redirect('company_list_url')
         else:
             # PR2019-03-15 Debug: langauge gets lost after form.is_valid, get request.user.lang again
-            activate(request.user.lang if request.user.lang else 'nl')
+            activate(request.user.lang if request.user.lang else LANG_DEFAULT)
 
             return render(self.request, 'company_add.html', {'form': form})
 
@@ -171,5 +175,4 @@ class CompanyDeleteView(DeleteView):
             return HttpResponseRedirect(self.get_success_url())
         else:
             raise Http404  # or return HttpResponse('404_url')
-
 

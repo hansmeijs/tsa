@@ -78,6 +78,7 @@ $(function() {
         let hdr_employee = document.getElementById("id_hdr_employee");
 
         let el_loader = document.getElementById("id_loading_img");
+        let el_msg = document.getElementById("id_msgbox");
 
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
@@ -89,7 +90,7 @@ $(function() {
         const title_inactive = get_attr_from_element(el_data, "data-txt_make_inactive");
         const title_active = get_attr_from_element(el_data, "data-txt_make_active");
 
-        DatalistDownload({"employees": {inactive: true}});
+        DatalistDownload({"employee": {inactive: true}});
 
 //  #############################################################################################################
 
@@ -101,7 +102,7 @@ $(function() {
 
 // reset requested lists
         for (let key in datalist_request) {
-            if (key === "employees") {employee_list = []};
+            if (key === "employee") {employee_list = []};
         }
 
 // show loader
@@ -121,8 +122,8 @@ $(function() {
                 // hide loader
                 el_loader.classList.add(cls_hide)
 
-                if ("employees" in datalist_request) {
-                    if ("employees" in response) {employee_list= response["employees"]}
+                if ("employee" in datalist_request) {
+                    if ("employee" in response) {employee_list= response["employee"]}
                     FillTableRows();
                     FilterRows();
                 }
@@ -178,7 +179,7 @@ $(function() {
 //=========  CreateTableRow  ================ PR2019-06-16
     function CreateTableRow(pk, parent_pk) {
         // console.log("=========  function CreateTableRow =========");
-        // console.log("pk", pk, "parent_pk", parent_pk, "new_name_or_date", rosterdate_or_teamname);
+        // console.log("pk", pk, "ppk", parent_pk, "new_name_or_date", rosterdate_or_teamname);
 
 // check if row is addnew row - when pk is NaN
         let is_new_item = !parseInt(pk);
@@ -187,8 +188,8 @@ $(function() {
         let tblRow = tblBody_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
         tblRow.setAttribute("id", pk);
         tblRow.setAttribute("data-pk", pk);
-        tblRow.setAttribute("data-parent_pk", parent_pk);
-        tblRow.setAttribute("data-table", "employees");
+        tblRow.setAttribute("data-ppk", parent_pk);
+        tblRow.setAttribute("data-table", "employee");
 
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
@@ -196,7 +197,6 @@ $(function() {
 //+++ insert td's ino tblRow
         for (let j = 0, td, el; j < col_count; j++) {
             td = tblRow.insertCell(-1);
-                if(!is_new_item){ console.log("td", td)}
 // --- add img inactive to index_el_inactive
             if (j === 5){
                 if(!is_new_item){
@@ -208,7 +208,6 @@ $(function() {
             } else {
                 el = document.createElement("input");
                 el.setAttribute("type", "text")
-                if(!is_new_item){ console.log("el", el)}
             };
             if(!!el){
 // --- add data-field Attribute.
@@ -255,7 +254,6 @@ $(function() {
                     el.classList.add("input_popup_wdy");
                 };
 
-
     // --- add other attributes to td
                 el.setAttribute("autocomplete", "off");
                 el.setAttribute("ondragstart", "return false;");
@@ -293,7 +291,7 @@ $(function() {
             if ("deleted" in id_dict) {is_deleted = true};
             if ("error" in id_dict) {msg_err = id_dict["error"]};
             if ("pk" in id_dict) {pk_int = id_dict["pk"]};
-            if ("parent_pk" in id_dict) {parent_pk = id_dict["parent_pk"]};
+            if ("ppk" in id_dict) {parent_pk = id_dict["ppk"]};
             if ("temp_pk" in id_dict) {temp_pk_str = id_dict["temp_pk"]};
             // console.log("is_created:", is_created, "temp_pk_str:", temp_pk_str)
             // console.log("pk_int:", pk_int, "parent_pk:", parent_pk)
@@ -313,7 +311,7 @@ $(function() {
                 //console.log("el_input",el_input)
                 el_input.classList.add("border_invalid");
 
-                ShowMsgError(el_input, msg_err, -60)
+                ShowMsgError(el_input, el_msg, msg_err, -60)
 
 // --- new created record
             } else if (is_created){
@@ -327,7 +325,7 @@ $(function() {
             // update tablerow.id from temp_pk_str to id_pk
                     tblRow.setAttribute("id", pk_int);  // or tblRow.id = id_pk
                     tblRow.setAttribute("data-pk", pk_int)
-                    tblRow.setAttribute("data-parent_pk", parent_pk)
+                    tblRow.setAttribute("data-ppk", parent_pk)
 
             // remove placeholder from element 'code
                     let el_code = tblRow.cells[0].children[0];
@@ -367,7 +365,7 @@ $(function() {
                                 // console.log("updated: ", updated)
 
                                 if(!!err){
-                                    ShowMsgError(el_input, msg_err, -60)
+                                    ShowMsgError(el_input, el_msg, msg_err, -60)
                                 } else if(updated){
                                     el_input.classList.add("border_valid");
                                     setTimeout(function (){
@@ -376,9 +374,9 @@ $(function() {
                                 }
 
                                 if (["code", "namefirst", "namelast"].indexOf( fieldname ) > -1){
-                                   format_text_element (el_input, field_dict)
+                                   format_text_element (el_input, el_msg, field_dict)
                                 } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
-                                   format_date_element (el_input, field_dict, false,true) // show_weekday=false, show_year=true
+                                   format_date_element (el_input, el_msg, field_dict, comp_timezone, true) // show_weekday=false, show_year=true
                                 };
                             };
                             if (fieldname === "inactive") {
@@ -486,7 +484,7 @@ $(function() {
                             const parent_pk = get_parent_pk (item_dict)
 
                             let new_dict = {}
-                            new_dict["id"] = {"pk": pk_new, "parent_pk": parent_pk}
+                            new_dict["id"] = {"pk": pk_new, "ppk": parent_pk}
 
                             let tblRow = CreateTableRow(pk_new)
                             UpdateTableRow(tblRow, new_dict)
@@ -511,7 +509,7 @@ $(function() {
 
 // ---  get pk from id of tblRow
             const pk_int = get_datapk_from_element (tblRow)
-            const parent_pk_int = parseInt(get_attr_from_element(tblRow, "data-parent_pk"))
+            const parent_pk_int = parseInt(get_attr_from_element(tblRow, "data-ppk"))
 
             //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
             if (!pk_int) {
@@ -603,7 +601,7 @@ $(function() {
 
 // --- when err: show error message
                 } else if ("error" in id_dict){
-                    ShowMsgError(tblRow.cells[0], id_dict.error, -60)
+                    ShowMsgError(tblRow.cells[0], el_msg, id_dict.error, -60)
                 } // if (id_deleted){
 
 
@@ -682,7 +680,7 @@ $(function() {
         if (!!tr_selected){
             const data_table = get_attr_from_element(tr_selected, "data-table")
             const id_str = get_attr_from_element(tr_selected, "data-pk")
-            const parent_pk_str = get_attr_from_element(tr_selected, "data-parent_pk");
+            const parent_pk_str = get_attr_from_element(tr_selected, "data-ppk");
             console.log("data_table", data_table, "id_str", id_str, "parent_pk_str", parent_pk_str)
 
 // get values from el_input
@@ -694,7 +692,7 @@ $(function() {
     // put values in el_popup_wdy
             el_popup_wdy.setAttribute("data-table", data_table);
             el_popup_wdy.setAttribute("data-pk", id_str);
-            el_popup_wdy.setAttribute("data-parent_pk", parent_pk_str);
+            el_popup_wdy.setAttribute("data-ppk", parent_pk_str);
 
             el_popup_wdy.setAttribute("data-field", data_field);
             el_popup_wdy.setAttribute("data-value", data_value);
@@ -733,7 +731,7 @@ console.log("===  function HandlePopupWdySave =========");
 
 // ---  get pk_str from id of el_popup
         const pk_str = el_popup_wdy.getAttribute("data-pk")// pk of record  of element clicked
-        const parent_pk =  parseInt(el_popup_wdy.getAttribute("data-parent_pk"))
+        const parent_pk =  parseInt(el_popup_wdy.getAttribute("data-ppk"))
         const fieldname =  el_popup_wdy.getAttribute("data-field")
         const tablename =  el_popup_wdy.getAttribute("data-table")
         console.log("pk_str: ", pk_str, typeof pk_str)
@@ -754,7 +752,7 @@ console.log("===  function HandlePopupWdySave =========");
         // if pk_int exists: row is saved row
                 id_dict["pk"] = pk_int;
             };
-            id_dict["parent_pk"] = parent_pk
+            id_dict["ppk"] = parent_pk
             id_dict["table"] = tablename
 
             if (!!id_dict){row_upload["id"] = id_dict};
@@ -806,7 +804,7 @@ console.log("===  function HandlePopupWdySave =========");
                                 const parent_pk = get_parent_pk (item_dict)
 
                                 let new_dict = {}
-                                new_dict["id"] = {"pk": pk_new, "parent_pk": parent_pk}
+                                new_dict["id"] = {"pk": pk_new, "ppk": parent_pk}
 
                                 let tblRow = CreateTableRow(pk_new)
                                 UpdateTableRow(tblRow, new_dict)

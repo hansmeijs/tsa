@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.utils.translation import activate, ugettext_lazy as _
 from datetime import date, timedelta, datetime
 from django.utils import formats
-from tsap.constants import BASE_DATE
+from tsap.constants import LANG_NL
 from companies.models import Company
 
 from companies.functions import get_company_list
@@ -63,7 +63,7 @@ def get_headerbar_param(request, params):
             activate(request.user.lang)
             # logger.debug('activated lang: ' + str(request.user.lang))
         else:
-            activate('nl')
+            activate(LANG_NL)
 
 
 # ------- display_company --------
@@ -118,7 +118,7 @@ def get_headerbar_param(request, params):
 
 
     else:
-        activate('nl')
+        activate(LANG_NL)
 
     headerbar = {
         'request': request,

@@ -1152,9 +1152,9 @@ console.log ("==========  UPLOAD DATA ==========");
                 employees.push(item);
             }  // for (let row = 0 ; row < 5; row++)
 
-console.log("employees ==>");
+console.log("employee ==>");
 console.log( employees);
-            let parameters = {"employees": JSON.stringify (employees)};
+            let parameters = {"employee": JSON.stringify (employees)};
 
             $.ajax({
                 type: "POST",
