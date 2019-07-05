@@ -16,9 +16,8 @@ from companies.views import LazyEncoder
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_customer, check_date_overlap
 from tsap.constants import CODE_MAX_LENGTH, ABSENCE, ABSENCE_CATEGORY, LANG_DEFAULT, TYPE_00_NORMAL, TYPE_02_ABSENCE
-from tsap.functions import get_date_from_str, create_dict_with_empty_attr, get_iddict_variables, \
-                        get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, get_weekdaylist_for_DHM, \
-                        remove_empty_attr_from_dict, get_date_yyyymmdd, set_fielddict_date
+from tsap.functions import get_date_from_str, create_dict_with_empty_attr, get_iddict_variables, set_fielddict_date
+from planning.dicts import remove_empty_attr_from_dict
 import json
 
 import logging

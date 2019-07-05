@@ -11,7 +11,7 @@ from tsap.settings import AUTH_USER_MODEL, TIME_ZONE
 from tsap.constants import USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, NAME_MAX_LENGTH
 from tsap.functions import get_date_yyyymmdd, get_time_HHmm, get_datetimelocal_from_datetime, \
     get_date_longstr_from_dte, get_timelocal_formatDHM, formatDMYHM_from_datetime, format_WDMY_from_dte, get_date_WDM_from_dte, format_DMY_from_dte, \
-    get_weekdaylist_for_DHM, get_timeDHM_from_dhm, get_date_HM_from_minutes, remove_empty_attr_from_dict, \
+    get_weekdaylist_for_DHM, get_timeDHM_from_dhm, get_date_HM_from_minutes, \
     fielddict_date, fielddict_datetime, fielddict_duration, formatWHM_from_datetime, format_HM_from_dtetime
 
 
@@ -547,114 +547,6 @@ class Schemeitem(TsaBaseModel):
 
     def __str__(self):
         return 'schemeitem_pk_' + str(self.pk)
-
-    @classmethod
-    def create_schemeitem_list(cls, order, comp_timezone, user_lang):
-        # create list of schemeitems of this scheme PR2019-05-12
-        schemeitem_list = []
-        if order:
-            schemeitems = cls.objects.filter(scheme__order=order)
-            for schemeitem in schemeitems:
-                schemeitem_dict = cls.create_schemeitem_dict(schemeitem, comp_timezone, user_lang)
-                schemeitem_list.append(schemeitem_dict)
-        return schemeitem_list
-
-    @staticmethod
-    def create_schemeitem_dict(schemeitem, comp_timezone, user_lang, temp_pk=None, is_created=False, is_deleted=False, updated_list=None):
-        # create list of schemeitems of this scheme PR2019-05-12
-        schemeitem_dict = {}
-        field_list = ('id', 'scheme', 'rosterdate', 'shift', 'team',
-                      'timestart', 'timeend', 'timeduration', 'breakduration')
-
-        for field in field_list:
-            schemeitem_dict[field] = {}
-            if updated_list:
-                if field in updated_list:
-                    schemeitem_dict[field]['updated'] = True
-
-        if schemeitem:
-            for field in ['id']:
-                schemeitem_dict[field] = {'pk': schemeitem.id, 'ppk': schemeitem.scheme.id}
-                if temp_pk:
-                    schemeitem_dict[field]['temp_pk'] = temp_pk
-                if is_created:
-                    schemeitem_dict[field]['created'] = True
-                if is_deleted:
-                    schemeitem_dict[field]['deleted'] = True
-
-            if not is_deleted:
-                for field in ['rosterdate']:
-                    value = getattr(schemeitem, field)
-                    if value:
-                        schemeitem_dict[field] = fielddict_date(value, user_lang)
-
-                for field in ['shift']:
-                    value = getattr(schemeitem, field)
-                    if value:
-                        field_dict = {'value': value}
-                        schemeitem_dict[field] = field_dict
-
-                for field in ['team']:
-                    if schemeitem.team:
-                        value = schemeitem.team.code
-                        team_pk = schemeitem.team.id
-                        field_dict = {'value': value, 'team_pk':team_pk}
-                        if field_dict:
-                            schemeitem_dict[field] = field_dict
-
-                for field in ['timestart', 'timeend']:
-                    value = getattr(schemeitem, field + 'dhm')
-                    rosterdate = getattr(schemeitem, 'rosterdate')
-                    datetime = getattr(schemeitem, field)
-                    if value:
-                        field_dict = {'value': value,
-                                      'dhm': get_timeDHM_from_dhm(rosterdate, value, comp_timezone, user_lang),
-                                      'dmyhm': formatDMYHM_from_datetime(datetime, comp_timezone, user_lang)
-                                      }
-                        schemeitem_dict[field] = field_dict
-
-                for field in ['timeduration', 'breakduration']:
-                    value = getattr(schemeitem, field)
-                    if value:
-                        field_dict = {'value': value, 'hm': get_date_HM_from_minutes( value, user_lang)}
-                        schemeitem_dict[field] = field_dict
-
-
-    # --- remove empty attributes from update_dict
-        remove_empty_attr_from_dict(schemeitem_dict)
-
-        return schemeitem_dict
-
-    @classmethod
-    def create_shift_list(cls, order):
-        # create list of shifts of this scheme PR2019-05-01
-        shift_list = []
-        if order:
-            # return all shifts that have value from the scheemitems of this scheme
-            shifts = cls.objects.filter(scheme__order=order).\
-                exclude(shift__exact='').\
-                exclude(shift__isnull=True).\
-                values('scheme_id', 'shift', 'timestartdhm', 'timeenddhm', 'breakduration')\
-                .annotate(count=Count('shift'))\
-                .order_by(Lower('shift'))
-
-            for shift in shifts:
-                # schemeitem: {'shift': 'Shift 2', 'timestart': None, 'timeend': None, 'breakduration': 0, 'total': 1}
-
-                # add scheme.pk and total to dict 'id'
-                dict = {'id': {'ppk': shift.get('scheme_id'), 'count': shift.get('count')}}
-
-                for field in ['shift', 'timestartdhm', 'timeenddhm', 'breakduration']:
-                    value = shift.get(field)
-                    if value:
-                        fieldname = field
-                        if field == 'shift':
-                            fieldname = 'code'
-                        dict[fieldname] = {'value': value}
-
-                if dict:
-                    shift_list.append(dict)
-        return shift_list
 
 
 class Orderhour(TsaBaseModel):

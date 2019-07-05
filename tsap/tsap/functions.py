@@ -822,27 +822,6 @@ def create_dict_with_empty_attr(field_list):
             update_dict[field] = {}
     return update_dict
 
-
-def remove_empty_attr_from_dict(dict):
-# --- function removes empty attributes from dict  PR2019-06-02
-    # logger.debug('--- remove_empty_attr_from_dict')
-    # logger.debug('dict: ' + str(dict))
-# create list of fields in dict
-    list = []
-    for field in dict:
-        list.append(field)
-    # logger.debug('list: ' + str(list))
-# iterate through list of fields in dict
-    # cannot iterate through dict because it changes during iteration
-    for field in list:
-        if field in dict:
-# remove empty attributes from dict
-            if not dict[field]:
-                del dict[field]
-                # logger.debug('deleted: ' + str(field))
-    #logger.debug('dict: ' + str(dict))
-
-
 def get_iddict_variables(id_dict):
 # - get id_dict from upload_dict
     # 'id': {'temp_pk': 'new_26', 'create': True, 'parent_pk': 1, 'table': 'teammembers'}
@@ -913,10 +892,10 @@ def set_fielddict_date(dict, dte, user_lang, rosterdate=None, format_list=None):
     logger.debug('rosterdate: ' +  str(rosterdate) + ' type: ' + str(type(rosterdate)))
     if dte:
         if format_list is None:
-            format_list = ['value', 'dm', 'wdm', 'wdmy', 'dmy', 'offset']
+            format_list = ['rosterdate', 'datetime', 'value', 'dm', 'wdm', 'wdmy', 'dmy', 'offset']
 
         for format in format_list:
-            if format == 'value':
+            if format  in ['rosterdate', 'datetime', 'value']:
                 dict[format] = dte.isoformat()
             if format == 'dm':
                 dict[format] = get_date_DM_from_dte(dte, user_lang)

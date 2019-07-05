@@ -6,6 +6,7 @@ $(function() {
 // ---  set selected menu button active
         const cls_active = "active";
         const cls_hover = "tr_hover";
+        const cls_highl = "tr_highlighted";
         const cls_hide = "display_hide";
 
         let btn_clicked = document.getElementById("id_hdr_schm");
@@ -61,55 +62,56 @@ $(function() {
         let el_popup_dhm = document.getElementById("id_popup_dhm");
         let el_popup_hm = document.getElementById("id_popup_hm");
 
+// add EventListener to document to close popup windows
         document.addEventListener('click', function (event) {
             // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
 
-            let close_popup = true
-            // don't close popup_dhm when clicked on row cell with class input_popup_dhm
-            if (event.target.classList.contains("input_popup_dhm")) {
-                close_popup = false
-            // don't close popup when clicked on popup box, except for close button
-            } else if (el_popup_hm.contains(event.target) && !event.target.classList.contains("popup_close")) {
-                close_popup = false
+// hide msgbox
+            el_msg.classList.remove("show");
+
+ // remove highlighted row when clicked outside tabelrows
+            let tr_selected = get_tablerow_selected(event.target)
+            if(!tr_selected) {
+                DeselectHighlightedRows(tblBody_items)};
+            if(event.target.getAttribute("id") !== "id_btn_delete_schemeitem" && !get_tablerow_selected(event.target)) {
+                DeselectHighlightedRows();
             }
+// close el_popup_hm
+            let close_popup = true
+            if (event.target.classList.contains("input_popup_hm")) {close_popup = false} else
+            if (el_popup_hm.contains(event.target) && !event.target.classList.contains("popup_close")) { close_popup = false}
             if (close_popup) {
-                // remove selected color from all input popups
-                popupbox_removebackground();
+                popupbox_removebackground("input_popup_hm");
                 el_popup_hm.classList.add("display_hide");
             };
 
+// close el_popup_dhm
             close_popup = true
-            // don't close popup_dhm when clicked on row cell with class input_popup_dhm
-            if (event.target.classList.contains("input_popup_dhm")) {
-                close_popup = false
-            // don't close popup when clicked on popup box, except for close button
-            } else if (el_popup_dhm.contains(event.target) && !event.target.classList.contains("popup_close")) {
-                close_popup = false
-            }
+            if (event.target.classList.contains("input_popup_dhm")) {close_popup = false} else
+            if (el_popup_dhm.contains(event.target) && !event.target.classList.contains("popup_close")) {close_popup = false}
             if (close_popup) {
-                // remove selected color from all input popups
                 popupbox_removebackground();
                 el_popup_dhm.classList.add("display_hide");
             };
 
+// close el_popup_wdy
             close_popup = true
-            // don't close popup_dhm when clicked on row cell with class input_popup_wdy
-            if (event.target.classList.contains("input_popup_wdy")) {
-                close_popup = false
-            // don't close popup when clicked on popup box, except for close button
-            } else if (el_popup_wdy.contains(event.target) && !event.target.classList.contains("popup_close")) {
-                close_popup = false
-            }
+            if (event.target.classList.contains("input_popup_wdy")) { close_popup = false} else
+            if (el_popup_wdy.contains(event.target) && !event.target.classList.contains("popup_close")) {close_popup = false}
             if (close_popup) {
-                // remove selected color from all input popups
                 popupbox_removebackground();
                 el_popup_wdy.classList.add("display_hide");
             };
-            // remove highlighted row when clicked outside tabelrows
-            // skip if clicked on button delete delete_schemeitem
-            if(event.target.getAttribute("id") !== "id_btn_delete_schemeitem" && !get_tablerow_selected(event.target)) {
-                DeselectHighlightedRows();
-            }
+
+// close el_timepicker
+            close_popup = true
+            if (event.target.classList.contains("input_timepicker")) {close_popup = false} else
+            if (el_timepicker.contains(event.target) && !event.target.classList.contains("timepicker_close")) {close_popup = false}
+            if (close_popup) {
+                popupbox_removebackground("input_timepicker");
+                el_timepicker.classList.add(cls_hide)
+            };
+
         }, false);
 
 // ---  create EventListener for class input_text
@@ -129,6 +131,10 @@ $(function() {
 
         let tblBody_items = document.getElementById("id_tbody_schemeitems");
         let tblHead_items = document.getElementById("id_thead_schemeitems");
+
+        let el_timepicker = document.getElementById("id_timepicker")
+        let el_timepicker_tbody_hour = document.getElementById("id_timepicker_tbody_hour");
+        let el_timepicker_tbody_minute = document.getElementById("id_timepicker_tbody_minute");
 
         let el_loader = document.getElementById("id_loading_img");
         let el_msg = document.getElementById("id_msgbox");
@@ -189,25 +195,23 @@ $(function() {
         const month_list = get_attr_from_element_dict(el_data, "data-months");
         const today_dict = get_attr_from_element_dict(el_data, "data-today");
 
-        const interval = get_attr_from_element_int(el_data, "data-interval");
+        const user_lang = get_attr_from_element(el_data, "data-lang");
+        const comp_timezone = get_attr_from_element(el_data, "data-timezone");
         const timeformat = get_attr_from_element(el_data, "data-timeformat");
+        const interval = get_attr_from_element_int(el_data, "data-interval");
+
+        let quicksave = false
+        if (get_attr_from_element_int(el_data, "data-quicksave") === 1 ) { quicksave = true};
+        console.log("quicksave ", quicksave)
+        // from https://stackoverflow.com/questions/17493309/how-do-i-change-the-language-of-moment-js
+        //console.log("moment.locales ", moment.locales())
+        moment.locale(user_lang)
 
 // --- create header row
         CreateTableHeader("schemeitems");
 
-
-// --- create datetimepicker row
-        $('#id_scheme_datefirst')
-            .datetimepicker({
-                    format: 'D MMMM YYYY', // format: 'LT',
-                    locale: 'nl_NL'})
-            .on('dp.change', function (e){HandleDatepickerChanged(e)});
-
-        $('#id_scheme_datelast')
-            .datetimepicker({
-                    format: 'D MMMM YYYY', // format: 'LT',
-                    locale: 'nl_NL'})
-            .on('dp.change', function (e){HandleDatepickerChanged(e)});
+        CreateTimepickerHours(el_timepicker, el_timepicker_tbody_hour, timeformat, comp_timezone, UpdateTableRow, url_schemeitem_upload, quicksave, cls_highl, cls_hover);
+        CreateTimepickerMinutes(el_timepicker, el_timepicker_tbody_minute, interval, comp_timezone, cls_highl, cls_hover)
 
         const datalist_request = {"customer": {inactive: false},
                                   "order": {inactive: false},
@@ -1704,11 +1708,13 @@ $(function() {
 // --- add EventListener to td
                 if (tblName === "schemeitems"){
                     if (j === 1) {
-                        el.addEventListener("click", function() {OpenPopupWDY(el);}, false )} else
+                        el.addEventListener("click", function() {
+                            OpenTimepicker(el, el_timepicker, el_data, comp_timezone, timeformat, UpdateTableRow, url_schemeitem_upload, quicksave, cls_hover, cls_highl)}, false )} else
                     if ([2, 3].indexOf( j ) > -1){
                         el.addEventListener("change", function() {UploadChanges(el);}, false )} else
                     if ([4, 5].indexOf( j ) > -1){
-                        el.addEventListener("click", function() {OpenPopupDHM(el)}, false )} else
+                        el.addEventListener("click", function() {
+                            OpenTimepicker(el, el_timepicker, el_data, comp_timezone, timeformat, UpdateTableRow, url_schemeitem_upload, quicksave, cls_hover, cls_highl)}, false )} else
                     if ([6, 7].indexOf( j ) > -1){
                         el.addEventListener("click", function() {OpenPopupHM(el)}, false )};
                 } else if (tblName === "teammembers"){
@@ -1752,13 +1758,17 @@ $(function() {
 ;
 // --- add other classes to td
                 el.classList.add("border_none");
-                el.classList.add("input_text"); // makes background transparent
-
+                //el.classList.add("input_text"); // makes background transparent
                 if ( tblName === "schemeitems"){
                     if (j === 1) {
                         el.classList.add("input_popup_wdy");
-                    } else if ([4, 5, 6, 7].indexOf( j ) > -1){
-                        el.classList.add("input_popup_dhm")};
+                    } else if ([4, 5].indexOf( j ) > -1){
+                        el.classList.add("input_timepicker")
+                    } else if ([6, 7].indexOf( j ) > -1){
+                        el.classList.add("input_popup_dhm")
+                    } else {
+                        el.classList.add("input_text"); // makes background transparent
+                    };
                 } else if ( tblName === "teammembers"){
                     if ([3, 4].indexOf( j ) > -1){
                         el.classList.add("input_popup_wdy")};
@@ -1777,8 +1787,8 @@ $(function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblName, tblRow, item_dict){
-        // console.log("========= UpdateTableRow  =========");
-        // console.log(item_dict);
+         //console.log("========= UpdateTableRow  =========");
+         //console.log(item_dict);
 
         if (!!item_dict && !!tblRow) {
             // console.log("tblRow", tblRow);
@@ -1904,7 +1914,8 @@ $(function() {
                             }
 
                             if (["rosterdate", "datefirst", "datelast"].indexOf( fieldname ) > -1){
-                                format_date_element (el_input, el_msg, field_dict, comp_timezone, false, month_list, weekday_list) // show_weekday=true, show_year=false
+                                //console.log("fieldname: ", fieldname);
+                                format_date_element(el_input, el_msg, field_dict, comp_timezone, false, month_list, weekday_list) // show_weekday=true, show_year=false
                                 // when row is new row: remove data-o_value from dict,
                                 // otherwise will not recognize rosterdate as a new value and will not be saved
                                 if (!!temp_pk_str) {el_input.removeAttribute("data-o_value")}
@@ -1914,7 +1925,7 @@ $(function() {
                                 el_input.value = get_dict_value_by_key (field_dict, "value")
                                 el_input.setAttribute("data-pk", get_dict_value_by_key (field_dict, "team_pk"))
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
-                                format_time_element (el_input, el_msg, field_dict, comp_timezone, month_list, weekday_list)
+                                format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
                             } else if (["timeduration", "breakduration"].indexOf( fieldname ) > -1){
                                 format_duration_element (el_input, el_msg, field_dict)
                             };
@@ -2774,6 +2785,92 @@ console.log("tablename: ", tablename, typeof tablename)
             el_popup_dhm.classList.add("display_hide");
         }  // if(!!pk_str && !! parent_pk){
     }  // HandlePopupDhmSave
+
+//=========  HandleTimepickerSave  ================ PR2019-06-27
+    function HandleTimepickerSave(is_quicksave_mode) {
+        console.log("===  function HandleTimepickerSave =========");
+
+// ---  change quicksave when mode === "quicksave"
+        console.log("quicksave: ", quicksave, " type: ", typeof quicksave );
+
+        const quicksave_dict = ChangeQuicksave(quicksave, is_quicksave_mode, cls_hide);
+        const quicksave_haschanged = quicksave_dict["quicksave_haschanged"]
+        quicksave = quicksave_dict["quicksave"]
+
+        console.log("quicksave: ", quicksave, " type: ", typeof quicksave );
+        console.log("quicksave_haschanged: ", quicksave_haschanged, "quicksave: ", quicksave );
+
+// ---  get pk_str from id of el_timepicker
+        const pk_str = el_timepicker.getAttribute("data-pk")// pk of record  of element clicked
+        const parent_pk =  parseInt(el_timepicker.getAttribute("data-ppk"))
+        const field =  el_timepicker.getAttribute("data-field")
+        const table =  el_timepicker.getAttribute("data-table")
+        console.log ("field = ", field, "table = ", table)
+        console.log (el_timepicker)
+
+    // get moment_dte from el_timepicker data-value
+        const data_value = get_attr_from_element(el_timepicker, "data-value");
+        console.log ("data_value = ", data_value)
+        const datetime_utc = moment.utc(data_value);
+        console.log ("datetime_utc = ", datetime_utc.format())
+
+        const datetime_utc_iso =  datetime_utc.toISOString();
+        console.log ("datetime_utc_iso = ", datetime_utc_iso)
+
+        if(!!pk_str && !! parent_pk){
+            let id_dict = {}
+        //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+            const pk_int = parseInt(pk_str)
+        // if pk_int is not numeric, then row is an unsaved row with pk 'new_1'  etc
+            if (!pk_int){
+                id_dict["temp_pk"] = pk_str;
+                id_dict["create"] = true;
+            } else {
+        // if pk_int exists: row is saved row
+                id_dict["pk"] = pk_int;
+            };
+
+            id_dict["ppk"] =  parent_pk
+            id_dict["table"] =  table
+
+            let row_upload = {};
+            if (!!id_dict){row_upload["id"] = id_dict};
+
+            if (quicksave_haschanged){row_upload["quicksave"] = quicksave};
+
+            if (!!datetime_utc_iso){
+                let tr_selected = document.getElementById(pk_str)
+
+                row_upload[field] = {"value": datetime_utc_iso, "update": true};
+
+                console.log ("row_upload: ");
+                console.log (row_upload);
+
+                let parameters = {"url_schemeitem_upload": JSON.stringify (row_upload)};
+                let response;
+                $.ajax({
+                    type: "POST",
+                    url: url_schemeitem_upload,
+                    data: parameters,
+                    dataType:'json',
+                    success: function (response) {
+                console.log ("response", response);
+                        if ("item_update" in response) {
+                        console.log("...... UpdateTableRow .....");
+                            UpdateTableRow(tr_selected, response["item_update"])
+                        }
+                    },
+                    error: function (xhr, msg) {
+                        console.log(msg + '\n' + xhr.responseText);
+                        alert(msg + '\n' + xhr.responseText);
+                    }
+                });
+            }
+
+             popupbox_removebackground("input_timepicker");
+            el_timepicker.classList.add(cls_hide);
+        }  // if(!!pk_str && !! parent_pk){
+    }  // HandleTimepickerSave
 
 
 //========= function pop_background_remove  ====================================

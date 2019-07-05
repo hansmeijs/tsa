@@ -213,6 +213,10 @@
                 </div>
   <!-- =================== END POPUP  =================== -->
 
+<!-- =================== TIMEPICKER  =================== -->
+                {% include 'includes/timepicker.html' %}
+  <!-- =================== END TIMEPICKER  =================== -->
+
                 <table id="id_table_schemeitems" class="table table-condensed tsa-tbl ">
                     <thead id="id_thead_schemeitems" class="thead-inverse"></thead>
                     <tbody id="id_tbody_schemeitems"></tbody>
@@ -244,7 +248,9 @@
             data-imgsrc_stat04="{% static 'img/stat04.png' %}"
 
             data-lang ="{{ lang }}"
+            data-timezone ="{{ timezone }}"
             data-interval ="{{ interval }}"
+            data-quicksave ="{{ quicksave }}"
             data-timeformat ="{{ timeformat }}"
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
@@ -259,6 +265,9 @@
             data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
 
             data-err_msg01= "{% trans 'An error occurred.' %}"
+
+            data-txt_quicksave = "{% trans 'Quick save' %}"
+            data-txt_quicksave_remove = "{% trans 'Exit Quick save' %}"
 
             data-txt_customer = "{% trans 'Customer' %}"
             data-txt_select_customer= "{% trans 'Select customer' %}"

@@ -88,12 +88,9 @@
                                         ondragstart="return false;"
                                         ondrop="return false;"
                                         class="form-control"
-                                        placeholder="{% trans 'Select employee in the list on the left...' %}">
+                                        placeholder="{% trans 'Type a few letters and select employee in the list ...' %}">
                                 </div>
                             </div>
-
-
-
                             <div id="id_div_mod_switch" class="mod_flex mx-2 my-2 display_hide">
                                 <div class="form-group">
                                     <label for="id_mod_switch_shift" class="mx-2 my-2">{% trans 'Select shift' %}:</label>
@@ -110,8 +107,6 @@
                         </div>
                     </div>
                 </div>
-
-
                 <div class="modal-footer">
                     <div id="id_mod_ftr_msg"></div>
                     <button id="id_mod_btn_cancel" type="button"  class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
@@ -183,7 +178,7 @@
                      </div>
                  </div>
 
-  <!-- =================== TIMEPICKER  =================== -->
+  <!-- =================== TIMEPICKER  ===================
                 <div id="id_timepicker" class="popup_box display_hide">
                      <div class="popup_header">
                         <button id="id_timepicker_prevday" type="button">&#8249;</button>
@@ -191,15 +186,14 @@
                         <button  id="id_timepicker_nextday" type="button">&#8250;</button>
                         </button>
                      </div>
-                    <div class="popup-body">
-                        <div class="content_header td_width_360">
+
+                        <div class="content_header td_width_240">
                             <div class="content_subheader_left mx-1">
                                 <a>{% trans "Hours" %}</a>
                                 <table class="pop_tbl tbl_border">
                                     <tbody id="id_timepicker_tbody_hour"></tbody>
                                 </table>
                             </div>
-
                             <div class="content_subheader_left mx-1">
                                 <a>{% trans "Minutes" %}</a>
                                 <table class="pop_tbl tbl_border">
@@ -207,22 +201,20 @@
                                 </table>
                             </div>
                         </div>
-                    </div>
-                    <div class="popup-body">
-                        <div class="content_header td_width_360">
-                        <div class="content_subheader_left ml-1 mb-">
-                            <label id="id_timepicker_quicksave" class="timepicker_close px-1 py-1"><i>{% trans 'Quick save' %}</i></label>
+                        <div class="content_header td_width_240">
+                            <div class="content_subheader_left ml-1 mb-">
+                                <label id="id_timepicker_quicksave" class="timepicker_close px-1 py-1"><i>{% trans 'Quick save' %}</i></label>
+                            </div>
+                            <div class="content_subheader_right mr-1 mb-1">
+                                <button id="id_timepicker_save" type="button" class="timepicker_close">{% trans 'Save' %}</button>
+                            </div>
                         </div>
 
-                        <div class="content_subheader_right mr-1 mb-1">
-                        <button id="id_timepicker_save" type="button" class="timepicker_close">{% trans 'Save' %}</button>
-                            </div>
-
-                     </div>
-                     </div>
-                </div>
-
-  <!-- =================== DATA TABLE  =================== -->
+                </div> -->
+<!-- =================== TIMEPICKER  =================== -->
+                {% include 'includes/timepicker.html' %}
+<!-- =================== END TIMEPICKER  =================== -->
+<!-- =================== DATA TABLE  =================== -->
                 <table class="table table-condensed tsa-tbl ">
                     <thead id="id_thead_items" class="thead-inverse"></thead>
                     <tbody id="id_tbody_items"></tbody>

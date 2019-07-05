@@ -19,16 +19,12 @@
   <!--  <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet"> -->
   <!--  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"> -->
 
-
-
     <!-- https://codepen.io/Wimski/pen/jqRBeQ
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.37/css/bootstrap-datetimepicker.min.css"/>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.2/css/font-awesome.min.css"> -->
 
-
-
     <!-- Bootstrap Date-Picker Plugin from https://formden.com/blog/date-picker  PR2019-06-20 -->
-       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css"/>
+    <!--  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css"/> -->
 
   <!-- app.css goes after Bootstrap reference to CSS, otherwise, the default scheme will apply. -->
      <link rel="stylesheet" href="{% static 'css/forms.css' %}">
@@ -61,24 +57,22 @@
       <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
         <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.25/moment-timezone-with-data-10-year-range.min.js"></script> -->
       <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.25/moment-timezone-with-data.min.js"></script>
-      <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/locale/nl.js"></script> -->
-
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/locale/nl.js"></script>
+    <!--   <script src="{% static 'js/nl.js' %}"></script>  -->
 
   <!--  PR2018-12-02 from: https://github.com/js-cookie/js-cookie/tree/latest#readme -->
       <script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
   <!--  PR2019-01-13 added, promise-polyfill to make 'promise' work in IE 11 -->
       <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"></script>
+
   <!--  PR2019-01-13 added, contains csrftoken for ajax-->
       <script src="{% static 'js/base.js' %}"></script>
       <script src="{% static 'js/tables.js' %}"></script>
       <script src="{% static 'js/headerbar.js' %}"></script>
-    <!--   <script src="{% static 'js/nl.js' %}"></script>  -->
+      <script src="{% static 'js/timepicker.js' %}"></script>
+
     <!--  <script src="{% static 'js/bootstrap-datetimepicker-4-17-37.js' %}"></script> -->
-
-       <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
-
-
-
+    <!--  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script> -->
 
       {% block script %}{% endblock %}
 
@@ -96,7 +90,6 @@
         {% block content %}{% endblock %}
        </div>
     {% endblock body %}
-
 
     {% include 'session_security/all.html' %}
   </body>

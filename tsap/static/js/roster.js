@@ -56,9 +56,12 @@ $(function() {
         let el_loader = document.getElementById("id_loading_img");
         let el_msg = document.getElementById("id_msgbox");
 
+// add EventListener to document to close popup windows
         document.addEventListener('click', function (event) {
+
 // hide msgbox
             el_msg.classList.remove("show");
+
  // remove highlighted row when clicked outside tabelrows
             let tr_selected = get_tablerow_selected(event.target)
             if(!tr_selected) {
@@ -71,6 +74,7 @@ $(function() {
             if (close_popup) {
                 popupbox_removebackground("input_popup_wdy");
                 el_popup_wdy.classList.add(cls_hide)};
+
 // close el_timepicker
             close_popup = true
             if (event.target.classList.contains("input_timepicker")) {close_popup = false} else
@@ -93,15 +97,6 @@ $(function() {
             }, false )
         }
 
-// ---  create EventListener for popups
-        document.getElementById("id_timepicker_prevday").addEventListener("click", function() {HandleTimepickerEvent("prevday");}, false )
-        document.getElementById("id_timepicker_nextday").addEventListener("click", function() {HandleTimepickerEvent("nextday");}, false )
-        let el_timepicker_save = document.getElementById("id_timepicker_save")
-            el_timepicker_save.addEventListener("click", function() {HandleTimepickerSave()}, false )
-        let el_timepicker_quicksave = document.getElementById("id_timepicker_quicksave")
-            el_timepicker_quicksave.addEventListener("click", function() {HandleTimepickerSave("quicksave")}, false )
-            el_timepicker_quicksave.addEventListener("mouseenter", function(){el_timepicker_quicksave.classList.add(cls_hover);});
-            el_timepicker_quicksave.addEventListener("mouseleave", function(){el_timepicker_quicksave.classList.remove(cls_hover);});
 
 // ---  create EventListener for buttons
         let el_btn_rosterdate_fill = document.getElementById("id_btn_rosterdate_fill")
@@ -149,13 +144,14 @@ $(function() {
         const weekday_list = get_attr_from_element_dict(el_data, "data-weekdays");
         const month_list = get_attr_from_element_dict(el_data, "data-months");
         const today_dict = get_attr_from_element_dict(el_data, "data-today");
+
+        const user_lang = get_attr_from_element(el_data, "data-lang");
+        const comp_timezone = get_attr_from_element(el_data, "data-timezone");
+        const timeformat = get_attr_from_element(el_data, "data-timeformat");
         const interval = get_attr_from_element_int(el_data, "data-interval");
 
-        let timeformat = get_attr_from_element(el_data, "data-timeformat");
         let quicksave = false
         if (get_attr_from_element_int(el_data, "data-quicksave") === 1 ) { quicksave = true};
-        let comp_timezone = get_attr_from_element(el_data, "data-timezone");
-        let user_lang = get_attr_from_element(el_data, "data-lang");
 
         // from https://stackoverflow.com/questions/17493309/how-do-i-change-the-language-of-moment-js
         // console.log(moment.locales())
@@ -169,8 +165,8 @@ $(function() {
 // --- create header row
         CreateTableHeader();
 
-        CreateTimepickerHours();
-        CreateTimepickerMinutes()
+        CreateTimepickerHours(el_timepicker, el_timepicker_tbody_hour,  timeformat, comp_timezone, UpdateTableRow, url_emplhour_upload,quicksave, cls_highl, cls_hover);
+        CreateTimepickerMinutes(el_timepicker, el_timepicker_tbody_minute, interval, comp_timezone, cls_highl, cls_hover);
 
         const datalist_request = {"customer": {inactive: false},
                                   "order": {inactive: false},
@@ -455,7 +451,8 @@ function CheckStatus() {
                 if (j === 3){
                     el.addEventListener("click", function() {OpenModal(el);}, false ) } else
                 if ([4, 6].indexOf( j ) > -1){
-                    el.addEventListener("click", function() {OpenTimepicker(el)}, false )} else
+                    el.addEventListener("click", function() {
+                        OpenTimepicker(el, el_timepicker, el_data, comp_timezone, timeformat, UpdateTableRow, url_emplhour_upload, quicksave, cls_hover, cls_highl)}, false )} else
                 if (j === 8){
                     // el.addEventListener("click", function() {OpenPopupHM(el)}, false )
                 };
@@ -473,7 +470,8 @@ function CheckStatus() {
                 if ( [0, 1, 2, 3].indexOf( j ) > -1 ){
                     el.classList.add("text_align_left")} else
                 if ( [4, 5, 6].indexOf( j ) > -1 ){
-                    el.classList.add("text_align_right")}
+                    //el.classList.add("text_align_right")
+                }
 
 // --- add width to time fields and date fields
                 if (j === 1){
@@ -484,19 +482,19 @@ function CheckStatus() {
                     el.classList.add("td_width_090")};
 
 // --- add other classes to td
-                el.classList.add("border_none");
-
+                // el.classList.add("border_none");
+                // el.classList.add("input_text"); // makes background transparent
                 if (j === 0) {
-                    el.classList.add("input_text"); // makes background transparent
                     el.classList.add("input_popup_wdy");
-                } else if ([1, 2, 3].indexOf( j ) > -1){
-                    el.classList.add("input_text"); // makes background transparent
                 } else if ([4, 6].indexOf( j ) > -1){
-                    el.classList.add("input_text"); // makes background transparent
                     el.classList.add("input_timepicker")
                 } else if (j === 8){
-                    el.classList.add("input_text"); // makes background transparent
                     //el.classList.add("input_popup_hm")
+                    // TODO change class
+                    el.classList.add("input_text"); // makes background transparent
+                    el.classList.add("text_align_right")
+                } else {
+                    el.classList.add("input_text"); // makes background transparent
                 };
 
     // --- add other attributes to td
@@ -562,8 +560,8 @@ function CheckStatus() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, item_dict){
-        console.log(" ---------  UpdateTableRow");
-        console.log(item_dict);
+        //console.log(" ---------  UpdateTableRow");
+        //console.log(item_dict);
 
         if (!!item_dict && !!tblRow) {
 
@@ -637,10 +635,10 @@ function CheckStatus() {
                     if(!!el_input){
 // --- lookup field in item_dict, get data from field_dict
                         fieldname = get_attr_from_element(el_input, "data-field");
-                        console.log("fieldname", fieldname);
+                        // console.log("fieldname", fieldname);
                         if (fieldname in item_dict){
                             field_dict = get_dict_value_by_key (item_dict, fieldname);
-                            console.log("field_dict", field_dict);
+                            //console.log("field_dict", field_dict);
 
                             updated = get_dict_value_by_key (field_dict, "updated");
                             err = get_dict_value_by_key (field_dict, "error");
@@ -702,7 +700,7 @@ function CheckStatus() {
                                 el_input.value = value
 
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
-                                format_time_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
+                                format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
 
                             } else if (["timeduration", "breakduration"].indexOf( fieldname ) > -1){
                                 format_duration_element (el_input, el_msg, field_dict)
@@ -723,7 +721,7 @@ function CheckStatus() {
 
 //=========  HandleModalFilterEmployee  ================ PR2019-05-26
     function HandleModalFilterEmployee(option) {
-        console.log( "===== HandleModalFilterEmployee  ========= ");
+        //console.log( "===== HandleModalFilterEmployee  ========= ");
 
         let new_filter = "";
         let skip_filter = false
@@ -795,7 +793,7 @@ function CheckStatus() {
 
 //=========  HandleModalSelect  ================ PR2019-05-25
     function HandleModalSelect(btn_name) {
-        console.log( "===== HandleModalSelect ========= ");
+        //console.log( "===== HandleModalSelect ========= ");
 
         el_modal_body.setAttribute("data-select", btn_name);
 
@@ -829,8 +827,8 @@ function CheckStatus() {
 
 //=========  HandleModalSelectEmployee  ================ PR2019-05-24
     function HandleModalSelectEmployee(tblRow) {
-        console.log( "===== HandleModalSelectEmployee ========= ");
-        console.log( tblRow);
+        //console.log( "===== HandleModalSelectEmployee ========= ");
+        //console.log( tblRow);
 
 // ---  deselect all highlighted rows
         DeselectHighlightedRows(tblBody_select)
@@ -840,22 +838,22 @@ function CheckStatus() {
 
 // ---  highlight clicked row
             tblRow.classList.add("tsa_tr_selected")
-            console.log( "tblRow: "), tblRow;
+            //console.log( "tblRow: "), tblRow;
 
             // el_input is first child of td, td is cell of tblRow
             const el_select = tblRow.cells[0].children[0];
             const value = get_attr_from_element(el_select, "data-value");
-            console.log("value: ", value)
+            //console.log("value: ", value)
 
     // ---  get pk from id of select_tblRow
             let employee_pk = get_datapk_from_element (tblRow)
             let employee_parent_pk = get_datappk_from_element (tblRow)
 
-            console.log("employee_pk: ", employee_pk)
-            console.log("employee_parent_pk: ", employee_parent_pk)
+            //console.log("employee_pk: ", employee_pk)
+            //console.log("employee_parent_pk: ", employee_parent_pk)
 
             let el_input_replacement = document.getElementById("id_mod_employee")
-            console.log("el_input_replacement: ", el_input_replacement)
+            //console.log("el_input_replacement: ", el_input_replacement)
             el_input_replacement.value = value
 
             el_input_replacement.setAttribute("data-pk", employee_pk);
@@ -866,19 +864,19 @@ function CheckStatus() {
 
 //=========  HandleModalSave  ================ PR2019-06-23
     function HandleModalSave() {
-        console.log("===  HandleModalSave =========");
+        //console.log("===  HandleModalSave =========");
 
 
 
 // get emplhour pk and parent_pk , create id_dict Emplhour
         let emplhour_dict = get_iddict_from_element(el_modal_body);
-            console.log("--- emplhour_dict", emplhour_dict)
+            //console.log("--- emplhour_dict", emplhour_dict)
             // emplhour_dict: {pk: 137, parent_pk: 141, table: "emplhour"}
         let emplhour_pk = get_datapk_from_element(el_modal_body);
-            console.log("emplhour_pk", emplhour_pk)
+            //console.log("emplhour_pk", emplhour_pk)
         let emplhour_tblRow = document.getElementById(emplhour_pk)
-            console.log("emplhour_tblRow")
-            console.log(emplhour_tblRow)
+            //console.log("emplhour_tblRow")
+            //console.log(emplhour_tblRow)
 
         let abscat_dict = {};
         let employee_dict = {};
@@ -895,7 +893,7 @@ function CheckStatus() {
 
 // get selected button
         const btn_name = el_modal_body.getAttribute("data-select");
-        console.log("btn_name: ", btn_name);
+        //console.log("btn_name: ", btn_name);
         switch (btn_name) {
         case "absent":
         // get absence category
@@ -931,7 +929,7 @@ function CheckStatus() {
             row_upload["select"] = btn_name;
             row_upload["employee"] = employee_dict;
             row_upload["abscat"] = abscat_dict;
-            console.log ("emplhour_upload: ", row_upload);
+            //console.log ("emplhour_upload: ", row_upload);
 
             let parameters = {"emplhour_upload": JSON.stringify (row_upload)};
 
@@ -942,13 +940,13 @@ function CheckStatus() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                console.log ("response", response);
+                //console.log ("response", response);
                     if ("item_update" in response) {
                         UpdateTableRow(emplhour_tblRow, response["item_update"])
                     }
                 },
                 error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
+                    //console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
@@ -1282,370 +1280,6 @@ function CheckStatus() {
             } // for (let i = 0; i < len; i++)
         }  // if (len === 0)
     } // FillSelectTableEmployee
-
-//========= OpenTimepicker  ====================================
-    function OpenTimepicker(el_input) {
-        console.log("===  OpenTimepicker  =====") ;
-
-        let tr_selected = get_tablerow_selected(el_input)
-
-// get info pk etc from tr_selected
-        const data_table = get_attr_from_element(tr_selected, "data-table")
-        const id_str = get_attr_from_element(tr_selected, "data-pk")
-        const ppk_str = get_attr_from_element(tr_selected, "data-ppk");
-        // console.log("data_table", data_table, "id_str", id_str, "ppk_str", ppk_str)
-
-// get values from el_input
-        const data_field = get_attr_from_element(el_input, "data-field");
-        let data_value = get_attr_from_element(el_input, "data-value");
-        console.log("data_value:", data_value)
-
-
-        let datetime_local;
-
-// if no current value: get rosterdate
-        if (!data_value) {
-            if (!!tr_selected){
-                let el_rosterdate = tr_selected.querySelector("[data-field='rosterdate']");
-                if (!!el_rosterdate) {
-                    data_value = get_attr_from_element(el_rosterdate, "data-value") + "T00:00:00"
-                    datetime_local = moment.tz(data_value, comp_timezone );
-                }
-            }
-        } else {
-            datetime_local = moment.tz(data_value, comp_timezone );
-
-            // PR2019-07-01 before moment.tz it was:
-                // date_as_ISOstring: "2019-06-25T07:00:00Z"  on screen: 9.00
-                // datetime_utc = get_date_from_ISOstring(datetime_iso)
-                // datetime_utc: Tue Jun 25 2019 03:00:00 GMT-0400 (Bolivia Time) datetime object
-                // companyoffset stores offset from UTC to company_timezone in seconds
-                // datetime_offset = datetime_utc.setSeconds(companyoffset + useroffset)
-                // datetime_offset: 1561467600000 number
-                // datetime_local = new Date(datetime_offset);
-                // datetime_local: Tue Jun 25 2019 09:00:00 GMT-0400 (Bolivia Time) datetime object
-
-                // datetime_iso     2019-06-25 T 20:15 :00Z string
-                // datetime_utc     Tue Jun 25 2019 16:15:00 GMT-0400 (Bolivia Time) object
-                // datetime_offset  1561515300000 number (timestamp)
-                // datetime_local   Tue Jun 25 2019 22:15:00 GMT-0400 (Bolivia Time) object
-
-                // date onscreen    is 22.15 u, timezone +2 u, stored als UTC time: 20.15 u
-                // datetime_iso     is the ISO-string of the date stored in the database, UTC time: 20.15 u
-                // datetime_utc     is the representation of the utc time in local timezone(-4 u):  16.15 u
-                //                  function: new Date(Date.UTC(y,m,d,h,m)
-                // datetime_offset  is the timestamp with correction for local timezone (-4 u) and company timezone (+2 u)
-                //                  function: datetime.setSeconds(companyoffset + useroffset)
-                //                  companyoffset: 7200 number (+2 u * 3600) useroffset: 14400 number (-4 u * -3600)
-                // datetime_local   is the date format as shown on the screen: 22:15
-                //                  function: new Date(datetime_offset)
-        }
-
-        if (!!datetime_local) {
-            console.log("datetime_local:  ", datetime_local.format());
-
-// put values in el_timepicker
-            el_timepicker.setAttribute("data-table", data_table);
-            el_timepicker.setAttribute("data-pk", id_str);
-            el_timepicker.setAttribute("data-ppk", ppk_str);
-
-            el_timepicker.setAttribute("data-field", data_field);
-            el_timepicker.setAttribute("data-value", data_value);
-
-            let date_str = format_datelong_from_datetimelocal(datetime_local)
-            document.getElementById("id_timepicker_date").innerText = date_str
-
-            let curHours = datetime_local.hour();
-            let curMinutes = datetime_local.minutes();
-
-            HighlightTimepickerHour(curHours, curMinutes)
-            HighlightTimepickerMinute(curMinutes)
-
-    // ---  position popup under el_input
-            let popRect = el_timepicker.getBoundingClientRect();
-            let inpRect = el_input.getBoundingClientRect();
-            let topPos = inpRect.top + inpRect.height;
-            let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
-            let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-            el_timepicker.setAttribute("style", msgAttr)
-
-    // ---  change background of el_input
-            // first remove selected color from all imput popups
-            elements = document.getElementsByClassName("el_input");
-            popupbox_removebackground("input_timepicker");
-            el_input.classList.add("pop_background");
-
-    // hide save button on quicksave
-
-            let txt_quicksave = get_attr_from_element(el_data, "data-txt_quicksave");
-            if (quicksave){
-                el_timepicker_save.classList.add(cls_hide);
-                txt_quicksave = get_attr_from_element(el_data, "data-txt_quicksave_remove");
-            } else {
-                el_timepicker_save.classList.remove(cls_hide);
-            }
-            el_timepicker_quicksave.innerText = txt_quicksave
-
-    // ---  show el_popup
-            el_timepicker.classList.remove(cls_hide);
-        }
-    }; // function OpenTimepicker
-
-//========= CreateTimepickerHours  ====================================
-    function CreateTimepickerHours() {
-        //console.log( "--- CreateTimepickerHours  ");
-
-        let tbody = el_timepicker_tbody_hour;
-        tbody.innerText = null
-
-        //timeformat = 'AmPm' or '24h'
-        const is_ampm = (timeformat === 'AmPm')
-        let maxHours = 24;
-        let hourRows = 4;
-
-        if (is_ampm) {
-            hourRows = 2
-            maxHours = 12;
-        }
-
-        let tblRow;
-
-// --- loop through option list
-        for (let i = 0; i < hourRows; i++) {
-            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-
-            for (let j = 0, td, el_a, hours, hour_text; j < 6; j++) {
-                hours = (1+j) + (i*6)
-                if (hours === maxHours) {hours = 0 }
-                hour_text = "00" + hours.toString()
-                hour_text = hour_text.slice(-2);
-
-                td = tblRow.insertCell(-1);
-
-                td.setAttribute("data-hour", hours);
-                td.addEventListener("mouseenter", function(){td.classList.add(cls_hover);});
-                td.addEventListener("mouseleave", function(){td.classList.remove(cls_hover);});
-                td.addEventListener("click", function() {HandleTimepickerEvent("timepicker_hour", tbody, td)}, false)
-
-                td.classList.add("timepicker_hour");
-                td.setAttribute("align","center")
-
-                el_a = document.createElement("a");
-                el_a.innerText = hour_text
-                td.appendChild(el_a);
-            }
-        }  // for (let i = 0,
-        if(is_ampm){
-            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            let td = tblRow.insertCell(-1);
-
-            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            td.setAttribute("colspan",6)
-
-            for (let j = 0, td, el_a, ampm_text; j < 2; j++) {
-                if(j === 0) {ampm_text = "AM"} else {ampm_text = "PM"}
-
-                td = tblRow.insertCell(-1);
-
-                td.setAttribute("data-ampm", j);
-                td.addEventListener("mouseenter", function(){td.classList.add(cls_hover);});
-                td.addEventListener("mouseleave", function(){td.classList.remove(cls_hover);});
-                td.addEventListener("click", function() {HandleTimepickerEvent("timepicker_ampm", tbody, td)}, false )
-
-                td.setAttribute("colspan",3)
-                td.setAttribute("align","center")
-
-                td.classList.add("timepicker_ampm");
-
-                el_a = document.createElement("a");
-                el_a.innerText = ampm_text
-                td.appendChild(el_a);
-            }
-        }
-    }  //function CreateTimepickerHours
-
-//========= CreateTimepickerMinutes  ====================================
-    function CreateTimepickerMinutes() {
-        //console.log( "=== CreateTimepickerMinutes  ", option_list);
-
-// ---  set references to elements
-        let tbody = el_timepicker_tbody_minute;
-        tbody.innerText = null
-
-        let minutes = 0, minutes_text;
-        let rows = 0
-        let columns = 0;
-
-        switch (interval) {
-        case 1:
-            rows = 6; columns = 10
-            break;
-        case 2:
-            rows = 6; columns = 5
-            break;
-        case 3:
-            rows = 4; columns = 5
-            break;
-        case 5:
-            rows = 4; columns = 3
-            break;
-        case 10:
-            rows = 2; columns = 3
-            break;
-        case 12:
-            rows = 1; columns = 5
-            break;
-        case 15:
-            rows = 2; columns = 2
-            break;
-        case 20:
-            rows = 1; columns = 3
-            break;
-        case 30:
-            rows = 1; columns = 2
-            break;
-		}
-
-// --- loop through option list
-        for (let i = 0, tblRow; i < rows; i++) {
-            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-
-            for (let j = 0, td, el_a ; j < columns; j++) {
-                minutes = minutes + interval
-                if (minutes === 60) {minutes = 0 }
-                minutes_text = "00" + minutes.toString()
-                minutes_text = minutes_text.slice(-2);
-
-                td = tblRow.insertCell(-1);
-
-                td.setAttribute("data-minute", minutes);
-                td.addEventListener("mouseenter", function(){td.classList.add(cls_hover);});
-                td.addEventListener("mouseleave", function(){td.classList.remove(cls_hover);});
-
-                td.addEventListener("click", function() {HandleTimepickerEvent("timepicker_minute", tbody, td);}, false )
-
-                td.classList.add("timepicker_minute");
-
-                el_a = document.createElement("a");
-                el_a.innerText = minutes_text
-                td.appendChild(el_a);
-            }
-        }  // for (let i = 0,
-    }  //function CreateTimepickerMinutes
-
-
-
-//========= HighlightTimepickerHour  ====================================
-    function HighlightTimepickerHour(curHours, curMinutes) {
-        //console.log( "=== HighlightTimepickerHour  ");
-        //console.log( "curHours:", curHours, "curMinutes:", curMinutes);
-
-        let tbody = el_timepicker_tbody_hour;
-
-        let curAmPm = 0;
-        if (timeformat === 'AmPm') {
-            if (curHours >= 12) {
-                curHours -= 12;
-                curAmPm = 1;
-            }
-            HighlightTimepickerCell(tbody, "ampm", curAmPm)
-        }
-        HighlightTimepickerCell(tbody, "hour", curHours)
-    }  //function HighlightTimepickerHour
-
-
-//========= HighlightTimepickerMinute  ====================================
-    function HighlightTimepickerMinute(curMinutes) {
-        HighlightTimepickerCell(el_timepicker_tbody_minute, "minute", curMinutes)
-    }
-
-//========= HighlightTimepickerCell  ====================================
-    function HighlightTimepickerCell(tbody, name, curValue) {
-// from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        let tds = tbody.getElementsByClassName("timepicker_" + name)
-        for (let i=0, td, value; td = tds[i]; i++) {
-            value = get_attr_from_element_int(td, "data-" + name)
-            if (curValue === value){td.classList.add(cls_highl)} else {td.classList.remove(cls_highl)}
-        }
-    }
-
-
-//========= HandleTimepickerEvent  ====================================
-    function HandleTimepickerEvent(type_str, tbody, td) {
-        console.log("==== HandleTimepickerEvent  =====", type_str);
-
-    // get datetime_utc_iso from el_timepicker data-value, convert to local (i.e. comp_timezone)
-        const data_value = get_attr_from_element(el_timepicker, "data-value");
-        let datetime_local = moment.tz(data_value, comp_timezone );
-        // console.log("datetime_local: ", datetime_local.format());
-
-        if (["prevday", "nextday"].indexOf( type_str ) > -1){
-        // set  day_add to 1 or -1
-            let day_add = 1;
-            if (type_str === "prevday") { day_add = -1};
-        // add / subtract day from datetime_local
-            datetime_local.add(day_add, 'day')
-        // display new date in el_timepicker
-            let date_str = format_datelong_from_datetimelocal(datetime_local)
-            document.getElementById("id_timepicker_date").innerText = date_str
-
-        } else if (type_str === "timepicker_hour" ) {
-        // get new hour from data-hour of td
-            const new_hour = get_attr_from_element_int(td, "data-hour");
-        // set new hour in datetime_local
-            datetime_local.hour(new_hour);
-        // select new hour  td
-            SelectTimepickerCell(tbody, td, type_str)
-
-        } else if (type_str === "timepicker_minute" ) {
-        // get new minutes from data-minute of td
-            const new_minute = get_attr_from_element_int(td, "data-minute");
-        // set new minutes in datetime_local
-            datetime_local.minute(new_minute);
-        // select new minutes td
-            SelectTimepickerCell(tbody, td, type_str)
-
-        } else if (type_str === "timepicker_ampm" ) {
-        // get new ampm from td
-            const new_ampm = get_attr_from_element_int(td, "data-ampm");
-        // get hour form local datetime
-            const hour_local = datetime_local.hour();
-        // set value of hour_add
-            let hour_add = 0;
-            if(new_ampm === 0) {
-                if (hour_local >= 12) {hour_add =  -12}
-            } else {
-                if (hour_local < 12) {hour_add =  12}
-            }
-        // update moment_datetime
-            if (!!hour_add) {datetime_local.add(hour_add, 'hour')}
-            //console.log(moment_datetime.format())
-        // select new ampm td
-            SelectTimepickerCell(tbody, td, type_str)
-        }
-
-    // convert datetime_local to datetime_utc
-        const datetime_utc = datetime_local.utc()
-        // console.log("new datetime_utc hour: ", datetime_utc.format());
-        const datetime_utc_iso = datetime_utc.toISOString()
-        // console.log("datetime_utc_iso: ", datetime_utc_iso);
-    // put new value back in el_timepicker data-value
-        el_timepicker.setAttribute("data-value", datetime_utc_iso);
-
-
-    // save in quicksave mode
-        if (quicksave && type_str === "timepicker_hour" ){HandleTimepickerSave()}
-
-    }
-
-//========= SelectTimepickerCell  ====================================
-    function SelectTimepickerCell(tbody, td, type_str) {
-        let tds = tbody.getElementsByClassName(type_str);
-        for (let x = 0, len = tds.length; x < len; x++) {
-            tds[x].classList.remove(cls_highl);
-        }
-        td.classList.add(cls_highl)
-    }
 
 // +++++++++  HandleFillRosterdate  ++++++++++++++++++++++++++++++ PR2019-06-07
     function HandleFillRosterdate(action) {
@@ -1984,33 +1618,47 @@ console.log("===  function HandlePopupWdySave =========");
 
 
 //=========  HandleTimepickerSave  ================ PR2019-06-27
-    function HandleTimepickerSave(mode) {
+    function XXXXHandleTimepickerSave(is_quicksave_mode=false) {
         console.log("===  function HandleTimepickerSave =========");
 
-        let quicksave_haschanged = false;
-        if(mode === "quicksave") {
-            quicksave = !quicksave
-            if(quicksave){
-                el_timepicker_save.classList.add(cls_hide);
-            } else {
-                el_timepicker_save.classList.remove(cls_hide);
-            }
-            quicksave_haschanged = true
-        }
+// ---  change quicksave when mode === "quicksave"
+        console.log("is_quicksave_mode: ", is_quicksave_mode, " is_quicksave_mode: ", typeof is_quicksave_mode );
+
+        const quicksave_dict = ChangeQuicksave(quicksave, is_quicksave_mode, cls_hide);
+        const quicksave_haschanged = quicksave_dict["quicksave_haschanged"]
+        quicksave = quicksave_dict["quicksave"]
+
+        console.log("quicksave: ", quicksave, " type: ", typeof quicksave );
+        console.log("quicksave_haschanged: ", quicksave_haschanged, "quicksave: ", quicksave );
 
 // ---  get pk_str from id of el_timepicker
         const pk_str = el_timepicker.getAttribute("data-pk")// pk of record  of element clicked
         const parent_pk =  parseInt(el_timepicker.getAttribute("data-ppk"))
         const field =  el_timepicker.getAttribute("data-field")
         const table =  el_timepicker.getAttribute("data-table")
+        console.log ("field = ", field, "table = ", table)
+        console.log (el_timepicker)
+
+
+// get values from el_timepicker
+        const data_table = get_attr_from_element(el_timepicker, "data-table")
+        const id_str = get_attr_from_element(el_timepicker, "data-pk")
+        const ppk_str = get_attr_from_element(el_timepicker, "data-ppk");
+        const data_field = get_attr_from_element(el_timepicker, "data-field");
+        let data_rosterdate = get_attr_from_element(el_timepicker, "data-rosterdate");
+        let data_datetime = get_attr_from_element(el_timepicker, "data-datetime");
+        let data_offset = get_attr_from_element(el_timepicker, "data-offset");
+        console.log("table:", data_table, "field:", data_field, "pk:", id_str, "ppk:", ppk_str)
+        console.log("rosterdate:", data_rosterdate, "datetime:", data_datetime, "offset:", data_offset)
 
     // get moment_dte from el_timepicker data-value
         const data_value = get_attr_from_element(el_timepicker, "data-value");
         console.log ("data_value = ", data_value)
         const datetime_utc = moment.utc(data_value);
-        // console.log ("datetime_utc = ", datetime_utc.format())
+        console.log ("datetime_utc = ", datetime_utc.format())
+
         const datetime_utc_iso =  datetime_utc.toISOString();
-        // console.log ("datetime_utc_iso = ", datetime_utc_iso)
+        console.log ("datetime_utc_iso = ", datetime_utc_iso)
 
         if(!!pk_str && !! parent_pk){
             let id_dict = {}
@@ -2061,21 +1709,12 @@ console.log("===  function HandlePopupWdySave =========");
                     }
                 });
             }
-
              popupbox_removebackground("input_timepicker");
             el_timepicker.classList.add(cls_hide);
         }  // if(!!pk_str && !! parent_pk){
     }  // HandleTimepickerSave
 
 
-//========= function pop_background_remove  ====================================
-    function popupbox_removebackground(type_str){
-        // remove selected color from all input popups
-        let elements = document.getElementsByClassName(type_str);
-        for (let i = 0, len = elements.length; i < len; i++) {
-            elements[i].classList.remove("pop_background");
-        }
-    }
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     // OPEN MODAL ON TRIGGER CLICK

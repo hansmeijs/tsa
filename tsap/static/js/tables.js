@@ -352,8 +352,11 @@
             case "date":
                 format_date_element (el_input, el_msg, field_dict, comp_timezone, show_year, month_list, weekday_list) ;
                 break;
-            case "time":
-                format_time_element (el_input, el_msg, field_dict, comp_timezone, month_list, weekday_list);
+            case "datetime":
+                format_datetime_element (el_input, el_msg, field_dict, comp_timezone, month_list, weekday_list);
+                break;
+            case "timeoffset":
+                format_timeoffset_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list);
                 break;
             case "duration":
                 format_duration_element (el_input, el_msg, field_dict);
@@ -404,9 +407,10 @@
 //========= function format_date_element  ======== PR2019-07-02
     function format_date_element (el_input, el_msg, field_dict, comp_timezone, show_year, month_list, weekday_list, rosterdate) {
         // 'rosterdate': {'value': '1901-01-18', 'wdm': '1901-01-18', 'wdmy': '1901-01-18', 'offset': '-1:wo,0:do,1:vr'},
+        //console.log(" --- format_date_element --- ");
+        //console.log("field_dict: ", field_dict);
+        //console.log("comp_timezone: ", comp_timezone);
         if(!!el_input && !!field_dict && !!comp_timezone ){
-            //console.log(" --- format_date_element --- ");
-            //console.log("field_dict: ", field_dict);
 
         // get datetime_utc_iso from el_timepicker data-value, convert to local (i.e. comp_timezone)
             const data_value = get_dict_value_by_key (field_dict, "value", "");
@@ -485,45 +489,31 @@
         };  // if(!!el_input)
     }  // function format_date_element
 
-//========= function format_time_element  ======== PR2019-06-03
-    function format_time_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list) {
-        // timestart: {dhm: "Sun 10:00 p.m.", value: "-1;22;0"}
+//========= format_datetime_element  ======== PR2019-06-03
+    function format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list) {
         if(!!el_input && !!field_dict){
-            // console.log("------ format_time_element --------------")
-            // console.log("field_dict: ", field_dict)
+            //console.log("------ format_datetime_element --------------")
+            //console.log("field_dict: ", field_dict)
+            // timestart: {rosterdate: "2019-06-26", value: "2019-06-26T04:00:00Z", dhm: "06.00 u", dmyhm: "wo 26 juni 2019 06.00 u"}
 
-            const value = get_dict_value_by_key (field_dict, "value"); // value = datetime_utc_iso
+            const datetime = get_dict_value_by_key (field_dict, "datetime"); // value = datetime_utc_iso
+            const offset = get_dict_value_by_key (field_dict, "offset"); // value = datetime_utc_iso
             const updated = get_dict_value_by_key (field_dict, "updated");
             const msg_err = get_dict_value_by_key (field_dict, "error");
 
             let datetime_local, rosterdate_local, datetime_date, rosterdate_date, show_weekday = false;
-            if (!!value) {
-                datetime_local = moment.tz(value, comp_timezone );
-                datetime_date = datetime_local.date()
-                // console.log("datetime_local: ",  datetime_local.format())
-            }
+            if (!!datetime) {
+                datetime_local = moment.tz(datetime, comp_timezone );
+                datetime_date = datetime_local.date()}
             const rosterdate_utc_iso = get_dict_value_by_key (field_dict, "rosterdate", "");
             if (!!rosterdate_utc_iso){
-                //let rosterdate_local = moment.tz(rosterdate_str + "T00:00:00", comp_timezone );
                 rosterdate_local = moment.utc(rosterdate_utc_iso);
                 rosterdate_date = rosterdate_local.date()
-                if (datetime_date !== rosterdate_date){show_weekday = true}
-                // console.log("rosterdate_local: ",  rosterdate_local.format())
-            }
+                if (datetime_date !== rosterdate_date){show_weekday = true}}
+
 // from https://www.techrepublic.com/article/convert-the-local-time-to-another-time-zone-with-this-javascript/
 // from  https://momentjs.com/timezone/
             let fulldate, fulltime, wdmyhm, dhm, weekday_str = "", month_str = ""
-
-            if (show_weekday && !!weekday_list){
-                const weekday_iso = datetime_local.isoWeekday();
-                weekday_str = weekday_list[weekday_iso];
-                // console.log("weekday_str: ", weekday_str);
-            }
-            if (!!month_list){
-                const month_iso = datetime_local.month() + 1;
-                month_str = month_list[month_iso];
-                // console.log("month_str: ", month_str);
-            }
 
             let isAmPm = false
             if (timeformat === "AmPm"){isAmPm = true};
@@ -532,22 +522,132 @@
             if (moment.locale() === "en"){isEN = true};
 
             if (!!datetime_local){
-            // format time
+// format weekday_str and month_str
+                if (show_weekday && !!weekday_list){
+                    const weekday_iso = datetime_local.isoWeekday();
+                    weekday_str = weekday_list[weekday_iso]};
+                if (!!month_list){
+                    const month_iso = datetime_local.month() + 1;
+                    month_str = month_list[month_iso]};
+// format time
                 if(isEN) {
                     if(isAmPm){fulltime = datetime_local.format("hh:mm a")} else {fulltime = datetime_local.format("HH:mm")}
                 } else {
-                    if(isAmPm){fulltime = datetime_local.format("hh.mm a")} else {fulltime = datetime_local.format("HH.mm") + " u"}
-                }
-                // console.log("fulltime: ", fulltime);
-
-            // format full date
+                    if(isAmPm){fulltime = datetime_local.format("hh.mm a")} else {fulltime = datetime_local.format("HH.mm") + " u"}};
+// format full date
                 if(isEN) {
                     fulldate = datetime_local.format("dddd, MMMM D, YYYY")
                 } else {
-                    fulldate = datetime_local.format("dddd D MMMM YYYY")
-                }
+                    fulldate = datetime_local.format("dddd D MMMM YYYY")};
                 wdmyhm = fulldate + " " + fulltime
-                // console.log("wdmyhm: ", wdmyhm);
+// format time with weekday if different from rosterdate
+                if(!!weekday_str){dhm = weekday_str + " " + fulltime} else {dhm =  fulltime}
+// format za 23 mei NOT IN USE
+                let wdm;
+                if(moment.locale() === "en") {
+                    wdm = weekday_str + ", "  + month_str + " " + datetime_local.date();
+                } else {wdm = weekday_str + " " + datetime_local.date() + " " + month_str;}
+            }
+// show msg_err or border_valid
+            if(!!msg_err){
+               ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+            } else if(updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){
+                    el_input.classList.remove("border_valid");
+                    }, 2000);
+            }
+// put values in element
+            if(!!rosterdate_utc_iso){el_input.setAttribute("data-rosterdate", rosterdate_utc_iso)};
+            if(!!datetime){el_input.setAttribute("data-datetime", datetime)};
+            if(!!offset){el_input.setAttribute("data-offset", offset)};
+            if(!!dhm){el_input.value = dhm};
+            if(!!wdmyhm){ el_input.title = wdmyhm};
+        }  // if(!!el_input && !!field_dict){
+    }  // function format_datetime_element
+
+//========= format_timeoffset_element  ======== PR2019-07-03
+    function format_timeoffset_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list) {
+        // timestart: {dhm: "Sun 10:00 p.m.", value: "-1;22;0"}
+
+        if(!!el_input && !!field_dict){
+            //console.log("------ format_timeoffset_element --------------")
+            //console.log("el_input: ", el_input)
+            //console.log("field_dict: ", field_dict)
+
+            const value = get_dict_value_by_key (field_dict, "value"); // value = datetime_utc_iso
+            const updated = get_dict_value_by_key (field_dict, "updated");
+            const msg_err = get_dict_value_by_key (field_dict, "error");
+
+            let datetime_local, rosterdate, datetime_date, rosterdate_date;
+
+            const rosterdate_utc_iso = get_dict_value_by_key (field_dict, "rosterdate", "");
+            if (!!rosterdate_utc_iso){
+                datetime_local = moment.utc(rosterdate_utc_iso);
+                //console.log("datetime_local: ",  datetime_local.format())
+            }
+
+            let days_offset = 0, hours = 0, minutes = 0, show_weekday = false;
+            if (!!value) {
+                // value:  "-1;22;15"
+                let offset_arr = value.split(";")
+                if (offset_arr.length === 3) {
+                    days_offset = parseInt(offset_arr[0])
+                    hours = parseInt(offset_arr[1])
+                    minutes = parseInt(offset_arr[2])
+                } else if (offset_arr.length === 2) {
+                    hours = parseInt(offset_arr[0])
+                    minutes = parseInt(offset_arr[1])
+                } else if (offset_arr.length === 1) {
+                    hours = parseInt(offset_arr[0])
+                }
+                if (!!days_offset){show_weekday = true}
+            }  // if (!!value)
+            //console.log("days_offset: ", days_offset, "hours: ", hours, "minutes: ", minutes )
+
+            if (!!datetime_local) {
+                // add / subtract day from rosterdate
+                datetime_local.add(days_offset, 'day')
+                // display new date in el_timepicker
+
+            // set new hours and minutes in datetime_local
+                datetime_local.hour(hours);
+                datetime_local.minute(minutes);
+                //console.log("new datetime_local: ",  datetime_local.format())
+
+// from https://www.techrepublic.com/article/convert-the-local-time-to-another-time-zone-with-this-javascript/
+// from  https://momentjs.com/timezone/
+                let fulldate, fulltime, fulldatetime, dhm, weekday_str = "", month_str = ""
+
+                if (show_weekday && !!weekday_list){
+                    const weekday_iso = datetime_local.isoWeekday();
+                    weekday_str = weekday_list[weekday_iso];
+                }
+                //console.log("weekday_str: ", weekday_str);
+                if (!!month_list){
+                    const month_iso = datetime_local.month() + 1;
+                    month_str = month_list[month_iso];
+                }
+                //console.log("month_str: ", month_str);
+
+                let isAmPm = false
+                if (timeformat === "AmPm"){isAmPm = true};
+
+                //console.log("moment.locale: ", moment.locale());
+                let isEN = false
+                if (moment.locale() === "en"){isEN = true};
+
+            // format fulldate and fulltime
+                if(isEN) {
+                    fulldate = datetime_local.format("dddd, MMMM D, YYYY")
+                    if(isAmPm){fulltime = datetime_local.format("hh:mm a")} else {fulltime = datetime_local.format("HH:mm")}
+                } else {
+                    fulldate = datetime_local.format("dddd D MMMM YYYY")
+                    if(isAmPm){fulltime = datetime_local.format("hh.mm a")} else {fulltime = datetime_local.format("HH.mm") + " u"}
+                }
+            // format full date
+                fulldatetime = fulldate + " " + fulltime
+                //console.log("fulldatetime: ", fulldatetime);
 
             // format time with weekday if different from rosterdate
                 if(!!weekday_str){
@@ -563,24 +663,25 @@
                 } else {
                     wdm = weekday_str + " " + datetime_local.date() + " " + month_str;
                 }
-            }
 
-            if(!!msg_err){
-               ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
-            } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){
-                    el_input.classList.remove("border_valid");
-                    }, 2000);
-            }
-            if(!!value){
-                el_input.setAttribute("data-value", value)};
-            if(!!dhm){
-                el_input.value = dhm};
-            if(!!wdmyhm){
-                el_input.title = wdmyhm};
-        }  // if(!!el_input && !!field_dict){
-    }  // function format_time_element
+                if(!!msg_err){
+                   ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+                } else if(updated){
+                    el_input.classList.add("border_valid");
+                    setTimeout(function (){
+                        el_input.classList.remove("border_valid");
+                        }, 2000);
+                }
+                if(!!value){
+                    el_input.setAttribute("data-value", value)};
+                if(!!dhm){
+                    el_input.value = dhm};
+                if(!!fulldatetime){
+                    el_input.title = fulldatetime};
+            }  // if (!!datetime_local){
+        }  //  if(!!el_input && !!field_dict){
+    }  // function format_timeoffset_element
+
 
 //========= format_duration_element  ======== PR2019-06-03
     function format_duration_element (el_input, el_msg, field_dict) {

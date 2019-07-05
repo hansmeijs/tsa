@@ -98,11 +98,15 @@ $(function() {
         const month_list = get_attr_from_element(el_data, "data-months");
         const today_dict =  get_attr_from_element(el_data, "data-today");
 
-        const interval = get_attr_from_element(el_data, "data-interval");
-        const timeformat = get_attr_from_element(el_data, "data-timeformat");
-
         const title_inactive = get_attr_from_element(el_data, "data-txt_order_make_inactive");
         const title_active = get_attr_from_element(el_data, "data-txt_order_make_active");
+
+        const interval = get_attr_from_element_int(el_data, "data-interval");
+        const user_lang = get_attr_from_element(el_data, "data-lang");
+        const comp_timezone = get_attr_from_element(el_data, "data-timezone");
+        let quicksave = false
+        if (get_attr_from_element_int(el_data, "data-quicksave") === 1 ) { quicksave = true};
+        const timeformat = get_attr_from_element(el_data, "data-timeformat");
 
         DatalistDownload({"customer": {inactive: false}, "order": {inactive: true}});
 

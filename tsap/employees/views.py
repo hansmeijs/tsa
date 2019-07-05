@@ -18,8 +18,8 @@ from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
 
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS
-from tsap.functions import get_date_from_str, get_iddict_variables, create_dict_with_empty_attr, fielddict_date, \
-    remove_empty_attr_from_dict
+from tsap.functions import get_date_from_str, get_iddict_variables, create_dict_with_empty_attr, fielddict_date
+from planning.dicts import remove_empty_attr_from_dict
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import check_date_overlap
 
