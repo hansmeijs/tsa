@@ -1,6 +1,15 @@
 // PR2019-02-07 deprecated: $(document).ready(function() {
 $(function() {
+    "use strict";
     console.log("Emplhours document.ready");
+
+    const cls_active = "active";
+    const cls_hover = "tr_hover";
+    const cls_highl = "tr_highlighted";
+    const cls_hide = "display_hide";
+
+// ---  set selected menu button active
+    SetMenubuttonActive(document.getElementById("id_hdr_rost"));
 
 // ---  id of selected record
     let id_row_selected = "";

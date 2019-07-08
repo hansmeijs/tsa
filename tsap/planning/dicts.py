@@ -7,13 +7,8 @@ from timeit import default_timer as timer
 from companies.models import Customer, Order, Scheme, Schemeitembase, Schemeitem, Team, Teammember, \
     Employee, Emplhour, Orderhour, Companysetting
 
-from tsap.functions import get_date_from_str, get_datetimeaware_from_datetimeUTC, \
-                    get_timeDHM_from_dhm, get_datetimelocal_from_DHM, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
-                    get_weekdaylist_for_DHM, get_date_HM_from_minutes, create_dict_with_empty_attr, \
-                    get_date_diff_plusone, get_time_minutes, get_iddict_variables, get_fielddict_variables , \
-                    get_minutes_from_DHM, get_datetime_from_ISO_no_offset, \
-                    fielddict_str, set_fielddict_date, fielddict_datetime, fielddict_duration, fielddict_date, \
-                    formatDMYHM_from_datetime, formatWHM_from_datetime, format_HM_from_dtetime
+from tsap.functions import get_date_from_str, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
+                    get_weekdaylist_for_DHM, get_date_HM_from_minutes,  set_fielddict_date, fielddict_duration, fielddict_date
 
 from tsap.constants import MONTHS_ABBREV, WEEKDAYS_ABBREV, TIMEFORMATS, STATUS_EMPLHOUR_00_NONE, STATUS_EMPLHOUR_01_CREATED, \
     KEY_COMP_ROSTERDATE_CURRENT, LANG_DEFAULT, TYPE_02_ABSENCE, TYPE_00_NORMAL, KEY_USER_QUICKSAVE
@@ -103,39 +98,108 @@ def create_schemeitem_dict(schemeitem, comp_timezone, user_lang, temp_pk=None, i
                 schemeitem_dict[field]['deleted'] = True
 
         if not is_deleted:
-            for field in ['rosterdate']:
-                value = getattr(schemeitem, field)
-                if value:
-                    schemeitem_dict[field] = fielddict_date(value, user_lang)
 
-            for field in ['shift']:
-                value = getattr(schemeitem, field)
-                if value:
-                    field_dict = {'value': value}
+            field = 'rosterdate'
+            rosterdate = getattr(schemeitem, field)
+
+            # get rosterdate midnight
+            rosterdate_midnight_local = None
+            rosterdate_utc = None
+            if rosterdate:
+                # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
+                # entered date is dattime-naive, make it datetime aware with  pytz.timezone
+                rosterdate_naive = datetime(rosterdate.year, rosterdate.month, rosterdate.day)
+                #logger.debug("rosterdate_midnight_naive: " + str(rosterdate_naive) + str(type(rosterdate_naive)))
+
+                # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
+                timezone = pytz.utc
+                rosterdate_utc = timezone.localize(rosterdate_naive)
+                #logger.debug("rosterdate_utc: " + str(rosterdate_utc))
+
+                # astimezone changes timezone of a timezone aware object, utc time stays the same
+                timezone = pytz.timezone(comp_timezone)
+                rosterdate_local = rosterdate_utc.astimezone(timezone)
+                #logger.debug("rosterdate_local: " + str(rosterdate_local))
+
+                # make the date midnight at local timezone
+                rosterdate_midnight_local = rosterdate_local.replace(hour=0, minute=0)
+                #logger.debug("rosterdate_midnight_local: " + str(rosterdate_midnight_local))
+
+                schemeitem_dict[field] = fielddict_date(rosterdate_utc, user_lang)
+
+            field = 'shift'
+            value = getattr(schemeitem, field)
+            if value:
+                field_dict = {'value': value}
+                schemeitem_dict[field] = field_dict
+
+            field = 'team'
+            if schemeitem.team:
+                value = schemeitem.team.code
+                team_pk = schemeitem.team.id
+                field_dict = {'value': value, 'team_pk':team_pk}
+                if field_dict:
                     schemeitem_dict[field] = field_dict
-
-            for field in ['team']:
-                if schemeitem.team:
-                    value = schemeitem.team.code
-                    team_pk = schemeitem.team.id
-                    field_dict = {'value': value, 'team_pk':team_pk}
-                    if field_dict:
-                        schemeitem_dict[field] = field_dict
 
             for field in ['timestart', 'timeend']:
                 field_dict = {}
-                value = getattr(schemeitem, field + 'dhm')
-                rosterdate = getattr(schemeitem, 'rosterdate')
-                if rosterdate:
-                    field_dict['rosterdate'] = rosterdate
-                datetime = getattr(schemeitem, field)
-                if datetime:
-                    field_dict['datetime'] = datetime
-                if value:
-                    field_dict['offset'] = value
-                    #field_dict['value'] = value
-                    #field_dict['dhm'] = get_timeDHM_from_dhm(rosterdate, value, comp_timezone, user_lang)
-                    #field_dict['dmyhm'] = formatDMYHM_from_datetime(datetime, comp_timezone, user_lang)
+                timestart = getattr(schemeitem, 'timestart')
+                timeend = getattr(schemeitem, 'timeend')
+                min_datetime_utc = None
+                max_datetime_utc = None
+
+# get mindatetime and  maxdatetime
+                if field == 'timestart':
+                    # get mindatetime
+                    if rosterdate_midnight_local:
+                        min_datetime_local = rosterdate_midnight_local + timedelta(hours=-12)
+                        # logger.debug("min_datetime_local: " + str(min_datetime_local))
+                        min_datetime_utc = min_datetime_local.astimezone(pytz.utc)
+                        # logger.debug("min_datetime_utc: " + str(min_datetime_utc))
+                    elif timestart:
+                        min_datetime_utc = timestart + timedelta(hours=-12)
+
+                    # get maxdatetime
+                    if timeend:
+                        max_datetime_utc = timeend
+                    else:
+                        if rosterdate_midnight_local:
+                            max_datetime_local = rosterdate_midnight_local + timedelta(days=1)
+                            # logger.debug("max_datetime_local: " + str(max_datetime_local))
+                            max_datetime_utc = max_datetime_local.astimezone(pytz.utc)
+                            # logger.debug("max_datetime_utc: " + str(max_datetime_utc))
+                        elif timestart:
+                            max_datetime_utc = timestart + timedelta(hours=12)
+
+                elif field == 'timeend':
+                    # get mindatetime
+                    if timestart:
+                        min_datetime_utc = timestart
+                    else:
+                        if rosterdate_midnight_local:
+                            min_datetime_local = rosterdate_midnight_local
+                        elif timeend:
+                            min_datetime_local = timeend + timedelta(hours=-12)
+
+                    # get maxdatetime
+                    if rosterdate_midnight_local:
+                        max_datetime_local = rosterdate_midnight_local + timedelta(hours=36)
+                        # logger.debug("max_datetime_local: " + str(max_datetime_local))
+                        max_datetime_utc = max_datetime_local.astimezone(pytz.utc)
+                        # logger.debug("max_datetime_utc: " + str(max_datetime_utc))
+                    elif timeend:
+                        max_datetime_utc = timeend + timedelta(hours=12)
+
+                datetimevalue = getattr(schemeitem, field)
+                if datetimevalue:
+                    field_dict['datetime'] = datetimevalue
+
+                if min_datetime_utc:
+                    field_dict['mindatetime'] = min_datetime_utc
+                if max_datetime_utc:
+                    field_dict['maxdatetime'] = max_datetime_utc
+                if rosterdate_utc:
+                    field_dict['rosterdate'] = rosterdate_utc
                 schemeitem_dict[field] = field_dict
 
             for field in ['timeduration', 'breakduration']:
@@ -249,6 +313,11 @@ def create_emplhour_dict(emplhour, comp_timezone, user_lang):
 
         field = 'rosterdate'
         rosterdate = getattr(emplhour, field)
+        timezone = pytz.timezone(comp_timezone)
+
+        # get rosterdate midnight
+        rosterdate_midnight_local = None
+
         if rosterdate:
             emplhour_dict[field] = fielddict_date(rosterdate, user_lang)
 
@@ -278,20 +347,16 @@ def create_emplhour_dict(emplhour, comp_timezone, user_lang):
             if value:
              emplhour_dict[field] = {'value': value, 'employee_pk':emplhour.employee.id}
 
+        rosterdate_utc = get_rosterdate_utc(rosterdate)
+
         for field in ['timestart', 'timeend']:
+            timestart = getattr(emplhour, 'timestart')
+            timeend = getattr(emplhour, 'timeend')
             field_dict = {}
-            datetime = getattr(emplhour, field)
-            if rosterdate:
-                field_dict['rosterdate'] = rosterdate
-            if datetime:
-                field_dict['datetime'] = datetime
-                #field_dict['value'] = datetime
-                #if rosterdate == datetime.date():
-                #    field_dict['dhm'] = format_HM_from_dtetime(datetime, comp_timezone, user_lang)
-                #else:
-                #    field_dict['dhm'] = formatWHM_from_datetime(datetime, comp_timezone, user_lang)
-                #field_dict['dmyhm'] = formatDMYHM_from_datetime(datetime, comp_timezone, user_lang)
+            set_fielddict_datetime(field, field_dict, rosterdate_utc, timestart, timeend, comp_timezone)
+
             emplhour_dict[field] = field_dict
+
 
         for field in ['timeduration', 'breakduration']:
             value = getattr(emplhour, field)
@@ -328,7 +393,86 @@ def get_rosterdatefill_dict(company, company_timezone, user_lang):# PR2019-06-17
 
     return rosterdate_dict
 
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def set_fielddict_datetime(field, field_dict, rosterdate_utc, timestart, timeend, comp_timezone):
+    # PR2019-07-07
+
+    # get mindatetime and  maxdatetime
+    min_datetime_utc, max_datetime_utc = get_minmax_datetime_utc(
+        field, rosterdate_utc, timestart, timeend, comp_timezone)
+
+    datetimevalue = None
+    if field == "timestart":
+        datetimevalue =timestart
+    elif field == "timeend":
+        datetimevalue = timeend
+
+    if datetimevalue:
+        field_dict['datetime'] = datetimevalue
+    if min_datetime_utc:
+        field_dict['mindatetime'] = min_datetime_utc
+    if max_datetime_utc:
+        field_dict['maxdatetime'] = max_datetime_utc
+    if rosterdate_utc:
+        field_dict['rosterdate'] = rosterdate_utc
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def get_rosterdate_utc(rosterdate):
+    rosterdate_utc = None
+    if rosterdate:
+        # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
+        # entered date is dattime-naive, make it datetime aware with  pytz.timezone
+        rosterdate_naive = datetime(rosterdate.year, rosterdate.month, rosterdate.day)
+        logger.debug("rosterdate_midnight_naive: " + str(rosterdate_naive) + str(type(rosterdate_naive)))
+
+        # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
+        rosterdate_utc = pytz.utc.localize(rosterdate_naive)
+        # logger.debug("rosterdate_utc: " + str(rosterdate_utc))
+
+    return rosterdate_utc
+
+
+def get_minmax_datetime_utc(field, rosterdate_utc, timestart, timeend, comp_timezone):  # PR2019-07-05
+    logger.debug(" ------- get_minmax_datetime_utc ---------- ")
+
+    min_datetime_utc = None
+    max_datetime_utc = None
+
+    if rosterdate_utc:
+        timezone = pytz.timezone(comp_timezone)
+        # astimezone changes timezone of a timezone aware object, utc time stays the same
+        rosterdate_local = rosterdate_utc.astimezone(timezone)
+        # logger.debug("rosterdate_local: " + str(rosterdate_local))
+
+        # make the date midnight at local timezone
+        rosterdate_midnight_local = rosterdate_local.replace(hour=0, minute=0)
+        # logger.debug("rosterdate_midnight_local: " + str(rosterdate_midnight_local))
+        # make the date midnight at local timezone
+
+        if field == field == 'timestart':
+            # get mindatetime
+            min_rosterdate_local = rosterdate_midnight_local + timedelta(hours=-12)
+            min_datetime_utc = min_rosterdate_local.astimezone(pytz.utc)
+            # get maxdatetime
+            max_rosterdate_local = rosterdate_midnight_local + timedelta(hours=24)
+            max_rosterdate_utc = max_rosterdate_local.astimezone(pytz.utc)
+            max_datetime_utc = timeend if timeend and timeend < max_rosterdate_utc else max_rosterdate_utc
+
+        elif field == field == 'timeend':
+            # get mindatetime
+            min_rosterdate_utc = rosterdate_midnight_local.astimezone(pytz.utc)
+            min_datetime_utc = timestart if timestart and timestart > min_rosterdate_utc else min_rosterdate_utc
+            # get maxdatetime
+            max_rosterdate_local = rosterdate_midnight_local + timedelta(hours=+36)
+            max_datetime_utc = max_rosterdate_local.astimezone(pytz.utc)
+
+    return min_datetime_utc, max_datetime_utc
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
 
 def remove_empty_attr_from_dict(dict):
 # --- function removes empty attributes from dict  PR2019-06-02

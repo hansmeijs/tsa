@@ -158,19 +158,6 @@ def get_datetimeaware_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-0
 
     return datetime_aware
 
-
-def get_datetimeUTC_from_datetimeaware(datetime_aware):  # PR2019-04-17
-    # from https://www.saltycrane.com/blog/2009/05/converting-time-zones-datetime-objects-python/
-    # entered date is datetime aware, make it datetime-naive with pytz.timezone
-
-    datetime_obj_utc = None
-    if datetime_aware:
-        timezone = pytz.timezone('UTC')
-        if timezone:
-            datetime_obj_utc = datetime_aware.replace(tzinfo=timezone)
-    return datetime_obj_utc
-
-
 def get_datetimelocal_from_datetime(date_time, comp_timezone):  # PR2019-04-08
     # logger.debug('............. get_datetimelocal_from_datetime: ' + str(date_time))
     # Function returns date: "2018-02-25T19:24:23"
@@ -910,7 +897,9 @@ def set_fielddict_date(dict, dte, user_lang, rosterdate=None, format_list=None):
         if rosterdate is not None:
             dict['rosterdate'] = rosterdate.isoformat()
     logger.debug('new dict dict: ' +  str(dict) + ' type: ' + str(type(dict)))
-    return dict
+
+
+
 
 
 def fielddict_datetime(rosterdate, dhm, datetime, comp_timezone, user_lang):

@@ -133,8 +133,6 @@ $(function() {
         let tblHead_items = document.getElementById("id_thead_schemeitems");
 
         let el_timepicker = document.getElementById("id_timepicker")
-        let el_timepicker_tbody_hour = document.getElementById("id_timepicker_tbody_hour");
-        let el_timepicker_tbody_minute = document.getElementById("id_timepicker_tbody_minute");
 
         let el_loader = document.getElementById("id_loading_img");
         let el_msg = document.getElementById("id_msgbox");
@@ -210,8 +208,6 @@ $(function() {
 // --- create header row
         CreateTableHeader("schemeitems");
 
-        CreateTimepickerHours(el_timepicker, el_timepicker_tbody_hour, timeformat, comp_timezone, UpdateTableRow, url_schemeitem_upload, quicksave, cls_highl, cls_hover);
-        CreateTimepickerMinutes(el_timepicker, el_timepicker_tbody_minute, interval, comp_timezone, cls_highl, cls_hover)
 
         const datalist_request = {"customer": {inactive: false},
                                   "order": {inactive: false},
@@ -1098,7 +1094,7 @@ $(function() {
             }
         }
         if (!skip_filter) {
-            FilterRows()
+            FilterTableRows(tblBody_items, filter_name)
         } //  if (!skip_filter) {
     }; // function HandleSearchFilterEvent
 
@@ -1709,12 +1705,12 @@ $(function() {
                 if (tblName === "schemeitems"){
                     if (j === 1) {
                         el.addEventListener("click", function() {
-                            OpenTimepicker(el, el_timepicker, el_data, comp_timezone, timeformat, UpdateTableRow, url_schemeitem_upload, quicksave, cls_hover, cls_highl)}, false )} else
+                            OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_schemeitem_upload, comp_timezone, timeformat, interval, quicksave, cls_hover, cls_highl)}, false )} else
                     if ([2, 3].indexOf( j ) > -1){
                         el.addEventListener("change", function() {UploadChanges(el);}, false )} else
                     if ([4, 5].indexOf( j ) > -1){
                         el.addEventListener("click", function() {
-                            OpenTimepicker(el, el_timepicker, el_data, comp_timezone, timeformat, UpdateTableRow, url_schemeitem_upload, quicksave, cls_hover, cls_highl)}, false )} else
+                            OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_schemeitem_upload, comp_timezone, timeformat, interval, quicksave, cls_hover, cls_highl)}, false )} else
                     if ([6, 7].indexOf( j ) > -1){
                         el.addEventListener("click", function() {OpenPopupHM(el)}, false )};
                 } else if (tblName === "teammembers"){
@@ -1956,10 +1952,6 @@ $(function() {
                         }  // if (fieldname in item_dict)
                     };  // if(!!el_input)
                 }  //  for (let j = 0; j < 8; j++)
-
-//---  update filter
-                FilterRows();
-
             } // if (!!tblRow)
 
         };  // if (!!item_dict && !!tblRow)
@@ -2013,68 +2005,6 @@ $(function() {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//========= FilterRows  ====================================
-    function FilterRows() {
-        //console.log( "===== FilterRows  ========= ");
-
-        // TODO >> value of show_teams. Was: const show_teams = get_attr_from_element(el_btn_show_team, "data-show_teams")
-        let show_teams;
-        let colLength = 0;
-        if (show_teams === "shifts") {
-            colLength = 7;
-        } else {
-            colLength = 4;
-        }
-
-        // filter by inactive and substring of fields
-        let len = tblBody_items.rows.length;
-        if(!!len){
-            for (let row_index = 0; row_index < len; row_index++) {
-                let tblRow = tblBody_items.rows[row_index];
-
-                let hide_row = SetHideRow(tblRow);
-
-                if (hide_row) {
-                    tblRow.classList.add("display_hide")
-                } else {
-                    tblRow.classList.remove("display_hide")
-                };
-            }
-        }
-    }; // function FilterRows
-
-//========= SetHideRow  ========= PR2019-05-25
-    function SetHideRow(tblRow, colLength) {
-        // function filters by inactive and substring of fields
-
-        let hide_row = false
-        if (!!tblRow && !!colLength){
-// --- hide inactive rows if filter_hide_inactive
-            if (filter_hide_inactive) {
-                if (!!tblRow.cells[0].children[0]) {
-                    let el_inactive = tblRow.cells[0].children[0];
-                    if (!!el_inactive){
-                        if(el_inactive.hasAttribute("value")){
-                            hide_row = (el_inactive.getAttribute("value").toLowerCase() === "true")
-            }}}};
-// --- show all rows if filter_name = ""
-            if (!hide_row && !!filter_name){
-                let found = false
-                for (let col_index = 1, el_code; col_index < colLength; col_index++) {
-                    if (!!tblRow.cells[col_index].children[0]) {
-                        let el_value = tblRow.cells[col_index].children[0].value;
-                        if (!!el_value){
-                            el_value = el_value.toLowerCase();
-                            if (el_value.indexOf(filter_name) !== -1) {
-                                found = true
-                                break;
-                    }}}
-                };
-                if (!found){hide_row = true}
-            }
-        }
-        return hide_row
-    }; // function SetHideRow
 
 
 //=========  DeselectHighlightedRows  ================ PR2019-04-30

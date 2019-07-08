@@ -250,6 +250,11 @@
     color: grey; /* #e0e0e0; /* default light grey */
 }
 
+.tr_notallowed {
+    color: red; /* #e0e0e0; /* default light grey */
+    font-weight: bold;
+}
+
 /* for datetimepicker */
 .fa-chevron-left::before {
   content: "<";

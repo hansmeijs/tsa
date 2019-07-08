@@ -5,6 +5,8 @@ $(function() {
         const cls_active = "active";
         const cls_hover = "tr_hover";
         const cls_hide = "display_hide";
+        const col_inactive = 4;
+        const col_count = 5;
 
 // ---  set selected menu button active
         SetMenubuttonActive(document.getElementById("id_hdr_ordr"));
@@ -179,7 +181,6 @@ $(function() {
         }  // if (len === 0)
     } // FillSelectTable
 
-
 //=========  HandleSelectCustomer  ================ PR2019-05-24
     function HandleSelectCustomer(tblRow) {
         console.log( "===== HandleSelectCustomer ========= ");
@@ -207,7 +208,7 @@ $(function() {
             FillTableRows()
 
 // ---  filter table rows
-            FilterTableRows(tblBody_items, filter_orders, filter_inactive_included)
+            FilterTableRows(tblBody_items, filter_orders, col_inactive, filter_inactive_included)
         }
     }
 
@@ -226,7 +227,6 @@ $(function() {
             tr_clicked.classList.add("tsa_tr_selected")
         }
     }
-
 
 //========= GetItemFromTablerow  ============= PR2019-05-11
     function GetItemFromTablerow(tr_changed) {
@@ -276,7 +276,6 @@ $(function() {
         return item_dict;
     };  // function GetItemFromTablerow
 
-
 //========= HandleInactiveClicked  ============= PR2019-03-03
     function HandleInactiveClicked(el_changed) {
         console.log("======== HandleInactiveClicked  ========");
@@ -302,14 +301,11 @@ $(function() {
         UploadChanges(el_changed)
     }
 
-
 //========= UploadChanges  ============= PR2019-03-03
     function UploadChanges(el_changed) {
         let tr_changed = get_tablerow_clicked(el_changed)
         UploadTblrowChanged(tr_changed);
     }
-
-
 
 //========= UploadTblrowChanged  ============= PR2019-03-03
 // PR2019-03-17 debug: Here you have written this script on document.ready function, that's why it returns obsolete value.
@@ -431,8 +427,6 @@ $(function() {
 
     }
 
-
-
 //========= UpdateSchemeitemOrTeammmember  =============
     function UpdateSchemeitemOrTeammmember(tblRow, update_dict){
         console.log("=== UpdateSchemeitemOrTeammmember ===");
@@ -475,8 +469,6 @@ $(function() {
         }  // if (!!update_dict)
     }  // UpdateSchemeitemOrTeammmember
 
-
-
 //=========  HandleFilterInactive  ================ PR2019-03-23
     function HandleFilterInactive() {
         console.log("=========  function HandleFilterInactive =========");
@@ -491,9 +483,8 @@ $(function() {
             el_img_filter_inactive.setAttribute("src", imgsrc_active);
             el_img_filter_inactive.setAttribute("data-value", "false");
         }
-        FilterTableRows(tblBody_items, filter_orders, filter_inactive_included)
+        FilterTableRows(tblBody_items, filter_orders, col_inactive, filter_inactive_included)
     }  // function HandleFilterInactive
-
 
 //========= HandleFilterOrders  ====================================
     function HandleFilterOrders() {
@@ -502,10 +493,9 @@ $(function() {
         let new_filter = document.getElementById("id_filter_orders").value;
         filter_orders = new_filter.toLowerCase();
 
-        FilterTableRows(tblBody_items, filter_orders, filter_inactive_included)
+        FilterTableRows(tblBody_items, filter_orders, col_inactive, filter_inactive_included)
 
     }; // function HandleFilterOrders
-
 
 //========= HandleFilterCustomers  ====================================
     function HandleFilterCustomers() {
@@ -528,10 +518,9 @@ $(function() {
             }
         }
         if (!skip_filter) {
-            FilterTableRows(tblBody_select_customers, new_filter, true) // table has no column inactive, teherefore set show_inactive = true
+            FilterTableRows(tblBody_select_customers, new_filter, col_inactive, true) // table has no column inactive, teherefore set show_inactive = true
         } //  if (!skip_filter) {
     }; // function HandleFilterCustomers
-
 
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request) {
@@ -723,16 +712,14 @@ $(function() {
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
 
-        let column_count = 5
-
 //+++ insert td's ino tblRow
-        for (let j = 0; j < column_count; j++) {
+        for (let j = 0; j < col_count; j++) {
             // index -1 results in that the new cell will be inserted at the last position.
             let td = tblRow.insertCell(-1);
             let el;
 
 // --- add img inactive to last td
-            if ([column_count - 1].indexOf( j ) > -1){
+            if (j === col_inactive){
                 if (!is_new_item){
             // --- add <a> element with EventListener to td
                     el = document.createElement("a");
@@ -940,8 +927,6 @@ $(function() {
 
         };  // if (!!item_dict && !!tblRow)
     }  // function UpdateTableRow
-
-
 
 
 //=========  DeselectHighlightedRows  ================ PR2019-04-30

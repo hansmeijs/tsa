@@ -6,7 +6,7 @@ $(function() {
         const cls_active = "active";
         const cls_hover = "tr_hover";
         const cls_hide = "display_hide";
-        const index_el_inactive = 2;
+        const col_inactive = 2;
         const col_count = 3;
 
         SetMenubuttonActive(document.getElementById("id_hdr_cust"));
@@ -50,11 +50,13 @@ $(function() {
         }
 
 // ---  event handler to filter inactive in
-        document.getElementById("id_filter_inactive").addEventListener("click", function() {HandleFilterInactive();}, false )
+        let el_filter_inactive = document.getElementById("id_filter_inactive");
+            el_filter_inactive.addEventListener("click", function() {HandleFilterInactive();}, false )
 
 // ---  add 'keyup' event handler to filter orders and customers
-        document.getElementById("id_filter").addEventListener("keyup", function() {
-            setTimeout(function() {HandleFilterName();}, 50)});
+        let el_filter_name = document.getElementById("id_filter_name")
+            el_filter_name.addEventListener("keyup", function() {
+                setTimeout(function() {HandleFilterName();}, 50)});
 
 // --- get header elements
         let hdr_customer = document.getElementById("id_hdr_customer");
@@ -111,7 +113,7 @@ $(function() {
                 if ("customer" in datalist_request) {
                     if ("customer" in response) {customer_list= response["customer"]}
                     FillTableRows();
-                    FilterTableRows(tblBody_items, filter_name, filter_show_inactive);
+                    FilterTableRows(tblBody_items, filter_name, col_inactive, filter_show_inactive);
                 }
             },
             error: function (xhr, msg) {
@@ -190,8 +192,8 @@ $(function() {
             let td = tblRow.insertCell(-1);
             let el;
 
-// --- add img inactive to index_el_inactive
-            if (j === index_el_inactive){
+// --- add img inactive to col_inactive
+            if (j === col_inactive){
                 if(!is_new_item){
         // --- add <a> element with EventListener to td
                     el = document.createElement("a");
@@ -207,7 +209,7 @@ $(function() {
                 let fieldname;
                 if (j === 0){fieldname = "code"} else
                 if (j === 1){ fieldname = "name"} else
-                if (j === index_el_inactive){ fieldname = "inactive"}
+                if (j === col_inactive){ fieldname = "inactive"}
                 el.setAttribute("data-field", fieldname);
 
                 if (j === 0 && is_new_item ){
@@ -217,7 +219,7 @@ $(function() {
     // --- add EventListener to td
                 if ([0, 1].indexOf( j ) > -1){
                     el.addEventListener("change", function() {UploadChanges(el)}, false )} else
-                if (j === index_el_inactive) {
+                if (j === col_inactive) {
                     el.addEventListener("click", function(){HandleInactiveClicked(el)}, false )
                 }
     // --- add text_align
@@ -231,7 +233,7 @@ $(function() {
     // --- add width to time fields and date fileds
                 if (j === 0 ){el.classList.add("td_width_180")} else
                 if (j === 1 ){el.classList.add("td_width_240")} else
-                if (j === index_el_inactive ){el.classList.add("td_width_032")};
+                if (j === col_inactive ){el.classList.add("td_width_032")};
 
     // --- add other classes to td
                 el.classList.add("border_none");
@@ -466,7 +468,7 @@ $(function() {
                             if (!!fld_val) {
                                 customer_list = SortItemList (customer_list, "code", user_lang)
                                 FillTableRows()
-                                FilterTableRows(tblBody_items, filter_name, filter_show_inactive);
+                                FilterTableRows(tblBody_items, filter_name, col_inactive, filter_show_inactive);
                             }
                         }
                         // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
@@ -618,7 +620,7 @@ $(function() {
         el_img_filter_inactive.setAttribute("src", img_src);
         el_img_filter_inactive.setAttribute("data-value", data_value);
 
-        FilterTableRows(tblBody_items, filter_name, filter_show_inactive)
+        FilterTableRows(tblBody_items, filter_name, col_inactive, filter_show_inactive)
 
 
     }  // function HandleFilterInactive
@@ -657,7 +659,7 @@ $(function() {
         } else {
             el_img_filter_inactive.setAttribute("src", imgsrc_active);
         }
-        FilterTableRows(tblBody_items, filter_name, filter_show_inactive);
+        FilterTableRows(tblBody_items, filter_name, col_inactive, filter_show_inactive);
 
     }  // function HandleFilterInactive
 
@@ -665,7 +667,7 @@ $(function() {
     function HandleFilterName() {
         // console.log( "===== HandleFilterName  ========= ");
         // skip filter if filter value has not changed, update variable filter_name
-        let new_filter = document.getElementById("id_filter").value;
+        let new_filter = el_filter_name.value;
         let skip_filter = false
         if (!new_filter){
             if (!filter_name){
@@ -681,7 +683,7 @@ $(function() {
             }
         }
         if (!skip_filter) {
-            FilterTableRows(tblBody_items, filter_name, filter_show_inactive)
+            FilterTableRows(tblBody_items, filter_name, col_inactive, filter_show_inactive)
         } //  if (!skip_filter) {
     }; // function HandleFilterName
 

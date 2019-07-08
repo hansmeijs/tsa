@@ -407,8 +407,8 @@
 //========= function format_date_element  ======== PR2019-07-02
     function format_date_element (el_input, el_msg, field_dict, comp_timezone, show_year, month_list, weekday_list, rosterdate) {
         // 'rosterdate': {'value': '1901-01-18', 'wdm': '1901-01-18', 'wdmy': '1901-01-18', 'offset': '-1:wo,0:do,1:vr'},
-        //console.log(" --- format_date_element --- ");
-        //console.log("field_dict: ", field_dict);
+        // console.log(" --- format_date_element --- ");
+        // console.log("field_dict: ", field_dict);
         //console.log("comp_timezone: ", comp_timezone);
         if(!!el_input && !!field_dict && !!comp_timezone ){
 
@@ -494,10 +494,14 @@
         if(!!el_input && !!field_dict){
             //console.log("------ format_datetime_element --------------")
             //console.log("field_dict: ", field_dict)
-            // timestart: {rosterdate: "2019-06-26", value: "2019-06-26T04:00:00Z", dhm: "06.00 u", dmyhm: "wo 26 juni 2019 06.00 u"}
+// timestart: {datetime: "2019-07-02T12:00:00Z", mindatetime: "2019-07-02T04:00:00Z",
+//                      maxdatetime: "2019-07-03T10:00:00Z", rosterdate: "2019-07-02T00:00:00Z"}
 
             const datetime = get_dict_value_by_key (field_dict, "datetime"); // value = datetime_utc_iso
-            const offset = get_dict_value_by_key (field_dict, "offset"); // value = datetime_utc_iso
+            const rosterdate_utc_iso = get_dict_value_by_key (field_dict, "rosterdate");  // value = rosterdate_utc_iso
+            const mindatetime = get_dict_value_by_key (field_dict, "mindatetime");
+            const maxdatetime = get_dict_value_by_key (field_dict, "maxdatetime");
+            //const offset = get_dict_value_by_key (field_dict, "offset"); //
             const updated = get_dict_value_by_key (field_dict, "updated");
             const msg_err = get_dict_value_by_key (field_dict, "error");
 
@@ -505,7 +509,7 @@
             if (!!datetime) {
                 datetime_local = moment.tz(datetime, comp_timezone );
                 datetime_date = datetime_local.date()}
-            const rosterdate_utc_iso = get_dict_value_by_key (field_dict, "rosterdate", "");
+
             if (!!rosterdate_utc_iso){
                 rosterdate_local = moment.utc(rosterdate_utc_iso);
                 rosterdate_date = rosterdate_local.date()
@@ -513,7 +517,7 @@
 
 // from https://www.techrepublic.com/article/convert-the-local-time-to-another-time-zone-with-this-javascript/
 // from  https://momentjs.com/timezone/
-            let fulldate, fulltime, wdmyhm, dhm, weekday_str = "", month_str = ""
+            let fulldate, fulltime, fulldatetime, shortdatetime, weekday_str = "", month_str = ""
 
             let isAmPm = false
             if (timeformat === "AmPm"){isAmPm = true};
@@ -539,9 +543,9 @@
                     fulldate = datetime_local.format("dddd, MMMM D, YYYY")
                 } else {
                     fulldate = datetime_local.format("dddd D MMMM YYYY")};
-                wdmyhm = fulldate + " " + fulltime
+                fulldatetime = fulldate + " " + fulltime
 // format time with weekday if different from rosterdate
-                if(!!weekday_str){dhm = weekday_str + " " + fulltime} else {dhm =  fulltime}
+                if(!!weekday_str){shortdatetime = weekday_str + " " + fulltime} else {shortdatetime =  fulltime}
 // format za 23 mei NOT IN USE
                 let wdm;
                 if(moment.locale() === "en") {
@@ -560,9 +564,12 @@
 // put values in element
             if(!!rosterdate_utc_iso){el_input.setAttribute("data-rosterdate", rosterdate_utc_iso)};
             if(!!datetime){el_input.setAttribute("data-datetime", datetime)};
-            if(!!offset){el_input.setAttribute("data-offset", offset)};
-            if(!!dhm){el_input.value = dhm};
-            if(!!wdmyhm){ el_input.title = wdmyhm};
+            if(!!mindatetime){el_input.setAttribute("data-mindatetime", mindatetime)};
+            if(!!maxdatetime){el_input.setAttribute("data-maxdatetime", maxdatetime)};
+
+            //if(!!offset){el_input.setAttribute("data-offset", offset)};
+            if(!!shortdatetime){el_input.value = shortdatetime};
+            if(!!fulldatetime){ el_input.title = fulldatetime};
         }  // if(!!el_input && !!field_dict){
     }  // function format_datetime_element
 
@@ -849,48 +856,52 @@
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= FilterTableRows  ====================================
-    function FilterTableRows(tblBody, filter, show_inactive) {  // PR2019-06-09
-        // console.log( "===== FilterRows  ========= ");
-        // console.log( "filter", filter, "show_inactive", show_inactive, typeof show_inactive);
-
-        for (let row_index = 0, tblRow, show_row, len = tblBody.rows.length; row_index < len; row_index++) {
-            tblRow = tblBody.rows[row_index]
-            show_row = ShowTableRow(tblRow, filter, show_inactive)
-            if (show_row) {
-                tblRow.classList.remove("display_hide")
-            } else {
-                tblRow.classList.add("display_hide")
-            };
-        }
+    function FilterTableRows(tblBody, filter, col_inactive, show_inactive) {  // PR2019-06-09
+        //console.log( "===== FilterRows  ========= ");
+        //console.log( "filter", filter, "col_inactive", col_inactive, typeof col_inactive);
+        //console.log( "show_inactive", show_inactive, typeof show_inactive);
+        const len = tblBody.rows.length;
+        if (!!len){
+            for (let i = 0, tblRow, show_row; i < len; i++) {
+                tblRow = tblBody.rows[i]
+                //console.log( tblRow);
+                show_row = ShowTableRow(tblRow, filter, col_inactive, show_inactive)
+                if (show_row) {
+                    tblRow.classList.remove("display_hide")
+                } else {
+                    tblRow.classList.add("display_hide")
+                };
+            }
+        };
     }; // function FilterRows
 
 
 //========= ShowTableRow  ====================================
-    function ShowTableRow(tblRow, filter_name, show_inactive) {  // PR2019-06-09
-        // console.log( "===== ShowTableRow  ========= ");
+    function ShowTableRow(tblRow, filter_name, col_inactive = -1, show_inactive = false) {  // PR2019-06-09
+        //console.log( "===== ShowTableRow  ========= ");
         // filter by inactive and substring of fields
         // don't filter new row
+        //console.log( "filter_name: ", filter_name);
 
         let show_row = true;
         if (!!tblRow){
             const pk_str = get_attr_from_element(tblRow, "data-pk");
 
-// check if row is_new_row. This is the case when pk is a string ('new_3'). Not all search tables have "id" (select customer has no id in tblrow)
+    // check if row is_new_row. This is the case when pk is a string ('new_3'). Not all search tables have "id" (select customer has no id in tblrow)
             let is_new_row = false;
             if(!!pk_str){
-// skip new row (parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+    // skip new row (parseInt returns NaN if value is None or "", in that case !!parseInt returns false
                //  is_new_row = (! parseInt(pk_str))
             }
             // console.log( "pk_str", pk_str, "is_new_row", is_new_row, "show_inactive",  show_inactive);
             if(!is_new_row){
 
 // hide inactive rows if filter_hide_inactive
-                const col_length = tblRow.cells.length
-                if (!show_inactive) {
-                    // last field is field 'inactive'
-                    let cell_last = tblRow.cells[col_length -1];
-                    if (!!cell_last){
-                        let el_inactive = cell_last.children[0];
+                if(col_inactive !== -1 && !show_inactive) {
+                    // field 'inactive' has index col_inactive
+                    let cell_inactive = tblRow.cells[col_inactive];
+                    if (!!cell_inactive){
+                        let el_inactive = cell_inactive.children[0];
                         if (!!el_inactive){
                             let value = get_attr_from_element(el_inactive,"data-value")
                             if (!!value) {
@@ -900,14 +911,14 @@
                             }
                         }
                     }
-                };  // if (!show_inactive) {
+                }; // if(col_inactive !== -1){
 
 // show all rows if filter_name = ""
             // console.log(  "show_row", show_row, "filter_name",  filter_name,  "col_length",  col_length);
                 if (show_row && !!filter_name){
                     let found = false
-                    for (let col_index = 0, el_value; col_index < col_length; col_index++) {
-                        let tbl_cell = tblRow.cells[col_index];
+                    for (let i = 0, len = tblRow.cells.length, el_value; i < len; i++) {
+                        let tbl_cell = tblRow.cells[i];
                         if (!!tbl_cell){
                             let el = tbl_cell.children[0];
                             if (!!el) {
@@ -926,7 +937,7 @@
 
                             }  // if (!!el) {
                         }  //  if (!!tbl_cell){
-                    };  // for (let col_index = 1,
+                    };  // for (let i = 1,
                     if (!found){show_row = false}
                 }  // if (show_row && !!filter_name){
             } //  if(!is_new_row){

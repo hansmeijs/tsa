@@ -3,20 +3,11 @@
     "use strict";
 
 //========= OpenTimepicker  ====================================
-    function OpenTimepicker(el_input, el_timepicker, el_data, comp_timezone, timeformat, UpdateTableRow, url_str, quicksave, cls_hover, cls_highl) {
+    function OpenTimepicker(el_input, el_timepicker, el_data, UpdateTableRow, url_str, comp_timezone, timeformat, interval, quicksave, cls_hover, cls_highl) {
         console.log("===  OpenTimepicker  =====") ;
 
-// ---  create EventListeners
-        let btn_prevday = document.getElementById("id_timepicker_prevday")
-            btn_prevday.addEventListener("click", function() {SetPrevNextDay("prevday", el_timepicker, comp_timezone)}, false )
-        let btn_nextday = document.getElementById("id_timepicker_nextday")
-            btn_nextday.addEventListener("click", function() {SetPrevNextDay("nextday", el_timepicker, comp_timezone)}, false )
-        let btn_save = document.getElementById("id_timepicker_save")
-            btn_save.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, UpdateTableRow, url_str, quicksave, false)}, false )
-        let btn_quicksave = document.getElementById("id_timepicker_quicksave")
-            btn_quicksave.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, UpdateTableRow, url_str, quicksave, true)}, false )
-            btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add(cls_hover);});
-            btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove(cls_hover);});
+// add EventListeners to buttons
+        // an eventhandlers is added each time the timepicker opens. Therefore this code is moved to roster.js and schemeitem.js PR2019-07-07
 
 // get values from tr_selected
         let tr_selected = get_tablerow_selected(el_input)
@@ -28,8 +19,8 @@
         const data_field = get_attr_from_element(el_input, "data-field");
         let data_rosterdate = get_attr_from_element(el_input, "data-rosterdate");
         let data_datetime = get_attr_from_element(el_input, "data-datetime");
-        let data_offset = get_attr_from_element(el_input, "data-offset");
-        console.log("data_rosterdate:", data_rosterdate, "data_datetime:", data_datetime, "data_offset:", data_offset)
+        let data_mindatetime = get_attr_from_element(el_input, "data-mindatetime");
+        let data_maxdatetime = get_attr_from_element(el_input, "data-maxdatetime");
 
 // put values in el_timepicker
         if (!!data_table){el_timepicker.setAttribute("data-table", data_table)};
@@ -38,113 +29,137 @@
         if (!!data_field){el_timepicker.setAttribute("data-field", data_field)};
         if (!!data_rosterdate){el_timepicker.setAttribute("data-rosterdate", data_rosterdate)};
         if (!!data_datetime){el_timepicker.setAttribute("data-datetime", data_datetime)};
-        if (!!data_offset){el_timepicker.setAttribute("data-offset", data_offset)};
+        if (!!data_mindatetime){el_timepicker.setAttribute("data-mindatetime", data_mindatetime)};
+        if (!!data_maxdatetime){el_timepicker.setAttribute("data-maxdatetime", data_maxdatetime)};
+        if (!!comp_timezone){el_timepicker.setAttribute("data-timezone", comp_timezone)};
+        if (!!timeformat){el_timepicker.setAttribute("data-timeformat", timeformat)};
+        if (!!interval){el_timepicker.setAttribute("data-interval", interval)};
+        if (!!quicksave){el_timepicker.setAttribute("data-quicksave", quicksave)};
+        if (!!url_str){el_timepicker.setAttribute("data-url_str", url_str)};
+        if (!!cls_highl){el_timepicker.setAttribute("data-cls_highl", cls_highl)};
+        if (!!cls_hover){el_timepicker.setAttribute("data-cls_hover", cls_hover)};
 
-        let datetime_local;
+        let dict = GetCurMinMaxDict(el_timepicker)
 
-// if no current value: get rosterdate
-        if (!data_datetime) {
-            if (!!data_rosterdate) {
-                // data_datetime = get_attr_from_element(el_rosterdate, "data-value") + "T00:00:00"
-                // datetime_local = moment.tz(data_datetime, comp_timezone );
-                datetime_local = moment.tz(data_rosterdate, comp_timezone );
-            }
-        } else {
-            datetime_local = moment.tz(data_datetime, comp_timezone );
-        }
-        if (!!datetime_local) {
-            console.log("datetime_local:  ", datetime_local.format());
+// display cur_datetime_local in header of el_timepicker
+        CreateTimepickerDate(data_datetime, data_rosterdate, comp_timezone) ;
+        CreateTimepickerHours(el_timepicker, UpdateTableRow, dict);
+        CreateTimepickerMinutes(el_timepicker, dict);
 
-// display values in el_timepicker
-            let date_str = format_datelong_from_datetimelocal(datetime_local)
-            document.getElementById("id_timepicker_date").innerText = date_str
+        HighlightAndDisableBtnPrevNextDay(dict["prevday_disabled"], dict["nextday_disabled"]);
+        console.log("isAmpm ????", dict["isAmpm"]) ;
+        if (dict["isAmpm"]) { HighlightAndDisableAmpm(el_timepicker, UpdateTableRow, dict)}
+        HighlightAndDisableHours(el_timepicker, UpdateTableRow, dict)
+        HighlightAndDisableMinutes(el_timepicker, UpdateTableRow, dict)
 
-            let curHours = datetime_local.hour();
-            let curMinutes = datetime_local.minutes();
+// ---  position popup under el_input
+        let popRect = el_timepicker.getBoundingClientRect();
+        //console.log("popRect", popRect)
+        let inpRect = el_input.getBoundingClientRect();
+        //console.log("inpRect", inpRect)
+        let topPos = inpRect.top + inpRect.height;
+        let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
+        let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+        //let msgAttr = "position:relative;top:" + topPos + "px;" + "left:" + leftPos + "px;"
+        //console.log("msgAttr", msgAttr)
+        el_timepicker.setAttribute("style", msgAttr)
 
-            HighlightTimepickerHour(el_timepicker, curHours, curMinutes, timeformat, cls_highl)
-            HighlightTimepickerMinute(el_timepicker, curMinutes, cls_highl)
-
-    // ---  position popup under el_input
-            let popRect = el_timepicker.getBoundingClientRect();
-            let inpRect = el_input.getBoundingClientRect();
-            let topPos = inpRect.top + inpRect.height;
-            let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
-            let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-            el_timepicker.setAttribute("style", msgAttr)
-
-    // ---  change background of el_input
-            // first remove selected color from all imput popups
-            //elements = document.getElementsByClassName("el_input");
-            popupbox_removebackground("input_timepicker");
-            el_input.classList.add("pop_background");
+// ---  change background of el_input
+        // first remove selected color from all imput popups
+        //elements = document.getElementsByClassName("el_input");
+        popupbox_removebackground("input_timepicker");
+        el_input.classList.add("pop_background");
 
 // hide save button on quicksave
-            let txt_quicksave;
-            if (quicksave){
-                btn_save.classList.add(cls_hide);
-                txt_quicksave = get_attr_from_element(el_data, "data-txt_quicksave_remove");
-            } else {
-                btn_save.classList.remove(cls_hide);
-                txt_quicksave = get_attr_from_element(el_data, "data-txt_quicksave");
-            }
-            btn_quicksave.innerText = txt_quicksave
-
-    // ---  show el_popup
-            el_timepicker.classList.remove(cls_hide);
+        let btn_save = document.getElementById("id_timepicker_save")
+        let btn_quicksave = document.getElementById("id_timepicker_quicksave")
+        let txt_quicksave;
+        if (quicksave){
+            btn_save.classList.add(cls_hide);
+            txt_quicksave = get_attr_from_element(el_data, "data-txt_quicksave_remove");
+        } else {
+            btn_save.classList.remove(cls_hide);
+            txt_quicksave = get_attr_from_element(el_data, "data-txt_quicksave");
         }
+        btn_quicksave.innerText = txt_quicksave
+
+// ---  show el_popup
+        el_timepicker.classList.remove(cls_hide);
+
     }; // function OpenTimepicker
 
-//========= CreateTimepickerHours  ====================================
-    function CreateTimepickerHours(el_timepicker, tbody, timeformat, comp_timezone, UpdateTableRow, url_str, quicksave, cls_highl, cls_hover) {
+//========= CreateTimepickerDate  ====================================
+    function CreateTimepickerDate(data_datetime, data_rosterdate, comp_timezone) {
+        //console.log( "--- CreateTimepickerDate  ");
+        // display cur_datetime_local in header of el_timepicker
+        // get cur_datetime_local from data_datetime. If no current value: get from rosterdate
+
+        let cur_datetime_local;
+        if (!!data_datetime) {
+            cur_datetime_local = moment.tz(data_datetime, comp_timezone)
+        } else if (!!data_rosterdate) {
+            cur_datetime_local = cur_rosterdate_utc
+        };
+
+        let date_str = format_datelong_from_datetimelocal(cur_datetime_local)
+        document.getElementById("id_timepicker_date").innerText = date_str
+
+    }  // CreateTimepickerDate
+
+ //========= CreateTimepickerHours  ====================================
+    function CreateTimepickerHours(el_timepicker, UpdateTableRow, dict) {
         //console.log( "--- CreateTimepickerHours  ");
 
+        let tbody = document.getElementById("id_timepicker_tbody_hour");
         tbody.innerText = null
+
+        const curDate_is_rosterdate = dict["curDate_is_rosterdate"], prevday_disabled = dict["prevday_disabled"], nextday_disabled = dict["nextday_disabled"];
+        const curHours = dict["curHours"], minHours = dict["minHours"], maxHours = dict["maxHours"];
+        const curMinutes = dict["curMinutes"], minMinutes = dict["minMinutes"], maxMinutes = dict["maxMinutes"];
+        const comp_timezone = dict["comp_timezone"], timeformat = dict["timeformat"], interval = dict["interval"], quicksave = dict["quicksave"];
+        const url_str = dict["url_str"];
+        const cls_highl = dict["cls_highl"], cls_hover = dict["cls_hover"];
 
         //timeformat = 'AmPm' or '24h'
         const is_ampm = (timeformat === 'AmPm')
-        let maxHours = 24;
+        let maxAllowedHours = 24;
         let hourRows = 4;
 
         if (is_ampm) {
             hourRows = 2
-            maxHours = 12;
+            maxAllowedHours = 12;
         }
 
-        let tblRow;
+        let tblRow, td, el_a, hours, hour_text, disabled = false;
 
-// --- loop through option list
+// --- add '00'/'12' on separate row ( '00'when 24h, '12' when ampm)
+            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+            for (let j = 0; j < 6; j++) {
+                td = tblRow.insertCell(-1);
+                if (j === 0 ) {
+                    hours = 0;
+                    if(is_ampm){hour_text = "12"} else { hour_text = "00"};
+                    CreateTimepickerCell(td, "hour", hours, hour_text)
+                }
+            }
+
+// --- loop
         for (let i = 0; i < hourRows; i++) {
             tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
-            for (let j = 0, td, el_a, hours, hour_text; j < 6; j++) {
+            for (let j = 0; j < 6; j++) {
                 hours = (1+j) + (i*6)
-                if (hours === maxHours) {hours = 0 }
+                if (hours === maxAllowedHours) {hours = 0 }
                 hour_text = "00" + hours.toString()
                 hour_text = hour_text.slice(-2);
-
-                // show 12 instead of 00 when is_ampm
-                if (is_ampm && hours === 0) {hour_text = "12"}
+                disabled = false
 
                 td = tblRow.insertCell(-1);
-
-                td.setAttribute("data-hour", hours);
-                td.addEventListener("mouseenter", function(){td.classList.add(cls_hover);});
-                td.addEventListener("mouseleave", function(){td.classList.remove(cls_hover);});
-                td.addEventListener("click", function() {
-                    SetHour(el_timepicker, UpdateTableRow, url_str, tbody, td, comp_timezone, quicksave, cls_highl)}, false)
-
-                td.classList.add("timepicker_hour");
-                td.setAttribute("align","center")
-
-                el_a = document.createElement("a");
-                el_a.innerText = hour_text
-                td.appendChild(el_a);
+                // skip last 00, zero is added at the firat row
+                if (hours !== 0) {CreateTimepickerCell(td, "hour", hours, hour_text)}
             }
         }  // for (let i = 0,
         if(is_ampm){
-            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            let td = tblRow.insertCell(-1);
 
             tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
             td.setAttribute("colspan",6)
@@ -154,175 +169,142 @@
 
                 td = tblRow.insertCell(-1);
 
-                td.setAttribute("data-ampm", j);
-                td.addEventListener("mouseenter", function(){td.classList.add(cls_hover);});
-                td.addEventListener("mouseleave", function(){td.classList.remove(cls_hover);});
-                td.addEventListener("click", function() {
-                    SetAmPm(el_timepicker, tbody, td, comp_timezone, cls_highl)}, false )
+                //td.addEventListener("click", function() {
+                //    SetAmPm(el_timepicker, tbody, td, comp_timezone, cls_highl)}, false )
 
                 td.setAttribute("colspan",3)
-                td.setAttribute("align","center")
-
-                td.classList.add("timepicker_ampm");
-
-                el_a = document.createElement("a");
-                el_a.innerText = ampm_text
-                td.appendChild(el_a);
+                CreateTimepickerCell(td, "ampm", j, ampm_text)
             }
         }
     }  //function CreateTimepickerHours
 
 //========= CreateTimepickerMinutes  ====================================
-    function CreateTimepickerMinutes(el_timepicker, tbody, interval, comp_timezone, cls_highl, cls_hover) {
+    function CreateTimepickerMinutes(el_timepicker, dict) {
         //console.log( "=== CreateTimepickerMinutes  ");
         //console.log( tbody);
 
 // ---  set references to elements
+        let tbody = document.getElementById("id_timepicker_tbody_minute");
+        let el_cont_minute = document.getElementById("id_timepicker_cont_minute");
+
         tbody.innerText = null
 
-        let minutes = 0, minutes_text;
-        let rows = 0
-        let columns = 0;
+        let curMinutes = dict["curMinutes"], minMinutes = dict["minMinutes"], maxMinutes = dict["maxMinutes"];
+        let comp_timezone = dict["comp_timezone"], timeformat = dict["timeformat"], interval = dict["interval"], quicksave = dict["quicksave"];
+        let url_str = dict["url_str"];
+        let cls_highl = dict["cls_highl"], cls_hover = dict["cls_hover"];
 
-        switch (interval) {
-        case 1:
-            rows = 6; columns = 10
-            break;
-        case 2:
-            rows = 6; columns = 5
-            break;
-        case 3:
-            rows = 4; columns = 5
-            break;
-        case 5:
-            rows = 4; columns = 3
-            break;
-        case 10:
-            rows = 2; columns = 3
-            break;
-        case 12:
-            rows = 1; columns = 5
-            break;
-        case 15:
-            rows = 2; columns = 2
-            break;
-        case 20:
-            rows = 1; columns = 3
-            break;
-        case 30:
-            rows = 1; columns = 2
-            break;
-		}
+        // hide minutes tables when interval = 60
+        if(interval === 60) {
+            el_cont_minute.classList.add(cls_hide)
+        } else {
+            el_cont_minute.classList.remove(cls_hide)
 
-// --- loop through option list
-        for (let i = 0, tblRow; i < rows; i++) {
-            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+            let minutes = 0, minutes_text;
+            let rows = 0, columns = 0;
+            if ([1, 2].indexOf( interval ) > -1){rows = 6} else
+            if ([3, 5].indexOf( interval ) > -1){rows = 4} else
+            if ([10, 15].indexOf( interval ) > -1){rows = 2} else
+            if ([12, 20, 30].indexOf( interval ) > -1){rows = 1}
+            columns = (60 / interval / rows)
 
-            for (let j = 0, td, el_a ; j < columns; j++) {
-                minutes = minutes + interval
-                if (minutes === 60) {minutes = 0 }
-                minutes_text = "00" + minutes.toString()
-                minutes_text = minutes_text.slice(-2);
+    // --- add '00' on separate row
 
+            let tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+            for (let j = 0, td; j < columns; j++) {
                 td = tblRow.insertCell(-1);
-
-                td.setAttribute("data-minute", minutes);
-                td.addEventListener("mouseenter", function(){td.classList.add(cls_hover);});
-                td.addEventListener("mouseleave", function(){td.classList.remove(cls_hover);});
-
-                td.addEventListener("click", function() {
-                    SetMinute(el_timepicker, tbody, td, comp_timezone, cls_highl)}, false )
-
-                td.classList.add("timepicker_minute");
-
-                el_a = document.createElement("a");
-                el_a.innerText = minutes_text
-                td.appendChild(el_a);
+                if (j === 0 ) {
+                    minutes = 0; minutes_text = "00";
+                    CreateTimepickerCell(td, "minute", minutes, minutes_text)
+                }
             }
+
+    // --- loop through option list
+            for (let i = 0; i < rows; i++) {
+                tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+
+                for (let j = 0, td, el_a ; j < columns; j++) {
+                    minutes = minutes + interval
+                    if (minutes === 60) {minutes = 0}
+                    minutes_text = "00" + minutes.toString()
+                    minutes_text = minutes_text.slice(-2);
+
+                    td = tblRow.insertCell(-1);
+
+                    td.setAttribute("data-minute", minutes);
+
+                    //td.addEventListener("click", function() {
+                    //    SetMinute(el_timepicker, tbody, td, comp_timezone, cls_highl)}, false )
+
+                    // skip last 00
+                    if (minutes !== 0) { CreateTimepickerCell(td, "minute", minutes, minutes_text)}
+                }
         }  // for (let i = 0,
+        }  // if(interval === 60)
     }  //function CreateTimepickerMinutes
 
-//========= SetPrevNextDay  ====================================
-    function SetPrevNextDay(type_str, el_timepicker, comp_timezone) {
-        //console.log("==== SetPrevNextDay  =====", type_str);
+//========= CreateTimepickerCell  ====================================
+    function CreateTimepickerCell(td, data_name, value, value_text) {
+        //console.log( "--- CreateTimepickerCell  ");
 
-    // get datetime_utc_iso from el_timepicker data-datetime, convert to local (i.e. comp_timezone)
-        const data_datetime = get_attr_from_element(el_timepicker, "data-datetime");
-        let datetime_local = moment.tz(data_datetime, comp_timezone );
-        // console.log("datetime_local: ", datetime_local.format());
+        if (value !== -1){td.setAttribute("data-" + data_name, value)}
+        td.classList.add("timepicker_" + data_name);
+        td.setAttribute("align","center")
+
+        let el_a = document.createElement("a");
+        el_a.innerText = value_text
+        td.appendChild(el_a);
+
+    }  // CreateTimepickerCell
+
+//========= SetPrevNextDay  ====================================
+    function SetPrevNextDay(type_str, el_timepicker, UpdateTableRow, comp_timezone) {
+        console.log("==== SetPrevNextDay  =====", type_str);
+        console.log(el_timepicker);
+
+        const dict = GetCurMinMaxDict(el_timepicker)
+        console.log(dict);
+        let datetime_local = dict["cur_datetime_local"];
+        console.log("datetime_local: ", datetime_local.format());
 
     // set  day_add to 1 or -1
         let day_add = 1;
         if (type_str === "prevday") { day_add = -1};
+
+        console.log("day_add: ", day_add);
+
     // add / subtract day from datetime_local
-        datetime_local.add(day_add, 'day')
+        let new_datetime_local = datetime_local.clone().add(day_add, 'day')
+        console.log("new datetime_local: ", new_datetime_local.format());
 
     // display new date in el_timepicker
-        let date_str = format_datelong_from_datetimelocal(datetime_local)
+        let date_str = format_datelong_from_datetimelocal(new_datetime_local)
         document.getElementById("id_timepicker_date").innerText = date_str
 
     // convert datetime_local to datetime_utc
-        const datetime_utc = datetime_local.utc()
-        // console.log("new datetime_utc hour: ", datetime_utc.format());
-        const datetime_utc_iso = datetime_utc.toISOString()
-        // console.log("datetime_utc_iso: ", datetime_utc_iso);
+        const new_datetime_utc = new_datetime_local.utc()
+        console.log("new datetime_utc: ", new_datetime_utc.format());
+        const new_datetime_utc_iso = new_datetime_utc.toISOString()
+        console.log("new_datetime_utc_iso: ", new_datetime_utc_iso);
 
     // put new datetime back in el_timepicker data-datetime
-        el_timepicker.setAttribute("data-datetime", datetime_utc_iso);
-        console.log(el_timepicker);
+        el_timepicker.setAttribute("data-datetime", new_datetime_utc_iso);
+
+        let new_dict = GetCurMinMaxDict(el_timepicker)
+        const prevday_disabled = new_dict["prevday_disabled"], nextday_disabled = new_dict["nextday_disabled"];
+
+        console.log("prevday_disabled", prevday_disabled);
+
+        let btn_prevday = document.getElementById("id_timepicker_prevday")
+        let btn_nextday = document.getElementById("id_timepicker_nextday")
+        btn_prevday.disabled = prevday_disabled;
+        btn_nextday.disabled = nextday_disabled;
+
+        //if (new_dict["isAmpm"]) { HighlightAndDisableAmpm(el_timepicker, UpdateTableRow, new_dict)}
+        //HighlightAndDisableHours(el_timepicker, UpdateTableRow, new_dict)
+        //HighlightAndDisableMinutes(el_timepicker, UpdateTableRow, new_dict)
 
     }  // SetPrevNextDay
-
-//========= SetHour  ====================================
-    function SetHour(el_timepicker, UpdateTableRow, url_str, tbody, td, comp_timezone, quicksave, cls_highl) {
-        //console.log("==== SetHour  =====");
-
-    // get datetime_utc_iso from el_timepicker data-datetime, convert to local (i.e. comp_timezone)
-        const data_datetime = get_attr_from_element(el_timepicker, "data-datetime");
-        let datetime_local = moment.tz(data_datetime, comp_timezone );
-        //console.log("datetime_local: ", datetime_local.format());
-    // get new hour from data-hour of td
-        const new_hour = get_attr_from_element_int(td, "data-hour");
-    // set new hour in datetime_local
-        datetime_local.hour(new_hour);
-    // select new hour  td
-        RemoveHighlightFromCells("timepicker_hour", tbody, cls_highl)
-        td.classList.add(cls_highl)
-    // convert datetime_local to datetime_utc
-        const datetime_utc = datetime_local.utc()
-        //console.log("new datetime_utc hour: ", datetime_utc.format());
-        const datetime_utc_iso = datetime_utc.toISOString()
-        //console.log("data-value: ", datetime_utc_iso);
-    // put new datetime back in el_timepicker data-datetime
-        el_timepicker.setAttribute("data-datetime", datetime_utc_iso);
-        //console.log(el_timepicker);
-    // save in quicksave mode
-        if (quicksave){HandleTimepickerSave(el_timepicker, UpdateTableRow, url_str, quicksave, true)}
-    }  // SetHour
-
-//========= SetMinute  ====================================
-    function SetMinute(el_timepicker, tbody, td, comp_timezone, cls_highl) {
-        //console.log("==== SetMinute  =====");
-
-    // get datetime_utc_iso from el_timepicker data-datetime, convert to local (i.e. comp_timezone)
-        const data_datetime = get_attr_from_element(el_timepicker, "data-datetime");
-        let datetime_local = moment.tz(data_datetime, comp_timezone );
-        // console.log("datetime_local: ", datetime_local.format());
-    // get new minutes from data-minute of td
-        const new_minute = get_attr_from_element_int(td, "data-minute");
-    // set new minutes in datetime_local
-        datetime_local.minute(new_minute);
-    // select new minutes td
-        RemoveHighlightFromCells("timepicker_minute", tbody, cls_highl)
-        td.classList.add(cls_highl)
-    // convert datetime_local to datetime_utc
-        const datetime_utc = datetime_local.utc()
-        // console.log("new datetime_utc hour: ", datetime_utc.format());
-        const datetime_utc_iso = datetime_utc.toISOString()
-        // console.log("datetime_utc_iso: ", datetime_utc_iso);
-    // put new datetime back in el_timepicker data-datetime
-        el_timepicker.setAttribute("data-datetime", datetime_utc_iso);
-    }  // SetMinute
 
 //========= SetAmPm  ====================================
     function SetAmPm(el_timepicker, tbody, td, comp_timezone, cls_highl) {
@@ -359,7 +341,85 @@
         // console.log("datetime_utc_iso: ", datetime_utc_iso);
     // put new datetime back in el_timepicker data-datetime
         el_timepicker.setAttribute("data-datetime", datetime_utc_iso);
+
+        //if (dict["isAmpm"]) { HighlightAndDisableAmpm(el_timepicker, UpdateTableRow, dict)}
+        //HighlightAndDisableHours(el_timepicker, UpdateTableRow, dict)
+        //HighlightAndDisableMinutes(el_timepicker, UpdateTableRow, dict)
+
+
     }  // SetAmPm
+
+//========= SetHour  ====================================
+    function SetHour(el_timepicker, UpdateTableRow, url_str, tbody, td, comp_timezone, quicksave, cls_highl) {
+       //console.log("==== SetHour  =====");
+
+    // get datetime_utc_iso from el_timepicker data-datetime, convert to local (i.e. comp_timezone)
+        const dict = GetCurMinMaxDict(el_timepicker);
+        let datetime_local = dict["cur_datetime_local"];
+        //console.log("datetime_local: ", datetime_local.format());
+
+    // get new hour from data-hour of td
+        const new_hour = get_attr_from_element_int(td, "data-hour");
+
+    // set new hour in datetime_local
+        datetime_local.hour(new_hour);
+
+    // select new hour  td
+        RemoveHighlightFromCells("timepicker_hour", tbody, cls_highl)
+        td.classList.add(cls_highl);
+
+    // convert datetime_local to datetime_utc
+        const datetime_utc = datetime_local.utc()
+        //console.log("new datetime_utc hour: ", datetime_utc.format());
+        const datetime_utc_iso = datetime_utc.toISOString()
+
+    // put new datetime back in el_timepicker data-datetime
+        el_timepicker.setAttribute("data-datetime", datetime_utc_iso);
+        //console.log(el_timepicker);
+
+
+        //if (dict["isAmpm"]) { HighlightAndDisableAmpm(el_timepicker, UpdateTableRow, dict)}
+        //HighlightAndDisableHours(el_timepicker, UpdateTableRow, dict)
+        //HighlightAndDisableMinutes(el_timepicker, UpdateTableRow, dict)
+
+
+    // save in quicksave mode
+        if (quicksave){HandleTimepickerSave(el_timepicker, UpdateTableRow, url_str, quicksave, true)}
+    }  // SetHour
+
+//========= SetMinute  ====================================
+    function SetMinute(el_timepicker, tbody, td, comp_timezone, cls_highl) {
+        //console.log("==== SetMinute  =====");
+
+    // get datetime_utc_iso from el_timepicker data-datetime, convert to local (i.e. comp_timezone)
+        const dict = GetCurMinMaxDict(el_timepicker);
+        let datetime_local = dict["cur_datetime_local"];
+        //console.log("datetime_local: ", datetime_local.format());
+
+    // get new minutes from data-minute of td
+        //console.log(td);
+        const new_minute = get_attr_from_element_int(td, "data-minute");
+        //console.log("new_minute: ", new_minute);
+
+    // set new minutes in datetime_local
+        datetime_local.minute(new_minute);
+    // select new minutes td
+        RemoveHighlightFromCells("timepicker_minute", tbody, cls_highl)
+        td.classList.add(cls_highl)
+    // convert datetime_local to datetime_utc
+        const datetime_utc = datetime_local.utc()
+        // console.log("new datetime_utc hour: ", datetime_utc.format());
+        const datetime_utc_iso = datetime_utc.toISOString()
+        // console.log("datetime_utc_iso: ", datetime_utc_iso);
+    // put new datetime back in el_timepicker data-datetime
+        el_timepicker.setAttribute("data-datetime", datetime_utc_iso);
+
+        if (dict["isAmpm"]) { HighlightAndDisableAmpm(el_timepicker, UpdateTableRow, dict)}
+        HighlightAndDisableHours(el_timepicker, UpdateTableRow, dict)
+        HighlightAndDisableMinutes(el_timepicker, UpdateTableRow, dict)
+    }  // SetMinute
+
+
 
 //========= ChangeQuicksave  ====================================
     function ChangeQuicksave(quick_save, is_quicksave_mode, cls_hide) {
@@ -386,34 +446,40 @@
         console.log("===  function HandleTimepickerSave =========");
 
 // ---  change quicksave when mode === "quicksave"
-        console.log("is_quicksave_mode: ", is_quicksave_mode, " is_quicksave_mode: ", typeof is_quicksave_mode );
-
+        //console.log("is_quicksave_mode: ", is_quicksave_mode, " is_quicksave_mode: ", typeof is_quicksave_mode );
         const quicksave_dict = ChangeQuicksave(quicksave, is_quicksave_mode, cls_hide);
         const quicksave_haschanged = quicksave_dict["quicksave_haschanged"]
         quicksave = quicksave_dict["quicksave"]
-
-        console.log("quicksave: ", quicksave, " type: ", typeof quicksave );
-        console.log("quicksave_haschanged: ", quicksave_haschanged, "quicksave: ", quicksave );
+        //console.log("quicksave: ", quicksave, " type: ", typeof quicksave );
+        //console.log("quicksave_haschanged: ", quicksave_haschanged, "quicksave: ", quicksave );
 
 // ---  get pk_str from id of el_timepicker
         const pk_str = el_timepicker.getAttribute("data-pk")// pk of record  of element clicked
         const parent_pk =  parseInt(el_timepicker.getAttribute("data-ppk"))
-        const field =  el_timepicker.getAttribute("data-field")
-        const table =  el_timepicker.getAttribute("data-table")
+        const field = el_timepicker.getAttribute("data-field")
+        const table = el_timepicker.getAttribute("data-table")
         console.log ("field = ", field, "table = ", table)
         console.log (el_timepicker)
 
-
 // get values from el_timepicker
+
         const data_table = get_attr_from_element(el_timepicker, "data-table")
         const id_str = get_attr_from_element(el_timepicker, "data-pk")
         const ppk_str = get_attr_from_element(el_timepicker, "data-ppk");
-        const data_field = get_attr_from_element(el_timepicker, "data-field");
-        let data_rosterdate = get_attr_from_element(el_timepicker, "data-rosterdate");
-        let data_datetime = get_attr_from_element(el_timepicker, "data-datetime");
-        let data_offset = get_attr_from_element(el_timepicker, "data-offset");
+
+        let dict = GetCurMinMaxDict(el_timepicker)
+        console.log(dict)
+        const data_field = dict["data_field"];
+        let data_rosterdate = dict["data_rosterdate"];
+        let data_datetime = dict["data_datetime"];
+        const cur_datetime_local = dict["cur_datetime_local"];
+        const min_datetime_local = dict["min_datetime_local"];
+        const max_datetime_local = dict["max_datetime_local"];
+
+        const comp_timezone = dict["comp_timezone"];
+
         console.log("table:", data_table, "field:", data_field, "pk:", id_str, "ppk:", ppk_str)
-        console.log("rosterdate:", data_rosterdate, "datetime:", data_datetime, "offset:", data_offset)
+        console.log("data_rosterdate:", data_rosterdate, "data_datetime:", data_datetime)
 
     // get moment_dte from el_timepicker data-data_datetime
         const datetime_utc = moment.utc(data_datetime);
@@ -422,6 +488,12 @@
         const datetime_utc_iso =  datetime_utc.toISOString();
         console.log ("datetime_utc_iso = ", datetime_utc_iso)
 
+    // check if datetime is within min max range
+        const within_range = DatetimeWithinRange(cur_datetime_local, min_datetime_local, max_datetime_local)
+
+        if (!within_range) {
+        //    console.log("not within_range: " + cur_datetime_local.format())
+        }
         if(!!pk_str && !! parent_pk){
             let id_dict = {}
         //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
@@ -477,48 +549,208 @@
         }  // if(!!pk_str && !! parent_pk){
     }  // HandleTimepickerSave
 
+//========= HighlightAndDisableBtnPrevNextDay  ====================================
+    function HighlightAndDisableBtnPrevNextDay(prevday_disabled, nextday_disabled) {
+        let btn_prevday = document.getElementById("id_timepicker_prevday")
+        let btn_nextday = document.getElementById("id_timepicker_nextday")
+        btn_prevday.disabled = prevday_disabled;
+    }  // HighlightAndDisableBtnPrevNextDay
 
-//========= HighlightTimepickerHour  ====================================
-    function HighlightTimepickerHour(el_timepicker, curHours, curMinutes, timeformat, cls_highl) {
-        console.log( "=== HighlightTimepickerHour  ");
-        console.log( "curHours:", curHours, "curMinutes:", curMinutes, "timeformat:", timeformat);
 
-        let tbody = document.getElementById("id_timepicker_tbody_hour");
 
-        let curAmPm = 0;
-        if (timeformat === 'AmPm') {
-            if (curHours >= 12) {
-                curHours -= 12;
-                curAmPm = 1;
+//========= HighlightAndDisableAmpm  ====================================
+    function HighlightAndDisableAmpm(el_timepicker, UpdateTableRow, dict) {
+        // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
+        //console.log( ">>>>=== HighlightAndDisableAmpm  ");
+        //console.log( dict);
+        let curDate_is_rosterdate = dict["curDate_is_rosterdate"], prevday_disabled = dict["prevday_disabled"], nextday_disabled = dict["nextday_disabled"];
+        let comp_timezone = dict["comp_timezone"], timeformat = dict["timeformat"], interval = dict["interval"], quicksave = dict["quicksave"];
+        let url_str = dict["url_str"];
+        let cls_highl = dict["cls_highl"], cls_hover = dict["cls_hover"];
+
+        const curDate = dict["curDate"]
+        const curDateMidnight = curDate.clone()
+        const curDateMidday = curDate.clone().hour(12);
+        const curDateEndOfDay = curDate.clone().add(1, 'days');
+        //console.log("curDateMidnight", curDateMidnight.format());
+        //console.log("curDateMidday", curDateMidday.format());
+        //console.log("curDateEndOfDay", curDateEndOfDay.format());
+
+        const range_min = dict["min_datetime_local"];
+        const range_max = dict["max_datetime_local"];
+
+        let isAmpm = dict["isAmpm"];
+        let curAmPm = dict["curAmpm"];
+        let curHoursAmpm = dict["curHoursAmpm"];
+        //console.log("isAmpm", isAmpm, "curAmPm", curAmPm, "curHoursAmpm", curHoursAmpm);
+
+        if (isAmpm) {
+            const tbody = document.getElementById("id_timepicker_tbody_hour");
+            let tds = tbody.getElementsByClassName("timepicker_ampm")
+            for (let i=0, td, cell_value, highlighted, period_within_range, disabled; td = tds[i]; i++) {
+                cell_value = get_attr_from_element_int(td, "data-ampm");
+                //console.log("cell_value", cell_value)
+                highlighted = (curAmPm === cell_value);
+                //console.log("console", console)
+
+                let period_min, period_max // am: period is from 00.00u till 12.00 u  pm: period is from 12.00u till 24.00 u
+                if (cell_value === 0){
+                    period_min =  curDateMidnight;
+                    period_max =  curDateMidday;
+                 } else {
+                    period_min =  curDateMidday;
+                    period_max =  curDateEndOfDay;
+                }
+                period_within_range = PeriodWithinRange(period_min, period_max, range_min, range_max)
+
+                disabled = !period_within_range;
+
+                HighlightAndDisableCell(td, disabled, highlighted, cls_highl, cls_hover);
+
+                CellEventhandler(el_timepicker, UpdateTableRow, url_str, tbody, td, "ampm", comp_timezone, quicksave, cls_highl, disabled)
             }
-            HighlightTimepickerCell(tbody, "ampm", curAmPm, cls_highl)
-        }
-        HighlightTimepickerCell(tbody, "hour", curHours, cls_highl)
-    }  //function HighlightTimepickerHour
+        }  //  if (timeformat === 'AmPm') {
+    }  // HighlightAndDisableAmpm
 
-//========= HighlightTimepickerMinute  ====================================
-    function HighlightTimepickerMinute(el_timepicker, curMinutes, cls_highl) {
-        //console.log( " --- HighlightTimepickerMinute --- ");
-        //console.log( "curMinutes:", curMinutes);
-        // let tbody = el_timepicker.getElementsByClassName("timepicker_tbody_minute")
+
+//========= HighlightAndDisableHours  ====================================
+    function HighlightAndDisableHours(el_timepicker, UpdateTableRow, dict) {
+        // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
+        //console.log( ">>>>=== HighlightAndDisableHours  ");
+        //console.log( dict);
+        const curDate = dict["curDate"]
+        const cur_datetime_local = dict["cur_datetime_local"]
+        const min_datetime_local = dict["min_datetime_local"]
+        const max_datetime_local = dict["max_datetime_local"]
+        const curHours = dict["curHours"];
+
+        //console.log("min_datetime_local", min_datetime_local.format());
+        //console.log("cur_datetime_local", cur_datetime_local.format());
+        //console.log("max_datetime_local", max_datetime_local.format());
+
+        const comp_timezone = dict["comp_timezone"], quicksave = dict["quicksave"];
+        const url_str = dict["url_str"];
+        const cls_highl = dict["cls_highl"], cls_hover = dict["cls_hover"];
+
+        const tbody = document.getElementById("id_timepicker_tbody_hour");
+        let tds = tbody.getElementsByClassName("timepicker_hour")
+        for (let i=0, td, cell_value, cell_value_ampm, cell_datetime, curDatetime, highlighted, disabled; td = tds[i]; i++) {
+            cell_value = get_attr_from_element_int(td, "data-hour");
+
+            cell_datetime = curDate.clone().add(cell_value, "hour")
+            //console.log("cell_datetime: ", cell_datetime.format());
+
+            highlighted = (curHours === cell_value);
+
+            disabled = !DatetimeWithinRange(cell_datetime, min_datetime_local, max_datetime_local)
+            HighlightAndDisableCell(td, disabled, highlighted, cls_highl, cls_hover);
+
+            CellEventhandler(el_timepicker, UpdateTableRow, url_str, tbody, td, "hour", comp_timezone, quicksave, cls_highl, disabled)
+
+        }
+    }  // HighlightAndDisableHours
+
+
+//========= HighlightAndDisableMinutes  ====================================
+    function HighlightAndDisableMinutes(el_timepicker, UpdateTableRow, dict) {
+        // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
+        //console.log( ">>>>=== HighlightAndDisableMinutes  ");
+        //console.log( dict);
+
+        const curDate = dict["curDate"]
+        const cur_datetime_local = dict["cur_datetime_local"]
+        const min_datetime_local = dict["min_datetime_local"]
+        const max_datetime_local = dict["max_datetime_local"]
+        const curHours = dict["curHours"];
+        const curMinutes = dict["curMinutes"];
+
+        //console.log("curHours", curHours, "curMinutes", curMinutes);
+        let comp_timezone = dict["comp_timezone"], timeformat = dict["timeformat"], interval = dict["interval"], quicksave = dict["quicksave"];
+        let url_str = dict["url_str"];
+        let cls_highl = dict["cls_highl"], cls_hover = dict["cls_hover"];
+
+        //console.log("min_datetime_local", min_datetime_local.format());
+        //console.log("cur_datetime_local", cur_datetime_local.format());
+        //console.log("max_datetime_local", max_datetime_local.format());
+
         let tbody = document.getElementById("id_timepicker_tbody_minute");
+        let tds = tbody.getElementsByClassName("timepicker_minute")
+        for (let i=0, td, cell_value, cell_datetime, highlighted, disabled; td = tds[i]; i++) {
+            cell_value = get_attr_from_element_int(td, "data-minute");
+            highlighted = (curMinutes === cell_value);
 
-        HighlightTimepickerCell(tbody, "minute", curMinutes, cls_highl)
-    }
+            cell_datetime = curDate.clone().add(curHours, "hours").add(cell_value, "minutes")
+            disabled = !DatetimeWithinRange(cell_datetime, min_datetime_local, max_datetime_local)
+            //console.log("cell_datetime: ", cell_datetime.format(), "disabled: ", disabled);
 
-//========= HighlightTimepickerCell  ====================================
-    function HighlightTimepickerCell(tbody, data_name, curValue, cls_highl) {
-// from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        let tds = tbody.getElementsByClassName("timepicker_" + data_name)
-        for (let i=0, td, value; td = tds[i]; i++) {
-            value = get_attr_from_element_int(td, "data-" + data_name)
-            if (curValue === value){
-                td.classList.add(cls_highl)
+            HighlightAndDisableCell(td, disabled, highlighted, cls_highl, cls_hover);
+
+            CellEventhandler(el_timepicker, UpdateTableRow, url_str, tbody, td, "minute", comp_timezone, quicksave, cls_highl, disabled)
+
+        }
+    }  // HighlightAndDisableMinutes
+
+
+//========= HighlightAndDisableCell  ====================================
+    function HighlightAndDisableCell(td, disabled, highlighted, cls_highl, cls_hover) {
+
+        td.classList.remove("tr_notallowed")
+        td.classList.remove("tr_disabled")
+        td.classList.remove(cls_highl)
+
+        let btn_save = document.getElementById("id_timepicker_save") ;
+        btn_save.disabled = false;
+
+        if (disabled){
+            td.removeEventListener("mouseenter", function(){td.classList.add(cls_hover);});
+            td.removeEventListener("mouseleave", function(){td.classList.remove(cls_hover);});
+            if (highlighted){
+                td.classList.add("tr_notallowed")
+                btn_save.disabled = true;
             } else {
-                td.classList.remove(cls_highl)
+                td.classList.add("tr_disabled")
+            }
+        } else {
+            if (highlighted){
+                td.classList.add(cls_highl)
+            }
+            td.addEventListener("mouseenter", function(){td.classList.add(cls_hover);});
+            td.addEventListener("mouseleave", function(){td.classList.remove(cls_hover);});
+        }
+    }  // HighlightAndDisableCell
+
+//========= CellEventhandler  ====================================
+    function CellEventhandler(el_timepicker, UpdateTableRow, url_str, tbody, td, data_name, comp_timezone, quicksave, cls_highl, disabled) {
+        //console.log( ">>>>=== CellEventhandler  ");
+        //console.log( td);
+        if (data_name === "hour"){
+            if (!disabled){
+                td.addEventListener("click", function() {
+                    SetHour(el_timepicker, UpdateTableRow, url_str, tbody, td, comp_timezone, quicksave, cls_highl)}, false)
+            } else {
+                td.removeEventListener("click", function() {
+                    SetHour(el_timepicker, UpdateTableRow, url_str, tbody, td, comp_timezone, quicksave, cls_highl)}, false)
+            }
+        } else if (data_name === "minute"){
+            if (!disabled){
+                td.addEventListener("click", function() {
+                    SetMinute(el_timepicker, tbody, td, comp_timezone, cls_highl)}, false)
+            } else {
+                td.removeEventListener("click", function() {
+                    SetMinute(el_timepicker, tbody, td, comp_timezone, cls_highl)}, false)
+            }
+        } else if (data_name === "ampm"){
+            if (!disabled){
+                td.addEventListener("click", function() {
+                    SetAmPm(el_timepicker, tbody, td, comp_timezone, cls_highl)}, false)
+            } else {
+                td.removeEventListener("click", function() {
+                    SetAmPm(el_timepicker, tbody, td, comp_timezone, cls_highl)}, false)
             }
         }
-    }
+
+
+    }  // CellEventhandler
 
 //========= RemoveHighlightFromCells  ====================================
     function RemoveHighlightFromCells(class_name, tbody, cls_highl) {
@@ -536,6 +768,156 @@
             elements[i].classList.remove("pop_background");
         }
     }
+
+
+//========= GetCurMinMaxDict  ====================================
+    function GetCurMinMaxDict(el_timepicker) {
+    // PR2019-07-07
+        //console.log(" --- GetCurMinMaxDict --- ")
+        //console.log(el_timepicker)
+
+    // get values from el_timepicker
+        const data_field = get_attr_from_element(el_timepicker, "data-field");
+        const data_rosterdate = get_attr_from_element(el_timepicker, "data-rosterdate");
+        const data_datetime = get_attr_from_element(el_timepicker, "data-datetime");
+        const data_mindatetime = get_attr_from_element(el_timepicker, "data-mindatetime");
+        const data_maxdatetime = get_attr_from_element(el_timepicker, "data-maxdatetime");
+        const comp_timezone = get_attr_from_element(el_timepicker, "data-timezone");
+        const timeformat = get_attr_from_element(el_timepicker, "data-timeformat");
+        const interval = get_attr_from_element_int(el_timepicker, "data-interval");
+        const quicksave = get_attr_from_element(el_timepicker, "data-quicksave", false);
+        const url_str = get_attr_from_element(el_timepicker, "data-url_str");
+        const cls_highl = get_attr_from_element(el_timepicker, "data-cls_highl");
+        const cls_hover = get_attr_from_element(el_timepicker, "data-cls_hover");
+
+        // get curRosterdate: local datetime moment, midnight,  from data_rosterdate
+        const curRosterdate = GetRosterdateLocal(data_rosterdate, comp_timezone)
+
+    // convert data_datetime to  cur_datetime_local. If no current value: get from rosterdate
+        let cur_datetime_local = GetDatetimeLocal(data_datetime, comp_timezone)
+        if (!cur_datetime_local) {cur_datetime_local = curRosterdate};
+        //console.log("cur_datetime_local", cur_datetime_local.format())
+
+        let curDate_is_rosterdate = false, prevday_disabled = false, nextday_disabled = false;
+        let curDate, minDate, maxDate;
+        let curHours = 0, minHours = 0, maxHours = 24;
+        let curMinutes = 0, minMinutes = 0, maxMinutes = 60;
+
+        let isAmpm = false, curHoursAmpm = 0, curAmpm = 0;
+
+        let min_datetime_local, max_datetime_local;
+        if (!!cur_datetime_local) {
+            min_datetime_local = GetDatetimeLocal(data_mindatetime, comp_timezone);
+            max_datetime_local = GetDatetimeLocal(data_maxdatetime, comp_timezone);
+
+            // from https://momentjs.com/guides/
+            curDate = cur_datetime_local.clone().startOf("day");
+            minDate = min_datetime_local.clone().startOf("day");
+            maxDate = max_datetime_local.clone().startOf("day");
+            //console.log("curDate", curDate.format(), "minDate", minDate.format(), "maxDate", maxDate.format())
+
+            curDate_is_rosterdate = (curDate.diff(curRosterdate) === 0) // (curDate = curRosterdate)
+            prevday_disabled = (minDate.diff(curDate) >= 0) // (minDate >= curDate)
+            nextday_disabled = (curDate.diff(maxDate) >= 0) // (maxDate >= curDate)
+
+            if(prevday_disabled){
+                minHours = min_datetime_local.hour()
+                minMinutes = min_datetime_local.minute()
+            };
+            if(nextday_disabled){
+                maxHours = max_datetime_local.hour()
+                maxMinutes = max_datetime_local.minute()
+            };
+
+            curHours = cur_datetime_local.hour();
+            curMinutes = cur_datetime_local.minutes();
+
+            isAmpm = (timeformat === "AmPm")
+            if (isAmpm) {
+                if (curHours < 12){
+                    curHoursAmpm = curHours;
+                } else {
+                    curHoursAmpm = curHours - 12;
+                    curAmpm = 1;
+                }
+            }
+        };
+
+        return {"data_field": data_field, "data_rosterdate": data_rosterdate, "data_datetime": data_datetime,
+                "cur_datetime_local": cur_datetime_local, "min_datetime_local": min_datetime_local, "max_datetime_local": max_datetime_local,
+                "curDate": curDate, "curDate_is_rosterdate": curDate_is_rosterdate,
+                "prevday_disabled": prevday_disabled, "nextday_disabled": nextday_disabled,
+                "isAmpm": isAmpm, "curHoursAmpm": curHoursAmpm, "curAmpm": curAmpm,
+                "curHours": curHours, "minHours": minHours, "maxHours": maxHours,
+                "curMinutes": curMinutes, "minMinutes": minMinutes, "maxMinutes": maxMinutes,
+                "comp_timezone": comp_timezone, "timeformat": timeformat, "interval": interval, "quicksave": quicksave,
+                "url_str": url_str, "cls_highl": cls_highl, "cls_hover": cls_hover
+                };
+    }  // GetCurMinMaxDict
+
+
+//========= GetRosterdateLocal  ====================================
+    function GetRosterdateLocal(data_rosterdate, comp_timezone) {
+        // PR2019-07-07
+        // function gets rosterdate from data_rosterdate: "2019-06-23T00:00:00Z"
+        // converts it to moment object
+        let rosterdate_date_local;
+        if (!!data_rosterdate  && !!comp_timezone){
+            const rosterdate_datetime_local = moment.tz(data_rosterdate, comp_timezone)
+            // cur_rosterdate_local:  2019-06-23 T 02:00:00 +02:00
+            rosterdate_date_local = rosterdate_datetime_local.clone().startOf("day");
+            // curRosterdate:  2019-06-23 T 00:00:00 +02:00
+        };
+        return rosterdate_date_local;
+    }  // GetRosterdateLocal
+
+
+//========= GetDatetimeLocal  ====================================
+    function GetDatetimeLocal(data_datetime, comp_timezone) {
+        // PR2019-07-07
+        // get cur_datetime_local from data_datetime. If no current value: get from rosterdate
+        let datetime_local;
+        if (!!data_datetime && !!comp_timezone) {
+            datetime_local = moment.tz(data_datetime, comp_timezone)
+        };
+        return datetime_local;
+    }  // GetDatetimeLocal
+
+//========= DatetimeWithinRange  ====================================
+    function DatetimeWithinRange(cur_datetime, min_datetime, max_datetime) {
+    // PR2019-07-07
+        // within_range = false when cur_datetime is null
+        let within_range = (!!cur_datetime);
+        // within_range = false when min_datetime exists and cur_datetime < min_datetime
+        if (within_range && !!min_datetime){
+            if (cur_datetime.diff(min_datetime) < 0){
+                within_range = false;
+            }
+        }
+        // within_range = false when max_datetime exists and cur_datetime > min_datetime
+        if (within_range && !!max_datetime){
+            if (cur_datetime.diff(max_datetime) > 0){
+                within_range = false;
+            }
+        }
+        return within_range
+    }  // DatetimeWithinRange
+
+//========= PeriodWithinRange  ====================================
+    function PeriodWithinRange(period_min, period_max, range_min, range_max) {
+    // PR2019-07-07
+        let out_of_range = false;
+        if (!!range_min && !!period_max){
+            out_of_range = (period_max.diff(range_min) < 0)  // out_of_range when period_max < range_min
+        }
+        if (!out_of_range) {
+            if (!!range_max && !!period_min){
+                out_of_range = (period_min.diff(range_max) > 0) // period_min > range_max
+            }
+        }
+        const within_range = !out_of_range;
+        return within_range
+    }  // PeriodWithinRange
 
 // PR2019-07-01 before moment.tz it was:
 

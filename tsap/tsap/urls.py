@@ -137,8 +137,6 @@ urlpatterns = [
     ])),
 
 
-
-
     path('employee/', include([
         path('', employee_views.EmployeeListView.as_view(), name='employee_list_url'),
     #    path('add/', employee_views.EmployeeAddView.as_view(), name='employee_add_url'),

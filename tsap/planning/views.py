@@ -28,7 +28,8 @@ from tsap.functions import get_date_from_str, get_datetimeaware_from_datetimeUTC
                     formatDMYHM_from_datetime, formatWHM_from_datetime, format_HM_from_dtetime
 
 from planning.dicts import remove_empty_attr_from_dict, create_emplhour_dict, get_rosterdatefill_dict, \
-create_emplhour_list, create_scheme_list, create_schemeitem_list, create_shift_list
+create_emplhour_list, create_scheme_list, create_schemeitem_list, create_shift_list, \
+    set_fielddict_datetime, get_rosterdate_utc
 
 from tsap.validators import date_within_range
 
@@ -113,8 +114,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             if 'datelast' in table_dict:
                                 datelast = table_dict['datelast']
                             list = create_emplhour_list(datefirst, datelast, request.user.company, comp_timezone, user_lang)
-                        else:
 
+                        else:
                             # - get order from table_dict
                             order_pk = table_dict.get('order_pk')
                             order = None
@@ -2058,11 +2059,13 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
                     if field in ['rosterdate']:
                         # saves 'value', 'dm', 'wdm', wdmy', 'dmy', 'offset' in update_dict[field]
                         set_fielddict_date(update_dict[field], saved_value, user_lang)
-                    if field in ['rosterdate', 'timestart', 'timeend']:
-                        # saves 'value', 'dm', 'wdm', wdmy', 'dmy', 'offset' in update_dict[field]
-                        # add rosterdate, to skip weekday when weekday of timestart/end equals rosterdate weekday
-                        rosterdate = getattr(instance, 'rosterdate')
-                        set_fielddict_date(update_dict[field], saved_value, user_lang, rosterdate)
+                if field in ['timestart', 'timeend']:
+                    rosterdate = getattr(instance, 'rosterdate')
+                    timestart = getattr(instance, 'timestart')
+                    timeend = getattr(instance, 'timeend')
+                    rosterdate_utc = get_rosterdate_utc(rosterdate)
+                    set_fielddict_datetime(field, update_dict[field], rosterdate_utc, timestart, timeend, comp_timezone)
+
 # 7. remove empty attributes from update_dict
     remove_empty_attr_from_dict(update_dict)
 

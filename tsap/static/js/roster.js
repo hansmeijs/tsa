@@ -1,20 +1,21 @@
 // PR2019-02-07 deprecated: $(document).ready(function() {
 $(function() {
-        "use strict";
+    "use strict";
+    console.log("Roster document.ready");
 
-        const cls_active = "active";
-        const cls_hover = "tr_hover";
-        const cls_highl = "tr_highlighted";
-        const cls_hide = "display_hide";
+    const cls_active = "active";
+    const cls_hover = "tr_hover";
+    const cls_highl = "tr_highlighted";
+    const cls_hide = "display_hide";
 
 // ---  set selected menu button active
-        SetMenubuttonActive(document.getElementById("id_hdr_rost"));
+    SetMenubuttonActive(document.getElementById("id_hdr_rost"));
 
 // ---  id of selected customer and selected order
-        let selected_item_pk = 0;
+    let selected_item_pk = 0;
 
-        let rosterdate_fill;
-        let rosterdate_remove;
+    let rosterdate_fill;
+    let rosterdate_remove;
 
         let companyoffset = 0 // # in seconds
         const useroffset = get_userOffset();
@@ -104,14 +105,16 @@ $(function() {
         let el_btn_rosterdate_remove = document.getElementById("id_btn_rosterdate_remove")
             el_btn_rosterdate_remove.addEventListener("click", function(){HandleFillRosterdate("remove")}, false)
 
-// ---  add 'keyup' event handler to filter input
-        let el_filter_name = document.getElementById("id_filter_name")
-        el_filter_name.addEventListener("keyup", function(){setTimeout(function() {HandleSearchFilterEvent()}, 50)});
-        let el_mod_filter_employee = document.getElementById("id_mod_filter_employee")
-        el_mod_filter_employee.addEventListener("keyup", function(){setTimeout(function() {HandleModalFilterEmployee("filter")}, 50)});
-
+// ---  add 'keyup' event handler to filter
+        let el_filter_name = document.getElementById("id_filter_name");
+            el_filter_name.addEventListener("keyup", function(){
+                setTimeout(function() {HandleFilterName()}, 50)});
+        let el_mod_filter_employee = document.getElementById("id_mod_filter_employee");
+            el_mod_filter_employee.addEventListener("keyup", function(){
+                setTimeout(function() {HandleModalFilterEmployee("filter")}, 50)});
         let el_mod_employee = document.getElementById("id_mod_employee")
-        el_mod_employee.addEventListener("keyup", function(){setTimeout(function() {HandleModalFilterEmployee("input")}, 50)});
+            el_mod_employee.addEventListener("keyup", function(){
+                setTimeout(function() {HandleModalFilterEmployee("input")}, 250)});
 
 // buttons in  modal
         id_mod_btn_absent
@@ -127,6 +130,7 @@ $(function() {
         document.getElementById("id_popup_wdy_nextday").addEventListener("click", function() {HandlePopupBtnWdy();}, false )
         document.getElementById("id_popup_wdy_nextmonth").addEventListener("click", function() {HandlePopupBtnWdy();}, false )
         document.getElementById("id_popup_wdy_save").addEventListener("click", function() {HandlePopupWdySave();}, false )
+
 
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
@@ -162,11 +166,21 @@ $(function() {
 
         // let intervalID = window.setInterval(CheckStatus, 5000);
 
+
+// buttons in  timepicker
+        let btn_prevday = document.getElementById("id_timepicker_prevday")
+            btn_prevday.addEventListener("click", function () {SetPrevNextDay("prevday", el_timepicker, UpdateTableRow, comp_timezone)}, false )
+        let btn_nextday = document.getElementById("id_timepicker_nextday")
+            btn_nextday.addEventListener("click", function () {SetPrevNextDay("nextday", el_timepicker, UpdateTableRow, comp_timezone)}, false )
+        let btn_save = document.getElementById("id_timepicker_save")
+            btn_save.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, UpdateTableRow, url_emplhour_upload, quicksave, false)}, false )
+        let btn_quicksave = document.getElementById("id_timepicker_quicksave")
+            btn_quicksave.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, UpdateTableRow, url_emplhour_upload, quicksave, true)}, false )
+            btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add(cls_hover);});
+            btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove(cls_hover);});
+
 // --- create header row
         CreateTableHeader();
-
-        CreateTimepickerHours(el_timepicker, el_timepicker_tbody_hour,  timeformat, comp_timezone, UpdateTableRow, url_emplhour_upload,quicksave, cls_highl, cls_hover);
-        CreateTimepickerMinutes(el_timepicker, el_timepicker_tbody_minute, interval, comp_timezone, cls_highl, cls_hover);
 
         const datalist_request = {"customer": {inactive: false},
                                   "order": {inactive: false},
@@ -452,7 +466,7 @@ function CheckStatus() {
                     el.addEventListener("click", function() {OpenModal(el);}, false ) } else
                 if ([4, 6].indexOf( j ) > -1){
                     el.addEventListener("click", function() {
-                        OpenTimepicker(el, el_timepicker, el_data, comp_timezone, timeformat, UpdateTableRow, url_emplhour_upload, quicksave, cls_hover, cls_highl)}, false )} else
+                        OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_emplhour_upload, comp_timezone, timeformat, interval, quicksave, cls_hover, cls_highl)}, false )} else
                 if (j === 8){
                     // el.addEventListener("click", function() {OpenPopupHM(el)}, false )
                 };
@@ -572,17 +586,14 @@ function CheckStatus() {
             if ("deleted" in id_dict) {is_deleted = true};
             if ("error" in id_dict) {msg_err = id_dict["error"]};
             if ("temp_pk" in id_dict) {temp_pk_str = id_dict["temp_pk"]};
-            // console.log("is_created", is_created, "temp_pk_str", temp_pk_str);
+            //console.log("is_created", is_created, "temp_pk_str", temp_pk_str);
 
 // --- deleted record
             if (is_deleted){
                 tblRow.parentNode.removeChild(tblRow);
             } else if (!!msg_err){
                 // was: let el_input = tblRow.querySelector("[name=code]");
-                //console.log("tblRow", tblRow)
                 let td = tblRow.cells[2];
-                //console.log("td", td)
-                //console.log("td.child[0]",td.child[0])
                 let el_input = tblRow.cells[2].firstChild
                 //console.log("el_input",el_input)
                 el_input.classList.add("border_invalid");
@@ -594,12 +605,12 @@ function CheckStatus() {
                 let id_str = get_attr_from_element_str(tblRow,"id")
             // check if item_dict.id 'new_1' is same as tablerow.id
 
-                // console.log("id_str", id_str, typeof id_str);
+                 //console.log("id_str", id_str, typeof id_str);
                 if(temp_pk_str === id_str){
-                // console.log("temp_pk_str === id_str");
+                 //console.log("temp_pk_str === id_str");
                     // if 'created' exists then 'pk' also exists in id_dict
                     const id_pk = get_dict_value_by_key (id_dict, "pk");
-                // console.log("id_pk === id_pk");
+                 //console.log("id_pk === id_pk");
 
             // update tablerow.id from temp_pk_str to id_pk
                     tblRow.setAttribute("id", id_pk);  // or tblRow.id = id_pk
@@ -635,7 +646,7 @@ function CheckStatus() {
                     if(!!el_input){
 // --- lookup field in item_dict, get data from field_dict
                         fieldname = get_attr_from_element(el_input, "data-field");
-                        // console.log("fieldname", fieldname);
+                        //console.log("fieldname", fieldname);
                         if (fieldname in item_dict){
                             field_dict = get_dict_value_by_key (item_dict, fieldname);
                             //console.log("field_dict", field_dict);
@@ -679,17 +690,6 @@ function CheckStatus() {
                       // otherwise will not recognize rosterdate as a new value and will not be saved
                                 if (!!temp_pk_str) {el_input.removeAttribute("data-o_value")}
 
-/*
-                                value = get_dict_value_by_key (field_dict, "value");
-                                wdm = get_dict_value_by_key (field_dict, "wdm");
-                                wdmy = get_dict_value_by_key (field_dict, "wdmy");
-                                offset = get_dict_value_by_key (field_dict, "offset");
-                                el_input.value = wdm
-                                el_input.title = wdmy
-                                el_input.setAttribute("data-wdmy", wdmy)
-                                el_input.setAttribute("data-offset", offset)
-*/
-
                             } else if (fieldname === "shift") {
                                 let value = get_dict_value_by_key (field_dict, "value")
                                 // console.log("field_dict", field_dict);
@@ -710,7 +710,7 @@ function CheckStatus() {
                 }  //  for (let j = 0; j < 8; j++)
 
 //---  update filter
-                FilterRows(tblRow);
+                FilterTableRows(tblBody_items, filter_text);
 
             } // if (!!tblRow)
 
@@ -1100,14 +1100,14 @@ function CheckStatus() {
                 });
             }  // if (!!id_dict)
         }; // if (!pk_int)
-        FilterRows(tblRow);
+        FilterTableRows(tblBody_items, filter_text);
     }  // function HandleFilterInactive
 
-//========= HandleSearchFilterEvent  ====================================
-    function HandleSearchFilterEvent() {
-        console.log( "===== HandleSearchFilterEvent  ========= ");
+//========= HandleFilterName  ====================================
+    function HandleFilterName() {
+        console.log( "===== HandleFilterName  ========= ");
         // skip filter if filter value has not changed, update variable filter_text
-        let new_filter = document.getElementById("filter_text").value;
+        let new_filter = el_filter_name.value;
         let skip_filter = false
         if (!new_filter){
             if (!filter_text){
@@ -1123,9 +1123,9 @@ function CheckStatus() {
             }
         }
         if (!skip_filter) {
-            FilterRows(tblRow)
+            FilterTableRows(tblBody_items, filter_text);
         } //  if (!skip_filter) {
-    }; // function HandleSearchFilterEvent
+    }; // function HandleFilterName
 
 //========= SetNewRosterdate  ================ PR2019-06-07
     function SetNewRosterdate(rosterdate_dict) {
@@ -1328,70 +1328,6 @@ function CheckStatus() {
         }
     }  // function HandleFillRosterdate
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-//========= FilterRows  ====================================
-    function FilterRows() {
-        //console.log( "===== FilterRows  ========= ");
-
-        // TODO >> value of show_teams. Was: const show_teams = get_attr_from_element(el_btn_show_team, "data-show_teams")
-        let show_teams;
-        let colLength = 0;
-        if (show_teams === "shifts") {
-            colLength = 7;
-        } else {
-            colLength = 4;
-        }
-
-        // filter by inactive and substring of fields
-        let len = tblBody_items.rows.length;
-        if(!!len){
-            for (let row_index = 0; row_index < len; row_index++) {
-                let tblRow = tblBody_items.rows[row_index];
-
-                let hide_row = SetHideRow(tblRow);
-
-                if (hide_row) {
-                    tblRow.classList.add(cls_hide)
-                } else {
-                    tblRow.classList.remove(cls_hide)
-                };
-            }
-        }
-    }; // function FilterRows
-
-//========= SetHideRow  ========= PR2019-05-25
-    function SetHideRow(tblRow, colLength) {
-        // function filters by inactive and substring of fields
-
-        let hide_row = false
-        if (!!tblRow && !!colLength){
-// --- hide inactive rows if filter_hide_inactive
-            if (filter_hide_inactive) {
-                if (!!tblRow.cells[0].children[0]) {
-                    let el_inactive = tblRow.cells[0].children[0];
-                    if (!!el_inactive){
-                        if(el_inactive.hasAttribute("value")){
-                            hide_row = (el_inactive.getAttribute("value").toLowerCase() === "true")
-            }}}};
-// --- show all rows if filter_text = ""
-            if (!hide_row && !!filter_text){
-                let found = false
-                for (let col_index = 1, el_code; col_index < colLength; col_index++) {
-                    if (!!tblRow.cells[col_index].children[0]) {
-                        let el_value = tblRow.cells[col_index].children[0].value;
-                        if (!!el_value){
-                            el_value = el_value.toLowerCase();
-                            if (el_value.indexOf(filter_text) !== -1) {
-                                found = true
-                                break;
-                    }}}
-                };
-                if (!found){hide_row = true}
-            }
-        }
-        return hide_row
-    }; // function SetHideRow
 
 //=========  DeselectHighlightedRows  ================ PR2019-04-30
     function DeselectHighlightedRows(tableBody) {
@@ -1412,7 +1348,6 @@ function CheckStatus() {
             }
         }
     }
-
 
 //###################################
 

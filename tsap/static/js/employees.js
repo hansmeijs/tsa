@@ -625,7 +625,7 @@ $(function() {
             el_img_filter_inactive.setAttribute("src", imgsrc_active);
             el_img_filter_inactive.setAttribute("data-value", "false");
         }
-        FilterTableRows(tblBody_items, filter_employees, filter_inactive_included)
+        FilterTableRows(tblBody_items, filter_employees, col_inactive, filter_inactive_included)
     }  // function HandleFilterInactive
 
 
@@ -636,7 +636,7 @@ $(function() {
         let new_filter = el_filter_text.value;
         filter_employees = new_filter.toLowerCase();
 
-        FilterTableRows(tblBody_items, filter_employees, filter_inactive_included)
+        FilterTableRows(tblBody_items, filter_employees, col_inactive, filter_inactive_included)
 
     }; // function HandleFilterEmployees
 
