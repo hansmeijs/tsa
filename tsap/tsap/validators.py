@@ -7,7 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS
 
-from companies.models import Customer
+from companies.models import Company, Customer, Employee
 
 import logging
 logger = logging.getLogger(__name__)

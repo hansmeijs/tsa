@@ -5,8 +5,8 @@
 
 //========= GetItemDictFromTablerow  ============= PR2019-05-11
     function GetItemDictFromTablerow(tr_changed) {
-        // console.log("======== GetItemDictFromTablerow");
-        // console.log(tr_changed);
+        //console.log("======== GetItemDictFromTablerow");
+        //console.log(tr_changed);
 
         let item_dict = {};
 
@@ -31,16 +31,17 @@
                             // PR2019-03-17 debug: getAttribute("value");does not get the current value
                             // The 'value' attribute determines the initial value (el_input.getAttribute("name").
                             // The 'value' property holds the current value (el_input.value).
-                            if (["code", "name", "namefirst", "namelast", "shift", "team", "employee"].indexOf( fieldname ) > -1){
-                                n_value = el_input.value;
-                            } else { // if (["datefirst", "datelast", "inactive"].indexOf( fieldname ) > -1){
+
+                            if (["rosterdate", "datefirst", "datelast", "timestart", "timeend", "inactive"].indexOf( fieldname ) > -1){
                                 n_value = get_attr_from_element(el_input, "data-value"); // data-value="2019-05-11"
+                            } else {
+                                n_value = el_input.value;
                             };
                             if(!!n_value){
                                 field_dict["value"] = n_value
                             };
                             o_value = get_attr_from_element(el_input, "data-o_value"); // data-value="2019-03-29"
-                            // console.log("fieldname", fieldname, "n_value", n_value, "o_value", o_value);
+                            //console.log("fieldname", fieldname, "n_value", n_value, "o_value", o_value);
 
                             let value_has_changed = false
                             if(!!n_value){
@@ -51,11 +52,17 @@
 
         // get pk from element
                                 let pk;
-                                if (["team", "employee"].indexOf( fieldname ) > -1){
+                                if (["team", "employee", "order"].indexOf( fieldname ) > -1){
                         // get pk from datalist when field is a look_up field
                                     if (!!n_value){
                                         pk = parseInt(get_pk_from_datalist("id_datalist_" + fieldname + "s", n_value));
                                     }
+                                } else if (fieldname === "orderhour"){
+                        // Note: pk in get pk from datalist when field is a look_up field
+                                    if (!!n_value){
+                                        field_dict["order_pk"] = parseInt(get_pk_from_datalist("id_datalist_orderhours", n_value, "order_pk"));
+                                    }
+
                                 } else {
                         // get pk from attribute 'data-pk'
                                     pk = parseInt(get_attr_from_element(el_input, "data-pk"));
@@ -224,13 +231,14 @@
     }
 
 //========= get_pk_from_datalist  ============= PR2019-06-01
-    function get_pk_from_datalist(id_datalist, n_value) {
+    function get_pk_from_datalist(id_datalist, n_value, key_str) {
         // speed test shows that this function is 10x faster than get_pk_from_itemlist
+        if(!key_str) (key_str = "pk" )
         let option_pk;
         let el_datalist = document.getElementById(id_datalist);
         let el_option = el_datalist.options.namedItem(n_value);
         if(!!el_option){
-            option_pk = get_attr_from_element(el_option, "pk")
+            option_pk = get_attr_from_element(el_option, key_str)
         }
         return option_pk
     }

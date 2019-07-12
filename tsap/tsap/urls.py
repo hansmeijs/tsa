@@ -155,7 +155,6 @@ urlpatterns = [
 
     path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),
 
-
     path('planning/', include([
         path('schemes', planning_views.SchemesView.as_view(), name='schemes_url'),
         path('upload', planning_views.SchemeUploadView.as_view(), name='scheme_upload_url'),
@@ -166,6 +165,7 @@ urlpatterns = [
 
         path('roster', planning_views.RosterView.as_view(), name='roster_url'),
         path('roster_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
+        path('period_upload', planning_views.PeriodUploadView.as_view(), name='period_upload_url'),
     ])),
 
     path('emplhours/', include([

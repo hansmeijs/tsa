@@ -4,14 +4,17 @@ from django.db.models.functions import Lower, Coalesce
 from datetime import date, datetime, timedelta
 from timeit import default_timer as timer
 
+from accounts.models import Usersetting
 from companies.models import Customer, Order, Scheme, Schemeitembase, Schemeitem, Team, Teammember, \
     Employee, Emplhour, Orderhour, Companysetting
+
+from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 
 from tsap.functions import get_date_from_str, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
                     get_weekdaylist_for_DHM, get_date_HM_from_minutes,  set_fielddict_date, fielddict_duration, fielddict_date
 
 from tsap.constants import MONTHS_ABBREV, WEEKDAYS_ABBREV, TIMEFORMATS, STATUS_EMPLHOUR_00_NONE, STATUS_EMPLHOUR_01_CREATED, \
-    KEY_COMP_ROSTERDATE_CURRENT, LANG_DEFAULT, TYPE_02_ABSENCE, TYPE_00_NORMAL, KEY_USER_QUICKSAVE
+    KEY_COMP_ROSTERDATE_CURRENT, KEY_USER_EMPLHOUR_PERIOD
 
 import pytz
 import json
@@ -106,24 +109,8 @@ def create_schemeitem_dict(schemeitem, comp_timezone, user_lang, temp_pk=None, i
             rosterdate_midnight_local = None
             rosterdate_utc = None
             if rosterdate:
-                # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
-                # entered date is dattime-naive, make it datetime aware with  pytz.timezone
-                rosterdate_naive = datetime(rosterdate.year, rosterdate.month, rosterdate.day)
-                #logger.debug("rosterdate_midnight_naive: " + str(rosterdate_naive) + str(type(rosterdate_naive)))
-
-                # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
-                timezone = pytz.utc
-                rosterdate_utc = timezone.localize(rosterdate_naive)
-                #logger.debug("rosterdate_utc: " + str(rosterdate_utc))
-
-                # astimezone changes timezone of a timezone aware object, utc time stays the same
-                timezone = pytz.timezone(comp_timezone)
-                rosterdate_local = rosterdate_utc.astimezone(timezone)
-                #logger.debug("rosterdate_local: " + str(rosterdate_local))
-
-                # make the date midnight at local timezone
-                rosterdate_midnight_local = rosterdate_local.replace(hour=0, minute=0)
-                #logger.debug("rosterdate_midnight_local: " + str(rosterdate_midnight_local))
+                rosterdate_utc = get_rosterdate_utc(rosterdate)
+                rosterdate_midnight_local = get_rosterdate_midnight_local(rosterdate_utc, comp_timezone)
 
                 schemeitem_dict[field] = fielddict_date(rosterdate_utc, user_lang)
 
@@ -266,26 +253,39 @@ def create_date_dict(rosterdate, user_lang, status_text):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def create_emplhour_list(datefirst, datelast, company, comp_timezone, user_lang): # PR2019-06-16
+def create_emplhour_list(periodstart, periodend, company, comp_timezone, user_lang): # PR2019-06-16
     logger.debug(' ============= create_emplhour_list ============= ')
+
+    logger.debug('periodstart: ' + periodstart)
+    logger.debug('periodend: ' + periodend)
 
     # TODO select_related on queyset
     #  queryset = Courses.objects.filter(published=True).prefetch_related('modules', 'modules__lessons', 'modules__lessons__exercises')
-
+    # TODO filter also on min max rosterdate, in case timestart / end is null
     starttime = timer()
 
-    crit = (Q(orderhour__order__customer__company=company) | Q(employee__company=company))
-    if datefirst:
-        crit.add(Q(rosterdate__gte=datefirst), crit.connector)
-    if datelast:
-        crit.add(Q(rosterdate__lte=datelast), crit.connector)
+    crit = (Q(orderhour__order__customer__company=company)) & \
+           (Q(timestart__lte=periodend) | Q(timestart__isnull=True)) & \
+           (Q(timeend__gte=periodstart) | Q(timeend__isnull=True))
     emplhours = Emplhour.objects.filter(crit)
+
+    logger.debug(emplhours.query)
+    # SELECT ...
+    # FROM "companies_emplhour"
+    # INNER JOIN "companies_orderhour" ON ("companies_emplhour"."orderhour_id" = "companies_orderhour"."id")
+    # INNER JOIN "companies_order" ON ("companies_orderhour"."order_id" = "companies_order"."id")
+    # INNER JOIN "companies_customer" ON ("companies_order"."customer_id" = "companies_customer"."id")
+    # WHERE ("companies_customer"."company_id" = 1
+    # AND ("companies_emplhour"."timestart" <= 2019-07-11 06:00:00+00:00 OR "companies_emplhour"."timestart" IS NULL)
+    # AND ("companies_emplhour"."timeend" >= 2019-07-10 22:00:00+00:00 OR "companies_emplhour"."timeend" IS NULL))
+    # ORDER BY "companies_emplhour"."rosterdate" ASC, "companies_emplhour"."timestart" ASC
 
     print('sql elapsed time  is :')
     print(timer() - starttime)
 
     emplhour_list = []
     for emplhour in emplhours:
+        logger.debug('emplhour: ' + str(emplhour))
         dict = create_emplhour_dict(emplhour, comp_timezone, user_lang)
         emplhour_list.append(dict)
 
@@ -296,12 +296,12 @@ def create_emplhour_list(datefirst, datelast, company, comp_timezone, user_lang)
 
 
 def create_emplhour_dict(emplhour, comp_timezone, user_lang):
-    logger.debug('----------- create_emplhour_dict ------------------')
+    # logger.debug('----------- create_emplhour_dict ------------------')
     # logger.debug('emplhour: ' + str(emplhour))
 
     # create dict of this scheme PR2019-06-29
     emplhour_dict = {}
-    field_list = ('id', 'rosterdate', 'customer', 'order', 'shift', 'employee',
+    field_list = ('id', 'rosterdate', 'orderhour', 'shift', 'employee',
                   'timestart', 'timeend', 'breakduration', 'timeduration', 'timestatus')
 
     for field in field_list:
@@ -321,18 +321,18 @@ def create_emplhour_dict(emplhour, comp_timezone, user_lang):
         if rosterdate:
             emplhour_dict[field] = fielddict_date(rosterdate, user_lang)
 
-        field = 'customer'
-        if emplhour.orderhour:
-            value = emplhour.orderhour.order.customer.code
-            if value:
-                emplhour_dict[field] = {'value': value, 'customer_pk': emplhour.orderhour.order.customer.id}
+        #field = 'customer'
+        #if emplhour.orderhour:
+        #    value = emplhour.orderhour.order.customer.code
+        #    if value:
+        #        emplhour_dict[field] = {'value': value, 'customer_pk': emplhour.orderhour.order.customer.id}
 
-        field = 'order'
+        field = 'orderhour'
         if emplhour.orderhour:
             # value = ' - '.join([emplhour.orderhour.order.customer.code, emplhour.orderhour.order.code])
             value = emplhour.orderhour.order.customer.code + ' - ' + emplhour.orderhour.order.code
             if value:
-                emplhour_dict[field] = {'value': value, 'order_pk':emplhour.orderhour.order.id}
+                emplhour_dict[field] = {'value': value, 'orderhour_pk':emplhour.orderhour.id, 'order_pk':emplhour.orderhour.order.id}
 
         field = 'shift'
         if emplhour.orderhour:
@@ -371,7 +371,7 @@ def create_emplhour_dict(emplhour, comp_timezone, user_lang):
 # --- remove empty attributes from update_dict
     remove_empty_attr_from_dict(emplhour_dict)
 
-    logger.debug('emplhour_dict: ' + str(emplhour_dict))
+    # logger.debug('emplhour_dict: ' + str(emplhour_dict))
     return emplhour_dict
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -419,27 +419,181 @@ def set_fielddict_datetime(field, field_dict, rosterdate_utc, timestart, timeend
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+def get_period_from_settings(request):  # PR2019-07-09
+    # logger.debug(' ============= get_period_from_settings ============= ')
+
+    period_dict = {}
+    if request.user is not None and request.user.company is not None:
+# get emplhour period from Usersetting
+        period_dict_json = Usersetting.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user)
+        if period_dict_json:
+            period_dict = json.loads(period_dict_json)
+# if not found: get emplhour period from Companysetting
+        else:
+            period_dict_json = Companysetting.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user.company)
+            if period_dict_json:
+                period_dict = json.loads(period_dict_json)
+# if not found: enter missing key/values
+        if not 'range' in period_dict:
+            period_dict['range'] = '0;0;1;0'
+        if not 'period' in period_dict:
+            period_dict['period'] = 6
+        if not 'interval' in period_dict:
+            period_dict['interval'] = 6
+        if not 'overlap' in period_dict:
+            period_dict['overlap'] = 0
+        if not 'auto' in period_dict:
+            period_dict['auto'] = True
+    return period_dict
+
+def get_period_dict(request):  # PR2019-07-10
+    #logger.debug(' ============= get_period_dict ============= ')
+     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
+
+    period_dict = {}
+    if request.user is not None and request.user.company is not None:
+
+# get comp_timezone
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+
+# get saved period_dict
+        period_dict = get_period_from_settings(request)
+
+# get values from saved / updated period_dict
+        interval = int(period_dict['interval'])
+        overlap = int(period_dict['overlap'])
+        period = int(period_dict['period'])
+
+# get today_midnight_local
+        today_utc = get_rosterdate_utc(date.today())
+        today_midnight_local = get_rosterdate_midnight_local(today_utc, comp_timezone)
+
+# get now in utc
+        now_dt = datetime.utcnow()
+        # logger.debug('now_dt: ' + str(now_dt) + ' type: ' + str(type(now_dt)))
+        # now_dt: 2019-07-10 14:48:15.742546 type: <class 'datetime.datetime'>
+        now_utc = now_dt.replace(tzinfo=pytz.utc)  # NOTE: it works only with a fixed utc offset
+        #logger.debug('now_utc: ' + str(now_utc) + ' type: ' + str(type(now_utc)))
+        # now_utc: 2019-07-10 14:48:15.742546+00:00 type: <class 'datetime.datetime'>
+
+# convert now to local
+        # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+        # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
+        timezone = pytz.timezone(comp_timezone)
+        now_local = now_utc.astimezone(timezone)
+        #logger.debug('now_local: ' + str(now_local) + str(type(now_local)))
+        # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
+
+# split now_local
+        year_int, month_int, date_int, hour_int, minute_int = split_datetime(now_local)
+        #logger.debug(
+        #    'now_local_arr: ' + str(year_int) + ';' + str(month_int) + ';' + str(date_int) + ';' + str(
+        #        hour_int) + ';' + str(minute_int))
+        # now_local_arr: 2019;7;10;16
+
+# get index of current interval (with interval = 6 hours, interval 6-12h has index 1
+        interval_index = 0
+        if interval:
+            interval_index = int(hour_int / interval)
+        #logger.debug('interval: ' + str(interval) + ' interval_index: ' + str(interval_index))
+
+# get local start time of current interval
+        interval_starthour = interval * interval_index
+        interval_start_local = today_midnight_local + timedelta(hours=interval_starthour)
+        #logger.debug('interval_start_local: ' + str(interval_start_local) + str(type(interval_start_local)))
+
+# get local start time of current period (is interval_start_local minus overlap)
+        period_start_local = interval_start_local - timedelta(hours=overlap)
+        #logger.debug('overlap: ' + str(overlap) + ' period_start_local: ' + str(period_start_local))
+
+# get start time of current period in UTC
+        period_start_utc = period_start_local.astimezone(pytz.UTC)
+        #logger.debug('rperiod_start_utc: ' + str(period_start_utc))
+        period_dict['periodstart'] = period_start_utc.isoformat()
+        #logger.debug('period_start_utc.isoformat: ' + str(period_dict['periodtimestart']))
+
+# get utc end time of current period ( = local start time of current period plus period
+        period_end_utc = period_start_utc + timedelta(hours=period)
+        #logger.debug('period: ' + str(period) + ' utc >>>>>> period_end_utc: ' + str(period_end_utc))
+        period_dict['periodend'] = period_end_utc.isoformat()
+        #logger.debug('period_end_utc.isoformat: ' + str( period_dict['periodtimeend']))
+
+    #logger.debug('period_dict: ' + str(period_dict))
+    return period_dict
+
+
+def get_range(range):  # PR2019-07-10
+    year_int = 0
+    month_int = 0
+    date_int = 0
+    hour_int = 0
+
+    if range:
+        if ';' in range:
+            arr = range.split(';')
+            year_int = int(arr[0])
+            month_int = int(arr[1])
+            date_int = int(arr[2])
+            hour_int = int(arr[3])
+    return year_int, month_int, date_int, hour_int
+
+def split_datetime(dt):  # PR2019-07-10
+    year_int = 0
+    month_int = 0
+    date_int = 0
+    hour_int = 0
+    minute_int = 0
+    if dt:
+        year_int = dt.year
+        month_int = dt.month
+        date_int = dt.day
+        hour_int = dt.hour
+        minute_int = dt.minute
+
+    return year_int, month_int, date_int, hour_int, minute_int
+
+    if range:
+        if ';' in range:
+            arr = range.split(';')
+            year_int = int(arr[0])
+            month_int = int(arr[1])
+            date_int = int(arr[2])
+            hour_int = int(arr[3])
+    return year_int, month_int, date_int, hour_int
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def get_datetime_utc(dtm):
+    datetime_utc = None
+    if datetime:
+        # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
+        # entered date is dattime-naive, make it datetime aware with  pytz.timezone
+        datetime_naive = datetime(dtm.year, dtm.month, dtm.day, dtm.hour, dtm.minute)
+        #logger.debug("datetime_midnight_naive: " + str(datetime_naive) + str(type(datetime_naive)))
+
+        # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
+        datetime_utc = pytz.utc.localize(datetime_naive)
+        # datetime_utc: 2019-06-23 00:00:00+00:00
+        # logger.debug("datetime_utc: " + str(datetime_utc))
+    return datetime_utc
+
 def get_rosterdate_utc(rosterdate):
     rosterdate_utc = None
     if rosterdate:
         # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
         # entered date is dattime-naive, make it datetime aware with  pytz.timezone
         rosterdate_naive = datetime(rosterdate.year, rosterdate.month, rosterdate.day)
-        logger.debug("rosterdate_midnight_naive: " + str(rosterdate_naive) + str(type(rosterdate_naive)))
+        #logger.debug("rosterdate_midnight_naive: " + str(rosterdate_naive) + str(type(rosterdate_naive)))
 
         # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
         rosterdate_utc = pytz.utc.localize(rosterdate_naive)
+        # rosterdate_utc: 2019-06-23 00:00:00+00:00
         # logger.debug("rosterdate_utc: " + str(rosterdate_utc))
 
     return rosterdate_utc
 
-
-def get_minmax_datetime_utc(field, rosterdate_utc, timestart, timeend, comp_timezone):  # PR2019-07-05
-    logger.debug(" ------- get_minmax_datetime_utc ---------- ")
-
-    min_datetime_utc = None
-    max_datetime_utc = None
-
+def get_rosterdate_midnight_local(rosterdate_utc, comp_timezone): # PR2019-07-09
+    rosterdate_midnight_local = None
     if rosterdate_utc:
         timezone = pytz.timezone(comp_timezone)
         # astimezone changes timezone of a timezone aware object, utc time stays the same
@@ -450,6 +604,17 @@ def get_minmax_datetime_utc(field, rosterdate_utc, timestart, timeend, comp_time
         rosterdate_midnight_local = rosterdate_local.replace(hour=0, minute=0)
         # logger.debug("rosterdate_midnight_local: " + str(rosterdate_midnight_local))
         # make the date midnight at local timezone
+
+    return rosterdate_midnight_local
+
+def get_minmax_datetime_utc(field, rosterdate_utc, timestart, timeend, comp_timezone):  # PR2019-07-05
+    # logger.debug(" ------- get_minmax_datetime_utc ---------- ")
+
+    min_datetime_utc = None
+    max_datetime_utc = None
+
+    if rosterdate_utc:
+        rosterdate_midnight_local = get_rosterdate_midnight_local(rosterdate_utc, comp_timezone)
 
         if field == field == 'timestart':
             # get mindatetime

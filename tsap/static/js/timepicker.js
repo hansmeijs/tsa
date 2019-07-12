@@ -9,28 +9,43 @@
 // add EventListeners to buttons
         // an eventhandlers is added each time the timepicker opens. Therefore this code is moved to roster.js and schemeitem.js PR2019-07-07
 
-// get values from tr_selected
+// get values from tr_selected and put them in el_timepicker
         let tr_selected = get_tablerow_selected(el_input)
-        const data_table = get_attr_from_element(tr_selected, "data-table")
-        const id_str = get_attr_from_element(tr_selected, "data-pk")
-        const ppk_str = get_attr_from_element(tr_selected, "data-ppk");
 
-// get values from el_input
+        const data_table = get_attr_from_element_str(tr_selected, "data-table");
+        if (!!data_table){ el_timepicker.setAttribute("data-table", data_table)
+        } else { el_timepicker.removeAttribute("data-table")};
+
+        const data_pk = get_attr_from_element_int(tr_selected, "data-pk");
+        if (!!data_pk){ el_timepicker.setAttribute("data-pk", data_pk)
+        } else { el_timepicker.removeAttribute("data-pk")};
+
+        const data_ppk = get_attr_from_element_int(tr_selected, "data-ppk");
+        if (!!data_ppk){ el_timepicker.setAttribute("data-ppk", data_ppk)
+        } else { el_timepicker.removeAttribute("data-ppk")};
+
+// get values from el_input and put them in el_timepicker
         const data_field = get_attr_from_element(el_input, "data-field");
-        let data_rosterdate = get_attr_from_element(el_input, "data-rosterdate");
-        let data_datetime = get_attr_from_element(el_input, "data-datetime");
-        let data_mindatetime = get_attr_from_element(el_input, "data-mindatetime");
-        let data_maxdatetime = get_attr_from_element(el_input, "data-maxdatetime");
+        if (!!data_field){ el_timepicker.setAttribute("data-field", data_field)
+        } else { el_timepicker.removeAttribute("data-field")};
 
-// put values in el_timepicker
-        if (!!data_table){el_timepicker.setAttribute("data-table", data_table)};
-        if (!!id_str){el_timepicker.setAttribute("data-pk", id_str)};
-        if (!!ppk_str){el_timepicker.setAttribute("data-ppk", ppk_str)};
-        if (!!data_field){el_timepicker.setAttribute("data-field", data_field)};
-        if (!!data_rosterdate){el_timepicker.setAttribute("data-rosterdate", data_rosterdate)};
-        if (!!data_datetime){el_timepicker.setAttribute("data-datetime", data_datetime)};
-        if (!!data_mindatetime){el_timepicker.setAttribute("data-mindatetime", data_mindatetime)};
-        if (!!data_maxdatetime){el_timepicker.setAttribute("data-maxdatetime", data_maxdatetime)};
+        const data_rosterdate = get_attr_from_element(el_input, "data-rosterdate");
+        if (!!data_rosterdate){ el_timepicker.setAttribute("data-rosterdate", data_rosterdate)
+        } else { el_timepicker.removeAttribute("data-rosterdate")};
+
+        const data_datetime = get_attr_from_element(el_input, "data-datetime");
+        if (!!data_datetime){ el_timepicker.setAttribute("data-datetime", data_datetime)
+        } else { el_timepicker.removeAttribute("data-datetime")};
+
+        const data_mindatetime = get_attr_from_element(el_input, "data-mindatetime");
+        if (!!data_mindatetime){ el_timepicker.setAttribute("data-mindatetime", data_mindatetime)
+        } else { el_timepicker.removeAttribute("data-mindatetime")};
+
+        const data_maxdatetime = get_attr_from_element(el_input, "data-maxdatetime");
+        if (!!data_maxdatetime){ el_timepicker.setAttribute("data-maxdatetime", data_maxdatetime)
+        } else { el_timepicker.removeAttribute("data-maxdatetime")};
+
+
         if (!!comp_timezone){el_timepicker.setAttribute("data-timezone", comp_timezone)};
         if (!!timeformat){el_timepicker.setAttribute("data-timeformat", timeformat)};
         if (!!interval){el_timepicker.setAttribute("data-interval", interval)};
@@ -40,7 +55,7 @@
         if (!!cls_hover){el_timepicker.setAttribute("data-cls_hover", cls_hover)};
 
         let dict = GetCurMinMaxDict(el_timepicker)
-
+        console.log(dict)
 // display cur_datetime_local in header of el_timepicker
         CreateTimepickerDate(data_datetime, data_rosterdate, comp_timezone) ;
         CreateTimepickerHours(el_timepicker, UpdateTableRow, dict);
@@ -98,7 +113,7 @@
         if (!!data_datetime) {
             cur_datetime_local = moment.tz(data_datetime, comp_timezone)
         } else if (!!data_rosterdate) {
-            cur_datetime_local = cur_rosterdate_utc
+            cur_datetime_local = GetRosterdateLocal(data_rosterdate, comp_timezone)
         };
 
         let date_str = format_datelong_from_datetimelocal(cur_datetime_local)
@@ -234,7 +249,7 @@
                     td.setAttribute("data-minute", minutes);
 
                     //td.addEventListener("click", function() {
-                    //    SetMinute(el_timepicker, tbody, td, comp_timezone, cls_highl)}, false )
+                    //    SetMinute(el_timepicker, tbody, td, UpdateTableRow, comp_timezone, cls_highl)}, false )
 
                     // skip last 00
                     if (minutes !== 0) { CreateTimepickerCell(td, "minute", minutes, minutes_text)}
@@ -388,7 +403,7 @@
     }  // SetHour
 
 //========= SetMinute  ====================================
-    function SetMinute(el_timepicker, tbody, td, comp_timezone, cls_highl) {
+    function SetMinute(el_timepicker, tbody, td, UpdateTableRow, comp_timezone, cls_highl) {
         //console.log("==== SetMinute  =====");
 
     // get datetime_utc_iso from el_timepicker data-datetime, convert to local (i.e. comp_timezone)
@@ -462,7 +477,6 @@
         console.log (el_timepicker)
 
 // get values from el_timepicker
-
         const data_table = get_attr_from_element(el_timepicker, "data-table")
         const id_str = get_attr_from_element(el_timepicker, "data-pk")
         const ppk_str = get_attr_from_element(el_timepicker, "data-ppk");
@@ -476,7 +490,7 @@
         const min_datetime_local = dict["min_datetime_local"];
         const max_datetime_local = dict["max_datetime_local"];
 
-        const comp_timezone = dict["comp_timezone"];
+        //const comp_timezone = dict["comp_timezone"];
 
         console.log("table:", data_table, "field:", data_field, "pk:", id_str, "ppk:", ppk_str)
         console.log("data_rosterdate:", data_rosterdate, "data_datetime:", data_datetime)
@@ -535,7 +549,7 @@
                 console.log ("response", response);
                         if ("item_update" in response) {
                             //console.log("...... UpdateTableRow .....");
-                            UpdateTableRow(tr_selected, response["item_update"])
+                            UpdateTableRow(data_table, tr_selected, response["item_update"])
                         }
                     },
                     error: function (xhr, msg) {
@@ -607,7 +621,7 @@
 
                 HighlightAndDisableCell(td, disabled, highlighted, cls_highl, cls_hover);
 
-                CellEventhandler(el_timepicker, UpdateTableRow, url_str, tbody, td, "ampm", comp_timezone, quicksave, cls_highl, disabled)
+                CellEventhandler(el_timepicker, tbody, td, UpdateTableRow, url_str, "ampm", comp_timezone, quicksave, cls_highl, disabled)
             }
         }  //  if (timeformat === 'AmPm') {
     }  // HighlightAndDisableAmpm
@@ -645,7 +659,7 @@
             disabled = !DatetimeWithinRange(cell_datetime, min_datetime_local, max_datetime_local)
             HighlightAndDisableCell(td, disabled, highlighted, cls_highl, cls_hover);
 
-            CellEventhandler(el_timepicker, UpdateTableRow, url_str, tbody, td, "hour", comp_timezone, quicksave, cls_highl, disabled)
+            CellEventhandler(el_timepicker, tbody, td, UpdateTableRow, url_str, "hour", comp_timezone, quicksave, cls_highl, disabled)
 
         }
     }  // HighlightAndDisableHours
@@ -685,7 +699,7 @@
 
             HighlightAndDisableCell(td, disabled, highlighted, cls_highl, cls_hover);
 
-            CellEventhandler(el_timepicker, UpdateTableRow, url_str, tbody, td, "minute", comp_timezone, quicksave, cls_highl, disabled)
+            CellEventhandler(el_timepicker, tbody, td, UpdateTableRow, url_str, "minute", comp_timezone, quicksave, cls_highl, disabled)
 
         }
     }  // HighlightAndDisableMinutes
@@ -720,7 +734,7 @@
     }  // HighlightAndDisableCell
 
 //========= CellEventhandler  ====================================
-    function CellEventhandler(el_timepicker, UpdateTableRow, url_str, tbody, td, data_name, comp_timezone, quicksave, cls_highl, disabled) {
+    function CellEventhandler(el_timepicker, tbody, td, UpdateTableRow, url_str, data_name, comp_timezone, quicksave, cls_highl, disabled) {
         //console.log( ">>>>=== CellEventhandler  ");
         //console.log( td);
         if (data_name === "hour"){
@@ -734,10 +748,10 @@
         } else if (data_name === "minute"){
             if (!disabled){
                 td.addEventListener("click", function() {
-                    SetMinute(el_timepicker, tbody, td, comp_timezone, cls_highl)}, false)
+                    SetMinute(el_timepicker, tbody, td, UpdateTableRow, comp_timezone, cls_highl)}, false)
             } else {
                 td.removeEventListener("click", function() {
-                    SetMinute(el_timepicker, tbody, td, comp_timezone, cls_highl)}, false)
+                    SetMinute(el_timepicker, tbody, td, UpdateTableRow, comp_timezone, cls_highl)}, false)
             }
         } else if (data_name === "ampm"){
             if (!disabled){
@@ -859,8 +873,8 @@
 //========= GetRosterdateLocal  ====================================
     function GetRosterdateLocal(data_rosterdate, comp_timezone) {
         // PR2019-07-07
-        // function gets rosterdate from data_rosterdate: "2019-06-23T00:00:00Z"
-        // converts it to moment object
+        // function gets rosterdate from data_rosterdate: "2019-06-23 T 00:00:00Z"
+        // converts it to moment object and set time to midnight
         let rosterdate_date_local;
         if (!!data_rosterdate  && !!comp_timezone){
             const rosterdate_datetime_local = moment.tz(data_rosterdate, comp_timezone)
@@ -874,12 +888,15 @@
 
 //========= GetDatetimeLocal  ====================================
     function GetDatetimeLocal(data_datetime, comp_timezone) {
+        //console.log(" --- GetDatetimeLocal ---")
+        //console.log("data_datetime", data_datetime, typeof data_datetime)
         // PR2019-07-07
         // get cur_datetime_local from data_datetime. If no current value: get from rosterdate
         let datetime_local;
         if (!!data_datetime && !!comp_timezone) {
             datetime_local = moment.tz(data_datetime, comp_timezone)
         };
+        //console.log("datetime_local", datetime_local.format(), typeof datetime_local)
         return datetime_local;
     }  // GetDatetimeLocal
 

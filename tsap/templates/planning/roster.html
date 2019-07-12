@@ -12,8 +12,97 @@
 
   <!-- MODAL -->
 {% block modal %}
+<!-- =================== MODAL RANGE  =================== -->
+    <div class="modal fade" id="id_modal_range" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md " role="document">
+            <div class="modal-content">
 
-    <div class="modal fade" id="id_modal_cont" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+                <div class="modal-header">
+                    <h4 id="id_modal_range_header" class="modal-title mx-2" >{% trans 'Select range' %}:</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div  id="id_modal_rangebody" class="modal-body">
+                    <div class="modal_container">
+<!-- modal_body_left contains employee select table -->
+                        <div class="modal_body_left">
+                            <div class="content_subheader_left mx-2 my-1">
+                               <table class="table table-condensed tsa-tbl mx-1 my-1">
+                                    <tbody id="id_mod_tbody_range">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                            <div class="modal_body_left">
+                                <div class="form-group">
+
+                                    <label for="id_mod_range_interval" class="mx-2 my-1">{% trans 'Interval hours' %}: </label>
+                                    <input id="id_mod_range_interval"type="number"  class="form-control mx-2 my-1" min="0" max="24" value="1">
+
+                                    <label for="id_mod_range_overlap" class="mx-2 my-1">{% trans 'Overlap with previous interval' %}: </label>
+                                    <input id="id_mod_range_overlap"type="number"  class="form-control mx-2 my-1" min="0" max="24" value="1">
+
+                                </div>
+
+                                <div class="form-group">
+
+                                    <label for="id_mod_range_auto" class="mx-2 my-1">{% trans 'Dynamic range' %}: </label>
+                                    <input id="id_mod_range_auto" type="checkbox"  checked="true" class="mx-2 my-1" min="0" max="1" value="1">
+                                </div>
+                            </div>
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                     <button id="id_mod_range_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- =================== MODAL PERIOD  =================== -->
+    <div class="modal fade" id="id_modal_period" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md " role="document">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h4 id="id_modal_period_header" class="modal-title mx-2" >{% trans 'Period settings' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div  id="id_modal_period_body" class="modal-body">
+                    <div class="modal_container">
+                        <div class="modal_body_left">
+                            <div class="mod_flex mx-2 my-2">
+                                <div class="form-group">
+                                    <label for="id_mod_rd_datestart" class="mx-2 my-1">{% trans 'Period start date' %}:</label>
+                                    <input id="id_mod_rd_datestart" type="date" class="form-control mx-2 my-1">
+
+
+                                </div>
+
+                                <div class="form-group">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <div id="id_mod_rd_ftr_msg"></div>
+                    <button id="id_mod_rd_btn_cancel" type="button"  class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                    <button id="id_mod_rd_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<!-- =================== MODAL EMPLOYEE  =================== -->
+    <div class="modal fade" id="id_modal_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -75,7 +164,6 @@
 
                                 </div>
                             </div>
-
 
                             <div id="id_div_mod_employee" class="mod_flex mx-2 my-2">
                                 <div class="form-group">
@@ -153,6 +241,11 @@
         <div class="content_body mx-2">
 
             <div class="popup-container">
+<!-- =================== POPUP DATE  =================== -->
+                <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
+                    <input id="id_popup_date"  type="date" class="input_text popup_box mx-4 my-1" ></input>
+                </div>
+
   <!-- =================== POPUP WDY  =================== -->
                  <div id="id_popup_wdy" class="popup_box display_hide td_width_220">
                      <div class="popup_header">
@@ -177,13 +270,32 @@
                          <button id="id_popup_wdy_save" class="btn btn-add">{% trans 'Save' %}</button>
                      </div>
                  </div>
-<!-- =================== TIMEPICKER  =================== -->
+
                 {% include 'includes/timepicker.html' %}
-<!-- =================== END TIMEPICKER  =================== -->
+
 <!-- =================== DATA TABLE  =================== -->
                 <table class="table table-condensed tsa-tbl ">
-                    <thead id="id_thead_items" class="thead-inverse"></thead>
-                    <tbody id="id_tbody_items"></tbody>
+                    <thead id="id_thead_items" class="thead-inverse">
+                        <th >{% trans 'Date' %}</th>
+                        <th >{% trans 'Order' %}</th>
+                        <th >{% trans 'Shift' %}</th>
+                        <th >{% trans 'Employee' %}</th>
+                        <th >{% trans 'Start time' %}</th>
+                        <th>
+                            <a id="id_filter_check" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
+                                <img id="id_img_filter_check" src="{% static 'img/questionmark.gif' %}" height="24" width="24">
+                            </a>
+                        </th>
+                        <th >{% trans 'End time' %}</th>
+                        <th>{% trans 'Break hours' %}</th>
+                        <th>
+                            <a id="id_filter_status" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
+                                <img id="id_img_filter_status" src="{% static 'img/stat04.png' %}" height="24" width="24">
+                            </a>
+                        </th>
+                    </thead>
+                    <tbody id="id_tbody_items">
+                    </tbody>
                 </table>
             </div>
 
@@ -191,7 +303,6 @@
 
         <div class="content_header">
             <div class="content_subheader_right">
-
             </div>
             <div class="content_subheader_right">
             </div>
@@ -200,7 +311,7 @@
     </div>
 </div>
 
-
+        <datalist id="id_datalist_orderhours"></datalist>
 
         <div id="id_data"
             data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
@@ -212,15 +323,15 @@
 
             data-lang ="{{ lang }}"
             data-timezone ="{{ timezone }}"
-            data-interval ="{{ interval }}"
             data-quicksave ="{{ quicksave }}"
             data-timeformat ="{{ timeformat }}"
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
-            data-today ="{{ today }}"
+            data-period ="{{ period }}"
 
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-emplhour_upload_url="{% url 'emplhour_upload_url' %}"
+            data-period_upload_url="{% url 'period_upload_url' %}"
             data-schemeitem_upload_url= "{% url 'schemeitem_upload_url' %}"
             data-schemeitem_fill_url= "{% url 'schemeitem_fill_url' %}"
             data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
@@ -254,6 +365,9 @@
             data-txt_scheme_add= "{% trans 'Add new scheme' %}"
             data-txt_cycle_once= "{% trans 'Once only' %}"
 
+            data-txt_period= "{% trans 'Period' %}"
+            data-txt_period_setting= "{% trans 'Period setting' %}"
+            data-txt_range = "{% trans 'Range' %}"
             data-txt_rosterdate= "{% trans 'Rosterdate' %}"
             data-txt_rosterdate_fill = "{% trans 'Fill roster of' %}"
             data-txt_rosterdate_remove = "{% trans 'Remove roster of' %}"

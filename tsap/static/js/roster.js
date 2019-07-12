@@ -17,22 +17,22 @@ $(function() {
     let rosterdate_fill;
     let rosterdate_remove;
 
-        let companyoffset = 0 // # in seconds
-        const useroffset = get_userOffset();
+    let companyoffset = 0 // # in seconds
+    const useroffset = get_userOffset();
 
 // ---  id_new assigns fake id to new records
-        let id_new = 0;
+    let id_new = 0;
 
-        let filter_text = "";
-        let filter_hide_inactive = true;
-        let filter_mod_employee = "";
+    let filter_text = "";
+    let filter_hide_inactive = true;
+    let filter_mod_employee = "";
 
-        let customer_list = [];
-        let order_list = [];
-        let shift_list = [];
-        let abscat_list = [];
-        let employee_list = [];
-        let emplhour_list = [];
+    let customer_list = [];
+    let order_list = [];
+    let shift_list = [];
+    let abscat_list = [];
+    let employee_list = [];
+    let emplhour_list = [];
 
         let tblBody_select = document.getElementById("id_tbody_select");
         let tblBody_items = document.getElementById("id_tbody_items");
@@ -48,6 +48,7 @@ $(function() {
         let el_timepicker_tbody_hour = document.getElementById("id_timepicker_tbody_hour");
         let el_timepicker_tbody_minute = document.getElementById("id_timepicker_tbody_minute");
 
+        let el_popup_date = document.getElementById("id_popup_date_container")
         let el_popup_wdy = document.getElementById("id_popup_wdy");
 
 // --- get header elements
@@ -68,8 +69,17 @@ $(function() {
             if(!tr_selected) {
                 DeselectHighlightedRows(tblBody_items)};
 
-// close el_popup_wdy
+// close el_popup_date
             let close_popup = true
+            if (event.target.classList.contains("input_text")) {close_popup = false} else
+            if (event.target.classList.contains("input_text")) {close_popup = false} else
+            if (el_popup_date.contains(event.target) && !event.target.classList.contains("popup_close")) {close_popup = false}
+            if (close_popup) {
+                el_popup_date.classList.add(cls_hide)
+            };
+
+// close el_popup_wdy
+            close_popup = true
             if (event.target.classList.contains("input_popup_wdy")) {close_popup = false} else
             if (el_popup_wdy.contains(event.target) && !event.target.classList.contains("popup_close")) {close_popup = false}
             if (close_popup) {
@@ -98,7 +108,6 @@ $(function() {
             }, false )
         }
 
-
 // ---  create EventListener for buttons
         let el_btn_rosterdate_fill = document.getElementById("id_btn_rosterdate_fill")
             el_btn_rosterdate_fill.addEventListener("click", function(){HandleFillRosterdate("fill")}, false)
@@ -123,6 +132,9 @@ $(function() {
         document.getElementById("id_mod_btn_split").addEventListener("click", function() {HandleModalSelect("split");}, false )
         document.getElementById("id_mod_btn_save").addEventListener("click", function() {HandleModalSave();}, false )
 
+        document.getElementById("id_mod_range_btn_save").addEventListener("click", function() {HandleModalPeriodSave("setting");}, false )
+
+
 // buttons in  popup_wdy
         document.getElementById("id_popup_wdy_prev_month").addEventListener("click", function() {HandlePopupBtnWdy();}, false )
         document.getElementById("id_popup_wdy_prev_day").addEventListener("click", function() {HandlePopupBtnWdy();}, false )
@@ -131,10 +143,13 @@ $(function() {
         document.getElementById("id_popup_wdy_nextmonth").addEventListener("click", function() {HandlePopupBtnWdy();}, false )
         document.getElementById("id_popup_wdy_save").addEventListener("click", function() {HandlePopupWdySave();}, false )
 
+// popup_date
+        el_popup_date.addEventListener("change", function() {HandlePopupDateSave();}, false )
 
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
         const url_datalist_download = get_attr_from_element(el_data, "data-datalist_download_url");
+        const url_period_upload = get_attr_from_element(el_data, "data-period_upload_url");
         const url_emplhour_upload = get_attr_from_element(el_data, "data-emplhour_upload_url");
         const url_emplhour_fill_rosterdate = get_attr_from_element(el_data, "data-emplhour_fill_rosterdate_url");
 
@@ -148,11 +163,11 @@ $(function() {
         const weekday_list = get_attr_from_element_dict(el_data, "data-weekdays");
         const month_list = get_attr_from_element_dict(el_data, "data-months");
         const today_dict = get_attr_from_element_dict(el_data, "data-today");
+        let period_dict = get_attr_from_element_dict(el_data, "data-period");
 
         const user_lang = get_attr_from_element(el_data, "data-lang");
         const comp_timezone = get_attr_from_element(el_data, "data-timezone");
         const timeformat = get_attr_from_element(el_data, "data-timeformat");
-        const interval = get_attr_from_element_int(el_data, "data-interval");
 
         let quicksave = false
         if (get_attr_from_element_int(el_data, "data-quicksave") === 1 ) { quicksave = true};
@@ -166,7 +181,6 @@ $(function() {
 
         // let intervalID = window.setInterval(CheckStatus, 5000);
 
-
 // buttons in  timepicker
         let btn_prevday = document.getElementById("id_timepicker_prevday")
             btn_prevday.addEventListener("click", function () {SetPrevNextDay("prevday", el_timepicker, UpdateTableRow, comp_timezone)}, false )
@@ -179,83 +193,34 @@ $(function() {
             btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add(cls_hover);});
             btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove(cls_hover);});
 
-// --- create header row
-        CreateTableHeader();
+// --- create Submenu
+        CreateSubmenu();
 
+        DisplayPeriod(period_dict)
+        let eplh_dict = {"update": true};
+        if(!isEmpty(period_dict)){
+            const eplh_periodstart = get_dict_value_by_key(period_dict,"periodstart")
+            if(!!eplh_periodstart){eplh_dict["periodstart"] = eplh_periodstart}
+
+            const eplh_periodend = get_dict_value_by_key(period_dict,"periodend")
+            if(!!eplh_periodend){eplh_dict["periodend"] = eplh_periodend}
+        }
         const datalist_request = {"customer": {inactive: false},
                                   "order": {inactive: false},
                                   "employee": {inactive: false},
-                                  "emplhour": {"dateXXXfirst": false, "dateXXXlast": false},
+                                  "emplhour": eplh_dict,
                                   "rosterdatefill": {next: true},
-                                  "abscat": {inactive: false}};
+                                  "abscat": {inactive: false}
+                                  };
         DatalistDownload(datalist_request);
 
 //  #############################################################################################################
 
-function CheckStatus() {
-        console.log( "=== CheckStatus ")
-    // function loops through emplhours, set questingsmark or warning when toimestrat / enb reached
-
-    // this code converts ISO to date
-    // var s = '2014-11-03T19:38:34.203Z';
-    //   var b = s.split(/\D+/);
-    //  let testdate =  new Date(Date.UTC(b[0], --b[1], b[2], b[3], b[4], b[5], b[6]));
-    //         console.log( "testdate: ", testdate)
-
-    // new Date gives now in local time:  Thu Jun 20 2019 07:42:39 GMT-0400 (Bolivia Time) type: object
-    const now_datetime_local = new Date;
-
-    // The Date.now() method returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC
-    const now_timestamp_local = Date.now();  // timestamp_now_local : 1561030959379 type: number
-    // console.log( "now_timestamp_local: ", new Date(now_timestamp_local) )
-
-
-
-    // get now in UTC time
-    const now_timestamp_UTC = now_timestamp_local - useroffset * 1000 // # useroffset is in seconds
-    // console.log( "now_timestamp_UTC: ", new Date(now_timestamp_UTC) )
-
-    // get now in dbase time
-    const now_timestamp_dbase = now_timestamp_UTC - companyoffset * 1000 // # companyoffset is in seconds
-    // console.log( "now_timestamp_dbase: ", new Date(now_timestamp_dbase) )
-
-// --- loop through item_list
-        let len = emplhour_list.length;
-        if (len > 0){
-            for (let i = 0, dict, timestart, timeend; i < len; i++) {
-                dict = emplhour_list[i];
-                // console.log( "emplhour_dict ", dict);
-
-                // calculate time difference with 'now' in minutes
-                timestart = get_subdict_value_by_key ( dict, "timestart", "value")
-                const timestart_datetime_dbase = new Date(timestart);
-                const timestart_timestamp_dbase = timestart_datetime_dbase.getTime();
-                const diff_timestamp_dbase = (timestart_timestamp_dbase - now_timestamp_dbase) / 60000
-// console.log();
-
-                // console.log( "timestart ", timestart);
-                // console.log( "timestart_timestamp_dbase: ", new Date(timestart_timestamp_dbase) )
-                // console.log( "diff_timestamp_dbase ", diff_timestamp_dbase);
-                // console.log( "hours ", diff_timestamp_dbase/60 );
-
-                timeend = get_subdict_value_by_key ( dict, "timeend", "value")
-                const timeend_datetime_dbase = new Date(timeend);
-                const timeend_timestamp_dbase = timeend_datetime_dbase.getTime();
-                const timeend_diff_dbase = (timeend_timestamp_dbase - now_timestamp_dbase) / 60000
-// console.log();
-                // console.log( "timeend ", timeend);
-                // console.log( "timeend_timestamp_dbase date: ", new Date(timeend_timestamp_dbase) )
-                // console.log( "timeend_diff_dbase ", timeend_diff_dbase);
-                // console.log( "hours ", diff_timestamp_dbase/60 );
-            }
-        }
-    }  // function CheckStatus
-
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request) {
         console.log( "=== DatalistDownload ")
-        // console.log("datalist_request")
-        // console.log( datalist_request)
+        console.log("datalist_request")
+        console.log( datalist_request)
         // datalist_request: {"schemeitems": {"ppk": pk}, "teams": {"ppk": pk}, "shifts": {"ppk": pk}
 
 // reset requested lists
@@ -268,6 +233,7 @@ function CheckStatus() {
             if (key === "shift") {shift_list = []};
             if (key === "employee") {employee_list = []};
             if (key === "emplhour") {emplhour_list = []};
+            if (key === "period") {period_dict = {}};
             // "rosterdatefill" for fill rosterdate
         }
 
@@ -285,13 +251,18 @@ function CheckStatus() {
                 console.log(response)
                 // hide loader
                 el_loader.classList.add(cls_hide)
-                let fill_table = false;
+                let fill_table = false, check_status = false;
                 if ("abscat" in response) {
                     abscat_list= response["abscat"];
                     FillSelectAbscat(abscat_list)
                 }
                 if ("employee" in response) {
                     employee_list= response["employee"];
+                }
+                if ("order" in response) {
+                    order_list= response["order"];
+                    // order_list is stored in datalist 'orderhours'
+                    FillDatalist("id_datalist_orderhours",  order_list)
                 }
                 if ("rosterdatefill" in response) {
                     SetNewRosterdate(response["rosterdatefill"])
@@ -304,9 +275,15 @@ function CheckStatus() {
                     emplhour_list= response["emplhour"];
                     console.log( " emplhour FillTableRows");
                     fill_table = true;
-                    CheckStatus()
+                    check_status = true;
+                }
+                if ("period" in response) {
+                    period_dict= response["period"];
+                    DisplayPeriod(period_dict);
+                    CreateTableRange();
                 }
                 if (fill_table) {FillTableRows()}
+                if (check_status) {CheckStatus()}
             },
             error: function (xhr, msg) {
                 console.log(msg + '\n' + xhr.responseText);
@@ -318,7 +295,7 @@ function CheckStatus() {
     }  // function DatalistDownload
 
 //========= FillDatalist  ====================================
-    function FillDatalist(id_datalist, data_list, scheme_pk) {
+    function FillDatalist(id_datalist, data_list) {
         console.log( "===== FillDatalist  ========= ", id_datalist);
 
         let el_datalist = document.getElementById(id_datalist);
@@ -329,66 +306,261 @@ function CheckStatus() {
             let pk = get_pk_from_id (dict)
             let parent_pk = get_parent_pk (dict)
             let code = get_subdict_value_by_key (dict, "code", "value", "")
-
-            let skip = (!!scheme_pk && scheme_pk !== parent_pk)
-            if (!skip){
+            let customer = get_subdict_value_by_key (dict, "customer", "value", "")
+            let value = customer + " - " + code ;
                 // console.log( "listitem", listitem)
                 // listitem = {id: {pk: 12, parent_pk: 29}, code: {value: "ab"}}
                 let el = document.createElement('option');
-                el.setAttribute("value", code);
+                el.setAttribute("value", value);
                 // name can be looked up by datalist.options.namedItem PR2019-06-01
-                el.setAttribute("name", code);
-                if (!!pk){el.setAttribute("pk", pk)};
+                el.setAttribute("name", value);
+                if (!!pk){el.setAttribute("order_pk", pk)};
 
                 el_datalist.appendChild(el);
-            }
+
         }
     }; // function FillDatalist
 
-//=========  CreateTableHeader  === PR2019-05-27
-    function CreateTableHeader() {
-        // console.log("===  CreateTableHeader == ");
+//=========  CreateSubmenu  === PR2019-07-08
+    function CreateSubmenu() {
+        console.log("===  CreateSubmenu == ");
         // console.log("pk", pk, "ppk", parent_pk);
 
-        const column_count = 10;
-        tblHead_items.innerText = null
+        let el_submenu = document.getElementById("id_submenu")
+        el_submenu.innerText = null
         // index -1 results in that the new cell will be inserted at the last position.
 
-//--- insert td's to tblHead_items
-        let tblRow = tblHead_items.insertRow (-1);
-        for (let j = 0; j < column_count; j++) {
-// --- add th to tblRow.
-            let th = document.createElement("th");
-            tblRow.appendChild(th);
-// --- add img to first th and last th, first img not in teammembers
-            // if (j === 0){AppendChildIcon(th, imgsrc_warning)} else
-            if (j === column_count - 1){AppendChildIcon(th, imgsrc_delete)}
-            th.classList.add("td_width_032")
-// --- add text_align
-            if ( ([0, 1, 2, 3].indexOf( j ) > -1) ){
-                th.classList.add("text_align_left")}
-// --- add text to th
-            if (j === 0){th.innerText = get_attr_from_element(el_data, "data-txt_date")} else
-            if (j === 1){th.innerText = get_attr_from_element(el_data, "data-txt_order")} else
-            if (j === 2){th.innerText = get_attr_from_element(el_data, "data-txt_shift")} else
-            if (j === 3){th.innerText = get_attr_from_element(el_data, "data-txt_employee")} else
-            if (j === 4){th.innerText = get_attr_from_element(el_data, "data-txt_timestart")} else
-            if (j === 5){th.innerText = "XX"} else
-            if (j === 6){th.innerText = get_attr_from_element(el_data, "data-txt_timeend")} else
-            if (j === 7){th.innerText = "XX"} else
-            if (j === 8){th.innerText = get_attr_from_element(el_data, "data-txt_breakhours")} else
-            if (j === 9){th.innerText = "XX"}
-// --- add width to th
 
-// --- add width to time fields and date fileds
-            if (j === 1){
-                th.classList.add("td_width_180")} else
-            if (([2, 3].indexOf( j ) > -1) ){
-                th.classList.add("td_width_120")
-            } else {
-                th.classList.add("td_width_090")};
-        }
-    };//function CreateTableHeader
+
+    // --- first add <a> element with EventListener to td
+        let el_a = document.createElement("a");
+        el_a.setAttribute("href", "#");
+        el_a.setAttribute("id", "id_period_display");
+        el_a.innerText = get_attr_from_element_str(el_data, "data-txt_period") + ": ";
+        el_a.addEventListener("click", function() {OpenModalPeriod("period")}, false )
+        el_submenu.appendChild(el_a);
+            // --- first add <a> element with EventListener to td
+        el_a = document.createElement("a");
+        el_a.setAttribute("href", "#");
+        el_a.innerText = " < ";
+        el_a.title = "Go to previous period"
+        el_a.addEventListener("click", function() {HandleModalPeriodSave("prev")}, false )
+        el_submenu.appendChild(el_a);
+
+
+        el_a = document.createElement("a");
+        el_a.setAttribute("id", "id_period_current");
+        el_a.setAttribute("href", "#");
+        el_a.innerText = " \u29BF "  /// circeled bullet: \u29BF,  bullet: \u2022 "  // "\uD83D\uDE00" "gear (settings) : \u2699" //
+        el_a.addEventListener("click", function() {HandleModalPeriodSave("current")}, false )
+        el_a.title = "Go to current period"
+        el_submenu.appendChild(el_a);
+    // --- first add <a> element with EventListener to td
+        el_a = document.createElement("a");
+        el_a.setAttribute("href", "#");
+        el_a.innerText = " > ";
+        el_a.title = "Go to next period"
+        el_a.addEventListener("click", function() {HandleModalPeriodSave("next")}, false )
+        el_submenu.appendChild(el_a);
+
+        el_a = document.createElement("a");
+        el_a.setAttribute("id", "id_period_settings");
+        el_a.setAttribute("href", "#");
+        el_a.innerText =   " \u2699 "  // "\uD83D\uDE00" "gear (seetings) : \u2699" //
+        el_a.addEventListener("click", function() {OpenModalPeriod("setting")}, false )
+        el_a.title = "Go to settings"
+        el_submenu.appendChild(el_a);
+
+
+        el_submenu.classList.remove("display_hide");
+
+    };//function CreateSubmenu
+
+
+//=========  CreateTableRange  ================ PR2019-04-27
+    function CreateTableRange() {
+        console.log("===  CreateTableRange == ");
+        console.log(period_dict);
+        let tBody_range = document.getElementById("id_mod_tbody_range")
+
+        let range_text = get_attr_from_element(el_data, "data-txt_range");
+
+
+        CreatePeriodList(tBody_range, period_dict)
+
+
+    } // CreateTableRange
+
+    //=========  CreatePeriodList  ================ PR2019-04-27
+    function CreatePeriodList(tBody_range, period_dict) {
+        console.log("===  CreatePeriodList == ");
+        console.log(period_dict);
+
+        //let range_text = get_attr_from_element(el_data, "data-txt_period");
+        let period = 0, interval = 0, overlap = 0, auto = true;
+        if(!isEmpty(period_dict)) {
+            period = parseInt(get_dict_value_by_key(period_dict, "period"))
+            interval = parseInt(get_dict_value_by_key(period_dict, "interval"))
+            overlap = parseInt(get_dict_value_by_key(period_dict, "overlap"))
+            auto = (get_dict_value_by_key(period_dict, "auto"))
+            }
+        if (interval > period) { interval = period}
+        if (overlap > period - interval) { overlap = period - interval}
+
+        let selected_value = period;
+        document.getElementById("id_mod_range_interval").value = interval
+        document.getElementById("id_mod_range_overlap").value = overlap
+        document.getElementById("id_mod_range_auto").checked = auto;
+
+        const column_count = 8
+//+++ insert td's ino tblRow
+        for (let j = 0, tblRow, td, value, unit, value_str, unit_str; j < column_count; j++) {
+//+++ insert tblRow ino tBody_range
+            tblRow = tBody_range.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+
+            value = 0, value_str = "", unit_str = "";
+            if ([0, 1, 2, 3].indexOf( j ) > -1){value = j + 1} else
+            if (j === 4){value = 6} else
+            if (j === 5){value = 8} else
+            if (j === 6){value = 12} else
+            if (j === 7){value = 24}
+
+            tblRow.setAttribute("data-value", value);
+
+// --- add EventListener to tblRow.
+            tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
+
+    //- add hover to tableBody row
+            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
+            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+
+            value_str = "";
+            if (!!value) {value_str = value.toString()}
+            unit_str = "hour";
+            if (!!unit_str && value > 1) {unit_str = unit_str + "s"}
+
+            td = tblRow.insertCell(-1);
+                td.classList.add("text_align_right");
+                td.classList.add("td_width_032");
+                td.innerText = value_str
+            td = tblRow.insertCell(-1);
+                td.classList.add("text_align_left");
+                td.classList.add("td_width_060");
+                td.innerText = unit_str
+
+            if(value === selected_value) {
+                //range_text = range_text + ": " + value_str + " " + unit_str
+                tblRow.classList.add("tsa_tr_selected")
+            }
+
+        }  // for (let j = 0; j <
+
+        //console.log("range_text", range_text);
+
+        //let el_range = document.getElementById("id_range");
+        //el_range.innerText = range_text
+
+        let max_interval = period
+        let max_overlap =   period - interval
+        document.getElementById("id_mod_range_interval").setAttribute("max",max_interval);
+        document.getElementById("id_mod_range_overlap").setAttribute("max",max_overlap);
+
+
+
+    } // CreatePeriodList
+
+//=========  CreateRangeList  ================ PR2019-04-27
+    function CreateRangeList(tBody_range, range_str) {
+        console.log("===  CreateRangeList == ");
+        console.log(period_dict);
+
+        let range_text = get_attr_from_element(el_data, "data-txt_range");
+
+        let year_int = 0, month_int = 0, day_int = 0, hour_int = 0;
+        // range: "0;0;1;0" (y;m;d;h)
+
+        if (!!range_str){
+            let arr = range_str.split(";");
+            year_int = parseInt(arr[0])
+            month_int = parseInt(arr[1])
+            day_int = parseInt(arr[2])
+            hour_int = parseInt(arr[3])
+
+            let selected_value = "", selected_range = ""
+            if(!!year_int && !month_int && !day_int && !hour_int) {selected_value = year_int.toString() + "-y"} else
+            if(!year_int && !!month_int && !day_int && !hour_int) {selected_value = month_int.toString() + "-m"} else
+            if(!year_int && !month_int && !!day_int && !hour_int) {
+                if(day_int === 14){selected_value = "2-w"} else
+                if(day_int === 7){selected_value = "1-w"} else
+                    {selected_value = day_int.toString() + "-d"}
+            } else if(!year_int && !month_int && !day_int && !!hour_int) {
+                selected_value = hour_int.toString() + "-h"
+            }
+
+            console.log("selected_value", selected_value);
+
+            let data_value = ""
+            const column_count = 14
+    //+++ insert td's ino tblRow
+            for (let j = 0, tblRow, td, value, unit, value_str, unit_str; j < column_count; j++) {
+    //+++ insert tblRow ino tBody_range
+                tblRow = tBody_range.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+
+                value = 0, unit = "x", value_str = "", unit_str = "";
+                if ([0, 4, 7, 9, 12].indexOf( j ) > -1){value = 1} else
+                if ([5, 8].indexOf( j ) > -1){value = 2} else
+                if ([1, 6, 10].indexOf( j ) > -1){value = 3} else
+                if ([2, 11].indexOf( j ) > -1){value = 6} else
+                if (j === 3){value = 12}
+
+                if ([0, 1, 2, 3 ].indexOf( j ) > -1){unit = "h"} else
+                if ([4, 5, 6].indexOf( j ) > -1){unit = "d"} else
+                if ([7, 8].indexOf( j ) > -1){unit = "w"} else
+                if ([9, 10, 11].indexOf( j ) > -1){unit = "m"} else
+                if (j === 12){unit = "y"} else
+                if (j === 13){unit = "a"}
+                let data_value = value.toString() + "-" + unit;
+                tblRow.setAttribute("data-value", data_value);
+
+        //- add hover to tableBody row
+                tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
+                tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+
+                value_str = "";
+                if (!!value) {value_str = value.toString()}
+                unit_str = "";
+                if (unit === "h"){unit_str = "hour"} else
+                if (unit === "d"){unit_str = "day"} else
+                if (unit === "w"){unit_str = "week"} else
+                if (unit === "m"){unit_str = "month"} else
+                if (unit === "y"){unit_str = "year"}
+                if (!!unit_str && value > 1) {unit_str = unit_str + "s"}
+                if (!unit_str) {unit_str = "all"}
+
+                td = tblRow.insertCell(-1);
+                    td.classList.add("text_align_right");
+                    td.classList.add("td_width_032");
+                    td.innerText = value_str
+                td = tblRow.insertCell(-1);
+                    td.classList.add("text_align_left");
+                    td.classList.add("td_width_060");
+                    td.innerText = unit_str
+
+                if(data_value === selected_value) {
+                    range_text = range_text + ": " + value_str + " " + unit_str
+                    tblRow.classList.add("tsa_tr_selected")
+                }
+
+            }  // for (let j = 0; j <
+
+        }  //  if (!!range_str)){
+
+        console.log("range_text", range_text);
+
+        let el_range = document.getElementById("id_range");
+        el_range.innerText = range_text
+
+    } // CreateRangeList
 
 //=========  CreateTableRow  ================ PR2019-04-27
     function CreateTableRow( pk, parent_pk) {
@@ -445,7 +617,7 @@ function CheckStatus() {
 // --- add data-name Attribute.
                 let fieldname;
                 if (j === 0){fieldname = "rosterdate"} else
-                if (j === 1){fieldname = "order"} else
+                if (j === 1){fieldname = "orderhour"} else
                 if (j === 2){fieldname = "shift"} else
                 if (j === 3){fieldname = "employee"} else
                 if (j === 4){fieldname = "timestart"} else
@@ -472,10 +644,13 @@ function CheckStatus() {
                 };
 
 // --- add datalist_ to td shift, team, employee
-                if ([1, 2, 3].indexOf( j ) > -1){
-                    if (is_new_item){el.setAttribute("list", "id_datalist_" + fieldname + "s")}  } else
-                if (j === 4){
+                if (j === 1){
+                    if (is_new_item){el.setAttribute("list", "id_datalist_orderhours")}
+                } else if ([2, 3].indexOf( j ) > -1){
+                    if (is_new_item){el.setAttribute("list", "id_datalist_" + fieldname + "s")}
+                } else if (j === 4){
                     el.setAttribute("list", "id_datalist_" + fieldname + "s") }
+
 // --- disable 'rosterdate', 'order' and 'shift', except in new_item
                 if ([0, 1, 2].indexOf( j ) > -1){
                     if (!is_new_item){el.disabled = true}
@@ -490,7 +665,7 @@ function CheckStatus() {
 // --- add width to time fields and date fields
                 if (j === 1){
                     el.classList.add("td_width_240")
-                } else if (j === 1){
+                } else if (j === 3){
                     el.classList.add("td_width_180");
                 } else {
                     el.classList.add("td_width_090")};
@@ -525,7 +700,7 @@ function CheckStatus() {
 
 //========= FillTableRows  ====================================
     function FillTableRows() {
-        console.log( "         FillTableRows");
+        // console.log( "     FillTableRows");
 
 // --- reset tblBody_items
         tblBody_items.innerText = null;
@@ -548,7 +723,7 @@ function CheckStatus() {
                 previous_rosterdate_dict = get_dict_value_by_key(item_dict, 'rosterdate')
 
                 tblRow =  CreateTableRow(pk, parent_pk)
-                UpdateTableRow(tblRow, item_dict)
+                UpdateTableRow("emplhour", tblRow, item_dict)
 
 // --- highlight selected row
                 if (pk === selected_item_pk) {
@@ -569,11 +744,11 @@ function CheckStatus() {
 
 // console.log("FillTableRows 'add new' --> dict:", dict)
         tblRow = CreateTableRow(pk_new)
-        UpdateTableRow(tblRow, dict)
+        UpdateTableRow("emplhour", tblRow, dict)
     }  // FillTableRows
 
 //========= UpdateTableRow  =============
-    function UpdateTableRow(tblRow, item_dict){
+    function UpdateTableRow(tblName, tblRow, item_dict){
         //console.log(" ---------  UpdateTableRow");
         //console.log(item_dict);
 
@@ -694,7 +869,7 @@ function CheckStatus() {
                                 let value = get_dict_value_by_key (field_dict, "value")
                                 // console.log("field_dict", field_dict);
                                 el_input.value = value
-                            } else if (["shift", "customer", "order", "employee"].indexOf( fieldname ) > -1){
+                            } else if (["shift", "customer", "orderhour", "employee"].indexOf( fieldname ) > -1){
                                 let value = get_dict_value_by_key (field_dict, "value")
                                 // console.log("field_dict", field_dict);
                                 el_input.value = value
@@ -864,19 +1039,19 @@ function CheckStatus() {
 
 //=========  HandleModalSave  ================ PR2019-06-23
     function HandleModalSave() {
-        //console.log("===  HandleModalSave =========");
+        console.log("===  HandleModalSave =========");
 
 
 
 // get emplhour pk and parent_pk , create id_dict Emplhour
         let emplhour_dict = get_iddict_from_element(el_modal_body);
-            //console.log("--- emplhour_dict", emplhour_dict)
+            console.log("--- emplhour_dict", emplhour_dict)
             // emplhour_dict: {pk: 137, parent_pk: 141, table: "emplhour"}
         let emplhour_pk = get_datapk_from_element(el_modal_body);
-            //console.log("emplhour_pk", emplhour_pk)
+            console.log("emplhour_pk", emplhour_pk)
         let emplhour_tblRow = document.getElementById(emplhour_pk)
-            //console.log("emplhour_tblRow")
-            //console.log(emplhour_tblRow)
+            console.log("emplhour_tblRow")
+            console.log(emplhour_tblRow)
 
         let abscat_dict = {};
         let employee_dict = {};
@@ -892,8 +1067,9 @@ function CheckStatus() {
         employee_dict["code"] = employee_code;
 
 // get selected button
-        const btn_name = el_modal_body.getAttribute("data-select");
-        //console.log("btn_name: ", btn_name);
+        let btn_name = el_modal_body.getAttribute("data-select");
+        if (!btn_name){btn_name = "employee"}
+        console.log("btn_name: ", btn_name);
         switch (btn_name) {
         case "absent":
         // get absence category
@@ -907,9 +1083,11 @@ function CheckStatus() {
 
             break;
         case "switch":
-
             break;
         case "split":
+            break;
+        case "employee":
+            break;
 		}
 
         ModalClose()
@@ -929,7 +1107,7 @@ function CheckStatus() {
             row_upload["select"] = btn_name;
             row_upload["employee"] = employee_dict;
             row_upload["abscat"] = abscat_dict;
-            //console.log ("emplhour_upload: ", row_upload);
+            console.log ("emplhour_upload: ", row_upload);
 
             let parameters = {"emplhour_upload": JSON.stringify (row_upload)};
 
@@ -940,9 +1118,9 @@ function CheckStatus() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                //console.log ("response", response);
+                console.log ("response", response);
                     if ("item_update" in response) {
-                        UpdateTableRow(emplhour_tblRow, response["item_update"])
+                        UpdateTableRow("emplhour", emplhour_tblRow, response["item_update"])
                     }
                 },
                 error: function (xhr, msg) {
@@ -953,6 +1131,7 @@ function CheckStatus() {
 
         }  // if(!isEmpty(id_dict)
     }  // HandleModalSave
+
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
     function HandleTableRowClicked(tr_clicked) {
@@ -972,7 +1151,7 @@ function CheckStatus() {
 
 //========= UploadChanges  ============= PR2019-03-03
     function UploadChanges(el_changed) {
-        //console.log("--- UploadChanges  --------------");
+        console.log("--- UploadChanges  --------------");
         let tr_changed = get_tablerow_clicked(el_changed)
         UploadTblrowChanged(tr_changed);
     }
@@ -1009,7 +1188,7 @@ function CheckStatus() {
                         const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
 
                         console.log("ooo UpdateTableRow ooo");
-                        UpdateTableRow(tblName, tr_changed, item_dict)
+                        UpdateTableRow("emplhour", tr_changed, item_dict)
                         // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
                         //id: {parent_pk: 126, table: "teammembers", created: true, pk: 57, temp_pk: "new_4"}
                         //team: {pk: 126, value: "A", updated: true}
@@ -1039,7 +1218,7 @@ function CheckStatus() {
                             let tblRow = CreateTableRow(pk_new, parent_pk)
 
                         console.log("<<< UpdateTableRow <<<");
-                            UpdateTableRow(tblName, tblRow, new_dict)
+                            UpdateTableRow("emplhour", tblRow, new_dict)
                         }
                     }
                 },
@@ -1350,6 +1529,35 @@ function CheckStatus() {
     }
 
 //###################################
+//========= OpenModalPeriod====================================
+    function OpenModalPeriod(type) {
+        console.log("===  OpenModalPeriod  =====") ;
+
+        let el_popup_wdy = document.getElementById("id_popup_date_container")
+        let id_modal;
+        if(type === "range"){
+            id_modal = "id_modal_range";
+        } else if(type === "period"){
+            id_modal = "id_modal_range";
+        } else if(type === "next"){
+            id_modal = "id_modal_range";
+        } else if(type === "prev"){
+            id_modal = "id_modal_range";
+        } else if(type === "setting"){
+            id_modal = "id_modal_range";
+        }
+
+
+        let el_modal = document.getElementById(id_modal)
+
+
+
+    // ---  show modal
+         $("#" + id_modal).modal({backdrop: true});
+
+}; // function OpenModalPeriod
+
+
 
 //========= OpenPopupWDY  ====================================
     function OpenPopupWDY(el_input) {
@@ -1529,7 +1737,7 @@ console.log("===  function HandlePopupWdySave =========");
                             } else {
 
                         console.log(">>> UpdateTableRow >>>");
-                                UpdateTableRow("schemeitems", tr_selected, response["item_update"])
+                                UpdateTableRow("emplhour", tr_selected, response["item_update"])
                             }
                         }
                     },
@@ -1552,27 +1760,12 @@ console.log("===  function HandlePopupWdySave =========");
     }  // HandlePopupWdySave
 
 
-//=========  HandleTimepickerSave  ================ PR2019-06-27
-    function XXXXHandleTimepickerSave(is_quicksave_mode=false) {
-        console.log("===  function HandleTimepickerSave =========");
-
-// ---  change quicksave when mode === "quicksave"
-        console.log("is_quicksave_mode: ", is_quicksave_mode, " is_quicksave_mode: ", typeof is_quicksave_mode );
-
-        const quicksave_dict = ChangeQuicksave(quicksave, is_quicksave_mode, cls_hide);
-        const quicksave_haschanged = quicksave_dict["quicksave_haschanged"]
-        quicksave = quicksave_dict["quicksave"]
-
-        console.log("quicksave: ", quicksave, " type: ", typeof quicksave );
-        console.log("quicksave_haschanged: ", quicksave_haschanged, "quicksave: ", quicksave );
+//=========  HandlePopupDateSave  ================ PR2019-07-08
+    function HandlePopupDateSave() {
+        console.log("===  function HandlePopupDateSave =========");
 
 // ---  get pk_str from id of el_timepicker
         const pk_str = el_timepicker.getAttribute("data-pk")// pk of record  of element clicked
-        const parent_pk =  parseInt(el_timepicker.getAttribute("data-ppk"))
-        const field =  el_timepicker.getAttribute("data-field")
-        const table =  el_timepicker.getAttribute("data-table")
-        console.log ("field = ", field, "table = ", table)
-        console.log (el_timepicker)
 
 
 // get values from el_timepicker
@@ -1635,7 +1828,7 @@ console.log("===  function HandlePopupWdySave =========");
                 console.log ("response", response);
                         if ("item_update" in response) {
                         console.log("...... UpdateTableRow .....");
-                            UpdateTableRow(tr_selected, response["item_update"])
+                            UpdateTableRow("emplhour", tr_selected, response["item_update"])
                         }
                     },
                     error: function (xhr, msg) {
@@ -1647,7 +1840,199 @@ console.log("===  function HandlePopupWdySave =========");
              popupbox_removebackground("input_timepicker");
             el_timepicker.classList.add(cls_hide);
         }  // if(!!pk_str && !! parent_pk){
-    }  // HandleTimepickerSave
+    }  // HandlePopupDateSave
+
+
+//=========  HandleModalRangeSelect  ================ PR2019-06-23
+    function HandleModalRangeSelect(data_value) {
+        console.log("===  HandleModalRangeSelect =========");
+        console.log("data_value", data_value);
+
+        let tBody_range = document.getElementById("id_mod_tbody_range")
+        DeselectHighlightedRows(tableBody)
+
+        tblRow.classList.add("tsa_tr_selected")
+    }
+
+//=========  HandleModalPeriodSave  ================ PR2019-07-11
+    function HandleModalPeriodSave(mode) {
+        console.log("===  HandleModalPeriodSave =========");
+
+
+        let uplod_period_dict = {}
+        let period = 0, interval = 0, overlap = 0, auto = false, hour_add = 0;
+        let periodstart, periodend
+        let periodstart_utc_iso, periodend_utc_iso;
+        if (mode === "prev" || mode === "next"){
+            auto = false;
+            if(!isEmpty(period_dict)){
+
+                period = get_dict_value_by_key(period_dict, "period");
+                interval = get_dict_value_by_key(period_dict, "interval");
+                overlap = get_dict_value_by_key(period_dict, "overlap");
+                auto = get_dict_value_by_key(period_dict, "auto");
+
+                console.log("periodstart ", periodstart);
+                console.log("periodend ", periodend);
+
+                if (mode === "prev"){hour_add = -period } else if (mode === "next"){hour_add = period}
+
+                if (!!hour_add) {
+                    periodstart = get_dict_value_by_key(period_dict, "periodstart")
+                console.log("periodstart ", periodstart);
+                    let periodstart_local = moment.tz(periodstart, comp_timezone);
+                console.log("periodstart_local ", periodstart_local.format());
+                    periodstart_local.add(hour_add, 'hour')
+                console.log("new periodstart_local ", periodstart_local.format());
+                    const periodstart_utc = moment.utc(periodstart_local)
+                console.log("periodstart_utc ", periodstart_utc.format());
+                    periodstart_utc_iso = periodstart_utc.toISOString()
+                console.log("periodstart_utc_iso ", periodstart_utc_iso);
+
+                    periodend = get_dict_value_by_key(period_dict, "periodend")
+                    let periodend_local = moment.tz(periodend, comp_timezone);
+                    periodend_local.add(hour_add, 'hour')
+                    const periodend_utc = moment.utc(periodend_local)
+                    periodend_utc_iso = periodend_utc.toISOString()
+
+                    console.log ("periodstart_utc_iso = ", periodstart_utc_iso);
+                    console.log ("periodend_utc_iso = ", periodend_utc_iso)
+                }
+            }
+
+        } else if (mode === "current"){
+            auto = true;
+
+        } else if (mode === "setting"){
+
+            let tBody = document.getElementById("id_mod_tbody_range")
+            let tblRows = tBody.getElementsByClassName("tsa_tr_selected");
+
+            if(tblRows.length > 0 ) {
+                period = parseInt(tblRows[0].getAttribute("data-value"));
+            }
+            interval = parseInt(document.getElementById("id_mod_range_interval").value)
+            overlap = parseInt(document.getElementById("id_mod_range_overlap").value)
+            auto = document.getElementById("id_mod_range_auto").checked
+        }
+
+        uplod_period_dict["period"] = period;
+        uplod_period_dict["interval"] = interval;
+        uplod_period_dict["overlap"] = overlap;
+        uplod_period_dict["auto"] = auto;
+
+        if(!!periodstart_utc_iso) {
+            uplod_period_dict["periodstart"] = periodstart_utc_iso;
+        }
+
+        if(!!periodend_utc_iso) {
+                uplod_period_dict["periodend"] = periodend_utc_iso;
+        }
+
+        $("#id_modal_range").modal("hide");
+
+        if (!isEmpty(uplod_period_dict)){
+            let row_upload = {};
+            row_upload["period"] = uplod_period_dict;
+
+            console.log ("row_upload: ");
+            console.log (row_upload);
+
+            let parameters = {"period_upload": JSON.stringify (row_upload)};
+            let response;
+            $.ajax({
+                type: "POST",
+                url: url_period_upload,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                    console.log ("response", response);
+                    if ("item_update" in response) {
+                    console.log("...... UpdateTableRow .....");
+                        UpdateTableRow("emplhour", tr_selected, response["item_update"])
+                    }
+                },
+                error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
+                    alert(msg + '\n' + xhr.responseText);
+                }
+            });
+        }
+
+
+        //document.getElementById("id_modal_range").classList.remove("show");
+
+
+    }  // HandleModalPeriodSave
+
+//=========  get_rangearray_from_select  ================ PR2019-07-09
+function get_rangestr_from_array(arr) {
+    return  arr[0].toString() + ";" +  arr[1].toString() + ";" +  arr[2].toString() + ";" +  arr[3].toString()
+}
+//=========  get_rangearray_from_select  ================ PR2019-07-09
+function get_rangearray_from_select(data_value) {
+    //console.log( " --- get_rangearray_from_select --- ")
+    //console.log(data_value) '2w'
+
+    let value = 0, unit = "";
+    if(!!data_value){
+        let arr = data_value.split("-");
+            value = parseInt(arr[0]);
+            unit = arr[1];
+    }
+    let year = 0, month = 0, day = 0, hour = 0;
+    if (unit === "h"){hour = value} else
+    if (unit === "d"){day = value} else
+    if (unit === "w"){day = value * 7} else
+    if (unit === "m"){month = value} else
+    if (unit === "y"){year = value}
+
+    let range_arr = [year, month, day, hour];
+
+    return range_arr;
+}
+
+//=========  get_rangearray_from_period  ================ PR2019-07-09
+    function get_rangearray_from_period(period_range) {
+        let year = 0, month = 0, day = 0, hour = 0;
+        if (!!period_range){
+            let arr = period_range.split(";");
+                year = parseInt(arr[0])
+                month = parseInt(arr[1])
+                day = parseInt(arr[2])
+                hour = parseInt(arr[3])
+        }
+        return [year, month, day, hour];
+    }
+
+//========= DisplayPeriod  ====================================
+    function DisplayPeriod(period_dict) {
+        console.log( "===== DisplayPeriod  ========= ");
+        console.log (period_dict)
+
+        let el_period_display = document.getElementById("id_period_display");
+
+        let  period = 0, interval = 0, overlap = 0, auto = false;
+        period = get_dict_value_by_key(period_dict, "period");
+        interval = get_dict_value_by_key(period_dict, "interval");
+        overlap = get_dict_value_by_key(period_dict, "overlap");
+        auto = get_dict_value_by_key(period_dict, "auto");
+
+        let periodstart, periodend, range;
+        periodstart = get_dict_value_by_key(period_dict, "periodstart");
+        periodend = get_dict_value_by_key(period_dict, "periodend");
+        range = get_dict_value_by_key(period_dict, "range");
+
+        let periodstart_local = moment.tz(periodstart, comp_timezone );
+        console.log ("periodstart_local = ", periodstart_local.format());
+
+        let periodend_local = moment.tz(periodend, comp_timezone );
+        console.log ("periodend_local = ", periodend_local.format())
+
+        let display_text = get_attr_from_element(el_data, "data-txt_period") + ": "
+
+        el_period_display.innerText = display_text + format_period_from_datetimelocal(periodstart_local, periodend_local, weekday_list, month_list, timeformat)
+    }; // function DisplayPeriod
 
 
 
@@ -1699,12 +2084,71 @@ console.log("===  function HandlePopupWdySave =========");
             FillSelectTableEmployee("employee", tblBody_select, employee_list, caption_one, caption_none)
 
     // ---  show modal
-        $("#id_modal_cont").modal({backdrop: true});
+        $("#id_modal_employee").modal({backdrop: true});
 
     };
     //========= function ModalClose  =============
     function ModalClose() {
-        $('#id_modal_cont').modal('hide');
+        $('#id_modal_employee').modal('hide');
     }
+//  #############################################################################################################
+
+
+function CheckStatus() {
+    // console.log( "=== CheckStatus ")
+    // function loops through emplhours, set questingsmark or warning when toimestrat / enb reached
+
+    // this code converts ISO to date
+    // var s = '2014-11-03T19:38:34.203Z';
+    //   var b = s.split(/\D+/);
+    //  let testdate =  new Date(Date.UTC(b[0], --b[1], b[2], b[3], b[4], b[5], b[6]));
+    //         console.log( "testdate: ", testdate)
+
+    // new Date gives now in local time:  Thu Jun 20 2019 07:42:39 GMT-0400 (Bolivia Time) type: object
+    const now_datetime_local = new Date;
+
+    // The Date.now() method returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC
+    const now_timestamp_local = Date.now();  // timestamp_now_local : 1561030959379 type: number
+    // console.log( "now_timestamp_local: ", new Date(now_timestamp_local) )
+
+    // get now in UTC time
+    const now_timestamp_UTC = now_timestamp_local - useroffset * 1000 // # useroffset is in seconds
+    // console.log( "now_timestamp_UTC: ", new Date(now_timestamp_UTC) )
+
+    // get now in dbase time
+    const now_timestamp_dbase = now_timestamp_UTC - companyoffset * 1000 // # companyoffset is in seconds
+    // console.log( "now_timestamp_dbase: ", new Date(now_timestamp_dbase) )
+
+// --- loop through item_list
+        let len = emplhour_list.length;
+        if (len > 0){
+            for (let i = 0, dict, timestart, timeend; i < len; i++) {
+                dict = emplhour_list[i];
+                // console.log( "emplhour_dict ", dict);
+
+                // calculate time difference with 'now' in minutes
+                timestart = get_subdict_value_by_key ( dict, "timestart", "value")
+                const timestart_datetime_dbase = new Date(timestart);
+                const timestart_timestamp_dbase = timestart_datetime_dbase.getTime();
+                const diff_timestamp_dbase = (timestart_timestamp_dbase - now_timestamp_dbase) / 60000
+// console.log();
+
+                // console.log( "timestart ", timestart);
+                // console.log( "timestart_timestamp_dbase: ", new Date(timestart_timestamp_dbase) )
+                // console.log( "diff_timestamp_dbase ", diff_timestamp_dbase);
+                // console.log( "hours ", diff_timestamp_dbase/60 );
+
+                timeend = get_subdict_value_by_key ( dict, "timeend", "value")
+                const timeend_datetime_dbase = new Date(timeend);
+                const timeend_timestamp_dbase = timeend_datetime_dbase.getTime();
+                const timeend_diff_dbase = (timeend_timestamp_dbase - now_timestamp_dbase) / 60000
+// console.log();
+                // console.log( "timeend ", timeend);
+                // console.log( "timeend_timestamp_dbase date: ", new Date(timeend_timestamp_dbase) )
+                // console.log( "timeend_diff_dbase ", timeend_diff_dbase);
+                // console.log( "hours ", diff_timestamp_dbase/60 );
+            }
+        }
+    }  // function CheckStatus
 
 }); //$(document).ready(function()

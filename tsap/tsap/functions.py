@@ -134,17 +134,17 @@ def get_date_from_datetimelocal(datetime_str, comp_timezone):  # PR2019-04-08
     return datetime_aware, msg_txt
 
 
-def get_datetimeaware_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-04-17
-    # logger.debug('............. get_datetimeaware_from_datetimeUTC: ' + str(date_timeUTC))
+def get_datetimelocal_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-04-17
+    # logger.debug('............. get_datetimelocal_from_datetimeUTC: ' + str(date_timeUTC))
     # Function returns date: "2018-02-25T19:24:23"
 
     # date_time     :   2019-04-11 11:12:12+00:00
     # strftime("%z"):   +0000
     # TIME_ZONE     :   America/Curacao
-    # datetime_aware:   2019-04-11 07:12:12-04:00
+    # datetime_local:   2019-04-11 07:12:12-04:00
     # date_time_str :   2019-04-11T07:12:12
 
-    datetime_aware = None
+    datetime_local = None
     if date_timeUTC:
         # logger.debug("date_timeUTC    :" + str(date_timeUTC))
         # logger.debug("comp_timezone    :" + str(comp_timezone))
@@ -153,39 +153,10 @@ def get_datetimeaware_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-0
 
         # Convert time zone
         timezone = pytz.timezone(comp_timezone)
-        datetime_aware = date_timeUTC.astimezone(timezone)
-        # logger.debug('datetime_aware: ' + str(datetime_aware))
+        datetime_local = date_timeUTC.astimezone(timezone)
+        # logger.debug('datetime_local: ' + str(datetime_local))
 
-    return datetime_aware
-
-def get_datetimelocal_from_datetime(date_time, comp_timezone):  # PR2019-04-08
-    # logger.debug('............. get_datetimelocal_from_datetime: ' + str(date_time))
-    # Function returns date: "2018-02-25T19:24:23"
-    # used in model property timestart_datetimelocal snfd timeend_datetimelocal
-
-    # date_time     :   2019-04-11 11:12:12+00:00
-    # strftime("%z"):   +0000
-    # TIME_ZONE     :   America/Curacao
-    # datetime_aware:   2019-04-11 07:12:12-04:00
-    # date_time_str :   2019-04-11T07:12:12
-
-    datetime_aware_iso = ''
-    if date_time:
-        # logger.debug("date_time    :" + str(date_time))
-        # logger.debug("timezone    :" + str(date_time.strftime("%z")))
-        # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
-        # entered date is datetime-naive, make it datetime aware with  pytz.timezone
-
-        # Convert time zone
-        timezone = pytz.timezone(comp_timezone)
-        # logger.debug("comp_timezone    :" + str(comp_timezone))
-
-        datetime_aware = date_time.astimezone(timezone)
-        # logger.debug('datetime_aware: ' + str(datetime_aware))
-
-        datetime_aware_iso = datetime_aware.isoformat()
-
-    return datetime_aware_iso
+    return datetime_local
 
 """
         # get date
@@ -219,23 +190,27 @@ def get_timeDHM_from_dhm(rosterdate, dhm_str, comp_timezone, lang):
     return time_str
 
 
-def get_datetime_from_ISO_no_offset(datetime_iso, comp_timezone):   # PR2019-06-27
+def get_datetime_from_ISO_no_offset(datetime_iso):   # PR2019-06-27
     # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
 
     logger.debug('---------------- get_datetime_from_ISO_no_offset  -------------')
-    # datetime_iso: 2019-06-23 T 08:24 :00.000Z <class 'str'>
     logger.debug('datetime_iso: ' + str(datetime_iso) + ' type: ' + str(type(datetime_iso)))
+    #  datetime_iso: 2019-06-26 T 07:20:00.000Z  <class 'str'>
 
     # convert iso string to dattime naive: datetime_naive: 2019-06-23 18:45:00 <class 'datetime.datetime'>
     datetime_naive = get_datetime_from_ISOstring(datetime_iso)
     logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
+    #  datetime_naive: 2019-06-26 07:20:00  <class 'datetime.datetime'>
     logger.debug('tzinfo: ' + str(datetime_naive.tzinfo) + ' type: ' + str(type(datetime_naive.tzinfo)))
+    #  tzinfo: None  <class 'NoneType'>
 
     timezone = pytz.utc
-    # convert datetime_naive to datetime with timezone utc: datetime__utc: 2019-06-23  18:45:00+00:00
+    # convert datetime_naive to datetime with timezone utc
     datetime_utc = timezone.localize(datetime_naive)
     logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
+    #  datetime_utc: 2019-06-26 07:20:00+00:00  <class 'datetime.datetime'>
     logger.debug('tzinfo: ' + str(datetime_utc.tzinfo) + ' type: ' + str(type(datetime_utc.tzinfo)))
+    #  tzinfo: UTC  <class 'pytz.UTC'>
 
     return datetime_utc
 
@@ -261,16 +236,22 @@ def get_datetime_from_ISOstring(datetime_iso):  # PR2019-06-27
     return dte_time
 
 
+def get_datetimearray_from_ISOstring(datetime_iso):  # PR2019-07-10
+    #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
+    #  split string into array  ["2019", "03", "30", "19", "05", "00"]
+    #  regex \d+ - matches one or more numeric digits
 
+    regex = re.compile('\D+')
+    arr = regex.split(datetime_iso)
+    length = len(arr)
 
+    if length >= 2:
+        if length < 3:
+            arr.append('0')
+        if length < 4:
+            arr.append('0')
 
-
-
-
-
-
-
-
+    return arr
 
 def get_datetimeUTC_from_DHM(rosterdate, dhm_str, comp_timezone):
 
@@ -363,8 +344,8 @@ def get_datetimelocal_from_DHM(rosterdate, dhm_str, comp_timezone):
             # logger.debug('dt_localized: ' + str(dt_localized))
 
             # Not in use
-            utc = pytz.UTC
-            dt_as_utc = dt_localized.astimezone(utc)
+            #utc = pytz.UTC
+            #dt_as_utc = dt_localized.astimezone(utc)
             # dt_as_utc: 2019-03-31 02:48:00+00:00
             # logger.debug('dt_as_utc: ' + str(dt_as_utc))
 
@@ -875,8 +856,8 @@ def fielddict_date(dte, user_lang):
 
 def set_fielddict_date(dict, dte, user_lang, rosterdate=None, format_list=None):
     # PR2019-06-25
-    logger.debug('new set_fielddict_date dict: ' +  str(dict) + ' type: ' + str(type(dict)))
-    logger.debug('rosterdate: ' +  str(rosterdate) + ' type: ' + str(type(rosterdate)))
+    #logger.debug('new set_fielddict_date dict: ' +  str(dict) + ' type: ' + str(type(dict)))
+    #logger.debug('rosterdate: ' +  str(rosterdate) + ' type: ' + str(type(rosterdate)))
     if dte:
         if format_list is None:
             format_list = ['rosterdate', 'datetime', 'value', 'dm', 'wdm', 'wdmy', 'dmy', 'offset']
@@ -896,7 +877,7 @@ def set_fielddict_date(dict, dte, user_lang, rosterdate=None, format_list=None):
                 dict[format] = get_weekdaylist_for_DHM(dte, user_lang)
         if rosterdate is not None:
             dict['rosterdate'] = rosterdate.isoformat()
-    logger.debug('new dict dict: ' +  str(dict) + ' type: ' + str(type(dict)))
+    #logger.debug('new dict dict: ' +  str(dict) + ' type: ' + str(type(dict)))
 
 
 

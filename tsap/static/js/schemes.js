@@ -205,9 +205,20 @@ $(function() {
         //console.log("moment.locales ", moment.locales())
         moment.locale(user_lang)
 
+// buttons in  timepicker
+        let btn_prevday = document.getElementById("id_timepicker_prevday")
+            btn_prevday.addEventListener("click", function () {SetPrevNextDay("prevday", el_timepicker, UpdateTableRow, comp_timezone)}, false )
+        let btn_nextday = document.getElementById("id_timepicker_nextday")
+            btn_nextday.addEventListener("click", function () {SetPrevNextDay("nextday", el_timepicker, UpdateTableRow, comp_timezone)}, false )
+        let btn_save = document.getElementById("id_timepicker_save")
+            btn_save.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, UpdateTableRow, url_emplhour_upload, quicksave, false)}, false )
+        let btn_quicksave = document.getElementById("id_timepicker_quicksave")
+            btn_quicksave.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, UpdateTableRow, url_emplhour_upload, quicksave, true)}, false )
+            btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add(cls_hover);});
+            btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove(cls_hover);});
+
 // --- create header row
         CreateTableHeader("schemeitems");
-
 
         const datalist_request = {"customer": {inactive: false},
                                   "order": {inactive: false},

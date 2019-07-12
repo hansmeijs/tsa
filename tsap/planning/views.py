@@ -17,26 +17,26 @@ from companies.views import LazyEncoder
 from customers.views import create_customer_list, create_order_list, create_absencecategory_list
 
 from tsap.constants import MONTHS_ABBREV, WEEKDAYS_ABBREV, TIMEFORMATS, STATUS_EMPLHOUR_00_NONE, STATUS_EMPLHOUR_01_CREATED, \
-    KEY_COMP_ROSTERDATE_CURRENT, LANG_DEFAULT, TYPE_02_ABSENCE, TYPE_00_NORMAL, KEY_USER_QUICKSAVE
+    KEY_COMP_ROSTERDATE_CURRENT, KEY_USER_EMPLHOUR_PERIOD, LANG_DEFAULT, TYPE_02_ABSENCE, TYPE_00_NORMAL, KEY_USER_QUICKSAVE
 
-from tsap.functions import get_date_from_str, get_datetimeaware_from_datetimeUTC, \
-                    get_timeDHM_from_dhm, get_datetimelocal_from_DHM, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
+from tsap.functions import get_date_from_str, get_datetimelocal_from_datetimeUTC, \
+                    get_datetimearray_from_ISOstring, get_datetimelocal_from_DHM, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
                     get_weekdaylist_for_DHM, get_date_HM_from_minutes, create_dict_with_empty_attr, \
-                    get_date_diff_plusone, get_time_minutes, get_iddict_variables, get_fielddict_variables , \
+                    get_date_diff_plusone, get_time_minutes, get_iddict_variables, get_fielddict_variables, \
                     get_minutes_from_DHM, get_datetime_from_ISO_no_offset, \
-                    fielddict_str, set_fielddict_date, fielddict_datetime, fielddict_duration, fielddict_date, \
-                    formatDMYHM_from_datetime, formatWHM_from_datetime, format_HM_from_dtetime
+                    fielddict_str, set_fielddict_date, fielddict_datetime, fielddict_duration
 
-from planning.dicts import remove_empty_attr_from_dict, create_emplhour_dict, get_rosterdatefill_dict, \
-create_emplhour_list, create_scheme_list, create_schemeitem_list, create_shift_list, \
-    set_fielddict_datetime, get_rosterdate_utc
+from planning.dicts import remove_empty_attr_from_dict, create_emplhour_dict, get_rosterdatefill_dict, get_datetime_utc, \
+    create_emplhour_list, create_scheme_list, create_schemeitem_list, create_shift_list, \
+    set_fielddict_datetime, get_rosterdate_utc, get_rosterdate_midnight_local, split_datetime, get_range, get_period_dict, \
+    get_period_from_settings
 
 from tsap.validators import date_within_range
 
 from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 from tsap.headerbar import get_headerbar_param
 
-from companies.models import Customer, Order, Scheme, Schemeitembase, Schemeitem, Team, Teammember, \
+from companies.models import Company, Order, Scheme, Schemeitembase, Schemeitem, Team, Teammember, \
     Employee, Emplhour, Orderhour, Companysetting
 
 import pytz
@@ -82,7 +82,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         include_inactive = False
                         if 'inactive' in table_dict:
                             include_inactive = table_dict['inactive']
-                        logger.debug('datalist table: ' + str(table) + ' include_inactive: ' + str(include_inactive) + ' ' + str(type(include_inactive)))
+                        # logger.debug('datalist table: ' + str(table) + ' include_inactive: ' + str(include_inactive) + ' ' + str(type(include_inactive)))
 
                         list = []
                         if table == 'customer':
@@ -107,13 +107,13 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                         elif table == 'emplhour':
                             logger.debug(' table: ' + str(table))
-                            datefirst = None
-                            datelast = None
-                            if 'datefirst' in table_dict:
-                                datefirst = table_dict['datefirst']
-                            if 'datelast' in table_dict:
-                                datelast = table_dict['datelast']
-                            list = create_emplhour_list(datefirst, datelast, request.user.company, comp_timezone, user_lang)
+                            periodstart = None
+                            periodend = None
+                            if 'periodstart' in table_dict:
+                                periodstart = table_dict['periodstart']
+                            if 'periodend' in table_dict:
+                                periodend = table_dict['periodend']
+                            list = create_emplhour_list(periodstart, periodend, request.user.company, comp_timezone, user_lang)
 
                         else:
                             # - get order from table_dict
@@ -142,6 +142,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         if table == 'rosterdatefill':
                             datalists[table] = get_rosterdatefill_dict(request.user.company, comp_timezone, user_lang)
 
+                        if table == 'period':
+                            datalists[table] = get_period_dict(request)
+
         datalists_json = json.dumps(datalists, cls=LazyEncoder)
 
         return HttpResponse(datalists_json)
@@ -153,7 +156,7 @@ class RosterView(View):
 
     def get(self, request):
         param = {}
-        # logger.debug(' ============= RosterView ============= ')
+        logger.debug(' ============= RosterView ============= ')
         if request.user.company is not None:
             datefirst = None
             datelast = None
@@ -207,25 +210,27 @@ class RosterView(View):
             if not timeformat in TIMEFORMATS:
                 timeformat = '24h'
 
-
             # get quicksave from Usersetting
             quicksave = 0
             quicksave_str = Usersetting.get_setting(KEY_USER_QUICKSAVE, request.user)
             if quicksave_str:
                 quicksave = int(quicksave_str)
 
+            period_json = json.dumps(get_period_dict(request))
 
             param = get_headerbar_param(request, {
                 'items': emplhours,
                 'employee_list': employee_json,
                 'lang': user_lang,
                 'timezone': comp_timezone,
+                'timeformat': timeformat,
+                'interval': interval,
                 'weekdays': weekdays_json,
                 'months': months_json,
-                'interval': interval,
                 'quicksave': quicksave,
-                'timeformat': timeformat
+                'period': period_json
             })
+
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'roster.html', param)
 
@@ -1256,6 +1261,50 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
             logger.debug('request.POST: ' + str(request.POST))
+
+# set emplhour period
+            period_dict = None
+            if 'emplhour_period' in request.POST:
+                period_dict = json.loads(request.POST['emplhour_period'])
+                # emplh_period: {'timestart': '2019-06-18T00:00:00', 'length: '0;0;1;12', (y-m-d-h, 0=all)
+                # 'interval: '6', 'hour
+                # 'offset: -2 'hour
+                # auto: True}
+
+                if 'timestart' in period_dict:
+                    pass
+                if 'range' in period_dict:
+                    pass
+                if 'interval' in period_dict:
+                    pass
+                if 'auto' in period_dict:
+                    pass
+                if 'overlap' in period_dict:
+                    pass
+
+                # update emplhour_period in usersettings
+                Usersetting.set_setting(KEY_USER_EMPLHOUR_PERIOD, dict, request.user)
+
+            else:
+                period_dict = Usersetting.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user)
+                if period_dict is None:
+                    period_dict = Company.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user)
+                    if period_dict is None:
+                        today_utc = get_rosterdate_utc(date.today())
+                        today_midnight_local = get_rosterdate_midnight_local(today_utc,comp_timezone)
+                        period_dict = {}
+                        period_dict['timestart'] = today_midnight_local
+                        period_dict['range'] = '0;0;1;0'
+                        period_dict['interval'] = 6
+                        period_dict['auto'] = True
+                        period_dict['overlap'] = 0
+                logger.debug(str(period_dict))
+                # {'timestart': datetime.datetime(2019, 7, 9, 0, 0, tzinfo=<DstTzInfo 'Europe/Amsterdam' CEST+2:00:00 DST>),
+                # 'range': '0;0;1;0',
+                # 'interval': 6,
+                # 'auto': True,
+                # 'overlap': -2}
+
             if 'rosterdate_fill' in request.POST:
                 rosterdate_fill_dict = json.loads(request.POST['rosterdate_fill'])
                 # rosterdate_fill_dict: {'fill': '2019-06-18'} type: <class 'dict'>
@@ -1446,7 +1495,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-03-04
                                                                             new_hour,
                                                                             new_minute)
                                                 else:
-                                                    saved_datetime_aware = get_datetimeaware_from_datetimeUTC(saved_datetime, comp_timezone)
+                                                    saved_datetime_aware = get_datetimelocal_from_datetimeUTC(saved_datetime, comp_timezone)
                                                     # saved_datetime_aware: 2019-03-30 04:48:00+01:00
                                                     logger.debug('saved_datetime_aware: ' + str(saved_datetime_aware))
 
@@ -1662,6 +1711,221 @@ class EmplhourDownloadDatalistView(View):  # PR2019-03-10
         return HttpResponse(datalists_json)
 
 
+def upload_period(period_upload, request):  # PR2019-07-10
+    logger.debug(' ============= upload_period ============= ')
+    logger.debug('period_upload: ' + str(period_upload))
+     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
+
+    item_update_dict = {}
+    if request.user is not None and request.user.company is not None:
+        if period_upload:
+
+# get saved period_dict
+            period_dict = get_period_from_settings(request)
+            save_setting = False
+
+# update period_dict with settings from upload_period_dict
+            upload_period_dict = period_upload
+            if 'periodstart' in upload_period_dict:
+                period_dict['periodstart'] = upload_period_dict['periodstart']
+                save_setting = True
+            if 'periodend' in upload_period_dict:
+                period_dict['periodend'] = upload_period_dict['periodend']
+                save_setting = True
+            if 'range' in upload_period_dict:
+                period_dict['range'] = upload_period_dict['range']
+                save_setting = True
+            if 'interval' in upload_period_dict:
+                period_dict['interval'] = int(upload_period_dict['interval'])
+                save_setting = True
+            if 'overlap' in upload_period_dict:
+                period_dict['overlap'] = int(upload_period_dict['overlap'])
+                save_setting = True
+            if 'auto' in upload_period_dict:
+                period_dict['auto'] = bool(upload_period_dict['auto'])
+                save_setting = True
+
+# get values from saved / updated period_dict
+            interval = int(period_dict['interval'])
+            overlap = int(period_dict['overlap'])
+            range = int(period_dict['range'])
+# range must be at least overlap + interval
+            if range < overlap + interval:
+                range = overlap + interval
+                save_setting = True
+
+# save updated period_dict
+            if save_setting:
+                period_dict_json = json.dumps(period_dict)  # dumps takes an object and produces a string:
+                logger.debug('period_dict_json: ' + str(period_dict_json))
+
+                Usersetting.set_setting(KEY_USER_EMPLHOUR_PERIOD, period_dict_json, request.user)
+                update_emplhour_list = True
+
+# calculate  updated period_dict
+            # get today_midnight_local_iso
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            today_utc = get_rosterdate_utc(date.today())
+            today_utc = get_datetime_utc(datetime.utcnow())
+            # logger.debug('CCCCCCC today_utc: ' + str(today_utc) + str(type(today_utc)))
+            today_midnight_local = get_rosterdate_midnight_local(today_utc, comp_timezone)
+            logger.debug('today_midnight_local: ' + str(today_midnight_local) + str(type(today_midnight_local)))
+            # today_midnight_local_iso = today_midnight_local.isoformat()
+            # logger.debug('today_midnight_local_iso: ' + str(today_midnight_local_iso) + str( type(today_midnight_local_iso)))
+
+# get now in utc
+            now_dt = datetime.utcnow()
+            # logger.debug('now_dt: ' + str(now_dt) + ' type: ' + str(type(now_dt)))
+            # now_dt: 2019-07-10 14:48:15.742546 type: <class 'datetime.datetime'>
+            now_utc = now_dt.replace(tzinfo=pytz.utc)  # NOTE: it works only with a fixed utc offset
+            # logger.debug('now_utc: ' + str(now_utc) + ' type: ' + str(type(now_utc)))
+            # now_utc: 2019-07-10 14:48:15.742546+00:00 type: <class 'datetime.datetime'>
+
+# convert now to local
+            # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+            # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
+            timezone = pytz.timezone(comp_timezone)
+            now_local = now_utc.astimezone(timezone)
+            logger.debug('now_local: ' + str(now_local) + str(type(now_local)))
+            # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
+
+# split now_local
+            year_int, month_int, date_int, hour_int, minute_int = split_datetime(now_local)
+            logger.debug(
+                'now_local_arr: ' + str(year_int) + ';' + str(month_int) + ';' + str(date_int) + ';' + str(
+                    hour_int) + ';' + str(minute_int))
+            # now_local_arr: 2019;7;10;16
+
+# get index of current interval (with interval = 6 hours, interval 6-12h has index 1
+            interval_index = int(hour_int / interval)
+            logger.debug('xxx interval: ' + str(interval) + ' interval_index: ' + str(interval_index))
+
+# get local start time of current interval
+            interval_starthour = interval * interval_index
+            interval_start_local = today_midnight_local + timedelta(hours=interval_starthour)
+            logger.debug('interval_start_local: ' + str(interval_start_local) + str(type(interval_start_local)))
+
+# get local start time of current range (is interval_start_local minus overlap)
+            range_start = -overlap
+            range_start_local = interval_start_local + timedelta(hours=range_start)
+            logger.debug('range_start: ' + str(range_start) + ' range_start_local: ' + str(range_start_local))
+
+# get start time of current range in UTC
+            utc = pytz.UTC
+            range_start_utc = range_start_local.astimezone(utc)
+            logger.debug('range_start_utc: ' + str(range_start_utc))
+
+# get utc end time of current range ( = local start time of current range plus range
+            range_end_utc = range_start_utc + timedelta(hours=range)
+            logger.debug('range: ' + str(range) + ' utc >>>>>> range_end_utc: ' + str(range_end_utc))
+
+# get local end time of current range ( = local start time of current range plus range
+            range_end_local = range_start_local + timedelta(hours=range)
+            logger.debug('range: ' + str(range) + ' range_end_local: ' + str(range_end_local))
+
+# get end time of current range in UTC
+            overlap_end_utc = range_end_local.astimezone(utc)
+            logger.debug('overlap_end_utc: ' + str(overlap_end_utc))
+
+
+@method_decorator([login_required], name='dispatch')
+class PeriodUploadView(UpdateView):  # PR2019-07-11
+
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ============= PeriodUploadView ============= ')
+        period_dict_json = ""
+        item_update_dict = {}
+        if request.user is not None and request.user.company is not None:
+            # A.
+            # 1. Reset language
+            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+            user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
+            activate(user_lang)
+
+            # b. get comp_timezone PR2019-06-14
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            # logger.debug('comp_timezone: ' + str(comp_timezone))
+
+            new_period_dict = {}
+
+            # 2. get upload_dict from request.POST
+            upload_json = request.POST.get('period_upload', None)
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+                logger.debug('upload_dict: ' + str(upload_dict))
+                # upload_dict: { 'period': {'period': 8, 'interval': 0, 'overlap': 0, 'auto': False,
+                # 'periodstart': '2019-07-11T06:00:00.000Z',
+                # 'periodend': '2019-07-11T14:00:00.000Z'}}
+
+
+                # 3. save period
+                update_emplhour_list = False
+                rangemin = None
+                rangemax = None
+                if 'period' in upload_dict:  # PR2019-07-09
+                    # period': {'period': 12, 'interval': 6, 'overlap': 0, 'auto': True}}
+                    upload_period_dict = upload_dict['period']
+                    # get saved period_dict
+                    saved_period_dict = get_period_from_settings(request)
+                    logger.debug('saved_period_dict: ' + str(saved_period_dict))
+                    # period_dict: {'range': '0;0;1;0', 'period': 6, 'interval': 6, 'overlap': 0, 'auto': True}
+                    auto = False
+                    if 'auto' in upload_period_dict:
+                        auto = upload_period_dict['auto']
+
+                    # auto = False when clicked on prev, next or new perioddate is selected
+                    if auto == False:
+                        if 'period' in saved_period_dict:
+                            new_period_dict['period'] = saved_period_dict['period']
+                        if 'interval' in saved_period_dict:
+                            new_period_dict['interval'] = saved_period_dict['interval']
+                        if 'overlap' in saved_period_dict:
+                            new_period_dict['overlap'] = saved_period_dict['overlap']
+                        if 'periodstart' in upload_period_dict:
+                            new_period_dict['periodstart'] = upload_period_dict['periodstart']
+                        if 'periodend' in upload_period_dict:
+                            new_period_dict['periodend'] = upload_period_dict['periodend']
+                        new_period_dict['auto'] = False
+
+                    # 'periodend': '2019-07-11T14:00:00.000Z'}}
+                    else:
+            # get period
+                        period = 0
+                        if 'period' in upload_period_dict:
+                            period = int(upload_period_dict['period'])
+                        elif 'period' in saved_period_dict:
+                            period = int(saved_period_dict['period'])
+            # get interval
+                        interval = 0
+                        if 'interval' in upload_period_dict:
+                            interval = int(upload_period_dict['interval'])
+                        elif 'interval' in saved_period_dict:
+                            interval = int(saved_period_dict['interval'])
+            # get overlap
+                        overlap = 0
+                        if 'overlap' in upload_period_dict:
+                            overlap = int(upload_period_dict['overlap'])
+                        elif 'overlap' in saved_period_dict:
+                            overlap = int(saved_period_dict['overlap'])
+
+                        if interval > period:
+                            interval = period
+                        if overlap > period - interval:
+                            overlap = period - interval
+
+                        new_period_dict['period'] = period
+                        new_period_dict['interval'] = interval
+                        new_period_dict['overlap'] = overlap
+                        new_period_dict['auto'] = auto
+
+                period_dict_json = json.dumps(new_period_dict)  # dumps takes an object and produces a string:
+                logger.debug('period_dict_json: ' + str(period_dict_json))
+
+                Usersetting.set_setting(KEY_USER_EMPLHOUR_PERIOD, period_dict_json, request.user)
+# 9. return update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
+
+        return HttpResponse(period_dict_json)
+
 @method_decorator([login_required], name='dispatch')
 class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
@@ -1688,6 +1952,144 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                 # upload_dict: {'id': {'pk': 153, 'parent_pk': 158, 'table': 'emplhour'},
                 # 'timestart': {'value': '2019-06-22T11:15:00.000Z', 'update': True}}
 
+                # upload_dict: {'id': {'temp_pk': 'new_1', 'create': True, 'table': 'emplhour'},
+                #               'rosterdate': {'value': '2019-06-26', 'update': True},
+                #               'orderhour': {'value': 'UTS - UTS', 'order_pk': 59, 'update': True}}
+
+    # 3. save period
+                update_emplhour_list = False
+                rangemin = None
+                rangemax = None
+                if 'period' in upload_dict:  # PR2019-07-09
+                    # period': {'period': 12, 'interval': 6, 'overlap': 0, 'auto': True}}
+
+                    # get saved period_dict
+                    period_dict = get_period_from_settings(request)
+
+         # get today_midnight_local_iso
+                    comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+
+         # get today_midnight_local_iso
+                    today_utc = get_rosterdate_utc(date.today())
+                    today_utc = get_datetime_utc(datetime.utcnow())
+                    # logger.debug('CCCCCCC today_utc: ' + str(today_utc) + str(type(today_utc)))
+                    today_midnight_local = get_rosterdate_midnight_local(today_utc, comp_timezone)
+                    logger.debug('CCCCCCC today_midnight_local: ' + str(today_midnight_local) + str(type(today_midnight_local)))
+                    # today_midnight_local_iso = today_midnight_local.isoformat()
+                    # logger.debug('CCCCCCC today_midnight_local_iso: ' + str(today_midnight_local_iso) + str( type(today_midnight_local_iso)))
+
+        # get now in utc
+                    now_dt = datetime.utcnow()
+                    #logger.debug('now_dt: ' + str(now_dt) + ' type: ' + str(type(now_dt)))
+                    # now_dt: 2019-07-10 14:48:15.742546 type: <class 'datetime.datetime'>
+                    now_utc = now_dt.replace(tzinfo=pytz.utc)  # NOTE: it works only with a fixed utc offset
+                    #logger.debug('now_utc: ' + str(now_utc) + ' type: ' + str(type(now_utc)))
+                    # now_utc: 2019-07-10 14:48:15.742546+00:00 type: <class 'datetime.datetime'>
+
+        # convert now to local
+                    # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+                    # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
+                    timezone = pytz.timezone(comp_timezone)
+                    now_local = now_utc.astimezone(timezone)
+                    logger.debug('now_local: ' + str(now_local) + str(type(now_local)))
+                    # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
+
+        # split now_local
+                    year_int, month_int, date_int, hour_int, minute_int = split_datetime(now_local)
+                    logger.debug('now_local_arr: ' + str(year_int) + ';' + str(month_int) + ';' + str(date_int) + ';' + str(hour_int) + ';' + str(minute_int))
+                    # now_local_arr: 2019;7;10;16
+
+        # get interval
+                    interval = int(period_dict['interval'])
+                    interval_index = int(hour_int / interval)
+                    logger.debug('xxx interval: ' + str(interval) + ' interval_index: ' + str(interval_index))
+
+        # get local start time of current interval
+                    interval_starthour = interval * interval_index
+                    logger.debug('interval_starthour: ' + str(interval_starthour))
+                    interval_start_local = today_midnight_local + timedelta(hours=interval_starthour)
+                    logger.debug('>>>>interval_start_local: ' + str(interval_start_local) + str(type(interval_start_local)))
+
+                    interval_end_local = interval_start_local + timedelta(hours=interval)
+                    logger.debug('interval: ' + str(interval) + ' interval_end_local: ' + str(interval_end_local))
+
+        # get local start time of current interval with overlap
+                    overlap = 11 #int(period_dict['overlap'])
+                    overlap_start = -overlap
+                    overlap_start_local = interval_start_local + timedelta(hours=overlap_start)
+
+                    logger.debug('overlap_start: ' + str(overlap_start) +  ' overlap_start_local: ' + str(overlap_start_local))
+
+                    utc = pytz.UTC
+                    overlap_start_utc = overlap_start_local.astimezone(utc)
+                    logger.debug('mmmm  overlap_start_utc: ' + str(overlap_start_utc))
+
+        # get local end time of current interval with overlap
+
+                    overlap_end_local = interval_end_local + timedelta(hours=overlap)
+                    logger.debug(
+                        'overlap: ' + str(overlap) + ' overlap_end_local: ' + str(overlap_end_local))
+
+                    overlap_end_utc = overlap_end_local.astimezone(utc)
+                    logger.debug('mmmm  overlap_end_utc: ' + str(overlap_end_utc))
+
+                    # get starthour of current interval
+                    # from https://riptutorial.com/python/example/4540/constructing-timezone-aware-datetimes
+
+        # get local end time of current interval with
+                    #range = period_dict['range']
+                   # year_add, month_add, date_add, hour_add = get_range(range)
+                    #logger.debug('range: ' + str(range))
+                    #logger.debug(str(year_add) + ' ; ' + str(month_add) + ' ; ' + str(date_add) + ' ; ' + str(hour_add))
+
+
+                    # convert now to local
+                    # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+                    # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
+                    timezone = pytz.timezone(comp_timezone)
+                    logger.debug('timezone: ' + str(timezone) + str(type(timezone)))
+
+
+                    # convert starthour to utc
+                    # get endhour of current interval with offset
+                    range = int(period_dict['range'])
+                    year_int, month_int, date_int, hour_int = get_range(range)
+                    interval_endhour_offset = interval_starthour + range
+
+
+                    rangemin = get_datetime_from_ISO_no_offset(period_dict['datetimestart'])
+
+                    # rangemin: 2019-07-09T00:00:00+02:00 type: <class 'str'>
+                    # rangemin: 2019-07-09 00:00:00+00:00 type: <class 'datetime.datetime'>
+                    logger.debug('rangemin: ' + str(rangemin) + ' type: ' + str(type(rangemin)))
+
+                    rangemin_arr = get_datetimearray_from_ISOstring(period_dict['datetimestart'])
+                    year_int = int(rangemin_arr[0])
+                    month_int = int(rangemin_arr[1])
+                    date_int = int(rangemin_arr[2])
+                    hour_int = int(rangemin_arr[3])
+                    logger.debug(str(year_int) + ' ; ' + str(month_int) + ' ; ' + str(date_int) + ' ; ' + str(hour_int))
+
+                    arr = period_dict['range'].split(';')
+                    year_add = int(arr[0])
+                    month_add = int(arr[1])
+                    date_add = int(arr[2])
+                    hour_add = int(arr[3])
+                    if year_add:
+                        year_int = year_int + year_add
+                    if month_add:
+                        month_int = month_int + month_add
+                    if date_add:
+                        date_int = date_int + date_add
+                    if hour_add:
+                        hour_int = hour_int + hour_add
+                    rangemax = datetime(year_int, month_int, date_int, hour_int)
+                    logger.debug('rangemax: ' + str(rangemax) + ' type: ' + str(type(rangemax)))
+                    # rangemax: 2019-07-16 00:00:00 type: <class 'datetime.datetime'>
+                    rangemax_utc = rangemax.astimezone(pytz.UTC)
+                    logger.debug('rangemax_utc: ' + str(rangemax_utc) + ' type: ' + str(type(rangemax_utc)))
+                    # rangemax_utc: 2019-07-16 04:00:00+00:00 type: <class 'datetime.datetime'>
+
     # 3. save quicksave
                 if 'quicksave' in upload_dict:
                     quicksave_bool = upload_dict.get('quicksave', False)
@@ -1702,6 +2104,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                     logger.debug('id_dict: ' + str(id_dict))
                     # id_dict: {'temp_pk': 'new_3', 'create': True, 'parent_pk': 154, 'table': 'emplhour'}
                     # id_dict: {'id': {'pk': 150, 'parent_pk': 154, 'table': 'emplhour'}
+                    # id_dict: {'temp_pk': 'new_1', 'create': True, 'table': 'emplhour'}
 
     # 4. Create empty update_dict with keys for all fields if not exist. Unused ones will be removed at the end
                     # this one is not working: update_dict = dict.fromkeys(field_list, {})
@@ -1709,11 +2112,16 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                                 'timestart', 'timeend', 'timeduration', 'breakduration', 'timestatus')
                     update_dict = create_dict_with_empty_attr(field_list)
 
-    # 5. check if parent exists (orderhour is parent of emplhour)
-                    parent = get_parent_instance(table, parent_pk_int, request.user.company)
-                    logger.debug('table: ' + str(table) + ' parent: ' + str(parent))
-                    if parent:
-                        instance = None
+# C. Create new orderhour / emplhour - before check if parent exists
+                    parent = None
+                    instance = None
+                    if is_create:
+                        instance, parent = create_orderhour_emplhour(upload_dict, update_dict, request)
+                    else:
+# 5. check if parent exists (orderhour is parent of emplhour)
+                        parent = get_parent_instance(table, parent_pk_int, request.user.company)
+                        if parent:
+                            instance = get_instance(table, pk_int, parent)
 
 # TODO 'select': 'absent', not necessary
                         # TODO dont create employeedict when empty
@@ -1725,35 +2133,25 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                         #  'employee': {'field': 'employee', 'pk': 638, 'parent_pk': 1, 'code': 'Charjamin'},
                         #  'abscat': {'field': 'abscat', 'pk': 73, 'parent_pk': 61}}
 
+                    if instance:
 # B. Delete instance
                         if is_delete:
-                            instance = get_instance(table, pk_int, parent)
                             delete_instance(table, instance, update_dict, request)
-
-# C. Create new order
-                        elif is_create:
-                            create_instance(upload_dict, update_dict, request)
-
 # D. get existing instance
                         else:
-                            instance = get_instance(table, pk_int, parent)
                             logger.debug('instance: ' + str(instance))
-
 # ============make employee absent
-                            if instance:
-                                if 'abscat' in upload_dict:
-
-                                    # - check if employee exists
-                                    employee = None
-                                    employee_dict = upload_dict.get('employee')
-                                    if employee_dict:
-                                        employee_pk = employee_dict.get('pk')
-                                        if employee_pk:
-                                            employee = get_instance('employee', employee_pk, request.user.company)
-                                    make_absent(instance, employee, upload_dict, request)
+                            if 'abscat' in upload_dict:
+                                # - check if employee exists
+                                employee = None
+                                employee_dict = upload_dict.get('employee')
+                                if employee_dict:
+                                    employee_pk = employee_dict.get('pk')
+                                    if employee_pk:
+                                        employee = get_instance('employee', employee_pk, request.user.company)
+                                make_absent(instance, employee, upload_dict, request)
 
 # E. Update instance, also when it is created
-                        if instance:
                             update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, user_lang)
                             logger.debug('updated instance: ' + str(instance))
                             item_update_dict['item_dict'] = create_emplhour_dict(instance, comp_timezone, user_lang)
@@ -1766,12 +2164,13 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                     if update_dict:
                         item_update_dict['item_update'] = update_dict
 
-# 8. update customer_list when changes are made
-                        # inactive = False: include only active instances
-                        inactive = False
-                        customer_list = create_customer_list(request.user.company, inactive, TYPE_00_NORMAL)
-                        if customer_list:
-                            item_update_dict['customer_list'] = customer_list
+# 8. update emplhour_list when changes are made
+                        if update_emplhour_list:
+                            # inactive = False: include only active instances
+
+                            emplhour_list = create_emplhour_list(rangemin, rangemax, request.user.company, comp_timezone, user_lang)
+                            if emplhour_list:
+                                item_update_dict['emplhour_list'] = emplhour_list
 
 # 9. return update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
         update_dict_json = json.dumps(item_update_dict, cls=LazyEncoder)
@@ -1802,11 +2201,78 @@ def delete_instance(table, instance, update_dict, request):
             update_dict['id']['error'] = msg_err
 
 
-def create_instance(upload_dict, update_dict, request):
-    #TODO create instance
-    pass
+def create_orderhour_emplhour(upload_dict, update_dict, request):
 
-    # TODO create emplhour
+    #  'rosterdate': {'value': '2019-06-26', 'update': True},
+    #               'orderhour': {'value': 'UTS - UTS', 'order_pk': 59, 'update': True}}
+
+    id_dict = upload_dict.get('id')
+    if id_dict:
+    # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
+        temp_pk_str = id_dict.get('temp_pk', '')
+        if temp_pk_str:
+            update_dict['id']['temp_pk'] = temp_pk_str
+
+# get rosterdate
+    rosterdate = None
+    order = None
+    orderhour = None
+    emplhour = None
+
+    field = 'rosterdate'
+    if field in upload_dict:
+        # a. get new and old value
+        field_dict = upload_dict.get(field)  #  'rosterdate': {'value': '2019-06-26', 'update': True},
+
+        new_value = field_dict.get('value')  # new_value: '2019-04-12'
+        rosterdate, msg_err = get_date_from_str(new_value, True)  # True = blank_not_allowed
+        # b. validate new_date
+        # field 'rosterdate' is required
+        if msg_err is not None:
+            update_dict[field]['error'] = msg_err
+
+# get parent 'order'
+    field = 'orderhour'
+    if field in upload_dict:
+        # a. get new and old value
+        field_dict = upload_dict.get(field)  # orderhour': {'value': 'UTS - UTS', 'order_pk': 59, 'update': True}}
+
+        order_pk = field_dict.get('order_pk')
+        if order_pk:
+            order = Order.objects.get_or_none(customer__company=request.user.company, pk=order_pk)
+
+# create orderhour
+    if rosterdate and order:
+        orderhour = Orderhour(rosterdate=rosterdate, order=order)
+        orderhour.save(request=request)
+    # - create error when instance not created
+    if orderhour is None:
+        msg_err = _('This item could not be created.')
+        update_dict['id']['error'] = msg_err
+    else:
+        # - put info in id_dict
+        update_dict['id']['created'] = True
+        update_dict['id']['pk'] = orderhour.pk
+        update_dict['pk'] = orderhour.pk
+        # 'parent_pk' is added to update_dict['id'] in function get_parent_instance
+
+# create emplhour
+    # create orderhour
+    if orderhour:
+        emplhour = Emplhour(rosterdate=rosterdate, orderhour=orderhour)
+        emplhour.save(request=request)
+
+    if emplhour is None:
+        msg_err = _('This item could not be created.')
+        update_dict['id']['error'] = msg_err
+    else:
+        # - put info in id_dict
+        update_dict['id']['created'] = True
+        update_dict['id']['pk'] = emplhour.pk
+        update_dict['id']['ppk'] = orderhour.pk
+        # 'parent_pk' is added to update_dict['id'] in function get_parent_instance
+
+    return emplhour, orderhour
 
     """
     is_update, rosterdate_str = get_fielddict_variables(upload_dict, 'rosterdate')
@@ -1989,7 +2455,7 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
                     if 'datetime' in field_dict:
                         new_value = field_dict.get('datetime')
                         if new_value:
-                            new_dtetime = get_datetime_from_ISO_no_offset(new_value, comp_timezone)
+                            new_dtetime = get_datetime_from_ISO_no_offset(new_value)
 
                     old_dtetime = getattr(instance, field)
                     if new_dtetime != old_dtetime:
@@ -2654,8 +3120,6 @@ def get_instance(table, pk_int, parent):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
-
-
 """
 # dont forget to  update create_shift_list when time fields have changed
                         for field in ('timestart', 'timeend'):
@@ -2692,7 +3156,7 @@ def get_instance(table, pk_int, parent):
                                                                         new_hour,
                                                                         new_minute)
                                             else:
-                                                saved_datetime_aware = get_datetimeaware_from_datetimeUTC(saved_datetime, comp_timezone)
+                                                saved_datetime_aware = get_datetimelocal_from_datetimeUTC(saved_datetime, comp_timezone)
                                                 # saved_datetime_aware: 2019-03-30 04:48:00+01:00
                                                 logger.debug('saved_datetime_aware: ' + str(saved_datetime_aware))
 

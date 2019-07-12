@@ -17,7 +17,8 @@ from django.utils.functional import Promise
 from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
 
-from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS
+from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS, \
+        LANG_EN
 from tsap.functions import get_date_from_str, get_iddict_variables, create_dict_with_empty_attr, fielddict_date
 from planning.dicts import remove_empty_attr_from_dict
 from tsap.headerbar import get_headerbar_param
@@ -934,5 +935,51 @@ def update_employee_instance(instance, upload_dict, update_dict, request, user_l
 
 # --- remove empty attributes from update_dict
     remove_empty_attr_from_dict(update_dict)
+
+def validate_employee_name(namelast, namefirst, company, this_pk=None):
+    # validate if employee already_exists in this company PR2019-03-16
+    # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
+    # if all(k in student for k in ('idnumber','lastname', 'firstname')):
+    # logger.debug('employee_exists: ' + str(code) + ' ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(company) + ' ' + str(this_pk))
+    msg_dont_add = None
+
+    msg_dont_add = None
+    if not company:
+        msg_dont_add = _("No company.")
+    else:
+        if not namelast:
+            if not namefirst:
+                msg_dont_add = _("First and last name cannot be blank.")
+            else:
+                msg_dont_add = _("Last name cannot be blank.")
+        elif not namefirst:
+            msg_dont_add = _("First name cannot be blank.")
+    if msg_dont_add is None:
+        if len(namelast) > NAME_MAX_LENGTH:
+            if len(namefirst) > NAME_MAX_LENGTH:
+                msg_dont_add = _("First and last name are too long.") + str(NAME_MAX_LENGTH) + _(
+                    ' characters or fewer.')
+            else:
+                msg_dont_add = _("Last name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
+        elif len(namefirst) > NAME_MAX_LENGTH:
+            msg_dont_add = _("First name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
+
+        # check if first + lastname already exists
+        if msg_dont_add is None:
+            if this_pk:
+                name_exists = Employee.objects.filter(namelast__iexact=namelast,
+                                                      namefirst__iexact=namefirst,
+                                                      company=company
+                                                      ).exclude(pk=this_pk).exists()
+            else:
+                name_exists = Employee.objects.filter(namelast__iexact=namelast,
+                                                      namefirst__iexact=namefirst,
+                                                      company=company
+                                                      ).exists()
+            if name_exists:
+                msg_dont_add = _("This employee name already exists.")
+
+    return msg_dont_add
+
 
 

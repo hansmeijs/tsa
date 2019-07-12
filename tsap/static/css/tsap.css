@@ -44,7 +44,7 @@ h4 h5 {
   list-style: none;
 
   display: block;
-  padding: 0 .5rem;
+  padding: 1px 4px;*//*padding: 0 .5rem;*/
   margin: 0;
 
   overflow: hidden;
@@ -58,7 +58,7 @@ h4 h5 {
   float: left;
   color: #212529;
   text-align: center;
-  padding: 0 .5rem;
+  padding: 2px 8px; /*padding: 0 .5rem;*/
   text-decoration: none;
   font-size: 14px;
 }
@@ -81,21 +81,21 @@ h4 h5 {
   list-style: none;
 
   display: block;
-  padding: 0 .5rem;
+  padding: 1px 4px;
   margin: 0;
 
   overflow: hidden;
   text-decoration: none;
   list-style: none;
 
-  background-color: #f2f2f2;
+  background-color: #f8f8f8;
 }
 
 .submenubar a {
   float: left;
   color: #212529;
   text-align: center;
-  padding: 0 .5rem;
+  padding: 1px 4px; /*padding: 0 .5rem;*/
   text-decoration: none;
   font-size: 14px;
 }
@@ -143,6 +143,7 @@ h4 h5 {
 
 /* from https://stackoverflow.com/questions/32459337/how-to-remove-bootstrap-modal-overlay*/
 /* remove grey background from modal  PR2019-04-12 */
+/* from https://stackoverflow.com/questions/53594423/how-to-open-a-bootstrap-modal-without-jquery-or-bootstrap-js-javascript */
 .modal-backdrop {
     position: fixed;
     top: 0;
@@ -157,6 +158,43 @@ h4 h5 {
     filter: alpha(opacity=50);
     opacity: .5;
 }
+/*
+.modal {
+  background-color: rgba(0,0,0,0.4); /* Transparent dimmed overlay */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: table;
+}
+*/
+.modal.hidden {
+  display: none;
+}
+
+.modal .container {
+ display: table-cell;
+ text-align: center;
+ vertical-align: middle;
+ width: 200px;
+}
+
+.modal .body {
+  box-shadow: 5px 10px #888888;
+  display: inline-block;
+  background-color: white;
+  border: 1px solid black;
+  padding: 10px;
+}
+/* =================================*/
+
+
+
+
+
+
+
 
 .tsa_bc_yellow {
     background-color: #ffd01c; /* tsa yellow */

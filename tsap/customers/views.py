@@ -606,14 +606,23 @@ def create_customer_dict(instance):
     return dict
 
 
-def create_order_list(company, user_lang, inactive = None, type=TYPE_00_NORMAL):
+def create_order_list(company, user_lang, inactive = None, type=TYPE_00_NORMAL, rangemin=None, rangemax=None):
 # --- create list of all active orders of this company PR2019-06-16
 
     crit = (Q(customer__company=company)) & \
            (Q(customer__type=type))
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
-    orders = Order.objects.filter(crit).order_by('taxrate')  # field 'taxrate' is used to store sequence
+    if rangemax is not None:
+        crit.add(Q(datefirst__lte=rangemax) | Q(datefirst__isnull=True), crit.connector)
+    if rangemin is not None:
+        crit.add(Q(datelast__gte=rangemin) | Q(datelast__isnull=True), crit.connector)
+
+    orders = None
+    if type == TYPE_00_NORMAL:
+        orders = Order.objects.filter(crit).order_by('customer__code', 'code')  # field 'taxrate' is used to store sequence
+    elif type == TYPE_02_ABSENCE:
+        orders = Order.objects.filter(crit).order_by('taxrate')  # field 'taxrate' is used to store sequence
 
     order_list = []
     for order in orders:
@@ -631,15 +640,19 @@ def create_order_dict(instance, user_lang):
         dict['pk'] = instance.pk
         dict['id'] = {'pk': instance.pk, 'ppk': parent_pk, 'table': 'order'}
 
-        for field in ['code', 'name', 'identifier', 'datefirst', 'datelast', 'inactive']:
+        for field in ['code', 'name', 'identifier', 'datefirst', 'datelast', 'inactive', 'customer']:
             value = getattr(instance, field, None)
             if value:
                 if field in ['code', 'name', 'identifier', 'inactive']:
                     dict[field] = {'value': value}
-                if field in ['datefirst', 'datelast']:
+                elif field in ['datefirst', 'datelast']:
                     dict[field] = {}
                     format_list = ['value', 'dmy', 'wdmy']
                     set_fielddict_date(dict[field], value, user_lang, None, format_list)
+
+        field = 'customer'
+        if instance.customer.code:
+            dict[field] = {'value': instance.customer.code}
 
     return dict
 # >>>>>>>>>>>>>>>>>>>
