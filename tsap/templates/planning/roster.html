@@ -12,25 +12,25 @@
 
   <!-- MODAL -->
 {% block modal %}
-<!-- =================== MODAL RANGE  =================== -->
-    <div class="modal fade" id="id_modal_range" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+<!-- =================== MODAL SETTING  =================== -->
+    <div class="modal fade" id="id_mod_setting" tabindex="-1" role="dialog" aria-labelledby="id_mod_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">
             <div class="modal-content">
 
                 <div class="modal-header">
-                    <h4 id="id_modal_range_header" class="modal-title mx-2" >{% trans 'Select range' %}:</h4>
+                    <h4 id="id_mod_setting_header" class="modal-title mx-2" >{% trans 'Select interval' %}:</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
-                <div  id="id_modal_rangebody" class="modal-body">
+                <div  id="id_mod_setting_body" class="modal-body">
                     <div class="modal_container">
 <!-- modal_body_left contains employee select table -->
                         <div class="modal_body_left">
                             <div class="content_subheader_left mx-2 my-1">
                                <table class="table table-condensed tsa-tbl mx-1 my-1">
-                                    <tbody id="id_mod_tbody_range">
+                                    <tbody id="id_mod_tbody_interval">
                                     </tbody>
                                 </table>
                             </div>
@@ -38,42 +38,36 @@
                             <div class="modal_body_left">
                                 <div class="form-group">
 
-                                    <label for="id_mod_range_interval" class="mx-2 my-1">{% trans 'Interval hours' %}: </label>
-                                    <input id="id_mod_range_interval"type="number"  class="form-control mx-2 my-1" min="0" max="24" value="1">
+                                    <label for="id_mod_setting_overlap_prev" class="mx-2 my-1">{% trans 'Overlap with previous interval' %}: </label>
+                                    <input id="id_mod_setting_overlap_prev" type="number"  class="form-control mx-2 my-1" min="0" max="24">
 
-                                    <label for="id_mod_range_overlap" class="mx-2 my-1">{% trans 'Overlap with previous interval' %}: </label>
-                                    <input id="id_mod_range_overlap"type="number"  class="form-control mx-2 my-1" min="0" max="24" value="1">
+                                    <label for="id_mod_setting_overlap_next" class="mx-2 my-1">{% trans 'Overlap with next interval' %}: </label>
+                                    <input id="id_mod_setting_overlap_next" type="number"  class="form-control mx-2 my-1" min="0" max="24">
 
-                                </div>
-
-                                <div class="form-group">
-
-                                    <label for="id_mod_range_auto" class="mx-2 my-1">{% trans 'Dynamic range' %}: </label>
-                                    <input id="id_mod_range_auto" type="checkbox"  checked="true" class="mx-2 my-1" min="0" max="1" value="1">
                                 </div>
                             </div>
 
                     </div>
                 </div>
                 <div class="modal-footer">
-                     <button id="id_mod_range_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                     <button id="id_mod_setting_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
                 </div>
             </div>
         </div>
     </div>
 <!-- =================== MODAL PERIOD  =================== -->
-    <div class="modal fade" id="id_modal_period" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+    <div class="modal fade" id="id_mod_period" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">
             <div class="modal-content">
 
                 <div class="modal-header">
-                    <h4 id="id_modal_period_header" class="modal-title mx-2" >{% trans 'Period settings' %}</h4>
+                    <h4 id="id_mod_period_header" class="modal-title mx-2" >{% trans 'Period settings' %}</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
-                <div  id="id_modal_period_body" class="modal-body">
+                <div  id="id_mod_period_body" class="modal-body">
                     <div class="modal_container">
                         <div class="modal_body_left">
                             <div class="mod_flex mx-2 my-2">
@@ -102,7 +96,7 @@
     </div>
 
 <!-- =================== MODAL EMPLOYEE  =================== -->
-    <div class="modal fade" id="id_modal_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+    <div class="modal fade" id="id_mod_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -112,7 +106,7 @@
                     </button>
                 </div>
 
-                <div  id="id_modal_body" class="modal-body">
+                <div  id="id_mod_body" class="modal-body">
                     <div class="modal_container">
 
 <!-- modal_body_left contains employee select table -->
@@ -132,14 +126,14 @@
                                 </div>
                                 <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:240px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
                                     <table class="table table-condensed tsa-tbl mx-1 my-1">
-                                        <tbody id="id_mod_tbody_select" data-table="employee">
+                                        <tbody id="id_mod_tbody_employee" data-table="employee">
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
 
-                        <div id="id_modal_body_right"  class="modal_body_right mx-2 my-2">
+                        <div id="id_mod_body_right"  class="modal_body_right mx-2 my-2">
 
                             <div class="mx-2 my-2 ">
                                 <p><b>{% trans 'Select an option' %}:</b></p>
@@ -167,8 +161,8 @@
 
                             <div id="id_div_mod_employee" class="mod_flex mx-2 my-2">
                                 <div class="form-group">
-                                    <label  id="id_labl_mod_employee" for="id_mod_employee" class="mx-2 my-2">{% trans 'Replacement employee' %}:</label>
-                                    <input id="id_mod_employee"
+                                    <label  id="id_labl_mod_employee" for="id_mod_input_employee" class="mx-2 my-2">{% trans 'Replacement employee' %}:</label>
+                                    <input id="id_mod_input_employee"
                                         type="text"
                                         data-name="abscat"
                                         type="text"
@@ -220,7 +214,6 @@
         <div class="content_header">
             <div class="content_subheader_left mx-4 my-1">
                 <h6 id="id_hdr_customer">{% trans "Roster date" %}:</h6>
-
             </div>
             <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
             <div class="content_subheader_right mx-4 my-1">
@@ -327,15 +320,10 @@
             data-timeformat ="{{ timeformat }}"
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
-            data-period ="{{ period }}"
 
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-emplhour_upload_url="{% url 'emplhour_upload_url' %}"
-            data-period_upload_url="{% url 'period_upload_url' %}"
-            data-schemeitem_upload_url= "{% url 'schemeitem_upload_url' %}"
-            data-schemeitem_fill_url= "{% url 'schemeitem_fill_url' %}"
-            data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
-            data-schemeorteam_upload_url="{% url 'schemeorteam_upload_url' %}"
+            data-interval_upload_url="{% url 'interval_upload_url' %}"
             data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
 
             data-err_msg01= "{% trans 'An error occurred.' %}"
@@ -349,12 +337,6 @@
             data-txt_order= "{% trans 'Order' %}"
             data-txt_select_order= "{% trans 'Select order' %}"
             data-txt_select_order_none= "{% trans 'No orders' %}"
-            data-txt_select_scheme= "{% trans 'Select scheme' %}"
-            data-txt_select_scheme_none= "{% trans 'No schemes' %}"
-
-            data-txt_employee = "{% trans 'Employee' %}"
-            data-txt_select_employee= "{% trans 'Select employee' %}"
-            data-txt_select_employee_none= "{% trans 'No employeess' %}"
 
             data-txt_abscat = "{% trans 'Absence category' %}"
             data-txt_select_abscat = "{% trans 'Select absence category' %}"
@@ -367,33 +349,34 @@
 
             data-txt_period= "{% trans 'Period' %}"
             data-txt_period_setting= "{% trans 'Period setting' %}"
+
+            data-txt_period_gotocurr= "{% trans 'Go to current period' %}"
+            data-txt_period_gotonext= "{% trans 'Go to next period' %}"
+            data-txt_period_gotoprev= "{% trans 'Go to previous period' %}"
+
             data-txt_range = "{% trans 'Range' %}"
             data-txt_rosterdate= "{% trans 'Rosterdate' %}"
             data-txt_rosterdate_fill = "{% trans 'Fill roster of' %}"
             data-txt_rosterdate_remove = "{% trans 'Remove roster of' %}"
             data-txt_of = "{% trans 'of' %}"
             data-txt_shift= "{% trans 'Shift' %}"
-            data-txt_shift_add= "{% trans 'Enter shift' %}"
-            data-txt_shift_delete= "{% trans 'Delete shift' %}"
-            data-txt_show_shifts= "{% trans 'Go to shifts' %}"
-
-            data-txt_team= "{% trans 'Team' %}"
-            data-txt_teams= "{% trans 'Teams' %}"
-            data-txt_team_add= "{% trans 'Add new team' %}"
-            data-txt_team_delete= "{% trans 'Delete team' %}"
-            data-txt_show_teams= "{% trans 'Go to teams' %}"
 
             data-txt_timestart= "{% trans 'Start time' %}"
             data-txt_timeend= "{% trans 'End time' %}"
             data-txt_breakhours= "{% trans 'Break hours' %}"
             data-txt_workinghours= "{% trans 'Working hours' %}"
 
-            data-txt_employee= "{% trans 'Employee' %}"
+            data-txt_employee = "{% trans 'Employee' %}"
+            data-txt_select_employee= "{% trans 'Select employee' %}"
+            data-txt_select_employee_none= "{% trans 'No employeess' %}"
             data-txt_replaces= "{% trans 'Replacement employee' %}"
             data-txt_empl_switch= "{% trans 'Employee to be switched with' %}"
 
             data-txt_datefirst= "{% trans 'Start date' %}"
             data-txt_datelast= "{% trans 'End date' %}"
+
+            data-txt_hour= "{% trans 'hour' %}"
+            data-txt_hours= "{% trans 'hours' %}"
 
             data-txt_employee_add= "{% trans 'Enter employee' %}"
             data-msg_confirm_del1= "{% trans 'Do you want to delete the shift of' %}"

@@ -21,6 +21,7 @@
 
 //========= SetMenubuttonActive  ====================================
     function SetMenubuttonActive(btn_clicked) {
+        "use strict";
         // PR2019-03-03 function highlights clicked menubutton
 
 // ---  get clicked button
@@ -41,15 +42,17 @@
 //========= isEmpty  ============= PR2019-05-11
     //PR2019-05-05 from https://coderwall.com/p/_g3x9q/how-to-check-if-javascript-object-is-empty'
     function isEmpty(obj) {
-    for(var key in obj) {
-        if(obj.hasOwnProperty(key))
-            {return false}
-    }
+        "use strict";
+        for(var key in obj) {
+            if(obj.hasOwnProperty(key))
+                {return false}
+        }
     return true;
 }
 
 //========= get_attr_from_element  =============PR2019-06-07
     function get_attr_from_element(element, key, default_value){
+        "use strict";
     // ---  get attr value from key: i.e. element["name"] = "breakduration"
         let value;
         if(!!element && !!key){
@@ -65,6 +68,7 @@
 
 //========= get_attr_from_element_str  ============= PR2019-06-07
     function get_attr_from_element_str(element, key){
+        "use strict";
         let value_str = "";
         if(!!element && !!key){
             if(element.hasAttribute(key)){
@@ -76,6 +80,7 @@
 
 //========= get_attr_from_element_int  ============= PR2019-06-07
     function get_attr_from_element_int(element, key){
+        "use strict";
         let value_int = 0;
         if(!!element && !!key){
             if(element.hasAttribute(key)){
@@ -87,6 +92,7 @@
 
 //========= get_attr_from_element_dict  ============= PR2019-06-13
     function get_attr_from_element_dict(element, key){
+        "use strict";
         let value_dict = {};
         if(!!element && !!key){
             if(element.hasAttribute(key)){
@@ -101,6 +107,7 @@
 
 //========= get_arrayRow_by_keyValue  ====================================
     function get_arrayRow_by_keyValue (objArray, arrKey, keyValue) {
+        "use strict";
         // Function returns row of array that contains Value in objKey PR2019-01-05
         // stored_columns[3]: {awpCol: "lastname", caption: "Last name", excCol: "ANAAM" }
         // excel_columns[0]:    {excCol: "ANAAM", awpCol: "lastname", awpCaption: "Achternaam"}
@@ -127,6 +134,7 @@
 
 //========= get_listitem_by_subkeyValue  ===== PR2018-06-01
     function get_listitem_by_subkeyValue (objArray, arrKey, arrSubKey, keyValue) {
+        "use strict";
         // gets item with value 'abdul' from 0: {code: {value: "Abdul"}, id: {pk: 248, parent_pk: 2}, pk: 248 }
         let item;
         if (!!arrKey && !!arrSubKey && !!keyValue){
@@ -164,6 +172,7 @@
 
 //=========  get_newdate_from_date  ================ PR2019-05-06
     function get_newdate_from_date(o_date, add_day, add_month, add_year) {
+        "use strict";
         // console.log("===  function get_newdate_from_date =========");
         // console.log("o_date", o_date , typeof o_date)
         // console.log("add_day", add_day , "add_month", add_month, "add_year", add_year, )
@@ -203,6 +212,7 @@
 
 //========= function get_weekday_from_ISOstring  ==================================== PR2019-04-15
     function get_weekday_from_ISOstring(date_as_ISOstring) {
+        "use strict";
         // date_as_ISOstring = "2019-03-30T19:05:00"
         let date = get_date_from_ISOstring(date_as_ISOstring);
         let weekday_index = date.getUTCDay();
@@ -212,6 +222,7 @@
 
 //========= function get_date_from_ISOstring  ==================================== PR2019-04-15
     function get_date_from_ISOstring(date_as_ISOstring) {
+        "use strict";
         // date_as_ISOstring: 2019-06-25T07:00:00Z
 
         let arr_int = get_array_from_ISOstring(date_as_ISOstring);
@@ -228,6 +239,7 @@
 
 //========= function get_array_from_ISOstring  ==================================== PR2019-04-15
     function get_array_from_ISOstring(datetime_iso) {
+        "use strict";
         // datetime_aware_iso = "2019-03-30T04:00:00-04:00"
         // split string into array  ["2019", "03", "30", "19", "05", "00"]
         // regez \d+ - matches one or more numeric digits
@@ -247,6 +259,7 @@
 
 //========= function get_yyyymmdd_from_ISOstring  ========== PR2019-06-21
     function get_yyyymmdd_from_ISOstring(datetime_iso) {
+        "use strict";
         // datetime_iso = "2019-03-30T04:00:00-04:00"
         let date_str = "";
         if (!!datetime_iso){
@@ -260,6 +273,7 @@
 
 //========= function get_datetimearrLOCAL_from_UTCiso  ========== PR2019-06-29
     function get_datetimearrLOCAL_from_UTCiso(datetimeUTCiso, companyoffset, useroffset) {
+        "use strict";
         // console.log("--------- get_datetimearrLOCAL_from_UTCiso -------------")
         // this function converts array from local time displayed on screen to utc time in iso-format stored in database
         const offset = companyoffset
@@ -310,6 +324,7 @@
 
 //========= function get_datetime_iso_from_ints  ========== PR2019-06-28
     function get_datetime_iso_from_ints(year, month_index, day_int, hours, minutes, companyoffset, useroffset) {
+        "use strict";
         console.log("--------- get_datetime_iso_from_ints -------------")
         // this function converts array from local time displayed on screen to utc time in iso-format stored in database
         const offset = -companyoffset - useroffset
@@ -349,7 +364,7 @@
             //const this_year = datetime_local.year();   //January = 0
             //const weekday_index = datetime_local.day();   //Sunday = 0
             //const weekday = weekday_list[weekday_index];
-
+        "use strict";
         let date_str = "";
         //  moment.locale(user_lang) is set at beginning of script, applies to all moment objjects in this page
         if (!!datetime_local){
@@ -365,21 +380,28 @@
     }
 //========= format_datemedium_from_datetimelocal  ========== PR2019-07-09
     function format_datemedium(dtl, weekday_list, month_list, skip_weekday, skip_year) {
-
-        //console.log(" -- format_datemedium  -- ")
+        "use strict";
+        console.log(" -- format_datemedium  -- ")
         //console.log(dtl.format())
         //console.log(moment.locale())
         //console.log(dtl.year())
         //console.log(dtl.date())
-        //console.log(dtl.day())
-        //console.log(weekday_list[dtl.day()])
+        console.log("dtl.day: ", dtl.day())
+        console.log(weekday_list[dtl.day()])
         //console.log( month_list[dtl.month() + 1])
+
+        // According to ISO 8601, Sunday is the 7th day of the week
+        let weekday_index = dtl.day()
+        if(!weekday_index){weekday_index = 7};
+        console.log("weekday_index: ", weekday_index)
+        console.log(weekday_list[dtl.day()])
+
         let date_str = "";
         //  moment.locale(user_lang) is set at beginning of script, applies to all moment objjects in this page
         let comma_space = " "
         if(moment.locale() === "en") { comma_space = ", "}
         if (!!dtl){
-            if(!skip_weekday){date_str = weekday_list[dtl.day()] + comma_space }
+            if(!skip_weekday){date_str = weekday_list[weekday_index] + comma_space }
             if(moment.locale() === "en") {
                 date_str = date_str + month_list[dtl.month() + 1] + " " + dtl.date()
             } else {
@@ -393,35 +415,33 @@
 
   //========= format_period_from_datetimelocal  ========== PR2019-07-09
     function format_period_from_datetimelocal(periodstart_local, periodend_local, weekday_list, month_list, timeformat) {
+        "use strict";
         console.log(" -- format_period_from_datetimelocal  -- ")
         console.log("periodstart_local", periodstart_local.format())
         console.log("periodend_local", periodend_local.format())
         periodstart_local, periodend_local
 
-
         // from https://momentjs.com/guides/
         let startdate = periodstart_local.clone().startOf("day");
         let enddate = periodend_local.clone().startOf("day");
-        console.log("startdate", periodstart_local.format())
-        console.log("enddate", periodend_local.format())
 
-        let enddate_isMidnight = false;
-        console.log("startdate diff", startdate.diff(periodstart_local))
+        const enddate_isMidnight = (enddate.diff(periodend_local) === 0);
+
+        //console.log("startdate diff", startdate.diff(periodstart_local))
         // when periodend_local is midnight: make enddate one day earlier (period from 02:00 - 00:00 is still same day)
-        if (enddate.diff(periodend_local) === 0) {
+        if (enddate_isMidnight) {
             // add / subtract day from datetime_local
             enddate.add(-1, 'day')
             console.log("enddate corrected", enddate.format())
         }
 
-        let same_day = (startdate.diff(enddate) === 0)
+        const datestart_formatted = format_datemedium(startdate, weekday_list, month_list, false, true)
+        const dateend_formatted = format_datemedium(enddate, weekday_list, month_list, false, true)
+        const timestart_formatted = format_time(periodstart_local, timeformat, false )
+        const timeend_formatted = format_time(periodend_local, timeformat, enddate_isMidnight ) // enddate_isMidnight: display 00.00 as prev day 24.00 u
 
-        const datestart_formatted = format_datemedium(periodstart_local, weekday_list, month_list, false, true)
-        const dateend_formatted = format_datemedium(periodend_local, weekday_list, month_list, false, true)
-        const timestart_formatted = format_time(periodstart_local, timeformat )
-        const timeend_formatted = format_time(periodend_local, timeformat )
-
-        let period_str = format_datemedium(periodstart_local, weekday_list, month_list, false, false)
+        let period_str = format_datemedium(periodstart_local, weekday_list, month_list, false, false);
+        const same_day = (startdate.diff(enddate) === 0)
         if(same_day){
             period_str = datestart_formatted + ", " + timestart_formatted + " - " + timeend_formatted
         } else {
@@ -434,7 +454,8 @@
 
 // format time
 //========= function new  ========== PR2019-06-27
-    function format_time(datetime_local, timeformat ) {
+    function format_time(datetime_local, timeformat, display24) {
+        "use strict";
         let time_formatted;
 
         let isAmPm = false
@@ -443,10 +464,25 @@
         let isEN = false
         if (moment.locale() === "en"){isEN = true};
 
-        if(isEN) {
-            if(isAmPm){time_formatted = datetime_local.format("hh:mm a")} else {time_formatted = datetime_local.format("HH:mm")}
+        let hour_str = "", ampm_str = "", delim = "";
+        const minute_str = datetime_local.format("mm")
+
+        if(isAmPm){
+            hour_str =  datetime_local.format("hh")
+            ampm_str = " " + datetime_local.format("a")
+            delim = ":"
         } else {
-            if(isAmPm){time_formatted = datetime_local.format("hh.mm a")} else {time_formatted = datetime_local.format("HH.mm") + " u"}};
+            if (datetime_local.hour() === 0 && display24) {
+                hour_str = "24"
+            } else {
+                hour_str =  datetime_local.format("HH")
+            }
+            delim = "."
+            if(!isEN){ ampm_str = " u"}
+        }
+
+        time_formatted = hour_str + delim + minute_str + ampm_str
+
         return time_formatted
     }
 

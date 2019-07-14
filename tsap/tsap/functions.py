@@ -11,13 +11,111 @@ import pytz
 import logging
 logger = logging.getLogger(__name__)
 
-# TODO find better way to convert time in ISO format to datetime object.
-# from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+# find better way to convert time in ISO format to datetime object.
+# This is not the right way:
+    # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
     #format = '%Y-%m-%dT%H:%M:%S%z'
     #datestring = '2016-09-20T16:43:45-07:00'
     #d = dateutil.parser.parse(datestring) # python 2.7
     #d = d.replace(tzinfo=utc) - d.utcoffset()
     # >>> datetime.datetime(2016, 9, 20, 23, 43, 45, tzinfo=<UTC>)
+
+
+# >>>>>> This is the right way, I think >>>>>>>>>>>>>
+
+def get_datetime_LOCAL_from_ISOstring(datetime_ISOstring, comp_timezone):  # PR2019-07-13
+    # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+
+    logger.debug('---- get_datetime_LOCAL_from_ISOstring  ------')
+    #logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' ' + str(type(datetime_ISOstring)))
+    #  datetime_ISOstring: 2019-07-14 T 22:00:00 +00:00 <class 'str'>
+
+    # convert iso string to dattime naive: datetime_naive: 2019-06-23 18:45:00 <class 'datetime.datetime'>
+    datetime_naive = get_datetime_from_ISOstring(datetime_ISOstring)
+    #logger.debug('datetime_naive: ' + str(datetime_naive) + ' ' + str(type(datetime_naive)))
+    #  datetime_naive: 2019-07-14 22:00:00 <class 'datetime.datetime'>
+    #  tzinfo: None  <class 'NoneType'>
+
+    # convert datetime_naive to datetime with timezone utc
+    timezone = pytz.utc
+    datetime_utc = timezone.localize(datetime_naive)
+    logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
+    #  datetime_utc: 2019-07-14 22:00:00 +00:00 <class 'datetime.datetime'>
+    #  tzinfo: UTC  <class 'pytz.UTC'>
+
+    # this one is WRONG: does not change timezone, but gives utctime in different timezone
+    # timezone = pytz.timezone(comp_timezone)
+    # datetime_localWRONG = timezone.localize(datetime_naive)
+    # logger.debug('datetime_localWRONG: ' + str(datetime_localWRONG) + ' ' + str(type(datetime_localWRONG)))
+    #  datetime_localWRONG: 2019-07-14 22:00:00+02:00 <class 'datetime.datetime'>
+    #  tzinfo: UTC  <class 'pytz.UTC'>
+
+    # this one is correct: it converts now_utc to now_local ( = company timezone)
+    timezone = pytz.timezone(comp_timezone)
+    datetime_local = datetime_utc.astimezone(timezone)
+    logger.debug('datetime_local: ' + str(datetime_local) + ' ' + str(type(datetime_local)))
+    # datetime_local: 2019-07-15 00:00:00 +02:00 <class 'datetime.datetime'>
+
+    return datetime_local
+
+def get_datetime_UTC_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
+    # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+
+    logger.debug('---- get_datetime_UTC_from_ISOstring  ------')
+    logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' type: ' + str(type(datetime_ISOstring)))
+    #  datetime_ISOstring: 2019-06-26 T 07:20:00.000Z  <class 'str'>
+
+    # convert iso string to dattime naive: datetime_naive: 2019-06-23 18:45:00 <class 'datetime.datetime'>
+    datetime_naive = get_datetime_from_ISOstring(datetime_ISOstring)
+    logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
+    #  datetime_naive: 2019-06-26 07:20:00  <class 'datetime.datetime'>
+    #  tzinfo: None  <class 'NoneType'>
+
+    timezone = pytz.utc
+    # convert datetime_naive to datetime with timezone utc
+    datetime_utc = timezone.localize(datetime_naive)
+    logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
+    #  datetime_utc: 2019-06-26 07:20:00+00:00  <class 'datetime.datetime'>
+    #  tzinfo: UTC  <class 'pytz.UTC'>
+
+
+    return datetime_utc
+
+
+def get_datetime_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
+    #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
+    #  split string into array  ["2019", "03", "30", "19", "05", "00"]
+    #  regex \d+ - matches one or more numeric digits
+    dte_time = None
+
+    arr = get_datetimearray_from_ISOstring(datetime_ISOstring)
+
+    try:
+        dte_time = datetime(int(arr[0]), int(arr[1]), int(arr[2]), int(arr[3]), int(arr[4]))
+    except:
+        pass
+    return dte_time
+
+
+def get_datetimearray_from_ISOstring(datetime_ISOstring):  # PR2019-07-10
+    #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
+    #  split string into array  ["2019", "03", "30", "19", "05", "00"]
+    #  regex \d+ - matches one or more numeric digits
+
+    regex = re.compile('\D+')
+    arr = regex.split(datetime_ISOstring)
+    length = len(arr)
+
+    if length >= 2:
+        if length < 3:
+            arr.append('0')
+        if length < 4:
+            arr.append('0')
+
+    return arr
+
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 def get_date_from_str(date_str, blank_not_allowed=False):  # PR2019-04-28
@@ -190,68 +288,7 @@ def get_timeDHM_from_dhm(rosterdate, dhm_str, comp_timezone, lang):
     return time_str
 
 
-def get_datetime_from_ISO_no_offset(datetime_iso):   # PR2019-06-27
-    # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
-
-    logger.debug('---------------- get_datetime_from_ISO_no_offset  -------------')
-    logger.debug('datetime_iso: ' + str(datetime_iso) + ' type: ' + str(type(datetime_iso)))
-    #  datetime_iso: 2019-06-26 T 07:20:00.000Z  <class 'str'>
-
-    # convert iso string to dattime naive: datetime_naive: 2019-06-23 18:45:00 <class 'datetime.datetime'>
-    datetime_naive = get_datetime_from_ISOstring(datetime_iso)
-    logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
-    #  datetime_naive: 2019-06-26 07:20:00  <class 'datetime.datetime'>
-    logger.debug('tzinfo: ' + str(datetime_naive.tzinfo) + ' type: ' + str(type(datetime_naive.tzinfo)))
-    #  tzinfo: None  <class 'NoneType'>
-
-    timezone = pytz.utc
-    # convert datetime_naive to datetime with timezone utc
-    datetime_utc = timezone.localize(datetime_naive)
-    logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
-    #  datetime_utc: 2019-06-26 07:20:00+00:00  <class 'datetime.datetime'>
-    logger.debug('tzinfo: ' + str(datetime_utc.tzinfo) + ' type: ' + str(type(datetime_utc.tzinfo)))
-    #  tzinfo: UTC  <class 'pytz.UTC'>
-
-    return datetime_utc
-
-
-def get_datetime_from_ISOstring(datetime_iso):  # PR2019-06-27
-    #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
-    #  split string into array  ["2019", "03", "30", "19", "05", "00"]
-    #  regex \d+ - matches one or more numeric digits
-    dte_time = None
-    regex = re.compile('\D+')
-    arr = regex.split(datetime_iso)
-    length = len(arr)
-
-    if length >= 2:
-        if length < 3:
-            arr.append('0')
-        if length < 4:
-            arr.append('0')
-        try:
-            dte_time = datetime(int(arr[0]), int(arr[1]), int(arr[2]), int(arr[3]), int(arr[4]))
-        except:
-            pass
-    return dte_time
-
-
-def get_datetimearray_from_ISOstring(datetime_iso):  # PR2019-07-10
-    #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
-    #  split string into array  ["2019", "03", "30", "19", "05", "00"]
-    #  regex \d+ - matches one or more numeric digits
-
-    regex = re.compile('\D+')
-    arr = regex.split(datetime_iso)
-    length = len(arr)
-
-    if length >= 2:
-        if length < 3:
-            arr.append('0')
-        if length < 4:
-            arr.append('0')
-
-    return arr
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def get_datetimeUTC_from_DHM(rosterdate, dhm_str, comp_timezone):
 

@@ -165,7 +165,7 @@ urlpatterns = [
 
         path('roster', planning_views.RosterView.as_view(), name='roster_url'),
         path('roster_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
-        path('period_upload', planning_views.PeriodUploadView.as_view(), name='period_upload_url'),
+        path('interval_upload', planning_views.PeriodUploadView.as_view(), name='interval_upload_url'),
     ])),
 
     path('emplhours/', include([

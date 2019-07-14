@@ -306,7 +306,7 @@
             }
         }
         if (value === undefined || value === null) {
-            if (default_value !== null) {
+            if (default_value !== undefined && default_value !== null) {
                 value = default_value
             }
         }

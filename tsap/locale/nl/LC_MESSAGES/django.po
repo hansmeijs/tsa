@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-07-11 21:34-0400\n"
+"POT-Creation-Date: 2019-07-14 09:57-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -139,7 +139,7 @@ msgstr ""
 
 #: .\companies\forms.py:56 .\templates\companies\company_list.html:23
 #: .\templates\customers\orders.html:80 .\templates\customers\orders.html:129
-#: .\templates\planning\roster.html:395 .\templates\planning\schemes.html:72
+#: .\templates\planning\roster.html:375 .\templates\planning\schemes.html:72
 #: .\templates\planning\schemes.html:305
 msgid "Start date"
 msgstr "Begindatum"
@@ -253,8 +253,8 @@ msgstr " tekens or minder."
 msgid "This email address already exists."
 msgstr "Dit e-mail adres komt al voor."
 
-#: .\customers\views.py:258 .\planning\views.py:1114 .\planning\views.py:2250
-#: .\planning\views.py:2266 .\planning\views.py:3068
+#: .\customers\views.py:258 .\planning\views.py:1131 .\planning\views.py:2324
+#: .\planning\views.py:2340 .\planning\views.py:3142
 msgid "This item could not be created."
 msgstr "Dit item kon niet worden aangemaakt."
 
@@ -324,64 +324,64 @@ msgstr "Voornaam is te lang"
 msgid "This employee name already exists."
 msgstr "De naam van deze werknemer komt al voor."
 
-#: .\planning\views.py:488
+#: .\planning\views.py:505
 msgid "This scheme could not be deleted."
 msgstr "Dit schema kon niet worden gewist."
 
-#: .\planning\views.py:601
+#: .\planning\views.py:618
 msgid "This team could not be deleted."
 msgstr "Dit team kon niet worden gewist."
 
-#: .\planning\views.py:1051
+#: .\planning\views.py:1068
 msgid "This shift could not be deleted."
 msgstr "Deze dienst kon niet worden gewist."
 
-#: .\planning\views.py:1060
+#: .\planning\views.py:1077
 msgid "This teammember could not be deleted."
 msgstr "Dit teamlid kon niet worden gewist."
 
-#: .\planning\views.py:1411
+#: .\planning\views.py:1428
 msgid "This item could not be deleted."
 msgstr "Dit item kon niet worden gewist."
 
-#: .\planning\views.py:2187
+#: .\planning\views.py:2261
 msgid "This item"
 msgstr "Dit item"
 
-#: .\planning\views.py:2189
+#: .\planning\views.py:2263
 msgid "This company"
 msgstr "Dit bedrijf"
 
-#: .\planning\views.py:2191
+#: .\planning\views.py:2265
 msgid "This customer"
 msgstr "Deze klant"
 
-#: .\planning\views.py:2193
+#: .\planning\views.py:2267
 msgid "This order"
 msgstr "Deze opdracht"
 
-#: .\planning\views.py:2195
+#: .\planning\views.py:2269
 msgid "This scheme"
 msgstr "Dit schema"
 
-#: .\planning\views.py:2197
+#: .\planning\views.py:2271
 msgid "This team"
 msgstr "Dit team"
 
-#: .\planning\views.py:2199
+#: .\planning\views.py:2273
 msgid "This employee"
 msgstr "Deze werknemer"
 
-#: .\planning\views.py:2200
+#: .\planning\views.py:2274
 #, python-format
 msgid "%(tbl)s could not be deleted."
 msgstr "%(tbl)s kon niet worden gewist."
 
-#: .\planning\views.py:2514
+#: .\planning\views.py:2588
 msgid "This item could not be updated."
 msgstr "Dit item kon niet worden bijgewerkt."
 
-#: .\planning\views.py:2567 .\tsap\validators.py:35
+#: .\planning\views.py:2641 .\tsap\validators.py:35
 msgid "This field cannot be blank."
 msgstr "Dit veld moet ingevuld worden."
 
@@ -431,8 +431,8 @@ msgstr "Nee, annuleer"
 #: .\templates\employees\employees.html:104
 #: .\templates\planning\realization.html:66
 #: .\templates\planning\realization.html:225
-#: .\templates\planning\roster.html:96 .\templates\planning\roster.html:200
-#: .\templates\planning\roster.html:406 .\templates\planning\schemes.html:320
+#: .\templates\planning\roster.html:90 .\templates\planning\roster.html:194
+#: .\templates\planning\roster.html:389 .\templates\planning\schemes.html:320
 msgid "Cancel"
 msgstr "Annuleren"
 
@@ -767,9 +767,9 @@ msgstr "Bedrijf toevoegen"
 #: .\templates\customers\customer_add.html:19
 #: .\templates\employees\emplhours.html:70
 #: .\templates\includes\timepicker.html:31
-#: .\templates\planning\realization.html:67 .\templates\planning\roster.html:59
-#: .\templates\planning\roster.html:97 .\templates\planning\roster.html:201
-#: .\templates\planning\roster.html:270 .\templates\planning\schemes.html:135
+#: .\templates\planning\realization.html:67 .\templates\planning\roster.html:53
+#: .\templates\planning\roster.html:91 .\templates\planning\roster.html:195
+#: .\templates\planning\roster.html:263 .\templates\planning\schemes.html:135
 #: .\templates\planning\schemes.html:164 .\templates\planning\schemes.html:210
 msgid "Save"
 msgstr "Opslaan"
@@ -785,7 +785,7 @@ msgstr "Bedrijfsnaam"
 
 #: .\templates\companies\company_list.html:24
 #: .\templates\customers\orders.html:81 .\templates\customers\orders.html:130
-#: .\templates\planning\roster.html:396 .\templates\planning\schemes.html:86
+#: .\templates\planning\roster.html:376 .\templates\planning\schemes.html:86
 #: .\templates\planning\schemes.html:306
 msgid "End date"
 msgstr "Einddatum"
@@ -815,7 +815,7 @@ msgstr "Nieuwe klant"
 #: .\templates\employees\emplhours.html:34
 #: .\templates\employees\employees.html:33
 #: .\templates\planning\realization.html:34
-#: .\templates\planning\roster.html:237 .\templates\planning\schemes.html:109
+#: .\templates\planning\roster.html:230 .\templates\planning\schemes.html:109
 msgid "filter..."
 msgstr ""
 
@@ -824,8 +824,8 @@ msgid "Customer name"
 msgstr "Naam klant"
 
 #: .\templates\customers\customers.html:49 .\templates\customers\orders.html:83
-#: .\templates\employees\employees.html:64 .\templates\planning\roster.html:285
-#: .\templates\planning\roster.html:292
+#: .\templates\employees\employees.html:64 .\templates\planning\roster.html:278
+#: .\templates\planning\roster.html:285
 msgid "Show inactive orders"
 msgstr "Niet aktieve opdrachten weergeven"
 
@@ -834,7 +834,7 @@ msgstr "Niet aktieve opdrachten weergeven"
 #: .\templates\employees\emplhours.html:254
 #: .\templates\employees\employees.html:92
 #: .\templates\planning\realization.html:214
-#: .\templates\planning\roster.html:341 .\templates\planning\schemes.html:265
+#: .\templates\planning\roster.html:329 .\templates\planning\schemes.html:265
 msgid "An error occurred."
 msgstr "Er is een fout opgetreden"
 
@@ -855,7 +855,7 @@ msgstr "Maak klant aktief"
 #: .\templates\employees\emplhours.html:264
 #: .\templates\employees\employees.html:103
 #: .\templates\planning\realization.html:224
-#: .\templates\planning\roster.html:405 .\templates\planning\schemes.html:319
+#: .\templates\planning\roster.html:388 .\templates\planning\schemes.html:319
 msgid "Error"
 msgstr "Fout"
 
@@ -893,12 +893,12 @@ msgstr "Je hebt geen permissie om deze pagina te bekijken."
 msgid "You must be logged in to view this page"
 msgstr "Je moet ingelogd zijn om deze pagina te bekijken."
 
-#: .\templates\customers\orders.html:26 .\templates\planning\roster.html:347
+#: .\templates\customers\orders.html:26 .\templates\planning\roster.html:335
 #: .\templates\planning\schemes.html:20 .\templates\planning\schemes.html:271
 msgid "Select customer"
 msgstr "Selecteer klant"
 
-#: .\templates\customers\orders.html:30 .\templates\planning\roster.html:130
+#: .\templates\customers\orders.html:30 .\templates\planning\roster.html:124
 msgid "filter name..."
 msgstr "filter naam..."
 
@@ -910,7 +910,7 @@ msgstr "Opdrachten van klant"
 msgid "Order name"
 msgstr "Opdracht naam"
 
-#: .\templates\customers\orders.html:124 .\templates\planning\roster.html:348
+#: .\templates\customers\orders.html:124 .\templates\planning\roster.html:336
 #: .\templates\planning\schemes.html:272
 msgid "No customers"
 msgstr "Geen klanten"
@@ -943,7 +943,7 @@ msgstr "Dienst toevoegen"
 
 #: .\templates\employees\emplhours.html:42
 #: .\templates\planning\realization.html:39
-#: .\templates\planning\roster.html:377 .\templates\planning\schemes.html:289
+#: .\templates\planning\schemes.html:289
 msgid "Delete shift"
 msgstr "Dienst verwijderen"
 
@@ -974,58 +974,57 @@ msgstr ""
 
 #: .\templates\employees\emplhours.html:81
 #: .\templates\planning\realization.html:78
-#: .\templates\planning\roster.html:279 .\templates\planning\roster.html:363
+#: .\templates\planning\roster.html:272 .\templates\planning\roster.html:345
 #: .\templates\planning\schemes.html:279
 msgid "Date"
 msgstr "Datum"
 
 #: .\templates\employees\emplhours.html:82
 #: .\templates\planning\realization.html:79
-#: .\templates\planning\roster.html:280 .\templates\planning\roster.html:349
+#: .\templates\planning\roster.html:273 .\templates\planning\roster.html:337
 #: .\templates\planning\schemes.html:47 .\templates\planning\schemes.html:273
 msgid "Order"
 msgstr "Opdracht"
 
 #: .\templates\employees\emplhours.html:83
 #: .\templates\planning\realization.html:80
-#: .\templates\planning\roster.html:109 .\templates\planning\roster.html:282
-#: .\templates\planning\roster.html:355 .\templates\planning\roster.html:391
-#: .\templates\planning\schemes.html:303 .\tsap\constants.py:18
-#: .\tsap\constants.py:24
+#: .\templates\planning\roster.html:103 .\templates\planning\roster.html:275
+#: .\templates\planning\roster.html:369 .\templates\planning\schemes.html:303
+#: .\tsap\constants.py:18 .\tsap\constants.py:24
 msgid "Employee"
 msgstr "Werknemer"
 
 #: .\templates\employees\emplhours.html:84
 #: .\templates\planning\realization.html:81
-#: .\templates\planning\roster.html:281 .\templates\planning\roster.html:375
+#: .\templates\planning\roster.html:274 .\templates\planning\roster.html:362
 #: .\templates\planning\schemes.html:287
 msgid "Shift"
 msgstr "Dienst"
 
 #: .\templates\employees\emplhours.html:85
 #: .\templates\planning\realization.html:82
-#: .\templates\planning\roster.html:283 .\templates\planning\roster.html:386
+#: .\templates\planning\roster.html:276 .\templates\planning\roster.html:364
 #: .\templates\planning\schemes.html:298
 msgid "Start time"
 msgstr "Begintijd"
 
 #: .\templates\employees\emplhours.html:86
 #: .\templates\planning\realization.html:83
-#: .\templates\planning\roster.html:289 .\templates\planning\roster.html:387
+#: .\templates\planning\roster.html:282 .\templates\planning\roster.html:365
 #: .\templates\planning\schemes.html:299
 msgid "End time"
 msgstr "Eindtijd"
 
 #: .\templates\employees\emplhours.html:87
 #: .\templates\planning\realization.html:84
-#: .\templates\planning\roster.html:290 .\templates\planning\roster.html:388
+#: .\templates\planning\roster.html:283 .\templates\planning\roster.html:366
 #: .\templates\planning\schemes.html:300
 msgid "Break hours"
 msgstr "Pauze uren"
 
 #: .\templates\employees\emplhours.html:88
 #: .\templates\planning\realization.html:85
-#: .\templates\planning\roster.html:389 .\templates\planning\schemes.html:301
+#: .\templates\planning\roster.html:367 .\templates\planning\schemes.html:301
 msgid "Working hours"
 msgstr "Werkuren"
 
@@ -1035,13 +1034,13 @@ msgstr "Factuur-uren"
 
 #: .\templates\employees\emplhours.html:255
 #: .\templates\planning\realization.html:215
-#: .\templates\planning\roster.html:399 .\templates\planning\schemes.html:309
+#: .\templates\planning\roster.html:382 .\templates\planning\schemes.html:309
 msgid "Do you want to delete the shift of"
 msgstr "Wilt u de dienst verwijderen van"
 
 #: .\templates\employees\emplhours.html:256
 #: .\templates\planning\realization.html:216
-#: .\templates\planning\roster.html:400 .\templates\planning\schemes.html:310
+#: .\templates\planning\roster.html:383 .\templates\planning\schemes.html:310
 msgid "Do you want to delete this shift?"
 msgstr "Wilt u deze dienst verwijderen?"
 
@@ -1125,7 +1124,7 @@ msgstr "Controleren"
 msgid "Hours"
 msgstr "Uren"
 
-#: .\templates\includes\timepicker.html:28 .\templates\planning\roster.html:343
+#: .\templates\includes\timepicker.html:28 .\templates\planning\roster.html:331
 #: .\templates\planning\schemes.html:267
 msgid "Quick save"
 msgstr "Snel opslaan"
@@ -1135,213 +1134,193 @@ msgid "Realization"
 msgstr "Realisatie"
 
 #: .\templates\planning\roster.html:21
-msgid "Select range"
-msgstr "Selecteer tijdspanne"
+msgid "Select interval"
+msgstr "Selecteer interval"
 
 #: .\templates\planning\roster.html:41
-msgid "Interval hours"
-msgstr "Interval uren"
-
-#: .\templates\planning\roster.html:44
 msgid "Overlap with previous interval"
 msgstr "Overlapping met vorig interval"
 
-#: .\templates\planning\roster.html:51
-msgid "Dynamic range"
-msgstr "Dynamische tijdspanne"
+#: .\templates\planning\roster.html:44
+msgid "Overlap with next interval"
+msgstr "Overlapping met volgend interval"
 
-#: .\templates\planning\roster.html:70
+#: .\templates\planning\roster.html:64
 msgid "Period settings"
 msgstr "Periode instellingen"
 
-#: .\templates\planning\roster.html:81
+#: .\templates\planning\roster.html:75
 msgid "Period start date"
 msgstr "Begindatum periode"
 
-#: .\templates\planning\roster.html:122 .\templates\planning\roster.html:356
+#: .\templates\planning\roster.html:116 .\templates\planning\roster.html:370
 msgid "Select employee"
 msgstr "Selecteer werknemer"
 
-#: .\templates\planning\roster.html:145
+#: .\templates\planning\roster.html:139
 msgid "Select an option"
 msgstr "Selecteer een optie"
 
-#: .\templates\planning\roster.html:149
+#: .\templates\planning\roster.html:143
 msgid "Absence"
 msgstr "Afwezig"
 
-#: .\templates\planning\roster.html:150
+#: .\templates\planning\roster.html:144
 msgid "Switch shift"
 msgstr "Dienst ruilen"
 
-#: .\templates\planning\roster.html:151
+#: .\templates\planning\roster.html:145
 msgid "Split shift"
 msgstr "Dienst splitsen"
 
-#: .\templates\planning\roster.html:156 .\templates\planning\roster.html:359
+#: .\templates\planning\roster.html:150 .\templates\planning\roster.html:341
 msgid "Absence category"
 msgstr "Absentie categorie"
 
-#: .\templates\planning\roster.html:170 .\templates\planning\roster.html:392
+#: .\templates\planning\roster.html:164 .\templates\planning\roster.html:372
 msgid "Replacement employee"
 msgstr "Vervanger"
 
-#: .\templates\planning\roster.html:179
+#: .\templates\planning\roster.html:173
 msgid "Type a few letters and select employee in the list ..."
 msgstr "Type een paar letter en selecteer een werknemer in de lijst ..."
 
-#: .\templates\planning\roster.html:184
+#: .\templates\planning\roster.html:178
 msgid "Select shift"
 msgstr "Selecteer dienst"
 
-#: .\templates\planning\roster.html:191
+#: .\templates\planning\roster.html:185
 msgid "Split time"
 msgstr "Tijdstip splitsing"
 
-#: .\templates\planning\roster.html:222 .\templates\planning\roster.html:252
+#: .\templates\planning\roster.html:216 .\templates\planning\roster.html:245
 #: .\templates\planning\schemes.html:119
 msgid "Roster date"
 msgstr "Rooster datum"
 
-#: .\templates\planning\roster.html:227
+#: .\templates\planning\roster.html:220
 msgid "Fill roster date "
 msgstr "Roosterdatum vullen"
 
-#: .\templates\planning\roster.html:228
+#: .\templates\planning\roster.html:221
 msgid "Remove roster date"
 msgstr "Roosterdatum verwijderen"
 
-#: .\templates\planning\roster.html:262 .\templates\planning\schemes.html:128
+#: .\templates\planning\roster.html:255 .\templates\planning\schemes.html:128
 msgid "Previous month"
 msgstr "Vorige maand"
 
-#: .\templates\planning\roster.html:263 .\templates\planning\schemes.html:129
+#: .\templates\planning\roster.html:256 .\templates\planning\schemes.html:129
 msgid "Previous day"
 msgstr "Vorige dag"
 
-#: .\templates\planning\roster.html:264 .\templates\planning\schemes.html:130
+#: .\templates\planning\roster.html:257 .\templates\planning\schemes.html:130
 msgid "Today"
 msgstr "Vandaag"
 
-#: .\templates\planning\roster.html:265 .\templates\planning\schemes.html:131
+#: .\templates\planning\roster.html:258 .\templates\planning\schemes.html:131
 msgid "Next day"
 msgstr "Volgende dag"
 
-#: .\templates\planning\roster.html:266 .\templates\planning\schemes.html:132
+#: .\templates\planning\roster.html:259 .\templates\planning\schemes.html:132
 msgid "Next month"
 msgstr "Volgende maand"
 
-#: .\templates\planning\roster.html:344 .\templates\planning\schemes.html:268
+#: .\templates\planning\roster.html:332 .\templates\planning\schemes.html:268
 msgid "Exit Quick save"
 msgstr "Snel opslaan uitschakelen"
 
-#: .\templates\planning\roster.html:346 .\templates\planning\schemes.html:44
+#: .\templates\planning\roster.html:334 .\templates\planning\schemes.html:44
 #: .\templates\planning\schemes.html:270
 msgid "Customer"
 msgstr "Klant"
 
-#: .\templates\planning\roster.html:350 .\templates\planning\schemes.html:274
+#: .\templates\planning\roster.html:338 .\templates\planning\schemes.html:274
 msgid "Select order"
 msgstr "Selecteer opdracht"
 
-#: .\templates\planning\roster.html:351 .\templates\planning\schemes.html:275
+#: .\templates\planning\roster.html:339 .\templates\planning\schemes.html:275
 msgid "No orders"
 msgstr "Geen opdrachten"
 
-#: .\templates\planning\roster.html:352 .\templates\planning\schemes.html:276
-msgid "Select scheme"
-msgstr "Selecteer schema"
-
-#: .\templates\planning\roster.html:353 .\templates\planning\schemes.html:277
-msgid "No schemes"
-msgstr "Geen schemas"
-
-#: .\templates\planning\roster.html:357
-msgid "No employeess"
-msgstr "Geen werknemers"
-
-#: .\templates\planning\roster.html:360
+#: .\templates\planning\roster.html:342
 msgid "Select absence category"
 msgstr "Selecteer absentie categorie"
 
-#: .\templates\planning\roster.html:361
+#: .\templates\planning\roster.html:343
 msgid "No absence categories"
 msgstr "Selecteer absentie categorieën"
 
-#: .\templates\planning\roster.html:364 .\templates\planning\schemes.html:54
+#: .\templates\planning\roster.html:346 .\templates\planning\schemes.html:54
 #: .\templates\planning\schemes.html:280
 msgid "Scheme"
 msgstr "Schema"
 
-#: .\templates\planning\roster.html:365 .\templates\planning\schemes.html:281
+#: .\templates\planning\roster.html:347 .\templates\planning\schemes.html:281
 msgid "Add new scheme"
 msgstr "Schema toevoegen"
 
-#: .\templates\planning\roster.html:366 .\templates\planning\schemes.html:282
+#: .\templates\planning\roster.html:348 .\templates\planning\schemes.html:282
 msgid "Once only"
 msgstr "Eenmalig"
 
-#: .\templates\planning\roster.html:368
+#: .\templates\planning\roster.html:350
 msgid "Period"
 msgstr ""
 
-#: .\templates\planning\roster.html:369
+#: .\templates\planning\roster.html:351
 msgid "Period setting"
 msgstr ""
 
-#: .\templates\planning\roster.html:370
+#: .\templates\planning\roster.html:353
+msgid "Go to current period"
+msgstr ""
+
+#: .\templates\planning\roster.html:354
+msgid "Go to next period"
+msgstr ""
+
+#: .\templates\planning\roster.html:355
+msgid "Go to previous period"
+msgstr ""
+
+#: .\templates\planning\roster.html:357
 msgid "Range"
 msgstr ""
 
-#: .\templates\planning\roster.html:371 .\templates\planning\schemes.html:284
+#: .\templates\planning\roster.html:358 .\templates\planning\schemes.html:284
 msgid "Rosterdate"
 msgstr "Rooster datum"
 
-#: .\templates\planning\roster.html:372
+#: .\templates\planning\roster.html:359
 msgid "Fill roster of"
 msgstr "Vul rooster van"
 
-#: .\templates\planning\roster.html:373
+#: .\templates\planning\roster.html:360
 msgid "Remove roster of"
 msgstr "Verwijder rooster van"
 
-#: .\templates\planning\roster.html:374 .\templates\planning\schemes.html:286
+#: .\templates\planning\roster.html:361 .\templates\planning\schemes.html:286
 msgid "of"
 msgstr "van"
 
-#: .\templates\planning\roster.html:376 .\templates\planning\schemes.html:288
-msgid "Enter shift"
-msgstr "Vul dienst in"
+#: .\templates\planning\roster.html:371
+msgid "No employeess"
+msgstr "Geen werknemers"
 
-#: .\templates\planning\roster.html:378 .\templates\planning\schemes.html:290
-msgid "Go to shifts"
-msgstr "Ga naar diensten"
-
-#: .\templates\planning\roster.html:380 .\templates\planning\schemes.html:292
-msgid "Team"
-msgstr ""
-
-#: .\templates\planning\roster.html:381 .\templates\planning\schemes.html:293
-msgid "Teams"
-msgstr ""
-
-#: .\templates\planning\roster.html:382 .\templates\planning\schemes.html:294
-msgid "Add new team"
-msgstr "Team toevoegen"
-
-#: .\templates\planning\roster.html:383 .\templates\planning\schemes.html:295
-msgid "Delete team"
-msgstr "Team verwijderen"
-
-#: .\templates\planning\roster.html:384 .\templates\planning\schemes.html:296
-msgid "Go to teams"
-msgstr "Ga naar teams"
-
-#: .\templates\planning\roster.html:393
+#: .\templates\planning\roster.html:373
 msgid "Employee to be switched with"
 msgstr "Werknemer met wie dienst wordt geruild"
 
-#: .\templates\planning\roster.html:398 .\templates\planning\schemes.html:308
+#: .\templates\planning\roster.html:378
+msgid "hour"
+msgstr ""
+
+#: .\templates\planning\roster.html:379
+msgid "hours"
+msgstr "uren"
+
+#: .\templates\planning\roster.html:381 .\templates\planning\schemes.html:308
 msgid "Enter employee"
 msgstr "Vul werknemer in"
 
@@ -1365,9 +1344,45 @@ msgstr "Zet alle roosterdagen een dag later."
 msgid "Fill scheme"
 msgstr "Schema vullen"
 
+#: .\templates\planning\schemes.html:276
+msgid "Select scheme"
+msgstr "Selecteer schema"
+
+#: .\templates\planning\schemes.html:277
+msgid "No schemes"
+msgstr "Geen schemas"
+
 #: .\templates\planning\schemes.html:285
 msgid "Fill roster"
 msgstr "Rooster vullen"
+
+#: .\templates\planning\schemes.html:288
+msgid "Enter shift"
+msgstr "Vul dienst in"
+
+#: .\templates\planning\schemes.html:290
+msgid "Go to shifts"
+msgstr "Ga naar diensten"
+
+#: .\templates\planning\schemes.html:292
+msgid "Team"
+msgstr ""
+
+#: .\templates\planning\schemes.html:293
+msgid "Teams"
+msgstr ""
+
+#: .\templates\planning\schemes.html:294
+msgid "Add new team"
+msgstr "Team toevoegen"
+
+#: .\templates\planning\schemes.html:295
+msgid "Delete team"
+msgstr "Team verwijderen"
+
+#: .\templates\planning\schemes.html:296
+msgid "Go to teams"
+msgstr "Ga naar teams"
 
 #: .\templates\planning\schemes.html:304
 msgid "Replaces"
@@ -1386,15 +1401,15 @@ msgstr ""
 msgid "V"
 msgstr "F"
 
-#: .\tsap\functions.py:30
+#: .\tsap\functions.py:128
 msgid "Date cannot be blank."
 msgstr "Datum moet ingevuld zijn."
 
-#: .\tsap\functions.py:55
+#: .\tsap\functions.py:153
 msgid "is not a valid date."
 msgstr "is geen geldige datum."
 
-#: .\tsap\functions.py:90 .\tsap\functions.py:131
+#: .\tsap\functions.py:188 .\tsap\functions.py:229
 msgid "is not a valid time."
 msgstr "is geen geldige tijd."
 
@@ -1457,3 +1472,12 @@ msgstr "Deze code bestaat al."
 #: .\tsap\validators.py:160
 msgid "Name already exists."
 msgstr "Deze naam bestaat al."
+
+#~ msgid "Select range"
+#~ msgstr "Selecteer periode"
+
+#~ msgid "Interval hours"
+#~ msgstr "Interval uren"
+
+#~ msgid "Dynamic range"
+#~ msgstr "Dynamische periode"

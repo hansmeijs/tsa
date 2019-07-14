@@ -11,16 +11,242 @@ from companies.models import Customer, Order, Scheme, Schemeitembase, Schemeitem
 from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 
 from tsap.functions import get_date_from_str, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
-                    get_weekdaylist_for_DHM, get_date_HM_from_minutes,  set_fielddict_date, fielddict_duration, fielddict_date
+                    get_weekdaylist_for_DHM, get_date_HM_from_minutes, set_fielddict_date, \
+                    fielddict_duration, fielddict_date, get_datetime_UTC_from_ISOstring, get_datetime_LOCAL_from_ISOstring
 
-from tsap.constants import MONTHS_ABBREV, WEEKDAYS_ABBREV, TIMEFORMATS, STATUS_EMPLHOUR_00_NONE, STATUS_EMPLHOUR_01_CREATED, \
-    KEY_COMP_ROSTERDATE_CURRENT, KEY_USER_EMPLHOUR_PERIOD
+from tsap.constants import KEY_COMP_ROSTERDATE_CURRENT, KEY_USER_EMPLHOUR_PERIOD
 
 import pytz
 import json
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def get_period_dict_and_save(request, get_current):  # PR2019-07-13
+    logger.debug(' ============= get_period_dict_and_save ============= ')
+    # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
+
+    new_period_dict = {}
+    if request.user is not None and request.user.company is not None:
+
+        # get saved period_dict
+        saved_period_dict = get_period_from_settings(request)
+
+        # copy key values from saved_period_dict in new_period_dict (don't copy dict, the loop skips keys that are not in use)
+        if saved_period_dict:
+            for field in ['interval', 'overlap_prev', 'overlap_next', 'range', 'periodstart', 'periodend', 'current']:
+                if field in saved_period_dict:
+                    new_period_dict[field] = saved_period_dict[field]
+
+        if get_current:
+            new_period_dict['current'] = True
+        else:
+            get_current = new_period_dict['current']
+
+        interval_int = int(new_period_dict['interval'])
+        overlap_prev_int = int(new_period_dict['overlap_prev'])
+        overlap_next_int = int(new_period_dict['overlap_next'])
+        period_starttime_iso = None
+
+        logger.debug('>>>>>> new_period_dict: ' + str(new_period_dict))
+
+        # check if periodstart is present when not get_current. If not found: get_current
+        if not get_current:
+            if 'periodstart' in new_period_dict:
+                period_starttime_iso = new_period_dict['periodstart']
+            else:
+                get_current = True
+
+        logger.debug('>>>> period_starttime_iso: ' + str(period_starttime_iso))
+
+        # if get_current: set start time of current period in UTC
+        if get_current:
+
+            # get start- and end-time of current period in UTC
+            period_start_utc, period_end_utc = get_current_period(interval_int, overlap_prev_int, overlap_next_int,
+                                                                  request)
+
+            # put start- and end-time of current period in new_period_dict
+            new_period_dict['periodstart'] = period_start_utc.isoformat()
+            new_period_dict['periodend'] = period_end_utc.isoformat()
+
+            logger.debug('period_start_utc.isoformat: ' + str(new_period_dict['periodstart']))
+            logger.debug('period_end_utc.isoformat: ' + str(new_period_dict['periodend']))
+
+        else:
+            # if not get_current: calculate end time:
+            if period_starttime_iso:
+                period_starttime_utc = get_datetime_UTC_from_ISOstring(period_starttime_iso)
+                period_endtime_utc = get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, overlap_next_int)
+                new_period_dict['periodend'] = period_endtime_utc.isoformat()
+
+                logger.debug('period_starttime_utc: ' + str(period_starttime_utc) )
+                logger.debug('period_endtime_utc: ' + str(period_endtime_utc))
+
+
+        period_dict_json = json.dumps(new_period_dict)  # dumps takes an object and produces a string:
+        Usersetting.set_setting(KEY_USER_EMPLHOUR_PERIOD, period_dict_json, request.user)
+
+    logger.debug('new_period_dict: ' + str(new_period_dict))
+    return new_period_dict
+
+
+def get_current_period(interval_int, overlap_prev_int, overlap_next_int, request):  # PR2019-07-12
+    logger.debug(' ============= get_current_period ============= ')
+     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
+
+    period_starttime_utc = None
+    period_endtime_utc = None
+
+    if request.user is not None and request.user.company is not None:
+
+# get comp_timezone
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+
+# get now without timezone
+        now_utc_naive = datetime.utcnow()
+        # now_utc_naive: 2019-07-10 14:48:15.742546 <class 'datetime.datetime'>
+
+# convert now to timezone utc
+        now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
+        # now_utc: 2019-07-10 14:48:15.742546+00:00 <class 'datetime.datetime'>
+
+# convert now_utc to now_local ( = company timezone)
+        # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+        timezone = pytz.timezone(comp_timezone)
+        now_local = now_utc.astimezone(timezone)
+        # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
+
+# split now_local
+        year_int, month_int, date_int, hour_int, minute_int = split_datetime(now_local)
+
+# get index of current interval (with interval = 6 hours, interval 6-12h has index 1
+        interval_index = 0
+        if interval_int:
+            interval_index = int(hour_int / interval_int)
+        # logger.debug('interval_int: ' + str(interval_int) + ' interval_index: ' + str(interval_index))
+
+# get local start hour of current interval
+        period_starthour = interval_int * interval_index
+        # logger.debug('period_starthour: ' + str(period_starthour))
+
+# get local start time of current interval without timezone
+        interval_starttime_naive = datetime(year_int, month_int, date_int, period_starthour, 0)
+        # logger.debug('interval_starttime_naive: ' + str(interval_starttime_naive))
+
+# get local start time of current interval in local timezone ( = company timezone)
+        # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
+        interval_starttime_local = timezone.localize(interval_starttime_naive)
+        logger.debug('interval_starttime_local: ' + str(interval_starttime_local))
+
+# get local start time of current period (is interval_start_local minus overlap_prev_int)
+        period_starttime_local = interval_starttime_local - timedelta(hours=overlap_prev_int)
+        logger.debug('overlap_prev_int: ' + str(overlap_prev_int) + ' period_starttime_local: ' + str(period_starttime_local))
+
+# get start time of current period in UTC
+        period_starttime_utc = period_starttime_local.astimezone(pytz.UTC)
+        logger.debug('period_starttime_utc: ' + str(period_starttime_utc))
+
+# get utc end time of current period ( = local start time of current period plus overlap_prev_int + interval + overlap_next_int
+        period_int = overlap_prev_int + interval_int + overlap_next_int
+        period_endtime_utc = period_starttime_utc + timedelta(hours=period_int)
+        logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
+
+    return period_starttime_utc, period_endtime_utc
+
+
+def get_prevnext_period(prevnext, period_timestart_iso, interval_int, overlap_prev_int,  overlap_next_int, comp_timezone):  # PR2019-07-13
+    logger.debug(' ============= get_prevnext_period ============= ')
+    # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
+
+    logger.debug('period_timestart_iso: ' + str(period_timestart_iso) + ' ' + str(type(period_timestart_iso)))
+    logger.debug('interval_int: ' + str(interval_int) + ' ' + str(type(interval_int)))
+
+    hour_add = 0
+    if prevnext == 'next':
+        hour_add = interval_int
+    elif prevnext == 'prev':
+        hour_add = -interval_int
+    period_int = interval_int + overlap_prev_int + overlap_next_int
+
+    # Attention: add/subtract interval must be done in local time, because of DST
+
+    # convert period_timestart_iso into period_timestart_local
+    period_timestart_local = get_datetime_LOCAL_from_ISOstring(period_timestart_iso, comp_timezone)
+    logger.debug('period_timestart_local: ' + str(period_timestart_local) + ' ' + str(type(period_timestart_local)))
+
+    # get local start time of new period ( = local start time of current period plus interval)
+    prevnext_timestart_local = period_timestart_local + timedelta(hours=hour_add)
+    logger.debug('prevnext_timestart_local: ' + str(prevnext_timestart_local))
+
+    # get start time of new period in UTC
+    prevnext_timestart_utc = prevnext_timestart_local.astimezone(pytz.UTC)
+    logger.debug('prevnext_timestart_utc: ' + str(prevnext_timestart_utc))
+
+    # get local end time of new period ( = local start time of new period plus interval + overlap_prev + overlap_next
+    prevnext_timeend_local = prevnext_timestart_local + timedelta(hours=period_int)
+    logger.debug('prevnext_timeend_local: ' + str(prevnext_timeend_local))
+
+    # get end time of new period in UTC
+    prevnext_timeend_utc = prevnext_timeend_local.astimezone(pytz.UTC)
+    logger.debug('prevnext_timeend_utc: ' + str(prevnext_timeend_utc))
+
+
+    return prevnext_timestart_utc, prevnext_timeend_utc
+
+
+def get_period_from_settings(request):  # PR2019-07-09
+    # logger.debug(' ============= get_period_from_settings ============= ')
+
+    period_dict = {}
+    if request.user is not None and request.user.company is not None:
+
+        # get emplhour period from Usersetting
+        period_dict_json = Usersetting.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user)
+        if period_dict_json:
+            period_dict = json.loads(period_dict_json)
+
+        # if not found: get emplhour period from Companysetting
+        else:
+            period_dict_json = Companysetting.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user.company)
+            if period_dict_json:
+                period_dict = json.loads(period_dict_json)
+
+        # if one or more keys not found: add key with default value
+        if not 'interval' in period_dict:
+            period_dict['interval'] = 24
+        if not 'overlap_prev' in period_dict:
+            period_dict['overlap_prev'] = 0
+        if not 'overlap_next' in period_dict:
+            period_dict['overlap_next'] = 0
+        if not 'range' in period_dict:
+            period_dict['range'] = '0;0;1;0'
+        if not 'current' in period_dict:
+            period_dict['current'] = True
+
+    return period_dict
+
+
+def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, overlap_next_int):  # PR2019-07-13
+    logger.debug(' ============= get_period_endtime ============= ')
+     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
+
+    # utc end time of period = local start time of period plus overlap_prev_int + interval + overlap_next_int
+    period_int = overlap_prev_int + interval_int + overlap_next_int
+    period_endtime_utc = period_starttime_utc + timedelta(hours=period_int)
+    # logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
+
+    return period_endtime_utc
+
+
+
+
+
+
+
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -253,44 +479,47 @@ def create_date_dict(rosterdate, user_lang, status_text):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def create_emplhour_list(periodstart, periodend, company, comp_timezone, user_lang): # PR2019-06-16
+def create_emplhour_list(period_timestart_utc, period_timeend_utc, company, comp_timezone, user_lang): # PR2019-06-16
     logger.debug(' ============= create_emplhour_list ============= ')
-
-    logger.debug('periodstart: ' + periodstart)
-    logger.debug('periodend: ' + periodend)
 
     # TODO select_related on queyset
     #  queryset = Courses.objects.filter(published=True).prefetch_related('modules', 'modules__lessons', 'modules__lessons__exercises')
     # TODO filter also on min max rosterdate, in case timestart / end is null
     starttime = timer()
 
+    # convert period_timestart_iso into period_timestart_local
+    logger.debug('period_timestart_utc: ' + str(period_timestart_utc) + ' ' + str(type(period_timestart_utc)))
+    logger.debug('period_timeend_utc: ' + str(period_timeend_utc)+ ' ' + str(type(period_timeend_utc)))
+
+    date_min = period_timestart_utc.date()
+    date_max = period_timeend_utc.date()
+
     crit = (Q(orderhour__order__customer__company=company)) & \
-           (Q(timestart__lte=periodend) | Q(timestart__isnull=True)) & \
-           (Q(timeend__gte=periodstart) | Q(timeend__isnull=True))
+           (Q(rosterdate__gte=date_min)) & (Q(rosterdate__lte=date_max)) & \
+           (Q(timestart__lte=period_timeend_utc) | Q(timestart__isnull=True)) & \
+           (Q(timeend__gte=period_timestart_utc) | Q(timeend__isnull=True))
+
     emplhours = Emplhour.objects.filter(crit)
 
     logger.debug(emplhours.query)
     # SELECT ...
-    # FROM "companies_emplhour"
-    # INNER JOIN "companies_orderhour" ON ("companies_emplhour"."orderhour_id" = "companies_orderhour"."id")
-    # INNER JOIN "companies_order" ON ("companies_orderhour"."order_id" = "companies_order"."id")
-    # INNER JOIN "companies_customer" ON ("companies_order"."customer_id" = "companies_customer"."id")
-    # WHERE ("companies_customer"."company_id" = 1
-    # AND ("companies_emplhour"."timestart" <= 2019-07-11 06:00:00+00:00 OR "companies_emplhour"."timestart" IS NULL)
-    # AND ("companies_emplhour"."timeend" >= 2019-07-10 22:00:00+00:00 OR "companies_emplhour"."timeend" IS NULL))
+    # WHERE ("companies_customer"."company_id" = 1 AND
+    # "companies_emplhour"."rosterdate" >= 2019-07-13 AND "companies_emplhour"."rosterdate" <= 2019-07-14 AND
+    # ("companies_emplhour"."timestart" <= 2019-07-14 22:00:00+00:00 OR "companies_emplhour"."timestart" IS NULL) AND
+    # ("companies_emplhour"."timeend" >= 2019-07-13 22:00:00+00:00 OR "companies_emplhour"."timeend" IS NULL))
     # ORDER BY "companies_emplhour"."rosterdate" ASC, "companies_emplhour"."timestart" ASC
 
-    print('sql elapsed time  is :')
-    print(timer() - starttime)
+    logger.debug('sql elapsed time  is :')
+    logger.debug(timer() - starttime)
 
     emplhour_list = []
     for emplhour in emplhours:
-        logger.debug('emplhour: ' + str(emplhour))
+        logger.debug('emplhour.timestart: ' + str(emplhour.timestart))
         dict = create_emplhour_dict(emplhour, comp_timezone, user_lang)
         emplhour_list.append(dict)
 
-    print('list elapsed time  is :')
-    print(timer() - starttime)
+    logger.debug('list elapsed time  is :')
+    logger.debug(timer() - starttime)
 
     return emplhour_list
 
@@ -417,109 +646,72 @@ def set_fielddict_datetime(field, field_dict, rosterdate_utc, timestart, timeend
     if rosterdate_utc:
         field_dict['rosterdate'] = rosterdate_utc
 
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def get_period_from_settings(request):  # PR2019-07-09
-    # logger.debug(' ============= get_period_from_settings ============= ')
 
-    period_dict = {}
-    if request.user is not None and request.user.company is not None:
-# get emplhour period from Usersetting
-        period_dict_json = Usersetting.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user)
-        if period_dict_json:
-            period_dict = json.loads(period_dict_json)
-# if not found: get emplhour period from Companysetting
-        else:
-            period_dict_json = Companysetting.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user.company)
-            if period_dict_json:
-                period_dict = json.loads(period_dict_json)
-# if not found: enter missing key/values
-        if not 'range' in period_dict:
-            period_dict['range'] = '0;0;1;0'
-        if not 'period' in period_dict:
-            period_dict['period'] = 6
-        if not 'interval' in period_dict:
-            period_dict['interval'] = 6
-        if not 'overlap' in period_dict:
-            period_dict['overlap'] = 0
-        if not 'auto' in period_dict:
-            period_dict['auto'] = True
-    return period_dict
-
-def get_period_dict(request):  # PR2019-07-10
-    #logger.debug(' ============= get_period_dict ============= ')
+def get_period_endtimeXXXX(interval_int, overlap_prev_int, overlap_next_int, request):  # PR2019-07-12
+    logger.debug(' ============= get_period_endtime ============= ')
      # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
 
-    period_dict = {}
+    period_starttime_utc = None
+    period_endtime_utc = None
+
     if request.user is not None and request.user.company is not None:
 
 # get comp_timezone
         comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
-# get saved period_dict
-        period_dict = get_period_from_settings(request)
+# get now without timezone
+        now_utc_naive = datetime.utcnow()
+        # now_utc_naive: 2019-07-10 14:48:15.742546 <class 'datetime.datetime'>
 
-# get values from saved / updated period_dict
-        interval = int(period_dict['interval'])
-        overlap = int(period_dict['overlap'])
-        period = int(period_dict['period'])
+# convert now to timezone utc
+        now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
+        # now_utc: 2019-07-10 14:48:15.742546+00:00 <class 'datetime.datetime'>
 
-# get today_midnight_local
-        today_utc = get_rosterdate_utc(date.today())
-        today_midnight_local = get_rosterdate_midnight_local(today_utc, comp_timezone)
-
-# get now in utc
-        now_dt = datetime.utcnow()
-        # logger.debug('now_dt: ' + str(now_dt) + ' type: ' + str(type(now_dt)))
-        # now_dt: 2019-07-10 14:48:15.742546 type: <class 'datetime.datetime'>
-        now_utc = now_dt.replace(tzinfo=pytz.utc)  # NOTE: it works only with a fixed utc offset
-        #logger.debug('now_utc: ' + str(now_utc) + ' type: ' + str(type(now_utc)))
-        # now_utc: 2019-07-10 14:48:15.742546+00:00 type: <class 'datetime.datetime'>
-
-# convert now to local
+# convert now_utc to now_local ( = company timezone)
         # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
-        # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
         timezone = pytz.timezone(comp_timezone)
         now_local = now_utc.astimezone(timezone)
-        #logger.debug('now_local: ' + str(now_local) + str(type(now_local)))
         # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
 
 # split now_local
         year_int, month_int, date_int, hour_int, minute_int = split_datetime(now_local)
-        #logger.debug(
-        #    'now_local_arr: ' + str(year_int) + ';' + str(month_int) + ';' + str(date_int) + ';' + str(
-        #        hour_int) + ';' + str(minute_int))
-        # now_local_arr: 2019;7;10;16
 
 # get index of current interval (with interval = 6 hours, interval 6-12h has index 1
         interval_index = 0
-        if interval:
-            interval_index = int(hour_int / interval)
-        #logger.debug('interval: ' + str(interval) + ' interval_index: ' + str(interval_index))
+        if interval_int:
+            interval_index = int(hour_int / interval_int)
+        # logger.debug('interval_int: ' + str(interval_int) + ' interval_index: ' + str(interval_index))
 
-# get local start time of current interval
-        interval_starthour = interval * interval_index
-        interval_start_local = today_midnight_local + timedelta(hours=interval_starthour)
-        #logger.debug('interval_start_local: ' + str(interval_start_local) + str(type(interval_start_local)))
+# get local start hour of current interval
+        period_starthour = interval_int * interval_index
+        # logger.debug('period_starthour: ' + str(period_starthour))
 
-# get local start time of current period (is interval_start_local minus overlap)
-        period_start_local = interval_start_local - timedelta(hours=overlap)
-        #logger.debug('overlap: ' + str(overlap) + ' period_start_local: ' + str(period_start_local))
+# get local start time of current interval without timezone
+        interval_starttime_naive = datetime(year_int, month_int, date_int, period_starthour, 0)
+        # logger.debug('interval_starttime_naive: ' + str(interval_starttime_naive))
+
+# get local start time of current interval in local timezone ( = company timezone)
+        # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
+        interval_starttime_local = timezone.localize(interval_starttime_naive)
+        logger.debug('interval_starttime_local: ' + str(interval_starttime_local))
+
+# get local start time of current period (is interval_start_local minus overlap_prev_int)
+        period_starttime_local = interval_starttime_local - timedelta(hours=overlap_prev_int)
+        # logger.debug('overlap_prev_int: ' + str(overlap_prev_int) + ' period_starttime_local: ' + str(period_starttime_local))
 
 # get start time of current period in UTC
-        period_start_utc = period_start_local.astimezone(pytz.UTC)
-        #logger.debug('rperiod_start_utc: ' + str(period_start_utc))
-        period_dict['periodstart'] = period_start_utc.isoformat()
-        #logger.debug('period_start_utc.isoformat: ' + str(period_dict['periodtimestart']))
+        period_starttime_utc = period_starttime_local.astimezone(pytz.UTC)
+        # logger.debug('period_starttime_utc: ' + str(period_starttime_utc))
 
-# get utc end time of current period ( = local start time of current period plus period
-        period_end_utc = period_start_utc + timedelta(hours=period)
-        #logger.debug('period: ' + str(period) + ' utc >>>>>> period_end_utc: ' + str(period_end_utc))
-        period_dict['periodend'] = period_end_utc.isoformat()
-        #logger.debug('period_end_utc.isoformat: ' + str( period_dict['periodtimeend']))
+# get utc end time of current period ( = local start time of current period plus overlap_prev_int + interval + overlap_next_int
+        period_int = overlap_prev_int + interval_int + overlap_next_int
+        period_endtime_utc = period_starttime_utc + timedelta(hours=period_int)
+        # logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
 
-    #logger.debug('period_dict: ' + str(period_dict))
-    return period_dict
+    return period_endtime_utc
 
 
 def get_range(range):  # PR2019-07-10
@@ -551,15 +743,6 @@ def split_datetime(dt):  # PR2019-07-10
         minute_int = dt.minute
 
     return year_int, month_int, date_int, hour_int, minute_int
-
-    if range:
-        if ';' in range:
-            arr = range.split(';')
-            year_int = int(arr[0])
-            month_int = int(arr[1])
-            date_int = int(arr[2])
-            hour_int = int(arr[3])
-    return year_int, month_int, date_int, hour_int
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -666,7 +849,7 @@ def get_rosterdate_current(company): # PR2019-06-16
     rstdte_current_str = Companysetting.get_setting(KEY_COMP_ROSTERDATE_CURRENT, company)
     rosterdate, msg_err = get_date_from_str(rstdte_current_str)
 
-    logger.debug('rosterdate: ' + str(rosterdate) + ' type: ' + str(type(rosterdate)))
+    # logger.debug('rosterdate: ' + str(rosterdate) + ' type: ' + str(type(rosterdate)))
 # if no date found in settings: get first rosterdate of all schemitems of company PR2019-06-07
     if rosterdate is None:
         schemeitem = Schemeitem.objects.filter(scheme__order__customer__company=company).first()

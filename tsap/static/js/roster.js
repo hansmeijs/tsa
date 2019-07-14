@@ -33,16 +33,17 @@ $(function() {
     let abscat_list = [];
     let employee_list = [];
     let emplhour_list = [];
+    let period_dict = {};
 
         let tblBody_select = document.getElementById("id_tbody_select");
         let tblBody_items = document.getElementById("id_tbody_items");
         let tblHead_items = document.getElementById("id_thead_items");
 
-        let el_mod_tbody_select =  document.getElementById("id_mod_tbody_select");
+        let el_mod_tbody_select =  document.getElementById("id_mod_tbody_employee");
 
-        let el_modal_body = document.getElementById("id_modal_body")
-        let el_modal_body_right = document.getElementById("id_modal_body_right")
-        let el_modal_header = document.getElementById("id_modal_header")
+        let el_modal_body = document.getElementById("id_mod_body")
+        let el_modal_body_right = document.getElementById("id_mod_body_right")
+        let el_modal_header = document.getElementById("id_mod_header")
 
         let el_timepicker = document.getElementById("id_timepicker")
         let el_timepicker_tbody_hour = document.getElementById("id_timepicker_tbody_hour");
@@ -121,7 +122,7 @@ $(function() {
         let el_mod_filter_employee = document.getElementById("id_mod_filter_employee");
             el_mod_filter_employee.addEventListener("keyup", function(){
                 setTimeout(function() {HandleModalFilterEmployee("filter")}, 50)});
-        let el_mod_employee = document.getElementById("id_mod_employee")
+        let el_mod_employee = document.getElementById("id_mod_input_employee")
             el_mod_employee.addEventListener("keyup", function(){
                 setTimeout(function() {HandleModalFilterEmployee("input")}, 250)});
 
@@ -132,8 +133,9 @@ $(function() {
         document.getElementById("id_mod_btn_split").addEventListener("click", function() {HandleModalSelect("split");}, false )
         document.getElementById("id_mod_btn_save").addEventListener("click", function() {HandleModalSave();}, false )
 
-        document.getElementById("id_mod_range_btn_save").addEventListener("click", function() {HandleModalPeriodSave("setting");}, false )
-
+        document.getElementById("id_mod_setting_btn_save").addEventListener("click", function() {HandleModalPeriodSave("setting");}, false )
+        document.getElementById("id_mod_setting_overlap_prev").addEventListener("change", function() {HandleModalSelectInterval();}, false )
+        document.getElementById("id_mod_setting_overlap_next").addEventListener("change", function() {HandleModalSelectInterval();}, false )
 
 // buttons in  popup_wdy
         document.getElementById("id_popup_wdy_prev_month").addEventListener("click", function() {HandlePopupBtnWdy();}, false )
@@ -149,7 +151,7 @@ $(function() {
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
         const url_datalist_download = get_attr_from_element(el_data, "data-datalist_download_url");
-        const url_period_upload = get_attr_from_element(el_data, "data-period_upload_url");
+        const url_interval_upload = get_attr_from_element(el_data, "data-interval_upload_url");
         const url_emplhour_upload = get_attr_from_element(el_data, "data-emplhour_upload_url");
         const url_emplhour_fill_rosterdate = get_attr_from_element(el_data, "data-emplhour_fill_rosterdate_url");
 
@@ -162,8 +164,6 @@ $(function() {
 
         const weekday_list = get_attr_from_element_dict(el_data, "data-weekdays");
         const month_list = get_attr_from_element_dict(el_data, "data-months");
-        const today_dict = get_attr_from_element_dict(el_data, "data-today");
-        let period_dict = get_attr_from_element_dict(el_data, "data-period");
 
         const user_lang = get_attr_from_element(el_data, "data-lang");
         const comp_timezone = get_attr_from_element(el_data, "data-timezone");
@@ -195,9 +195,10 @@ $(function() {
 
 // --- create Submenu
         CreateSubmenu();
-
+        CreateTablePeriod();
         DisplayPeriod(period_dict)
-        let eplh_dict = {"update": true};
+
+        let eplh_dict = {};
         if(!isEmpty(period_dict)){
             const eplh_periodstart = get_dict_value_by_key(period_dict,"periodstart")
             if(!!eplh_periodstart){eplh_dict["periodstart"] = eplh_periodstart}
@@ -207,12 +208,15 @@ $(function() {
         }
         const datalist_request = {"customer": {inactive: false},
                                   "order": {inactive: false},
-                                  "employee": {inactive: false},
+                                  "period": {any: true},
                                   "emplhour": eplh_dict,
                                   "rosterdatefill": {next: true},
                                   "abscat": {inactive: false}
                                   };
         DatalistDownload(datalist_request);
+
+        // employee list can be big. Get separate after downloading emplhour
+        DatalistDownload({"employee": {inactive: false}});
 
 //  #############################################################################################################
 
@@ -259,11 +263,12 @@ $(function() {
                 if ("employee" in response) {
                     employee_list= response["employee"];
                 }
-                if ("order" in response) {
-                    order_list= response["order"];
+                // NOT IN USE
+                //if ("order" in response) {
+                //    order_list= response["order"];
                     // order_list is stored in datalist 'orderhours'
-                    FillDatalist("id_datalist_orderhours",  order_list)
-                }
+                //    FillDatalist("id_datalist_orderhours",  order_list)
+                //}
                 if ("rosterdatefill" in response) {
                     SetNewRosterdate(response["rosterdatefill"])
                     if ("emplhour" in response) {
@@ -280,46 +285,19 @@ $(function() {
                 if ("period" in response) {
                     period_dict= response["period"];
                     DisplayPeriod(period_dict);
-                    CreateTableRange();
                 }
                 if (fill_table) {FillTableRows()}
                 if (check_status) {CheckStatus()}
             },
             error: function (xhr, msg) {
-                console.log(msg + '\n' + xhr.responseText);
                 // hide loader
                 el_loader.classList.add(cls_hide)
+                console.log(msg + '\n' + xhr.responseText);
                 alert(msg + '\n' + xhr.responseText);
             }
         });
     }  // function DatalistDownload
 
-//========= FillDatalist  ====================================
-    function FillDatalist(id_datalist, data_list) {
-        console.log( "===== FillDatalist  ========= ", id_datalist);
-
-        let el_datalist = document.getElementById(id_datalist);
-        el_datalist.innerText = null
-        for (let row_index = 0, tblRow, hide_row, len = data_list.length; row_index < len; row_index++) {
-            let dict = data_list[row_index];
-
-            let pk = get_pk_from_id (dict)
-            let parent_pk = get_parent_pk (dict)
-            let code = get_subdict_value_by_key (dict, "code", "value", "")
-            let customer = get_subdict_value_by_key (dict, "customer", "value", "")
-            let value = customer + " - " + code ;
-                // console.log( "listitem", listitem)
-                // listitem = {id: {pk: 12, parent_pk: 29}, code: {value: "ab"}}
-                let el = document.createElement('option');
-                el.setAttribute("value", value);
-                // name can be looked up by datalist.options.namedItem PR2019-06-01
-                el.setAttribute("name", value);
-                if (!!pk){el.setAttribute("order_pk", pk)};
-
-                el_datalist.appendChild(el);
-
-        }
-    }; // function FillDatalist
 
 //=========  CreateSubmenu  === PR2019-07-08
     function CreateSubmenu() {
@@ -327,96 +305,75 @@ $(function() {
         // console.log("pk", pk, "ppk", parent_pk);
 
         let el_submenu = document.getElementById("id_submenu")
-        el_submenu.innerText = null
-        // index -1 results in that the new cell will be inserted at the last position.
-
-
+        let el_div = document.createElement("div");
+        el_submenu.appendChild(el_div);
 
     // --- first add <a> element with EventListener to td
         let el_a = document.createElement("a");
         el_a.setAttribute("href", "#");
-        el_a.setAttribute("id", "id_period_display");
-        el_a.innerText = get_attr_from_element_str(el_data, "data-txt_period") + ": ";
-        el_a.addEventListener("click", function() {OpenModalPeriod("period")}, false )
-        el_submenu.appendChild(el_a);
-            // --- first add <a> element with EventListener to td
-        el_a = document.createElement("a");
-        el_a.setAttribute("href", "#");
         el_a.innerText = " < ";
-        el_a.title = "Go to previous period"
+        el_a.title =  get_attr_from_element_str(el_data, "data-txt_period_gotoprev");
         el_a.addEventListener("click", function() {HandleModalPeriodSave("prev")}, false )
-        el_submenu.appendChild(el_a);
-
-
+        el_div.appendChild(el_a);
+    // --- first add <a> element with EventListener to td
         el_a = document.createElement("a");
         el_a.setAttribute("id", "id_period_current");
         el_a.setAttribute("href", "#");
-        el_a.innerText = " \u29BF "  /// circeled bullet: \u29BF,  bullet: \u2022 "  // "\uD83D\uDE00" "gear (settings) : \u2699" //
+        // from https://www.fileformat.info/info/unicode/char/25cb/index.htm
+        //el_a.innerText = " \u29BF "  /// circeled bullet: \u29BF,  bullet: \u2022 "  // "\uD83D\uDE00" "gear (settings) : \u2699" //
+        el_a.innerText = " \u25CB "  /// 'white circle' : \u25CB  /// black circle U+25CF
+
+
         el_a.addEventListener("click", function() {HandleModalPeriodSave("current")}, false )
-        el_a.title = "Go to current period"
-        el_submenu.appendChild(el_a);
+        el_a.title =  get_attr_from_element_str(el_data, "data-txt_period_gotocurr");
+        el_div.appendChild(el_a);
     // --- first add <a> element with EventListener to td
         el_a = document.createElement("a");
         el_a.setAttribute("href", "#");
         el_a.innerText = " > ";
-        el_a.title = "Go to next period"
+        el_a.title = get_attr_from_element_str(el_data, "data-txt_period_gotonext");
         el_a.addEventListener("click", function() {HandleModalPeriodSave("next")}, false )
-        el_submenu.appendChild(el_a);
+        el_div.appendChild(el_a);
+
+
+    // --- first add <a> element with EventListener to td
+        el_a = document.createElement("a");
+        el_a.setAttribute("href", "#");
+        el_a.setAttribute("id", "id_period_display");
+        el_a.innerText = get_attr_from_element_str(el_data, "data-txt_period") + ": ";
+        el_a.addEventListener("click", function() {OpenModalPeriod("period")}, false )
+        el_div.appendChild(el_a);
+
+        el_div = document.createElement("div");
+        el_div.classList.add("text_align_right");
+        el_submenu.appendChild(el_div);
 
         el_a = document.createElement("a");
         el_a.setAttribute("id", "id_period_settings");
         el_a.setAttribute("href", "#");
         el_a.innerText =   " \u2699 "  // "\uD83D\uDE00" "gear (seetings) : \u2699" //
-        el_a.addEventListener("click", function() {OpenModalPeriod("setting")}, false )
-        el_a.title = "Go to settings"
-        el_submenu.appendChild(el_a);
-
+        el_a.addEventListener("click", function() {OpenModalSetting()}, false )
+        el_a.title =  get_attr_from_element_str(el_data, "data-txt_period_setting");
+        el_div.appendChild(el_a);
 
         el_submenu.classList.remove("display_hide");
 
     };//function CreateSubmenu
 
 
-//=========  CreateTableRange  ================ PR2019-04-27
-    function CreateTableRange() {
-        console.log("===  CreateTableRange == ");
-        console.log(period_dict);
-        let tBody_range = document.getElementById("id_mod_tbody_range")
+//=========  CreateTablePeriod  ================ PR2019-07-12
+    function CreateTablePeriod() {
+        console.log("===  CreateTablePeriod == ");
 
-        let range_text = get_attr_from_element(el_data, "data-txt_range");
-
-
-        CreatePeriodList(tBody_range, period_dict)
-
-
-    } // CreateTableRange
-
-    //=========  CreatePeriodList  ================ PR2019-04-27
-    function CreatePeriodList(tBody_range, period_dict) {
-        console.log("===  CreatePeriodList == ");
-        console.log(period_dict);
-
-        //let range_text = get_attr_from_element(el_data, "data-txt_period");
-        let period = 0, interval = 0, overlap = 0, auto = true;
-        if(!isEmpty(period_dict)) {
-            period = parseInt(get_dict_value_by_key(period_dict, "period"))
-            interval = parseInt(get_dict_value_by_key(period_dict, "interval"))
-            overlap = parseInt(get_dict_value_by_key(period_dict, "overlap"))
-            auto = (get_dict_value_by_key(period_dict, "auto"))
-            }
-        if (interval > period) { interval = period}
-        if (overlap > period - interval) { overlap = period - interval}
-
-        let selected_value = period;
-        document.getElementById("id_mod_range_interval").value = interval
-        document.getElementById("id_mod_range_overlap").value = overlap
-        document.getElementById("id_mod_range_auto").checked = auto;
+        let tBody = document.getElementById("id_mod_tbody_interval");
+        const hour_str = get_attr_from_element(el_data, "data-txt_hour");
+        const hours_str = get_attr_from_element(el_data, "data-txt_hours");
 
         const column_count = 8
-//+++ insert td's ino tblRow
+// insert td's ino tblRow
         for (let j = 0, tblRow, td, value, unit, value_str, unit_str; j < column_count; j++) {
-//+++ insert tblRow ino tBody_range
-            tblRow = tBody_range.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+// insert tblRow ino tBody_range
+            tblRow = tBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
             value = 0, value_str = "", unit_str = "";
             if ([0, 1, 2, 3].indexOf( j ) > -1){value = j + 1} else
@@ -428,7 +385,7 @@ $(function() {
             tblRow.setAttribute("data-value", value);
 
 // --- add EventListener to tblRow.
-            tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
+            tblRow.addEventListener("click", function() {HandleModalSelectInterval(tblRow);}, false )
 
     //- add hover to tableBody row
             tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
@@ -436,8 +393,11 @@ $(function() {
 
             value_str = "";
             if (!!value) {value_str = value.toString()}
-            unit_str = "hour";
-            if (!!unit_str && value > 1) {unit_str = unit_str + "s"}
+            if (value ===  1) {
+                unit_str = hour_str;
+            } else {
+                unit_str = hours_str;
+            }
 
             td = tblRow.insertCell(-1);
                 td.classList.add("text_align_right");
@@ -446,28 +406,11 @@ $(function() {
             td = tblRow.insertCell(-1);
                 td.classList.add("text_align_left");
                 td.classList.add("td_width_060");
-                td.innerText = unit_str
-
-            if(value === selected_value) {
-                //range_text = range_text + ": " + value_str + " " + unit_str
-                tblRow.classList.add("tsa_tr_selected")
-            }
-
+                td.innerText = unit_str;
         }  // for (let j = 0; j <
 
-        //console.log("range_text", range_text);
+    } // CreateTablePeriod
 
-        //let el_range = document.getElementById("id_range");
-        //el_range.innerText = range_text
-
-        let max_interval = period
-        let max_overlap =   period - interval
-        document.getElementById("id_mod_range_interval").setAttribute("max",max_interval);
-        document.getElementById("id_mod_range_overlap").setAttribute("max",max_overlap);
-
-
-
-    } // CreatePeriodList
 
 //=========  CreateRangeList  ================ PR2019-04-27
     function CreateRangeList(tBody_range, range_str) {
@@ -1027,7 +970,7 @@ $(function() {
             //console.log("employee_pk: ", employee_pk)
             //console.log("employee_parent_pk: ", employee_parent_pk)
 
-            let el_input_replacement = document.getElementById("id_mod_employee")
+            let el_input_replacement = document.getElementById("id_mod_input_employee")
             //console.log("el_input_replacement: ", el_input_replacement)
             el_input_replacement.value = value
 
@@ -1131,6 +1074,28 @@ $(function() {
 
         }  // if(!isEmpty(id_dict)
     }  // HandleModalSave
+
+//=========  HandleModalSelectInterval  ================ PR2019-05-24
+    function HandleModalSelectInterval(tblRow) {
+        //console.log( "===== HandleModalSelectInterval ========= ", mode);
+
+        let tblBody = document.getElementById("id_mod_tbody_interval");
+
+        if(!!tblRow) {
+            const new_interval = get_attr_from_element_int(tblRow, "data-value");
+// ---  select row, deselect others
+            HandleTableRowClicked(tblRow);
+// ---  put value in tblBody
+            tblBody.setAttribute("data-value", new_interval);
+        }
+
+        let el_overlap_prev = document.getElementById("id_mod_setting_overlap_prev");
+        let el_overlap_next = document.getElementById("id_mod_setting_overlap_next");
+        if (el_overlap_prev.value > 24) {el_overlap_prev.value = 24}
+        if (el_overlap_next.value > 24) {el_overlap_next.value = 24}
+
+    }  // HandleModalSelectInterval
+
 
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
@@ -1507,7 +1472,6 @@ $(function() {
         }
     }  // function HandleFillRosterdate
 
-
 //=========  DeselectHighlightedRows  ================ PR2019-04-30
     function DeselectHighlightedRows(tableBody) {
         //console.log("=========  DeselectHighlightedRows =========");
@@ -1529,33 +1493,49 @@ $(function() {
     }
 
 //###################################
-//========= OpenModalPeriod====================================
-    function OpenModalPeriod(type) {
-        console.log("===  OpenModalPeriod  =====") ;
+//========= OpenModalSetting====================================
+    function OpenModalSetting () {
+        console.log("===  OpenModalSetting  =====") ;
+        console.log("period_dict", period_dict) ;
 
-        let el_popup_wdy = document.getElementById("id_popup_date_container")
-        let id_modal;
-        if(type === "range"){
-            id_modal = "id_modal_range";
-        } else if(type === "period"){
-            id_modal = "id_modal_range";
-        } else if(type === "next"){
-            id_modal = "id_modal_range";
-        } else if(type === "prev"){
-            id_modal = "id_modal_range";
-        } else if(type === "setting"){
-            id_modal = "id_modal_range";
-        }
+        let el_modal = document.getElementById("id_mod_setting")
+        let tBody = document.getElementById("id_mod_tbody_interval");
 
+        tBody.removeAttribute("data-value");
+        let interval = 0, overlap_prev = 0, overlap_next = 0;
+        if (!isEmpty(period_dict)){
+            interval = get_dict_value_by_key(period_dict, "interval", 0)
+            overlap_prev = get_dict_value_by_key(period_dict, "overlap_prev", 0)
+            overlap_next = get_dict_value_by_key(period_dict, "overlap_next", 0)
+        }  //  if (!isEmpty(period_dict))
 
-        let el_modal = document.getElementById(id_modal)
+    // highligh selected period in table, put value in  data-value of tBody
+        if (!!interval){
+            for (let i = 0, tblRow, value; tblRow = tBody.rows[i]; i++) {
+                value = get_attr_from_element_int(tblRow, "data-value")
+                if (!!value && value === interval){
+                    tblRow.classList.add("tsa_tr_selected")
+                } else {
+                    tblRow.classList.remove("tsa_tr_selected")
+                }
+            }  // for (let i = 0,
+        }  // if (!!period)
+        tBody.setAttribute("data-value", interval);
 
+        if (!interval){interval = 0}
+        if (!overlap_prev){overlap_prev = 0}
+        if (!overlap_next){overlap_next = 0}
 
+        let el_overlap_prev = document.getElementById("id_mod_setting_overlap_prev")
+        el_overlap_prev.value = overlap_prev
+
+        let el_overlap_next = document.getElementById("id_mod_setting_overlap_next")
+        el_overlap_next.value = overlap_next
 
     // ---  show modal
-         $("#" + id_modal).modal({backdrop: true});
+         $("#id_mod_setting").modal({backdrop: true});
 
-}; // function OpenModalPeriod
+}; // function OpenModalSetting
 
 
 
@@ -1848,7 +1828,7 @@ console.log("===  function HandlePopupWdySave =========");
         console.log("===  HandleModalRangeSelect =========");
         console.log("data_value", data_value);
 
-        let tBody_range = document.getElementById("id_mod_tbody_range")
+        let tBody_range = document.getElementById("id_mod_tbody_interval")
         DeselectHighlightedRows(tableBody)
 
         tblRow.classList.add("tsa_tr_selected")
@@ -1857,13 +1837,20 @@ console.log("===  function HandlePopupWdySave =========");
 //=========  HandleModalPeriodSave  ================ PR2019-07-11
     function HandleModalPeriodSave(mode) {
         console.log("===  HandleModalPeriodSave =========");
+        console.log(period_dict);
 
-
-        let uplod_period_dict = {}
+        let uplod_period_dict = period_dict
         let period = 0, interval = 0, overlap = 0, auto = false, hour_add = 0;
         let periodstart, periodend
         let periodstart_utc_iso, periodend_utc_iso;
-        if (mode === "prev" || mode === "next"){
+
+        if (mode === "prev"){
+           uplod_period_dict = {"prev": true};
+        } else if (mode === "next"){
+           uplod_period_dict = {"next": true};
+        } else if (mode === "current"){
+           uplod_period_dict = {"current": true};
+        }  else if (mode === "xxxx"){
             auto = false;
             if(!isEmpty(period_dict)){
 
@@ -1872,22 +1859,17 @@ console.log("===  function HandlePopupWdySave =========");
                 overlap = get_dict_value_by_key(period_dict, "overlap");
                 auto = get_dict_value_by_key(period_dict, "auto");
 
-                console.log("periodstart ", periodstart);
-                console.log("periodend ", periodend);
+                periodstart = get_dict_value_by_key(period_dict, "periodstart");
+                periodend = get_dict_value_by_key(period_dict, "periodend");
 
                 if (mode === "prev"){hour_add = -period } else if (mode === "next"){hour_add = period}
 
                 if (!!hour_add) {
                     periodstart = get_dict_value_by_key(period_dict, "periodstart")
-                console.log("periodstart ", periodstart);
                     let periodstart_local = moment.tz(periodstart, comp_timezone);
-                console.log("periodstart_local ", periodstart_local.format());
                     periodstart_local.add(hour_add, 'hour')
-                console.log("new periodstart_local ", periodstart_local.format());
                     const periodstart_utc = moment.utc(periodstart_local)
-                console.log("periodstart_utc ", periodstart_utc.format());
                     periodstart_utc_iso = periodstart_utc.toISOString()
-                console.log("periodstart_utc_iso ", periodstart_utc_iso);
 
                     periodend = get_dict_value_by_key(period_dict, "periodend")
                     let periodend_local = moment.tz(periodend, comp_timezone);
@@ -1899,37 +1881,27 @@ console.log("===  function HandlePopupWdySave =========");
                     console.log ("periodend_utc_iso = ", periodend_utc_iso)
                 }
             }
+            uplod_period_dict["period"] = period;
+            uplod_period_dict["interval"] = interval;
+            uplod_period_dict["overlap"] = overlap;
+            uplod_period_dict["auto"] = auto;
 
-        } else if (mode === "current"){
-            auto = true;
+            if(!!periodstart_utc_iso) {uplod_period_dict["periodstart"] = periodstart_utc_iso};
+            if(!!periodend_utc_iso) {uplod_period_dict["periodend"] = periodend_utc_iso};
+
 
         } else if (mode === "setting"){
 
-            let tBody = document.getElementById("id_mod_tbody_range")
-            let tblRows = tBody.getElementsByClassName("tsa_tr_selected");
-
-            if(tblRows.length > 0 ) {
-                period = parseInt(tblRows[0].getAttribute("data-value"));
-            }
-            interval = parseInt(document.getElementById("id_mod_range_interval").value)
-            overlap = parseInt(document.getElementById("id_mod_range_overlap").value)
-            auto = document.getElementById("id_mod_range_auto").checked
+            uplod_period_dict = {"setting": true};
+            // selected value of period is stored in tBody data-value
+            uplod_period_dict["interval"] = get_attr_from_element_int(document.getElementById("id_mod_tbody_interval"),"data-value")
+            uplod_period_dict["overlap_prev"] = parseInt(document.getElementById("id_mod_setting_overlap_prev").value)
+            uplod_period_dict["overlap_next"] = parseInt(document.getElementById("id_mod_setting_overlap_next").value)
         }
 
-        uplod_period_dict["period"] = period;
-        uplod_period_dict["interval"] = interval;
-        uplod_period_dict["overlap"] = overlap;
-        uplod_period_dict["auto"] = auto;
 
-        if(!!periodstart_utc_iso) {
-            uplod_period_dict["periodstart"] = periodstart_utc_iso;
-        }
 
-        if(!!periodend_utc_iso) {
-                uplod_period_dict["periodend"] = periodend_utc_iso;
-        }
-
-        $("#id_modal_range").modal("hide");
+        $("#id_mod_setting").modal("hide");
 
         if (!isEmpty(uplod_period_dict)){
             let row_upload = {};
@@ -1938,21 +1910,36 @@ console.log("===  function HandlePopupWdySave =========");
             console.log ("row_upload: ");
             console.log (row_upload);
 
+            // show loader
+            el_loader.classList.remove(cls_hide)
             let parameters = {"period_upload": JSON.stringify (row_upload)};
             let response;
             $.ajax({
                 type: "POST",
-                url: url_period_upload,
+                url: url_interval_upload,
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
                     console.log ("response", response);
-                    if ("item_update" in response) {
-                    console.log("...... UpdateTableRow .....");
-                        UpdateTableRow("emplhour", tr_selected, response["item_update"])
+                     // hide loader
+                    el_loader.classList.add(cls_hide)
+
+                    if ("period" in response) {
+                        period_dict= response["period"];
+                        DisplayPeriod(period_dict);
                     }
+                    if ("emplhour" in response) {
+                        emplhour_list= response["emplhour"];
+                        console.log( " emplhour FillTableRows");
+                        FillTableRows()
+                        CheckStatus()
+                    }
+
+
                 },
                 error: function (xhr, msg) {
+                     // hide loader
+                    el_loader.classList.add(cls_hide)
                     console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
@@ -1960,7 +1947,7 @@ console.log("===  function HandlePopupWdySave =========");
         }
 
 
-        //document.getElementById("id_modal_range").classList.remove("show");
+        //document.getElementById("id_mod_setting").classList.remove("show");
 
 
     }  // HandleModalPeriodSave
@@ -2010,28 +1997,32 @@ function get_rangearray_from_select(data_value) {
         console.log( "===== DisplayPeriod  ========= ");
         console.log (period_dict)
 
+    // display formatted period in submenu
         let el_period_display = document.getElementById("id_period_display");
+        let display_text = get_attr_from_element(el_data, "data-txt_period")
+        let  current = false;
 
-        let  period = 0, interval = 0, overlap = 0, auto = false;
-        period = get_dict_value_by_key(period_dict, "period");
-        interval = get_dict_value_by_key(period_dict, "interval");
-        overlap = get_dict_value_by_key(period_dict, "overlap");
-        auto = get_dict_value_by_key(period_dict, "auto");
+        if (!isEmpty(period_dict)){
+            current = get_dict_value_by_key(period_dict, "current");
 
-        let periodstart, periodend, range;
-        periodstart = get_dict_value_by_key(period_dict, "periodstart");
-        periodend = get_dict_value_by_key(period_dict, "periodend");
-        range = get_dict_value_by_key(period_dict, "range");
+            const periodstart = get_dict_value_by_key(period_dict, "periodstart");
+            const periodend = get_dict_value_by_key(period_dict, "periodend");
 
-        let periodstart_local = moment.tz(periodstart, comp_timezone );
-        console.log ("periodstart_local = ", periodstart_local.format());
+            const periodstart_local = moment.tz(periodstart, comp_timezone );
+            const periodend_local = moment.tz(periodend, comp_timezone );
 
-        let periodend_local = moment.tz(periodend, comp_timezone );
-        console.log ("periodend_local = ", periodend_local.format())
+            display_text = display_text + ": " + format_period_from_datetimelocal(periodstart_local, periodend_local, weekday_list, month_list, timeformat)
+        }
+        el_period_display.innerText = display_text
 
-        let display_text = get_attr_from_element(el_data, "data-txt_period") + ": "
+        // from https://www.fileformat.info/info/unicode/char/25cb/index.htm
+        //el_a.innerText = " \u29BF "  /// circeled bullet: \u29BF,  bullet: \u2022 "  // "\uD83D\uDE00" "gear (settings) : \u2699" //
+        //el_a.innerText = " \u25CB "  /// 'white circle' : \u25CB  /// black circle U+25CF
 
-        el_period_display.innerText = display_text + format_period_from_datetimelocal(periodstart_local, periodend_local, weekday_list, month_list, timeformat)
+        let bullet = ""
+        if(current){bullet = " \u29BF "} else {bullet = " \u25CB "}
+        document.getElementById("id_period_current").innerText = bullet;
+
     }; // function DisplayPeriod
 
 
@@ -2084,12 +2075,12 @@ function get_rangearray_from_select(data_value) {
             FillSelectTableEmployee("employee", tblBody_select, employee_list, caption_one, caption_none)
 
     // ---  show modal
-        $("#id_modal_employee").modal({backdrop: true});
+        $("#id_mod_employee").modal({backdrop: true});
 
     };
     //========= function ModalClose  =============
     function ModalClose() {
-        $('#id_modal_employee').modal('hide');
+        $('#id_mod_employee').modal('hide');
     }
 //  #############################################################################################################
 
