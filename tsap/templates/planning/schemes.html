@@ -3,7 +3,168 @@
 {% load static %}
 
 {% block stylesheet %}{% endblock %}
-{% block script %}<script src="{% static 'js/schemes.js' %}"></script>{% endblock %}
+{% block script %}
+    <script src="{% static 'js/schemes.js' %}">
+</script>{% endblock %}
+
+<!-- MODAL -->
+{% block modal %}
+
+<!-- =================== MODAL ADDNEW  =================== -->
+    <div class="modal fade" id="id_mod_addnew" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md " role="document">
+            <div class="modal-content">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_mod_addnew_header" class="modal-title mx-2" >{% trans 'Add new scheme' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div  id="id_mod_addnew_body" class="modal-body">
+                    <div class="modal_container">
+
+<!-- modal_body_left contains template select table -->
+                        <div class="modal_body_left">
+                            <div class="mod_flex mx-2 my-2">
+
+                                <div class="form-group">
+                                    <label for="id_mod_customer" class="mx-2 my-2">{% trans 'Customer' %}:</label>
+                                    <select id="id_mod_customer" class="form-control"></select>
+                                    <small id="id_mod_cust_err" class="color_invalid mx-2 display_hide"></small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_mod_order" class="mx-2 my-2">{% trans 'Order' %}:</label>
+                                    <select id="id_mod_order" class="form-control"></select>
+                                    <small id="id_mod_order_err" class="color_invalid mx-2 display_hide"></small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_mod_code" class="mx-2 my-2">{% trans 'Scheme' %}:</label>
+                                    <input id="id_mod_code" type="text"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                        class="form-control">
+                                    <small id="id_mod_code_err" class="color_invalid mx-2 display_hide"></small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="id_mod_cycle" class="mx-2 my-2">{% trans 'Cycle days' %}:</label>
+                                    <input id="id_mod_cycle" type="number" min="0" max="366"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                        class="form-control">
+                                    <div><small class="mx-2">{% trans 'Enter the length of the cycle in days, enter zero for once-only.' %}</small></div>
+                                    <div><small id="id_mod_cycle_err" class="color_invalid mx-2 display_hide"></small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer ">
+                    <div id="id_mod_addnew_msg" class="mod_flex modal_body_left tr_color_red mx-2"></div>
+                    <div>
+                        <button type="button"  class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                        <button id="id_mod_addnew_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL ADDNEW  =================== -->
+
+<!-- =================== MODAL COPYFROM TEMPLATE  =================== -->
+    <div class="modal fade" id="id_mod_copyfrom" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_mod_copyfrom_header" class="modal-title mx-2" >{% trans 'Copy from template' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div  id="id_mod_copyfrom_body" class="modal-body">
+                    <div class="modal_container">
+
+<!-- modal_body_left contains template select table -->
+                        <div class="modal_body_left mx-2 my-2">
+                            <h5 class="mx-2" >{% trans 'Copy from template' %}:</h5>
+                            <div>
+                                <label for="id_mod_copyfrom_template" class="mx-2 my-2">{% trans 'Template' %}:</label>
+                                <select id="id_mod_copyfrom_template" class="form-control"></select>
+                                <small id="id_mod_copyfrom_template_err" class="color_invalid mx-2 display_hide"></small>
+                            </div>
+                        </div>
+                        <div class="modal_body_left  mx-2 my-2">
+                            <h5 class="mx-2" >{% trans 'To scheme' %}:</h5>
+                                <div>
+                                    <label for="id_mod_copyfrom_customer" class="mx-2 my-2">{% trans 'Customer' %}:</label>
+                                    <select id="id_mod_copyfrom_customer" class="form-control"></select>
+                                    <small id="id_mod_copyfrom_customer_err" class="color_invalid mx-2 display_hide"></small>
+                                </div>
+                                <div>
+                                    <label for="id_mod_copyfrom_order" class="mx-2 my-2">{% trans 'Order' %}:</label>
+                                    <select id="id_mod_copyfrom_order" class="form-control"></select>
+                                    <small id="id_mod_copyfrom_order_err" class="color_invalid mx-2 display_hide"></small>
+                                </div>
+
+                                <div>
+                                    <label for="id_mod_copyfrom_code" class="mx-2 my-2">{% trans 'Scheme name' %}:</label>
+                                    <input id="id_mod_copyfrom_code" type="text"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                        class="form-control">
+                                    <small id="id_mod_copyfrom_code_err" class="color_invalid mx-2"></small>
+                                </div>
+                                <!--
+                                <div>
+
+                                    <label for="id_mod_cycle" class="mx-2 my-2">{% trans 'Start date of cycle' %}:</label>
+                                    <input id="id_mod_copyfrom_datestart" type="date"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                        class="form-control">
+                                    <div><small id="id_mod_copyfrom_datestart_err" class="color_invalid mx-2 display_hide"></small></div>
+                                </div>
+                                -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer ">
+                    <button id="id_mod_copyfrom_btn_save" type="button" class="btn btn-primary">{% trans 'Copy' %}</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<!-- =================== MODAL COPYTO TEMPLATE  =================== -->
+    <div class="modal fade" id="id_mod_copyto" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md " role="document">
+            <div class="modal-content">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_mod_copyto_header" class="modal-title mx-2" >{% trans 'Copy scheme to template' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body mx-2 my-">
+                    <div class="form-group">
+                        <label for="id_mod_copyto_code" class="mx-2 my-2">{% trans 'Template name' %}:</label>
+                        <input id="id_mod_copyto_code" type="text"
+                            autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                            class="form-control">
+                        <small id="id_mod_copyto_code_err" class="color_invalid mx-2 display_hide"></small>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="id_mod_copyto_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL COPYTO TEMPLATE  =================== -->
+
+{% endblock %}
 
 {% block content %}
     {% if user.is_authenticated %}
@@ -38,7 +199,6 @@
     </div>
 
     <div class="content_subheader_right">
-
         <div class="content_header">
             <div class="content_subheader_left mx-4 my-1">
                 <h6 id="id_hdr_customer">{% trans "Customer" %}</h6>
@@ -54,52 +214,42 @@
                     <label for="id_scheme_code" >{% trans 'Scheme' %}*</label>
                     <input id="id_scheme_code"
                     type="text"
-                    data-field="code"
-                    data-table="scheme"
                     class="pt-0 pb-0"
+                    data-table= "scheme"
+                    data-field= "code"
                     readonly>
                 </div>
                 <div class="content_subheader_left">
                     <label for="id_scheme_cycle" >{% trans 'Cycle length' %}*</label>
                     <input id="id_scheme_cycle"
                     type="number"
-                    data-field="cycle"
-                    data-table="scheme"
                     class="pt-0 pb-0"
+                    data-table= "scheme"
+                    data-field= "cycle"
                     readonly>
                 </div>
                 <div class="content_subheader_left">
                     <label for="id_scheme_datefirst" >{% trans 'Start date' %}</label>
                     <input id="id_scheme_datefirst"
-                    name="datefirst"
                     type="text"
-                    data-field="datefirst"
-                    data-table="scheme"
                     autocomplete="off"
-                    class="pt-0 pb-0"
+                    class="input_popup_date pt-0 pb-0"
+                    data-table= "scheme"
+                    data-field= "datefirt"
                     readonly>
-                    <a id="id_scheme_datefirst_delete" href="#">
-                        <img src="{% static 'img/delete.gif' %}" height="18" width="18">
-                    </a>
                 </div>
                 <div class="content_subheader_left">
                     <label for="id_scheme_datelast" >{% trans 'End date' %}</label>
                     <input id="id_scheme_datelast"
-                    name="datelast"
                     type="text"
-                    data-field="datelast"
-                    data-table="scheme"
                     autocomplete="off"
-                    class="pt-0 pb-0"
+                    class="input_popup_date pt-0 pb-0"
+                    data-table= "scheme"
+                    data-field= "datelast"
                     readonly>
-                    <a id="id_scheme_datelast_delete" href="#">
-                        <img src="{% static 'img/delete.gif' %}" height="18" width="18">
-                    </a>
                 </div>
-
             </div>
         </div>
-
 
         <div class="content_header">
             <div class="content_subheader_left">
@@ -111,9 +261,12 @@
         </div>
 
         <div class="content_body mx-2">
-
             <div class="popup-container">
-  <!-- =================== POPUP WDY  =================== -->
+<!-- =================== POPUP DATE  =================== -->
+                 <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
+                     <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
+                 </div>
+<!-- =================== POPUP WDY  =================== -->
                  <div id="id_popup_wdy" class="popup_box display_hide td_wiXXXdth_220">
                      <div class="popup_header">
                         <label id="id_popup_wdy_header" class="mx-4 my-1" >{% trans 'Roster date' %}</label>
@@ -136,8 +289,7 @@
                      </div>
 
                  </div>
-
-  <!-- =================== POPUP DHM  =================== -->
+<!-- =================== POPUP DHM  =================== -->
                 <div id="id_popup_dhm" class="popup_box display_hide td_width_360">
                     <div class="popup-body">
                         <table class="pop_tbl">
@@ -165,8 +317,7 @@
                         </div>
                     </div>
                 </div>
-
-  <!-- =================== POPUP HM  =================== -->
+<!-- =================== POPUP HM  =================== -->
                 <div id="id_popup_hm" class="popup_box display_hide td_width_240">
                     <div class="popup-body">
                         <table class="pop_tbl">
@@ -211,10 +362,9 @@
                         </div>
                     </div>
                 </div>
-  <!-- =================== END POPUP  =================== -->
-
+<!-- =================== TIMEPICKER  =================== -->
                 {% include 'includes/timepicker.html' %}
-
+<!-- =================== DATA TABLE  =================== -->
                 <table id="id_table_schemeitems" class="table table-condensed tsa-tbl ">
                     <thead id="id_thead_schemeitems" class="thead-inverse"></thead>
                     <tbody id="id_tbody_schemeitems"></tbody>
@@ -224,6 +374,8 @@
         </div>
     </div>
 </div>
+<!--flex_container -->
+
         <div class="content_header">
             <div class="content_subheader_right">
                 <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
@@ -234,7 +386,6 @@
                 <button id="id_btn_daydown" title="{% trans 'Set all rosterdates one day later' %}" class="btn btn-add"> &darr; </button>
                 <button id="id_btn_autofill" class="btn btn-add">{% trans 'Fill scheme' %}</button>
             </div>
-
         </div>
 
 
@@ -248,21 +399,30 @@
             data-lang ="{{ lang }}"
             data-timezone ="{{ timezone }}"
             data-interval ="{{ interval }}"
-            data-quicksave ="{{ quicksave }}"
             data-timeformat ="{{ timeformat }}"
+            data-quicksave ="{{ quicksave }}"
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
             data-today ="{{ today }}"
 
             data-datalist_download_url="{% url 'datalist_download_url' %}"
-            data-scheme_upload_url="{% url 'scheme_upload_url' %}"
+            data-scheme_template_upload_url="{% url 'scheme_template_upload_url' %}"
             data-schemeitem_upload_url= "{% url 'schemeitem_upload_url' %}"
             data-schemeitem_fill_url= "{% url 'schemeitem_fill_url' %}"
             data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
+            data-scheme_upload_url="{% url 'scheme_upload_url' %}"
             data-schemeorteam_upload_url="{% url 'schemeorteam_upload_url' %}"
             data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
 
             data-err_msg01= "{% trans 'An error occurred.' %}"
+            data-err_msg_order="{% trans 'Please select an order.' %}"
+            data-err_msg_customer="{% trans 'Please select a customer.' %}"
+            data-err_msg_template_select="{% trans 'Please select a template.' %}"
+            data-err_msg_name_exists= "{% trans 'This name already exists. Please enter a different name.' %}"
+            data-err_msg_name_blank= "{% trans 'Name cannot be blank. Please enter a name.' %}"
+            data-err_msg_code= "{% trans 'Please enter a scheme name.' %}"
+            data-err_msg_cycle= "{% trans 'Please enter the number of cycle days.' %}"
+            data-err_msg_template_blank = "{% trans 'Please enter a template name.' %}"
 
             data-txt_quicksave = "{% trans 'Quick save' %}"
             data-txt_quicksave_remove = "{% trans 'Exit Quick save' %}"
@@ -279,6 +439,10 @@
             data-txt_date= "{% trans 'Date' %}"
             data-txt_scheme= "{% trans 'Scheme' %}"
             data-txt_scheme_add= "{% trans 'Add new scheme' %}"
+            data-txt_copyfrom_select_template= "{% trans 'Select template' %}"
+            data-txt_copyfrom_select_none= "{% trans 'No templates' %}"
+            data-txt_scheme_from_template= "{% trans 'Copy from template' %}"
+            data-txt_scheme_to_template= "{% trans 'Copy to template' %}"
             data-txt_cycle_once= "{% trans 'Once only' %}"
 
             data-txt_rosterdate= "{% trans 'Rosterdate' %}"

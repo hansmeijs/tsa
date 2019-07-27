@@ -1,16 +1,21 @@
 # PR2019-02-28
 from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL
 from django.db.models import CharField, BooleanField, PositiveSmallIntegerField, IntegerField, \
-    DateField, DateTimeField, Q, Count
+    DateField, DateTimeField, Q
 from django.db.models.functions import Upper, Lower
 
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from datetime import datetime
+
 from tsap.settings import AUTH_USER_MODEL, TIME_ZONE
-from tsap.constants import USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, NAME_MAX_LENGTH
+from tsap.constants import USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, NAME_MAX_LENGTH, \
+    TIMEFORMAT_CHOICES, TIMEFORMAT_24h
 from tsap.functions import get_date_yyyymmdd, get_date_longstr_from_dte, get_date_WDM_from_dte, \
     format_WDMY_from_dte, format_DMY_from_dte, fielddict_date
+
+import pytz
 
 import logging
 logger = logging.getLogger(__name__)
@@ -46,13 +51,28 @@ class TsaBaseModel(Model):
         abstract = True
 
     def save(self, *args, **kwargs):
-        # skip modifiedby when subtracting balance PR2019-04-09
+        # skip modifiedby and modifiedatwhen subtracting balance PR2019-04-09
+
+        # get now without timezone
+        now_utc_naive = datetime.utcnow()
+        # now_utc_naive: 2019-07-16 14:29:55.819695
+        # convert now to timezone utc
+        now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
+
+        # skip updating modifiedby and modifiedat when no request (issytem update of schemeitem, maybe other models as well)
         if 'request' in kwargs:
             self.request = kwargs.pop('request', None)
 
             self.modifiedby = self.request.user
-            # timezone.now() is timezone aware, based on the USE_TZ setting; datetime.now() is timezone naive. PR2018-06-07
-            self.modifiedat = timezone.now()
+            # timezone.now() is timezone aware, based on the
+            # datetime.now() is timezone naive. PR2018-06-07
+
+            # now_utc: 2019-07-16 14:29:55.819695+00:00
+            self.modifiedat = now_utc
+
+        # modifiedat is required. Fill in when empty
+        if self.modifiedat is None:
+            self.modifiedat = now_utc
 
         # when adding record: self.id=None, set force_insert=True; otherwise: set force_update=True PR2018-06-09
         super(TsaBaseModel, self).save()
@@ -100,8 +120,10 @@ class Company(TsaBaseModel):
 
     issystem = BooleanField(default=False)
     timezone = CharField(max_length=NAME_MAX_LENGTH, default=TIME_ZONE)
-    interval = PositiveSmallIntegerField(default=1)
-    timeformat = CharField(max_length=4, null=True, blank=True)
+    interval = PositiveSmallIntegerField(default=5)
+    timeformat = CharField(max_length=4, choices=TIMEFORMAT_CHOICES,
+        default=TIMEFORMAT_24h)
+
 
     class Meta:
         ordering = [Lower('code')]
@@ -120,7 +142,7 @@ class Customer(TsaBaseModel):
     objects = TsaManager()
 
     company = ForeignKey(Company, related_name='customers', on_delete=PROTECT)
-    type = IntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
+    cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
 
     identifier = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     email = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
@@ -141,7 +163,7 @@ class Order(TsaBaseModel):
     objects = TsaManager()
 
     customer = ForeignKey(Customer, related_name='orders', on_delete=PROTECT)
-    type = IntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
+    cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
 
     identifier = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
@@ -230,10 +252,9 @@ class OrderObject(TsaBaseModel): # PR2019-06-23 added
 class Scheme(TsaBaseModel):
     objects = TsaManager()
     order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
-    type = IntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
+    cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
 
-    cycle = PositiveSmallIntegerField(default=0)
-    issystem = BooleanField(default=False)
+    cycle = PositiveSmallIntegerField(default=7)
     excludeweekend  = BooleanField(default=False)
     excludepublicholiday  = BooleanField(default=False)
 
@@ -343,7 +364,7 @@ class Employee(TsaBaseModel):
 
     wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
     workhours = IntegerField(default=0) # /hours per month
-    leavedays =  IntegerField(default=0) # /leave ays per year, full time
+    leavedays = IntegerField(default=0) # /leave ays per year, full time
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
@@ -431,94 +452,25 @@ class Employee(TsaBaseModel):
 
         return update_dict
 
-    @classmethod
-    def create_employee_list(cls, exclude_inactive, company, user_lang):
-    # --- create list of all active employees of this company PR2019-06-17
-        crit = Q(company=company)
-        if exclude_inactive:
-            crit.add(~Q(inactive=False), crit.connector)
-        employees = cls.objects.filter(crit).order_by(Lower('code'))
-
-        employee_list = []
-        if employees:
-            for employee in employees:
-                dict = {'pk': employee.pk}
-                dict['id'] = {'pk': employee.pk, 'ppk': employee.company.pk}
-
-                for field in ['code', 'namefirst', 'namelast', 'inactive']:
-                    value = getattr(employee, field)
-                    if value:
-                        dict[field] = {'value': value}
-
-                for field in ['datefirst', 'datelast']:
-                    date = getattr(employee, field)
-                    if date:
-                        dict[field] = fielddict_date(date, user_lang)
-
-                employee_list.append(dict)
-        return employee_list
-
 
 class Teammember(TsaBaseModel):
     objects = TsaManager()
 
     team = ForeignKey(Team, related_name='teammembers', on_delete=CASCADE)
-    employee = ForeignKey(Employee, related_name='teammembers', on_delete=CASCADE)
+    employee = ForeignKey(Employee, related_name='teammembers', on_delete=SET_NULL, null=True, blank=True)
+
+    member = PositiveSmallIntegerField(default=0)  # /leave ays per year, full time
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
     name = None
 
 
-    @classmethod
-    def create_teammember_list(cls, order, user_lang):
-        # create list of teams of this order PR2019-05-27
-        teammember_list = []
-        if order:
-            teammembers = Teammember.objects.filter(team__scheme__order=order).order_by('employee__code')
-
-            for teammember in teammembers:
-                dict = {'pk': teammember.pk,
-                        'id': {'pk': teammember.pk,
-                               'ppk': teammember.team.pk}}
-                if teammember.team:
-                    dict['team'] = {'pk': teammember.team.pk, 'value': teammember.team.code}
-                if teammember.employee:
-                    dict['employee'] = {'pk': teammember.employee.pk, 'value': teammember.employee.code}
-                for field in ['datefirst', 'datelast']:
-                    value = getattr(teammember, field)
-                    if value:
-                        dict[field] = {'value': value,
-                                      'wdm': get_date_WDM_from_dte(value, user_lang),
-                                      'wdmy': format_WDMY_from_dte(value, user_lang),
-                                      'dmy': format_DMY_from_dte(value, user_lang)}
-                teammember_list.append(dict)
-        return teammember_list
-
-    @classmethod
-    def validate_employee_exists_in_teammembers(cls, employee, team, this_pk):  # PR2019-06-11
-        # - check if employee exists - employee is required field of teammember, is skipped in schemeitems (no field employee)
-        msg_err = None
-        exists = False
-        if employee and team:
-            crit = Q(team=team) & Q(employee=employee)
-            if this_pk:
-                crit.add(~Q(pk=this_pk), crit.connector)
-            exists = cls.objects.filter(crit).exists()
-        if exists:
-            msg_err = _('This employee already exists.')
-        return msg_err
-
-
 # =================
-class Schemeitembase(Model):# PR2019-06-03
-    objects = TsaManager()
-
 
 class Schemeitem(TsaBaseModel):
     objects = TsaManager()
 
-    base = ForeignKey(Schemeitembase, related_name='+', on_delete=PROTECT)
 
     scheme = ForeignKey(Scheme, related_name='schemeitems', on_delete=CASCADE)
     team = ForeignKey(Team, related_name='schemeitems', on_delete=SET_NULL, null=True, blank=True)
@@ -531,11 +483,13 @@ class Schemeitem(TsaBaseModel):
 
     rosterdate = DateField(db_index=True)
 
+    cyclestart = BooleanField(default=False)
+
     shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     timestart = DateTimeField(db_index=True, null=True, blank=True)
-    timestartdhm = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)  # dhm" "-1;17;45"
+    offsetstart = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)  # dhm" "-1;17;45"
     timeend = DateTimeField(db_index=True, null=True, blank=True)
-    timeenddhm = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    offsetend = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
     timeduration = IntegerField(default=0)  # unit is minute
     breakduration = IntegerField(default=0) # unit is minute
 
@@ -553,13 +507,17 @@ class Orderhour(TsaBaseModel):
     schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
+
+    yearindex = PositiveSmallIntegerField(default=0)
+    monthindex = PositiveSmallIntegerField(default=0)
+    weekindex = PositiveSmallIntegerField(default=0)
+
     shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     duration = IntegerField(default=0)  # unit is hour * 100
     status = PositiveSmallIntegerField(db_index=True, default=0)
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     taxrate = IntegerField(default=0) # /10000 unit
-    orderhourstatus = PositiveSmallIntegerField(db_index=True, default=0)
 
     class Meta:
         ordering = ['rosterdate']
@@ -584,11 +542,16 @@ class Emplhour(TsaBaseModel):
     wagecode = ForeignKey(Wagecode, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
+    yearindex = PositiveSmallIntegerField(default=0)
+    monthindex = PositiveSmallIntegerField(default=0)
+    weekindex = PositiveSmallIntegerField(default=0)
+
+    shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     timestart = DateTimeField(db_index=True, null=True, blank=True)
     timeend = DateTimeField(db_index=True, null=True, blank=True)
-    timeduration = IntegerField(default=0)  # unit is hour * 100
-    breakduration = IntegerField(default=0) # unit is hour * 100
-    timestatus = PositiveSmallIntegerField(db_index=True, default=0)
+    timeduration = IntegerField(default=0)
+    breakduration = IntegerField(default=0)
+    status = PositiveSmallIntegerField(db_index=True, default=0)
 
     class Meta:
         ordering = ['rosterdate', 'timestart']
@@ -608,9 +571,9 @@ class Emplhourlog(TsaBaseModel):
 
     timestart = DateTimeField(db_index=True, null=True, blank=True)
     timeend = DateTimeField(db_index=True, null=True, blank=True)
-    breakduration = IntegerField(default=0) # unit is hour * 100
-    timestatus = PositiveSmallIntegerField(db_index=True, default=0)
-    note = CharField(db_index=True, max_length=NAME_MAX_LENGTH)
+    breakduration = IntegerField(default=0)
+    status = PositiveSmallIntegerField(db_index=True, default=0)
+    note = CharField(max_length=2048, null=True, blank=True)
 
     class Meta:
         ordering = ['modifiedat']
@@ -666,8 +629,9 @@ class Companysetting(Model):  # PR2019-03-09
     @classmethod
     def set_setting(cls, key_str, setting, company): #PR2019-03-09
         # function returns list of setting rows that match the filter
-        # logger.debug('---  set_setting  ------- ')
-        # logger.debug('setting: ' + str(setting))
+        logger.debug('---  set_setting  ------- ')
+        logger.debug('key_str: ' + str(key_str))
+        logger.debug('setting: ' + str(setting))
         # get
         if company and key_str:
             row = cls.objects.filter(company=company, key=key_str).first()
@@ -678,89 +642,20 @@ class Companysetting(Model):  # PR2019-03-09
                     row = cls(company=company, key=key_str, setting=setting)
             row.save()
 
+        logger.debug('row.setting: ' + str(row.setting))
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def validate_code_or_name(table, field, new_value, parent_pk, this_pk=None):
-    # validate if order code already_exists in this table PR2019-06-10
-    # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
-                    # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    logger.debug('validate_code_or_name: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent_pk) + ' ' + str(this_pk))
-    msg_err = None
-    if not parent_pk:
-        msg_err = _("Error.")
-    else:
-        max_len = CODE_MAX_LENGTH  if field == 'code' else NAME_MAX_LENGTH
+def delete_instance(instance, update_dict, request, this_text=None):
+    # function deletes instance of table,  PR2019-07-21
 
-        length = 0
-        if new_value:
-            length = len(new_value)
-        logger.debug('length: ' + str(length))
-
-        fld = _('Code') if field == 'code' else _('Name')
-        if length == 0:
-            if field == 'name':
-                msg_err = _('Name cannot be blank.')
+    if instance:
+        try:
+            instance.delete(request=request)
+            update_dict['id']['deleted'] = True
+        except:
+            msg_err = ''
+            if this_text:
+                msg_err = _('%(tbl)s could not be deleted.') % {'tbl': this_text}
             else:
-                msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
-        elif length > max_len:
-            # msg_err = _('%(fld)s is too long. %(max)s characters or fewer.') % {'fld': fld, 'max': max_len}
-            msg_err = _("%(fld)s '%(val)s' is too long, %(max)s characters or fewer.") % {'fld': fld, 'val': new_value, 'max': max_len}
-            # msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
-        if not msg_err:
-    # check if code already exists
-            crit = None
-            if field == 'code':
-                crit = Q(code__iexact=new_value)
-            elif field == 'name':
-                crit = Q(name__iexact=new_value)
-            if this_pk:
-                crit.add(~Q(pk=this_pk), crit.connector)
-
-            #logger.debug('validate_code_or_name')
-            #logger.debug('table: ' + str(table) + 'field: ' + str(field) + ' new_value: ' + str(new_value))
-
-            exists = False
-            if table == 'customer':
-                crit.add(Q(company=parent_pk), crit.connector)
-                exists = Customer.objects.filter(crit).exists()
-            elif table == 'order':
-                crit.add(Q(customer=parent_pk), crit.connector)
-                exists = Order.objects.filter(crit).exists()
-            elif table == 'scheme':
-                crit.add(Q(order=parent_pk), crit.connector)
-                exists = Scheme.objects.filter(crit).exists()
-            elif table == 'employee':
-                crit.add(Q(company=parent_pk), crit.connector)
-                exists = Employee.objects.filter(crit).exists()
-            else:
-                msg_err = _("Model '%(mdl)s' not found.") % {'mdl': table}
-            if exists:
-                msg_err = _("%(fld)s '%(val)s' already exists.") % {'fld': fld, 'val': new_value}
-
-    return msg_err
-
-
-def employee_email_exists(email, company, this_pk = None):
-    # validate if email address already_exists in this company PR2019-03-16
-
-    msg_dont_add = None
-    if not company:
-        msg_dont_add = _("No company.")
-    elif not email:
-        msg_dont_add = _("Email address cannot be blank.")
-    elif len(email) > NAME_MAX_LENGTH:
-        msg_dont_add = _('Email address is too long. ') + str(CODE_MAX_LENGTH) + _(' characters or fewer.')
-    else:
-        if this_pk:
-            email_exists = Employee.objects.filter(email__iexact=email,
-                                                  company=company
-                                                  ).exclude(pk=this_pk).exists()
-        else:
-            email_exists = Employee.objects.filter(email__iexact=email,
-                                                  company=company).exists()
-        if email_exists:
-            msg_dont_add = _("This email address already exists.")
-
-    return msg_dont_add
-
-
+                msg_err = _('This item could not be deleted.')
+            update_dict['id']['error'] = msg_err

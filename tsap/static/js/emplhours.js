@@ -89,27 +89,27 @@ $(function() {
 
         // get data
         let el_data = document.getElementById("id_data");
-        let order_list = get_attr_from_element(el_data, "data-order_list");
-        let employee_list = get_attr_from_element(el_data, "data-employee_list");
-        const url_fill_rosterdate = get_attr_from_element(el_data, "data-url_fill_rosterdate");
-        const url_emplhour_upload = get_attr_from_element(el_data, "data-url_emplhour_upload");
-        const url_datalist_download = get_attr_from_element(el_data, "data-datalist_download_url");
-        const imgsrc_inactive = get_attr_from_element(el_data, "data-imgsrc_inactive");
-        const imgsrc_active = get_attr_from_element(el_data, "data-imgsrc_active");
-        const imgsrc_delete = get_attr_from_element(el_data, "data-imgsrc_delete");
-        const imgsrc_stat00 = get_attr_from_element(el_data, "data-imgsrc_stat00");
-        const imgsrc_stat01 = get_attr_from_element(el_data, "data-imgsrc_stat01");
-        const imgsrc_stat02 = get_attr_from_element(el_data, "data-imgsrc_stat02");
-        const imgsrc_stat03 = get_attr_from_element(el_data, "data-imgsrc_stat03");
-        const imgsrc_stat04 = get_attr_from_element(el_data, "data-imgsrc_stat04");
-        const imgsrc_stat05 = get_attr_from_element(el_data, "data-imgsrc_stat05");
-        const imgsrc_real00 = get_attr_from_element(el_data, "data-imgsrc_real00");
-        const imgsrc_real01 = get_attr_from_element(el_data, "data-imgsrc_real01");
-        const imgsrc_real02 = get_attr_from_element(el_data, "data-imgsrc_real02");
-        const imgsrc_real03 = get_attr_from_element(el_data, "data-imgsrc_real03");
-        const weekdays = get_attr_from_element(el_data, "data-weekdays");
-        const timeformat = get_attr_from_element(el_data, "data-timeformat");
-        const interval = get_attr_from_element(el_data, "data-interval");
+        let order_list = get_attr_from_el(el_data, "data-order_list");
+        let employee_list = get_attr_from_el(el_data, "data-employee_list");
+        const url_fill_rosterdate = get_attr_from_el(el_data, "data-url_fill_rosterdate");
+        const url_emplhour_upload = get_attr_from_el(el_data, "data-url_emplhour_upload");
+        const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
+        const imgsrc_inactive = get_attr_from_el(el_data, "data-imgsrc_inactive");
+        const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
+        const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
+        const imgsrc_stat00 = get_attr_from_el(el_data, "data-imgsrc_stat00");
+        const imgsrc_stat01 = get_attr_from_el(el_data, "data-imgsrc_stat01");
+        const imgsrc_stat02 = get_attr_from_el(el_data, "data-imgsrc_stat02");
+        const imgsrc_stat03 = get_attr_from_el(el_data, "data-imgsrc_stat03");
+        const imgsrc_stat04 = get_attr_from_el(el_data, "data-imgsrc_stat04");
+        const imgsrc_stat05 = get_attr_from_el(el_data, "data-imgsrc_stat05");
+        const imgsrc_real00 = get_attr_from_el(el_data, "data-imgsrc_real00");
+        const imgsrc_real01 = get_attr_from_el(el_data, "data-imgsrc_real01");
+        const imgsrc_real02 = get_attr_from_el(el_data, "data-imgsrc_real02");
+        const imgsrc_real03 = get_attr_from_el(el_data, "data-imgsrc_real03");
+        const weekdays = get_attr_from_el(el_data, "data-weekdays");
+        const timeformat = get_attr_from_el(el_data, "data-timeformat");
+        const interval = get_attr_from_el(el_data, "data-interval");
 
         DownloadDatalists();
 
@@ -126,7 +126,7 @@ $(function() {
 
 // ---  get clicked tablerow
         if(!!tr_clicked) {
-            id_row_selected = get_attr_from_element(tr_clicked, "id")
+            id_row_selected = get_attr_from_el(tr_clicked, "id")
 // ---  highlight clicked row
             tr_clicked.classList.add("tsa_tr_selected")
         }
@@ -160,7 +160,7 @@ $(function() {
                 const id_str = tr_changed.getAttribute("id");
                 console.log( "id_str: ", id_str, typeof id_str);
 
-// ---  el_changed is cell 'timestatus' or 'orderhourstatus' of tr_changed
+// ---  el_changed is cell 'status' or 'orderhourstatus' of tr_changed
                 let el_value = el_changed.getAttribute("value");
                 console.log( "el_value : ", el_value, typeof el_value);
 ;
@@ -185,7 +185,7 @@ $(function() {
                 el_changed.children[0].setAttribute("src", img_src);
 
 // upload new value icon
-                let row_upload = {"pk": id_str, 'timestatus': el_value_int}
+                let row_upload = {"pk": id_str, 'status': el_value_int}
                 console.log(">>>>>>>>row_upload:", row_upload)
                 let parameters = {"row_upload": JSON.stringify (row_upload)};
                 let response = "";
@@ -352,7 +352,7 @@ console.log("=========  function HandleCreateRecord =========");
             } else if (j===8 || j===10){
                 let img = document.createElement("img");
                 if (j === 8){
-                    el_name = "timestatus";
+                    el_name = "status";
                     img.src = imgsrc_stat04
                 } else if (j === 10) {
                     el_name = "orderhourstatus";
@@ -418,7 +418,7 @@ console.log("=========  function HandleCreateRecord =========");
 
         if(!!tr_changed) {
 // ---  get pk from id of tr_changed
-            const id_str = get_attr_from_element(tr_changed, "id")
+            const id_str = get_attr_from_el(tr_changed, "id")
             if(!!id_str){
                 let row_upload = {"pk": id_str};
 
@@ -427,7 +427,7 @@ console.log("=========  function HandleCreateRecord =========");
                     // el_input is first child of td, td is cell of tr_changed
                     if(!!tr_changed.cells[i].children[0]){
                         el_input = tr_changed.cells[i].children[0];
-                        el_name = get_attr_from_element_str(el_input, "data-field")
+                        el_name = get_attr_from_el_str(el_input, "data-field")
 
                         console.log( "el_name: ", el_name,  "el_input.value: ", el_input.value);
                         if(!!el_name){
@@ -599,7 +599,7 @@ console.log("=========  function HandleCreateRecord =========");
                         el_msg.classList.toggle("show");
 
                         let el_input = tblrow.querySelector("[name=code]");
-                        el_input.classList.add("border_invalid");
+                        el_input.classList.add("border_bg_invalid");
 
                         //console.log("el_input (" + fieldname + "): " ,el_input)
                         let elemRect = el_input.getBoundingClientRect();
@@ -621,7 +621,7 @@ console.log("=========  function HandleCreateRecord =========");
             // if 'new' exists and 'pk' not: it is an unsaved record (happens when code is entered and name is blank)
 
                 if (!!id_new){
-                    id_attr = get_attr_from_element_int(tr_changed,"id")
+                    id_attr = get_attr_from_el_int(tr_changed,"id")
             // check if row_update.id 'new_1' is same as tablerow.id
                     if(id_new === id_attr){
         // update tablerow.id from id_new to id_pk
@@ -667,7 +667,7 @@ console.log("=========  function HandleCreateRecord =========");
                             }
                             if('err' in item_dict){
                                 el_input.classList.add("border_none");
-                                el_input.classList.add("border_invalid");
+                                el_input.classList.add("border_bg_invalid");
 
                                 let el_msg = document.getElementById("id_msgbox");
                                 el_msg.innerHTML = item_dict['err'];
@@ -691,7 +691,7 @@ console.log("=========  function HandleCreateRecord =========");
                                 setTimeout(function (){
                                     el_input.value = value;
                                     el_input.setAttribute("o_value", value);
-                                    el_input.classList.remove("border_invalid");
+                                    el_input.classList.remove("border_bg_invalid");
                                     el_msg.classList.toggle("show");
                                     },2000);
 
@@ -970,11 +970,11 @@ $(document).mouseup(function (e) {
         el_popup.setAttribute("data-ppk", parent_pk)
 
 // put current value of start_time / endtime in el_popup
-        el_popup.setAttribute("data-field", get_attr_from_element(input_popup, "data-field"))
+        el_popup.setAttribute("data-field", get_attr_from_el(input_popup, "data-field"))
         //this one doesn't work: el_popup.data.name = input_popup.data.name
 
 // get current value of start_time / endtime from input_popup and store it in el_popup
-        let datetime_aware_iso = get_attr_from_element(input_popup, "data-value")
+        let datetime_aware_iso = get_attr_from_el(input_popup, "data-value")
 
 // if no current value: get rosterdate
         if (!datetime_aware_iso) {
@@ -1070,7 +1070,7 @@ $(document).mouseup(function (e) {
 
 // ---  show el_popup
         el_popup.classList.remove("display_hide");
-        let name = get_attr_from_element(input_popup, "data-field")
+        let name = get_attr_from_el(input_popup, "data-field")
 
 // ---  set focus to input element 'hours'
         el_popup_hour.focus();

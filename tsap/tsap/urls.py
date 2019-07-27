@@ -157,15 +157,17 @@ urlpatterns = [
 
     path('planning/', include([
         path('schemes', planning_views.SchemesView.as_view(), name='schemes_url'),
-        path('upload', planning_views.SchemeUploadView.as_view(), name='scheme_upload_url'),
+        path('scheme_upload', planning_views.SchemeUploadView.as_view(), name='scheme_upload_url'),
         path('schemeitem_download', planning_views.SchemeitemDownloadView.as_view(), name='schemeitems_download_url'),
         path('schemeitem_upload', planning_views.SchemeItemUploadView.as_view(), name='schemeitem_upload_url'),
         path('schemeitem_fill', planning_views.SchemeitemFillView.as_view(), name='schemeitem_fill_url'),
         path('schemeorteam_upload', planning_views.SchemeOrTeamUploadView.as_view(), name='schemeorteam_upload_url'),
 
+        path('scheme_template_upload', planning_views.SchemeTemplateUploadView.as_view(), name='scheme_template_upload_url'),
+
         path('roster', planning_views.RosterView.as_view(), name='roster_url'),
         path('roster_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
-        path('interval_upload', planning_views.PeriodUploadView.as_view(), name='interval_upload_url'),
+        path('interval_upload', planning_views.PeriodUploadView.as_view(), name='period_upload_url'),
     ])),
 
     path('emplhours/', include([

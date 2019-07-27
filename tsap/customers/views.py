@@ -10,14 +10,19 @@ from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, View
 
-from companies.models import Customer, Order, Scheme, Team, validate_code_or_name
-
+from companies.models import Customer, Order, Scheme, Team, delete_instance
 from companies.views import LazyEncoder
-from tsap.headerbar import get_headerbar_param
-from tsap.validators import validate_customer, check_date_overlap
-from tsap.constants import CODE_MAX_LENGTH, ABSENCE, ABSENCE_CATEGORY, LANG_DEFAULT, TYPE_00_NORMAL, TYPE_02_ABSENCE
-from tsap.functions import get_date_from_str, create_dict_with_empty_attr, get_iddict_variables, set_fielddict_date
+
 from planning.dicts import remove_empty_attr_from_dict
+from customers.dicts import create_customer_dict, create_order_list, create_order_dict
+
+from tsap.headerbar import get_headerbar_param
+from tsap.constants import CODE_MAX_LENGTH, ABSENCE, ABSENCE_CATEGORY, LANG_DEFAULT, \
+                    CAT_02_ABSENCE, CAT_03_TEMPLATE,  WEEKDAYS_ABBREV, MONTHS_ABBREV, TEMPLATE_TEXT
+from tsap.settings import TIME_ZONE
+from tsap.functions import get_date_from_ISOstring, create_dict_with_empty_attr, get_iddict_variables, set_fielddict_date
+from tsap.validators import validate_code_or_name
+
 import json
 
 import logging
@@ -53,7 +58,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= CustomerUploadView ============= ')
 
-        item_update_dict = {}
+        update_wrap = {}
         if request.user is not None and request.user.company is not None:
 # A.
     # 1. Reset languag
@@ -74,9 +79,9 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                 if id_dict:
                     pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
 
-    # 4. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+    # 4. Create empty item_update with keys for all fields. Unused ones will be removed at the end
                     field_list = ('pk', 'id', 'code', 'name', 'identifier', 'inactive')
-                    update_dict = create_dict_with_empty_attr(field_list)
+                    item_update = create_dict_with_empty_attr(field_list)
 
     # 5. check if parent exists (company is parent of customer)
                     instance = None
@@ -85,11 +90,12 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 # B. Delete instance
                         if is_delete:
                             instance = get_instance(table, pk_int, parent)
-                            delete_customer_or_order(table, instance, update_dict, request)
+                            this_text = _("Customer '%(tbl)s'") % {'tbl': instance.code}
+                            delete_instance(instance, item_update, request, this_text)
 
 # C. Create new customer
                         elif is_create:
-                            instance = create_customer_or_order(upload_dict, update_dict, request)
+                            instance = create_customer_or_order(upload_dict, item_update, request)
 
 # D. Get existing instance
                         else:
@@ -97,28 +103,28 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # E. Update instance, also when it is created
                         if instance:
-                            update_customer_or_order(instance, upload_dict, update_dict, request, user_lang)
+                            update_customer_or_order(instance, upload_dict, item_update, request, user_lang)
                             logger.debug('updated instance: ' + str(instance))
-                            item_update_dict['item_dict'] = create_customer_dict(instance)
+                            update_wrap['item_dict'] = create_customer_dict(instance)
 
-# 6. remove empty attributes from update_dict
-                    remove_empty_attr_from_dict(update_dict)
-                    logger.debug('update_dict: ' + str(update_dict))
+# 6. remove empty attributes from item_update
+                    remove_empty_attr_from_dict(item_update)
+                    logger.debug('item_update: ' + str(item_update))
 
-# 7. add update_dict to item_update_dict
-                    if update_dict:
-                        item_update_dict['item_update'] = update_dict
+# 7. add item_update to update_wrap
+                    if item_update:
+                        update_wrap['item_update'] = item_update
 
 # 8. update customer_list when changes are made
                         # inactive = None: include active and inactive
                        #  inactive = None
-                        # customer_list = create_customer_list(request.user.company, inactive, TYPE_00_NORMAL)
+                        # customer_list = create_customer_list(request.user.company, inactive, CAT_00_NORMAL)
                         # if customer_list:
-                            # item_update_dict['customer_list'] = customer_list
+                            # update_wrap['customer_list'] = customer_list
 
-# 9. return update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
-        update_dict_json = json.dumps(item_update_dict, cls=LazyEncoder)
-        return HttpResponse(update_dict_json)
+# 9. return item_update =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
+        update_wrap_json = json.dumps(update_wrap, cls=LazyEncoder)
+        return HttpResponse(update_wrap_json)
 
 
 # === Order ===================================== PR2019-03-27
@@ -129,7 +135,29 @@ class OrderListView(View):
         param = {}
         if request.user.company is not None:
             orders = Order.objects.filter(customer__company=request.user.company)
-            param = get_headerbar_param(request, {'order': orders})
+
+            # b. get comp_timezone PR2019-06-14
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+
+            # get weekdays translated
+            user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
+            if not user_lang in WEEKDAYS_ABBREV:
+                user_lang = LANG_DEFAULT
+            weekdays_json = json.dumps(WEEKDAYS_ABBREV[user_lang])
+
+            # get months translated
+            if not user_lang in MONTHS_ABBREV:
+                user_lang = LANG_DEFAULT
+            months_json = json.dumps(MONTHS_ABBREV[user_lang])
+
+            param = get_headerbar_param(request, {
+                'order': orders,
+                'lang': user_lang,
+                'timezone': comp_timezone,
+                'weekdays': weekdays_json,
+                'months': months_json,
+            })
+
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'orders.html', param)
 
@@ -140,13 +168,16 @@ class OrderUploadView(UpdateView):# PR2019-03-04
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= OrderUploadView ============= ')
 
-        item_update_dict = {}
+        update_wrap = {}
         if request.user is not None and request.user.company is not None:
 # A.
     # 1. Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
             activate(user_lang)
+
+    # b. get comp_timezone PR2019-06-14
+            # NIU comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
     # 2. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
@@ -159,25 +190,28 @@ class OrderUploadView(UpdateView):# PR2019-03-04
     # 3. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
-                    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
+                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
+                    logger.debug('id_dict: ' + str(id_dict))
 
-                    instance = None
-    # 4. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+    # 4. Create empty item_update with keys for all fields. Unused ones will be removed at the end
                     field_list = ('pk', 'id', 'code', 'name', 'identifier', 'datefirst', 'datelast', 'inactive')
-                    update_dict = create_dict_with_empty_attr(field_list)
+                    item_update = create_dict_with_empty_attr(field_list)
+                    logger.debug('item_update: ' + str(item_update))
 
     # 5. check if parent exists (customer is parent of order)
-                    parent = get_parent_instance('order', parent_pk_int, request.user.company)
+                    parent = get_parent_instance(table, ppk_int, request.user.company)
+                    logger.debug('parent: ' + str(parent))
                     if parent:
-
+                        instance = None
 # B. Delete instance
                         if is_delete:
                             instance = get_instance(table, pk_int, parent)
-                            delete_customer_or_order(table, instance, update_dict, request)
+                            this_text = _("Order '%(tbl)s'") % {'tbl': instance.code}
+                            delete_instance(instance, item_update, request, this_text)
 
 # C. Create new order
                         elif is_create:
-                            instance = create_customer_or_order(upload_dict, update_dict, request)
+                            instance = create_customer_or_order(upload_dict, item_update, request)
                             logger.debug('new instance: ' + str(instance))
 
 # D. get existing instance
@@ -187,26 +221,26 @@ class OrderUploadView(UpdateView):# PR2019-03-04
 
 # E. update instance, also when it is created
                         if instance:
-                            update_customer_or_order(instance, upload_dict, update_dict, request, user_lang)
+                            update_customer_or_order(instance, upload_dict, item_update, request, user_lang)
 
                         logger.debug('updated instance: ' + str(instance))
 
-# 6. remove empty attributes from update_dict
-                    remove_empty_attr_from_dict(update_dict)
-                    logger.debug('update_dict: ' + str(update_dict))
+# 6. remove empty attributes from item_update
+                    remove_empty_attr_from_dict(item_update)
+                    logger.debug('item_update: ' + str(item_update))
 
-# 7. add update_dict to item_update_dict
-                    if update_dict:
-                        item_update_dict['item_update'] = update_dict
+# 7. add item_update to update_wrap
+                    if item_update:
+                        update_wrap['item_update'] = item_update
 
 # 9. update order_list when changes are made
-                    # inactive = None: include active and inactive, issystem = None: include issystem and non-system
-                    order_list = create_order_list(request.user.company, user_lang)
+                    # inactive = None: include active and inactive
+                    order_list = create_order_list(company=request.user.company)  #  cat=CAT_00_NORMAL,
                     if order_list:
-                        item_update_dict['order_list'] = order_list
-        # 8. return update_dict =
-        # update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
-        return HttpResponse(json.dumps(item_update_dict, cls=LazyEncoder))
+                        update_wrap['order_list'] = order_list
+        # 8. return item_update =
+        # item_update =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
+        return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 
 @method_decorator([login_required], name='dispatch')
@@ -240,7 +274,7 @@ class OrderDownloadDatalistView(View):  # PR2019-03-10
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def create_instance(table, parent_instance, code, name, temp_pk_str, update_dict, request):
+def create_instance(table, parent_instance, code, name, temp_pk_str, item_update, request):
     instance = None
     pk_int = None
     parent_pk_int = None
@@ -256,130 +290,29 @@ def create_instance(table, parent_instance, code, name, temp_pk_str, update_dict
 # - create error when instance not created
         if instance is None:
             msg_err = _('This item could not be created.')
-            update_dict['id']['error'] = msg_err
+            item_update['id']['error'] = msg_err
         else:
 # - put info in id_dict
-            update_dict['id']['created'] = True
-            update_dict['id']['pk'] = instance.pk
+            item_update['id']['created'] = True
+            item_update['id']['pk'] = instance.pk
             if table == 'order':
-                update_dict['id']['ppk'] = instance.customer.pk
+                item_update['id']['ppk'] = instance.customer.pk
             elif table == 'customer':
-                update_dict['id']['ppk'] = instance.company.pk
+                item_update['id']['ppk'] = instance.company.pk
 
 # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
         if temp_pk_str:
-            update_dict['id']['temp_pk'] = temp_pk_str
+            item_update['id']['temp_pk'] = temp_pk_str
 
     return instance
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def update_customerXXX(customer, upload_dict, update_dict, request, user_lang):
-    # --- update existing and new customer PR2019-06-06
-    # add new values to update_dict (don't reset update_dict, it has values)
-    logger.debug(' --- update_customer')
-    logger.debug(upload_dict)
-    # upload_dict: {'id': {'temp_pk': 'new_2', 'create': True, 'parent_pk': 3, 'table': 'customer'},
-    # 'code': {'update': True, 'value': 'ee'}}
-
-    # table = 'customer'
-    parent = customer.company
-    save_changes = False
-
-# 1. get_iddict_variables
-    id_dict = upload_dict.get('id')
-    if id_dict:
-        pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
-
-# 2. save changes in field 'code', 'name'
-        for field in ['code', 'name']:
-            if field in upload_dict:
-    # a. get new and old value
-                field_dict = upload_dict.get(field)
-                new_value = field_dict.get('value')
-                saved_value = getattr(customer, field, None)
-
-                # fields 'code', 'name' are required
-                if new_value and new_value != saved_value:
-    # b. validate code or name
-                    msg_err = validate_code_or_name(table, field, new_value, parent, pk_int)
-                    if msg_err:
-                        update_dict[field]['error'] = msg_err
-                    else:
-    # c. save field if changed and no_error
-                        setattr(customer, field, new_value)
-                        update_dict[field]['updated'] = True
-                        save_changes = True
-
-# 3. save changes in date fields
-        for field in ['datefirst', 'datelast']:
-            # field_dict rosterdate: {'value': '2019-05-31', 'update':
-            if field in upload_dict:
-    # a. get new and old value
-                field_dict = upload_dict.get(field)
-                # logger.debug('field_dict ' + field + ': ' + str(field_dict) + str(type(field_dict)))
-                field_value = field_dict.get('value')  # field_value: '2019-04-12'
-    # b. validate value
-                new_date, msg_err = get_date_from_str(field_value, False)  # False = blank_allowed
-                saved_date = getattr(customer, field, None)
-                if msg_err:
-                    update_dict[field]['error'] = msg_err
-                else:
-    # c.  save field if no_error
-                    if new_date != saved_date:
-                        setattr(customer, field, new_date)
-                        update_dict[field]['updated'] = True
-                        save_changes = True
-
-# 4. save changes in field 'inactive'
-        for field in ['inactive']:
-            if field in upload_dict:
-    # a. get new and old value
-                field_dict = upload_dict.get(field)
-                value = field_dict.get('value')
-                is_inactive = True  if value == 'true' else False
-                saved_value = getattr(customer, field, None)
-                # logger.debug('saved_value: ' + str(saved_value) + ' type: ' + str(type(saved_value)))
-
-                if is_inactive != saved_value:
-    # b.  save field if no_error
-                    setattr(customer, field, is_inactive)
-                    update_dict[field]['updated'] = True
-                    save_changes = True
-
-                # logger.debug('timeduration: ' + str(schemeitem.timeduration) + str(type(schemeitem.timeduration)))
-# 5. save changes
-        if save_changes:
-            try:
-                customer.save(request=request)
-            except:
-                msg_err = _('This customer could not be updated.')
-                update_dict['id']['error'] = msg_err
-
-# 6. put saved value in update_dict
-        for field in update_dict:
-            if field != 'id' and field != 'pk':
-                saved_value = getattr(customer, field)
-                logger.debug('saved_value of ' + field + ': ' + str(saved_value) + ' type: ' + str(type(saved_value)))
-                if saved_value:
-                    update_dict[field]['value'] = saved_value
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def delete_customer_or_order(table, instance, update_dict, request):
-    # function deletes instance of table,  PR2019-06-24
-
-    if instance:
-        try:
-            instance.delete(request=request)
-            update_dict['id']['deleted'] = True
-        except:
-            msg_err = _('This %(tbl)s could not be deleted.') % {'tbl': table}
-            update_dict['id']['error'] = msg_err
-
-
-def create_customer_or_order(upload_dict, update_dict, request):
+def create_customer_or_order(upload_dict, item_update, request):
     # --- create customer or order # PR2019-06-24
-    # Note: all keys in update_dict must exist by running create_dict_with_empty_attr first
+    # Note: all keys in item_update must exist by running create_dict_with_empty_attr first
     logger.debug(' --- create_customer_or_order')
     logger.debug(upload_dict)
     # {'id': {'temp_pk': 'new_1', 'create': True, 'ppk': 1, 'table': 'customer'}, 'code': {'value': 'nw4', 'update': True}}
@@ -393,10 +326,10 @@ def create_customer_or_order(upload_dict, update_dict, request):
 
         logger.debug('pk_int: ' + str(pk_int) + ' parent_pk: ' + str(parent_pk) + '  temp_pk_str: ' + str(temp_pk_str))
         logger.debug(' is_create: ' + str(is_create) + ' is_delete: ' + str(is_delete))
-    # b. save temp_pk_str in in 'id' of update_dict'
+    # b. save temp_pk_str in in 'id' of item_update'
         if temp_pk_str:
             # attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
-            update_dict['id']['temp_pk'] = temp_pk_str
+            item_update['id']['temp_pk'] = temp_pk_str
 
 # 2. get parent instance
         parent = get_parent_instance(table, parent_pk, request.user.company)
@@ -425,11 +358,11 @@ def create_customer_or_order(upload_dict, update_dict, request):
                 msg_err = validate_code_or_name(table, 'code', code, parent_pk)
 
                 if msg_err:
-                    update_dict['code']['error'] = msg_err
+                    item_update['code']['error'] = msg_err
                 else:
                     msg_err = validate_code_or_name(table, 'name', name, parent_pk)
                     if msg_err:
-                        update_dict['name']['error'] = msg_err
+                        item_update['name']['error'] = msg_err
 
 # 4. create and save 'customer' or 'order'
                     else:
@@ -445,21 +378,21 @@ def create_customer_or_order(upload_dict, update_dict, request):
                         msg_err = _('This customer could not be created.')
                     elif table =='order':
                         msg_err = _('This order could not be created.')
-                    update_dict['id']['error'] = msg_err
+                    item_update['id']['error'] = msg_err
                 else:
 
-# 6. put info in update_dict
-                    update_dict['id']['created'] = True
-                   # update_dict['code']['updated'] = True
-                    #update_dict['name']['updated'] = True
+# 6. put info in item_update
+                    item_update['id']['created'] = True
+                   # item_update['code']['updated'] = True
+                    #item_update['name']['updated'] = True
 
-    logger.debug('update_dict: ' + str(update_dict))
+    logger.debug('item_update: ' + str(item_update))
     return instance
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def update_customer_or_order(instance, upload_dict, update_dict, request, user_lang):
+def update_customer_or_order(instance, upload_dict, item_update, request, user_lang):
     # --- update existing and new customer or order PR2019-06-24
-    # add new values to update_dict (don't reset update_dict, it has values)
+    # add new values to item_update (don't reset item_update, it has values)
     logger.debug(' --- update_customer_or_order --- ')
     logger.debug('upload_dict: ' + str(upload_dict))
     # upload_dict: {'id': {'temp_pk': 'new_2', 'create': True, 'parent_pk': 3, 'table': 'order'},
@@ -478,10 +411,10 @@ def update_customer_or_order(instance, upload_dict, update_dict, request, user_l
         elif table == 'order':
             parent_pk = instance.customer.pk
 
-        update_dict['pk'] = pk_int
-        update_dict['id']['pk'] = pk_int
-        update_dict['id']['ppk'] = parent_pk
-        update_dict['id']['table'] = table
+        item_update['pk'] = pk_int
+        item_update['id']['pk'] = pk_int
+        item_update['id']['ppk'] = parent_pk
+        item_update['id']['table'] = table
 
 # 2. save changes in field 'code', 'name'
         for field in ['code', 'name']:
@@ -490,18 +423,18 @@ def update_customer_or_order(instance, upload_dict, update_dict, request, user_l
                 field_dict = upload_dict.get(field)
                 if 'update' in field_dict:
                     new_value = field_dict.get('value')
-                    saved_value = getattr(instance, field, None)
+                    saved_value = getattr(instance, field)
 
                     # fields 'code', 'name' are required
                     if new_value != saved_value:
     # b. validate code or name
                         msg_err = validate_code_or_name(table, field, new_value, parent_pk, pk_int)
                         if msg_err:
-                            update_dict[field]['error'] = msg_err
+                            item_update[field]['error'] = msg_err
                         else:
     # c. save field if changed and no_error
                             setattr(instance, field, new_value)
-                            update_dict[field]['updated'] = True
+                            item_update[field]['updated'] = True
                             save_changes = True
 
 # 3. save changes in date fields
@@ -510,18 +443,19 @@ def update_customer_or_order(instance, upload_dict, update_dict, request, user_l
     # a. get new and old value
                 field_dict = upload_dict.get(field)
                 if 'update' in field_dict:
-                    field_value = field_dict.get('value')  # field_value: '2019-04-12'
+                    new_value = field_dict.get('value')  # new_value: '2019-04-12'
+                    new_date, msg_err = get_date_from_ISOstring(new_value, False)  # False = blank_allowed
     # b. validate value
-                    new_date, msg_err = get_date_from_str(field_value, False)  # False = blank_allowed
-                    saved_date = getattr(instance, field, None)
                     if msg_err:
-                        update_dict[field]['error'] = msg_err
+                        item_update[field]['error'] = msg_err
                     else:
-    # c.  save field if no_error
-                        if new_date != saved_date:
+    # c. save field if changed and no_error
+                        old_date = getattr(instance, field, None)
+                        if new_date != old_date:
                             setattr(instance, field, new_date)
-                            update_dict[field]['updated'] = True
                             save_changes = True
+                            item_update[field]['updated'] = True
+                            logger.debug('date saved: ' + str(instance.datefirst))
 
 # 4. save changes in field 'inactive'
         for field in ['inactive']:
@@ -532,12 +466,12 @@ def update_customer_or_order(instance, upload_dict, update_dict, request, user_l
                     value = field_dict.get('value')
                     is_inactive = True  if value == 'true' else False
                     saved_value = getattr(instance, field, None)
-                    # logger.debug('saved_value: ' + str(saved_value) + ' type: ' + str(type(saved_value)))
+                    # logger.debug('saved_value: ' + str(saved_value) + ' ' + str(type(saved_value)))
 
                     if is_inactive != saved_value:
     # b.  save field if no_error
                         setattr(instance, field, is_inactive)
-                        update_dict[field]['updated'] = True
+                        item_update[field]['updated'] = True
                         save_changes = True
 
                 # logger.debug('timeduration: ' + str(schemeitem.timeduration) + str(type(schemeitem.timeduration)))
@@ -547,229 +481,83 @@ def update_customer_or_order(instance, upload_dict, update_dict, request, user_l
                 instance.save(request=request)
             except:
                 msg_err = _('This %(tbl)s could not be updated.') % {'tbl': table}
-                update_dict['id']['error'] = msg_err
+                item_update['id']['error'] = msg_err
 
-# 6. put updated saved values in update_dict
-        for field in update_dict:
-            if field != 'id' and field != 'pk':
+# 6. put updated saved values in item_update
+        logger.debug('for field in item_update: ' + str(item_update))
+        create_order_dict(instance, item_update)
+        """
+        for field in item_update:
+            if field not in ('id', 'pk'):
+
                 saved_value = getattr(instance, field)
-                logger.debug('new saved_value of ' + field + ': ' + str(saved_value) + ' type: ' + str(type(saved_value)))
-                if saved_value:
-                    if field in ['code', 'name', 'inactive']:
-                        update_dict[field]['value'] = saved_value
-                    if field in ['datefirst', 'datelast']:
-                        # saves 'value', 'dm', 'wdm', wdmy', 'dmy', 'offset' in update_dict[field]
-                        set_fielddict_date(update_dict[field], saved_value, user_lang)
+                if field in ['code', 'name', 'inactive']:
+                    if saved_value:
+                        item_update[field]['value'] = saved_value
+                # also add date when empty, to add min max date
+                elif field == 'datefirst':
+                    maxdate = getattr(instance, 'datelast')
+                    set_fielddict_date(dict=item_update[field], dte=saved_value, maxdate=maxdate)
+                elif field == 'datelast':
+                    mindate = getattr(instance, 'datefirst')
+                    set_fielddict_date(dict=item_update[field], dte=saved_value, mindate=mindate)
 
-
-def create_customer_list(company, inactive=None, type=None):
-
-# --- create list of all active customers of this company PR2019-06-16
-    crit = Q(company=company)
-    if type is not None:
-        crit.add(Q(type=type), crit.connector)
-    if inactive is not None:
-        crit.add(Q(inactive=inactive), crit.connector)
-    customers = Customer.objects.filter(crit)  # order_by(Lower('code')) is in model class Meta
-
-    customer_list = []
-    for customer in customers:
-        dict = create_customer_dict(customer)
-        customer_list.append(dict)
-    return customer_list
-
-
-def create_customer_dict(instance):
-# --- create dict of this customer PR2019-06-19
-    dict = {}
-    if instance:
-        parent_pk = instance.company.pk
-        dict['pk'] = instance.pk
-        dict['id'] = {'pk': instance.pk, 'ppk': parent_pk, 'table': 'customer'}
-
-        for field in ['code', 'name', 'identifier', 'email', 'telephone', 'inactive']:
-            value = getattr(instance, field, None)
-            if value:
-                dict[field] = {'value': value}
-
-
-        # NOT IN USE
-        #    if instance.datefirst:
-        #        dict['datefirst'] = {
-        #            'value': get_date_yyyymmdd(instance.datefirst),
-        #            'wdmy': format_WDMY_from_dte(instance.datefirst, user_lang)}
-        #    if instance.datelast:
-        #        dict['datelast'] = {
-        #            'value': get_date_yyyymmdd(instance.datelast),
-        #            'wdmy': format_WDMY_from_dte(instance.datelast, user_lang)
-        #        }
-    return dict
-
-
-def create_order_list(company, user_lang, inactive = None, type=TYPE_00_NORMAL, rangemin=None, rangemax=None):
-# --- create list of all active orders of this company PR2019-06-16
-
-    crit = (Q(customer__company=company)) & \
-           (Q(customer__type=type))
-    if inactive is not None:
-        crit.add(Q(inactive=inactive), crit.connector)
-    if rangemax is not None:
-        crit.add(Q(datefirst__lte=rangemax) | Q(datefirst__isnull=True), crit.connector)
-    if rangemin is not None:
-        crit.add(Q(datelast__gte=rangemin) | Q(datelast__isnull=True), crit.connector)
-
-    orders = None
-    if type == TYPE_00_NORMAL:
-        orders = Order.objects.filter(crit).order_by('customer__code', 'code')  # field 'taxrate' is used to store sequence
-    elif type == TYPE_02_ABSENCE:
-        orders = Order.objects.filter(crit).order_by('taxrate')  # field 'taxrate' is used to store sequence
-
-    order_list = []
-    for order in orders:
-        dict = create_order_dict(order, user_lang)
-        order_list.append(dict)
-    return order_list
-
-def create_order_dict(instance, user_lang):
-# --- create dict of this order PR2019-06-25
-    dict = {}
-    if instance:
-        parent_pk = instance.customer.pk
-
-
-        dict['pk'] = instance.pk
-        dict['id'] = {'pk': instance.pk, 'ppk': parent_pk, 'table': 'order'}
-
-        for field in ['code', 'name', 'identifier', 'datefirst', 'datelast', 'inactive', 'customer']:
-            value = getattr(instance, field, None)
-            if value:
-                if field in ['code', 'name', 'identifier', 'inactive']:
-                    dict[field] = {'value': value}
-                elif field in ['datefirst', 'datelast']:
-                    dict[field] = {}
-                    format_list = ['value', 'dmy', 'wdmy']
-                    set_fielddict_date(dict[field], value, user_lang, None, format_list)
-
-        field = 'customer'
-        if instance.customer.code:
-            dict[field] = {'value': instance.customer.code}
-
-    return dict
-# >>>>>>>>>>>>>>>>>>>
+        # 7. remove empty attributes from item_update
+        remove_empty_attr_from_dict(item_update)
+        logger.debug('item_update: ' + str(item_update))
+        """
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# === Create new 'absence' customer, order and scheme and team
-def create_absence_customer(request):
-    # logger.debug(" === create_absence_customer ===")
+
+
+# === Create new 'template' customer and order
+def create_template_order(request):
+    # logger.debug(" === create_template_order ===")
+
+    order = None
 
     user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
+    template_locale = TEMPLATE_TEXT[user_lang]
 
-    # - create 'absence' orders - contains absence categoriesuser_lang
-    if user_lang in ABSENCE:
-        absence_locale = ABSENCE[user_lang]
-    else:
-        absence_locale = ABSENCE[LANG_DEFAULT]
-    if user_lang in ABSENCE_CATEGORY:
-        categories_locale = ABSENCE_CATEGORY[user_lang]
-    else:
-        categories_locale = ABSENCE_CATEGORY[LANG_DEFAULT]
-
-# - check if 'absence' customer exists for this company - only one 'absence' customer allowed
-    customer = Customer.objects.get_or_none(company=request.user.company, type=TYPE_02_ABSENCE)
-    # logger.debug(" absence_customer_exists: " + str(customer))
-    #from django.db import connection
-    # logger.debug( connection.queries)
+# 1. check if 'template' customer exists for this company - only one 'template' customer allowed
+    customer = Customer.objects.get_or_none(company=request.user.company, cat=CAT_03_TEMPLATE)
+    if customer is None:
+# 2. create 'template' customer if not exists
+        customer = Customer(company=request.user.company,
+                            code=template_locale,
+                            name=template_locale,
+                            cat=CAT_03_TEMPLATE)
+        customer.save(request=request)
+        # logger.debug("customer.save: " + str(customer.pk) + str(customer.code))
 
     if customer:
-# - check if 'absence' customer has categories (orders)
-        absence_orders_exist = Order.objects.filter(customer=customer).exists()
-        if not absence_orders_exist:
-# - if no orders exist: create 'absence' orders - contains absence categories
-            for category in ABSENCE_CATEGORY:
-                create_absence_order(customer, category, request)
+# 3. check if 'template' customer has order - only one 'template' order allowed
+        order = Order.objects.get_or_none(customer=customer)
+        if order is None:
 
-    else:
-    # - create 'absence' customer instance
-        # logger.debug(" create 'absence' customer instance " )
-        # logger.debug(absence_locale)
+# 4. create 'template' order if not exists
+            order = Order(customer=customer,
+                          code=template_locale,
+                          name=template_locale,
+                          cat=CAT_03_TEMPLATE)
+            order.save(request=request)
+            # logger.debug("order.save: " + str(order.pk) + ' ' + str(order.code))
 
-        customer = Customer(company=request.user.company,
-                            code=absence_locale,
-                            name=absence_locale,
-                            type=TYPE_02_ABSENCE)
-    # - save instance
-        customer.save(request=request)
-
-        for category in categories_locale:
-            create_absence_order(customer, category, request)
-
-# === Create new 'absence' customer, order and scheme and team PR2019-06-24
-def create_absence_order(absence_customer, category, request):
-    # logger.debug(" === create_absence_order ===")
-
-    if absence_customer and category:
-        # sequencce is stored in field 'taxrate'
-        sequence = category[0]
-        code = category[1]
-        name = category[2]
-# - create 'absence' orders - contains absence categories
-        order = Order(customer=absence_customer, code=code, name=name, taxrate=sequence, type=TYPE_02_ABSENCE)
-        order.save(request=request)
-        # logger.debug(" order.save: " + str(order))
-# - create scheme
-        scheme = Scheme(order=order, code=code, type=TYPE_02_ABSENCE)
-        scheme.save(request=request)
-        # logger.debug(" scheme.save: " + str(scheme))
-# - create team
-        team = Team(scheme=scheme, code=code)
-        team.save(request=request)
-        # logger.debug(" team.save: " + str(team))
-
-def create_absencecategory_list(company):
-    # --- create list of all active absence categories of this company PR2019-06-25
-
-    order_list = []
-
-    crit = (Q(customer__company=company) &
-                Q(type=TYPE_02_ABSENCE) &
-                Q(inactive=False))
-    orders = Order.objects.filter(crit).order_by('taxrate')  # field 'taxrate' contains sequence of absence
-
-    for order in orders:
-        dict = create_absencecat_dict(order)
-        order_list.append(dict)
-
-    return order_list
-
-def create_absencecat_dict(instance):
-# --- create dict of this absece category PR2019-06-25
-    dict = {}
-    if instance:
-        parent_pk = instance.customer.pk
-
-        dict['pk'] = instance.pk
-        dict['id'] = {'pk': instance.pk, 'ppk': parent_pk, 'table': 'order'}
-
-        value = getattr(instance, 'name', None)
-        if value:
-            # use model field 'name' in datalist filed 'code'
-            dict['code'] = {'value': value}
-
-    return dict
+    return order
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def get_parent_instance(table, parent_pk_int, company):
-    # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-06-17
+def get_parent_instance(table, ppk_int, company):
+    # function checks if parent exists, writes 'parent_pk' and 'table' in item_update['id'] PR2019-06-17
     parent = None
-    if parent_pk_int:
+    if ppk_int:
         if table == 'customer':
             parent = company
         elif table == 'order':
-            parent = Customer.objects.get_or_none(id=parent_pk_int, company=company)
+            parent = Customer.objects.get_or_none(id=ppk_int, company=company)
     return parent
 
 def get_instance(table, pk_int, parent):
-    # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-06-17
+    # function checks if parent exists, writes 'parent_pk' and 'table' in item_update['id'] PR2019-06-17
     instance = None
     if pk_int:
         if table == 'customer':
@@ -846,10 +634,10 @@ class OrderImportView(View):
 
             # get mapped coldefs from table Companysetting
             # get stored setting from Companysetting
-            settings = Companysetting.get_setting(KEY_CUSTOMER_MAPPED_COLDEFS, request.user.company)
+            settings = Companysetting.get_setting(KEY_CUSTOMER_COLDEFS, request.user.company)
             stored_setting = {}
             if settings:
-                stored_setting = json.loads(Companysetting.get_setting(KEY_CUSTOMER_MAPPED_COLDEFS, request.user.company))
+                stored_setting = json.loads(Companysetting.get_setting(KEY_CUSTOMER_COLDEFS, request.user.company))
 
             # stored_setting = {'worksheetname': 'VakschemaQuery', 'no_header': False,
             #                   'coldefs': {'customer': 'level_abbrev', 'orderdatefirst': 'sector_abbrev'}}
@@ -916,7 +704,7 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
                 if request.POST['setting']:
                     new_setting = json.loads(request.POST['setting'])
                     # get stored setting from Companysetting
-                    stored_setting = json.loads(Companysetting.get_setting(KEY_CUSTOMER_MAPPED_COLDEFS, request.user.company))
+                    stored_setting = json.loads(Companysetting.get_setting(KEY_CUSTOMER_COLDEFS, request.user.company))
                     # stored_setting = {'worksheetname': 'VakschemaQuery', 'no_header': False,
                     #                   'coldefs': {'customer': 'level_abbrev', 'orderdatefirst': 'sector_abbrev'}}
 
@@ -927,7 +715,7 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
                     stored_setting_json = json.dumps(stored_setting)
 
                     # save stored_setting_json
-                    Companysetting.set_setting(KEY_CUSTOMER_MAPPED_COLDEFS, stored_setting_json, request.user)
+                    Companysetting.set_setting(KEY_CUSTOMER_COLDEFS, stored_setting_json, request.user)
 
         return HttpResponse(json.dumps("Student import settings uploaded!", cls=LazyEncoder))
 

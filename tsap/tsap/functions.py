@@ -71,8 +71,8 @@ def get_datetime_UTC_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
     #  datetime_naive: 2019-06-26 07:20:00  <class 'datetime.datetime'>
     #  tzinfo: None  <class 'NoneType'>
 
-    timezone = pytz.utc
     # convert datetime_naive to datetime with timezone utc
+    timezone = pytz.utc
     datetime_utc = timezone.localize(datetime_naive)
     logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
     #  datetime_utc: 2019-06-26 07:20:00+00:00  <class 'datetime.datetime'>
@@ -101,135 +101,46 @@ def get_datetimearray_from_ISOstring(datetime_ISOstring):  # PR2019-07-10
     #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
     #  split string into array  ["2019", "03", "30", "19", "05", "00"]
     #  regex \d+ - matches one or more numeric digits
+    logger.debug('............. get_datetimearray_from_ISOstring: ' + str(datetime_ISOstring))
+    logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' ' + str(type(datetime_ISOstring)))
 
     regex = re.compile('\D+')
+
+    logger.debug(' regex: ' + str(regex))
     arr = regex.split(datetime_ISOstring)
+    logger.debug(' arr: ' + str(arr))
     length = len(arr)
 
-    if length >= 2:
-        if length < 3:
-            arr.append('0')
-        if length < 4:
-            arr.append('0')
+    while length < 5 :
+        arr.append('0')
+        length += 1
 
     return arr
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-def get_date_from_str(date_str, blank_not_allowed=False):  # PR2019-04-28
-    # logger.debug('............. get_date_from_str: ' + str(date_str))
+def get_date_from_ISOstring(datetime_ISOstring, blank_not_allowed=False):  # PR2019-04-28
+    logger.debug('............. get_date_from_ISOstring: ' + str(datetime_ISOstring))
     # function retrieves date from string format " yyyy-mm-dd" or  " yyyy/mm/dd"
     dte = None
-    msg_txt = None
-    if not date_str:
+    msg_err = None
+    if not datetime_ISOstring:
         if blank_not_allowed:
-            msg_txt = _("Date cannot be blank.")
+            msg_err = _("Date cannot be blank.")
     else:
+        arr = get_datetimearray_from_ISOstring(datetime_ISOstring)
         try:
-            date_list = []
-            list_ok = False
-            if '-' in date_str:
-                date_list = date_str.split('-')
-                list_ok = True
-            elif '/' in date_str:
-                date_list = date_str.split('/')
-                list_ok = True
-            if list_ok and date_list:
-                    #date format is yyyy-mm-dd
-                    if date_list[0].isnumeric():
-                        year_int = int(date_list[0])
-                        #logger.debug('year_int: ' + str(year_int) + str(type(year_int)))
-                        if date_list[1].isnumeric():
-                            month_int = int(date_list[1])
-                            #logger.debug('month_int: ' + str(month_int) + str(type(month_int)))
-                            if date_list[2].isnumeric():
-                                day_int = int(date_list[2])
-                                #logger.debug('day_int: ' + str(day_int) + str(type(day_int)))
-                                dte = date(year_int, month_int, day_int)
-                    # logger.debug('dte: ' + str(dte) + str(type(dte)))
+            year_int = int(arr[0])
+            month_int = int(arr[1])
+            day_int = int(arr[2])
+            dte = date(year_int, month_int, day_int)
         except:
-            msg_txt = "'" + date_str + "'" + _("is not a valid date.")
-            #logger.debug('msg_txt: ' + str(msg_txt) + str(type(msg_txt)))
+            #msg_err = "'" + datetime_ISOstring + "'" + _("is not a valid date.")
+            #msg_err = _("This is not a valid date.")
+            msg_err = _("'%(fld)s' is not a valid date.") % {'fld': datetime_ISOstring}
+            #logger.debug('msg_err: ' + str(msg_err) + str(type(msg_err)))
             pass
-    return dte, msg_txt
-
-
-def get_date_from_timestr(rosterdate, time_str):  # PR2019-04-07
-    logger.debug('............. get_date_from_str: ' + str(rosterdate) + 'time:' + str(time_str))
-    date_time = None
-    msg_txt = None
-    # time_str = "01:00"
-    if time_str:
-        try:
-            time_list = []
-            list_ok = False
-            if ':' in time_str:
-                time_list = time_str.split(':')
-                list_ok = True
-            elif '.' in time_str:
-                time_list = time_str.split('.')
-                list_ok = True
-            if list_ok and time_list:
-                logger.debug('time_list hours: ' + str(time_list[0]) + 'minutes: ' + str(time_list[1]))
-                #time format is hh:mm:ss
-                if time_list[0].isnumeric():
-                    hour_int = int(time_list[0])
-                    logger.debug('hour_int: ' + str(hour_int) + str(type(hour_int)))
-                    if time_list[1].isnumeric():
-                        minute_int = int(time_list[1])
-                        logger.debug('minute_int: ' + str(minute_int) + str(type(minute_int)))
-                        # datetime(year, month, day, hour, minute, second, microsecond)
-                        date_time = datetime(rosterdate.year, rosterdate.month, rosterdate.day,hour_int, minute_int )
-
-                        logger.debug('date_time: ' + str(date_time) + str(type(date_time)))
-        except:
-            msg_txt = "'" + time_str + "'" + _("is not a valid time.")
-            #logger.debug('msg_txt: ' + str(msg_txt) + str(type(msg_txt)))
-            pass
-    return date_time, msg_txt
-
-
-def get_date_from_datetimelocal(datetime_str, comp_timezone):  # PR2019-04-08
-    logger.debug('............. get_date_from_datetimelocal: ')
-    logger.debug('datetime_local: ' + str(datetime_str))
-    #  date: "2018-02-25T19:24:23"
-    datetime_aware = None
-    msg_txt = None
-    if datetime_str:
-        try:
-            # split datetime_str in date_list and time_list
-            if 'T' in datetime_str:
-                datetime_list = datetime_str.split('T')
-                # split date
-                if '-' in datetime_list[0]:
-                    date_list = datetime_list[0].split('-')
-                    year = int(date_list[0]) if date_list[0] else 0
-                    month = int(date_list[1]) if date_list[1] else 0
-                    day = int(date_list[2]) if date_list[2] else 0
-
-                    # split time
-                    if ':' in datetime_list[1]:
-                        #time format is hh:mm:ss
-                        time_list = datetime_list[1].split(':')
-                        hour = int(time_list[0]) if time_list[0] else 0
-                        minute = int(time_list[1]) if time_list[1] else 0
-
-                        # datetime(year, month, day, hour, minute, second, microsecond)
-                        datetime_naive = datetime(year, month, day, hour, minute)
-                        #logger.debug('date_time: ' + str(date_time) + str(type(date_time)))
-
-                        # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
-                        # entered date is dattime-naive, make it datetime aware with  pytz.timezone
-                        timezone = pytz.timezone(comp_timezone)
-                        datetime_aware = timezone.localize(datetime_naive)
-                        logger.debug('datetime_aware: ' + str(datetime_aware) + 'timezone: ' + str(timezone))
-        except:
-            msg_txt = "'" + datetime_str + "'" + _("is not a valid time.")
-            #logger.debug('msg_txt: ' + str(msg_txt) + str(type(msg_txt)))
-            pass
-    return datetime_aware, msg_txt
+    return dte, msg_err
 
 
 def get_datetimelocal_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-04-17
@@ -238,7 +149,7 @@ def get_datetimelocal_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-0
 
     # date_time     :   2019-04-11 11:12:12+00:00
     # strftime("%z"):   +0000
-    # TIME_ZONE     :   America/Curacao
+    # TIME_ZONE     :   America/Curacao (gets value in settings)
     # datetime_local:   2019-04-11 07:12:12-04:00
     # date_time_str :   2019-04-11T07:12:12
 
@@ -279,7 +190,7 @@ def get_timeDHM_from_dhm(rosterdate, dhm_str, comp_timezone, lang):
     # logger.debug('dhm_str: ' + str(dhm_str) + str(type(dhm_str)))
     # convert rosterdate and dhm_str into local ISO date
     # dt_localized: 2019-03-31 04:48:00+02:00
-    dt_localized = get_datetimelocal_from_DHM(rosterdate, dhm_str, comp_timezone)
+    dt_localized = get_datetimelocal_from_offset(rosterdate, dhm_str, comp_timezone)
     # logger.debug('dt_localized: ' + str(dt_localized) + str(type(dt_localized)))
     # format to 'zo 31 mrt'
 
@@ -293,7 +204,7 @@ def get_timeDHM_from_dhm(rosterdate, dhm_str, comp_timezone, lang):
 def get_datetimeUTC_from_DHM(rosterdate, dhm_str, comp_timezone):
 
     # dt_localized: 2019-03-31 04:48:00+02:00
-    dt_localized = get_datetimelocal_from_DHM(rosterdate, dhm_str, comp_timezone)
+    dt_localized = get_datetimelocal_from_offset(rosterdate, dhm_str, comp_timezone)
 
     utc = pytz.UTC
     dt_as_utc = dt_localized.astimezone(utc)
@@ -349,45 +260,57 @@ def get_minutes_from_DHM(dhm_str):  #PR2019-06-13
             duration = 60 * hours + minutes
     return duration
 
-def get_datetimelocal_from_DHM(rosterdate, dhm_str, comp_timezone):
-    # logger.debug('=== get_datetimelocal_from_DHM ' + dhm_str + '  ' + str(rosterdate))
-    dt_localized = None
-    if rosterdate and dhm_str:
-        # timestart': {'value': '0;3;45', 'o_value': '2019-04-27T02:36:00+02:00'}}
-        if ';' in dhm_str:
-            arr = dhm_str.split(';')
+
+def get_datetimeUTC_from_offset(rosterdate, offset, comp_timezone):
+    #logger.debug(' +++ get_datetimeUTC_from_offset +++')
+    new_datetime_utc = None
+    if rosterdate and offset:
+        new_datetime_local = get_datetimelocal_from_offset(rosterdate, offset, comp_timezone)
+
+        new_datetime_utc = new_datetime_local.astimezone(pytz.UTC)
+        #logger.debug('new_datetime_utc: ' + str(new_datetime_utc) + ' ' + str(type(new_datetime_utc)))
+
+    return new_datetime_utc
+
+
+def get_datetimelocal_from_offset(rosterdate, offset, comp_timezone):
+    logger.debug(' +++ get_datetimelocal_from_offset +++')
+    logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+    logger.debug('offset: ' + str(offset))
+    new_datetime_local = None
+    if rosterdate and offset:
+        #logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+        #logger.debug('offset: ' + str(offset))
+
+        # get offset day, hour, minute from offset
+        day_offset, new_hour, new_minute = offset_split(offset)
+
+        # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+        # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
+
+        # convert rosterdate (which is naive) to local
+        timezone = pytz.timezone(comp_timezone)
+        rosterdate_midnight_local = timezone.localize(rosterdate)
+
+        # add days, hours and minutes to  rosterdate_midnight_local
+        new_datetime_local = rosterdate_midnight_local + timedelta(days=day_offset, hours=new_hour, minutes=new_minute)
+        #logger.debug('new_datetime_local: ' + str(new_datetime_local) + ' ' + str(type(new_datetime_local)))
+
+    return new_datetime_local
+
+def offset_split(offset):
+    # PR2019-07-27  offset =  '-1;3;45'
+    day_offset = 0
+    hours = 0
+    minutes = 0
+    if offset:
+        if ';' in offset:
+            arr = offset.split(';')
             day_offset = int(arr[0])
-            new_hour = int(arr[1])
-            new_minute = int(arr[2])
+            hours = int(arr[1])
+            minutes = int(arr[2])
 
-            date_no_offset = datetime(rosterdate.year,
-                                rosterdate.month,
-                                rosterdate.day,
-                                new_hour,
-                                new_minute)
-
-            # offset date
-            # dt_naive: 2019-03-31 04:48:00
-            dt_naive = date_no_offset + timedelta(days=day_offset)
-            # logger.debug('dt_naive: ' + str(dt_naive))
-
-            # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
-            # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
-            timezone = pytz.timezone(comp_timezone)
-            # logger.debug('timezone: ' + str(timezone) + str(type(timezone)))
-
-            # dt_localized: 2019-03-31 04:48:00+02:00
-            dt_localized = timezone.localize(dt_naive)
-            # logger.debug('dt_localized: ' + str(dt_localized))
-
-            # Not in use
-            #utc = pytz.UTC
-            #dt_as_utc = dt_localized.astimezone(utc)
-            # dt_as_utc: 2019-03-31 02:48:00+00:00
-            # logger.debug('dt_as_utc: ' + str(dt_as_utc))
-
-    return dt_localized
-
+    return day_offset, hours, minutes
 
 def get_timelocal_formatDHM(rosterdate, date_time, comp_timezone, lang):
     # Function returns date: "ma 18.15 u." or "Mon 6:15 p.m."
@@ -721,6 +644,24 @@ def get_time_longstr_from_dte(dte, lang):  # PR2019-04-13
     return date_longstr
 
 
+def get_dhm_from_datetime_iso(datetime_iso, rosterdate_iso, comp_timezone): # PR2019-07-19
+    # fuction convert utc_iso date and rosterdate to local dates, calulates diiference in days, hours and minutes
+    dhm = ""
+    if datetime_iso and rosterdate_iso:
+        datetime_local = get_datetime_LOCAL_from_ISOstring(datetime_iso, comp_timezone)
+        rosterdate_local = get_datetime_LOCAL_from_ISOstring(rosterdate_iso, comp_timezone)
+
+        # % is the modulo operator: 26 % 7 return the remainder
+        # // is the floor operator:  5 // 2 will return 2
+        total_diff = (datetime_local - rosterdate_local).total_seconds() / 60.0
+        days_diff = str(total_diff // 1440)
+        remaining_diff = total_diff % 1440
+        hours_diff = str(remaining_diff // 60)
+        minutes_diff = str(remaining_diff % 60)
+
+        dhm = ';'.join([days_diff, hours_diff, minutes_diff])
+    return dhm
+
 def get_date_diff_plusone(firstdate, lastdate): # PR2019-06-05
     date_add = 0
     if firstdate and lastdate:
@@ -831,22 +772,22 @@ def get_iddict_variables(id_dict):
 # - get id_dict from upload_dict
     # 'id': {'temp_pk': 'new_26', 'create': True, 'parent_pk': 1, 'table': 'teammembers'}
 
-    tablename = ''
+    table = ''
     temp_pk_str = ''
     pk_int = 0
-    parent_pk_int = 0
+    ppk_int = 0
     is_create = False
     is_delete = False
 
     if id_dict:
-        tablename = id_dict.get('table', '')
+        table = id_dict.get('table', '')
         pk_int = int(id_dict.get('pk', 0))
-        parent_pk_int = int(id_dict.get('ppk', 0))
+        ppk_int = int(id_dict.get('ppk', 0))
         temp_pk_str = id_dict.get('temp_pk', '')
         is_create = ('create' in id_dict)
         is_delete = ('delete' in id_dict)
 
-    return pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename
+    return pk_int, ppk_int, temp_pk_str, is_create, is_delete, table
 
 
 def get_fielddict_variables(upload_dict, field):
@@ -891,42 +832,18 @@ def fielddict_date(dte, user_lang):
     return dict
 
 
-def set_fielddict_date(dict, dte, user_lang, rosterdate=None, format_list=None):
-    # PR2019-06-25
-    #logger.debug('new set_fielddict_date dict: ' +  str(dict) + ' type: ' + str(type(dict)))
-    #logger.debug('rosterdate: ' +  str(rosterdate) + ' type: ' + str(type(rosterdate)))
+def set_fielddict_date(dict, dte, rosterdate=None, mindate=None, maxdate=None):
+    # PR2019-07-18
     if dte:
-        if format_list is None:
-            format_list = ['rosterdate', 'datetime', 'value', 'dm', 'wdm', 'wdmy', 'dmy', 'offset']
+        dict['value'] = dte.isoformat()
 
-        for format in format_list:
-            if format  in ['rosterdate', 'datetime', 'value']:
-                dict[format] = dte.isoformat()
-            if format == 'dm':
-                dict[format] = get_date_DM_from_dte(dte, user_lang)
-            if format == 'wdm':
-                dict[format] = get_date_WDM_from_dte(dte, user_lang)
-            if format == 'wdmy':
-                dict[format] = format_WDMY_from_dte(dte, user_lang)
-            if format == 'dmy':
-                dict[format] = format_DMY_from_dte(dte, user_lang)
-            if format == 'offset':
-                dict[format] = get_weekdaylist_for_DHM(dte, user_lang)
-        if rosterdate is not None:
-            dict['rosterdate'] = rosterdate.isoformat()
-    #logger.debug('new dict dict: ' +  str(dict) + ' type: ' + str(type(dict)))
-
-
-
-
-
-def fielddict_datetime(rosterdate, dhm, datetime, comp_timezone, user_lang):
-    dict = {}
-    if rosterdate and dhm:
-        dict = {'value': dhm,
-                'dhm': get_timeDHM_from_dhm(rosterdate, dhm, comp_timezone, user_lang),
-                'dmyhm': formatDMYHM_from_datetime(datetime, comp_timezone, user_lang)}
-    return dict
+    # return rosterdate and min max date also when date is empty
+    if rosterdate:
+        dict['rosterdate'] = rosterdate.isoformat()
+    if mindate:
+        dict['mindate'] = mindate.isoformat()
+    if maxdate:
+        dict['maxdate'] = maxdate.isoformat()
 
 
 def fielddict_duration(duration, user_lang):
@@ -935,4 +852,24 @@ def fielddict_duration(duration, user_lang):
         dict = {'value': duration,
                 'hm': get_date_HM_from_minutes(duration, user_lang)}
     return dict
+
+
+def remove_empty_attr_from_dict(dict):
+# --- function removes empty attributes from dict  PR2019-06-02
+    # logger.debug('--- remove_empty_attr_from_dict')
+    # logger.debug('dict: ' + str(dict))
+# create list of fields in dict
+    list = []
+    for field in dict:
+        list.append(field)
+    # logger.debug('list: ' + str(list))
+# iterate through list of fields in dict
+    # cannot iterate through dict because it changes during iteration
+    for field in list:
+        if field in dict:
+# remove empty attributes from dict
+            if not dict[field]:
+                del dict[field]
+                # logger.debug('deleted: ' + str(field))
+    #logger.debug('dict: ' + str(dict))
 

@@ -1,11 +1,18 @@
-/* PR2019-05-02 */
-.input_text {
+/* PR2019-05-02 PR2019-07-19*/
+.input_text, .tsa_transparent {
     background: transparent;
     border: none;
     margin: 0;
 	padding: 0;
 }
 
+.input_timepicker {
+    text-align: right;
+    background: transparent;
+    border: none;
+    margin: 0;
+	padding: 0;
+}
 .input_popup {
     text-align: right;
     background: transparent;
@@ -27,13 +34,7 @@
     margin: 0;
 	padding: 0;
 }
-.input_timepicker {
-    text-align: right;
-    background: transparent;
-    border: none;
-    margin: 0;
-	padding: 0;
-}
+
 /* PR2019-04-13 */
 .popup_container {
     position:relative;
@@ -253,6 +254,9 @@
 .tr_notallowed {
     color: red; /* #e0e0e0; /* default light grey */
     font-weight: bold;
+}
+.tr_color_red {
+    color: #cc0000; /* bit dark red ; /* default light grey */
 }
 
 /* for datetimepicker */

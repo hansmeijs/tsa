@@ -341,7 +341,7 @@ console.log("=========  function AddTableRow =========");
                         if('err' in item_dict){
                             //console.log("item_dict[err]", item_dict['err']);
 
-                            el_input.classList.add("border_invalid");
+                            el_input.classList.add("border_bg_invalid");
 
                             let el_msg = document.getElementById("id_msgbox");
                             el_msg.innerHTML =  item_dict['err'];
@@ -356,7 +356,7 @@ console.log("=========  function AddTableRow =========");
 
                             setTimeout(function (){
                                 el_input.value = value;
-                                el_input.classList.remove("border_invalid");
+                                el_input.classList.remove("border_bg_invalid");
                                 el_msg.classList.toggle("show");
                                 }, 2000);
 

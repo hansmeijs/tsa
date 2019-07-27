@@ -131,10 +131,10 @@
                                 {{ item.schemeitem.shift|default_if_none:''}}
                             </td>
                             <td class="input_popup td_width_120" data-name="timestart" data-value="{{ item.time_start_datetimelocal }}">
-                                {{ item.timestartdhm }}
+                                {{ item.offsetstart }}
                              </td>
                             <td class="input_popup td_width_120" data-name="timeend" data-value="{{ item.timeend_datetimelocal }}">
-                                {{ item.timeenddhm }}
+                                {{ item.offsetend }}
                             </td>
                             <td class="td_width_060">
                                 <input data-name="breakhours"
@@ -161,22 +161,22 @@
                                        class="input_text border_none td_width_060" >
                             </td>
                             <td class="td_width_03p">
-                                <a data-name="timestatus" href="#"
-                                   value="{{ item.timestatus }}"
+                                <a data-name="status" href="#"
+                                   value="{{ item.status }}"
                                    class="input_icon">
-                                    {% if item.timestatus == 5 %}
+                                    {% if item.status == 5 %}
                                         <img src="{% static 'img/stat05.png' %}" height="24" width="24">
                                     {% else %}
-                                        {% if item.timestatus == 4 %}
+                                        {% if item.status == 4 %}
                                             <img src="{% static 'img/stat04.png' %}" height="24" width="24">
                                         {% else %}
-                                            {% if item.timestatus == 3 %}
+                                            {% if item.status == 3 %}
                                                 <img src="{% static 'img/stat03.png' %}" height="24" width="24">
                                             {% else %}
-                                                {% if item.timestatus == 2 %}
+                                                {% if item.status == 2 %}
                                                     <img src="{% static 'img/stat02.png' %}" height="24" width="24">
                                                 {% else %}
-                                                    {% if item.timestatus == 1 %}
+                                                    {% if item.status == 1 %}
                                                         <img src="{% static 'img/stat01.png' %}" height="24" width="24">
                                                     {% else %}
                                                         <img src="{% static 'img/stat00.png' %}" height="24" width="24">

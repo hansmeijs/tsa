@@ -167,7 +167,7 @@ class User(AbstractUser):
 
     @property
     def permits_tuple(self):
-        # PR2018-05-27 permits_tuple converts self.permits string into tuple,
+        # PR2018-05-27 permits_tuple converts self.permits into tuple,
         # e.g.: permits=15 will be converted to permits_tuple=(1,2,4,8)
         permits_int = self.permits
         permits_list = []
@@ -186,7 +186,7 @@ class User(AbstractUser):
     def permits_str_tuple(self): # 2018-12-23
         permits_list = []
         for permit_int in self.permits_tuple:
-            permit_str = PERMIT_DICT.get(permit_int,'')
+            permit_str = PERMIT_DICT.get(permit_int, '')
             if permit_str:
                 permits_list.append(permit_str)
         return tuple(permits_list)

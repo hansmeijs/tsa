@@ -350,3 +350,8 @@ color: #000;
     background: #f8f8f8;
 }
 
+.modal_body_flex3 {
+    flex: 3;
+    /*text-align: left;*/
+
+}

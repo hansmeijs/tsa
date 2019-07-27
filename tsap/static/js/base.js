@@ -50,8 +50,8 @@
     return true;
 }
 
-//========= get_attr_from_element  =============PR2019-06-07
-    function get_attr_from_element(element, key, default_value){
+//========= get_attr_from_el  =============PR2019-06-07
+    function get_attr_from_el(element, key, default_value){
         "use strict";
     // ---  get attr value from key: i.e. element["name"] = "breakduration"
         let value;
@@ -66,8 +66,8 @@
         return value;
     };
 
-//========= get_attr_from_element_str  ============= PR2019-06-07
-    function get_attr_from_element_str(element, key){
+//========= get_attr_from_el_str  ============= PR2019-06-07
+    function get_attr_from_el_str(element, key){
         "use strict";
         let value_str = "";
         if(!!element && !!key){
@@ -78,8 +78,8 @@
         return value_str;
     };
 
-//========= get_attr_from_element_int  ============= PR2019-06-07
-    function get_attr_from_element_int(element, key){
+//========= get_attr_from_el_int  ============= PR2019-06-07
+    function get_attr_from_el_int(element, key){
         "use strict";
         let value_int = 0;
         if(!!element && !!key){
@@ -90,8 +90,8 @@
         return value_int;
     };
 
-//========= get_attr_from_element_dict  ============= PR2019-06-13
-    function get_attr_from_element_dict(element, key){
+//========= get_attr_from_el_dict  ============= PR2019-06-13
+    function get_attr_from_el_dict(element, key){
         "use strict";
         let value_dict = {};
         if(!!element && !!key){
@@ -160,6 +160,8 @@
         }
         return item;
     }
+
+
 //========= get_today_local  ======== PR2019-07-09
     function get_today_local(comp_timezone) {
         // from: https://stackoverflow.com/questions/18448347/how-to-create-time-in-a-specific-time-zone-with-moment-js
@@ -364,6 +366,8 @@
             //const this_year = datetime_local.year();   //January = 0
             //const weekday_index = datetime_local.day();   //Sunday = 0
             //const weekday = weekday_list[weekday_index];
+
+        // debug: datetime_local must be Moment, not datetime
         "use strict";
         let date_str = "";
         //  moment.locale(user_lang) is set at beginning of script, applies to all moment objjects in this page
@@ -381,20 +385,20 @@
 //========= format_datemedium_from_datetimelocal  ========== PR2019-07-09
     function format_datemedium(dtl, weekday_list, month_list, skip_weekday, skip_year) {
         "use strict";
-        console.log(" -- format_datemedium  -- ")
+        //console.log(" -- format_datemedium  -- ")
         //console.log(dtl.format())
         //console.log(moment.locale())
         //console.log(dtl.year())
         //console.log(dtl.date())
-        console.log("dtl.day: ", dtl.day())
-        console.log(weekday_list[dtl.day()])
+        //console.log("dtl.day: ", dtl.day())
+        //console.log(weekday_list[dtl.day()])
         //console.log( month_list[dtl.month() + 1])
 
         // According to ISO 8601, Sunday is the 7th day of the week
         let weekday_index = dtl.day()
         if(!weekday_index){weekday_index = 7};
-        console.log("weekday_index: ", weekday_index)
-        console.log(weekday_list[dtl.day()])
+        //console.log("weekday_index: ", weekday_index)
+        //console.log(weekday_list[dtl.day()])
 
         let date_str = "";
         //  moment.locale(user_lang) is set at beginning of script, applies to all moment objjects in this page
@@ -416,9 +420,9 @@
   //========= format_period_from_datetimelocal  ========== PR2019-07-09
     function format_period_from_datetimelocal(periodstart_local, periodend_local, weekday_list, month_list, timeformat) {
         "use strict";
-        console.log(" -- format_period_from_datetimelocal  -- ")
-        console.log("periodstart_local", periodstart_local.format())
-        console.log("periodend_local", periodend_local.format())
+        //console.log(" -- format_period_from_datetimelocal  -- ")
+        //console.log("periodstart_local", periodstart_local.format())
+        //console.log("periodend_local", periodend_local.format())
         periodstart_local, periodend_local
 
         // from https://momentjs.com/guides/
@@ -429,10 +433,11 @@
 
         //console.log("startdate diff", startdate.diff(periodstart_local))
         // when periodend_local is midnight: make enddate one day earlier (period from 02:00 - 00:00 is still same day)
-        if (enddate_isMidnight) {
+        // only in 24h setting
+        if (enddate_isMidnight && timeformat !== "AmPm") {
             // add / subtract day from datetime_local
             enddate.add(-1, 'day')
-            console.log("enddate corrected", enddate.format())
+            //console.log("enddate corrected", enddate.format())
         }
 
         const datestart_formatted = format_datemedium(startdate, weekday_list, month_list, false, true)
@@ -501,9 +506,6 @@
 }
 
 
-
-
-
 //========= function value_has_changed  ==== PR2019-06-08
     function value_has_changed(value,o_value ) {
         let has_changed = false;
@@ -515,4 +517,24 @@
         } else {
             has_changed = (!!o_value)};
         return has_changed
+    }
+
+//========= function formcontrol_err_msg  ====  PR2019-07-25
+    function formcontrol_err_msg(el_input, el_err, msg_err ) {
+        if(!!el_input){
+            if (!!msg_err){
+                el_input.classList.add("border_invalid")
+            } else {
+                el_input.classList.remove("border_invalid")
+            };
+        }
+        if(!!el_err){
+            if (!!msg_err){
+                el_err.innerText = msg_err;
+                el_err.classList.remove("display_hide")
+            } else {
+                el_err.innerText = null;
+                el_err.classList.add("display_hide")
+            }
+        }
     }

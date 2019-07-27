@@ -83,27 +83,6 @@ def get_headerbar_param(request, params):
 
 
 
-# PR2018-08-24 select department
-        if display_dep:
-            # TODO debug in get_dep_list PR2019-03-24
-            dep_list = []
-            allowed_dep_count = 0
-            # dep_list, allowed_dep_count = get_dep_list(request.user)
-
-            # logger.debug('------------ get_headerbar_param ------------------------')
-            # logger.debug('depbase_list: <' + str(_depbase_list) + '> Type: ' + str(type(_depbase_list)))
-            # logger.debug('depbase_count: <' + str(allowed_dep_count) + '> Type: ' + str(type(allowed_dep_count)))
-            if allowed_dep_count == 0:
-                depname = _('<No departments found>')
-            else:
-                if allowed_dep_count > 1:
-                    select_dep = True
-
-                depname = _('<Select department>')
-                # if request.user.depbase:
-                    # department = Department.objects.filter(base=request.user.depbase, examyear=request.user.examyear).first()
-                    #if department:
-                    #     depname = department.code
 
 # ------- set menu_items -------- PR2018-12-21
 

@@ -119,10 +119,17 @@ h4 h5 {
     /*background-color: transparent;*/
 }
 
-.border_invalid {
+.border_bg_invalid {
     border: 1px solid #dc3545;    /*  red like in django is-invalid */
     border-radius: .25rem;
     background-color: #f1b5b5;
+}
+.border_invalid {
+    border: 1px solid #dc3545;    /*  red like in django is-invalid */
+    border-radius: .25rem;
+}
+.color_invalid {
+    color: #dc3545;    /*  red like in django is-invalid */
 }
 
 .border_valid {

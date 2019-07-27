@@ -67,7 +67,7 @@
                     <div class="popup-container">
 
                         <!-- =================== POPUP DATE  =================== -->
-                         <div id="id_popup_wdy" class="popup_box tsa_bc_lightlightgrey display_hide">
+                         <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
                              <input id="id_popup_date"  type="date" class="input_text mx-4 my-1" ></input>
                          </div>
                          <!-- =================== END POPUP DATE  =================== -->
@@ -102,7 +102,6 @@
 
 
 
-
         <div id="id_data"
             data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
             data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
@@ -110,11 +109,9 @@
             data-imgsrc_warning="{% static 'img/warning.gif' %}"
 
             data-lang ="{{ lang }}"
-            data-interval ="{{ interval }}"
-            data-timeformat ="{{ timeformat }}"
+            data-timezone ="{{ timezone }}"
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
-            data-today ="{{ today }}"
 
             data-order_upload_url="{% url 'order_upload_url' %}"
             data-datalist_download_url="{% url 'datalist_download_url' %}"

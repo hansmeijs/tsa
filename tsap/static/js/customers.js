@@ -64,19 +64,17 @@ $(function() {
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
 
-        const parent_pk = get_attr_from_element(el_data, "data-ppk");
+        const url_customer_upload = get_attr_from_el(el_data, "data-customer_upload_url");
+        const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
 
-        const url_customer_upload = get_attr_from_element(el_data, "data-customer_upload_url");
-        const url_datalist_download = get_attr_from_element(el_data, "data-datalist_download_url");
+        const imgsrc_inactive = get_attr_from_el(el_data, "data-imgsrc_inactive");
+        const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
+        const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
 
-        const imgsrc_inactive = get_attr_from_element(el_data, "data-imgsrc_inactive");
-        const imgsrc_active = get_attr_from_element(el_data, "data-imgsrc_active");
-        const imgsrc_delete = get_attr_from_element(el_data, "data-imgsrc_delete");
+        const title_inactive = get_attr_from_el(el_data, "data-txt_make_inactive");
+        const title_active = get_attr_from_el(el_data, "data-txt_make_active");
 
-        const title_inactive = get_attr_from_element(el_data, "data-txt_make_inactive");
-        const title_active = get_attr_from_element(el_data, "data-txt_make_active");
-
-        const user_lang = get_attr_from_element(el_data, "data-lang");
+        const user_lang = get_attr_from_el(el_data, "data-lang");
 
         DatalistDownload({"customer": {inactive: true}});
 
@@ -107,6 +105,7 @@ $(function() {
             success: function (response) {
                 console.log("response")
                 console.log(response)
+
                 // hide loader
                 el_loader.classList.add(cls_hide)
 
@@ -119,68 +118,28 @@ $(function() {
             error: function (xhr, msg) {
                 // hide loader
                 el_loader.classList.add(cls_hide)
-                console.log(msg + '\n' + xhr.responseText);
+                //console.log(msg + '\n' + xhr.responseText);
                 alert(msg + '\n' + xhr.responseText);
             }
         });
 }
 
-//========= FillTableRows  ====================================
-    function FillTableRows() {
-        console.log( "===== FillTableRows  ========= ");
-
-// --- reset tblBody_items
-        tblBody_items.innerText = null;
-
-// --- get  item_list and  selected_parent_pk
-        let item_list;
-        item_list = customer_list;
-        console.log( "===== item_list  ========= ", item_list);
-
-// --- loop through item_list
-        const len = item_list.length;
-        let rosterdate_dict = {};
-        let tblRow;
-        if (!!len){
-            for (let i = 0; i < len; i++) {
-                let dict = item_list[i];
-                let pk = get_pk_from_id (dict)
-
-                tblRow =  CreateTableRow(pk, parent_pk)
-                UpdateTableRow(tblRow, dict)
-
-// --- highlight selected row
-                if (pk === selected_customer_pk) {
-                    tblRow.classList.add("tsa_tr_selected")
-                }
-            }  // for (let i = 0; i
-        }  //  if (!!len){
-
-// === add row 'add new'
-        let dict = {};
-        id_new = id_new + 1
-        const pk_new = "new_" + id_new.toString()
-
-        dict["id"] = {"pk": pk_new, "new": true}
-
-        tblRow = CreateTableRow(pk_new, parent_pk)
-        UpdateTableRow(tblRow, dict)
-    }  // FillTableRows(
-
 //=========  CreateTableRow  ================ PR2019-06-16
-    function CreateTableRow(pk, parent_pk) {
+    function CreateTableRow(pk, ppk_int) {
         // console.log("=========  function CreateTableRow =========");
-        // console.log("pk", pk, "ppk", parent_pk, "new_name_or_date", rosterdate_or_teamname);
+        // console.log("pk", pk, "ppk", ppk_int, "new_name_or_date", rosterdate_or_teamname);
 
 // check if row is addnew row - when pk is NaN
         let is_new_item = !parseInt(pk);
-        // console.log("is_new_item", is_new_item)
+
+// get default ppk when is_new_item (default ppk = company_pk)
+        if(!ppk_int) {ppk_int = get_attr_from_el(el_data, "data-ppk")};
 
 //+++ insert tblRow ino tblBody_items
         let tblRow = tblBody_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
         tblRow.setAttribute("id", pk);
         tblRow.setAttribute("data-pk", pk);
-        tblRow.setAttribute("data-ppk", parent_pk);
+        tblRow.setAttribute("data-ppk", ppk_int);
         tblRow.setAttribute("data-table", "customer");
 
 // --- add EventListener to tblRow.
@@ -194,11 +153,10 @@ $(function() {
 
 // --- add img inactive to col_inactive
             if (j === col_inactive){
-                if(!is_new_item){
         // --- add <a> element with EventListener to td
-                    el = document.createElement("a");
-                    el.setAttribute("href", "#");
-                    AppendChildIcon(el, imgsrc_active)}
+                el = document.createElement("a");
+                el.setAttribute("href", "#");
+                AppendChildIcon(el, imgsrc_active)
 // --- add input element to td.
             } else {
                 el = document.createElement("input");
@@ -212,8 +170,8 @@ $(function() {
                 if (j === col_inactive){ fieldname = "inactive"}
                 el.setAttribute("data-field", fieldname);
 
-                if (j === 0 && is_new_item ){
-                    el.setAttribute("placeholder", get_attr_from_element(el_data, "data-txt_customer_add") + "...")
+                if (j === 0 && is_new_item ){ // only when is_new_item
+                    el.setAttribute("placeholder", get_attr_from_el(el_data, "data-txt_customer_add") + "...")
                 }
 
     // --- add EventListener to td
@@ -252,29 +210,69 @@ $(function() {
         return tblRow
     };//function CreateTableRow
 
+//========= FillTableRows  ====================================
+    function FillTableRows() {
+        //console.log( "===== FillTableRows  ========= ");
+
+// --- reset tblBody_items
+        tblBody_items.innerText = null;
+
+// --- get  item_list and  selected_parent_pk
+        let item_list;
+        item_list = customer_list;
+
+// --- loop through item_list
+        let tblRow;
+        const len = item_list.length;
+        if (!!len){
+            for (let i = 0; i < len; i++) {
+                const dict = item_list[i];
+                const pk_int = get_pk_from_id (dict);
+                const ppk_int = get_ppk_from_id (dict);
+
+                tblRow =  CreateTableRow(pk_int, ppk_int)
+                UpdateTableRow(tblRow, dict)
+
+// --- highlight selected row
+                if (pk_int === selected_customer_pk) {
+                    tblRow.classList.add("tsa_tr_selected")
+                }
+            }  // for (let i = 0; i
+        }  //  if (!!len){
+
+// === add row 'add new'
+        let dict = {};
+        id_new = id_new + 1
+        const pk_new = "new_" + id_new.toString()
+
+        dict["id"] = {"pk": pk_new, "new": true}
+
+        tblRow = CreateTableRow(pk_new)
+        UpdateTableRow(tblRow, dict)
+    }  // FillTableRows(
+
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, item_dict){
-        // console.log("--++- UpdateTableRow  --------------");
+        console.log("--++- UpdateTableRow  --------------");
 
         if (!!item_dict && !!tblRow) {
-            // console.log("tblRow", tblRow);
-            // console.log("item_dict", item_dict);
+            console.log("item_dict", item_dict);
 
 // get temp_pk_str and id_pk from item_dict["id"]
             // id: {temp_pk: "new_1", created: true, pk: 32, parent_pk: 18}
             const id_dict = get_dict_value_by_key (item_dict, "id");
             let temp_pk_str, msg_err, is_new = false, is_created = false, is_deleted = false;
-            let pk_int, parent_pk;
+            let pk_int, ppk_int;
             if ("new" in id_dict) {is_new = true};
             if ("created" in id_dict) {is_created = true};
             if ("deleted" in id_dict) {is_deleted = true};
             if ("error" in id_dict) {msg_err = id_dict["error"]};
             if ("pk" in id_dict) {pk_int = id_dict["pk"]};
-            if ("ppk" in id_dict) {parent_pk = id_dict["ppk"]};
+            if ("ppk" in id_dict) {ppk_int = id_dict["ppk"]};
             if ("temp_pk" in id_dict) {temp_pk_str = id_dict["temp_pk"]};
             //console.log("id_dict:", id_dict);
             //console.log("is_created:", is_created, "temp_pk_str:", temp_pk_str)
-            //console.log("pk_int:", pk_int, "parent_pk:", parent_pk)
+            //console.log("pk_int:", pk_int, "ppk_int:", ppk_int)
 
 // --- deleted record
             if (is_deleted){
@@ -289,16 +287,16 @@ $(function() {
                 //console.log("td.child[0]",td.child[0])
                 let el_input = tblRow.cells[0].firstChild
                 //console.log("el_input",el_input)
-                el_input.classList.add("border_invalid");
+                el_input.classList.add("border_bg_invalid");
 
                 ShowMsgError(el_input, el_msg, msg_err, -60)
 
 // --- new created record
             } else if (is_created){
-                let id_attr = get_attr_from_element(tblRow,"id")
-                console.log(" is_created   id_attr:", id_attr)
+                let id_attr = get_attr_from_el(tblRow,"id")
+                //console.log(" is_created   id_attr:", id_attr)
 
-                console.log(" temp_pk_str:", temp_pk_str)
+                //console.log(" temp_pk_str:", temp_pk_str)
             // check if item_dict.id 'new_1' is same as tablerow.id
                 if(temp_pk_str === id_attr){
                     // if 'created' exists then 'pk' also exists in id_dict
@@ -306,7 +304,7 @@ $(function() {
             // update tablerow.id from temp_pk_str to id_pk
                     tblRow.setAttribute("id", pk_int);  // or tblRow.id = id_pk
                     tblRow.setAttribute("data-pk", pk_int)
-                    tblRow.setAttribute("data-ppk", parent_pk)
+                    tblRow.setAttribute("data-ppk", ppk_int)
 
             // remove placeholder from element 'code
                     let el_code = tblRow.cells[0].children[0];
@@ -317,7 +315,7 @@ $(function() {
                 }  //  if(temp_pk_str === id_attr){
             };  // if (is_deleted){
 
-            // tblRow can be deleted in  if (is_deleted){
+            // tblRow can be deleted if (is_deleted){
             if (!!tblRow){
 
 // --- new record: replace temp_pk_str with id_pk when new record is saved
@@ -333,7 +331,7 @@ $(function() {
                         let el_input = tblRow.cells[i].children[0];
                         if(!!el_input){
     // --- lookup field in item_dict, get data from field_dict
-                            fieldname = get_attr_from_element(el_input, "data-field");
+                            fieldname = get_attr_from_el(el_input, "data-field");
                             // console.log("fieldname: ", fieldname)
 
                             field_dict = {};
@@ -378,15 +376,14 @@ $(function() {
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
     function HandleTableRowClicked(tr_clicked) {
-        console.log("=== HandleTableRowClicked");
+        //console.log("=== HandleTableRowClicked");
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows
         DeselectHighlightedRows(tr_clicked.parentNode)
 
-// ---  get clicked tablerow
-        if(!!tr_clicked) {
 // ---  highlight clicked row
+        if(!!tr_clicked) {
             selected_customer_pk = get_datapk_from_element(tr_clicked)
             tr_clicked.classList.add("tsa_tr_selected")
         }
@@ -394,13 +391,13 @@ $(function() {
 
 //========= HandleInactiveClicked  ============= PR2019-03-03
     function HandleInactiveClicked(el_changed) {
-        console.log("======== HandleInactiveClicked  ========");
-        console.log(el_changed);
+        //console.log("======== HandleInactiveClicked  ========");
+        //console.log(el_changed);
 
-        let is_inactive_str = get_attr_from_element(el_changed, "data-value")
+        let is_inactive_str = get_attr_from_el(el_changed, "data-value")
         // toggle value of is_inactive
         if (is_inactive_str === "true"){is_inactive_str = "false"} else {is_inactive_str = "true"}
-        console.log("is_inactive_str: ", is_inactive_str, typeof is_inactive_str);
+        //console.log("is_inactive_str: ", is_inactive_str, typeof is_inactive_str);
         el_changed.setAttribute("data-value", is_inactive_str);
 
         // update icon
@@ -413,7 +410,6 @@ $(function() {
             tr_clicked.classList.add("display_hide")
         }
 
-
         UploadChanges(el_changed)
     }
 
@@ -424,21 +420,18 @@ $(function() {
     }
 
 //========= UploadTblrowChanged  ============= PR2019-03-03
+    function UploadTblrowChanged(tr_changed) {
 // PR2019-03-17 debug: Here you have written this script on document.ready function, that's why it returns obsolete value.
 // Put this script in some event i.e click, keypress,blur,onchange etc... So that you can get the changed value.
 // An input has a value attribute that determines the initial value of the input.
 // It also has a value property that holds the current value of the input
-    function UploadTblrowChanged(tr_changed) {
-        console.log("=== UploadTblrowChanged");
+
+
+        //console.log("=== UploadTblrowChanged");
         let new_item = GetItemDictFromTablerow(tr_changed);
-        console.log("upload");
-        console.log(new_item);
+        //console.log(new_item);
 
         if(!!new_item) {
-
-            // show loader
-            el_loader.classList.remove(cls_hide)
-
             let parameters = {"upload": JSON.stringify (new_item)};
             let response = "";
             $.ajax({
@@ -447,17 +440,14 @@ $(function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
-                    // hide loader
-                    el_loader.classList.add(cls_hide)
+                    //console.log( "response");
+                    //console.log( response);
 
                     if ("item_dict" in response) {
                         ReplaceItemDict(customer_list, response["item_dict"])};
 
                     if ("item_update" in response) {
                         let item_update = response["item_update"]
-                        // const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
                         UpdateTableRow(tr_changed, item_update)
 
                         // sort list and update table when code has changed
@@ -466,9 +456,13 @@ $(function() {
                         if (!isEmpty(fld_dict)){
                             const fld_val = get_dict_value_by_key (fld_dict, "updated")
                             if (!!fld_val) {
-                                customer_list = SortItemList (customer_list, "code", user_lang)
-                                FillTableRows()
-                                FilterTableRows(tblBody_items, filter_name, col_inactive, filter_show_inactive);
+
+                                setTimeout(function (){
+                                    customer_list = SortItemList (customer_list, "code", user_lang)
+                                    FillTableRows()
+                                    FilterTableRows(tblBody_items, filter_name, col_inactive, filter_show_inactive);
+                                }, 2000);
+
                             }
                         }
                         // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
@@ -480,10 +474,10 @@ $(function() {
                         if (is_created){
                             id_new = id_new + 1
                             const pk_new = "new_" + id_new.toString()
-                            const parent_pk = get_parent_pk (item_update)
+                            const ppk_int = get_ppk_from_id (item_update)
 
                             let new_dict = {}
-                            new_dict["id"] = {"pk": pk_new, "ppk": parent_pk}
+                            new_dict["id"] = {"pk": pk_new, "ppk": ppk_int}
 
                             let tblRow = CreateTableRow(pk_new)
                             UpdateTableRow(tblRow, new_dict)
@@ -491,165 +485,16 @@ $(function() {
                     }
                 },
                 error: function (xhr, msg) {
-                    // hide loader
-                    el_loader.classList.add(cls_hide)
-                    console.log(msg + '\n' + xhr.responseText);
+                    //console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
         }  //  if(!!new_item)
     };  // UploadTblrowChanged
 
-//=========  HandleDeleteTblrow  ================ PR2019-03-16
-    function HandleDeleteTblrow(tblName, tblRow) {
-        // console.log("=== HandleDeleteTblrow");
-
-// ---  get pk from id of tblRow
-            const pk_int = get_datapk_from_element (tblRow)
-            const parent_pk_int = parseInt(get_attr_from_element(tblRow, "data-ppk"))
-
-            //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-            if (!pk_int) {
-            // when pk_int = 'new_2' row is new row and is not yet saved, can be deleted without ajax
-                tblRow.parentNode.removeChild(tblRow);
-            } else {
-
-// ---  create id_dict
-                const id_dict = get_iddict_from_element(tblRow);
-                // add id_dict to new_item
-                if (!!id_dict){
-    // ---  create param
-                    id_dict["delete"] = true;
-                    let param = {"id": id_dict}
-                    console.log( "param: ");
-                    console.log(param);
-    // delete  record
-                    // make row red
-                    tblRow.classList.add("tsa_tr_error");
-
-        // show loader
-        el_loader.classList.remove(cls_hide)
-
-                    let parameters = {"schemeitem_upload": JSON.stringify (param)};
-                    let response = "";
-
-                    $.ajax({
-                        type: "POST",
-                        url: url_customer_upload,
-                        data: parameters,
-                        dataType:'json',
-                        success: function (response) {
-                            console.log ("response:");
-                            console.log (response);
-        // hide loader
-                            el_loader.classList.add(cls_hide)
-
-                            if ("item_update" in response){
-                                let update_dict = response["item_update"]
-                                UpdateSchemeitemOrTeammmember(tblRow, update_dict)
-                            };
-                        },
-                        error: function (xhr, msg) {
-                            // hide loader
-                            el_loader.classList.add(cls_hide)
-                            console.log(msg + '\n' + xhr.responseText);
-                            alert(msg + '\n' + xhr.responseText);
-                        }
-                    });
-
-                }  // if (!!id_dict)
-            }; // if (!pk_int)
-
-    }
-
-//========= UpdateSchemeitemOrTeammmember  =============
-    function UpdateSchemeitemOrTeammmember(tblRow, update_dict){
-        console.log("=== UpdateSchemeitemOrTeammmember ===");
-        console.log("update_dict: " , update_dict);
-        // 'update_dict': {'id': {'error': 'This record could not be deleted.'}}}
-        // 'update_dict': {'id': {'pk': 169, 'parent_pk': 24, deleted: true}
-
-        // update_dict': {id: {temp_pk: "new_4", pk: 97, parent_pk: 21, created: true}, code: {updated: true, value: "AA"}}
-
-        if (!!update_dict) {
-// get id_new and id_pk from update_dict["id"]
-            const pk = get_pk_from_id(update_dict);
-            const parent_pk = get_parent_pk(update_dict);
-            console.log("pk: ", pk, "ppk: ", parent_pk);
-
-            let id_dict = get_dict_value_by_key (update_dict, "id")
-            if (!!tblRow){
-// --- remove deleted record from list
-                if ("created" in id_dict) {
-                    let tblName = get_dict_value_by_key (id_dict, "table");
-                    FillTableRows()
-                    let tblRowSelected = document.getElementById(pk.toString())
-                    tblRowSelected.classList.remove("tsa_tr_selected");
-                    tblRowSelected.classList.add("tsa_tr_ok");
-                    setTimeout(function (){
-                        tblRowSelected.classList.remove("tsa_tr_ok");
-                        tblRowSelected.classList.add("tsa_tr_selected");
-                    }, 2000);
-// --- remove deleted record from list
-                } else if ("deleted" in id_dict) {
-                    tblRow.parentNode.removeChild(tblRow);
-
-// --- when err: show error message
-                } else if ("error" in id_dict){
-                    ShowMsgError(tblRow.cells[0], el_msg, id_dict.error, -60)
-                } // if (id_deleted){
-
-
-            } // if (!!tblRow){
-        }  // if (!!update_dict)
-    }  // UpdateSchemeitemOrTeammmember
-
-
-//=========  HandleFilterInactive  ================ PR2019-06-18
-    function HandleFilterInactive() {
-        console.log("=======XXXXXXXXXXX==  function HandleFilterInactive =========");
-
-// toggle value
-        filter_show_inactive = !filter_show_inactive
-// toggle icon
-        let data_value, img_src;
-        if (filter_show_inactive){data_value = true} else {data_value = false};
-        if (filter_show_inactive){img_src = imgsrc_inactive} else {img_src = imgsrc_active};
-
-        let el_img_filter_inactive = document.getElementById("id_img_filter_inactive");
-        el_img_filter_inactive.setAttribute("src", img_src);
-        el_img_filter_inactive.setAttribute("data-value", data_value);
-
-        FilterTableRows(tblBody_items, filter_name, col_inactive, filter_show_inactive)
-
-
-    }  // function HandleFilterInactive
-
-
-//=========  DeselectHighlightedRows  ================ PR2019-04-30
-    function DeselectHighlightedRows(tableBody) {
-        //console.log("=========  DeselectHighlightedRows =========");
-        if(!!tableBody){
-            let tblrows = tableBody.getElementsByClassName("tsa_tr_selected");
-            for (let i = 0, len = tblrows.length; i < len; i++) {
-                tblrows[i].classList.remove("tsa_tr_selected")
-            }
-// don't remove tsa_tr_error
-            //tblrows = tableBody.getElementsByClassName("tsa_tr_error");
-            //for (let i = 0, len = tblrows.length; i < len; i++) {
-            //   tblrows[i].classList.remove("tsa_tr_error")
-            //}
-            tblrows = tableBody.getElementsByClassName("tsa_bc_yellow_lightlight");
-            for (let i = 0, len = tblrows.length; i < len; i++) {
-                tblrows[i].classList.remove("tsa_bc_yellow_lightlight")
-            }
-        }
-    }
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 //=========  HandleFilterInactive  ================ PR2019-03-23
     function HandleFilterInactive() {
-        console.log("=========  function HandleFilterInactive =========");
+        //console.log("o=========  function HandleFilterInactive =========");
 // toggle value
         filter_show_inactive = !filter_show_inactive
 // toggle icon
@@ -686,7 +531,5 @@ $(function() {
             FilterTableRows(tblBody_items, filter_name, col_inactive, filter_show_inactive)
         } //  if (!skip_filter) {
     }; // function HandleFilterName
-
-
 
 }); //$(document).ready(function()

@@ -82,13 +82,19 @@ $(function() {
 
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
-        const url_employee_upload = get_attr_from_element(el_data, "data-employee_upload_url");
-        const url_datalist_download = get_attr_from_element(el_data, "data-datalist_download_url");
-        const imgsrc_inactive = get_attr_from_element(el_data, "data-imgsrc_inactive");
-        const imgsrc_active = get_attr_from_element(el_data, "data-imgsrc_active");
-        const imgsrc_delete = get_attr_from_element(el_data, "data-imgsrc_delete");
-        const title_inactive = get_attr_from_element(el_data, "data-txt_make_inactive");
-        const title_active = get_attr_from_element(el_data, "data-txt_make_active");
+        const url_employee_upload = get_attr_from_el(el_data, "data-employee_upload_url");
+        const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
+
+        const imgsrc_inactive = get_attr_from_el(el_data, "data-imgsrc_inactive");
+        const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
+        const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
+        const title_inactive = get_attr_from_el(el_data, "data-txt_make_inactive");
+        const title_active = get_attr_from_el(el_data, "data-txt_make_active");
+
+        const user_lang = get_attr_from_el(el_data, "data-lang");
+        const comp_timezone = get_attr_from_el(el_data, "data-timezone");
+        const weekday_list = get_attr_from_el_dict(el_data, "data-weekdays");
+        const month_list = get_attr_from_el_dict(el_data, "data-months");
 
         DatalistDownload({"employee": {inactive: true}});
 
@@ -154,7 +160,7 @@ $(function() {
             for (let i = 0; i < len; i++) {
                 const item_dict = item_list[i];
                 const pk = get_pk_from_id (item_dict)
-                const parent_pk = get_parent_pk (item_dict)
+                const parent_pk = get_ppk_from_id (item_dict)
 
                 tblRow = CreateTableRow(pk, parent_pk)
                 UpdateTableRow(tblRow, item_dict)
@@ -221,7 +227,7 @@ $(function() {
                 el.setAttribute("data-field", fieldname);
 
                 if (j === 0 && is_new_item ){
-                    el.setAttribute("placeholder", get_attr_from_element(el_data, "data-txt_employee_add") + "...")
+                    el.setAttribute("placeholder", get_attr_from_el(el_data, "data-txt_employee_add") + "...")
                 }
 
     // --- add EventListener to td
@@ -309,13 +315,13 @@ $(function() {
                 //console.log("td.child[0]",td.child[0])
                 let el_input = td.firstChild
                 //console.log("el_input",el_input)
-                el_input.classList.add("border_invalid");
+                el_input.classList.add("border_bg_invalid");
 
                 ShowMsgError(el_input, el_msg, msg_err, -60)
 
 // --- new created record
             } else if (is_created){
-                let id_attr = get_attr_from_element(tblRow,"id")
+                let id_attr = get_attr_from_el(tblRow,"id")
                 // console.log("id_attr", id_attr)
 
             // check if item_dict.id 'new_1' is same as tablerow.id
@@ -354,7 +360,7 @@ $(function() {
                         let el_input = tblRow.cells[i].children[0];
                         if(!!el_input){
     // --- lookup field in item_dict, get data from field_dict
-                            fieldname = get_attr_from_element(el_input, "data-field");
+                            fieldname = get_attr_from_el(el_input, "data-field");
                             // console.log("fieldname: ", fieldname)
                             field_dict = {};
                             if (fieldname in item_dict){
@@ -376,7 +382,9 @@ $(function() {
                                 if (["code", "namefirst", "namelast"].indexOf( fieldname ) > -1){
                                    format_text_element (el_input, el_msg, field_dict)
                                 } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
-                                   format_date_element (el_input, el_msg, field_dict, comp_timezone, true) // show_weekday=false, show_year=true
+                                   const hide_weekday = true, hide_year = false;
+                                   format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
+                                            user_lang, comp_timezone, hide_weekday, hide_year)
                                 };
                             };
                             if (fieldname === "inactive") {
@@ -412,7 +420,7 @@ $(function() {
         // console.log("======== HandleInactiveClicked  ========");
         // console.log(el_changed);
 
-        let is_inactive_str = get_attr_from_element(el_changed, "data-value")
+        let is_inactive_str = get_attr_from_el(el_changed, "data-value")
         // toggle value of is_inactive
         if (is_inactive_str === "true"){is_inactive_str = "false"} else {is_inactive_str = "true"}
         // console.log("is_inactive_str: ", is_inactive_str, typeof is_inactive_str);
@@ -481,7 +489,7 @@ $(function() {
                         if (is_created){
                             id_new = id_new + 1
                             const pk_new = "new_" + id_new.toString()
-                            const parent_pk = get_parent_pk (item_dict)
+                            const parent_pk = get_ppk_from_id (item_dict)
 
                             let new_dict = {}
                             new_dict["id"] = {"pk": pk_new, "ppk": parent_pk}
@@ -509,7 +517,7 @@ $(function() {
 
 // ---  get pk from id of tblRow
             const pk_int = get_datapk_from_element (tblRow)
-            const parent_pk_int = parseInt(get_attr_from_element(tblRow, "data-ppk"))
+            const parent_pk_int = parseInt(get_attr_from_el(tblRow, "data-ppk"))
 
             //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
             if (!pk_int) {
@@ -579,7 +587,7 @@ $(function() {
         if (!!update_dict) {
 // get id_new and id_pk from update_dict["id"]
             const pk = get_pk_from_id(update_dict);
-            const parent_pk = get_parent_pk(update_dict);
+            const parent_pk = get_ppk_from_id(update_dict);
             console.log("pk: ", pk, "parent_pk: ", parent_pk);
 
             let id_dict = get_dict_value_by_key (update_dict, "id")
@@ -641,27 +649,6 @@ $(function() {
     }; // function HandleFilterEmployees
 
 
-//=========  DeselectHighlightedRows  ================ PR2019-04-30
-    function DeselectHighlightedRows(tableBody) {
-        //console.log("=========  DeselectHighlightedRows =========");
-        if(!!tableBody){
-            let tblrows = tableBody.getElementsByClassName(cls_selected);
-            for (let i = 0, len = tblrows.length; i < len; i++) {
-                tblrows[i].classList.remove(cls_selected)
-            }
-// don't remove tsa_tr_error
-            //tblrows = tableBody.getElementsByClassName("tsa_tr_error");
-            //for (let i = 0, len = tblrows.length; i < len; i++) {
-            //   tblrows[i].classList.remove("tsa_tr_error")
-            //}
-            tblrows = tableBody.getElementsByClassName("tsa_bc_yellow_lightlight");
-            for (let i = 0, len = tblrows.length; i < len; i++) {
-                tblrows[i].classList.remove("tsa_bc_yellow_lightlight")
-            }
-        }
-    }
-
-
 //========= OpenPopupWDY  ====================================
     function OpenPopupWDY(el_input) {
         console.log("===  OpenPopupWDY  =====") ;
@@ -678,15 +665,15 @@ $(function() {
 // get info pk etc from tr_selected,
 
         if (!!tr_selected){
-            const data_table = get_attr_from_element(tr_selected, "data-table")
-            const id_str = get_attr_from_element(tr_selected, "data-pk")
-            const parent_pk_str = get_attr_from_element(tr_selected, "data-ppk");
+            const data_table = get_attr_from_el(tr_selected, "data-table")
+            const id_str = get_attr_from_el(tr_selected, "data-pk")
+            const parent_pk_str = get_attr_from_el(tr_selected, "data-ppk");
             console.log("data_table", data_table, "id_str", id_str, "parent_pk_str", parent_pk_str)
 
 // get values from el_input
-            const data_field = get_attr_from_element(el_input, "data-field");
-            const data_value = get_attr_from_element(el_input, "data-value");
-            const wdmy =  get_attr_from_element(el_input, "data-wdmy");
+            const data_field = get_attr_from_el(el_input, "data-field");
+            const data_value = get_attr_from_el(el_input, "data-value");
+            const wdmy =  get_attr_from_el(el_input, "data-wdmy");
             console.log("data_field", data_field, "data_value", data_value, "wdmy", wdmy)
 
     // put values in el_popup_wdy
@@ -801,7 +788,7 @@ console.log("===  function HandlePopupWdySave =========");
                             if (is_created){
                                 id_new = id_new + 1
                                 const pk_new = "new_" + id_new.toString()
-                                const parent_pk = get_parent_pk (item_dict)
+                                const parent_pk = get_ppk_from_id (item_dict)
 
                                 let new_dict = {}
                                 new_dict["id"] = {"pk": pk_new, "ppk": parent_pk}
@@ -839,31 +826,6 @@ console.log("===  function HandlePopupWdySave =========");
         let elements =  document.querySelectorAll(".input_popup_dhm, .input_popup_wdy")
         for (let i = 0, len = elements.length; i < len; i++) {
             elements[i].classList.remove("pop_background");
-        }
-    }
-
-
-
-
-
-
-//=========  DeselectHighlightedRows  ================ PR2019-04-30
-    function DeselectHighlightedRows(tableBody) {
-        //console.log("=========  DeselectHighlightedRows =========");
-        if(!!tableBody){
-            let tblrows = tableBody.getElementsByClassName(cls_selected);
-            for (let i = 0, len = tblrows.length; i < len; i++) {
-                tblrows[i].classList.remove(cls_selected)
-            }
-// don't remove tsa_tr_error
-            //tblrows = tableBody.getElementsByClassName("tsa_tr_error");
-            //for (let i = 0, len = tblrows.length; i < len; i++) {
-            //   tblrows[i].classList.remove("tsa_tr_error")
-            //}
-            tblrows = tableBody.getElementsByClassName("tsa_bc_yellow_lightlight");
-            for (let i = 0, len = tblrows.length; i < len; i++) {
-                tblrows[i].classList.remove("tsa_bc_yellow_lightlight")
-            }
         }
     }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -937,7 +899,7 @@ console.log("===  function HandlePopupWdySave =========");
         let hide_row = false
         if (!!tblRow){
 
-            const pk_int = parseInt(get_attr_from_element(tblRow, "id")); // or: const pk_str = el.id
+            const pk_int = parseInt(get_attr_from_el(tblRow, "id")); // or: const pk_str = el.id
             // skip new row (parseInt returns NaN if value is None or "", in that case !!parseInt returns false
             if(!!pk_int){
 

@@ -5,16 +5,18 @@ from datetime import date, datetime, timedelta
 from timeit import default_timer as timer
 
 from accounts.models import Usersetting
-from companies.models import Customer, Order, Scheme, Schemeitembase, Schemeitem, Team, Teammember, \
-    Employee, Emplhour, Orderhour, Companysetting
+from companies.models import Order, Scheme, Schemeitem, Emplhour, Companysetting
 
 from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 
-from tsap.functions import get_date_from_str, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
+from tsap.functions import get_iddict_variables, get_date_from_ISOstring, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
                     get_weekdaylist_for_DHM, get_date_HM_from_minutes, set_fielddict_date, \
-                    fielddict_duration, fielddict_date, get_datetime_UTC_from_ISOstring, get_datetime_LOCAL_from_ISOstring
+                    fielddict_duration, fielddict_date, get_datetime_UTC_from_ISOstring, get_datetime_LOCAL_from_ISOstring, \
+                    get_datetimelocal_from_datetimeUTC
 
-from tsap.constants import KEY_COMP_ROSTERDATE_CURRENT, KEY_USER_EMPLHOUR_PERIOD
+from tsap.constants import KEY_COMP_ROSTERDATE_CURRENT, KEY_USER_EMPLHOUR_PERIOD, CAT_00_NORMAL, CAT_03_TEMPLATE
+
+from tsap.validators import validate_code_or_name
 
 import pytz
 import json
@@ -23,35 +25,110 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def status_found_in_statussum(status, status_sum):
+    # PR2019-07-17 checks if status is in status_sum
+    # e.g.: status_sum=15 will be converted to status_tuple = (1,2,4,8)
+    # ststus = 0 gives always True
+    found = False
+    if status:
+        if status_sum:
+            for i in range(8, -1, -1):  # range(start_value, end_value, step), end_value is not included!
+                power = 2 ** i
+                if status_sum >= power:
+                    if power == status:
+                        found = True
+                        break
+                    else:
+                        status_sum -= power
+    else:
+        found = True
+    return found
+
+
+def get_status_tuple_from_sum(status_sum):
+    # PR2019-07-17 converts status_sum into tuple,
+    # e.g.: status_sum=15 will be converted to status_tuple = (1,2,4,8)
+    status_list = []
+    if status_sum is not None:
+        if status_sum != 0:
+            for i in range(8, -1, -1):  # range(start_value, end_value, step), end_value is not included!
+                power = 2 ** i
+                if status_sum >= power:
+                    status_sum -= power
+                    status_list.insert(0, power)  # list.insert(0, value) adds at the beginning of the list
+    if not status_list:
+        status_list = [0]
+    return tuple(status_list)
+
+def get_status_sum_from_tuple(status_tuple):
+    # PR2019-07-17 converts status_tuple to status_sum
+    # e.g.: status_tuple = (1,2,4,8) will be converted to status_sum = 15
+    status_sum = 0
+    if status_tuple:
+        for status in status_tuple:
+            status_sum += status
+
+    return status_sum
+
+
+def add_status_to_statussum(status, old_status_sum):
+    # PR2019-07-17 adds status to status_tuple if not yet exists
+    # e.g.: status_tuple = (1,2,4,8) will be converted to status_sum = 15
+    new_status_sum = old_status_sum
+    if old_status_sum:
+        if status:
+            old_status_tuple = get_status_tuple_from_sum(old_status_sum)
+            if status not in old_status_tuple:
+                new_status_sum += status
+    else:
+        new_status_sum = status
+    return new_status_sum
+
+def remove_status_from_statussum(status, old_status_sum):
+    # PR2019-07-17 adds status to status_tuple if not yet exists
+    # e.g.: status_tuple = (1,2,4,8) will be converted to status_sum = 15
+    new_status_sum = old_status_sum
+    if old_status_sum:
+        if status:
+            old_status_tuple = get_status_tuple_from_sum(old_status_sum)
+            if status in old_status_tuple:
+                new_status_sum -= status
+    return new_status_sum
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def get_period_dict_and_save(request, get_current):  # PR2019-07-13
-    logger.debug(' ============= get_period_dict_and_save ============= ')
+    #logger.debug(' ============= get_period_dict_and_save ============= ')
     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
-
-    new_period_dict = {}
+    # default mode is 'current'
+    new_period_dict = {'mode': 'current'}
     if request.user is not None and request.user.company is not None:
 
         # get saved period_dict
         saved_period_dict = get_period_from_settings(request)
+        #logger.debug('saved_period_dict ' + str(saved_period_dict))
 
         # copy key values from saved_period_dict in new_period_dict (don't copy dict, the loop skips keys that are not in use)
         if saved_period_dict:
-            for field in ['interval', 'overlap_prev', 'overlap_next', 'range', 'periodstart', 'periodend', 'current']:
+            for field in ['mode', 'interval', 'overlap_prev', 'overlap_next',
+                          'periodstart', 'periodend',
+                          'range', 'rangestart', 'rangeend']:
                 if field in saved_period_dict:
                     new_period_dict[field] = saved_period_dict[field]
 
         if get_current:
-            new_period_dict['current'] = True
-        else:
-            get_current = new_period_dict['current']
+            new_period_dict['mode'] = 'current'
+        elif new_period_dict['mode'] == 'current':
+            get_current = True
+
+        #logger.debug('new_period_dict ' + str(new_period_dict))
 
         interval_int = int(new_period_dict['interval'])
         overlap_prev_int = int(new_period_dict['overlap_prev'])
         overlap_next_int = int(new_period_dict['overlap_next'])
         period_starttime_iso = None
 
-        logger.debug('>>>>>> new_period_dict: ' + str(new_period_dict))
+        #logger.debug('>>>>>> new_period_dict: ' + str(new_period_dict))
 
         # check if periodstart is present when not get_current. If not found: get_current
         if not get_current:
@@ -60,7 +137,7 @@ def get_period_dict_and_save(request, get_current):  # PR2019-07-13
             else:
                 get_current = True
 
-        logger.debug('>>>> period_starttime_iso: ' + str(period_starttime_iso))
+        #logger.debug('>>>> period_starttime_iso: ' + str(period_starttime_iso))
 
         # if get_current: set start time of current period in UTC
         if get_current:
@@ -73,8 +150,8 @@ def get_period_dict_and_save(request, get_current):  # PR2019-07-13
             new_period_dict['periodstart'] = period_start_utc.isoformat()
             new_period_dict['periodend'] = period_end_utc.isoformat()
 
-            logger.debug('period_start_utc.isoformat: ' + str(new_period_dict['periodstart']))
-            logger.debug('period_end_utc.isoformat: ' + str(new_period_dict['periodend']))
+            #logger.debug('period_start_utc.isoformat: ' + str(new_period_dict['periodstart']))
+            #logger.debug('period_end_utc.isoformat: ' + str(new_period_dict['periodend']))
 
         else:
             # if not get_current: calculate end time:
@@ -83,19 +160,22 @@ def get_period_dict_and_save(request, get_current):  # PR2019-07-13
                 period_endtime_utc = get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, overlap_next_int)
                 new_period_dict['periodend'] = period_endtime_utc.isoformat()
 
-                logger.debug('period_starttime_utc: ' + str(period_starttime_utc) )
-                logger.debug('period_endtime_utc: ' + str(period_endtime_utc))
+                #logger.debug('period_starttime_utc: ' + str(period_starttime_utc) )
+                #logger.debug('period_endtime_utc: ' + str(period_endtime_utc))
 
+        # add today to dict
+        today = get_today(request)
+        new_period_dict['today'] = today
 
         period_dict_json = json.dumps(new_period_dict)  # dumps takes an object and produces a string:
         Usersetting.set_setting(KEY_USER_EMPLHOUR_PERIOD, period_dict_json, request.user)
 
-    logger.debug('new_period_dict: ' + str(new_period_dict))
+    #logger.debug('new_period_dict: ' + str(new_period_dict))
     return new_period_dict
 
 
 def get_current_period(interval_int, overlap_prev_int, overlap_next_int, request):  # PR2019-07-12
-    logger.debug(' ============= get_current_period ============= ')
+    # logger.debug(' ============= get_current_period ============= ')
      # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
 
     period_starttime_utc = None
@@ -140,20 +220,20 @@ def get_current_period(interval_int, overlap_prev_int, overlap_next_int, request
 # get local start time of current interval in local timezone ( = company timezone)
         # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
         interval_starttime_local = timezone.localize(interval_starttime_naive)
-        logger.debug('interval_starttime_local: ' + str(interval_starttime_local))
+        # logger.debug('interval_starttime_local: ' + str(interval_starttime_local))
 
 # get local start time of current period (is interval_start_local minus overlap_prev_int)
         period_starttime_local = interval_starttime_local - timedelta(hours=overlap_prev_int)
-        logger.debug('overlap_prev_int: ' + str(overlap_prev_int) + ' period_starttime_local: ' + str(period_starttime_local))
+        # logger.debug('overlap_prev_int: ' + str(overlap_prev_int) + ' period_starttime_local: ' + str(period_starttime_local))
 
 # get start time of current period in UTC
         period_starttime_utc = period_starttime_local.astimezone(pytz.UTC)
-        logger.debug('period_starttime_utc: ' + str(period_starttime_utc))
+        # logger.debug('period_starttime_utc: ' + str(period_starttime_utc))
 
-# get utc end time of current period ( = local start time of current period plus overlap_prev_int + interval + overlap_next_int
+# get utc end time of current period ( = utc start time of current period plus overlap_prev_int + interval + overlap_next_int
         period_int = overlap_prev_int + interval_int + overlap_next_int
         period_endtime_utc = period_starttime_utc + timedelta(hours=period_int)
-        logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
+        # logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
 
     return period_starttime_utc, period_endtime_utc
 
@@ -198,34 +278,140 @@ def get_prevnext_period(prevnext, period_timestart_iso, interval_int, overlap_pr
     return prevnext_timestart_utc, prevnext_timeend_utc
 
 
+def get_timesstartend_from_perioddict(period_dict, request):  # PR2019-07-15
+    logger.debug(' ============= get_timesstartend_from_perioddict ============= ')
+
+    period_timestart_utc = None
+    period_timeend_utc = None
+
+    period_timestart_iso = None
+    period_timeend_iso = None
+
+    if 'mode' in period_dict:
+        if period_dict['mode'] == 'current':
+            # get start- and end-time of current period in UTC
+            interval_int = 0
+            overlap_prev_int = 0
+            overlap_next_int = 0
+            if period_dict['interval']:
+                interval_int = int(period_dict['interval'])
+            if period_dict['overlap_prev']:
+                overlap_prev_int = int(period_dict['overlap_prev'])
+            if period_dict['overlap_next']:
+                overlap_next_int = int(period_dict['overlap_next'])
+
+            period_timestart_utc, period_timeend_utc = get_current_period(
+                interval_int, overlap_prev_int, overlap_next_int, request)
+        else:
+            if period_dict['mode'] == 'prevnext':
+                if 'periodstart' in period_dict:
+                    period_timestart_iso = period_dict['periodstart']
+                if 'periodend' in period_dict:
+                    period_timeend_iso = period_dict['periodend']
+            if period_dict['mode'] == 'range':
+                if 'rangestart' in period_dict:
+                    period_timestart_iso = period_dict['rangestart']
+                if 'rangeend' in period_dict:
+                    period_timeend_iso = period_dict['rangeend']
+            if period_timestart_iso:
+                period_timestart_utc = get_datetime_UTC_from_ISOstring(period_timestart_iso)
+            if period_timeend_iso:
+                period_timeend_utc = get_datetime_UTC_from_ISOstring(period_timeend_iso)
+
+    logger.debug('period_timestart_utc: ' + str(period_timestart_utc))
+    logger.debug('period_timeend_utc: ' + str(period_timeend_utc))
+
+    return period_timestart_utc, period_timeend_utc
+
+
+def get_range_endtime(range_timestart_utc, range, comp_timezone):  # PR2019-07-14
+    # logger.debug(' ============= get_range_endtime ============= ')
+    # logger.debug(' range_timestart_utc: ' + str(range_timestart_utc) + ' rang: ' + str(range))
+     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
+
+    range_timeend_local = None
+    range_timeend_utc = None
+
+# convert range_timestart_utc to range_timestart_local
+    range_timestart_local = get_datetimelocal_from_datetimeUTC(range_timestart_utc, comp_timezone)
+
+# split range
+    year_add = 0
+    month_add = 0
+    day_add = 0
+    hour_add = 0
+    if range:
+        if ';' in range:
+            arr = range.split(';')
+            year_add = int(arr[0])
+            month_add = int(arr[1])
+            day_add = int(arr[2])
+            hour_add = int(arr[3])
+
+# add range year/month/day/hour
+    if year_add > 0:
+        # TODO test
+        # split range_timestart_local
+        year_int, month_int, date_int, hour_int, minute_int = split_datetime(range_timestart_local)
+        year_int = year_int + year_add
+        range_timeend_local =  datetime(year_int, month_int, date_int, hour_int, minute_int)
+    elif month_add > 0:
+        # TODO test
+        # split range_timestart_local
+        year_int, month_int, date_int, hour_int, minute_int = split_datetime(range_timestart_local)
+        month_int = month_int + month_add
+        range_timeend_local = datetime(year_int, month_int, date_int, hour_int, minute_int)
+    elif day_add > 0:
+        range_timeend_local = range_timestart_local + timedelta(days=day_add)
+    elif hour_add > 0:
+        range_timeend_local = range_timestart_local + timedelta(hours=hour_add)
+
+# convert range_timeend_local to range_timeend_utc
+    range_timeend_utc = range_timeend_local.astimezone(pytz.UTC)
+    # logger.debug('range_timeend_utc: ' + str(range_timeend_utc))
+
+    return range_timeend_utc
+
+
 def get_period_from_settings(request):  # PR2019-07-09
     # logger.debug(' ============= get_period_from_settings ============= ')
 
     period_dict = {}
     if request.user is not None and request.user.company is not None:
 
-        # get emplhour period from Usersetting
-        period_dict_json = Usersetting.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user)
-        if period_dict_json:
-            period_dict = json.loads(period_dict_json)
+# get period from Usersetting
+        saved_period_dict = {}
+        dict_json = Usersetting.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user)
+        if dict_json:
+            saved_period_dict = json.loads(dict_json)
 
-        # if not found: get emplhour period from Companysetting
+# if not found: get period from Companysetting
         else:
-            period_dict_json = Companysetting.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user.company)
-            if period_dict_json:
-                period_dict = json.loads(period_dict_json)
+            dict_json = Companysetting.get_setting(KEY_USER_EMPLHOUR_PERIOD, request.user.company)
+            if dict_json:
+                saved_period_dict = json.loads(dict_json)
 
-        # if one or more keys not found: add key with default value
-        if not 'interval' in period_dict:
-            period_dict['interval'] = 24
-        if not 'overlap_prev' in period_dict:
-            period_dict['overlap_prev'] = 0
-        if not 'overlap_next' in period_dict:
-            period_dict['overlap_next'] = 0
-        if not 'range' in period_dict:
-            period_dict['range'] = '0;0;1;0'
-        if not 'current' in period_dict:
-            period_dict['current'] = True
+# copy key values from saved_period_dict in period_dict (don't copy dict, the loop skips keys that are not in use)
+
+        for field in ['mode', 'interval', 'overlap_prev', 'overlap_next',
+                      'periodstart', 'periodend', 'range', 'rangestart', 'rangeend']:
+            period_dict[field] = None
+
+            if saved_period_dict:
+                if field in saved_period_dict:
+                    period_dict[field] = saved_period_dict[field]
+
+# if key not found: add key with default value
+            # debug. value was Null, gave error: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
+            if period_dict[field] is None:
+                if field == 'mode':
+                    period_dict[field] = 'current'
+                if field == 'interval':
+                    period_dict[field] = 24
+                if field in ['overlap_prev', 'overlap_next']:
+                    period_dict[field] = 0
+                if field == 'range':
+                    period_dict[field] = '0;0;1;0'
 
     return period_dict
 
@@ -242,192 +428,205 @@ def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, ove
     return period_endtime_utc
 
 
+def get_today(request):  # PR2019-07-14
+    logger.debug(' ============= get_current_period ============= ')
+     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
 
+    date_local_iso = None
 
+    if request.user is not None and request.user.company is not None:
 
+# get comp_timezone
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
+# get now without timezone
+        now_utc_naive = datetime.utcnow()
+        # now_utc_naive: 2019-07-10 14:48:15.742546 <class 'datetime.datetime'>
+
+# convert now to timezone utc
+        now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
+        # now_utc: 2019-07-10 14:48:15.742546+00:00 <class 'datetime.datetime'>
+
+# convert now_utc to now_local ( = company timezone)
+        # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+        timezone = pytz.timezone(comp_timezone)
+        now_local = now_utc.astimezone(timezone)
+        # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
+
+        date_local = now_local.date()
+
+        date_local_iso = date_local.isoformat()
+        logger.debug('date_local_iso: ' + str(date_local_iso) + ' ' + str(type(date_local_iso)))
+
+    return date_local_iso
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def create_scheme_template_list(company):
+    # --- create list of all template schemes of this company PR2019-07-24
+    # logger.debug("========== create_scheme_template_list ==== ")
 
-def create_scheme_list(order, include_inactive, user_lang):
-# --- create list of all /  active schemes of this company PR2019-06-16
-    # logger.debug("========== create_scheme_list ==== order: " + str(order))
     scheme_list = []
-    if order:
-        crit = Q(order=order)
-        if not include_inactive:
-            crit.add(Q(inactive=False), crit.connector)
-        schemes = Scheme.objects.all() #  .filter(order=order).order_by(Lower('code'))
+    order = Order.objects.get_or_none(cat=CAT_03_TEMPLATE, customer__company=company)
 
-        for scheme in schemes:
-            dict = create_scheme_dict(scheme, user_lang)
-            scheme_list.append(dict)
+    if order:
+        scheme_list = create_scheme_list(order, cat=CAT_03_TEMPLATE)
+
     return scheme_list
 
-def create_scheme_dict(instance, user_lang):
-    # --- create dict of this scheme PR2019-06-20
-    dict = {}
+
+def create_scheme_list(order, include_inactive=False, cat=CAT_00_NORMAL):
+# --- create list of all /  active schemes of this company PR2019-06-16
+    #logger.debug("========== create_scheme_list ==== order: " + str(order))
+    #logger.debug("include_inactive: " + str(include_inactive))
+    scheme_list = []
+    if order:
+        crit = Q(order=order) & Q(cat=cat)
+
+        if not include_inactive:
+            crit.add(Q(inactive=False), crit.connector)
+        schemes = Scheme.objects.filter(order=order).order_by(Lower('code'))
+
+        for scheme in schemes:
+            #logger.debug("scheme: " + str(scheme))
+            item_dict = {}
+            create_scheme_dict(scheme, item_dict)
+            scheme_list.append(item_dict)
+            #logger.debug(item_dict)
+
+    return scheme_list
+
+def create_scheme_dict(instance, item_dict):
+    # --- create dict of this scheme PR2019-07-21
+    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+    # logger.debug ('--- create_scheme_dict ---')
+
+    field_tuple = ('code', 'cat', 'cycle', 'datefirst', 'datelast', 'excludeweekend', 'excludepublicholiday', 'inactive')
+
     if instance:
-        dict['pk'] = instance.pk
-        dict['id'] = {'pk': instance.pk, 'ppk': instance.order.pk, 'table': 'scheme'}
+        item_dict['pk'] = instance.pk
 
-        for field in ['code', 'cycle', 'datefirst', 'datelast', 'inactive']:
-            dict[field] = {}
-            value = getattr(instance, field, None)
-            if field in ['datefirst', 'datelast']:
-                if value:
-                    set_fielddict_date(dict[field], value, user_lang)
-            elif field == 'inactive':
-                if value:
-                    dict[field] = {'value': value}
+        id_dict = item_dict['id'] if 'id' in item_dict else {}
+        id_dict['pk'] = instance.pk
+        id_dict['ppk'] = instance.order.pk
+        id_dict['table'] = 'scheme'
+        item_dict['id'] = id_dict
+
+        for field in field_tuple:
+
+            #item_dict[field]{'error': 'Code moet ingevuld zijn.', 'value': 'weekend33'}
+            # logger.debug ('field: ' + str(field))
+            if field not in item_dict:
+                item_dict[field] = {}
+
+            saved_value = getattr(instance, field)
+            # also add date when empty, to add min max date
+            if field == 'datefirst':
+                maxdate = getattr(instance, 'datelast')
+                set_fielddict_date(dict=item_dict[field], dte=saved_value, maxdate=maxdate)
+            elif field == 'datelast':
+                mindate = getattr(instance, 'datefirst')
+                set_fielddict_date(dict=item_dict[field], dte=saved_value, mindate=mindate)
+            elif field == 'cycle':
+                # 0 must also be passed as value, required field, default = 0
+                if not saved_value:
+                    saved_value = 0
+                item_dict[field]['value'] = saved_value
             else:
-                if value is not None:
-                    dict[field] = {'value': value}
+                if saved_value is not None:
+                    item_dict[field]['value'] = saved_value
+                else:
+                    item_dict[field].pop('value', None)
 
-# --- remove empty attributes from dict
-    remove_empty_attr_from_dict(dict)
-    return dict
+# --- remove empty attributes from item_dict
+    remove_empty_attr_from_dict(item_dict)
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def create_schemeitem_template_list(company, comp_timezone):
+    # --- create list of all template schemes of this company PR2019-07-24
+    #logger.debug("========== create_schemeitem_template_list ==== ")
 
-
-def create_schemeitem_list(order, comp_timezone, user_lang):
-    # create list of schemeitems of this scheme PR2019-05-12
     schemeitem_list = []
+    order = Order.objects.get_or_none(cat=CAT_03_TEMPLATE, customer__company=company)
+    #logger.debug("order: " + str(order))
     if order:
-        schemeitems = Schemeitem.objects.filter(scheme__order=order)
-        for schemeitem in schemeitems:
-            schemeitem_dict = create_schemeitem_dict(schemeitem, comp_timezone, user_lang)
-            schemeitem_list.append(schemeitem_dict)
+        schemeitem_list = create_schemeitem_list(order, comp_timezone)
+
+    #logger.debug("schemeitem_list " + str(schemeitem_list))
     return schemeitem_list
 
 
-def create_schemeitem_dict(schemeitem, comp_timezone, user_lang, temp_pk=None, is_created=False, is_deleted=False, updated_list=None):
-    logger.debug(" ----- create_schemeitem_dict ----- " )
-    # create list of schemeitems of this scheme PR2019-05-12
-    schemeitem_dict = {}
-    field_list = ('id', 'scheme', 'rosterdate', 'shift', 'team',
-                  'timestart', 'timeend', 'timeduration', 'breakduration')
+def create_schemeitem_list(order, comp_timezone):
+    # create list of schemeitems of this scheme PR2019-07-20
+    # filter datefirst, datelast not in use
+    schemeitem_list = []
+    if order:
+        crit = (Q(scheme__order=order))
+        schemeitems = Schemeitem.objects.filter(crit)
 
-    for field in field_list:
-        schemeitem_dict[field] = {}
-        if updated_list:
-            if field in updated_list:
-                schemeitem_dict[field]['updated'] = True
-
-    if schemeitem:
-        for field in ['id']:
-            schemeitem_dict[field] = {'pk': schemeitem.id, 'ppk': schemeitem.scheme.id}
-            if temp_pk:
-                schemeitem_dict[field]['temp_pk'] = temp_pk
-            if is_created:
-                schemeitem_dict[field]['created'] = True
-            if is_deleted:
-                schemeitem_dict[field]['deleted'] = True
-
-        if not is_deleted:
-
-            field = 'rosterdate'
-            rosterdate = getattr(schemeitem, field)
-
-            # get rosterdate midnight
-            rosterdate_midnight_local = None
-            rosterdate_utc = None
-            if rosterdate:
-                rosterdate_utc = get_rosterdate_utc(rosterdate)
-                rosterdate_midnight_local = get_rosterdate_midnight_local(rosterdate_utc, comp_timezone)
-
-                schemeitem_dict[field] = fielddict_date(rosterdate_utc, user_lang)
-
-            field = 'shift'
-            value = getattr(schemeitem, field)
-            if value:
-                field_dict = {'value': value}
-                schemeitem_dict[field] = field_dict
-
-            field = 'team'
-            if schemeitem.team:
-                value = schemeitem.team.code
-                team_pk = schemeitem.team.id
-                field_dict = {'value': value, 'team_pk':team_pk}
-                if field_dict:
-                    schemeitem_dict[field] = field_dict
-
-            for field in ['timestart', 'timeend']:
-                field_dict = {}
-                timestart = getattr(schemeitem, 'timestart')
-                timeend = getattr(schemeitem, 'timeend')
-                min_datetime_utc = None
-                max_datetime_utc = None
-
-# get mindatetime and  maxdatetime
-                if field == 'timestart':
-                    # get mindatetime
-                    if rosterdate_midnight_local:
-                        min_datetime_local = rosterdate_midnight_local + timedelta(hours=-12)
-                        # logger.debug("min_datetime_local: " + str(min_datetime_local))
-                        min_datetime_utc = min_datetime_local.astimezone(pytz.utc)
-                        # logger.debug("min_datetime_utc: " + str(min_datetime_utc))
-                    elif timestart:
-                        min_datetime_utc = timestart + timedelta(hours=-12)
-
-                    # get maxdatetime
-                    if timeend:
-                        max_datetime_utc = timeend
-                    else:
-                        if rosterdate_midnight_local:
-                            max_datetime_local = rosterdate_midnight_local + timedelta(days=1)
-                            # logger.debug("max_datetime_local: " + str(max_datetime_local))
-                            max_datetime_utc = max_datetime_local.astimezone(pytz.utc)
-                            # logger.debug("max_datetime_utc: " + str(max_datetime_utc))
-                        elif timestart:
-                            max_datetime_utc = timestart + timedelta(hours=12)
-
-                elif field == 'timeend':
-                    # get mindatetime
-                    if timestart:
-                        min_datetime_utc = timestart
-                    else:
-                        if rosterdate_midnight_local:
-                            min_datetime_local = rosterdate_midnight_local
-                        elif timeend:
-                            min_datetime_local = timeend + timedelta(hours=-12)
-
-                    # get maxdatetime
-                    if rosterdate_midnight_local:
-                        max_datetime_local = rosterdate_midnight_local + timedelta(hours=36)
-                        # logger.debug("max_datetime_local: " + str(max_datetime_local))
-                        max_datetime_utc = max_datetime_local.astimezone(pytz.utc)
-                        # logger.debug("max_datetime_utc: " + str(max_datetime_utc))
-                    elif timeend:
-                        max_datetime_utc = timeend + timedelta(hours=12)
-
-                datetimevalue = getattr(schemeitem, field)
-                if datetimevalue:
-                    field_dict['datetime'] = datetimevalue
-
-                if min_datetime_utc:
-                    field_dict['mindatetime'] = min_datetime_utc
-                if max_datetime_utc:
-                    field_dict['maxdatetime'] = max_datetime_utc
-                if rosterdate_utc:
-                    field_dict['rosterdate'] = rosterdate_utc
-                schemeitem_dict[field] = field_dict
-
-            for field in ['timeduration', 'breakduration']:
-                field_dict = {}
-                value = getattr(schemeitem, field)
-                if value:
-                    field_dict['value'] = value
-                    field_dict['hm'] =get_date_HM_from_minutes( value, user_lang)
-                schemeitem_dict[field] = field_dict
+        for schemeitem in schemeitems:
+            item_dict = {}
+            create_schemeitem_dict(schemeitem, item_dict, comp_timezone)
+            if item_dict:
+                schemeitem_list.append(item_dict)
+    return schemeitem_list
 
 
-# --- remove empty attributes from update_dict
-    remove_empty_attr_from_dict(schemeitem_dict)
+def create_schemeitem_dict(instance, item_dict, comp_timezone):
+    # --- create dict of this schemeitem PR2019-07-22
+    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+    # logger.debug ('--- create_schemeitem_dict ---')
+    # logger.debug ('item_dict' + str(item_dict))
 
-    return schemeitem_dict
+    field_tuple = ('id', 'rosterdate', 'shift', 'team', 'timestart', 'offsetstart', 'timeend', 'offsetend',
+                   'timeduration', 'breakduration', 'cyclestart')
+
+    if instance:
+        item_dict['pk'] = instance.pk
+
+        id_dict = item_dict['id'] if 'id' in item_dict else {}
+        id_dict['pk'] = instance.pk
+        id_dict['ppk'] = instance.scheme.pk
+        id_dict['table'] = 'schemeitem'
+        item_dict['id'] = id_dict
+
+        for field in field_tuple:
+            if field not in item_dict:
+                item_dict[field] = {}
+
+            saved_value = getattr(instance, field)
+            if field == 'rosterdate':
+                set_fielddict_date(dict=item_dict[field], dte=saved_value)
+
+            elif field == 'team':
+                team = getattr(instance, field)
+                if team:
+                    item_dict[field]['team_pk'] = team.id
+                    item_dict[field]['value'] = team.code
+                else:
+                    item_dict[field].pop('team_pk', None)
+                    item_dict[field].pop('value', None)
+
+            # also add date when empty, to add min max date
+            elif field in ('timestart', 'timeend'):
+                set_fielddict_datetime(field=field,
+                                       field_dict=item_dict[field],
+                                       rosterdate=getattr(instance, 'rosterdate'),
+                                       timestart=getattr(instance, 'timestart'),
+                                       timeend=getattr(instance, 'timeend'),
+                                       comp_timezone=comp_timezone)
+            elif field == 'cyclestart':
+                if saved_value:
+                    item_dict[field]['value'] = saved_value
+                else:
+                    item_dict[field].pop('value', None)
+            else:
+                if saved_value is not None:
+                    item_dict[field]['value'] = saved_value
+                else:
+                    item_dict[field].pop('value', None)
+# --- remove empty attributes from item_dict
+        remove_empty_attr_from_dict(item_dict)
 
 
 def create_shift_list(order):
@@ -438,7 +637,7 @@ def create_shift_list(order):
         shifts = Schemeitem.objects.filter(scheme__order=order).\
             exclude(shift__exact='').\
             exclude(shift__isnull=True).\
-            values('scheme_id', 'shift', 'timestartdhm', 'timeenddhm', 'breakduration')\
+            values('scheme_id', 'shift', 'offsetstart', 'offsetend', 'breakduration')\
             .annotate(count=Count('shift'))\
             .order_by(Lower('shift'))
 
@@ -448,7 +647,7 @@ def create_shift_list(order):
             # add scheme.pk and total to dict 'id'
             dict = {'id': {'ppk': shift.get('scheme_id'), 'count': shift.get('count')}}
 
-            for field in ['shift', 'timestartdhm', 'timeenddhm', 'breakduration']:
+            for field in ['shift', 'offsetstart', 'offsetend', 'breakduration']:
                 value = shift.get(field)
                 if value:
                     fieldname = field
@@ -480,7 +679,7 @@ def create_date_dict(rosterdate, user_lang, status_text):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def create_emplhour_list(period_timestart_utc, period_timeend_utc, company, comp_timezone, user_lang): # PR2019-06-16
-    logger.debug(' ============= create_emplhour_list ============= ')
+   # logger.debug(' ============= create_emplhour_list ============= ')
 
     # TODO select_related on queyset
     #  queryset = Courses.objects.filter(published=True).prefetch_related('modules', 'modules__lessons', 'modules__lessons__exercises')
@@ -488,20 +687,20 @@ def create_emplhour_list(period_timestart_utc, period_timeend_utc, company, comp
     starttime = timer()
 
     # convert period_timestart_iso into period_timestart_local
-    logger.debug('period_timestart_utc: ' + str(period_timestart_utc) + ' ' + str(type(period_timestart_utc)))
-    logger.debug('period_timeend_utc: ' + str(period_timeend_utc)+ ' ' + str(type(period_timeend_utc)))
+    #logger.debug('period_timestart_utc: ' + str(period_timestart_utc) + ' ' + str(type(period_timestart_utc)))
+    #logger.debug('period_timeend_utc: ' + str(period_timeend_utc)+ ' ' + str(type(period_timeend_utc)))
 
     date_min = period_timestart_utc.date()
     date_max = period_timeend_utc.date()
 
     crit = (Q(orderhour__order__customer__company=company)) & \
            (Q(rosterdate__gte=date_min)) & (Q(rosterdate__lte=date_max)) & \
-           (Q(timestart__lte=period_timeend_utc) | Q(timestart__isnull=True)) & \
-           (Q(timeend__gte=period_timestart_utc) | Q(timeend__isnull=True))
+           (Q(timestart__lt=period_timeend_utc) | Q(timestart__isnull=True)) & \
+           (Q(timeend__gt=period_timestart_utc) | Q(timeend__isnull=True))
 
     emplhours = Emplhour.objects.filter(crit)
 
-    logger.debug(emplhours.query)
+    #logger.debug(emplhours.query)
     # SELECT ...
     # WHERE ("companies_customer"."company_id" = 1 AND
     # "companies_emplhour"."rosterdate" >= 2019-07-13 AND "companies_emplhour"."rosterdate" <= 2019-07-14 AND
@@ -509,17 +708,16 @@ def create_emplhour_list(period_timestart_utc, period_timeend_utc, company, comp
     # ("companies_emplhour"."timeend" >= 2019-07-13 22:00:00+00:00 OR "companies_emplhour"."timeend" IS NULL))
     # ORDER BY "companies_emplhour"."rosterdate" ASC, "companies_emplhour"."timestart" ASC
 
-    logger.debug('sql elapsed time  is :')
-    logger.debug(timer() - starttime)
+    #logger.debug('sql elapsed time  is :')
+    #logger.debug(timer() - starttime)
 
     emplhour_list = []
     for emplhour in emplhours:
-        logger.debug('emplhour.timestart: ' + str(emplhour.timestart))
         dict = create_emplhour_dict(emplhour, comp_timezone, user_lang)
         emplhour_list.append(dict)
 
-    logger.debug('list elapsed time  is :')
-    logger.debug(timer() - starttime)
+    #logger.debug('list elapsed time  is :')
+    #logger.debug(timer() - starttime)
 
     return emplhour_list
 
@@ -531,7 +729,7 @@ def create_emplhour_dict(emplhour, comp_timezone, user_lang):
     # create dict of this scheme PR2019-06-29
     emplhour_dict = {}
     field_list = ('id', 'rosterdate', 'orderhour', 'shift', 'employee',
-                  'timestart', 'timeend', 'breakduration', 'timeduration', 'timestatus')
+                  'timestart', 'timeend', 'breakduration', 'timeduration', 'status')
 
     for field in field_list:
         emplhour_dict[field] = {}
@@ -576,13 +774,11 @@ def create_emplhour_dict(emplhour, comp_timezone, user_lang):
             if value:
              emplhour_dict[field] = {'value': value, 'employee_pk':emplhour.employee.id}
 
-        rosterdate_utc = get_rosterdate_utc(rosterdate)
-
         for field in ['timestart', 'timeend']:
             timestart = getattr(emplhour, 'timestart')
             timeend = getattr(emplhour, 'timeend')
             field_dict = {}
-            set_fielddict_datetime(field, field_dict, rosterdate_utc, timestart, timeend, comp_timezone)
+            set_fielddict_datetime(field, field_dict, rosterdate, timestart, timeend, comp_timezone)
 
             emplhour_dict[field] = field_dict
 
@@ -592,8 +788,8 @@ def create_emplhour_dict(emplhour, comp_timezone, user_lang):
             if value:
                 emplhour_dict[field] = fielddict_duration(value, user_lang)
 
-        field = 'timestatus'
-        value = emplhour.timestatus
+        field = 'status'
+        value = emplhour.status
         field_dict = {'value': value}
         emplhour_dict[field] = field_dict
 
@@ -610,8 +806,10 @@ def get_rosterdatefill_dict(company, company_timezone, user_lang):# PR2019-06-17
     rosterdate_next = rosterdate_current + timedelta(days=1)
     rosterdate_dict['current'] = {}
     rosterdate_dict['next'] = {}
-    set_fielddict_date(rosterdate_dict['current'], rosterdate_current, user_lang)
-    set_fielddict_date(rosterdate_dict['next'], rosterdate_next, user_lang)
+
+    # TODO: add min max date
+    set_fielddict_date(rosterdate_dict['current'], rosterdate_current)
+    set_fielddict_date(rosterdate_dict['next'], rosterdate_next)
 
     # companyoffset stores offset from UTC to company_timezone in seconds
     datetime_now = datetime.now()
@@ -624,8 +822,11 @@ def get_rosterdatefill_dict(company, company_timezone, user_lang):# PR2019-06-17
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def set_fielddict_datetime(field, field_dict, rosterdate_utc, timestart, timeend, comp_timezone):
-    # PR2019-07-07
+def set_fielddict_datetime(field, field_dict, rosterdate, timestart, timeend, comp_timezone):
+    #logger.debug(" ------- set_fielddict_datetime ---------- ")
+    # PR2019-07-22
+
+    rosterdate_utc = get_rosterdate_utc(rosterdate)
 
     # get mindatetime and  maxdatetime
     min_datetime_utc, max_datetime_utc = get_minmax_datetime_utc(
@@ -633,20 +834,66 @@ def set_fielddict_datetime(field, field_dict, rosterdate_utc, timestart, timeend
 
     datetimevalue = None
     if field == "timestart":
-        datetimevalue =timestart
+        datetimevalue = timestart
     elif field == "timeend":
         datetimevalue = timeend
 
+
     if datetimevalue:
-        field_dict['datetime'] = datetimevalue
+        field_dict['datetime'] = datetimevalue.isoformat()
     if min_datetime_utc:
-        field_dict['mindatetime'] = min_datetime_utc
+        field_dict['mindatetime'] = min_datetime_utc.isoformat()
     if max_datetime_utc:
-        field_dict['maxdatetime'] = max_datetime_utc
+        field_dict['maxdatetime'] = max_datetime_utc.isoformat()
     if rosterdate_utc:
-        field_dict['rosterdate'] = rosterdate_utc
+        field_dict['rosterdate'] = rosterdate
+
+    #logger.debug('field_dict: '+ str(field_dict))
+
+def get_minmax_datetime_utc(field, rosterdate_utc, timestart, timeend, comp_timezone):  # PR2019-07-05
+    # logger.debug(" ------- get_minmax_datetime_utc ---------- ")
+
+    min_datetime_utc = None
+    max_datetime_utc = None
+
+    if rosterdate_utc:
+        rosterdate_midnight_local = get_rosterdate_midnight_local(rosterdate_utc, comp_timezone)
+
+        if field == field == 'timestart':
+            # get mindatetime
+            min_rosterdate_local = rosterdate_midnight_local + timedelta(hours=-12)
+            min_datetime_utc = min_rosterdate_local.astimezone(pytz.utc)
+            # get maxdatetime
+            max_rosterdate_local = rosterdate_midnight_local + timedelta(hours=24)
+            max_rosterdate_utc = max_rosterdate_local.astimezone(pytz.utc)
+            max_datetime_utc = timeend if timeend and timeend < max_rosterdate_utc else max_rosterdate_utc
+
+        elif field == field == 'timeend':
+            # get mindatetime
+            min_rosterdate_utc = rosterdate_midnight_local.astimezone(pytz.utc)
+            min_datetime_utc = timestart if timestart and timestart > min_rosterdate_utc else min_rosterdate_utc
+            # get maxdatetime
+            max_rosterdate_local = rosterdate_midnight_local + timedelta(hours=+36)
+            max_datetime_utc = max_rosterdate_local.astimezone(pytz.utc)
+
+    return min_datetime_utc, max_datetime_utc
 
 
+def get_rosterdate_midnight_local(rosterdate_utc, comp_timezone): # PR2019-07-09
+    rosterdate_midnight_local = None
+    if rosterdate_utc:
+
+        # astimezone changes timezone of a timezone aware object, utc time stays the same
+        timezone = pytz.timezone(comp_timezone)
+        rosterdate_local = rosterdate_utc.astimezone(timezone)
+        # logger.debug("rosterdate_local: " + str(rosterdate_local))
+
+        # make the date midnight at local timezone
+        rosterdate_midnight_local = rosterdate_local.replace(hour=0, minute=0)
+        # logger.debug("rosterdate_midnight_local: " + str(rosterdate_midnight_local))
+        # make the date midnight at local timezone
+
+    return rosterdate_midnight_local
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -775,52 +1022,9 @@ def get_rosterdate_utc(rosterdate):
 
     return rosterdate_utc
 
-def get_rosterdate_midnight_local(rosterdate_utc, comp_timezone): # PR2019-07-09
-    rosterdate_midnight_local = None
-    if rosterdate_utc:
-        timezone = pytz.timezone(comp_timezone)
-        # astimezone changes timezone of a timezone aware object, utc time stays the same
-        rosterdate_local = rosterdate_utc.astimezone(timezone)
-        # logger.debug("rosterdate_local: " + str(rosterdate_local))
 
-        # make the date midnight at local timezone
-        rosterdate_midnight_local = rosterdate_local.replace(hour=0, minute=0)
-        # logger.debug("rosterdate_midnight_local: " + str(rosterdate_midnight_local))
-        # make the date midnight at local timezone
-
-    return rosterdate_midnight_local
-
-def get_minmax_datetime_utc(field, rosterdate_utc, timestart, timeend, comp_timezone):  # PR2019-07-05
-    # logger.debug(" ------- get_minmax_datetime_utc ---------- ")
-
-    min_datetime_utc = None
-    max_datetime_utc = None
-
-    if rosterdate_utc:
-        rosterdate_midnight_local = get_rosterdate_midnight_local(rosterdate_utc, comp_timezone)
-
-        if field == field == 'timestart':
-            # get mindatetime
-            min_rosterdate_local = rosterdate_midnight_local + timedelta(hours=-12)
-            min_datetime_utc = min_rosterdate_local.astimezone(pytz.utc)
-            # get maxdatetime
-            max_rosterdate_local = rosterdate_midnight_local + timedelta(hours=24)
-            max_rosterdate_utc = max_rosterdate_local.astimezone(pytz.utc)
-            max_datetime_utc = timeend if timeend and timeend < max_rosterdate_utc else max_rosterdate_utc
-
-        elif field == field == 'timeend':
-            # get mindatetime
-            min_rosterdate_utc = rosterdate_midnight_local.astimezone(pytz.utc)
-            min_datetime_utc = timestart if timestart and timestart > min_rosterdate_utc else min_rosterdate_utc
-            # get maxdatetime
-            max_rosterdate_local = rosterdate_midnight_local + timedelta(hours=+36)
-            max_datetime_utc = max_rosterdate_local.astimezone(pytz.utc)
-
-    return min_datetime_utc, max_datetime_utc
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
 
 def remove_empty_attr_from_dict(dict):
 # --- function removes empty attributes from dict  PR2019-06-02
@@ -847,7 +1051,7 @@ def remove_empty_attr_from_dict(dict):
 def get_rosterdate_current(company): # PR2019-06-16
 #get next rosterdate from companysetting
     rstdte_current_str = Companysetting.get_setting(KEY_COMP_ROSTERDATE_CURRENT, company)
-    rosterdate, msg_err = get_date_from_str(rstdte_current_str)
+    rosterdate, msg_err = get_date_from_ISOstring(rstdte_current_str)
 
     # logger.debug('rosterdate: ' + str(rosterdate) + ' type: ' + str(type(rosterdate)))
 # if no date found in settings: get first rosterdate of all schemitems of company PR2019-06-07

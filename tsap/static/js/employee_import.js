@@ -1125,7 +1125,7 @@ console.log ("==========  UPLOAD DATA ==========");
 //--------- delete existing rows
         $("#id_tbody").html("");
 
-//--------- shoq loading gif
+//--------- show loading gif
         ShowLoadingGif(true);
 
         let rowLength = 0, colLength = 0;
@@ -1135,7 +1135,7 @@ console.log ("==========  UPLOAD DATA ==========");
 
 // ---  loop through all rows of worksheet_data
             let employees = [];
-// row <5 is for testing TODO: replace with rowLength
+// row <5 is for testing
             for (let row = 0 ; row < rowLength; row++) {
                 let DataRow = worksheet_data[row];
 
@@ -1152,9 +1152,9 @@ console.log ("==========  UPLOAD DATA ==========");
                 employees.push(item);
             }  // for (let row = 0 ; row < 5; row++)
 
-console.log("employee ==>");
+console.log("employees ==>");
 console.log( employees);
-            let parameters = {"employee": JSON.stringify (employees)};
+            let parameters = {"employees": JSON.stringify (employees)};
 
             $.ajax({
                 type: "POST",

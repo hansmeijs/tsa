@@ -17,16 +17,18 @@ from django.utils.functional import Promise
 from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
 
-from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_MAPPED_COLDEFS, \
-        LANG_EN
-from tsap.functions import get_date_from_str, get_iddict_variables, create_dict_with_empty_attr, fielddict_date
+from tsap.settings import TIME_ZONE
+
+from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_COLDEFS, \
+        LANG_EN, LANG_DEFAULT, WEEKDAYS_ABBREV, MONTHS_ABBREV
+from tsap.functions import get_date_from_ISOstring, get_iddict_variables, create_dict_with_empty_attr, fielddict_date
 from planning.dicts import remove_empty_attr_from_dict
 from tsap.headerbar import get_headerbar_param
-from tsap.validators import check_date_overlap
+from tsap.validators import check_date_overlap, validate_code_or_name
 
-from companies.models import Company, Companysetting, Employee
+from companies.models import Companysetting, Employee
 from employees.forms import EmployeeAddForm, EmployeeEditForm
-
+from employees.dict import create_employee_list
 import logging
 logger = logging.getLogger(__name__)
 
@@ -66,8 +68,29 @@ class EmployeeListView(View):
             employee_list = json.dumps(employee_list)
             #logger.debug('employee_list: ' + str(employee_list))
 
-            # set headerbar parameters PR 2018-08-06
-            param = get_headerbar_param(request, {'employees': employees})
+            # b. get comp_timezone PR2019-06-14
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+
+            # get weekdays translated
+            user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
+            if not user_lang in WEEKDAYS_ABBREV:
+                user_lang = LANG_DEFAULT
+            weekdays_json = json.dumps(WEEKDAYS_ABBREV[user_lang])
+
+            # get months translated
+            if not user_lang in MONTHS_ABBREV:
+                user_lang = LANG_DEFAULT
+            months_json = json.dumps(MONTHS_ABBREV[user_lang])
+
+            param = get_headerbar_param(request, {
+                'employees': employees,
+                'lang': user_lang,
+                'timezone': comp_timezone,
+                'weekdays': weekdays_json,
+                'months': months_json,
+            })
+
+
             #logger.debug('EmployeeListView param: ' + str(param))
 
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
@@ -228,7 +251,7 @@ class EmployeeUploadView(UpdateView):# PR2019-06-174
 
 # update schemeitem_list when changes are made
                     if instance:
-                        employee_list = Employee.create_employee_list(False, instance.company, user_lang)
+                        employee_list = create_employee_list(instance.company)
                         if employee_list:
                             item_update_dict['employee_list'] = employee_list
 
@@ -284,7 +307,9 @@ class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
 
                     # validate if code already exists
                             elif field in employee_upload:
-                                msg_dont_add = validate_employee_code(employee_upload[field], request.user.company)
+                                new_value = employee_upload[field]
+                                msg_dont_add = validate_code_or_name('employee', field, new_value, request.user.company)
+
                                 if msg_dont_add is not None:
                                     empl_dict[field]['err'] = msg_dont_add
                             else:
@@ -353,7 +378,8 @@ class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
                                 elif field in employee_upload:
                                     new_value = employee_upload[field]
                                     saved_value = getattr(employee, field, '')
-                                    msg_dont_add = validate_employee_code(new_value, request.user.company, employee.pk)
+                                    msg_dont_add = validate_code_or_name('employee', field, new_value, request.user.company.pk, employee.pk)
+
                                     if msg_dont_add is not None:
                                         empl_dict[field]['err'] = msg_dont_add
                                         empl_dict[field]['val'] = saved_value
@@ -458,7 +484,7 @@ class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
                                 else:
                                     new_value = employee_upload[field]
                                     logger.debug('new_value: ' +  str(new_value))
-                                    new_datefirst = get_date_from_str(new_value, False) # False = blank_allowed
+                                    new_datefirst = get_date_from_ISOstring(new_value, False) # False = blank_allowed
                                     logger.debug('new_date: ' + str(new_datefirst))
 
                                     saved_datefirst = employee.datefirst
@@ -580,10 +606,10 @@ class EmployeeImportView(View):
 
             # get mapped coldefs from table Companysetting
             # get stored setting from Companysetting
-            settings = Companysetting.get_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, request.user.company)
+            settings = Companysetting.get_setting(KEY_EMPLOYEE_COLDEFS, request.user.company)
             stored_setting = {}
             if settings:
-                stored_setting = json.loads(Companysetting.get_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, request.user.company))
+                stored_setting = json.loads(Companysetting.get_setting(KEY_EMPLOYEE_COLDEFS, request.user.company))
             # stored_setting = {'worksheetname': 'VakschemaQuery', 'no_header': False,
             #                   'coldefs': {'employee': 'level_abbrev', 'orderdatefirst': 'sector_abbrev'}}
 
@@ -649,14 +675,18 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                 if request.POST['setting']:
                     new_setting = json.loads(request.POST['setting'])
                     logger.debug('new_setting' + str(new_setting) + str(type(new_setting)))
+                    # new_setting{'worksheetname': 'Compleetlijst', 'no_header': False,
+                    # 'coldefs': {'code': 'R_NAAM', 'namelast': 'ANAAM', 'namefirst': 'Voor_namen'}}
+
                     new_coldefs = {}
                     if new_setting:
                         if 'coldefs' in new_setting:
                             new_coldefs = new_setting['coldefs']
                     logger.debug('new_coldefs' + str(new_coldefs) + str(type(new_coldefs)))
+                    # new_coldefs{'code': 'R_NAAM', 'namelast': 'ANAAM', 'namefirst': 'Voor_namen'}
 
                     # get stored setting from Companysetting
-                    stored_setting_json = Companysetting.get_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, request.user.company)
+                    stored_setting_json = Companysetting.get_setting(KEY_EMPLOYEE_COLDEFS, request.user.company)
                     stored_setting = {}
                     stored_coldefs = {}
                     if stored_setting_json:
@@ -693,126 +723,128 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                     logger.debug('stored_setting_json' + str(stored_setting_json))
 
                     # save stored_setting_json
-                    # Companysetting.set_setting(KEY_EMPLOYEE_MAPPED_COLDEFS, stored_setting_json, request.user)
+                    Companysetting.set_setting(KEY_EMPLOYEE_COLDEFS, stored_setting_json, request.user.company)
 
-        return HttpResponse(json.dumps("Student import settings uploaded!", cls=LazyEncoder))
+        return HttpResponse(json.dumps("Import settings uploaded", cls=LazyEncoder))
 
 
 @method_decorator([login_required], name='dispatch')
 class EmployeeImportUploadData(View):  # PR2018-12-04
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= OrderImportUploadData ============= ')
+        logger.debug(' ============= EmployeeImportUploadData ============= ')
 
-        if request.user is not None :
+        if request.user is not None:
             if request.user.company is not None:
                 # get school and department of this schoolyear
                 #company = Company.objects.filter(company=request.user.company).first()
                 #if request.user.department is not None:
                 #    department = Department.objects.filter(department=request.user.department).first()
-
-                employees = json.loads(request.POST['employees'])
                 params = []
+                if 'employees' in request.POST:
+                    employees = json.loads(request.POST['employees'])
+                    logger.debug("employees")
+                    logger.debug(str(employees))
 
-                for employee in employees:
-                    logger.debug('--------- import employee   ------------')
-                    logger.debug('import employee:')
-                    logger.debug(str(employee))
-                    # 'code', 'namelast', 'namefirst',  'prefix', 'email', 'tel', 'datefirst',
-                    data = {}
-                    has_error = False
-                    dont_add = False
+                    for employee in employees:
+                        logger.debug('--------- import employee   ------------')
+                        logger.debug('import employee:')
+                        logger.debug(str(employee))
+                        # 'code', 'namelast', 'namefirst',  'prefix', 'email', 'tel', 'datefirst',
+                        employee_dict = {}
+                        has_error = False
+                        dont_add = False
 
-                    # truncate input if necessary
-                    code = employee.get('code', '')[0:CODE_MAX_LENGTH]
-                    namelast = employee.get('namelast', '')[0:NAME_MAX_LENGTH]
-                    namefirst = employee.get('namefirst', '')[0:NAME_MAX_LENGTH]
-                    prefix = employee.get('prefix', '')[0:CODE_MAX_LENGTH]
-                    email = employee.get('email', '')[0:NAME_MAX_LENGTH]
-                    telephone = employee.get('tel', '')[0:USERNAME_SLICED_MAX_LENGTH]
-                    datefirst = employee.get('datefirst', '')
+                        # truncate input if necessary
+                        code = employee.get('code', '')[0:CODE_MAX_LENGTH]
+                        namelast = employee.get('namelast', '')[0:NAME_MAX_LENGTH]
+                        namefirst = employee.get('namefirst', '')[0:NAME_MAX_LENGTH]
+                        prefix = employee.get('prefix', '')[0:CODE_MAX_LENGTH]
+                        email = employee.get('email', '')[0:NAME_MAX_LENGTH]
+                        telephone = employee.get('tel', '')[0:USERNAME_SLICED_MAX_LENGTH]
+                        datefirst = employee.get('datefirst', '')
 
-                    # check if employee already exists
-                    # msg_dont_add = validate_employee_code(code, request.user.company)
-                    # if msg_dont_add:
-                    #     logger.debug('employee_exists: ' + str(msg_dont_add))
-                    # else:
-                    #     logger.debug('employee does not exists')
+                        # check if employee already exists
+                        # msg_dont_add = validate_employee_code(code, request.user.company)
+                        # if msg_dont_add:
+                        #     logger.debug('employee_exists: ' + str(msg_dont_add))
+                        # else:
+                        #     logger.debug('employee does not exists')
 
-                    # check if employee already exists
-                    #  msg_dont_add = validate_employee_name(namelast, namefirst, request.user.company)
-                    # if msg_dont_add:
-                    #     logger.debug('employee_exists: ' + str(msg_dont_add))
-                    #  else:
-                    #    logger.debug('employee does not exists')
+                        # check if employee already exists
+                        #  msg_dont_add = validate_employee_name(namelast, namefirst, request.user.company)
+                        # if msg_dont_add:
+                        #     logger.debug('employee_exists: ' + str(msg_dont_add))
+                        #  else:
+                        #    logger.debug('employee does not exists')
 
-                    # check if email address already exists
-                    #if email:
-                    #    msg_dont_add = employee_email_exists(email, request.user.company)
-                    #    if msg_dont_add:
-                    #        logger.debug('emmail_exists: ' + str(msg_dont_add))
-                   #     else:
-                   #        logger.debug('email does not exists')
-                    #    skip_email = bool(msg_dont_add)
-                    #else:
-                    #    skip_email = True
-                    msg_dont_add = None
-                    # ========== create new employee, but only if no errors found
-                    if msg_dont_add:
-                        logger.debug('employee not created: ' + str(msg_dont_add))
-                        # TODO stud_log.append(_("employee not created."))
-                    else:
-                        new_employee = Employee(
-                            company=request.user.company,
-                            code=code,
-                            namelast=namelast
-                        )
-                        logger.debug('new_employee: ' + str(new_employee))
+                        # check if email address already exists
+                        #if email:
+                        #    msg_dont_add = employee_email_exists(email, request.user.company)
+                        #    if msg_dont_add:
+                        #        logger.debug('emmail_exists: ' + str(msg_dont_add))
+                       #     else:
+                       #        logger.debug('email does not exists')
+                        #    skip_email = bool(msg_dont_add)
+                        #else:
+                        #    skip_email = True
+                        msg_dont_add = None
+                        # ========== create new employee, but only if no errors found
+                        if msg_dont_add:
+                            logger.debug('employee not created: ' + str(msg_dont_add))
+                            # TODO stud_log.append(_("employee not created."))
+                        else:
+                            new_employee = Employee(
+                                company=request.user.company,
+                                code=code,
+                                namelast=namelast
+                            )
+                            logger.debug('new_employee: ' + str(new_employee))
 
-                        logger.debug('new_employee.namelast: ' + str(new_employee.namelast))
-                        if namefirst:
-                            new_employee.namefirst = namefirst
-                        if prefix:
-                            new_employee.prefix = prefix
-                        if email:
-                            new_employee.email = email
-                        if telephone:
-                            new_employee.tel = telephone
+                            logger.debug('new_employee.namelast: ' + str(new_employee.namelast))
+                            if namefirst:
+                                new_employee.namefirst = namefirst
+                            if prefix:
+                                new_employee.prefix = prefix
+                            if email:
+                                new_employee.email = email
+                            if telephone:
+                                new_employee.tel = telephone
 
-                        try:
-                            new_employee.save(request=request)
-                            logger.debug('saved new_employee: ' + str(new_employee))
-                        except:
-                            has_error = True
-                            data['e_lastname'] = _('An error occurred. The employee data is not saved.')
-                            logger.debug('has_error: ' + str(new_employee))
+                            try:
+                                new_employee.save(request=request)
+                                logger.debug('saved new_employee: ' + str(new_employee))
+                            except:
+                                has_error = True
+                                employee_dict['e_lastname'] = _('An error occurred. The employee data is not saved.')
+                                logger.debug('has_error: ' + str(new_employee))
 
-                        if new_employee.pk:
-                            if new_employee.code:
-                                data['s_code'] = new_employee.code
-                            if new_employee.namelast:
-                                data['s_namelast'] = new_employee.namelast
-                            if new_employee.namefirst:
-                                data['s_namefirst'] = new_employee.namefirst
-                            if new_employee.prefix:
-                                data['s_prefix'] = new_employee.prefix
-                            if new_employee.email:
-                                data['s_email'] = new_employee.email
-                            if new_employee.telephone:
-                                data['s_telephone'] = new_employee.telephone
-                            if new_employee.datefirst:
-                                data['s_datefirst'] = new_employee.datefirst
+                            if new_employee.pk:
+                                if new_employee.code:
+                                    employee_dict['s_code'] = new_employee.code
+                                if new_employee.namelast:
+                                    employee_dict['s_namelast'] = new_employee.namelast
+                                if new_employee.namefirst:
+                                    employee_dict['s_namefirst'] = new_employee.namefirst
+                                if new_employee.prefix:
+                                    employee_dict['s_prefix'] = new_employee.prefix
+                                if new_employee.email:
+                                    employee_dict['s_email'] = new_employee.email
+                                if new_employee.telephone:
+                                    employee_dict['s_telephone'] = new_employee.telephone
+                                if new_employee.datefirst:
+                                    employee_dict['s_datefirst'] = new_employee.datefirst
 
-                        # logger.debug(str(new_student.id) + ': Student ' + new_student.lastname_firstname_initials + ' created ')
+                            # logger.debug(str(new_student.id) + ': Student ' + new_student.lastname_firstname_initials + ' created ')
 
-                        # from https://docs.quantifiedcode.com/python-anti-patterns/readability/not_using_items_to_iterate_over_a_dictionary.html
-                        # for key, val in student.items():
-                        #    logger.debug( str(key) +': ' + val + '" found in "' + str(student) + '"')
+                            # from https://docs.quantifiedcode.com/python-anti-patterns/readability/not_using_items_to_iterate_over_a_dictionary.html
+                            # for key, val in student.items():
+                            #    logger.debug( str(key) +': ' + val + '" found in "' + str(student) + '"')
 
-                    # json_dumps_err_list = json.dumps(msg_list, cls=f.LazyEncoder)
-                    if len(data) > 0:
-                        params.append(data)
-                    # params.append(new_employee)
+                        # json_dumps_err_list = json.dumps(msg_list, cls=f.LazyEncoder)
+                        if len(employee_dict) > 0:
+                            params.append(employee_dict)
+                        # params.append(new_employee)
 
                 # return HttpResponse(json.dumps(params))
                 return HttpResponse(json.dumps(params, cls=LazyEncoder))
@@ -875,7 +907,7 @@ def update_employee_instance(instance, upload_dict, update_dict, request, user_l
             field_dict = upload_dict.get(field)
             logger.debug('field_dict ' + field + ': ' + str(field_dict) + str(type(field_dict)))
             field_value = field_dict.get('value')  # field_value: '2019-04-12'
-            new_date, msg_err = get_date_from_str(field_value, False)  # False = blank_allowed
+            new_date, msg_err = get_date_from_ISOstring(field_value, False)  # False = blank_allowed
             if msg_err is not None:
                 update_dict[field]['err'] = msg_err
             else:
