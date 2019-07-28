@@ -7,14 +7,15 @@ from timeit import default_timer as timer
 from accounts.models import Usersetting
 from companies.models import Order, Scheme, Schemeitem, Emplhour, Companysetting
 
-from tsap.settings import TIME_ZONE, LANGUAGE_CODE
+from tsap.settings import TIME_ZONE
 
-from tsap.functions import get_iddict_variables, get_date_from_ISOstring, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
-                    get_weekdaylist_for_DHM, get_date_HM_from_minutes, set_fielddict_date, \
-                    fielddict_duration, fielddict_date, get_datetime_UTC_from_ISOstring, get_datetime_LOCAL_from_ISOstring, \
-                    get_datetimelocal_from_datetimeUTC
+from tsap.functions import get_date_from_ISOstring, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
+                    get_weekdaylist_for_DHM, set_fielddict_date, \
+                    fielddict_duration, fielddict_date, get_datetime_UTC_from_ISOstring, \
+                    get_datetime_LOCAL_from_ISOstring, get_datetimelocal_from_datetimeUTC
 
-from tsap.constants import KEY_COMP_ROSTERDATE_CURRENT, KEY_USER_EMPLHOUR_PERIOD, CAT_00_NORMAL, CAT_03_TEMPLATE
+from tsap.constants import KEY_COMP_ROSTERDATE_CURRENT, KEY_USER_EMPLHOUR_PERIOD, \
+    CAT_00_NORMAL, CAT_01_INTERNAL, CAT_02_ABSENCE, CAT_03_TEMPLATE
 
 from tsap.validators import validate_code_or_name
 
@@ -693,8 +694,10 @@ def create_emplhour_list(period_timestart_utc, period_timeend_utc, company, comp
     date_min = period_timestart_utc.date()
     date_max = period_timeend_utc.date()
 
-    crit = (Q(orderhour__order__customer__company=company)) & \
-           (Q(rosterdate__gte=date_min)) & (Q(rosterdate__lte=date_max)) & \
+   # Exclude template. Cat <= 2 (0 = normal, 1 = internal, 2 = absence, 3 = template)
+    crit = Q(orderhour__order__customer__company=company) & \
+           Q(orderhour__order__cat__lte=CAT_02_ABSENCE) & \
+           Q(rosterdate__gte=date_min) & Q(rosterdate__lte=date_max) & \
            (Q(timestart__lt=period_timeend_utc) | Q(timestart__isnull=True)) & \
            (Q(timeend__gt=period_timestart_utc) | Q(timeend__isnull=True))
 

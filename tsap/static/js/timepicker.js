@@ -738,8 +738,8 @@
 
 //========= CellEventhandler  ====================================
     function CellEventhandler(el_timepicker, tbody, td, UpdateTableRow, url_str, data_name, comp_timezone, quicksave, cls_highl, disabled) {
-        console.log( ">>>>=== CellEventhandler  ");
-        console.log( td);
+        //console.log( ">>>>=== CellEventhandler  ");
+        //console.log( td);
         disabled = false // TODO
         if (data_name === "hour"){
             if (!disabled){
@@ -791,7 +791,7 @@
 //========= GetCurMinMaxDict  ====================================
     function GetCurMinMaxDict(el_timepicker) {
     // PR2019-07-07
-        console.log(" ---+++ GetCurMinMaxDict +++--- ")
+        //console.log(" ---+++ GetCurMinMaxDict +++--- ")
 
 
     // get values from el_timepicker
@@ -828,24 +828,24 @@
 
         let min_datetime_local, max_datetime_local, curdate_rosterdate_diff = 0, offset = "";
         if (!!cur_datetime_local) {
-            console.log("cur_datetime_local", cur_datetime_local.format())
-            console.log("curRosterdate", curRosterdate.format())
+            //console.log("cur_datetime_local", cur_datetime_local.format())
+            //console.log("curRosterdate", curRosterdate.format())
             // from https://momentjs.com/guides/
             curHours = cur_datetime_local.hour();
             curMinutes = cur_datetime_local.minutes();
             curDate = cur_datetime_local.clone().startOf("day");
 
             curdate_rosterdate_diff = curDate.diff(curRosterdate, "days");
-            console.log("curdate_rosterdate_diff", curdate_rosterdate_diff)
+            //console.log("curdate_rosterdate_diff", curdate_rosterdate_diff)
 
             curDate_is_rosterdate = (curDate.diff(curRosterdate) === 0) // (curDate = curRosterdate)
-            console.log("curDate_is_rosterdate", curDate_is_rosterdate)
-            console.log("curHours", curHours)
-            console.log("curMinutes", curMinutes)
-            console.log("curDate", curDate.format())
+            //console.log("curDate_is_rosterdate", curDate_is_rosterdate)
+            //console.log("curHours", curHours)
+            //console.log("curMinutes", curMinutes)
+            //console.log("curDate", curDate.format())
 
             offset = curdate_rosterdate_diff.toString() + ";" + curHours.toString() + ";" + curMinutes.toString()
-            console.log("offset", offset)
+            //console.log("offset", offset)
 
             if(!!data_mindatetime){
                 min_datetime_local = GetDatetimeLocal(data_mindatetime, comp_timezone);

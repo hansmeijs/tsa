@@ -17,6 +17,7 @@ $(function() {
 
 // ---  id_new assigns fake id to new records
         let id_new = 0;
+        //let idx = 0; // idx is id of each created element NOT IN USE YET 2019-07-28
 
         let filter_customers = "";
         let filter_orders = "";
@@ -406,7 +407,7 @@ $(function() {
                         //team: {pk: 126, value: "A", updated: true}
                         const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
                         if (is_created){
-                        // add ne empty row
+                        // add new empty row
                             id_new = id_new + 1
                             const pk_new = "new_" + id_new.toString()
                             const parent_pk = get_ppk_from_id (item_dict)
@@ -642,7 +643,7 @@ $(function() {
                 if ([0, 1].indexOf( j ) > -1){
                     el.addEventListener("change", function() {UploadChanges(el);}, false )} else
                 if ([2, 3].indexOf( j ) > -1){
-                    el.addEventListener("click", function() {OpenPopupDate(el);}, false )};
+                    el.addEventListener("click", function() {HandlePopupDateOpen(el);}, false )};
 
 // --- add text_align
                 if ( ([0, 1].indexOf( j ) > -1) ){
@@ -821,13 +822,14 @@ $(function() {
         };  // if (!!item_dict && !!tblRow)
     }  // function UpdateTableRow
 
-//========= OpenPopupDate  ====================================
-    function OpenPopupDate(el_input) {
-        console.log("===  OpenPopupDate  =====") ;
+//========= HandlePopupDateOpen  ====================================
+    function HandlePopupDateOpen(el_input) {
+        console.log("===  HandlePopupDateOpen  =====") ;
+
+        let el_popup_date = document.getElementById("id_popup_date")
 
 // ---  reset textbox 'date'
-
-        //el_popup_date.innerText = null
+        el_popup_date.value = null
 
 // get tr_selected
         let tr_selected = get_tablerow_selected(el_input)
@@ -836,23 +838,25 @@ $(function() {
 
         if (!!tr_selected){
             const data_table = get_attr_from_el(tr_selected, "data-table")
-            const id_str = get_attr_from_el(tr_selected, "data-pk")
-            const parent_pk_str = get_attr_from_el(tr_selected, "data-ppk");
-            console.log("data_table", data_table, "id_str", id_str, "parent_pk_str", parent_pk_str)
+            const data_pk = get_attr_from_el(tr_selected, "data-pk")
+            const data_ppk = get_attr_from_el(tr_selected, "data-ppk");
+            console.log("data_table", data_table, "data_pk", data_pk, "data_ppk", data_ppk)
 
 // get values from el_input
+            //NIU const el_id = get_attr_from_el(el_input, "id");
             const data_field = get_attr_from_el(el_input, "data-field");
             const data_value = get_attr_from_el(el_input, "data-value");
-            const wdmy =  get_attr_from_el(el_input, "data-wdmy");
-            //console.log("data_field", data_field, "data_value", data_value, "wdmy", wdmy)
+            //console.log("data_field", data_field, "data_value", data_value)
 
             const data_mindate = get_attr_from_el(el_input, "data-mindate");
             const data_maxdate = get_attr_from_el(el_input, "data-maxdate");
+            console.log("data_mindate", data_mindate, "data_maxdate", data_maxdate);
 
     // put values in el_popup_date_container
+            // NIU el_popup_date_container.setAttribute("data-el_id", el_id);
             el_popup_date_container.setAttribute("data-table", data_table);
-            el_popup_date_container.setAttribute("data-pk", id_str);
-            el_popup_date_container.setAttribute("data-ppk", parent_pk_str);
+            el_popup_date_container.setAttribute("data-pk", data_pk);
+            el_popup_date_container.setAttribute("data-ppk", data_ppk);
 
             el_popup_date_container.setAttribute("data-field", data_field);
             el_popup_date_container.setAttribute("data-value", data_value);
@@ -874,8 +878,6 @@ $(function() {
             el_popup_date_container.setAttribute("style", msgAttr)
 
     // ---  change background of el_input
-            // first remove selected color from all imput popups
-            elements = document.getElementsByClassName("el_input");
             popupbox_removebackground();
             //el_input.classList.add("pop_background");
 
@@ -884,21 +886,21 @@ $(function() {
 
         }  // if (!!tr_selected){
 
-}; // function OpenPopupDate
+}; // function HandlePopupDateOpen
 
 //=========  HandlePopupDateSave  ================ PR2019-04-14
     function HandlePopupDateSave() {
-console.log("===  function HandlePopupDateSave =========");
+        console.log("===  function HandlePopupDateSave =========");
 
 // ---  get pk_str from id of el_popup
         const pk_str = el_popup_date_container.getAttribute("data-pk")// pk of record  of element clicked
-        const parent_pk =  parseInt(el_popup_date_container.getAttribute("data-ppk"))
-        const fieldname =  el_popup_date_container.getAttribute("data-field")
-        const tablename =  el_popup_date_container.getAttribute("data-table")
-        // console.log("pk_str: ", pk_str, typeof pk_str)
-        // console.log("parent_pk: ", parent_pk, typeof parent_pk)
-        // console.log("fieldname: ", fieldname, typeof fieldname)
-        // console.log("tablename: ", tablename, typeof tablename)
+        const parent_pk = parseInt(el_popup_date_container.getAttribute("data-ppk"));
+        const fieldname = el_popup_date_container.getAttribute("data-field");  // nanme of element clicked
+        const tablename = el_popup_date_container.getAttribute("data-table");
+        //console.log("pk_str: ", pk_str, typeof pk_str)
+        //console.log("parent_pk: ", parent_pk, typeof parent_pk)
+        //console.log("fieldname: ", fieldname, typeof fieldname)
+        //console.log("tablename: ", tablename, typeof tablename)
 
         if(!!pk_str && !! parent_pk){
             let row_upload = {};
@@ -916,48 +918,44 @@ console.log("===  function HandlePopupDateSave =========");
             id_dict["ppk"] = parent_pk
             id_dict["table"] = tablename
 
-            if (!!id_dict){row_upload["id"] = id_dict};
-
-            const field_str = el_popup_date_container.getAttribute("data-field") // nanme of element clicked
-            //const n_value = el_popup_date_container.getAttribute("data-value") // value of element clicked "-1;17;45"
-            const n_value = el_popup_date.value
-            const o_value = el_popup_date_container.getAttribute("data-o_value") // value of element clicked "-1;17;45"
-                // console.log ("field_str: ",field_str );
-                // console.log ("n_value: ",n_value );
-                // console.log ("o_value: ",o_value );
-
-
-            //setTimeout(function() {
-            //    popupbox_removebackground();
-            //    el_popup_date_container.classList.add(cls_hide);
-            //}, 2000);
+            if (!!id_dict){
+                row_upload["id"] = id_dict
+            };
 
             popupbox_removebackground();
             el_popup_date_container.classList.add(cls_hide);
+
+            //const n_value = el_popup_date_container.getAttribute("data-value") // value of element clicked "-1;17;45"
+            const n_value = el_popup_date.value
+            const o_value = el_popup_date_container.getAttribute("data-o_value") // value of element clicked "-1;17;45"
+            //console.log ("n_value: ", n_value ,"o_value: ", o_value);
+
 
 // create new_dhm string
 
             if (n_value !== o_value) {
 
                 // key "update" triggers update in server, "updated" shows green OK in inputfield,
-                let field_dict = {"value": n_value, "update": true}
+                let field_dict = {}
+                if(!!n_value){field_dict["value"] = n_value};
+                field_dict["update"] = true
 
 // put new value in inputbox before new value is back from server
                 let tr_selected = document.getElementById(pk_str)
                 let col_index;
-                if (field_str === "datefirst") {col_index = 2} else{col_index = 3}
+                if (fieldname === "datefirst") {col_index = 2} else{col_index = 3}
                 let el_input = tr_selected.cells[col_index].firstChild
                 const hide_weekday = true, hide_year = false;
                 format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
                                     user_lang, comp_timezone, hide_weekday, hide_year)
 
                 field_dict["update"] = true
-                row_upload[field_str] =  field_dict;
+                row_upload[fieldname] =  field_dict;
                 console.log ("field_dict: ", field_dict);
                 let parameters = {};
                 parameters["upload"] = JSON.stringify (row_upload);
 
-                console.log (">>> parameters: ", parameters);
+                console.log (">>> parameters: ", row_upload);
                 let response;
                 $.ajax({
                     type: "POST",
@@ -984,7 +982,7 @@ console.log("===  function HandlePopupDateSave =========");
             }, 2000);
 
 
-        }  // if(!!pk_str && !! parent_pk){
+        }  // if(!!pk_str && !! parent_pk)
     }  // HandlePopupDateSave
 
 //========= function pop_background_remove  ====================================

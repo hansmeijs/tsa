@@ -118,7 +118,7 @@ $(function() {
             error: function (xhr, msg) {
                 // hide loader
                 el_loader.classList.add(cls_hide)
-                //console.log(msg + '\n' + xhr.responseText);
+                console.log(msg + '\n' + xhr.responseText);
                 alert(msg + '\n' + xhr.responseText);
             }
         });
@@ -256,7 +256,7 @@ $(function() {
         console.log("--++- UpdateTableRow  --------------");
 
         if (!!item_dict && !!tblRow) {
-            console.log("item_dict", item_dict);
+            //console.log("item_dict", item_dict);
 
 // get temp_pk_str and id_pk from item_dict["id"]
             // id: {temp_pk: "new_1", created: true, pk: 32, parent_pk: 18}
@@ -339,8 +339,6 @@ $(function() {
                                 field_dict = get_dict_value_by_key (item_dict, fieldname);
                                 updated = get_dict_value_by_key (field_dict, "updated");
                                 msg_err = get_dict_value_by_key (field_dict, "error");
-                                // console.log("field_dict: ", field_dict)
-                                // console.log("msg_err: ", msg_err)
 
                                 if(!!msg_err){
                                     ShowMsgError(el_input, el_msg, msg_err, -60)
@@ -352,6 +350,8 @@ $(function() {
                                 }
 
                                 if (["code", "name", "identifier"].indexOf( fieldname ) > -1){
+
+                                   console.log("??>>?? field_dict:", field_dict);
                                    format_text_element (el_input, el_msg, field_dict)
                                 };
                             }  // if (fieldname in item_dict)
@@ -440,8 +440,8 @@ $(function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    //console.log( "response");
-                    //console.log( response);
+                    console.log( "response");
+                    console.log( response);
 
                     if ("item_dict" in response) {
                         ReplaceItemDict(customer_list, response["item_dict"])};
@@ -453,18 +453,18 @@ $(function() {
                         // sort list and update table when code has changed
                         const field = "code";
                         const fld_dict = get_dict_value_by_key (item_update, field)
-                        if (!isEmpty(fld_dict)){
-                            const fld_val = get_dict_value_by_key (fld_dict, "updated")
-                            if (!!fld_val) {
+                        //if (!isEmpty(fld_dict)){
+                            //const fld_val = get_dict_value_by_key (fld_dict, "updated")
+                            //if (!!fld_val) {
 
-                                setTimeout(function (){
-                                    customer_list = SortItemList (customer_list, "code", user_lang)
-                                    FillTableRows()
-                                    FilterTableRows(tblBody_items, filter_name, col_inactive, filter_show_inactive);
-                                }, 2000);
+                              //  setTimeout(function (){
+                               //     customer_list = SortItemList (customer_list, "code", user_lang)
+                                //    FillTableRows()
+                                //    FilterTableRows(tblBody_items, filter_name, col_inactive, filter_show_inactive);
+                                //}, 2000);
 
-                            }
-                        }
+                            //}
+                        //}
                         // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
                         //id: {parent_pk: 126, table: "teammembers", created: true, pk: 57, temp_pk: "new_4"}
                         //team: {pk: 126, value: "A", updated: true}
@@ -485,7 +485,7 @@ $(function() {
                     }
                 },
                 error: function (xhr, msg) {
-                    //console.log(msg + '\n' + xhr.responseText);
+                    console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });

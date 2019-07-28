@@ -20,6 +20,7 @@ $(function() {
 
 // ---  id_new assigns fake id to new records
         let id_new = 0;
+        let idx = 0; // idx is id of each created (date) element 2019-07-28
         let filter_name = "";
         let filter_hide_inactive = true;
 
@@ -126,11 +127,11 @@ $(function() {
 
         let el_scheme_datefirst = document.getElementById("id_scheme_datefirst");
             el_scheme_datefirst.addEventListener("click", function() {
-                OpenPopupDate(el_scheme_datefirst)}, false );
+                HandlePopupDateOpen(el_scheme_datefirst)}, false );
 
         let el_scheme_datelast = document.getElementById("id_scheme_datelast");
             el_scheme_datelast.addEventListener("click", function() {
-                OpenPopupDate(el_scheme_datelast)}, false );
+                HandlePopupDateOpen(el_scheme_datelast)}, false );
 
 
 // --- close windows
@@ -237,6 +238,8 @@ $(function() {
         const url_schemeitems_download = get_attr_from_el(el_data, "data-schemeitems_download_url");
         const url_scheme_upload = get_attr_from_el(el_data, "data-scheme_upload_url");
         const url_schemeorteam_upload = get_attr_from_el(el_data, "data-schemeorteam_upload_url");
+        const url_teammember_upload = get_attr_from_el(el_data, "data-teammember_upload_url");
+
         const url_emplhour_fill_rosterdate = get_attr_from_el(el_data, "data-emplhour_fill_rosterdate_url");
 
         const imgsrc_inactive = get_attr_from_el(el_data, "data-imgsrc_inactive");
@@ -274,15 +277,14 @@ $(function() {
             btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add(cls_hover);});
             btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove(cls_hover);});
 
-
 // --- create Submenu
         CreateSubmenu()
 
 // --- create header row
         CreateTableHeader("schemeitem");
 
-        const datalist_request = {"customer": {inactive: false},
-                                  "order": {inactive: false},
+        const datalist_request = {"customer": {inactive: false, "cat_lte":1},
+                                  "order": {inactive: false, "cat_lte":1},
                                   "order_template": {inactive: false},
                                   "scheme_template": {inactive: false},
                                   "schemeitem_template": {inactive: false},
@@ -566,7 +568,7 @@ $(function() {
 
 //=========  HandleSelectScheme  ================ PR2019-05-24
     function HandleSelectScheme(tr_clicked) {
-        console.log( "===== HandleSelectScheme  ========= ");
+        //console.log( "===== HandleSelectScheme  ========= ");
 
         if(!!tr_clicked) {
 // ---  deselect all highlighted rows
@@ -603,7 +605,7 @@ $(function() {
     // get selected scheme from scheme_dict
                 let scheme_dict = get_arrayRow_by_keyValue (scheme_list, "pk", scheme_pk)
                 //scheme_dict: {pk: 18, id: {pk: 18, parent_pk: 6, code: {value: "MCB scheme"}, cycle: {value: 7}}}
-                 console.log( "scheme_dict", scheme_dict);
+                 //console.log( "scheme_dict", scheme_dict);
 
     // fill scheme fields
                 if (!!scheme_dict){
@@ -621,7 +623,7 @@ $(function() {
                         // console.log("el", el)
 
                         field_dict = get_dict_value_by_key (scheme_dict, fieldname)
-                        console.log("field_dict", fieldname,  field_dict)
+                        //console.log("field_dict", fieldname,  field_dict)
 
                         value = get_dict_value_by_key (field_dict, "value")
                         wdmy = get_dict_value_by_key (field_dict, "wdmy");
@@ -867,22 +869,25 @@ $(function() {
 // It also has a value property that holds the current value of the input
     function UploadTblrowChanged(tr_changed) {
         console.log("=== UploadTblrowChanged");
-        let new_item = GetItemDictFromTablerow(tr_changed);
-        console.log("item_upload: " );
-        console.log(new_item );
+        let row_upload = GetItemDictFromTablerow(tr_changed);
+        console.log("row_upload: ", row_upload );
 
-        console.log("url_schemeitem_upload: ", url_schemeitem_upload );
+        if(!!row_upload) {
+            const tablename = get_subdict_value_by_key(row_upload, "id", "table")
+            console.log("tablename: ", tablename );
 
-        if(!!new_item) {
-            const table_name = get_subdict_value_by_key(new_item, "id", "table")
-            console.log("table_name: ", table_name );
-            let parameters ={}
-            parameters[table_name] = JSON.stringify (new_item);
+            let url_str;
+            if (tablename === "teammember") {
+                url_str = url_teammember_upload
+            } else {
+                url_str = url_schemeitem_upload
+            }
 
+            let parameters = {"upload": JSON.stringify (row_upload)}
             let response = "";
             $.ajax({
                 type: "POST",
-                url: url_schemeitem_upload,
+                url: url_str,
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
@@ -905,18 +910,20 @@ $(function() {
                         FillDatalist("id_datalist_teams", team_list)}
                     if ("teammember" in response){
                         teammember_list= response["teammember"]}
+
                     if ("employee" in response) {
                         employee_list= response["employee"];
                         FillDatalist("id_datalist_employees", employee_list)}
-
+                    console.log( "item_update in response", response);
                     if ("item_update" in response) {
-                        let item_dict =response["item_update"]
+                        let item_dict = response["item_update"]
+                        console.log( ">>>>>>>> item_dict =", item_dict);
+
                         const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
                         UpdateTableRow(tblName, tr_changed, item_dict)
                         // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
                         //id: {parent_pk: 126, table: "teammember", created: true, pk: 57, temp_pk: "new_4"}
                         //team: {pk: 126, value: "A", updated: true}
-                        console.log( "item_dict =", item_dict);
                         const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
                         console.log( "is_created =", is_created, typeof is_created);
 
@@ -953,41 +960,54 @@ $(function() {
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
-        }  //  if(!!new_item)
+        }  //  if(!!row_upload)
     };  // UploadTblrowChanged
 
 //=========  HandleDeleteTblrow  ================ PR2019-03-16
-    function HandleDeleteTblrow(tblName, tblRow) {
-        // console.log("=== HandleDeleteTblrow");
+    function HandleDeleteTblrow(tr_changed) {
+        console.log("=== HandleDeleteTblrow");
+        let row_upload = GetItemDictFromTablerow(tr_changed);
+        console.log("row_upload: ", row_upload );
+        // row_upload:  {id: {pk: 10, ppk: 34, table: "teammember"}
 
-// ---  get pk from id of tblRow
-            const pk_int = get_datapk_from_element (tblRow)
-            const parent_pk_int = parseInt(get_attr_from_el(tblRow, "data-ppk"))
+        const tablename = get_subdict_value_by_key(row_upload, "id", "table")
+        console.log("tablename: ", tablename );
+
+        if(!!row_upload) {
+// ---  get pk from id of tr_changed
+            const pk_int = get_pk_from_id(row_upload)
+            console.log("tablename: ", tablename, "pk_int: ", pk_int );
 
             //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
             if (!pk_int) {
             // when pk_int = 'new_2' row is new row and is not yet saved, can be deleted without ajax
-                tblRow.parentNode.removeChild(tblRow);
+                tr_changed.parentNode.removeChild(tr_changed);
             } else {
 
 // ---  create id_dict
-                const id_dict = get_iddict_from_element(tblRow);
                 // add id_dict to new_item
+                const id_dict = get_iddict_from_dict (row_upload)
                 if (!!id_dict){
     // ---  create param
-                    id_dict["delete"] = true;
-                    let param = {"id": id_dict}
-                    console.log( "param: ");
-                    console.log(param);
+                    row_upload["id"]["delete"] = true;
+                    console.log("row_upload: ", row_upload );
+                    // upload = '{"id":{"pk":10,"ppk":34,"table":"teammember","delete":true}}'
     // delete  record
                     // make row red
-                    tblRow.classList.add("tsa_tr_error");
-                    let parameters = {"schemeitem": JSON.stringify (param)};
-                    let response = "";
+                    tr_changed.classList.add("tsa_tr_error");
 
+                    let url_str;
+                    if (tablename === "teammember") {
+                        url_str = url_teammember_upload
+                    } else {
+                        url_str = url_schemeitem_upload
+                    }
+
+                    let parameters = {"upload": JSON.stringify (row_upload)}
+                    let response = "";
                     $.ajax({
                         type: "POST",
-                        url: url_schemeitem_upload,
+                        url: url_str,
                         data: parameters,
                         dataType:'json',
                         success: function (response) {
@@ -1015,7 +1035,7 @@ $(function() {
 
                             if ("item_update" in response){
                                 let update_dict = response["item_update"]
-                                UpdateSchemeitemOrTeammmember(tblRow, update_dict)
+                                UpdateSchemeitemOrTeammmember(tr_changed, update_dict)
                             };
                         },
                         error: function (xhr, msg) {
@@ -1026,7 +1046,7 @@ $(function() {
 
                 }  // if (!!id_dict)
             }; // if (!pk_int)
-
+        }  //  if(!!row_upload)
     }
 
 //========= UpdateSchemeitemOrTeammmember  =============
@@ -1831,7 +1851,7 @@ $(function() {
             // --- first add <a> element with EventListener to td
                     el = document.createElement("a");
                     el.setAttribute("href", "#");
-                    el.addEventListener("click", function() {HandleDeleteTblrow(tblName, tblRow);}, false )
+                    el.addEventListener("click", function() {HandleDeleteTblrow(tblRow);}, false )
 
                     AppendChildIcon(el, imgsrc_delete)
                     td.appendChild(el);
@@ -1860,6 +1880,14 @@ $(function() {
                     if (j === 4){fieldname = "datelast"}
                 }
                 el.setAttribute("data-field", fieldname);
+// also add row data to each field
+                el.setAttribute("data-pk", pk);
+                el.setAttribute("data-ppk", parent_pk);
+                el.setAttribute("data-table", tblName);
+
+// add id to each input element
+                idx += 1;
+                el.setAttribute("id", "idx" + idx.toString());
 
                 if (j === 2 && is_new_item ){
                     if (tblName === "schemeitem"){el.setAttribute("placeholder", get_attr_from_el(el_data, "data-txt_shift_add") + "...")} else
@@ -1885,7 +1913,7 @@ $(function() {
                     if ([1, 2].indexOf( j ) > -1){
                         el.addEventListener("change", function() {UploadChanges(el);}, false )} else
                     if ([3, 4].indexOf( j ) > -1){
-                        el.addEventListener("click", function() {OpenPopupDate(el)}, false )};
+                        el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false )};
                 }
 // --- add datalist_ to td shift, team, employee
                 if (tblName === "schemeitem"){
@@ -1958,8 +1986,8 @@ $(function() {
          //console.log(item_dict);
 
         if (!!item_dict && !!tblRow) {
-            // console.log("tblRow", tblRow);
-            // console.log("item_dict", item_dict);
+            console.log("tblRow", tblRow);
+            console.log("item_dict", item_dict);
 
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
             // item_dict = {'id': {'pk': 7},
@@ -2095,11 +2123,11 @@ $(function() {
                                                     user_lang, comp_timezone, false, true)
 
                             } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
-                                //console.log("fieldname: ", fieldname);
-                                //console.log("field_dict: ", field_dict);
-                                // const hide_weekday = false, hide_year = false;
+                                console.log("fieldname: ", fieldname);
+                                console.log("field_dict: ", field_dict);
+                                //const hide_weekday = false, hide_year = false;
                                 format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
-                                                    user_lang, comp_timezone, false, false)
+                                                    user_lang, comp_timezone, false, true)
 
                                 // when row is new row: remove data-o_value from dict,
                                 // otherwise will not recognize rosterdate as a new value and will not be saved
@@ -2434,7 +2462,6 @@ $(function() {
 
                 let parameters = {};
                 parameters["scheme"] = JSON.stringify (dict);
-
                 let response = "";
                 $.ajax({
                     type: "POST",
@@ -2861,11 +2888,12 @@ function validate_input_blank(el_input, el_err, msg_blank){
         }
     }  // ModalCopytoTemplateSave
 
-//========= OpenPopupDate  ====================================
-    function OpenPopupDate(el_input) {
-        console.log("===  OpenPopupDate  =====") ;
+//========= HandlePopupDateOpen  ====================================
+    function HandlePopupDateOpen(el_input) {
+        console.log("===  HandlePopupDateOpen  =====") ;
 
         let el_popup_date = document.getElementById("id_popup_date")
+
 // ---  reset textbox 'date'
         el_popup_date.value = null
 
@@ -2876,19 +2904,20 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 const data_table = get_attr_from_el(el_input, "data-table")
                 const data_pk = get_attr_from_el(el_input, "data-pk")
                 const data_ppk = get_attr_from_el(el_input, "data-ppk");
+                console.log("data_table", data_table, "data_pk", data_pk, "data_ppk", data_ppk)
 
     // get values from el_input
+                const el_id = get_attr_from_el(el_input, "id");
                 const data_field = get_attr_from_el(el_input, "data-field");
                 const data_value = get_attr_from_el(el_input, "data-value");
-                console.log("data_table", data_table, "data_field", data_field)
+                console.log("el_id", el_id, "data_field", data_field, "data_value", data_value)
 
                 const data_mindate = get_attr_from_el(el_input, "data-mindate");
                 const data_maxdate = get_attr_from_el(el_input, "data-maxdate");
+                console.log("data_mindate", data_mindate, "data_maxdate", data_maxdate);
 
-                console.log("el_popup_date", el_popup_date, typeof el_popup_date) ;
-                console.log("data_table", data_table, typeof data_table);
-
-        // put values in el_popup_date_container
+        // put values in el_popup_date
+                el_popup_date.setAttribute("data-el_id", el_id);
                 el_popup_date.setAttribute("data-table", data_table);
                 el_popup_date.setAttribute("data-pk", data_pk);
                 el_popup_date.setAttribute("data-ppk", data_ppk);
@@ -2913,9 +2942,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 el_popup_date_container.setAttribute("style", msgAttr)
 
         // ---  change background of el_input
-                // first remove selected color from all imput popups
-                //elements = document.getElementsByClassName("el_input");
-                //popupbox_removebackground();
+                popupbox_removebackground();
                 //el_input.classList.add("pop_background");
 
         // ---  show el_popup
@@ -2924,28 +2951,57 @@ function validate_input_blank(el_input, el_err, msg_blank){
             }  // if(!el_input.readOnly)
         }  // if (!!tr_selected){
 
-}; // function OpenPopupDate
+}; // function HandlePopupDateOpen
 
 //=========  HandlePopupDateSave  ================ PR2019-07-19
     function HandlePopupDateSave(el_popup_date) {
-        console.log("===  function HandlePopupDateSave =========");
+        console.log("===  HandlePopupDateSave =========");
 
 // ---  get pk_str from id of el_popup
-        let el_container = el_popup_date.parentNode
-        el_container.classList.add(cls_hide);
+        const el_id = el_popup_date.getAttribute("data-el_id")  // id  of element clicked
+        const pk_str = el_popup_date.getAttribute("data-pk")// pk of record  of element clicked
+        const parent_pk = parseInt(el_popup_date.getAttribute("data-ppk"));
+        const fieldname = el_popup_date.getAttribute("data-field");
+        const tablename = el_popup_date.getAttribute("data-table");
+        console.log("el_id: ", el_id, typeof el_id)
+        console.log("pk_str: ", pk_str, typeof pk_str)
+        console.log("parent_pk: ", parent_pk, typeof parent_pk)
+        console.log("fieldname: ", fieldname, typeof fieldname)
+        console.log("tablename: ", tablename, typeof tablename)
 
-        const id_dict = get_iddict_from_element (el_popup_date);
-        console.log("id_dict: ", id_dict)
-
-        if(!isEmpty(id_dict)){
+        if(!!pk_str && !! parent_pk){
             let row_upload = {};
-            row_upload["id"] = id_dict;
+            let id_dict = {}
+        //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+            let pk_int = parseInt(pk_str)
+        // if pk_int is not numeric, then row is an unsaved row with pk 'new_1'  etc
+            if (!pk_int){
+                id_dict["temp_pk"] = pk_str;
+                id_dict["create"] = true;
+            } else {
+        // if pk_int exists: row is saved row
+                id_dict["pk"] = pk_int;
+            };
+            id_dict["ppk"] = parent_pk
+            id_dict["table"] = tablename
 
-            const fieldname = el_popup_date.getAttribute("data-field") // nanme of element clicked
+            if (!!id_dict){
+                row_upload["id"] = id_dict
+            };
+
+// ---  hide el_popup_date
+            popupbox_removebackground();
+            //el_popup_date_container.classList.add(cls_hide);
+            el_popup_date.parentNode.classList.add(cls_hide);
+
+// ---  get n_value and o_value from el_popup_date
             const n_value = el_popup_date.value
             const o_value = el_popup_date.getAttribute("data-value") // value of element clicked "-1;17;45"
+            //const o_value = el_popup_date.getAttribute("data-value") // value of element clicked "-1;17;45"
             console.log ("fieldname: ", fieldname, "n_value: ",n_value , "o_value: ",o_value );
 
+            let hide_weekday = false, hide_year = false;
+             if (tablename === "teammember") {hide_year = true }
 // create new_dhm string
 
             if (n_value !== o_value) {
@@ -2956,9 +3012,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 field_dict["update"] = true
 
 // put new value in inputbox before new value is back from server
-                let el_input = document.getElementById("id_scheme_" + fieldname)
-
-                const hide_weekday = true, hide_year = false;
+                let el_input = document.getElementById(el_id)
                 format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
                                     user_lang, comp_timezone, hide_weekday, hide_year)
 
@@ -2966,20 +3020,34 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 if (!isEmpty(field_dict)){row_upload[fieldname] = field_dict};
                 console.log ("row_upload: ", row_upload);
 
-                let parameters = {};
-                parameters["upload"] = JSON.stringify (row_upload);
+                let url_str;
+                if (tablename === "teammember") {
+                    url_str = url_teammember_upload
+                } else {
+                    url_str = url_schemeorteam_upload
+                }
 
+                let parameters = {"upload": JSON.stringify (row_upload)}
                 let response;
                 $.ajax({
                     type: "POST",
-                    url: url_schemeorteam_upload,
+                    url: url_str,
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
                         console.log (">>> response", response);
                         if ("item_update" in response) {
                             const item_dict = response["item_update"]
-                            format_date_element (el_input, el_msg, item_dict, month_list, weekday_list,
+
+                            //console.log ("el_input: ", el_input );
+                            //console.log ("--->> item_dict", item_dict);
+                            // get field_dict from item_dict
+                            if (fieldname in item_dict){
+                                field_dict = item_dict[fieldname]
+                             } else {
+                                field_dict = {};
+                            }
+                            format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
                                         user_lang, comp_timezone, hide_weekday, hide_year)
                         }
                     },
@@ -2989,7 +3057,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
                     }
                 });
             }  // if (new_dhm_str !== old_dhm_str)
-        }  // if(!!pk_str && !! parent_pk){
+        }  // if(!!pk_str && !! parent_pk)
     }  // HandlePopupDateSave
 
 //========= OpenPopupWDY  ====================================
@@ -3396,8 +3464,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 row_upload[field_name] = field_dict;
                 console.log ("row_upload: ", row_upload);
 
-                let parameters = {"schemeitem": JSON.stringify (row_upload)};
-
+                let parameters = {"upload": JSON.stringify (row_upload)}
                 let response;
                 $.ajax({
                     type: "POST",
@@ -3510,11 +3577,9 @@ console.log("===  function HandlePopupHmSave =========");
 
                 let field_dict = {"value": new_dhm_str, "update": true}
                 row_upload[field_name] =  field_dict;
-
                 console.log ("row_upload: ", row_upload);
 
-                let parameters = {"schemeitem": JSON.stringify (row_upload)};
-
+                let parameters = {"upload": JSON.stringify (row_upload)}
                 let response;
                 $.ajax({
                     type: "POST",
@@ -3630,11 +3695,9 @@ console.log("tablename: ", tablename, typeof tablename)
 
                 let field_dict = {"value": new_dhm_str, "update": true}
                 row_upload[field_name] =  field_dict;
+                console.log ("row_upload: ", row_upload);
 
-                console.log ("row_upload: ");
-                console.log (row_upload);
-
-                let parameters = {"schemeitem": JSON.stringify (row_upload)};
+                let parameters = {"upload": JSON.stringify (row_upload)}
                 let response;
                 $.ajax({
                     type: "POST",

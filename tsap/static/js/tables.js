@@ -59,9 +59,13 @@
                                         pk = parseInt(get_pk_from_datalist("id_datalist_" + fieldname + "s", n_value));
                                     }
                                 } else if (fieldname === "orderhour"){
+
+                                    console.log("fieldname", fieldname)
+                                    console.log("n_value", n_value)
+                                    console.log("field_dict", field_dict)
                         // Note: pk in get pk from datalist when field is a look_up field
                                     if (!!n_value){
-                                        field_dict["order_pk"] = parseInt(get_pk_from_datalist("id_datalist_orderhours", n_value, "order_pk"));
+                                        field_dict["order_pk"] = parseInt(get_pk_from_datalist("id_datalist_orders", n_value));
                                     }
 
                                 } else {
@@ -161,8 +165,18 @@
         return dict;
     }
 
+
+
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
 
+//========= get_iddict_from_dict  ======== PR2019-07-28
+    function get_iddict_from_dict (dict) {
+        let id_dict = {};
+        if(!!dict) {
+            id_dict = get_dict_value_by_key(dict, "id")
+        }
+        return id_dict
+    }
 //========= function get_iddict_from_element  ======== PR2019-06-01
     function get_iddict_from_element (el) {
         // function gets 'data-pk' and 'data-ppk' from el
@@ -234,13 +248,20 @@
 //========= get_pk_from_datalist  ============= PR2019-06-01
     function get_pk_from_datalist(id_datalist, n_value, key_str) {
         // speed test shows that this function is 10x faster than get_pk_from_itemlist
+        //console.log(" --- get_pk_from_datalist ---")
+        //console.log("id_datalist", id_datalist)
         if(!key_str) (key_str = "pk" )
         let option_pk;
         let el_datalist = document.getElementById(id_datalist);
-        let el_option = el_datalist.options.namedItem(n_value);
-        if(!!el_option){
-            option_pk = get_attr_from_el(el_option, key_str)
+        if(!!el_datalist) {
+            let el_option = el_datalist.options.namedItem(n_value);
+
+            //console.log("el_option: ", el_option)
+            if(!!el_option){
+                option_pk = parseInt(get_attr_from_el(el_option, key_str))
+            }
         }
+        //console.log("option_pk: ", option_pk)
         return option_pk
     }
 
@@ -380,15 +401,15 @@
 
 //========= format_text_element  ======== PR2019-06-09
     function format_text_element (el_input, el_msg, field_dict) {
-        // console.log("--- format_text_element ---")
-        // console.log("field_dict: ", field_dict)
+        //console.log("--- format_text_element ---")
+        //console.log("field_dict: ", field_dict)
 
         if(!!el_input && !!field_dict){
             let value = get_dict_value_by_key (field_dict, "value");
             let updated = get_dict_value_by_key (field_dict, "updated");
             let msg_err = get_dict_value_by_key (field_dict, "error");
 
-            // console.log("value: ", value)
+            //console.log("????? value: ", value)
 
             if(!!msg_err){
                 if(!value) { value = null} // otherwise 'undefined will show in tetbox
@@ -439,7 +460,10 @@
             const maxdate = get_dict_value_by_key (field_dict, "maxdate");
             const rosterdate = get_dict_value_by_key (field_dict, "rosterdate");
 
-            let wdmy = "", wdm = "", dmy = "";
+            //console.log("data_value: ", data_value);
+            //console.log("updated: ", updated);
+
+            let wdmy = "", wdm = "", dmy = "", dm = "";
             if(!!data_value) {
                 const datetime_local = moment.tz(data_value, comp_timezone);
                 const this_year = datetime_local.year();
@@ -452,7 +476,7 @@
                 if (!!month_list){month_str = month_list[this_month_iso]};
 
                 let comma_space = " ";
-                let dm = "";
+
                 if(user_lang === "en") {
                     comma_space = ", "
                     dm =  month_str + " " + this_date;

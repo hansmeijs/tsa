@@ -2,7 +2,7 @@ from django.db.models import Q
 from django.utils.translation import activate, ugettext_lazy as _
 
 from companies.models import Employee, Teammember
-from tsap.functions import set_fielddict_date
+from tsap.functions import set_fielddict_date, remove_empty_attr_from_dict
 
 import logging
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ def create_employee_dict(instance):
 
 
 def create_teammember_list(order, inactive=None, rangemin=None, rangemax=None):
-    # --- create list of all teammembers of this team PR2019-06-16
+    # --- create list of all teammembers of this order PR2019-06-16
     logger.debug(' --- create_teammember_list   ')
     crit = Q(team__scheme__order=order)
     if inactive is not None:
@@ -64,7 +64,7 @@ def create_teammember_list(order, inactive=None, rangemin=None, rangemax=None):
     if rangemin is not None:
         crit.add(Q(datelast__gte=rangemin) | Q(datelast__isnull=True), crit.connector)
 
-    teammembers = Teammember.objects.filter(crit).order_by('member', 'datefirst')
+    teammembers = Teammember.objects.filter(crit).order_by('datefirst')
     logger.debug(teammembers.query)
 
     teammember_list = []
@@ -81,44 +81,55 @@ def create_teammember_dict(instance, item_dict):
     # logger.debug ('--- create_schemeitem_dict ---')
     # logger.debug ('item_dict' + str(item_dict))
 
-    field_tuple = ('employee', 'member', 'datefirst', 'datelast')
+    field_tuple = ('pk', 'id', 'team', 'employee', 'member', 'datefirst', 'datelast')
 
     if instance:
-        parent_pk = instance.team.pk
-
-        item_dict['pk'] = instance.pk
-        item_dict['id'] = {'pk': instance.pk, 'ppk': parent_pk, 'table': 'teammember'}
 
         for field in field_tuple:
-            if field not in item_dict:
-                item_dict[field] = {}
+            if field in item_dict:
+                field_dict = item_dict[field]
+            else:
+                field_dict ={}
 
-            if field == 'member':
+            if field == 'pk':
+                field_dict = instance.pk
+            elif field == 'id':
+                field_dict['pk'] = instance.pk
+                field_dict['ppk'] = instance.team.pk
+                field_dict['table'] = 'teammember'
+
+            elif field == 'team':
+                field_dict['pk'] = instance.team.pk
+                if instance.team.code:
+                    field_dict['value'] = instance.team.code
+
+            elif field == 'member':
                 value = getattr(instance, field)
                 if value:
-                    item_dict[field] = {}
-                    item_dict[field]['value'] = value
+                    field_dict['value'] = value
 
-            if field == 'employee':
+            elif field == 'employee':
                 employee = getattr(instance, field)
                 if employee:
-                    item_dict[field] = {}
-                    item_dict[field]['pk'] = employee.id
-                    item_dict[field]['value'] = employee.code
+                    field_dict['pk'] = employee.pk
+                    if employee.code:
+                        field_dict['value'] = employee.code
 
             # also add date when empty, to add min max date
-            if field == 'datefirst':
-                value = getattr(instance, field)
-                item_dict[field] = {}
-                maxdate = getattr(instance, 'datelast')
-                set_fielddict_date(dict=item_dict[field], dte=value, maxdate=maxdate)
-            elif field == 'datelast':
-                value = getattr(instance, field)
-                item_dict[field] = {}
+            elif field in ['datefirst', 'datelast']:
                 mindate = getattr(instance, 'datefirst')
-                set_fielddict_date(dict=item_dict[field], dte=value, mindate=mindate)
+                maxdate = getattr(instance, 'datelast')
+                if mindate or maxdate:
+                    if field == 'datefirst':
+                        set_fielddict_date(dict=field_dict, dte=mindate, maxdate=maxdate)
+                    elif field == 'datelast':
+                        set_fielddict_date(dict=field_dict, dte=maxdate, mindate=mindate)
 
-    return dict
+            item_dict[field] = field_dict
+
+        # 7. remove empty attributes from item_update
+        remove_empty_attr_from_dict(item_dict)
+
 # >>>>>>>>>>>>>>>>>>>
 
 def validate_employee_exists_in_teammembers(employee, team, this_pk):  # PR2019-06-11

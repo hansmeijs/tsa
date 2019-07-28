@@ -2,62 +2,71 @@ from django.db.models import Q
 
 from companies.models import Customer, Order, Scheme, Team
 
-from tsap.constants import ABSENCE, ABSENCE_CATEGORY, CAT_02_ABSENCE, LANG_DEFAULT
+from tsap.constants import ABSENCE, ABSENCE_CATEGORY, CAT_01_INTERNAL, CAT_02_ABSENCE, LANG_DEFAULT
 
 from tsap.functions import set_fielddict_date, remove_empty_attr_from_dict
 
 import logging
 logger = logging.getLogger(__name__)
 
-def create_customer_list(company, inactive=None, cat=None):
+def create_customer_list(company, inactive=None, cat=None, cat_lte=None):
 
 # --- create list of all active customers of this company PR2019-06-16
     crit = Q(company=company)
     if cat is not None:
         crit.add(Q(cat=cat), crit.connector)
+    elif cat_lte is not None:
+        crit.add(Q(cat__lte=cat_lte), crit.connector)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
     customers = Customer.objects.filter(crit)  # order_by(Lower('code')) is in model class Meta
 
     customer_list = []
     for customer in customers:
-        dict = create_customer_dict(customer)
-        customer_list.append(dict)
+        item_dict = {}
+        create_customer_dict(customer, item_dict)
+        customer_list.append(item_dict)
     return customer_list
 
-def create_customer_dict(instance):
-# --- create dict of this customer PR2019-06-19
-    dict = {}
+def create_customer_dict(instance, item_dict):
+    # --- create dict of this customer PR2019-07-28
+
     if instance:
-        parent_pk = instance.company.pk
-        dict['pk'] = instance.pk
-        dict['id'] = {'pk': instance.pk, 'ppk': parent_pk, 'table': 'customer'}
+        for field in ['pk', 'id', 'code', 'name', 'identifier', 'inactive']:
 
-        for field in ['code', 'name', 'identifier', 'email', 'telephone', 'inactive']:
-            value = getattr(instance, field, None)
-            if value:
-                dict[field] = {'value': value}
+            if field in item_dict:
+                field_dict = item_dict[field]
+            else:
+                field_dict ={}
+
+            if field == 'pk':
+                field_dict = instance.pk
+
+            elif field == 'id':
+                field_dict['pk'] = instance.pk
+                field_dict['ppk'] = instance.company.pk
+                field_dict['table'] = 'order'
+
+            elif field in ['code', 'name', 'identifier', 'inactive']:
+                value = getattr(instance, field, None)
+                if value:
+                    field_dict['value'] = value
+
+            item_dict[field] = field_dict
+
+# 7. remove empty attributes from item_update
+    remove_empty_attr_from_dict(item_dict)
 
 
-        # NOT IN USE
-        #    if instance.datefirst:
-        #        dict['datefirst'] = {
-        #            'value': get_date_yyyymmdd(instance.datefirst),
-        #            'wdmy': format_WDMY_from_dte(instance.datefirst, user_lang)}
-        #    if instance.datelast:
-        #        dict['datelast'] = {
-        #            'value': get_date_yyyymmdd(instance.datelast),
-        #            'wdmy': format_WDMY_from_dte(instance.datelast, user_lang)
-        #        }
-    return dict
-
-
-def create_order_list(company, inactive=None, cat=None, rangemin=None, rangemax=None):
+def create_order_list(company, inactive=None, cat=None, cat_lte=None, rangemin=None, rangemax=None):
 # --- create list of all active orders of this company PR2019-06-16
     logger.debug(' --- create_order_list --- ')
     crit = Q(customer__company=company)
     if cat is not None:
         crit.add(Q(customer__cat=cat), crit.connector)
+    elif cat_lte is not None:
+        crit.add(Q(customer__cat__lte=cat_lte), crit.connector)
+
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
     if rangemax is not None:
@@ -71,6 +80,8 @@ def create_order_list(company, inactive=None, cat=None, rangemin=None, rangemax=
     else:
         orders = Order.objects.filter(crit).order_by('customer__code', 'code')  # field 'taxrate' is used to store sequence
 
+    logger.debug(orders.query)
+
     order_list = []
     for order in orders:
         item_dict = {}
@@ -80,11 +91,12 @@ def create_order_list(company, inactive=None, cat=None, rangemin=None, rangemax=
     return order_list
 
 def create_order_dict(instance, item_dict):
-# --- create dict of this order PR2019-07-26
-
+    # --- create dict of this order PR2019-07-26
+    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+    field_tuple = ('pk', 'id', 'customer', 'code', 'name', 'identifier',
+                  'datefirst', 'datelast', 'inactive', 'customer')
     if instance:
-        for field in ('pk', 'id', 'customer', 'code', 'name', 'identifier',
-                      'datefirst', 'datelast', 'inactive', 'customer'):
+        for field in field_tuple:
 
             if field in item_dict:
                 field_dict = item_dict[field]
@@ -100,9 +112,11 @@ def create_order_dict(instance, item_dict):
                 field_dict['table'] = 'order'
 
             elif field == 'customer':
-                field_dict['pk'] = instance.customer.id
-                if instance.customer.code:
-                    field_dict['value'] = instance.customer.code
+                customer = getattr(instance, field)
+                if customer:
+                    field_dict['pk'] = customer.pk
+                    if customer.code:
+                        field_dict['value'] = customer.code
 
             if field in ['code', 'name', 'identifier', 'inactive']:
                 value = getattr(instance, field, None)

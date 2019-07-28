@@ -213,7 +213,7 @@ $(function() {
 
         // period also returns emplhour_list
         const datalist_request = {"customer": {inactive: false},
-                                  "order": {inactive: false},
+                                  "order": {inactive: false, cat_lte: 1},
                                   "period": {"mode": "saved"},
                                   "rosterdatefill": {next: true},
                                   "abscat": {inactive: false},
@@ -268,12 +268,10 @@ $(function() {
                 if ("employee" in response) {
                     employee_list= response["employee"];
                 }
-                // NOT IN USE
-                //if ("order" in response) {
-                //    order_list= response["order"];
-                    // order_list is stored in datalist 'orderhours'
-                //    FillDatalist("id_datalist_orderhours",  order_list)
-                //}
+                if ("order" in response) {
+                    order_list= response["order"];
+                    FillDatalistOrder(order_list)
+                }
                 if ("rosterdatefill" in response) {
                     SetNewRosterdate(response["rosterdatefill"])
                     if ("emplhour" in response) {
@@ -614,11 +612,10 @@ $(function() {
 
 // --- add datalist_ to td shift, team, employee
                 if (j === 1){
-                    if (is_new_item){el.setAttribute("list", "id_datalist_orderhours")}
-                } else if ([2, 3].indexOf( j ) > -1){
-                    if (is_new_item){el.setAttribute("list", "id_datalist_" + fieldname + "s")}
-                } else if (j === 4){
-                    el.setAttribute("list", "id_datalist_" + fieldname + "s") }
+                    if (is_new_item){el.setAttribute("list", "id_datalist_orders")}
+                } else if (j === 2){
+                    if (is_new_item){el.setAttribute("list", "id_datalist_shifts")}
+                }
 
 // --- disable 'rosterdate', 'order' and 'shift', except in new_item
                 if ([0, 1, 2].indexOf( j ) > -1){
@@ -750,16 +747,19 @@ $(function() {
                 let id_str = get_attr_from_el_str(tblRow,"id")
             // check if item_dict.id 'new_1' is same as tablerow.id
 
-                 //console.log("id_str", id_str, typeof id_str);
-                if(temp_pk_str === id_str){
-                 //console.log("temp_pk_str === id_str");
-                    // if 'created' exists then 'pk' also exists in id_dict
-                    const id_pk = get_dict_value_by_key (id_dict, "pk");
-                 //console.log("id_pk === id_pk");
+                console.log("is_created", is_created, typeof is_created);
+                console.log("id_str", id_str, typeof id_str);
 
-            // update tablerow.id from temp_pk_str to id_pk
-                    tblRow.setAttribute("id", id_pk);  // or tblRow.id = id_pk
-                    tblRow.setAttribute("data-pk", id_pk)
+                if(temp_pk_str === id_str){
+                    console.log("temp_pk_str === id_str");
+                    // if 'created' exists then 'pk' also exists in id_dict
+                    const pk_int = get_pk_from_id (id_dict);
+                    const ppk_int = get_ppk_from_id (id_dict);
+
+            // update tablerow.id from temp_pk_str to pk_int
+                    tblRow.setAttribute("id", pk_int);  // or tblRow.id = pk_int
+                    tblRow.setAttribute("data-pk", pk_int)
+                    tblRow.setAttribute("data-ppk", ppk_int)
 
             // make row green, / --- remove class 'ok' after 2 seconds
                     ShowOkClass(tblRow )
@@ -1184,11 +1184,10 @@ $(function() {
     function UploadTblrowChanged(tr_changed) {
         console.log("=== UploadTblrowChanged");
         let new_item = GetItemDictFromTablerow(tr_changed);
-        console.log("emplhour_upload: " );
-        console.log(new_item );
+        console.log("new_item", new_item);
 
         if(!!new_item) {
-            let parameters = {"item_upload": JSON.stringify (new_item)};
+            let parameters = {"emplhour": JSON.stringify (new_item)};
 
             let response = "";
             $.ajax({
@@ -1204,10 +1203,8 @@ $(function() {
                         schemeitem_list= response["schemeitem_list"]}
 
                     if ("item_update" in response) {
-                        let item_dict =response["item_update"]
+                        const item_dict =response["item_update"]
                         const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
-
-                        console.log("ooo UpdateTableRow ooo");
                         UpdateTableRow("emplhour", tr_changed, item_dict)
                         // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
                         //id: {parent_pk: 126, table: "teammembers", created: true, pk: 57, temp_pk: "new_4"}
@@ -1215,13 +1212,13 @@ $(function() {
                         const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
                         if (is_created){
 // add new empty row
-                    console.log( "UploadTblrowChanged >>> add new empty row");
+                            console.log( "UploadTblrowChanged >>> add new empty row");
                             id_new = id_new + 1
                             const pk_new = "new_" + id_new.toString()
                             const parent_pk = get_ppk_from_id (item_dict)
 
                             let new_dict = {}
-                            new_dict["id"] = {"pk": pk_new, "ppk": parent_pk, "temp_pk": pk_new}
+                            new_dict["id"] = {"pk": pk_new, "ppk": parent_pk}
 
                             if (tblName === "schemeitems"){
                                 let rosterdate_dict = get_dict_value_by_key (item_dict, "rosterdate")
@@ -1229,7 +1226,7 @@ $(function() {
                                 delete rosterdate_dict["updated"];
                                 // rosterdate_dict["update"] = true;
 
-                                if(isEmpty(rosterdate_dict)){rosterdate_dict = today_dict}
+                            if(isEmpty(rosterdate_dict)){rosterdate_dict = today_dict}
                                 new_dict["rosterdate"] = rosterdate_dict
                             } else  if (tblName === "teammembers"){
                                 const team_code = get_subdict_value_by_key (item_dict, "team", "value")
@@ -1237,7 +1234,7 @@ $(function() {
                             }
                             let tblRow = CreateTableRow(pk_new, parent_pk)
 
-                        console.log("<<< UpdateTableRow <<<");
+                            console.log("<<< UpdateTableRow <<<");
                             UpdateTableRow("emplhour", tblRow, new_dict)
                         }
                     }
@@ -1480,6 +1477,72 @@ $(function() {
             } // for (let i = 0; i < len; i++)
         }  // if (len === 0)
     } // FillSelectTableEmployee
+
+
+//========= FillDatalistShift  ====================================
+    function FillDatalistShift(data_list) {
+        //console.log( "===== FillDatalistShift  ========= ");
+        //console.log( data_list)
+
+        let el_datalist = document.getElementById("id_datalist_shifts");
+        el_datalist.innerText = null;
+        for (let row_index = 0, tblRow, hide_row, len = data_list.length; row_index < len; row_index++) {
+            listitem = data_list[row_index];
+            let el = document.createElement('option');
+            el.setAttribute("value", listitem["code"]);
+            el.setAttribute("pk",listitem["pk"]);
+            if (!!listitem["datefirst"]){
+                el.setAttribute("datefirst", listitem["datefirst"]);
+            }
+            if (!!listitem["datelast"]){
+               el.setAttribute("datelast", listitem["datelast"]);
+            }
+            el_datalist.appendChild(el);
+        }
+
+
+    }; // function FillDatalistShift
+
+
+//========= FillDatalistOrder  ====================================
+    function FillDatalistOrder(data_list) {
+        console.log( "===== FillDatalistOrder  ========= ");
+
+        let el_datalist = document.getElementById("id_datalist_orders");
+        el_datalist.innerText = null;
+
+        for (let row_index = 0, tblRow, hide_row, len = data_list.length; row_index < len; row_index++) {
+
+            const dict = data_list[row_index];
+            const pk_int = get_pk_from_id (dict)
+            const ppk_int = get_ppk_from_id (dict)
+            const code = get_subdict_value_by_key (dict, "code", "value", "")
+            const customer = get_subdict_value_by_key (dict, "customer", "value", "")
+            const order = customer + " - " + code;
+            // customer: {pk: 4, value: "Rabo"}
+            //let skip = (!!scheme_pk && scheme_pk !== ppk_int)
+            //if (!skip){
+                // console.log( "dict", dict)
+                // dict = {id: {pk: 12, ppk_int: 29}, code: {value: "ab"}}
+                let el = document.createElement('option');
+                el.setAttribute("value", order);
+                // name can be looked up by datalist.options.namedItem PR2019-06-01
+                el.setAttribute("name", order);
+                if (!!pk_int){el.setAttribute("pk", pk_int)};
+                if (!!ppk_int){el.setAttribute("ppk", ppk_int)};
+
+                el_datalist.appendChild(el);
+            //}
+        }
+    }; // function FillDatalist
+
+
+
+
+
+
+
+
 
 // +++++++++  HandleFillRosterdate  ++++++++++++++++++++++++++++++ PR2019-06-07
     function HandleFillRosterdate(action) {
@@ -1816,7 +1879,7 @@ console.log("===  function HandlePopupWdySave =========");
                                 FillScheme( response["item_update"])
                             } else {
 
-                        console.log(">>> UpdateTableRow >>>");
+                                //console.log(">>> UpdateTableRow >>>");
                                 UpdateTableRow("emplhour", tr_selected, response["item_update"])
                             }
                         }
@@ -2112,8 +2175,8 @@ console.log("===  function HandlePopupWdySave =========");
 
 //========= DisplayPeriod  ====================================
     function DisplayPeriod(period_dict) {
-        console.log( "===== DisplayPeriod  ========= ");
-        console.log ("period_dict", period_dict, typeof period_dict)
+        //console.log( "===== DisplayPeriod  ========= ");
+        //console.log ("period_dict", period_dict, typeof period_dict)
 
     // display formatted period in submenu
         let el_period_display = document.getElementById("id_period_display");
@@ -2122,7 +2185,7 @@ console.log("===  function HandlePopupWdySave =========");
 
         if (!isEmpty(period_dict)){
             mode = get_dict_value_by_key(period_dict, "mode", "none");
-            console.log ("mode", mode, typeof mode)
+            //console.log ("mode", mode, typeof mode)
             let periodstart, periodend
             if (mode === "range") {
                 periodstart = get_dict_value_by_key(period_dict, "rangestart");
@@ -2133,8 +2196,8 @@ console.log("===  function HandlePopupWdySave =========");
                 periodend = get_dict_value_by_key(period_dict, "periodend");
             }
 
-            console.log ("periodstart", periodstart, typeof periodstart)
-            console.log ("periodend", periodend, typeof periodend)
+            //console.log ("periodstart", periodstart, typeof periodstart)
+            //console.log ("periodend", periodend, typeof periodend)
 
             if(!!periodstart && !!periodend){
                 const periodstart_local = moment.tz(periodstart, comp_timezone);

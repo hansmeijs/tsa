@@ -165,6 +165,8 @@ urlpatterns = [
 
         path('scheme_template_upload', planning_views.SchemeTemplateUploadView.as_view(), name='scheme_template_upload_url'),
 
+        path('teammember_upload', planning_views.TeammemberUploadView.as_view(), name='teammember_upload_url'),
+
         path('roster', planning_views.RosterView.as_view(), name='roster_url'),
         path('roster_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
         path('interval_upload', planning_views.PeriodUploadView.as_view(), name='period_upload_url'),
