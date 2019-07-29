@@ -491,9 +491,45 @@
         return time_formatted
     }
 
-//========= function new  ========== PR2019-06-27
+
+
+//========= get_now_utc new  ========== PR2019-07-28
+    function get_now_utc(comp_timezone) {
+        // lacal time is now 18.42 u Curacao time
+
+        //console.log(" --- get_now_utc --- ", comp_timezone)
+        // this now_utc gives the local 'now' with a utc timezone: now_utc = 2019-07-28T22:47:14Z
+        const now_utc = moment.utc();
+        //console.log("now_utc", now_utc.format())
+        // now_utc 2019-07-28T22:47:14Z
+
+        // get the zone offsets for this time, in minutes
+        const company_offset = moment.tz.zone(comp_timezone).utcOffset(now_utc);
+        //console.log("company_offset ", company_offset)
+        // company_offset  -120
+
+        // userOffset gives the difference in minutes between user timezone and utc: userOffset = 240 min
+        const  userOffset = get_userOffset();
+        //console.log("userOffset", userOffset)
+        // userOffset 240
+
+        const diff =  company_offset - userOffset
+        //console.log("diff", diff)
+        //diff -360
+
+        // this now_utc gives the local 'now' converted to utc timezone: now_utc 2019-07-28T17:35:48Z
+        now_utc.add(diff, 'minute')
+        //console.log("now_utc_added", now_utc.format())
+        //now_utc_added 2019-07-28T16:47:14Z
+
+        return now_utc;
+    }
+
+
+
+//========= get_userOffset new  ========== PR2019-06-27
     function get_userOffset() {
-    // get_userOffset calculates offset from local computer timezone to UTC in seconds
+    // get_userOffset calculates offset from local computer timezone to UTC in minutes
 
         // new Date gives now in local time:  Thu Jun 20 2019 07:42:39 GMT-0400 (Bolivia Time) type: object
         const now_datetime_local = new Date;
@@ -501,7 +537,7 @@
         // If your time zone is GMT+5, -300 (60*5) minutes will be returned. Daylight savings prevent this value from being a constant.
         const userOffset = now_datetime_local.getTimezoneOffset()
 
-        return userOffset * 60
+        return userOffset;
 
 }
 

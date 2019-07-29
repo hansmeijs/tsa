@@ -60,7 +60,7 @@ def create_customer_dict(instance, item_dict):
 
 def create_order_list(company, inactive=None, cat=None, cat_lte=None, rangemin=None, rangemax=None):
 # --- create list of all active orders of this company PR2019-06-16
-    logger.debug(' --- create_order_list --- ')
+    # logger.debug(' --- create_order_list --- ')
     crit = Q(customer__company=company)
     if cat is not None:
         crit.add(Q(customer__cat=cat), crit.connector)
@@ -80,13 +80,13 @@ def create_order_list(company, inactive=None, cat=None, cat_lte=None, rangemin=N
     else:
         orders = Order.objects.filter(crit).order_by('customer__code', 'code')  # field 'taxrate' is used to store sequence
 
-    logger.debug(orders.query)
+    # logger.debug(orders.query)
 
     order_list = []
     for order in orders:
         item_dict = {}
         create_order_dict(order, item_dict)
-        logger.debug(' item_dict ' + str(item_dict))
+        # logger.debug(' item_dict ' + str(item_dict))
         order_list.append(item_dict)
     return order_list
 

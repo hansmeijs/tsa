@@ -480,8 +480,8 @@
         const parent_pk =  parseInt(el_timepicker.getAttribute("data-ppk"))
         const field = el_timepicker.getAttribute("data-field")
         const table = el_timepicker.getAttribute("data-table")
-        console.log ("field = ", field, "table = ", table)
-        console.log (el_timepicker)
+        //console.log ("field = ", field, "table = ", table)
+        //console.log (el_timepicker)
 
 // get values from el_timepicker
 
@@ -543,7 +543,12 @@
                 console.log (row_upload);
 
                 let parameters = {}
-                parameters[table] = JSON.stringify (row_upload);
+                if (table === "schemeitem") {
+                    parameters["upload"] = JSON.stringify (row_upload);
+                } else {
+                    parameters[table] = JSON.stringify (row_upload);
+                }
+
                 let response;
                 $.ajax({
                     type: "POST",
@@ -632,8 +637,8 @@
 //========= HighlightAndDisableHours  ====================================
     function HighlightAndDisableHours(el_timepicker, UpdateTableRow, dict) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        console.log( ">>>>=== HighlightAndDisableHours  ");
-        console.log( dict);
+        //console.log( ">>>>=== HighlightAndDisableHours  ");
+        //console.log( dict);
         const curDate = dict["curDate"]
         const cur_datetime_local = dict["cur_datetime_local"]
         const min_datetime_local = dict["min_datetime_local"]

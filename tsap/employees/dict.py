@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
     # --- create list of all active employees of this company PR2019-06-16
-    logger.debug(' --- create_employee_list   ')
+    # logger.debug(' --- create_employee_list   ')
     crit = Q(company=company)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
@@ -19,7 +19,7 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
         crit.add(Q(datelast__gte=rangemin) | Q(datelast__isnull=True), crit.connector)
 
     employees = Employee.objects.filter(crit).order_by('code')
-    logger.debug(employees.query)
+    # logger.debug(employees.query)
 
     employee_list = []
     for employee in employees:
@@ -55,7 +55,7 @@ def create_employee_dict(instance):
 
 def create_teammember_list(order, inactive=None, rangemin=None, rangemax=None):
     # --- create list of all teammembers of this order PR2019-06-16
-    logger.debug(' --- create_teammember_list   ')
+    # logger.debug(' --- create_teammember_list   ')
     crit = Q(team__scheme__order=order)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
@@ -65,7 +65,7 @@ def create_teammember_list(order, inactive=None, rangemin=None, rangemax=None):
         crit.add(Q(datelast__gte=rangemin) | Q(datelast__isnull=True), crit.connector)
 
     teammembers = Teammember.objects.filter(crit).order_by('datefirst')
-    logger.debug(teammembers.query)
+    # logger.debug(teammembers.query)
 
     teammember_list = []
     for teammember in teammembers:

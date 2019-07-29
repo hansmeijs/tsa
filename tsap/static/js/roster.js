@@ -749,12 +749,16 @@ $(function() {
 
                 console.log("is_created", is_created, typeof is_created);
                 console.log("id_str", id_str, typeof id_str);
+                console.log("temp_pk_str", temp_pk_str);
 
                 if(temp_pk_str === id_str){
                     console.log("temp_pk_str === id_str");
                     // if 'created' exists then 'pk' also exists in id_dict
-                    const pk_int = get_pk_from_id (id_dict);
-                    const ppk_int = get_ppk_from_id (id_dict);
+                    console.log("id_dict", id_dict);
+                    const pk_int = parseInt(get_dict_value_by_key(id_dict, "pk"))
+                    const ppk_int = parseInt(get_dict_value_by_key(id_dict, "ppk"))
+                    console.log("pk_int", pk_int, typeof pk_int);
+                    console.log("ppk_int", ppk_int, typeof ppk_int);
 
             // update tablerow.id from temp_pk_str to pk_int
                     tblRow.setAttribute("id", pk_int);  // or tblRow.id = pk_int
@@ -835,8 +839,12 @@ $(function() {
 
                       // when row is new row: remove data-o_value from dict,
                       // otherwise will not recognize rosterdate as a new value and will not be saved
-                                if (!!temp_pk_str) {el_input.removeAttribute("data-o_value")}
-
+                                if (!!temp_pk_str) {
+                                    el_input.removeAttribute("data-o_value")
+                                } else {
+                                // disable field rosterdate
+                                    el_input.disabled = true
+                                }
                             } else if (fieldname === "shift") {
                                 let value = get_dict_value_by_key (field_dict, "value")
                                 // console.log("field_dict", field_dict);
@@ -845,7 +853,10 @@ $(function() {
                                 let value = get_dict_value_by_key (field_dict, "value")
                                 // console.log("field_dict", field_dict);
                                 el_input.value = value
-
+                                // disable field orderhour
+                                if (fieldname === "orderhour") {
+                                    el_input.disabled = true
+                                }
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
                                 format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
 
@@ -2005,11 +2016,7 @@ console.log("===  function HandlePopupWdySave =========");
 
         let upload_dict = {"id": id_dict}
 
-
         // STATUS_01_CREATED = 1
-
-
-
         // STATUS_16_QUESTION = 16
         // STATUS_32_REJECTED = 32
 
@@ -2033,7 +2040,7 @@ console.log("===  function HandlePopupWdySave =========");
         if(!!upload_dict) {
              console.log( "upload_dict", upload_dict);
 
-            let parameters = {"item_upload": JSON.stringify (upload_dict)};
+            let parameters = {"emplhour": JSON.stringify (upload_dict)};
 
             let response = "";
             $.ajax({
@@ -2159,7 +2166,7 @@ console.log("===  function HandlePopupWdySave =========");
                         emplhour_list= response["emplhour"];
                         console.log( " emplhour FillTableRows");
                         FillTableRows()
-                        CheckStatus()
+                        //CheckStatus()
                     }
 
                 },
@@ -2405,7 +2412,7 @@ console.log("===  function HandlePopupWdySave =========");
         //         console.log( "testdate: ", testdate)
 
         // get now in UTC time
-        let now_utc = moment.utc();
+        let now_utc = get_now_utc(comp_timezone);
 
 // --- update current period if necessary
         if(!!period_dict){
@@ -2427,7 +2434,7 @@ console.log("===  function HandlePopupWdySave =========");
                     // console.log("now: ", now_utc.format(), "end ", period_timeend_utc.format(), "diff ", diff);
                     update = (diff > 0)
                 }
-                if (update) {ModalSettingSave("current")}
+                //if (update) {ModalSettingSave("current")}
              }
                //  if(mode === 'current')
         }  // if(!!period_dict){

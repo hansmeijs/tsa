@@ -51,12 +51,6 @@ class EmployeeListView(View):
 
         if request.user.company is not None:
 
-            testEmployee = Employee
-            logger.debug('testEmployee: ' + str(testEmployee)+ str(type(testEmployee)))
-
-            logger.debug('testEmployee.objects: ' + str(testEmployee.objects)+ str(type(testEmployee.objects)))
-
-
             # add employee_list to headerbar parameters PR2019-03-02
             employees = Employee.objects.filter(company=request.user.company)
             employee_list = []
@@ -101,14 +95,14 @@ class EmployeeListView(View):
 class EmployeeAddView(CreateView):
 
     def get(self, request, *args, **kwargs):
-        logger.debug('EmployeeAddView get' )
+        # logger.debug('EmployeeAddView get' )
         # logger.debug('ExamyearAddView get request: ' + str(request))
         # permission:   user.is_authenticated AND user.is_role_insp_or_system
         form = EmployeeAddForm(request=request)
 
         # set headerbar parameters PR 2018-08-06
         param = get_headerbar_param(request, {'form': form})
-        logger.debug('EmployeeAddView param: ' + str(param))
+        # logger.debug('EmployeeAddView param: ' + str(param))
 
         # render(request, template_name, context=None (A dictionary of values to add to the template context), content_type=None, status=None, using=None)
         return render(request, 'employee_add.html', param)
@@ -175,7 +169,7 @@ class EmployeeDeleteView(DeleteView):
 class EmployeeUploadView(UpdateView):# PR2019-06-174
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= EmployeeUploadView ============= ')
+        # logger.debug(' ============= EmployeeUploadView ============= ')
         # upload_dict: {'id': {'pk': 107, 'parent_pk': 1, 'table': 'employees'}, 'code': {'value': 'Abdula', 'update': True}}
 
         item_update_dict = {}
@@ -188,7 +182,7 @@ class EmployeeUploadView(UpdateView):# PR2019-06-174
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                # logger.debug('upload_dict: ' + str(upload_dict))
 
 # - get_iddict_variables
                 id_dict = upload_dict.get('id')
@@ -202,7 +196,7 @@ class EmployeeUploadView(UpdateView):# PR2019-06-174
 # - check if parent exists (company is parent of employee)
                     instance = None
                     parent_instance = get_parent_instance_employee(update_dict, request.user.company)
-                    logger.debug('parent_instance: ' + str(parent_instance))
+                    # logger.debug('parent_instance: ' + str(parent_instance))
 
                     if parent_instance:
 # - Delete item
@@ -231,20 +225,20 @@ class EmployeeUploadView(UpdateView):# PR2019-06-174
                             name_ok = True # TODO validate_code_or_name('order', 'name', name, update_dict, request.user.company)
                             if code_ok  and name_ok:
                                 instance = Employee.create_instance(parent_instance, code, namelast, temp_pk_str, update_dict, request)
-                            logger.debug('new instance: ' + str(instance))
+                            # logger.debug('new instance: ' + str(instance))
 # - update instance
                         else:
                             instance = Employee.get_instance(pk_int, update_dict, request.user.company)
-                            logger.debug('instance: ' + str(instance))
+                            # logger.debug('instance: ' + str(instance))
 
                             # update_item, also when it is a created item
                             if instance:
                                 update_employee_instance(instance, upload_dict, update_dict, request, user_lang)
-                            logger.debug('updated instance: ' + str(instance))
+                            # logger.debug('updated instance: ' + str(instance))
 
 # --- remove empty attributes from update_dict
                     remove_empty_attr_from_dict(update_dict)
-                    logger.debug('update_dict: ' + str(update_dict))
+                    # logger.debug('update_dict: ' + str(update_dict))
 
                     if update_dict:
                         item_update_dict['item_update'] = update_dict
@@ -264,7 +258,7 @@ class EmployeeUploadView(UpdateView):# PR2019-06-174
 class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= EmployeeUploadView ============= ')
+        # logger.debug(' ============= EmployeeUploadView ============= ')
         if request.user is not None and request.user.company is not None:
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             activate(request.user.lang if request.user.lang else LANG_DEFAULT)
@@ -279,7 +273,7 @@ class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
             if 'employee' in request.POST:
                 employee_upload = json.loads(request.POST['employee'])
                 if employee_upload is not None:
-                    logger.debug('employee_upload: ' + str(employee_upload))
+                    # logger.debug('employee_upload: ' + str(employee_upload))
                     #  employee_upload: {'pk': '9', 'blank_code': 'blank',
                     #  'namelast': 'Regales', 'namefirst': 'Ruëny David Tadeo',
                     #  'prefix': 'None', 'email': 'None', 'telephone': 'None', 'blank_datefirst': 'blank'}
@@ -350,13 +344,13 @@ class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
                                                     namefirst=new_namefirst,
                                                     )
                                 employee.save(request=self.request)
-                                logger.debug('employee_added: ' + str(employee.namelast))
+                                # logger.debug('employee_added: ' + str(employee.namelast))
                                 empl_dict['id']['pk'] = employee.pk
 # ++++++++++++++ existing record ++++++++++++++++++
                         else:  # if not is_new_record
                     # get employee record
                             employee = Employee.objects.filter(id=this_pk, company=request.user.company).first()
-                            logger.debug('existing employee: ' + str(employee.namelast) + str(type(employee.nam_last)))
+                            # logger.debug('existing employee: ' + str(employee.namelast) + str(type(employee.nam_last)))
 
                     # validate if employee is None
                             if employee is None:
@@ -483,17 +477,17 @@ class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
                                         save_record = True
                                 else:
                                     new_value = employee_upload[field]
-                                    logger.debug('new_value: ' +  str(new_value))
+                                    # logger.debug('new_value: ' +  str(new_value))
                                     new_datefirst = get_date_from_ISOstring(new_value, False) # False = blank_allowed
-                                    logger.debug('new_date: ' + str(new_datefirst))
+                                    # logger.debug('new_date: ' + str(new_datefirst))
 
                                     saved_datefirst = employee.datefirst
-                                    logger.debug('employee.datefirst: ' + str(employee.datefirst))
+                                    # logger.debug('employee.datefirst: ' + str(employee.datefirst))
 
                                     setattr(employee, 'datefirst', new_datefirst)
                                     employee.save(request=self.request)
 
-                                    logger.debug('aftersave employee.datefirst: ' + str(employee.datefirst))
+                                    # logger.debug('aftersave employee.datefirst: ' + str(employee.datefirst))
 
                                     if new_datefirst and employee.datelast:
                                         msg_dont_add = check_date_overlap(new_datefirst, employee.datelast, True)
@@ -509,15 +503,15 @@ class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
                             for field in field_list:
                                 if not empl_dict[field]:
                                     del empl_dict[field]
-                            logger.debug('empl_dict: ' +  str(empl_dict))
+                            # logger.debug('empl_dict: ' +  str(empl_dict))
 
                             if save_record:
                                 employee.save(request=self.request)
 
                                 field = 'modifiedby'
                                 saved_value = getattr(employee, field)
-                                logger.debug('saved_value: ' + str(saved_value))
-                                logger.debug('saved_value.username_sliced: ' + str(saved_value.username_sliced))
+                                # logger.debug('saved_value: ' + str(saved_value))
+                                # logger.debug('saved_value.username_sliced: ' + str(saved_value.username_sliced))
                                 if saved_value:
                                     empl_dict[field] = {'upd': True, 'val': saved_value.username_sliced}
 
@@ -525,18 +519,18 @@ class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
                                 request_user_lang = '-'
                                 if request.user.lang:
                                     request_user_lang = request.user.lang
-                                logger.debug('request_user_lang: ' +  str(request_user_lang))
+                                # logger.debug('request_user_lang: ' +  str(request_user_lang))
 
                                 saved_value = employee.modifiedat_str(request_user_lang)
-                                logger.debug('saved_value: (' +  str(request_user_lang) + ') ' + str(saved_value))
+                                # logger.debug('saved_value: (' +  str(request_user_lang) + ') ' + str(saved_value))
                                 if saved_value:
                                     empl_dict[field] = {'upd': True, 'val': saved_value}
 
 
-                        logger.debug('empl_dict' + str(empl_dict) + str(type(empl_dict)))
+                        # logger.debug('empl_dict' + str(empl_dict) + str(type(empl_dict)))
                         resp = json.dumps({'empl_upd': empl_dict}, cls=LazyEncoder)
-                        logger.debug('resp:')
-                        logger.debug(str(resp))
+                        # logger.debug('resp:')
+                        # logger.debug(str(resp))
 
             return HttpResponse(json.dumps({'empl_upd': empl_dict}, cls=LazyEncoder))
 
@@ -660,7 +654,7 @@ class EmployeeImportView(View):
 class EmployeeImportUploadSetting(View):   # PR2019-03-10
     # function updates mapped fields, no_header and worksheetname in table Companysetting
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= EmployeeImportUploadSetting ============= ')
+        # logger.debug(' ============= EmployeeImportUploadSetting ============= ')
         #logger.debug('request.POST' + str(request.POST) )
 
         if request.user is not None :
@@ -674,7 +668,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
 
                 if request.POST['setting']:
                     new_setting = json.loads(request.POST['setting'])
-                    logger.debug('new_setting' + str(new_setting) + str(type(new_setting)))
+                    # logger.debug('new_setting' + str(new_setting) + str(type(new_setting)))
                     # new_setting{'worksheetname': 'Compleetlijst', 'no_header': False,
                     # 'coldefs': {'code': 'R_NAAM', 'namelast': 'ANAAM', 'namefirst': 'Voor_namen'}}
 
@@ -682,7 +676,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                     if new_setting:
                         if 'coldefs' in new_setting:
                             new_coldefs = new_setting['coldefs']
-                    logger.debug('new_coldefs' + str(new_coldefs) + str(type(new_coldefs)))
+                    # logger.debug('new_coldefs' + str(new_coldefs) + str(type(new_coldefs)))
                     # new_coldefs{'code': 'R_NAAM', 'namelast': 'ANAAM', 'namefirst': 'Voor_namen'}
 
                     # get stored setting from Companysetting
@@ -693,12 +687,12 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                         stored_setting = json.loads(stored_setting_json)
                     # stored_setting = {'worksheetname': 'Compleetlijst',
                     #                   'coldefs': {'namelast': 'R_NAAM', 'namefirst': 'Voor_namen'}}
-                    logger.debug('stored_setting: <' + str(stored_setting) + '>')
+                    # logger.debug('stored_setting: <' + str(stored_setting) + '>')
 
                     if stored_setting:
                         if 'coldefs' in stored_setting:
                             stored_coldefs = stored_setting['coldefs']
-                    logger.debug('stored_coldefs' + str(stored_coldefs) + str(type(stored_coldefs)))
+                    # logger.debug('stored_coldefs' + str(stored_coldefs) + str(type(stored_coldefs)))
 
                     for key in new_coldefs:
                         value = str(new_coldefs[key])
@@ -710,17 +704,17 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
 
                     # don't replace keyvalue when new_setting[key] = ''
                     for key in new_setting:
-                        logger.debug('key in new_setting' + str(key) + str(type(key)))
+                        # logger.debug('key in new_setting' + str(key) + str(type(key)))
                         if not key == 'coldefs':
                             # no_header is Boolean, convert to string
                             value = str(new_setting[key])
-                            logger.debug('value in new_setting' + str(value) + str(type(value)))
+                            #  logger.debug('value in new_setting' + str(value) + str(type(value)))
                             if value:
                                 stored_setting[key] = value
 
-                    logger.debug('stored_setting' + str(stored_setting))
+                    # logger.debug('stored_setting' + str(stored_setting))
                     stored_setting_json = json.dumps(stored_setting)
-                    logger.debug('stored_setting_json' + str(stored_setting_json))
+                    # logger.debug('stored_setting_json' + str(stored_setting_json))
 
                     # save stored_setting_json
                     Companysetting.set_setting(KEY_EMPLOYEE_COLDEFS, stored_setting_json, request.user.company)
@@ -732,7 +726,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
 class EmployeeImportUploadData(View):  # PR2018-12-04
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= EmployeeImportUploadData ============= ')
+        # logger.debug(' ============= EmployeeImportUploadData ============= ')
 
         if request.user is not None:
             if request.user.company is not None:
@@ -743,13 +737,13 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                 params = []
                 if 'employees' in request.POST:
                     employees = json.loads(request.POST['employees'])
-                    logger.debug("employees")
-                    logger.debug(str(employees))
+                    # logger.debug("employees")
+                    #  logger.debug(str(employees))
 
                     for employee in employees:
-                        logger.debug('--------- import employee   ------------')
-                        logger.debug('import employee:')
-                        logger.debug(str(employee))
+                        # logger.debug('--------- import employee   ------------')
+                        # logger.debug('import employee:')
+                        # logger.debug(str(employee))
                         # 'code', 'namelast', 'namefirst',  'prefix', 'email', 'tel', 'datefirst',
                         employee_dict = {}
                         has_error = False
@@ -791,7 +785,8 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                         msg_dont_add = None
                         # ========== create new employee, but only if no errors found
                         if msg_dont_add:
-                            logger.debug('employee not created: ' + str(msg_dont_add))
+                            pass
+                            # logger.debug('employee not created: ' + str(msg_dont_add))
                             # TODO stud_log.append(_("employee not created."))
                         else:
                             new_employee = Employee(
@@ -799,9 +794,9 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                                 code=code,
                                 namelast=namelast
                             )
-                            logger.debug('new_employee: ' + str(new_employee))
+                            # logger.debug('new_employee: ' + str(new_employee))
 
-                            logger.debug('new_employee.namelast: ' + str(new_employee.namelast))
+                            # logger.debug('new_employee.namelast: ' + str(new_employee.namelast))
                             if namefirst:
                                 new_employee.namefirst = namefirst
                             if prefix:
@@ -813,11 +808,11 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
 
                             try:
                                 new_employee.save(request=request)
-                                logger.debug('saved new_employee: ' + str(new_employee))
+                                # logger.debug('saved new_employee: ' + str(new_employee))
                             except:
                                 has_error = True
                                 employee_dict['e_lastname'] = _('An error occurred. The employee data is not saved.')
-                                logger.debug('has_error: ' + str(new_employee))
+                                # logger.debug('has_error: ' + str(new_employee))
 
                             if new_employee.pk:
                                 if new_employee.code:
@@ -867,8 +862,8 @@ def get_parent_instance_employee(update_dict, company):
 def update_employee_instance(instance, upload_dict, update_dict, request, user_lang):
     # --- update existing and new instance PR2019-06-06
     # add new values to update_dict (don't reset update_dict, it has values)
-    logger.debug(' --- update_instance')
-    logger.debug(upload_dict)
+    # logger.debug(' --- update_instance')
+    # logger.debug(upload_dict)
     # upload_dict: {'id': {'temp_pk': 'new_2', 'create': True, 'parent_pk': 3, 'table': 'order'},
     # 'code': {'update': True, 'value': 'ee'}}
 
@@ -882,20 +877,20 @@ def update_employee_instance(instance, upload_dict, update_dict, request, user_l
     for field in ['code', 'namefirst', 'namelast']:
         if field in upload_dict:
             field_dict = upload_dict.get(field)
-            logger.debug('field_dict: ' + str(field_dict))
+            # logger.debug('field_dict: ' + str(field_dict))
 
             new_value = field_dict.get('value')
             saved_value = getattr(instance, field, None)
-            logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
+            # logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
 
             # fields are required
             if new_value and new_value != saved_value:
                 setattr(instance, field, new_value)
-                logger.debug('attr ' + field + 'saved to: ' + str(new_value))
+                # logger.debug('attr ' + field + 'saved to: ' + str(new_value))
                 update_dict[field]['updated'] = True
                 update_dict[field]['value'] = new_value
                 save_changes = True
-                logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+                # logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
 
 # update scheme_list when code has changed
             update_scheme_list = True
@@ -905,7 +900,7 @@ def update_employee_instance(instance, upload_dict, update_dict, request, user_l
         # field_dict rosterdate: {'value': '2019-05-31', 'update':
         if field in upload_dict:
             field_dict = upload_dict.get(field)
-            logger.debug('field_dict ' + field + ': ' + str(field_dict) + str(type(field_dict)))
+            # logger.debug('field_dict ' + field + ': ' + str(field_dict) + str(type(field_dict)))
             field_value = field_dict.get('value')  # field_value: '2019-04-12'
             new_date, msg_err = get_date_from_ISOstring(field_value, False)  # False = blank_allowed
             if msg_err is not None:
@@ -920,28 +915,28 @@ def update_employee_instance(instance, upload_dict, update_dict, request, user_l
     # --- save changes in date fields
     for field in ['inactive']:
         if field in upload_dict:
-            logger.debug('upload_dict: ' + str(upload_dict))
+            #  logger.debug('upload_dict: ' + str(upload_dict))
             field_dict = upload_dict.get(field)
-            logger.debug('field_dict: ' + str(field_dict))
+            # logger.debug('field_dict: ' + str(field_dict))
 
             is_inactive = False
             value = field_dict.get('value')
-            logger.debug('value: ' + str(value))
+            #  logger.debug('value: ' + str(value))
             if value == 'true':
                 is_inactive = True
-            logger.debug('is_inactive: ' + str(is_inactive) + ' type: ' + str(type(is_inactive)))
+            # logger.debug('is_inactive: ' + str(is_inactive) + ' type: ' + str(type(is_inactive)))
 
             saved_value = getattr(instance, field, None)
-            logger.debug('saved_value: ' + str(saved_value) + ' type: ' + str(type(saved_value)))
+            # logger.debug('saved_value: ' + str(saved_value) + ' type: ' + str(type(saved_value)))
 
             # fields are required
             if is_inactive != saved_value:
                 setattr(instance, field, is_inactive)
-                logger.debug('attr ' + field + 'saved to: ' + str(is_inactive))
+                # logger.debug('attr ' + field + 'saved to: ' + str(is_inactive))
                 update_dict[field]['updated'] = True
                 update_dict[field]['value'] = is_inactive
                 save_changes = True
-                logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+                # logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
 
     # logger.debug('update_dict: ' + str(update_dict))
 

@@ -1,5 +1,5 @@
 # PR2018-05-28
-from datetime import date, datetime, timedelta
+from datetime import date, time, datetime, timedelta
 from django.utils import formats
 from django.utils.translation import ugettext_lazy as _
 
@@ -22,6 +22,32 @@ logger = logging.getLogger(__name__)
 
 
 # >>>>>> This is the right way, I think >>>>>>>>>>>>>
+
+# Finally solved some headache:
+
+# convert date object to datetime object
+def get_datetime_from_date(date_obj):
+    # Finally found the way to convert a date object to a datetime object PR2019-07-28
+    # https://stackoverflow.com/questions/1937622/convert-date-to-datetime-in-python/1937636#1937636
+    # time.min retrieves the minimum value representable by datetime and then get its time component.
+
+    datetime_naive = datetime.combine(date_obj, time.min)
+    # logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
+    # datetime_naive: 2019-07-27 00:00:00 type: <class 'datetime.datetime'>
+
+    return datetime_naive
+
+
+def get_datetimeUTC_from_datetime(datetime_obj):
+    # https://stackoverflow.com/questions/5802108/how-to-check-if-a-datetime-object-is-localized-with-pytz
+    # replace makes datetime_obj aware. The good thing: it works both with naive and aware datetime_obj
+
+    datetime_utc = datetime_obj.replace(tzinfo=pytz.utc)
+    logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
+    # datetime_utc: 2019-07-27 00:00:00+00:00 type: <class 'datetime.datetime'>
+
+    return datetime_utc
+
 
 def get_datetime_LOCAL_from_ISOstring(datetime_ISOstring, comp_timezone):  # PR2019-07-13
     # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
@@ -183,28 +209,18 @@ def get_datetimelocal_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-0
         logger.debug("date_time_str:" + str(date_time_str))
 """
 
-
-def get_timeDHM_from_dhm(rosterdate, dhm_str, comp_timezone, lang):
-    # logger.debug('=== get_timeDHM_from_dhm ')
-    # logger.debug('rosterdate: ' + str(rosterdate) + str(type(rosterdate)))
-    # logger.debug('dhm_str: ' + str(dhm_str) + str(type(dhm_str)))
-    # convert rosterdate and dhm_str into local ISO date
-    # dt_localized: 2019-03-31 04:48:00+02:00
-    dt_localized = get_datetimelocal_from_offset(rosterdate, dhm_str, comp_timezone)
-    # logger.debug('dt_localized: ' + str(dt_localized) + str(type(dt_localized)))
-    # format to 'zo 31 mrt'
-
-    # function get_timelocal_formatDHM returns formatted time: "ma 18.15 u." or "Mon 6:15 p.m."
-    time_str = get_timelocal_formatDHM(rosterdate, dt_localized, comp_timezone, lang)
-    return time_str
-
-
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def get_datetimeUTC_from_DHM(rosterdate, dhm_str, comp_timezone):
 
+    logger.debug(' +++ get_datetimeUTC_from_DHM +++')
+    logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+
+    # convert to dattime object
+    rosterdatetime = get_datetime_from_date(rosterdate)
+
     # dt_localized: 2019-03-31 04:48:00+02:00
-    dt_localized = get_datetimelocal_from_offset(rosterdate, dhm_str, comp_timezone)
+    dt_localized = get_datetimelocal_from_offset(rosterdatetime, dhm_str, comp_timezone)
 
     utc = pytz.UTC
     dt_as_utc = dt_localized.astimezone(utc)
@@ -265,6 +281,12 @@ def get_datetimeUTC_from_offset(rosterdate, offset, comp_timezone):
     #logger.debug(' +++ get_datetimeUTC_from_offset +++')
     new_datetime_utc = None
     if rosterdate and offset:
+        logger.debug(' +++ get_datetimeUTC_from_offset +++')
+        logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+
+        # convert to dattime object
+        rosterdatetime = get_datetime_from_date(rosterdate)
+
         new_datetime_local = get_datetimelocal_from_offset(rosterdate, offset, comp_timezone)
 
         new_datetime_utc = new_datetime_local.astimezone(pytz.UTC)
@@ -279,8 +301,8 @@ def get_datetimelocal_from_offset(rosterdate, offset, comp_timezone):
     logger.debug('offset: ' + str(offset))
     new_datetime_local = None
     if rosterdate and offset:
-        #logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
-        #logger.debug('offset: ' + str(offset))
+        logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+        logger.debug('offset: ' + str(offset))
 
         # get offset day, hour, minute from offset
         day_offset, new_hour, new_minute = offset_split(offset)
@@ -311,54 +333,6 @@ def offset_split(offset):
             minutes = int(arr[2])
 
     return day_offset, hours, minutes
-
-def get_timelocal_formatDHM(rosterdate, date_time, comp_timezone, lang):
-    # Function returns date: "ma 18.15 u." or "Mon 6:15 p.m."
-    # skip weekday when date equals rosterdate PR201`9-05-25
-    # 12.00 a.m is midnight, 12.00 p.m. is noon
-
-    time_str = ''
-    if date_time:
-        # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
-        # entered date is dattime-naive, make it datetime aware with  pytz.timezone
-
-        # Convert time zone
-        timezone = pytz.timezone(comp_timezone)
-        datetime_aware = date_time.astimezone(timezone)
-        # logger.debug('datetime_aware: ' + str(datetime_aware))
-        # check if date equals rosterdate
-        dates_are_equal = datetime_aware.date() == rosterdate
-
-        # get weekdays translated
-        if not lang in WEEKDAYS_ABBREV:
-            lang = LANG_DEFAULT
-        weekday_int = int(datetime_aware.strftime("%w"))
-        weekday = WEEKDAYS_ABBREV[lang][weekday_int]
-        # .strftime("%H") returns zero-padded 24 hour based string '03' or '22'
-        hour_str = datetime_aware.strftime("%H")
-        hour_int = int(hour_str)
-        minutes_str = datetime_aware.strftime("%M") # %m is zero-padded
-
-        if lang == LANG_NL:
-            separator = '.'
-            suffix = 'u'
-        else:  #if lang == LANG_EN:
-            separator = ':'
-            if hour_int >= 12:
-                suffix = 'p.m.'
-                if hour_int > 12:
-                    hour_int -= 12
-                    hour_zero_padded = '00' + str(hour_int)
-                    hour_str = hour_zero_padded[-2:]
-            else:
-                suffix = 'a.m.'
-        hourstr = separator.join([hour_str, minutes_str])
-
-        if dates_are_equal:
-            time_str = ' '.join([hourstr, suffix])
-        else:
-            time_str = ' '.join([weekday, hourstr, suffix])
-    return time_str
 
 
 def get_date_from_dateint(date_int):  # PR2019-03-06

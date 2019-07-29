@@ -56,7 +56,7 @@ class CustomerListView(View):
 class CustomerUploadView(UpdateView):# PR2019-03-04
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= CustomerUploadView ============= ')
+        # logger.debug(' ============= CustomerUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -70,7 +70,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                # logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: {'id': {'temp_pk': 'new_1', 'create': True, 'parent_pk': 3, 'table': 'order'},
                 #               'code': {'update': True, 'value': 'ee'}}
 
@@ -100,11 +100,11 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 # E. Update instance, also when it is created
                         if instance:
                             update_customer_or_order(instance, upload_dict, item_update, request, user_lang)
-                            logger.debug('updated instance: ' + str(instance))
+                            # logger.debug('updated instance: ' + str(instance))
 
 # 6. remove empty attributes from item_update
                     remove_empty_attr_from_dict(item_update)
-                    logger.debug('item_update: ' + str(item_update))
+                    # logger.debug('item_update: ' + str(item_update))
 
 # 7. add item_update to update_wrap
                     if item_update:
@@ -160,7 +160,7 @@ class OrderListView(View):
 class OrderUploadView(UpdateView):# PR2019-03-04
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= OrderUploadView ============= ')
+        # logger.debug(' ============= OrderUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -174,7 +174,7 @@ class OrderUploadView(UpdateView):# PR2019-03-04
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                # logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: {'id': {'temp_pk': 'new_1', 'create': True, 'parent_pk': 3, 'table': 'order'},
                 #               'code': {'update': True, 'value': 'ee'}}
 
@@ -186,11 +186,11 @@ class OrderUploadView(UpdateView):# PR2019-03-04
     # 4. Create empty item_update with keys for all fields. Unused ones will be removed at the end
                     field_list = ('pk', 'id', 'code', 'name', 'identifier', 'datefirst', 'datelast', 'inactive')
                     item_update = create_dict_with_empty_attr(field_list)
-                    logger.debug('item_update: ' + str(item_update))
+                    # logger.debug('item_update: ' + str(item_update))
 
     # 5. check if parent exists (customer is parent of order)
                     parent = get_parent_instance(table, ppk_int, request.user.company)
-                    logger.debug('parent: ' + str(parent))
+                    # logger.debug('parent: ' + str(parent))
                     if parent:
 # B. Delete instance
                         if is_delete:
@@ -207,11 +207,11 @@ class OrderUploadView(UpdateView):# PR2019-03-04
                         if instance:
                             update_customer_or_order(instance, upload_dict, item_update, request, user_lang)
 
-                        logger.debug('updated instance: ' + str(instance))
+                        # logger.debug('updated instance: ' + str(instance))
 
 # 6. remove empty attributes from item_update
                     remove_empty_attr_from_dict(item_update)
-                    logger.debug('item_update: ' + str(item_update))
+                    # logger.debug('item_update: ' + str(item_update))
 
 # 7. add item_update to update_wrap
                     if item_update:
@@ -231,8 +231,8 @@ class OrderUploadView(UpdateView):# PR2019-03-04
 class OrderDownloadDatalistView(View):  # PR2019-03-10
     # function updates customers list
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= OrderDownloadDatalistView ============= ')
-        logger.debug('request.POST' + str(request.POST) )
+        # logger.debug(' ============= OrderDownloadDatalistView ============= ')
+        # logger.debug('request.POST' + str(request.POST) )
         # 'datalist_download': ['{"customer": {inactive: false},"order":{inactive: false}}']}>
         datalists = {}
         if request.user is not None:
@@ -297,8 +297,8 @@ def create_instance(table, parent_instance, code, name, temp_pk_str, item_update
 def create_customer_or_order(upload_dict, item_update, request):
     # --- create customer or order # PR2019-06-24
     # Note: all keys in item_update must exist by running create_dict_with_empty_attr first
-    logger.debug(' --- create_customer_or_order')
-    logger.debug(upload_dict)
+    # logger.debug(' --- create_customer_or_order')
+    # logger.debug(upload_dict)
     # {'id': {'temp_pk': 'new_1', 'create': True, 'ppk': 1, 'table': 'customer'}, 'code': {'value': 'nw4', 'update': True}}
 
     instance = None
@@ -307,8 +307,8 @@ def create_customer_or_order(upload_dict, item_update, request):
     id_dict = upload_dict.get('id')
     if id_dict:
         pk_int, parent_pk, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
-        logger.debug('pk_int: ' + str(pk_int) + ' parent_pk: ' + str(parent_pk) + '  temp_pk_str: ' + str(temp_pk_str))
-        logger.debug(' is_create: ' + str(is_create) + ' is_delete: ' + str(is_delete))
+        # logger.debug('pk_int: ' + str(pk_int) + ' parent_pk: ' + str(parent_pk) + '  temp_pk_str: ' + str(temp_pk_str))
+        # logger.debug(' is_create: ' + str(is_create) + ' is_delete: ' + str(is_delete))
 
     # b. save temp_pk_str in in 'id' of item_update'
         if temp_pk_str:
@@ -318,7 +318,7 @@ def create_customer_or_order(upload_dict, item_update, request):
 # 2. get parent instance
         parent = get_parent_instance(table, parent_pk, request.user.company)
         if parent:
-            logger.debug('table: ' + str(table) + ' parent: ' + str(parent) + ' model: ' + str(parent.__class__.__name__))
+            # logger.debug('table: ' + str(table) + ' parent: ' + str(parent) + ' model: ' + str(parent.__class__.__name__))
 
             # 3. Get value of 'code' and 'name'
             code = None
@@ -336,7 +336,7 @@ def create_customer_or_order(upload_dict, item_update, request):
             elif code is None:
                 code = name[:CODE_MAX_LENGTH]
             if code and name:
-                logger.debug('code: ' + str(code) + ' name: ' + str(name))
+                # logger.debug('code: ' + str(code) + ' name: ' + str(name))
 
     # c. validate code and name
                 msg_err = validate_code_or_name(table, 'code', code, parent_pk)
@@ -370,15 +370,15 @@ def create_customer_or_order(upload_dict, item_update, request):
                    # item_update['code']['updated'] = True
                     #item_update['name']['updated'] = True
 
-    logger.debug('item_update: ' + str(item_update))
+    # logger.debug('item_update: ' + str(item_update))
     return instance
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def update_customer_or_order(instance, upload_dict, item_update, request, user_lang):
     # --- update existing and new customer or order PR2019-06-24
     # add new values to item_update (don't reset item_update, it has values)
-    logger.debug(' --- update_customer_or_order --- ')
-    logger.debug('upload_dict: ' + str(upload_dict))
+    # logger.debug(' --- update_customer_or_order --- ')
+    # logger.debug('upload_dict: ' + str(upload_dict))
     # upload_dict: {'id': {'temp_pk': 'new_2', 'create': True, 'parent_pk': 3, 'table': 'order'},
     # 'code': {'update': True, 'value': 'ee'}}
 
@@ -439,7 +439,7 @@ def update_customer_or_order(instance, upload_dict, item_update, request, user_l
                             setattr(instance, field, new_date)
                             save_changes = True
                             item_update[field]['updated'] = True
-                            logger.debug('date saved: ' + str(instance.datefirst))
+                            # logger.debug('date saved: ' + str(instance.datefirst))
 
 # 4. save changes in field 'inactive'
         for field in ['inactive']:
@@ -491,7 +491,7 @@ def update_customer_or_order(instance, upload_dict, item_update, request, user_l
 
         # 7. remove empty attributes from item_update
         remove_empty_attr_from_dict(item_update)
-        logger.debug('item_update: ' + str(item_update))
+        # logger.debug('item_update: ' + str(item_update))
         """
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
