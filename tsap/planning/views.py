@@ -2927,8 +2927,8 @@ def update_scheme(instance, upload_dict, item_update, request):
 def update_schemeitem(instance, upload_dict, item_update, request, comp_timezone, recalc=False):
     # --- update field with 'update' in it + calcutated fields in existing and new instance PR2019-07-22
     # add new values to item_update (don't reset item_update, it has values)
-    # logger.debug(' ============= update_schemeitem')
-    # logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug(' ============= update_schemeitem')
+    logger.debug('upload_dict: ' + str(upload_dict))
     # logger.debug('item_update: ' + str(item_update))
     #upload_dict: {'id': {'pk': 7, 'ppk': 1, 'table': 'schemeitem'},
     #               'rosterdate': {'value': '2019-03-30', 'update': True},
@@ -2976,7 +2976,7 @@ def update_schemeitem(instance, upload_dict, item_update, request, comp_timezone
                 setattr(instance, fieldname, new_value)
                 item_update[fieldname]['updated'] = True
                 save_changes = True
-    # c. heck if this shift alreay exists in this scheme. If so: put values of first found shift in this shift
+    # c. check if this shift alreay exists in this scheme. If so: put values of first found shift in this shift
                 lookup_schemeitem = Schemeitem.objects.filter(
                     scheme=instance.scheme, shift__iexact=new_value
                     ).exclude(pk=instance.pk).first()
@@ -3023,7 +3023,7 @@ def update_schemeitem(instance, upload_dict, item_update, request, comp_timezone
         if 'update' in field_dict:
             team_code = field_dict.get('value')
             team_pk = int(field_dict.get('pk', 0))
-            # logger.debug('team_code[' + str(team_pk )+ ']: ' + str(team_code))
+            logger.debug('team_code[' + str(team_pk )+ ']: ' + str(team_code))
     # b. remove team from schemeitem when team_code is None
             if not team_code:
                 # set field blank
@@ -3034,13 +3034,23 @@ def update_schemeitem(instance, upload_dict, item_update, request, comp_timezone
             else:
                 team = None
                 if team_pk:
-                    # check if team exists
+    # c. check if team exists
                     team = Team.objects.filter(scheme=instance.scheme, pk=team_pk).first()
-    # c. create team if it does not exist
+                    if team:
+                        logger.debug('team pk exists [' + str(team_pk) + ']: ' + str(team.code))
+    # d. lookup if team with this name already exists in this scheme. If so: select this team
+                # this can happen when team_id not yet in data field of el_input
+                if team is None:
+                    team = Team.objects.filter(scheme=instance.scheme, code__iexact=team_code).first()
+                    if team:
+                        logger.debug('team code exists [' + str(team_pk) + ']: ' + str(team.code))
+
+    # e. create team if it does not exist
                 if team is None:
                     team = Team(scheme=instance.scheme, code=team_code)
                     team.save(request=request)
-    # d. update schemeitem
+
+    # f. update schemeitem
                 if team:
                     setattr(instance, fieldname, team)
                     item_update[fieldname]['updated'] = True
@@ -3339,35 +3349,24 @@ def RemoveRosterdate(rosterdate_current, request, comp_timezone):  # PR2019-06-1
 
         for orderhour in orderhours:
 
-# check emplhours status: skip if STATUS_02_START_CONFIRMED or higher
-            crit = Q(orderhour=orderhour) & \
-                   Q(status__gte=STATUS_02_START_CONFIRMED)
-            emplhours = Emplhour.objects.filter(crit).exists()
-            for emplhour in emplhours:
+# check emplhours status: TODO skip if STATUS_02_START_CONFIRMED or higher
+            # crit = Q(orderhour=orderhour) &  Q(status__gte=STATUS_02_START_CONFIRMED)
 
+            #emplhours_exist = Emplhour.objects.filter(crit).exists()
 
+            #for emplhour in emplhours:
     # check orderhour status: skip if STATUS_02_START_CONFIRMED or higher
-                if orderhour.status < STATUS_02_START_CONFIRMED:
-                    skip_update = True
-                else:
-                    is_update = True
-
-
-
-                emplhour.delete(request=request)
-
+            #    if orderhour.status < STATUS_02_START_CONFIRMED:
+            #        skip_update = True
+            #    else:
+            #        is_update = True
+            #    emplhour.delete(request=request)
 
     # check orderhour status: skip if STATUS_02_START_CHECKED or higher
-            if orderhour.status < STATUS_02_START_CONFIRMED:
-                skip_update = True
-            else:
-                is_update = True
-
-
-
-
-
-
+            #if orderhour.status < STATUS_02_START_CONFIRMED:
+            #    skip_update = True
+            #else:
+            #    is_update = True
 
 # delete emplhours of orderhour
             emplhours = Emplhour.objects.filter(orderhour=orderhour)
