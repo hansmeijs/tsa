@@ -239,11 +239,11 @@ def get_current_period(interval_int, overlap_prev_int, overlap_next_int, request
 
 
 def get_prevnext_period(prevnext, period_timestart_iso, interval_int, overlap_prev_int,  overlap_next_int, comp_timezone):  # PR2019-07-13
-    logger.debug(' ============= get_prevnext_period ============= ')
+    # logger.debug(' ============= get_prevnext_period ============= ')
     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
 
-    logger.debug('period_timestart_iso: ' + str(period_timestart_iso) + ' ' + str(type(period_timestart_iso)))
-    logger.debug('interval_int: ' + str(interval_int) + ' ' + str(type(interval_int)))
+    # logger.debug('period_timestart_iso: ' + str(period_timestart_iso) + ' ' + str(type(period_timestart_iso)))
+    # logger.debug('interval_int: ' + str(interval_int) + ' ' + str(type(interval_int)))
 
     hour_add = 0
     if prevnext == 'next':
@@ -256,30 +256,30 @@ def get_prevnext_period(prevnext, period_timestart_iso, interval_int, overlap_pr
 
     # convert period_timestart_iso into period_timestart_local
     period_timestart_local = get_datetime_LOCAL_from_ISOstring(period_timestart_iso, comp_timezone)
-    logger.debug('period_timestart_local: ' + str(period_timestart_local) + ' ' + str(type(period_timestart_local)))
+    # logger.debug('period_timestart_local: ' + str(period_timestart_local) + ' ' + str(type(period_timestart_local)))
 
     # get local start time of new period ( = local start time of current period plus interval)
     prevnext_timestart_local = period_timestart_local + timedelta(hours=hour_add)
-    logger.debug('prevnext_timestart_local: ' + str(prevnext_timestart_local))
+    # logger.debug('prevnext_timestart_local: ' + str(prevnext_timestart_local))
 
     # get start time of new period in UTC
     prevnext_timestart_utc = prevnext_timestart_local.astimezone(pytz.UTC)
-    logger.debug('prevnext_timestart_utc: ' + str(prevnext_timestart_utc))
+    # logger.debug('prevnext_timestart_utc: ' + str(prevnext_timestart_utc))
 
     # get local end time of new period ( = local start time of new period plus interval + overlap_prev + overlap_next
     prevnext_timeend_local = prevnext_timestart_local + timedelta(hours=period_int)
-    logger.debug('prevnext_timeend_local: ' + str(prevnext_timeend_local))
+    # logger.debug('prevnext_timeend_local: ' + str(prevnext_timeend_local))
 
     # get end time of new period in UTC
     prevnext_timeend_utc = prevnext_timeend_local.astimezone(pytz.UTC)
-    logger.debug('prevnext_timeend_utc: ' + str(prevnext_timeend_utc))
+    # logger.debug('prevnext_timeend_utc: ' + str(prevnext_timeend_utc))
 
 
     return prevnext_timestart_utc, prevnext_timeend_utc
 
 
 def get_timesstartend_from_perioddict(period_dict, request):  # PR2019-07-15
-    logger.debug(' ============= get_timesstartend_from_perioddict ============= ')
+    # logger.debug(' ============= get_timesstartend_from_perioddict ============= ')
 
     period_timestart_utc = None
     period_timeend_utc = None
@@ -318,8 +318,8 @@ def get_timesstartend_from_perioddict(period_dict, request):  # PR2019-07-15
             if period_timeend_iso:
                 period_timeend_utc = get_datetime_UTC_from_ISOstring(period_timeend_iso)
 
-    logger.debug('period_timestart_utc: ' + str(period_timestart_utc))
-    logger.debug('period_timeend_utc: ' + str(period_timeend_utc))
+    # logger.debug('period_timestart_utc: ' + str(period_timestart_utc))
+    # logger.debug('period_timeend_utc: ' + str(period_timeend_utc))
 
     return period_timestart_utc, period_timeend_utc
 

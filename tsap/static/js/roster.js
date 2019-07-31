@@ -624,7 +624,7 @@ $(function() {
 // --- add text_align
                 if ( [0, 1, 2, 3].indexOf( j ) > -1 ){
                     el.classList.add("text_align_left")} else
-                if ( [4, 5, 6].indexOf( j ) > -1 ){
+                if ( [4, 5, 6, 8].indexOf( j ) > -1 ){
                     //el.classList.add("text_align_right")
                 }
 

@@ -45,7 +45,7 @@ from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 from tsap.headerbar import get_headerbar_param
 
 from companies.models import Order, Scheme, Schemeitem, Team, Teammember, \
-    Employee, Emplhour, Orderhour, Companysetting, delete_instance
+    Employee, Emplhour, Orderhour, Companysetting, get_instance, delete_instance
 
 from tsap.validators import validate_code_or_name
 
@@ -382,7 +382,7 @@ class SchemesView(View):
 class SchemeUploadView(UpdateView):  # PR2019-07-21
 
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= SchemeUploadView ============= ')
+        logger.debug(' ============= SchemeUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -396,15 +396,16 @@ class SchemeUploadView(UpdateView):  # PR2019-07-21
             # comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
 # - get upload_dict from request.POST
-            upload_json = request.POST.get('scheme', None)
+            logger.debug('request.POST: ' + str(request.POST))
+            upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                # logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
 
 # 1. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
-                # logger.debug('id_dict: ' + str(id_dict))
+                logger.debug('id_dict: ' + str(id_dict))
 
 # 2. Create empty item_update with keys for all fields. Unused ones will be removed at the end
                 field_list = ('id', 'order', 'code', 'cycle', 'datefirst', 'datelast',
@@ -506,7 +507,9 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
                         parent = get_parent_instance(table, ppk_int, request.user.company)
                         # logger.debug('parent_instance: ' + str(parent))
     # - get scheme
-                        instance = get_instance(table, pk_int, parent)
+                        # TODO update_dict
+                        update_dict = {}
+                        instance = get_instance(table, pk_int, parent, update_dict)
                         # logger.debug('instance: ' + str(instance))
 
     # - check if template_order exists, create if not exists
@@ -611,8 +614,9 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
     # - check if scheme parent exists (order is parent of scheme)
         template_parent = get_parent_instance(table, template_ppk_int, request.user.company)
         # logger.debug('template_parent: ' + str(template_parent))
-
-        template_scheme = get_instance(table, template_pk_int, template_parent)
+        # TODO update_dict
+        update_dict = {}
+        template_scheme = get_instance(table, template_pk_int, template_parent, update_dict)
         # logger.debug('template_scheme: ' + str(template_scheme))
 
 # - check if scheme parent exists (order is parent of scheme)
@@ -1242,7 +1246,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
 # B. Delete instance
                         if is_delete:
                             # logger.debug('pk_int: ' + str(pk_int) + ' parent: ' + str(parent))
-                            instance = get_instance(table, pk_int, parent)
+                            instance = get_instance(table, pk_int, parent, item_update)
                             # logger.debug('instance: ' + str(instance))
                             this_text = _('This teammember')
                             delete_instance(instance, item_update, request, this_text)
@@ -1252,7 +1256,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
                             instance = create_teammember(upload_dict, item_update, request)
 # D. get existing instance
                         else:
-                            instance = get_instance(table, pk_int, parent)
+                            instance = get_instance(table, pk_int, parent, item_update)
 # E. update instance, also when it is created
                         if instance:
                             update_teammember(instance, upload_dict, item_update, request, user_lang)
@@ -2247,7 +2251,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
 # 5. check if parent exists (orderhour is parent of emplhour)
                         parent = get_parent_instance(table, parent_pk_int, request.user.company)
                         if parent:
-                            instance = get_instance(table, pk_int, parent)
+                            instance = get_instance(table, pk_int, parent, update_dict)
 
 # TODO 'select': 'absent', not necessary
                         # TODO dont create employeedict when empty
@@ -2275,7 +2279,9 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                                 if employee_dict:
                                     employee_pk = employee_dict.get('pk')
                                     if employee_pk:
-                                        employee = get_instance('employee', employee_pk, request.user.company)
+                                        # TODO update_dict
+                                        update_dict = {}
+                                        employee = get_instance('employee', employee_pk, request.user.company, update_dict)
 
                                 # logger.debug('employee: ' + str(employee))
                                 make_absent(instance, employee, upload_dict, request)
@@ -2805,8 +2811,8 @@ def update_teammember(instance, upload_dict, item_update, request, user_lang):
 def update_scheme(instance, upload_dict, item_update, request):
     # --- update existing and new instance PR2019-06-06
     # add new values to item_update (don't reset item_update, it has values)
-    # logger.debug(' ============= update_scheme')
-    # logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug(' ============= update_scheme')
+    logger.debug('upload_dict: ' + str(upload_dict))
     # {'id': {'pk': 4, 'ppk': 38, 'table': 'scheme'}, 'datefirst': {'value': '2019-07-19', 'update': True}}
 
 # 1. get_iddict_variables
@@ -3157,18 +3163,22 @@ def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-06-17
 
         crit = Q(scheme__order__customer__company=request.user.company)  & \
                Q(scheme__cat__lte=CAT_01_INTERNAL) & \
-               Q(scheme__inactive=False) # & \
-               #(Q(scheme__datefirst__lte=new_rosterdate) | Q(scheme__datefirst__isnull=True)) & \
-               #(Q(scheme__datelast__gte=new_rosterdate) | Q(scheme__datelast__isnull=True)) & \
-               #(Q(scheme__order__datefirst__lte=new_rosterdate) | Q(scheme__order__datefirst__isnull=True)) & \
-               #(Q(scheme__order__datelast__gte=new_rosterdate) | Q(scheme__order__datelast__isnull=True))
+               Q(scheme__inactive=False) & \
+               (Q(scheme__order__datefirst__lte=new_rosterdate) | Q(scheme__order__datefirst__isnull=True)) & \
+               (Q(scheme__order__datelast__gte=new_rosterdate) | Q(scheme__order__datelast__isnull=True)) & \
+               (Q(scheme__datefirst__lte=new_rosterdate) | Q(scheme__datefirst__isnull=True)) & \
+               (Q(scheme__datelast__gte=new_rosterdate) | Q(scheme__datelast__isnull=True))
 
         schemeitems = Schemeitem.objects.filter(crit)
         # logger.debug(schemeitems.query)
 
+        logger.debug('new_rosterdate: ' + str(new_rosterdate))
         for schemeitem in schemeitems:
-            # logger.debug('-----' )
-            # logger.debug('order: ' + schemeitem.scheme.order.code )
+            logger.debug('-----' )
+            logger.debug('new_rosterdate: ' + str(new_rosterdate) )
+            logger.debug('order: ' + schemeitem.scheme.order.code )
+            logger.debug('order datefirst: ' + str(schemeitem.scheme.order.datefirst ))
+            logger.debug('order datelast: ' + str(schemeitem.scheme.order.datelast ))
 
 # A. update schemeitem if necessary
             # curentcycle has index 0. It starts with new_rosterdate ends with new_rosterdate + cycle -1
@@ -3281,11 +3291,16 @@ def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-06-17
                         # order_by datelast, null comes last (with Coalesce changes to '2200-01-01'
                         crit = (Q(team=team)) & \
                                (Q(employee__isnull=False)) & \
+                               (Q(employee__datefirst__lte=new_rosterdate) | Q(employee__datefirst__isnull=True)) & \
+                               (Q(employee__datelast__gte=new_rosterdate) | Q(employee__datelast__isnull=True)) & \
                                (Q(datefirst__lte=new_rosterdate) | Q(datefirst__isnull=True)) & \
                                (Q(datelast__gte=new_rosterdate) | Q(datelast__isnull=True))
                         teammember = Teammember.objects.annotate(
                             new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
                             )).filter(crit).order_by('new_datelast').first()
+
+                        logger.debug(teammember.query)
+
                         if teammember:
                             # logger.debug('teammember.employee: ' + str(teammember.employee) + ' datelast: ' + str(teammember.datelast))
                             employee = teammember.employee
@@ -3449,7 +3464,7 @@ def create_scheme(parent, upload_dict, update_dict, request, temp_pk_str=None):
             code = code_dict.get('value')
 
 # c. validate code
-        msg_err = validate_code_or_name('scheme', 'code', code, parent.pk)
+        msg_err = validate_code_or_name('scheme', 'code', code, parent, update_dict)
         if msg_err:
             update_dict['code']['error'] = msg_err
         else:
@@ -3539,7 +3554,9 @@ def create_teammember(upload_dict, item_update, request):
                 if field_dict:
                     employee_pk =  field_dict.get('pk')
                     if employee_pk:
-                        employee = get_instance('employee', employee_pk, request.user.company)
+                        # TODO update_dict
+                        update_dict = {}
+                        employee = get_instance('employee', employee_pk, request.user.company, update_dict)
                     # 3. return msg_err when employee is None
                         if employee is None:
                             item_update['employee']['error'] = _('Employee cannot be blank.')

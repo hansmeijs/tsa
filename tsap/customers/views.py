@@ -85,7 +85,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                     if parent:
 # B. Delete instance
                         if is_delete:
-                            instance = get_instance(table, pk_int, update_dict, parent)
+                            instance = get_instance(table, pk_int, parent, update_dict)
                             this_text = _("Customer '%(tbl)s'") % {'tbl': instance.code}
                             delete_instance(instance, update_dict, request, this_text)
 # C. Create new customer
@@ -93,7 +93,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                             instance = create_customer(upload_dict, update_dict, request)
 # D. Get existing instance
                         else:
-                            instance = get_instance(table, pk_int, update_dict, parent)
+                            instance = get_instance(table, pk_int, parent, update_dict)
 # E. Update instance, also when it is created
                         if instance:
                             update_customer(instance, parent, upload_dict, update_dict, request)
@@ -184,7 +184,7 @@ class OrderUploadView(UpdateView):# PR2019-03-04
                     if parent:
 # B. Delete instance
                         if is_delete:
-                            instance = get_instance(table, pk_int, update_dict, parent)
+                            instance = get_instance(table, pk_int, parent, update_dict)
 
                             this_text = _("Order '%(tbl)s'") % {'tbl': instance.code}
                             delete_instance(instance, update_dict, request, this_text)
@@ -193,7 +193,7 @@ class OrderUploadView(UpdateView):# PR2019-03-04
                             instance = create_order(upload_dict, update_dict, request)
 # D. Get existing instance
                         else:
-                            instance = get_instance(table, pk_int, update_dict, parent)
+                            instance = get_instance(table, pk_int, parent, update_dict)
 # E. update instance, also when it is created
                         if instance:
                             update_order(instance, parent, upload_dict, update_dict, request)

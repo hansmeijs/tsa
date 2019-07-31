@@ -1930,10 +1930,13 @@ $(function() {
 // --- add text_align
                 if (tblName === "schemeitem"){
                     if ( ([1, 2, 3].indexOf( j ) > -1) ){
-                        td.classList.add("text_align_left")}
+                        el.classList.add("text_align_left")
+                    } else if ( ([4, 5, 6, 7].indexOf( j ) > -1) ){
+                        el.classList.add("text_align_right")
+                    }
                 } else if (tblName === "teammember"){
                     if ( ([1, 2].indexOf( j ) > -1) ){
-                        td.classList.add("text_align_left")}
+                        el.classList.add("text_align_left")}
                 };
 // --- add width to time fields and date fileds
                 if (tblName === "schemeitem"){
@@ -3024,7 +3027,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 if (tablename === "teammember") {
                     url_str = url_teammember_upload
                 } else {
-                    url_str = url_schemeorteam_upload
+                    url_str = url_scheme_upload
                 }
 
                 let parameters = {"upload": JSON.stringify (row_upload)}

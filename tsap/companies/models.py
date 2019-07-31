@@ -637,7 +637,7 @@ def get_parent(table, ppk_int, update_dict, request):
     return parent
 
 
-def get_instance(table, pk_int, update_dict, parent):
+def get_instance(table, pk_int, parent, update_dict):
     # function returns instance of table PR2019-07-30
     # logger.debug('====== get_instance: ' + str(table) + ' pk_int: ' + str(pk_int) + ' parent: ' + str(parent))
 

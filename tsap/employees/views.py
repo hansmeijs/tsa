@@ -208,7 +208,7 @@ class EmployeeUploadView(UpdateView):# PR2019-07-30
                     if parent:
 # B. Delete instance
                         if is_delete:
-                            instance = get_instance(table, pk_int, update_dict, parent)
+                            instance = get_instance(table, pk_int, parent, update_dict)
                             this_text = _("Employee '%(tbl)s'") % {'tbl': instance.code}
      # 2. check if employee has emplhours
                             has_emplhours = validate_employee_has_emplhours(instance, update_dict)
@@ -219,7 +219,7 @@ class EmployeeUploadView(UpdateView):# PR2019-07-30
                             instance = create_employee(upload_dict, update_dict, request)
 # - update instance
                         else:
-                            instance = get_instance(table, pk_int, update_dict, parent)
+                            instance = get_instance(table, pk_int, parent, update_dict)
                             logger.debug('instance: ' + str(instance))
 
                             # update_item, also when it is a created item
