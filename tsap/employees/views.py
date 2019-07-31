@@ -402,7 +402,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
 class EmployeeImportUploadData(View):  # PR2018-12-04
 
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= EmployeeImportUploadData ============= ')
+        logger.debug(' ============= EmployeeImportUploadData ============= ')
 
         if request.user is not None:
             if request.user.company is not None:
@@ -413,8 +413,8 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                 params = []
                 if 'employees' in request.POST:
                     employees = json.loads(request.POST['employees'])
-                    # logger.debug("employees")
-                    #  logger.debug(str(employees))
+                    logger.debug("employees")
+                    logger.debug(str(employees))
 
                     for employee in employees:
                         # logger.debug('--------- import employee   ------------')
@@ -425,14 +425,23 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                         has_error = False
                         dont_add = False
 
+                        #field_list = ('id', 'code', 'namefirst', 'namelast', 'email', 'telephone', 'identifier',
+                        #             'datefirst', 'datelast', 'wagecode', 'workhours', 'inactive')
+
                         # truncate input if necessary
                         code = employee.get('code', '')[0:CODE_MAX_LENGTH]
                         namelast = employee.get('namelast', '')[0:NAME_MAX_LENGTH]
                         namefirst = employee.get('namefirst', '')[0:NAME_MAX_LENGTH]
                         prefix = employee.get('prefix', '')[0:CODE_MAX_LENGTH]
+                        identifier = employee.get('identifier', '')[0:USERNAME_SLICED_MAX_LENGTH]
                         email = employee.get('email', '')[0:NAME_MAX_LENGTH]
                         telephone = employee.get('tel', '')[0:USERNAME_SLICED_MAX_LENGTH]
-                        datefirst = employee.get('datefirst', '')
+                        datefirst_iso = employee.get('datefirst')
+                        datelast = employee.get('datelast')
+
+                        wagecode = employee.get('wagecode')
+                        workhours = employee.get('workhours', 0)
+                        leavedays = employee.get('leavedays', 0)
 
                         # check if employee already exists
                         # msg_dont_add = validate_employee_code(code, request.user.company)
@@ -475,12 +484,17 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                             # logger.debug('new_employee.namelast: ' + str(new_employee.namelast))
                             if namefirst:
                                 new_employee.namefirst = namefirst
-                            if prefix:
-                                new_employee.prefix = prefix
+                            if identifier:
+                                new_employee.identifier = identifier
                             if email:
                                 new_employee.email = email
                             if telephone:
                                 new_employee.tel = telephone
+                            if datefirst_iso:
+                                # new_value: '2019-04-12'
+                                datefirst, msg_err = get_date_from_ISOstring(datefirst_iso, False)  # False = blank_allowed
+                                if datefirst:
+                                    new_employee.datefirst = datefirst
 
                             try:
                                 new_employee.save(request=request)
