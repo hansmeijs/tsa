@@ -131,8 +131,8 @@ console.log(" ========== handle_checkbox_noheader_changed ===========");
         // function gets row_clicked.id, row_other_id, row_clicked_key, row_other_key
         // sets class 'highlighted' and 'hover'
         // and calls 'linkColumns' or 'unlinkColumns'
-// currentTarget refers to the element to which the event handler has been attached
-// event.target which identifies the element on which the event occurred.
+        // event.currentTarget is the element to which the event handler has been attached (which is #document)
+        // event.target identifies the element on which the event occurred.
 console.log("=========   handle_EAL_row_clicked   ======================") ;
 console.log("e.target.currentTarget.id", e.currentTarget.id) ;
 

@@ -26,31 +26,35 @@
   {% if user.is_authenticated %}
         {% if user.is_role_system %}
 
-            <div class="c_select_file">
-                <p><b>{% trans 'Select employee file' %}</b></p>
-                <p>{% trans 'Drag column name to link or unlink columns' %}</p>
+            <div class="c_select_file text_align_left">
+                <h4 class="text_align_left mt-4">{% trans 'Import employees' %}</h4>
+                <h6 class="text_align_left mt-4">{% trans 'Step' %} 1: {% trans 'Select employee file' %}</h6>
 
-                <div>
+                <div class="text_align_left">
                     <input class="c_form_text" type="file" id="filedialogID" name="file" accept=".xlsx, .xls, csv">
                 </div>
-                <br />
-                <div class="c_hide">
-                    <label class="c_form_select" for="SheetListID">{% trans 'Select a worksheet' %}</label>
+                <h6 class="text_align_left mt-2">{% trans 'Step' %} 2: {% trans 'Select a worksheet' %}</h6>
+                <div class="text_align_left c_hide">
+                    <label class="c_form_select td_width_120" for="SheetListID">{% trans 'Worksheet' %}</label>
                     <select id="SheetListID" class="c_form_select" ></select>
                 </div>
-                <br />
-                <div>
-                  <input class="c_form_text" type="checkbox" id="checkBoxID" value="false">
-                  <label class="c_form_text" for="checkBoxID"> {% trans 'Worksheet has no header row' %}</label>
+
+                <h6 class="text_align_left mt-2">{% trans 'Step' %} 3: {% trans 'Select if the worksheet has no header row' %}</h6>
+                <div class="content_subheader_left mx-2 my-1">
+                  <input class="c_form_text text_align_left" type="checkbox" id="checkBoxID" value="false">
+                  <label class="c_form_text text_align_left" for="checkBoxID"> {% trans 'Worksheet has no header row' %}</label>
                 </div>
                 <br />
 
+
+                <h6 class="text_align_left mt-2">{% trans 'Step' %} 4: {% trans 'Link colums' %}</h6>
+
                 <div id="div_infoID"></div>
-                
-                
                 <div class="ea_flex">
                     <div id="id_basediv_col" class="c_link_columns"></div>
                 </div>
+
+                <h6 class="text_align_left mt-2">{% trans 'Step' %} 5: {% trans 'Import employees' %}</h6>
                 <div class="ea_flex">
                 <button
                         id="btn_import"

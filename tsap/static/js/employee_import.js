@@ -7,9 +7,20 @@ console.log("employee_import.js")
 // ---  set selected menu button active
     const cls_active = "active";
     const cls_hover = "tr_hover";
-    const cls_selected = "tsa_tr_selected";
-
-
+    const cls_selected = "c_table_stud_thead_td_selected";
+    const cls_colExcelTsa_tr = "c_colExcelTsa_tr";
+    const cls_columns_header = "c_columns_header";
+    const cls_colLinked_tr = "c_colLinked_tr";
+    const cls_grid_colExcel = "c_grid_colExcel";
+    const cls_grid_colLinked = "c_grid_colLinked";
+    const cls_cell_saved_even = "cell_saved_even";
+    const cls_cell_saved_odd = "cell_saved_odd";
+    const cls_cell_unchanged_even = "cell_unchanged_even";
+    const cls_cell_unchanged_odd = "cell_unchanged_odd";
+    const cls_ea_flex = "ea_flex";
+    const cls_li_flex= "li_flex";
+    const cls_display_show = "display_show";
+    const cls_display_hide = "display_hide";
 
     let btn_clicked = document.getElementById("id_sub_empl_imp");
     SetMenubuttonActive(btn_clicked);
@@ -143,8 +154,8 @@ console.log(" ========== handle_checkbox_noheader_changed ===========");
         // function gets row_clicked.id, row_other_id, row_clicked_key, row_other_key
         // sets class 'highlighted' and 'hover'
         // and calls 'linkColumns' or 'unlinkColumns'
-// currentTarget refers to the element to which the event handler has been attached
-// event.target which identifies the element on which the event occurred.
+        // currentTarget refers to the element to which the event handler has been attached
+        // event.target which identifies the element on which the event occurred.
 console.log("=========   handle_EAL_row_clicked   ======================") ;
 console.log("e.target.currentTarget.id", e.currentTarget.id) ;
 
@@ -448,6 +459,14 @@ console.log("=========  function FillDataTable =========");
             //if (EndRow-1 < EndRowIndex) { EndRowIndex = EndRow-1;};
             for (let i = 0; i <= LastRowIndex; i++) {
                 let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+
+                if (i%2 === 0) {
+                    class_background = cls_cell_unchanged_even;
+                } else {
+                    class_background = cls_cell_unchanged_odd;
+                }
+                tblRow.classList.add(class_background);
+
                 for (let j = 0 ; j < sheet_range.ColCount; j++) {
 //console.log("worksheet_data[" + i + "][" + j + "]: <" + worksheet_data[i][j]) + ">";
                     let cell = tblRow.insertCell(-1); //index -1 results in that the new cell will be inserted at the last position.
@@ -515,21 +534,22 @@ console.log("datarow: ", i , datarow );
 //--------- iterate through columns of response row
 
 // ---  add <tr>
-                let id_datarow =  "id_datarow_" + i.toString()
+                let id_datarow = "id_datarow_" + i.toString()
                 let class_background;
                 if (record_is_saved){
                     if (i%2 === 0) {
-                        class_background = "cell_saved_even";
+                        class_background = cls_cell_saved_even;
                     } else {
-                        class_background = "cell_saved_odd";
+                        class_background = cls_cell_saved_odd;
                     }
                 } else {
                     if (i%2 === 0) {
-                        class_background = "cell_unchanged_even";
+                        class_background = cls_cell_unchanged_even;
                     } else {
-                        class_background = "cell_unchanged_odd";
+                        class_background = cls_cell_unchanged_odd;
                     }
                 }
+                console.log("class_background", class_background)
                 $("<tr>").appendTo(tblBody)
                     .attr({"id": id_datarow})
                     .addClass(class_background);
@@ -799,7 +819,7 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
 
         //append column header to base_div
         $("<div>").appendTo(base_div)
-                .addClass("c_columns_header")
+                .addClass(cls_columns_header)
                 //header1 = "Link sectors"
                 //header2 = "Click to link or unlink sector"
                 .html("<p><b>" + header1 + "</b></p><p>" + header2 + "</p>");
@@ -807,7 +827,7 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
         // append flex div for table Excel and Tsa
         $("<div>").appendTo(base_div)
                 .attr({id: "id_ea_flex_" + tableBase})
-                .addClass("ea_flex");
+                .addClass(cls_ea_flex);
 
         // append div for table Excel
             $("<div>").appendTo("#id_ea_flex_" + tableBase)
@@ -815,7 +835,7 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
 
                 $("<table>").appendTo("#id_exc_div_" + tableBase)
                         .attr({id: "id_exc_table_" + tableBase})
-                        .addClass("c_grid_colExcel")
+                        .addClass(cls_grid_colExcel)
                         .on("click", handle_EAL_row_clicked);
 
                     $("<thead>").appendTo("#id_exc_table_" + tableBase)
@@ -828,7 +848,7 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
                     .attr({id: "id_tsa_div_" + tableBase});
                 $("<table>").appendTo("#id_tsa_div_" + tableBase)
                         .attr({id: "id_tsa_table_" + tableBase})
-                        .addClass("c_grid_colExcel")
+                        .addClass(cls_grid_colExcel)
                         .on("click", handle_EAL_row_clicked);
                     $("<thead>").appendTo("#id_tsa_table_" + tableBase)
                             .html("<tr><td>" + headTsa + "</td></tr>"); // headTsa: "TSA columns"
@@ -838,12 +858,12 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
         // append flex div for table Linked
         $("<div>").appendTo(base_div)
                 .attr({id: "id_li_flex_" + tableBase})
-                .addClass("li_flex");
+                .addClass(cls_li_flex);
             $("<div>").appendTo("#id_li_flex_" + tableBase)
                     .attr({id: "id_lnk_div_" + tableBase});
                 $("<table>").appendTo("#id_lnk_div_" + tableBase)
                         .attr({id: "id_lnk_table_" + tableBase})
-                        .addClass("c_grid_colLinked")
+                        .addClass(cls_grid_colLinked)
                         .on("click", handle_EAL_row_clicked);
                     $("<thead>").appendTo("#id_lnk_table_" + tableBase)
                             .attr({id: "id_sct_th_lnk_" + tableBase})
@@ -886,7 +906,7 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
             if (!!row.excKey){
                 $("<tr>").appendTo(Xid_lnk_tbody)
                     .attr({"id": idTsaRow, "key": row.tsaKey})
-                    .addClass("c_colLinked_tr")
+                    .addClass(cls_colLinked_tr)
                     .mouseenter(function(){$(XidTsaRow).addClass(cls_hover);})
                     .mouseleave(function(){$(XidTsaRow).removeClass(cls_hover);})
         // append cells to row Linked
@@ -903,7 +923,7 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
         // append row to table Tsa if excKey does not exist in stored_items
                 $("<tr>").appendTo(Xid_tsa_tbody)
                     .attr({"id": idTsaRow, "key": row.tsaKey})
-                    .addClass("c_colExcelTsa_tr")
+                    .addClass(cls_colExcelTsa_tr)
                     .mouseenter(function(){$(XidTsaRow).addClass(cls_hover);})
                     .mouseleave(function(){$(XidTsaRow).removeClass(cls_hover);})
         // append cell to row ExcKey
@@ -928,7 +948,7 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
                 $("<tr>").appendTo(Xid_exc_tbody)
                     .attr({"id": idExcRow})
                     .attr({"id": idExcRow, "key": row.excKey})
-                    .addClass("c_colExcelTsa_tr")
+                    .addClass(cls_colExcelTsa_tr)
                     .mouseenter(function(){$(XidExcRow).addClass(cls_hover);})
                     .mouseleave(function(){$(XidExcRow).removeClass(cls_hover);})
         // append cell to row ExcKey
@@ -1201,15 +1221,15 @@ console.log("========== response Upload employees ==>", typeof response,  respon
         let loading_img = $("#id_loading_img");
         let datatable = $("#id_table");
         if (show){
-            loading_img.removeClass("display_hide")
-                        .addClass("display_show");
-            datatable.removeClass("display_show")
-                       .addClass("display_hide");
+            loading_img.removeClass(cls_display_hide)
+                        .addClass(cls_display_show);
+            datatable.removeClass(cls_display_show)
+                       .addClass(cls_display_hide);
         } else {
-            loading_img.removeClass("display_show")
-                       .addClass("display_hide");
-            datatable.removeClass("display_hide")
-                        .addClass("display_show");
+            loading_img.removeClass(cls_display_show)
+                       .addClass(cls_display_hide);
+            datatable.removeClass(cls_display_hide)
+                        .addClass(cls_display_show);
         }
     }
     }); //$(document).ready(function() {

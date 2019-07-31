@@ -20,15 +20,17 @@ from django.core.serializers.json import DjangoJSONEncoder
 from tsap.settings import TIME_ZONE
 
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_COLDEFS, \
-        LANG_EN, LANG_DEFAULT, WEEKDAYS_ABBREV, MONTHS_ABBREV
-from tsap.functions import get_date_from_ISOstring, get_iddict_variables, create_dict_with_empty_attr, fielddict_date
+        LANG_DEFAULT, WEEKDAYS_ABBREV, MONTHS_ABBREV, COLDEF_EMPLOYEE, CAPTION_EMPLOYEE
+
+from tsap.functions import get_date_from_ISOstring, get_iddict_variables, create_dict_with_empty_attr
 from planning.dicts import remove_empty_attr_from_dict
 from tsap.headerbar import get_headerbar_param
-from tsap.validators import check_date_overlap, validate_code_or_name
+from tsap.validators import check_date_overlap, validate_code_or_name, validate_employee_has_emplhours
 
-from companies.models import Companysetting, Employee
+from companies.models import Companysetting, Employee, get_parent, get_instance, delete_instance
 from employees.forms import EmployeeAddForm, EmployeeEditForm
-from employees.dict import create_employee_list
+from employees.dict import create_employee_list, create_employee_dict
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -83,9 +85,6 @@ class EmployeeListView(View):
                 'weekdays': weekdays_json,
                 'months': months_json,
             })
-
-
-            #logger.debug('EmployeeListView param: ' + str(param))
 
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'employees.html', param)
@@ -166,74 +165,66 @@ class EmployeeDeleteView(DeleteView):
 
 
 @method_decorator([login_required], name='dispatch')
-class EmployeeUploadView(UpdateView):# PR2019-06-174
+class EmployeeUploadView(UpdateView):# PR2019-07-30
 
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= EmployeeUploadView ============= ')
+        logger.debug(' ============= EmployeeUploadView ============= ')
         # upload_dict: {'id': {'pk': 107, 'parent_pk': 1, 'table': 'employees'}, 'code': {'value': 'Abdula', 'update': True}}
+        # upload: "{"id":{"pk":103,"delete":true,"table":"employee"}}"
 
-        item_update_dict = {}
+
+        update_wrap = {}
         if request.user is not None and request.user.company is not None:
-# - Reset language
+# A.
+    # 1. Reset language
+            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
             activate(user_lang)
 
-# - get upload_dict from request.POST
+    # 2. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                # logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
+                # upload_dict: {'id': {'pk': 36, 'delete': True, 'table': 'employee'}}
 
-# - get_iddict_variables
+    # 3. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
-                    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
+                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
 
-# - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
-                    field_list = ('id', 'code', 'namefirst', 'namelast', 'datefirst', 'datelast', 'inactive')
+    # 4. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+                    field_list = ('id', 'code', 'namefirst', 'namelast', 'email', 'telephone', 'identifier',
+                                  'datefirst', 'datelast', 'wagecode', 'workhours', 'inactive')
                     update_dict = create_dict_with_empty_attr(field_list)
 
-# - check if parent exists (company is parent of employee)
+    # 5. check if parent exists (company is parent of employee)
+                    # company is parent of employee
+                    ppk_int = request.user.company.pk
                     instance = None
-                    parent_instance = get_parent_instance_employee(update_dict, request.user.company)
-                    # logger.debug('parent_instance: ' + str(parent_instance))
-
-                    if parent_instance:
-# - Delete item
+                    #logger.debug('table: ' + str(table))
+                    parent = get_parent(table, ppk_int, update_dict, request)
+                    #logger.debug('parent: ' + str(parent))
+                    if parent:
+# B. Delete instance
                         if is_delete:
-                            Employee.delete_instance(pk_int, parent_pk_int, update_dict, request.user.company)
-
-# === Create new employee
+                            instance = get_instance(table, pk_int, update_dict, parent)
+                            this_text = _("Employee '%(tbl)s'") % {'tbl': instance.code}
+     # 2. check if employee has emplhours
+                            has_emplhours = validate_employee_has_emplhours(instance, update_dict)
+                            if not has_emplhours:
+                                delete_instance(instance, update_dict, request, this_text)
+# C. Create new employee
                         elif is_create:
-                            # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
-                            if temp_pk_str:
-                                update_dict['id']['temp_pk'] = temp_pk_str
-
-                            code = None
-                            namelast = None
-                            code_dict = upload_dict.get('code')
-                            if code_dict:
-                                code = code_dict.get('value')
-                            code_ok = True # TODO validate_code_or_name('employee', 'code', code, update_dict, request.user.company)
-
-                            name_dict = upload_dict.get('namelast')
-                            if name_dict:
-                                namelast = name_dict.get('value')
-                            if namelast is None:
-                                namelast = code
-
-                            name_ok = True # TODO validate_code_or_name('order', 'name', name, update_dict, request.user.company)
-                            if code_ok  and name_ok:
-                                instance = Employee.create_instance(parent_instance, code, namelast, temp_pk_str, update_dict, request)
-                            # logger.debug('new instance: ' + str(instance))
+                            instance = create_employee(upload_dict, update_dict, request)
 # - update instance
                         else:
-                            instance = Employee.get_instance(pk_int, update_dict, request.user.company)
-                            # logger.debug('instance: ' + str(instance))
+                            instance = get_instance(table, pk_int, update_dict, parent)
+                            logger.debug('instance: ' + str(instance))
 
                             # update_item, also when it is a created item
                             if instance:
-                                update_employee_instance(instance, upload_dict, update_dict, request, user_lang)
+                                update_employee(instance, parent, upload_dict, update_dict, request, user_lang)
                             # logger.debug('updated instance: ' + str(instance))
 
 # --- remove empty attributes from update_dict
@@ -241,298 +232,16 @@ class EmployeeUploadView(UpdateView):# PR2019-06-174
                     # logger.debug('update_dict: ' + str(update_dict))
 
                     if update_dict:
-                        item_update_dict['item_update'] = update_dict
+                        update_wrap['item_update'] = update_dict
 
 # update schemeitem_list when changes are made
                     if instance:
                         employee_list = create_employee_list(instance.company)
                         if employee_list:
-                            item_update_dict['employee_list'] = employee_list
+                            update_wrap['employee_list'] = employee_list
 
-
-            # update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
-            update_dict_json = json.dumps(item_update_dict, cls=LazyEncoder)
-            return HttpResponse(update_dict_json)
-
-@method_decorator([login_required], name='dispatch')
-class EmployeeXXXXXXXXXXXUploadView(UpdateView):# PR2019-03-04
-
-    def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= EmployeeUploadView ============= ')
-        if request.user is not None and request.user.company is not None:
-            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-            activate(request.user.lang if request.user.lang else LANG_DEFAULT)
-
-            # create dict and empty field attributes for all fields (unused ones will be removed at the end
-            field_list = ('id', 'code', 'namelast', 'namefirst', 'prefix', 'email',
-                          'telephone', 'datefirst',  'modifiedby',  'modifiedat')
-            empl_dict = {}
-            for field in field_list:
-                empl_dict[field] = {}
-
-            if 'employee' in request.POST:
-                employee_upload = json.loads(request.POST['employee'])
-                if employee_upload is not None:
-                    # logger.debug('employee_upload: ' + str(employee_upload))
-                    #  employee_upload: {'pk': '9', 'blank_code': 'blank',
-                    #  'namelast': 'Regales', 'namefirst': 'Ruëny David Tadeo',
-                    #  'prefix': 'None', 'email': 'None', 'telephone': 'None', 'blank_datefirst': 'blank'}
-                    if 'pk' in employee_upload and employee_upload['pk']:
-                        this_pk = None
-                        employee = None
-                        # new_record has pk 'new_1' etc
-                        if employee_upload['pk'].isnumeric():
-                            this_pk = int(employee_upload['pk'])
-                        else:
-                            empl_dict['id']['new'] = employee_upload['pk']
-
-                        new_code = None
-                        new_namelast = None
-                        new_namefirst = None
-                        save_record = False
-
-# ++++++++++++++ new record ++++++++++++++++++
-                        if this_pk is None:
-                    # validate if code is not blank
-                            field = 'code'
-                            if 'blank_' + field in employee_upload:
-                                msg_dont_add = _("Employee code cannot be blank.")
-                                empl_dict[field]['err'] = msg_dont_add
-
-                    # validate if code already exists
-                            elif field in employee_upload:
-                                new_value = employee_upload[field]
-                                msg_dont_add = validate_code_or_name('employee', field, new_value, request.user.company)
-
-                                if msg_dont_add is not None:
-                                    empl_dict[field]['err'] = msg_dont_add
-                            else:
-                                new_code = employee_upload[field]
-
-                    # validate if namelast is not blank
-                            field = 'namelast'
-                            if 'blank_' + field in employee_upload:
-                                msg_dont_add = _("Last name cannot be blank.")
-                                empl_dict[field]['err'] = msg_dont_add
-                            elif field in employee_upload:
-                                new_namelast = employee_upload[field]
-
-                    # validate if namefirst is not blank
-                            field = 'namefirst'
-                            if 'blank_' + field in employee_upload:
-                                msg_dont_add = _("First name cannot be blank.")
-                                empl_dict[field]['err'] = msg_dont_add
-                            elif field in employee_upload:
-                                new_namefirst = employee_upload[field]
-
-                    # validate if name already exists
-                            if new_namelast and new_namefirst:
-                                msg_dont_add = validate_employee_name(new_namelast,
-                                                               new_namefirst,
-                                                               request.user.company)
-                                if msg_dont_add is not None:
-                                    new_namelast = None
-                                    new_namefirst = None
-                                    empl_dict['namelast']['err'] = msg_dont_add
-                                    empl_dict['namefirst']['err'] = msg_dont_add
-
-                    # add record if not has_error
-                            if new_code and new_namelast and new_namefirst:
-                                employee = Employee(company=request.user.company,
-                                                    code=new_code,
-                                                    namelast=new_namelast,
-                                                    namefirst=new_namefirst,
-                                                    )
-                                employee.save(request=self.request)
-                                # logger.debug('employee_added: ' + str(employee.namelast))
-                                empl_dict['id']['pk'] = employee.pk
-# ++++++++++++++ existing record ++++++++++++++++++
-                        else:  # if not is_new_record
-                    # get employee record
-                            employee = Employee.objects.filter(id=this_pk, company=request.user.company).first()
-                            # logger.debug('existing employee: ' + str(employee.namelast) + str(type(employee.nam_last)))
-
-                    # validate if employee is None
-                            if employee is None:
-                                msg_dont_add = _("Employee not found.")
-                                empl_dict['namelast']['err'] = msg_dont_add
-                            else:
-                                empl_dict['id']['pk'] = employee.pk
-                                # logger.debug('empl_dict[id][pk]: ' + str(empl_dict['id']['pk']))
-
-                    # validate if code is blank
-                                field = 'code'
-                                if 'blank_' + field in employee_upload:
-                                    saved_value = getattr(employee, field, '')
-                                    msg_dont_add = _("Employee code cannot be blank.")
-                                    empl_dict[field]['err'] = msg_dont_add
-                                    empl_dict[field]['val'] = saved_value
-
-                    # validate if code already exists
-                                elif field in employee_upload:
-                                    new_value = employee_upload[field]
-                                    saved_value = getattr(employee, field, '')
-                                    msg_dont_add = validate_code_or_name('employee', field, new_value, request.user.company.pk, employee.pk)
-
-                                    if msg_dont_add is not None:
-                                        empl_dict[field]['err'] = msg_dont_add
-                                        empl_dict[field]['val'] = saved_value
-                                    else:
-                                        if new_value != saved_value:
-                                            setattr(employee, field, new_value)
-                                            empl_dict[field]['upd'] = True
-                                            empl_dict[field]['val'] = new_value
-                                            save_record = True
-
-                    # validate if namelast is not blank
-                                msg_dont_add = None
-                                field = 'namelast'
-                                saved_namelast = getattr(employee, field, '')
-                                if 'blank_' + field in employee_upload:
-                                    msg_dont_add = _("Last name cannot be blank.")
-                                    empl_dict[field]['err'] = msg_dont_add
-                                    empl_dict[field]['val'] = saved_namelast
-                                elif field in employee_upload:
-                                    new_namelast = employee_upload[field]
-
-                    # validate if namefirst is not blank
-                                field = 'namefirst'
-                                saved_namefirst = getattr(employee, field, '')
-                                if 'blank_' + field in employee_upload:
-                                    msg_dont_add = _("First name cannot be blank.")
-                                    empl_dict[field]['err'] = msg_dont_add
-                                    empl_dict[field]['val'] = saved_namefirst
-                                elif field in employee_upload:
-                                    new_namefirst = employee_upload[field]
-
-                    # validate if name already exists
-                                if new_namelast or new_namefirst:
-                                    check_namelast = new_namelast if new_namelast else saved_namelast
-                                    check_namefirst = new_namefirst if new_namefirst else saved_namefirst
-                                    msg_dont_add = validate_employee_name(check_namelast,
-                                                                        check_namefirst,
-                                                                        request.user.company,
-                                                                        this_pk)
-                                    if msg_dont_add is not None:
-                                        new_namelast = None
-                                        new_namefirst = None
-                                        empl_dict['namelast']['err'] = msg_dont_add
-                                        empl_dict['namelast']['val'] = saved_namelast
-                                        empl_dict['namefirst']['err'] = msg_dont_add
-                                        empl_dict['namefirst']['val'] = saved_namefirst
-                                    else:
-                                        if new_namelast:
-                                            if new_namelast != saved_namelast:
-                                                setattr(employee, 'namelast', new_namelast)
-                                                empl_dict['namelast']['upd'] = True
-                                                empl_dict['namelast']['val'] = new_namelast
-                                                save_record = True
-                                        if new_namefirst:
-                                            if new_namefirst != saved_namefirst:
-                                                setattr(employee, 'namefirst', new_namefirst)
-                                                empl_dict['namefirst']['upd'] = True
-                                                empl_dict['namefirst']['val'] = new_namefirst
-                                                save_record = True
-
-
-# ++++++++++++++ update rest of fields (new + existing) ++++++++++++++++++
-                        if employee:
-                            for field in ('prefix', 'email', 'telephone'):
-                                saved_value = getattr(employee, field,'')
-                                if 'blank_' + field in employee_upload:
-                                    if saved_value:
-                                        setattr(employee, field, None)
-                                        empl_dict[field] = {'upd': True, 'val': ''}
-                                        save_record = True
-
-                                elif field in employee_upload:
-                                    new_value = employee_upload[field]
-                                    if new_value != saved_value:
-                                        setattr(employee, field, new_value)
-                                        empl_dict[field] = {'upd': True, 'val': new_value}
-                                        save_record = True
-
-# update inactive field
-                            field = 'inactive'
-                            if field in employee_upload:
-                                new_value = False
-                                saved_value = getattr(employee, field, False)
-                                if employee_upload[field]: #if employee_upload[field].lower() == 'true':
-                                    new_value = True
-                                if new_value != saved_value:
-                                    setattr(employee, field, new_value)
-                                    empl_dict[field] = {'upd': True, 'val': employee.inactive}
-                                    save_record = True
-
-# update date field
-                            msg_dont_add = None
-                            field = 'datefirst'
-
-                            if field in employee_upload:
-                                if not field:
-                                    saved_datefirst = getattr(employee, field)
-                                    if saved_datefirst:
-                                        setattr(employee, field, None)
-                                        empl_dict[field] = {'upd': True}
-                                        save_record = True
-                                else:
-                                    new_value = employee_upload[field]
-                                    # logger.debug('new_value: ' +  str(new_value))
-                                    new_datefirst = get_date_from_ISOstring(new_value, False) # False = blank_allowed
-                                    # logger.debug('new_date: ' + str(new_datefirst))
-
-                                    saved_datefirst = employee.datefirst
-                                    # logger.debug('employee.datefirst: ' + str(employee.datefirst))
-
-                                    setattr(employee, 'datefirst', new_datefirst)
-                                    employee.save(request=self.request)
-
-                                    # logger.debug('aftersave employee.datefirst: ' + str(employee.datefirst))
-
-                                    if new_datefirst and employee.datelast:
-                                        msg_dont_add = check_date_overlap(new_datefirst, employee.datelast, True)
-                                    if msg_dont_add:
-                                        empl_dict[field] = {'err': msg_dont_add, 'val': employee.datefirst}
-                                    elif new_datefirst != saved_datefirst:
-                                        setattr(employee, field, new_datefirst)
-                                        empl_dict[field] = {'upd': True, 'val': employee.datefirst}
-                                        save_record = True
-
-# ++++++++++++++ save ++++++++++++++++++
-                            # remove empty elements from empl_dict
-                            for field in field_list:
-                                if not empl_dict[field]:
-                                    del empl_dict[field]
-                            # logger.debug('empl_dict: ' +  str(empl_dict))
-
-                            if save_record:
-                                employee.save(request=self.request)
-
-                                field = 'modifiedby'
-                                saved_value = getattr(employee, field)
-                                # logger.debug('saved_value: ' + str(saved_value))
-                                # logger.debug('saved_value.username_sliced: ' + str(saved_value.username_sliced))
-                                if saved_value:
-                                    empl_dict[field] = {'upd': True, 'val': saved_value.username_sliced}
-
-                                field = 'modifiedat'
-                                request_user_lang = '-'
-                                if request.user.lang:
-                                    request_user_lang = request.user.lang
-                                # logger.debug('request_user_lang: ' +  str(request_user_lang))
-
-                                saved_value = employee.modifiedat_str(request_user_lang)
-                                # logger.debug('saved_value: (' +  str(request_user_lang) + ') ' + str(saved_value))
-                                if saved_value:
-                                    empl_dict[field] = {'upd': True, 'val': saved_value}
-
-
-                        # logger.debug('empl_dict' + str(empl_dict) + str(type(empl_dict)))
-                        resp = json.dumps({'empl_upd': empl_dict}, cls=LazyEncoder)
-                        # logger.debug('resp:')
-                        # logger.debug(str(resp))
-
-            return HttpResponse(json.dumps({'empl_upd': empl_dict}, cls=LazyEncoder))
+# 9. return update_wrap
+            return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 # === EmployeeImportView ===================================== PR2019-03-09
 @method_decorator([login_required], name='dispatch')
@@ -547,41 +256,8 @@ class EmployeeImportView(View):
             #                      {'tsaKey': 'orderdatefirst', 'caption': _('First date order')},
             #                      {'tsaKey': 'orderdatelast', 'caption': _('Last date order')} ]
 # LOCALE #
-            if request.user.lang == LANG_EN:
-                coldef_list = [
-                    {'tsaKey': 'code', 'caption': 'Code'},
-                    {'tsaKey': 'namelast', 'caption': 'Last name'},
-                    {'tsaKey': 'namefirst', 'caption': 'First name'},
-                    {'tsaKey': 'prefix', 'caption': 'Prefix'},
-                    {'tsaKey': 'email', 'caption': 'Email address'},
-                    {'tsaKey': 'tel', 'caption': 'Telephone'},
-                    {'tsaKey': 'datefirst', 'caption': 'First date in service'}
-                ]
-
-                captions_dict = {'no_file': 'No file is currently selected',
-                                 'link_columns': 'Link columns',
-                                 'click_items': 'Click items to link or unlink columns',
-                                 'excel_columns': 'Excel columns',
-                                 'tsa_columns': 'TSA columns',
-                                 'linked_columns': 'Linked columns'}
-
-            else:
-                coldef_list = [
-                    {'tsaKey': 'code', 'caption': 'Code'},
-                    {'tsaKey': 'namelast', 'caption': 'Achternaam'},
-                    {'tsaKey': 'namefirst', 'caption': 'Voornaam'},
-                    {'tsaKey': 'prefix', 'caption': 'Tussenvoegsel'},
-                    {'tsaKey': 'email', 'caption': 'E-mail adres'},
-                    {'tsaKey': 'tel', 'caption': 'Telefoon'},
-                    {'tsaKey': 'datefirst', 'caption': 'Datum in dienst'},
-                ]
-
-                captions_dict = {'no_file': 'Er is geen bestand geselecteerd',
-                                 'link_columns': 'Koppel kolommen',
-                                 'click_items': 'Klik op namen om kolommen te koppelen of ontkoppelen',
-                                 'excel_columns': 'Excel kolommen',
-                                 'tsa_columns': 'TSA kolommen',
-                                 'linked_columns': 'Gekoppelde kolommen'}
+            coldef_list = COLDEF_EMPLOYEE[request.user.lang]
+            captions_dict = CAPTION_EMPLOYEE[request.user.lang]
 
 
 
@@ -844,169 +520,172 @@ class EmployeeImportUploadData(View):  # PR2018-12-04
                 # return HttpResponse(json.dumps(params))
                 return HttpResponse(json.dumps(params, cls=LazyEncoder))
 
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def create_employee(upload_dict, update_dict, request):
+    # --- create employee # PR2019-07-30
+    # Note: all keys in update_dict must exist by running create_dict_with_empty_attr first
+    # logger.debug(' --- create_customer_or_order')
+    # logger.debug(upload_dict)
+    # {'id': {'temp_pk': 'new_1', 'create': True, 'ppk': 1, 'table': 'customer'}, 'code': {'value': 'nw4', 'update': True}}
 
-def get_parent_instance_employee(update_dict, company):
-    # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-06-06
-    parent_instance = None
-    if company:
-        parent_instance = company
-        if parent_instance:
-            update_dict['id']['ppk'] = company.pk
-            update_dict['id']['table'] = 'employee'
-    return parent_instance
+    instance = None
 
+# 1. get_iddict_variables
+    id_dict = upload_dict.get('id')
+    if id_dict:
+        table = 'employee'
+        ppk_int = int(id_dict.get('ppk', 0))
+        temp_pk_str = id_dict.get('temp_pk', '')
 
+    # b. save temp_pk_str in in 'id' of update_dict'
+        if temp_pk_str:
+            # attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
+            update_dict['id']['temp_pk'] = temp_pk_str
+
+# 2. get parent instance
+        parent = get_parent(table, ppk_int, update_dict, request)
+        if parent:
+
+# 3. Get value of 'code'
+            code = None
+            code_dict = upload_dict.get('code')
+            if code_dict:
+                code = code_dict.get('value')
+
+            if code:
+
+    # c. validate code checks null, max len and exists
+                has_error = validate_code_or_name(table, 'code', code, parent, update_dict)
+
+                if not has_error:
+# 4. create and save 'customer' or 'order'
+                    instance = Employee(company=parent, code=code)
+                    instance.save(request=request)
+
+# 5. return msg_err when instance not created
+                    if instance.pk is None:
+                        msg_err = _('This employee could not be created.')
+                        update_dict['code']['error'] = msg_err
+                    else:
+
+# 6. put info in update_dict
+                        update_dict['id']['created'] = True
+
+    # logger.debug('update_dict: ' + str(update_dict))
+    return instance
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 #######################################################
-def update_employee_instance(instance, upload_dict, update_dict, request, user_lang):
+def update_employee(instance, parent, upload_dict, update_dict, request, user_lang):
     # --- update existing and new instance PR2019-06-06
     # add new values to update_dict (don't reset update_dict, it has values)
-    # logger.debug(' --- update_instance')
-    # logger.debug(upload_dict)
+    logger.debug(' --- update_employee')
+    logger.debug(upload_dict)
     # upload_dict: {'id': {'temp_pk': 'new_2', 'create': True, 'parent_pk': 3, 'table': 'order'},
     # 'code': {'update': True, 'value': 'ee'}}
 
     save_changes = False
+    has_error = False
 
-# - get_iddict_variables
+# 1. get_iddict_variables
     id_dict = upload_dict.get('id')
-    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename = get_iddict_variables(id_dict)
+    if id_dict:
+        pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename = get_iddict_variables(id_dict)
 
-# --- save changes in field 'code', required field
-    for field in ['code', 'namefirst', 'namelast']:
-        if field in upload_dict:
-            field_dict = upload_dict.get(field)
-            # logger.debug('field_dict: ' + str(field_dict))
+# 2. save changes in field 'code', required field
+        for field in ('code',):
+            if field in upload_dict:
+    # a. get new and old value
+                field_dict = upload_dict.get(field)
+                if 'update' in field_dict:
+                    logger.debug('field: ' + str(field) + ' field_dict: ' + str(field_dict))
+                    new_value = field_dict.get('value')
+                    saved_value = getattr(instance, field)
+                    logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
 
-            new_value = field_dict.get('value')
-            saved_value = getattr(instance, field, None)
-            # logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
+                # validate_code_or_name checks for null, too long and exists. Puts msg_err in update_dict
+                    has_error = validate_code_or_name('employee', field, new_value, parent, update_dict, instance.pk)
 
-            # fields are required
-            if new_value and new_value != saved_value:
-                setattr(instance, field, new_value)
-                # logger.debug('attr ' + field + 'saved to: ' + str(new_value))
-                update_dict[field]['updated'] = True
-                update_dict[field]['value'] = new_value
-                save_changes = True
-                # logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+                    if not has_error:
+                        if new_value and new_value != saved_value:
+                            setattr(instance, field, new_value)
+                            # logger.debug('attr ' + field + 'saved to: ' + str(new_value))
+                            update_dict[field]['updated'] = True
+                            save_changes = True
+                            # logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+        # update scheme_list when code has changed
+                            update_scheme_list = True
 
-# update scheme_list when code has changed
-            update_scheme_list = True
+        # TODO  # validate_employee_namelast_namefirst
+        # has_error = validate_employee_namelast_namefirst(namelast, namefirst, company, update_dict, this_pk=None):
 
-# --- save changes in date fields
-    for field in ['datefirst', 'datelast']:
-        # field_dict rosterdate: {'value': '2019-05-31', 'update':
-        if field in upload_dict:
-            field_dict = upload_dict.get(field)
-            # logger.debug('field_dict ' + field + ': ' + str(field_dict) + str(type(field_dict)))
-            field_value = field_dict.get('value')  # field_value: '2019-04-12'
-            new_date, msg_err = get_date_from_ISOstring(field_value, False)  # False = blank_allowed
-            if msg_err is not None:
-                update_dict[field]['err'] = msg_err
-            else:
-                saved_date = getattr(instance, field, None)
-                if new_date != saved_date:
-                    setattr(instance, field, new_date)
-                    update_dict[field]['updated'] = True
-                    save_changes = True
+# 3. save changes in fields 'namefirst', 'namelast'
+        for field in ['namefirst', 'namelast', 'identifier']:
+            if field in upload_dict:
+    # a. get new and old value
+                field_dict = upload_dict.get(field)
+                if 'update' in field_dict:
+                    new_value = field_dict.get('value')
+                    saved_value = getattr(instance, field)
+                    # logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
 
-    # --- save changes in date fields
-    for field in ['inactive']:
-        if field in upload_dict:
-            #  logger.debug('upload_dict: ' + str(upload_dict))
-            field_dict = upload_dict.get(field)
-            # logger.debug('field_dict: ' + str(field_dict))
+    # b. validate - see above
+    # c. save field if changed
+                    if new_value != saved_value:
+                        setattr(instance, field, new_value)
+                        update_dict[field]['updated'] = True
+                        save_changes = True
 
-            is_inactive = False
-            value = field_dict.get('value')
-            #  logger.debug('value: ' + str(value))
-            if value == 'true':
-                is_inactive = True
-            # logger.debug('is_inactive: ' + str(is_inactive) + ' type: ' + str(type(is_inactive)))
+# 3. save changes in date fields
+        for field in ['datefirst', 'datelast']:
+            if field in upload_dict:
+    # a. get new and old value
+                field_dict = upload_dict.get(field)
+                if 'update' in field_dict:
+                    new_value = field_dict.get('value')  # new_value: '2019-04-12'
+                    new_date, msg_err = get_date_from_ISOstring(new_value, False)  # False = blank_allowed
+    # b. validate value
+                    if msg_err:
+                        update_dict[field]['error'] = msg_err
+                    else:
+    # c. save field if changed and no_error
+                        old_date = getattr(instance, field, None)
+                        if new_date != old_date:
+                            setattr(instance, field, new_date)
+                            save_changes = True
+                            update_dict[field]['updated'] = True
+                            # logger.debug('date saved: ' + str(instance.datefirst))
 
-            saved_value = getattr(instance, field, None)
-            # logger.debug('saved_value: ' + str(saved_value) + ' type: ' + str(type(saved_value)))
+# 4. save changes in field 'inactive'
+        for field in ['inactive']:
+            if field in upload_dict:
+    # a. get new and old value
+                field_dict = upload_dict.get(field)
+                if 'update' in field_dict:
+                    value = field_dict.get('value')
+                    is_inactive = True  if value == 'true' else False
+                    saved_value = getattr(instance, field, None)
+                    # logger.debug('saved_value: ' + str(saved_value) + ' ' + str(type(saved_value)))
 
-            # fields are required
-            if is_inactive != saved_value:
-                setattr(instance, field, is_inactive)
-                # logger.debug('attr ' + field + 'saved to: ' + str(is_inactive))
-                update_dict[field]['updated'] = True
-                update_dict[field]['value'] = is_inactive
-                save_changes = True
-                # logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+                    if is_inactive != saved_value:
+    # b.  save field if no_error
+                        setattr(instance, field, is_inactive)
+                        update_dict[field]['updated'] = True
+                        save_changes = True
 
-    # logger.debug('update_dict: ' + str(update_dict))
+ # 5. save changes
+        if save_changes:
+            if save_changes:
+                try:
+                    instance.save(request=request)
+                except:
+                    msg_err = _('This employee could not be updated.')
+                    update_dict['id']['error'] = msg_err
 
-            # logger.debug('timeduration: ' + str(schemeitem.timeduration) + str(type(schemeitem.timeduration)))
-    # --- save changes
-    if save_changes:
-        instance.save(request=request)
-
-        for field in update_dict:
-            saved_value = getattr(instance, field)
-
-            date_fields = ['datefirst', 'datelast']
-            if field in date_fields:
-                if saved_value:
-                    update_dict[field] = fielddict_date(saved_value, user_lang)
-
-            text_fields = ['code', 'namelast', 'namefirst']
-            if field in text_fields:
-                if saved_value:
-                    update_dict[field]['value'] = saved_value
-
-
-
-# --- remove empty attributes from update_dict
-    remove_empty_attr_from_dict(update_dict)
-
-def validate_employee_name(namelast, namefirst, company, this_pk=None):
-    # validate if employee already_exists in this company PR2019-03-16
-    # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
-    # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    # logger.debug('employee_exists: ' + str(code) + ' ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(company) + ' ' + str(this_pk))
-    msg_dont_add = None
-
-    msg_dont_add = None
-    if not company:
-        msg_dont_add = _("No company.")
-    else:
-        if not namelast:
-            if not namefirst:
-                msg_dont_add = _("First and last name cannot be blank.")
-            else:
-                msg_dont_add = _("Last name cannot be blank.")
-        elif not namefirst:
-            msg_dont_add = _("First name cannot be blank.")
-    if msg_dont_add is None:
-        if len(namelast) > NAME_MAX_LENGTH:
-            if len(namefirst) > NAME_MAX_LENGTH:
-                msg_dont_add = _("First and last name are too long.") + str(NAME_MAX_LENGTH) + _(
-                    ' characters or fewer.')
-            else:
-                msg_dont_add = _("Last name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
-        elif len(namefirst) > NAME_MAX_LENGTH:
-            msg_dont_add = _("First name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
-
-        # check if first + lastname already exists
-        if msg_dont_add is None:
-            if this_pk:
-                name_exists = Employee.objects.filter(namelast__iexact=namelast,
-                                                      namefirst__iexact=namefirst,
-                                                      company=company
-                                                      ).exclude(pk=this_pk).exists()
-            else:
-                name_exists = Employee.objects.filter(namelast__iexact=namelast,
-                                                      namefirst__iexact=namefirst,
-                                                      company=company
-                                                      ).exists()
-            if name_exists:
-                msg_dont_add = _("This employee name already exists.")
-
-    return msg_dont_add
+# 6. put updated saved values in update_dict
+    create_employee_dict(instance, update_dict)
 
 
 

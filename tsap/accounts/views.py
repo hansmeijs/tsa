@@ -148,10 +148,13 @@ class UserAddView(CreateView):
                 new_user.company = request.user.company
 
 # ======  save field 'Username'  ============
+                new_username = form.cleaned_data.get('username')
                 # Add compayprefix to username
-                prefixed_username = new_user.company.companyprefix + form.cleaned_data.get('username')
+                prefixed_username = new_user.company.companyprefix + new_username
                 # logger.debug('prefixed_username: ' + str(prefixed_username))
                 new_user.username = prefixed_username
+                # store username without prefix in field 'first name', to be shown in user edit form
+                new_user.first_name = new_username
 
         # ======  save field 'Role'  ============
                 # only request.user with role=System  kan set different role, Company can only set its own role
@@ -302,7 +305,7 @@ class UserEditView(UserPassesTestMixin, UpdateView):
         if permit_list:
             for item in permit_list:
                 try:
-                    if int(item) == c.PERMIT_08_ADMIN:
+                    if int(item) == c.PERMIT_32_ADMIN:
                         cleaned_permit_has_admin = True
                     permit_sum = permit_sum + int(item)
                 except:
@@ -311,7 +314,7 @@ class UserEditView(UserPassesTestMixin, UpdateView):
         # add admin to permit if admin user has removed admin from his own permit list PR2018-08-25
         if user_equals_requestuser:
             if not cleaned_permit_has_admin:
-                permit_sum = permit_sum + c.PERMIT_08_ADMIN
+                permit_sum = permit_sum + c.PERMIT_32_ADMIN
 
         user.permits = permit_sum
 

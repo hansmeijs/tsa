@@ -9,7 +9,8 @@ from django.utils.translation import ugettext_lazy as _
 from tsap.constants import USERNAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, \
     CHOICES_ROLE, CHOICES_ROLE_DICT, IS_ACTIVE_DICT, \
     ROLE_00_EMPLOYEE, ROLE_01_COMPANY, ROLE_02_SYSTEM, \
-    PERMIT_DICT, PERMIT_00_NONE, PERMIT_01_READ, PERMIT_02_WRITE, PERMIT_04_AUTH, PERMIT_08_ADMIN
+    PERMIT_CHOICES, PERMIT_DICT, PERMIT_00_NONE, PERMIT_01_READ, PERMIT_02_EMPLOYEE, PERMIT_04_CONTROL, \
+    PERMIT_08_PLAN, PERMIT_16_AUDIT, PERMIT_32_ADMIN
 from tsap import authentication as auth
 from companies.models import Company
 from companies.models import Employee
@@ -136,12 +137,7 @@ class User(AbstractUser):
     @property
     def permits_str(self):
         # PR2018-05-26 permits_str displays list of permits un UserListForm, e.g.: 'Schooladmin, Authorize, Write'
-        permits_all_dict = {
-            PERMIT_01_READ: _('Read'),
-            PERMIT_02_WRITE: _('Write'),
-            PERMIT_04_AUTH: _('Authorize'),
-            PERMIT_08_ADMIN: _('Admin'),
-        }
+        permits_all_dict = PERMIT_DICT
         permits_str = ''
         if self.permits_tuple is not None:
             #logger.debug('class User(AbstractUser): permits_tuple: ' + str(self.permits_tuple))
@@ -204,12 +200,7 @@ class User(AbstractUser):
         # permit_choices: ((1, 'Read'), (2, 'Write'), (4, 'Authorize'), (8, 'Admin'))
 
         if self.role is not None:  # PR2018-05-31 debug: self.role = False when value = 0!!! Use is not None instead
-            choices = [
-                (PERMIT_01_READ, _('Read')),
-                (PERMIT_02_WRITE, _('Write')),
-                (PERMIT_04_AUTH, _('Authorize')),
-                (PERMIT_08_ADMIN, _('Admin'))
-            ]
+            choices = PERMIT_CHOICES
         else:
             # get permit 'None'
             choices = [(PERMIT_00_NONE, _('None'),),]
@@ -277,29 +268,9 @@ class User(AbstractUser):
     def is_perm_admin(self):
         has_permit = False
         if self.is_authenticated:
-            has_permit = PERMIT_08_ADMIN in self.permits_tuple
+            has_permit = PERMIT_32_ADMIN in self.permits_tuple
         return has_permit
 
-    @property
-    def is_perm_auth(self):
-        has_permit = False
-        if self.is_authenticated:
-            has_permit = PERMIT_04_AUTH in self.permits_tuple
-        return has_permit
-
-    @property
-    def is_perm_write(self):
-        has_permit = False
-        if self.is_authenticated:
-            has_permit = PERMIT_02_WRITE in self.permits_tuple
-        return has_permit
-
-    @property
-    def is_perm_read_only(self):
-        has_permit = False
-        if self.is_authenticated:
-            has_permit = PERMIT_01_READ in self.permits_tuple
-        return has_permit
 
     """
     @property

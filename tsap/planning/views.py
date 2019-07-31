@@ -3428,26 +3428,6 @@ def get_parent_instance(table, parent_pk_int, company):
     return parent
 
 
-def get_instance(table, pk_int, parent_instance):
-    # function returns instance of table PR2019-06-06
-    # logger.debug('====== get_instance: ' + str(table) + ' pk_int: ' + str(pk_int) + ' parent_instance: ' + str(parent_instance))
-
-    instance = None
-
-    if pk_int and parent_instance:
-        if table == 'scheme':
-            instance = Scheme.objects.get_or_none(id=pk_int, order=parent_instance)
-        elif table == 'team':
-            instance = Team.objects.get_or_none(id=pk_int, scheme=parent_instance)
-        elif table == 'emplhour':
-            instance = Emplhour.objects.get_or_none(id=pk_int, orderhour=parent_instance)
-        elif table == 'employee':
-            instance = Employee.objects.get_or_none(id=pk_int, company=parent_instance)
-        elif table == 'teammember':
-            instance = Teammember.objects.get_or_none(id=pk_int, team=parent_instance)
-
-    return instance
-
 def create_scheme(parent, upload_dict, update_dict, request, temp_pk_str=None):
     # --- create scheme # PR2019-07-21
     # Note: all keys in update_dict must exist by running create_dict_with_empty_attr first

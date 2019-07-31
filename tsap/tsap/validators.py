@@ -7,7 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_COLDEFS
 
-from companies.models import Company, Customer, Order, Employee, Scheme
+from companies.models import Company, Customer, Order, Employee, Scheme, Emplhour
 
 import logging
 logger = logging.getLogger(__name__)
@@ -181,28 +181,25 @@ class validate_unique_employee_name(object):  # PR2019-03-15
             raise ValidationError(_('Employee name already exists.'))
         return value
 
-def validate_code_or_name(table, field, new_value, parent, this_pk=None):
-    # validate if order code already_exists in this table PR2019-06-10
+def validate_code_or_name(table, field, new_value, parent, update_dict, this_pk=None):
+    # validate if code already_exists in this table PR2019-07-30
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    logger.debug('validate_code_or_name: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
+    # logger.debug('validate_code_or_name: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
     msg_err = None
     if not parent:
-        msg_err = _("Error.")
+        msg_err = _("No parent record.")
     else:
         max_len = CODE_MAX_LENGTH if field == 'code' else NAME_MAX_LENGTH
 
         length = 0
         if new_value:
             length = len(new_value)
-        logger.debug('length: ' + str(length))
+        # logger.debug('length: ' + str(length))
 
         fld = _('Code') if field == 'code' else _('Name')
         if length == 0:
-            if field == 'name':
-                msg_err = _('Name cannot be blank.')
-            else:
-                msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
+            msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
         elif length > max_len:
             # msg_err = _('%(fld)s is too long. %(max)s characters or fewer.') % {'fld': fld, 'max': max_len}
             msg_err = _("%(fld)s '%(val)s' is too long, %(max)s characters or fewer.") % {'fld': fld, 'val': new_value, 'max': max_len}
@@ -221,7 +218,10 @@ def validate_code_or_name(table, field, new_value, parent, this_pk=None):
             #logger.debug('table: ' + str(table) + 'field: ' + str(field) + ' new_value: ' + str(new_value))
 
             exists = False
-            if table == 'customer':
+            if table == 'employee':
+                crit.add(Q(company=parent), crit.connector)
+                exists = Employee.objects.filter(crit).exists()
+            elif table == 'customer':
                 crit.add(Q(company=parent), crit.connector)
                 exists = Customer.objects.filter(crit).exists()
             elif table == 'order':
@@ -230,15 +230,69 @@ def validate_code_or_name(table, field, new_value, parent, this_pk=None):
             elif table == 'scheme':
                 crit.add(Q(order=parent), crit.connector)
                 exists = Scheme.objects.filter(crit).exists()
-            elif table == 'employee':
-                crit.add(Q(company=parent), crit.connector)
-                exists = Employee.objects.filter(crit).exists()
             else:
                 msg_err = _("Model '%(mdl)s' not found.") % {'mdl': table}
-            if exists:
-                msg_err = _("%(fld)s '%(val)s' already exists.") % {'fld': fld, 'val': new_value}
 
-    return msg_err
+            if exists:
+                msg_err = _("'%(val)s' already exists.") % {'fld': fld, 'val': new_value}
+    if msg_err:
+        if table not in update_dict:
+            update_dict[field] = {}
+        update_dict[field]['error'] = msg_err
+
+    has_error = True if msg_err else False
+    return has_error
+
+
+def validate_employee_namelast_namefirst(namelast, namefirst, company, update_dict, this_pk=None):
+    # validate if employee already_exists in this company PR2019-03-16
+    # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
+    # if all(k in student for k in ('idnumber','lastname', 'firstname')):
+    # logger.debug('employee_exists: ' + str(code) + ' ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(company) + ' ' + str(this_pk))
+
+    field = 'namelast'
+    msg_err_namelast = None
+    msg_err_namefirst = None
+    has_error = False
+    if not company:
+        msg_err_namelast = _("No company.")
+    else:
+        # first name can be blank, last name not
+        if not namelast:
+            msg_err_namelast = _("Last name cannot be blank.")
+    if msg_err_namelast is None:
+        if len(namelast) > NAME_MAX_LENGTH:
+            msg_err_namelast = _("Last name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
+        elif len(namefirst) > NAME_MAX_LENGTH:
+            msg_err_namefirst = _("First name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
+
+        # check if first + lastname already exists
+        if msg_err_namelast is None and msg_err_namefirst is None:
+            if this_pk:
+                name_exists = Employee.objects.filter(namelast__iexact=namelast,
+                                                      namefirst__iexact=namefirst,
+                                                      company=company
+                                                      ).exclude(pk=this_pk).exists()
+            else:
+                name_exists = Employee.objects.filter(namelast__iexact=namelast,
+                                                      namefirst__iexact=namefirst,
+                                                      company=company
+                                                      ).exists()
+            if name_exists:
+                msg_err_namelast = _("This employee name already exists.")
+    if msg_err_namelast or msg_err_namefirst:
+        if msg_err_namelast:
+            has_error = True
+            if field not in update_dict:
+                update_dict[field] = {}
+            update_dict[field]['error'] = msg_err_namelast
+        if msg_err_namefirst:
+            has_error = True
+            if field not in update_dict:
+                update_dict[field] = {}
+            update_dict[field]['error'] = msg_err_namefirst
+
+    return has_error
 
 
 def employee_email_exists(email, company, this_pk = None):
@@ -263,6 +317,18 @@ def employee_email_exists(email, company, this_pk = None):
             msg_dont_add = _("This email address already exists.")
 
     return msg_dont_add
+
+
+def validate_employee_has_emplhours(instance, update_dict):
+    # validate if employee has emplhour records PR2019-07-30
+
+    has_emplhours = False
+    if instance:
+        has_emplhours = Emplhour.objects.filter(employee=instance).exists()
+        if has_emplhours:
+            msg_err = _("Employee '%(tbl)s' has shifts and cannot be deleted.") % {'tbl': instance.code}
+            update_dict['id']['error'] = msg_err
+    return has_emplhours
 
 
 def daterange_overlap(outer_datefirst, outer_datelast, inner_datefirst, inner_datelast=None ):

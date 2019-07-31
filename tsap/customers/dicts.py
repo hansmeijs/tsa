@@ -118,7 +118,7 @@ def create_order_dict(instance, item_dict):
                     if customer.code:
                         field_dict['value'] = customer.code
 
-            if field in ['code', 'name', 'identifier', 'inactive']:
+            elif field in ['code', 'name', 'identifier', 'inactive']:
                 value = getattr(instance, field, None)
                 if value:
                     field_dict['value'] = value

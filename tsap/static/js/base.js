@@ -132,6 +132,22 @@
         return row;
     }
 
+//========= get_listitem_by_pk  ===== PR2019-07-30
+    function get_listitem_by_pk (list, pk_int) {
+        "use strict";
+        // function searched in list for listitem with pk = pk_int, returns listitem when found
+        let listitem;
+        if (!!list && !!pk_int){
+            for (let i = 0, dict, len = list.length; i < len; i++) {
+                let dict = list[i];
+                if ("pk" in dict){
+                    if (dict["pk"]  === pk_int){
+                        listitem = dict;
+                        break;
+        }}}};
+        return listitem;
+    }
+
 //========= get_listitem_by_subkeyValue  ===== PR2018-06-01
     function get_listitem_by_subkeyValue (objArray, arrKey, arrSubKey, keyValue) {
         "use strict";

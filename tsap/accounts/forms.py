@@ -169,12 +169,13 @@ class UserEditForm(ModelForm):
     class Meta:
         User = get_user_model()
         model = User
-        fields = ('company', 'username', 'last_name', 'email', 'role')
+        fields = ('first_name', 'company', 'last_name', 'email')
         # PR2018-04-23 exclude doen't work, use pop instead in __int__
         # was: exclude = ('first_name','last_name')
         labels = {
+            'first_name': _('Username'),
             'last_name': _('Full name'),
-            'role': _('Organization'),
+            'email': _('Email address'),
         }
 
     # PR2018-08-19 VULNERABILITY: User Insp / School can access other users by entering: http://127.0.0.1:8000/users/6/edit
@@ -198,24 +199,24 @@ class UserEditForm(ModelForm):
         self.this_instance = kwargs.get('instance')
         logger.debug('UserEditForm __init__ instance ' + str(self.this_instance))
 
-        kwargs.update({'selected_username': self.this_instance.username})
-        # logger.debug('UserEditForm __init__ self.kwargs ' + str(kwargs))
+        # this one doesn't work - selected_username does not show in form PPR2019-07-29
+        #kwargs.update({'selected_username': self.this_instance.username_sliced})
+        #logger.debug('UserEditForm __init__ self.kwargs ' + str(kwargs))
 
         self.selecteduser_company_id = 0
         if self.this_instance.company:
             self.selecteduser_company_id = self.this_instance.company.id
         # logger.debug('UserEditForm __init__ self.selecteduser_countryid ' + str(self.selecteduser_countryid))
 
-    # ======= field 'Role' ============
-        # PR2018-10-14 lock filed Role. Was: Field 'Role' can only be modified by system + admin users.
-        #   _enabled = self.request_user.is_role_system
-        #   self.fields['role'].disabled = not self.request_user.is_role_system_perm_admin
-        self.fields['role'].disabled = True
 
-    # ======= field 'Company' ============
+     # ======= field 'Company' ============
         # PR2018-11-03 lock filed Company.
         self.fields['company'].disabled = True
 
+    # ======= field 'first_name' ============
+        # field 'first_name' stores username_sliced without 000001,
+        # field 'first_name' is not in use
+        self.fields['first_name'].disabled = True
 
         # ======= field 'dep_list' ============
         # TODO: Show only departments of selected school / examyear

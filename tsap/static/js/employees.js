@@ -9,7 +9,8 @@ $(function() {
         const cls_selected = "tsa_tr_selected";
 
         const cls_hide = "display_hide";
-        const col_count = 6;
+        const col_count = 7;
+
         SetMenubuttonActive(document.getElementById("id_hdr_empl"));
 
         let id_new = 0;
@@ -23,6 +24,8 @@ $(function() {
 // add event listener to all elements for closing popup window
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
         document.addEventListener('click', function (event) {
+            // event.currentTarget is the element to which the event handler has been attached (which is #document)
+            // event.target identifies the element on which the event occurred.
             let close_popup = true
             // don't close popup_dhm when clicked on row cell with class input_popup_dhm
             if (event.target.classList.contains("input_popup_wdy")) {
@@ -37,24 +40,31 @@ $(function() {
                 el_popup_wdy.classList.add("display_hide");
             };
             // remove highlighted row when clicked outside tabelrows
-            let tr_selected = get_tablerow_selected(event.target)
-            if(!tr_selected) {
-                selected_employee_pk = 0;
-                DeselectHighlightedRows(tblBody_items)};
+            // but don't deselect when cicked on id_submenu_employee_delete or any element in id_mod_empl_del
+            const skip = (el_mod_empl_del.contains(event.target) || event.target.id === "id_submenu_employee_delete")
+            if (!skip) {
+                let tr_selected = get_tablerow_selected(event.target)
+                if(!tr_selected) {
+                    console.log("set selected_employee_pk = 0")
+                    selected_employee_pk = 0;
+                    DeselectHighlightedRows(tblBody_items)};
+            }
         }, false);
 
-
 // remove highlighted row when clicked outside tabelrows
-        document.addEventListener('click', function (event) {
-            let tr_selected = get_tablerow_selected(event.target)
-            if(!tr_selected) {DeselectHighlightedRows(tblBody_items)}}, false);
+        //document.addEventListener('click', function (event) {
+        //    let tr_selected = get_tablerow_selected(event.target)
+        //    if(!tr_selected) {DeselectHighlightedRows(tblBody_items)}}, false);
 
-// buttons in  popup_wdy)
+// buttons in  modal employee delete)
+        let el_mod_empl_del = document.getElementById("id_mod_empl_del");
+        let el_mod_empl_del_btn_save = document.getElementById("id_mod_empl_del_btn_save");
+            el_mod_empl_del_btn_save.addEventListener("click", function() {ModalEmployeeDelete()}, false )
+
+// buttons in el_popup_date)
         let el_popup_wdy = document.getElementById("id_popup_wdy");
         let el_popup_date = document.getElementById("id_popup_date")
-            el_popup_date.addEventListener("change", function() {HandlePopupWdySave();}, false )
-        //let el_popup_wdy_save = document.getElementById("id_popup_wdy_save")
-        //el_popup_wdy_save.addEventListener("click", function() {HandlePopupWdySave();}, false )
+            el_popup_date.addEventListener("change", function() {PopupDateSave();}, false )
 
 // ---  create EventListener for class input_text
         // PR2019-03-03 from https://stackoverflow.com/questions/14377590/queryselector-and-queryselectorall-vs-getelementsbyclassname-and-getelementbyid
@@ -80,6 +90,7 @@ $(function() {
         let el_loader = document.getElementById("id_loading_img");
         let el_msg = document.getElementById("id_msgbox");
 
+
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
         const url_employee_upload = get_attr_from_el(el_data, "data-employee_upload_url");
@@ -95,6 +106,9 @@ $(function() {
         const comp_timezone = get_attr_from_el(el_data, "data-timezone");
         const weekday_list = get_attr_from_el_dict(el_data, "data-weekdays");
         const month_list = get_attr_from_el_dict(el_data, "data-months");
+
+// --- create Submenu
+        CreateSubmenu();
 
         DatalistDownload({"employee": {inactive: true}});
 
@@ -142,6 +156,36 @@ $(function() {
                 alert(msg + '\n' + xhr.responseText);
             }});
 }
+
+//=========  CreateSubmenu  === PR2019-07-30
+    function CreateSubmenu() {
+        console.log("===  CreateSubmenu == ");
+
+        let el_submenu = document.getElementById("id_submenu")
+        let el_div = document.createElement("div");
+        el_submenu.appendChild(el_div);
+
+        const url_employee_import = get_attr_from_el(el_data, "data-employee_import_url");
+
+    // --- first add <a> element with EventListener to td
+        let el_a = document.createElement("a");
+        el_a.setAttribute("href", url_employee_import);
+        el_a.innerText = get_attr_from_el_str(el_data, "data-txt_employee_import");
+        el_div.appendChild(el_a);
+
+    // --- first add <a> element with EventListener to td
+        el_a = document.createElement("a");
+        el_a.setAttribute("id", "id_submenu_employee_delete");
+        el_a.setAttribute("href", "#");
+        el_a.classList.add("mx-2")
+        el_a.innerText =  get_attr_from_el_str(el_data, "data-txt_employee_delete");
+        el_a.addEventListener("click", function() {ModalEmployeeDeleteOpen()}, false )
+        el_div.appendChild(el_a);
+
+        el_submenu.classList.remove("display_hide");
+
+    };//function CreateSubmenu
+
 
 //========= FillTableRows  ====================================
     function FillTableRows() {
@@ -203,8 +247,8 @@ $(function() {
 //+++ insert td's ino tblRow
         for (let j = 0, td, el; j < col_count; j++) {
             td = tblRow.insertCell(-1);
-// --- add img inactive to index_el_inactive
-            if (j === 5){
+// --- add img inactive to index_el_inactive, last column
+            if (j === col_count - 1){
                 if(!is_new_item){
         // --- add <a> element with EventListener to td
                     el = document.createElement("a");
@@ -221,9 +265,10 @@ $(function() {
                 if (j === 0){fieldname = "code"} else
                 if (j === 1){fieldname = "namefirst"} else
                 if (j === 2){ fieldname = "namelast"} else
-                if (j === 3){ fieldname = "datefirst"} else
-                if (j === 4){ fieldname = "datelast"} else
-                if (j === 5){ fieldname = "inactive"}
+                if (j === 3){ fieldname = "identifier"} else
+                if (j === 4){ fieldname = "datefirst"} else
+                if (j === 5){ fieldname = "datelast"} else
+                if (j === 6){ fieldname = "inactive"}
                 el.setAttribute("data-field", fieldname);
 
                 if (j === 0 && is_new_item ){
@@ -231,32 +276,33 @@ $(function() {
                 }
 
     // --- add EventListener to td
-                if ([0, 1, 2].indexOf( j ) > -1){
+                if ([0, 1, 2, 3].indexOf( j ) > -1){
                     el.addEventListener("change", function() {UploadChanges(el)}, false )} else
-                if ([3, 4].indexOf( j ) > -1){
-                    el.addEventListener("click", function() {OpenPopupWDY(el);}, false )};
-                if (j === 5) {
+                if ([4, 5].indexOf( j ) > -1){
+                    el.addEventListener("click", function() {PopupDateOpen(el);}, false )};
+                if (j === 6) {
                     el.addEventListener("click", function(){HandleInactiveClicked(el)}, false )
                 }
     // --- add text_align
-                if ( ([0, 1, 2].indexOf( j ) > -1) ){
+                if ( ([0, 1, 2, 3].indexOf( j ) > -1) ){
                     td.classList.add("text_align_left")
                 }
 
     // --- add margin to first column
-                if (j === 0 ){el.classList.add("mx-2")}
+                //if (j === 0 ){el.classList.add("mx-2")}
 
     // --- add width to time fields and date fileds
-                if (j === 0 ){el.classList.add("td_width_180")} else
+                if ([0,].indexOf( j ) > -1){el.classList.add("td_width_150")} else
                 if ([1, 2].indexOf( j ) > -1){el.classList.add("td_width_240")} else
-                if (j === 5 ){el.classList.add("td_width_032")} else
-                {el.classList.add("td_width_090")};
+                if ([3, 4, 5 ].indexOf( j ) > -1){el.classList.add("td_width_120")} else
+                if ([44, 54].indexOf( j ) > -1){el.classList.add("td_width_090")} else
+                if (j === 6 ){el.classList.add("td_width_032")}
 
     // --- add other classes to td
                 el.classList.add("border_none");
                 el.classList.add("input_text");
 
-                if ([3, 4].indexOf( j ) > -1){
+                if ([4, 5].indexOf( j ) > -1){
                     el.classList.add("input_popup_wdy");
                 };
 
@@ -307,6 +353,8 @@ $(function() {
                 tblRow.parentNode.removeChild(tblRow);
             } else if (!!msg_err){
                 //console.log("msg_err", msg_err);
+
+                tblRow.classList.remove("tsa_tr_error")
 
                 // was: let el_input = tblRow.querySelector("[name=code]");
                 //console.log("tblRow", tblRow)
@@ -379,7 +427,7 @@ $(function() {
                                         }, 2000);
                                 }
 
-                                if (["code", "namefirst", "namelast"].indexOf( fieldname ) > -1){
+                                if (["code", "namefirst", "namelast", "identifier"].indexOf( fieldname ) > -1){
                                    format_text_element (el_input, el_msg, field_dict)
                                 } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
                                    const hide_weekday = true, hide_year = false;
@@ -648,10 +696,110 @@ $(function() {
 
     }; // function HandleFilterEmployees
 
+//###################################
+//========= ModalEmployeeDeleteOpen====================================
+    function ModalEmployeeDeleteOpen () {
+        console.log("===  ModalEmployeeDeleteOpen  =====") ;
 
-//========= OpenPopupWDY  ====================================
-    function OpenPopupWDY(el_input) {
-        console.log("===  OpenPopupWDY  =====") ;
+        let el_modal = document.getElementById("id_mod_empl_del")
+        let el_mod_employee = document.getElementById("id_mod_employee")
+        let el_mod_employee_err = document.getElementById("id_mod_employee_err")
+        let el_mod_empl_del_btn_save = document.getElementById("id_mod_empl_del_btn_save")
+
+        el_mod_employee.innerText = null
+        el_mod_employee_err.innerText = null
+
+
+        if (!!selected_employee_pk) {
+            const listitem = get_listitem_by_pk (employee_list, selected_employee_pk)
+            const namefirst = get_subdict_value_by_key(listitem, "namefirst", "value")
+            const namelast = get_subdict_value_by_key(listitem, "namelast", "value")
+            el_mod_employee.innerText = namelast + ",  " + namefirst
+            console.log("selected_employee_pk", selected_employee_pk) ;
+            console.log("listitem", listitem) ;
+            el_mod_employee_err.classList.add("display_hide")
+        } else {
+            el_mod_employee_err.innerText =  get_attr_from_el_str(el_data, "data-err_msg_del_blank");
+            el_mod_employee_err.classList.remove("display_hide")
+        }
+
+        el_mod_empl_del_btn_save.disabled = (!selected_employee_pk);
+    // ---  show modal
+         $("#id_mod_empl_del").modal({backdrop: true});
+
+}; // function ModalEmployeeDeleteOpen
+
+//========= ModalEmployeeDelete====================================
+    function ModalEmployeeDelete () {
+        console.log("===  ModalEmployeeDelete  =====", selected_employee_pk) ;
+
+        //let el_popup_wdy = document.getElementById("id_popup_wdy")
+
+// ---  get pk_str from id of el_popup
+
+        if(!!selected_employee_pk){
+            const selected_employee_pk_str = selected_employee_pk.toString()
+            let tr_changed = document.getElementById(selected_employee_pk_str)
+
+            const tablename = "employee"
+            let row_upload = {};
+            let id_dict = {}
+            id_dict["pk"] = selected_employee_pk;
+            id_dict["delete"] = true;
+            id_dict["table"] = tablename
+
+            row_upload["id"] = id_dict;
+
+// make row red
+            tr_changed.classList.add("tsa_tr_error");
+
+            $("#id_mod_empl_del").modal("hide");
+
+            let parameters = {};
+            parameters["upload"] = JSON.stringify (row_upload);
+
+        console.log("parameters", parameters);
+            let response;
+            $.ajax({
+                type: "POST",
+                url: url_employee_upload,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                    console.log ("response", response);
+        // hide loader
+                    el_loader.classList.add(cls_hide)
+
+                    if ("employee_list" in response) {
+                        employee_list= response["employee_list"]}
+
+                    if ("item_update" in response) {
+                        let item_dict =response["item_update"]
+                        UpdateTableRow(tr_changed, item_dict)
+                        const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
+                    }
+                },
+                error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
+                    alert(msg + '\n' + xhr.responseText);
+                }
+            });
+
+
+            //popupbox_removebackground();
+            //el_popup_wdy.classList.add("display_hide");
+
+            //setTimeout(function() {
+            //    popupbox_removebackground();
+            //    el_popup_wdy.classList.add("display_hide");
+            //}, 2000);
+
+
+        }  // if(!!pk_str && !! parent_pk){
+        }
+//========= PopupDateOpen  ====================================
+    function PopupDateOpen(el_input) {
+        console.log("===  PopupDateOpen  =====") ;
 
         let el_popup_wdy = document.getElementById("id_popup_wdy")
 
@@ -687,7 +835,6 @@ $(function() {
 
             if (!!data_value){el_popup_date.value = data_value};
 
-
     // ---  position popup under el_input
             let popRect = el_popup_wdy.getBoundingClientRect();
             let inpRect = el_input.getBoundingClientRect();
@@ -707,12 +854,12 @@ $(function() {
 
         }  // if (!!tr_selected){
 
-}; // function OpenPopupWDY
+}; // function PopupDateOpen
 
 
-//=========  HandlePopupWdmySave  ================ PR2019-04-14
-    function HandlePopupWdySave() {
-console.log("===  function HandlePopupWdySave =========");
+//=========  PopupDateSave  ================ PR2019-04-14
+    function PopupDateSave() {
+        //console.log("===  function PopupDateSave =========");
 
         //let el_popup_wdy = document.getElementById("id_popup_wdy")
 
@@ -816,7 +963,7 @@ console.log("===  function HandlePopupWdySave =========");
 
 
         }  // if(!!pk_str && !! parent_pk){
-    }  // HandlePopupWdySave
+    }  // PopupDateSave
 
 
 //========= function pop_background_remove  ====================================

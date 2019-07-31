@@ -6,6 +6,48 @@
     <script src="{% static 'js/employees.js' %}"></script>
 {% endblock %}
 
+  <!-- MODAL -->
+{% block modal %}
+<!-- =================== MODAL EMPLOYEE DELETE  =================== -->
+    <div class="modal " id="id_mod_empl_del" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md " role="document">
+            <div class="modal-content">
+
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_mod_empl_del_header" class="modal-title mx-2" >{% trans 'Delete employee' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div  id="id_mod_empl_del_body" class="modal-body">
+
+                    <div class="modal_container">
+
+                        <div class="modal_body_left mx-2">
+                            <div>
+                            <h6 class="modal-title mx-2" >{% trans 'Delete employee' %}:</h6>
+                                <p id="id_mod_employee" class="mx-2"></p>
+                                <small id="id_mod_employee_err" class="color_invalid mx-2 display_hide"></small>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                    <button id="id_mod_empl_del_btn_save" type="button" class="btn btn-primary">{% trans 'Delete' %}</button>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL EMPLOYEE  =================== -->
+{% endblock %}
 {% block content %}
     {% if user.is_authenticated %}
         <div class="popup display_hide" >
@@ -55,11 +97,12 @@
                         <!-- =================== table Employees  =================== -->
                         <table class="table tsa-tbl">
                             <thead>
-                                <th >{% trans 'Code' %}</th>
+                                <th class="td_width_150"> {% trans 'Code' %}</th>
                                 <th >{% trans 'First name' %}</th>
                                 <th>{% trans 'Last name' %}</th>
-                                <th>{% trans 'First date in service' %}</th>
-                                <th>{% trans 'Last date in service' %}</th>
+                                <th class="td_width_120">{% trans 'Id' %}</th>
+                                <th class="td_width_120">{% trans 'First date in service' %}</th>
+                                <th class="td_width_120">{% trans 'Last date in service' %}</th>
                                 <th>
                                     <a id="id_filter_inactive" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
                                         <img id="id_img_filter_inactive" src="{% static 'img/inactive_grey.png' %}" height="24" width="24">
@@ -88,9 +131,13 @@
             data-today ="{{ today }}"
 
             data-employee_upload_url="{% url 'employee_upload_url' %}"
+            data-employee_import_url="{% url 'employee_import_url' %}"
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-err_msg01= "{% trans 'An error occurred.' %}"
+            data-err_msg_del_blank= "{% trans 'Please select an employee in the list first.' %}"
 
+            data-txt_employee_import= "{% trans 'Import employees' %}"
+            data-txt_employee_delete= "{% trans 'Delete employee' %}"
             data-txt_employee_add= "{% trans 'Add new employee' %}"
             data-txt_make_inactive= "{% trans 'Make employee inactive' %}"
             data-txt_make_active= "{% trans 'Make employee active' %}"

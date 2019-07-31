@@ -124,7 +124,6 @@ class Company(TsaBaseModel):
     timeformat = CharField(max_length=4, choices=TIMEFORMAT_CHOICES,
         default=TIMEFORMAT_24h)
 
-
     class Meta:
         ordering = [Lower('code')]
 
@@ -360,10 +359,10 @@ class Employee(TsaBaseModel):
     prefix = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     email = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
-    identifier  = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    identifier = CharField(db_index=True, max_length=USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
 
     wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
-    workhours = IntegerField(default=0) # /hours per month
+    workhours = IntegerField(default=0) # /hours per week
     leavedays = IntegerField(default=0) # /leave ays per year, full time
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
@@ -412,45 +411,6 @@ class Employee(TsaBaseModel):
                 update_dict['id']['temp_pk'] = temp_pk_str
 
         return instance
-
-    @classmethod
-    def get_instance(cls, pk_int, update_dict, company):
-        # function returns instance of employee, adds to  update_dict  PR2019-06-06
-        logger.debug('----- get_instance -----')
-        employee = None
-        parent_pk_int = None
-        if pk_int:
-            try:
-                employee = cls.objects.get(id=pk_int, company=company)
-                parent_pk_int = employee.company.pk
-            except:
-                pass
-        # logger.debug('pk_int: ' + str(pk_int), 'parent_pk_int: ' + str(parent_pk_int))
-        # logger.debug('employee: ' + str(employee))
-
-        if employee:
-            update_dict['id']['pk'] = pk_int
-            if parent_pk_int:
-                update_dict['id']['ppk'] = parent_pk_int
-            update_dict['id']['table'] = 'employee'
-        return employee
-
-    @classmethod
-    def delete_instance(cls, pk_int, parent_pk_int, update_dict, request):
-        # function deletes instance of table,  PR2019-06-06
-        instance = None
-        if pk_int and parent_pk_int:
-            instance = cls.objects.filter(id=pk_int, customer__id=parent_pk_int).first()
-
-        if instance:
-            try:
-                instance.delete(request=request)
-                update_dict['id']['deleted'] = True
-            except:
-                msg_err = _('This order could not be deleted.')
-                update_dict['id']['error'] = msg_err
-
-        return update_dict
 
 
 class Teammember(TsaBaseModel):
@@ -642,8 +602,72 @@ class Companysetting(Model):  # PR2019-03-09
                     row = cls(company=company, key=key_str, setting=setting)
             row.save()
 
-        logger.debug('row.setting: ' + str(row.setting))
+        # logger.debug('row.setting: ' + str(row.setting))
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def get_parent(table, ppk_int, update_dict, request):
+    # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-07-30
+    parent = None
+    logger.debug(' --- get_parent --- ')
+
+    logger.debug('table: ' + str(table))
+    if table:
+        if request.user.company:
+            company = request.user.company
+            if table in ('employee', 'customer'):
+                parent = company
+            elif ppk_int:
+                if table == 'order':
+                    parent = Customer.objects.get_or_none(id=ppk_int, company=company)
+                elif table  in ('orderhour', 'scheme'):
+                    parent = Order.objects.get_or_none(id=ppk_int, customer__company=company)
+                elif table == 'emplhour':
+                    parent = Orderhour.objects.get_or_none(id=ppk_int, order__customer__company=company)
+                elif table in ('team', 'schemeitem'):
+                    parent = Scheme.objects.get_or_none(id=ppk_int, order__customer__company=company)
+                elif table == 'teammember':
+                    parent = Team.objects.get_or_none(id=ppk_int, scheme__order__customer__company=company)
+
+            if parent:
+                if 'id' not in update_dict:
+                    update_dict['id'] = {}
+                update_dict['id']['ppk'] = parent.pk
+                update_dict['id']['table'] = table
+
+    return parent
+
+
+def get_instance(table, pk_int, update_dict, parent):
+    # function returns instance of table PR2019-07-30
+    # logger.debug('====== get_instance: ' + str(table) + ' pk_int: ' + str(pk_int) + ' parent: ' + str(parent))
+
+    instance = None
+
+    if table and pk_int and parent:
+        if table == 'employee':
+            instance = Employee.objects.get_or_none(id=pk_int, company=parent)
+        elif table == 'customer':
+            instance = Customer.objects.get_or_none(id=pk_int, company=parent)
+        elif table == 'order':
+            instance = Order.objects.get_or_none(id=pk_int, customer=parent)
+        elif table == 'orderhour':
+            instance = Orderhour.objects.get_or_none(id=pk_int, order=parent)
+        elif table == 'scheme':
+            instance = Scheme.objects.get_or_none(id=pk_int, order=parent)
+        elif table == 'team':
+            instance = Team.objects.get_or_none(id=pk_int, scheme=parent)
+        elif table == 'teammember':
+            instance = Teammember.objects.get_or_none(id=pk_int, team=parent)
+        elif table == 'emplhour':
+            instance = Emplhour.objects.get_or_none(id=pk_int, orderhour=parent)
+
+        if instance:
+            if 'id' not in update_dict:
+                update_dict['id'] = {}
+            update_dict['id']['pk'] = instance.pk
+            # update_dict['id']['table'] = table. This is added in get_parent
+    return instance
+
 
 def delete_instance(instance, update_dict, request, this_text=None):
     # function deletes instance of table,  PR2019-07-21
@@ -653,7 +677,6 @@ def delete_instance(instance, update_dict, request, this_text=None):
             instance.delete(request=request)
             update_dict['id']['deleted'] = True
         except:
-            msg_err = ''
             if this_text:
                 msg_err = _('%(tbl)s could not be deleted.') % {'tbl': this_text}
             else:

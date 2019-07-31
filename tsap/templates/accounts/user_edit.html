@@ -3,18 +3,9 @@
 
 {% block title %}{{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
-  <ol class="breadcrumb my-3">
-    <li class="breadcrumb-item"><a href="{% url 'home' %}">TSA-secure</a></li>
-    <li class="breadcrumb-item"><a href="{% url 'user_list_url' %}">{% trans 'Users' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'Edit user' %}{{selected_username}}</li>
-  </ol>
-{% endblock %}
-
 {% block content %}
   {% if user.permit_user_modify %}
-    <h4>{% trans 'Edit user:' %} {{selected_username}}</h4>
-    <h4>{% trans 'Request user:' %} {{user.username}}</h4>
+      <h4 class="mt-4">{% trans 'Edit user:' %}</h4>
       <form method="post" novalidate>
         {% csrf_token %}
          <input type="hidden" name="next" value="{{ next }}">
@@ -23,7 +14,7 @@
 
         <div class="mb-3">
             <button type="submit" class="btn btn-primary">Save</button>
-            <a href="{% url 'user_delete_url' user.pk %}" class="btn btn-danger">{% trans 'Delete' %}</a>
+           <!--  <a href="{% url 'user_delete_url' user.pk %}" class="btn btn-danger">{% trans 'Delete' %}</a> -->
             <a href="{% url 'user_list_url' %}" class="btn btn-outline-secundary">Cancel</a>
         </div>
       </form>

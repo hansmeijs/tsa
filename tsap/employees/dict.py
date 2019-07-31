@@ -23,34 +23,53 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
 
     employee_list = []
     for employee in employees:
-        dict = create_employee_dict(employee)
-        employee_list.append(dict)
+        item_dict = {}
+        create_employee_dict(employee, item_dict)
+        employee_list.append(item_dict)
     return employee_list
 
-def create_employee_dict(instance):
+
+def create_employee_dict(instance, item_dict):
 # --- create dict of this employee PR2019-07-26
-    dict = {}
+
     if instance:
         parent_pk = instance.company.pk
 
-        dict['pk'] = instance.pk
-        dict['id'] = {'pk': instance.pk, 'ppk': parent_pk, 'table': 'employee'}
 
-        for field in ('code', 'namelast', 'namefirst', 'identifier', 'datefirst', 'datelast', 'inactive'):
-            dict[field] = {}
-            value = getattr(instance, field)
-            if value:
-                if field in ['code', 'namelast', 'namefirst', 'identifier', 'inactive']:
-                    dict[field] = {'value': value}
+        for field in ('pk', 'id', 'code', 'namelast', 'namefirst', 'identifier', 'datefirst', 'datelast', 'inactive'):
+            if field in item_dict:
+                field_dict = item_dict[field]
+            else:
+                field_dict ={}
+
+            if field == 'pk':
+                field_dict = instance.pk
+
+            elif field == 'id':
+                field_dict['pk'] = instance.pk
+                field_dict['ppk'] = instance.company.pk
+                field_dict['table'] = 'employee'
+
+            elif field in ['code', 'namelast', 'namefirst','identifier', 'inactive']:
+                value = getattr(instance, field, None)
+                if value:
+                    field_dict['value'] = value
+
             # also add date when empty, to add min max date
-            if field == 'datefirst':
-                maxdate = getattr(instance, 'datelast')
-                set_fielddict_date(dict=dict[field], dte=value, maxdate=maxdate)
-            elif field == 'datelast':
+            elif field in ['datefirst', 'datelast']:
                 mindate = getattr(instance, 'datefirst')
-                set_fielddict_date(dict=dict[field], dte=value, mindate=mindate)
+                maxdate = getattr(instance, 'datelast')
+                if mindate or maxdate:
+                    if field == 'datefirst':
+                        set_fielddict_date(dict=field_dict, dte=mindate, maxdate=maxdate)
+                    elif field == 'datelast':
+                        set_fielddict_date(dict=field_dict, dte=maxdate, mindate=mindate)
 
-    return dict
+            item_dict[field] = field_dict
+# >>>   create_employee_dict
+
+
+
 
 
 def create_teammember_list(order, inactive=None, rangemin=None, rangemax=None):

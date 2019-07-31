@@ -26,28 +26,44 @@ CHOICES_ROLE_DICT = {
     ROLE_02_SYSTEM: _('System')
 }
 
-# PR2019-02-28
+# PR2019-07-30
 PERMIT_00_NONE = 0
 PERMIT_01_READ = 1
-PERMIT_02_WRITE = 2
-PERMIT_04_AUTH = 4
-PERMIT_08_ADMIN = 8
+PERMIT_02_EMPLOYEE = 2
+PERMIT_04_CONTROL = 4
+PERMIT_08_PLAN = 8
+PERMIT_16_AUDIT = 16
+PERMIT_32_ADMIN = 32
+
 
 # PR2018-12-23 used in set_menu_items
-PERMIT_STR_00_NONE = 'none'
-PERMIT_STR_01_READ = 'read'
-PERMIT_STR_02_WRITE = 'write'
-PERMIT_STR_04_AUTH = 'auth'
-PERMIT_STR_08_ADMIN = 'admin'
-PERMIT_STR_15_ALL = 'all'
+PERMIT_TXT_00_NONE = _('None')
+PERMIT_TXT_01_READ = _('Read only')
+PERMIT_TXT_02_EMPLOYEE = _('Employee')
+PERMIT_TXT_04_CONTROL = _('Controller')
+PERMIT_TXT_08_PLAN = _('Planner')
+PERMIT_TXT_16_AUDIT = _('Auditor')
+PERMIT_TXT_32_ADMIN = _('Administrator')
 
 PERMIT_DICT = {
-    PERMIT_00_NONE: PERMIT_STR_00_NONE,
-    PERMIT_01_READ: PERMIT_STR_01_READ,
-    PERMIT_02_WRITE: PERMIT_STR_02_WRITE,
-    PERMIT_04_AUTH: PERMIT_STR_04_AUTH,
-    PERMIT_08_ADMIN: PERMIT_STR_08_ADMIN
+    PERMIT_00_NONE: PERMIT_TXT_00_NONE,
+    PERMIT_01_READ: PERMIT_TXT_01_READ,
+    PERMIT_02_EMPLOYEE: PERMIT_TXT_02_EMPLOYEE,
+    PERMIT_04_CONTROL: PERMIT_TXT_04_CONTROL,
+    PERMIT_08_PLAN: PERMIT_TXT_08_PLAN,
+    PERMIT_16_AUDIT: PERMIT_TXT_16_AUDIT,
+    PERMIT_32_ADMIN: PERMIT_TXT_32_ADMIN
 }
+
+PERMIT_CHOICES = [
+    (PERMIT_01_READ, PERMIT_TXT_01_READ),
+    (PERMIT_02_EMPLOYEE, PERMIT_TXT_02_EMPLOYEE),
+    (PERMIT_04_CONTROL, PERMIT_TXT_04_CONTROL),
+    (PERMIT_08_PLAN, PERMIT_TXT_08_PLAN),
+    (PERMIT_16_AUDIT, PERMIT_TXT_16_AUDIT),
+    (PERMIT_32_ADMIN, PERMIT_TXT_32_ADMIN)
+]
+
 
 IS_ACTIVE_DICT = {  # PR2019-02-28
     0: _('Inactive'),
@@ -195,3 +211,41 @@ SCHEME_24H_DEFAULT  =  ((1, 0, 0), (1, 1, 1), (1, 2, 2),  # cycleday, shift, tea
                         (14, 0, 3), (14, 1, 0), (14, 2, 2),
                         (15, 0, 3), (15, 1, 1), (15, 2, 2),
                         (16, 0, 3), (16, 1, 1), (16, 2, 2))
+
+# LOCALE #
+
+COLDEF_EMPLOYEE = {LANG_EN: [
+                                {'tsaKey': 'code', 'caption': 'Code'},
+                                {'tsaKey': 'namelast', 'caption': 'Last name'},
+                                {'tsaKey': 'namefirst', 'caption': 'First name'},
+                                {'tsaKey': 'identifier', 'caption': 'Id'},
+                                {'tsaKey': 'email', 'caption': 'Email address'},
+                                {'tsaKey': 'tel', 'caption': 'Telephone'},
+                                {'tsaKey': 'datefirst', 'caption': 'First date in service'}
+                            ],
+                    LANG_NL: [
+                                {'tsaKey': 'code', 'caption': 'Code'},
+                                {'tsaKey': 'namelast', 'caption': 'Achternaam'},
+                                {'tsaKey': 'namefirst', 'caption': 'Voornaam'},
+                                {'tsaKey': 'identifier', 'caption': 'Id'},
+                                {'tsaKey': 'email', 'caption': 'E-mail adres'},
+                                {'tsaKey': 'tel', 'caption': 'Telefoon'},
+                                {'tsaKey': 'datefirst', 'caption': 'Datum in dienst'},
+                            ]
+                    }
+
+CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
+                                 'link_columns': 'Link columns',
+                                 'click_items': 'Click items to link or unlink columns',
+                                 'excel_columns': 'Excel columns',
+                                 'tsa_columns': 'TSA columns',
+                                 'linked_columns': 'Linked columns'},
+                    LANG_NL: {'no_file': 'Er is geen bestand geselecteerd',
+                                 'link_columns': 'Koppel kolommen',
+                                 'click_items': 'Klik op namen om kolommen te koppelen of ontkoppelen',
+                                 'excel_columns': 'Excel kolommen',
+                                 'tsa_columns': 'TSA kolommen',
+                                 'linked_columns': 'Gekoppelde kolommen'}
+                    }
+
+

@@ -157,8 +157,8 @@ a:hover{
     text-align: center;
     padding: 4px 8px;
     color: #376191;  /*FooterBackColor Default Schema Blauw donkerblauw */
-    background-color: #F5FAFF; /*licht licht blauw; */
-
+    /* background-color: #F5FAFF; /*licht licht blauw; */
+    background: transparent; /* #f8f8f8; /*licht licht grijs; */
 
 }
 
@@ -263,11 +263,14 @@ a:hover{
 
     color: #376191;  /*FooterBackColor Default Schema Blauw donkerblauw */
 }
+
 .c_grid_colExcel {
     -ms-grid-row: 3;
     -ms-grid-column: 1;
     grid-area: c_grid_colExcel;
-    background-color:  #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
+   /* background-color:  #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
+    background-color: #B8CCE4; /* 'TextboxBackColor Default Schema Blauw lichtblauw */
+
     color: #ffffff;
     width: 100%
 }
@@ -277,7 +280,7 @@ a:hover{
 
 .c_colExcelAwp_tr {
     /*background-color:    #a5c2ff; lighter blueish*/
-    background-color: #B8CCE4; /* 'TextboxBackColor Default Schema Blauw lichtblauw */ /* #4A7DBB; /* 'TextboxBackColor Default Schema Blauw medium blauw */
+    /*background-color: #B8CCE4; /* 'TextboxBackColor Default Schema Blauw lichtblauw */ /* #4A7DBB; /* 'TextboxBackColor Default Schema Blauw medium blauw */
     color: #ffffff;
 
     color: #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
@@ -415,7 +418,7 @@ a:hover{
 .c_form_select {
     font-size: 14px;
     margin: 8px;
-    width: 96px;
+    width: 240px;
     /*color: #E3EBF4; /*HeaderForeColor Default Schema Blauw */
     color: #376191;  /*FooterBackColor Default Schema Blauw donkerblauw */
 }
@@ -497,8 +500,8 @@ a:hover{
 }*/
 
 .submit-button {
-    font-size: 14px;
-    font-weight: bold;
+    font-size: 18px;
+    /*font-weight: bold;*/
     line-height: 32px;
     padding: 4px 8px;
     margin: 4px;
@@ -507,7 +510,7 @@ a:hover{
     background-color: #B8CCE4; /* 'TextboxBackColor Default Schema Blauw lichtblauw */
     border: 1px solid rgba(0,0,0,0.25);
     cursor: pointer;
-    width: 6em;
+    width: 18em;
     display: -ms-grid;
     display: grid;
 }

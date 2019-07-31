@@ -17,7 +17,6 @@ from tsap.functions import get_date_from_ISOstring, get_date_WDM_from_dte, forma
 from tsap.constants import KEY_COMP_ROSTERDATE_CURRENT, KEY_USER_EMPLHOUR_PERIOD, \
     CAT_00_NORMAL, CAT_01_INTERNAL, CAT_02_ABSENCE, CAT_03_TEMPLATE
 
-from tsap.validators import validate_code_or_name
 
 import pytz
 import json

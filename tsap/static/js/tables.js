@@ -91,9 +91,7 @@
 //========= get_tablerow_clicked  =============
     function get_tablerow_clicked(el_clicked){
         //console.log("=========  get_tablerow_clicked =========");
-        // PR2019-02-09 function gets id of clicked tablerow, highlights this tablerow
-        // currentTarget refers to the element to which the event handler has been attached
-        // event.target identifies the element on which the event occurred.
+
 
         let tr_clicked;
         if(!!el_clicked) {
@@ -164,8 +162,6 @@
         }
         return dict;
     }
-
-
 
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1452,8 +1448,9 @@
         // function gets row_clicked.id, row_other_id, row_clicked_key, row_other_key
         // sets class 'highlighted' and 'hover'
         // and calls 'linkColumns' or 'unlinkColumns'
-// currentTarget refers to the element to which the event handler has been attached
-// event.target which identifies the element on which the event occurred.
+
+        // event.currentTarget is the element to which the event handler has been attached (which is #document)
+        // event.target identifies the element on which the event occurred.
 console.log("=========   handle_table_row_clicked   ======================") ;
 //console.log("e.target.currentTarget.id", e.currentTarget.id) ;
 
