@@ -1,10 +1,9 @@
 # PR2019-02-28
-from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL
+from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL, Sum
 from django.db.models import CharField, BooleanField, PositiveSmallIntegerField, IntegerField, \
     DateField, DateTimeField, Q
-from django.db.models.functions import Upper, Lower
+from django.db.models.functions import Lower
 
-from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from datetime import datetime
@@ -12,8 +11,7 @@ from datetime import datetime
 from tsap.settings import AUTH_USER_MODEL, TIME_ZONE
 from tsap.constants import USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, NAME_MAX_LENGTH, \
     TIMEFORMAT_CHOICES, TIMEFORMAT_24h
-from tsap.functions import get_date_yyyymmdd, get_date_longstr_from_dte, get_date_WDM_from_dte, \
-    format_WDMY_from_dte, format_DMY_from_dte, fielddict_date
+from tsap.functions import get_date_yyyymmdd, get_date_longstr_from_dte
 
 import pytz
 
@@ -564,6 +562,8 @@ class Companyinvoice(Model):  # PR2019-04-06
     inactive = None
 
 
+
+
 class Companysetting(Model):  # PR2019-03-09
     # PR2018-07-20 from https://stackoverflow.com/questions/3090302/how-do-i-get-the-object-if-it-exists-or-none-if-it-does-not-exist
     objects = TsaManager()
@@ -602,7 +602,27 @@ class Companysetting(Model):  # PR2019-03-09
             row.save()
 
         # logger.debug('row.setting: ' + str(row.setting))
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# ===========  get_entry_balance
+def get_entry_balance(request, comp_timezone):  # PR2019-08-01
+    # function returns avalable balance
+    # logger.debug('---  get_entry_balance  ------- ')
+
+    balance = 0
+    if request.user.company:
+ # a. get today in comp_timezone
+        timezone = pytz.timezone(comp_timezone)
+        today = datetime.now(timezone).date()
+        # datetime.now(timezone): 2019-08-01 21:24:20.898315+02:00 <class 'datetime.datetime'>
+        # today:2019-08-01 <class 'datetime.date'>
+
+        crit = Q(company=request.user.company) & \
+               (Q(dateexpired__gte=today) | Q(dateexpired__isnull=True))
+        balance = Companyinvoice.objects.filter(crit).aggregate(Sum('balance'))
+        # from https://simpleisbetterthancomplex.com/tutorial/2016/12/06/how-to-create-group-by-queries.html
+    return balance
 
 def get_parent(table, ppk_int, update_dict, request):
     # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-07-30

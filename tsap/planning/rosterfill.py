@@ -20,7 +20,7 @@ from planning.dicts import get_rosterdatefill_dict, create_emplhour_list,\
 
 from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 
-from companies.models import Schemeitem, Teammember, Emplhour, Orderhour, Companysetting
+from companies.models import Schemeitem, Teammember, Emplhour, Orderhour, Companysetting, get_entry_balance
 
 import json
 
@@ -92,40 +92,29 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
         update_dict_json = json.dumps(update_dict, cls=LazyEncoder)
         return HttpResponse(update_dict_json)
 
-
-
-
 #######################################################
 
-def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-06-17
+def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-08-01
     logger.debug(' ============= FillRosterdate ============= ')
+    logger.debug('new_rosterdate: ' + str(new_rosterdate) + ' ' + str(type(new_rosterdate)))
+    logger.debug('isocalendar year: ' + str(new_rosterdate.isocalendar()[0]))
+    logger.debug('isocalendar weeknr: ' + str(new_rosterdate.isocalendar()[1]))
+    logger.debug('isocalendar: daynr' + str(new_rosterdate.isocalendar()[2]))
+    logger.debug('isocalendar' + str(new_rosterdate.isocalendar()))
+    # new_rosterdate: 2019-04-10 <class 'datetime.date'>
 
     if new_rosterdate:
-
         # update schemeitem rosterdate.
         # before filling emplhours with rosterdate you must update the schemitems.
         # rosterdates that are before the new rosterdate must get a date on or aftter the new rosterdate
 
-        # - create recordset of schemeitem records with rosterdate = new_rosterdate
-        # from: https://stackoverflow.com/questions/5235209/django-order-by-position-ignoring-null
-        # Coalesce works by taking the first non-null value.  So we give it
-        # a date far before any non-null values of last_active.  Then it will
-        # naturally sort behind instances of Box with a non-null last_active value.
+       #  entry_count = 0
+       #  entry_balance = get_entry_balance(request, comp_timezone)
 
-# - create recordset of schemeitem records with rosterdate = new_rosterdate
-        # from: https://stackoverflow.com/questions/5235209/django-order-by-position-ignoring-null
-        # Coalesce works by taking the first non-null value.  So we give it
-        # a date far before any non-null values of last_active.  Then it will
-        # naturally sort behind instances of Box with a non-null last_active value.
-        #crit = (Q(rosterdate=new_rosterdate)) & \
-        #       (Q(scheme__order__customer__company=request.user.company)) & \
-        #       (Q(scheme__datefirst__lte=new_rosterdate) | Q(scheme__datefirst__isnull=True)) & \
-        #       (Q(scheme__datelast__gte=new_rosterdate) | Q(scheme__datelast__isnull=True))
-
-        #   Cat <= 1 (      # 0 = normal, 1 = internal, 2 = absence, 3 = template
-        #   Exclude cat absence, 3 = template Cat <= 1 (0 = normal, 1 = internal, 2 = absence, 3 = template)
+# 1. create a recordset of schemeitem records with rosterdate = new_rosterdate
+        #   Exclude cat absence and template (0 = normal, 1 = internal, 2 = absence, 3 = template)
         #   Exclude inactive scheme)
-
+        #  order and scheme must be in range datefirst - datelast
         crit = Q(scheme__order__customer__company=request.user.company)  & \
                Q(scheme__cat__lte=CAT_01_INTERNAL) & \
                Q(scheme__inactive=False) & \
@@ -140,149 +129,104 @@ def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-06-17
         logger.debug('new_rosterdate: ' + str(new_rosterdate))
         for schemeitem in schemeitems:
 
-# update the rosterdate of schemeitem when it is outside the current cycle,
+# 2. update the rosterdate of schemeitem when it is outside the current cycle,
             update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone)
 
-# create new record, only if schemeitem.rosterdate == new_rosterdate
+# 3. skip if schemeitem.rosterdate does not equal new_rosterdate
             if schemeitem.rosterdate == new_rosterdate:
-                # logger.debug('schemeitem.rosterdate == new_rosterdate: ')
                 logger.debug('schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' shift: ' + str(schemeitem.shift))
 
-# check if orderhour from this schemeitem and this rosterdate already exists
-                skip_update = False
+                oh_is_locked = False
+# 4. update existing orderhour that is linked to this schemeitem
+    # a. check if an orderhour from this schemeitem and this rosterdate already exists
 
-                is_update = False
-                # there should be only one orderhour with this schemeitem and rosterdate
-                # TODO handle existing orderhour records
-                # orderhour = Orderhour.objects.filter(schemeitem=schemeitem, rosterdate=schemeitem.rosterdate).first()
-                orderhour = None # to be removed
+                # field sof ordrehour are:
+                #   order, schemeitem, rosterdate, yearindex, monthindex, weekindex,
+                #   shift, duration, status, rate, amount, taxrate, locked, modifiedby, modifiedat
+
+                orderhour = Orderhour.objects.filter(
+                    schemeitem=schemeitem,
+                    order = schemeitem.scheme.order,
+                    rosterdate=schemeitem.rosterdate).first()
                 if orderhour:
-                    logger.debug('orderhour shift: ' + str(orderhour.shift) + ' status: ' + str(orderhour.status))
-                    # check status: skip if STATUS_02_START_CONFIRMED or higher
-                    # if STATUS_01_CREATED: replace values
-                    if orderhour.status > STATUS_01_CREATED:
-                        skip_update = True
-                    else:
-                        is_update = True
-                        orderhour.order=schemeitem.scheme.order
-                        orderhour.rosterdate=new_rosterdate
-                        orderhour.schemeitem=schemeitem
-                        orderhour.shift=schemeitem.shift
-                        orderhour.taxrate=schemeitem.scheme.order.taxrate
-                        orderhour.duration=schemeitem.timeduration
-                        orderhour.status=STATUS_01_CREATED
-                        orderhour.rate=schemeitem.scheme.order.rate
-                        orderhour.amount=(schemeitem.timeduration / 60) * (schemeitem.scheme.order.rate)
-                        orderhour.save(request=request)
-                    logger.debug('saved orderhour: ' + str(orderhour.shift) + ' is_update: ' + str(is_update))
-# - create new orderhour
+    # b. if exists, check if status is STATUS_02_START_CONFIRMED or higher
+                    # skip update this orderhour when it is locked or has status STATUS_02_START_CONFIRMED or higher
+                    oh_is_locked = (orderhour.status > STATUS_01_CREATED or orderhour.locked)
+
+    # 5. if not exists: create new orderhour
                 else:
                     orderhour = Orderhour(
                         order=schemeitem.scheme.order,
-                        rosterdate=new_rosterdate,
                         schemeitem=schemeitem,
-                        shift=schemeitem.shift,
-                        taxrate=schemeitem.scheme.order.taxrate,
-                        duration=schemeitem.timeduration,
-                        status=STATUS_01_CREATED,
-                        rate=schemeitem.scheme.order.rate,
-                        amount=(schemeitem.timeduration / 60) * (schemeitem.scheme.order.rate))
+                        rosterdate=new_rosterdate)
+                entry_count = entry_count + 1
+                logger.debug(' entry_count: ' + str(entry_count))
+
+ # d. if not locked: replace values of existing orderhour
+                if orderhour and not oh_is_locked:
+                    orderhour.order = schemeitem.scheme.order
+                    orderhour.schemeitem = schemeitem
+                    orderhour.rosterdate = new_rosterdate
+                    orderhour.yearindex = new_rosterdate.year
+                    orderhour.monthindex = new_rosterdate.month
+                    orderhour.weekindex = new_rosterdate.isocalendar()[1]  # isocalendar() is tuple: (2019, 15, 4)
+                    orderhour.shift = schemeitem.shift
+                    orderhour.duration = schemeitem.timeduration
+                    orderhour.status = STATUS_01_CREATED
+                    orderhour.rate = schemeitem.scheme.order.rate
+                    orderhour.amount = (schemeitem.timeduration / 60) * (schemeitem.scheme.order.rate)
+                    orderhour.taxrate = schemeitem.scheme.order.taxrate
+
                     orderhour.save(request=request)
 
                     logger.debug('new orderhour: ' + str(orderhour.pk) + ' status: ' + str(orderhour.shift))
-# - lookup employee
-                if not skip_update:
-                    # logger.debug('lookup employee ')
-                    team = schemeitem.team
-                    employee = None
-                    wagecode = None
 
-                    # logger.debug('team: ' + str(team))
-                    emplhours_added = False
-                    if team:
-                        logger.debug('team: ' + str(team.code))
-                        # filters teammmebers that have new_rosterdate within range datefirst/datelast
-                        # order_by datelast, null comes last (with Coalesce changes to '2200-01-01'
-                        crit = (Q(team=team)) & \
+# create new emplhour, not when oh_is_locked
+                    # create new emplhour
+                    new_emplhour = Emplhour(
+                        orderhour=orderhour,
+                        rosterdate=new_rosterdate,
+                        shift=schemeitem.shift,
+                        timestart=schemeitem.timestart,
+                        timeend=schemeitem.timeend,
+                        timeduration=schemeitem.timeduration,
+                        breakduration=schemeitem.breakduration,
+                        wagefactor=schemeitem.wagefactor,
+                        status=STATUS_01_CREATED)
+
+# - lookup employee in teammembers
+                    if schemeitem.team:
+                        logger.debug('team: ' + str(schemeitem.team.code))
+
+# filter teammmembers that have new_rosterdate within range datefirst/datelast
+                        crit = (Q(team=schemeitem.team)) & \
                                (Q(employee__isnull=False)) & \
                                (Q(employee__datefirst__lte=new_rosterdate) | Q(employee__datefirst__isnull=True)) & \
                                (Q(employee__datelast__gte=new_rosterdate) | Q(employee__datelast__isnull=True)) & \
                                (Q(datefirst__lte=new_rosterdate) | Q(datefirst__isnull=True)) & \
                                (Q(datelast__gte=new_rosterdate) | Q(datelast__isnull=True))
 
-                        teammembers = Teammember.objects.annotate(
+# convert datelast null into '2200-01-01'.  (function Coalesce changes Null into '2200-01-01')
+                        # from: https://stackoverflow.com/questions/5235209/django-order-by-position-ignoring-null
+                        # Coalesce works by taking the first non-null value.  So we give it
+                        # a date far after any non-null values of last_active.  Then it will
+                        # naturally sort behind instances of Box with a non-null last_active value.
+
+# order_by datelast, null comes last (with Coalesce changes to '2200-01-01'
+ # - get employee with earliest endatlookup employee in teammembers
+                        teammember = Teammember.objects.annotate(
                             new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
-                            )).filter(crit).order_by('member', 'new_datelast')
-                        if teammembers:
-                            for teammember in teammembers:
-                                # logger.debug(teammember.query)
-                                logger.debug('teammember: ' + str(teammember.member) + ' datelast: ' + str(teammember.new_datelast))
+                            )).filter(crit).order_by('new_datelast').first()
+                        if teammember:
 
-                                # create new emplhour
-                                new_emplhour = Emplhour(
-                                    orderhour=orderhour,
-                                    rosterdate=new_rosterdate,
-                                    shift=schemeitem.shift,
-                                    timestart=schemeitem.timestart,
-                                    timeend=schemeitem.timeend,
-                                    timeduration=schemeitem.timeduration,
-                                    breakduration=schemeitem.breakduration,
-                                    wagefactor=schemeitem.wagefactor,
-                                    status=STATUS_01_CREATED)
-                                # add employee
-                                employee = teammember.employee
-                                if employee:
-                                    logger.debug('employee: ' + str(employee.code))
-                                    new_emplhour.employee = employee
-                                    new_emplhour.wagecode = employee.wagecode
-                                new_emplhour.save(request=request)
-                                emplhours_added = True
-                    # each orderhour has at least the  SO FAR
-
-
-                    # TODO handle existing orderhour records
-                    """
-                    if orderhour:
-                        if is_update:
-                            # check if emplhour already exists
-                            # there can be more  emplhour records for this orderhour (when split)
-                            delete_others = False
-                            emplhours = Emplhour.objects.filter(orderhour=orderhour)
-                            if emplhours:
-                                update_emplhour = True
-                                for emplhour in emplhours:
-                                    if update_emplhour:
-                                        # replace emplhour
-                                        # emplhour.orderhour = orderhour,
-                                        emplhour.rosterdate = new_rosterdate
-                                        emplhour.shift = schemeitem.shift
-                                        emplhour.timestart = schemeitem.timestart
-                                        emplhour.timeend = schemeitem.timeend
-                                        emplhour.timeduration = schemeitem.timeduration
-                                        emplhour.breakduration = schemeitem.breakduration
-                                        emplhour.employee = employee
-                                        emplhour.wagecode = wagecode
-                                        emplhour.status = STATUS_01_CREATED
-                                        emplhour.save(request=request)
-
-                                        update_emplhour = False
-                                    else:
-                                        emplhour.delete(request=request)
-                        else:
-                            # create new emplhour
-                            new_emplhour = Emplhour(
-                                orderhour=orderhour,
-                                rosterdate=new_rosterdate,
-                                shift=schemeitem.shift,
-                                timestart = schemeitem.timestart,
-                                timeend = schemeitem.timeend,
-                                timeduration=schemeitem.timeduration,
-                                breakduration=schemeitem.breakduration,
-                                employee=employee,
-                                wagecode=wagecode,
-                                status=STATUS_01_CREATED)
-                            new_emplhour.save(request=request)
-                    """
+                            # add employee
+                            employee = teammember.employee
+                            if employee:
+                                logger.debug('employee: ' + str(employee.code))
+                                new_emplhour.employee = employee
+                                new_emplhour.wagecode = employee.wagecode
+                    new_emplhour.save(request=request)
+        logger.debug(' entry_count: ' + str( entry_count))
 # 33333333333333333333333333333333333333333333333333
 
 def update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone):  # PR2019-07-31
