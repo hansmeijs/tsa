@@ -419,8 +419,6 @@ class Teammember(TsaBaseModel):
     team = ForeignKey(Team, related_name='teammembers', on_delete=CASCADE)
     employee = ForeignKey(Employee, related_name='teammembers', on_delete=SET_NULL, null=True, blank=True)
 
-    member = PositiveSmallIntegerField(default=0)  # /leave ays per year, full time
-
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
     name = None
@@ -431,9 +429,9 @@ class Teammember(TsaBaseModel):
 class Schemeitem(TsaBaseModel):
     objects = TsaManager()
 
-
     scheme = ForeignKey(Scheme, related_name='schemeitems', on_delete=CASCADE)
     team = ForeignKey(Team, related_name='schemeitems', on_delete=SET_NULL, null=True, blank=True)
+    wagefactor = ForeignKey(Wagefactor, related_name='schemeitems', on_delete=SET_NULL, null=True, blank=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
@@ -497,9 +495,10 @@ class Orderhour(TsaBaseModel):
 class Emplhour(TsaBaseModel):
     objects = TsaManager()
 
-    orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=SET_NULL, null=True, blank=True)
+    orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
     employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
     wagecode = ForeignKey(Wagecode, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
+    wagefactor = ForeignKey(Wagefactor, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
     yearindex = PositiveSmallIntegerField(default=0)

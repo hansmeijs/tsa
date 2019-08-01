@@ -1104,7 +1104,7 @@ $(function() {
         console.log("upload_dict: ", scheme_dict);
 
         if(!isEmpty(scheme_dict)){
-            let param_json = {"scheme": JSON.stringify (scheme_dict)};
+            let param_json = {"upload": JSON.stringify (scheme_dict)};
 
             let response = "";
             $.ajax({
@@ -1989,8 +1989,8 @@ $(function() {
          //console.log(item_dict);
 
         if (!!item_dict && !!tblRow) {
-            console.log("tblRow", tblRow);
-            console.log("item_dict", item_dict);
+            // console.log("tblRow", tblRow);
+            // console.log("item_dict", item_dict);
 
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
             // item_dict = {'id': {'pk': 7},
@@ -2464,7 +2464,7 @@ $(function() {
                 $("#id_mod_addnew").modal("hide");
 
                 let parameters = {};
-                parameters["scheme"] = JSON.stringify (dict);
+                parameters["upload"] = JSON.stringify (dict);
                 let response = "";
                 $.ajax({
                     type: "POST",

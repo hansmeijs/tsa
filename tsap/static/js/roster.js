@@ -190,7 +190,6 @@ $(function() {
         const select_text_abscat = get_attr_from_el(el_data, "data-txt_select_abscat");
         const select_text_abscat_none = get_attr_from_el(el_data, "data-txt_select_abscat_none");
 
-
 // buttons in  timepicker
         let btn_prevday = document.getElementById("id_timepicker_prevday")
             btn_prevday.addEventListener("click", function () {SetPrevNextDay("prevday", el_timepicker, UpdateTableRow, comp_timezone)}, false )
@@ -2124,15 +2123,17 @@ console.log("===  function HandlePopupWdySave =========");
             let el_rangestart = document.getElementById("id_mod_range_datestart")
             if (!!el_rangestart.value){
                 const rangestart_value = el_rangestart.value
-                const rangestart_local = moment.tz(rangestart_value, comp_timezone)
-                console.log("rangestart_local:", rangestart_local.format());
+                // convert not necessary, save as '2019-02-20'
+                //console.log("rangestart_value:", rangestart_value, typeof rangestart_value);
+                //const rangestart_local = moment.tz(rangestart_value, comp_timezone)
+                //console.log("rangestart_local:", rangestart_local.format());
             // convert datetime_local to datetime_utc
-                const rangestart_utc = rangestart_local.utc()
-                console.log ("rangestart_utc = ", rangestart_utc.format())
+                //const rangestart_utc = rangestart_local.utc()
+                //console.log ("rangestart_utc = ", rangestart_utc.format())
 
-                const rangestart_utc_iso =  rangestart_utc.toISOString();
-                console.log ("rangestart_utc_iso = ", rangestart_utc_iso)
-                upload_dict["rangestart"] = rangestart_utc_iso
+                //const rangestart_utc_iso =  rangestart_utc.toISOString();
+                //console.log ("rangestart_utc_iso = ", rangestart_utc_iso)
+                upload_dict["rangestart"] = rangestart_value
             }
 
             $("#id_mod_range").modal("hide");
@@ -2190,29 +2191,36 @@ console.log("===  function HandlePopupWdySave =========");
         let display_text = get_attr_from_el(el_data, "data-txt_period")
         let mode = "none";
 
-        if (!isEmpty(period_dict)){
-            mode = get_dict_value_by_key(period_dict, "mode", "none");
-            //console.log ("mode", mode, typeof mode)
-            let periodstart, periodend
-            if (mode === "range") {
-                periodstart = get_dict_value_by_key(period_dict, "rangestart");
-                periodend = get_dict_value_by_key(period_dict, "rangeend");
+        const range = get_dict_value_by_key(period_dict, "range");
+        if(!!range && range === "0;0;0;0"){
+            display_text = display_text + ": " + get_attr_from_el(el_data, "data-txt_period_all")
+        } else {
 
-            } else {
-                periodstart = get_dict_value_by_key(period_dict, "periodstart");
-                periodend = get_dict_value_by_key(period_dict, "periodend");
-            }
+            if (!isEmpty(period_dict)){
+                mode = get_dict_value_by_key(period_dict, "mode", "none");
+                //console.log ("mode", mode, typeof mode)
+                let periodstart, periodend
+                if (mode === "range") {
+                    periodstart = get_dict_value_by_key(period_dict, "rangestart");
+                    periodend = get_dict_value_by_key(period_dict, "rangeend");
 
-            //console.log ("periodstart", periodstart, typeof periodstart)
-            //console.log ("periodend", periodend, typeof periodend)
+                } else {
+                    periodstart = get_dict_value_by_key(period_dict, "periodstart");
+                    periodend = get_dict_value_by_key(period_dict, "periodend");
+                }
 
-            if(!!periodstart && !!periodend){
-                const periodstart_local = moment.tz(periodstart, comp_timezone);
-                const periodend_local = moment.tz(periodend, comp_timezone);
+                //console.log ("periodstart", periodstart, typeof periodstart)
+                //console.log ("periodend", periodend, typeof periodend)
 
-                display_text = display_text + ": " + format_period_from_datetimelocal(periodstart_local, periodend_local, weekday_list, month_list, timeformat)
-            }
-        }
+                if(!!periodstart && !!periodend){
+                    const periodstart_local = moment.tz(periodstart, comp_timezone);
+                    const periodend_local = moment.tz(periodend, comp_timezone);
+
+                    display_text = display_text + ": " + format_period_from_datetimelocal(periodstart_local, periodend_local, weekday_list, month_list, timeformat)
+                }
+            }  // if (!isEmpty(period_dict))
+        }  // if(!!range && range === "0;0;0;0")
+
         el_period_display.innerText = display_text
 
         // from https://www.fileformat.info/info/unicode/char/25cb/index.htm
@@ -2224,7 +2232,6 @@ console.log("===  function HandlePopupWdySave =========");
         document.getElementById("id_period_current").innerText = bullet;
 
     }; // function DisplayPeriod
-
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -2280,7 +2287,6 @@ console.log("===  function HandlePopupWdySave =========");
         $("#id_mod_employee").modal({backdrop: true});
 
     };
-
 
 //========= ModalStatusOpen====================================
     function ModalStatusOpen (el_input) {
@@ -2396,8 +2402,6 @@ console.log("===  function HandlePopupWdySave =========");
             $("#id_mod_status").modal({backdrop: true});
         }
 }; // function ModalStatusOpen
-
-
 
 //  #############################################################################################################
 

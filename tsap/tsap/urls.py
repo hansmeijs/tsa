@@ -10,6 +10,7 @@ from companies import views as company_views
 from customers import views as customer_views
 from employees import views as employee_views
 from planning import views as planning_views
+from planning import rosterfill as rosterfill_views
 
 from accounts.forms import CompanyAuthenticationForm
 
@@ -174,7 +175,7 @@ urlpatterns = [
 
     path('emplhours/', include([
         path('', planning_views.EmplhourView.as_view(), name='emplhours_url'),
-        path('fill', planning_views.EmplhourFillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
+        path('fill', rosterfill_views.EmplhourFillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
         # path('upload', planning_views.EmplhourUploadXXXView.as_view(), name='emplhour_upload_url'),
     ])),
 ]

@@ -69,9 +69,6 @@ def create_employee_dict(instance, item_dict):
 # >>>   create_employee_dict
 
 
-
-
-
 def create_teammember_list(order, inactive=None, rangemin=None, rangemax=None):
     # --- create list of all teammembers of this order PR2019-06-16
     # logger.debug(' --- create_teammember_list   ')
@@ -100,7 +97,7 @@ def create_teammember_dict(instance, item_dict):
     # logger.debug ('--- create_schemeitem_dict ---')
     # logger.debug ('item_dict' + str(item_dict))
 
-    field_tuple = ('pk', 'id', 'team', 'employee', 'member', 'datefirst', 'datelast')
+    field_tuple = ('pk', 'id', 'team', 'employee', 'datefirst', 'datelast')
 
     if instance:
 
@@ -121,11 +118,6 @@ def create_teammember_dict(instance, item_dict):
                 field_dict['pk'] = instance.team.pk
                 if instance.team.code:
                     field_dict['value'] = instance.team.code
-
-            elif field == 'member':
-                value = getattr(instance, field)
-                if value:
-                    field_dict['value'] = value
 
             elif field == 'employee':
                 employee = getattr(instance, field)
