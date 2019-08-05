@@ -248,4 +248,7 @@ CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
                                  'linked_columns': 'Gekoppelde kolommen'}
                     }
 
+# this one is not working: update_dict = dict.fromkeys(field_list, {})
+FIELDS_EMPLHOUR_TUPLE = ('pk', 'id', 'orderhour', 'employee', 'wagecode', 'rosterdate',
+                        'timestart', 'timeend', 'timeduration', 'breakduration', 'status')
 

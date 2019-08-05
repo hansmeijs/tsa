@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.utils.translation import activate, ugettext_lazy as _
 from datetime import date, timedelta, datetime
 from django.utils import formats
-from tsap.constants import LANG_NL
+from tsap.constants import LANG_NL, LANG_DEFAULT
 from companies.models import Company
 
 from companies.functions import get_company_list
@@ -59,12 +59,8 @@ def get_headerbar_param(request, params):
 
     if request.user.is_authenticated:
         # PR2018-05-11 set language
-        if request.user.lang is not None:
-            activate(request.user.lang)
-            # logger.debug('activated lang: ' + str(request.user.lang))
-        else:
-            activate(LANG_NL)
-
+        user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
+        activate(user_lang)
 
 # ------- display_company --------
         # PR2018-12-17 every logged-in user can select examyear

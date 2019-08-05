@@ -367,6 +367,147 @@
 
 // +++++++++++++++++ FORMAT ++++++++++++++++++++++++++++++++++++++++++++++++++
 
+//========= format_datelong_from_datetimelocal  ========== PR2019-06-27
+    function format_datelong_from_datetimelocal(datetime_local) {
+        // PR2019-07-01 was:
+            //const this_date = datetime_local.date();   //Sunday = 0
+            //const this_month_index = 1 + datetime_local.month();   //January = 0
+            //const this_month = month_list[this_month_index];
+            //const this_year = datetime_local.year();   //January = 0
+            //const weekday_index = datetime_local.day();   //Sunday = 0
+            //const weekday = weekday_list[weekday_index];
+
+        // debug: datetime_local must be Moment, not datetime
+        "use strict";
+        let date_str = "";
+        //  moment.locale(user_lang) is set at beginning of script, applies to all moment objjects in this page
+        if (!!datetime_local){
+            if(moment.locale() === "en") {
+                //date_str = weekday + " " + this_month + " " + this_date + ", " + this_year
+                date_str = datetime_local.format("dddd, MMMM D, YYYY")
+            } else {
+                //date_str = weekday + " " + this_date + " " + this_month + " " + this_year
+                date_str = datetime_local.format("dddd D MMMM YYYY")
+            }
+        }
+        return date_str;
+    }
+//========= format_datemedium_from_datetimelocal  ========== PR2019-07-09
+    function format_datemedium(dtl, weekday_list, month_list, skip_weekday, skip_year) {
+        "use strict";
+        //console.log(" -- format_datemedium  -- ")
+        //console.log(dtl.format())
+        //console.log(moment.locale())
+        //console.log(dtl.year())
+        //console.log(dtl.date())
+        //console.log("dtl.day: ", dtl.day())
+        //console.log(weekday_list[dtl.day()])
+        //console.log( month_list[dtl.month() + 1])
+
+        // According to ISO 8601, Sunday is the 7th day of the week
+        let weekday_index = dtl.day()
+        if(!weekday_index){weekday_index = 7};
+        //console.log("weekday_index: ", weekday_index)
+        //console.log(weekday_list[dtl.day()])
+
+        let date_str = "";
+        //  moment.locale(user_lang) is set at beginning of script, applies to all moment objjects in this page
+        let comma_space = " "
+        if(moment.locale() === "en") { comma_space = ", "}
+        if (!!dtl){
+            if(!skip_weekday){date_str = weekday_list[weekday_index] + comma_space }
+            if(moment.locale() === "en") {
+                date_str = date_str + month_list[dtl.month() + 1] + " " + dtl.date()
+            } else {
+                date_str = date_str + dtl.date() + " " + month_list[dtl.month() + 1]
+            }
+            if(!skip_year){date_str = date_str + comma_space + dtl.year() }
+        }
+
+        return date_str;
+    }
+
+  //========= format_period_from_datetimelocal  ========== PR2019-07-09
+    function format_period_from_datetimelocal(periodstart_local, periodend_local, weekday_list, month_list, timeformat) {
+        "use strict";
+        //console.log(" -- format_period_from_datetimelocal  -- ")
+        //console.log("periodstart_local", periodstart_local.format())
+        //console.log("periodend_local", periodend_local.format())
+        periodstart_local, periodend_local
+
+        // from https://momentjs.com/guides/
+        let startdate = periodstart_local.clone().startOf("day");
+        let enddate = periodend_local.clone().startOf("day");
+
+        const enddate_isMidnight = (enddate.diff(periodend_local) === 0);
+
+        //console.log("startdate diff", startdate.diff(periodstart_local))
+        // when periodend_local is midnight: make enddate one day earlier (period from 02:00 - 00:00 is still same day)
+        // only in 24h setting
+        if (enddate_isMidnight && timeformat !== "AmPm") {
+            // add / subtract day from datetime_local
+            enddate.add(-1, 'day')
+            //console.log("enddate corrected", enddate.format())
+        }
+
+        const datestart_formatted = format_datemedium(startdate, weekday_list, month_list, false, true)
+        const dateend_formatted = format_datemedium(enddate, weekday_list, month_list, false, true)
+        const timestart_formatted = format_time(periodstart_local, timeformat, false )
+        const timeend_formatted = format_time(periodend_local, timeformat, enddate_isMidnight ) // enddate_isMidnight: display 00.00 as prev day 24.00 u
+
+        let period_str = format_datemedium(periodstart_local, weekday_list, month_list, false, false);
+        const same_day = (startdate.diff(enddate) === 0)
+        if(same_day){
+            period_str = datestart_formatted + ", " + timestart_formatted + " - " + timeend_formatted
+        } else {
+            period_str = datestart_formatted + " " + timestart_formatted +  " - " + dateend_formatted + " " + timeend_formatted
+        }
+
+        //console.log("period_str: ", period_str)
+        return period_str;
+    }
+
+//========= format_time  ========== PR2019-06-27
+    function format_time(datetime_local, timeformat, display24) {
+        //  when display24 = true: zo 00.00 u is dispalyed as 'za 24.00 u'
+
+        "use strict";
+        let time_formatted;
+
+        let isAmPm = false
+        if (timeformat.toLowerCase() === "ampm"){isAmPm = true};
+
+        // TODO insted of moment.locale use user_lang and timeformat
+        let isEN = false
+        if (moment.locale() === "en"){isEN = true};
+
+        let hour_str = "", ampm_str = "", delim = "";
+        const minute_str = datetime_local.format("mm")
+
+        if(isAmPm){
+            hour_str =  datetime_local.format("hh")
+            ampm_str = " " + datetime_local.format("a")
+            delim = ":"
+        } else {
+            if (datetime_local.hour() === 0 && display24) {
+                hour_str = "24"
+            } else {
+                hour_str =  datetime_local.format("HH")
+            }
+            delim = "."
+            if(!isEN){ ampm_str = " u"}
+        }
+
+        time_formatted = hour_str + delim + minute_str + ampm_str
+
+        return time_formatted
+    }
+
+
+
+
+
+
 //========= format_element  ======== PR2019-06-22
     function format_element (el_input, el_msg, field_dict, el_type, show_year, month_list, weekday_list) {
 
@@ -532,85 +673,145 @@
 
 //========= format_datetime_element  ======== PR2019-06-03
     function format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list) {
+        //console.log("------ format_datetime_element --------------")
+        //console.log("field_dict: ", field_dict)
+
         if(!!el_input && !!field_dict){
-            //console.log("------ format_datetime_element --------------")
-            //console.log("field_dict: ", field_dict)
 // timestart: {datetime: "2019-07-02T12:00:00Z", mindatetime: "2019-07-02T04:00:00Z",
 //                      maxdatetime: "2019-07-03T10:00:00Z", rosterdate: "2019-07-02T00:00:00Z"}
 
-            const datetime = get_dict_value_by_key (field_dict, "datetime"); // value = datetime_utc_iso
-            const rosterdate_utc_iso = get_dict_value_by_key (field_dict, "rosterdate");  // value = rosterdate_utc_iso
+// challenge: instead of 'zo 00.00 u' display 'za 24.00 u', only in time-end field
+            const rosterdate_iso = get_dict_value_by_key (field_dict, "rosterdate");  // value = rosterdate_iso
+            const datetime_iso = get_dict_value_by_key (field_dict, "datetime"); // value = datetime_utc_iso
             const mindatetime = get_dict_value_by_key (field_dict, "mindatetime");
             const maxdatetime = get_dict_value_by_key (field_dict, "maxdatetime");
-            //const offset = get_dict_value_by_key (field_dict, "offset"); //
+
+            const fieldname = get_dict_value_by_key (field_dict, "field");
+            const offset = get_dict_value_by_key (field_dict, "offset");
             const updated = get_dict_value_by_key (field_dict, "updated");
             const msg_err = get_dict_value_by_key (field_dict, "error");
 
-            let datetime_local, rosterdate_local, datetime_date, rosterdate_date, show_weekday = false;
-            if (!!datetime) {
-                datetime_local = moment.tz(datetime, comp_timezone );
-                datetime_date = datetime_local.date()}
-
-            if (!!rosterdate_utc_iso){
-                rosterdate_local = moment.utc(rosterdate_utc_iso);
-                rosterdate_date = rosterdate_local.date()
-                if (datetime_date !== rosterdate_date){show_weekday = true}}
-
 // from https://www.techrepublic.com/article/convert-the-local-time-to-another-time-zone-with-this-javascript/
 // from  https://momentjs.com/timezone/
-            let fulldate, fulltime, fulldatetime, shortdatetime, weekday_str = "", month_str = ""
+            let fulltime, fulldatetime, shortdatetime, weekday_str = "", month_str = "";
 
-            let isAmPm = false
-            if (timeformat === "AmPm"){isAmPm = true};
+            const isAmPm = (timeformat === "AmPm")
+            // TODO use user_lang / timeformat
+            const isEN = (moment.locale() === "en")
 
-            let isEN = false
-            if (moment.locale() === "en"){isEN = true};
+            if (!!datetime_iso){
+                const datetime_local = moment.tz(datetime_iso, comp_timezone );
+                let rosterdate_local
+                if (!!rosterdate_iso){rosterdate_local = moment.utc(rosterdate_iso);}
 
-            if (!!datetime_local){
-// format weekday_str and month_str
-                if (show_weekday && !!weekday_list){
-                    const weekday_iso = datetime_local.isoWeekday();
-                    weekday_str = weekday_list[weekday_iso]};
-                if (!!month_list){
-                    const month_iso = datetime_local.month() + 1;
-                    month_str = month_list[month_iso]};
 // format time
-                if(isEN) {
-                    if(isAmPm){fulltime = datetime_local.format("hh:mm a")} else {fulltime = datetime_local.format("HH:mm")}
-                } else {
-                    if(isAmPm){fulltime = datetime_local.format("hh.mm a")} else {fulltime = datetime_local.format("HH.mm") + " u"}};
-// format full date
-                if(isEN) {
-                    fulldate = datetime_local.format("dddd, MMMM D, YYYY")
-                } else {
-                    fulldate = datetime_local.format("dddd D MMMM YYYY")};
-                fulldatetime = fulldate + " " + fulltime
-// format time with weekday if different from rosterdate
-                if(!!weekday_str){shortdatetime = weekday_str + " " + fulltime} else {shortdatetime =  fulltime}
-// format za 23 mei NOT IN USE
-                let wdm;
-                if(moment.locale() === "en") {
-                    wdm = weekday_str + ", "  + month_str + " " + datetime_local.date();
-                } else {wdm = weekday_str + " " + datetime_local.date() + " " + month_str;}
-            }
-// show msg_err or border_valid
-            if(!!msg_err){
-               ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
-            } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){
-                    el_input.classList.remove("border_valid");
-                    }, 2000);
-            }
-// put values in element
-            if(!!rosterdate_utc_iso){el_input.setAttribute("data-rosterdate", rosterdate_utc_iso)};
-            if(!!datetime){el_input.setAttribute("data-datetime", datetime)};
-            if(!!mindatetime){el_input.setAttribute("data-mindatetime", mindatetime)};
-            if(!!maxdatetime){el_input.setAttribute("data-maxdatetime", maxdatetime)};
+                // PR2019-08-04 was:
+                    //if(isEN) {
+                    //    if(isAmPm){fulltime = datetime_local.format("hh:mm a")} else {fulltime = datetime_local.format("HH:mm")}
+                    //} else {
+                    //    if(isAmPm){fulltime = datetime_local.format("hh.mm a")} else {fulltime = datetime_local.format("HH.mm") + " u"}};
+// set datetime_local_24h
 
-            //if(!!offset){el_input.setAttribute("data-offset", offset)};
+
+
+//check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
+                let display24 = false;
+                if(fieldname === "timeend"){
+                    const midnight = datetime_local.clone().startOf("day");
+                    const is_midnight = (datetime_local.diff(midnight) === 0)
+                    display24 = (is_midnight)
+                }
+
+// get fulltime and fulltime_24h (is '24.00 u' when 00.00 u)
+                const fulltime = format_time(datetime_local, timeformat, false);
+                let fulltime_24h;
+                if (display24){
+                    fulltime_24h = format_time(datetime_local, timeformat, true)
+                } else {
+                    fulltime_24h = fulltime
+                }
+
+// get display_datetime_local (is yesterday when display24)
+                // when display24 display shows: 'za 24.00 u' instead of 'zo 00.00 u'
+                let display_datetime_local;
+                if (display24){
+                    display_datetime_local = datetime_local.clone().add(-1, 'day')
+                } else {
+                    display_datetime_local = datetime_local.clone()
+                }
+
+// format fulldatetime
+                if (display24){
+                    if(isEN) {
+                        fulldatetime = display_datetime_local.format("dddd, MMMM D, YYYY") + " " + fulltime_24h
+                    } else {
+                        fulldatetime = display_datetime_local.format("dddd D MMMM YYYY") + " " + fulltime_24h
+                    }
+                } else {
+                    if(isEN) {
+                        fulldatetime = datetime_local.format("dddd, MMMM D, YYYY") + " " + fulltime
+                    } else {
+                        fulldatetime = datetime_local.format("dddd D MMMM YYYY") + " " + fulltime
+                    }
+                }
+
+// format weekday_str and month_str
+                // don't show weekday when display_date and rosterdate are the same
+                const show_weekday = (display_datetime_local.date() !== rosterdate_local.date())
+
+                if (show_weekday && !!weekday_list){
+                    const weekday_iso = display_datetime_local.isoWeekday();
+                    weekday_str = weekday_list[weekday_iso]
+                };
+
+                if (!!month_list){
+                    const month_iso = display_datetime_local.month() + 1;
+                    month_str = month_list[month_iso]
+                };
+
+// format time with weekday if different from rosterdate
+
+                if (display24){
+                    shortdatetime = fulltime_24h
+                } else {
+                    shortdatetime = fulltime
+                }
+                if(!!weekday_str){shortdatetime = weekday_str + " " + shortdatetime}
+
+
+// format za 23 mei NOT IN USE
+                //let wdm;
+                //if(moment.locale() === "en") {
+                //    wdm = weekday_str + ", "  + month_str + " " + display_datetime_local.date();
+                //} else {wdm = weekday_str + " " + display_datetime_local.date() + " " + month_str;}
+
+// show msg_err or border_valid
+                if(!!msg_err){
+                   ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+                } else if(updated){
+                    el_input.classList.add("border_valid");
+                    setTimeout(function (){
+                        el_input.classList.remove("border_valid");
+                        }, 2000);
+                }
+            }  // if (!!datetime_iso)
+
+// put values in element
+            if(!!rosterdate_iso){el_input.setAttribute("data-rosterdate", rosterdate_iso)
+                } else {el_input.removeAttribute("data-rosterdate")};
+            if(!!datetime_iso){el_input.setAttribute("data-datetime", datetime_iso)
+                } else {el_input.removeAttribute("data-datetime")};
+            if(!!mindatetime){el_input.setAttribute("data-mindatetime", mindatetime)
+                } else {el_input.removeAttribute("data-mindatetime")};
+            if(!!maxdatetime){el_input.setAttribute("data-maxdatetime", maxdatetime)
+                } else {el_input.removeAttribute("data-maxdatetime")};
+            if(!!offset){el_input.setAttribute("data-offset", offset)
+                } else {el_input.removeAttribute("data-offset")};
+
             if(!!shortdatetime){el_input.value = shortdatetime};
-            if(!!fulldatetime){ el_input.title = fulldatetime};
+
+            el_input.title = fulldatetime;
+
         }  // if(!!el_input && !!field_dict){
     }  // function format_datetime_element
 
@@ -1323,11 +1524,11 @@
             show_row = true;
         } else {
 
-            for (let i = 0, field_name, field_dict, value; i <len; i++) {
-                field_name = field_list[i];
-                field_dict = get_dict_value_by_key(row_dict, field_name)
+            for (let i = 0, fieldname, field_dict, value; i <len; i++) {
+                fieldname = field_list[i];
+                field_dict = get_dict_value_by_key(row_dict, fieldname)
                 value = get_dict_value_by_key(field_dict, "value")
-                console.log("field_name: ", field_name, "value: ", value, "field_dict: ", field_dict)
+                console.log("fieldname: ", fieldname, "value: ", value, "field_dict: ", field_dict)
 
 // --- show active rows, when inactive_included: show also inactive rows
         if (inactive_included || !inactive){

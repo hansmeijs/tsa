@@ -265,12 +265,32 @@ class User(AbstractUser):
         return has_permit
 
     @property
+    def is_perm_control(self):
+        has_permit = False
+        if self.is_authenticated:
+            has_permit = PERMIT_04_CONTROL in self.permits_tuple
+        return has_permit
+
+    @property
+    def is_perm_plan(self):
+        has_permit = False
+        if self.is_authenticated:
+            has_permit = PERMIT_08_PLAN in self.permits_tuple
+        return has_permit
+
+    @property
+    def is_perm_audit(self):
+        has_permit = False
+        if self.is_authenticated:
+            has_permit = PERMIT_16_AUDIT in self.permits_tuple
+        return has_permit
+
+    @property
     def is_perm_admin(self):
         has_permit = False
         if self.is_authenticated:
             has_permit = PERMIT_32_ADMIN in self.permits_tuple
         return has_permit
-
 
     """
     @property

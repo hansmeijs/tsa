@@ -84,8 +84,6 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
                                                      range_end_iso='',
                                                      show_all=show_all)  # PR2019-08-01
 
-
-
                 # debug: also update table in window when list is empty, Was: if list:
                 update_dict['emplhour'] = list
 

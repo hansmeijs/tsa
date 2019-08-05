@@ -147,7 +147,7 @@ class UserAddView(CreateView):
             # user.company cannot be changed, except for users with role.system. They can switch company in headerbar.
                 new_user.company = request.user.company
 
-# ======  save field 'Username'  ============
+        # ======  save field 'Username'  ============
                 new_username = form.cleaned_data.get('username')
                 # Add compayprefix to username
                 prefixed_username = new_user.company.companyprefix + new_username
@@ -177,9 +177,14 @@ class UserAddView(CreateView):
                             pass
                 new_user.permits = permit_sum
 
+        # ======  save field 'Lang'
+                user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+                new_user.lang = user_lang
+
                 new_user.is_active = False
                 new_user.activated = False
 
+        # ======  save new_user
                 new_user.save(self.request)  # PR 2018-08-04 debug: was: user.save()
                 # logger.debug('UserAddView post password: ' +  str(user.password))
 

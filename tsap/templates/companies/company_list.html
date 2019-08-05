@@ -5,6 +5,10 @@
 {% block stylesheet %}
 {% endblock %}
 
+{% block script %}
+    <script src="{% static 'js/companies.js' %}"></script>
+{% endblock %}
+
 {% block content %}
   {% if user.is_authenticated %}
         {% if user.is_role_system %}
@@ -13,7 +17,7 @@
             </div>
         {% endif %}
         <h4>{% trans 'Companies' %}</h4>
-
+        <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
         <table class="table table table-condensed tbl">
           <thead class="thead-inverse">
             <tr>
@@ -61,8 +65,23 @@
 <!--  PayPal Logo <table border="0" cellpadding="10" cellspacing="0" align="center"><tbody><tr><td align="center"></td></tr><tr><td align="center">  -->
 <!--     <a href="https://www.paypal.com/nl/webapps/mpp/paypal-popup" title="Hoe PayPal Werkt" onclick="javascript:window.open('https://www.paypal.com/nl/webapps/mpp/paypal-popup','WIPaypal','toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=1060, height=700'); return false;"><img src="https://www.paypalobjects.com/webstatic/mktg/logo-center/logo_betalen_met_paypal_nl.jpg" border="0" alt="PayPal Acceptatie Logo" /></a>  -->
 <!--  </td></tr></tbody></table> PayPal Logo -->
+        <div id="id_data"
+            data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
+            data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
+            data-imgsrc_delete="{% static 'img/delete.gif' %}"
 
+            data-lang ="{{ lang }}"
+            data-timezone ="{{ timezone }}"
+            data-weekdays ="{{ weekdays }}"
+            data-months ="{{ months }}"
+            data-today ="{{ today }}"
 
+            data-datalist_download_url="{% url 'datalist_download_url' %}"
+            data-company_add_url="{% url 'company_add_url' %}"
+
+            data-txt_company_add= "{% trans 'Add company' %}"
+            data-txt_invoice_add= "{% trans 'Add invoice' %}"
+        ></div>
 
 
   {% else %}

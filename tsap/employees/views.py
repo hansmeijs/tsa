@@ -67,16 +67,16 @@ class EmployeeListView(View):
             # b. get comp_timezone PR2019-06-14
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
-            # get weekdays translated
+    # get user_lang
             user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
-            if not user_lang in WEEKDAYS_ABBREV:
-                user_lang = LANG_DEFAULT
-            weekdays_json = json.dumps(WEEKDAYS_ABBREV[user_lang])
 
-            # get months translated
-            if not user_lang in MONTHS_ABBREV:
-                user_lang = LANG_DEFAULT
-            months_json = json.dumps(MONTHS_ABBREV[user_lang])
+     # get weekdays translated
+            lang = user_lang if user_lang in WEEKDAYS_ABBREV else LANG_DEFAULT
+            weekdays_json = json.dumps(WEEKDAYS_ABBREV[lang])
+
+    # get months translated
+            lang = user_lang if user_lang in MONTHS_ABBREV else LANG_DEFAULT
+            months_json = json.dumps(MONTHS_ABBREV[lang])
 
             param = get_headerbar_param(request, {
                 'employees': employees,
@@ -256,10 +256,16 @@ class EmployeeImportView(View):
             #                      {'tsaKey': 'orderdatefirst', 'caption': _('First date order')},
             #                      {'tsaKey': 'orderdatelast', 'caption': _('Last date order')} ]
 # LOCALE #
-            coldef_list = COLDEF_EMPLOYEE[request.user.lang]
-            captions_dict = CAPTION_EMPLOYEE[request.user.lang]
+    # get user_lang
+            user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
 
+    # get coldef_list employee
+            lang = user_lang if user_lang in COLDEF_EMPLOYEE else LANG_DEFAULT
+            coldef_list = COLDEF_EMPLOYEE[lang]
 
+    # get caption list employee
+            lang = user_lang if user_lang in CAPTION_EMPLOYEE else LANG_DEFAULT
+            captions_dict = CAPTION_EMPLOYEE[lang]
 
             # oooooooooooooo get_mapped_coldefs_order ooooooooooooooooooooooooooooooooooooooooooooooooooo
             # function creates dict of fieldnames of table Order

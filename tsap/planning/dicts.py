@@ -582,24 +582,27 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
     # logger.debug ('--- create_schemeitem_dict ---')
     # logger.debug ('item_dict' + str(item_dict))
 
-    field_tuple = ('id', 'rosterdate', 'shift', 'team', 'timestart', 'offsetstart', 'timeend', 'offsetend',
+    field_tuple = ('pk', 'id', 'rosterdate', 'shift', 'team', 'timestart', 'offsetstart', 'timeend', 'offsetend',
                    'timeduration', 'breakduration', 'cyclestart')
 
     if instance:
-        item_dict['pk'] = instance.pk
-
-        id_dict = item_dict['id'] if 'id' in item_dict else {}
-        id_dict['pk'] = instance.pk
-        id_dict['ppk'] = instance.scheme.pk
-        id_dict['table'] = 'schemeitem'
-        item_dict['id'] = id_dict
-
         for field in field_tuple:
             if field not in item_dict:
                 item_dict[field] = {}
 
             saved_value = getattr(instance, field)
-            if field == 'rosterdate':
+
+            if field == 'pk':
+                item_dict[field] = instance.pk
+
+            elif field == 'id':
+                id_dict = item_dict[field] if 'id' in item_dict else {}
+                id_dict['pk'] = instance.pk
+                id_dict['ppk'] = instance.scheme.pk
+                id_dict['table'] = 'schemeitem'
+                item_dict[field] = id_dict
+
+            elif field == 'rosterdate':
                 set_fielddict_date(dict=item_dict[field], dte=saved_value)
 
             elif field == 'team':
@@ -619,11 +622,6 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
                                        timestart=getattr(instance, 'timestart'),
                                        timeend=getattr(instance, 'timeend'),
                                        comp_timezone=comp_timezone)
-            elif field == 'cyclestart':
-                if saved_value:
-                    item_dict[field]['value'] = saved_value
-                else:
-                    item_dict[field].pop('value', None)
             else:
                 if saved_value is not None:
                     item_dict[field]['value'] = saved_value
@@ -863,6 +861,8 @@ def set_fielddict_datetime(field, field_dict, rosterdate, timestart, timeend, co
     # get mindatetime and  maxdatetime
     min_datetime_utc, max_datetime_utc = get_minmax_datetime_utc(
         field, rosterdate_utc, timestart, timeend, comp_timezone)
+
+    field_dict['field'] =field
 
     datetimevalue = None
     if field == "timestart":

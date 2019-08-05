@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-01 09:39-0400\n"
+"POT-Creation-Date: 2019-08-04 20:05-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -101,7 +101,7 @@ msgstr "e-mail adres"
 msgid "None"
 msgstr "Geen"
 
-#: .\accounts\models.py:300 .\tsap\authentication.py:22
+#: .\accounts\models.py:320 .\tsap\authentication.py:22
 msgid "You must be logged in to view this page."
 msgstr "U moet ingelogd zijn om deze pagina te kunnen bekijken."
 
@@ -113,19 +113,19 @@ msgstr ""
 msgid "User has no role."
 msgstr "Gebruiker heeft geen organisatie."
 
-#: .\accounts\views.py:541
+#: .\accounts\views.py:546
 msgid "Import students"
 msgstr ""
 
-#: .\accounts\views.py:544
+#: .\accounts\views.py:549
 msgid "Subjects"
 msgstr ""
 
-#: .\accounts\views.py:545
+#: .\accounts\views.py:550
 msgid "Student subjects"
 msgstr ""
 
-#: .\companies\forms.py:56 .\templates\companies\company_list.html:23
+#: .\companies\forms.py:56 .\templates\companies\company_list.html:27
 #: .\templates\customers\orders.html:80 .\templates\customers\orders.html:126
 #: .\templates\planning\roster.html:460 .\templates\planning\schemes.html:232
 #: .\templates\planning\schemes.html:473
@@ -133,7 +133,7 @@ msgid "Start date"
 msgstr "Begindatum"
 
 #: .\companies\forms.py:65 .\customers\forms.py:14 .\employees\forms.py:15
-#: .\employees\forms.py:31 .\templates\companies\company_list.html:21
+#: .\employees\forms.py:31 .\templates\companies\company_list.html:25
 #: .\templates\customers\customers.html:46 .\templates\customers\orders.html:78
 #: .\templates\employees\employees.html:99 .\tsap\validators.py:200
 msgid "Code"
@@ -163,7 +163,7 @@ msgstr "Vergrendeld"
 msgid "Inactive"
 msgstr "Niet aktief"
 
-#: .\companies\forms.py:71 .\templates\companies\company_list.html:27
+#: .\companies\forms.py:71 .\templates\companies\company_list.html:31
 msgid "Time format"
 msgstr "Tijdsweergave"
 
@@ -171,24 +171,24 @@ msgstr "Tijdsweergave"
 msgid "Timezone"
 msgstr "Tijdzone"
 
-#: .\companies\forms.py:73 .\templates\companies\company_list.html:28
+#: .\companies\forms.py:73 .\templates\companies\company_list.html:32
 msgid "Interval"
 msgstr ""
 
-#: .\companies\models.py:200 .\customers\views.py:459
+#: .\companies\models.py:198 .\customers\views.py:459
 msgid "This order could not be created."
 msgstr "Deze opdracht kon niet worden aangemaakt."
 
-#: .\companies\models.py:397 .\employees\views.py:581
+#: .\companies\models.py:395 .\employees\views.py:587
 msgid "This employee could not be created."
 msgstr "Deze werknemer kon niet worden aangemaakt."
 
-#: .\companies\models.py:680
+#: .\companies\models.py:702
 #, python-format
 msgid "%(tbl)s could not be deleted."
 msgstr "%(tbl)s kon niet worden gewist."
 
-#: .\companies\models.py:682 .\planning\views.py:1439
+#: .\companies\models.py:704 .\planning\views.py:1459
 msgid "This item could not be deleted."
 msgstr "Dit item kon niet worden gewist."
 
@@ -202,8 +202,8 @@ msgstr "Klant '%(tbl)s'"
 msgid "Order '%(tbl)s'"
 msgstr "Opdracht '%(tbl)s'"
 
-#: .\customers\views.py:234 .\planning\views.py:2347 .\planning\views.py:2363
-#: .\planning\views.py:3124
+#: .\customers\views.py:234 .\planning\views.py:2366 .\planning\views.py:2382
+#: .\planning\views.py:3100
 msgid "This item could not be created."
 msgstr "Dit item kon niet worden aangemaakt."
 
@@ -211,7 +211,7 @@ msgstr "Dit item kon niet worden aangemaakt."
 msgid "This customer could not be created."
 msgstr "Deze klant kon niet worden aangemaakt."
 
-#: .\customers\views.py:397 .\customers\views.py:555 .\planning\views.py:2762
+#: .\customers\views.py:397 .\customers\views.py:555 .\planning\views.py:2738
 #, python-format
 msgid "This %(tbl)s could not be updated."
 msgstr "Dit %(tbl)s kon niet worden gewist."
@@ -233,60 +233,60 @@ msgstr "Einddatum"
 msgid "Employee '%(tbl)s'"
 msgstr "Werknemer '%(tbl)s'"
 
-#: .\employees\views.py:504
+#: .\employees\views.py:510
 msgid "An error occurred. The employee data is not saved."
 msgstr "Er is een fout opgetreden. De gegevens zijn niet opgeslagen."
 
-#: .\employees\views.py:698
+#: .\employees\views.py:704
 msgid "This employee could not be updated."
 msgstr "Deze werknemer kon niet worden bijgewerkt."
 
-#: .\planning\views.py:444 .\planning\views.py:756
+#: .\planning\views.py:455 .\planning\views.py:768
 #, python-format
 msgid "Scheme '%(tbl)s'"
 msgstr "Schema '%(tbl)s'"
 
-#: .\planning\views.py:836
+#: .\planning\views.py:848
 msgid "This team could not be deleted."
 msgstr "Deze ploeg kon niet worden gewist."
 
-#: .\planning\views.py:1185
+#: .\planning\views.py:1203
 msgid "This shift"
 msgstr "Deze dienst"
 
-#: .\planning\views.py:1271
+#: .\planning\views.py:1289
 msgid "This teammember"
 msgstr "Dit ploeglid"
 
-#: .\planning\views.py:2657 .\planning\views.py:3101
+#: .\planning\views.py:2633 .\planning\views.py:3077
 msgid "This item could not be updated."
 msgstr "Dit item kon niet worden bijgewerkt."
 
-#: .\planning\views.py:2724 .\tsap\validators.py:35
+#: .\planning\views.py:2700 .\tsap\validators.py:35
 msgid "This field cannot be blank."
 msgstr "Dit veld moet ingevuld worden."
 
-#: .\planning\views.py:2831
+#: .\planning\views.py:2807
 msgid "Cycle cannot be blank"
 msgstr "Cyclus moet ingevuld zijn."
 
-#: .\planning\views.py:2881
+#: .\planning\views.py:2857
 msgid "This scheme could not be updated."
 msgstr "Dit schema kon niet worden bijgewerkt."
 
-#: .\planning\views.py:3189
+#: .\planning\views.py:3165
 msgid "This scheme could not be created."
 msgstr "Dit schema kon niet worden aangemaakt."
 
-#: .\planning\views.py:3232
+#: .\planning\views.py:3208
 msgid "This shift could not be created."
 msgstr "Deze dienst kon niet worden aangemaakt."
 
-#: .\planning\views.py:3275
+#: .\planning\views.py:3251
 msgid "Employee cannot be blank."
 msgstr "Werknemer moet ingevuld zijn."
 
-#: .\planning\views.py:3284
+#: .\planning\views.py:3260
 msgid "This teammember could not be created."
 msgstr "Dit ploeglid kon niet worden aangemaakt."
 
@@ -327,7 +327,7 @@ msgstr "Nee, annuleer"
 #: .\templates\companies\company_add.html:24
 #: .\templates\companies\company_edit.html:20
 #: .\templates\companies\company_edit.html:24
-#: .\templates\companies\company_list.html:70
+#: .\templates\companies\company_list.html:89
 #: .\templates\customers\customer_add.html:20
 #: .\templates\customers\customer_add.html:24
 #: .\templates\customers\customers.html:93
@@ -650,14 +650,15 @@ msgstr "Permissies"
 
 #: .\templates\companies\company_add.html:7
 #: .\templates\companies\company_edit.html:7
-#: .\templates\companies\company_list.html:15
+#: .\templates\companies\company_list.html:19
 #: .\templates\includes\header.html:101
 msgid "Companies"
 msgstr "Bedrijven"
 
 #: .\templates\companies\company_add.html:8
 #: .\templates\companies\company_add.html:17
-#: .\templates\companies\company_list.html:12
+#: .\templates\companies\company_list.html:16
+#: .\templates\companies\company_list.html:82
 msgid "Add company"
 msgstr "Bedrijf toevoegen"
 
@@ -680,24 +681,28 @@ msgstr "Opslaan"
 msgid "Edit company"
 msgstr "Bedrijf wijzigen"
 
-#: .\templates\companies\company_list.html:22
+#: .\templates\companies\company_list.html:26
 msgid "Company name"
 msgstr "Bedrijfsnaam"
 
-#: .\templates\companies\company_list.html:24
+#: .\templates\companies\company_list.html:28
 #: .\templates\customers\orders.html:81 .\templates\customers\orders.html:127
 #: .\templates\planning\roster.html:461 .\templates\planning\schemes.html:242
 #: .\templates\planning\schemes.html:474
 msgid "End date"
 msgstr "Einddatum"
 
-#: .\templates\companies\company_list.html:25
+#: .\templates\companies\company_list.html:29
 msgid "Balance"
 msgstr "Saldo"
 
-#: .\templates\companies\company_list.html:26
+#: .\templates\companies\company_list.html:30
 msgid "Time zone"
 msgstr "Tijdzone"
+
+#: .\templates\companies\company_list.html:83
+msgid "Add invoice"
+msgstr ""
 
 #: .\templates\customers\customer_add.html:7
 #: .\templates\customers\customers.html:26 .\templates\includes\header.html:103
@@ -1483,11 +1488,11 @@ msgstr "Datum moet ingevuld zijn."
 msgid "'%(fld)s' is not a valid date."
 msgstr "'%(fld)s' is geen geldige datum."
 
-#: .\tsap\headerbar.py:77
+#: .\tsap\headerbar.py:73
 msgid "<No company found>"
 msgstr "<Geen bedrijven gevonden>"
 
-#: .\tsap\headerbar.py:80
+#: .\tsap\headerbar.py:76
 msgid "<Select company>"
 msgstr "<Select bedrijf>"
 

@@ -185,6 +185,7 @@ def create_absence_customer(request):
         absence_locale = ABSENCE[user_lang]
     else:
         absence_locale = ABSENCE[LANG_DEFAULT]
+
     if user_lang in ABSENCE_CATEGORY:
         categories_locale = ABSENCE_CATEGORY[user_lang]
     else:

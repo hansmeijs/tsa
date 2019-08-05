@@ -192,13 +192,17 @@ $(function() {
 
 // buttons in  timepicker
         let btn_prevday = document.getElementById("id_timepicker_prevday")
-            btn_prevday.addEventListener("click", function () {SetPrevNextDay("prevday", el_timepicker, UpdateTableRow, comp_timezone)}, false )
+            btn_prevday.addEventListener("click", function () {
+                SetPrevNextDay("prevday", el_timepicker, UpdateTableRow, comp_timezone, cls_hover, cls_highl)
+            }, false )
         let btn_nextday = document.getElementById("id_timepicker_nextday")
-            btn_nextday.addEventListener("click", function () {SetPrevNextDay("nextday", el_timepicker, UpdateTableRow, comp_timezone)}, false )
+            btn_nextday.addEventListener("click", function () {
+                SetPrevNextDay("nextday", el_timepicker, UpdateTableRow, comp_timezone, cls_hover, cls_highl)
+            }, false )
         let btn_save = document.getElementById("id_timepicker_save")
-            btn_save.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, UpdateTableRow, url_emplhour_upload, quicksave, false)}, false )
+            btn_save.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, el_data, UpdateTableRow, "btn_save")}, false )
         let btn_quicksave = document.getElementById("id_timepicker_quicksave")
-            btn_quicksave.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, UpdateTableRow, url_emplhour_upload, quicksave, true)}, false )
+            btn_quicksave.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, el_data, UpdateTableRow, "btn_qs")}, false )
             btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add(cls_hover);});
             btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove(cls_hover);});
 
@@ -216,7 +220,8 @@ $(function() {
                                   "period": {"mode": "saved"},
                                   "rosterdatefill": {next: true},
                                   "abscat": {inactive: false},
-                                  "employee": {inactive: false}
+                                  "employee": {inactive: false},
+                                  "quicksave": {get: true}
                                   };
         DatalistDownload(datalist_request);
 
@@ -286,6 +291,9 @@ $(function() {
                 if ("period" in response) {
                     period_dict= response["period"];
                     DisplayPeriod(period_dict);
+                }
+                if ("quicksave" in response) {
+                    quicksave= response["quicksave"]
                 }
                 if (fill_table) {FillTableRows()}
                 if (check_status) {CheckStatus()}
@@ -604,7 +612,8 @@ $(function() {
                     el.addEventListener("click", function() {OpenModalEmployee(el);}, false ) } else
                 if ([4, 6].indexOf( j ) > -1){
                     el.addEventListener("click", function() {
-                        OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_emplhour_upload, comp_timezone, timeformat, interval, quicksave, cls_hover, cls_highl)}, false )} else
+                        OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_emplhour_upload,
+                                        comp_timezone, timeformat, interval, cls_hover, cls_highl)}, false )} else
                 if (j === 8){
                     // el.addEventListener("click", function() {OpenPopupHM(el)}, false )
                 };

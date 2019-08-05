@@ -373,141 +373,26 @@
         return new_datetime_iso;
     }
 
-//========= format_datelong_from_datetimelocal  ========== PR2019-06-27
-    function format_datelong_from_datetimelocal(datetime_local) {
-        // PR2019-07-01 was:
-            //const this_date = datetime_local.date();   //Sunday = 0
-            //const this_month_index = 1 + datetime_local.month();   //January = 0
-            //const this_month = month_list[this_month_index];
-            //const this_year = datetime_local.year();   //January = 0
-            //const weekday_index = datetime_local.day();   //Sunday = 0
-            //const weekday = weekday_list[weekday_index];
 
-        // debug: datetime_local must be Moment, not datetime
-        "use strict";
-        let date_str = "";
-        //  moment.locale(user_lang) is set at beginning of script, applies to all moment objjects in this page
-        if (!!datetime_local){
-            if(moment.locale() === "en") {
-                //date_str = weekday + " " + this_month + " " + this_date + ", " + this_year
-                date_str = datetime_local.format("dddd, MMMM D, YYYY")
-            } else {
-                //date_str = weekday + " " + this_date + " " + this_month + " " + this_year
-                date_str = datetime_local.format("dddd D MMMM YYYY")
+
+
+
+//========= PeriodWithinRange  ====================================
+    function PeriodWithinRange(period_min, period_max, range_min, range_max) {
+    // PR2019-08-04 Note: period is also out of range when diff === 0
+
+        let out_of_range = false;
+        if (!!range_min && !!period_max){
+            out_of_range = (period_max.diff(range_min) <= 0)  // out_of_range when period_max <= range_min
+        }
+        if (!out_of_range) {
+            if (!!range_max && !!period_min){
+                out_of_range = (period_min.diff(range_max) >= 0) // period_min >= range_max
             }
         }
-        return date_str;
-    }
-//========= format_datemedium_from_datetimelocal  ========== PR2019-07-09
-    function format_datemedium(dtl, weekday_list, month_list, skip_weekday, skip_year) {
-        "use strict";
-        //console.log(" -- format_datemedium  -- ")
-        //console.log(dtl.format())
-        //console.log(moment.locale())
-        //console.log(dtl.year())
-        //console.log(dtl.date())
-        //console.log("dtl.day: ", dtl.day())
-        //console.log(weekday_list[dtl.day()])
-        //console.log( month_list[dtl.month() + 1])
-
-        // According to ISO 8601, Sunday is the 7th day of the week
-        let weekday_index = dtl.day()
-        if(!weekday_index){weekday_index = 7};
-        //console.log("weekday_index: ", weekday_index)
-        //console.log(weekday_list[dtl.day()])
-
-        let date_str = "";
-        //  moment.locale(user_lang) is set at beginning of script, applies to all moment objjects in this page
-        let comma_space = " "
-        if(moment.locale() === "en") { comma_space = ", "}
-        if (!!dtl){
-            if(!skip_weekday){date_str = weekday_list[weekday_index] + comma_space }
-            if(moment.locale() === "en") {
-                date_str = date_str + month_list[dtl.month() + 1] + " " + dtl.date()
-            } else {
-                date_str = date_str + dtl.date() + " " + month_list[dtl.month() + 1]
-            }
-            if(!skip_year){date_str = date_str + comma_space + dtl.year() }
-        }
-
-        return date_str;
-    }
-
-  //========= format_period_from_datetimelocal  ========== PR2019-07-09
-    function format_period_from_datetimelocal(periodstart_local, periodend_local, weekday_list, month_list, timeformat) {
-        "use strict";
-        //console.log(" -- format_period_from_datetimelocal  -- ")
-        //console.log("periodstart_local", periodstart_local.format())
-        //console.log("periodend_local", periodend_local.format())
-        periodstart_local, periodend_local
-
-        // from https://momentjs.com/guides/
-        let startdate = periodstart_local.clone().startOf("day");
-        let enddate = periodend_local.clone().startOf("day");
-
-        const enddate_isMidnight = (enddate.diff(periodend_local) === 0);
-
-        //console.log("startdate diff", startdate.diff(periodstart_local))
-        // when periodend_local is midnight: make enddate one day earlier (period from 02:00 - 00:00 is still same day)
-        // only in 24h setting
-        if (enddate_isMidnight && timeformat !== "AmPm") {
-            // add / subtract day from datetime_local
-            enddate.add(-1, 'day')
-            //console.log("enddate corrected", enddate.format())
-        }
-
-        const datestart_formatted = format_datemedium(startdate, weekday_list, month_list, false, true)
-        const dateend_formatted = format_datemedium(enddate, weekday_list, month_list, false, true)
-        const timestart_formatted = format_time(periodstart_local, timeformat, false )
-        const timeend_formatted = format_time(periodend_local, timeformat, enddate_isMidnight ) // enddate_isMidnight: display 00.00 as prev day 24.00 u
-
-        let period_str = format_datemedium(periodstart_local, weekday_list, month_list, false, false);
-        const same_day = (startdate.diff(enddate) === 0)
-        if(same_day){
-            period_str = datestart_formatted + ", " + timestart_formatted + " - " + timeend_formatted
-        } else {
-            period_str = datestart_formatted + " " + timestart_formatted +  " - " + dateend_formatted + " " + timeend_formatted
-        }
-
-        //console.log("period_str: ", period_str)
-        return period_str;
-    }
-
-// format time
-//========= function new  ========== PR2019-06-27
-    function format_time(datetime_local, timeformat, display24) {
-        "use strict";
-        let time_formatted;
-
-        let isAmPm = false
-        if (timeformat === "AmPm"){isAmPm = true};
-
-        let isEN = false
-        if (moment.locale() === "en"){isEN = true};
-
-        let hour_str = "", ampm_str = "", delim = "";
-        const minute_str = datetime_local.format("mm")
-
-        if(isAmPm){
-            hour_str =  datetime_local.format("hh")
-            ampm_str = " " + datetime_local.format("a")
-            delim = ":"
-        } else {
-            if (datetime_local.hour() === 0 && display24) {
-                hour_str = "24"
-            } else {
-                hour_str =  datetime_local.format("HH")
-            }
-            delim = "."
-            if(!isEN){ ampm_str = " u"}
-        }
-
-        time_formatted = hour_str + delim + minute_str + ampm_str
-
-        return time_formatted
-    }
-
-
+        const within_range = !out_of_range;
+        return within_range
+    }  // PeriodWithinRange
 
 //========= get_now_utc new  ========== PR2019-07-28
     function get_now_utc(comp_timezone) {

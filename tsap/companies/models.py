@@ -656,7 +656,7 @@ def get_parent(table, ppk_int, update_dict, request):
     return parent
 
 
-def get_instance(table, pk_int, parent, update_dict):
+def get_instance(table, pk_int, parent, update_dict=None):
     # function returns instance of table PR2019-07-30
     # logger.debug('====== get_instance: ' + str(table) + ' pk_int: ' + str(pk_int) + ' parent: ' + str(parent))
 
@@ -681,10 +681,12 @@ def get_instance(table, pk_int, parent, update_dict):
             instance = Emplhour.objects.get_or_none(id=pk_int, orderhour=parent)
 
         if instance:
-            if 'id' not in update_dict:
-                update_dict['id'] = {}
-            update_dict['id']['pk'] = instance.pk
-            # update_dict['id']['table'] = table. This is added in get_parent
+            if update_dict:
+                if 'id' not in update_dict:
+                    update_dict['id'] = {}
+                update_dict['id']['pk'] = instance.pk
+                update_dict['pk'] = instance.pk
+                # update_dict['id']['table'] = table. This is added in get_parent
     return instance
 
 

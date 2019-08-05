@@ -21,7 +21,7 @@ from employees.dict import create_employee_list, create_teammember_list, create_
 from tsap.constants import MONTHS_ABBREV, WEEKDAYS_ABBREV, TIMEFORMATS, STATUS_00_NONE, \
     KEY_COMP_ROSTERDATE_CURRENT, KEY_USER_EMPLHOUR_PERIOD, LANG_DEFAULT, \
     CAT_00_NORMAL, CAT_01_INTERNAL, CAT_02_ABSENCE, CAT_03_TEMPLATE, KEY_USER_QUICKSAVE, \
-    STATUS_01_CREATED, STATUS_02_START_CONFIRMED
+    FIELDS_EMPLHOUR_TUPLE, STATUS_02_START_CONFIRMED
 
 from tsap.functions import get_date_from_ISOstring, get_datetimelocal_from_datetimeUTC, \
                     get_datetimearray_from_ISOstring, get_datetimelocal_from_offset, get_date_WDM_from_dte, \
@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
 class DatalistDownloadView(View):  # PR2019-05-23
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= DatalistDownloadView ============= ')
+        # logger.debug(' ============= DatalistDownloadView ============= ')
 
         datalists = {}
         if request.user is not None:
@@ -70,6 +70,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # - get user_lang
                     user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
                     activate(user_lang)
+
 # - get comp_timezone PR2019-06-14
                     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
                     # logger.debug('request.user.company.timezone: ' + str(request.user.company.timezone))
@@ -95,7 +96,15 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         # logger.debug('datalist table: ' + str(table) + ' include_inactive: ' + str(include_inactive) + ' ' + str(type(include_inactive)))
 
                         list = []
-                        if table == 'customer':
+
+                        if table == 'submenu':
+                            datalists[table] = {}
+                            if request.user.is_role_system_and_perm_admin:
+                                datalists[table]['user_is_role_system_and_perm_admin'] = True
+                            if request.user.is_role_company_and_perm_admin:
+                                datalists[table]['user_is_role_company_and_perm_admin'] = True
+
+                        elif table == 'customer':
                             cat_lte = CAT_01_INTERNAL
                             if 'cat_lte' in table_dict:
                                 cat_lte = table_dict['cat_lte']
@@ -181,16 +190,17 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                                                  range_end_iso=range_end_iso,
                                                                  show_all=show_all)  # PR2019-08-01
 
-
-
-
                             if emplhour_list:
                                 datalists['emplhour'] = emplhour_list
-                                logger.debug('vv emplhour_list: ' + str(emplhour_list))
 
                         elif table == 'rosterdatefill':
                             datalists[table] = get_rosterdatefill_dict(request.user.company, comp_timezone, user_lang)
 
+                        elif table == 'quicksave':
+                            # get quicksave from Usersetting
+                            quicksave_str = Usersetting.get_setting(KEY_USER_QUICKSAVE, request.user)
+                            quicksave = True if quicksave_str =='1' else False
+                            datalists[table] = {'value': quicksave}
                         else:
                             # - get order from table_dict
                             order_pk = table_dict.get('order_pk')
@@ -256,16 +266,16 @@ class RosterView(View):
             # b. get comp_timezone PR2019-06-14
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
-            # get weekdays translated
+    # get user_lang
             user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
-            if not user_lang in WEEKDAYS_ABBREV:
-                user_lang = LANG_DEFAULT
-            weekdays_json = json.dumps(WEEKDAYS_ABBREV[user_lang])
 
-            # get months translated
-            if not user_lang in MONTHS_ABBREV:
-                user_lang = LANG_DEFAULT
-            months_json = json.dumps(MONTHS_ABBREV[user_lang])
+    # get weekdays translated
+            lang = user_lang if user_lang in WEEKDAYS_ABBREV else LANG_DEFAULT
+            weekdays_json = json.dumps(WEEKDAYS_ABBREV[lang])
+
+    # get months translated
+            lang = user_lang if user_lang in MONTHS_ABBREV else LANG_DEFAULT
+            months_json = json.dumps(MONTHS_ABBREV[lang])
 
             # get interval
             interval = 1
@@ -327,13 +337,21 @@ class SchemesView(View):
 
 # --- get user_lang
             user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
-            if not user_lang in WEEKDAYS_ABBREV:
-                user_lang = LANGUAGE_CODE
+
+# --- get weekdays translated
+            lang = user_lang if user_lang in WEEKDAYS_ABBREV else LANG_DEFAULT
+            weekdays_json = json.dumps(WEEKDAYS_ABBREV[lang])
+
+# --- get months translated
+            lang = user_lang if user_lang in MONTHS_ABBREV else LANG_DEFAULT
+            months_json = json.dumps(MONTHS_ABBREV[lang])
 
 # --- create list of all active customers of this company
             # inactive = False: include only active instances
             inactive = False
-            customer_list = create_customer_list(request.user.company, inactive, CAT_00_NORMAL)
+            customer_list = create_customer_list(company=request.user.company,
+                                                 inactive=False,
+                                                 cat_lte=CAT_01_INTERNAL)
             customer_json = json.dumps(customer_list)
 
 # --- create list of all active orders of this company
@@ -343,24 +361,13 @@ class SchemesView(View):
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
             # logger.debug('comp_timezone: ' + str(comp_timezone))
 
-# --- get weekdays translated
-            if not user_lang in WEEKDAYS_ABBREV:
-                user_lang = LANGUAGE_CODE
-            weekdays_json = json.dumps(WEEKDAYS_ABBREV[user_lang])
-
-# --- get months translated
-            if not user_lang in MONTHS_ABBREV:
-                user_lang = LANGUAGE_CODE
-            months_json = json.dumps(MONTHS_ABBREV[user_lang])
-
 # ---  get interval
             interval = 1
             if request.user.company.interval:
                 interval = request.user.company.interval
 
 # get timeformat
-            # timeformat = 'AmPm'
-            timeformat = '24h'
+            timeformat = '24h' # or 'AmPm'
             if request.user.company.timeformat:
                 timeformat = request.user.company.timeformat
             if not timeformat in TIMEFORMATS:
@@ -376,10 +383,14 @@ class SchemesView(View):
 
 
 # get quicksave from Usersetting
-            quicksave = 0
+            quicksave = False
             quicksave_str = Usersetting.get_setting(KEY_USER_QUICKSAVE, request.user)
             if quicksave_str:
                 quicksave = int(quicksave_str)
+
+# get quicksave from Usersetting
+            quicksave_str = Usersetting.get_setting(KEY_USER_QUICKSAVE, request.user)
+            quicksave = True if quicksave_str == '1' else False
 
             param = get_headerbar_param(request, {
                 'customer_list': customer_json,
@@ -708,6 +719,7 @@ class SchemeOrTeamUploadView(UpdateView):  # PR2019-05-25
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
             activate(user_lang)
+
             tblName = ''
             if 'scheme' in request.POST:
                 tblName = 'scheme'
@@ -1136,7 +1148,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
 class SchemeItemUploadView(UpdateView):  # PR2019-07-22
 
     def post(self, request, *args, **kwargs):
-        # logger.debug('============= SchemeItemUploadView ============= ')
+        logger.debug('============= SchemeItemUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -1152,14 +1164,20 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
 # - get upload_dict from request.POST
             tablename = 'schemeitem'
 
-
-            # logger.debug('request.POST: ' + str(request.POST))
+            logger.debug('request.POST: ' + str(request.POST))
+            # request.POST: <QueryDict: {'upload': ['{"quicksave":false}']}>
 
 # 2. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
                 # logger.debug('upload_dict: ' + str(upload_dict))
+
+# 0. save quicksave
+                if 'quicksave' in upload_dict:
+                    quicksave_bool = upload_dict.get('quicksave', False)
+                    quicksave_str = '1' if quicksave_bool else '0'
+                    Usersetting.set_setting(KEY_USER_QUICKSAVE, quicksave_str, request.user)  # PR2019-07-02
 
 # 1. get_iddict_variables
                 id_dict = upload_dict.get('id')
@@ -1212,7 +1230,7 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
                     if item_list:
                         update_wrap[tablename] = item_list
 
-        # logger.debug('update_wrap: ' + str(update_wrap))
+        logger.debug('update_wrap: ' + str(update_wrap))
         update_dict_json = json.dumps(update_wrap, cls=LazyEncoder)
         return HttpResponse(update_dict_json)
 
@@ -1308,6 +1326,26 @@ class EmplhourView(View):
         param = {}
         # logger.debug(' ============= EmplhourView ============= ')
         if request.user.company is not None:
+    # get user_lang
+            user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
+            activate(user_lang)
+
+     # get weekdays translated
+            lang = user_lang if user_lang in WEEKDAYS_ABBREV else LANG_DEFAULT
+            weekdays_json = json.dumps(WEEKDAYS_ABBREV[lang])
+
+    # get interval
+            interval = 1
+            if request.user.company.interval:
+                interval = request.user.company.interval
+
+    # get timeformat
+            timeformat = 'AmPm'
+            if request.user.company.timeformat:
+                timeformat = request.user.company.timeformat
+            if not timeformat in TIMEFORMATS:
+                timeformat = '24h'
+
             datefirst = None
             datelast = None
             crit = (Q(orderhour__order__customer__company=request.user.company) | Q(employee__company=request.user.company))
@@ -1331,25 +1369,7 @@ class EmplhourView(View):
                 employee_list.append({'pk': employee.id, 'code': employee.code})
             employee_json = json.dumps(employee_list)
 
-            # get weekdays translated
-            lang = request.user.lang if request.user.lang else LANG_DEFAULT
-            if not lang in WEEKDAYS_ABBREV:
-                lang = LANGUAGE_CODE
-            weekdays_json = json.dumps(WEEKDAYS_ABBREV[lang])
-
-            # get interval
-            interval = 1
-            if request.user.company.interval:
-                interval = request.user.company.interval
-
-            # get timeformat
-            timeformat = 'AmPm'
-            if request.user.company.timeformat:
-                timeformat = request.user.company.timeformat
-            if not timeformat in TIMEFORMATS:
-                timeformat = '24h'
-
-            # get quicksave from Usersetting
+    # get quicksave from Usersetting
             quicksave = 0
             quicksave_str = Usersetting.get_setting(KEY_USER_QUICKSAVE, request.user)
             if quicksave_str:
@@ -1382,7 +1402,7 @@ class EmplhourUploadViewXXX(UpdateView):  # PR2019-03-04
         update_dict = create_dict_with_empty_attr(field_list)
 
         if request.user is not None and request.user.company is not None:
-            # --- Reset language
+    # --- Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
             activate(user_lang)
@@ -2215,9 +2235,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
     # 4. Create empty update_dict with keys for all fields if not exist. Unused ones will be removed at the end
                     # this one is not working: update_dict = dict.fromkeys(field_list, {})
-                    field_list = ('id', 'orderhour', 'employee', 'wagecode', 'rosterdate',
-                                'timestart', 'timeend', 'timeduration', 'breakduration', 'status')
-                    update_dict = create_dict_with_empty_attr(field_list)
+
+                    update_dict = create_dict_with_empty_attr(FIELDS_EMPLHOUR_TUPLE)
 
 # C. Create new orderhour / emplhour - before check if parent exists
                     parent = None
@@ -2371,51 +2390,6 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
 
     return emplhour, orderhour
 
-    """
-    is_update, rosterdate_str = get_fielddict_variables(upload_dict, 'rosterdate')
-    rosterdate, msg_err = get_date_from_ISOstring(rosterdate_str, True)
-    # logger.debug('Create  schemeitem rosterdate: ' + str(rosterdate) + ' type' + str(type(rosterdate)))
-    if msg_err:
-        update_dict['rosterdate']['error'] = msg_err
-    else:
-    
-        # When new schemeitems record: First create orderhour record. base.id is used in SchemeItem. Create also saves new record
-        orderhour = Orderhour.objects.create()
-        emplhour = Schemeitem(orderhour=orderhour, rosterdate=rosterdate)
-        schemeitem.save(request=self.request)
-        test_pk_int = schemeitem.pk
-    
-        # check if record exists
-        schemeitem = Schemeitem.objects.filter(id=test_pk_int, scheme=scheme).first()
-        if schemeitem:
-            # logger.debug('created schemeitem: ' + str(schemeitem))
-            item_exists = True
-            pk_int = schemeitem.pk
-    
-                                # TODO: add min max date
-            update_dict['rosterdate']['updated'] = True
-            set_fielddict_date(update_dict['rosterdate'], schemeitem.rosterdate)
-    
-            # Subtract 1 from company.balance
-            # TODO change: ---  after saving new record: subtract 1 from company.balance
-            # request.user.company.balance -= 1
-            request.user.company.save(request=self.request)
-    
-    if not item_exists:
-        if not msg_err:
-            msg_err = _('This item could not be created.')
-        update_dict['id']['error'] = msg_err
-    else:
-        update_dict['id']['created'] = True
-        update_dict['id']['pk'] = pk_int
-        update_dict['id']['ppk'] = parent_pk_int
-        # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
-        if temp_pk_str:
-            update_dict['id']['temp_pk'] = temp_pk_str
-    
-    """
-
-
 def make_absent(emplhour, employee, upload_dict, request):
     # - check if abscat_exists
     abscat_order_exists = False
@@ -2471,7 +2445,7 @@ def make_absent(emplhour, employee, upload_dict, request):
 def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, user_lang):
     # --- update existing and new emplhour PR2-019-06-23
     # add new values to update_dict (don't reset update_dict, it has values)
-    # logger.debug(' --- update_ emplhour ---')
+    logger.debug(' --- update_ emplhour ---')
     # logger.debug('upload_dict: ' + str(upload_dict))
     # upload_dict: {'id': {'pk': 11, 'ppk': 11, 'table': 'emplhour'},
     # 'select': 'absent',
@@ -2549,6 +2523,8 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
                 # setattr() sets the value ('team') of the specified attribute ('field') of the specified object (emplhour)
                 setattr(instance, field, employee)
                 save_changes = True
+                logger.debug('update_dict[' + field + ']: ' + str(update_dict))
+
                 update_dict[field]['updated'] = True
                 if instance.employee:
                     update_dict[field]['value'] = instance.employee.code

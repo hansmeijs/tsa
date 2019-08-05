@@ -24,7 +24,7 @@
 
 {% block content %}
   {% if user.is_authenticated %}
-        {% if user.is_role_system %}
+        {% if user.is_perm_plan %}
 
             <div class="c_select_file text_align_left">
                 <h4 class="text_align_left mt-4">{% trans 'Import employees' %}</h4>

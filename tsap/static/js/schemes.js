@@ -23,6 +23,7 @@ $(function() {
         let idx = 0; // idx is id of each created (date) element 2019-07-28
         let filter_name = "";
         let filter_hide_inactive = true;
+        let quicksave = false
 
 // ---  Select Customer
         let el_select_customer = document.getElementById("id_select_customer");
@@ -35,21 +36,6 @@ $(function() {
 // ---  Select Scheme
         // in FillSelectTable is created function HandleSelectScheme
 
-
-
-// ---  class input_text NIU??
-        // PR2019-03-03 from https://stackoverflow.com/questions/14377590/queryselector-and-queryselectorall-vs-getelementsbyclassname-and-getelementbyid
-        //let elements = document.getElementsByClassName("input_text");
-        //for (let i = 0, len = elements.length; i < len; i++) {
-        //    let el = elements[i];
-        //    el.addEventListener("change", function() {
-        //        setTimeout(function() {
-        //            //UploadChanges(el);
-         //       }, 250);
-        //    }, false )
-        //}
-
-
 // ---  create EventListener for buttons in window
         document.getElementById("id_btn_dayup").addEventListener("click", function() {HandleAutofillDayupDown("schemeitem_dayup")}, false )
         // document.getElementById("id_btn_dayselect").addEventListener("click", function() {HandleAutofillDayupDown("schemeitem_dayselect")}, false )
@@ -60,7 +46,6 @@ $(function() {
         document.getElementById("id_filter_name").addEventListener("keyup", function() {
             setTimeout(function() {HandleSearchFilterEvent();}, 150);
         });
-
 
 // ---  Modal Addnew
         let el_mod_cust = document.getElementById("id_mod_customer")
@@ -132,7 +117,6 @@ $(function() {
         let el_scheme_datelast = document.getElementById("id_scheme_datelast");
             el_scheme_datelast.addEventListener("click", function() {
                 HandlePopupDateOpen(el_scheme_datelast)}, false );
-
 
 // --- close windows
         document.addEventListener('click', function (event) {
@@ -260,20 +244,20 @@ $(function() {
         // from https://stackoverflow.com/questions/17493309/how-do-i-change-the-language-of-moment-js
         moment.locale(user_lang)
 
-        let quicksave = false
-        if (get_attr_from_el_int(el_data, "data-quicksave") === 1 ) { quicksave = true};
-        //console.log("quicksave ", quicksave)
-
 
 // buttons in  timepicker
         let btn_prevday = document.getElementById("id_timepicker_prevday")
-            btn_prevday.addEventListener("click", function () {SetPrevNextDay("prevday", el_timepicker, UpdateTableRow, comp_timezone)}, false )
+            btn_prevday.addEventListener("click", function () {
+                SetPrevNextDay("prevday", el_timepicker, UpdateTableRow, comp_timezone, cls_hover, cls_highl)
+            }, false )
         let btn_nextday = document.getElementById("id_timepicker_nextday")
-            btn_nextday.addEventListener("click", function () {SetPrevNextDay("nextday", el_timepicker, UpdateTableRow, comp_timezone)}, false )
+            btn_nextday.addEventListener("click", function () {
+                SetPrevNextDay("nextday", el_timepicker, UpdateTableRow, comp_timezone, cls_hover, cls_highl)
+            }, false )
         let btn_save = document.getElementById("id_timepicker_save")
-            btn_save.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, UpdateTableRow, url_schemeitem_upload, quicksave, false)}, false )
+            btn_save.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, el_data, UpdateTableRow, "btn_save")}, false )
         let btn_quicksave = document.getElementById("id_timepicker_quicksave")
-            btn_quicksave.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, UpdateTableRow, url_schemeitem_upload, quicksave, true)}, false )
+            btn_quicksave.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, el_data, UpdateTableRow, "btn_qs")}, false )
             btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add(cls_hover);});
             btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove(cls_hover);});
 
@@ -289,7 +273,9 @@ $(function() {
                                   "scheme_template": {inactive: false},
                                   "schemeitem_template": {inactive: false},
                                   "employee": {inactive: false},
-                                  "rosterdatefill": {next: true}};
+                                  "rosterdatefill": {next: true},
+                                  "quicksave": {get: true}
+                                  };
         DatalistDownload(datalist_request);
 
 //  #############################################################################################################
@@ -318,8 +304,8 @@ $(function() {
             if (key === "employee") {employee_list = []};
             // "rosterdatefill" for fill rosterdate
         }
-                console.log("datalist_request")
-                console.log(datalist_request)
+        //console.log("datalist_request")
+        //console.log(datalist_request)
 
         // show loader
         el_loader.classList.remove(cls_hide)
@@ -331,7 +317,7 @@ $(function() {
             data: param,
             dataType: 'json',
             success: function (response) {
-                console.log("response")
+                //console.log("response")
                 console.log(response)
 
                 // hide loader
@@ -379,6 +365,9 @@ $(function() {
                 if ("employee" in response) {
                     employee_list= response["employee"];
                     FillDatalist("id_datalist_employees", employee_list)}
+                if ("quicksave" in response) {
+                    el_data.setAttribute("data-quicksave", get_subdict_value_by_key(response, "quicksave", "value", false))
+                }
             },
             error: function (xhr, msg) {
                 console.log(msg + '\n' + xhr.responseText);
@@ -391,7 +380,7 @@ $(function() {
 
 //=========  CreateSubmenu  === PR2019-07-08
     function CreateSubmenu() {
-        console.log("===  CreateSubmenu == ");
+        //console.log("===  CreateSubmenu == ");
         // console.log("pk", pk, "ppk", parent_pk);
 
         let el_submenu = document.getElementById("id_submenu")
@@ -430,7 +419,7 @@ $(function() {
 
 //=========  HandleSelectCustomer  ================ PR2019-03-23
     function HandleSelectCustomer(el) {
-        console.log("--- HandleSelectCustomer")
+        //console.log("--- HandleSelectCustomer")
 
 // reset lists
         schemeitem_list = [];
@@ -504,7 +493,7 @@ $(function() {
 
 //=========  HandleSelectOrder  ================ PR2019-03-24
     function HandleSelectOrder(el) {
-        console.log("--- HandleSelectOrder")
+        //console.log("--- HandleSelectOrder")
 
 // reset lists
         schemeitem_list = [];
@@ -787,7 +776,7 @@ $(function() {
 
 //========= GetSchemeDictFromInputElements  ============= PR2019-06-06
     function GetSchemeDictFromInputElements(dtp_dict) {
-        console.log("======== GetSchemeDictFromInputElements");
+        //console.log("======== GetSchemeDictFromInputElements");
         //console.log("dtp_dict: ", dtp_dict);
         // dtp_dict contains value of datetimepicker datefirst/last, overrides value of element
         // when clicked on delete datefirst/last: dtp_dict = {"datefirst": {"value": null}}
@@ -797,7 +786,7 @@ $(function() {
 
 // ---  create id_dict
         let id_dict = get_iddict_from_element(el_scheme_code);
-        console.log("id_dict: ", id_dict);
+        //console.log("id_dict: ", id_dict);
         // id_dict = {"pk": 14, "ppk": 2 "table": "scheme"}
 
 // add id_dict to item_dict
@@ -851,13 +840,13 @@ $(function() {
             }  // if(!!id_dict["arent_pk"])
         };  // if (!!id_dict){
 
-        console.log("item_dict", item_dict);
+        //console.log("item_dict", item_dict);
         return item_dict;
     };  // function GetSchemeDictFromInputElements
 
 //========= UploadChanges  ============= PR2019-03-03
     function UploadChanges(el_changed) {
-        console.log("--- UploadChanges  --------------");
+        //console.log("--- UploadChanges  --------------");
         let tr_changed = get_tablerow_clicked(el_changed)
         UploadTblrowChanged(tr_changed);
     }
@@ -868,13 +857,13 @@ $(function() {
 // An input has a value attribute that determines the initial value of the input.
 // It also has a value property that holds the current value of the input
     function UploadTblrowChanged(tr_changed) {
-        console.log("=== UploadTblrowChanged");
+        //console.log("=== UploadTblrowChanged");
         let row_upload = GetItemDictFromTablerow(tr_changed);
-        console.log("row_upload: ", row_upload );
+        //console.log("row_upload: ", row_upload );
 
         if(!!row_upload) {
             const tablename = get_subdict_value_by_key(row_upload, "id", "table")
-            console.log("tablename: ", tablename );
+            //console.log("tablename: ", tablename );
 
             let url_str;
             if (tablename === "teammember") {
@@ -891,8 +880,8 @@ $(function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+                    //console.log( "response");
+                    //console.log( response);
 
                     if ("order" in response) {
                         order_list= response["order"]}
@@ -914,10 +903,10 @@ $(function() {
                     if ("employee" in response) {
                         employee_list= response["employee"];
                         FillDatalist("id_datalist_employees", employee_list)}
-                    console.log( "item_update in response", response);
+                    //console.log( "item_update in response", response);
                     if ("item_update" in response) {
                         let item_dict = response["item_update"]
-                        console.log( ">>>>>>>> item_dict =", item_dict);
+                        //console.log( ">>>>>>>> item_dict =", item_dict);
 
                         const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
                         UpdateTableRow(tblName, tr_changed, item_dict)
@@ -925,18 +914,18 @@ $(function() {
                         //id: {parent_pk: 126, table: "teammember", created: true, pk: 57, temp_pk: "new_4"}
                         //team: {pk: 126, value: "A", updated: true}
                         const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
-                        console.log( "is_created =", is_created, typeof is_created);
+                        //console.log( "is_created =", is_created, typeof is_created);
 
                         if (!!is_created){
 // add new empty row
-                            console.log( "UploadTblrowChanged >>> add new empty row");
+                            //console.log( "UploadTblrowChanged >>> add new empty row");
                             id_new = id_new + 1
                             const pk_new = "new_" + id_new.toString()
                             const parent_pk = get_ppk_from_id (item_dict)
 
                             let new_dict = {}
                             new_dict["id"] = {"pk": pk_new, "ppk": parent_pk, "temp_pk": pk_new}
-                            console.log( "UploadTblrowChanged >>> add new empty row");
+                            //console.log( "UploadTblrowChanged >>> add new empty row");
 
                             if (tblName === "schemeitem"){
                                 let rosterdate_dict = get_dict_value_by_key (item_dict, "rosterdate")
@@ -956,7 +945,7 @@ $(function() {
                     }
                 },
                 error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
+                    //console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
@@ -965,18 +954,18 @@ $(function() {
 
 //=========  HandleDeleteTblrow  ================ PR2019-03-16
     function HandleDeleteTblrow(tr_changed) {
-        console.log("=== HandleDeleteTblrow");
+        //console.log("=== HandleDeleteTblrow");
         let row_upload = GetItemDictFromTablerow(tr_changed);
-        console.log("row_upload: ", row_upload );
+        //console.log("row_upload: ", row_upload );
         // row_upload:  {id: {pk: 10, ppk: 34, table: "teammember"}
 
         const tablename = get_subdict_value_by_key(row_upload, "id", "table")
-        console.log("tablename: ", tablename );
+        //console.log("tablename: ", tablename );
 
         if(!!row_upload) {
 // ---  get pk from id of tr_changed
             const pk_int = get_pk_from_id(row_upload)
-            console.log("tablename: ", tablename, "pk_int: ", pk_int );
+            //console.log("tablename: ", tablename, "pk_int: ", pk_int );
 
             //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
             if (!pk_int) {
@@ -990,7 +979,7 @@ $(function() {
                 if (!!id_dict){
     // ---  create param
                     row_upload["id"]["delete"] = true;
-                    console.log("row_upload: ", row_upload );
+                    //console.log("row_upload: ", row_upload );
                     // upload = '{"id":{"pk":10,"ppk":34,"table":"teammember","delete":true}}'
     // delete  record
                     // make row red
@@ -1011,8 +1000,8 @@ $(function() {
                         data: parameters,
                         dataType:'json',
                         success: function (response) {
-                            console.log ("response:");
-                            console.log (response);
+                            //console.log ("response:");
+                            //console.log (response);
 
                             if ("order" in response) {
                                 order_list= response["order"]}
@@ -1051,8 +1040,8 @@ $(function() {
 
 //========= UpdateSchemeitemOrTeammmember  =============
     function UpdateSchemeitemOrTeammmember(tblRow, update_dict){
-        console.log("=== UpdateSchemeitemOrTeammmember ===");
-        console.log("update_dict: " , update_dict);
+        //console.log("=== UpdateSchemeitemOrTeammmember ===");
+        //console.log("update_dict: " , update_dict);
         // 'update_dict': {'id': {'error': 'This record could not be deleted.'}}}
         // 'update_dict': {'id': {'pk': 169, 'parent_pk': 24, deleted: true}
 
@@ -1062,7 +1051,7 @@ $(function() {
 // get id_new and id_pk from update_dict["id"]
             const pk = get_pk_from_id(update_dict);
             const parent_pk = get_ppk_from_id(update_dict);
-            console.log("pk: ", pk, "parent_pk: ", parent_pk);
+            //console.log("pk: ", pk, "parent_pk: ", parent_pk);
 
             let id_dict = get_dict_value_by_key (update_dict, "id")
             if (!!tblRow){
@@ -1093,15 +1082,15 @@ $(function() {
 
 //=========  Upload_Scheme  ================ PR2019-05-09
     function Upload_Scheme(dtp_dict) {
-        console.log("=========  Upload_Scheme =========");
-        console.log("dtp_dict: ", dtp_dict);
+        //console.log("=========  Upload_Scheme =========");
+        //console.log("dtp_dict: ", dtp_dict);
         // dtp_dict contains value of datetimepicker datefirst/last:
         // when clicked on delete datefirst/last: dtp_dict = {"datefirst": {"value": null}}
         // when value of datetimepicker has changed: datefirst: {value: "2019-05-02", o_value: "2019-05-28"}
 
     // get id of selected scheme
         let scheme_dict = GetSchemeDictFromInputElements(dtp_dict)
-        console.log("upload_dict: ", scheme_dict);
+        //console.log("upload_dict: ", scheme_dict);
 
         if(!isEmpty(scheme_dict)){
             let param_json = {"upload": JSON.stringify (scheme_dict)};
@@ -1113,8 +1102,8 @@ $(function() {
                 data: param_json,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+                    //console.log( "response");
+                    //console.log( response);
 
                     if ("scheme" in response) {
                         scheme_list = response["scheme"];
@@ -1137,8 +1126,8 @@ $(function() {
 
 //========= FillScheme  ====================================
     function FillScheme(scheme_dict) {
-        console.log( "===== FillScheme  ========= ");
-        console.log("scheme_dict", scheme_dict)
+        //console.log( "===== FillScheme  ========= ");
+        //console.log("scheme_dict", scheme_dict)
 
         el_scheme_code.value = null;
         el_scheme_cycle.value = null;
@@ -1162,7 +1151,7 @@ $(function() {
                 if (fieldname === "datelast"){el_input = el_scheme_datelast};
 
                 field_dict = get_dict_value_by_key (scheme_dict, fieldname)
-                console.log("field_dict", field_dict)
+                //console.log("field_dict", field_dict)
                 const updated = get_dict_value_by_key (field_dict, "updated");
                 const msg_err = get_dict_value_by_key (field_dict, "error");
 
@@ -1208,8 +1197,8 @@ $(function() {
 
 //=========  HandleDatepickerChanged  ================ PR2019-06-22
     function HandleDatepickerChanged(e) {
-        console.log ("==== HandleDatepickerChanged ===" )
-        console.log (e.currentTarget )
+        //console.log ("==== HandleDatepickerChanged ===" )
+        //console.log (e.currentTarget )
 
         // target is the element that triggered the event (e.g., the user clicked on)
         // currentTarget is the element that the event listener is attached to.
@@ -1235,7 +1224,7 @@ $(function() {
 
 //=========  HandleFilterInactive  ================ PR2019-07-18
     function HandleFilterInactive(el) {
-        console.log("=========  function HandleFilterInactive =========");
+        //console.log("=========  function HandleFilterInactive =========");
 // toggle value
         filter_hide_inactive = !filter_hide_inactive
 
@@ -1249,7 +1238,7 @@ $(function() {
 
 //========= HandleSearchFilterEvent  ====================================
     function HandleSearchFilterEvent() {
-        console.log( "===== HandleSearchFilterEvent  ========= ");
+        //console.log( "===== HandleSearchFilterEvent  ========= ");
         // skip filter if filter value has not changed, update variable filter_name
         let new_filter = document.getElementById("id_filter_name").value;
         let skip_filter = false
@@ -1273,12 +1262,12 @@ $(function() {
 
 //=========  UploadSchemeOrTeam  ================ PR2019-05-31
     function UploadSchemeOrTeam(tblRow, action) {
-        console.log("========= UploadSchemeOrTeam");
-        console.log(" tblRow", tblRow);
+        //console.log("========= UploadSchemeOrTeam");
+        //console.log(" tblRow", tblRow);
         // selecttable scehme, team; action 'inactive, create
         let tblName = get_attr_from_el(tblRow, "data-table");
-        console.log(" tblName", tblName);
-        console.log(" action", action);
+        //console.log(" tblName", tblName);
+        //console.log(" action", action);
 
         let dict = {};
         if (!!tblRow){
@@ -1307,7 +1296,7 @@ $(function() {
             const parent_pk_int = get_attr_from_el_int(tblRow, "data-ppk");
             id_dict["ppk"] = parent_pk_int;
 
-        console.log("id_dict", id_dict);
+        //console.log("id_dict", id_dict);
 
     // add id_dict to dict
             if (!!id_dict){
@@ -1331,7 +1320,7 @@ $(function() {
 
             let parameters = {};
             parameters[tblName] = JSON.stringify (dict);
-            console.log("parameters", parameters);
+            //console.log("parameters", parameters);
 
             let response = "";
             $.ajax({
@@ -1340,8 +1329,8 @@ $(function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log ("response:");
-                    console.log (response);
+                    //console.log ("response:");
+                    //console.log (response);
 
                     if ("order" in response) {
                         order_list= response["order"]}
@@ -1370,7 +1359,7 @@ $(function() {
                     };
                 },
                 error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
+                    //console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
@@ -1380,8 +1369,8 @@ $(function() {
 
 //========= UpdateSchemeOrTeam  =============
     function UpdateSchemeOrTeam(tblName, tblRow, update_dict){
-        console.log("=== UpdateSchemeOrTeam ===", tblName);
-        console.log("update_dict: " , update_dict);
+        //console.log("=== UpdateSchemeOrTeam ===", tblName);
+        //console.log("update_dict: " , update_dict);
         // 'update_dict': {'id': {'error': 'This record could not be deleted.'}}}
         // 'update_dict': {'id': {'pk': 169, 'parent_pk': 24, deleted: true}
 
@@ -1391,7 +1380,7 @@ $(function() {
 // get id_new and id_pk from update_dict["id"]
             const pk = get_pk_from_id(update_dict);
             const parent_pk = get_ppk_from_id(update_dict);
-            console.log("pk: ", pk, "parent_pk: ", parent_pk);
+            //console.log("pk: ", pk, "parent_pk: ", parent_pk);
 
             let id_dict = get_dict_value_by_key (update_dict, "id")
             if (!!tblRow){
@@ -1484,8 +1473,8 @@ $(function() {
 
 //========= FillSchemeItems  ====================================
     function FillSchemeItems(response) {
-     console.log( "===== FillSchemeItems  ========= ");
-     console.log( "response ", response);
+     //console.log( "===== FillSchemeItems  ========= ");
+     //console.log( "response ", response);
 
 
         let curOption;
@@ -1496,7 +1485,7 @@ $(function() {
         let row_count = 0
 
         if (!!parent_pk_str){parent_pk = parseInt(parent_pk_str)};
-         console.log( "parent_pk ", parent_pk, typeof parent_pk );
+         //console.log( "parent_pk ", parent_pk, typeof parent_pk );
 
         for (let i = 0, id, value, addrow, len = option_list.length; i < len; i++) {
 
@@ -1898,14 +1887,15 @@ $(function() {
                 if (tblName === "schemeitem"){
                     if (j === 1) {
                         // el.addEventListener("click", function() {
-                        //     OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_schemeitem_upload, comp_timezone, timeformat, interval, quicksave, cls_hover, cls_highl)}, false )
+                        //     OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_schemeitem_upload, comp_timezone, timeformat, interval, cls_hover, cls_highl)}, false )
                         el.addEventListener("click", function() {
                             OpenPopupWDY(el)}, false )
                     } else if ([2, 3].indexOf( j ) > -1){
                         el.addEventListener("change", function() {UploadChanges(el);}, false )
                     } else if ([4, 5].indexOf( j ) > -1){
                         el.addEventListener("click", function() {
-                            OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_schemeitem_upload, comp_timezone, timeformat, interval, quicksave, cls_hover, cls_highl)}, false )
+                            OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_schemeitem_upload,
+                                            comp_timezone, timeformat, interval, cls_hover, cls_highl)}, false )
                         } else  if ([6, 7].indexOf( j ) > -1){
                         el.addEventListener("click", function() {OpenPopupHM(el)}, false )
                     };
@@ -2126,8 +2116,8 @@ $(function() {
                                                     user_lang, comp_timezone, false, true)
 
                             } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
-                                console.log("fieldname: ", fieldname);
-                                console.log("field_dict: ", field_dict);
+                                //console.log("fieldname: ", fieldname);
+                                //console.log("field_dict: ", field_dict);
                                 //const hide_weekday = false, hide_year = false;
                                 format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
                                                     user_lang, comp_timezone, false, true)
@@ -2192,8 +2182,8 @@ $(function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                console.log( "response");
-                console.log( response);
+                //console.log( "response");
+                //console.log( response);
                     // hide loader
                     el_loader.classList.add(cls_hide)
                     if ("schemeitem_list" in response) {
@@ -2249,11 +2239,10 @@ $(function() {
     }; // function FillDatalist
 
 
-
 //========= FillTableTemplate  ============= PR2019-07-19
     function FillTableTemplate() {
-        console.log( "=== FillTableTemplate ");
-        console.log( scheme_list);
+        //console.log( "=== FillTableTemplate ");
+        //console.log( scheme_list);
 
         let tblBody = document.getElementById("id_mod_copyfrom_tblbody")
         let item_list = scheme_list //   scheme_template_list
@@ -2314,8 +2303,8 @@ $(function() {
 
 //=========  HandleTemplateSelect  ================ PR2019-05-24
     function HandleTemplateSelect(tblRow) {
-        console.log( "===== HandleTemplateSelect ========= ");
-        console.log( tblRow);
+        //console.log( "===== HandleTemplateSelect ========= ");
+        //console.log( tblRow);
 
 // ---  deselect all highlighted rows
         let tblBody = tblRow.parentNode;
@@ -2330,14 +2319,14 @@ $(function() {
             // el_input is first child of td, td is cell of tblRow
             const el_select = tblRow.cells[0].children[0];
             const value = get_attr_from_el(el_select, "data-value");
-            console.log("value: ", value)
+            //console.log("value: ", value)
 
     // ---  get pk from id of select_tblRow
             let pk = get_datapk_from_element (tblRow)
             let ppk = get_datappk_from_element (tblRow)
 
-            console.log("pk: ", pk)
-            console.log("ppk: ", ppk)
+            //console.log("pk: ", pk)
+            //console.log("ppk: ", ppk)
 
             tblBody.setAttribute("data-pk", pk);
             tblBody.setAttribute("data-ppk", ppk);
@@ -2348,9 +2337,9 @@ $(function() {
 
 //=========  ModalAddnewOpen  ================ PR2019-07-20
     function ModalAddnewOpen() {
-        console.log("=========  ModalAddnewOpen =========");
-        console.log("selected_customer_pk", selected_customer_pk);
-        console.log("selected_order_pk", selected_order_pk);
+        //console.log("=========  ModalAddnewOpen =========");
+        //console.log("selected_customer_pk", selected_customer_pk);
+        //console.log("selected_order_pk", selected_order_pk);
 
          $("#id_mod_addnew").modal({backdrop: true});
 
@@ -2358,12 +2347,12 @@ $(function() {
 
 //=========  ModalAddnewEdit  ================ PR2019-07-20
     function ModalAddnewEdit(mode) {
-        console.log("=========  ModalAddnewEdit =========");
-        console.log("mode", mode);
+        //console.log("=========  ModalAddnewEdit =========");
+        //console.log("mode", mode);
 
         if(mode === "customer"){
-            console.log("el_mod_cust", el_mod_cust);
-            console.log("el_mod_cust.value", el_mod_cust.value, typeof el_mod_cust.value);
+            //console.log("el_mod_cust", el_mod_cust);
+            //console.log("el_mod_cust.value", el_mod_cust.value, typeof el_mod_cust.value);
             if(!el_mod_cust.value){
                 selected_customer_pk = 0
             } else {
@@ -2372,8 +2361,8 @@ $(function() {
             }
         }
         if(mode === "order"){
-            console.log("el_mod_order", el_mod_order);
-            console.log("el_mod_order.value: <", el_mod_order.value, "> " +  typeof el_mod_order.value);
+            //console.log("el_mod_order", el_mod_order);
+            //console.log("el_mod_order.value: <", el_mod_order.value, "> " +  typeof el_mod_order.value);
             let msg_err, el_err = document.getElementById("id_mod_order_err")
             if(!el_mod_order.value){
                 msg_err = get_attr_from_el(el_data, "data-err_msg_order");
@@ -2402,12 +2391,12 @@ $(function() {
 
 //=========  ModalAddnewSave  ================ PR2019-07-20
     function ModalAddnewSave() {
-        console.log("=========  ModalAddnewSave =========");
+        //console.log("=========  ModalAddnewSave =========");
 
             const code = el_mod_code.value
             const cycle_str = el_mod_cycle.value
-            console.log("el_mod_order", el_mod_order);
-            console.log("el_mod_order.value: <", el_mod_order.value, "> " +  typeof el_mod_order.value);
+            //console.log("el_mod_order", el_mod_order);
+            //console.log("el_mod_order.value: <", el_mod_order.value, "> " +  typeof el_mod_order.value);
 
             let has_error = false
             if(!selected_customer_pk){
@@ -2451,15 +2440,14 @@ $(function() {
     // ---  create id_dict
                 const tblName = "scheme"
                 let id_dict = {"temp_pk": pk_str, "ppk": selected_order_pk, "table": tblName, "create": true}
-                console.log("id_dict", id_dict);
+                //console.log("id_dict", id_dict);
 
         // add id_dict to dict
                 let dict = {"id": id_dict};
                 if (!!code) {dict["code"] = {"value": code, "update": true}}
                 const cycle = document.getElementById("id_mod_cycle").value
                 dict["cycle"] = {"value": cycle, "update": true}
-
-                console.log("dict", dict);
+                //console.log("dict", dict);
 
                 $("#id_mod_addnew").modal("hide");
 
@@ -2472,8 +2460,8 @@ $(function() {
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        console.log ("response:");
-                        console.log (response);
+                        //console.log ("response:");
+                        //console.log (response);
 
                         if ("scheme" in response) {
                             scheme_list= response["scheme"];
@@ -2493,7 +2481,7 @@ $(function() {
 
 //========= ModalCopyfromTemplateOpen====================================
     function ModalCopyfromTemplateOpen () {
-        console.log("===  ModalCopyfromTemplateOpen  =====") ;
+        //console.log("===  ModalCopyfromTemplateOpen  =====") ;
 
     // reset input elements
         el_mod_copyfrom_template.value = null
@@ -2618,11 +2606,11 @@ $(function() {
     return validate_select_blank(el_mod_copyfrom_cust, el_err, msg_blank, true) // true = skip first option (Select template...)
  }
   function ModalCopyfromValidateOrderBlank(){
-    console.log(" --- ModalCopyfromValidateOrderBlank ---")
+    //console.log(" --- ModalCopyfromValidateOrderBlank ---")
     let el_err = document.getElementById("id_mod_copyfrom_order_err");
     const msg_blank = get_attr_from_el(el_data, "data-err_msg_order");
     const dict = validate_select_blank(el_mod_copyfrom_order, el_err, msg_blank, true) // true = skip first option (Select template...)
-    console.log(dict)
+    //console.log(dict)
     return dict
  }
 
@@ -2665,14 +2653,14 @@ function validate_input_blank(el_input, el_err, msg_blank){
         if(!sel_pk){ msg_err = msg_blank }
         formcontrol_err_msg(el_select, el_err, msg_err)
         const dict = {"pk": sel_pk, "ppk": sel_ppk, "code": sel_code, "error": (!!msg_err)}
-        console.log(dict)
+        //console.log(dict)
         return dict;
     }  // validate_select_blank
 
 //========= validate_input_code====================================
     function validate_input_code(el_input, el_err, list, msg_blank, msg_exists){
-        console.log("=========  validate_input_code ========= ");
-        console.log(list);
+        //console.log("=========  validate_input_code ========= ");
+        //console.log(list);
         // functions checks if input.value is blank or already exists in list
         let msg_err = null, new_code = null;
 
@@ -2680,16 +2668,16 @@ function validate_input_blank(el_input, el_err, msg_blank){
             msg_err = msg_blank;
         } else {
             new_code = el_input.value
-            console.log("new_code:", new_code);
+            //console.log("new_code:", new_code);
             // check if new_code already exists in scheme_list
             if (!!list){
                 for (let i = 0, dict, code, len = list.length; i < len; i++) {
                     dict = list[i]
 
                     code = get_subdict_value_by_key(dict, "code", "value")
-            console.log("code:", code);
+            //console.log("code:", code);
                     if (new_code.toLowerCase() === code.toLowerCase()) {
-            console.log("exists:");
+            //console.log("exists:");
                         msg_err = msg_exists;
                         break;
                     }}}}
@@ -2699,7 +2687,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //========= ModalCopyfromTemplateSave====================================
     function ModalCopyfromTemplateSave () {
-        console.log("===  ModalCopyfromTemplateSave  =====") ;
+        //console.log("===  ModalCopyfromTemplateSave  =====") ;
         let has_error = false;
 
         let return_dict = ModalCopyfromValidateTemplateBlank()
@@ -2722,6 +2710,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
         if(!has_error) {
 
+            $("#id_mod_addnew").modal("hide");
 // get template pk from modal select
             const template_pk = parseInt(el_mod_copyfrom_template.value)
 
@@ -2763,8 +2752,8 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 dict["order"] = {"pk": selected_order_pk}
             }
             let parameters = {"copyfromtemplate": JSON.stringify (dict)};
-            console.log("parameters");
-            console.log(parameters);
+            //console.log("parameters");
+            //console.log(parameters);
 
             let response = "";
             $.ajax({
@@ -2773,15 +2762,15 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+                    //console.log( "response");
+                    //console.log( response);
 
                     if ("scheme" in response) {
                         scheme_list= response["scheme"];
                     }
                 },
                 error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
+                    //console.log(msg + '\n' + xhr.responseText);
                     alert(msg + '\n' + xhr.responseText);
                 }
             });
@@ -2793,7 +2782,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //========= ModalCopytoTemplateOpen====================================
     function ModalCopytoTemplateOpen () {
-        console.log("===  ModalCopytoTemplateOpen  =====") ;
+        //console.log("===  ModalCopytoTemplateOpen  =====") ;
 
         let el_modal = document.getElementById("id_mod_copyto")
         let el_input = document.getElementById("id_mod_copyto_code")
@@ -2804,12 +2793,12 @@ function validate_input_blank(el_input, el_err, msg_blank){
         if (!!selected_scheme_pk){
             let scheme_dict = get_arrayRow_by_keyValue (scheme_list, "pk", selected_scheme_pk)
             //scheme_dict: {pk: 18, id: {pk: 18, parent_pk: 6, code: {value: "MCB scheme"}, cycle: {value: 7}}}
-             console.log( "scheme_dict", scheme_dict);
+             //console.log( "scheme_dict", scheme_dict);
 
             let field_dict = get_dict_value_by_key (scheme_dict, "code")
-            console.log("field_dict", field_dict)
+            //console.log("field_dict", field_dict)
             let scheme_code = get_dict_value_by_key (field_dict, "value")
-            console.log("scheme_code", scheme_code)
+            //console.log("scheme_code", scheme_code)
 
             el_input.value = scheme_code
 
@@ -2823,7 +2812,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //=========  ModalCopytoTemplateEdit  ================ PR2019-07-20
     function ModalCopytoTemplateEdit() {
-        console.log("=========  ModalCopytoTemplateEdit =========");
+        //console.log("=========  ModalCopytoTemplateEdit =========");
 
         let el_input = document.getElementById("id_mod_copyto_code")
         let value = el_input.value
@@ -2855,7 +2844,9 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //=========  ModalCopytoTemplateSave  ================ PR2019-07-24
     function ModalCopytoTemplateSave() {
-        console.log("=========  ModalCopytoTemplateSave =========");
+        //console.log("=========  ModalCopytoTemplateSave =========");
+
+        $("#id_mod_copyto").modal("hide");
 
         if(!!selected_scheme_pk) {
             let el_mod_copyto_code = document.getElementById("id_mod_copyto_code")
@@ -2866,8 +2857,8 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 dict["code"] = {"value": template_code, "update": true}
             }
             let parameters = {"copytotemplate": JSON.stringify (dict)};
-            console.log("parameters");
-            console.log(parameters);
+            //console.log("parameters");
+            //console.log(parameters);
 
             let response = "";
             $.ajax({
@@ -2876,8 +2867,8 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+                    //console.log( "response");
+                    //console.log( response);
 
                     if ("scheme" in response) {
                         scheme_list= response["scheme"];
@@ -2893,7 +2884,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //========= HandlePopupDateOpen  ====================================
     function HandlePopupDateOpen(el_input) {
-        console.log("===  HandlePopupDateOpen  =====") ;
+        //console.log("===  HandlePopupDateOpen  =====") ;
 
         let el_popup_date = document.getElementById("id_popup_date")
 
@@ -2907,17 +2898,17 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 const data_table = get_attr_from_el(el_input, "data-table")
                 const data_pk = get_attr_from_el(el_input, "data-pk")
                 const data_ppk = get_attr_from_el(el_input, "data-ppk");
-                console.log("data_table", data_table, "data_pk", data_pk, "data_ppk", data_ppk)
+                //console.log("data_table", data_table, "data_pk", data_pk, "data_ppk", data_ppk)
 
     // get values from el_input
                 const el_id = get_attr_from_el(el_input, "id");
                 const data_field = get_attr_from_el(el_input, "data-field");
                 const data_value = get_attr_from_el(el_input, "data-value");
-                console.log("el_id", el_id, "data_field", data_field, "data_value", data_value)
+                //console.log("el_id", el_id, "data_field", data_field, "data_value", data_value)
 
                 const data_mindate = get_attr_from_el(el_input, "data-mindate");
                 const data_maxdate = get_attr_from_el(el_input, "data-maxdate");
-                console.log("data_mindate", data_mindate, "data_maxdate", data_maxdate);
+                //console.log("data_mindate", data_mindate, "data_maxdate", data_maxdate);
 
         // put values in el_popup_date
                 el_popup_date.setAttribute("data-el_id", el_id);
@@ -2958,7 +2949,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //=========  HandlePopupDateSave  ================ PR2019-07-19
     function HandlePopupDateSave(el_popup_date) {
-        console.log("===  HandlePopupDateSave =========");
+        //console.log("===  HandlePopupDateSave =========");
 
 // ---  get pk_str from id of el_popup
         const el_id = el_popup_date.getAttribute("data-el_id")  // id  of element clicked
@@ -2966,11 +2957,6 @@ function validate_input_blank(el_input, el_err, msg_blank){
         const parent_pk = parseInt(el_popup_date.getAttribute("data-ppk"));
         const fieldname = el_popup_date.getAttribute("data-field");
         const tablename = el_popup_date.getAttribute("data-table");
-        console.log("el_id: ", el_id, typeof el_id)
-        console.log("pk_str: ", pk_str, typeof pk_str)
-        console.log("parent_pk: ", parent_pk, typeof parent_pk)
-        console.log("fieldname: ", fieldname, typeof fieldname)
-        console.log("tablename: ", tablename, typeof tablename)
 
         if(!!pk_str && !! parent_pk){
             let row_upload = {};
@@ -3001,7 +2987,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
             const n_value = el_popup_date.value
             const o_value = el_popup_date.getAttribute("data-value") // value of element clicked "-1;17;45"
             //const o_value = el_popup_date.getAttribute("data-value") // value of element clicked "-1;17;45"
-            console.log ("fieldname: ", fieldname, "n_value: ",n_value , "o_value: ",o_value );
+            //console.log ("fieldname: ", fieldname, "n_value: ",n_value , "o_value: ",o_value );
 
             let hide_weekday = false, hide_year = false;
              if (tablename === "teammember") {hide_year = true }
@@ -3021,7 +3007,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
     // ---  add field_dict to item_dict
                 if (!isEmpty(field_dict)){row_upload[fieldname] = field_dict};
-                console.log ("row_upload: ", row_upload);
+                //console.log ("row_upload: ", row_upload);
 
                 let url_str;
                 if (tablename === "teammember") {
@@ -3038,7 +3024,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        console.log (">>> response", response);
+                        //console.log (">>> response", response);
                         if ("item_update" in response) {
                             const item_dict = response["item_update"]
 
@@ -3065,7 +3051,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //========= OpenPopupWDY  ====================================
     function OpenPopupWDY(el_input) {
-        console.log("===  OpenPopupWDY  =====") ;
+        //console.log("===  OpenPopupWDY  =====") ;
 
         let el_popup_wdy = document.getElementById("id_popup_wdy")
 
@@ -3082,13 +3068,13 @@ function validate_input_blank(el_input, el_err, msg_blank){
         const data_table = get_attr_from_el(el_info, "data-table")
         const id_str = get_attr_from_el(el_info, "data-pk")
         const parent_pk_str = get_attr_from_el(el_info, "data-ppk");
-        console.log("data_table", data_table, "id_str", id_str, "parent_pk_str", parent_pk_str)
+        //console.log("data_table", data_table, "id_str", id_str, "parent_pk_str", parent_pk_str)
 
 // get values from el_input
         const data_field = get_attr_from_el(el_input, "data-field");
         let data_value = get_attr_from_el(el_input, "data-value");
         let wdmy =  get_attr_from_el(el_input, "data-wdmy");
-        console.log("data_field", data_field, "data_value", data_value, "wdmy", wdmy)
+        //console.log("data_field", data_field, "data_value", data_value, "wdmy", wdmy)
 
  // if no rosterdate put today as rostedate
         if (!data_value) {
@@ -3134,13 +3120,13 @@ function validate_input_blank(el_input, el_err, msg_blank){
 // ---  show el_popup
         el_popup_wdy.classList.remove("display_hide");
 
-        console.log(el_popup_wdy)
+        //console.log(el_popup_wdy)
 
 }; // function OpenPopupWDY
 
 //========= OpenPopupHM  ====================================
     function OpenPopupHM(el_input) {
-        console.log("===  OpenPopupHM  =====") ;
+        //console.log("===  OpenPopupHM  =====") ;
 
         let tr_selected = get_tablerow_selected(el_input)
 
@@ -3175,7 +3161,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
             curHours = parseInt(curDuration/60);
             curMinutes = curDuration - curHours * 60;
         }
-        console.log("curDuration:", curDuration, "curHours:", curHours, "curMinutes:", curMinutes)
+        //console.log("curDuration:", curDuration, "curHours:", curHours, "curMinutes:", curMinutes)
 
 // ---  fill list of hours
         // timeformat = ('24h', 'AmPm')
@@ -3189,7 +3175,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
         el_popup_hour.innerHTML = option_text;
 
 // ---  fill list of minutes per interval
-        console.log ("interval", interval, typeof interval)
+        //console.log ("interval", interval, typeof interval)
         option_text = ""
         for (let minutes = 0; minutes < 60; minutes += interval) {
             option_text += "<option value=\"" + minutes + "\""
@@ -3222,7 +3208,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //========= OpenPopupDHM  ====================================
     function OpenPopupDHM(el_input) {
-        console.log("===  OpenPopupDHM  =====") ;
+        //console.log("===  OpenPopupDHM  =====") ;
 
         let tr_selected = get_tablerow_selected(el_input)
 
@@ -3301,15 +3287,15 @@ function validate_input_blank(el_input, el_err, msg_blank){
         el_popup_hour.innerHTML = option_text;
 
 // ---  fill list of minutes per interval
-        console.log ("interval", interval, typeof interval)
+        //console.log ("interval", interval, typeof interval)
         option_text = ""
         for (let minutes = 0; minutes < 60; minutes += interval) {
-            console.log ("minutes", minutes, typeof minutes)
+            //console.log ("minutes", minutes, typeof minutes)
             option_text += "<option value=\"" + minutes + "\""
             if (minutes === curMinutes) {option_text += " selected=true" };
             option_text +=  ">" + minutes + "</option>";
         }
-        console.log ("option_text", option_text)
+        //console.log ("option_text", option_text)
         el_popup_minutes.innerHTML = option_text;
 
 // ---  fill list of am/pm
@@ -3365,11 +3351,11 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //=========  HandlePopupBtnWdy  ================ PR2019-04-14
     function HandlePopupBtnWdy() {
-        console.log("===  function HandlePopupBtnWdy ");
+        //console.log("===  function HandlePopupBtnWdy ");
         // set date to midday to prevent timezone shifts ( I dont know if this works or is neecessary)
         const o_value = el_popup_wdy.getAttribute("data-value") + "T12:0:0"
         const o_date = get_date_from_ISOstring(o_value)
-        console.log("o_date: ", o_date, "o_value: ", o_value)
+        //console.log("o_date: ", o_date, "o_value: ", o_value)
 
         const id = event.target.id
         if (id === "id_popup_wdy_today"){
@@ -3392,22 +3378,14 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 // change o_date to next/previous day, month (year), or get Today if add_day=0, add_month=0 and add_year=0.
         let n_date = get_newdate_from_date(o_date, add_day, add_month, add_year)
-        console.log("n_date: ", n_date, typeof n_date)
 
-        console.log("weekday_list: ", weekday_list, typeof weekday_list)
 // create new_wdy from n_date
         const n_year = n_date.getFullYear();
         const n_month_index = n_date.getMonth();
         const n_day = n_date.getDate();
         let n_weekday = n_date.getDay();
         if(n_weekday === 0){n_weekday = 7} // in ISO, weekday of Sunday is 7, not 0
-        console.log("weekday_list: ", weekday_list)
-        console.log("n_weekday: ", n_weekday, typeof n_weekday)
-        console.log("weekday_list[n_weekday]: ", weekday_list[n_weekday])
-        console.log("n_month_index: ", n_month_index, typeof n_month_index)
-        console.log(" month_list[n_month_index + 1]: ",  month_list[n_month_index + 1])
         const new_wdy = weekday_list[n_weekday] + ' ' + n_day + ' ' + month_list[n_month_index + 1] + ' ' + n_year
-        console.log("n_date: ", n_date, typeof n_date)
 
 
 // put new_wdy in el_popup_wdy_rosterdate
@@ -3428,11 +3406,11 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //=========  HandlePopupWdmySave  ================ PR2019-04-14
     function HandlePopupWdySave() {
-        console.log("===  function HandlePopupWdySave =========");
+        //console.log("===  function HandlePopupWdySave =========");
 
 // ---  get pk_str from id of el_popup
         const tablename =  el_popup_wdy.getAttribute("data-table")
-        console.log("tablename"), tablename;
+        //console.log("tablename"), tablename;
 
         popupbox_removebackground();
         el_popup_wdy.classList.add("display_hide");
@@ -3453,8 +3431,8 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
             const n_value = el_popup_wdy.getAttribute("data-value") // value of element clicked "-1;17;45"
             const o_value = el_popup_wdy.getAttribute("data-o_value") // value of element clicked "-1;17;45"
-                console.log ("n_value: ",n_value );
-                console.log ("o_value: ",o_value );
+                //console.log ("n_value: ",n_value );
+                //console.log ("o_value: ",o_value );
 
 // create new rosterdate
             //new row doesnt update whith date today (n-val = o val)
@@ -3465,7 +3443,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 const field_name = el_popup_wdy.getAttribute("data-field") // nanme of element clicked
                 const field_dict = {"value": n_value, "update": true}
                 row_upload[field_name] = field_dict;
-                console.log ("row_upload: ", row_upload);
+                //console.log ("row_upload: ", row_upload);
 
                 let parameters = {"upload": JSON.stringify (row_upload)}
                 let response;
@@ -3475,8 +3453,8 @@ function validate_input_blank(el_input, el_err, msg_blank){
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        console.log ("response");
-                        console.log (response);
+                        //console.log ("response");
+                        //console.log (response);
 
                         if ("order" in response) {
                             order_list= response["order"]}
@@ -3525,17 +3503,13 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //=========  HandlePopupHmSave  ================ PR2019-04-14
     function HandlePopupHmSave() {
-console.log("===  function HandlePopupHmSave =========");
+//console.log("===  function HandlePopupHmSave =========");
 
 // ---  get pk_str from id of el_popup_hm
         const pk_str = el_popup_hm.getAttribute("data-pk")// pk of record  of element clicked
         const parent_pk =  parseInt(el_popup_hm.getAttribute("data-ppk"))
         const fieldname =  el_popup_hm.getAttribute("data-field")
         const tablename =  el_popup_hm.getAttribute("data-table")
-        console.log("pk_str: ", pk_str, typeof pk_str)
-        console.log("parent_pk: ", parent_pk, typeof parent_pk)
-        console.log("fieldname: ", fieldname, typeof fieldname)
-        console.log("tablename: ", tablename, typeof tablename)
 
         if(!!pk_str && !! parent_pk){
             let id_dict = {}
@@ -3569,8 +3543,8 @@ console.log("===  function HandlePopupHmSave =========");
             let new_hours_int  = parseInt(document.getElementById("id_popup_hm_hours").value)
             let new_minutes  = document.getElementById("id_popup_hm_minutes").value
 
-            console.log("new_minutes: ", new_minutes, typeof new_minutes)
-            console.log("new_hours_int: ", new_hours_int, typeof new_hours_int)
+            //console.log("new_minutes: ", new_minutes, typeof new_minutes)
+            //console.log("new_hours_int: ", new_hours_int, typeof new_hours_int)
 
 // create new_dhm string
             let new_dhm_str = "0;" + new_hours_int.toString() + ";" + new_minutes
@@ -3580,7 +3554,7 @@ console.log("===  function HandlePopupHmSave =========");
 
                 let field_dict = {"value": new_dhm_str, "update": true}
                 row_upload[field_name] =  field_dict;
-                console.log ("row_upload: ", row_upload);
+                //console.log ("row_upload: ", row_upload);
 
                 let parameters = {"upload": JSON.stringify (row_upload)}
                 let response;
@@ -3590,7 +3564,7 @@ console.log("===  function HandlePopupHmSave =========");
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        console.log ("response", response);
+                        //console.log ("response", response);
 
                         if ("order" in response) {
                             order_list= response["order"]}
@@ -3631,7 +3605,7 @@ console.log("===  function HandlePopupHmSave =========");
 
 //=========  HandlePopupDhmSave  ================ PR2019-04-14
     function HandlePopupDhmSave() {
-console.log("===  function HandlePopupDhmSave =========");
+//console.log("===  function HandlePopupDhmSave =========");
 
         let el_popup = document.getElementById("id_popup_dhm")
 
@@ -3640,10 +3614,6 @@ console.log("===  function HandlePopupDhmSave =========");
         const parent_pk =  parseInt(el_popup.getAttribute("data-ppk"))
         const fieldname =  el_popup.getAttribute("data-field")
         const tablename =  el_popup_wdy.getAttribute("data-table")
-console.log("pk_str: ", pk_str, typeof pk_str)
-console.log("ppk: ", parent_pk, typeof parent_pk)
-console.log("fieldname: ", fieldname, typeof fieldname)
-console.log("tablename: ", tablename, typeof tablename)
 
         if(!!pk_str && !! parent_pk){
             let id_dict = {}
@@ -3679,11 +3649,6 @@ console.log("tablename: ", tablename, typeof tablename)
             let new_minutes  = document.getElementById("id_popup_minutes").value
             let new_ampm_index  = document.getElementById("id_popup_ampm").value
 
-            // console.log("new_day_offset: ", new_day_offset, typeof new_day_offset)
-            // console.log("new_hours_int: ", new_hours_int, typeof new_hours_int)
-            // console.log("new_minutes: ", new_minutes, typeof new_minutes)
-            // console.log("new_ampm_index: ", new_day_offset, typeof new_ampm_index)
-
 // add 12 hours to new_hours_int when p.m.
             if (new_ampm_index ==="1"){
                 if(new_hours_int < 12 ){new_hours_int += 12;}
@@ -3698,7 +3663,7 @@ console.log("tablename: ", tablename, typeof tablename)
 
                 let field_dict = {"value": new_dhm_str, "update": true}
                 row_upload[field_name] =  field_dict;
-                console.log ("row_upload: ", row_upload);
+                //console.log ("row_upload: ", row_upload);
 
                 let parameters = {"upload": JSON.stringify (row_upload)}
                 let response;
@@ -3708,7 +3673,7 @@ console.log("tablename: ", tablename, typeof tablename)
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        console.log ("response", response);
+                        //console.log ("response", response);
 
                         if ("order" in response) {
                             order_list= response["order"]}

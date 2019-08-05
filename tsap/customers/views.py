@@ -590,7 +590,8 @@ def create_template_order(request):
     order = None
 
     user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
-    template_locale = TEMPLATE_TEXT[user_lang]
+    lang = user_lang if user_lang in TEMPLATE_TEXT else LANG_DEFAULT
+    template_locale = TEMPLATE_TEXT[lang]
 
 # 1. check if 'template' customer exists for this company - only one 'template' customer allowed
     customer = Customer.objects.get_or_none(company=request.user.company, cat=CAT_03_TEMPLATE)
