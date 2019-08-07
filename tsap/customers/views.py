@@ -328,7 +328,7 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
     if id_dict:
         table = 'customer'
         pk_int = instance.pk
-        ppk_int = instance.team.pk
+        ppk_int = instance.company.pk
 
         update_dict['pk'] = pk_int
         update_dict['id']['pk'] = pk_int
