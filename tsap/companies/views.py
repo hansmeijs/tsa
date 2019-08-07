@@ -17,8 +17,9 @@ from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, DeleteView, View, ListView, CreateView, FormView
 
 from tsap.headerbar import get_headerbar_param
+from tsap.constants import LANG_DEFAULT
 from companies.models import Company, Customer
-from companies.forms import CompanyAddForm, CompanyEditForm
+from companies.forms import CompanyAddForm, CompanyEditForm, InvoiceAddForm
 
 from django.utils.functional import Promise
 from django.utils.encoding import force_text
@@ -162,6 +163,7 @@ class CompanyEditView(UpdateView):
         company.save(request=self.request)
         return redirect('company_list_url')
 
+
 @method_decorator([login_required], name='dispatch')
 class CompanyDeleteView(DeleteView):
     model = Company
@@ -176,3 +178,57 @@ class CompanyDeleteView(DeleteView):
         else:
             raise Http404  # or return HttpResponse('404_url')
 
+
+
+@method_decorator([login_required], name='dispatch')
+class InvoiceAddView(CreateView):
+
+    def get(self, request, *args, **kwargs):
+        logger.debug('InvoiceAddView get request: ' + str(request))
+        # permission:  user_is_system_admin
+
+        form = InvoiceAddForm(request=request)
+
+        # set headerbar parameters PR 2018-08-06
+        param = get_headerbar_param(request, {'form': form})
+        logger.debug('InvoiceAddView param: ' + str(param))
+
+        # render(request, template_name, context=None (A dictionary of values to add to the template context), content_type=None, status=None, using=None)
+        return render(request, 'invoice_add.html', param)
+
+    def post(self, request, *args, **kwargs):
+        self.request = request
+        # logger.debug('ExamyearAddView post self.request: ' + str(self.request))
+
+        form = CompanyAddForm(self.request.POST, request=self.request)  # this one doesn't work: form = ExamyearAddForm(request=request)
+
+        if form.is_valid():
+            logger.debug('CompanyAddView post is_valid form.data: ' + str(form.data))
+
+            # save without commit
+            self.new_company = form.save(commit=False)
+
+
+            # ======  save field 'depbase_list_field'  ============
+            #self.clean_date_first_field = form.cleaned_data.get('datefirst')
+            #logger.debug('form.clean_date_first_field: ' + str(self.clean_date_first_field) + ' type: ' +  str(type(self.clean_date_first_field)))
+            #if self.clean_date_first_field is not None:
+            #    self.date_first_int = get_date_int_from_dte(self.clean_date_first_field)  # PR2019-03-15
+            ##    logger.debug('self.date_first_int: ' + str(self.date_first_int))
+            #    if self.date_first_int:
+            #        self.new_company.date_first_int = self.date_first_int
+
+            # save examyear with commit
+            # PR2018-08-04 debug: don't forget argument (request), otherwise gives error 'tuple index out of range' at request = args[0]
+            self.new_company.save(request=self.request)
+
+            # TODO create absence customer after adding company
+            # create_absence_customer(request)
+
+
+            return redirect('company_list_url')
+        else:
+            # PR2019-03-15 Debug: langauge gets lost after form.is_valid, get request.user.lang again
+            activate(request.user.lang if request.user.lang else LANG_DEFAULT)
+
+            return render(self.request, 'company_add.html', {'form': form})

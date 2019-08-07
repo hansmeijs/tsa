@@ -127,6 +127,10 @@ urlpatterns = [
         path('<int:pk>/selected/', company_views.CompanySelectView.as_view(), name='company_selected_url'),
         path('<int:pk>/edit/', company_views.CompanyEditView.as_view(), name='company_edit_url'),
         path('<int:pk>/delete/', company_views.CompanyDeleteView.as_view(), name='company_delete_url'),
+
+        path('invoiceadd/', company_views.InvoiceAddView.as_view(), name='invoice_add_url'),
+
+
     ])),
 
     path('customer/', include([

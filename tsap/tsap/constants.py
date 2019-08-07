@@ -4,7 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 
 USERNAME_MAX_LENGTH = 30
 USERNAME_SLICED_MAX_LENGTH = 24
-CODE_MAX_LENGTH = 15  # number is also hardcoded in _()
+CODE_MAX_LENGTH = 24  # number is also hardcoded in _()
 NAME_MAX_LENGTH = 80  # number is also hardcoded in _()
 
 BASE_DATE = date(1899, 12, 31)
@@ -125,7 +125,7 @@ TIMEFORMAT_CHOICES = (
 
 #PR2019-04-14
 TIMEINTERVALS = (1, 5, 10, 15, 20, 30, 60)
-
+TIMEINTERVAL_DEFAULT = 5
 
 # PR2019-04-21
 WEEKEND_CHOICES = {LANG_EN: ('also on weekends', 'only on weekends', 'not on weekends'),
@@ -140,6 +140,22 @@ CAT_00_NORMAL = 0
 CAT_01_INTERNAL = 1
 CAT_02_ABSENCE = 2
 CAT_03_TEMPLATE = 3
+
+#PR2019-08-05 # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
+CAT_ENTRY_00_GRACE = 0
+CAT_ENTRY_01_BONUS = 1
+CAT_ENTRY_02_PAID = 2
+
+# PR2018-09-05
+CAT_ENTRY_CHOICES = (
+    (CAT_ENTRY_00_GRACE, 'Grace'),
+    (CAT_ENTRY_01_BONUS, _('Bonus')),
+    (CAT_ENTRY_02_PAID, _('Paid')),
+)
+
+
+
+
 
 # PR2019-06-24
 ABSENCE_CATEGORY = {LANG_EN: (
@@ -218,19 +234,21 @@ COLDEF_EMPLOYEE = {LANG_EN: [
                                 {'tsaKey': 'code', 'caption': 'Code'},
                                 {'tsaKey': 'namelast', 'caption': 'Last name'},
                                 {'tsaKey': 'namefirst', 'caption': 'First name'},
-                                {'tsaKey': 'identifier', 'caption': 'Id'},
+                                {'tsaKey': 'identifier', 'caption': 'Identity number'},
                                 {'tsaKey': 'email', 'caption': 'Email address'},
                                 {'tsaKey': 'tel', 'caption': 'Telephone'},
-                                {'tsaKey': 'datefirst', 'caption': 'First date in service'}
+                                {'tsaKey': 'datefirst', 'caption': 'First date in service'},
+                                {'tsaKey': 'datelast', 'caption': 'Last date in service'}
                             ],
                     LANG_NL: [
                                 {'tsaKey': 'code', 'caption': 'Code'},
                                 {'tsaKey': 'namelast', 'caption': 'Achternaam'},
                                 {'tsaKey': 'namefirst', 'caption': 'Voornaam'},
-                                {'tsaKey': 'identifier', 'caption': 'Id'},
+                                {'tsaKey': 'identifier', 'caption': 'Identiteitsnummer'},
                                 {'tsaKey': 'email', 'caption': 'E-mail adres'},
                                 {'tsaKey': 'tel', 'caption': 'Telefoon'},
-                                {'tsaKey': 'datefirst', 'caption': 'Datum in dienst'},
+                                {'tsaKey': 'datefirst', 'caption': 'Begindatum in dienst'},
+                                {'tsaKey': 'datelast', 'caption': 'Einddatum in dienst'},
                             ]
                     }
 

@@ -615,8 +615,8 @@
                     }
                 }
             }
-
-            let tr_selected = document.getElementById(pk_str)
+            const row_id = table + pk_str;
+            let tr_selected = document.getElementById(row_id)
 
 
             console.log ("-->>> quicksave = ", quicksave)
@@ -643,7 +643,7 @@
                 success: function (response) {
                     console.log ("response", response);
                     if ("item_update" in response) {
-                        //console.log("...... UpdateTableRow .....");
+                        console.log("...... UpdateTableRow .....");
                         UpdateTableRow(table, tr_selected, response["item_update"])
                     }
                 },
@@ -814,11 +814,11 @@
 //========= CalcMinMaxHoursMinutes  ==================================== PR2018-08-02
 function CalcMinMaxHoursMinutes(cur_rosterdate_iso, cur_datetime_iso,
             min_datetime_iso, max_datetime_iso, comp_timezone, timeformat) {
-        console.log(" --->>>  CalcMinMaxHoursMinutes <<<---")
-        console.log("cur_rosterdate_iso", cur_rosterdate_iso)
-        console.log("cur_datetime_iso", cur_datetime_iso)
-        console.log("comp_timezone", comp_timezone)
-        console.log("timeformat", timeformat)
+        //console.log(" --->>>  CalcMinMaxHoursMinutes <<<---")
+        //console.log("cur_rosterdate_iso", cur_rosterdate_iso)
+        //console.log("cur_datetime_iso", cur_datetime_iso)
+        //console.log("comp_timezone", comp_timezone)
+        //console.log("timeformat", timeformat)
 
         let curDate, minDate, maxDate
         let curHours = 0, curMinutes = 0;
@@ -837,7 +837,7 @@ function CalcMinMaxHoursMinutes(cur_rosterdate_iso, cur_datetime_iso,
         if (!!cur_datetime_iso){
             cur_datetime_local = GetDatetimeLocal(cur_datetime_iso, comp_timezone)
         } else {
-            cur_datetime_local = cur_rosterdate;
+            cur_datetime_local = curRosterdate;
         };
         //console.log("cur_datetime_local", cur_datetime_local.format())
         // for testing only

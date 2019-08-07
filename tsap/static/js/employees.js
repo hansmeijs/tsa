@@ -175,6 +175,15 @@ $(function() {
 
     // --- first add <a> element with EventListener to td
         el_a = document.createElement("a");
+        el_a.setAttribute("id", "id_submenu_employee_add");
+        el_a.setAttribute("href", "#");
+        el_a.classList.add("mx-2")
+        el_a.innerText =  get_attr_from_el_str(el_data, "data-txt_employee_add");
+        el_a.addEventListener("click", function() {ModalEmployeeAddOpen()}, false )
+        el_div.appendChild(el_a);
+
+    // --- first add <a> element with EventListener to td
+        el_a = document.createElement("a");
         el_a.setAttribute("id", "id_submenu_employee_delete");
         el_a.setAttribute("href", "#");
         el_a.classList.add("mx-2")

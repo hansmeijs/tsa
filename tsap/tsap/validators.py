@@ -24,6 +24,7 @@ def check_date_overlap(datefirst, datelast, datefirst_is_updated):
                 msg_dont_add = _("Last date cannot be before first date.")
     return msg_dont_add
 
+
 def validate_customer(field, value, company, this_pk = None):
     # validate if customer code_already_exists already exists in this company PR2019-03-04
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
@@ -49,7 +50,6 @@ def validate_customer(field, value, company, this_pk = None):
             if customer:
                 msg_dont_add = _("This code already exists.")
     return msg_dont_add
-
 
 
 class validate_unique_company_code(object):  # PR2019-03-15
@@ -181,23 +181,31 @@ class validate_unique_employee_name(object):  # PR2019-03-15
             raise ValidationError(_('Employee name already exists.'))
         return value
 
-def validate_code_or_name(table, field, new_value, parent, update_dict, this_pk=None):
+def validate_code_name_id(table, field, new_value, parent, update_dict, this_pk=None):
     # validate if code already_exists in this table PR2019-07-30
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    # logger.debug('validate_code_or_name: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
+    # logger.debug('validate_code_name_id: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
     msg_err = None
     if not parent:
         msg_err = _("No parent record.")
     else:
-        max_len = CODE_MAX_LENGTH if field == 'code' else NAME_MAX_LENGTH
+        max_len = NAME_MAX_LENGTH if field == 'name' else CODE_MAX_LENGTH
 
         length = 0
         if new_value:
             length = len(new_value)
         # logger.debug('length: ' + str(length))
 
-        fld = _('Code') if field == 'code' else _('Name')
+        fld = ''
+        if field == 'code':
+            fld = _('Code')
+        elif field == 'name':
+            fld = _('Name')
+        elif field == 'identifier':
+            fld = _('Id')
+
+
         if length == 0:
             msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
         elif length > max_len:
@@ -211,10 +219,12 @@ def validate_code_or_name(table, field, new_value, parent, update_dict, this_pk=
                 crit = Q(code__iexact=new_value)
             elif field == 'name':
                 crit = Q(name__iexact=new_value)
+            elif field == 'identifier':
+                crit = Q(identifier__iexact=new_value)
             if this_pk:
                 crit.add(~Q(pk=this_pk), crit.connector)
 
-            #logger.debug('validate_code_or_name')
+            #logger.debug('validate_code_name_id')
             #logger.debug('table: ' + str(table) + 'field: ' + str(field) + ' new_value: ' + str(new_value))
 
             exists = False
@@ -244,7 +254,7 @@ def validate_code_or_name(table, field, new_value, parent, update_dict, this_pk=
     return has_error
 
 
-def validate_employee_namelast_namefirst(namelast, namefirst, company, update_dict, this_pk=None):
+def validate_namelast_namefirst(namelast, namefirst, company, update_dict, this_pk=None):
     # validate if employee already_exists in this company PR2019-03-16
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
     # if all(k in student for k in ('idnumber','lastname', 'firstname')):

@@ -223,9 +223,11 @@ def get_datetime_UTC_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def get_date_from_ISOstring(datetime_ISOstring, blank_not_allowed=False):  # PR2019-04-28
+def get_date_from_ISOstring(datetime_ISOstring, blank_not_allowed=False, format=None):  # PR2019-04-28
     # logger.debug('............. get_date_from_ISOstring: ' + str(datetime_ISOstring))
     # function retrieves date from string format " yyyy-mm-dd" or  " yyyy/mm/dd"
+    if not format:
+        format = 'yyyy-mm-dd'
     dte = None
     msg_err = None
     if not datetime_ISOstring:
@@ -234,9 +236,22 @@ def get_date_from_ISOstring(datetime_ISOstring, blank_not_allowed=False):  # PR2
     else:
         arr = get_datetimearray_from_ISOstring(datetime_ISOstring)
         try:
-            year_int = int(arr[0])
-            month_int = int(arr[1])
-            day_int = int(arr[2])
+            day_int = 0
+            month_int = 0
+            year_int = 0
+            if format == 'dd-mm-yyyy':
+                day_int = int(arr[0])
+                month_int = int(arr[1])
+                year_int = int(arr[2])
+            elif format == 'mm-dd-yyyy':
+                month_int = int(arr[0])
+                day_int = int(arr[1])
+                year_int = int(arr[2])
+            elif format == 'yyyy-mm-dd':
+                year_int = int(arr[0])
+                month_int = int(arr[1])
+                day_int = int(arr[2])
+
             dte = date(year_int, month_int, day_int)
         except:
             #msg_err = "'" + datetime_ISOstring + "'" + _("is not a valid date.")
@@ -868,4 +883,3 @@ def remove_empty_attr_from_dict(dict):
                 del dict[field]
                 # logger.debug('deleted: ' + str(field))
     # logger.debug('dict: ' + str(dict))
-

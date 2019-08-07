@@ -13,7 +13,7 @@
   {% if user.is_authenticated %}
         {% if user.is_role_system %}
             <div class="mb-3">
-                <a href="{% url 'company_add_url' %}" class="btn btn-primary">{% trans 'Add company' %}</a>
+                <a href="{% url 'invoice_add_url' %}" class="btn btn-primary">{% trans 'Add invoice' %}</a>
             </div>
         {% endif %}
         <h4>{% trans 'Companies' %}</h4>
@@ -78,6 +78,7 @@
 
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-company_add_url="{% url 'company_add_url' %}"
+            data-invoice_add_url="{% url 'invoice_add_url' %}"
 
             data-txt_company_add= "{% trans 'Add company' %}"
             data-txt_invoice_add= "{% trans 'Add invoice' %}"

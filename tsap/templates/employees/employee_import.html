@@ -27,7 +27,7 @@
         {% if user.is_perm_plan %}
 
             <div class="c_select_file text_align_left">
-                <h4 class="text_align_left mt-4">{% trans 'Import employees' %}</h4>
+                <h4 class="text_align_left mt-4">{% trans 'Upload employees' %}</h4>
                 <h6 class="text_align_left mt-4">{% trans 'Step' %} 1: {% trans 'Select employee file' %}</h6>
 
                 <div class="text_align_left">
@@ -35,8 +35,8 @@
                 </div>
                 <h6 class="text_align_left mt-2">{% trans 'Step' %} 2: {% trans 'Select a worksheet' %}</h6>
                 <div class="text_align_left c_hide">
-                    <label class="c_form_select td_width_120" for="SheetListID">{% trans 'Worksheet' %}</label>
-                    <select id="SheetListID" class="c_form_select" ></select>
+                    <label for="id_worksheet_list">{% trans 'Worksheet' %}:</label>
+                    <select id="id_worksheet_list" class="c_form_select" ></select>
                 </div>
 
                 <h6 class="text_align_left mt-2">{% trans 'Step' %} 3: {% trans 'Select if the worksheet has no header row' %}</h6>
@@ -46,15 +46,30 @@
                 </div>
                 <br />
 
+                <h6 class="text_align_left mt-2">{% trans 'Step' %} 4: {% trans 'How do you want the short name to be calculated?' %}</h6>
+                <div class="text_align_left">
+                    <label for="id_select_code_calc">{% trans "Short name will be calculated as follows:" %}</label>
+                    <select id="id_select_code_calc" class="c_form_select" >
+                        <option value="linked">{% trans "Don't calculate, but link to an Excel column" %}</option>
+                        <option value="firstname">{% trans "Calculate like: Smith, John" %}</option>
+                        <option value="initials">{% trans "Calculate like: Smith J S A" %}</option>
+                        <option value="nospace">{% trans "Calculate like: Smith JSA" %}</option>
+                    </select>
 
-                <h6 class="text_align_left mt-2">{% trans 'Step' %} 4: {% trans 'Link colums' %}</h6>
+
+                </div>
+
+                <h6 class="text_align_left mt-2">{% trans 'Step' %} 5: {% trans 'Link colums' %}</h6>
 
                 <div id="div_infoID"></div>
                 <div class="ea_flex">
                     <div id="id_basediv_col" class="c_link_columns"></div>
                 </div>
 
-                <h6 class="text_align_left mt-2">{% trans 'Step' %} 5: {% trans 'Import employees' %}</h6>
+                <br />
+
+
+                <h6 class="text_align_left mt-2">{% trans 'Step' %} 6: {% trans 'Upload employees' %}</h6>
                 <div class="ea_flex">
                 <button
                         id="btn_import"

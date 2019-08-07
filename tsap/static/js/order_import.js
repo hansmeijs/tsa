@@ -16,8 +16,8 @@ $(document).ready(function() {
     let file_dialog = document.getElementById("filedialogID");
     file_dialog.addEventListener("change", handle_file_dialog, false);
 
-    let worksheet_list = document.getElementById("SheetListID");
-    worksheet_list.addEventListener("change", handle_worksheet_list, false);
+    let el_worksheet_list = document.getElementById("id_worksheet_list");
+    el_worksheet_list.addEventListener("change", handle_worksheet_list, false);
 
     let checkbox_noheader = document.getElementById("checkBoxID");
     checkbox_noheader.addEventListener("change", handle_checkbox_noheader_changed) //, false);
@@ -82,8 +82,8 @@ $(document).ready(function() {
     function handle_worksheet_list() {
 console.log(" ========== handle_worksheet_list ===========");
         if(!!workbook){
-            if(!!worksheet_list.value){
-                selected_worksheetname = worksheet_list.value;
+            if(!!el_worksheet_list.value){
+                selected_worksheetname = el_worksheet_list.value;
 
 //---------  get selected worksheet
                 worksheet = workbook.Sheets[selected_worksheetname];
@@ -253,15 +253,15 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
 
 //--------- make list of worksheets in workbook
                 if (!!workbook){
-    // reset worksheet_list.options
-                    worksheet_list.options.length = 0;
+    // reset el_worksheet_list.options
+                    el_worksheet_list.options.length = 0;
     // give message when workbook has no worksheets, reset selected_worksheetname
                     if(workbook.SheetNames.length === 0) {
                         selected_worksheetname = "";
                         para.textContent = "There are no worksheets." ;
                         div_info.appendChild(para);
                     } else {
-    // fill worksheet_list.options with sheets that are not empty
+    // fill el_worksheet_list.options with sheets that are not empty
                         for (let x=0; x<workbook.SheetNames.length; ++x){
                             const sheetname = workbook.SheetNames[x];
     // if workbook.SheetNames[x] has range: add to worksheet_list
@@ -274,21 +274,21 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
                                     if(sheetname.toLowerCase() === stored_worksheetname.toLowerCase() ){
                                         option.selected = true;
                                 }}
-                                worksheet_list.appendChild(option);
+                                el_worksheet_list.appendChild(option);
                             }
                         } //for (let x=0;
 
 //---------  gibve message when no data in worksheetse
-                        if (!worksheet_list.options.length){
+                        if (!el_worksheet_list.options.length){
                             para.textContent = "There are no worksheets with data." ;
                             div_info.appendChild(para);
                         } else {
 //---------  if only one sheet exists: makke selected = True
-                            if (worksheet_list.options.length === 1){
-                                worksheet_list.options[0].selected = true;
-                                selected_worksheetname = worksheet_list.options[0].value;
+                            if (el_worksheet_list.options.length === 1){
+                                el_worksheet_list.options[0].selected = true;
+                                selected_worksheetname = el_worksheet_list.options[0].value;
                             }
-                        } //if (!worksheet_list.options.length){
+                        } //if (!el_worksheet_list.options.length){
 
 //---------  get selected worksheet, if any
 
@@ -819,7 +819,7 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
                     .attr({id: "id_tsa_div_" + tableBase});
                 $("<table>").appendTo("#id_tsa_div_" + tableBase)
                         .attr({id: "id_tsa_table_" + tableBase})
-                        .addClass("c_grid_colExcel")
+                        .addClass("c_grid_colLinked")  //.addClass("c_grid_colExcel")
                         .on("click", handle_EAL_row_clicked);
                     $("<thead>").appendTo("#id_tsa_table_" + tableBase)
                             .html("<tr><td>" + headTsa + "</td></tr>"); // headTsa: "TSA columns"
@@ -1190,18 +1190,19 @@ console.log("========== response Upload Orders ==>", typeof response,  response)
 
     function ShowLoadingGif(show) {
     //--------- show / hide loading gif PR2019-02-19
-        let loading_img = $("#id_loading_img");
-        let datatable = $("#id_table");
+        let el_loader = document.getElementById("id_loading_img");
+        let datatable = document.getElementById("id_table");
+
         if (show){
-            loading_img.removeClass("display_hide")
-                        .addClass("display_show");
-            datatable.removeClass("display_show")
-                       .addClass("display_hide");
+            el_loader.classList.remove(cls_display_hide);
+            el_loader.classList.add(cls_display_show);
+            datatable.classList.remove(cls_display_show);
+            datatable.classList.add(cls_display_hide);
         } else {
-            loading_img.removeClass("display_show")
-                       .addClass("display_hide");
-            datatable.removeClass("display_hide")
-                        .addClass("display_show");
+            el_loader.classList.remove(cls_display_show);
+            el_loader.classList.add(cls_display_hide);
+            datatable.classList.remove(cls_display_hide);
+            datatable.classList.add(cls_display_show);
         }
     }
     }); //$(document).ready(function() {

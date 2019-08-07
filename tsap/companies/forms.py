@@ -1,9 +1,9 @@
 #PR2019-03-02
-from django.forms import ModelForm, DateField, TextInput, CharField
+from django.forms import ModelForm, DateField, TextInput, ChoiceField, Select
 from django.utils.translation import ugettext_lazy as _
 
-from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH
-from companies.models import Company
+from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, CAT_ENTRY_CHOICES, CAT_ENTRY_02_PAID
+from companies.models import Company, Companyinvoice
 #from tsap.validators import validate_unique_code
 
 import logging
@@ -75,4 +75,54 @@ class CompanyEditForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
          super(CompanyEditForm, self).__init__(*args, **kwargs)
+
+
+# === InvoiceAddForm ===================================== # PR1019-08-05
+class InvoiceAddForm(ModelForm):
+
+    class Meta:
+        model = Companyinvoice
+        fields = ('company', 'cat', 'entries', 'rate', 'datepayment', 'dateexpired', 'note')
+        labels = {'company': _('Company'),
+                  'cat': _('Category'),
+                  'datepayment': _('Payment date'),
+                  'dateexpired': _('Expiration date'),
+                  'expired': _('Expired'),
+                  'note': _('Note')}
+
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super(InvoiceAddForm, self).__init__(*args, **kwargs)
+        self.this_instance = kwargs.get('instance')
+
+        # ======= field 'company' ============
+        self.fields['company'].widget.attrs.update({'autofocus': 'autofocus'})
+        self.fields['company'].queryset = Company.objects.filter(inactive=False)
+
+        # ======= field 'Cat' ============
+        # PR2019-08-05
+        self.choices = CAT_ENTRY_CHOICES
+
+        self.fields['cat'] = ChoiceField(
+            required=True,
+            choices=self.choices,
+            label=_('Category'),
+            initial=CAT_ENTRY_02_PAID
+        )
+
+
+        # ======= field 'date_first' ============
+        self.fields['datepayment'] = DateField(
+            required=False,
+            widget=TextInput(attrs={'type': 'date'}),
+            label=_('Payment date'),
+           # initial=self.initial_value
+        )
+        self.fields['dateexpired'] = DateField(
+            required=False,
+            widget=TextInput(attrs={'type': 'date'}),
+            label=_('Expiration date'),
+           # initial=self.initial_value
+        )
 

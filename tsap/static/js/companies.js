@@ -91,7 +91,6 @@ $(function() {
         const user_is_system_admin = get_dict_value_by_key (item_dict, "user_is_role_system_and_perm_admin", false)
         const user_is_company_admin = get_dict_value_by_key (item_dict, "user_is_role_company_and_perm_admin", false)
 
-
         let el_submenu = document.getElementById("id_submenu")
         let el_div = document.createElement("div");
         el_submenu.appendChild(el_div);
@@ -99,12 +98,13 @@ $(function() {
         let el_a
     // --- first add <a> element with EventListener to td
         if(user_is_system_admin){
-             el_a = document.createElement("a");
+            el_a = document.createElement("a");
             el_a.setAttribute("href", get_attr_from_el_str(el_data, "data-company_add_url"));
             el_a.innerText = get_attr_from_el_str(el_data, "data-txt_company_add");
             el_div.appendChild(el_a);
+
             el_a = document.createElement("a");
-            el_a.setAttribute("href", "#");
+            el_a.setAttribute("href", get_attr_from_el_str(el_data, "data-invoice_add_url"));
             el_a.innerText = get_attr_from_el_str(el_data, "data-txt_invoice_add");
             el_div.appendChild(el_a);
         } else if(user_is_company_admin){

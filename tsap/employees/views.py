@@ -10,7 +10,8 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.decorators import method_decorator
-from django.views.generic import UpdateView, DeleteView, View, ListView, CreateView, FormView
+from django.views.generic import UpdateView, DeleteView, View, CreateView
+from datetime import date, datetime
 
 import json
 from django.utils.functional import Promise
@@ -22,10 +23,10 @@ from tsap.settings import TIME_ZONE
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_COLDEFS, \
         LANG_DEFAULT, WEEKDAYS_ABBREV, MONTHS_ABBREV, COLDEF_EMPLOYEE, CAPTION_EMPLOYEE
 
-from tsap.functions import get_date_from_ISOstring, get_iddict_variables, create_dict_with_empty_attr
+from tsap.functions import get_date_from_ISOstring, get_iddict_variables, create_dict_with_empty_attr, get_datetimearray_from_ISOstring
 from planning.dicts import remove_empty_attr_from_dict
 from tsap.headerbar import get_headerbar_param
-from tsap.validators import check_date_overlap, validate_code_or_name, validate_employee_has_emplhours
+from tsap.validators import validate_namelast_namefirst, validate_code_name_id, validate_employee_has_emplhours
 
 from companies.models import Companysetting, Employee, get_parent, get_instance, delete_instance
 from employees.forms import EmployeeAddForm, EmployeeEditForm
@@ -148,6 +149,7 @@ class EmployeeEditView(UpdateView):
         employee.save(request=self.request)
         return redirect('employee_list_url')
 
+
 @method_decorator([login_required], name='dispatch')
 class EmployeeDeleteView(DeleteView):
     model = Employee
@@ -161,7 +163,6 @@ class EmployeeDeleteView(DeleteView):
             return HttpResponseRedirect(self.get_success_url())
         else:
             raise Http404  # or return HttpResponse('404_url')
-
 
 
 @method_decorator([login_required], name='dispatch')
@@ -243,6 +244,7 @@ class EmployeeUploadView(UpdateView):# PR2019-07-30
 # 9. return update_wrap
             return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
+
 # === EmployeeImportView ===================================== PR2019-03-09
 @method_decorator([login_required], name='dispatch')
 class EmployeeImportView(View):
@@ -292,13 +294,18 @@ class EmployeeImportView(View):
             # don't replace keyvalue when new_setting[key] = ''
             self.no_header = False
             self.worksheetname = ''
+            self.codecalc = 'linked'
             if 'no_header' in stored_setting:
                 self.no_header = True if Lower(stored_setting['no_header']) == 'true' else False
             if 'worksheetname' in stored_setting:
                 self.worksheetname = stored_setting['worksheetname']
+            if 'codecalc' in stored_setting:
+                self.codecalc = stored_setting['codecalc']
 
             if 'coldefs' in stored_setting:
                 stored_coldefs = stored_setting['coldefs']
+                # logger.debug('stored_coldefs: ' + str(stored_coldefs))
+
                 # skip if stored_coldefs does not exist
                 if stored_coldefs:
                     # loop through coldef_list
@@ -306,17 +313,19 @@ class EmployeeImportView(View):
                         # coldef = {'tsaKey': 'employee', 'caption': 'Cliënt'}
                         # get fieldname from coldef
                         fieldname = coldef.get('tsaKey')
+                        # logger.debug('fieldname: ' + str(fieldname))
+
                         if fieldname:  # fieldname should always be present
                             # check if fieldname exists in stored_coldefs
                             if fieldname in stored_coldefs:
                                 # if so, add Excel name with key 'excKey' to coldef
                                 coldef['excKey'] = stored_coldefs[fieldname]
-
-
+                                # logger.debug('stored_coldefs[fieldname]: ' + str(stored_coldefs[fieldname]))
 
             coldefs_dict = {
                 'worksheetname': self.worksheetname,
                 'no_header': self.no_header,
+                'codecalc': self.codecalc,
                 'coldefs': coldef_list
             }
             coldefs_json = json.dumps(coldefs_dict, cls=LazyEncoder)
@@ -337,7 +346,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
     # function updates mapped fields, no_header and worksheetname in table Companysetting
     def post(self, request, *args, **kwargs):
         # logger.debug(' ============= EmployeeImportUploadSetting ============= ')
-        #logger.debug('request.POST' + str(request.POST) )
+        # logger.debug('request.POST' + str(request.POST) )
 
         if request.user is not None :
             if request.user.company is not None:
@@ -349,196 +358,166 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                 #fieldlist = ["employee", "ordername", "orderdatefirst", "orderdatelast"]
 
                 if request.POST['setting']:
-                    new_setting = json.loads(request.POST['setting'])
-                    # logger.debug('new_setting' + str(new_setting) + str(type(new_setting)))
-                    # new_setting{'worksheetname': 'Compleetlijst', 'no_header': False,
-                    # 'coldefs': {'code': 'R_NAAM', 'namelast': 'ANAAM', 'namefirst': 'Voor_namen'}}
+                    new_setting_json = request.POST['setting']
+                    # new_setting is in json format, no need for json.loads and json.dumps
+                    # new_setting = json.loads(request.POST['setting'])
+                    # new_setting_json = json.dumps(new_setting)
 
-                    new_coldefs = {}
-                    if new_setting:
-                        if 'coldefs' in new_setting:
-                            new_coldefs = new_setting['coldefs']
-                    # logger.debug('new_coldefs' + str(new_coldefs) + str(type(new_coldefs)))
-                    # new_coldefs{'code': 'R_NAAM', 'namelast': 'ANAAM', 'namefirst': 'Voor_namen'}
-
-                    # get stored setting from Companysetting
-                    stored_setting_json = Companysetting.get_setting(KEY_EMPLOYEE_COLDEFS, request.user.company)
-                    stored_setting = {}
-                    stored_coldefs = {}
-                    if stored_setting_json:
-                        stored_setting = json.loads(stored_setting_json)
-                    # stored_setting = {'worksheetname': 'Compleetlijst',
-                    #                   'coldefs': {'namelast': 'R_NAAM', 'namefirst': 'Voor_namen'}}
-                    # logger.debug('stored_setting: <' + str(stored_setting) + '>')
-
-                    if stored_setting:
-                        if 'coldefs' in stored_setting:
-                            stored_coldefs = stored_setting['coldefs']
-                    # logger.debug('stored_coldefs' + str(stored_coldefs) + str(type(stored_coldefs)))
-
-                    for key in new_coldefs:
-                        value = str(new_coldefs[key])
-                        # don't replace keyvalue when new_coldefs[key] = ''
-                        if value:
-                            stored_coldefs[key] = value
-                    #replace  stored_setting['coldefs']  with  stored_coldefs
-                    stored_setting['coldefs'] = stored_coldefs
-
-                    # don't replace keyvalue when new_setting[key] = ''
-                    for key in new_setting:
-                        # logger.debug('key in new_setting' + str(key) + str(type(key)))
-                        if not key == 'coldefs':
-                            # no_header is Boolean, convert to string
-                            value = str(new_setting[key])
-                            #  logger.debug('value in new_setting' + str(value) + str(type(value)))
-                            if value:
-                                stored_setting[key] = value
-
-                    # logger.debug('stored_setting' + str(stored_setting))
-                    stored_setting_json = json.dumps(stored_setting)
-                    # logger.debug('stored_setting_json' + str(stored_setting_json))
-
-                    # save stored_setting_json
-                    Companysetting.set_setting(KEY_EMPLOYEE_COLDEFS, stored_setting_json, request.user.company)
+                    Companysetting.set_setting(KEY_EMPLOYEE_COLDEFS, new_setting_json, request.user.company)
 
         return HttpResponse(json.dumps("Import settings uploaded", cls=LazyEncoder))
 
 
 @method_decorator([login_required], name='dispatch')
-class EmployeeImportUploadData(View):  # PR2018-12-04
+class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05
 
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= EmployeeImportUploadData ============= ')
 
+        params = []
         if request.user is not None:
             if request.user.company is not None:
-                # get school and department of this schoolyear
-                #company = Company.objects.filter(company=request.user.company).first()
-                #if request.user.department is not None:
-                #    department = Department.objects.filter(department=request.user.department).first()
-                params = []
+                tablename = 'employee'
+
+# get stored setting from Companysetting
+                stored_setting_json = Companysetting.get_setting(KEY_EMPLOYEE_COLDEFS, request.user.company)
+                codecalc  = 'linked'
+                if stored_setting_json:
+                    stored_setting = json.loads(stored_setting_json)
+                    if stored_setting:
+                        codecalc = stored_setting.get('codecalc', 'linked')
+                # logger.debug('codecalc: ' + str(codecalc))
+
                 if 'employees' in request.POST:
                     employees = json.loads(request.POST['employees'])
-                    logger.debug("employees")
-                    logger.debug(str(employees))
+
+            # detect dateformat of field 'datefirst'
+                    format_str = detect_dateformat(employees, 'datefirst')
+                    logger.debug("format_str: " + str(format_str))
 
                     for employee in employees:
-                        # logger.debug('--------- import employee   ------------')
-                        # logger.debug('import employee:')
-                        # logger.debug(str(employee))
+                        logger.debug('--------- import employee   ------------')
+                        logger.debug(str(employee))
                         # 'code', 'namelast', 'namefirst',  'prefix', 'email', 'tel', 'datefirst',
                         employee_dict = {}
-                        has_error = False
-                        dont_add = False
 
                         #field_list = ('id', 'code', 'namefirst', 'namelast', 'email', 'telephone', 'identifier',
                         #             'datefirst', 'datelast', 'wagecode', 'workhours', 'inactive')
 
-                        # truncate input if necessary
-                        code = employee.get('code', '')[0:CODE_MAX_LENGTH]
                         namelast = employee.get('namelast', '')[0:NAME_MAX_LENGTH]
                         namefirst = employee.get('namefirst', '')[0:NAME_MAX_LENGTH]
-                        prefix = employee.get('prefix', '')[0:CODE_MAX_LENGTH]
-                        identifier = employee.get('identifier', '')[0:USERNAME_SLICED_MAX_LENGTH]
-                        email = employee.get('email', '')[0:NAME_MAX_LENGTH]
-                        telephone = employee.get('tel', '')[0:USERNAME_SLICED_MAX_LENGTH]
-                        datefirst_iso = employee.get('datefirst')
-                        datelast = employee.get('datelast')
 
-                        wagecode = employee.get('wagecode')
-                        workhours = employee.get('workhours', 0)
-                        leavedays = employee.get('leavedays', 0)
+                        logger.debug('namelast: ' + str(namelast) + ' namefirst: ' + str(namefirst))
 
-                        # check if employee already exists
-                        # msg_dont_add = validate_employee_code(code, request.user.company)
-                        # if msg_dont_add:
-                        #     logger.debug('employee_exists: ' + str(msg_dont_add))
-                        # else:
-                        #     logger.debug('employee does not exists')
+                        # truncate input if necessary
+# get code or calculate code, depending on value of 'codecalcc
+                        code = ''
+                        if codecalc == 'firstname':
+                            code = get_lastname_firstfirstname(namelast, namefirst)[0:CODE_MAX_LENGTH]
+                        elif codecalc == 'initials':
+                            code = get_lastname_initials(namelast, namefirst, True)[0:CODE_MAX_LENGTH]  # PR2019-08-05
+                        elif codecalc == 'nospace':
+                            code = get_lastname_initials(namelast, namefirst, False)[0:CODE_MAX_LENGTH]  # PR2019-08-05
+                        else:  #  codecalc == 'linked'
+                            code = employee.get('code', '')[0:CODE_MAX_LENGTH]
 
-                        # check if employee already exists
-                        #  msg_dont_add = validate_employee_name(namelast, namefirst, request.user.company)
-                        # if msg_dont_add:
-                        #     logger.debug('employee_exists: ' + str(msg_dont_add))
-                        #  else:
-                        #    logger.debug('employee does not exists')
+             # check if employee code already exists
+                        logger.debug('code: ' + str(code))
+                        has_error = validate_code_name_id(tablename, 'code', code, request.user.company, employee_dict)
+                        if not has_error:
+            # check if employee identifier already exists
+                            identifier = employee.get('identifier', '')[0:CODE_MAX_LENGTH]
+                            logger.debug('identifier: ' + str(identifier))
+                            has_error = validate_code_name_id(tablename, 'identifier', code, request.user.company, employee_dict)
+                            if not has_error:
+                                logger.debug('identifier not has_error ')
+            # check if employee namefirst / namelast combination already exists
+                                has_error = validate_namelast_namefirst(namelast, namefirst, request.user.company, employee_dict)
+                                if not has_error:
+                                    logger.debug('namelast, namefirst not has_error ')
+                                    email = employee.get('email', '')[0:NAME_MAX_LENGTH]
+                                    telephone = employee.get('tel', '')[0:USERNAME_SLICED_MAX_LENGTH]
 
-                        # check if email address already exists
-                        #if email:
-                        #    msg_dont_add = employee_email_exists(email, request.user.company)
-                        #    if msg_dont_add:
-                        #        logger.debug('emmail_exists: ' + str(msg_dont_add))
-                       #     else:
-                       #        logger.debug('email does not exists')
-                        #    skip_email = bool(msg_dont_add)
-                        #else:
-                        #    skip_email = True
-                        msg_dont_add = None
-                        # ========== create new employee, but only if no errors found
-                        if msg_dont_add:
-                            pass
-                            # logger.debug('employee not created: ' + str(msg_dont_add))
-                            # TODO stud_log.append(_("employee not created."))
-                        else:
-                            new_employee = Employee(
-                                company=request.user.company,
-                                code=code,
-                                namelast=namelast
-                            )
-                            # logger.debug('new_employee: ' + str(new_employee))
+                                    datefirst_str = employee.get('datefirst')
+                                    datefirst_iso = ''
+                                    if datefirst_str and format_str:
+                                        datefirst_iso = get_dateISO_from_string(datefirst_str, format_str)
 
-                            # logger.debug('new_employee.namelast: ' + str(new_employee.namelast))
-                            if namefirst:
-                                new_employee.namefirst = namefirst
-                            if identifier:
-                                new_employee.identifier = identifier
-                            if email:
-                                new_employee.email = email
-                            if telephone:
-                                new_employee.tel = telephone
-                            if datefirst_iso:
-                                # new_value: '2019-04-12'
-                                datefirst, msg_err = get_date_from_ISOstring(datefirst_iso, False)  # False = blank_allowed
-                                if datefirst:
-                                    new_employee.datefirst = datefirst
+                                    datelast_str = employee.get('datelast')
+                                    datelast_iso = ''
+                                    if datelast_str and format_str:
+                                        datelast_iso = get_dateISO_from_string(datelast_str, format_str)
 
-                            try:
-                                new_employee.save(request=request)
-                                # logger.debug('saved new_employee: ' + str(new_employee))
-                            except:
-                                has_error = True
-                                employee_dict['e_lastname'] = _('An error occurred. The employee data is not saved.')
-                                # logger.debug('has_error: ' + str(new_employee))
+                                    wagecode = employee.get('wagecode')
+                                    workhours = employee.get('workhours', 0)
+                                    leavedays = employee.get('leavedays', 0)
 
-                            if new_employee.pk:
-                                if new_employee.code:
-                                    employee_dict['s_code'] = new_employee.code
-                                if new_employee.namelast:
-                                    employee_dict['s_namelast'] = new_employee.namelast
-                                if new_employee.namefirst:
-                                    employee_dict['s_namefirst'] = new_employee.namefirst
-                                if new_employee.prefix:
-                                    employee_dict['s_prefix'] = new_employee.prefix
-                                if new_employee.email:
-                                    employee_dict['s_email'] = new_employee.email
-                                if new_employee.telephone:
-                                    employee_dict['s_telephone'] = new_employee.telephone
-                                if new_employee.datefirst:
-                                    employee_dict['s_datefirst'] = new_employee.datefirst
 
-                            # logger.debug(str(new_student.id) + ': Student ' + new_student.lastname_firstname_initials + ' created ')
+                                    new_employee = Employee(
+                                        company=request.user.company,
+                                        code=code,
+                                        namelast=namelast
+                                    )
+                                    logger.debug('new_employee.code: ' + str(new_employee.code))
+
+                                    if namefirst:
+                                        new_employee.namefirst = namefirst
+                                    if identifier:
+                                        new_employee.identifier = identifier
+                                    if email:
+                                        new_employee.email = email
+                                    if telephone:
+                                        new_employee.tel = telephone
+                                    if datefirst_iso:
+                                        new_employee.datefirst = datefirst_iso
+                                        logger.debug('datefirst_dte:' + str(datefirst_iso) + str(type(datefirst_iso)))
+                                        logger.debug('new_employee.datefirst: ' + str(new_employee.datefirst))
+                                    if datelast_iso:
+                                        new_employee.datelast = datelast_iso
+                                        logger.debug('datelast_dte:' + str(datelast_iso) + str(type(datelast_iso)))
+                                        logger.debug('new_employee.datelast: ' + str(new_employee.datelast))
+
+                                    try:
+                                        new_employee.save(request=request)
+                                        # logger.debug('saved new_employee: ' + str(new_employee))
+                                    except:
+                                        has_error = True
+                                        employee_dict['e_lastname'] = _('An error occurred. The employee data is not saved.')
+                                        # logger.debug('has_error: ' + str(new_employee))
+
+                                    if new_employee.pk:
+                                        if new_employee.code:
+                                            employee_dict['s_code'] = new_employee.code
+                                        if new_employee.identifier:
+                                            employee_dict['s_identifier'] = new_employee.identifier
+                                        if new_employee.namelast:
+                                            employee_dict['s_namelast'] = new_employee.namelast
+                                        if new_employee.namefirst:
+                                            employee_dict['s_namefirst'] = new_employee.namefirst
+                                        if new_employee.email:
+                                            employee_dict['s_email'] = new_employee.email
+                                        if new_employee.telephone:
+                                            employee_dict['s_telephone'] = new_employee.telephone
+                                        if new_employee.datefirst:
+                                            employee_dict['s_datefirst'] = new_employee.datefirst
+                                        if new_employee.datelast:
+                                            employee_dict['s_datelast'] = new_employee.datelast
+
+                                    # logger.debug(str(new_student.id) + ': Student ' + new_student.lastname_firstname_initials + ' created ')
 
                             # from https://docs.quantifiedcode.com/python-anti-patterns/readability/not_using_items_to_iterate_over_a_dictionary.html
                             # for key, val in student.items():
                             #    logger.debug( str(key) +': ' + val + '" found in "' + str(student) + '"')
 
                         # json_dumps_err_list = json.dumps(msg_list, cls=f.LazyEncoder)
-                        if len(employee_dict) > 0:
+                        if any(employee_dict):  # 'Any' returns True if any element of the iterable is true.
                             params.append(employee_dict)
                         # params.append(new_employee)
 
-                # return HttpResponse(json.dumps(params))
-                return HttpResponse(json.dumps(params, cls=LazyEncoder))
+                    # --- end for employee in employees
+
+         # return HttpResponse(json.dumps(params))
+        return HttpResponse(json.dumps(params, cls=LazyEncoder))
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_employee(upload_dict, update_dict, request):
@@ -575,7 +554,7 @@ def create_employee(upload_dict, update_dict, request):
             if code:
 
     # c. validate code checks null, max len and exists
-                has_error = validate_code_or_name(table, 'code', code, parent, update_dict)
+                has_error = validate_code_name_id(table, 'code', code, parent, update_dict)
 
                 if not has_error:
 # 4. create and save 'customer' or 'order'
@@ -625,8 +604,8 @@ def update_employee(instance, parent, upload_dict, update_dict, request, user_la
                     saved_value = getattr(instance, field)
                     logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
 
-                # validate_code_or_name checks for null, too long and exists. Puts msg_err in update_dict
-                    has_error = validate_code_or_name('employee', field, new_value, parent, update_dict, instance.pk)
+                # validate_code_name_id checks for null, too long and exists. Puts msg_err in update_dict
+                    has_error = validate_code_name_id('employee', field, new_value, parent, update_dict, instance.pk)
 
                     if not has_error:
                         if new_value and new_value != saved_value:
@@ -638,8 +617,8 @@ def update_employee(instance, parent, upload_dict, update_dict, request, user_la
         # update scheme_list when code has changed
                             update_scheme_list = True
 
-        # TODO  # validate_employee_namelast_namefirst
-        # has_error = validate_employee_namelast_namefirst(namelast, namefirst, company, update_dict, this_pk=None):
+        # TODO  # validate_namelast_namefirst
+        # has_error = validate_namelast_namefirst(namelast, namefirst, company, update_dict, this_pk=None):
 
 # 3. save changes in fields 'namefirst', 'namelast'
         for field in ['namefirst', 'namelast', 'identifier']:
@@ -708,4 +687,197 @@ def update_employee(instance, parent, upload_dict, update_dict, request, user_la
     create_employee_dict(instance, update_dict)
 
 
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def get_lastname_initials(namelast, namefirst, with_space):  # PR2019-08-05
+    # get lastname plus initials: Martina K L G
+    lastname_initials = ''
 
+    initials = ''
+    if namefirst:
+        initials = get_initials(namefirst, with_space)
+
+    if namelast:
+        lastname_initials = namelast
+        if initials:
+            lastname_initials = lastname_initials + ' ' + initials
+    else:
+        if initials:
+            lastname_initials = initials
+
+    return lastname_initials
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def get_lastname_firstfirstname(namelast, namefirst):  # PR2019-08-05
+    # get lastname plus first firstname: Martina, Kevin
+    lastname_firstfirstname = ''
+
+    firstfirstname = ''
+    if namefirst:
+        firstfirstname = get_firstfirstname(namefirst)
+
+    if namelast:
+        lastname_firstfirstname = namelast
+        if firstfirstname:
+            lastname_firstfirstname = lastname_firstfirstname + ', ' + firstfirstname
+    else:
+        if firstfirstname:
+            lastname_firstfirstname = firstfirstname
+
+    return lastname_firstfirstname
+
+
+def get_firstfirstname(firstnames):
+    # PR2019-08-05 split first names'
+    firstfirstname = ''
+    if firstnames:
+        arr = firstnames.split()  # If separator is not provided then any white space is a separator.
+        firstfirstname = arr[0]
+    return firstfirstname
+
+
+def get_initials(firstnames, with_space):
+    # logger.debug(' --- get_initials ---')
+    # PR2019-08-05 get first letter of each firstname
+
+    initials = ''
+    if firstnames:
+        arr = firstnames.split()  # If separator is not provided then any white space is a separator.
+        for firstname in arr:
+            if initials and with_space:
+                initials = initials + ' '
+            initial = firstname[0]
+            initials = initials + initial.upper()
+    # logger.debug('initials: ' + str(initials))
+    return initials
+
+def detect_dateformat(dict, field):
+    #logger.debug(' --- detect_dateformat ---')
+    # PR2019-08-05 get first letter of each firstname
+    # detect date format
+    format_str = ''
+    arr00_max = 0
+    arr01_max = 0
+    arr02_max = 0
+    for item in dict:
+        arr00 = 0
+        arr01 = 0
+        arr02 = 0
+
+        date_string = item.get(field)
+        if date_string:
+            arr = get_datetimearray_from_ISOstring(date_string)
+
+            isok = False
+            if len(arr) > 2:
+
+                if arr[0].isnumeric():
+                    arr00 = int(arr[0])
+                    if arr[1].isnumeric():
+                        arr01 = int(arr[1])
+                        if arr[2].isnumeric():
+                            arr02 = int(arr[2])
+                            isok = True
+            if isok:
+                if arr00 > arr00_max:
+                    arr00_max = arr00
+                if arr01 > arr01_max:
+                    arr01_max = arr01
+                if arr02 > arr02_max:
+                    arr02_max = arr02
+
+    year_pos = -1
+    day_pos = -1
+
+    if arr00_max > 31 and arr01_max <= 31 and arr02_max <= 31:
+        year_pos = 0
+        if arr01_max > 12 and arr02_max <= 12:
+            day_pos = 1
+        elif arr02_max > 12 and arr01_max <= 12:
+            day_pos = 2
+    elif arr01_max > 31 and arr00_max <= 31 and arr02_max <= 31:
+        year_pos = 1
+        if arr00_max > 12 and arr02_max <= 12:
+            day_pos = 0
+        elif arr02_max > 12 and arr00_max <= 12:
+            day_pos = 2
+    elif arr02_max > 31 and arr00_max <= 31 and arr01_max <= 31:
+        year_pos = 2
+        if arr00_max > 12 and arr01_max <= 12:
+            day_pos = 0
+        elif arr01_max > 12 and arr00_max <= 12:
+            day_pos = 1
+
+    if day_pos == -1:
+        if year_pos == 0:
+            day_pos = 2
+        elif year_pos == 2:
+            day_pos = 0
+
+    if year_pos > -1 and day_pos > -1:
+        if year_pos == 0 and day_pos == 2:
+                format_str = 'yyyy-mm-dd'
+        if year_pos == 2:
+            if day_pos == 0:
+                format_str = 'dd-mm-yyyy'
+            if day_pos == 1:
+                format_str = 'mm-dd-yyyy'
+
+    #logger.debug('max00: ' + str(arr00_max) + 'max01: ' + str(arr01_max) + ' max02: ' + str(arr02_max))
+    #logger.debug('format_str: ' + str(format_str))
+    return format_str
+
+def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
+    #logger.debug('... get_dateISO_from_string ...')
+    #logger.debug('date_string: ' + str(date_string), ' format: ' + str(format))
+
+    # function converts string into given format
+    if format is None:
+        format = 'yyyy-mm-dd'
+
+    new_dat_str = ''
+    if date_string:
+        # replace / by -
+        date_string = date_string.replace('/', '-')
+        if '-' in date_string:
+            arr = date_string.split('-')
+            if len(arr) >= 2:
+                day_int = 0
+                month_int = 0
+                year_int = 0
+                if format == 'dd-mm-yyyy':
+                    day_int = int(arr[0])
+                    month_int = int(arr[1])
+                    year_int = int(arr[2])
+                elif format == 'mm-dd-yyyy':
+                    month_int = int(arr[0])
+                    day_int = int(arr[1])
+                    year_int = int(arr[2])
+                elif format == 'yyyy-mm-dd':
+                    year_int = int(arr[0])
+                    month_int = int(arr[1])
+                    day_int = int(arr[2])
+                #logger.debug('year_int: ' + str(year_int) + ' month_int: ' + str(month_int) + ' day_int:' + str(day_int))
+
+                if year_int < 100:
+                    currentYear = datetime.now().year
+                    remainder = currentYear % 100 # 2019 -> 19
+                    year100_int = currentYear // 100 # 2019 -> 20
+                    # currentYear = 2019, remainder = 19. When year_int <=29 convert to 2009, else convert to 1997
+                    if year_int <= remainder + 10:
+                        year_int = year_int + year100_int * 100
+                    else:
+                        year_int = year_int + (year100_int - 1) * 100
+
+                year_str = '0000' + str(year_int)
+                year_str = year_str[-4:]
+                month_str = '00' + str(month_int)
+                month_str = month_str[-2:]
+
+                day_str = '00' + str(day_int)
+                day_str = day_str[-2:]
+                #logger.debug('year_str: ' + str(year_str) + ' month_str: ' + str(month_str) + ' day_str:' + str(day_str))
+
+                new_dat_str = '-'.join([year_str, month_str, day_str])
+
+    #logger.debug('new_dat_str: ' + str(new_dat_str))
+    return new_dat_str

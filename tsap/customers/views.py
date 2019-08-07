@@ -21,7 +21,7 @@ from tsap.constants import CODE_MAX_LENGTH, ABSENCE, ABSENCE_CATEGORY, LANG_DEFA
                     CAT_00_NORMAL, CAT_02_ABSENCE, CAT_03_TEMPLATE,  WEEKDAYS_ABBREV, MONTHS_ABBREV, TEMPLATE_TEXT
 from tsap.settings import TIME_ZONE
 from tsap.functions import get_date_from_ISOstring, create_dict_with_empty_attr, get_iddict_variables, set_fielddict_date
-from tsap.validators import validate_code_or_name
+from tsap.validators import validate_code_name_id
 
 import json
 
@@ -248,8 +248,6 @@ def create_insXXXXXXXXXXtance(table, parent_instance, code, name, temp_pk_str, u
 
     return instance
 
-#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_customer(upload_dict, update_dict, request):
     # --- create customer or order # PR2019-06-24
@@ -267,7 +265,7 @@ def create_customer(upload_dict, update_dict, request):
         ppk_int = int(id_dict.get('ppk', 0))
         temp_pk_str = id_dict.get('temp_pk', '')
 
-    # b. save temp_pk_str in in 'id' of update_dict'
+        # b. save temp_pk_str in in 'id' of update_dict'
         if temp_pk_str:
             # attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
             update_dict['id']['temp_pk'] = temp_pk_str
@@ -294,9 +292,9 @@ def create_customer(upload_dict, update_dict, request):
             if code and name:
 
     # c. validate code and name
-                has_error = validate_code_or_name(table, 'code', code, parent, update_dict)
+                has_error = validate_code_name_id(table, 'code', code, parent, update_dict)
                 if not has_error:
-                    has_error = validate_code_or_name(table, 'name', name, parent, update_dict)
+                    has_error = validate_code_name_id(table, 'name', name, parent, update_dict)
 
 # 4. create and save 'customer' or 'order'
                     if not has_error:
@@ -328,7 +326,14 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
 # 1. get_iddict_variables
     id_dict = upload_dict.get('id')
     if id_dict:
-        pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
+        table = 'customer'
+        pk_int = instance.pk
+        ppk_int = instance.team.pk
+
+        update_dict['pk'] = pk_int
+        update_dict['id']['pk'] = pk_int
+        update_dict['id']['ppk'] = ppk_int
+        update_dict['id']['table'] = table
 
 # 2. save changes in field 'code', 'name'
         for field in ['code', 'name']:
@@ -343,7 +348,7 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
                     if new_value != saved_value:
     # b. validate code or name
 
-                        has_error = validate_code_or_name(table, field, new_value, parent, update_dict, this_pk=None)
+                        has_error = validate_code_name_id(table, field, new_value, parent, update_dict, this_pk=None)
                         if not has_error:
     # c. save field if changed and no_error
                             setattr(instance, field, new_value)
@@ -401,7 +406,7 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
         create_customer_dict(instance, update_dict)
 
     return has_error
-#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_order(upload_dict, update_dict, request):
     # --- create customer or order # PR2019-06-24
@@ -445,9 +450,9 @@ def create_order(upload_dict, update_dict, request):
             if code and name:
 
     # c. validate code and name
-                has_error = validate_code_or_name(table, 'code', code, parent, update_dict)
+                has_error = validate_code_name_id(table, 'code', code, parent, update_dict)
                 if not has_error:
-                    has_error = validate_code_or_name(table, 'name', name, parent, update_dict)
+                    has_error = validate_code_name_id(table, 'name', name, parent, update_dict)
 
 # 4. create and save 'customer' or 'order'
                     if not has_error:
@@ -501,7 +506,7 @@ def update_order(instance, parent, upload_dict, update_dict, request):
                     if new_value != saved_value:
     # b. validate code or name
 
-                        has_error = validate_code_or_name(table, field, new_value, parent, update_dict, this_pk=None)
+                        has_error = validate_code_name_id(table, field, new_value, parent, update_dict, this_pk=None)
                         if not has_error:
     # c. save field if changed and no_error
                             setattr(instance, field, new_value)

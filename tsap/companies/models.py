@@ -10,7 +10,7 @@ from datetime import datetime
 
 from tsap.settings import AUTH_USER_MODEL, TIME_ZONE
 from tsap.constants import USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, NAME_MAX_LENGTH, \
-    TIMEFORMAT_CHOICES, TIMEFORMAT_24h
+    TIMEFORMAT_CHOICES, TIMEFORMAT_24h, TIMEINTERVAL_DEFAULT, CAT_ENTRY_00_GRACE
 from tsap.functions import get_date_yyyymmdd, get_date_longstr_from_dte
 
 import pytz
@@ -118,7 +118,7 @@ class Company(TsaBaseModel):
 
     issystem = BooleanField(default=False)
     timezone = CharField(max_length=NAME_MAX_LENGTH, default=TIME_ZONE)
-    interval = PositiveSmallIntegerField(default=5)
+    interval = PositiveSmallIntegerField(default=TIMEINTERVAL_DEFAULT)
     timeformat = CharField(max_length=4, choices=TIMEFORMAT_CHOICES,
         default=TIMEFORMAT_24h)
 
@@ -144,6 +144,7 @@ class Customer(TsaBaseModel):
     identifier = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     email = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
+    interval = PositiveSmallIntegerField(default=TIMEINTERVAL_DEFAULT)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -166,6 +167,7 @@ class Order(TsaBaseModel):
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     taxrate = IntegerField(default=0) # /10000 unit
     ishourlybasis = BooleanField(default=False)
+    interval = PositiveSmallIntegerField(default=TIMEINTERVAL_DEFAULT)
 
     class Meta:
         ordering = [Lower('code')]
@@ -185,8 +187,8 @@ class Order(TsaBaseModel):
         # - parent, code and name are required
         if customer:
             # TODO
-            code_ok = True  # TODO validate_code_or_name('order', 'code', code, update_dict, request.user.company)
-            name_ok = True  # TODO  validate_code_or_name('order', 'name', name, update_dict, request.user.company)
+            code_ok = True  # TODO validate_code_name_id('order', 'code', code, update_dict, request.user.company)
+            name_ok = True  # TODO  validate_code_name_id('order', 'name', name, update_dict, request.user.company)
 
 # - create instance
             if code_ok and name_ok:
@@ -356,8 +358,8 @@ class Employee(TsaBaseModel):
     namefirst = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
     prefix = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     email = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
-    telephone = CharField(db_index=True, max_length=USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
-    identifier = CharField(db_index=True, max_length=USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
+    telephone = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    identifier = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
 
     wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
     workhours = IntegerField(default=0) # /hours per week
@@ -382,8 +384,8 @@ class Employee(TsaBaseModel):
 # - parent, code and namelast are required
         if company:
             # TODO
-            code_ok = True  # TODO validate_code_or_name('employee', 'code', code, update_dict, request.user.company)
-            namelast_ok = True  # TODO  validate_code_or_name('employee', 'name', name, update_dict, request.user.company)
+            code_ok = True  # TODO validate_code_name_id('employee', 'code', code, update_dict, request.user.company)
+            namelast_ok = True  # TODO  validate_code_name_id('employee', 'name', name, update_dict, request.user.company)
 
 # - create instance
             if code_ok and namelast_ok:
@@ -541,27 +543,30 @@ class Emplhourlog(TsaBaseModel):
     inactive = None
 
 
-class Companyinvoice(Model):  # PR2019-04-06
+class Companyinvoice(TsaBaseModel):  # PR2019-04-06
     objects = TsaManager()
-
     company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
+
+    cat = PositiveSmallIntegerField(default=0)  # 0 = grace-entries, 1 = bonus-entries, 2 = paid-entries
+
     entries = IntegerField(default=0)
     used = IntegerField(default=0)
     balance= IntegerField(default=0)
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
-    datepayment = DateField(db_index=True, null=True, blank=True)
+    datepayment = DateField(null=True, blank=True)
     dateexpired = DateField(db_index=True, null=True, blank=True)
+    expired = BooleanField(default=False)
     note = CharField(db_index=True, max_length=NAME_MAX_LENGTH)
 
     class Meta:
         ordering = ['datepayment']
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    code = None
     name = None
     datefirst = None
+    datelast = None
     inactive = None
-
-
 
 
 class Companysetting(Model):  # PR2019-03-09
@@ -604,7 +609,7 @@ class Companysetting(Model):  # PR2019-03-09
         # logger.debug('row.setting: ' + str(row.setting))
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+# company entries
 # ===========  get_entry_balance
 def get_entry_balance(request, comp_timezone):  # PR2019-08-01
     # function returns avalable balance
@@ -624,6 +629,90 @@ def get_entry_balance(request, comp_timezone):  # PR2019-08-01
         # from https://simpleisbetterthancomplex.com/tutorial/2016/12/06/how-to-create-group-by-queries.html
     return balance
 
+def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # PR2019-08-04
+    # function returns avalable balance
+    logger.debug('---  entry_balance_subtract  ------- ')
+    logger.debug('entries_tobe_subtracted ' + str(entries_tobe_subtracted))
+
+    balance = 0
+    if request.user.company:
+
+
+ # a. get today in comp_timezone
+        timezone = pytz.timezone(comp_timezone)
+        today = datetime.now(timezone).date()
+        # datetime.now(timezone): 2019-08-01 21:24:20.898315+02:00 <class 'datetime.datetime'>
+        # today:2019-08-01 <class 'datetime.date'>
+
+        if entries_tobe_subtracted:
+            subtotal = entries_tobe_subtracted
+            crit = Q(company=request.user.company) & \
+                   Q(expired=False) & \
+                   Q(cat__gt=CAT_ENTRY_00_GRACE) # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
+            invoices = Companyinvoice.objects.filter(crit)
+            # TODO check order and filter
+            save_changes = False
+            for invoice in invoices:
+                # check if invoice is expired. If so: et expired=True and balance=0
+                if invoice.dateexpired and invoice.dateexpired < today:
+                    invoice.expired = True
+                    invoice.balance = 0
+                    save_changes = True
+                else:
+                    if subtotal:
+                        saved_used = invoice.used
+                        saved_balance = invoice.balance
+                        # if balance sufficient: subtract all from balance, else subtract balance
+                        if saved_balance:
+                            # subtract subtotal from balance, but never more than balance
+                            subtract = subtotal if saved_balance >= subtotal else saved_balance
+                            invoice.balance = saved_balance - subtract
+                            invoice.used = saved_used + subtract
+                            subtotal = subtotal - subtract
+                            save_changes = True
+                            logger.debug('invoice.balance ' + str(invoice.balance))
+                if save_changes:
+                    invoice.save(request=request)
+            # if any entries_tobe_subtracted left: subtract from garce entries
+            if subtotal:
+                # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
+                grace = Companyinvoice.objects.get_or_none(company=request.user.company, cat=CAT_ENTRY_00_GRACE)
+                if grace is None:
+                    create_invoice_grace(request)
+
+                saved_used = grace.used
+                saved_balance = grace.balance
+                grace.balance = saved_balance - subtotal
+                grace.used = saved_used + subtotal
+                grace.save(request=request)
+
+                logger.debug('grace.balance ' + str(grace.balance))
+
+def create_invoice_grace(request):  # PR2019-08-05
+    if request.user.company:
+        companyinvoice = Companyinvoice.objects.get_or_none(company=request.user.company, cat=CAT_ENTRY_00_GRACE)
+        if companyinvoice is None:
+            companyinvoice = Companyinvoice(company=request.user.company, cat=CAT_ENTRY_00_GRACE)
+        companyinvoice.save()
+
+def create_invoice(request, cat, entries=0, rate=0, datepayment=None, dateexpired=None, note=None):  # PR2019-08-05
+    invoice = None
+    if request.user.company:
+        invoice = Companyinvoice(company=request.user.company, cat=cat)
+        if entries:
+            invoice.entries=entries
+            invoice.balance=entries
+        if rate:
+            invoice.rate=rate
+        if datepayment is not None:
+            invoice.datepayment=datepayment
+        if dateexpired is not None:
+            invoice.dateexpired=dateexpired
+        if note is not None:
+            invoice.note=note
+        invoice.save(request=request)
+    return invoice
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def get_parent(table, ppk_int, update_dict, request):
     # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-07-30
     parent = None

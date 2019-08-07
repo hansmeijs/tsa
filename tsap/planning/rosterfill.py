@@ -20,7 +20,8 @@ from planning.dicts import get_rosterdatefill_dict, create_emplhour_list,\
 
 from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 
-from companies.models import Schemeitem, Teammember, Emplhour, Orderhour, Companysetting, get_entry_balance
+from companies.models import Schemeitem, Teammember, Emplhour, Orderhour, Companysetting, \
+    get_entry_balance, entry_balance_subtract
 
 import json
 
@@ -106,8 +107,9 @@ def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-08-01
         # before filling emplhours with rosterdate you must update the schemitems.
         # rosterdates that are before the new rosterdate must get a date on or aftter the new rosterdate
 
-       #  entry_count = 0
-       #  entry_balance = get_entry_balance(request, comp_timezone)
+        entry_count = 0
+        entry_balance = get_entry_balance(request, comp_timezone)
+        logger.debug('entry_balance: ' + str(entry_balance))
 
 # 1. create a recordset of schemeitem records with rosterdate = new_rosterdate
         #   Exclude cat absence and template (0 = normal, 1 = internal, 2 = absence, 3 = template)
@@ -158,7 +160,6 @@ def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-08-01
                         schemeitem=schemeitem,
                         rosterdate=new_rosterdate)
                 entry_count = entry_count + 1
-                logger.debug(' entry_count: ' + str(entry_count))
 
  # d. if not locked: replace values of existing orderhour
                 if orderhour and not oh_is_locked:
@@ -225,6 +226,7 @@ def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-08-01
                                 new_emplhour.wagecode = employee.wagecode
                     new_emplhour.save(request=request)
         logger.debug(' entry_count: ' + str( entry_count))
+        entry_balance_subtract(entry_count, request, comp_timezone)  # PR2019-08-04
 # 33333333333333333333333333333333333333333333333333
 
 def update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone):  # PR2019-07-31

@@ -45,9 +45,9 @@ from tsap.settings import TIME_ZONE, LANGUAGE_CODE
 from tsap.headerbar import get_headerbar_param
 
 from companies.models import Order, Scheme, Schemeitem, Team, Teammember, \
-    Employee, Emplhour, Orderhour, Companysetting, get_instance, delete_instance
+    Employee, Emplhour, Orderhour, get_parent, get_instance, delete_instance
 
-from tsap.validators import validate_code_or_name
+from tsap.validators import validate_code_name_id
 
 import pytz
 import json
@@ -498,7 +498,6 @@ class SchemeUploadView(UpdateView):  # PR2019-07-21
 class SchemeTemplateUploadView(View):  # PR2019-07-20
     def post(self, request, *args, **kwargs):
         # logger.debug(' ====== SchemeTemplateUploadView ============= ')
-
         item_update_dict = {}
         if request.user is not None and request.user.company is not None:
             # logger.debug(request.POST)
@@ -535,11 +534,12 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
 
     # - check if parent exists (scheme is parent of schemeitem, team is parent of teammember (and scheme is parent of team)
                         # parent_instance adds 'parent_pk' and 'table' to update_dict['id']
-                        parent = get_parent_instance(table, ppk_int, request.user.company)
+                        # TODO make corrections update_dict
+                        update_dict = {}
+                        parent = get_parent(table, ppk_int, update_dict, request)
                         # logger.debug('parent_instance: ' + str(parent))
     # - get scheme
                         # TODO update_dict
-                        update_dict = {}
                         instance = get_instance(table, pk_int, parent, update_dict)
                         # logger.debug('instance: ' + str(instance))
 
@@ -643,7 +643,9 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
         # logger.debug('template_pk_int: ' + str(template_pk_int) + ' template_ppk_int: ' + str(template_ppk_int))
 
     # - check if scheme parent exists (order is parent of scheme)
-        template_parent = get_parent_instance(table, template_ppk_int, request.user.company)
+        # TODO update_dict
+        update_dict = {}
+        template_parent = get_parent(table, template_ppk_int, update_dict, request)
         # logger.debug('template_parent: ' + str(template_parent))
         # TODO update_dict
         update_dict = {}
@@ -651,7 +653,7 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
         # logger.debug('template_scheme: ' + str(template_scheme))
 
 # - check if scheme parent exists (order is parent of scheme)
-        scheme_parent = get_parent_instance(table, order_pk, request.user.company)
+        scheme_parent = get_parent(table, order_pk, update_dict, request)
         # logger.debug('scheme_parent: ' + str(scheme_parent))
 
         if template_scheme and scheme_parent:
@@ -1238,9 +1240,9 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
 
 @method_decorator([login_required], name='dispatch')
 class TeammemberUploadView(UpdateView):  # PR2019-07-28
-    # also for teammembers
+
     def post(self, request, *args, **kwargs):
-        # logger.debug('============= TeammemberUploadView ============= ')
+        logger.debug('============= TeammemberUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -1258,7 +1260,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                # logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
 
                 # upload_dict: {'id': {'temp_pk': 'new_4', 'create': True, 'parent_pk': 82, 'table': 'teammembers'},
                 #             'team': {'update': True, 'value': 'PLoeg B', 'pk': 82},
@@ -1275,10 +1277,12 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
     # 4. Create empty item_update with keys for all fields. Unused ones will be removed at the end
                     field_list = ('pk', 'id', 'team', 'employee', 'datefirst', 'datelast')
                     item_update = create_dict_with_empty_attr(field_list)
-                    # logger.debug('table: ' + str(table) + ' ppk_int: ' + str(ppk_int))
+                    logger.debug('table: ' + str(table) + ' ppk_int: ' + str(ppk_int))
 
     # 5. check if parent exists (team is parent of teammember)
-                    parent = get_parent_instance(table, ppk_int, request.user.company)
+                    # TODO update_dict
+                    update_dict = {}
+                    parent = get_parent(table, ppk_int, update_dict, request)
                     # logger.debug('parent: ' + str(parent))
                     if parent:
 # B. Delete instance
@@ -2051,7 +2055,7 @@ class PeriodUploadView(UpdateView):  # PR2019-07-12
 class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= EmplhourUploadView ============= ')
+        logger.debug(' ============= EmplhourUploadView ============= ')
 
         item_update_dict = {}
         if request.user is not None and request.user.company is not None:
@@ -2078,21 +2082,22 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
             upload_json = request.POST.get('emplhour', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                # logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
                 # logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: {'id': {'pk': 153, 'parent_pk': 158, 'table': 'emplhour'},
                 # 'timestart': {'value': '2019-06-22T11:15:00.000Z', 'update': True}}
 
-                # upload_dict: {'id': {'temp_pk': 'new_1', 'create': True, 'table': 'emplhour'},
-                #               'rosterdate': {'value': '2019-06-26', 'update': True},
-                #               'orderhour': {'value': 'UTS - UTS', 'order_pk': 59, 'update': True}}
-
                 # upload_dict: {'id': {'pk': 445, 'ppk': 450, 'table': 'emplhour'}, 'status': {'value': 2, 'update': True}}
+
+                # upload_dict: {'id': {'temp_pk': 'new_1', 'create': True, 'table': 'emplhour'},
+                #               'rosterdate': {'value': '2019-04-13', 'update': True},
+                #               'orderhour': {'value': 'MCB - Hato', 'order_pk': 32, 'update': True}}
 
     # 4. save period
                 update_emplhour_list = False
                 rangemin = None
                 rangemax = None
+                period_dict = {}
                 if 'period' in upload_dict:  # PR2019-07-09
                     # period': {'period': 12, 'interval': 6, 'overlap': 0, 'auto': True}}
 
@@ -2226,7 +2231,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
     # 3. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
-                    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
+                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
                     # id_dict is added to update_dict after check if parent_exists and item_exists
                     # logger.debug('id_dict: ' + str(id_dict))
                     # id_dict: {'temp_pk': 'new_3', 'create': True, 'parent_pk': 154, 'table': 'emplhour'}
@@ -2235,7 +2240,6 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
     # 4. Create empty update_dict with keys for all fields if not exist. Unused ones will be removed at the end
                     # this one is not working: update_dict = dict.fromkeys(field_list, {})
-
                     update_dict = create_dict_with_empty_attr(FIELDS_EMPLHOUR_TUPLE)
 
 # C. Create new orderhour / emplhour - before check if parent exists
@@ -2245,7 +2249,9 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                         instance, parent = create_orderhour_emplhour(upload_dict, update_dict, request)
                     else:
 # 5. check if parent exists (orderhour is parent of emplhour)
-                        parent = get_parent_instance(table, parent_pk_int, request.user.company)
+                        # TODO update_dict
+                        update_dict = {}
+                        parent = get_parent(table, ppk_int, update_dict, request)
                         if parent:
                             instance = get_instance(table, pk_int, parent, update_dict)
 
@@ -2298,6 +2304,17 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
 # 8. update emplhour_list when changes are made
                         if update_emplhour_list:
                             # inactive = False: include only active instances
+
+                            # get period_timestart_utc and period_timeend_utc
+                            period_timestart_utc = None
+                            period_timeend_utc = None
+                            if 'periodstart' in period_dict:
+                                period_timestart_iso = period_dict['periodstart']
+                                period_timestart_utc = get_datetime_UTC_from_ISOstring(period_timestart_iso)
+                            if 'periodend' in period_dict:
+                                period_timeend_iso = period_dict['periodend']
+                                period_timeend_utc = get_datetime_UTC_from_ISOstring(period_timeend_iso)
+
                             show_all = False
                             emplhour_list = create_emplhour_list(company=request.user.company,
                                                                  comp_timezone=comp_timezone,
@@ -2371,6 +2388,8 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
         update_dict['id']['pk'] = orderhour.pk
         update_dict['pk'] = orderhour.pk
         # 'parent_pk' is added to update_dict['id'] in function get_parent_instance
+
+        # subtract 1 from used entries
 
 # create emplhour
     # create orderhour
@@ -2654,28 +2673,28 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
     remove_empty_attr_from_dict(update_dict)
 
 
-def update_teammember(instance, upload_dict, item_update, request, user_lang):
+def update_teammember(instance, upload_dict, update_dict, request, user_lang):
     # --- update existing and new teammmber PR2-019-06-01
-    # add new values to item_update (don't reset item_update, it has values)
-    # logger.debug(' ============= update_teammmber')
-    # logger.debug('upload_dict' + str(upload_dict))
-    # logger.debug('item_update' + str(item_update))
-    # {'id': {'temp_pk': 'new_26', 'create': True, 'parent_pk': 1, 'table': 'teammembers'},
+    # add new values to update_dict (don't reset update_dict, it has values)
+    logger.debug(' --- update_teammmber ---')
+    logger.debug('upload_dict' + str(upload_dict))
+    # {'id': {'temp_pk': 'new_26', 'create': True, 'ppk_int': 1, 'table': 'teammembers'},
     # 'team': {'update': True, 'value': 'Team A', 'pk': 1},
     # 'employee': {'update': True, 'value': 'Camila', 'pk': 243}}
     save_changes = False
+    has_error = False
 
 # 1. get_iddict_variables
     id_dict = upload_dict.get('id')
     if id_dict:
         table = 'teammember'
         pk_int = instance.pk
-        parent_pk = instance.team.pk
+        ppk_int = instance.team.pk
 
-        item_update['pk'] = pk_int
-        item_update['id']['pk'] = pk_int
-        item_update['id']['ppk'] = parent_pk
-        item_update['id']['table'] = table
+        update_dict['pk'] = pk_int
+        update_dict['id']['pk'] = pk_int
+        update_dict['id']['ppk'] = ppk_int
+        update_dict['id']['table'] = table
 
         #  field_list = ('id', 'team', 'employee', 'datefirst', 'datelast')
 
@@ -2692,22 +2711,22 @@ def update_teammember(instance, upload_dict, item_update, request, user_lang):
                     employee = None
                     if pk:
                         employee = Employee.objects.get_or_none(id=pk, company=request.user.company)
-                    # logger.debug('employee]: ' + str(employee) + ' ' + str(type(employee)))
+                    logger.debug('employee]: ' + str(employee) + ' ' + str(type(employee)))
 
                     add_employee = False
 
                     if employee == None:
-                        item_update[field]['error'] = _('This field cannot be blank.')
+                        update_dict[field]['error'] = _('This field cannot be blank.')
                     else:
                         msg_err = validate_employee_exists_in_teammembers(employee, instance.team, instance.pk)
                         if msg_err:
-                            item_update[field]['error'] = msg_err
+                            update_dict[field]['error'] = msg_err
                         else:
                             add_employee = True
 
                     if add_employee:
                         setattr(instance, field, employee)
-                        item_update[field]['updated'] = True
+                        update_dict[field]['updated'] = True
                         save_changes = True
 
 # 4. save changes in  field datefirst datelast
@@ -2720,15 +2739,15 @@ def update_teammember(instance, upload_dict, item_update, request, user_lang):
                     new_date, msg_err = get_date_from_ISOstring(new_value, False)  # False = blank_allowed
     # b. validate value
                     if msg_err:
-                        item_update[field]['error'] = msg_err
+                        update_dict[field]['error'] = msg_err
                     else:
     # c. save field if changed and no_error
                         old_date = getattr(instance, field, None)
                         if new_date != old_date:
                             setattr(instance, field, new_date)
                             save_changes = True
-                            item_update[field]['updated'] = True
-                            # logger.debug('date saved: ' + str(instance.datefirst))
+                            update_dict[field]['updated'] = True
+                            logger.debug('date saved: ' + str(instance.datefirst))
                             save_changes = True
 # 5. save changes
         if save_changes:
@@ -2736,27 +2755,27 @@ def update_teammember(instance, upload_dict, item_update, request, user_lang):
                 instance.save(request=request)
             except:
                 msg_err = _('This %(tbl)s could not be updated.') % {'tbl': table}
-                item_update['id']['error'] = msg_err
+                update_dict['id']['error'] = msg_err
 
-# 6. put updated saved values in item_update
-        create_teammember_dict(instance, item_update)
+# 6. put updated saved values in update_dict
+        create_teammember_dict(instance, update_dict)
 
              # if field in ['employee']:
              #   employee = getattr(instance, field)
              #   if employee:
-             #       item_update[field]['value'] = instance.employee.code
-             #       item_update[field]['team_pk'] = instance.employee.id
+             #       update_dict[field]['value'] = instance.employee.code
+             #       update_dict[field]['team_pk'] = instance.employee.id
 
-# --- remove empty attributes from item_update
-    remove_empty_attr_from_dict(item_update)
+# --- remove empty attributes from update_dict
+    remove_empty_attr_from_dict(update_dict)
 
-    # logger.debug('item_update: ' + str(item_update))
+    logger.debug('update_dict: ' + str(update_dict))
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def update_scheme(instance, upload_dict, item_update, request):
+def update_scheme(instance, upload_dict, update_dict, request):
     # --- update existing and new instance PR2019-06-06
-    # add new values to item_update (don't reset item_update, it has values)
+    # add new values to update_dict (don't reset update_dict, it has values)
     logger.debug(' ============= update_scheme')
     logger.debug('upload_dict: ' + str(upload_dict))
     # {'id': {'pk': 4, 'ppk': 38, 'table': 'scheme'}, 'datefirst': {'value': '2019-07-19', 'update': True}}
@@ -2768,10 +2787,10 @@ def update_scheme(instance, upload_dict, item_update, request):
         pk_int = instance.pk
         ppk_int = instance.order.pk
 
-        item_update['pk'] = pk_int
-        item_update['id']['pk'] = pk_int
-        item_update['id']['ppk'] = ppk_int
-        item_update['id']['table'] = table
+        update_dict['pk'] = pk_int
+        update_dict['id']['pk'] = pk_int
+        update_dict['id']['ppk'] = ppk_int
+        update_dict['id']['table'] = table
 
         save_changes = False
 
@@ -2786,13 +2805,14 @@ def update_scheme(instance, upload_dict, item_update, request):
                 # field 'code' is required
                 if new_value != saved_value:
     # b. validate code
-                    msg_err = validate_code_or_name(table, fieldname, new_value, ppk_int, pk_int)
-                    if msg_err:
-                        item_update[fieldname]['error'] = msg_err
-                    else:
+                    #TODO check if correct
+
+                    parent = instance.order
+                    has_error = validate_code_name_id(table, fieldname, new_value, parent, update_dict, pk_int)
+                    if not has_error:
     # c. save field if changed and no_error
                         setattr(instance, fieldname, new_value)
-                        item_update[fieldname]['updated'] = True
+                        update_dict[fieldname]['updated'] = True
                         save_changes = True
 
 # 3. save changes in field 'cycle'
@@ -2805,14 +2825,14 @@ def update_scheme(instance, upload_dict, item_update, request):
                 new_value = field_dict.get('value')
                 if new_value is None:
                     msg_err = _('Cycle cannot be blank')
-                    item_update[fieldname]['error'] = msg_err
+                    update_dict[fieldname]['error'] = msg_err
                 else:
                     new_cycle = int(new_value)
                     saved_value = getattr(instance, fieldname, None)
                     if new_cycle != saved_value:
         # c. save field if changed and no_error
                         setattr(instance, fieldname, new_value)
-                        item_update[fieldname]['updated'] = True
+                        update_dict[fieldname]['updated'] = True
                         save_changes = True
 
 # 4. save changes in date fields
@@ -2828,12 +2848,12 @@ def update_scheme(instance, upload_dict, item_update, request):
                     # logger.debug("new_value: " + str(new_value) + " saved_date: " + str(saved_date))
 
                     if msg_err is not None:
-                        item_update[field]['error'] = msg_err
+                        update_dict[field]['error'] = msg_err
                     else:
     # c. save field if changed and no_error
                         if new_date != saved_date:
                             setattr(instance, field, new_date)
-                            item_update[field]['updated'] = True
+                            update_dict[field]['updated'] = True
                             save_changes = True
 
 # 4. save changes in field 'inactive'
@@ -2847,7 +2867,7 @@ def update_scheme(instance, upload_dict, item_update, request):
                 saved_value = getattr(instance, fieldname, None)
                 if is_inactive != saved_value:
                     setattr(instance, field, is_inactive)
-                    item_update[field]['updated'] = True
+                    update_dict[field]['updated'] = True
                     save_changes = True
 # 5. save changes
         if save_changes:
@@ -2855,24 +2875,24 @@ def update_scheme(instance, upload_dict, item_update, request):
                 instance.save(request=request)
             except:
                 msg_err = _('This scheme could not be updated.')
-                item_update['id']['error'] = msg_err
+                update_dict['id']['error'] = msg_err
 
-# 6. put updated saved values in item_update
-        # logger.debug('for field in item_update: ' + str(item_update))
+# 6. put updated saved values in update_dict
+        # logger.debug('for field in update_dict: ' + str(update_dict))
 
-        for fieldname in item_update:
+        for fieldname in update_dict:
             if fieldname not in ('id', 'pk', 'order'):
                 saved_value = getattr(instance, fieldname)
                 if fieldname in ['code', 'cycle', 'inactive']:
                     if saved_value:
-                        item_update[fieldname]['value'] = saved_value
+                        update_dict[fieldname]['value'] = saved_value
                 # also add date when empty, to add min max date
                 elif fieldname == 'datefirst':
                     maxdate = getattr(instance, 'datelast')
-                    set_fielddict_date(dict=item_update[fieldname], dte=saved_value, maxdate=maxdate)
+                    set_fielddict_date(dict=update_dict[fieldname], dte=saved_value, maxdate=maxdate)
                 elif fieldname == 'datelast':
                     mindate = getattr(instance, 'datefirst')
-                    set_fielddict_date(dict=item_update[fieldname], dte=saved_value, mindate=mindate)
+                    set_fielddict_date(dict=update_dict[fieldname], dte=saved_value, mindate=mindate)
 
 
 #######################################################
@@ -3113,25 +3133,6 @@ def create_instance(table, parent_instance, code, temp_pk_str, update_dict, requ
     return instance
 
 
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def get_parent_instance(table, parent_pk_int, company):
-    # logger.debug('get_parent_instance: ' + 'table: ' + str(table) + ' parent_pk_int: ' + str(parent_pk_int) + ' company: ' + str(company))
-    # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-06-06
-
-    parent = None
-    if parent_pk_int:
-        if table == 'scheme':
-            parent = Order.objects.get_or_none(id=parent_pk_int, customer__company=company)
-        elif table == 'team':
-            parent = Scheme.objects.get_or_none(id=parent_pk_int, order__customer__company=company)
-        elif table == 'emplhour':
-            parent = Orderhour.objects.get_or_none(id=parent_pk_int, order__customer__company=company)
-        elif table == 'teammember':
-            parent = Team.objects.get_or_none(id=parent_pk_int, scheme__order__customer__company=company)
-    # logger.debug('parent: ' + str(parent))
-    return parent
-
-
 def create_scheme(parent, upload_dict, update_dict, request, temp_pk_str=None):
     # --- create scheme # PR2019-07-21
     # Note: all keys in update_dict must exist by running create_dict_with_empty_attr first
@@ -3153,10 +3154,11 @@ def create_scheme(parent, upload_dict, update_dict, request, temp_pk_str=None):
             code = code_dict.get('value')
 
 # c. validate code
-        msg_err = validate_code_or_name('scheme', 'code', code, parent, update_dict)
-        if msg_err:
-            update_dict['code']['error'] = msg_err
-        else:
+# TODO correct
+        parent = instance.order
+        has_error = validate_code_name_id('scheme', 'code', code,  parent, update_dict)
+
+        if not has_error:
             instance = Scheme(order=parent, code=code)
             instance.save(request=request)
 
@@ -3213,28 +3215,30 @@ def create_schemeitem (parent, upload_dict, update_dict, request, temp_pk_str=No
     return instance
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def create_teammember(upload_dict, item_update, request):
+def create_teammember(upload_dict, update_dict, request):
     # --- create teammember # PR2019-07-26
-    # Note: all keys in item_update must exist by running create_dict_with_empty_attr first
-    # logger.debug(' --- create_teammember')
-    # logger.debug(upload_dict)
+    # Note: all keys in update_dict must exist by running create_dict_with_empty_attr first
+    logger.debug(' --- create_teammember')
+    logger.debug(upload_dict)
 
     instance = None
 
 # 1. get_iddict_variables
     id_dict = upload_dict.get('id')
     if id_dict:
-        pk_int, parent_pk, temp_pk_str, is_create, is_delete, table = get_iddict_variables(id_dict)
+        table = 'teammember'
+        ppk_int = int(id_dict.get('ppk', 0))
+        temp_pk_str = id_dict.get('temp_pk', '')
 
-    # b. save temp_pk_str in in 'id' of item_update'
+    # b. save temp_pk_str in in 'id' of update_dict'
         if temp_pk_str:
             # attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
-            item_update['id']['temp_pk'] = temp_pk_str
+            update_dict['id']['temp_pk'] = temp_pk_str
 
 # 2. get parent instance
-            parent = get_parent_instance(table, parent_pk, request.user.company)
+            parent = get_parent(table, ppk_int, update_dict, request)
             if parent:
-                # logger.debug('table: ' + str(table) + ' parent: ' + str(parent) + ' model: ' + str(parent.__class__.__name__))
+                logger.debug('table: ' + str(table) + ' parent: ' + str(parent) + ' model: ' + str(parent.__class__.__name__))
 
 # 3. get employee
                 # employee: {value: "Chester", pk: 75, update: true}
@@ -3243,24 +3247,23 @@ def create_teammember(upload_dict, item_update, request):
                 if field_dict:
                     employee_pk =  field_dict.get('pk')
                     if employee_pk:
-                        # TODO update_dict
-                        update_dict = {}
                         employee = get_instance('employee', employee_pk, request.user.company, update_dict)
                     # 3. return msg_err when employee is None
                         if employee is None:
-                            item_update['employee']['error'] = _('Employee cannot be blank.')
+                            update_dict['employee']['error'] = _('Employee cannot be blank.')
                         else:
-
  # c. create Teammember
                             instance = Teammember(team=parent, employee=employee)
                             instance.save(request=request)
 
  # 3. return msg_err when instance not created
-                            if instance is None:
-                                item_update['id']['error'] = _('This teammember could not be created.')
+                            if instance.pk is None:
+                                msg_err = _('This teammember could not be created.')
+                                update_dict['id']['error'] = msg_err
+
                             else:
-                        # 6. put info in item_update
-                                item_update['id']['created'] = True
+                        # 6. put info in update_dict
+                                update_dict['id']['created'] = True
 
     return instance
 

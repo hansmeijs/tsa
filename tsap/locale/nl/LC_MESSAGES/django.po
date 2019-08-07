@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-04 20:05-0400\n"
+"POT-Creation-Date: 2019-08-07 07:16-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: .\accounts\forms.py:33 .\accounts\forms.py:104
+#: .\accounts\forms.py:33 .\accounts\forms.py:104 .\companies\forms.py:86
 #: .\templates\accounts\users.html:17 .\tsap\constants.py:19
 #: .\tsap\constants.py:25
 msgid "Company"
@@ -134,13 +134,12 @@ msgstr "Begindatum"
 
 #: .\companies\forms.py:65 .\customers\forms.py:14 .\employees\forms.py:15
 #: .\employees\forms.py:31 .\templates\companies\company_list.html:25
-#: .\templates\customers\customers.html:46 .\templates\customers\orders.html:78
-#: .\templates\employees\employees.html:99 .\tsap\validators.py:200
+#: .\tsap\validators.py:202
 msgid "Code"
 msgstr ""
 
 #: .\companies\forms.py:66 .\customers\forms.py:15 .\employees\forms.py:32
-#: .\tsap\validators.py:200
+#: .\tsap\validators.py:204
 msgid "Name"
 msgstr "Naam"
 
@@ -175,20 +174,40 @@ msgstr "Tijdzone"
 msgid "Interval"
 msgstr ""
 
-#: .\companies\models.py:198 .\customers\views.py:459
+#: .\companies\forms.py:87 .\companies\forms.py:110
+msgid "Category"
+msgstr "Categorie"
+
+#: .\companies\forms.py:88 .\companies\forms.py:119
+msgid "Payment date"
+msgstr "Datum betaling"
+
+#: .\companies\forms.py:89 .\companies\forms.py:125
+msgid "Expiration date"
+msgstr "Vervaldatum"
+
+#: .\companies\forms.py:90
+msgid "Expired"
+msgstr "Vervallen"
+
+#: .\companies\forms.py:91
+msgid "Note"
+msgstr "Opmerking"
+
+#: .\companies\models.py:200 .\customers\views.py:464
 msgid "This order could not be created."
 msgstr "Deze opdracht kon niet worden aangemaakt."
 
-#: .\companies\models.py:395 .\employees\views.py:587
+#: .\companies\models.py:397 .\employees\views.py:566
 msgid "This employee could not be created."
-msgstr "Deze werknemer kon niet worden aangemaakt."
+msgstr "Deze medewerker kon niet worden aangemaakt."
 
-#: .\companies\models.py:702
+#: .\companies\models.py:791
 #, python-format
 msgid "%(tbl)s could not be deleted."
 msgstr "%(tbl)s kon niet worden gewist."
 
-#: .\companies\models.py:704 .\planning\views.py:1459
+#: .\companies\models.py:793 .\planning\views.py:1463
 msgid "This item could not be deleted."
 msgstr "Dit item kon niet worden gewist."
 
@@ -202,23 +221,23 @@ msgstr "Klant '%(tbl)s'"
 msgid "Order '%(tbl)s'"
 msgstr "Opdracht '%(tbl)s'"
 
-#: .\customers\views.py:234 .\planning\views.py:2366 .\planning\views.py:2382
-#: .\planning\views.py:3100
+#: .\customers\views.py:234 .\planning\views.py:2383 .\planning\views.py:2401
+#: .\planning\views.py:3120
 msgid "This item could not be created."
 msgstr "Dit item kon niet worden aangemaakt."
 
-#: .\customers\views.py:308
+#: .\customers\views.py:306
 msgid "This customer could not be created."
 msgstr "Deze klant kon niet worden aangemaakt."
 
-#: .\customers\views.py:397 .\customers\views.py:555 .\planning\views.py:2738
+#: .\customers\views.py:402 .\customers\views.py:560 .\planning\views.py:2757
 #, python-format
 msgid "This %(tbl)s could not be updated."
 msgstr "Dit %(tbl)s kon niet worden gewist."
 
 #: .\employees\dict.py:156
 msgid "This employee already exists."
-msgstr "Deze werknemer komt al voor."
+msgstr "Deze medewerker komt al voor."
 
 #: .\employees\forms.py:16 .\templates\employees\employees.html:101
 msgid "Last name"
@@ -228,65 +247,65 @@ msgstr "Achternaam"
 msgid "last date"
 msgstr "Einddatum"
 
-#: .\employees\views.py:212
+#: .\employees\views.py:213
 #, python-format
 msgid "Employee '%(tbl)s'"
-msgstr "Werknemer '%(tbl)s'"
+msgstr "Medewerker '%(tbl)s'"
 
-#: .\employees\views.py:510
+#: .\employees\views.py:485
 msgid "An error occurred. The employee data is not saved."
 msgstr "Er is een fout opgetreden. De gegevens zijn niet opgeslagen."
 
-#: .\employees\views.py:704
+#: .\employees\views.py:683
 msgid "This employee could not be updated."
-msgstr "Deze werknemer kon niet worden bijgewerkt."
+msgstr "Deze medewerker kon niet worden bijgewerkt."
 
-#: .\planning\views.py:455 .\planning\views.py:768
+#: .\planning\views.py:455 .\planning\views.py:770
 #, python-format
 msgid "Scheme '%(tbl)s'"
 msgstr "Schema '%(tbl)s'"
 
-#: .\planning\views.py:848
+#: .\planning\views.py:850
 msgid "This team could not be deleted."
 msgstr "Deze ploeg kon niet worden gewist."
 
-#: .\planning\views.py:1203
+#: .\planning\views.py:1205
 msgid "This shift"
 msgstr "Deze dienst"
 
-#: .\planning\views.py:1289
+#: .\planning\views.py:1293
 msgid "This teammember"
 msgstr "Dit ploeglid"
 
-#: .\planning\views.py:2633 .\planning\views.py:3077
+#: .\planning\views.py:2652 .\planning\views.py:3097
 msgid "This item could not be updated."
 msgstr "Dit item kon niet worden bijgewerkt."
 
-#: .\planning\views.py:2700 .\tsap\validators.py:35
+#: .\planning\views.py:2719 .\tsap\validators.py:36
 msgid "This field cannot be blank."
 msgstr "Dit veld moet ingevuld worden."
 
-#: .\planning\views.py:2807
+#: .\planning\views.py:2827
 msgid "Cycle cannot be blank"
 msgstr "Cyclus moet ingevuld zijn."
 
-#: .\planning\views.py:2857
+#: .\planning\views.py:2877
 msgid "This scheme could not be updated."
 msgstr "Dit schema kon niet worden bijgewerkt."
 
-#: .\planning\views.py:3165
+#: .\planning\views.py:3167
 msgid "This scheme could not be created."
 msgstr "Dit schema kon niet worden aangemaakt."
 
-#: .\planning\views.py:3208
+#: .\planning\views.py:3210
 msgid "This shift could not be created."
 msgstr "Deze dienst kon niet worden aangemaakt."
 
-#: .\planning\views.py:3251
+#: .\planning\views.py:3253
 msgid "Employee cannot be blank."
-msgstr "Werknemer moet ingevuld zijn."
+msgstr "Medewerker moet ingevuld zijn."
 
-#: .\planning\views.py:3260
+#: .\planning\views.py:3261
 msgid "This teammember could not be created."
 msgstr "Dit ploeglid kon niet worden aangemaakt."
 
@@ -327,7 +346,9 @@ msgstr "Nee, annuleer"
 #: .\templates\companies\company_add.html:24
 #: .\templates\companies\company_edit.html:20
 #: .\templates\companies\company_edit.html:24
-#: .\templates\companies\company_list.html:89
+#: .\templates\companies\company_list.html:90
+#: .\templates\companies\invoice_add.html:20
+#: .\templates\companies\invoice_add.html:24
 #: .\templates\customers\customer_add.html:20
 #: .\templates\customers\customer_add.html:24
 #: .\templates\customers\customers.html:93
@@ -651,19 +672,20 @@ msgstr "Permissies"
 #: .\templates\companies\company_add.html:7
 #: .\templates\companies\company_edit.html:7
 #: .\templates\companies\company_list.html:19
+#: .\templates\companies\invoice_add.html:7
 #: .\templates\includes\header.html:101
 msgid "Companies"
 msgstr "Bedrijven"
 
 #: .\templates\companies\company_add.html:8
 #: .\templates\companies\company_add.html:17
-#: .\templates\companies\company_list.html:16
-#: .\templates\companies\company_list.html:82
+#: .\templates\companies\company_list.html:83
 msgid "Add company"
 msgstr "Bedrijf toevoegen"
 
 #: .\templates\companies\company_add.html:19
 #: .\templates\companies\company_edit.html:19
+#: .\templates\companies\invoice_add.html:19
 #: .\templates\customers\customer_add.html:19
 #: .\templates\employees\emplhours.html:70
 #: .\templates\includes\timepicker.html:31
@@ -680,6 +702,13 @@ msgstr "Opslaan"
 #: .\templates\companies\company_edit.html:17
 msgid "Edit company"
 msgstr "Bedrijf wijzigen"
+
+#: .\templates\companies\company_list.html:16
+#: .\templates\companies\company_list.html:84
+#: .\templates\companies\invoice_add.html:8
+#: .\templates\companies\invoice_add.html:17
+msgid "Add invoice"
+msgstr "Rekening toevoegen"
 
 #: .\templates\companies\company_list.html:26
 msgid "Company name"
@@ -699,10 +728,6 @@ msgstr "Saldo"
 #: .\templates\companies\company_list.html:30
 msgid "Time zone"
 msgstr "Tijdzone"
-
-#: .\templates\companies\company_list.html:83
-msgid "Add invoice"
-msgstr ""
 
 #: .\templates\customers\customer_add.html:7
 #: .\templates\customers\customers.html:26 .\templates\includes\header.html:103
@@ -724,6 +749,11 @@ msgstr "Nieuwe klant"
 #: .\templates\planning\roster.html:302 .\templates\planning\schemes.html:259
 msgid "filter..."
 msgstr ""
+
+#: .\templates\customers\customers.html:46 .\templates\customers\orders.html:78
+#: .\templates\employees\employees.html:99
+msgid "Short name"
+msgstr "Korte naam"
 
 #: .\templates\customers\customers.html:47
 msgid "Customer name"
@@ -785,17 +815,17 @@ msgid "Worksheet has no header row"
 msgstr "De eerste regel van het werkblad bevat geen kolom-namen."
 
 #: .\templates\customers\order_import.html:61
-#: .\templates\employees\employee_import.html:64
+#: .\templates\employees\employee_import.html:79
 msgid "Click to upload the data"
 msgstr "Klik om de gegevens te uploaden"
 
 #: .\templates\customers\order_import.html:86
-#: .\templates\employees\employee_import.html:89 .\tsap\authentication.py:14
+#: .\templates\employees\employee_import.html:104 .\tsap\authentication.py:14
 msgid "You don't have permission to view this page."
 msgstr "Je hebt geen permissie om deze pagina te bekijken."
 
 #: .\templates\customers\order_import.html:91
-#: .\templates\employees\employee_import.html:94
+#: .\templates\employees\employee_import.html:109
 msgid "You must be logged in to view this page"
 msgstr "Je moet ingelogd zijn om deze pagina te bekijken."
 
@@ -899,7 +929,7 @@ msgstr "Opdracht"
 #: .\templates\planning\roster.html:454 .\templates\planning\schemes.html:471
 #: .\tsap\constants.py:18 .\tsap\constants.py:24 .\tsap\constants.py:42
 msgid "Employee"
-msgstr "Werknemer"
+msgstr "Medewerker"
 
 #: .\templates\employees\emplhours.html:84
 #: .\templates\planning\realization.html:81 .\templates\planning\roster.html:46
@@ -952,22 +982,23 @@ msgid "Do you want to delete this shift?"
 msgstr "Wilt u deze dienst verwijderen?"
 
 #: .\templates\employees\employee_import.html:30
-#: .\templates\employees\employee_import.html:57
+#: .\templates\employees\employee_import.html:72
 #: .\templates\employees\employees.html:138
-msgid "Import employees"
-msgstr "Werknemers importeren"
+msgid "Upload employees"
+msgstr "Medewerkers uploaden"
 
 #: .\templates\employees\employee_import.html:31
 #: .\templates\employees\employee_import.html:36
 #: .\templates\employees\employee_import.html:42
-#: .\templates\employees\employee_import.html:50
-#: .\templates\employees\employee_import.html:57
+#: .\templates\employees\employee_import.html:49
+#: .\templates\employees\employee_import.html:62
+#: .\templates\employees\employee_import.html:72
 msgid "Step"
 msgstr "Stap"
 
 #: .\templates\employees\employee_import.html:31
 msgid "Select employee file"
-msgstr "Selecteer werknemer bestand"
+msgstr "Selecteer medewerker bestand"
 
 #: .\templates\employees\employee_import.html:38
 msgid "Worksheet"
@@ -977,7 +1008,31 @@ msgstr "Werkblad"
 msgid "Select if the worksheet has no header row"
 msgstr "Kies of de eerste regel van het werkblad geen kolom-namen bevat."
 
-#: .\templates\employees\employee_import.html:50
+#: .\templates\employees\employee_import.html:49
+msgid "How do you want the short name to be calculated?"
+msgstr "Hoe wilt u de korte naam laten samenstellen?"
+
+#: .\templates\employees\employee_import.html:51
+msgid "Short name will be calculated as follows:"
+msgstr "De korte naam wordt als volgt samengesteld:"
+
+#: .\templates\employees\employee_import.html:53
+msgid "Don't calculate, but link to an Excel column"
+msgstr "Niet samenstellen, maar koppelen aan een Excel kolom"
+
+#: .\templates\employees\employee_import.html:54
+msgid "Calculate like: Smith, John"
+msgstr "Samenstellen als: Smit, Jan"
+
+#: .\templates\employees\employee_import.html:55
+msgid "Calculate like: Smith J S A"
+msgstr "Samenstellen als: Smit J S A"
+
+#: .\templates\employees\employee_import.html:56
+msgid "Calculate like: Smith JSA"
+msgstr "Samenstellen als: Smit JSA"
+
+#: .\templates\employees\employee_import.html:62
 msgid "Link colums"
 msgstr "Kolommen koppelen"
 
@@ -985,17 +1040,17 @@ msgstr "Kolommen koppelen"
 #: .\templates\employees\employees.html:29
 #: .\templates\employees\employees.html:139
 msgid "Delete employee"
-msgstr "Wis werknemer"
+msgstr "Medewerker wissen"
 
 #: .\templates\employees\employees.html:67 .\templates\includes\header.html:102
 msgid "Employees"
-msgstr "Werknemers"
+msgstr "Medewerkers"
 
 #: .\templates\employees\employees.html:100
 msgid "First name"
 msgstr "Voornaam"
 
-#: .\templates\employees\employees.html:102
+#: .\templates\employees\employees.html:102 .\tsap\validators.py:206
 msgid "Id"
 msgstr ""
 
@@ -1009,19 +1064,19 @@ msgstr "Laatste datum in dienst"
 
 #: .\templates\employees\employees.html:136
 msgid "Please select an employee in the list first."
-msgstr "Selecteer een werknemer in de lijst."
+msgstr "Selecteer een medewerker in de lijst."
 
 #: .\templates\employees\employees.html:140
 msgid "Add new employee"
-msgstr "Werknemer toevoegen"
+msgstr "Medewerker toevoegen"
 
 #: .\templates\employees\employees.html:141
 msgid "Make employee inactive"
-msgstr "Maak werknemer niet-aktief"
+msgstr "Maak medewerker niet-aktief"
 
 #: .\templates\employees\employees.html:142
 msgid "Make employee active"
-msgstr "Maak werknemer aktief"
+msgstr "Maak medewerker aktief"
 
 #: .\templates\home.html:10
 msgid "Welcome at"
@@ -1114,7 +1169,7 @@ msgstr "Begindatum periode"
 
 #: .\templates\planning\roster.html:191 .\templates\planning\roster.html:455
 msgid "Select employee"
-msgstr "Selecteer werknemer"
+msgstr "Selecteer medewerker"
 
 #: .\templates\planning\roster.html:214
 msgid "Select an option"
@@ -1142,7 +1197,7 @@ msgstr "Vervanger"
 
 #: .\templates\planning\roster.html:246
 msgid "Type a few letters and select employee in the list ..."
-msgstr "Type een paar letter en selecteer een werknemer in de lijst ..."
+msgstr "Type een paar letter en selecteer een medewerker in de lijst ..."
 
 #: .\templates\planning\roster.html:251
 msgid "Select shift"
@@ -1271,11 +1326,11 @@ msgstr "van"
 
 #: .\templates\planning\roster.html:456
 msgid "No employees"
-msgstr "Geen werknemers"
+msgstr "Geen medewerkers"
 
 #: .\templates\planning\roster.html:458
 msgid "Employee to be switched with"
-msgstr "Werknemer met wie dienst wordt geruild"
+msgstr "Medewerker met wie dienst wordt geruild"
 
 #: .\templates\planning\roster.html:463
 msgid "hour"
@@ -1287,7 +1342,7 @@ msgstr "uren"
 
 #: .\templates\planning\roster.html:466 .\templates\planning\schemes.html:476
 msgid "Enter employee"
-msgstr "Vul werknemer in"
+msgstr "Vul medewerker in"
 
 #: .\templates\planning\schemes.html:50
 msgid "Cycle days"
@@ -1479,11 +1534,19 @@ msgstr "24 u"
 msgid "AM - PM"
 msgstr ""
 
-#: .\tsap\functions.py:233
+#: .\tsap\constants.py:152
+msgid "Bonus"
+msgstr ""
+
+#: .\tsap\constants.py:153
+msgid "Paid"
+msgstr ""
+
+#: .\tsap\functions.py:235
 msgid "Date cannot be blank."
 msgstr "Datum moet ingevuld zijn."
 
-#: .\tsap\functions.py:244
+#: .\tsap\functions.py:259
 #, python-format
 msgid "'%(fld)s' is not a valid date."
 msgstr "'%(fld)s' is geen geldige datum."
@@ -1504,11 +1567,11 @@ msgstr "Begindatum kan niet na einddatum liggen"
 msgid "Last date cannot be before first date."
 msgstr "Einddatum kan niet voor begindatum liggen"
 
-#: .\tsap\validators.py:43
+#: .\tsap\validators.py:44
 msgid "This name already exists."
 msgstr "Deze naam bestaat al."
 
-#: .\tsap\validators.py:50
+#: .\tsap\validators.py:51
 msgid "This code already exists."
 msgstr "Deze code bestaat al."
 
@@ -1542,69 +1605,69 @@ msgstr "Deze naam bestaat al."
 
 #: .\tsap\validators.py:181
 msgid "Employee name already exists."
-msgstr "De naam van deze werknemer komt al voor."
+msgstr "De naam van deze medewerker komt al voor."
 
 #: .\tsap\validators.py:191
 msgid "No parent record."
 msgstr "Geen ouder gevonden"
 
-#: .\tsap\validators.py:202
+#: .\tsap\validators.py:210
 #, python-format
 msgid "%(fld)s cannot be blank."
 msgstr "%(fld)s moet ingevuld zijn."
 
-#: .\tsap\validators.py:205
+#: .\tsap\validators.py:213
 #, python-format
 msgid "%(fld)s '%(val)s' is too long, %(max)s characters or fewer."
 msgstr "%(fld)s '%(val)s' is te lang, %(max)s tekens of minder."
 
-#: .\tsap\validators.py:234
+#: .\tsap\validators.py:244
 #, python-format
 msgid "Model '%(mdl)s' not found."
 msgstr "Model '%(mdl)s' niet gevonden"
 
-#: .\tsap\validators.py:237
+#: .\tsap\validators.py:247
 #, python-format
 msgid "'%(val)s' already exists."
 msgstr "'%(val)s' bestaat al."
 
-#: .\tsap\validators.py:258 .\tsap\validators.py:303
+#: .\tsap\validators.py:268 .\tsap\validators.py:313
 msgid "No company."
 msgstr "Geen bedrijf gevonden."
 
-#: .\tsap\validators.py:262
+#: .\tsap\validators.py:272
 msgid "Last name cannot be blank."
 msgstr "Achternaam moet ingevuld zijn."
 
-#: .\tsap\validators.py:265
+#: .\tsap\validators.py:275
 msgid "Last name is too long."
 msgstr "Achternaam is te lang."
 
-#: .\tsap\validators.py:265 .\tsap\validators.py:267 .\tsap\validators.py:307
+#: .\tsap\validators.py:275 .\tsap\validators.py:277 .\tsap\validators.py:317
 msgid " characters or fewer."
 msgstr " tekens or minder."
 
-#: .\tsap\validators.py:267
+#: .\tsap\validators.py:277
 msgid "First name is too long."
 msgstr "Voornaam is te lang"
 
-#: .\tsap\validators.py:282
+#: .\tsap\validators.py:292
 msgid "This employee name already exists."
-msgstr "De naam van deze werknemer komt al voor."
+msgstr "De naam van deze medewerker komt al voor."
 
-#: .\tsap\validators.py:305
+#: .\tsap\validators.py:315
 msgid "Email address cannot be blank."
 msgstr "E-mail adres moet ingevuld zijn."
 
-#: .\tsap\validators.py:307
+#: .\tsap\validators.py:317
 msgid "Email address is too long. "
 msgstr "E-mail adres is te lang"
 
-#: .\tsap\validators.py:317
+#: .\tsap\validators.py:327
 msgid "This email address already exists."
 msgstr "Dit e-mail adres komt al voor."
 
-#: .\tsap\validators.py:329
+#: .\tsap\validators.py:339
 #, python-format
 msgid "Employee '%(tbl)s' has shifts and cannot be deleted."
-msgstr "Werknemer '%(tbl)s' heeft diensten en kan niet worden gewist."
+msgstr "Medewerker '%(tbl)s' heeft diensten en kan niet worden gewist."

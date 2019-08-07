@@ -8,6 +8,7 @@ console.log("employee_import.js")
     const cls_active = "active";
     const cls_hover = "tr_hover";
     const cls_selected = "c_table_stud_thead_td_selected";
+
     const cls_colExcelTsa_tr = "c_colExcelTsa_tr";
     const cls_columns_header = "c_columns_header";
     const cls_colLinked_tr = "c_colLinked_tr";
@@ -25,7 +26,6 @@ console.log("employee_import.js")
     let btn_clicked = document.getElementById("id_sub_empl_imp");
     SetMenubuttonActive(btn_clicked);
 
-
 // set global variables
     let div_info = document.getElementById('div_infoID');
     let para = document.createElement('p');
@@ -33,11 +33,14 @@ console.log("employee_import.js")
     let file_dialog = document.getElementById("filedialogID");
     file_dialog.addEventListener("change", handle_file_dialog, false);
 
-    let worksheet_list = document.getElementById("SheetListID");
-    worksheet_list.addEventListener("change", handle_worksheet_list, false);
+    let el_worksheet_list = document.getElementById("id_worksheet_list");
+    el_worksheet_list.addEventListener("change", handle_worksheet_list, false);
 
     let checkbox_noheader = document.getElementById("checkBoxID");
     checkbox_noheader.addEventListener("change", handle_checkbox_noheader_changed) //, false);
+
+    let el_select_code_calc = document.getElementById("id_select_code_calc");
+    el_select_code_calc.addEventListener("change", handle_select_code_calc, false);
 
     // get the stored_columns from data-tag in div #id_data
     let div_data = $("#id_data");
@@ -55,6 +58,9 @@ console.log("employee_import.js")
         if (!!settings.coldefs){stored_coldefs = settings.coldefs};
         if (!!settings.worksheetname){stored_worksheetname = settings.worksheetname};
         if (!!settings.no_header){stored_no_header = settings.no_header};
+        if (!!settings.codecalc){
+            el_select_code_calc.value = settings.codecalc
+        };
     };
 
     console.log("stored_coldefs: ", typeof stored_coldefs);
@@ -66,7 +72,6 @@ console.log("employee_import.js")
     let worksheet_range;
     let worksheet_data = [];
     let excel_columns = [];
-
 
     console.log("stored_coldefs: ", typeof stored_coldefs);
     let selected_worksheetname = stored_worksheetname;
@@ -105,8 +110,8 @@ console.log("employee_import.js")
     function handle_worksheet_list() {
 console.log(" ========== handle_worksheet_list ===========");
         if(!!workbook){
-            if(!!worksheet_list.value){
-                selected_worksheetname = worksheet_list.value;
+            if(!!el_worksheet_list.value){
+                selected_worksheetname = el_worksheet_list.value;
 
 //---------  get selected worksheet
                 worksheet = workbook.Sheets[selected_worksheetname];
@@ -148,6 +153,12 @@ console.log(" ========== handle_checkbox_noheader_changed ===========");
             UploadSettings ();
         }  // if(!!worksheet){
     }; //handle_checkbox_noheader_changed
+
+//=========   handle_select_code_calc   ======================
+    function handle_select_code_calc() {
+        // console.log("=========   handle_select_code_calc   ======================") ;
+        UploadSettings ();
+    }  // handle_select_code_calc
 
 //=========   handle_EAL_row_clicked   ======================
     function handle_EAL_row_clicked(e) {  //// EAL: Excel Tsa Linked table
@@ -247,8 +258,8 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
     function Get_Workbook(sel_file) {
         //* download the data using jQuery.post( url [, data ] [, success ] [, dataType ] ) PR2017-10-29 uit: https://api.jquery.com/jquery.post/
        if(!!sel_file){
-console.log("======  Get_Workbook  =====" + sel_file.name );
-console.log("stored_worksheetname: " + stored_worksheetname );
+            console.log("======  Get_Workbook  =====" + sel_file.name );
+            console.log("stored_worksheetname: " + stored_worksheetname );
 
             var reader = new FileReader();
             var rABS = false; // false: readAsArrayBuffer,  true: readAsBinaryString
@@ -272,18 +283,19 @@ console.log("stored_worksheetname: " + stored_worksheetname );
 
 //--------- make list of worksheets in workbook
                 if (!!workbook){
-    // reset worksheet_list.options
-                    worksheet_list.options.length = 0;
+    // reset el_worksheet_list.options
+                    el_worksheet_list.options.length = 0;
     // give message when workbook has no worksheets, reset selected_worksheetname
                     if(workbook.SheetNames.length === 0) {
                         selected_worksheetname = "";
+                        // TODO translate
                         para.textContent = "There are no worksheets." ;
                         div_info.appendChild(para);
                     } else {
-    // fill worksheet_list.options with sheets that are not empty
+    // fill el_worksheet_list.options with sheets that are not empty
                         for (let x=0; x<workbook.SheetNames.length; ++x){
                             const sheetname = workbook.SheetNames[x];
-    // if workbook.SheetNames[x] has range: add to worksheet_list
+    // if workbook.SheetNames[x] has range: add to el_worksheet_list
                             if (SheetHasRange(workbook.Sheets[sheetname])) {
                                 let option = document.createElement("option");
                                 option.value = sheetname;
@@ -294,24 +306,24 @@ console.log(sheetname, stored_worksheetname)
                                     if(sheetname.toLowerCase() === stored_worksheetname.toLowerCase() ){
                                         option.selected = true;
                                 }}
-                                worksheet_list.appendChild(option);
+                                el_worksheet_list.appendChild(option);
                             }
                         } //for (let x=0;
 
-//---------  gibve message when no data in worksheetse
-                        if (!worksheet_list.options.length){
+//---------  give message when no data in worksheetse
+                        if (!el_worksheet_list.options.length){
+                            // TODO translate
                             para.textContent = "There are no worksheets with data." ;
                             div_info.appendChild(para);
                         } else {
 //---------  if only one sheet exists: makke selected = True
-                            if (worksheet_list.options.length === 1){
-                                worksheet_list.options[0].selected = true;
-                                selected_worksheetname = worksheet_list.options[0].value;
+                            if (el_worksheet_list.options.length === 1){
+                                el_worksheet_list.options[0].selected = true;
+                                selected_worksheetname = el_worksheet_list.options[0].value;
                             }
-                        } //if (!worksheet_list.options.length){
+                        } //if (!el_worksheet_list.options.length){
 
 //---------  get selected worksheet, if any
-
                         if(!!selected_worksheetname){
                             worksheet = workbook.Sheets[selected_worksheetname];
                             if(!!worksheet){
@@ -336,7 +348,6 @@ console.log(sheetname, stored_worksheetname)
             }; // reader.onload = function(event) {
        }; // if(!!sel_file){
     }  // function Get_Workbook(sel_file))
-
 
 //=========  fill worksheet_data  ========================================================================
     function FillWorksheetData(work_sheet, sheet_range, no_header) {
@@ -480,7 +491,6 @@ console.log("=========  function FillDataTable =========");
         }; // if(!!worksheet_data && !!excel_columns){
     };//function DataTabel_Set() {
 
-
 //=========  FillDataTableAfterUpload  ==============================
     function FillDataTableAfterUpload(response, sheet_range) {
 console.log("=========  function FillDataTableAfterUpload =========");
@@ -607,7 +617,6 @@ console.log("datarow: ", i , datarow );
         }; // if(!!worksheet_data && !!excel_columns){
     };//function FillDataTableAfterUpload() {
 
-
 //========= is_valid_filetype  ====================================
     function is_valid_filetype(File) {
         // MIME xls: application/vnd.ms-excel
@@ -701,7 +710,6 @@ console.log("datarow: ", i , datarow );
         return objRange;
     }; //function GetSheetRange (Sheet)
 
-
 //========= GetCellName  ====================================
     function GetCellName (ColNumber, RowNumber ) {
         //PR2017-11-12
@@ -731,7 +739,6 @@ console.log("datarow: ", i , datarow );
         return col_name;
     }; //function GetCellName (ColIndex, RowIndex )
 
-
 //========= GetExcelValue  ====================================
     // PR2017-11-04 from: https://stackoverflow.com/questions/2693021/how-to-count-javascript-array-objects
     function GetExcelValue(Sheet, CellName, ValType) {
@@ -748,7 +755,6 @@ console.log("datarow: ", i , datarow );
                             if (prop2 === ValType) {
                                 propFound = true;
                                 result = Cell[ValType];
-//console.log("result " + ValType + ": " + result);
                                 break;
                             } //if (prop2 === ValType)
                         }; //if (Cell.hasOwnProperty(prop2))
@@ -783,7 +789,6 @@ console.log("datarow: ", i , datarow );
     } //function GetExcelValue
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
 //========= CreateMapTableWrap(tableBase))  ====================================
     function CreateMapTableWrap(tableBase) {
@@ -826,13 +831,25 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
 
         // append flex div for table Excel and Tsa
         $("<div>").appendTo(base_div)
-                .attr({id: "id_ea_flex_" + tableBase})
-                .addClass(cls_ea_flex);
+            .attr({id: "id_ea_flex_" + tableBase})
+            .addClass(cls_ea_flex);
+
+        // append div for table Tsa
+            $("<div>").appendTo("#id_ea_flex_" + tableBase)
+                .attr({id: "id_tsa_div_" + tableBase});
+                $("<table>").appendTo("#id_tsa_div_" + tableBase)
+                        .attr({id: "id_tsa_table_" + tableBase})
+                        .addClass(cls_grid_colExcel)
+                        .on("click", handle_EAL_row_clicked);
+                    $("<thead>").appendTo("#id_tsa_table_" + tableBase)
+                            .html("<tr><td>" + headTsa + "</td></tr>"); // headTsa: "TSA columns"
+                    $("<tbody>").appendTo("#id_tsa_table_" + tableBase)
+                            .attr({id: "id_tsa_tbody_" + tableBase});
+
 
         // append div for table Excel
             $("<div>").appendTo("#id_ea_flex_" + tableBase)
-                    .attr({id: "id_exc_div_" + tableBase});
-
+                .attr({id: "id_exc_div_" + tableBase});
                 $("<table>").appendTo("#id_exc_div_" + tableBase)
                         .attr({id: "id_exc_table_" + tableBase})
                         .addClass(cls_grid_colExcel)
@@ -843,17 +860,6 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
                     $("<tbody>").appendTo("#id_exc_table_" + tableBase)
                             .attr({id: "id_exc_tbody_" + tableBase});
 
-        // append div for table Tsa
-            $("<div>").appendTo("#id_ea_flex_" + tableBase)
-                    .attr({id: "id_tsa_div_" + tableBase});
-                $("<table>").appendTo("#id_tsa_div_" + tableBase)
-                        .attr({id: "id_tsa_table_" + tableBase})
-                        .addClass(cls_grid_colExcel)
-                        .on("click", handle_EAL_row_clicked);
-                    $("<thead>").appendTo("#id_tsa_table_" + tableBase)
-                            .html("<tr><td>" + headTsa + "</td></tr>"); // headTsa: "TSA columns"
-                    $("<tbody>").appendTo("#id_tsa_table_" + tableBase)
-                            .attr({id: "id_tsa_tbody_" + tableBase});
 
         // append flex div for table Linked
         $("<div>").appendTo(base_div)
@@ -910,8 +916,8 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
                     .mouseenter(function(){$(XidTsaRow).addClass(cls_hover);})
                     .mouseleave(function(){$(XidTsaRow).removeClass(cls_hover);})
         // append cells to row Linked
-                    .append("<td>" + row.excKey + "</td>")
-                    .append("<td>" + row.caption + "</td>");
+                    .append("<td>" + row.caption + "</td>")
+                    .append("<td>" + row.excKey + "</td>");
 
         //if new appended row: highlight row for 1 second
                 if (!!JustLinkedTsaId && !!idTsaRow && JustLinkedTsaId === idTsaRow) {
@@ -1096,13 +1102,18 @@ console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
 
 //========= UPLOAD SETTING COLUMNS =====================================
     function UploadSettings () {
-console.log ("==========  UPLOAD SETTINGS");
+        console.log ("==========  UploadSettings");
         if(!!stored_coldefs) {
             // stored_coldefs is an array and has a .length property
             if(stored_coldefs.length > 0){
                 // settingsValue is an associative array
                 let settingsValue = {};
                 if (!!selected_worksheetname){settingsValue["worksheetname"] = selected_worksheetname}
+
+                // get value of code_calc
+                let el_select_code_calc = document.getElementById("id_select_code_calc");
+                if (!!el_select_code_calc.value){settingsValue["codecalc"] = el_select_code_calc.value}
+
                 settingsValue["no_header"] = stored_no_header;
 
                 let coldefs = {};
@@ -1116,7 +1127,7 @@ console.log("settingsValue", settingsValue)
                 // parameters = {setting: "{"worksheetname":"vakquery","no_header":false,
                 //                         "coldefs:{"companyname":"code","ordername":"sequence"}}"}
                 const parameters = {"setting": JSON.stringify (settingsValue)};
-console.log("parameters", parameters)
+
                 const url_str = $("#id_data").data("employee_uploadsetting_url");
 
                 response = "";
@@ -1218,18 +1229,20 @@ console.log("========== response Upload employees ==>", typeof response,  respon
 
     function ShowLoadingGif(show) {
     //--------- show / hide loading gif PR2019-02-19
-        let loading_img = $("#id_loading_img");
-        let datatable = $("#id_table");
+
+        let el_loader = document.getElementById("id_loading_img");
+        let datatable = document.getElementById("id_table");
+
         if (show){
-            loading_img.removeClass(cls_display_hide)
-                        .addClass(cls_display_show);
-            datatable.removeClass(cls_display_show)
-                       .addClass(cls_display_hide);
+            el_loader.classList.remove(cls_display_hide);
+            el_loader.classList.add(cls_display_show);
+            datatable.classList.remove(cls_display_show);
+            datatable.classList.add(cls_display_hide);
         } else {
-            loading_img.removeClass(cls_display_show)
-                       .addClass(cls_display_hide);
-            datatable.removeClass(cls_display_hide)
-                        .addClass(cls_display_show);
+            el_loader.classList.remove(cls_display_show);
+            el_loader.classList.add(cls_display_hide);
+            datatable.classList.remove(cls_display_hide);
+            datatable.classList.add(cls_display_show);
         }
     }
     }); //$(document).ready(function() {
