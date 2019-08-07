@@ -48,7 +48,6 @@ $(function() {
         });
 
 // ---  Modal Addnew
-
         let el_mod_cust = document.getElementById("id_mod_customer")
             el_mod_cust.addEventListener("change", function() {ModalAddnewEdit("customer")}, false)
         let el_mod_order = document.getElementById("id_mod_order")

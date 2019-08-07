@@ -3154,8 +3154,6 @@ def create_scheme(parent, upload_dict, update_dict, request, temp_pk_str=None):
             code = code_dict.get('value')
 
 # c. validate code
-# TODO correct
-        parent = instance.order
         has_error = validate_code_name_id('scheme', 'code', code,  parent, update_dict)
 
         if not has_error:
