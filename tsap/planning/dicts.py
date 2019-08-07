@@ -10,7 +10,7 @@ from companies.models import Order, Scheme, Schemeitem, Emplhour, Companysetting
 from tsap.settings import TIME_ZONE
 
 from tsap.functions import get_date_from_ISOstring, get_date_WDM_from_dte, format_WDMY_from_dte, format_DMY_from_dte, \
-                    get_weekdaylist_for_DHM, set_fielddict_date, \
+                    get_weekdaylist_for_DHM, set_fielddict_date, get_datetimelocal_from_offset, \
                     fielddict_duration, fielddict_date, get_datetime_UTC_from_ISOstring, get_datetime_from_date, \
                     get_datetime_LOCAL_from_ISOstring, get_datetimearray_from_ISOstring, get_datetime_from_ISOstring
 
@@ -619,9 +619,10 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
                 set_fielddict_datetime(field=field,
                                        field_dict=item_dict[field],
                                        rosterdate=getattr(instance, 'rosterdate'),
-                                       timestart=getattr(instance, 'timestart'),
-                                       timeend=getattr(instance, 'timeend'),
+                                       timestart_utc=getattr(instance, 'timestart'),
+                                       timeend_utc=getattr(instance, 'timeend'),
                                        comp_timezone=comp_timezone)
+
             else:
                 if saved_value is not None:
                     item_dict[field]['value'] = saved_value
@@ -770,19 +771,8 @@ def create_emplhour_dict(emplhour, comp_timezone, user_lang):
 
         field = 'rosterdate'
         rosterdate = getattr(emplhour, field)
-        timezone = pytz.timezone(comp_timezone)
-
-        # get rosterdate midnight
-        rosterdate_midnight_local = None
-
         if rosterdate:
             emplhour_dict[field] = fielddict_date(rosterdate, user_lang)
-
-        #field = 'customer'
-        #if emplhour.orderhour:
-        #    value = emplhour.orderhour.order.customer.code
-        #    if value:
-        #        emplhour_dict[field] = {'value': value, 'customer_pk': emplhour.orderhour.order.customer.id}
 
         field = 'orderhour'
         if emplhour.orderhour:
@@ -805,10 +795,13 @@ def create_emplhour_dict(emplhour, comp_timezone, user_lang):
              emplhour_dict[field] = {'value': value, 'employee_pk':emplhour.employee.id}
 
         for field in ['timestart', 'timeend']:
-            timestart = getattr(emplhour, 'timestart')
-            timeend = getattr(emplhour, 'timeend')
             field_dict = {}
-            set_fielddict_datetime(field, field_dict, rosterdate, timestart, timeend, comp_timezone)
+            set_fielddict_datetime(field=field,
+                                   field_dict=field_dict,
+                                   rosterdate=getattr(emplhour, 'rosterdate'),
+                                   timestart_utc=getattr(emplhour, 'timestart'),
+                                   timeend_utc=getattr(emplhour, 'timeend'),
+                                   comp_timezone=comp_timezone)
 
             emplhour_dict[field] = field_dict
 
@@ -852,77 +845,98 @@ def get_rosterdatefill_dict(company, company_timezone, user_lang):# PR2019-06-17
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def set_fielddict_datetime(field, field_dict, rosterdate, timestart, timeend, comp_timezone):
-    #logger.debug(" ------- set_fielddict_datetime ---------- ")
-    # PR2019-07-22
-
-    rosterdate_utc = get_rosterdate_utc(rosterdate)
+def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend_utc, comp_timezone):
+    logger.debug(" ------- set_fielddict_datetime ---------- ")
+    logger.debug("rosterdate " + str(rosterdate) + ' ' + str(type(rosterdate)))
+    logger.debug("timestart_utc " + str(timestart_utc) + ' ' + str(type(timestart_utc)))
+    logger.debug("timeend_utc " + str(timeend_utc) + ' ' + str(type(timeend_utc)))
+    logger.debug("comp_timezone " + str(comp_timezone) + ' ' + str(type(comp_timezone)))
 
     # get mindatetime and  maxdatetime
-    min_datetime_utc, max_datetime_utc = get_minmax_datetime_utc(
-        field, rosterdate_utc, timestart, timeend, comp_timezone)
+    min_datetime_utc, max_datetime_utc = get_minmax_datetime_utc(field, rosterdate,
+                                                                 timestart_utc, timeend_utc, comp_timezone)
 
     field_dict['field'] =field
 
-    datetimevalue = None
+    datetime_utc = None
     if field == "timestart":
-        datetimevalue = timestart
+        datetime_utc = timestart_utc
     elif field == "timeend":
-        datetimevalue = timeend
+        datetime_utc = timeend_utc
 
 
-    if datetimevalue:
-        field_dict['datetime'] = datetimevalue.isoformat()
+    if datetime_utc:
+        field_dict['datetime'] = datetime_utc.isoformat()
     if min_datetime_utc:
         field_dict['mindatetime'] = min_datetime_utc.isoformat()
     if max_datetime_utc:
         field_dict['maxdatetime'] = max_datetime_utc.isoformat()
-    if rosterdate_utc:
+    if rosterdate:
         field_dict['rosterdate'] = rosterdate
 
     #logger.debug('field_dict: '+ str(field_dict))
 
-def get_minmax_datetime_utc(field, rosterdate_utc, timestart, timeend, comp_timezone):  # PR2019-07-05
-    # logger.debug(" ------- get_minmax_datetime_utc ---------- ")
+def get_minmax_datetime_utc(field, rosterdate, timestart_utc, timeend_utc, comp_timezone):  # PR2019-08-07
+    logger.debug(" ------- get_minmax_datetime_utc ---------- ")
+    logger.debug(" ------- rosterdate:    " + str(rosterdate) + ' ' + str(type(rosterdate)))
+    logger.debug(" ------- timestart_utc: " + str(timestart_utc) + ' ' + str(type(rosterdate)))
+    logger.debug(" ------- timeend_utc:   " + str(timeend_utc) + ' ' + str(type(timeend_utc)))
+    logger.debug(" ------- comp_timezone: " + str(comp_timezone) + ' ' + str(type(comp_timezone)))
 
     min_datetime_utc = None
     max_datetime_utc = None
 
-    if rosterdate_utc:
-        rosterdate_midnight_local = get_rosterdate_midnight_local(rosterdate_utc, comp_timezone)
+    if rosterdate:
+        # this gives wrong date when timezone offset is negative:
+        #   rosterdate_midnight_local = get_rosterdate_midnight_local(rosterdate_utc, comp_timezone)
 
         if field == field == 'timestart':
-            # get mindatetime
-            min_rosterdate_local = rosterdate_midnight_local + timedelta(hours=-12)
+            # get mindatetime,  (midnight = rosterdate 00.00 u)
+            min_rosterdate_local = get_datetimelocal_from_offset(rosterdate, "-1;12;0", comp_timezone)
             min_datetime_utc = min_rosterdate_local.astimezone(pytz.utc)
-            # get maxdatetime
-            max_rosterdate_local = rosterdate_midnight_local + timedelta(hours=24)
+            logger.debug("min_rosterdate_local: " + str(min_rosterdate_local))
+            logger.debug("    min_datetime_utc: " + str(min_datetime_utc))
+
+            # get maxdatetime, 24 hours after midnight
+            max_rosterdate_local = get_datetimelocal_from_offset(rosterdate, "1;0;0", comp_timezone)
             max_rosterdate_utc = max_rosterdate_local.astimezone(pytz.utc)
-            max_datetime_utc = timeend if timeend and timeend < max_rosterdate_utc else max_rosterdate_utc
+            # maxdatetime = timeend_utc if that comes before max_rosterdate_utc
+            max_datetime_utc = timeend_utc if timeend_utc and timeend_utc < max_rosterdate_utc else max_rosterdate_utc
+            logger.debug("max_rosterdate_local: " + str(max_rosterdate_local))
+            logger.debug("  max_rosterdate_utc: " + str(max_rosterdate_utc))
+            logger.debug("    max_datetime_utc: " + str(max_datetime_utc))
 
         elif field == field == 'timeend':
-            # get mindatetime
-            min_rosterdate_utc = rosterdate_midnight_local.astimezone(pytz.utc)
-            min_datetime_utc = timestart if timestart and timestart > min_rosterdate_utc else min_rosterdate_utc
-            # get maxdatetime
-            max_rosterdate_local = rosterdate_midnight_local + timedelta(hours=+36)
+            # get mindatetime, equals midnight (midnight = rosterdate 00.00 u)
+            min_rosterdate_local = get_datetimelocal_from_offset(rosterdate, "0;0;0", comp_timezone)
+            min_rosterdate_utc = min_rosterdate_local.astimezone(pytz.utc)
+            min_datetime_utc = timestart_utc if timestart_utc and timestart_utc > min_rosterdate_utc else min_rosterdate_utc
+            logger.debug("min_rosterdate_local: " + str(min_rosterdate_local))
+            logger.debug("  min_rosterdate_utc: " + str(min_rosterdate_utc))
+            logger.debug("    min_datetime_utc: " + str(min_datetime_utc))
+
+            # get maxdatetime, 36 hours after midnight (midnight = rosterdate 00.00 u)
+            max_rosterdate_local = get_datetimelocal_from_offset(rosterdate, "1;12;0", comp_timezone)
             max_datetime_utc = max_rosterdate_local.astimezone(pytz.utc)
+            logger.debug("max_rosterdate_local: " + str(max_rosterdate_local))
+            logger.debug("    max_datetime_utc: " + str(max_datetime_utc))
 
     return min_datetime_utc, max_datetime_utc
 
 
 def get_rosterdate_midnight_local(rosterdate_utc, comp_timezone): # PR2019-07-09
+    logger.debug("  ---  get_rosterdate_midnight_local --- " + str(rosterdate_utc))
     rosterdate_midnight_local = None
     if rosterdate_utc:
-
+    # BUG: gives wrong date whem tomezone offset is negative
         # astimezone changes timezone of a timezone aware object, utc time stays the same
         timezone = pytz.timezone(comp_timezone)
         rosterdate_local = rosterdate_utc.astimezone(timezone)
-        # logger.debug("rosterdate_local: " + str(rosterdate_local))
+        logger.debug("rosterdate_local: " + str(rosterdate_local))
 
         # make the date midnight at local timezone
         rosterdate_midnight_local = rosterdate_local.replace(hour=0, minute=0)
-        # logger.debug("rosterdate_midnight_local: " + str(rosterdate_midnight_local))
+        logger.debug("rosterdate_midnight_local: " + str(rosterdate_midnight_local))
         # make the date midnight at local timezone
 
     return rosterdate_midnight_local

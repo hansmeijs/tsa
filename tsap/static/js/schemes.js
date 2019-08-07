@@ -596,8 +596,12 @@ $(function() {
                 //scheme_dict: {pk: 18, id: {pk: 18, parent_pk: 6, code: {value: "MCB scheme"}, cycle: {value: 7}}}
                  //console.log( "scheme_dict", scheme_dict);
 
+
     // fill scheme fields
                 if (!!scheme_dict){
+                    UpdateSchemeInputElements(scheme_dict)
+
+/*
                     let tablename, field, field_dict, value, wdmy
                     let parent_pk = get_ppk_from_id(scheme_dict);
                     tablename = "scheme"
@@ -642,13 +646,13 @@ $(function() {
                                 user_lang, comp_timezone, hide_weekday, hide_year)
                         }
                         el.setAttribute("data-field", fieldname)
-                        // NIU, use tr.data-pk Was:  el.setAttribute("data-pk", scheme_pk )
-                        // NIU, use tr.data-ppk Was:   el.setAttribute("data-ppk", parent_pk)
-                        // NIU, use tr.data-table Was:   el.setAttribute("data-table", tablename)
+                        el.setAttribute("data-pk", scheme_pk )
+                        el.setAttribute("data-ppk", parent_pk)
+                        el.setAttribute("data-table", tablename)
 
                         el.readOnly = false;
                     }  // for(let i = 0, fieldname,
-
+*/
     // --- Fill select table Teams
                     FillSelectTable("team")
 
@@ -1986,7 +1990,7 @@ $(function() {
 
         if (!!item_dict && !!tblRow) {
             // console.log("tblRow", tblRow);
-            console.log("item_dict", item_dict);
+            //console.log("item_dict", item_dict);
 
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
             // item_dict = {'id': {'pk': 7},
@@ -2169,6 +2173,95 @@ $(function() {
 
         };  // if (!!item_dict && !!tblRow)
     }  // function UpdateTableRow
+
+//=========  UpdateSchemeInputElements  ================ PR2019-08-07
+    function UpdateSchemeInputElements(item_dict) {
+        console.log( "===== UpdateSchemeInputElements  ========= ");
+        console.log(item_dict);
+
+        if(!!item_dict) {
+// get temp_pk_str and id_pk from item_dict["id"]
+            const id_dict = get_dict_value_by_key (item_dict, "id");
+            let msg_err, is_created = false, is_deleted = false;
+            if ("created" in id_dict) {is_created = true};
+            if ("deleted" in id_dict) {is_deleted = true};
+            if ("error" in id_dict) {msg_err = id_dict["error"]};
+            console.log("id_dict", id_dict);
+// --- error
+            if (!!msg_err){
+                ShowMsgError(el_scheme_code, el_msg, msg_err, -60)
+// --- new created record
+            } else if (is_created){
+                ShowOkClass(el_scheme_code )
+            }
+
+// reset input fields and tables
+            el_scheme_code.innerText = null;
+            el_scheme_cycle.innerText = null;
+            el_scheme_datefirst.innerText = null;
+            el_scheme_datelast.innerText = null;
+
+            el_scheme_code.readOnly = true
+            el_scheme_cycle.readOnly = true
+            el_scheme_datefirst.readOnly = true
+            el_scheme_datelast.readOnly = true
+
+            const pk_int = get_pk_from_id(item_dict)
+            const ppk_int = get_ppk_from_id(item_dict);
+
+                console.log("pk_int", pk_int);
+            if(!!pk_int){
+                selected_scheme_pk = pk_int
+                console.log("selected_scheme_pk", selected_scheme_pk);
+
+                const tablename = "scheme"
+                const field_list = ["code", "cycle", "datefirst", "datelast"];
+                for(let i = 0, el, field_dict, fieldname, value, wdmy, len = field_list.length; i < len; i++){
+                    fieldname = field_list[i];
+                    // console.log("fieldname", fieldname)
+                    if (fieldname === "code"){el = el_scheme_code} else
+                    if (fieldname === "cycle"){el = el_scheme_cycle} else
+                    if (fieldname === "datefirst"){el = el_scheme_datefirst} else
+                    if (fieldname === "datelast"){el = el_scheme_datelast};
+                    // console.log("el", el)
+
+                    field_dict = get_dict_value_by_key (item_dict, fieldname)
+                    //console.log("field_dict", fieldname,  field_dict)
+
+                    value = get_dict_value_by_key (field_dict, "value")
+                    if (!!value){
+                        el.setAttribute("data-value", value)
+                        el.setAttribute("data-o_value", value)
+
+                        console.log("value", value);
+                        if (fieldname === "code"){
+                            el.value = value
+                        } else if (fieldname === "cycle"){
+                            if (!!value){
+                                el.value = value
+                            } else {
+                                el.value = 0
+                            }
+                        } else if (fieldname === "datefirst" || fieldname === "datelast"){
+                            let el_input = document.getElementById("id_scheme_" + fieldname)
+                            const hide_weekday = true, hide_year = false;
+                            format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
+                                user_lang, comp_timezone, hide_weekday, hide_year)
+                        }
+                    }
+
+                    el.setAttribute("data-field", fieldname)
+                    el.setAttribute("data-pk", pk_int )
+                    el.setAttribute("data-ppk", ppk_int)
+                    el.setAttribute("data-table", tablename)
+
+                    el.readOnly = false;
+                }  // for(let i = 0, fieldname,
+
+            }  // if(!!pk_int){
+        } // if(!!tr_clicked)
+    }  // function UpdateSchemeInputElements
+
 
 // +++++++++  HandleAutofillDayupDown  ++++++++++++++++++++++++++++++ PR2019-03-16 PR2019-06-14
     function HandleAutofillDayupDown(param_name) {
@@ -2472,12 +2565,18 @@ $(function() {
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        //console.log ("response:");
-                        //console.log (response);
+                        console.log ("response:");
+                        console.log (response);
 
                         if ("scheme" in response) {
                             scheme_list= response["scheme"];
-                            FillSelectTable("scheme")}
+                            FillSelectTable("scheme")
+                        }
+                        if ("item_update" in response) {
+                            let item_dict = response["item_update"]
+                            console.log( ">>>>>>>> item_dict =", item_dict);
+                            UpdateSchemeInputElements(item_dict)
+                        }
 
                     },
                     error: function (xhr, msg) {
@@ -2905,61 +3004,62 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 // get tr_selected
         let tr_selected = get_tablerow_selected(el_input)
+        console.log(tr_selected) ;
 
-// get info pk etc from tr_selected
+// get info pk etc from tr_selected if called by tablerow
+        let el
+        if (!!tr_selected){ el = tr_selected } else {el = el_input}
 
-        if (!!tr_selected){
-            // TODO remove data-table data-pk data from el_input
-            const data_table = get_attr_from_el(tr_selected, "data-table")
-            const data_pk = get_attr_from_el(tr_selected, "data-pk")
-            const data_ppk = get_attr_from_el(tr_selected, "data-ppk");
-            console.log("data_table", data_table, "data_pk", data_pk, "data_ppk", data_ppk)
+        const data_table = get_attr_from_el(el, "data-table")
+        const data_pk = get_attr_from_el(el, "data-pk")
+        const data_ppk = get_attr_from_el(el, "data-ppk");
+        console.log("data_table", data_table, "data_pk", data_pk, "data_ppk", data_ppk)
 
-            if(!el_input.readOnly) {
-    // get values from el_input
-                //NIU const el_id = get_attr_from_el(el_input, "id");
-                const data_field = get_attr_from_el(el_input, "data-field");
-                const data_value = get_attr_from_el(el_input, "data-value");
-                console.log("data_field", data_field, "data_value", data_value)
+        if(!el_input.readOnly) {
+// get values from el_input
+            //NIU const el_id = get_attr_from_el(el_input, "id");
+            const data_field = get_attr_from_el(el_input, "data-field");
+            const data_value = get_attr_from_el(el_input, "data-value");
+            console.log("data_field", data_field, "data_value", data_value)
 
-                const data_mindate = get_attr_from_el(el_input, "data-mindate");
-                const data_maxdate = get_attr_from_el(el_input, "data-maxdate");
-                console.log("data_mindate", data_mindate, "data_maxdate", data_maxdate);
+            const data_mindate = get_attr_from_el(el_input, "data-mindate");
+            const data_maxdate = get_attr_from_el(el_input, "data-maxdate");
+            console.log("data_mindate", data_mindate, "data_maxdate", data_maxdate);
 
-        // put values in el_popup_date
-                // NIU el_popup_date.setAttribute("data-el_id", el_id);
-                el_popup_date.setAttribute("data-table", data_table);
-                el_popup_date.setAttribute("data-pk", data_pk);
-                el_popup_date.setAttribute("data-ppk", data_ppk);
+    // put values in el_popup_date
+            // NIU el_popup_date.setAttribute("data-el_id", el_id);
+            el_popup_date.setAttribute("data-table", data_table);
+            el_popup_date.setAttribute("data-pk", data_pk);
+            el_popup_date.setAttribute("data-ppk", data_ppk);
 
-                el_popup_date.setAttribute("data-field", data_field);
-                el_popup_date.setAttribute("data-value", data_value);
+            el_popup_date.setAttribute("data-field", data_field);
+            el_popup_date.setAttribute("data-value", data_value);
 
-                if (!!data_mindate) {el_popup_date.setAttribute("min", data_mindate);
-                } else {el_popup_date.removeAttribute("min")}
-                if (!!data_maxdate) {el_popup_date.setAttribute("max", data_maxdate);
-                } else {el_popup_date.removeAttribute("max")}
+            if (!!data_mindate) {el_popup_date.setAttribute("min", data_mindate);
+            } else {el_popup_date.removeAttribute("min")}
+            if (!!data_maxdate) {el_popup_date.setAttribute("max", data_maxdate);
+            } else {el_popup_date.removeAttribute("max")}
 
-                if (!!data_value){el_popup_date.value = data_value};
+            if (!!data_value){el_popup_date.value = data_value};
 
-        // ---  position popup under el_input
-                let el_popup_date_container = el_popup_date.parentNode
-                let popRect = el_popup_date_container.getBoundingClientRect();
-                let inpRect = el_input.getBoundingClientRect();
-                let topPos = inpRect.top; // + inpRect.height;
-                let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
-                let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-                el_popup_date_container.setAttribute("style", msgAttr)
+    // ---  position popup under el_input
+            let el_popup_date_container = el_popup_date.parentNode
+            let popRect = el_popup_date_container.getBoundingClientRect();
+            let inpRect = el_input.getBoundingClientRect();
+            let topPos = inpRect.top; // + inpRect.height;
+            let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
+            let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+            el_popup_date_container.setAttribute("style", msgAttr)
 
-        // ---  change background of el_input
-                popupbox_removebackground();
-                //el_input.classList.add("pop_background");
+    // ---  change background of el_input
+            popupbox_removebackground();
+            //el_input.classList.add("pop_background");
 
-        // ---  show el_popup
-                el_popup_date_container.classList.remove(cls_hide);
+    // ---  show el_popup
+            el_popup_date_container.classList.remove(cls_hide);
 
-            }  // if(!el_input.readOnly)
-        }  // if (!!tr_selected){
+        }  // if(!el_input.readOnly)
+
 
 }; // function HandlePopupDateOpen
 
@@ -3048,12 +3148,14 @@ function validate_input_blank(el_input, el_err, msg_blank){
                     success: function (response) {
                         console.log (">>> response", response);
 
-
                         if ("item_update" in response) {
                             let item_dict = response["item_update"]
                             console.log( ">>>>>>>> item_dict =", item_dict);
-
-                            UpdateTableRow(tablename, tr_changed, item_dict)
+                            if (!!tr_changed) {
+                                UpdateTableRow(tablename, tr_changed, item_dict)
+                            } else {
+                                UpdateSchemeInputElements(item_dict)
+                            }
                         }
 
 

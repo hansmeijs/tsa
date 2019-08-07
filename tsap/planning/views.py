@@ -1232,7 +1232,6 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
                     if item_list:
                         update_wrap[tablename] = item_list
 
-        logger.debug('update_wrap: ' + str(update_wrap))
         update_dict_json = json.dumps(update_wrap, cls=LazyEncoder)
         return HttpResponse(update_dict_json)
 
@@ -2664,10 +2663,12 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
                         # TODO: add min max date
                         set_fielddict_date(update_dict[field], saved_value)
                 if field in ['timestart', 'timeend']:
-                    rosterdate = getattr(instance, 'rosterdate')
-                    timestart = getattr(instance, 'timestart')
-                    timeend = getattr(instance, 'timeend')
-                    set_fielddict_datetime(field, update_dict[field], rosterdate, timestart, timeend, comp_timezone)
+                    set_fielddict_datetime(field=field,
+                                           field_dict=update_dict[field],
+                                           rosterdate=getattr(instance, 'rosterdate'),
+                                           timestart_utc=getattr(instance, 'timestart'),
+                                           timeend_utc=getattr(instance, 'timeend'),
+                                           comp_timezone=comp_timezone)
 
 # 7. remove empty attributes from update_dict
     remove_empty_attr_from_dict(update_dict)

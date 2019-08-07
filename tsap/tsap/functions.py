@@ -72,7 +72,7 @@ def get_datetimelocal_from_offset(rosterdate, offset, comp_timezone):
         logger.debug('rosterdatetime: ' + str(rosterdatetime) + ' ' + str(type(rosterdatetime)))
         logger.debug('offset: ' + str(offset))
 
-    # c. add day_offset to the naive rosterdate (dont use local midnight, is nit correct when DST changes)
+    # c. add day_offset to the naive rosterdate (dont use local midnight, is not correct when DST changes)
         dt = rosterdatetime + timedelta(days=day_offset)
         logger.debug('rosterdatetime_offset: ' + str(dt) + ' ' + str(type(dt)))
 
