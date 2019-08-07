@@ -2070,7 +2070,7 @@ $(function() {
                     let el_input = tblRow.cells[i].children[0];
                     if(!!el_input){
 
-                        console.log("id_dict", el_input);
+                        //console.log("id_dict", el_input);
 // --- lookup field in item_dict, get data from field_dict
                         fieldname = get_attr_from_el(el_input, "data-field");
                         if (fieldname in item_dict){
@@ -3456,7 +3456,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
             //new row doesnt update whith date today (n-val = o val)
             if(true) {//if (n_value !== o_value) {
                 const pk_str = el_popup_wdy.getAttribute("data-pk")// pk of record  of element clicked
-                const row_id = tblName + pk.toString();
+                const row_id = tablename + pk_str;
                 let tr_selected = document.getElementById(row_id)
 
                 const field_name = el_popup_wdy.getAttribute("data-field") // nanme of element clicked
