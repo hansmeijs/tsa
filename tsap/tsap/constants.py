@@ -138,8 +138,9 @@ PUBLICHOLIDAY_CHOICES = {LANG_EN: ('also on public holidays', 'only on public ho
 # PR2019-06-25
 CAT_00_NORMAL = 0
 CAT_01_INTERNAL = 1
-CAT_02_ABSENCE = 2
-CAT_03_TEMPLATE = 3
+CAT_02_REST = 2
+CAT_03_ABSENCE = 3
+CAT_04_TEMPLATE = 4
 
 #PR2019-08-05 # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
 CAT_ENTRY_00_GRACE = 0
@@ -153,9 +154,8 @@ CAT_ENTRY_CHOICES = (
     (CAT_ENTRY_02_PAID, _('Paid')),
 )
 
-
-
-
+# PR2019-06-24
+ABSENCE = {LANG_EN: 'Absence', LANG_NL: 'Afwezigheid'}
 
 # PR2019-06-24
 ABSENCE_CATEGORY = {LANG_EN: (
@@ -173,10 +173,11 @@ ABSENCE_CATEGORY = {LANG_EN: (
                         ('4', 'Onbetaald', 'Onbetaald verlof'),
                         ('5', 'Ongeoorloofd', 'Ongeoorloofd verzuim'))
                     }
-# PR2019-06-24
-ABSENCE = {LANG_EN: 'Absence', LANG_NL: 'Afwezigheid'}
+
+
 # PR2019-07-20
 TEMPLATE_TEXT = {LANG_EN: 'Template', LANG_NL: 'Sjabloon'}
+REST_TEXT = {LANG_EN: 'Rest', LANG_NL: 'Rust'}
 
 STATUS_00_NONE = 0
 STATUS_01_CREATED = 1
@@ -267,6 +268,13 @@ CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
                     }
 
 # this one is not working: update_dict = dict.fromkeys(field_list, {})
-FIELDS_EMPLHOUR_TUPLE = ('pk', 'id', 'orderhour', 'employee', 'wagecode', 'rosterdate',
+FIELDS_EMPLHOUR = ('pk', 'id', 'orderhour', 'employee', 'wagecode', 'rosterdate',
                         'timestart', 'timeend', 'timeduration', 'breakduration', 'status')
 
+FIELDS_SCHEMEITEM = ('pk', 'id', 'rosterdate', 'shift', 'team', 'timestart', 'timeend',
+                     'timeduration', 'iscyclestart', 'inactive')
+FIELDS_SHIFT = ('pk', 'id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'successor')
+
+FIELDS_TEAM = ('pk', 'id', 'code')
+
+FIELDS_TEAMMEMBER = ('pk', 'id', 'employee', 'datefirst', 'datelast')

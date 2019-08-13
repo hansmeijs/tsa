@@ -23,8 +23,6 @@ urlpatterns = [
     #path('login', auth_views.LoginView.as_view(), name='login'),
     path('login', auth_views.LoginView.as_view(authentication_form=CompanyAuthenticationForm), name='login'),
 
-
-
     # url(r'^favicon\.ico$',RedirectView.as_view(url='/static/img/favicon.ico')),
     # path('favicon\.ico',RedirectView.as_view(url='/static/img/favicon.ico')),
     path('favicon\.ico', RedirectView.as_view(url='/static/img/favicon.ico')),
@@ -166,7 +164,7 @@ urlpatterns = [
         path('schemeitem_download', planning_views.SchemeitemDownloadView.as_view(), name='schemeitems_download_url'),
         path('schemeitem_upload', planning_views.SchemeItemUploadView.as_view(), name='schemeitem_upload_url'),
         path('schemeitem_fill', planning_views.SchemeitemFillView.as_view(), name='schemeitem_fill_url'),
-        path('schemeorteam_upload', planning_views.SchemeOrTeamUploadView.as_view(), name='schemeorteam_upload_url'),
+        path('schemeorshiftorteam_upload', planning_views.SchemeOrShiftOrTeamUploadView.as_view(), name='schemeorshiftorteam_upload_url'),
 
         path('scheme_template_upload', planning_views.SchemeTemplateUploadView.as_view(), name='scheme_template_upload_url'),
 

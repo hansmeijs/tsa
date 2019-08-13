@@ -2,7 +2,7 @@ from django.db.models import Q
 from django.utils.translation import activate, ugettext_lazy as _
 
 from companies.models import Employee, Teammember
-from tsap.functions import set_fielddict_date, remove_empty_attr_from_dict
+from tsap import functions as f
 
 import logging
 logger = logging.getLogger(__name__)
@@ -61,9 +61,9 @@ def create_employee_dict(instance, item_dict):
                 maxdate = getattr(instance, 'datelast')
                 if mindate or maxdate:
                     if field == 'datefirst':
-                        set_fielddict_date(dict=field_dict, dte=mindate, maxdate=maxdate)
+                        f.set_fielddict_date(dict=field_dict, dte=mindate, maxdate=maxdate)
                     elif field == 'datelast':
-                        set_fielddict_date(dict=field_dict, dte=maxdate, mindate=mindate)
+                        f.set_fielddict_date(dict=field_dict, dte=maxdate, mindate=mindate)
 
             item_dict[field] = field_dict
 # >>>   create_employee_dict
@@ -71,7 +71,9 @@ def create_employee_dict(instance, item_dict):
 
 def create_teammember_list(order, inactive=None, rangemin=None, rangemax=None):
     # --- create list of all teammembers of this order PR2019-06-16
-    # logger.debug(' --- create_teammember_list   ')
+    #logger.debug(' ======--- create_teammember_list   ')
+    #logger.debug('order' + str(order.pk) + ' ' + str(order.code))
+
     crit = Q(team__scheme__order=order)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
@@ -81,15 +83,14 @@ def create_teammember_list(order, inactive=None, rangemin=None, rangemax=None):
         crit.add(Q(datelast__gte=rangemin) | Q(datelast__isnull=True), crit.connector)
 
     teammembers = Teammember.objects.filter(crit).order_by('datefirst')
-    # logger.debug(teammembers.query)
 
     teammember_list = []
     for teammember in teammembers:
+        logger.debug(' teammember:  ' + str(teammember))
         item_dict = {}
         create_teammember_dict(teammember, item_dict)
         teammember_list.append(item_dict)
     return teammember_list
-
 
 def create_teammember_dict(instance, item_dict):
     # --- create dict of this teammember PR2019-07-26
@@ -132,14 +133,14 @@ def create_teammember_dict(instance, item_dict):
                 maxdate = getattr(instance, 'datelast')
                 if mindate or maxdate:
                     if field == 'datefirst':
-                        set_fielddict_date(dict=field_dict, dte=mindate, maxdate=maxdate)
+                        f.set_fielddict_date(dict=field_dict, dte=mindate, maxdate=maxdate)
                     elif field == 'datelast':
-                        set_fielddict_date(dict=field_dict, dte=maxdate, mindate=mindate)
+                        f.set_fielddict_date(dict=field_dict, dte=maxdate, mindate=mindate)
 
             item_dict[field] = field_dict
 
         # 7. remove empty attributes from item_update
-        remove_empty_attr_from_dict(item_dict)
+        f.remove_empty_attr_from_dict(item_dict)
 
 # >>>>>>>>>>>>>>>>>>>
 

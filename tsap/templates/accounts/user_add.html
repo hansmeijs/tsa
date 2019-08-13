@@ -7,29 +7,32 @@
 {% endblock %}
 
 {% block content %}
-  {% if user.permit_user_modify %}
-    <h4>{% trans 'Add user' %}</h4>
-    <form method="post" novalidate>
-      {% csrf_token %}
-       <input type="hidden" name="next" value="{{ next }}">
-      {% include 'includes/form.html' %}
-      <div class="mb-3">
-        <button
-                id="btn_save"
-                type="submit"
-                class="btn btn-success"
+  <div class="container">
+    {% if user.permit_user_modify %}
+      <h4>{% trans 'Add user' %}</h4>
+      <form method="post" novalidate>
+        {% csrf_token %}
+         <input type="hidden" name="next" value="{{ next }}">
+        {% include 'includes/form.html' %}
+        <div class="mb-3">
+          <button
+            id="btn_save"
+            type="submit"
+            class="btn btn-success"
 
-                data-user_company_id= "{{ user.company.id }}"
-                data-user_role= "{{ user.role }}"
+            data-user_company_id= "{{ user.company.id }}"
+            data-user_role= "{{ user.role }}"
 
-        >{% trans 'Create user account' %}</button>
-        <a href="{% url 'user_list_url' %}" class="btn btn-outline-secundary">Cancel</a>
-      </div>
-    </form>
-  {% else %}
-    <div class="alert alert-danger">{{ user.message_user_modify }}</div>
-    <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
-  {% endif %}
+          >{% trans 'Create user account' %}</button>
+          <a href="{% url 'user_list_url' %}" class="btn btn-outline-secundary">Cancel</a>
+        </div>
+      </form>
+    {% else %}
+      <div class="alert alert-danger">{{ user.message_user_modify }}</div>
+      <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+    {% endif %}
+  </div>
+
 
   <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 

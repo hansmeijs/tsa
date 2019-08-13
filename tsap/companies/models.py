@@ -258,6 +258,7 @@ class Scheme(TsaBaseModel):
     excludepublicholiday  = BooleanField(default=False)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    locked = None
     name = None
 
     class Meta:
@@ -266,6 +267,29 @@ class Scheme(TsaBaseModel):
     def __str__(self):
         return self.code
 
+
+class Shift(TsaBaseModel):
+    objects = TsaManager()
+    scheme = ForeignKey(Scheme, related_name='shifts', on_delete=CASCADE)
+    successor = ForeignKey('self', related_name='+', on_delete=SET_NULL, null=True)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    datefirst = None
+    datelast = None
+    inactive = None
+    locked = None
+
+    cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = rest
+    offsetstart = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)  # dhm" "-1;17;45"
+    offsetend = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    breakduration = IntegerField(default=0) # unit is minute
+
+    class Meta:
+        ordering = [Lower('code')]
+
+    def __str__(self):
+        return self.code
 
 class Team(TsaBaseModel):
     objects = TsaManager()
@@ -275,27 +299,14 @@ class Team(TsaBaseModel):
     name = None
     datefirst = None
     datelast = None
+    inactive = None
+    locked = None
 
     class Meta:
         ordering = [Lower('code')]
 
     def __str__(self):
         return self.code
-
-    @classmethod
-    def create_team_list(cls, order):
-        # create list of teams of this order PR2019-04-28
-        team_list = []
-        if order:
-            teams = cls.objects.filter(scheme__order=order)
-            if teams:
-                for team in teams:
-                    dict = {'pk': team.pk,
-                            'id': {'pk': team.pk,
-                                   'ppk': team.scheme.pk},
-                            'code': {'value': team.code}}
-                    team_list.append(dict)
-        return team_list
 
 
 class Wagecode(TsaBaseModel):
@@ -307,6 +318,7 @@ class Wagecode(TsaBaseModel):
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
     datelast = None
+    locked = None
 
     class Meta:
         ordering = [Lower('code')]
@@ -324,6 +336,7 @@ class Wagefactor(TsaBaseModel):
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
     datelast = None
+    locked = None
 
     class Meta:
         ordering = [Lower('code')]
@@ -341,6 +354,7 @@ class Timecode(TsaBaseModel):
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
     datelast = None
+    locked = None
 
     class Meta:
         ordering = [Lower('code')]
@@ -360,10 +374,12 @@ class Employee(TsaBaseModel):
     email = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     identifier = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    payrollcode = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
 
     wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
-    workhours = IntegerField(default=0) # /hours per week
-    leavedays = IntegerField(default=0) # /leave ays per year, full time
+    workhours = IntegerField(default=0)  # / working hours per week, unit is minute
+    workdays = IntegerField(default=0)  # / working hours per day, unit is minute ( minutes per week / days per week)
+    leavedays = IntegerField(default=0)  # /leave days per year, full time
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
@@ -422,6 +438,8 @@ class Teammember(TsaBaseModel):
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
     name = None
+    inactive = None
+    locked = None
 
 
 # =================
@@ -430,6 +448,7 @@ class Schemeitem(TsaBaseModel):
     objects = TsaManager()
 
     scheme = ForeignKey(Scheme, related_name='schemeitems', on_delete=CASCADE)
+    shift = ForeignKey(Shift, related_name='schemeitems', on_delete=SET_NULL, null=True, blank=True)
     team = ForeignKey(Team, related_name='schemeitems', on_delete=SET_NULL, null=True, blank=True)
     wagefactor = ForeignKey(Wagefactor, related_name='schemeitems', on_delete=SET_NULL, null=True, blank=True)
 
@@ -439,17 +458,14 @@ class Schemeitem(TsaBaseModel):
     datefirst = None
     datelast = None
 
+    locked = None
+
     rosterdate = DateField(db_index=True)
+    iscyclestart = BooleanField(default=False)
 
-    cyclestart = BooleanField(default=False)
-
-    shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
     timestart = DateTimeField(db_index=True, null=True, blank=True)
-    offsetstart = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)  # dhm" "-1;17;45"
     timeend = DateTimeField(db_index=True, null=True, blank=True)
-    offsetend = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
     timeduration = IntegerField(default=0)  # unit is minute
-    breakduration = IntegerField(default=0) # unit is minute
 
     class Meta:
         ordering = ['rosterdate', 'timestart']
@@ -712,6 +728,7 @@ def create_invoice(request, cat, entries=0, rate=0, datepayment=None, dateexpire
             invoice.note=note
         invoice.save(request=request)
     return invoice
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def get_parent(table, ppk_int, update_dict, request):
     # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-07-30
@@ -731,7 +748,7 @@ def get_parent(table, ppk_int, update_dict, request):
                     parent = Order.objects.get_or_none(id=ppk_int, customer__company=company)
                 elif table == 'emplhour':
                     parent = Orderhour.objects.get_or_none(id=ppk_int, order__customer__company=company)
-                elif table in ('team', 'schemeitem'):
+                elif table in ('shift', 'team', 'schemeitem'):
                     parent = Scheme.objects.get_or_none(id=ppk_int, order__customer__company=company)
                 elif table == 'teammember':
                     parent = Team.objects.get_or_none(id=ppk_int, scheme__order__customer__company=company)
@@ -747,7 +764,7 @@ def get_parent(table, ppk_int, update_dict, request):
 
 def get_instance(table, pk_int, parent, update_dict=None):
     # function returns instance of table PR2019-07-30
-    # logger.debug('====== get_instance: ' + str(table) + ' pk_int: ' + str(pk_int) + ' parent: ' + str(parent))
+    logger.debug('====== get_instance: ' + str(table) + ' pk_int: ' + str(pk_int) + ' parent: ' + str(parent))
 
     instance = None
 
@@ -762,12 +779,15 @@ def get_instance(table, pk_int, parent, update_dict=None):
             instance = Orderhour.objects.get_or_none(id=pk_int, order=parent)
         elif table == 'scheme':
             instance = Scheme.objects.get_or_none(id=pk_int, order=parent)
+        elif table == 'shift':
+            instance = Shift.objects.get_or_none(id=pk_int, scheme=parent)
         elif table == 'team':
             instance = Team.objects.get_or_none(id=pk_int, scheme=parent)
         elif table == 'teammember':
             instance = Teammember.objects.get_or_none(id=pk_int, team=parent)
         elif table == 'emplhour':
             instance = Emplhour.objects.get_or_none(id=pk_int, orderhour=parent)
+
 
         if instance:
             if update_dict:

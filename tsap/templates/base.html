@@ -84,11 +84,11 @@
     </header>
 
     {% block body %}
-       <div class="container">
+       <!--  <div class="container"> -->
         {% block breadcrumb %}{% endblock %}
         {% include 'includes/messages.html' %}
         {% block content %}{% endblock %}
-       </div>
+       <!--  </div> -->
     {% endblock body %}
 
     {% include 'session_security/all.html' %}

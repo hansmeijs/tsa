@@ -5,14 +5,14 @@
 
 //========= GetItemDictFromTablerow  ============= PR2019-05-11
     function GetItemDictFromTablerow(tr_changed) {
-        //console.log("======== GetItemDictFromTablerow");
+        console.log("======== GetItemDictFromTablerow");
         //console.log(tr_changed);
 
         let item_dict = {};
 
 // ---  create id_dict
         let id_dict = get_iddict_from_element(tr_changed);
-        // console.log("--- id_dict", id_dict);
+        console.log("--- id_dict", id_dict);
 
 // add id_dict to item_dict
         if (!! tr_changed && !!id_dict){
@@ -25,36 +25,38 @@
                     let el_input = tr_changed.cells[i].children[0];
                     if(!!el_input){
                         //console.log(el_input);
-    // ---  get fieldname
+    // ---  get fieldname from 'el_input.data-field'
                         fieldname = get_attr_from_el(el_input, "data-field");
                         if (!!fieldname){
-        // ---  get value
+    // ---  get value from 'el_input.value' or from 'el_input.data-value'
                             // PR2019-03-17 debug: getAttribute("value");does not get the current value
                             // The 'value' attribute determines the initial value (el_input.getAttribute("name").
                             // The 'value' property holds the current value (el_input.value).
 
-                            if (["rosterdate", "datefirst", "datelast", "timestart", "timeend", "inactive", "status"].indexOf( fieldname ) > -1){
+                            if (["rosterdate", "datefirst", "datelast", "timestart", "timeend", "offsetstart", "offsetend","inactive", "status"].indexOf( fieldname ) > -1){
                                 n_value = get_attr_from_el(el_input, "data-value"); // data-value="2019-05-11"
                             } else {
                                 n_value = el_input.value;
                             };
+    // ---  put value in 'dict.value'
                             if(!!n_value){
                                 field_dict["value"] = n_value
                             };
+    // ---  get old value
                             o_value = get_attr_from_el(el_input, "data-o_value"); // data-value="2019-03-29"
-                            //console.log("fieldname", fieldname, "n_value", n_value, "o_value", o_value);
-
+                            console.log("fieldname", fieldname, "n_value", n_value, "o_value", o_value);
+    // ---  check if value has changed
                             let value_has_changed = false
                             if(!!n_value){
                                 if (!!o_value){ value_has_changed = (n_value !== o_value)
                                 } else {value_has_changed = true }
                             } else { value_has_changed = (!!o_value)};
                             if (value_has_changed){
-
-        // get pk from element
+                                console.log("value_has_changed", value_has_changed)
+    // get pk from element
                                 let pk;
-                                if (["team", "employee", "order"].indexOf( fieldname ) > -1){
-                        // get pk from datalist when field is a look_up field
+                                if (["shift", "team", "employee", "order"].indexOf( fieldname ) > -1){
+        // get pk from datalist when field is a look_up field
                                     if (!!n_value){
                                         pk = parseInt(get_pk_from_datalist("id_datalist_" + fieldname + "s", n_value));
                                     }
@@ -63,21 +65,22 @@
                                     console.log("fieldname", fieldname)
                                     console.log("n_value", n_value)
                                     console.log("field_dict", field_dict)
-                        // Note: pk in get pk from datalist when field is a look_up field
+        // Note: pk in get pk from datalist when field is a look_up field
                                     if (!!n_value){
                                         field_dict["order_pk"] = parseInt(get_pk_from_datalist("id_datalist_orders", n_value));
                                     }
 
+        // get pk from attribute 'data-pk'
                                 } else {
-                        // get pk from attribute 'data-pk'
                                     pk = parseInt(get_attr_from_el(el_input, "data-pk"));
                                 }
                                 if(!!pk){
                                     field_dict["pk"] = pk
                                 };
                                 field_dict["update"] = true;
+                                console.log("field_dict", field_dict);
 
-            // ---  add field_dict to item_dict
+    // ---  add field_dict to item_dict
                                 item_dict[fieldname] = field_dict;
                             }  // if (has_changed){
                         }  //  if (!!fieldname)
@@ -161,6 +164,14 @@
             }
         }
         return dict;
+    }
+
+    function getSelectedText(el) {
+
+        if (el.selectedIndex == -1)
+            return null;
+
+        return elt.options[elt.selectedIndex].text;
     }
 
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -503,39 +514,6 @@
         return time_formatted
     }
 
-
-
-
-
-
-//========= format_element  ======== PR2019-06-22
-    function format_element (el_input, el_msg, field_dict, el_type, show_year, month_list, weekday_list) {
-
-        if(!!el_input && !!field_dict && !!el_type){
-            switch ( el_type ) {
-            case "text":
-                format_text_element (el_input, el_msg, field_dict);
-                break;
-            case "date":
-                const hide_weekday = false, hide_year = false;
-                format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
-                            user_lang, comp_timezone, hide_weekday, hide_year)
-                break;
-            case "datetime":
-                format_datetime_element (el_input, el_msg, field_dict, comp_timezone, month_list, weekday_list);
-                break;
-            case "timeoffset":
-                format_timeoffset_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list);
-                break;
-            case "duration":
-                format_duration_element (el_input, el_msg, field_dict, user_lang);
-                break;
-            default:
-                break;
-            }
-        }
-    }
-
 //========= format_text_element  ======== PR2019-06-09
     function format_text_element (el_input, el_msg, field_dict) {
         //console.log("--- format_text_element ---")
@@ -650,27 +628,37 @@
             if(!!display_title){
                 el_input.setAttribute("title", display_title)
             } else {
-                el_input.removeAttribute("title")};
+                el_input.removeAttribute("title")
+            };
             if(!!data_value){
                 el_input.setAttribute("data-value", data_value)
+                el_input.setAttribute("data-o_value", data_value)
             } else {
-                el_input.removeAttribute("data-value")};
+                el_input.removeAttribute("data-value");
+                el_input.removeAttribute("data-o_value")
+            };
             if(!!mindate){
                 el_input.setAttribute("data-mindate", mindate)
             } else {
-                el_input.removeAttribute("data-mindate")};
+                el_input.removeAttribute("data-mindate")
+            };
             if(!!maxdate){
                 el_input.setAttribute("data-maxdate", maxdate)
             } else {
-                el_input.removeAttribute("data-maxdate")};
+                el_input.removeAttribute("data-maxdate")
+            };
             if(!!offset){
                 el_input.setAttribute("data-offset", offset)
             } else {
-                el_input.removeAttribute("data-offset")};
+                el_input.removeAttribute("data-offset")
+            };
 
         };  // if(!!el_input)
     }  // function format_date_element
 
+
+
+//oooooooooooooooooooooooooooooooo
 //========= format_datetime_element  ======== PR2019-06-03
     function format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list) {
         //console.log("------ format_datetime_element --------------")
@@ -815,103 +803,66 @@
         }  // if(!!el_input && !!field_dict){
     }  // function format_datetime_element
 
-//========= format_timeoffset_element  ======== PR2019-07-03
-    function format_timeoffset_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list) {
+//========= format_offset_element  ======== PR2019-07-03
+    function format_offset_element (el_input, el_msg, fieldname, field_dict, comp_timezone, timeformat, user_lang, title_prev, title_next) {
         // timestart: {dhm: "Sun 10:00 p.m.", value: "-1;22;0"}
 
-        if(!!el_input && !!field_dict){
-            //console.log("------ format_timeoffset_element --------------")
-            //console.log("el_input: ", el_input)
-            //console.log("field_dict: ", field_dict)
+        if(!!el_input){
+            let value, display_text, title ;
+            if(!!field_dict){
+               // console.log("------ format_offset_element --------------")
+                //console.log("el_input: ", el_input)
+                //console.log("field_dict: ", field_dict)
 
-            const value = get_dict_value_by_key (field_dict, "value"); // value = datetime_utc_iso
-            const updated = get_dict_value_by_key (field_dict, "updated");
-            const msg_err = get_dict_value_by_key (field_dict, "error");
-
-            let datetime_local, rosterdate, datetime_date, rosterdate_date;
-
-            const rosterdate_utc_iso = get_dict_value_by_key (field_dict, "rosterdate", "");
-            if (!!rosterdate_utc_iso){
-                datetime_local = moment.utc(rosterdate_utc_iso);
-                //console.log("datetime_local: ",  datetime_local.format())
-            }
-
-            let days_offset = 0, hours = 0, minutes = 0, show_weekday = false;
-            if (!!value) {
                 // value:  "-1;22;15"
-                let offset_arr = value.split(";")
-                if (offset_arr.length === 3) {
+                value = get_dict_value_by_key (field_dict, "value"); // value = datetime_utc_iso
+
+                const updated = get_dict_value_by_key (field_dict, "updated");
+                const msg_err = get_dict_value_by_key (field_dict, "error");
+
+                let datetime_local, rosterdate, datetime_date, rosterdate_date;
+
+                if (!!value){
+                    let days_offset = 0, curHours = 0, curMinutes = 0;
+                    const offset_arr = value.split(";")
                     days_offset = parseInt(offset_arr[0])
-                    hours = parseInt(offset_arr[1])
-                    minutes = parseInt(offset_arr[2])
-                } else if (offset_arr.length === 2) {
-                    hours = parseInt(offset_arr[0])
-                    minutes = parseInt(offset_arr[1])
-                } else if (offset_arr.length === 1) {
-                    hours = parseInt(offset_arr[0])
-                }
-                if (!!days_offset){show_weekday = true}
-            }  // if (!!value)
-            //console.log("days_offset: ", days_offset, "hours: ", hours, "minutes: ", minutes )
+                    curHours = parseInt(offset_arr[1])
+                    curMinutes = parseInt(offset_arr[2])
+                    //console.log("days_offset: ", days_offset, "curHours: ", curHours, "curMinutes: ", curMinutes )
 
-            if (!!datetime_local) {
-                // add / subtract day from rosterdate
-                datetime_local.add(days_offset, 'day')
-                // display new date in el_timepicker
+                    const isAmPm = (timeformat === "AmPm");
+                    const isEN = (user_lang === "en")
 
-            // set new hours and minutes in datetime_local
-                datetime_local.hour(hours);
-                datetime_local.minute(minutes);
-                //console.log("new datetime_local: ",  datetime_local.format())
+                    //check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
+                    if(!isAmPm && fieldname === "offsetend"){
+                        if (days_offset === 1 && curHours === 0 && curMinutes === 0){
+                            days_offset = 0
+                            curHours = 24;
+                    }}
 
-// from https://www.techrepublic.com/article/convert-the-local-time-to-another-time-zone-with-this-javascript/
-// from  https://momentjs.com/timezone/
-                let fulldate, fulltime, fulldatetime, dhm, weekday_str = "", month_str = ""
+                    const hour_str = "00" + curHours.toString()
+                    let hour_text = hour_str.slice(-2);
+                    const minute_str = "00" + curMinutes.toString()
+                    let minute_text = minute_str.slice(-2);
 
-                if (show_weekday && !!weekday_list){
-                    const weekday_iso = datetime_local.isoWeekday();
-                    weekday_str = weekday_list[weekday_iso];
-                }
-                //console.log("weekday_str: ", weekday_str);
-                if (!!month_list){
-                    const month_iso = datetime_local.month() + 1;
-                    month_str = month_list[month_iso];
-                }
-                //console.log("month_str: ", month_str);
+                    let delim  = "", prefix = "", suffix = ""
+                    if(isEN){
+                        delim = ":";
+                    } else {
+                        delim = ".";
+                        suffix = " u"
+                    }
 
-                let isAmPm = false
-                if (timeformat === "AmPm"){isAmPm = true};
+                    if (days_offset < 0) {
+                        prefix = "<- ";
+                        title = title_prev
+                    } else if (days_offset > 0) {
+                        suffix = suffix + " ->";
+                        title = title_next
+                    }
 
-                //console.log("moment.locale: ", moment.locale());
-                let isEN = false
-                if (moment.locale() === "en"){isEN = true};
-
-            // format fulldate and fulltime
-                if(isEN) {
-                    fulldate = datetime_local.format("dddd, MMMM D, YYYY")
-                    if(isAmPm){fulltime = datetime_local.format("hh:mm a")} else {fulltime = datetime_local.format("HH:mm")}
-                } else {
-                    fulldate = datetime_local.format("dddd D MMMM YYYY")
-                    if(isAmPm){fulltime = datetime_local.format("hh.mm a")} else {fulltime = datetime_local.format("HH.mm") + " u"}
-                }
-            // format full date
-                fulldatetime = fulldate + " " + fulltime
-                //console.log("fulldatetime: ", fulldatetime);
-
-            // format time with weekday if different from rosterdate
-                if(!!weekday_str){
-                    dhm = weekday_str + " " + fulltime
-                } else {
-                    dhm =  fulltime
-                }
-
-            // format za 23 mei NOT IN USE
-                let wdm;
-                if(moment.locale() === "en") {
-                    wdm = weekday_str + ", "  + month_str + " " + datetime_local.date();
-                } else {
-                    wdm = weekday_str + " " + datetime_local.date() + " " + month_str;
-                }
+                    display_text = prefix + hour_text + delim + minute_text + suffix;
+                }  // if (!!value)
 
                 if(!!msg_err){
                    ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
@@ -921,37 +872,178 @@
                         el_input.classList.remove("border_valid");
                         }, 2000);
                 }
-                if(!!value){
-                    el_input.setAttribute("data-value", value)};
-                if(!!dhm){
-                    el_input.value = dhm};
-                if(!!fulldatetime){
-                    el_input.title = fulldatetime};
-            }  // if (!!datetime_local){
-        }  //  if(!!el_input && !!field_dict){
-    }  // function format_timeoffset_element
+            }  //  if(!!field_dict)
+
+            if(!!display_text){
+                el_input.value = display_text;
+            } else {
+                el_input.value = null;
+            }
+            if(!!title){
+                el_input.title = title;
+            } else {
+                el_input.removeAttribute("title");
+            }
+            el_input.setAttribute("data-value", value);
+            el_input.setAttribute("data-o_value", value);
+
+        }  // if(!!el_input)
+    }  // function format_offset_element
+
+
+//========= format_offset_element  ======== PR2019-06-03
+    function format_offset_elementXXX (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list) {
+        //console.log("------ format_offset_element --------------")
+        //console.log("field_dict: ", field_dict)
+
+        if(!!el_input && !!field_dict){
+// timestart: {datetime: "2019-07-02T12:00:00Z", mindatetime: "2019-07-02T04:00:00Z",
+//                      maxdatetime: "2019-07-03T10:00:00Z", rosterdate: "2019-07-02T00:00:00Z"}
+
+// challenge: instead of 'zo 00.00 u' display 'za 24.00 u', only in time-end field
+            const rosterdate_iso = get_dict_value_by_key (field_dict, "rosterdate");  // value = rosterdate_iso
+            const curOffset = get_dict_value_by_key (field_dict, "offset");
+            const updated = get_dict_value_by_key (field_dict, "updated");
+            const msg_err = get_dict_value_by_key (field_dict, "error");
+
+// from https://www.techrepublic.com/article/convert-the-local-time-to-another-time-zone-with-this-javascript/
+// from  https://momentjs.com/timezone/
+            let fulltime, fulldatetime, shortdatetime, weekday_str = "", month_str = "";
+
+            const isAmPm = (timeformat === "AmPm")
+            // TODO use user_lang / timeformat
+            const isEN = (moment.locale() === "en")
+
+            if (!!curOffset){
+                if(!curOffset){curOffset = "0;0;0"}
+
+                let arr = curOffset.split(";");
+                curdate_rosterdate_diff = parseInt(arr[0])
+                curHours = parseInt(arr[1])
+                curMinutes = parseInt(arr[2])
+
+
+//check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
+                let display24 = false;
+                if(fieldname === "offsetend" && curMinutes === 0 ){
+                    if (curdate_rosterdate_diff === 0 && curHours === 24 ){
+                        display24 = true
+                    } else if (curdate_rosterdate_diff === 1 && curHours === 0 ){
+                        display24 = true
+                    }
+                }
+
+// get fulltime and fulltime_24h (is '24.00 u' when 00.00 u)
+                let curHours_str =  "00" + curHours.toString()
+                curHours_str = curHours_str(-2);
+
+                const curMinutess_str =  "00" + curMinutes.toString()
+                curMinutess_str = curMinutess_str(-2);
+
+                let fulltime_24h;
+                if (display24){
+                    if (isEN){ fulltime = "24:00"
+                    } else { fulltime = "24.00 u"}
+
+                } else {
+                    if (isEN){
+                        fulltime = curHours_str + ":" + curMinutess_str
+                    } else {
+                        fulltime = curHours_str + "." + curMinutess_str + " u"
+                    }
+                }
+
+// get display_datetime_local (is yesterday when display24)
+                // when display24 display shows: 'za 24.00 u' instead of 'zo 00.00 u'
+                let display_datetime_local;
+                if (display24){
+                    display_datetime_local = datetime_local.clone().add(-1, 'day')
+                } else {
+                    display_datetime_local = datetime_local.clone()
+                }
+
+// format fulldatetime
+                if (display24){
+                    if(isEN) {
+                        fulldatetime = display_datetime_local.format("dddd, MMMM D, YYYY") + " " + fulltime_24h
+                    } else {
+                        fulldatetime = display_datetime_local.format("dddd D MMMM YYYY") + " " + fulltime_24h
+                    }
+                } else {
+                    if(isEN) {
+                        fulldatetime = datetime_local.format("dddd, MMMM D, YYYY") + " " + fulltime
+                    } else {
+                        fulldatetime = datetime_local.format("dddd D MMMM YYYY") + " " + fulltime
+                    }
+                }
+
+
+// format time with weekday if different from rosterdate
+
+                if (display24){
+                    shortdatetime = fulltime_24h
+                } else {
+                    shortdatetime = fulltime
+                }
+                if(!!weekday_str){shortdatetime = weekday_str + " " + shortdatetime}
+
+
+// show msg_err or border_valid
+                if(!!msg_err){
+                   ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+                } else if(updated){
+                    el_input.classList.add("border_valid");
+                    setTimeout(function (){
+                        el_input.classList.remove("border_valid");
+                        }, 2000);
+                }
+            }  // if (!!datetime_iso)
+
+// put values in element
+            if(!!rosterdate_iso){el_input.setAttribute("data-rosterdate", rosterdate_iso)
+                } else {el_input.removeAttribute("data-rosterdate")};
+            if(!!datetime_iso){el_input.setAttribute("data-datetime", datetime_iso)
+                } else {el_input.removeAttribute("data-datetime")};
+            if(!!mindatetime){el_input.setAttribute("data-mindatetime", mindatetime)
+                } else {el_input.removeAttribute("data-mindatetime")};
+            if(!!maxdatetime){el_input.setAttribute("data-maxdatetime", maxdatetime)
+                } else {el_input.removeAttribute("data-maxdatetime")};
+            if(!!offset){el_input.setAttribute("data-offset", offset)
+                } else {el_input.removeAttribute("data-offset")};
+
+            if(!!shortdatetime){el_input.value = shortdatetime};
+
+            el_input.title = fulldatetime;
+
+        }  // if(!!el_input && !!field_dict){
+    }  // function format_datetime_element
 
 
 //========= format_duration_element  ======== PR2019-07-22
     function format_duration_element (el_input, el_msg, field_dict, user_lang) {
         // timeduration: {value: 540, hm: "9:00"}
-        if(!!el_input && !!field_dict){
+        //console.log("+++++++++ format_duration_element")
+        //console.log(field_dict)
 
-            let value_int = parseInt(get_dict_value_by_key (field_dict, "value"));
-            let updated = get_dict_value_by_key (field_dict, "updated");
-            let msg_err = get_dict_value_by_key (field_dict, "error");
+        if(!!el_input){
+            let value_int = 0;
+            if(!!field_dict){
+                value_int = parseInt(get_dict_value_by_key (field_dict, "value"));
+                if (!value_int) {value_int = 0}
 
-            if(!!msg_err){
-               ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
-            } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){
-                    el_input.classList.remove("border_valid");
-                    }, 2000);
-            }
+                let updated = get_dict_value_by_key (field_dict, "updated");
+                let msg_err = get_dict_value_by_key (field_dict, "error");
 
-            let hour_str, hour_text, time_format;
-            if(!!value_int){
+                if(!!msg_err){
+                   ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+                } else if(updated){
+                    el_input.classList.add("border_valid");
+                    setTimeout(function (){
+                        el_input.classList.remove("border_valid");
+                        }, 2000);
+                }
+
+                let hour_str, hour_text, time_format;
                 const hours = Math.floor(value_int/60);  // The Math.floor() function returns the largest integer less than or equal to a given number.
                 if (hours > -100 && hours < 100) {
                     hour_str = "00" + hours.toString()
@@ -959,6 +1051,7 @@
                 } else {
                     hour_text =  hours.toString()
                 }
+
                 const minutes = value_int % 60  // % is remainder operator
                 const minute_str = "00" + minutes.toString()
                 const minute_text = minute_str.slice(-2);
@@ -968,25 +1061,23 @@
                 } else {
                     time_format = hour_text + "." + minute_text + " u";
                 }
+                if(!!value_int){
+                    el_input.value = time_format;
+                } else {
+                    el_input.value = null
+                }
+            }  // if(!!field_dict)
 
-            }
-
-            if(!!value_int){
-                el_input.value = time_format;
-                el_input.setAttribute("data-value", value_int);
-            } else {
-                el_input.value = null
-                el_input.removeAttribute("data-value");
-            }
-
-        }
+            el_input.setAttribute("data-value", value_int);
+            el_input.setAttribute("data-o_value", value_int);
+        } // if(!!el_input){
     }  // function format_duration_element
 
 //========= format_inactive_element  ======== PR2019-06-09
     function format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active, title_inactive, title_active) {
         // inactive: {value: true}
-        // console.log("+++++++++ format_inactive_element")
-        // console.log(field_dict)
+        //console.log("+++++++++ format_inactive_element")
+        //console.log(field_dict)
         // console.log(el_input)
         if(!!el_input){
             let is_inactive = false;
@@ -1011,10 +1102,12 @@
                     title = title_active;
                 }
                 el_img.setAttribute("src", imgsrc);
-                el_input.setAttribute("title", title);
-             }
-        }
-    }
+                if (!!title){
+                    el_input.setAttribute("title", title);
+                } else {
+                    el_input.removeAttribute("title");
+        }}}
+    }  // format_inactive_element
 
 
 //========= format_status_element  ======== PR2019-06-09
@@ -1230,27 +1323,52 @@
     }
 
 
-//=========  DeselectHighlightedRows  ================ PR2019-04-30
-    function DeselectHighlightedRows(tableBody) {
+//=========  DeselectHighlightedRows  ================ PR2019-04-30 PR2019-08-08
+    function DeselectHighlightedRows(tableBody, cls_selected, cls_background) {
         //console.log("=========  DeselectHighlightedRows =========");
+
+        if(!cls_selected){cls_selected = "tsa_tr_selected"}
+
         if(!!tableBody){
-            let tblrows = tableBody.getElementsByClassName("tsa_tr_selected");
+            let tblrows = tableBody.getElementsByClassName(cls_selected);
             for (let i = 0, len = tblrows.length; i < len; i++) {
-                tblrows[i].classList.remove("tsa_tr_selected")
+                if(!!tblrows[i]){
+                    tblrows[i].classList.remove(cls_selected)
+
+                    if(!!cls_background){
+                        tblrows[i].classList.add(cls_background)
+                    };
+                }
             }
 // don't remove tsa_tr_error
             //tblrows = tableBody.getElementsByClassName("tsa_tr_error");
             //for (let i = 0, len = tblrows.length; i < len; i++) {
             //   tblrows[i].classList.remove("tsa_tr_error")
             //}
-            tblrows = tableBody.getElementsByClassName("tsa_bc_yellow_lightlight");
-            for (let i = 0, len = tblrows.length; i < len; i++) {
-                tblrows[i].classList.remove("tsa_bc_yellow_lightlight")
+            //tblrows = tableBody.getElementsByClassName("tsa_bc_yellow_lightlight");
+            //for (let i = 0, len = tblrows.length; i < len; i++) {
+            //    tblrows[i].classList.remove("tsa_bc_yellow_lightlight")
+            //}
+        }
+    }
+
+//=========  ChangeBackgroundRows  ================ PR2019-08-11
+    function ChangeBackgroundRows(tableBody, old_cls_background, new_cls_background, skip_cls_background) {
+
+        if(!!tableBody){
+            let tblrows = tableBody.children;
+            for (let i = 0, row, skip = false, len = tblrows.length; i < len; i++) {
+                row = tblrows[i];
+                if(!!row) {
+                    if (!!skip_cls_background){skip = row.classList.contains(skip_cls_background)}
+                    if(!skip){
+                        if (!!new_cls_background){row.classList.add(new_cls_background)};
+                        row.classList.remove(old_cls_background)
+                    }
+                }
             }
         }
     }
-//>>>>>>>>>
-
 
 
 

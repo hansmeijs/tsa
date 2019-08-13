@@ -7,6 +7,7 @@
 {% endblock %}
 
 {% block content %}
+  <div class="container">
     {% if user.is_authenticated %}
         <!-- =================== id_msgbox  =================== -->
         <div class="popup" >
@@ -92,4 +93,5 @@
         <div class="alert alert-danger">{% trans 'Error' %}</div>
         <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
     {% endif %}
+</div>
 {% endblock %}

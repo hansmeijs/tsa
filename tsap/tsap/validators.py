@@ -7,7 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_COLDEFS
 
-from companies.models import Company, Customer, Order, Employee, Scheme, Emplhour
+from companies.models import Company, Customer, Order, Employee, Scheme, Shift, Team, Emplhour
 
 import logging
 logger = logging.getLogger(__name__)
@@ -240,6 +240,12 @@ def validate_code_name_id(table, field, new_value, parent, update_dict, this_pk=
             elif table == 'scheme':
                 crit.add(Q(order=parent), crit.connector)
                 exists = Scheme.objects.filter(crit).exists()
+            elif table == 'shift':
+                crit.add(Q(scheme=parent), crit.connector)
+                exists = Shift.objects.filter(crit).exists()
+            elif table == 'team':
+                crit.add(Q(scheme=parent), crit.connector)
+                exists = Team.objects.filter(crit).exists()
             else:
                 msg_err = _("Model '%(mdl)s' not found.") % {'mdl': table}
 

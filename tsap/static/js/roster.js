@@ -193,11 +193,11 @@ $(function() {
 // buttons in  timepicker
         let btn_prevday = document.getElementById("id_timepicker_prevday")
             btn_prevday.addEventListener("click", function () {
-                SetPrevNextDay("prevday", el_timepicker, UpdateTableRow, comp_timezone, cls_hover, cls_highl)
+                SetPrevNextDay("prevday", el_timepicker, el_data, UpdateTableRow, comp_timezone, cls_hover, cls_highl)
             }, false )
         let btn_nextday = document.getElementById("id_timepicker_nextday")
             btn_nextday.addEventListener("click", function () {
-                SetPrevNextDay("nextday", el_timepicker, UpdateTableRow, comp_timezone, cls_hover, cls_highl)
+                SetPrevNextDay("nextday", el_timepicker, el_data, UpdateTableRow, comp_timezone, cls_hover, cls_highl)
             }, false )
         let btn_save = document.getElementById("id_timepicker_save")
             btn_save.addEventListener("click", function() {HandleTimepickerSave(el_timepicker, el_data, UpdateTableRow, "btn_save")}, false )

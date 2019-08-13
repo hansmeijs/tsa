@@ -24,7 +24,7 @@ from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX
         LANG_DEFAULT, WEEKDAYS_ABBREV, MONTHS_ABBREV, COLDEF_EMPLOYEE, CAPTION_EMPLOYEE
 
 from tsap.functions import get_date_from_ISOstring, get_iddict_variables, create_dict_with_empty_attr, get_datetimearray_from_ISOstring
-from planning.dicts import remove_empty_attr_from_dict
+
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_namelast_namefirst, validate_code_name_id, validate_employee_has_emplhours
 
@@ -229,7 +229,7 @@ class EmployeeUploadView(UpdateView):# PR2019-07-30
                             # logger.debug('updated instance: ' + str(instance))
 
 # --- remove empty attributes from update_dict
-                    remove_empty_attr_from_dict(update_dict)
+                    f.remove_empty_attr_from_dict(update_dict)
                     # logger.debug('update_dict: ' + str(update_dict))
 
                     if update_dict:

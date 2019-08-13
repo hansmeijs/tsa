@@ -4,24 +4,24 @@
 
 {% block stylesheet %}{% endblock %}
 {% block script %}
-    <script src="{% static 'js/schemes.js' %}">
-</script>{% endblock %}
+    <script src="{% static 'js/schemes.js' %}"></script>
+{% endblock %}
 
 <!-- MODAL -->
 {% block modal %}
 
-<!-- =================== MODAL ADDNEW  =================== -->
-    <div class="modal fade" id="id_mod_addnew" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+<!-- =================== MODAL SCHEME ADD  =================== -->
+    <div class="modal fade" id="id_mod_scheme_add" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">
             <div class="modal-content">
                 <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_mod_addnew_header" class="modal-title mx-2" >{% trans 'Add new scheme' %}</h4>
+                    <h4 id="id_mod_scheme_add_header" class="modal-title mx-2" >{% trans 'Add new scheme' %}</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
-                <div  id="id_mod_addnew_body" class="modal-body">
+                <div  id="id_mod_scheme_add_body" class="modal-body">
                     <div class="modal_container">
 
 <!-- modal_body_left contains template select table -->
@@ -59,16 +59,17 @@
                     </div>
                 </div>
                 <div class="modal-footer ">
-                    <div id="id_mod_addnew_msg" class="mod_flex modal_body_left tr_color_red mx-2"></div>
+                    <div id="id_mod_scheme_add_msg" class="mod_flex modal_body_left tr_color_red mx-2"></div>
                     <div>
                         <button type="button"  class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                        <button id="id_mod_addnew_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                        <button id="id_mod_scheme_add_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
                     </div>
                 </div>
 
             </div>
         </div>
     </div>
+
 <!-- =================== END MODAL ADDNEW  =================== -->
 
 <!-- =================== MODAL COPYFROM TEMPLATE  =================== -->
@@ -168,28 +169,30 @@
 
 {% block content %}
     {% if user.is_authenticated %}
-        <div class="popup display_hide" >
-            <span class="popuptext" id="id_msgbox"></span>
-        </div>
 
-<div class="flex_container">
-
-    <div class="flex_content tsa_bc_lightlightgrey">
+<!-- SIDE BAR -->
+    <div class="sidebar">
         <div class="content_subheader_left mx-2 my-1">
             <h6>
-                <select id="id_select_customer" class="td_width_180"></select>
+                <select id="id_select_customer" class="td_width_220"></select>
                 <option value="" disabled selected hidden>{% trans 'Select customer' %}...</option>
             </h6>
             <h6>
-                <select id="id_select_order" class="td_width_180"></select>
+                <select id="id_select_order" class="td_width_220"></select>
             </h6>
-            <div>
+            <div class="mt-2">
                 <table class="table table-condensed tsa-tbl ">
-                    <thead id="id_thead_scheme_select" class="mx-1 my-1"></thead>
+                    <thead id="id_thead_scheme_select" class="mx-1 my-1 "></thead>
                     <tbody id="id_tbody_scheme_select"></tbody>
                 </table>
             </div>
-            <div>
+            <div class="mt-2">
+                <table class="table table-condensed tsa-tbl ">
+                    <thead id="id_thead_shift_select"class="mx-1 my-1 "></thead>
+                    <tbody id="id_tbody_shift_select"></tbody>
+                </table>
+            </div>
+            <div class="mt-2">
                 <table class="table table-condensed tsa-tbl ">
                     <thead id="id_thead_team_select"class="mx-1 my-1 "></thead>
                     <tbody id="id_tbody_team_select"></tbody>
@@ -197,8 +200,13 @@
             </div>
         </div>
     </div>
+<!-- SIDE BAR -->
+<div class="flex_container">
+        <div class="popup display_hide" >
+            <span class="popuptext" id="id_msgbox"></span>
+        </div>
 
-    <div class="content_subheader_right">
+    <div class="content_subheader_left">
         <div class="content_header">
             <div class="content_subheader_left mx-4 my-1">
                 <h6 id="id_hdr_customer">{% trans "Customer" %}</h6>
@@ -267,7 +275,7 @@
                      <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
                  </div>
 <!-- =================== POPUP WDY  =================== -->
-                 <div id="id_popup_wdy" class="popup_box display_hide td_wiXXXdth_220">
+                 <div id="id_popup_wdy" class="popup_box display_hide">
                      <div class="popup_header">
                         <label id="id_popup_wdy_header" class="mx-4 my-1" >{% trans 'Roster date' %}</label>
                         <button id="id_popup_wdy_close" type="button" class="close my-1" aria-label="Close">
@@ -287,81 +295,8 @@
                      <div class="content_subheader_right">
                          <button id="id_popup_wdy_save" class="btn btn-add">{% trans 'Save' %}</button>
                      </div>
-
                  </div>
-<!-- =================== POPUP DHM  =================== -->
-                <div id="id_popup_dhm" class="popup_box display_hide td_width_360">
-                    <div class="popup-body">
-                        <table class="pop_tbl">
-                            <thead>
-                                <tr>
-                                    <td class="td_width_hours">{% trans "Day" %}</td>
-                                    <td class="td_width_hours"> {% trans "Hour" %}</td>
-                                    <td class="td_width_hours">{% trans "Minutes" %}</td>
-                                    <td id="td_label_ampm" class="td_width_hours">{% trans "am/pm" %}</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><select id="id_popup_days" class="td_width_hours"></select></td>
-                                    <td><select id="id_popup_hours" class="td_width_hours"></select></td>
-                                    <td><select id="id_popup_minutes" class="td_width_hours"></select></td>
-                                    <td id="td_input_ampm" class="td_width_hours">
-                                        <select id="id_popup_ampm" class="td_width_hours"></select>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <div class="content_subheader_right">
-                            <button id="id_popup_dhm_save" class="btn btn-add">{% trans 'Save' %}</button>
-                        </div>
-                    </div>
-                </div>
-<!-- =================== POPUP HM  =================== -->
-                <div id="id_popup_hm" class="popup_box display_hide td_width_240">
-                    <div class="popup-body">
-                        <table class="pop_tbl">
-                            <thead>
-                                <tr>
-                                    <td class="td_width_hours"> {% trans "Hour" %}</td>
-                                    <td class="td_width_hours">{% trans "Minutes" %}</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>
 
-                                        <input id="id_popup_hm_hours"
-                                        type="number"
-                                        data-field="cycle"
-                                        data-table="scheme"
-                                               max = 23
-                                               min = 0
-                                        class="td_width_hours"
-                                        >
-                                    </td>
-
-                                    <td>
-                                        <input id="id_popup_hm_minutes"
-                                        type="number"
-                                        data-field="cycle"
-                                        data-table="scheme"
-                                               step = 15
-                                               max = 60
-                                               min = 0
-                                        class="td_width_hours"
-                                        >
-
-
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <div class="content_subheader_right">
-                            <button id="id_popup_hm_save" class="btn btn-add">{% trans 'Save' %}</button>
-                        </div>
-                    </div>
-                </div>
 <!-- =================== TIMEPICKER  =================== -->
                 {% include 'includes/timepicker.html' %}
 <!-- =================== DATA TABLE  =================== -->
@@ -411,11 +346,10 @@
             data-schemeitem_fill_url= "{% url 'schemeitem_fill_url' %}"
             data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
             data-scheme_upload_url="{% url 'scheme_upload_url' %}"
-            data-schemeorteam_upload_url="{% url 'schemeorteam_upload_url' %}"
+            data-schemeorshiftorteam_upload_url="{% url 'schemeorshiftorteam_upload_url' %}"
             data-teammember_upload_url="{% url 'teammember_upload_url' %}"
 
             data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
-
 
 
             data-err_msg01= "{% trans 'An error occurred.' %}"
@@ -442,7 +376,7 @@
 
             data-txt_date= "{% trans 'Date' %}"
             data-txt_scheme= "{% trans 'Scheme' %}"
-            data-txt_scheme_add= "{% trans 'Add new scheme' %}"
+            data-txt_scheme_add= "{% trans 'Add scheme' %}"
             data-txt_copyfrom_select_template= "{% trans 'Select template' %}"
             data-txt_copyfrom_select_none= "{% trans 'No templates' %}"
             data-txt_scheme_from_template= "{% trans 'Copy from template' %}"
@@ -453,7 +387,11 @@
             data-txt_fill_roster = "{% trans 'Fill roster' %}"
             data-txt_of = "{% trans 'of' %}"
             data-txt_shift= "{% trans 'Shift' %}"
-            data-txt_shift_add= "{% trans 'Enter shift' %}"
+            data-txt_shifts= "{% trans 'Shifts' %}"
+            data-txt_rest= "{% trans 'Rest' %}"
+            data-txt_successor= "{% trans 'Subsequent shift' %}"
+            data-txt_shift_add= "{% trans 'Add shift' %}"
+            data-txt_shift_enter= "{% trans 'Enter shift' %}"
             data-txt_shift_delete= "{% trans 'Delete shift' %}"
             data-txt_show_shifts= "{% trans 'Go to shifts' %}"
 
@@ -465,24 +403,31 @@
 
             data-txt_timestart= "{% trans 'Start time' %}"
             data-txt_timeend= "{% trans 'End time' %}"
-            data-txt_breakhours= "{% trans 'Break hours' %}"
+            data-txt_breakhours= "{% trans 'Break' %}"
             data-txt_workinghours= "{% trans 'Working hours' %}"
 
+            data-timepicker_curday= "{% trans 'Current day' %}"
+            data-timepicker_prevday= "{% trans 'Previous day' %}"
+            data-timepicker_nextday= "{% trans 'Next day' %}"
+            data-timepicker_prevday_info= "{% trans 'Shift starts on the previous day' %}"
+            data-timepicker_nextday_info= "{% trans 'Shift ends on the next day' %}"
+
             data-txt_employee= "{% trans 'Employee' %}"
+            data-txt_employees= "{% trans 'Employees' %}"
+            data-txt_employee_select= "{% trans 'Select employee' %}"
             data-txt_replaces= "{% trans 'Replaces' %}"
             data-txt_datefirst= "{% trans 'Start date' %}"
             data-txt_datelast= "{% trans 'End date' %}"
 
-            data-txt_employee_add= "{% trans 'Enter employee' %}"
+            data-txt_employee_add= "{% trans 'Add employee' %}"
+            data-txt_replacement_add= "{% trans 'Add replacement employee' %}"
+            data-txt_employee_enter= "{% trans 'Enter employee' %}"
             data-msg_confirm_del1= "{% trans 'Do you want to delete the shift of' %}"
             data-msg_confirm_del2= "{% trans 'Do you want to delete this shift?' %}"
         >
         </div>
 
-        <datalist id="id_datalist_shifts"></datalist>
-        <datalist id="id_datalist_teams"></datalist>
         <datalist id="id_datalist_employees"></datalist>
-
     {% else %}
         <div class="alert alert-danger">{% trans 'Error' %}</div>
         <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>

@@ -213,21 +213,21 @@ h4 h5 {
     background-color: #fdf7e1; /* more lighter shade of tsa yellow */
 }
 
-
-.tsa_bc_lightgrey {
-    background-color: #e0e0e0; /* licht grijs; */
+.tsa_bc_darkdarkgrey {
+    background-color: #303024; /* dark dark Panta Rhei grey 48 48 36 */
 }
- /*background-color: #808080; /* #e0e0e0; /* licht grijs; */
-
 .tsa_bc_darkgrey {
-    background-color: #808080; /* #e0e0e0; /* licht grijs; */
+    background-color: #808080; /* dark grey 128 128 128 */
 }
-
+.tsa_bc_mediumgrey {
+    background-color: #a5a5a5; /* medium grey; 165 165 165 */
+}
+.tsa_bc_lightgrey {
+    background-color: #e0e0e0; /* light grey 224 224 224 */
+}
 .tsa_bc_lightlightgrey {
-    background: #f8f8f8; /*licht licht grijs; */
+    background: #f8f8f8; /*licht licht grijs 248 248 248 */
 }
-
-
 .tsa_bc_lightred {
     background-color: #f1b5b5; /* licht rood; */
 }
@@ -236,16 +236,38 @@ h4 h5 {
     background-color: #d7f4de; /* licht groen; */
 }
 
+.tsa_bc_bluegreen {
+    background-color: #64d6d6; /*blue-green*/
+}
+.tsa_bc_th_blue {
+    background-color: #b6dcef;
+}
+.tsa_bc_th_red {
+    background-color: #ffd9d9;
+}
+.tsa_bc_th_green {
+    background-color: #e2ffd9;
+}
+
+
+
+.tsa_bc_bluish {
+    background-color: #6083cc; /*blueish*/
+}
+.tsa_bc_lighterreddish {
+    background-color: #bd7f7f; /*lighter reddish*/
+}
 .tsa_bc_white {
     background-color: white;
 }
-
 
 .tsa_bc_transparent {
     background-color: transparent;
 }
 
-
+.tsa_color_darkgrey {
+    color: #808080; /* Dark grey; */
+}
 
 /*==================================================*/
 /* https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_popup */

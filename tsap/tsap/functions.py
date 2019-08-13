@@ -23,7 +23,23 @@ logger = logging.getLogger(__name__)
 
 # >>>>>> This is the right way, I think >>>>>>>>>>>>>
 
+# Finally solved some headache:
+# convert date object to datetime object
+def get_datetime_naive_from_date(date_obj):
+    # Finally found the way to convert a date object to a datetime object PR2019-07-28
+    # https://stackoverflow.com/questions/1937622/convert-date-to-datetime-in-python/1937636#1937636
+    # time.min retrieves the minimum value representable by datetime and then get its time component.
 
+    datetime_naive = datetime.combine(date_obj, time.min)
+    # logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
+    # datetime_naive: 2019-07-27 00:00:00 type: <class 'datetime.datetime'>
+
+    return datetime_naive
+
+# <<<<<<<<<< This is the right way, I think <<<<<<<<<<<
+
+
+# NIU yet
 def get_datetimeUTC_from_datetime(datetime_obj):
     # https://stackoverflow.com/questions/5802108/how-to-check-if-a-datetime-object-is-localized-with-pytz
     # datetime.replace makes datetime_obj aware. The good thing: it works both with naive and aware datetime_obj
@@ -34,65 +50,81 @@ def get_datetimeUTC_from_datetime(datetime_obj):
 
     return datetime_utc
 
+def get_datetime_utc_from_offset(rosterdate, offset, comp_timezone):
+    # logger.debug(' +++ get_datetimelocal_from_offset +++')
+    # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+    # logger.debug('offset: ' + str(offset))
 
-
-def get_datetimeUTC_from_offset(rosterdate, offset, comp_timezone):
-    # logger.debug(' +++ get_datetimeUTC_from_offset +++')
-    new_datetime_utc = None
-    if rosterdate and offset:
-        # logger.debug(' +++ get_datetimeUTC_from_offset +++')
-        # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
-
-        # convert to dattime object
-        rosterdatetime = get_datetime_from_date(rosterdate)
-
-        new_datetime_local = get_datetimelocal_from_offset(rosterdate, offset, comp_timezone)
-
-        new_datetime_utc = new_datetime_local.astimezone(pytz.UTC)
-        # logger.debug('new_datetime_utc: ' + str(new_datetime_utc) + ' ' + str(type(new_datetime_utc)))
-
-    return new_datetime_utc
-
-
-def get_datetimelocal_from_offset(rosterdate, offset, comp_timezone):
-    logger.debug(' +++ get_datetimelocal_from_offset +++')
+    # !!! this is the correct way !!! PR2019-07-31
 
     dt_local = None
     if rosterdate and offset:
-        # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
-        # logger.debug('offset: ' + str(offset))
+
+        # a. add local timezone to naive datetime object with offset
+        dt_local = get_datetimelocal_from_offset(rosterdate, offset, comp_timezone)
+
+        # b. convert to utc
+            # Note: to store datetime it is not necessary to convert to utc,
+            #       datetime is stored in database without timezone, let it stay for readability
+        dt__utc = dt_local.astimezone(pytz.UTC)
+        # logger.debug('dt__utc: ' + str(dt__utc) + ' ' + str(type(dt__utc)))
+        # logger.debug('dt__utc.tzinfo: ' + str(dt__utc.tzinfo) + ' ' + str(type(dt__utc.tzinfo)))
+
+    return dt_local
+
+
+def get_datetimelocal_from_offset(rosterdate, offset, comp_timezone):
+    #logger.debug(' +++ get_datetimelocal_from_offset +++')
+    # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+    # logger.debug('offset: ' + str(offset))
+
+    dt_local = None
+    if rosterdate and offset:
 
     # !!! this is the correct way !!! PR2019-07-31
+
+    # a. create new naive datetime object with hour and minute offset
+        dt = get_datetime_naive_from_offset(rosterdate, offset)
+        # logger.debug('dt with offset: ' + str(dt) + ' ' + str(type(dt)))
+        # logger.debug('dt.tzinfo: ' + str(dt.tzinfo) + ' ' + str(type(dt.tzinfo)))
+
+    # b. add timezone to naive datetime object
+        timezone = pytz.timezone(comp_timezone)
+        dt_local = timezone.localize(dt)  # dt_local.tzinfo: Europe/Amsterdam <class 'pytz.tzfile.Europe/Amsterdam'>
+        # logger.debug('dt_local: ' + str(dt_local) + ' ' + str(type(dt_local)))
+        # logger.debug('dt_local.tzinfo: ' + str(dt_local.tzinfo) + ' ' + str(type(dt_local.tzinfo)))
+
+    return dt_local
+
+
+def get_datetime_naive_from_offset(rosterdate, offset):
+    # logger.debug(' +++ get_datetime_naive_from_offset +++')
+    # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+    # logger.debug('offset: ' + str(offset))
+
+    # !!! this is the correct way !!! PR2019-07-31
+
+    dt_naive = None
+    if rosterdate and offset:
 
     # a. get offset day, hour, minute from offset
         day_offset, new_hour, new_minute = offset_split(offset)
 
     # b. convert rosterdate (date object) to rosterdatetime (datetime object, naive)
-        rosterdatetime = get_datetime_from_date(rosterdate)
-        logger.debug('rosterdatetime: ' + str(rosterdatetime) + ' ' + str(type(rosterdatetime)))
-        logger.debug('offset: ' + str(offset))
+        rosterdatetime = get_datetime_naive_from_date(rosterdate)
+        # logger.debug('rosterdatetime: ' + str(rosterdatetime) + ' ' + str(type(rosterdatetime)))
+        # logger.debug('offset: ' + str(offset))
 
     # c. add day_offset to the naive rosterdate (dont use local midnight, is not correct when DST changes)
         dt = rosterdatetime + timedelta(days=day_offset)
-        logger.debug('rosterdatetime_offset: ' + str(dt) + ' ' + str(type(dt)))
+        # logger.debug('rosterdatetime_offset: ' + str(dt) + ' ' + str(type(dt)))
 
     # d. create new naive datetime object with hour and minute offset
-        dt = datetime(dt.year, dt.month, dt.day, new_hour, new_minute, 0)  # dt.tzinfo: None
-        logger.debug('dt with offset: ' + str(dt) + ' ' + str(type(dt)))
-        logger.debug('dt.tzinfo: ' + str(dt.tzinfo) + ' ' + str(type(dt.tzinfo)))
+        dt_naive = datetime(dt.year, dt.month, dt.day, new_hour, new_minute, 0)  # dt.tzinfo: None
+        # logger.debug('dt_naive with offset: ' + str(dt_naive) + ' ' + str(type(dt_naive)))
+        # logger.debug('dt_naive.tzinfo: ' + str(dt_naive.tzinfo) + ' ' + str(type(dt_naive.tzinfo)))
 
-    # e. add timezone to naive datetime object
-        timezone = pytz.timezone(comp_timezone)
-        dt_local = timezone.localize(dt)  # dt_local.tzinfo: Europe/Amsterdam <class 'pytz.tzfile.Europe/Amsterdam'>
-        logger.debug('dt_local: ' + str(dt_local) + ' ' + str(type(dt_local)))
-        logger.debug('dt_local.tzinfo: ' + str(dt_local.tzinfo) + ' ' + str(type(dt_local.tzinfo)))
-
-    # f. not necessary to convert to utc, datetime is stored in database without timezone, let it stay for readability
-        dt__utc = dt_local.astimezone(pytz.UTC)
-        logger.debug('dt__utc: ' + str(dt__utc) + ' ' + str(type(dt__utc)))
-        logger.debug('dt__utc.tzinfo: ' + str(dt__utc.tzinfo) + ' ' + str(type(dt__utc.tzinfo)))
-
-    return dt_local
+    return dt_naive
 
 
 def offset_split(offset):
@@ -102,11 +134,13 @@ def offset_split(offset):
     minutes = 0
     if offset:
         if ';' in offset:
-            arr = offset.split(';')
-            day_offset = int(arr[0])
-            hours = int(arr[1])
-            minutes = int(arr[2])
-
+            try:
+                arr = offset.split(';')
+                day_offset = int(arr[0])
+                hours = int(arr[1])
+                minutes = int(arr[2])
+            except:
+                logger.debug('error offset_split: ' + str(offset))
     return day_offset, hours, minutes
 
 
@@ -144,21 +178,6 @@ def get_datetimearray_from_ISOstring(datetime_ISOstring):  # PR2019-07-10
         length += 1
 
     return arr
-
-# Finally solved some headache:
-# convert date object to datetime object
-def get_datetime_from_date(date_obj):
-    # Finally found the way to convert a date object to a datetime object PR2019-07-28
-    # https://stackoverflow.com/questions/1937622/convert-date-to-datetime-in-python/1937636#1937636
-    # time.min retrieves the minimum value representable by datetime and then get its time component.
-
-    datetime_naive = datetime.combine(date_obj, time.min)
-    # logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
-    # datetime_naive: 2019-07-27 00:00:00 type: <class 'datetime.datetime'>
-
-    return datetime_naive
-
-# <<<<<<<<<< This is the right way, I think <<<<<<<<<<<
 
 
 def get_datetime_LOCAL_from_ISOstring(datetime_ISOstring, comp_timezone):  # PR2019-07-13
@@ -286,24 +305,8 @@ def get_datetimelocal_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-0
 
     return datetime_local
 
-"""
-        # get date
-        year_str = str(datetime_aware.strftime("%Y"))
-        month_str = str(datetime_aware.strftime("%m"))
-        day_str = str(datetime_aware.strftime("%d"))
-        date_str =  '-'.join([year_str, month_str, day_str])
-
-        hour_str = str(datetime_aware.strftime("%H"))
-        minute_str = str(datetime_aware.strftime("%M")) # %m is zero-padded
-        second_str = str(datetime_aware.strftime("%S"))
-        time_str = ':'.join([hour_str, minute_str, second_str])
-
-        date_time_str = 'T'.join([date_str, time_str])
-        logger.debug("date_time_str:" + str(date_time_str))
-"""
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 
 
 def get_weekdaylist_for_DHM(rosterdate, lang):
@@ -357,7 +360,7 @@ def get_datetimeUTC_from_DHM(rosterdate, dhm_str, comp_timezone):
     # logger.debug(' +++ get_datetimeUTC_from_DHM +++')
 
     # convert to dattime object
-    rosterdatetime = get_datetime_from_date(rosterdate)
+    rosterdatetime = get_datetime_naive_from_date(rosterdate)
 
     # dt_localized: 2019-03-31 04:48:00+02:00
     dt_localized = get_datetimelocal_from_offset(rosterdatetime, dhm_str, comp_timezone)

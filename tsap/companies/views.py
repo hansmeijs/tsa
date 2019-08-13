@@ -2,8 +2,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-
-from django.utils.translation import activate
+from django.core.serializers.json import DjangoJSONEncoder
 
 from django.core.mail import send_mail
 from django.db import connection
@@ -11,20 +10,23 @@ from django.db.models.functions import Lower
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 
 from django.shortcuts import render, redirect #, get_object_or_404
+
 from django.urls import reverse_lazy
 from django.utils import timezone
+
+from django.utils.translation import activate
+from django.utils.functional import Promise
+from django.utils.encoding import force_text
+
 from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, DeleteView, View, ListView, CreateView, FormView
 
 from tsap.headerbar import get_headerbar_param
-from tsap.constants import LANG_DEFAULT
-from companies.models import Company, Customer
+from tsap import constants as c
+
+from companies.models import Company
 from companies.forms import CompanyAddForm, CompanyEditForm, InvoiceAddForm
-
-from django.utils.functional import Promise
-from django.utils.encoding import force_text
-from django.core.serializers.json import DjangoJSONEncoder
-
+from customers.dicts import create_absence_customer, get_or_create_special_order
 import logging
 logger = logging.getLogger(__name__)
 
@@ -137,14 +139,15 @@ class CompanyAddView(CreateView):
             # PR2018-08-04 debug: don't forget argument (request), otherwise gives error 'tuple index out of range' at request = args[0]
             self.new_company.save(request=self.request)
 
-            # TODO create absence customer after adding company
-            # create_absence_customer(request)
-
+            # create special customers and orders
+            get_or_create_special_order(c.CAT_02_REST, request)
+            create_absence_customer(request)
+            get_or_create_special_order(c.CAT_04_TEMPLATE, request)
 
             return redirect('company_list_url')
         else:
             # PR2019-03-15 Debug: langauge gets lost after form.is_valid, get request.user.lang again
-            activate(request.user.lang if request.user.lang else LANG_DEFAULT)
+            activate(request.user.lang if request.user.lang else c.LANG_DEFAULT)
 
             return render(self.request, 'company_add.html', {'form': form})
 
@@ -229,6 +232,6 @@ class InvoiceAddView(CreateView):
             return redirect('company_list_url')
         else:
             # PR2019-03-15 Debug: langauge gets lost after form.is_valid, get request.user.lang again
-            activate(request.user.lang if request.user.lang else LANG_DEFAULT)
+            activate(request.user.lang if request.user.lang else c.LANG_DEFAULT)
 
             return render(self.request, 'company_add.html', {'form': form})
