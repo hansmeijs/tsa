@@ -42,29 +42,24 @@ console.log("employee_import.js")
     let el_select_code_calc = document.getElementById("id_select_code_calc");
     el_select_code_calc.addEventListener("change", handle_select_code_calc, false);
 
-    // get the stored_columns from data-tag in div #id_data
-    let div_data = $("#id_data");
-    let captions = {};
+// --- get data stored in page
+    let el_data = document.getElementById("id_data");
+    const captions = get_attr_from_el_dict(el_data, "data-captions");
+    const settings_dict = get_attr_from_el_dict(el_data, "data-settings");
+
+    // get the stored_columns from data-tag in el_data
     let stored_coldefs = {};
     let stored_no_header = false;
     let stored_worksheetname = "";
+    let stored_code_calc = "linked";
+    if (!!settings_dict){
+        stored_worksheetname = get_dict_value_by_key(settings_dict, "worksheetname")
+        stored_coldefs = get_dict_value_by_key(settings_dict, "coldefs")
+        stored_no_header = get_dict_value_by_key(settings_dict, "no_header")
 
-    if (!!div_data.data("captions")){captions = div_data.data("captions")};
-
-    const settings = div_data.data("settings");
-    console.log("settings: ", typeof settings);
-    console.log(settings);
-    if (!!settings){
-        if (!!settings.coldefs){stored_coldefs = settings.coldefs};
-        if (!!settings.worksheetname){stored_worksheetname = settings.worksheetname};
-        if (!!settings.no_header){stored_no_header = settings.no_header};
-        if (!!settings.codecalc){
-            el_select_code_calc.value = settings.codecalc
-        };
+        stored_code_calc = get_dict_value_by_key(settings_dict, "codecalc")
+        if (!!stored_code_calc){el_select_code_calc.value = stored_code_calc}
     };
-
-    console.log("stored_coldefs: ", typeof stored_coldefs);
-    console.log(stored_coldefs);
 
     let selected_file = null;
     let workbook;
@@ -73,7 +68,6 @@ console.log("employee_import.js")
     let worksheet_data = [];
     let excel_columns = [];
 
-    console.log("stored_coldefs: ", typeof stored_coldefs);
     let selected_worksheetname = stored_worksheetname;
 
     const file_types = {
@@ -289,7 +283,8 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
                     if(workbook.SheetNames.length === 0) {
                         selected_worksheetname = "";
                         // TODO translate
-                        para.textContent = "There are no worksheets." ;
+                        //para.textContent = "There are no worksheets." ;
+                        para.textContent = get_attr_from_el(el_data, "data-txt_no_worksheets");
                         div_info.appendChild(para);
                     } else {
     // fill el_worksheet_list.options with sheets that are not empty
@@ -301,7 +296,6 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
                                 option.value = sheetname;
                                 option.innerHTML = sheetname;
     // make selected if name equals stored_worksheetname
-console.log(sheetname, stored_worksheetname)
                                 if (!!stored_worksheetname) { // if x = '' then !!x evaluates to false.
                                     if(sheetname.toLowerCase() === stored_worksheetname.toLowerCase() ){
                                         option.selected = true;
@@ -313,7 +307,8 @@ console.log(sheetname, stored_worksheetname)
 //---------  give message when no data in worksheetse
                         if (!el_worksheet_list.options.length){
                             // TODO translate
-                            para.textContent = "There are no worksheets with data." ;
+                            //para.textContent = "There are no worksheets with data." ;
+                            para.textContent = get_attr_from_el(el_data, "data-txt_no_worksheets_with_data");
                             div_info.appendChild(para);
                         } else {
 //---------  if only one sheet exists: makke selected = True
@@ -344,9 +339,13 @@ console.log(sheetname, stored_worksheetname)
 
                                     // upload new settings tsaCaption
                                     UploadSettings ();
-               }}}}}
+                                }
+                            }
+                        }
+                    }
+                }
             }; // reader.onload = function(event) {
-       }; // if(!!sel_file){
+        }; // if(!!sel_file){
     }  // function Get_Workbook(sel_file))
 
 //=========  fill worksheet_data  ========================================================================
@@ -529,7 +528,7 @@ console.log("=========  function FillDataTableAfterUpload =========");
             for (let i = 0, len = response.length; i <= len; i++) {
                 let datarow = response[i];
 
-console.log("datarow: ", i , datarow );
+//console.log("datarow: ", i , datarow );
 //e_idnumber: "ID number already exists."
 //e_lastname: "Student name already exists."
 //o_firstname: "Arlienne Marie Nedelie"
@@ -559,7 +558,7 @@ console.log("datarow: ", i , datarow );
                         class_background = cls_cell_unchanged_odd;
                     }
                 }
-                console.log("class_background", class_background)
+//console.log("class_background", class_background)
                 $("<tr>").appendTo(tblBody)
                     .attr({"id": id_datarow})
                     .addClass(class_background);
@@ -817,7 +816,7 @@ console.log("==== CreateMapTableWrap  =========> ", tableBase);
 
 //========= CreateMapTableSub  ====================================
     function CreateMapTableSub(tableBase, header1, header2, headExc, headTsa, headLnk ) {
-console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2, headExc, headTsa, headLnk);
+        //console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2, headExc, headTsa, headLnk);
         let base_div = $("#id_basediv_" + tableBase);  // BaseDivID =  "col"
         // delete existing rows of tblColExcel, tblColTsa, tblColLinked
         base_div.html("");
@@ -883,7 +882,7 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
     function CreateMapTableRows(tableBase, stored_items, excel_items,
                     JustLinkedTsaId, JustUnlinkedTsaId, JustUnlinkedExcId) {
 
-    console.log("==== CreateMapTableRows  =========>> ", tableBase);
+    //console.log("==== CreateMapTableRows  =========>> ", tableBase);
         //const cae_hl = "c_colTsaExcel_highlighted";
         //const cli_hi = "c_colLinked_highlighted";
 
@@ -969,7 +968,7 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
 //========= function UdateDatatableHeader  ====================================================
     function UpdateDatatableHeader() {
 //----- set tsaCaption in linked header colomn of datatable
-console.log("---------  function UpdateDatatableHeader ---------");
+//console.log("---------  function UpdateDatatableHeader ---------");
 //----- loop through array excel_columns from row index = 0
         for (let j = 0 ; j <excel_columns.length; j++) {
             // only rows that are not linked are added to tblColExcel
@@ -990,12 +989,12 @@ console.log("---------  function UpdateDatatableHeader ---------");
 
 //========= linkColumns  ====================================================
     function linkColumns(tableBase, tableName, row_clicked_id, row_other_id, row_clicked_key, row_other_key) {
-console.log("==========  linkColumns ==========>> ", tableBase, tableName, row_clicked_key, row_other_key);
+//console.log("==========  linkColumns ==========>> ", tableBase, tableName, row_clicked_key, row_other_key);
 // function adds 'excCol' to stored_coldefs and 'tsaCaption' to excel_columns
 
-console.log("tableBase ", tableBase, "tableName: ", tableName);
-console.log("row_clicked_id: ", row_clicked_id, "row_other_id ", row_other_id );
-console.log("row_clicked_key ", row_clicked_key, "row_other_key ", row_other_key );
+//console.log("tableBase ", tableBase, "tableName: ", tableName);
+//console.log("row_clicked_id: ", row_clicked_id, "row_other_id ", row_other_id );
+//console.log("row_clicked_key ", row_clicked_key, "row_other_key ", row_other_key );
 
         let stored_items, excel_items;
         if (tableBase === "col") {
@@ -1018,7 +1017,7 @@ console.log("row_clicked_key ", row_clicked_key, "row_other_key ", row_other_key
         // stored_row = {tsaKey: "ordername", caption: "Opdracht"}
         let excel_row = get_arrayRow_by_keyValue (excel_items, "excKey", excel_row_excKey);
         // excel_row = {caption: "Opdracht", excKey: "sector_sequence", tsaKey: "ordername"}
-console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
+//console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
 
         if(!!stored_row && !!excel_row){
             if(!!excel_row.excKey){
@@ -1030,7 +1029,7 @@ console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
         }
 // stored_row = {tsaKey: "ordername", caption: "Opdracht", excKey: "sector_name"}
 // excel_row = {index: 0, excKey: "sector_name", tsaKey: "ordername", tsaCaption: "Opdracht"}
-console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
+//console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
 
         // save changes in array stored_coldefs, excel_columns etc
         if (tableBase === "col") {
@@ -1102,7 +1101,7 @@ console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
 
 //========= UPLOAD SETTING COLUMNS =====================================
     function UploadSettings () {
-        console.log ("==========  UploadSettings");
+//console.log ("==========  UploadSettings");
         if(!!stored_coldefs) {
             // stored_coldefs is an array and has a .length property
             if(stored_coldefs.length > 0){
@@ -1210,7 +1209,6 @@ console.log("========== response Upload employees ==>", typeof response,  respon
         }; //if(rowLength > 0 && colLength > 0)
     }); //$("#btn_import").on("click", function ()
 //========= END UPLOAD =====================================
-
 
     function get_tsakey_from_storeditems(stored_items, excKey) {
     //--------- lookup tsaKey in stored_items PR2019-02-22

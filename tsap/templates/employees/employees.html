@@ -49,6 +49,7 @@
 <!-- =================== END MODAL EMPLOYEE  =================== -->
 {% endblock %}
 {% block content %}
+<div class="container">
     {% if user.is_authenticated %}
         <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
@@ -149,4 +150,5 @@
         <div class="alert alert-danger">{% trans 'Error' %}</div>
         <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
     {% endif %}
+</div>
 {% endblock %}

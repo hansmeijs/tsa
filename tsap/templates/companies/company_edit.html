@@ -2,14 +2,17 @@
 {% load i18n %}
 
 {% block breadcrumb %}
+<div class="container">
   <ol class="breadcrumb my-3">
     <li class="breadcrumb-item"><a href="{% url 'home' %}">TSA secure</a></li>
     <li class="breadcrumb-item"><a href="{% url 'company_list_url' %}">{% trans 'Companies' %}</a></li>
     <li class="breadcrumb-item active">{% trans 'Edit company' %}</li>
   </ol>
+</div>
 {% endblock %}
 
 {% block content %}
+<div class="container">
   {% if user.is_role_system %}
     <form method="post" novalidate>
       {% csrf_token %}
@@ -23,4 +26,5 @@
     <div class="alert alert-danger">{{ user.message_company_modify }}</div>
     <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
   {% endif %}
+</div>
 {% endblock %}

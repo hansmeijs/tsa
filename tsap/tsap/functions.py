@@ -388,30 +388,6 @@ def get_date_from_dateint(date_int):  # PR2019-03-06
         # logger.debug('return_date: ' + str(return_date) + str(type(return_date)))
     return return_date
 
-# NOT IN USE
-def get_date_str_from_dateint(date_int):  # PR2019-03-08
-    # Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use this basedate)
-    dte_str = ''
-    if date_int:
-        return_date = BASE_DATE + timedelta(days=date_int)
-        year_str = str(return_date.strftime("%Y"))
-        month_str = str(return_date.strftime("%m")) # %m is zero-padded
-        day_str = str(return_date.strftime("%d"))  # %d is zero-padded
-        dte_str = year_str + '-' + month_str[-2:] + '-' + day_str[-2:]
-    return dte_str
-
-
-def get_date_yyyymmdd(dte):
-    # Function return date 'yyyy-mm-dd' PR2019-03-27
-    dte_str = ''
-    if dte:
-        year_str = str(dte.strftime("%Y"))
-        month_str = str(dte.strftime("%m")) # %m is zero-padded
-        day_str = str(dte.strftime("%d"))  # %d is zero-padded
-        dte_str = '-'.join([year_str, month_str, day_str])
-    return dte_str
-
-
 def get_time_HHmm(date_time):
     # Function return date 'HH:mm' PR2019-04-07
     date_time_str = ''
@@ -428,6 +404,167 @@ def get_time_HHmm(date_time):
         minute_str = str(date_time.strftime("%M")) # %m is zero-padded
         date_time_str = ':'.join([hour_str, minute_str])
     return date_time_str
+
+# ################### DATE STRING  FUNCTIONS ###################
+def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
+    # logger.debug('... get_dateISO_from_string ...')
+    # logger.debug('date_string: ' + str(date_string), ' format: ' + str(format))
+
+    # function converts string into given format. Used in employee_import
+    if format is None:
+        format = 'yyyy-mm-dd'
+
+    new_dat_str = ''
+    if date_string:
+        # replace / by -
+        try:
+            date_string = date_string.replace('/', '-')
+            if '-' in date_string:
+                arr = date_string.split('-')
+                if len(arr) >= 2:
+                    day_int = 0
+                    month_int = 0
+                    year_int = 0
+                    if format == 'dd-mm-yyyy':
+                        day_int = int(arr[0])
+                        month_int = int(arr[1])
+                        year_int = int(arr[2])
+                    elif format == 'mm-dd-yyyy':
+                        month_int = int(arr[0])
+                        day_int = int(arr[1])
+                        year_int = int(arr[2])
+                    elif format == 'yyyy-mm-dd':
+                        year_int = int(arr[0])
+                        month_int = int(arr[1])
+                        day_int = int(arr[2])
+                    # logger.debug('year_int: ' + str(year_int) + ' month_int: ' + str(month_int) + ' day_int:' + str(day_int))
+
+                    if year_int < 100:
+                        currentYear = datetime.now().year
+                        remainder = currentYear % 100  # 2019 -> 19
+                        year100_int = currentYear // 100  # 2019 -> 20
+                        # currentYear = 2019, remainder = 19. When year_int <=29 convert to 2009, else convert to 1997
+                        if year_int <= remainder + 10:
+                            year_int = year_int + year100_int * 100
+                        else:
+                            year_int = year_int + (year100_int - 1) * 100
+
+                    year_str = '0000' + str(year_int)
+                    year_str = year_str[-4:]
+                    month_str = '00' + str(month_int)
+                    month_str = month_str[-2:]
+
+                    day_str = '00' + str(day_int)
+                    day_str = day_str[-2:]
+                    # logger.debug('year_str: ' + str(year_str) + ' month_str: ' + str(month_str) + ' day_str:' + str(day_str))
+
+                    new_dat_str = '-'.join([year_str, month_str, day_str])
+        except:
+            logger.debug('get_dateISO_from_string error: ' + str(date_string))
+            # logger.debug('new_dat_str: ' + str(new_dat_str))
+    return new_dat_str
+
+def detect_dateformat(dict, field):
+    logger.debug(' --- detect_dateformat ---')
+    # PR2019-08-05  detect date format
+    format_str = ''
+    try:
+        arr00_max = 0
+        arr01_max = 0
+        arr02_max = 0
+        for item in dict:
+            arr00 = 0
+            arr01 = 0
+            arr02 = 0
+
+            date_string = item.get(field)
+            if date_string:
+                arr = get_datetimearray_from_ISOstring(date_string)
+
+                isok = False
+                if len(arr) > 2:
+
+                    if arr[0].isnumeric():
+                        arr00 = int(arr[0])
+                        if arr[1].isnumeric():
+                            arr01 = int(arr[1])
+                            if arr[2].isnumeric():
+                                arr02 = int(arr[2])
+                                isok = True
+                if isok:
+                    if arr00 > arr00_max:
+                        arr00_max = arr00
+                    if arr01 > arr01_max:
+                        arr01_max = arr01
+                    if arr02 > arr02_max:
+                        arr02_max = arr02
+
+        year_pos = -1
+        day_pos = -1
+
+        if arr00_max > 31 and arr01_max <= 31 and arr02_max <= 31:
+            year_pos = 0
+            if arr01_max > 12 and arr02_max <= 12:
+                day_pos = 1
+            elif arr02_max > 12 and arr01_max <= 12:
+                day_pos = 2
+        elif arr01_max > 31 and arr00_max <= 31 and arr02_max <= 31:
+            year_pos = 1
+            if arr00_max > 12 and arr02_max <= 12:
+                day_pos = 0
+            elif arr02_max > 12 and arr00_max <= 12:
+                day_pos = 2
+        elif arr02_max > 31 and arr00_max <= 31 and arr01_max <= 31:
+            year_pos = 2
+            if arr00_max > 12 and arr01_max <= 12:
+                day_pos = 0
+            elif arr01_max > 12 and arr00_max <= 12:
+                day_pos = 1
+
+        if day_pos == -1:
+            if year_pos == 0:
+                day_pos = 2
+            elif year_pos == 2:
+                day_pos = 0
+
+        if year_pos > -1 and day_pos > -1:
+            if year_pos == 0 and day_pos == 2:
+                    format_str = 'yyyy-mm-dd'
+            if year_pos == 2:
+                if day_pos == 0:
+                    format_str = 'dd-mm-yyyy'
+                if day_pos == 1:
+                    format_str = 'mm-dd-yyyy'
+
+        logger.debug('format_str: ' + str(format_str) + ' max00: ' + str(arr00_max) + ' max01: ' + str(arr01_max) + ' max02: ' + str(arr02_max))
+
+    except:
+        logger.debug('detect_dateformat error: ' + str(date_string))
+
+    return format_str
+
+# NOT IN USE
+def get_date_str_from_dateint(date_int):  # PR2019-03-08
+    # Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use this basedate)
+    dte_str = ''
+    if date_int:
+        return_date = BASE_DATE + timedelta(days=date_int)
+        year_str = str(return_date.strftime("%Y"))
+        month_str = str(return_date.strftime("%m")) # %m is zero-padded
+        day_str = str(return_date.strftime("%d"))  # %d is zero-padded
+        dte_str = year_str + '-' + month_str[-2:] + '-' + day_str[-2:]
+    return dte_str
+
+def get_date_yyyymmdd(dte):
+    # Function return date 'yyyy-mm-dd' PR2019-03-27
+    dte_str = ''
+    if dte:
+        year_str = str(dte.strftime("%Y"))
+        month_str = str(dte.strftime("%m")) # %m is zero-padded
+        day_str = str(dte.strftime("%d"))  # %d is zero-padded
+        dte_str = '-'.join([year_str, month_str, day_str])
+    return dte_str
+
 
 
 def get_date_HM_from_minutes(minutes, lang):  # PR2019-05-07
@@ -494,6 +631,7 @@ def get_date_DM_from_dte(dte, lang):  # PR2019-06-17
 
 
 
+# ################### FORMAT FUNCTIONS ###################
 def formatWHM_from_datetime(dte, timezone, lang):
     # returns 'zo 16.30 u' PR2019-06-16
 
@@ -700,8 +838,25 @@ def get_time_minutes(timestart, timeend, break_minutes):  # PR2019-06-05
 
     return new_time_minutes
 
-# ################### DICT FUNCTIONS ###################
 
+# ################### NUMERIC FUNCTIONS ###################
+def get_float_from_string(value_str):  # PR2019-08-13
+
+    number = 0
+    if value_str:
+        try:
+            # replace comma by dot, remove space and '
+            value_str = value_str.replace(',', '.')
+            value_str = value_str.replace(' ', '')
+            value_str = value_str.replace("'", "")
+            number = float(value_str) if value_str != '' else 0
+        except:
+            logger.debug('get_float_from_string: <' + str(value_str) + '> not valid')
+            pass
+    return number
+
+
+# ################### DICT FUNCTIONS ###################
 def get_depbase_list_field_sorted_zerostripped(depbase_list):  # PR2018-08-23
     # sort depbase_list. List ['16', '15', '0', '18'] becomes ['0', '15', '16', '18'].
     # Sorted list is necessary, otherwise data_has_changed will not work properly (same values in different order gives modified=True)

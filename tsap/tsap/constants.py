@@ -232,17 +232,22 @@ SCHEME_24H_DEFAULT  =  ((1, 0, 0), (1, 1, 1), (1, 2, 2),  # cycleday, shift, tea
 # LOCALE #
 
 COLDEF_EMPLOYEE = {LANG_EN: [
-                                {'tsaKey': 'code', 'caption': 'Code'},
+                                {'tsaKey': 'code', 'caption': 'Short name'},
                                 {'tsaKey': 'namelast', 'caption': 'Last name'},
                                 {'tsaKey': 'namefirst', 'caption': 'First name'},
                                 {'tsaKey': 'identifier', 'caption': 'Identity number'},
                                 {'tsaKey': 'email', 'caption': 'Email address'},
                                 {'tsaKey': 'tel', 'caption': 'Telephone'},
                                 {'tsaKey': 'datefirst', 'caption': 'First date in service'},
-                                {'tsaKey': 'datelast', 'caption': 'Last date in service'}
+                                {'tsaKey': 'datelast', 'caption': 'Last date in service'},
+                                {'tsaKey': 'workhours', 'caption': 'Working hours per week'},
+                                {'tsaKey': 'workdays', 'caption': 'Working days per week'},
+                                {'tsaKey': 'leavedays', 'caption': 'Vacation days per year'},
+                                {'tsaKey': 'payrollcode', 'caption': 'Payroll code'}
+                                # {'tsaKey': 'wagecode', 'caption': 'Wage code'}
                             ],
                     LANG_NL: [
-                                {'tsaKey': 'code', 'caption': 'Code'},
+                                {'tsaKey': 'code', 'caption': 'Korte naam'},
                                 {'tsaKey': 'namelast', 'caption': 'Achternaam'},
                                 {'tsaKey': 'namefirst', 'caption': 'Voornaam'},
                                 {'tsaKey': 'identifier', 'caption': 'Identiteitsnummer'},
@@ -250,6 +255,11 @@ COLDEF_EMPLOYEE = {LANG_EN: [
                                 {'tsaKey': 'tel', 'caption': 'Telefoon'},
                                 {'tsaKey': 'datefirst', 'caption': 'Begindatum in dienst'},
                                 {'tsaKey': 'datelast', 'caption': 'Einddatum in dienst'},
+                                {'tsaKey': 'workhours', 'caption': 'Uren in dienst per week'},
+                                {'tsaKey': 'workdays', 'caption': 'Dagen in dienst per week'},
+                                {'tsaKey': 'leavedays', 'caption': 'Vakantiedagen per jaar'},
+                                {'tsaKey': 'payrollcode', 'caption': 'Code loonadministratie'}
+                               #  {'tsaKey': 'wagecode', 'caption': 'Looncode'}
                             ]
                     }
 

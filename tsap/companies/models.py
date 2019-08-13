@@ -187,8 +187,8 @@ class Order(TsaBaseModel):
         # - parent, code and name are required
         if customer:
             # TODO
-            code_ok = True  # TODO validate_code_name_id('order', 'code', code, update_dict, request.user.company)
-            name_ok = True  # TODO  validate_code_name_id('order', 'name', name, update_dict, request.user.company)
+            code_ok = True  # TODO validate_code_name_identifier('order', 'code', code, update_dict, request.user.company)
+            name_ok = True  # TODO  validate_code_name_identifier('order', 'name', name, update_dict, request.user.company)
 
 # - create instance
             if code_ok and name_ok:
@@ -378,8 +378,8 @@ class Employee(TsaBaseModel):
 
     wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
     workhours = IntegerField(default=0)  # / working hours per week, unit is minute
-    workdays = IntegerField(default=0)  # / working hours per day, unit is minute ( minutes per week / days per week)
-    leavedays = IntegerField(default=0)  # /leave days per year, full time
+    workdays = IntegerField(default=0)  # / workdays per week * 10000
+    leavedays = IntegerField(default=0)  # /leave days per year, full time, * 10000
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
@@ -400,8 +400,8 @@ class Employee(TsaBaseModel):
 # - parent, code and namelast are required
         if company:
             # TODO
-            code_ok = True  # TODO validate_code_name_id('employee', 'code', code, update_dict, request.user.company)
-            namelast_ok = True  # TODO  validate_code_name_id('employee', 'name', name, update_dict, request.user.company)
+            code_ok = True  # TODO validate_code_name_identifier('employee', 'code', code, update_dict, request.user.company)
+            namelast_ok = True  # TODO  validate_code_name_identifier('employee', 'name', name, update_dict, request.user.company)
 
 # - create instance
             if code_ok and namelast_ok:

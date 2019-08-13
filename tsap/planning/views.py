@@ -28,7 +28,7 @@ from tsap.headerbar import get_headerbar_param
 
 from companies import models as m
 
-from tsap.validators import validate_code_name_id
+from tsap.validators import validate_code_name_identifier
 
 import pytz
 import json
@@ -2897,7 +2897,7 @@ def update_scheme(instance, upload_dict, update_dict, request):
                     #TODO check if correct
 
                     parent = instance.order
-                    has_error = validate_code_name_id(table, fieldname, new_value, parent, update_dict, pk_int)
+                    has_error = validate_code_name_identifier(table, fieldname, new_value, parent, update_dict, pk_int)
                     if not has_error:
     # c. save field if changed and no_error
                         setattr(instance, fieldname, new_value)
@@ -3249,7 +3249,7 @@ def create_shift(upload_dict, update_dict, request):
             if code:
 
     # c. validate code
-                has_error = validate_code_name_id(table, 'code', code, parent, update_dict)
+                has_error = validate_code_name_identifier(table, 'code', code, parent, update_dict)
                 if not has_error:
 # 4. create and save shift
                     shift = m.Shift(scheme=parent, code=code)
@@ -3312,7 +3312,7 @@ def update_shift(shift, parent, upload_dict, update_dict, request):
     # b. validate code
                         has_error = False
                         if field == 'code':
-                            has_error = validate_code_name_id(table, field, new_value, parent, update_dict, pk_int)
+                            has_error = validate_code_name_identifier(table, field, new_value, parent, update_dict, pk_int)
                         if not has_error:
     # c. save field if changed and no_error
                             setattr(shift, field, new_value)
@@ -3415,7 +3415,7 @@ def create_team(upload_dict, update_dict, request):
                 code = code_dict.get('value')
             if code:
     # c. validate code
-                has_error = validate_code_name_id(table, 'code', code, parent, update_dict)
+                has_error = validate_code_name_identifier(table, 'code', code, parent, update_dict)
                 if not has_error:
 # 4. create and save team
                     team = m.Team(scheme=parent, code=code)
@@ -3453,7 +3453,7 @@ def create_scheme(parent, upload_dict, update_dict, request, temp_pk_str=None):
             code = code_dict.get('value')
 
 # c. validate code
-        has_error = validate_code_name_id('scheme', 'code', code,  parent, update_dict)
+        has_error = validate_code_name_identifier('scheme', 'code', code,  parent, update_dict)
 
         if not has_error:
             instance = m.Scheme(order=parent, code=code)

@@ -181,11 +181,11 @@ class validate_unique_employee_name(object):  # PR2019-03-15
             raise ValidationError(_('Employee name already exists.'))
         return value
 
-def validate_code_name_id(table, field, new_value, parent, update_dict, this_pk=None):
+def validate_code_name_identifier(table, field, new_value, parent, update_dict, this_pk=None):
     # validate if code already_exists in this table PR2019-07-30
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    # logger.debug('validate_code_name_id: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
+    # logger.debug('validate_code_name_identifier: ' + str(table) + ' ' + str(field) + ' ' + str(new_value) + ' ' + str(parent) + ' ' + str(this_pk))
     msg_err = None
     if not parent:
         msg_err = _("No parent record.")
@@ -197,16 +197,18 @@ def validate_code_name_id(table, field, new_value, parent, update_dict, this_pk=
             length = len(new_value)
         # logger.debug('length: ' + str(length))
 
+        blank_not_allowed = False
         fld = ''
         if field == 'code':
             fld = _('Code')
+            blank_not_allowed = True
         elif field == 'name':
             fld = _('Name')
+            blank_not_allowed = True
         elif field == 'identifier':
             fld = _('Id')
 
-
-        if length == 0:
+        if blank_not_allowed and length == 0:
             msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
         elif length > max_len:
             # msg_err = _('%(fld)s is too long. %(max)s characters or fewer.') % {'fld': fld, 'max': max_len}
@@ -224,7 +226,7 @@ def validate_code_name_id(table, field, new_value, parent, update_dict, this_pk=
             if this_pk:
                 crit.add(~Q(pk=this_pk), crit.connector)
 
-            #logger.debug('validate_code_name_id')
+            #logger.debug('validate_code_name_identifier')
             #logger.debug('table: ' + str(table) + 'field: ' + str(field) + ' new_value: ' + str(new_value))
 
             exists = False
