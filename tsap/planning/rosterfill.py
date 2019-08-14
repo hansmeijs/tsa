@@ -191,6 +191,10 @@ def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-08-01
                                                                     logger.debug(' add shift: ' + str(schemeitem.shift) + ' to roster')
                                                                     AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_count)  # PR2019-08-12
 
+                                                                # OR DON't?? add 1 cycle to today's schemeitems
+                                                                #next_rosterdate = new_rosterdate + timedelta(days=1)
+                                                                # update_schemeitem_rosterdate(schemeitem, next_rosterdate, comp_timezone)
+
 def AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_count):  # PR2019-08-12
 
     oh_is_locked = False
@@ -298,33 +302,35 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone):  # 
     # the curent cycle has index 0. It starts with new_rosterdate and ends with new_rosterdate + cycle -1
 
     if schemeitem:
-        # logger.debug('-----')
+        logger.debug('----- update_schemeitem_rosterdate ')
 
         if new_rosterdate:
             si_rosterdate = schemeitem.rosterdate
-            # logger.debug('si_rosterdate: ' + str(si_rosterdate) + ' ' + 'new_rosterdate: ' + str(new_rosterdate))
-            # logger.debug('si_time: ' + str(schemeitem.timestart) + ' - ' + str(schemeitem.timeend))
+            logger.debug('si_rosterdate: ' + str(si_rosterdate) + ' ' + str(type(si_rosterdate)))
+            logger.debug('new_rosterdate: ' + str(new_rosterdate) + ' ' + str(type(new_rosterdate)))
+            logger.debug('si_time: ' + str(schemeitem.timestart) + ' - ' + str(schemeitem.timeend))
 
-            datediff = new_rosterdate - si_rosterdate # datediff is class 'datetime.timedelta'
+            datediff = si_rosterdate - new_rosterdate  # datediff is class 'datetime.timedelta'
             datediff_days = datediff.days  # <class 'int'>
-            # logger.debug('datediff_days: ' + str(datediff_days))
+            logger.debug('datediff_days: ' + str(datediff_days))
 
             cycle_int = schemeitem.scheme.cycle
-            # logger.debug('cycle: ' + str(cycle_int) + ' ' + str(type(cycle_int)))
+            logger.debug('cycle: ' + str(cycle_int) + ' ' + str(type(cycle_int)))
             if cycle_int:
                 # cycle starting with new_rosterdate has index 0, previous cycle has index -1, next cycle has index 1 etc
                 # // operator: Floor division - division that results into whole number adjusted to the left in the number line
                 index = datediff_days // cycle_int
-                # logger.debug('index: ' + str(index) + ' ' + str(type(index)))
+                logger.debug('index: ' + str(index) + ' ' + str(type(index)))
                 # adjust si_rosterdate when index <> 0
                 if index:
-                    days_add = cycle_int * index
-                    # logger.debug('days_add: ' + str(days_add) + ' ' + str(type(days_add)))
+                    # negative index adds positive day and vice versa
+                    days_add = cycle_int * index * -1
+                    logger.debug('days_add: ' + str(days_add) + ' ' + str(type(days_add)))
                     new_si_rosterdate = si_rosterdate + timedelta(days=days_add)
 
                     # save new_si_rosterdate
                     schemeitem.rosterdate = new_si_rosterdate
-                    # logger.debug('new_si_rosterdate: ' + str(new_si_rosterdate) + ' ' + str(type(new_si_rosterdate)))
+                    logger.debug('new_si_rosterdate: ' + str(new_si_rosterdate) + ' ' + str(type(new_si_rosterdate)))
                     # new_si_rosterdate: 2019-07-27 <class 'datetime.date'>
 
                     # convert to dattime object
@@ -342,14 +348,15 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone):  # 
                                     offset=schemeitem.shift.offsetstart,
                                     comp_timezone=comp_timezone)
                             if schemeitem.shift.offsetend:
-                                new_timeend = f.get_datetimelocal_from_offset(rosterdate=new_si_rosterdatetime,
-                                                                            offset=schemeitem.shift.offsetstart,
-                                                                            comp_timezone=comp_timezone)
+                                new_timeend = f.get_datetimelocal_from_offset(
+                                    rosterdate=new_si_rosterdatetime,
+                                    offset=schemeitem.shift.offsetend,
+                                    comp_timezone=comp_timezone)
                             if schemeitem.shift.breakduration:
                                 breakduration = schemeitem.shift.breakduration
                     schemeitem.timestart = new_timestart
                     schemeitem.timeend = new_timeend
-                    # logger.debug('new_timeend: ' + str(new_timeend) + ' ' + str(type(new_timeend)))
+                    logger.debug('new_timeend: ' + str(new_timeend) + ' ' + str(type(new_timeend)))
 
                     # get new_schemeitem.timeduration
                     new_timeduration = 0
@@ -360,10 +367,10 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone):  # 
                             break_minutes=breakduration)
                     schemeitem.timeduration = new_timeduration
 
-                    # logger.debug('new_timeduration: ' + str(new_timeduration) + ' ' + str(type(new_timeduration)))
+                    logger.debug('new_timeduration: ' + str(new_timeduration) + ' ' + str(type(new_timeduration)))
                     # save without (request=request) keeps modifiedby and modifieddate
                     schemeitem.save()
-                    # logger.debug('schemeitem.saved: ' + str(schemeitem) + ' ' + str(type(schemeitem)))
+                    logger.debug('schemeitem.saved rosterdate: ' + str(schemeitem.rosterdate))
 
 
 # 5555555555555555555555555555555555555555555555555555555555555555555555555555

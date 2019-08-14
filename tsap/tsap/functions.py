@@ -61,7 +61,10 @@ def get_datetime_utc_from_offset(rosterdate, offset, comp_timezone):
     if rosterdate and offset:
 
         # a. add local timezone to naive datetime object with offset
-        dt_local = get_datetimelocal_from_offset(rosterdate, offset, comp_timezone)
+        dt_local = get_datetimelocal_from_offset(
+            rosterdate=rosterdate,
+            offset=offset,
+            comp_timezone=comp_timezone)
 
         # b. convert to utc
             # Note: to store datetime it is not necessary to convert to utc,
@@ -73,7 +76,7 @@ def get_datetime_utc_from_offset(rosterdate, offset, comp_timezone):
     return dt_local
 
 
-def get_datetimelocal_from_offset(rosterdate, offset, comp_timezone):
+def get_datetimelocal_from_offset( rosterdate, offset, comp_timezone):
     #logger.debug(' +++ get_datetimelocal_from_offset +++')
     # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
     # logger.debug('offset: ' + str(offset))
@@ -363,7 +366,10 @@ def get_datetimeUTC_from_DHM(rosterdate, dhm_str, comp_timezone):
     rosterdatetime = get_datetime_naive_from_date(rosterdate)
 
     # dt_localized: 2019-03-31 04:48:00+02:00
-    dt_localized = get_datetimelocal_from_offset(rosterdatetime, dhm_str, comp_timezone)
+    dt_localized = get_datetimelocal_from_offset(
+        rosterdate=rosterdatetime,
+        offset=dhm_str,
+        comp_timezone=comp_timezone)
 
     utc = pytz.UTC
     dt_as_utc = dt_localized.astimezone(utc)
@@ -986,18 +992,6 @@ def fielddict_str(value):
     dict = {}
     if value:
         dict = {'value': value}
-    return dict
-
-
-def fielddict_date(dte, user_lang):
-    dict = {}
-    if dte:
-        dict['value'] = dte
-        dict['dm'] = get_date_DM_from_dte(dte, user_lang)
-        dict['wdm'] = get_date_WDM_from_dte(dte, user_lang)
-        dict['wdmy'] = format_WDMY_from_dte(dte, user_lang)
-        dict['dmy'] = format_DMY_from_dte(dte, user_lang)
-        dict['offset'] = get_weekdaylist_for_DHM(dte, user_lang)
     return dict
 
 

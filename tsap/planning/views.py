@@ -808,13 +808,11 @@ def shift_upload(request, upload_dict, comp_timezone):  # PR2019-08-08
             quicksave_str = '1' if quicksave_bool else '0'
             Usersetting.set_setting(c.KEY_USER_QUICKSAVE, quicksave_str, request.user)  # PR2019-07-02
 
-
 # 3. get_iddict_variables
         id_dict = upload_dict.get('id')
         if id_dict:
             pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = f.get_iddict_variables(id_dict)
             logger.debug('is_delete: ' + str(is_delete) + ' ' + str(type(is_delete)))
-
 
 # 4. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
             field_list = c.FIELDS_SHIFT
@@ -2148,16 +2146,16 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
             # QueryDict: {'item_upload': ['{"id":{"pk":79,"ppk":80,"table":"emplhour"},"status":{"value":2,"update":true}}']}>
 
-# A.
-    # 1. Reset language
+
+# 1. Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 
-    # 2. get comp_timezone PR2019-06-14
+# 2. get comp_timezone PR2019-06-14
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
-    # 3. get upload_dict from request.POST
+# 3. get upload_dict from request.POST
             upload_json = request.POST.get('emplhour', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
@@ -2307,7 +2305,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                     quicksave_str = '1' if quicksave_bool else '0'
                     Usersetting.set_setting(c.KEY_USER_QUICKSAVE, quicksave_str, request.user)  # PR2019-07-02
 
-    # 3. get_iddict_variables
+# 3. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
                     pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = f.get_iddict_variables(id_dict)
@@ -2317,7 +2315,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                     # id_dict: {'id': {'pk': 150, 'parent_pk': 154, 'table': 'emplhour'}
                     # id_dict: {'temp_pk': 'new_1', 'create': True, 'table': 'emplhour'}
 
-    # 4. Create empty update_dict with keys for all fields if not exist. Unused ones will be removed at the end
+# 4. Create empty update_dict with keys for all fields if not exist. Unused ones will be removed at the end
                     # this one is not working: update_dict = dict.fromkeys(field_list, {})
                     update_dict = f.create_dict_with_empty_attr(c.FIELDS_EMPLHOUR)
 
@@ -2328,8 +2326,6 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                         instance, parent = create_orderhour_emplhour(upload_dict, update_dict, request)
                     else:
 # 5. check if parent exists (orderhour is parent of emplhour)
-                        # TODO update_dict
-                        update_dict = {}
                         parent = m.get_parent(table, ppk_int, update_dict, request)
                         if parent:
                             instance = m.get_instance(table, pk_int, parent, update_dict)
@@ -2353,24 +2349,25 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                             # logger.debug('instance: ' + str(instance))
 # ============ make employee absent
                             if 'abscat' in upload_dict:
-                                # logger.debug('abscat in upload_dict')
-                                # - check if employee exists
-                                employee = None
-                                employee_dict = upload_dict.get('employee')
-                                if employee_dict:
-                                    employee_pk = employee_dict.get('pk')
-                                    if employee_pk:
-                                        # TODO update_dict
-                                        update_dict = {}
-                                        employee = m.get_instance('employee', employee_pk, request.user.company, update_dict)
+                                # check if abscat dict is empty
+                                if upload_dict['abscat']:
+                                    logger.debug('abscat in upload_dict')
+                                    # - check if employee exists
+                                    employee = None
+                                    employee_dict = upload_dict.get('employee')
+                                    if employee_dict:
+                                        employee_pk = employee_dict.get('pk')
+                                        if employee_pk:
+                                            employee = m.get_instance('employee', employee_pk, request.user.company, update_dict)
 
-                                # logger.debug('employee: ' + str(employee))
-                                make_absent(instance, employee, upload_dict, request)
+                                    # logger.debug('employee: ' + str(employee))
+                                    make_absent(instance, employee, upload_dict, request)
 
 # E. Update instance, also when it is created
                             update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, user_lang)
-                            # logger.debug('updated instance: ' + str(instance))
-                            item_update_dict['item_dict'] = d.create_emplhour_dict(instance, comp_timezone, user_lang)
+
+# F. Add all saved values to update_dict, add id_dict to update_dict
+                            d.create_emplhour_dict(instance, update_dict, comp_timezone)
 
 # 6. remove empty attributes from update_dict
                     f.remove_empty_attr_from_dict(update_dict)
@@ -2544,7 +2541,8 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
     # --- update existing and new emplhour PR2-019-06-23
     # add new values to update_dict (don't reset update_dict, it has values)
     logger.debug(' --- update_ emplhour ---')
-    # logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug('update_dict: ' + str(update_dict))
     # upload_dict: {'id': {'pk': 11, 'ppk': 11, 'table': 'emplhour'},
     # 'select': 'absent',
     # 'employee': {'field': 'employee', 'pk': 30, 'ppk': 1, 'code': 'Anoushelly'},
@@ -2563,7 +2561,6 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
         update_dict['id']['table'] = table
 
         save_changes = False
-        recalc_duration = False
 
 # 2. save changes in field 'rosterdate' (should not be possible)
         field = 'rosterdate'
@@ -2585,15 +2582,9 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
                     if new_date != old_date:
                         setattr(instance, field, new_date)
                         save_changes = True
-                        recalc_duration = True
                         update_dict[field]['updated'] = True
-                        # TODO move to end
 
-                        # TODO: add min max date
-                        dict = {}
-                        f.set_fielddict_date(dict, instance.rosterdate)
-                        if dict:
-                            update_dict[field] = dict
+        saved_rosterdate_iso = getattr(instance, field)
 
 # 3. save changes in field 'employee'
         # 'employee': {'update': True, 'value': 'Kevin', 'pk': 1},
@@ -2636,29 +2627,32 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
         for field in ('timestart', 'timeend'):
             if field in upload_dict:
                 field_dict = upload_dict.get(field)
-                # field_dict[timestart]: {'value': '2019-06-22T08:15:00.000Z', 'update': True}
+                logger.debug('field_dict: ' + str(field_dict))
+                # 'timestart': {'value': '0;9;0', 'update': True, 'rosterdate': '2019-08-13'}}
                 if 'update' in field_dict:
-                    if 'offset' in field_dict:
-                        if 'rosterdate' in field_dict:
+                    # use saved_rosterdate instead of rosterdate from dict
+                    if saved_rosterdate_iso:
 
-                            # TODO correct, this is the wrong way. correct is f.get_datetimelocal_from_offset
-                            new_offset = field_dict.get('offset')
-                            # logger.debug('new_offset: ' + str(new_offset))
-                            new_rosterdate_iso = field_dict.get('rosterdate')
-                            # logger.debug('new_rosterdate_iso: ' + str(new_rosterdate_iso))
-                            new_rosterdate = f.get_datetime_from_ISOstring(new_rosterdate_iso)
-                            # logger.debug('new_rosterdate: ' + str(new_rosterdate)+ ' ' + str(type(new_rosterdate)))
-                            new_datetime_utc = f.get_datetime_utc_from_offset(new_rosterdate, new_offset, comp_timezone)
-                            # logger.debug('new_datetime: ' + str(new_datetime_utc) + ' ' + str(type(new_datetime_utc)))
+        # a. get offset of this emplhour
+                        new_offset = field_dict.get('value')
 
-                            old_datetime_utc = getattr(instance, field)
-                            # logger.debug('old_datetime_utc: ' + str(old_datetime_utc) + ' ' + str(type(old_datetime_utc)))
-                            if new_datetime_utc != old_datetime_utc:
-                                setattr(instance, field, new_datetime_utc)
-                                save_changes = True
-                                recalc_duration = True
-                                update_dict[field]['updated'] = True
-                                # logger.debug('saved datetime_utc: ' + str(new_datetime_utc) + ' ' + str(type(new_datetime_utc)))
+        # b. convert rosterdate '2019-08-09' to datetime object
+                        logger.debug(' saved_rosterdate_iso: ' + str(saved_rosterdate_iso))
+                        rosterdatetime = f.get_datetime_naive_from_date(saved_rosterdate_iso)
+                        logger.debug(' rosterdatetime: ' + str(rosterdatetime))
+
+        # c. get timestart/timeend from rosterdate and offsetstart
+                        new_datetimelocal = f.get_datetimelocal_from_offset(
+                            rosterdate=rosterdatetime,
+                            offset=new_offset,
+                            comp_timezone=comp_timezone)
+                        logger.debug(' new_datetimelocal: ' + str(new_datetimelocal))
+                        # must be stored als utc??
+                        # No, tzinfo is mot stored in database, therefore both local and utc are stored as the same datetime
+                        setattr(instance, field, new_datetimelocal)
+                        save_changes = True
+                        update_dict[field]['updated'] = True
+                        logger.debug('saved new_datetimelocal (' + field + '): ' + str(getattr(instance, field)))
 
 # --- save changes in breakduration field
         for field in ('breakduration',):
@@ -2678,7 +2672,6 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
                     if new_minutes != old_minutes:
                         setattr(instance, field, new_minutes)
                         save_changes = True
-                        recalc_duration = True
                         update_dict[field]['updated'] = True
         saved_minutes = getattr(instance, field)
         dict = f.fielddict_duration (saved_minutes, user_lang)
@@ -2698,7 +2691,10 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
 
             if 'remove' in field_dict:
                 new_status_sum = d.remove_status_from_statussum(new_status, old_status_sum)
-
+                # if remove STATUS_08_LOCKED : also remove STATUS_02_START_CONFIRMED and STATUS_04_END_CONFIRMED
+                if new_status == c.STATUS_08_LOCKED:
+                    new_status_sum = d.remove_status_from_statussum(c.STATUS_02_START_CONFIRMED, new_status_sum)
+                    new_status_sum = d.remove_status_from_statussum(c.STATUS_04_END_CONFIRMED, new_status_sum)
             if new_status_sum != old_status_sum:
                 setattr(instance, field, new_status_sum)
                 save_changes = True
@@ -2711,47 +2707,26 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
         old_minutes = getattr(instance, field, 0)
         if instance.timestart and instance.timeend:
             saved_break_minutes = int(getattr(instance, 'breakduration', 0))
-            datediff = instance.timeend - instance.timestart
-            datediff_minutes = int((datediff.total_seconds() / 60))
-            new_minutes = int(datediff_minutes - saved_break_minutes)
+
+            new_minutes = f.get_time_minutes(
+                timestart=instance.timestart,
+                timeend=instance.timeend,
+                break_minutes=saved_break_minutes)
 
         if new_minutes != old_minutes:
             setattr(instance, field, new_minutes)
             save_changes = True
             update_dict[field]['updated'] = True
 
-        saved_minutes = getattr(instance, field, 0)
-        dict = f.fielddict_duration (saved_minutes, user_lang)
-
-# 5. save changes
+# 6. save changes
         if save_changes:
             try:
                 instance.save(request=request)
             except:
                 msg_err = _('This item could not be updated.')
+                if 'id' not in update_dict:
+                    update_dict['id'] = {}
                 update_dict['id']['error'] = msg_err
-
-# 6. put updated saved values in update_dict
-        for field in update_dict:
-            if field not in ('id', 'pk'):
-                saved_value = getattr(instance, field)
-                # logger.debug('new saved_value of ' + field + ': ' + str(saved_value) + ' type: ' + str(type(saved_value)))
-                if saved_value is not None: # debug notNone necessary, otherwise status = 0 is not added to dict
-                    if field in ['code', 'name', 'inactive', 'status']:
-                        update_dict[field]['value'] = saved_value
-                    if field in ['rosterdate']:
-                        # TODO: add min max date
-                        f.set_fielddict_date(update_dict[field], saved_value)
-                if field in ['timestart', 'timeend']:
-                    d.set_fielddict_datetime(field=field,
-                                           field_dict=update_dict[field],
-                                           rosterdate=getattr(instance, 'rosterdate'),
-                                           timestart_utc=getattr(instance, 'timestart'),
-                                           timeend_utc=getattr(instance, 'timeend'),
-                                           comp_timezone=comp_timezone)
-
-# 7. remove empty attributes from update_dict
-    f.remove_empty_attr_from_dict(update_dict)
 
 
 def update_teammember(instance, upload_dict, update_dict, request, user_lang):
@@ -3167,11 +3142,15 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
         # calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
 
 # a. convert stored rosterdate '2019-08-09' to datetime object
+        logger.debug(' rosterdatetime: ' + str(schemeitem.rosterdate))
         rosterdatetime = f.get_datetime_naive_from_date(schemeitem.rosterdate)
         logger.debug(' rosterdatetime: ' + str(rosterdatetime))
 
 # b. get starttime from rosterdate and offsetstart
-        new_starttime = f.get_datetimelocal_from_offset(rosterdatetime, offsetstart, comp_timezone)
+        new_starttime = f.get_datetimelocal_from_offset(
+            rosterdate=rosterdatetime,
+            offset=offsetstart,
+            comp_timezone=comp_timezone)
         logger.debug(' new_starttime: ' + str(new_starttime))
         # must be stored als utc??
         # No, tzinfo is mot stored in database, therefore both local and utc are stored as the same datetime
@@ -3179,7 +3158,10 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
         logger.debug('saved timestart: ' + str(getattr(schemeitem, 'timestart')))
 
 # c. get endtime from rosterdate and offsetstart
-        new_endtime = f.get_datetimelocal_from_offset(rosterdatetime, offsetend, comp_timezone)
+        new_endtime = f.get_datetimelocal_from_offset(
+            rosterdate=rosterdatetime,
+            offset=offsetend,
+            comp_timezone=comp_timezone)
         logger.debug(' new_endtime: ' + str(new_endtime))
 
 # d. if is_successor_offsetstart and timeend is before timestart: add one day to timestart
@@ -3194,6 +3176,7 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
         setattr(schemeitem, 'timeend', new_endtime)
         logger.debug(' saved timeend: ' + str(getattr(schemeitem, 'timeend')))
 
+# e. recalculate timeduration
         fieldname = 'timeduration'
         if schemeitem.timestart and schemeitem.timeend:
             datediff = schemeitem.timeend - schemeitem.timestart

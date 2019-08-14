@@ -442,9 +442,8 @@ class Teammember(TsaBaseModel):
     # 33333333333333333333333333333333333333333333333333
     @classmethod
     def get_first_teammember_on_rosterdate(cls, team, rosterdate):
+        # logger.debug("-----------get_first_teammember_on_rosterdate---------------------")
 
-        logger.debug("-----------get_first_teammember_on_rosterdate---------------------")
-        logger.debug("team: " + str(team.code) + "  rosterdate: " + str(rosterdate) )
         teammember = None
         if team and rosterdate:
             # filter teammmembers that have new_rosterdate within range datefirst/datelast
@@ -470,14 +469,15 @@ class Teammember(TsaBaseModel):
 
             # order_by datelast, null comes last (with Coalesce changes to '2200-01-01'
             # - get employee with earliest endatlookup employee in teammembers
-            teammembers = cls.objects.annotate(
-                new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
-                                      )).filter(crit).order_by('new_datelast')
 
-            for member in teammembers:
-                employee = getattr(member, 'employee')
-                if employee:
-                    logger.debug('employee: ' + str(employee))
+            # for testing:
+            # teammembers = cls.objects.annotate(
+            #     new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
+            #                           )).filter(crit).order_by('new_datelast')
+            # for member in teammembers:
+            #     employee = getattr(member, 'employee')
+            #     if employee:
+            #         logger.debug('employee: ' + str(employee))
 
             teammember = cls.objects.annotate(
                 new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
@@ -486,7 +486,6 @@ class Teammember(TsaBaseModel):
         return teammember
 # 33333333333333333333333333333333333333333333333333
 
-# =================
 
 class Schemeitem(TsaBaseModel):
     objects = TsaManager()

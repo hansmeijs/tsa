@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 def status_found_in_statussum(status, status_sum):
     # PR2019-07-17 checks if status is in status_sum
     # e.g.: status_sum=15 will be converted to status_tuple = (1,2,4,8)
-    # ststus = 0 gives always True
+    # status = 0 gives always True
     found = False
     if status:
         if status_sum:
@@ -573,7 +573,7 @@ def create_schemeitem_list(order, comp_timezone):
 def create_schemeitem_dict(instance, item_dict, comp_timezone):
     # --- create dict of this schemeitem PR2019-07-22
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    logger.debug ('--- create_schemeitem_dict ---')
+    # logger.debug ('--- create_schemeitem_dict ---')
     # logger.debug ('item_dict' + str(item_dict))
 
     if instance:
@@ -623,7 +623,7 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
                         if teammember.employee:
                             if teammember.employee.code:
                                 value = teammember.employee.code
-                    logger.debug('teammember.employee' + str(teammember.employee))
+                    # logger.debug('teammember.employee' + str(teammember.employee))
                     if value:
                         item_dict[field]['value'] = value
                 else:
@@ -645,15 +645,15 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
                 if saved_value is None:
                     saved_value = 0
                 item_dict[field]['value'] = saved_value
-
             else:
                 if saved_value is not None:
                     item_dict[field]['value'] = saved_value
                 else:
                     item_dict[field].pop('value', None)
+
 # --- remove empty attributes from item_dict
         f.remove_empty_attr_from_dict(item_dict)
-        logger.debug('item_dict' + str(item_dict))
+        # logger.debug('item_dict' + str(item_dict))
 
 def create_team_list(order):
     # create list of teams of this order PR2019-08-08
@@ -700,7 +700,7 @@ def create_team_dict(team, item_dict):
 
 def create_shift_list(order, comp_timezone):
     # create list of shifts of this order PR2019-08-08
-    logger.debug(' --- create_shift_list --- ')
+    # logger.debug(' --- create_shift_list --- ')
     shift_list = []
     if order:
         # return all shifts of this order
@@ -725,7 +725,7 @@ def create_shift_dict(shift, item_dict):
     # --- create dict of this shift PR2019-08-08
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
-    logger.debug('create_shift_dict: ', str(item_dict))
+    # logger.debug('create_shift_dict: ', str(item_dict))
 
     table = 'shift'
     field_tuple = c.FIELDS_SHIFT
@@ -762,7 +762,7 @@ def create_shift_dict(shift, item_dict):
 # 6. create field_dict 'successor'
             elif field == 'successor':
                 successor_id = shift.successor_id
-                logger.debug('successor_id: ' + str(successor_id))
+                # logger.debug('successor_id: ' + str(successor_id))
                 successor = getattr(shift, field)
                 if successor_id:
                     field_dict['pk'] = successor.pk
@@ -797,7 +797,7 @@ def create_date_dict(rosterdate, user_lang, status_text):
 def create_emplhour_list(company, comp_timezone, user_lang,
                          time_min=None, time_max=None,
                          range_start_iso=None, range_end_iso=None, show_all=False): # PR2019-08-01
-    logger.debug(' ============= create_emplhour_list ============= ')
+    # logger.debug(' ============= create_emplhour_list ============= ')
 
     # TODO select_related on queyset
     #  queryset = Courses.objects.filter(published=True).prefetch_related('modules', 'modules__lessons', 'modules__lessons__exercises')
@@ -814,10 +814,10 @@ def create_emplhour_list(company, comp_timezone, user_lang,
 
 
     # convert period_timestart_iso into period_timestart_local
-    logger.debug('period_timestart_utc: ' + str(time_min) + ' ' + str(type(time_min)))
-    logger.debug('period_timeend_utc: ' + str(time_max)+ ' ' + str(type(time_max)))
-    logger.debug('range_start_iso: ' + str(range_start_iso)+ ' ' + str(type(range_start_iso)))
-    logger.debug('range_end_iso: ' + str(range_end_iso)+ ' ' + str(type(range_end_iso)))
+    # logger.debug('period_timestart_utc: ' + str(time_min) + ' ' + str(type(time_min)))
+    # logger.debug('period_timeend_utc: ' + str(time_max)+ ' ' + str(type(time_max)))
+    # logger.debug('range_start_iso: ' + str(range_start_iso)+ ' ' + str(type(range_start_iso)))
+    # logger.debug('range_end_iso: ' + str(range_end_iso)+ ' ' + str(type(range_end_iso)))
 
 
    # Exclude template. Cat <= 2 (0 = normal, 1 = internal, 2 = absence, 3 = template)
@@ -852,8 +852,9 @@ def create_emplhour_list(company, comp_timezone, user_lang,
 
     emplhour_list = []
     for emplhour in emplhours:
-        dict = create_emplhour_dict(emplhour, comp_timezone, user_lang)
-        emplhour_list.append(dict)
+        item_dict = {}
+        create_emplhour_dict(emplhour, item_dict, comp_timezone)
+        emplhour_list.append(item_dict)
 
     #logger.debug('list elapsed time  is :')
     #logger.debug(timer() - starttime)
@@ -861,73 +862,115 @@ def create_emplhour_list(company, comp_timezone, user_lang,
     return emplhour_list
 
 
-def create_emplhour_dict(emplhour, comp_timezone, user_lang):
-    # logger.debug('----------- create_emplhour_dict ------------------')
-    # logger.debug('emplhour: ' + str(emplhour))
+def create_emplhour_dict(instance, item_dict, comp_timezone):
+    # --- create dict of this emplhour PR2019-08-14
+    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+    logger.debug ('--- create_emplhour_dict ---')
+    logger.debug ('item_dict' + str(item_dict))
 
-    # create dict of this scheme PR2019-06-29
-    emplhour_dict = {}
-    field_list = ('id', 'rosterdate', 'orderhour', 'shift', 'employee',
-                  'timestart', 'timeend', 'breakduration', 'timeduration', 'status')
-
-    for field in field_list:
-        emplhour_dict[field] = {}
-
-    if emplhour:
-        field = 'id'
-        emplhour_dict[field] = {'pk': emplhour.id, 'ppk': emplhour.orderhour.id}
-
-        field = 'rosterdate'
-        rosterdate = getattr(emplhour, field)
-        if rosterdate:
-            emplhour_dict[field] = f.fielddict_date(rosterdate, user_lang)
-
-        field = 'orderhour'
-        if emplhour.orderhour:
-            # value = ' - '.join([emplhour.orderhour.order.customer.code, emplhour.orderhour.order.code])
-            value = emplhour.orderhour.order.customer.code + ' - ' + emplhour.orderhour.order.code
-            if value:
-                emplhour_dict[field] = {'value': value, 'orderhour_pk':emplhour.orderhour.id, 'order_pk':emplhour.orderhour.order.id}
-
-        field = 'shift'
-        if emplhour.shift:
-            value = emplhour.shift
-            if value:
-                emplhour_dict[field] = {'value': value}
-
-        field = 'employee'
-        if emplhour.employee:
-            value = emplhour.employee.code
-            if value:
-             emplhour_dict[field] = {'value': value, 'employee_pk':emplhour.employee.id}
-
-        for field in ['timestart', 'timeend']:
-            field_dict = {}
-            set_fielddict_datetime(field=field,
-                                   field_dict=field_dict,
-                                   rosterdate=getattr(emplhour, 'rosterdate'),
-                                   timestart_utc=getattr(emplhour, 'timestart'),
-                                   timeend_utc=getattr(emplhour, 'timeend'),
-                                   comp_timezone=comp_timezone)
-
-            emplhour_dict[field] = field_dict
+    if instance:
+        # FIELDS_EMPLHOUR = ('pk', 'id', 'employee', 'wagecode', 'wagefactor', 'rosterdate',
+        #                   'timestart', 'timeend', 'timeduration', 'breakduration', 'status')
 
 
-        for field in ['timeduration', 'breakduration']:
-            value = getattr(emplhour, field)
-            if value:
-                emplhour_dict[field] = f.fielddict_duration(value, user_lang)
+    # lock field when status = locked or higher
+        status_value = getattr(instance, 'status', 0)
+        logger.debug ('status_value: ' + str(status_value))
+        locked = (status_value >= c.STATUS_08_LOCKED)
+        logger.debug ('locked: ' + str(locked))
 
-        field = 'status'
-        value = emplhour.status
-        field_dict = {'value': value}
-        emplhour_dict[field] = field_dict
+        for field in c.FIELDS_EMPLHOUR:
+            if field not in item_dict:
+                item_dict[field] = {}
 
-# --- remove empty attributes from update_dict
-    f.remove_empty_attr_from_dict(emplhour_dict)
+            if locked and field != 'pk':
+                item_dict[field]['locked'] = True
 
-    # logger.debug('emplhour_dict: ' + str(emplhour_dict))
-    return emplhour_dict
+            if field == 'pk':
+                item_dict[field] = instance.pk
+
+            elif field == 'id':
+                id_dict = item_dict[field] if 'id' in item_dict else {}
+                id_dict['pk'] = instance.pk
+                id_dict['ppk'] = instance.orderhour.pk
+                id_dict['table'] = 'emplhour'
+                item_dict[field] = id_dict
+
+            elif field == 'orderhour':
+                orderhour = getattr(instance, field)
+                logger.debug('orderhour: ' + str(orderhour.shift))
+
+                if orderhour:
+                    item_dict[field]['pk'] = orderhour.pk
+                    item_dict[field]['ppk'] = orderhour.order.pk
+
+                    order_code = ''
+                    customer_code = ''
+                    if orderhour.order.code:
+                        order_code = orderhour.order.code
+                    if orderhour.order.customer.code:
+                        customer_code = orderhour.order.customer.code
+                    value = customer_code + ' - ' + order_code
+
+                    if value:
+                        item_dict[field]['value'] = value
+                    else:
+                        item_dict[field].pop('value', None)
+                else:
+                    item_dict[field].pop('pk', None)
+                    item_dict[field].pop('ppk', None)
+                    item_dict[field].pop('value', None)
+
+            elif field == 'employee':
+                employee = getattr(instance, field)
+                if employee:
+                    item_dict[field]['pk'] = employee.pk
+                    item_dict[field]['ppk'] = employee.company.pk
+                    if employee.code:
+                        item_dict[field]['value'] = employee.code
+                else:
+                    item_dict[field].pop('pk', None)
+                    item_dict[field].pop('ppk', None)
+                    item_dict[field].pop('value', None)
+
+            elif field == 'rosterdate':
+                rosterdate = getattr(instance, field)
+                f.set_fielddict_date(dict=item_dict[field], dte=rosterdate)
+
+            # also add date when empty, to add min max date
+            elif field in ('timestart', 'timeend'):
+                set_fielddict_datetime(field=field,
+                                       field_dict=item_dict[field],
+                                       rosterdate=getattr(instance, 'rosterdate'),
+                                       timestart_utc=getattr(instance, 'timestart'),
+                                       timeend_utc=getattr(instance, 'timeend'),
+                                       comp_timezone=comp_timezone)
+
+            # lock date when confirmed, field is already locked when >= locked
+                if (status_value < c.STATUS_08_LOCKED):
+                    status_check = c.STATUS_02_START_CONFIRMED if field == 'timestart' else c.STATUS_04_END_CONFIRMED
+                    if status_found_in_statussum(status_check, status_value):
+                        item_dict[field]['locked'] = True
+
+            # also zero when empty
+            elif field in ('breakduration', 'timeduration'):
+                duration = getattr(instance, field)
+                if duration is None:
+                    duration = 0
+                item_dict[field]['value'] = duration
+
+            else:
+                saved_value = getattr(instance, field)
+                if saved_value is not None:
+                    item_dict[field]['value'] = saved_value
+                else:
+                    item_dict[field].pop('value', None)
+
+    # --- remove empty attributes from update_dict
+        f.remove_empty_attr_from_dict(item_dict)
+
+       #  logger.debug ('item_dict' + str(item_dict))
+
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def get_rosterdatefill_dict(company, company_timezone, user_lang):# PR2019-06-17

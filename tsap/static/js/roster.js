@@ -724,8 +724,8 @@ $(function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblName, tblRow, item_dict){
-        //console.log(" ---------  UpdateTableRow");
-        //console.log(item_dict);
+        console.log(" ------>>  UpdateTableRow");
+        console.log(item_dict);
 
         if (!!item_dict && !!tblRow) {
 
@@ -803,10 +803,10 @@ $(function() {
                     if(!!el_input){
 // --- lookup field in item_dict, get data from field_dict
                         fieldname = get_attr_from_el(el_input, "data-field");
-                        //console.log("fieldname", fieldname);
+                        console.log("fieldname", fieldname);
                         if (fieldname in item_dict){
                             field_dict = get_dict_value_by_key (item_dict, fieldname);
-                            //console.log("field_dict", field_dict);
+                            console.log("field_dict", field_dict);
 
                             updated = get_dict_value_by_key (field_dict, "updated");
                             err = get_dict_value_by_key (field_dict, "error");
@@ -2470,7 +2470,6 @@ console.log("===  function HandlePopupWdySave =========");
                 end_confirmed = status_found_in_statussum(4, status_sum);
                 status_locked = (status_sum >= 8) //STATUS_08_LOCKED = 8
 
-
                 //get timestart
                 img_src = imgsrc_stat00
                 el = tblRow.cells[4].children[0]
@@ -2485,9 +2484,9 @@ console.log("===  function HandlePopupWdySave =========");
                         diff =  Math.floor(now_utc.diff(datetime_utc)/ 60000);
                         //console.log("now: ", now_utc.format(), "start ", datetime_utc.format(), "diff ", diff);
                         if (!status_locked && !start_confirmed) {
-                            if (diff > -15 && diff < 1){
+                            if (diff >= -15 && diff < 0){
                                 img_src = imgsrc_questionmark
-                            } else if (diff > 0 ){
+                            } else if (diff >= 0 && diff < 1440){
                                 img_src = imgsrc_warning
                             }
                         }

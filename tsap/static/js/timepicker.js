@@ -53,7 +53,6 @@
         if (!!cls_highl){el_timepicker.setAttribute("data-cls_highl", cls_highl)};
         if (!!cls_hover){el_timepicker.setAttribute("data-cls_hover", cls_hover)};
 
-
         let curOffset = "";
         const is_offset = (data_table === "shift")
         el_timepicker.setAttribute("data-is_offset", is_offset)
@@ -236,7 +235,7 @@
 //========= CreateTimepickerMinutes  ====================================
     function CreateTimepickerMinutes(el_timepicker, el_data, UpdateTableRow, dict, url_str,
                                     is_offset, comp_timezone, timeformat, interval, cls_hover, cls_highl) {
-        console.log( "=== CreateTimepickerMinutes  ");
+        //console.log( "=== CreateTimepickerMinutes  ");
 
 // ---  set references to elements
         let tbody = document.getElementById("id_timepicker_tbody_minute");
@@ -245,8 +244,8 @@
         //const curDate_is_rosterdate = dict["curDate_is_rosterdate"], prevday_disabled = dict["prevday_disabled"], nextday_disabled = dict["nextday_disabled"];
         //const curHours = dict["curHours"], minHours = dict["minHours"], maxHours = dict["maxHours"];
         const curMinutes = dict["curMinutes"], minMinutes = dict["minMinutes"], maxMinutes = dict["maxMinutes"];
-        console.log( "curMinutes  ", curMinutes);
-        console.log( "interval  ", interval);
+        //console.log( "curMinutes  ", curMinutes);
+        //console.log( "interval  ", interval);
         // hide minutes tables when interval = 60
         let el_cont_minute = document.getElementById("id_timepicker_cont_minute");
         if(interval === 60) {
@@ -515,25 +514,25 @@
 
 //========= SetHour  ====================================
     function SetHour(el_timepicker, tbody, td, el_data, UpdateTableRow, is_offset, cls_hover, cls_highl) {
-       console.log("==== SetHour  =====");
+       //console.log("==== SetHour  =====");
 
     // check if cell is disabeld
         const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tr_notallowed"))
-       console.log("disabled", disabled);
+       //console.log("disabled", disabled);
         if (!disabled){
 
         // get new hour from data-hour of td
             const new_hour = get_attr_from_el_int(td, "data-hour");
-            console.log("new_hour", new_hour, typeof new_hour)
+           // console.log("new_hour", new_hour, typeof new_hour)
             if (is_offset){
-                console.log("is_offset", is_offset);
+                //console.log("is_offset", is_offset);
 
             // set new hour in new_datetime_local
                 let curDate, curHours, curMinutes;
                 const cur_offset = get_attr_from_el(el_timepicker, "data-offset");
                 const arr = cur_offset.split(";")
                 let new_offset = arr[0] + ";" + new_hour.toString() + ";" + arr[2]
-                console.log("new_offset", new_offset);
+                //console.log("new_offset", new_offset);
 
         // put new datetime back in el_timepicker data-datetime
                 // TODO
@@ -542,7 +541,7 @@
                     el_timepicker.setAttribute("data-offset", new_offset);
 
                     const new_dict = CalcMinMaxOffset(new_offset, "-1;12;0", "1;12;0");
-                    console.log("new_dict", new_dict);
+                    //console.log("new_dict", new_dict);
 
             // save when in quicksave mode
                     let quicksave = get_quicksave_from_eldata(el_data);
@@ -562,7 +561,7 @@
                 const is_offset = false, cur_offset = "";
                 const dict = CalcMinMaxHoursMinutes(cur_rosterdate_iso, cur_datetime_iso,
                                                     min_datetime_iso, max_datetime_iso,
-                                              comp_timezone, timeformat);
+                                                    comp_timezone, timeformat);
 
         // set new hour in new_datetime_local
                 const cur_datetime_local = dict["cur_datetime_local"];
@@ -576,7 +575,7 @@
     // calculate new min max
                 const new_dict = CalcMinMaxHoursMinutes(cur_rosterdate_iso, new_datetime_iso,
                                                         min_datetime_iso, max_datetime_iso,
-                                              comp_timezone, timeformat);
+                                                        comp_timezone, timeformat);
 
         // check if new datetime is within min max range
                 const min_datetime_local = new_dict["min_datetime_local"];
@@ -608,7 +607,7 @@
 
 //========= SetMinute  ====================================
     function SetMinute(el_timepicker, tbody, td, UpdateTableRow, url_str, is_offset, cls_hover, cls_highl) {
-        console.log("==== SetMinute  =====");
+        //console.log("==== SetMinute  =====");
 
     // check if cell is disabeld
         const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tr_notallowed"))
@@ -699,17 +698,20 @@
             save_quicksave_in_eldata(el_data, quicksave);
             HideSaveButtonOnQuicksave(el_data, cls_hide);
         }
-    // ---  get pk_str from id of el_timepicker
+
+// ---  get pk_str from id of el_timepicker
         const pk_str = el_timepicker.getAttribute("data-pk")// pk of record  of element clicked
         const parent_pk =  parseInt(el_timepicker.getAttribute("data-ppk"))
         const field = el_timepicker.getAttribute("data-field")
         const table = el_timepicker.getAttribute("data-table")
-        const is_offset = el_timepicker.getAttribute("data-is_offset")
+        const is_offset = ( el_timepicker.getAttribute("data-is_offset") === "true")
         const comp_timezone = get_attr_from_el(el_timepicker, "data-timezone");
         const timeformat = get_attr_from_el(el_timepicker, "data-timeformat");
         const cls_highl = get_attr_from_el(el_timepicker, "data-cls_highl");
         const cls_hover = get_attr_from_el(el_timepicker, "data-cls_hover");
-        //console.log ("field = ", field, "table = ", table)
+        console.log ("field = ", field, "table = ", table)
+
+        console.log ("is_offset = ", is_offset, typeof is_offset)
         //console.log (el_timepicker)
 
     // get values from el_timepicker
@@ -725,9 +727,9 @@
             const min_datetime_iso = get_attr_from_el(el_timepicker, "data-mindatetime");
             const max_datetime_iso = get_attr_from_el(el_timepicker, "data-maxdatetime");
 
-            //console.log ("cur_datetime_iso = ", cur_datetime_iso, typeof cur_datetime_iso)
-            //console.log ("min_datetime_iso = ", min_datetime_iso, typeof min_datetime_iso)
-            //console.log ("max_datetime_iso = ", max_datetime_iso, typeof max_datetime_iso)
+            console.log ("cur_datetime_iso = ", cur_datetime_iso, typeof cur_datetime_iso)
+            console.log ("min_datetime_iso = ", min_datetime_iso, typeof min_datetime_iso)
+            console.log ("max_datetime_iso = ", max_datetime_iso, typeof max_datetime_iso)
 
 
             let dict = CalcMinMaxHoursMinutes(cur_rosterdate_iso ,cur_datetime_iso,
@@ -735,6 +737,7 @@
                                               comp_timezone, timeformat);
 
             curOffset = dict["curOffset"];
+            console.log ("curOffset = ", curOffset)
 
         // check if datetime is within min max range
             const cur_datetime_local = dict["cur_datetime_local"];
@@ -742,10 +745,10 @@
             const max_datetime_local = dict["max_datetime_local"];
             const within_range = DatetimeWithinRange(cur_datetime_local, min_datetime_local, max_datetime_local)
 
-            //console.log ("cur_datetime_local = ", cur_datetime_local.format())
-            //console.log ("min_datetime_local = ", min_datetime_local.format())
-            //console.log ("max_datetime_local = ", max_datetime_local.format())
-            //console.log ("within_range = ", within_range)
+            console.log ("cur_datetime_local = ", cur_datetime_local.format())
+            console.log ("min_datetime_local = ", min_datetime_local.format())
+            console.log ("max_datetime_local = ", max_datetime_local.format())
+            console.log ("within_range = ", within_range)
 
             if (!within_range) {
             //  TODO  console.log("not within_range: " + cur_datetime_local.format())
@@ -781,12 +784,6 @@
                     row_upload[field] = {"value": curOffset, "update": true}
                     if (!!cur_rosterdate_iso){
                         row_upload[field]["rosterdate"] = cur_rosterdate_iso
-                    }
-                    // TODO make better
-                    if (field === "timestart"){
-                        row_upload['offsetstart'] = {"value": curOffset, "update": true}
-                    } else if (field === "timeend"){
-                        row_upload['offsetend'] = {"value": curOffset, "update": true}
                     }
                 }
             }
@@ -923,15 +920,15 @@
 //========= HighlightAndDisableHours  ====================================
     function HighlightAndDisableHours(el_timepicker, UpdateTableRow, dict, cls_hover, cls_highl) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        console.log( ">>>>=== HighlightAndDisableHours  ");
+       // console.log( ">>>>=== HighlightAndDisableHours  ");
 
         const curDate = dict["curDate"]
         const cur_datetime_local = dict["cur_datetime_local"]
         //const min_datetime_local = dict["min_datetime_local"], max_datetime_local = dict["max_datetime_local"]
         const curHours = dict["curHours"], minHours = dict["minHours"], maxHours = dict["maxHours"];
         const curMinutes = dict["curMinutes"], minMinutes = dict["minMinutes"], maxMinutes = dict["maxMinutes"];
-        console.log( "curHours: ", curHours, "minHours: ", minHours, "maxHours: ", maxHours);
-        console.log( "curMinutes: ", curMinutes, "minMinutes: ", minMinutes, "maxMinutes: ", maxMinutes);
+        //console.log( "curHours: ", curHours, "minHours: ", minHours, "maxHours: ", maxHours);
+        //console.log( "curMinutes: ", curMinutes, "minMinutes: ", minMinutes, "maxMinutes: ", maxMinutes);
 
         let curHourDisabled = false;
         let tbody = document.getElementById("id_timepicker_tbody_hour");
@@ -1085,8 +1082,8 @@ function offset01_gt_offset02(offset01, offset02) {
 //========= CalcMinMaxHoursMinutes  ==================================== PR2018-08-02
 function CalcMinMaxHoursMinutes(cur_rosterdate_iso, cur_datetime_iso,
             min_datetime_iso, max_datetime_iso, comp_timezone, timeformat) {
-        console.log(" --->>>  CalcMinMaxHoursMinutes <<<---")
-        console.log("cur_rosterdate_iso", cur_rosterdate_iso)
+        //console.log(" --- CalcMinMaxHoursMinutes ---")
+        //console.log("cur_rosterdate_iso", cur_rosterdate_iso)
 
         //console.log("cur_datetime_iso", cur_datetime_iso)
         //console.log("comp_timezone", comp_timezone)
@@ -1122,7 +1119,7 @@ function CalcMinMaxHoursMinutes(cur_rosterdate_iso, cur_datetime_iso,
             curDate = cur_datetime_local.clone().startOf("day");
             curHours = cur_datetime_local.hours();
             curMinutes = cur_datetime_local.minutes();
-            console.log("curDate", curDate.format(), "curHours", curHours, "curMinutes", curMinutes)
+            //console.log("curDate", curDate.format(), "curHours", curHours, "curMinutes", curMinutes)
 
             curdate_rosterdate_diff = curDate.diff(curRosterdate, "days");
             curOffset = curdate_rosterdate_diff.toString() + ";" + curHours.toString() + ";" + curMinutes.toString()
