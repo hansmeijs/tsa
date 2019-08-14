@@ -522,6 +522,7 @@ class UserDeleteView(DeleteView):
     success_url = reverse_lazy('user_list_url')
 
 
+"""
 
 @method_decorator([login_required], name='dispatch')
 class DownloadSubmenusView(View):  # PR2018-12-19
@@ -554,7 +555,6 @@ class DownloadSubmenusView(View):  # PR2018-12-19
 
 
 
-"""
 class AwpPasswordChangeDoneView(PasswordChangeDoneView):
     template_name = 'registration/password_change_done.html'
     title = _('Password change successful')

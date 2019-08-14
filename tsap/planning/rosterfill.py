@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 
 from companies.views import LazyEncoder
 
-from tsap.constants import  KEY_COMP_ROSTERDATE_CURRENT, LANG_DEFAULT, CAT_01_INTERNAL, STATUS_01_CREATED
-from tsap.functions import get_date_from_ISOstring, get_datetimelocal_from_offset, get_datetime_naive_from_date, get_time_minutes
+from tsap import constants as c
+from tsap import functions as f
 from tsap import validators as v
 
 from planning.dicts import get_rosterdatefill_dict, create_emplhour_list,\
@@ -39,7 +39,7 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
         if request.user is not None and request.user.company is not None:
 # - reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-            user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 
 # - get comp_timezone PR2019-06-14
@@ -54,22 +54,22 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
 
                 if 'fill' in rosterdate_fill_dict:
                     rosterdate_str = rosterdate_fill_dict['fill']
-                    rosterdate_fill_dte, msg_txt = get_date_from_ISOstring(rosterdate_str)
+                    rosterdate_fill_dte, msg_txt = f.get_date_from_ISOstring(rosterdate_str)
 
                     FillRosterdate(rosterdate_fill_dte, request, comp_timezone)
 
                 # update rosterdate_current in companysettings
-                    m.Companysetting.set_setting(KEY_COMP_ROSTERDATE_CURRENT, rosterdate_fill_dte, request.user.company)
+                    m.Companysetting.set_setting(c.KEY_COMP_ROSTERDATE_CURRENT, rosterdate_fill_dte, request.user.company)
                     update_dict['rosterdate'] = get_rosterdatefill_dict(request.user.company, comp_timezone, user_lang)
 
                 elif 'remove' in rosterdate_fill_dict:
                     rosterdate_str = rosterdate_fill_dict['remove']
-                    rosterdate_remove_dte, msg_txt = get_date_from_ISOstring(rosterdate_str)
+                    rosterdate_remove_dte, msg_txt = f.get_date_from_ISOstring(rosterdate_str)
                     RemoveRosterdate(rosterdate_remove_dte, request, comp_timezone)
 
                 # update rosterdate_current in companysettings
                     rosterdate_current_dte = rosterdate_remove_dte + timedelta(days=-1)
-                    m.Companysetting.set_setting(KEY_COMP_ROSTERDATE_CURRENT, rosterdate_current_dte, request.user.company)
+                    m.Companysetting.set_setting(c.KEY_COMP_ROSTERDATE_CURRENT, rosterdate_current_dte, request.user.company)
                     update_dict['rosterdate'] = get_rosterdatefill_dict(request.user.company, comp_timezone, user_lang)
 
                 period_dict = get_period_from_settings(request)
@@ -208,7 +208,7 @@ def AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_coun
     if orderhour:
 # b. if exists, check if status is STATUS_02_START_CONFIRMED or higher
         # skip update this orderhour when it is locked or has status STATUS_02_START_CONFIRMED or higher
-        oh_is_locked = (orderhour.status > STATUS_01_CREATED or orderhour.locked)
+        oh_is_locked = (orderhour.status > c.STATUS_01_CREATED or orderhour.locked)
 
 # 5. if not exists: create new orderhour
     else:
@@ -235,6 +235,7 @@ def AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_coun
             order_rate = schemeitem.scheme.order.rate
         if schemeitem.scheme.order.taxrate:
             order_taxrate = schemeitem.scheme.order.taxrate
+
 # get schemeitem info
     timeduration = 0
     if schemeitem.timeduration:
@@ -252,7 +253,7 @@ def AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_coun
         orderhour.weekindex = new_rosterdate.isocalendar()[1]  # isocalendar() is tuple: (2019, 15, 4)
         orderhour.shift = shift_code
         orderhour.duration = schemeitem.timeduration
-        orderhour.status = STATUS_01_CREATED
+        orderhour.status = c.STATUS_01_CREATED
         orderhour.rate = order_rate
         orderhour.amount = amount
         orderhour.taxrate = order_taxrate
@@ -273,41 +274,21 @@ def AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_coun
             timeduration=timeduration,
             breakduration=shift_breakduration,
             wagefactor=schemeitem.wagefactor,
-            status=STATUS_01_CREATED)
+            status=c.STATUS_01_CREATED)
 
-# - lookup employee in teammembers
-        if schemeitem.team:
-# filter teammmembers that have new_rosterdate within range datefirst/datelast
-            crit = (Q(team=schemeitem.team)) & \
-                   (Q(employee__isnull=False)) & \
-                   (Q(employee__datefirst__lte=new_rosterdate) | Q(employee__datefirst__isnull=True)) & \
-                   (Q(employee__datelast__gte=new_rosterdate) | Q(employee__datelast__isnull=True)) & \
-                   (Q(datefirst__lte=new_rosterdate) | Q(datefirst__isnull=True)) & \
-                   (Q(datelast__gte=new_rosterdate) | Q(datelast__isnull=True))
-
-# convert datelast null into '2200-01-01'.  (function Coalesce changes Null into '2200-01-01')
-            # from: https://stackoverflow.com/questions/5235209/django-order-by-position-ignoring-null
-            # Coalesce works by taking the first non-null value.  So we give it
-            # a date far after any non-null values of last_active.  Then it will
-            # naturally sort behind instances of Box with a non-null last_active value.
-
-# order_by datelast, null comes last (with Coalesce changes to '2200-01-01'
-# - get employee with earliest endatlookup employee in teammembers
-            teammember = m.Teammember.objects.annotate(
-                new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
-                )).filter(crit).order_by('new_datelast').first()
-            if teammember:
-
-                # add employee
-                employee = teammember.employee
-                if employee:
-                    logger.debug("       employee: '" + str(employee.code) + "' is added")
-                    new_emplhour.employee = employee
-                    new_emplhour.wagecode = employee.wagecode
+# - lookup first employee within range in team.teammembers
+        teammember = m.Teammember.get_first_teammember_on_rosterdate(schemeitem.team, new_rosterdate)
+        if teammember:
+            # add employee (employe=null is filtered out)
+            employee = teammember.employee
+            if employee:
+                logger.debug("       employee: '" + str(employee.code) + "' is added")
+                new_emplhour.employee = employee
+                new_emplhour.wagecode = employee.wagecode
         new_emplhour.save(request=request)
     logger.debug(' entry_count: ' + str( entry_count))
     m.entry_balance_subtract(entry_count, request, comp_timezone)  # PR2019-08-04
-# 33333333333333333333333333333333333333333333333333
+
 
 def update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone):  # PR2019-07-31
     # update the rosterdate of a schemeitem when it is outside the current cycle,
@@ -347,7 +328,7 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone):  # 
                     # new_si_rosterdate: 2019-07-27 <class 'datetime.date'>
 
                     # convert to dattime object
-                    new_si_rosterdatetime = get_datetime_naive_from_date(new_si_rosterdate)
+                    new_si_rosterdatetime = f.get_datetime_naive_from_date(new_si_rosterdate)
 
                     # get new_schemeitem.time_start and new_schemeitem.time_end
                     new_timestart = None
@@ -356,12 +337,12 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone):  # 
                     if new_si_rosterdatetime:
                         if schemeitem.shift:
                             if schemeitem.shift.offsetstart:
-                                new_timestart = get_datetimelocal_from_offset(
+                                new_timestart = f.get_datetimelocal_from_offset(
                                     rosterdate=new_si_rosterdatetime,
                                     offset=schemeitem.shift.offsetstart,
                                     comp_timezone=comp_timezone)
                             if schemeitem.shift.offsetend:
-                                new_timeend = get_datetimelocal_from_offset(rosterdate=new_si_rosterdatetime,
+                                new_timeend = f.get_datetimelocal_from_offset(rosterdate=new_si_rosterdatetime,
                                                                             offset=schemeitem.shift.offsetstart,
                                                                             comp_timezone=comp_timezone)
                             if schemeitem.shift.breakduration:
@@ -373,7 +354,7 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone):  # 
                     # get new_schemeitem.timeduration
                     new_timeduration = 0
                     if new_timestart and new_timeend:
-                        new_timeduration = get_time_minutes(
+                        new_timeduration = f.get_time_minutes(
                             timestart=new_timestart,
                             timeend=new_timeend,
                             break_minutes=breakduration)

@@ -47,8 +47,9 @@ $(function() {
         document.getElementById("id_btn_autofill").addEventListener("click", function() {HandleAutofillDayupDown("schemeitem_autofill")}, false )
 
 // ---  add 'keyup' event handler to filter input
-        document.getElementById("id_filter_name").addEventListener("keyup", function() {
-            setTimeout(function() {HandleSearchFilterEvent();}, 150);
+        let el_filter_name = document.getElementById("id_filter_name");
+        el_filter_name.addEventListener("keyup", function() {
+            setTimeout(function() {HandleSearchFilterEvent(el_filter_name)}, 150);
         });
 
 // ---  Modal Addnew
@@ -880,10 +881,12 @@ $(function() {
 //========= UploadChanges  ============= PR2019-03-03
     function UploadChanges(el_input) {
         console.log("--- UploadChanges  --------------");
+        console.log("el_input", el_input);
 
         let upload_dict = {}, field_dict = {};
         let tr_changed = get_tablerow_clicked(el_input)
 
+        console.log("tr_changed: ", tr_changed);
 // ---  create id_dict
         let id_dict = get_iddict_from_element(tr_changed);
         const tablename = get_dict_value_by_key(id_dict, "table")
@@ -895,10 +898,12 @@ $(function() {
 // add id_dict to upload_dict
         if (!! tr_changed && !!id_dict){
             upload_dict["id"] = id_dict;
-            const ppk_int = get_datapk_from_element (tr_changed);
-            console.log("ppk_int", ppk_int);
             console.log("upload_dict", upload_dict);
+
             if (tablename === "schemeitem") {
+                // parent of schemeitem, shift and team is: scheme
+                const ppk_int = get_attr_from_el_int(tr_changed, "data-ppk");
+                console.log("ppk_int", ppk_int);
                 if (is_create) {
                     const el_rosterdate = tr_changed.cells[0].children[0];
                     console.log(el_rosterdate);
@@ -921,10 +926,10 @@ $(function() {
                     pk_int = parseInt(el_input.value);
                     if(!!pk_int){
                         field_dict["pk"] = pk_int
-                        field_dict["ppk"] = ppk_int
                         if (el_input.selectedIndex > -1) {
                             code = el_input.options[el_input.selectedIndex].text;
                             if(!!code){field_dict["value"] = code};
+                            if(!!ppk_int){field_dict["ppk"] = ppk_int};
                         }
                     }
                     field_dict["update"] = true;
@@ -936,6 +941,7 @@ $(function() {
                 }
 
             } else if (tablename === "shift") {
+                // parent is scheme
                 if (fieldname === "code") {
                     const code = el_input.value
                     if (!!code){
@@ -960,6 +966,7 @@ $(function() {
                     field_dict["update"] = true;
                 }
             } else if (tablename === "teammember") {
+                // parent is team
                 if (fieldname === "employee") {
                     // get pk from datalist when field is a look_up field
                     const value = el_input.value;                    if(!!value){
@@ -1378,10 +1385,11 @@ $(function() {
     }  // function HandleFilterInactive
 
 //========= HandleSearchFilterEvent  ====================================
-    function HandleSearchFilterEvent() {
-        //console.log( "===== HandleSearchFilterEvent  ========= ");
+    function HandleSearchFilterEvent(el_filter_name) {
+        console.log( "===== HandleSearchFilterEvent  ========= ");
         // skip filter if filter value has not changed, update variable filter_name
-        let new_filter = document.getElementById("id_filter_name").value;
+
+        let new_filter = el_filter_name.value;
         let skip_filter = false
         if (!new_filter){
             if (!filter_name){
@@ -1396,6 +1404,7 @@ $(function() {
                 filter_name = new_filter.toLowerCase();
             }
         }
+        console.log( "filter_name:", filter_name, "skip_filter", skip_filter);
         if (!skip_filter) {
             FilterTableRows(tblBody_items, filter_name)
         } //  if (!skip_filter) {

@@ -117,8 +117,8 @@ $(function() {
 
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request) {
-        console.log( "=== DatalistDownload ")
-        console.log( datalist_request)
+        //console.log( "=== DatalistDownload ")
+        //console.log( datalist_request)
 
 // reset requested lists
         for (let key in datalist_request) {
@@ -134,8 +134,8 @@ $(function() {
             data: param,
             dataType: 'json',
             success: function (response) {
-                console.log("response")
-                console.log(response)
+                //console.log("response")
+                //console.log(response)
 
                 if ("customer" in response) {customer_list= response["customer"]}
                 let txt_select = get_attr_from_el(el_data, "data-txt_select_customer");
@@ -154,7 +154,7 @@ $(function() {
 
 //========= FillDatalist  ====================================
     function FillDatalist(id_datalist, data_list, scheme_pk) {
-        console.log( "===== FillDatalist  ========= ");
+        //console.log( "===== FillDatalist  ========= ");
 
         let el_datalist = document.getElementById(id_datalist);
         el_datalist.innerText = null
@@ -182,7 +182,7 @@ $(function() {
 
 //========= FillSelectTable  ============= PR2019-05-25
     function FillSelectTable(tablename, tableBody, item_list) {
-        console.log( "=== FillSelectTable ");
+        //console.log( "=== FillSelectTable ");
 
         const caption_one = get_attr_from_el(el_data, "data-txt_select_customer") + ":";
         const caption_none = get_attr_from_el(el_data, "data-txt_select_customer_none") + ":";
@@ -249,7 +249,7 @@ $(function() {
 
 //=========  HandleSelectCustomer  ================ PR2019-05-24
     function HandleSelectCustomer(tblRow) {
-        console.log( "===== HandleSelectCustomer ========= ");
+        //console.log( "===== HandleSelectCustomer ========= ");
 
 // reset selected customer
         selected_customer_pk = 0
@@ -280,7 +280,7 @@ $(function() {
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
     function HandleTableRowClicked(tr_clicked) {
-        console.log("=== HandleTableRowClicked");
+        //console.log("=== HandleTableRowClicked");
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows
@@ -296,7 +296,7 @@ $(function() {
 
 //========= GetItemFromTablerow  ============= PR2019-05-11
     function GetItemFromTablerow(tr_changed) {
-        console.log("======== GetItemFromTablerow");
+        //console.log("======== GetItemFromTablerow");
 
         let item_dict = {};
 
@@ -323,9 +323,9 @@ $(function() {
                             value = get_attr_from_el(el_input, "data-value"); // data-value="2019-05-11"
                         };
                         o_value = get_attr_from_el(el_input, "data-o_value"); // data-value="2019-03-29"
-                        console.log("fieldname", fieldname, typeof fieldname);
-                        console.log("value", value, typeof value);
-                        console.log("o_value", o_value, typeof o_value);
+                        //console.log("fieldname", fieldname, typeof fieldname);
+                        //console.log("value", value, typeof value);
+                        //console.log("o_value", o_value, typeof o_value);
 
     // ---  add value to dict when changed
                         if(value_has_changed(value, o_value)){
@@ -346,13 +346,13 @@ $(function() {
 
 //========= HandleInactiveClicked  ============= PR2019-03-03
     function HandleInactiveClicked(el_changed) {
-        console.log("======== HandleInactiveClicked  ========");
-        console.log(el_changed);
+        //console.log("======== HandleInactiveClicked  ========");
+        //console.log(el_changed);
 
         let is_inactive_str = get_attr_from_el(el_changed, "data-value")
         // toggle value of is_inactive
         if (is_inactive_str === "true"){is_inactive_str = "false"} else {is_inactive_str = "true"}
-        console.log("is_inactive_str: ", is_inactive_str, typeof is_inactive_str);
+        //console.log("is_inactive_str: ", is_inactive_str, typeof is_inactive_str);
         el_changed.setAttribute("data-value", is_inactive_str);
 
         // update icon
@@ -381,9 +381,9 @@ $(function() {
 // An input has a value attribute that determines the initial value of the input.
 // It also has a value property that holds the current value of the input
     function UploadTblrowChanged(tr_changed) {
-        console.log("=== UploadTblrowChanged");
+        //console.log("=== UploadTblrowChanged");
         let new_item = GetItemFromTablerow(tr_changed);
-        console.log("new_item", new_item);
+        //console.log("new_item", new_item);
 
         if(!!new_item) {
             let parameters = {"upload": JSON.stringify (new_item)};
@@ -395,8 +395,8 @@ $(function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+                    //console.log( "response");
+                    //console.log( response);
 
                     if ("item_update" in response) {
                         const item_dict = response["item_update"]
@@ -430,7 +430,7 @@ $(function() {
 
 //=========  HandleFilterInactive  ================ PR2019-03-23
     function HandleFilterInactive() {
-        console.log("=========  function HandleFilterInactive =========");
+        //console.log("=========  function HandleFilterInactive =========");
 // toggle value
         filter_inactive_included = !filter_inactive_included
 // toggle icon
@@ -447,7 +447,7 @@ $(function() {
 
 //========= HandleFilterOrders  ====================================
     function HandleFilterOrders() {
-        console.log( "===== HandleFilterOrders  ========= ");
+        //console.log( "===== HandleFilterOrders  ========= ");
         // don't skip, must run this code also when customer has changed. Was: skip filter if filter value has not changed, update variable filter_orders
         let new_filter = document.getElementById("id_filter_orders").value;
         filter_orders = new_filter.toLowerCase();
@@ -458,7 +458,7 @@ $(function() {
 
 //========= HandleFilterCustomers  ====================================
     function HandleFilterCustomers() {
-        console.log( "===== HandleFilterCustomers  ========= ");
+        //console.log( "===== HandleFilterCustomers  ========= ");
 
         // skip filter if filter value has not changed, update variable filter_customers
         let new_filter = document.getElementById("id_filter_customers").value;
@@ -540,7 +540,7 @@ $(function() {
 
 //========= FillTableRows  ====================================
     function FillTableRows() {
-        console.log( "===== FillTableRows  ========= ");
+        //console.log( "===== FillTableRows  ========= ");
 
 // --- reset tblBody_items
         tblBody_items.innerText = null;
@@ -685,11 +685,11 @@ $(function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, item_dict){
-        console.log("--++- UpdateTableRow  --------------");
+        //console.log("--++- UpdateTableRow  --------------");
 
         if (!!item_dict && !!tblRow) {
             //console.log("tblRow", tblRow);
-            console.log("item_dict", item_dict);
+            //console.log("item_dict", item_dict);
 
             // new, not saved: cust_dict{'id': {'new': 'new_1'},
             // item_dict = {'id': {'pk': 7},
@@ -789,8 +789,6 @@ $(function() {
                                                 user_lang, comp_timezone, hide_weekday, hide_year)
                                 };
 
-
-
                                 if(!!err){
                                     ShowMsgError(el_input, el_msg, msg_err, -60)
                                 } else if(updated){
@@ -799,9 +797,6 @@ $(function() {
                                         el_input.classList.remove("border_valid");
                                         }, 2000);
                                 }
-
-
-
                             }  // if (fieldname in item_dict)
 
                             if (fieldname === "inactive") {
@@ -824,7 +819,7 @@ $(function() {
 
 //========= HandlePopupDateOpen  ====================================
     function HandlePopupDateOpen(el_input) {
-        console.log("===  HandlePopupDateOpen  =====") ;
+        //console.log("===  HandlePopupDateOpen  =====") ;
 
         let el_popup_date = document.getElementById("id_popup_date")
 
@@ -840,7 +835,7 @@ $(function() {
             const data_table = get_attr_from_el(tr_selected, "data-table")
             const data_pk = get_attr_from_el(tr_selected, "data-pk")
             const data_ppk = get_attr_from_el(tr_selected, "data-ppk");
-            console.log("data_table", data_table, "data_pk", data_pk, "data_ppk", data_ppk)
+            //console.log("data_table", data_table, "data_pk", data_pk, "data_ppk", data_ppk)
 
 // get values from el_input
             //NIU const el_id = get_attr_from_el(el_input, "id");
@@ -850,7 +845,7 @@ $(function() {
 
             const data_mindate = get_attr_from_el(el_input, "data-mindate");
             const data_maxdate = get_attr_from_el(el_input, "data-maxdate");
-            console.log("data_mindate", data_mindate, "data_maxdate", data_maxdate);
+            //console.log("data_mindate", data_mindate, "data_maxdate", data_maxdate);
 
     // put values in el_popup_date_container
             // NIU el_popup_date_container.setAttribute("data-el_id", el_id);
@@ -890,7 +885,7 @@ $(function() {
 
 //=========  HandlePopupDateSave  ================ PR2019-04-14
     function HandlePopupDateSave() {
-        console.log("===  function HandlePopupDateSave =========");
+        //console.log("===  function HandlePopupDateSave =========");
 
 // ---  get pk_str from id of el_popup
         const pk_str = el_popup_date_container.getAttribute("data-pk")// pk of record  of element clicked
@@ -951,11 +946,11 @@ $(function() {
 
                 field_dict["update"] = true
                 row_upload[fieldname] =  field_dict;
-                console.log ("field_dict: ", field_dict);
+                //console.log ("field_dict: ", field_dict);
                 let parameters = {};
                 parameters["upload"] = JSON.stringify (row_upload);
 
-                console.log (">>> parameters: ", row_upload);
+                //console.log (">>> parameters: ", row_upload);
                 let response;
                 $.ajax({
                     type: "POST",
@@ -963,7 +958,7 @@ $(function() {
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        console.log (">>> response", response);
+                        //console.log (">>> response", response);
                         if ("item_update" in response) {
                             const item_dict = response["item_update"]
                             UpdateTableRow(tr_selected, item_dict)

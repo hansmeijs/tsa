@@ -142,6 +142,10 @@ CAT_02_REST = 2
 CAT_03_ABSENCE = 3
 CAT_04_TEMPLATE = 4
 
+# 0 = normal shift, 1 = rest shift
+SHIFT_CAT_00_NORMAL = 0
+SHIFT_CAT_01_RESTSHIFT = 1
+
 #PR2019-08-05 # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
 CAT_ENTRY_00_GRACE = 0
 CAT_ENTRY_01_BONUS = 1

@@ -1154,8 +1154,9 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                                                     scheme=schemeitem.scheme,
                                                     rosterdate=new_rosterdate,
                                                     team=schemeitem.team,
-                                                    shift=schemeitem.shift
-                                                )
+                                                    shift=schemeitem.shift,
+                                                    timeduration=0
+                                                )   # timeduration cannot be blank
 
                          # calculate 'timestart, 'timeend', timeduration
                                                 calc_schemeitem_timeduration(new_schemeitem, {}, comp_timezone)
@@ -3011,14 +3012,12 @@ def update_schemeitem(instance, upload_dict, update_dict, request, comp_timezone
     # b. validate new_date; field 'rosterdate' is required
             # logger.debug('new_value: ' + str(new_value) + ' '  + str(type(new_value)))
             new_date, msg_err = f.get_date_from_ISOstring(new_value, True)  # True = blank_not_allowed
-
-            saved_date = getattr(instance, fieldname)
-            # logger.debug("new_date: " + str(new_date) + " saved_date: " + str(saved_date))
-
             if msg_err is not None:
                 update_dict[fieldname]['error'] = msg_err
             else:
     # c. save field if changed and no_error
+                saved_date = getattr(instance, fieldname)
+                # logger.debug("new_date: " + str(new_date) + " saved_date: " + str(saved_date))
                 if new_date != saved_date:
                     setattr(instance, fieldname, new_date)
                     update_dict[fieldname]['updated'] = True
@@ -3030,21 +3029,19 @@ def update_schemeitem(instance, upload_dict, update_dict, request, comp_timezone
         field_dict = upload_dict.get(fieldname)
         if 'update' in field_dict:
     # a. get new and old value
-            shift_pk = int(field_dict.get('pk', 0))
-            logger.debug('shift_code[' + str(shift_pk))
+            new_shift_pk = int(field_dict.get('pk', 0))
+            logger.debug('new_shift_pk: ' + str(new_shift_pk))
 
-    # b. remove shift from schemeitem when shift_pk is None
-            if not shift_pk:
+    # b. remove shift from schemeitem when new_shift_pk is None
+            if not new_shift_pk:
                 # set field blank
                 if instance.shift:
                     instance.shift = None
-                    # timsestart and timeend will be reset at recalc
                     update_dict[fieldname]['updated'] = True
-
                     recalc = True
             else:
      # c. check if shift exists
-                new_shift = m.Shift.objects.get_or_none(scheme=instance.scheme, pk=shift_pk)
+                new_shift = m.Shift.objects.get_or_none(scheme=instance.scheme, pk=new_shift_pk)
                 if new_shift is None:
                     msg_err = _('This field could not be updated.')
                     update_dict[fieldname]['error'] = msg_err
@@ -3063,13 +3060,11 @@ def update_schemeitem(instance, upload_dict, update_dict, request, comp_timezone
     # a. get new and old pk
         field_dict = upload_dict.get(fieldname)
         if 'update' in field_dict:
-            logger.debug(str(fieldname) +' field_dict:' + str(field_dict))
-            code = field_dict.get('value')
-            pk_int = int(field_dict.get('pk', 0))
-            logger.debug('pk_int: ' + str(pk_int) + ' code: ' + str(code))
+            new_team_pk = int(field_dict.get('pk', 0))
+            logger.debug('new_team_pk: ' + str(new_team_pk) + ' code: ' + str(field_dict.get('value')))
 
     # b. remove team from schemeitem when pk is None
-            if not pk_int:
+            if not field_dict.get('value'):
                 # set field blank if has value
                 if getattr(instance, fieldname):
                     setattr(instance, fieldname, None)
@@ -3077,8 +3072,7 @@ def update_schemeitem(instance, upload_dict, update_dict, request, comp_timezone
                     update_dict[fieldname]['updated'] = True
             else:
     # c. check if team existst
-                team = m.Team.objects.get_or_none(id=pk_int, scheme__order__customer__company=request.user.company)
-                logger.debug('team]: ' + str(team) + ' ' + str(team.code))
+                team = m.Team.objects.get_or_none(id=new_team_pk, scheme__order__customer__company=request.user.company)
 
     # d. upate tem in schemeitem
                 if team is None:
@@ -3104,7 +3098,6 @@ def update_schemeitem(instance, upload_dict, update_dict, request, comp_timezone
                 update_dict[fieldname]['updated'] = True
                 save_changes = True
 
-    logger.debug('------------------calculate working hours--------------------------')
     if recalc:
         save_changes = True
         calc_schemeitem_timeduration(instance, update_dict, comp_timezone)
@@ -3128,8 +3121,9 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
     offsetstart = None
     offsetend = None
     breakduration = 0
-    shift_cat = 0
+    shift_cat = c.SHIFT_CAT_00_NORMAL
     successor_offsetstart = None
+    msg_err = None
 
 # a. check if shift exists
     shift = schemeitem.shift
@@ -3139,12 +3133,11 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
 # b. get offsetstart of this shift
         offsetstart = getattr(shift, 'offsetstart')
 # c. get offsetend of this shift
-        offsetend = getattr(shift, 'offsetstart')
+        offsetend = getattr(shift, 'offsetend')
 # d. get breakduration of this shift
         breakduration = getattr(shift, 'breakduration', 0)
 # e. get shift_cat of this shift
-        shift_cat = getattr(shift, 'cat', 0)
-
+        shift_cat = getattr(shift, 'cat', c.SHIFT_CAT_00_NORMAL)
 
 # f. replace offsetend with successor_offsetstart, if exists
         successor = getattr(shift, 'successor')
@@ -3153,7 +3146,6 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
             if successor_offsetstart:
                 offsetend = successor_offsetstart
 
-        msg_err = None
         if offsetstart is None:
             if offsetend is None:
                 msg_err = _('Start- and endtime of shift are blank. Time cannot be calculated.')
@@ -3164,14 +3156,17 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
                 msg_err = _('Endtime of shift is blank. Time cannot be calculated.')
 
     if msg_err:
-        update_dict['timestart']['error'] = msg_err
-        for fld in ('timestart', 'timeend', 'timeduration'):
+        # when called by SchemeitemFillView, update_dict is blank
+        if update_dict:
+            if 'timestart' in update_dict:
+                update_dict['timestart']['error'] = msg_err
+        setattr(schemeitem, 'timeduration', 0)
+        for fld in ('timestart', 'timeend'):
             setattr(schemeitem, fld, None)
     else:
-
         # calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
 
-        # a. convert stored rosterdate '2019-08-09' to datetime object
+# a. convert stored rosterdate '2019-08-09' to datetime object
         rosterdatetime = f.get_datetime_naive_from_date(schemeitem.rosterdate)
         logger.debug(' rosterdatetime: ' + str(rosterdatetime))
 
@@ -3206,7 +3201,7 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
             new_value = int(datediff_minutes - breakduration)
 
  # when rest shift : timeduration = 0     # cst = 0 = normal, 1 = rest
-            if shift_cat == 1:
+            if shift_cat == c.SHIFT_CAT_01_RESTSHIFT:
                 new_value = 0
 
             if fieldname not in update_dict:

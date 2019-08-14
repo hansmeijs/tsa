@@ -1,17 +1,16 @@
 # PR2019-02-28
 from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL, Sum
 from django.db.models import CharField, BooleanField, PositiveSmallIntegerField, IntegerField, \
-    DateField, DateTimeField, Q
-from django.db.models.functions import Lower
+    DateField, DateTimeField, Q, Value
+from django.db.models.functions import Lower, Coalesce
 
 from django.utils.translation import ugettext_lazy as _
 
 from datetime import datetime
 
 from tsap.settings import AUTH_USER_MODEL, TIME_ZONE
-from tsap.constants import USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, NAME_MAX_LENGTH, \
-    TIMEFORMAT_CHOICES, TIMEFORMAT_24h, TIMEINTERVAL_DEFAULT, CAT_ENTRY_00_GRACE
-from tsap.functions import get_date_yyyymmdd, get_date_longstr_from_dte
+from tsap import constants as c
+from tsap import functions as f
 
 import pytz
 
@@ -33,8 +32,8 @@ class TsaBaseModel(Model):
     objects = TsaManager()
 
     # set maxlength also in  maxlen_code, maxlen_name
-    code = CharField(db_index=True, max_length=CODE_MAX_LENGTH)
-    name = CharField(db_index=True, max_length=NAME_MAX_LENGTH)
+    code = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH)
+    name = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH)
 
     datefirst = DateField(db_index=True, null=True, blank=True)
     datelast = DateField(db_index=True, null=True, blank=True)
@@ -85,19 +84,19 @@ class TsaBaseModel(Model):
 
     @property
     def maxlen_code(self):  # PR2019-03-04
-        return CODE_MAX_LENGTH
+        return c.CODE_MAX_LENGTH
 
     @property
     def maxlen_name(self):  # PR2019-03-04
-        return NAME_MAX_LENGTH
+        return c.NAME_MAX_LENGTH
 
     @property
     def datefirst_str(self):  # PR2019-03-29
-        return get_date_yyyymmdd(self.datefirst)
+        return f.get_date_yyyymmdd(self.datefirst)
 
     @property
     def datelast_str(self):  # PR2019-03-29
-        return get_date_yyyymmdd(self.datelast)
+        return f.get_date_yyyymmdd(self.datelast)
 
     @property
     def modifiedby_str(self):  # PR2019-04-01
@@ -110,17 +109,16 @@ class TsaBaseModel(Model):
         # This doesn't work in template tags
         dte_str = ''
         if self.modifiedat:
-            dte_str = get_date_longstr_from_dte(self.modifiedat, lang)
+            dte_str = f.get_date_longstr_from_dte(self.modifiedat, lang)
         return dte_str
 
 class Company(TsaBaseModel):
     objects = TsaManager()
 
     issystem = BooleanField(default=False)
-    timezone = CharField(max_length=NAME_MAX_LENGTH, default=TIME_ZONE)
-    interval = PositiveSmallIntegerField(default=TIMEINTERVAL_DEFAULT)
-    timeformat = CharField(max_length=4, choices=TIMEFORMAT_CHOICES,
-        default=TIMEFORMAT_24h)
+    timezone = CharField(max_length=c.NAME_MAX_LENGTH, default=TIME_ZONE)
+    interval = PositiveSmallIntegerField(default=c.TIMEINTERVAL_DEFAULT)
+    timeformat = CharField(max_length=4, choices=c.TIMEFORMAT_CHOICES, default=c.TIMEFORMAT_24h)
 
     class Meta:
         ordering = [Lower('code')]
@@ -141,10 +139,10 @@ class Customer(TsaBaseModel):
     company = ForeignKey(Company, related_name='customers', on_delete=PROTECT)
     cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
 
-    identifier = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
-    email = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
-    telephone = CharField(db_index=True, max_length=USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
-    interval = PositiveSmallIntegerField(default=TIMEINTERVAL_DEFAULT)
+    identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    email = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
+    telephone = CharField(db_index=True, max_length=c.USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
+    interval = PositiveSmallIntegerField(default=c.TIMEINTERVAL_DEFAULT)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -163,11 +161,11 @@ class Order(TsaBaseModel):
     customer = ForeignKey(Customer, related_name='orders', on_delete=PROTECT)
     cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
 
-    identifier = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     taxrate = IntegerField(default=0) # /10000 unit
     ishourlybasis = BooleanField(default=False)
-    interval = PositiveSmallIntegerField(default=TIMEINTERVAL_DEFAULT)
+    interval = PositiveSmallIntegerField(default=c.TIMEINTERVAL_DEFAULT)
 
     class Meta:
         ordering = [Lower('code')]
@@ -280,9 +278,9 @@ class Shift(TsaBaseModel):
     inactive = None
     locked = None
 
-    cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = rest
-    offsetstart = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)  # dhm" "-1;17;45"
-    offsetend = CharField(max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    cat = PositiveSmallIntegerField(default=0)  # 0 = normal shift, 1 = rest shift
+    offsetstart = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)  # dhm" "-1;17;45"
+    offsetend = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     breakduration = IntegerField(default=0) # unit is minute
 
     class Meta:
@@ -368,13 +366,13 @@ class Employee(TsaBaseModel):
 
     company = ForeignKey(Company, related_name='+', on_delete=PROTECT)
 
-    namelast = CharField(db_index=True, max_length=NAME_MAX_LENGTH)
-    namefirst = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
-    prefix = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
-    email = CharField(db_index=True, max_length=NAME_MAX_LENGTH, null=True, blank=True)
-    telephone = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
-    identifier = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
-    payrollcode = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    namelast = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH)
+    namefirst = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
+    prefix = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    email = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
+    telephone = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    payrollcode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
     workhours = IntegerField(default=0)  # / working hours per week, unit is minute
@@ -441,6 +439,52 @@ class Teammember(TsaBaseModel):
     inactive = None
     locked = None
 
+    # 33333333333333333333333333333333333333333333333333
+    @classmethod
+    def get_first_teammember_on_rosterdate(cls, team, rosterdate):
+
+        logger.debug("-----------get_first_teammember_on_rosterdate---------------------")
+        logger.debug("team: " + str(team.code) + "  rosterdate: " + str(rosterdate) )
+        teammember = None
+        if team and rosterdate:
+            # filter teammmembers that have new_rosterdate within range datefirst/datelast
+            crit = (Q(team=team)) & \
+                   (Q(employee__isnull=False)) & \
+                   (Q(employee__datefirst__lte=rosterdate) | Q(employee__datefirst__isnull=True)) & \
+                   (Q(employee__datelast__gte=rosterdate) | Q(employee__datelast__isnull=True)) & \
+                   (Q(datefirst__lte=rosterdate) | Q(datefirst__isnull=True)) & \
+                   (Q(datelast__gte=rosterdate) | Q(datelast__isnull=True))
+            # logger.debug(teammembers.query)
+                # WHERE ("companies_teammember"."team_id" = 13
+                # AND "companies_teammember"."employee_id" IS NOT NULL
+                # AND ("companies_employee"."datefirst" <= 2019-08-14 OR "companies_employee"."datefirst" IS NULL)
+                # AND ("companies_employee"."datelast" >= 2019-08-14 OR "companies_employee"."datelast" IS NULL)
+                # AND ("companies_teammember"."datefirst" <= 2019-08-14 OR "companies_teammember"."datefirst" IS NULL)
+                # AND ("companies_teammember"."datelast" >= 2019-08-14 OR "companies_teammember"."datelast" IS NULL))
+
+            # convert datelast null into '2200-01-01'.  (function Coalesce changes Null into '2200-01-01')
+            # from: https://stackoverflow.com/questions/5235209/django-order-by-position-ignoring-null
+            # Coalesce works by taking the first non-null value.  So we give it
+            # a date far after any non-null values of last_active.  Then it will
+            # naturally sort behind instances of Box with a non-null last_active value.
+
+            # order_by datelast, null comes last (with Coalesce changes to '2200-01-01'
+            # - get employee with earliest endatlookup employee in teammembers
+            teammembers = cls.objects.annotate(
+                new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
+                                      )).filter(crit).order_by('new_datelast')
+
+            for member in teammembers:
+                employee = getattr(member, 'employee')
+                if employee:
+                    logger.debug('employee: ' + str(employee))
+
+            teammember = cls.objects.annotate(
+                new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
+                                      )).filter(crit).order_by('new_datelast').first()
+            # logger.debug('return member:' + str(teammember.employee))
+        return teammember
+# 33333333333333333333333333333333333333333333333333
 
 # =================
 
@@ -486,7 +530,7 @@ class Orderhour(TsaBaseModel):
     monthindex = PositiveSmallIntegerField(default=0)
     weekindex = PositiveSmallIntegerField(default=0)
 
-    shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     duration = IntegerField(default=0)  # unit is hour * 100
     status = PositiveSmallIntegerField(db_index=True, default=0)
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
@@ -505,7 +549,7 @@ class Orderhour(TsaBaseModel):
 
     @property
     def rosterdate_yyyymmdd(self): # PR2019-04-01
-        return get_date_yyyymmdd(self.rosterdate)
+        return f.get_date_yyyymmdd(self.rosterdate)
 
 
 class Emplhour(TsaBaseModel):
@@ -521,7 +565,7 @@ class Emplhour(TsaBaseModel):
     monthindex = PositiveSmallIntegerField(default=0)
     weekindex = PositiveSmallIntegerField(default=0)
 
-    shift = CharField(db_index=True, max_length=CODE_MAX_LENGTH, null=True, blank=True)
+    shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     timestart = DateTimeField(db_index=True, null=True, blank=True)
     timeend = DateTimeField(db_index=True, null=True, blank=True)
     timeduration = IntegerField(default=0)
@@ -572,7 +616,7 @@ class Companyinvoice(TsaBaseModel):  # PR2019-04-06
     datepayment = DateField(null=True, blank=True)
     dateexpired = DateField(db_index=True, null=True, blank=True)
     expired = BooleanField(default=False)
-    note = CharField(db_index=True, max_length=NAME_MAX_LENGTH)
+    note = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH)
 
     class Meta:
         ordering = ['datepayment']
@@ -590,7 +634,7 @@ class Companysetting(Model):  # PR2019-03-09
     objects = TsaManager()
 
     company = ForeignKey(Company, related_name='companysettings', on_delete=CASCADE)
-    key = CharField(db_index=True, max_length=CODE_MAX_LENGTH)
+    key = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH)
     setting = CharField(max_length=2048, null=True, blank=True)
 
 #===========  Classmethod
@@ -664,7 +708,7 @@ def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # 
             subtotal = entries_tobe_subtracted
             crit = Q(company=request.user.company) & \
                    Q(expired=False) & \
-                   Q(cat__gt=CAT_ENTRY_00_GRACE) # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
+                   Q(cat__gt=c.CAT_ENTRY_00_GRACE) # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
             invoices = Companyinvoice.objects.filter(crit)
             # TODO check order and filter
             save_changes = False
@@ -691,25 +735,27 @@ def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # 
                     invoice.save(request=request)
             # if any entries_tobe_subtracted left: subtract from garce entries
             if subtotal:
-                # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
-                grace = Companyinvoice.objects.get_or_none(company=request.user.company, cat=CAT_ENTRY_00_GRACE)
-                if grace is None:
-                    create_invoice_grace(request)
+                grace_invoice = get_or_create_grace_invoice(request)
 
-                saved_used = grace.used
-                saved_balance = grace.balance
-                grace.balance = saved_balance - subtotal
-                grace.used = saved_used + subtotal
-                grace.save(request=request)
+                saved_used = grace_invoice.used
+                saved_balance = grace_invoice.balance
+                grace_invoice.balance = saved_balance - subtotal
+                grace_invoice.used = saved_used + subtotal
+                grace_invoice.save(request=request)
 
-                logger.debug('grace.balance ' + str(grace.balance))
+                logger.debug('grace.balance ' + str(grace_invoice.balance))
 
-def create_invoice_grace(request):  # PR2019-08-05
+
+def get_or_create_grace_invoice(request):  # PR2019-08-13
+    # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
+    invoice = None
     if request.user.company:
-        companyinvoice = Companyinvoice.objects.get_or_none(company=request.user.company, cat=CAT_ENTRY_00_GRACE)
-        if companyinvoice is None:
-            companyinvoice = Companyinvoice(company=request.user.company, cat=CAT_ENTRY_00_GRACE)
-        companyinvoice.save()
+        invoice = Companyinvoice.objects.get_or_none(cat=c.CAT_ENTRY_00_GRACE, company=request.user.company)
+        if invoice is None:
+            invoice = Companyinvoice(cat=c.CAT_ENTRY_00_GRACE, company=request.user.company)
+            invoice.save(request=request)
+    return invoice
+
 
 def create_invoice(request, cat, entries=0, rate=0, datepayment=None, dateexpired=None, note=None):  # PR2019-08-05
     invoice = None

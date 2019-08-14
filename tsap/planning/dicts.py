@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from timeit import default_timer as timer
 
 from accounts.models import Usersetting
-from companies.models import Order, Scheme, Shift, Team, Schemeitem, Emplhour, Companysetting
+from companies import models as m
 
 from tsap.settings import TIME_ZONE
 
@@ -385,7 +385,7 @@ def get_period_from_settings(request):  # PR2019-07-09
 
 # if not found: get period from Companysetting
         else:
-            dict_json = Companysetting.get_setting(c.KEY_USER_EMPLHOUR_PERIOD, request.user.company)
+            dict_json = m.Companysetting.get_setting(c.KEY_USER_EMPLHOUR_PERIOD, request.user.company)
             if dict_json:
                 saved_period_dict = json.loads(dict_json)
 
@@ -465,7 +465,7 @@ def create_scheme_template_list(company):
     # logger.debug("========== create_scheme_template_list ==== ")
 
     scheme_list = []
-    order = Order.objects.get_or_none(cat=c.CAT_04_TEMPLATE, customer__company=company)
+    order = m.Order.objects.get_or_none(cat=c.CAT_04_TEMPLATE, customer__company=company)
 
     if order:
         scheme_list = create_scheme_list(order, cat=c.CAT_04_TEMPLATE)
@@ -483,7 +483,7 @@ def create_scheme_list(order, include_inactive=False, cat=c.CAT_00_NORMAL):
 
         if not include_inactive:
             crit.add(Q(inactive=False), crit.connector)
-        schemes = Scheme.objects.filter(order=order).order_by(Lower('code'))
+        schemes = m.Scheme.objects.filter(order=order).order_by(Lower('code'))
 
         for scheme in schemes:
             #logger.debug("scheme: " + str(scheme))
@@ -545,7 +545,7 @@ def create_schemeitem_template_list(company, comp_timezone):
     #logger.debug("========== create_schemeitem_template_list ==== ")
 
     schemeitem_list = []
-    order = Order.objects.get_or_none(cat=c.CAT_04_TEMPLATE, customer__company=company)
+    order = m.Order.objects.get_or_none(cat=c.CAT_04_TEMPLATE, customer__company=company)
     #logger.debug("order: " + str(order))
     if order:
         schemeitem_list = create_schemeitem_list(order, comp_timezone)
@@ -560,7 +560,7 @@ def create_schemeitem_list(order, comp_timezone):
     schemeitem_list = []
     if order:
         crit = (Q(scheme__order=order))
-        schemeitems = Schemeitem.objects.filter(crit)
+        schemeitems = m.Schemeitem.objects.filter(crit)
 
         for schemeitem in schemeitems:
             item_dict = {}
@@ -573,7 +573,7 @@ def create_schemeitem_list(order, comp_timezone):
 def create_schemeitem_dict(instance, item_dict, comp_timezone):
     # --- create dict of this schemeitem PR2019-07-22
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    # logger.debug ('--- create_schemeitem_dict ---')
+    logger.debug ('--- create_schemeitem_dict ---')
     # logger.debug ('item_dict' + str(item_dict))
 
     if instance:
@@ -596,20 +596,40 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
             elif field == 'rosterdate':
                 f.set_fielddict_date(dict=item_dict[field], dte=saved_value)
 
-            elif field in ('shift', 'team'):
-                shift_or_team = getattr(instance, field)
-                if shift_or_team:
-                    item_dict[field]['pk'] = shift_or_team.id
-                    item_dict[field]['value'] = shift_or_team.code
-                    if field == 'shift':
-                        if shift_or_team.cat == 1:
-                            item_dict[field]['value_R'] = shift_or_team.code + ' (R)'
-                        breakduration = getattr(shift_or_team, 'breakduration', 0)
-                        if breakduration:
-                            item_dict['breakduration'] = {'value': breakduration}
+            elif field == 'shift':
+                shift = getattr(instance, field)
+                if shift:
+                    item_dict[field]['pk'] = shift.id
+                    item_dict[field]['value'] = shift.code
+
+                    if shift.cat == c.SHIFT_CAT_01_RESTSHIFT:
+                        item_dict[field]['value_R'] = shift.code + ' (R)'
+                    breakduration = getattr(shift, 'breakduration', 0)
+                    if breakduration:
+                        item_dict['breakduration'] = {'value': breakduration}
                 else:
                     item_dict[field].pop('pk', None)
                     item_dict[field].pop('value', None)
+
+            elif field == 'team':
+                team = getattr(instance, field)
+                if team:
+                    item_dict[field]['pk'] = team.id
+
+                    # - lookup first employee within range in team.teammembers
+                    value = team.code
+                    teammember = m.Teammember.get_first_teammember_on_rosterdate(team, instance.rosterdate)
+                    if teammember:
+                        if teammember.employee:
+                            if teammember.employee.code:
+                                value = teammember.employee.code
+                    logger.debug('teammember.employee' + str(teammember.employee))
+                    if value:
+                        item_dict[field]['value'] = value
+                else:
+                    item_dict[field].pop('pk', None)
+                    item_dict[field].pop('value', None)
+
 
             # also add date when empty, to add min max date
             elif field in ('timestart', 'timeend'):
@@ -633,13 +653,13 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
                     item_dict[field].pop('value', None)
 # --- remove empty attributes from item_dict
         f.remove_empty_attr_from_dict(item_dict)
-
+        logger.debug('item_dict' + str(item_dict))
 
 def create_team_list(order):
     # create list of teams of this order PR2019-08-08
     team_list = []
     if order:
-        teams = Team.objects.filter(scheme__order=order)
+        teams = m.Team.objects.filter(scheme__order=order)
         if teams:
             for team in teams:
                 item_dict = {}
@@ -693,7 +713,7 @@ def create_shift_list(order, comp_timezone):
         #    .annotate(count=Count('shift'))\
         #    .order_by(Lower('shift'))
 
-        shifts = Shift.objects.filter(scheme__order=order)
+        shifts = m.Shift.objects.filter(scheme__order=order)
         for shift in shifts:
             item_dict = {}
             create_shift_dict(shift, item_dict)
@@ -817,7 +837,7 @@ def create_emplhour_list(company, comp_timezone, user_lang,
             if time_max:
                 crit.add(Q(timestart__lt=time_max) | Q(timestart__isnull=True), crit.connector)
 
-    emplhours = Emplhour.objects.filter(crit)
+    emplhours = m.Emplhour.objects.filter(crit)
 
     #logger.debug(emplhours.query)
     # SELECT ...
@@ -1158,13 +1178,13 @@ def get_rosterdate_utc(rosterdate):
 
 def get_rosterdate_current(company): # PR2019-06-16
 #get next rosterdate from companysetting
-    rstdte_current_str = Companysetting.get_setting(c.KEY_COMP_ROSTERDATE_CURRENT, company)
+    rstdte_current_str = m.Companysetting.get_setting(c.KEY_COMP_ROSTERDATE_CURRENT, company)
     rosterdate, msg_err = f.get_date_from_ISOstring(rstdte_current_str)
 
     # logger.debug('rosterdate: ' + str(rosterdate) + ' type: ' + str(type(rosterdate)))
 # if no date found in settings: get first rosterdate of all schemitems of company PR2019-06-07
     if rosterdate is None:
-        schemeitem = Schemeitem.objects.filter(scheme__order__customer__company=company).first()
+        schemeitem = m.Schemeitem.objects.filter(scheme__order__customer__company=company).first()
         if schemeitem:
             rosterdate = schemeitem.rosterdate
     if rosterdate is None:

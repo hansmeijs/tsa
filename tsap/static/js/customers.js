@@ -103,8 +103,8 @@ $(function() {
             data: param,
             dataType: 'json',
             success: function (response) {
-                console.log("response")
-                console.log(response)
+                //console.log("response")
+                //console.log(response)
 
                 // hide loader
                 el_loader.classList.add(cls_hide)
@@ -253,7 +253,7 @@ $(function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, item_dict){
-        console.log("--++- UpdateTableRow  --------------");
+        //console.log("--++- UpdateTableRow  --------------");
 
         if (!!item_dict && !!tblRow) {
             //console.log("item_dict", item_dict);
@@ -350,8 +350,7 @@ $(function() {
                                 }
 
                                 if (["code", "name", "identifier"].indexOf( fieldname ) > -1){
-
-                                   console.log("??>>?? field_dict:", field_dict);
+                                   //console.log("field_dict:", field_dict);
                                    format_text_element (el_input, el_msg, field_dict)
                                 };
                             }  // if (fieldname in item_dict)
@@ -426,7 +425,6 @@ $(function() {
 // An input has a value attribute that determines the initial value of the input.
 // It also has a value property that holds the current value of the input
 
-
         //console.log("=== UploadTblrowChanged");
         let new_item = GetItemDictFromTablerow(tr_changed);
         //console.log(new_item);
@@ -440,8 +438,8 @@ $(function() {
                 data: parameters,
                 dataType:'json',
                 success: function (response) {
-                    console.log( "response");
-                    console.log( response);
+                    //console.log( "response");
+                    //console.log( response);
 
                     if ("item_dict" in response) {
                         ReplaceItemDict(customer_list, response["item_dict"])};

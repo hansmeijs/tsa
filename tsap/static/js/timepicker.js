@@ -67,7 +67,8 @@
         }
         let dict = {};
         if (is_offset){
-            dict = CalcMinMaxOffset(curOffset, "0;0;0", "0;0;0",
+            let start_offset, end_offset, is_start_offset;
+            dict = CalcMinMaxOffset(start_offset, end_offset, is_start_offset,
                                           comp_timezone, timeformat);
 
         } else {
@@ -114,7 +115,8 @@
     }; // function OpenTimepicker
 
 //========= CreateTimepickerDate  ====================================
-    function CreateTimepickerDate(el_timepicker, el_data, UpdateTableRow, data_datetime, data_rosterdate, is_offset, comp_timezone, cls_hover) {
+    function CreateTimepickerDate(el_timepicker, el_data, UpdateTableRow, data_datetime, data_rosterdate,
+                                    is_offset, comp_timezone, cls_hover) {
         //console.log( "--- CreateTimepickerDate  ", is_offset );
         // display cur_datetime_local in header of el_timepicker
         // get cur_datetime_local from data_datetime. If no current value: get from rosterdate
@@ -150,7 +152,8 @@
     }  // CreateTimepickerDate
 
  //========= CreateTimepickerHours  ====================================
-    function CreateTimepickerHours(el_timepicker, el_data, UpdateTableRow, dict, url_str, is_offset, comp_timezone, timeformat, interval, cls_hover, cls_highl) {
+    function CreateTimepickerHours(el_timepicker, el_data, UpdateTableRow, dict, url_str,
+    is_offset, comp_timezone, timeformat, interval, cls_hover, cls_highl) {
         //console.log( "--- CreateTimepickerHours  ");
 
         let tbody = document.getElementById("id_timepicker_tbody_hour");
@@ -231,7 +234,8 @@
     }  //function CreateTimepickerHours
 
 //========= CreateTimepickerMinutes  ====================================
-    function CreateTimepickerMinutes(el_timepicker, el_data, UpdateTableRow, dict, url_str, is_offset, comp_timezone, timeformat, interval, cls_hover, cls_highl) {
+    function CreateTimepickerMinutes(el_timepicker, el_data, UpdateTableRow, dict, url_str,
+                                    is_offset, comp_timezone, timeformat, interval, cls_hover, cls_highl) {
         console.log( "=== CreateTimepickerMinutes  ");
 
 // ---  set references to elements
@@ -426,7 +430,8 @@
     }  // SetPrevNextDay
 
 //========= SetAmPm  ====================================
-    function SetAmPm(el_timepicker, tbody, td, UpdateTableRow, is_offset, comp_timezone, timeformat, cls_hover, cls_highl) {
+    function SetAmPm(el_timepicker, tbody, td, UpdateTableRow,
+                        is_offset, comp_timezone, timeformat, cls_hover, cls_highl) {
         console.log("==== SetAmPm  =====");
 
     // check if cell is disabeld
@@ -519,14 +524,16 @@
 
         // get new hour from data-hour of td
             const new_hour = get_attr_from_el_int(td, "data-hour");
-            //console.log("new_hour", new_hour, typeof new_hour)
+            console.log("new_hour", new_hour, typeof new_hour)
             if (is_offset){
+                console.log("is_offset", is_offset);
 
             // set new hour in new_datetime_local
                 let curDate, curHours, curMinutes;
                 const cur_offset = get_attr_from_el(el_timepicker, "data-offset");
                 const arr = cur_offset.split(";")
                 let new_offset = arr[0] + ";" + new_hour.toString() + ";" + arr[2]
+                console.log("new_offset", new_offset);
 
         // put new datetime back in el_timepicker data-datetime
                 // TODO
@@ -534,14 +541,15 @@
                 if (within_range){
                     el_timepicker.setAttribute("data-offset", new_offset);
 
+                    const new_dict = CalcMinMaxOffset(new_offset, "-1;12;0", "1;12;0");
+                    console.log("new_dict", new_dict);
+
             // save when in quicksave mode
                     let quicksave = get_quicksave_from_eldata(el_data);
                     if (quicksave){
                         HandleTimepickerSave(el_timepicker, el_data, UpdateTableRow, "btn_hour")
                     } // if (quicksave)
                 } // if (within_range)
-
-
 
             } else {
                 const cur_rosterdate_iso = get_attr_from_el(el_timepicker, "data-rosterdate");
@@ -984,46 +992,96 @@
     }  // HighlightAndDisableCell
 
 //========= CalcMinMaxOffset  ==================================== PR2018-08-11
-function CalcMinMaxOffset(curOffset, minOffset, maxOffset, comp_timezone, timeformat) {
-        console.log(" --->>>  CalcMinMaxOffset <<<---")
-        console.log("curOffset", curOffset)
+function CalcMinMaxOffset(start_offset, end_offset, is_start_offset) {
+        console.log(" --- CalcMinMaxOffset ---")
+        console.log("start_offset", start_offset, "end_offset", end_offset, "is_start_offset", is_start_offset)
 
-        //console.log("cur_datetime_iso", cur_datetime_iso)
-        //console.log("comp_timezone", comp_timezone)
-        //console.log("timeformat", timeformat)
+        let min_offset = "-1;12;0", max_offset = "1;12;0";
 
-        let curDate = 0, minDate, maxDate
-        let curHours = 0, curMinutes = 0;
-        let minHours= 0, maxHours = 24;
-        let minMinutes= 0, maxMinutes = 60;
-        let isAmpm = false, curHoursAmpm = 0, curAmpm = 0
-        let prevday_disabled = false,  nextday_disabled = false;
-        let offset_dict = {}
+/*
+        if  (is_start_offset){
+            // use end_offset if max_offset > end_offset
+            if(offset01_gt_offset02(max_offset, end_offset)){
+                max_offset = end_offset
+            }
+        } else {
+            // use start_offset if start_offset > min_offset
+            if(offset02_gt_offset01(start_offset, min_offset)){
+                min_offset = start_offset
+            }
+        }
+
+*/
+        let curHours = 0,  minHours= 0, maxHours = 24;
+        let curMinutes = 0, minMinutes= 0, maxMinutes = 60;
+
+        let curDateOffset = 0, prevday_disabled = false, nextday_disabled = false;
+        /*
         if (!!curOffset){
             let arr = curOffset.split(";")
-            curDate = parseInt(arr[0]);
-            curHours = parseInt(arr[1]);
-            curMinutes = parseInt(arr[2]);
-            if (curDate === -1){
+                offset02_gt_offset01(offset01, offset02)
+            curDateOffset = parseInt(arr[0]);
+            if (curDateOffset === -1){
+                prevday_disabled = true
                 // min is midday, max = maxoffset
-            } else if (curDate === 0){
-                // min  = 0 of ninhours, max = 24 or maxgours
-
-            } else if (curDate === 1){
+            } else if (curDateOffset === 1){
+                nextday_disabled = true
                 // min is minOffset, max is midday
             }
 
-        }
+            curHours = parseInt(arr[1]);
 
-        const new_dict = {"curDate": curDate, "curHours": curHours, "curMinutes": curMinutes, "curOffset": curOffset,
+            curMinutes = parseInt(arr[2]);
+
+        }
+*/
+        const new_dict = {"curDate": curDateOffset, "curHours": curHours, "curMinutes": curMinutes,
+            "curOffsetStart": start_offset, "curOffsetEnd": end_offset,
             "minHours": minHours, "maxHours": maxHours,
             "minMinutes": minMinutes, "maxMinutes": maxMinutes,
-            "isAmpm": isAmpm, "curHoursAmpm": curHoursAmpm, "curAmpm": curAmpm,
-            "prevday_disabled": prevday_disabled, "nextday_disabled": nextday_disabled,
-            "comp_timezone": comp_timezone, "timeformat": timeformat
+            "prevday_disabled": prevday_disabled, "nextday_disabled": nextday_disabled
         }
         return new_dict
     }
+
+function offset01_gt_offset02(offset01, offset02) {
+    // functions compares 2 offset values, returns true when 02 is later than 01
+    // convert offset to minutes, add 10 days to prevent negative numbers ("-1;10;0" "-1,20;0" goes wrong, I think)
+    let day01 = 0, hour01 = 0, minute01 = 0;
+    if(!!offset01){
+        const arr01 = offset01.split(";");
+        if(!!arr01) {
+            day01 = parseInt(arr01[0]);
+            hour01 = parseInt(arr01[1]);
+            minute01 = parseInt(arr01[2])
+        }
+    }
+    let offset01_minutes = (24 * 60 * 10)
+    if (!!day01 && !!hour01 && !!minute01) {
+        // add 10 days to prevent negative numbers
+        offset01_minutes = minute01 + (60 * hour01) + (24 * 60 * (10 + day01))
+    }
+
+    let day02 = 0 , hour02 = 0, minute02 = 0;
+    if(!!offset02){
+        arr02 = offset02.split(";");
+        if(!!arr02) {
+            day02 = parseInt(arr02[0]);
+            hour02 = parseInt(arr02[1]);
+            minute02 = parseInt(arr02[2]);
+        }
+    }
+    let offset02_minutes = (24 * 60 * 10)
+    if (!!day02 && !!hour02 && !!minute02) {
+        offset02_minutes = minute02 + (60 * hour02) + (24 * 60 * (10 + day02))
+    }
+    const offset_diff = (offset01_minutes - offset02_minutes)
+    const offset01_gt_02 = (offset_diff > 0)
+
+    return offset01_gt_02
+}
+
+
 //========= CalcMinMaxHoursMinutes  ==================================== PR2018-08-02
 function CalcMinMaxHoursMinutes(cur_rosterdate_iso, cur_datetime_iso,
             min_datetime_iso, max_datetime_iso, comp_timezone, timeformat) {

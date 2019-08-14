@@ -1424,9 +1424,9 @@
 
 //========= FilterTableRows  ====================================
     function FilterTableRows(tblBody, filter, col_inactive, show_inactive) {  // PR2019-06-09
-        //console.log( "===== FilterRows  ========= ");
-        //console.log( "filter", filter, "col_inactive", col_inactive, typeof col_inactive);
-        //console.log( "show_inactive", show_inactive, typeof show_inactive);
+        console.log( "===== FilterRows  ========= ");
+        console.log( "filter", filter, "col_inactive", col_inactive, typeof col_inactive);
+        console.log( "show_inactive", show_inactive, typeof show_inactive);
         const len = tblBody.rows.length;
         if (!!len){
             for (let i = 0, tblRow, show_row; i < len; i++) {
@@ -1445,7 +1445,7 @@
 
 //========= ShowTableRow  ====================================
     function ShowTableRow(tblRow, filter_name, col_inactive = -1, show_inactive = false) {  // PR2019-06-09
-        //console.log( "===== ShowTableRow  ========= ");
+        console.log( "===== ShowTableRow  ========= ");
         // filter by inactive and substring of fields
         // don't filter new row
         //console.log( "filter_name: ", filter_name);
@@ -1489,10 +1489,19 @@
                         if (!!tbl_cell){
                             let el = tbl_cell.children[0];
                             if (!!el) {
+                                //let fieldname = get_attr_from_el(el, "data-field")
+                                //console.log("fieldname", fieldname);
+                                console.log("tagName", el.tagName.toLowerCase());
+                                if (el.tagName.toLowerCase() === "select"){
+                                    //el_value = el.options[el.selectedIndex].text;
+                                    el_value = get_attr_from_el(el, "data-value")
+                                } else {
+                                    el_value = el.value;
+                                }
 // get value from el.value, from data-value if not found
-                                el_value = el.value;
+
                                 if (!el_value){el_value = get_attr_from_el(el, "data-value")}
-                                //console.log(  "el_value", el_value);
+                                console.log("el_value", el_value);
 
                                 if (!!el_value){
                                     el_value = el_value.toLowerCase();
@@ -1510,7 +1519,7 @@
             } //  if(!is_new_row){
         }  // if (!!tblRow)
 
-        //console.log(  "show_row", show_row, typeof show_row);
+        console.log(  "show_row", show_row, typeof show_row);
         return show_row
     }; // function FilterTableRows
 
