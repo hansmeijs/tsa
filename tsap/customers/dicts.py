@@ -74,7 +74,7 @@ def create_order_list(company, inactive=None, cat=None, cat_lte=None, rangemin=N
         crit.add(Q(datelast__gte=rangemin) | Q(datelast__isnull=True), crit.connector)
 
     orders = None
-    if cat == c.CAT_03_ABSENCE:
+    if cat == c.SHIFT_CAT_0512_ABSENCE:
         orders = Order.objects.filter(crit).order_by('taxrate')  # field 'taxrate' is used to store sequence
     else:
         orders = Order.objects.filter(crit).order_by('customer__code', 'code')  # field 'taxrate' is used to store sequence
@@ -144,11 +144,10 @@ def create_absencecategory_list(request):
     order_list = []
 
     # create an absence customer, order scheme and teams if they do not exist yet PR2019-07-27
-    create_absence_customer(request)
+    get_or_create_absence_customer(request)
 
     crit = (Q(customer__company=request.user.company) &
-                Q(cat=c.CAT_03_ABSENCE) &
-                Q(inactive=False))
+                Q(cat=c.SHIFT_CAT_0512_ABSENCE))
     orders = Order.objects.filter(crit).order_by('taxrate')  # field 'taxrate' contains sequence of absence
 
     for order in orders:
@@ -175,8 +174,8 @@ def create_absencecat_dict(instance):
 
 
 # === Create new 'absence' customer, order and scheme and team
-def create_absence_customer(request):
-    # logger.debug(" === create_absence_customer ===")
+def get_or_create_absence_customer(request):
+    # logger.debug(" === get_or_create_absence_customer ===")
 
 # get locale text of absene categories
     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -186,13 +185,14 @@ def create_absence_customer(request):
         absence_locale = c.ABSENCE[c.LANG_DEFAULT]
 
 # - check if 'absence' customer exists for this company - only one 'absence' customer allowed
-    customer = Customer.objects.get_or_none(company=request.user.company, cat=c.CAT_03_ABSENCE)
+    # don't use get_or_none, it wil return None when multiple absence customers exist
+    customer = Customer.objects.filter(company=request.user.company, cat=c.SHIFT_CAT_0512_ABSENCE).first()
     if customer is None:
 # - create 'absence' customer if not exists
         customer = Customer(company=request.user.company,
                             code=absence_locale,
                             name=absence_locale,
-                            cat=c.CAT_03_ABSENCE)
+                            cat=c.SHIFT_CAT_0512_ABSENCE)
         customer.save(request=request)
 
     if customer:
@@ -206,7 +206,7 @@ def create_absence_customer(request):
 
 def create_absence_orders(customer, user_lang, request):
 # === Create new 'absence' customer, order and scheme and team PR2019-06-24
-    logger.debug(" === create_absence_orders ===")
+    # logger.debug(" === create_absence_orders ===")
 
     if user_lang in c.ABSENCE_CATEGORY:
         categories_locale = c.ABSENCE_CATEGORY[user_lang]
@@ -226,12 +226,12 @@ def create_absence_orders(customer, user_lang, request):
                           code=code,
                           name=name,
                           taxrate=sequence,
-                          cat=c.CAT_03_ABSENCE)
+                          cat=c.SHIFT_CAT_0512_ABSENCE)
             order.save(request=request)
 
             if order:
     # - create scheme
-                scheme = Scheme(order=order, code=code, cat=c.CAT_03_ABSENCE)
+                scheme = Scheme(order=order, code=code, cat=c.SHIFT_CAT_0512_ABSENCE)
                 scheme.save(request=request)
                 # logger.debug(" scheme.save: " + str(scheme))
     # - create team
@@ -251,15 +251,16 @@ def get_or_create_special_order(category, request):
 
     # get locale text
     template_locale = None
-    if category == c.CAT_02_REST:
+    if category == c.SHIFT_CAT_0064_RESTSHIFT:
         lang = user_lang if user_lang in c.REST_TEXT else c.LANG_DEFAULT
         template_locale = c.REST_TEXT[lang]
-    elif category == c.CAT_04_TEMPLATE:
+    elif category == c.SHIFT_CAT_4096_TEMPLATE:
         lang = user_lang if user_lang in c.TEMPLATE_TEXT else c.LANG_DEFAULT
         template_locale = c.TEMPLATE_TEXT[lang]
 
     # 1. check if 'template' customer exists for this company - only one 'template' customer allowed
-    customer = Customer.objects.get_or_none(cat=category, company=request.user.company)
+    # don't use get_or_none, it wil return None when multiple customers exist
+    customer = Customer.objects.filter(cat=category, company=request.user.company).first()
     if customer is None:
         if template_locale:
 
@@ -272,7 +273,8 @@ def get_or_create_special_order(category, request):
 
             # 3. check if 'template' customer has order - only one 'template' order allowed
             if customer:
-                order = Order.objects.get_or_none(customer=customer)
+                 # don't use get_or_none, it wil return None when multiple customers exist
+                order = Order.objects.filter(customer=customer).first()
                 if order is None:
                     # 4. create 'template' order if not exists
                     order = Order(customer=customer,

@@ -26,7 +26,7 @@ from tsap import constants as c
 
 from companies.models import Company
 from companies.forms import CompanyAddForm, CompanyEditForm, InvoiceAddForm
-from customers.dicts import create_absence_customer, get_or_create_special_order
+from customers.dicts import get_or_create_absence_customer, get_or_create_special_order
 import logging
 logger = logging.getLogger(__name__)
 
@@ -140,9 +140,9 @@ class CompanyAddView(CreateView):
             self.new_company.save(request=self.request)
 
             # create special customers and orders
-            get_or_create_special_order(c.CAT_02_REST, request)
-            create_absence_customer(request)
-            get_or_create_special_order(c.CAT_04_TEMPLATE, request)
+            get_or_create_special_order(c.SHIFT_CAT_0064_RESTSHIFT, request)
+            get_or_create_absence_customer(request)
+            get_or_create_special_order(c.SHIFT_CAT_4096_TEMPLATE, request)
 
             return redirect('company_list_url')
         else:
@@ -226,7 +226,7 @@ class InvoiceAddView(CreateView):
             self.new_company.save(request=self.request)
 
             # TODO create absence customer after adding company
-            # create_absence_customer(request)
+            # get_or_create_absence_customer(request)
 
 
             return redirect('company_list_url')

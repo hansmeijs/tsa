@@ -21,8 +21,6 @@ from tsap import constants as c
 from tsap import functions as f
 from planning import dicts as d
 
-from tsap.validators import date_within_range
-
 from tsap.settings import TIME_ZONE
 from tsap.headerbar import get_headerbar_param
 
@@ -89,7 +87,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 datalists[table]['user_is_role_company_and_perm_admin'] = True
 
                         elif table == 'customer':
-                            cat_lte = c.CAT_01_INTERNAL
+                            cat_lte = c.SHIFT_CAT_0001_INTERNAL
                             if 'cat_lte' in table_dict:
                                 cat_lte = table_dict['cat_lte']
 
@@ -100,7 +98,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                         elif table == 'order':
                             # default: show orders with cat normal, internal, hide absence and template
-                            cat_lte = c.CAT_01_INTERNAL
+                            cat_lte = c.SHIFT_CAT_0001_INTERNAL
                             if 'cat_lte' in table_dict:
                                 cat_lte = table_dict['cat_lte']
 
@@ -111,7 +109,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                         elif table == 'order_template':
                             # inactive = None: include active and inactive, False: only active
-                            list = create_order_list(company=request.user.company, cat=c.CAT_04_TEMPLATE)
+                            list = create_order_list(company=request.user.company, cat=c.SHIFT_CAT_4096_TEMPLATE)
 
                         elif table == 'scheme_template':
                             list = d.create_scheme_template_list(request.user.company)
@@ -183,8 +181,12 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         elif table == 'quicksave':
                             # get quicksave from Usersetting
                             quicksave_str = Usersetting.get_setting(c.KEY_USER_QUICKSAVE, request.user)
-                            quicksave = True if quicksave_str =='1' else False
+                            quicksave = True if quicksave_str == '1' else False
                             datalists[table] = {'value': quicksave}
+
+                        elif table == 'replacement':
+                            list = d.create_replacementshift_list(table_dict, request.user.company)
+
                         else:
                             # - get order from table_dict
                             order_pk = table_dict.get('order_pk')
@@ -337,7 +339,7 @@ class SchemesView(View):
             inactive = False
             customer_list = create_customer_list(company=request.user.company,
                                                  inactive=False,
-                                                 cat_lte=c.CAT_01_INTERNAL)
+                                                 cat_lte=c.SHIFT_CAT_0001_INTERNAL)
             customer_json = json.dumps(customer_list)
 
 # --- create list of all active orders of this company
@@ -530,13 +532,13 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
                         # logger.debug('instance: ' + str(instance))
 
     # - check if template_order exists, create if not exists
-                        template_order = get_or_create_special_order (c.CAT_04_TEMPLATE, request)
+                        template_order = get_or_create_special_order (c.SHIFT_CAT_4096_TEMPLATE, request)
                         # logger.debug("template_order: " + str(template_order.pk) + ' ' + str(template_order.code))
 
     # - copy scheme to template  (don't copy datefirst, datelast)
                         template_scheme = m.Scheme(
                             order=template_order,
-                            cat=c.CAT_04_TEMPLATE,
+                            cat=c.SHIFT_CAT_4096_TEMPLATE,
                             code=template_code,
                             cycle=instance.cycle,
                             excludeweekend=instance.excludeweekend,
@@ -646,7 +648,7 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
 # - copy template to scheme   (don't copy datefirst, datelast)
             new_scheme = m.Scheme(
                 order=scheme_parent,
-                cat=c.CAT_00_NORMAL,
+                cat=c.SHIFT_CAT_0000_NORMAL,
                 code=scheme_code,
                 cycle=template_scheme.cycle,
                 excludeweekend=template_scheme.excludeweekend,
@@ -1143,7 +1145,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                                         # logger.debug('new_rosterdate: ' + str(new_rosterdate))
 
                         # check if new_rosterdate falls within range of scheme
-                                        in_range = date_within_range(scheme_datefirst, scheme_datelast, new_rosterdate)
+                                        in_range = f.date_within_range(scheme_datefirst, scheme_datelast, new_rosterdate)
                                         if in_range:
                                             if new_rosterdate < enddate_plusone:
 
@@ -1467,7 +1469,7 @@ class EmplhourView(View):
             })
             # logger.debug(param)
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
-        return render(request, 'emplhours.html', param)
+        return render(request, 'review.html', param)
 
 
 @method_decorator([login_required], name='dispatch')
@@ -2127,6 +2129,20 @@ class PeriodUploadView(UpdateView):  # PR2019-07-12
         return HttpResponse(datalists_json)
 
 
+@method_decorator([login_required], name='dispatch')
+class ReplacementUploadView(UpdateView):  # PR2019-08-18
+
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ============= ReplacementUploadView ============= ')
+
+        item_update_dict = {}
+        if request.user is not None and request.user.company is not None:
+# 3. get upload_dict from request.POST
+            upload_json = request.POST.get('replacement', None)
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+                logger.debug('upload_dict: ' + str(upload_dict))
+
 
 @method_decorator([login_required], name='dispatch')
 class EmplhourUploadView(UpdateView):  # PR2019-06-23
@@ -2363,6 +2379,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                                     # logger.debug('employee: ' + str(employee))
                                     make_absent(instance, employee, upload_dict, request)
 
+
+
 # E. Update instance, also when it is created
                             update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, user_lang)
 
@@ -2496,8 +2514,8 @@ def make_absent(emplhour, employee, upload_dict, request):
         # logger.debug('abscat_pk: ' + str(abscat_pk) + ' ' + str(type(abscat_pk)))
         # logger.debug('abscat_parent_pk: ' + str(abscat_parent_pk) + ' ' + str(type(abscat_parent_pk)))
         if abscat_pk:
-            #abscat_order = Order.objects.get_or_none(id=abscat_pk, customer=abscat_parent_pk, cat=c.CAT_03_ABSENCE)
-            abscat_order = m.Order.objects.filter(id=abscat_pk, cat=c.CAT_03_ABSENCE).first()
+            #abscat_order = Order.objects.get_or_none(id=abscat_pk, customer=abscat_parent_pk, cat=c.SHIFT_CAT_0512_ABSENCE)
+            abscat_order = m.Order.objects.filter(id=abscat_pk, cat=c.SHIFT_CAT_0512_ABSENCE).first()
             # logger.debug('abscat_order: ' + str(abscat_order) + ' ' + str(type(abscat_order)))
             if abscat_order:
                 abscat_order_exists = True
@@ -3096,7 +3114,7 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
     offsetstart = None
     offsetend = None
     breakduration = 0
-    shift_cat = c.SHIFT_CAT_00_NORMAL
+    shift_cat = c.SHIFT_CAT_0000_NORMAL
     successor_offsetstart = None
     msg_err = None
 
@@ -3112,7 +3130,7 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
 # d. get breakduration of this shift
         breakduration = getattr(shift, 'breakduration', 0)
 # e. get shift_cat of this shift
-        shift_cat = getattr(shift, 'cat', c.SHIFT_CAT_00_NORMAL)
+        shift_cat = getattr(shift, 'cat', c.SHIFT_CAT_0000_NORMAL)
 
 # f. replace offsetend with successor_offsetstart, if exists
         successor = getattr(shift, 'successor')
@@ -3184,7 +3202,7 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
             new_value = int(datediff_minutes - breakduration)
 
  # when rest shift : timeduration = 0     # cst = 0 = normal, 1 = rest
-            if shift_cat == c.SHIFT_CAT_01_RESTSHIFT:
+            if shift_cat == c.SHIFT_CAT_0064_RESTSHIFT:
                 new_value = 0
 
             if fieldname not in update_dict:

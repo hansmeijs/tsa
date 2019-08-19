@@ -44,14 +44,20 @@ h4 h5 {
   list-style: none;
 
   display: block;
-  padding: 1px 4px;*//*padding: 0 .5rem;*/
-  margin: 0;
+  padding: 1px 4px; /*padding: 0 .5rem;*/
+  margin: 0px;
+  width: 100%;
 
   overflow: hidden;
   text-decoration: none;
   list-style: none;
 
   background-color: #e0e0e0;
+
+  /* test*/
+    position: fixed;
+    z-index: 99;
+
 }
 
 .menubar a {
@@ -74,10 +80,10 @@ h4 h5 {
 
 /* submenubar */
 .submenubar {
-  display: -ms-flexbox;
-  display: flex;
-  -ms-flex-wrap: wrap;
-      flex-wrap: wrap;
+ /* display: -ms-flexbox;*/
+  /*display: flex;*/
+ /* -ms-flex-wrap: wrap;*/
+ /*     flex-wrap: wrap;*/
   list-style: none;
 
   display: block;
@@ -89,6 +95,12 @@ h4 h5 {
   list-style: none;
 
   background-color: #f8f8f8;
+    /* test*/
+    position: fixed;
+    z-index: 98;
+    margin-top: 27px; /*  margin-top: 38px; */
+    width: 100%;
+
 }
 
 .submenubar a {

@@ -2,15 +2,23 @@
 {% load i18n %} {% load l10n %}
 {% load static %}
 
-{% block stylesheet %}
-   <!-- <link rel="stylesheet" href="{% static 'css/dateselector.css' %}">-->
-{% endblock %}
+{% block stylesheet %}{% endblock %}
 
 {% block script %}
     <script src="{% static 'js/roster.js' %}"></script>
 {% endblock %}
 
-  <!-- MODAL -->
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar">
+        <div class="sidebar-header">
+            <h3>{% trans 'Roster' %}</h3>
+        </div>
+    </nav>
+{% endblock %}
+<!-- END SIDE BAR -->
+
+<!-- MODAL -->
 {% block modal %}
 <!-- =================== MODAL STATUS  =================== -->
     <div class="modal " id="id_mod_status" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
@@ -85,7 +93,6 @@
             </div>
         </div>
     </div>
-
 <!-- =================== MODAL SETTING  =================== -->
     <div class="modal fade" id="id_mod_setting" tabindex="-1" role="dialog" aria-labelledby="id_mod_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">
@@ -192,14 +199,14 @@
                                 </div>
 
                                 <div >
-                                    <input id="id_mod_filter_employee"
+                                    <input id="id_mod_employee_filter_employee"
                                     type="text"
                                     class="fieldname pt-0 pb-0"
                                     colspan=2
                                     placeholder="{% trans 'filter name...' %}"
                                     >
                                 </div>
-                                <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:240px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
                                     <table class="table table-condensed tsa-tbl mx-1 my-1">
                                         <tbody id="id_mod_employee_tblbody" data-table="employee">
                                         </tbody>
@@ -212,18 +219,21 @@
 
                             <div class="mx-2 my-2 ">
                                 <h6>{% trans 'Select an option' %}:</h6>
+
                             </div>
 
-                            <div class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                            <div id="id_div_mod_buttons" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                                 <button id="id_mod_employee_btn_absent" type="button"  class="btn btn-secondary ">{% trans 'Absence' %}</button>
                                 <button id="id_mod_employee_btn_switch" type="button"  class="btn btn-secondary ">{% trans 'Switch shift' %}</button>
                                 <button id="id_mod_employee_btn_split" type="button"  class="btn btn-secondary ">{% trans 'Split shift' %}</button>
                             </div>
-
+                            <div class="text_align_center">
+                                <img id="id_mod_employee_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="display_hide" >
+                            </div>
                             <div id="id_div_mod_absent" class="mod_flex mx-2 my-2 display_hide">
                                 <div class="form-group">
-                                    <label for="id_mod_select_abscat" class="mx-2 my-2">{% trans 'Absence category' %}:</label>
-                                    <select id="id_mod_select_abscat"
+                                    <label for="id_mod_employee_abscat" class="mx-2 my-2">{% trans 'Absence category' %}:</label>
+                                    <select id="id_mod_employee_abscat"
                                            data-name="abscat"
                                            autocomplete="off"
                                            ondragstart="return false;"
@@ -236,8 +246,8 @@
 
                             <div id="id_div_mod_employee" class="mod_flex mx-2 my-2">
                                 <div class="form-group">
-                                    <label  id="id_labl_mod_employee" for="id_mod_input_employee" class="mx-2 my-2">{% trans 'Replacement employee' %}:</label>
-                                    <input id="id_mod_input_employee"
+                                    <label  id="id_label_mod_employee" for="id_mod_employee_input_employee" class="mx-2 my-2">{% trans 'Replacement employee' %}:</label>
+                                    <input id="id_mod_employee_input_employee"
                                         type="text"
                                         autocomplete="off"
                                         ondragstart="return false;"
@@ -248,17 +258,25 @@
                             </div>
                             <div id="id_div_mod_switch" class="mod_flex mx-2 my-2 display_hide">
                                 <div class="form-group">
-                                    <label for="id_mod_switch_shift" class="mx-2 my-2">{% trans 'Select shift' %}:</label>
-                                    <input id="id_mod_switch_shift" type="text" class="form-control">
+                                    <label for="id_mod_employee_switch_date" class="mx-2 my-2">{% trans 'Date of the shift to be switched with' %}:</label>
+                                    <select id="id_mod_employee_switch_date" class="form-control">
+                                    </select>
+
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_mod_employee_switch_shift" class="mx-2 my-2">{% trans 'Select shift' %}:</label>
+                                    <select id="id_mod_employee_switch_shift" class="form-control">
+                                    </select>
+                                </div>
+
+                            </div>
+                            <div id="id_div_mod_split" class="mod_flex mx-2 my-2 display_hide">
+                                <div class="form-group">
+                                    <label for="id_mod_employee_split_time" class="mx-2 my-2">{% trans 'Split time' %}:</label>
+                                    <input id="id_mod_employee_split_time" type="text" class="form-control">
                                 </div>
                             </div>
 
-                            <div id="id_div_mod_split" class="mod_flex mx-2 my-2 display_hide">
-                                <div class="form-group">
-                                    <label for="id_mod_split_time" class="mx-2 my-2">{% trans 'Split time' %}:</label>
-                                    <input id="id_mod_split_time" type="text" class="form-control">
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -272,20 +290,21 @@
     </div>
 <!-- =================== END MODAL EMPLOYEE  =================== -->
 {% endblock %}
+<!-- END MODAL -->
 
 {% block content %}
     {% if user.is_authenticated %}
+
         <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
         </div>
-
-<div class="flex_container">
+    <h1 class="mt-4"></h1>
 
     <div class="content_subheader_right">
+        <div class="content_header ">
 
-        <div class="content_header">
             <div class="content_subheader_left mx-4 my-1">
-                <h6 id="id_hdr_customer">{% trans "Roster date" %}:</h6>
+                <h6></h6>
             </div>
             <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
             <div class="content_subheader_right mx-4 my-1">
@@ -295,7 +314,7 @@
         </div>
 
         <div class="content_header">
-            <div class="content_subheader_left">
+            <div class="content_subheader_left mx-4 my-1">
                 <input id="id_filter_name"
                 type="text"
                 class="fieldname pt-0 pb-0"
@@ -336,7 +355,8 @@
 <!-- =================== TIMEPICKER  =================== -->
                 {% include 'includes/timepicker.html' %}
 <!-- =================== DATA TABLE  =================== -->
-                <table class="table table-condensed tsa-tbl ">
+                <table class="table table-condensed tsa-tbl mx-4 my-1">
+
                     <thead id="id_thead_items" class="thead-inverse">
                         <th class="text_align_left">{% trans 'Date' %}</th>
                         <th class="text_align_left">{% trans 'Order' %}</th>
@@ -368,17 +388,7 @@
             </div>
 
         </div>
-
-        <div class="content_header">
-            <div class="content_subheader_right">
-            </div>
-            <div class="content_subheader_right">
-            </div>
-
-        </div>
     </div>
-</div>
-<!--flex_container -->
 
         <datalist id="id_datalist_orders"></datalist>
         <datalist id="id_datalist_shifts"></datalist>
@@ -454,8 +464,12 @@
             data-txt_employee = "{% trans 'Employee' %}"
             data-txt_select_employee= "{% trans 'Select employee' %}"
             data-txt_select_employee_none= "{% trans 'No employees' %}"
-            data-txt_replaces= "{% trans 'Replacement employee' %}"
-            data-txt_empl_switch= "{% trans 'Employee to be switched with' %}"
+            data-txt_replacement= "{% trans 'Replacement employee' %}"
+            data-txt_empl_switch_employee= "{% trans 'Employee to be switched with' %}"
+            data-txt_empl_switch_date= "{% trans 'Select date' %}"
+            data-txt_empl_switch_nodates= "{% trans 'No dates with shifts that can be switched' %}"
+            data-txt_empl_switch_shift= "{% trans 'Select shift' %}"
+            data-txt_empl_switch_noshifts= "{% trans 'No shifts that can be switched' %}"
 
             data-txt_datefirst= "{% trans 'Start date' %}"
             data-txt_datelast= "{% trans 'End date' %}"

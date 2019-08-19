@@ -34,7 +34,7 @@ $(function() {
             let tr_selected = get_tablerow_selected(event.target)
             if(!tr_selected) {
                 selected_customer_pk = 0;
-                DeselectHighlightedRows(tblBody_items)}
+                DeselectHighlightedRows(tr_selected)}
         }, false);
 
 // ---  create EventListener for class input_text
@@ -379,7 +379,7 @@ $(function() {
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows
-        DeselectHighlightedRows(tr_clicked.parentNode)
+        DeselectHighlightedRows(tr_clicked)
 
 // ---  highlight clicked row
         if(!!tr_clicked) {

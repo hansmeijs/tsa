@@ -39,6 +39,25 @@
         }; //if(!!e.target)
     }; //function SetMenubuttonActive()
 
+$(function() {
+    "use strict";
+        console.log("Review document.ready");
+
+    $("#id_sidebar").mCustomScrollbar({
+         theme: "minimal"
+    });
+
+    $('#sidebarCollapse').on('click', function () {
+        // open or close navbar
+        $('#id_sidebar').toggleClass('active');
+        // close dropdowns
+        $('.collapse.in').toggleClass('in');
+        // and also adjust aria-expanded attributes we use for the open/closed arrows
+        // in our CSS
+        $('a[aria-expanded=true]').attr('aria-expanded', 'false');
+    });
+
+})
 //========= isEmpty  ============= PR2019-05-11
     //PR2019-05-05 from https://coderwall.com/p/_g3x9q/how-to-check-if-javascript-object-is-empty'
     function isEmpty(obj) {
@@ -337,9 +356,6 @@
         return datetimearr ;
     }
 
-
-
-
 //========= function get_datetime_iso_from_ints  ========== PR2019-06-28
     function get_datetime_iso_from_ints(year, month_index, day_int, hours, minutes, companyoffset, useroffset) {
         "use strict";
@@ -372,10 +388,6 @@
         }
         return new_datetime_iso;
     }
-
-
-
-
 
 //========= PeriodWithinRange  ====================================
     function PeriodWithinRange(period_min, period_max, range_min, range_max) {
@@ -426,8 +438,6 @@
         return now_utc;
     }
 
-
-
 //========= get_userOffset new  ========== PR2019-06-27
     function get_userOffset() {
     // get_userOffset calculates offset from local computer timezone to UTC in minutes
@@ -441,7 +451,6 @@
         return userOffset;
 
 }
-
 
 //========= function value_has_changed  ==== PR2019-06-08
     function value_has_changed(value,o_value ) {

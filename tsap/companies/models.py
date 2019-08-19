@@ -6,7 +6,7 @@ from django.db.models.functions import Lower, Coalesce
 
 from django.utils.translation import ugettext_lazy as _
 
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from tsap.settings import AUTH_USER_MODEL, TIME_ZONE
 from tsap import constants as c
@@ -137,7 +137,7 @@ class Customer(TsaBaseModel):
     objects = TsaManager()
 
     company = ForeignKey(Company, related_name='customers', on_delete=PROTECT)
-    cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
+    cat = PositiveSmallIntegerField(default=0)  # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
 
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     email = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
@@ -249,11 +249,11 @@ class OrderObject(TsaBaseModel): # PR2019-06-23 added
 class Scheme(TsaBaseModel):
     objects = TsaManager()
     order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
-    cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
+    cat = PositiveSmallIntegerField(default=0)  # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
 
     cycle = PositiveSmallIntegerField(default=7)
-    excludeweekend  = BooleanField(default=False)
-    excludepublicholiday  = BooleanField(default=False)
+    excludeweekend = BooleanField(default=False)
+    excludepublicholiday = BooleanField(default=False)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     locked = None
@@ -278,7 +278,7 @@ class Shift(TsaBaseModel):
     inactive = None
     locked = None
 
-    cat = PositiveSmallIntegerField(default=0)  # 0 = normal shift, 1 = rest shift
+    cat = PositiveSmallIntegerField(default=0)
     offsetstart = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)  # dhm" "-1;17;45"
     offsetend = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     breakduration = IntegerField(default=0) # unit is minute
@@ -439,20 +439,23 @@ class Teammember(TsaBaseModel):
     inactive = None
     locked = None
 
+
+    cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = replcement
+
     # 33333333333333333333333333333333333333333333333333
     @classmethod
-    def get_first_teammember_on_rosterdate(cls, team, rosterdate):
-        # logger.debug("-----------get_first_teammember_on_rosterdate---------------------")
+    def get_first_teammember_on_rosterdate(cls, team, rosterdate_dte):
+        logger.debug("------ get_first_teammember_on_rosterdate---" + str(rosterdate_dte))
 
         teammember = None
-        if team and rosterdate:
+        if team and rosterdate_dte:
             # filter teammmembers that have new_rosterdate within range datefirst/datelast
             crit = (Q(team=team)) & \
                    (Q(employee__isnull=False)) & \
-                   (Q(employee__datefirst__lte=rosterdate) | Q(employee__datefirst__isnull=True)) & \
-                   (Q(employee__datelast__gte=rosterdate) | Q(employee__datelast__isnull=True)) & \
-                   (Q(datefirst__lte=rosterdate) | Q(datefirst__isnull=True)) & \
-                   (Q(datelast__gte=rosterdate) | Q(datelast__isnull=True))
+                   (Q(employee__datefirst__lte=rosterdate_dte) | Q(employee__datefirst__isnull=True)) & \
+                   (Q(employee__datelast__gte=rosterdate_dte) | Q(employee__datelast__isnull=True)) & \
+                   (Q(datefirst__lte=rosterdate_dte) | Q(datefirst__isnull=True)) & \
+                   (Q(datelast__gte=rosterdate_dte) | Q(datelast__isnull=True))
             # logger.debug(teammembers.query)
                 # WHERE ("companies_teammember"."team_id" = 13
                 # AND "companies_teammember"."employee_id" IS NOT NULL
@@ -477,15 +480,58 @@ class Teammember(TsaBaseModel):
             # for member in teammembers:
             #     employee = getattr(member, 'employee')
             #     if employee:
-            #         logger.debug('employee: ' + str(employee))
+            #        logger.debug('test employee: ' + str(employee) + ' datefirst: ' + str(member.datefirst) + ' datelast: ' + str(member.datelast))
 
             teammember = cls.objects.annotate(
                 new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
                                       )).filter(crit).order_by('new_datelast').first()
-            # logger.debug('return member:' + str(teammember.employee))
         return teammember
 # 33333333333333333333333333333333333333333333333333
 
+    @classmethod
+    def get_first_teammember_on_rosterdate_with_logfile(cls, team, rosterdate_dte, logfile):
+        logfile.append(" --- lookup employees in team")
+
+        added_teammember = None
+        if team and rosterdate_dte:
+            # filter teammmembers that have new_rosterdate within range datefirst/datelast
+            crit = (Q(team=team)) & \
+                   (Q(employee__isnull=False)) # & \
+                   #(Q(employee__datefirst__lte=rosterdate_dte) | Q(employee__datefirst__isnull=True)) & \
+                   #(Q(employee__datelast__gte=rosterdate_dte) | Q(employee__datelast__isnull=True)) & \
+                   #(Q(datefirst__lte=rosterdate_dte) | Q(datefirst__isnull=True)) & \
+                   #(Q(datelast__gte=rosterdate_dte) | Q(datelast__isnull=True))
+
+            teammembers = cls.objects.annotate(
+                new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
+                                      )).filter(crit).order_by('new_datelast')
+            added_teammember = None
+            for teammember in teammembers:
+                empl = teammember.employee
+                logfile.append(" --- " + empl.code)
+                df = '---'
+                dl = '---'
+                if not f.date_within_range(empl.datefirst, empl.datelast, rosterdate_dte):
+                    range = ''
+                    if empl.datefirst:
+                        range = ' from ' + str(empl.datefirst)
+                    if empl.datelast:
+                        range += ' thru ' + str(empl.datelast)
+                    logfile.append(' --- employee not in service on rosterdate: ' + range + '.')
+                elif not f.date_within_range(teammember.datefirst, teammember.datelast, rosterdate_dte):
+                    range = ''
+                    if teammember.datefirst:
+                        range = ' from ' + str(teammember.datefirst)
+                    if teammember.datelast:
+                        range += ' thru ' + str(teammember.datelast)
+                    logfile.append(' --- rosterdate outside shift period: ' + range + '.')
+                else:
+                    added_teammember = teammember
+                    logfile.append(" --- employee added to shift.")
+                    break
+
+        return added_teammember
+# 33333333333333333333333333333333333333333333333333
 
 class Schemeitem(TsaBaseModel):
     objects = TsaManager()
@@ -516,6 +562,49 @@ class Schemeitem(TsaBaseModel):
     def __str__(self):
         return 'schemeitem_pk_' + str(self.pk)
 
+    def get_rosterdate_within_cycle(self, new_rosterdate_dte):
+        # function returns a new_si_rosterdate of this schemeitem, that falls within the cycle of new_rosterdate PR2019-08-17
+        # logger.debug(' --- get_rosterdate_within_cycle --- ' + str(new_rosterdate_dte) + str(type(new_rosterdate_dte)))
+
+        new_si_rosterdate_naive = None
+
+        if new_rosterdate_dte:
+            si_rosterdate_naive = f.get_datetime_naive_from_date(self.rosterdate)
+            new_rosterdate_naive = f.get_datetime_naive_from_date(new_rosterdate_dte)
+            # logger.debug('si_rosterdate_naive: ' + str(si_rosterdate_naive) + ' ' + str(type(si_rosterdate_naive)))
+            # logger.debug('new_rosterdate_naive: ' + str(new_rosterdate_naive) + ' ' + str(type(new_rosterdate_naive)))
+
+            datediff = si_rosterdate_naive - new_rosterdate_naive  # datediff is class 'datetime.timedelta'
+            datediff_days = datediff.days  # <class 'int'>
+            # logger.debug('datediff_days: ' + str(datediff_days))
+
+            if datediff_days == 0:
+                new_si_rosterdate_naive = si_rosterdate_naive
+            else:
+                scheme = Scheme.objects.get_or_none(pk=self.scheme_id)
+                if scheme:
+                    # logger.debug('scheme: ' + str(scheme.code))
+                    # skip if cycle = 0 (once-only)
+                    if scheme.cycle:
+                        cycle_int = scheme.cycle
+                        # logger.debug('cycle_int: ' + str(cycle_int))
+
+                        # cycle starting with new_rosterdate has index 0, previous cycle has index -1, next cycle has index 1 etc
+                        # // operator: Floor division - division that results into whole number adjusted to the left in the number line
+                        index = datediff_days // cycle_int
+                        # logger.debug('index: ' + str(index) + ' ' + str(type(index)))
+                        # adjust si_rosterdate when index <> 0
+                        if index == 0:
+                            new_si_rosterdate_naive = si_rosterdate_naive
+                        else:
+                            # negative index adds positive day and vice versa
+                            days_add = cycle_int * index * -1
+                            # logger.debug('days_add: ' + str(days_add) + ' ' + str(type(days_add)))
+                            new_si_rosterdate_naive = si_rosterdate_naive + timedelta(days=days_add)
+        # logger.debug('new_si_rosterdate_naive: ' + str(new_si_rosterdate_naive) + ' ' + str(type(new_si_rosterdate_naive)))
+        # new_si_rosterdate_naive: 2019-08-29 00:00:00 <class 'datetime.datetime'>
+        return new_si_rosterdate_naive
+
 
 class Orderhour(TsaBaseModel):
     objects = TsaManager()
@@ -529,6 +618,7 @@ class Orderhour(TsaBaseModel):
     monthindex = PositiveSmallIntegerField(default=0)
     weekindex = PositiveSmallIntegerField(default=0)
 
+    cat = PositiveSmallIntegerField(default=0)
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     duration = IntegerField(default=0)  # unit is hour * 100
     status = PositiveSmallIntegerField(db_index=True, default=0)
@@ -554,7 +644,7 @@ class Orderhour(TsaBaseModel):
 class Emplhour(TsaBaseModel):
     objects = TsaManager()
 
-    orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
+    orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=PROTECT)
     employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
     wagecode = ForeignKey(Wagecode, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
     wagefactor = ForeignKey(Wagefactor, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
@@ -564,6 +654,7 @@ class Emplhour(TsaBaseModel):
     monthindex = PositiveSmallIntegerField(default=0)
     weekindex = PositiveSmallIntegerField(default=0)
 
+    cat = PositiveSmallIntegerField(default=0)
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     timestart = DateTimeField(db_index=True, null=True, blank=True)
     timeend = DateTimeField(db_index=True, null=True, blank=True)
@@ -638,25 +729,27 @@ class Companysetting(Model):  # PR2019-03-09
 
 #===========  Classmethod
     @classmethod
-    def get_setting(cls, key_str, company): #PR2019-03-09
+    def get_setting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17
         # function returns value of setting row that match the filter
         # logger.debug('---  get_setting  ------- ')
         setting = None
         if company and key_str:
-            row = cls.objects.filter(company=company, key=key_str).first()
+            row = cls.objects.get_or_none(company=company, key=key_str)
             if row:
                 if row.setting:
                     setting = row.setting
+        if setting is None:
+            if default_setting:
+                setting = default_setting
         return setting
 
     @classmethod
     def set_setting(cls, key_str, setting, company): #PR2019-03-09
-        # function returns list of setting rows that match the filter
-        logger.debug('---  set_setting  ------- ')
-        logger.debug('key_str: ' + str(key_str))
-        logger.debug('setting: ' + str(setting))
+        # logger.debug('---  set_setting  ------- ')
+        # logger.debug('key_str: ' + str(key_str) + ' setting: ' + str(setting))
         # get
         if company and key_str:
+            # don't use get_or_none, gives none when multiple settings exists and will create extra setting.
             row = cls.objects.filter(company=company, key=key_str).first()
             if row:
                 row.setting = setting
@@ -707,7 +800,7 @@ def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # 
             subtotal = entries_tobe_subtracted
             crit = Q(company=request.user.company) & \
                    Q(expired=False) & \
-                   Q(cat__gt=c.CAT_ENTRY_00_GRACE) # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
+                   Q(cat__gt=c.ENTRY_CAT_00_GRACE) # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
             invoices = Companyinvoice.objects.filter(crit)
             # TODO check order and filter
             save_changes = False
@@ -749,9 +842,9 @@ def get_or_create_grace_invoice(request):  # PR2019-08-13
     # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
     invoice = None
     if request.user.company:
-        invoice = Companyinvoice.objects.get_or_none(cat=c.CAT_ENTRY_00_GRACE, company=request.user.company)
+        invoice = Companyinvoice.objects.get_or_none(cat=c.ENTRY_CAT_00_GRACE, company=request.user.company)
         if invoice is None:
-            invoice = Companyinvoice(cat=c.CAT_ENTRY_00_GRACE, company=request.user.company)
+            invoice = Companyinvoice(cat=c.ENTRY_CAT_00_GRACE, company=request.user.company)
             invoice.save(request=request)
     return invoice
 

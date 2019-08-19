@@ -6,6 +6,34 @@
     <script src="{% static 'js/orders.js' %}"></script>
 {% endblock %}
 
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar">
+        <div class="sidebar-header">
+            <h3>{% trans 'Orders' %}</h3>
+        </div>
+        <div class="mx-2 my-2"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+            <table class="table table-condensed tsa-tbl td_width_180 mx-2 my-1 border_none">
+                <thead>
+                    <tr>
+                        <td>{% trans 'Select customer' %}:</td>
+                    </tr>
+                    <tr>
+                        <td >
+                            <input id="id_filter_customers" type="text" class="fieldname pt-0 pb-0" colspan=2 placeholder="{% trans 'filter name...' %}">
+                        </td>
+                    </tr>
+                </thead>
+                <tbody id="id_tbody_select" data-table="customer"></tbody>
+            </table>
+        </div>
+    </nav>
+{% endblock %}
+<!-- END SIDE BAR -->
+
+
+
+
 {% block content %}
     {% if user.is_authenticated %}
         <div class="popup display_hide" >
@@ -16,31 +44,11 @@
         <div class="flex_container mx-1 my-2">
 
 <!-- customer select table -->
-            <!-- flex_content -->
-            <div class="flex_content mx-1 my-2 tsa_bc_lightlightgrey">
-                <div class="content_subheader_left mx-2 my-1">
-                    <div> <!-- this div is necessary to get standard structure for FilterTableRows -->
-                        <table class="table table-condensed tsa-tbl mx-1 my-1 border_none">
-                            <thead>
-                                <tr>
-                                    <td>{% trans 'Select customer' %}:</td>
-                                </tr>
-                                <tr>
-                                    <td >
-                                        <input id="id_filter_customers" type="text" class="fieldname pt-0 pb-0" colspan=2 placeholder="{% trans 'filter name...' %}">
-                                    </td>
-                                </tr>
-                            </thead>
-                            <tbody id="id_tbody_select" data-table="customer"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+
 <!-- customer select table -->   <!-- flex_content -->
 
             <!-- content_wrapper -->
             <div class="content_wrapper tsa_bc_transparent border_none">
-
 
                 <!-- customer header -->
                 <div class="content_subheader_right">
@@ -98,7 +106,7 @@
             </div>
             <!-- content_wrapper -->
 
-                    </div> <!-- flex_container -->
+        </div> <!-- flex_container -->
 
 
 

@@ -73,7 +73,7 @@
     /*margin: 0px; /*these dont work: margin: none; margin: 0;*/
 
     padding: 10px;
-    margin-left: 240px; /* Same as the width of the sidebar */
+    margin-left: 220px; /* Same as the width of the sidebar */
 
 }
 
@@ -116,7 +116,7 @@
     This allows the default alignment (or the one specified by align-items) to be overridden for individual flex items.
     Please see the align-items explanation to understand the available values. */
 
-
+/*
 .sidebar {
       height: 100%; /* Full-height: remove this if you want "auto" height */
       width: 240x; /* Set the width of the sidebar */
@@ -137,10 +137,10 @@
     padding-left: 0;
 
     border-color: #c4c4c4;
-    */
-    background-color: #a5a5a5; /* medium grey; 165 165 165 */
-}
 
+    background-color: #a5a5a5; /* medium grey; 165 165 165
+}
+*/
 .flex_content {
 
 /*
@@ -209,9 +209,9 @@
 .content_wrapper {
 
     -webkit-box-flex: 0;
-        -ms-flex: 0 0 240px;
-            flex: 0 1 240px; /* [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ] */
-    -webkit-box-flex: 1;-ms-flex: 1 1 240px;flex: 1 1 240px;
+        -ms-flex: 0 0 220px;
+            flex: 0 1 220px; /* [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ] */
+    -webkit-box-flex: 1;-ms-flex: 1 1 220px;flex: 1 1 220px;
 
 
     margin: 10px;

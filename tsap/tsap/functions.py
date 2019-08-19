@@ -147,12 +147,13 @@ def offset_split(offset):
     return day_offset, hours, minutes
 
 
-def get_datetime_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
+def get_datetimenaive_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
     #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
     #  split string into array  ["2019", "03", "30", "19", "05", "00"]
     #  regex \d+ - matches one or more numeric digits
     dte_time = None
 
+    # get_datetimearray_from_ISOstring sets arr[i] to 0 if not present
     arr = get_datetimearray_from_ISOstring(datetime_ISOstring)
 
     try:
@@ -191,7 +192,7 @@ def get_datetime_LOCAL_from_ISOstring(datetime_ISOstring, comp_timezone):  # PR2
     #  datetime_ISOstring: 2019-07-14 T 22:00:00 +00:00 <class 'str'>
 
     # convert iso string to dattime naive: datetime_naive: 2019-06-23 18:45:00 <class 'datetime.datetime'>
-    datetime_naive = get_datetime_from_ISOstring(datetime_ISOstring)
+    datetime_naive = get_datetimenaive_from_ISOstring(datetime_ISOstring)
     #logger.debug('datetime_naive: ' + str(datetime_naive) + ' ' + str(type(datetime_naive)))
     #  datetime_naive: 2019-07-14 22:00:00 <class 'datetime.datetime'>
     #  tzinfo: None  <class 'NoneType'>
@@ -227,7 +228,7 @@ def get_datetime_UTC_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
     #  datetime_ISOstring: 2019-06-26 T 07:20:00.000Z  <class 'str'>
 
     # convert iso string to dattime naive: datetime_naive: 2019-06-23 18:45:00 <class 'datetime.datetime'>
-    datetime_naive = get_datetime_from_ISOstring(datetime_ISOstring)
+    datetime_naive = get_datetimenaive_from_ISOstring(datetime_ISOstring)
     # logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
     #  datetime_naive: 2019-06-26 07:20:00  <class 'datetime.datetime'>
     #  tzinfo: None  <class 'NoneType'>
@@ -283,6 +284,7 @@ def get_date_from_ISOstring(datetime_ISOstring, blank_not_allowed=False, format=
             pass
     return dte, msg_err
 
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def get_datetimelocal_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-04-17
     # logger.debug('............. get_datetimelocal_from_datetimeUTC: ' + str(date_timeUTC))
@@ -844,6 +846,35 @@ def get_time_minutes(timestart, timeend, break_minutes):  # PR2019-06-05
 
     return new_time_minutes
 
+
+def daterange_overlap(outer_datefirst, outer_datelast, inner_datefirst, inner_datelast=None ):
+    # check if inner range falls within outer range PR2019-06-05
+    within_range = True
+    if inner_datefirst is None:
+        within_range = False
+    else:
+        if inner_datelast is None:
+            inner_datelast = inner_datefirst
+        if outer_datefirst:
+            if inner_datelast < outer_datefirst:
+                within_range = False
+        if outer_datelast:
+            if inner_datefirst > outer_datelast:
+                within_range = False
+    return within_range
+
+
+def date_within_range(outer_datefirst, outer_datelast, inner_date):
+    # check if inner_date falls within outer range PR2019-06-05
+    within_range = True
+    if inner_date is None:
+        within_range = False
+    else:
+        if outer_datefirst and inner_date < outer_datefirst:
+            within_range = False
+        if outer_datelast and inner_date > outer_datelast:
+            within_range = False
+    return within_range
 
 # ################### NUMERIC FUNCTIONS ###################
 def get_float_from_string(value_str):  # PR2019-08-13

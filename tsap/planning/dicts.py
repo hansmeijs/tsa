@@ -358,7 +358,7 @@ def get_range_enddate_iso(range, range_startdate_iso, comp_timezone):  # PR2019-
     elif day_add > 0:
         # convert range_timestart_utc to range_timestart_local
         date_start = f.get_date_from_ISOstring(range_startdate_iso)
-        datetime_start = f.get_datetime_from_ISOstring(range_startdate_iso)
+        datetime_start = f.get_datetimenaive_from_ISOstring(range_startdate_iso)
         logger.debug(' datetime_start: ' + str(datetime_start) + ' rang: ' + str(type(datetime_start)))
         # previous day is end date
         day_add -= 1
@@ -465,15 +465,15 @@ def create_scheme_template_list(company):
     # logger.debug("========== create_scheme_template_list ==== ")
 
     scheme_list = []
-    order = m.Order.objects.get_or_none(cat=c.CAT_04_TEMPLATE, customer__company=company)
+    order = m.Order.objects.get_or_none(cat=c.SHIFT_CAT_4096_TEMPLATE, customer__company=company)
 
     if order:
-        scheme_list = create_scheme_list(order, cat=c.CAT_04_TEMPLATE)
+        scheme_list = create_scheme_list(order, cat=c.SHIFT_CAT_4096_TEMPLATE)
 
     return scheme_list
 
 
-def create_scheme_list(order, include_inactive=False, cat=c.CAT_00_NORMAL):
+def create_scheme_list(order, include_inactive=False, cat=c.SHIFT_CAT_0000_NORMAL):
 # --- create list of all /  active schemes of this company PR2019-06-16
     #logger.debug("========== create_scheme_list ==== order: " + str(order))
     #logger.debug("include_inactive: " + str(include_inactive))
@@ -545,7 +545,7 @@ def create_schemeitem_template_list(company, comp_timezone):
     #logger.debug("========== create_schemeitem_template_list ==== ")
 
     schemeitem_list = []
-    order = m.Order.objects.get_or_none(cat=c.CAT_04_TEMPLATE, customer__company=company)
+    order = m.Order.objects.get_or_none(cat=c.SHIFT_CAT_4096_TEMPLATE, customer__company=company)
     #logger.debug("order: " + str(order))
     if order:
         schemeitem_list = create_schemeitem_list(order, comp_timezone)
@@ -602,7 +602,7 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
                     item_dict[field]['pk'] = shift.id
                     item_dict[field]['value'] = shift.code
 
-                    if shift.cat == c.SHIFT_CAT_01_RESTSHIFT:
+                    if shift.cat == c.SHIFT_CAT_0064_RESTSHIFT:
                         item_dict[field]['value_R'] = shift.code + ' (R)'
                     breakduration = getattr(shift, 'breakduration', 0)
                     if breakduration:
@@ -820,9 +820,9 @@ def create_emplhour_list(company, comp_timezone, user_lang,
     # logger.debug('range_end_iso: ' + str(range_end_iso)+ ' ' + str(type(range_end_iso)))
 
 
-   # Exclude template. Cat <= 2 (0 = normal, 1 = internal, 2 = absence, 3 = template)
+   # Exclude template. Cat <= 2 (# order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
     crit = Q(orderhour__order__customer__company=company) & \
-           Q(orderhour__order__cat__lte=c.CAT_03_ABSENCE)
+           Q(orderhour__order__cat__lte=c.SHIFT_CAT_0512_ABSENCE)
 
 # range overrules period
     if not show_all:
@@ -865,8 +865,8 @@ def create_emplhour_list(company, comp_timezone, user_lang,
 def create_emplhour_dict(instance, item_dict, comp_timezone):
     # --- create dict of this emplhour PR2019-08-14
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    logger.debug ('--- create_emplhour_dict ---')
-    logger.debug ('item_dict' + str(item_dict))
+    #logger.debug ('--- create_emplhour_dict ---')
+    #logger.debug ('item_dict' + str(item_dict))
 
     if instance:
         # FIELDS_EMPLHOUR = ('pk', 'id', 'employee', 'wagecode', 'wagefactor', 'rosterdate',
@@ -875,9 +875,9 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
 
     # lock field when status = locked or higher
         status_value = getattr(instance, 'status', 0)
-        logger.debug ('status_value: ' + str(status_value))
+        #logger.debug ('status_value: ' + str(status_value))
         locked = (status_value >= c.STATUS_08_LOCKED)
-        logger.debug ('locked: ' + str(locked))
+        #logger.debug ('locked: ' + str(locked))
 
         for field in c.FIELDS_EMPLHOUR:
             if field not in item_dict:
@@ -891,6 +891,7 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
 
             elif field == 'id':
                 id_dict = item_dict[field] if 'id' in item_dict else {}
+                # TOD)pk and ppk are the same. CHeck what is going wrong
                 id_dict['pk'] = instance.pk
                 id_dict['ppk'] = instance.orderhour.pk
                 id_dict['table'] = 'emplhour'
@@ -898,20 +899,12 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
 
             elif field == 'orderhour':
                 orderhour = getattr(instance, field)
-                logger.debug('orderhour: ' + str(orderhour.shift))
 
                 if orderhour:
                     item_dict[field]['pk'] = orderhour.pk
                     item_dict[field]['ppk'] = orderhour.order.pk
 
-                    order_code = ''
-                    customer_code = ''
-                    if orderhour.order.code:
-                        order_code = orderhour.order.code
-                    if orderhour.order.customer.code:
-                        customer_code = orderhour.order.customer.code
-                    value = customer_code + ' - ' + order_code
-
+                    value = get_customer_order_code(orderhour.order, ' - ')
                     if value:
                         item_dict[field]['value'] = value
                     else:
@@ -970,6 +963,200 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
         f.remove_empty_attr_from_dict(item_dict)
 
        #  logger.debug ('item_dict' + str(item_dict))
+
+def create_replacementshift_list(dict, company):
+    # logger.debug('create_replacementshift_list: ' + str(dict))
+    # datalist_dict: {'replacement': {'action': 'switch', 'rosterdate': None, 'reployee_pk': 214}} <class 'dict'>
+    # {'action': 'switch', 'rosterdate': None, 'reployee_pk': 214, 'reployee_ppk': 2}
+    # create list of avauilable shifts of this sreplacement employee PR2019-08-16
+
+    replacementshift_list = []
+    rosterdate_list = []
+
+# 1. set time range
+    if company and 'rosterdate' in dict and 'reployee_pk' in dict:
+        eplh_list = []
+        si_list = []
+
+# 2. get start date of replacement period
+        rosterdate = dict['rosterdate']
+        rosterdate_min = f.get_datetimenaive_from_ISOstring(rosterdate)
+        # logger.debug('rosterdate_min: ' + str(rosterdate_min) + str(type(rosterdate_min)))
+
+# 3. get replacement period from Companysetting
+        # this period is rosterdate_min till rosterdate_min + REPLACEMENT_PERIOD_DEFAULT (days)
+        replacement_period = m.Companysetting.get_setting(
+            key_str=c.KEY_COMP_REPLACEMENT_PERIOD,
+            company=company,
+            default_setting=c.REPLACEMENT_PERIOD_DEFAULT
+        )
+
+# 4. get pk of current employee and replacement employee
+        employee_pk = dict['employee_pk']
+        reployee_pk = dict['reployee_pk']
+        # logger.debug('reployee_pk: ' + str(reployee_pk))
+
+# 5. loop through dates of replacement period
+        count = 0
+        while count < replacement_period:
+            add_rosterdate_to_list = False
+            rosterdate_cur_dtm = rosterdate_min + timedelta(days=count)
+            rosterdate_cur_iso = rosterdate_cur_dtm.isoformat()
+            rosterdate_cur_str = rosterdate_cur_iso.split('T')[0]
+            count = count + 1
+
+# 6. get emplhour records of replacement employee of this date
+            # filter compnay, rosterdate
+            # exclude cat: skip emplhours from restshift, absence and template orders (replacement not in use in table order)
+            # exclude emplhours that have STATUS_02_START_CONFIRMED or higher
+
+            crit = Q(orderhour__order__customer__company=company) & \
+                    Q(rosterdate=rosterdate_cur_str) & \
+                    Q(orderhour__order__cat__lt=c.SHIFT_CAT_0032_REPLACEMENT) & \
+                    Q(status__lt=c.STATUS_02_START_CONFIRMED) & \
+                    Q(orderhour__order__locked=False) & \
+                    Q(employee_id=reployee_pk)
+            emplhours = m.Emplhour.objects.filter(crit)
+            # logger.debug('........ emplhours   ' + str(rosterdate_cur_str) + '......... ')
+
+            for emplhour in emplhours:
+                eplh_dict = {}
+
+                # create_schemeitem_dict(table_dict, company, comp_timezone, user_lang)
+                eplh_dict['rosterdate'] = rosterdate_cur_str
+                eplh_dict['eplh_pk'] = emplhour.pk
+                eplh_dict['eplh_ppk'] = emplhour.orderhour_id
+                eplh_dict['employee_pk'] = employee_pk
+                eplh_dict['reployee_pk'] = reployee_pk
+
+                # don't add si_pk to dict, to havedifference between eplh and si record
+
+                if emplhour.orderhour:
+                    if emplhour.orderhour.schemeitem:
+                        eplh_dict['si_pk'] = emplhour.orderhour.schemeitem_id
+
+                    if emplhour.orderhour.order:
+                        cust_order_shift = get_customer_order_code(emplhour.orderhour.order)
+                        if emplhour.shift:
+                            cust_order_shift += ' - ' + emplhour.shift
+                        if cust_order_shift:
+                            eplh_dict['cust_order_shift'] = cust_order_shift
+
+                if emplhour.employee.code:
+                    eplh_dict['employee'] = emplhour.employee.code
+
+                    # store schemeitem in list, to check if shift from next section already has emplhour
+                eplh_list.append(eplh_dict)
+                add_rosterdate_to_list = True
+
+# 7. lookup teams of replacement employee with this rosterdate
+            # exclude rest, absence and template orders
+            # exclude employee not in service
+            # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
+            crit = Q(team__scheme__order__customer__company=company) & \
+                   Q(team__scheme__order__cat__lt=c.SHIFT_CAT_0064_RESTSHIFT) & \
+                   Q(employee_id=reployee_pk) & \
+                   (Q(employee__datefirst__lte=rosterdate_cur_str) | Q(employee__datefirst__isnull=True)) & \
+                   (Q(employee__datelast__gte=rosterdate_cur_str) | Q(employee__datelast__isnull=True)) & \
+                   (Q(datefirst__lte=rosterdate_cur_str) | Q(datefirst__isnull=True)) & \
+                   (Q(datelast__gte=rosterdate_cur_str) | Q(datelast__isnull=True))
+            teammembers = m.Teammember.objects.filter(crit)
+            # logger.debug('........ teammembers ' + str(rosterdate_cur_str) + '......... ')
+
+            for teammember in teammembers:
+                logger.debug('teammember.pk: ' + str(teammember.pk))
+                # if teammember.employee:
+                    # logger.debug('teammember.employee: ' + str(teammember.employee.code))
+
+                item_dict = {}                # check if teammemember is the first teammember
+                first_teammember = m.Teammember.get_first_teammember_on_rosterdate(teammember.team, rosterdate_cur_str)
+                if first_teammember:
+                    if teammember.employee_id == first_teammember.employee_id:
+                        # logger.debug('teammember.employee_id == first_teammember.employee_id ')
+                        # now we have the team, of which the replacement employee is the first teammember on this date
+                        # next step is to find the schemeitems on this date with this team
+
+                        schemeitems = m.Schemeitem.objects.filter(team_id=teammember.team_id)
+                        for schemeitem in schemeitems:
+
+                            # skip inactive schemeitems
+                            # logger.debug('. schemeitem: ' + str(schemeitem.pk) + ' rosterdate: ' + str(schemeitem.rosterdate))
+                            # get rosterdate of this schemeitem that is within this cycle:
+                            si_rosterdate_within_cycle = schemeitem.get_rosterdate_within_cycle(rosterdate_cur_dtm)
+                            # logger.debug('... si_rosterdate_within_cycle: ' + str(si_rosterdate_within_cycle) + ' rosterdate_cur_dtm: ' + str(rosterdate_cur_dtm))
+                            datediff = si_rosterdate_within_cycle - rosterdate_cur_dtm  # datediff is class 'datetime.timedelta'
+                            datediff_days = datediff.days  # <class 'int'>
+                            # logger.debug('... datediff_days: ' + str(datediff_days))
+
+                            # if si_rosterdate_within_cycle is same as rosterdate_cur_dtm: c
+                            if datediff_days == 0:
+                                # create_schemeitem_dict(table_dict, company, comp_timezone, user_lang)
+
+                                si_dict = {'rosterdate': rosterdate_cur_str,
+                                            'si_pk': schemeitem.pk,
+                                            'tmmbr_pk': teammember.pk,
+                                            'team_pk': teammember.team_id,
+                                            'team_ppk': teammember.team.scheme.pk,
+                                            'employee_pk': employee_pk,
+                                            'reployee_pk': reployee_pk}
+
+                                if teammember.employee.code:
+                                    si_dict['tmmbr_employee'] = teammember.employee.code
+
+                                if schemeitem.scheme.order:
+                                    cust_order_shift = get_customer_order_code(schemeitem.scheme.order)
+                                    if schemeitem.shift.code:
+                                        cust_order_shift += ' - ' + schemeitem.shift.code
+                                    if cust_order_shift:
+                                        si_dict['cust_order_shift'] = cust_order_shift
+
+                                si_list.append(si_dict)
+                                add_rosterdate_to_list = True
+            if add_rosterdate_to_list:
+                rosterdate_list.append(rosterdate_cur_str)
+
+                            # info needed for switch input:
+                                # rosterdate
+                                # eplh_pk if exists > replacement employee will be replaced bij current employee
+                                    # to do check if eplh locked, lock remove
+                                # if not: team_pk, teammember_pk of current employee
+                                    # check datestartdatend of temmmeber current employee.
+                                    # if teammember current_employee datestart == rosterdate and dateend == rosterdate:
+                                            # replace teammember current_employee by replacement_employee
+                                    # if teammember current_employee datestart != rosterdate and dateend == rosterdate:
+                                            # change teammember current_employee dateend to rosterdate -1
+                                            # add teammember replacement_employee with datestart = rosterdate and dateend = rosterdate
+                                    # else:
+                                            # leave teammember current_employee unchanged
+                                            # add teammember replacement_employee with datestart = rosterdate and dateend = rosterdate
+
+        for eplh_dict in eplh_list:
+            replacementshift_list.append(eplh_dict)
+
+# remove si_dict from si_list if it also exists in eplh_dict
+            if 'si_pk' in eplh_dict and 'rosterdate' in eplh_dict:
+                eplh_si_pk = eplh_dict['si_pk']
+                eplh_rosterdate = eplh_dict['rosterdate']
+                if eplh_si_pk and eplh_rosterdate:
+                    for idx, si_dict in enumerate(si_list):
+                        if 'si_pk' in si_dict and 'rosterdate' in si_dict:
+                            si_pk = si_dict['si_pk']
+                            si_rosterdate = si_dict['rosterdate']
+                            if si_rosterdate == eplh_rosterdate and si_pk == eplh_si_pk:
+                                del si_list[idx]
+# add remaining si_dicts to replacementshift_list
+        for si_dict in si_list:
+            si_pk = si_dict['si_pk']
+            si_rosterdate = si_dict['rosterdate']
+            # logger.debug(' ADD: si_pk: ' + str(si_pk) + ' si_rosterdate: ' + str(si_rosterdate))
+            replacementshift_list.append(si_dict)
+
+    return_dict = {'replacement': True} # just to make dict not empty
+    if rosterdate_list:
+        return_dict['replacement_dates'] = rosterdate_list
+    if replacementshift_list:
+        return_dict['replacement_list'] = replacementshift_list
+    return return_dict
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1246,3 +1433,12 @@ def get_rosterdate_previous(company): # PR2019-06-17
     rosterdate_previous = rosterdate_current + timedelta(days=-1)
     return rosterdate_previous
 
+def get_customer_order_code(order, delim=' '): # PR2019-08-16
+    customer_order_code = ''
+    if order:
+        if order.customer.code:
+            customer_order_code = order.customer.code
+        if order.code:
+            order_code = order.code
+            customer_order_code += delim + order_code
+    return customer_order_code

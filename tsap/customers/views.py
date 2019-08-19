@@ -109,7 +109,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
     # 8. update order_list when changes are made
                     # inactive = None: include active and inactive
-                    customer_list = create_customer_list(company=request.user.company, cat=c.CAT_00_NORMAL)
+                    customer_list = create_customer_list(company=request.user.company, cat=c.SHIFT_CAT_0000_NORMAL)
                     if customer_list:
                         update_wrap['customer_list'] = customer_list
     # 9. return update_wrap
@@ -208,7 +208,7 @@ class OrderUploadView(UpdateView):# PR2019-03-04
 
     # 8. update order_list when changes are made
                     # inactive = None: include active and inactive
-                    order_list = create_order_list(company=request.user.company)  #  cat=CAT_00_NORMAL,
+                    order_list = create_order_list(company=request.user.company)  #  cat=SHIFT_CAT_0000_NORMAL,
                     if order_list:
                         update_wrap['order_list'] = order_list
 # 9. return update_wrap

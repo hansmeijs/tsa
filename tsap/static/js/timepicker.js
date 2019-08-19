@@ -89,11 +89,17 @@
 
 // ---  position popup under el_input
         let popRect = el_timepicker.getBoundingClientRect();
-        //console.log("popRect", popRect)
+        console.log("popRect", popRect)
         let inpRect = el_input.getBoundingClientRect();
-        //console.log("inpRect", inpRect)
-        let topPos = inpRect.top + inpRect.height;
-        let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
+        console.log("inpRect", inpRect)
+
+        const pop_width = 180; // to center popup under input box
+        const correction_left = -240 - pop_width/2 ; // -240 because of sidebar
+        const correction_top = -32; // -32 because of menubar
+        console.log("inpRect", inpRect)
+        let topPos = inpRect.top + inpRect.height + correction_top;
+        let leftPos = inpRect.left + correction_left; // let leftPos = elemRect.left - 160;
+
         let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
         //let msgAttr = "position:relative;top:" + topPos + "px;" + "left:" + leftPos + "px;"
         //console.log("msgAttr", msgAttr)
@@ -1235,7 +1241,9 @@ function CalcMinMaxHoursMinutes(cur_rosterdate_iso, cur_datetime_iso,
         //console.log(new_dict)
         return new_dict
     }  // CalcMinMaxHoursMinutes
+/*
 
+// moved to table.js
 //========= GetRosterdateLocal  ====================================
     function GetRosterdateLocal(data_rosterdate, comp_timezone) {
         // PR2019-07-07
@@ -1250,7 +1258,7 @@ function CalcMinMaxHoursMinutes(cur_rosterdate_iso, cur_datetime_iso,
         };
         return rosterdate_date_local;
     }  // GetRosterdateLocal
-
+*/
 
 //========= GetDatetimeLocal  ====================================
     function GetDatetimeLocal(data_datetime, comp_timezone) {

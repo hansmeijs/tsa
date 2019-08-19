@@ -119,14 +119,27 @@
     /*background: #fbedba; /* lighter shade of tsa yellow */
 }
 
+.text_align_center {
+    text-align: center;
+}
+
+.tsa_btn_selected  {
+    background-color: #fbedba; /* lighter shade of tsa yellow */
+    color: #303024; /* dark dark Panta Rhei grey 48 48 36 */
+}
+
 
 
 /* PR2019-04-06 from https://css-tricks.com/fixing-tables-long-strings/ */
 
 .tsa-tbl  {
-    table-layout: auto;
-    /*table-layout: fixed;*/
-    width: 100%; /* must have this set */
+    /*table-layout: auto;*/
+    table-layout: fixed;
+    width: 100%; /* must have this set instead of 'auto'*/
+    /* try: */
+    word-break: break-all;
+    display: block;
+    overflow: auto;
 }
 .tsa-tbl th  {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
@@ -169,6 +182,9 @@
 .td_width_220 {
     width: 220px;
 }
+.td_width_200 {
+    width: 200px;
+}
 
 .td_width_180 {
     width: 180px;
@@ -184,7 +200,7 @@
 }
 .td_width_090 {width: 90px;}
 .td_width_hours {
-    padding = 2px;
+    padding: 2px;
     width: 60px;
     }
 .td_width_060 {
@@ -317,6 +333,11 @@ i.glyphicon-chevron-left::before, i.glyphicon-chevron-right::before {
 
 i.fa-arrow-left::before, i.fa-arrow-right::before {
   font-style: normal !important; // override wrapping <i>
+}
+
+.tsa_padding_20 {
+    /* padding: <top><right><bottom><left> */
+    padding: 20px 20px 20px 20px;
 }
 
 

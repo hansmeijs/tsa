@@ -2,7 +2,7 @@
 from django.forms import ModelForm, DateField, TextInput, ChoiceField, Select
 from django.utils.translation import ugettext_lazy as _
 
-from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, CAT_ENTRY_CHOICES, CAT_ENTRY_02_PAID
+from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, ENTRY_CAT_CHOICES, ENTRY_CAT_02_PAID
 from companies.models import Company, Companyinvoice
 #from tsap.validators import validate_unique_code
 
@@ -102,13 +102,13 @@ class InvoiceAddForm(ModelForm):
 
         # ======= field 'Cat' ============
         # PR2019-08-05
-        self.choices = CAT_ENTRY_CHOICES
+        self.choices = ENTRY_CAT_CHOICES
 
         self.fields['cat'] = ChoiceField(
             required=True,
             choices=self.choices,
             label=_('Category'),
-            initial=CAT_ENTRY_02_PAID
+            initial=ENTRY_CAT_02_PAID
         )
 
 

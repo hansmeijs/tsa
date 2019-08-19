@@ -48,7 +48,7 @@ $(function() {
             let tr_selected = get_tablerow_selected(event.target)
             if(!tr_selected) {
                 selected_order_pk = 0;
-                DeselectHighlightedRows(tblBody_items)};
+                DeselectHighlightedRows(tr_selected)};
 
 // hide el_popup_date_container
             // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
@@ -255,8 +255,7 @@ $(function() {
         selected_customer_pk = 0
 
 // ---  deselect all highlighted rows
-        let tbody_clicked = tblRow.parentNode;
-        DeselectHighlightedRows(tbody_clicked)
+        DeselectHighlightedRows(tblRow)
 
 // ---  get clicked tablerow
         if(!!tblRow) {
@@ -284,7 +283,7 @@ $(function() {
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows
-        DeselectHighlightedRows(tr_clicked.parentNode)
+        DeselectHighlightedRows(tr_clicked)
 
 // ---  get clicked tablerow
         if(!!tr_clicked) {
@@ -863,12 +862,15 @@ $(function() {
 
             if (!!data_value){el_popup_date.value = data_value};
 
-
     // ---  position popup under el_input
             let popRect = el_popup_date_container.getBoundingClientRect();
             let inpRect = el_input.getBoundingClientRect();
-            let topPos = inpRect.top; // + inpRect.height;
-            let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
+
+            const pop_width = 0; // to center popup under input box
+            const correction_left = -240 - pop_width/2 ; // -240 because of sidebar
+            const correction_top = -32; // -32 because of menubar
+            let topPos = inpRect.top + inpRect.height + correction_top;
+            let leftPos = inpRect.left + correction_left; // let leftPos = elemRect.left - 160;
             let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
             el_popup_date_container.setAttribute("style", msgAttr)
 

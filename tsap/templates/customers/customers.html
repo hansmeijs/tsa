@@ -5,6 +5,22 @@
 {% block script %}
     <script src="{% static 'js/customers.js' %}"></script>
 {% endblock %}
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar">
+        <div class="sidebar-header">
+            <h3>{% trans 'Customers' %}</h3>
+        </div>
+        <div class="mx-2 my-2"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+            <label for="id_filter_name" class="px-1 py-1">{% trans 'Filter customers:' %}</label>
+            <input id="id_filter_name"
+            type="text"
+            class="fieldname pt-0 pb-0"
+            placeholder="{% trans 'filter...' %}">
+        </div>
+    </nav>
+{% endblock %}
+<!-- END SIDE BAR -->
 
 {% block content %}
   <div class="container">
@@ -23,23 +39,14 @@
                 <!-- customer header -->
                 <div class="content_subheader_right">
                     <div class="content_header">
-                        <div class="content_subheader_left mx-2">
-                            <h5 id="id_hdr_customer">{% trans "Customers" %}</h5>
-                        </div>
-                    </div>
-                    <div class="content_header">
-                        <div class="content_subheader_left">
-                            <input id="id_filter_name"
-                            type="text"
-                            class="fieldname pt-0 pb-0"
-                            placeholder="{% trans 'filter...' %}">
+                        <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
+                        <div class="content_subheader_right mx-4 my-1">
                         </div>
                     </div>
                 </div>
                 <!-- customer header -->
 
                 <!-- content body -->
-
                 <div class="content_body mx-2">
                     <!-- =================== table Customers  =================== -->
                     <table class="table tsa-tbl">
@@ -54,14 +61,6 @@
                         </thead>
                         <tbody id="id_tbody_items"></tbody>
                     </table>
-                    <!-- =================== loader  =================== -->
-                    <div class="content_header">
-                        <div class="content_subheader_right">
-                            <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
-                        </div>
-                        <div class="content_subheader_right">
-                        </div>
-                    </div>
                 </div>
                 <!-- content body -->
             </div>

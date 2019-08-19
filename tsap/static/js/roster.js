@@ -1,8 +1,10 @@
 // PR2019-02-07 deprecated: $(document).ready(function() {
-$(function() {
+// with pure vanilla Javascript. Was jQuery: $(function() {
+document.addEventListener('DOMContentLoaded', function() {
     "use strict";
     console.log("Roster document.ready");
 
+    const cls_selected = "tsa_tr_selected";
     const cls_active = "active";
     const cls_hover = "tr_hover";
     const cls_highl = "tr_highlighted";
@@ -33,6 +35,8 @@ $(function() {
     let abscat_list = [];
     let employee_list = [];
     let emplhour_list = [];
+    let replacement_list = [];
+
     let period_dict = {};
 
         let tblBody_select = document.getElementById("id_tbody_select");
@@ -67,7 +71,7 @@ $(function() {
  // remove highlighted row when clicked outside tabelrows
             let tr_selected = get_tablerow_selected(event.target)
             if(!tr_selected) {
-                DeselectHighlightedRows(tblBody_items)};
+                DeselectHighlightedRows(tr_selected, cls_selected)};
 
 // close el_popup_date
             let close_popup = true
@@ -118,26 +122,26 @@ $(function() {
         let el_filter_name = document.getElementById("id_filter_name");
             el_filter_name.addEventListener("keyup", function(){
                 setTimeout(function() {HandleFilterName()}, 50)});
-        let el_mod_filter_employee = document.getElementById("id_mod_filter_employee");
+        let el_mod_filter_employee = document.getElementById("id_mod_employee_filter_employee");
             el_mod_filter_employee.addEventListener("keyup", function(){
-                setTimeout(function() {ModalFilterEmployee("filter")}, 50)});
-        let el_mod_employee = document.getElementById("id_mod_input_employee")
-            el_mod_employee.addEventListener("keyup", function(){
-                setTimeout(function() {ModalFilterEmployee("input")}, 250)});
+                setTimeout(function() {ModEmployeeFilterEmployee("filter")}, 50)});
+        let el_mod_employee_input_employee = document.getElementById("id_mod_employee_input_employee")
+            el_mod_employee_input_employee.addEventListener("keyup", function(){
+                setTimeout(function() {ModEmployeeFilterEmployee("input")}, 250)});
 
 // buttons in  modal
-        document.getElementById("id_mod_employee_btn_absent").addEventListener("click", function() {ModalEmployeeSelect("absent")}, false )
-        document.getElementById("id_mod_employee_btn_switch").addEventListener("click", function() {ModalEmployeeSelect("switch")}, false )
-        document.getElementById("id_mod_employee_btn_split").addEventListener("click", function() {ModalEmployeeSelect("split")}, false )
+        document.getElementById("id_mod_employee_btn_absent").addEventListener("click", function() {ModEmployeeBtnSelect("absent")}, false )
+        document.getElementById("id_mod_employee_btn_switch").addEventListener("click", function() {ModEmployeeBtnSelect("switch")}, false )
+        document.getElementById("id_mod_employee_btn_split").addEventListener("click", function() {ModEmployeeBtnSelect("split")}, false )
+        document.getElementById("id_mod_employee_btn_save").addEventListener("click", function() {ModEmployeeSave()}, false )
+        document.getElementById("id_mod_employee_switch_date").addEventListener("change", function() {ModEmployeeFillOptionsShift()}, false )
 
-        document.getElementById("id_mod_employee_btn_save").addEventListener("click", function() {ModalEmployeeSave()}, false )
-
-        document.getElementById("id_mod_setting_btn_save").addEventListener("click", function() {ModalSettingSave("setting")}, false )
-        document.getElementById("id_mod_range_btn_save").addEventListener("click", function() {ModalSettingSave("range")}, false )
+        document.getElementById("id_mod_setting_btn_save").addEventListener("click", function() {ModSettingSave("setting")}, false )
+        document.getElementById("id_mod_range_btn_save").addEventListener("click", function() {ModSettingSave("range")}, false )
 
         // although max is set in input overlap, you can still enter higher value. This code resets that to 24
-        document.getElementById("id_mod_setting_overlap_prev").addEventListener("change", function() {ModalEmployeeSelect();}, false )
-        document.getElementById("id_mod_setting_overlap_next").addEventListener("change", function() {ModalEmployeeSelect();}, false )
+        document.getElementById("id_mod_setting_overlap_prev").addEventListener("change", function() {ModEmployeeBtnSelect();}, false )
+        document.getElementById("id_mod_setting_overlap_next").addEventListener("change", function() {ModEmployeeBtnSelect();}, false )
 
         document.getElementById("id_mod_status_btn_save").addEventListener("click", function() {ModalStatusSave()}, false )
 
@@ -187,9 +191,6 @@ $(function() {
         // console.log(moment.locales())
         moment.locale(user_lang)
 
-        const select_text_abscat = get_attr_from_el(el_data, "data-txt_select_abscat");
-        const select_text_abscat_none = get_attr_from_el(el_data, "data-txt_select_abscat_none");
-
 // buttons in  timepicker
         let btn_prevday = document.getElementById("id_timepicker_prevday")
             btn_prevday.addEventListener("click", function () {
@@ -236,6 +237,7 @@ $(function() {
         // datalist_request: {"schemeitems": {"ppk": pk}, "teams": {"ppk": pk}, "shifts": {"ppk": pk}
 
 // reset requested lists
+        let is_replacement = false
         for (let key in datalist_request) {
             // check if the property/key is defined in the object itself, not in parent
             if (key === "customer") {customer_list = []};
@@ -246,11 +248,25 @@ $(function() {
             if (key === "shift") {shift_list = []};
             if (key === "employee") {employee_list = []};
             if (key === "emplhour") {emplhour_list = []};
+            if (key === "replacement") {
+                replacement_list = [];
+                is_replacement = true;
+                };
+
             if (key === "period") {period_dict = {}};
+
             // "rosterdatefill" for fill rosterdate
         }
 
         // show loader
+
+        // show loader
+        if (is_replacement) {
+            document.getElementById("id_mod_employee_loader").classList.remove(cls_hide)
+        } else {
+            el_loader.classList.remove(cls_hide)
+        }
+
         el_loader.classList.remove(cls_hide)
         let param = {"datalist_download": JSON.stringify (datalist_request)};
         let response = "";
@@ -264,10 +280,11 @@ $(function() {
                 console.log(response)
                 // hide loader
                 el_loader.classList.add(cls_hide)
+                document.getElementById("id_mod_employee_loader").classList.add(cls_hide)
                 let fill_table = false, check_status = false;
                 if ("abscat" in response) {
                     abscat_list= response["abscat"];
-                    FillSelectAbscat(abscat_list)
+                    FillSelectOption("abscat", abscat_list)
                 }
                 if ("employee" in response) {
                     employee_list= response["employee"];
@@ -288,6 +305,14 @@ $(function() {
                     fill_table = true;
                     check_status = true;
                 }
+                if ("replacement" in response) {
+                    let replacement_dict = response["replacement"];
+                    replacement_list = replacement_dict["replacement_list"];
+                    ModEmployeeFillOptionDates(replacement_dict["replacement_dates"]);
+                    fill_table = true;
+                    check_status = true;
+                }
+
                 if ("period" in response) {
                     period_dict= response["period"];
                     DisplayPeriod(period_dict);
@@ -302,12 +327,12 @@ $(function() {
             error: function (xhr, msg) {
                 // hide loader
                 el_loader.classList.add(cls_hide)
+                document.getElementById("id_mod_employee_loader").classList.add(cls_hide)
                 console.log(msg + '\n' + xhr.responseText);
                 alert(msg + '\n' + xhr.responseText);
             }
         });
     }  // function DatalistDownload
-
 
 //=========  CreateSubmenu  === PR2019-07-08
     function CreateSubmenu() {
@@ -323,7 +348,7 @@ $(function() {
         el_a.setAttribute("href", "#");
         el_a.innerText = " < ";
         el_a.title =  get_attr_from_el_str(el_data, "data-txt_period_gotoprev");
-        el_a.addEventListener("click", function() {ModalSettingSave("prev")}, false )
+        el_a.addEventListener("click", function() {ModSettingSave("prev")}, false )
         el_div.appendChild(el_a);
 
     // --- first add <a> element with EventListener to td
@@ -333,7 +358,7 @@ $(function() {
         // from https://www.fileformat.info/info/unicode/char/25cb/index.htm
         //el_a.innerText = " \u29BF "  /// circeled bullet: \u29BF,  bullet: \u2022 "  // "\uD83D\uDE00" "gear (settings) : \u2699" //
         el_a.innerText = " \u25CB "  /// 'white circle' : \u25CB  /// black circle U+25CF
-        el_a.addEventListener("click", function() {ModalSettingSave("current")}, false )
+        el_a.addEventListener("click", function() {ModSettingSave("current")}, false )
         el_a.title = get_attr_from_el_str(el_data, "data-txt_period_gotocurr");
         el_div.appendChild(el_a);
 
@@ -342,7 +367,7 @@ $(function() {
         el_a.setAttribute("href", "#");
         el_a.innerText = " > ";
         el_a.title = get_attr_from_el_str(el_data, "data-txt_period_gotonext");
-        el_a.addEventListener("click", function() {ModalSettingSave("next")}, false )
+        el_a.addEventListener("click", function() {ModSettingSave("next")}, false )
         el_div.appendChild(el_a);
 
 
@@ -369,7 +394,6 @@ $(function() {
         el_submenu.classList.remove("display_hide");
 
     };//function CreateSubmenu
-
 
 //=========  CreateTableInterval  ================ PR2019-07-12
     function CreateTableInterval() {
@@ -420,7 +444,6 @@ $(function() {
         }  // for (let j = 0; j <
 
     } // CreateTableInterval
-
 
 //=========  CreateTableRange  ================ PR2019-07-14
     function CreateTableRange() {
@@ -519,7 +542,7 @@ $(function() {
 
                     if(data_value === selected_value) {
                         range_text = range_text + ": " + value_str + " " + unit_str
-                        tblRow.classList.add("tsa_tr_selected")
+                        tblRow.classList.add(cls_selected)
                     }
                 }
             }  // for (let j = 0; j <
@@ -609,7 +632,7 @@ $(function() {
                 if ([1, 2].indexOf( j ) > -1){
                     if (is_new_item){el.addEventListener("change", function() {UploadChanges(el);}, false )} } else
                 if (j === 3){
-                    el.addEventListener("click", function() {OpenModalEmployee(el);}, false ) } else
+                    el.addEventListener("click", function() {ModalEmployeeOpen(el);}, false ) } else
                 if ([4, 6].indexOf( j ) > -1){
                     el.addEventListener("click", function() {
                         OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_emplhour_upload,
@@ -618,7 +641,7 @@ $(function() {
                     // el.addEventListener("click", function() {OpenPopupHM(el)}, false )
                 };
 
-// --- add datalist_ to td shift, team, employee
+// --- add datalist_ to td orders, shifts todo: SHIFTS NOT WORKING YET
                 if (j === 1){
                     if (is_new_item){el.setAttribute("list", "id_datalist_orders")}
                 } else if (j === 2){
@@ -701,7 +724,7 @@ $(function() {
 
 // --- highlight selected row
                 if (pk === selected_item_pk) {
-                    tblRow.classList.add("tsa_tr_selected")
+                    tblRow.classList.add(cls_selected)
                 }
             }
         }  // if (!!len)
@@ -724,8 +747,8 @@ $(function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblName, tblRow, item_dict){
-        console.log(" ------>>  UpdateTableRow");
-        console.log(item_dict);
+        //console.log(" ------>>  UpdateTableRow");
+        //console.log(item_dict);
 
         if (!!item_dict && !!tblRow) {
 
@@ -755,18 +778,18 @@ $(function() {
                 let id_str = get_attr_from_el_str(tblRow,"id")
             // check if item_dict.id 'new_1' is same as tablerow.id
 
-                console.log("is_created", is_created, typeof is_created);
-                console.log("id_str", id_str, typeof id_str);
-                console.log("temp_pk_str", temp_pk_str);
+                //console.log("is_created", is_created, typeof is_created);
+                //console.log("id_str", id_str, typeof id_str);
+                //console.log("temp_pk_str", temp_pk_str);
 
                 if(temp_pk_str === id_str){
-                    console.log("temp_pk_str === id_str");
+                    //console.log("temp_pk_str === id_str");
                     // if 'created' exists then 'pk' also exists in id_dict
-                    console.log("id_dict", id_dict);
+                    //console.log("id_dict", id_dict);
                     const pk_int = parseInt(get_dict_value_by_key(id_dict, "pk"))
                     const ppk_int = parseInt(get_dict_value_by_key(id_dict, "ppk"))
-                    console.log("pk_int", pk_int, typeof pk_int);
-                    console.log("ppk_int", ppk_int, typeof ppk_int);
+                    //console.log("pk_int", pk_int, typeof pk_int);
+                    //console.log("ppk_int", ppk_int, typeof ppk_int);
 
             // update tablerow.id from temp_pk_str to pk_int
                     tblRow.setAttribute("id", pk_int);  // or tblRow.id = pk_int
@@ -803,10 +826,10 @@ $(function() {
                     if(!!el_input){
 // --- lookup field in item_dict, get data from field_dict
                         fieldname = get_attr_from_el(el_input, "data-field");
-                        console.log("fieldname", fieldname);
+                        //console.log("fieldname", fieldname);
                         if (fieldname in item_dict){
                             field_dict = get_dict_value_by_key (item_dict, fieldname);
-                            console.log("field_dict", field_dict);
+                            //console.log("field_dict", field_dict);
 
                             updated = get_dict_value_by_key (field_dict, "updated");
                             err = get_dict_value_by_key (field_dict, "error");
@@ -855,16 +878,22 @@ $(function() {
                                 }
                             } else if (fieldname === "shift") {
                                 let value = get_dict_value_by_key (field_dict, "value")
-                                // console.log("field_dict", field_dict);
                                 el_input.value = value
-                            } else if (["shift", "customer", "orderhour", "employee"].indexOf( fieldname ) > -1){
-                                let value = get_dict_value_by_key (field_dict, "value")
-                                // console.log("field_dict", field_dict);
+
+                            } else if (["orderhour", "employee"].indexOf( fieldname ) > -1){
+                                const value = get_dict_value_by_key (field_dict, "value")
+                                const pk_int = parseInt(get_dict_value_by_key(field_dict, "pk"))
+                                const ppk_int = parseInt(get_dict_value_by_key(field_dict, "ppk"))
+
                                 el_input.value = value
-                                // disable field orderhour
+                                el_input.setAttribute("data-pk", pk_int)
+                                el_input.setAttribute("data-ppk", ppk_int)
+
+                                 // disable field orderhour
                                 if (fieldname === "orderhour") {
                                     el_input.disabled = true
                                 }
+
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
                                 format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
 
@@ -876,13 +905,10 @@ $(function() {
                                         imgsrc_delete, imgsrc_questionmark, imgsrc_warning,
                                         "", "please confirm", "confirmation past due")
 
-
                             } else if (["status"].indexOf( fieldname ) > -1){
                                 format_status_element (el_input, field_dict,
                                         imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_stat04, imgsrc_stat05,
                                         "", "created", "starttime confirmed", "endtime confirmed", "start and endtime confirmed", "confirmation locked")
-
-
 
                             };
                         }  // if (fieldname in item_dict)
@@ -899,20 +925,21 @@ $(function() {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//=========  ModalFilterEmployee  ================ PR2019-05-26
-    function ModalFilterEmployee(option) {
-        //console.log( "===== ModalFilterEmployee  ========= ");
+//=========  ModEmployeeFilterEmployee  ================ PR2019-05-26
+    function ModEmployeeFilterEmployee(option) {
+        console.log( "===== ModEmployeeFilterEmployee  ========= ", option);
 
         let new_filter = "";
         let skip_filter = false
         if (option === "input") {
-             if (!!el_mod_employee.value) {new_filter = el_mod_employee.value}
+            if (!!el_mod_employee_input_employee.value) {
+                new_filter = el_mod_employee_input_employee.value
+            }
         } else {
             new_filter = el_mod_filter_employee.value;
         }  //  if (option === "input") {
 
  // skip filter if filter value has not changed, update variable filter_mod_employee
-
         if (!new_filter){
             if (!filter_mod_employee){
                 skip_filter = true
@@ -938,14 +965,11 @@ $(function() {
                 if (!filter_mod_employee){
 // --- show all rows if filter_text = ""
                      show_row = true;
-                } else {
-
-                    if (!!el){
-                        el_value = get_attr_from_el(el, "data-value");
-                        if (!!el_value){
-                            el_value = el_value.toLowerCase();
-                            show_row = (el_value.indexOf(filter_mod_employee) !== -1)
-                        }
+                } else if (!!el){
+                    el_value = get_attr_from_el(el, "data-value");
+                    if (!!el_value){
+                        el_value = el_value.toLowerCase();
+                        show_row = (el_value.indexOf(filter_mod_employee) !== -1)
                     }
                 }
                 if (show_row) {
@@ -964,43 +988,68 @@ $(function() {
             }  //  for (let row_index = 0, show
         } //  if (!skip_filter) {
         if (has_selection && !has_multiple ) {
-                el_mod_employee.value = select_value
-                el_mod_employee.setAttribute("data-pk",select_pk)
-                el_mod_employee.setAttribute("data-ppk",select_parentpk)
+            el_mod_employee_input_employee.value = select_value
+            el_mod_employee_input_employee.setAttribute("data-pk",select_pk)
+            el_mod_employee_input_employee.setAttribute("data-ppk",select_parentpk)
+         // get shifts if mode = switch
+            if(el_mod_employee_body.getAttribute("data-action") === "switch"){
+                const cur_employee_pk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_pk");
+                const cur_employee = get_attr_from_el(el_mod_employee_body, "data-field_value");
+                const cur_employee_ppk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_ppk");
+                const cur_rosterdate = get_attr_from_el(el_mod_employee_body, "data-rosterdate");
+
+                const datalist_request = {"replacement": { "action": "switch", "rosterdate": cur_rosterdate,
+                        "employee": cur_employee, "employee_pk": cur_employee_pk_int, "employee_ppk": cur_employee_ppk_int,
+                        "reployee": select_value, "reployee_pk": select_pk, "reployee_ppk": select_parentpk}};
+                DatalistDownload(datalist_request);
+            }
+
         }
 
-    }; // function ModalFilterEmployee
+    }; // function ModEmployeeFilterEmployee
 
-//=========  ModalEmployeeSelect  ================ PR2019-05-25
-    function ModalEmployeeSelect(btn_name) {
-        //console.log( "===== ModalEmployeeSelect ========= ");
+//=========  ModEmployeeBtnSelect  ================ PR2019-05-25
+    function ModEmployeeBtnSelect(btn_name) {
+        //console.log( "===== ModEmployeeBtnSelect ========= ");
 
-        el_mod_employee_body.setAttribute("data-select", btn_name);
+        el_mod_employee_body.setAttribute("data-action", btn_name);
 
         let el_div_mod_absent = document.getElementById("id_div_mod_absent")
         let el_div_mod_switch = document.getElementById("id_div_mod_switch")
         let el_div_mod_split = document.getElementById("id_div_mod_split")
-        let el_labl_mod_employee =  document.getElementById("id_labl_mod_employee")
+        let el_labl_mod_employee = document.getElementById("id_label_mod_employee")
 
 // ---  deselect all highlighted row
+        let btn_absent = document.getElementById("id_mod_employee_btn_absent")
+            btn_absent.classList.remove("tsa_btn_selected")
+        let btn_switch = document.getElementById("id_mod_employee_btn_switch")
+            btn_switch.classList.remove("tsa_btn_selected")
+        let btn_split = document.getElementById("id_mod_employee_btn_split")
+            btn_split.classList.remove("tsa_btn_selected")
+
         switch (btn_name) {
         case "absent":
             el_div_mod_absent.classList.remove("display_hide")
             el_div_mod_switch.classList.add("display_hide")
             el_div_mod_split.classList.add("display_hide")
-            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_replaces")
+            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_replacement") + ":"
+            btn_absent.classList.add("tsa_btn_selected")
             break;
         case "switch":
             el_div_mod_absent.classList.add("display_hide")
             el_div_mod_switch.classList.remove("display_hide")
             el_div_mod_split.classList.add("display_hide")
-            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_empl_switch")
+            el_labl_mod_employee.innerText = el_data.getAttribute("data-txt_empl_switch_employee") + ":"
+            btn_switch.classList.add("tsa_btn_selected")
+            el_mod_employee_input_employee.focus()
             break;
         case "split":
             el_div_mod_absent.classList.add("display_hide")
             el_div_mod_switch.classList.add("display_hide")
             el_div_mod_split.classList.remove("display_hide")
-            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_replaces")
+            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_replacement") + ":"
+            btn_split.classList.add("tsa_btn_selected")
+            el_mod_employee_input_employee.focus()
 		}
 
     }
@@ -1011,39 +1060,49 @@ $(function() {
         console.log( tblRow);
 
 // ---  deselect all highlighted rows
-        DeselectHighlightedRows(tblBody_select)
+        DeselectHighlightedRows(tblRow, cls_selected)
+
+// get current employee from el_mod_employee_body data-field
+        const cur_employee_pk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_pk");
+        const cur_employee = get_attr_from_el(el_mod_employee_body, "data-field_value");
+        const cur_employee_ppk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_ppk");
+        const cur_rosterdate = get_attr_from_el(el_mod_employee_body, "data-rosterdate");
 
 // ---  get clicked tablerow
         if(!!tblRow) {
 
 // ---  highlight clicked row
-            tblRow.classList.add("tsa_tr_selected")
+            tblRow.classList.add(cls_selected)
 
             // el_input is first child of td, td is cell of tblRow
             const el_select = tblRow.cells[0].children[0];
             const value = get_attr_from_el(el_select, "data-value");
-            console.log("value: ", value)
+            console.log(">>>>>>>>> value: ", value)
 
     // ---  get pk from id of select_tblRow
-            let employee_pk = get_datapk_from_element (tblRow)
-            let employee_parent_pk = get_datappk_from_element (tblRow)
+            let reployee_pk = get_datapk_from_element (tblRow)
+            let reployee_ppk = get_datappk_from_element (tblRow)
 
-            console.log("employee_pk: ", employee_pk)
-            console.log("employee_parent_pk: ", employee_parent_pk)
+            console.log("reployee_pk: ", reployee_pk)
+            console.log("reployee_ppk: ", reployee_ppk)
+            el_mod_employee_input_employee.value = value
+            el_mod_employee_input_employee.setAttribute("data-pk", reployee_pk);
+            el_mod_employee_input_employee.setAttribute("data-ppk", reployee_ppk);
 
-            let el_mod_input_employee = document.getElementById("id_mod_input_employee")
-            console.log("el_mod_input_employee: ", el_mod_input_employee)
-            el_mod_input_employee.value = value
-
-            el_mod_input_employee.setAttribute("data-pk", employee_pk);
-            el_mod_input_employee.setAttribute("data-ppk", employee_parent_pk);
+    // get shifts of switch employee
+            let data_action = el_mod_employee_body.getAttribute("data-action");
+            if (data_action === "switch" ) {
+                const datalist_request = {"replacement": { "action": data_action, "rosterdate": cur_rosterdate,
+                        "employee": cur_employee, "employee_pk": cur_employee_pk_int, "employee_ppk": cur_employee_ppk_int,
+                        "reployee": value, "reployee_pk": reployee_pk, "reployee_ppk": reployee_ppk}};
+                DatalistDownload(datalist_request);
+            }
         }
     }  // HandleTableEmployeeSelect
 
-
-//=========  ModalEmployeeSave  ================ PR2019-06-23
-    function ModalEmployeeSave() {
-        console.log("===  ModalEmployeeSave =========");
+//=========  ModEmployeeSave  ================ PR2019-06-23
+    function ModEmployeeSave() {
+        console.log("===  ModEmployeeSave =========");
 
 // get emplhour pk and parent_pk , create id_dict Emplhour
         let emplhour_dict = get_iddict_from_element(el_mod_employee_body);
@@ -1057,26 +1116,21 @@ $(function() {
 
         let abscat_dict = {};
         let employee_dict = {};
+        let replacement_dict = {}
 
 // get employee pk and employee parent_pk , create id_dict Employee
-        let el_mod_input_employee = document.getElementById("id_mod_input_employee")
-        let employee_pk =  get_datapk_from_element(el_mod_input_employee);
-        let employee_parent_pk = get_datappk_from_element(el_mod_input_employee);
-        let employee_code = el_mod_input_employee.value
-        employee_dict["field"] = "employee";
-        employee_dict["pk"] = employee_pk;
-        employee_dict["ppk"] = employee_parent_pk;
-        employee_dict["code"] = employee_code;
-        console.log("employee_dict: ", employee_dict);
+        let employee_pk =  get_datapk_from_element(el_mod_employee_input_employee);
+        let employee_parent_pk = get_datappk_from_element(el_mod_employee_input_employee);
+        let employee_code = el_mod_employee_input_employee.value
 
 // get selected button
-        let btn_name = el_mod_employee_body.getAttribute("data-select");
+        let btn_name = el_mod_employee_body.getAttribute("data-action");
         if (!btn_name){btn_name = "employee"}
         console.log("btn_name: ", btn_name);
         switch (btn_name) {
         case "absent":
         // get absence category
-            let el_select_abscat = document.getElementById("id_mod_select_abscat")
+            let el_select_abscat = document.getElementById("id_mod_employee_abscat")
             let abscat_pk = parseInt(el_select_abscat.value)
             let abscat_parent_pk = get_datappk_from_element(el_select_abscat)
 
@@ -1087,11 +1141,29 @@ $(function() {
 
             break;
         case "switch":
+        // get replacement
+
+            let el_select_replacement = document.getElementById("id_mod_employee_switch_shift")
+            if(el_select_replacement.selectedIndex > -1){
+                let selected_option = el_select_replacement.options[el_select_replacement.selectedIndex];
+                    replacement_dict["rosterdate"] = get_attr_from_el(selected_option, "data-rosterdate");
+                    replacement_dict["employee_pk"] = get_attr_from_el_int(selected_option, "data-employee_pk");
+                    replacement_dict["reployee_pk"] = get_attr_from_el_int(selected_option, "data-reployee_pk");
+                    replacement_dict["si_pk"] = get_attr_from_el_int(selected_option, "data-si_pk");
+                    replacement_dict["team_pk"] = get_attr_from_el_int(selected_option, "data-team_pk");
+                    replacement_dict["tmmbr_pk"] = get_attr_from_el_int(selected_option, "data-tmmbr_pk");
+                    replacement_dict["eplh_pk"] = get_attr_from_el_int(selected_option, "data-eplh_pk");
+            }
+
             break;
         case "split":
             break;
-        case "employee":
-            break;
+        default:
+            employee_dict["field"] = "employee";
+            employee_dict["pk"] = employee_pk;
+            employee_dict["ppk"] = employee_parent_pk;
+            employee_dict["code"] = employee_code;
+            console.log("employee_dict: ", employee_dict);
 		}
 
         $('#id_mod_employee').modal('hide');
@@ -1108,9 +1180,9 @@ $(function() {
 
             //let field_dict = get_iddict_from_element(select_tblRow);
 
-            row_upload["select"] = btn_name;
-            row_upload["employee"] = employee_dict;
-            row_upload["abscat"] = abscat_dict;
+            row_upload["mode"] = btn_name;
+            if(!!employee_dict){row_upload["employee"] = employee_dict};
+            if(!!replacement_dict){row_upload["replacement"] = replacement_dict};
             console.log ("row_upload: ", row_upload);
 
             let parameters = {"emplhour": JSON.stringify (row_upload)};
@@ -1134,7 +1206,7 @@ $(function() {
             });
 
         }  // if(!isEmpty(id_dict)
-    }  // ModalEmployeeSave
+    }  // ModEmployeeSave
 
 //=========  ModalIntervalSelect ================ PR2019-05-24
     function ModalIntervalSelect(tblRow) {
@@ -1158,7 +1230,6 @@ $(function() {
 
     }  // ModalIntervalSelect
 
-
 //=========  ModalRangeSelect  ================ PR2019-07-14
     function ModalRangeSelect(tblRow) {
         console.log( "===== ModalRangeSelect ========= ");
@@ -1171,20 +1242,19 @@ $(function() {
         }
     }  // ModalRangeSelect
 
-
 //=========  HandleTableRowClicked  ================ PR2019-03-30
     function HandleTableRowClicked(tr_clicked) {
         // console.log("=== HandleTableRowClicked");
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows
-        DeselectHighlightedRows(tr_clicked.parentNode)
+        DeselectHighlightedRows(tr_clicked, cls_selected)
 
 // ---  get clicked tablerow
         if(!!tr_clicked) {
 // ---  highlight clicked row
             selected_item_pk = get_datapk_from_element(tr_clicked)
-            tr_clicked.classList.add("tsa_tr_selected")
+            tr_clicked.classList.add(cls_selected)
         }
     }
 
@@ -1368,9 +1438,9 @@ $(function() {
 
     }; // function SetNewRosterdate
 
-//========= FillSelectAbscat  ====================================
-    function FillSelectAbscat(option_list) {
-        // console.log( "=== FillSelectAbscat  ", option_list);
+//========= FillSelectOption  ====================================
+    function FillSelectOption(mode, option_list) {
+        console.log( "=== FillSelectOption  ", option_list);
         // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
 
 
@@ -1378,10 +1448,15 @@ $(function() {
         let curOption;
         let option_text = "";
         let row_count = 0
-
-        let el_select_abscat = document.getElementById("id_mod_select_abscat")
-        el_select_abscat.innerText = null
-
+        let el_select
+        if (mode = "abscat") {
+            el_select = document.getElementById("id_mod_employee_abscat")
+        } else if (mode = "switch_date") {
+            el_select = document.getElementById("id_mod_employee_switch_date")
+        } else if (mode = "switch_shift") {
+            el_select = document.getElementById("id_mod_employee_switch_shift")
+        }
+        el_select.innerText = null
 
 // --- loop through option list
         let len = option_list.length;
@@ -1395,9 +1470,9 @@ $(function() {
                 let pk = get_pk_from_id(dict);
                 let parent_pk = get_ppk_from_id(dict)
 
-                // --- put abscat_parent_pk  in data-oparent_pk of el_select_abscat
+                // --- put abscat_parent_pk  in data-oparent_pk of el_select
                 if (i === 0) {
-                    el_select_abscat.setAttribute("data-ppk", parent_pk);
+                    el_select.setAttribute("data-ppk", parent_pk);
                 }
 
                 const field = "code";
@@ -1414,6 +1489,9 @@ $(function() {
 
         // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
 
+        const select_text_abscat = get_attr_from_el(el_data, "data-txt_select_abscat");
+        const select_text_abscat_none = get_attr_from_el(el_data, "data-txt_select_abscat_none");
+
         let select_first_option = false
         if (!row_count){
             option_text = "<option value=\"\" disabled selected hidden>" + select_text_abscat_none + "...</option>"
@@ -1422,18 +1500,176 @@ $(function() {
         } else if (row_count > 1){
             option_text = "<option value=\"\" disabled selected hidden>" + select_text_abscat + "...</option>" + option_text
         }
-        el_select_abscat.innerHTML = option_text;
+        el_select.innerHTML = option_text;
 
 // if there is only 1 option: select first option
         if (select_first_option){
-            el_select_abscat.selectedIndex = 0
+            el_select.selectedIndex = 0
         }
 
-    }  //function FillSelectAbscat
+    }  //function FillSelectOption
 
-//========= FillSelectTableEmployee  ============= PR2019-06-26
-    function FillSelectTableEmployee(caption_one, caption_none) {
+//========= ModEmployeeFillOptionDates  ====================================
+    function ModEmployeeFillOptionDates(replacement_dates) {
+       // console.log( "=== ModEmployeeFillOptionDates  ");
+        //console.log(replacement_dates);
+        // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
+
+// ---  fill options of select box
+        let curOption;
+        let option_text = "";
+        let row_count = 0
+
+        let el_select_date = document.getElementById("id_mod_employee_switch_date")
+        el_select_date.innerText = null
+
+        document.getElementById("id_mod_employee_switch_shift").innerText = null
+
+        let option_list = [], len = 0;
+        if (!!replacement_dates){
+            option_list = replacement_dates
+            //console.log("option_list", option_list);
+            if(!!option_list){len = option_list.length;}
+        }
+
+// --- loop through option list
+
+        if (!!len) {
+            for (let i = 0; i < len; i++) {
+                const rosterdate = option_list[i];
+                //console.log( "rosterdate: ", rosterdate);
+
+                const rosterdate_moment = moment(rosterdate, "YYYY-MM-DD")
+                //console.log( "rosterdate_moment: ", rosterdate_moment.format());
+
+                const rosterdate_format = format_datemedium(rosterdate_moment, weekday_list, month_list, false, false)
+
+
+                // dict = { pk: 72,  id: {pk: 72, parent_pk: 61, table: "order"}, code: {value: "Vakantie"} }
+                // console.log("dict", dict);
+                if (!!rosterdate){
+                    option_text += "<option value=\"" + rosterdate + "\"";
+                    option_text +=  ">" + rosterdate_format + "</option>";
+
+                    row_count += 1
+                }  // if (!!rosterdate){
+
+            }  // for (let i = 0, len = option_list.length;
+
+        }  // if (!!len)
+
+        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
+        const select_text_switch_date = get_attr_from_el(el_data, "data-txt_empl_switch_date");
+        const select_text_switch_dates_none = get_attr_from_el(el_data, "data-txt_empl_switch_nodates");
+
+        let select_first_option = false
+        if (!row_count){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text_switch_dates_none + "...</option>"
+        } else if (row_count === 1) {
+            select_first_option = true
+        } else if (row_count > 1){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text_switch_date + "...</option>" + option_text
+        }
+        el_select_date.innerHTML = option_text;
+
+// if there is only 1 option: select first option
+        if (select_first_option){
+            el_select_date.selectedIndex = 0
+        } else {
+            el_select_date.focus()
+        }
+
+        ModEmployeeFillOptionsShift(el_select_date.value)
+    }  //function ModEmployeeFillOptionDates
+
+
+//========= ModEmployeeFillOptionsShift  ====================================
+    function ModEmployeeFillOptionsShift(selected_rosterdate) {
+        console.log( "=== ModEmployeeFillOptionsShift  ");
+        // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
+
+// ---  fill options of select box
+        let option_text = "";
+
+        let el_select_shift = document.getElementById("id_mod_employee_switch_shift")
+        el_select_shift.innerText = null
+
+        // selected_rosterdate only has value when there is only one rosterdate (called by ModEmployeeFillOptionDates)
+        // setfocus on select shift only after clicking date, ie when !selected_rosterdate
+        let set_focus = false;
+        if (!selected_rosterdate){
+            selected_rosterdate = document.getElementById("id_mod_employee_switch_date").value
+            set_focus = (!!selected_rosterdate)
+        }
+        console.log("selected_rosterdate", selected_rosterdate);
+        console.log("replacement_list", replacement_list);
+
+// --- loop through option list
+        let len = 0, row_count = 0
+        if (!!replacement_list){len = replacement_list.length;}
+        if (!!selected_rosterdate && !!len) {
+            for (let i = 0; i < len; i++) {
+                const shift_dict = replacement_list[i];
+                console.log( "shift_dict: ", shift_dict);
+                if(!!shift_dict){
+                    const rosterdate = get_dict_value_by_key(shift_dict, "rosterdate")
+                    if (rosterdate === selected_rosterdate){
+                        const cust_order_shift = get_dict_value_by_key(shift_dict, "cust_order_shift")
+                        const eplh_pk_str = get_dict_value_by_key(shift_dict, "eplh_pk")
+                        const reployee_pk_str = get_dict_value_by_key(shift_dict, "reployee_pk")
+                        const employee_pk_str = get_dict_value_by_key(shift_dict, "employee_pk")
+                        const team_pk_str = get_dict_value_by_key(shift_dict, "team_pk")
+
+                        option_text += "<option "; //
+                        if (!!rosterdate) {option_text += " data-rosterdate=\"" + rosterdate + "\""};
+                        if (!!eplh_pk_str) {option_text += " data-eplh_pk=\"" + eplh_pk_str + "\""};
+                        if (!!team_pk_str) {option_text += " data-team_pk=\"" + team_pk_str + "\""};
+                        if (!!reployee_pk_str) {option_text += " data-reployee_pk=\"" + reployee_pk_str + "\""};
+                        if (!!employee_pk_str) {option_text += " data-employee_pk=\"" + employee_pk_str + "\""};
+                        option_text +=  ">" + cust_order_shift + "</option>";
+
+                        row_count += 1
+
+                    }  // if (rosterdate === selected_rosterdate){
+                }  // if(!!selected_rosterdate){
+            }  // for (let i = 0, len = option_list.length;
+
+        }  // if (!!len)
+
+        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
+        const select_text = get_attr_from_el(el_data, "data-txt_empl_switch_shift");
+        const select_text_none = get_attr_from_el(el_data, "data-txt_empl_switch_noshifts");
+
+        let select_first_option = false
+        if (!row_count){
+            if(!!selected_rosterdate){
+                option_text = "<option value=\"\" disabled selected hidden>" + select_text_none + "...</option>"
+            }
+        } else if (row_count === 1) {
+            select_first_option = true
+        } else if (row_count > 1){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text + "...</option>" + option_text
+        }
+        el_select_shift.innerHTML = option_text;
+
+// if there is only 1 option: select first option
+        if (select_first_option){
+            el_select_shift.selectedIndex = 0
+            set_focus = false;
+        }
+         if (set_focus){el_select_shift.focus()}
+
+
+    }  //function ModEmployeeFillOptionsShift
+
+
+//========= FillSelectTableEmployee  ============= PR2019-08-18
+    function FillSelectTableEmployee(selected_employee_pk) {
         // console.log( "=== FillSelectTableEmployee ");
+
+        const caption_one = get_attr_from_el(el_data, "data-txt_select_employee") + ":";
+        const caption_none = get_attr_from_el(el_data, "data-txt_select_employee_none") + ":";
+
 
         let tableBody = el_mod_employee_tbody
         let item_list = employee_list
@@ -1454,20 +1690,19 @@ $(function() {
                 let item_dict = item_list[i];
                 // item_dict = {id: {pk: 12, parent_pk: 2}, code: {value: "13 uur"},  cycle: {value: 13}}
                 // team_list dict: {pk: 21, id: {pk: 21, parent_pk: 20}, code: {value: "C"}}
-                const pk = get_pk_from_id (item_dict)
-                const parent_pk = get_ppk_from_id (item_dict)
+                const pk_int = get_pk_from_id (item_dict)
+                const ppk_int = get_ppk_from_id (item_dict)
                 const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
-                // console.log( "pk: ", pk, " parent_pk: ", parent_pk, " code_value: ", code_value);
+                // console.log( "pk: ", pk, " ppk_int: ", ppk_int, " code_value: ", code_value);
 
-//- only show items of selected_parent_pk
-                // NIU:  if (parent_pk === selected_parent_pk){
-                if(true) {   // if (ShowSearchRow(code_value, filter_customers)) {
+//- only show items of ppk_int
+                if (pk_int !== selected_employee_pk){
 
 //- insert tableBody row
                     let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
                     // NOT IN USE tblRow.setAttribute("id", tablename + "_" + pk.toString());
-                    tblRow.setAttribute("data-pk", pk);
-                    tblRow.setAttribute("data-ppk", parent_pk);
+                    tblRow.setAttribute("data-pk", pk_int);
+                    tblRow.setAttribute("data-ppk", ppk_int);
                     // NOT IN USE, put in tableBody. Was:  tblRow.setAttribute("data-table", tablename);
 
 //- add hover to tableBody row
@@ -1487,16 +1722,17 @@ $(function() {
                         el.innerText = code;
                         el.classList.add("mx-1")
                         el.setAttribute("data-value", code_value);
+                        el.setAttribute("data-pk", pk_int);
+                        el.setAttribute("data-ppk", ppk_int);
                         el.setAttribute("data-field", "code");
                     td.appendChild(el);
 
     // --- count tblRow
                     row_count += 1
-                } //  if (ShowSearchRow(code_value, filter_customers)) {
+                } //  if (pk_int !== selected_employee_pk){
             } // for (let i = 0; i < len; i++)
         }  // if (len === 0)
     } // FillSelectTableEmployee
-
 
 //========= FillDatalistShift  ====================================
     function FillDatalistShift(data_list) {
@@ -1521,7 +1757,6 @@ $(function() {
 
 
     }; // function FillDatalistShift
-
 
 //========= FillDatalistOrder  ====================================
     function FillDatalistOrder(data_list) {
@@ -1632,9 +1867,9 @@ $(function() {
             for (let i = 0, tblRow, value; tblRow = tBody.rows[i]; i++) {
                 value = get_attr_from_el_int(tblRow, "data-value")
                 if (!!value && value === interval){
-                    tblRow.classList.add("tsa_tr_selected")
+                    tblRow.classList.add(cls_selected)
                 } else {
-                    tblRow.classList.remove("tsa_tr_selected")
+                    tblRow.classList.remove(cls_selected)
                 }
             }  // for (let i = 0,
         }  // if (!!period)
@@ -1677,9 +1912,9 @@ $(function() {
             for (let i = 0, tblRow, value; tblRow = tBody.rows[i]; i++) {
                 value = get_attr_from_el(tblRow, "data-value")
                 if (!!value && value === range){
-                    tblRow.classList.add("tsa_tr_selected")
+                    tblRow.classList.add(cls_selected)
                 } else {
-                    tblRow.classList.remove("tsa_tr_selected")
+                    tblRow.classList.remove(cls_selected)
                 }
             }  // for (let i = 0,
         }  // if (!!period)
@@ -2109,9 +2344,9 @@ console.log("===  function HandlePopupWdySave =========");
 
 
 
-//=========  ModalSettingSave  ================ PR2019-07-11
-    function ModalSettingSave(mode) {
-        console.log("===  ModalSettingSave =========");
+//=========  ModSettingSave  ================ PR2019-07-11
+    function ModSettingSave(mode) {
+        console.log("===  ModSettingSave =========");
         let upload_dict = {}
 
         if (mode === "current"){upload_dict = {"mode": "current"}} else
@@ -2188,7 +2423,7 @@ console.log("===  function HandlePopupWdySave =========");
                 }
             });
         }
-    }  // ModalSettingSave
+    }  // ModSettingSave
 
 //========= DisplayPeriod  ====================================
     function DisplayPeriod(period_dict) {
@@ -2244,40 +2479,63 @@ console.log("===  function HandlePopupWdySave =========");
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-    function OpenModalEmployee(el_input) {
-        console.log(" -----  OpenModalEmployee   ----")
+    function ModalEmployeeOpen(el_input) {
+        console.log(" -----  ModalEmployeeOpen   ----")
         // console.log(el_input)
 
         let el_mod_employee_header = document.getElementById("id_mod_employee_header")
         el_mod_employee_header.innerText = null
 
-        el_mod_employee.value = null
+        el_mod_employee_input_employee.value = null
+        document.getElementById("id_mod_employee_filter_employee").value = null
+        document.getElementById("id_mod_employee_abscat").innerText = null
+        document.getElementById("id_mod_employee_switch_date").innerText = null
+        document.getElementById("id_mod_employee_switch_shift").innerText = null
+        document.getElementById("id_mod_employee_split_time").innerText = null
 
-    // get tr_selected
-            let tr_selected = get_tablerow_selected(el_input)
+        document.getElementById("id_mod_employee_btn_absent").classList.remove("tsa_btn_selected")
+        document.getElementById("id_mod_employee_btn_switch").classList.remove("tsa_btn_selected")
+        document.getElementById("id_mod_employee_btn_split").classList.remove("tsa_btn_selected")
 
-    // get info pk etc from tr_selected
-            const data_table = get_attr_from_el(tr_selected, "data-table")
-            const eplh_id_str = get_attr_from_el(tr_selected, "data-pk")
-            const eplh_parent_pk_str = get_attr_from_el(tr_selected, "data-ppk");
-            // console.log("data_table", data_table, "eplh_id_str", eplh_id_str, "eplh_parent_pk_str", eplh_parent_pk_str)
+        el_mod_employee_body.setAttribute("data-action", "none");
 
-    // get values from el_input
-            const field_pk = get_attr_from_el(el_input, "data-pk");
-            const field_parent_pk = get_attr_from_el(el_input, "data-ppk");
-            const data_field = get_attr_from_el(el_input, "data-field");
-            const field_value = get_attr_from_el(el_input, "data-value");
-            // console.log("data_field", data_field, "field_value", field_value)
 
-    // put values in el_mod_employee_body
-            el_mod_employee_body.setAttribute("data-table", data_table);
-            el_mod_employee_body.setAttribute("data-pk", eplh_id_str);
-            el_mod_employee_body.setAttribute("data-ppk", eplh_parent_pk_str);
+        document.getElementById("id_mod_employee_body_right").classList.add(cls_hide)
 
-            el_mod_employee_body.setAttribute("data-field", data_field);
-            el_mod_employee_body.setAttribute("data-value", field_value);
-            el_mod_employee_body.setAttribute("data-o_value", field_value);
 
+// get tr_selected
+        let tr_selected = get_tablerow_selected(el_input)
+
+// get info pk etc from tr_selected
+        const data_table = get_attr_from_el(tr_selected, "data-table")
+        const eplh_id_str = get_attr_from_el(tr_selected, "data-pk")
+        const eplh_parent_pk_str = get_attr_from_el(tr_selected, "data-ppk");
+        //console.log("data_table", data_table, "eplh_id_str", eplh_id_str, "eplh_parent_pk_str", eplh_parent_pk_str)
+
+// get rosterdate from el_input.rosterdate
+        const el_rosterdate = tr_selected.cells[0].firstChild;
+        //console.log("el_rosterdate", el_rosterdate)
+        const data_rosterdate = get_attr_from_el(el_rosterdate, "data-value");
+        //console.log("data_rosterdate", data_rosterdate)
+
+// get values from el_input
+        const data_field_value = el_input.value;
+        const data_field = get_attr_from_el(el_input, "data-field");
+        const employee_pk_int = get_attr_from_el_int(el_input, "data-pk");
+        const field_ppk_int = get_attr_from_el_int(el_input, "data-ppk");
+        //console.log("field", data_field, "employee_pk_int", employee_pk_int, typeof employee_pk_int)
+
+// put values in el_mod_employee_body
+        el_mod_employee_body.setAttribute("data-table", data_table);
+        el_mod_employee_body.setAttribute("data-pk", eplh_id_str);
+        el_mod_employee_body.setAttribute("data-ppk", eplh_parent_pk_str);
+
+        el_mod_employee_body.setAttribute("data-field", data_field);
+        el_mod_employee_body.setAttribute("data-field_value", data_field_value);
+        el_mod_employee_body.setAttribute("data-field_pk", employee_pk_int);
+        el_mod_employee_body.setAttribute("data-field_ppk", field_ppk_int);
+
+        el_mod_employee_body.setAttribute("data-rosterdate", data_rosterdate);
 
         let header_text;
         if (!!el_input.value) {
@@ -2288,14 +2546,24 @@ console.log("===  function HandlePopupWdySave =========");
         }
         el_mod_employee_header.innerText = header_text
         // fill select table employees
-            const caption_one = get_attr_from_el(el_data, "data-txt_select_employee") + ":";
-            const caption_none = get_attr_from_el(el_data, "data-txt_select_employee_none") + ":";
-            FillSelectTableEmployee("employee", tblBody_select, employee_list, caption_one, caption_none)
+
+        FillSelectTableEmployee(employee_pk_int)
+
+        // change label 'txt_replacement' to 'select_employee' if no employee, hide right panel
+        let data_text;
+        if(!!employee_pk_int){
+            document.getElementById("id_mod_employee_body_right").classList.remove(cls_hide)
+            data_text = "data-txt_replacement"
+        } else {
+            document.getElementById("id_mod_employee_body_right").classList.add(cls_hide)
+            data_text = "data-txt_select_employee"
+        }
+        document.getElementById("id_label_mod_employee").innerText =  el_data.getAttribute(data_text)
 
     // ---  show modal
         $("#id_mod_employee").modal({backdrop: true});
 
-    };
+    };  // ModalEmployeeOpen
 
 //========= ModalStatusOpen====================================
     function ModalStatusOpen (el_input) {
@@ -2447,7 +2715,7 @@ console.log("===  function HandlePopupWdySave =========");
                     // console.log("now: ", now_utc.format(), "end ", period_timeend_utc.format(), "diff ", diff);
                     update = (diff > 0)
                 }
-                //if (update) {ModalSettingSave("current")}
+                //if (update) {ModSettingSave("current")}
              }
                //  if(mode === 'current')
         }  // if(!!period_dict){

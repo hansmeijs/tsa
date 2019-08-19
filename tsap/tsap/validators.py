@@ -348,32 +348,3 @@ def validate_employee_has_emplhours(instance, update_dict):
             update_dict['id']['error'] = msg_err
     return has_emplhours
 
-
-def daterange_overlap(outer_datefirst, outer_datelast, inner_datefirst, inner_datelast=None ):
-    # check if inner range falls within outer range PR2019-06-05
-    within_range = True
-    if inner_datefirst is None:
-        within_range = False
-    else:
-        if inner_datelast is None:
-            inner_datelast = inner_datefirst
-        if outer_datefirst:
-            if inner_datelast < outer_datefirst:
-                within_range = False
-        if outer_datelast:
-            if inner_datefirst > outer_datelast:
-                within_range = False
-    return within_range
-
-
-def date_within_range(outer_datefirst, outer_datelast, inner_date):
-    # check if inner_date falls within outer range PR2019-06-05
-    within_range = True
-    if inner_date is None:
-        within_range = False
-    else:
-        if outer_datefirst and inner_date < outer_datefirst:
-            within_range = False
-        if outer_datelast and inner_date > outer_datelast:
-            within_range = False
-    return within_range

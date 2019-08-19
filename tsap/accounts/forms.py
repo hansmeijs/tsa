@@ -46,20 +46,22 @@ class CompanyAuthenticationForm(AuthenticationForm):
         username = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
 
-        # put companyprefix in front of username PR2019-03-13
-        companycode = self.cleaned_data.get('companycode')
-        company = Company.objects.filter(code__iexact=companycode).first()
-        if company:
-            username = company.companyprefix + username
-        else:
-            username = "xxxxxx" + username
-
-        if username is not None and password:
-            self.user_cache = authenticate(self.request, username=username, password=password)
-            if self.user_cache is None:
-                raise self.get_invalid_login_error()
+        if username:
+            # put companyprefix in front of username PR2019-03-13
+            company = None
+            companycode = self.cleaned_data.get('companycode')
+            if companycode:
+                company = Company.objects.filter(code__iexact=companycode).first()
+            if company:
+                username = company.companyprefix + username
             else:
-                self.confirm_login_allowed(self.user_cache)
+                username = "xxxxxx" + username
+
+        self.user_cache = authenticate(self.request, username=username, password=password)
+        if self.user_cache is None:
+            raise self.get_invalid_login_error()
+        else:
+            self.confirm_login_allowed(self.user_cache)
 
         return self.cleaned_data
 

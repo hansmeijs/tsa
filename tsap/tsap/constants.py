@@ -135,28 +135,57 @@ WEEKEND_CHOICES = {LANG_EN: ('also on weekends', 'only on weekends', 'not on wee
 PUBLICHOLIDAY_CHOICES = {LANG_EN: ('also on public holidays', 'only on public holidays', 'not on public holidays'),
                          LANG_NL: ('ook op feestdagen', 'alleen op feestdagen', 'niet op feestdagen')}
 
-# PR2019-06-25
-CAT_00_NORMAL = 0
-CAT_01_INTERNAL = 1
-CAT_02_REST = 2
-CAT_03_ABSENCE = 3
-CAT_04_TEMPLATE = 4
+# PR2019-08-17
+# order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
 
-# 0 = normal shift, 1 = rest shift
-SHIFT_CAT_00_NORMAL = 0
-SHIFT_CAT_01_RESTSHIFT = 1
+STATUS_00_NONE = 0
+STATUS_01_CREATED = 1
+STATUS_02_START_CONFIRMED = 2
+STATUS_04_END_CONFIRMED = 4
+STATUS_08_LOCKED = 8
+STATUS_16_QUESTION = 16
+STATUS_32_REJECTED = 32
+STATUS_64_APPROVED = 64
+
+
+SHIFT_CAT_0000_NORMAL = 0
+SHIFT_CAT_0001_INTERNAL = 1
+SHIFT_CAT_0002_BILLABLEBYTHEHOUR = 2
+# SHIFT_CAT_0004_AVAILABLE = 4
+# SHIFT_CAT_0008_AVAILABLE = 8
+SHIFT_CAT_0016_UNASSIGNED = 16
+SHIFT_CAT_0032_REPLACEMENT = 32  #  (cat_replacement not in use in table order)
+SHIFT_CAT_0064_RESTSHIFT = 64
+# SHIFT_CAT_0128_AVAILABLE = 128
+# SHIFT_CAT_0256_AVAILABLE = 256
+SHIFT_CAT_0512_ABSENCE = 512 # used in table customer, order, scheme TODO check if also needed in orderhour emplhour)
+# SHIFT_CAT_1024_AVAILABLE = 1024
+# SHIFT_CAT_2048_AVAILABLE = 2048
+SHIFT_CAT_4096_TEMPLATE = 4096
+# SHIFT_CAT_8192_AVAILABLE = 8192
+# SHIFT_CAT_16384_AVAILABLE = 16384
+
+# 0 = normal, 10 = replacement
+TEAMMEMBER_CAT_00_NORMAL = 0
+TEAMMEMBER_CAT_10_REPLACEMENT = 10
 
 #PR2019-08-05 # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
-CAT_ENTRY_00_GRACE = 0
-CAT_ENTRY_01_BONUS = 1
-CAT_ENTRY_02_PAID = 2
+ENTRY_CAT_00_GRACE = 0
+ENTRY_CAT_01_BONUS = 1
+ENTRY_CAT_02_PAID = 2
 
 # PR2018-09-05
-CAT_ENTRY_CHOICES = (
-    (CAT_ENTRY_00_GRACE, 'Grace'),
-    (CAT_ENTRY_01_BONUS, _('Bonus')),
-    (CAT_ENTRY_02_PAID, _('Paid')),
+ENTRY_CAT_CHOICES = (
+    (ENTRY_CAT_00_GRACE, 'Grace'),
+    (ENTRY_CAT_01_BONUS, _('Bonus')),
+    (ENTRY_CAT_02_PAID, _('Paid')),
 )
+
+REPLACEMENT_PERIOD_DEFAULT = 14 # days
+
+# PR2019-07-20
+TEMPLATE_TEXT = {LANG_EN: 'Template', LANG_NL: 'Sjabloon'}
+REST_TEXT = {LANG_EN: 'Rest', LANG_NL: 'Rust'}
 
 # PR2019-06-24
 ABSENCE = {LANG_EN: 'Absence', LANG_NL: 'Afwezigheid'}
@@ -179,20 +208,10 @@ ABSENCE_CATEGORY = {LANG_EN: (
                     }
 
 
-# PR2019-07-20
-TEMPLATE_TEXT = {LANG_EN: 'Template', LANG_NL: 'Sjabloon'}
-REST_TEXT = {LANG_EN: 'Rest', LANG_NL: 'Rust'}
-
-STATUS_00_NONE = 0
-STATUS_01_CREATED = 1
-STATUS_02_START_CONFIRMED = 2
-STATUS_04_END_CONFIRMED = 4
-STATUS_08_LOCKED = 8
-STATUS_16_QUESTION = 16
-STATUS_32_REJECTED = 32
-STATUS_64_APPROVED = 64
 
 KEY_COMP_ROSTERDATE_CURRENT = 'rstdte_current'
+KEY_COMP_REPLACEMENT_PERIOD = 'repl_period'
+
 KEY_USER_QUICKSAVE = 'quicksave'
 KEY_USER_EMPLHOUR_PERIOD = 'emplhour_period'
 
@@ -287,6 +306,8 @@ FIELDS_EMPLHOUR = ('pk', 'id', 'orderhour', 'shift', 'employee', 'wagecode', 'wa
 
 FIELDS_SCHEMEITEM = ('pk', 'id', 'rosterdate', 'shift', 'team', 'timestart', 'timeend',
                      'timeduration', 'iscyclestart', 'inactive')
+# inactive schemeitem to skip certain shifts (wghen customers
+
 FIELDS_SHIFT = ('pk', 'id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'successor')
 
 FIELDS_TEAM = ('pk', 'id', 'code')

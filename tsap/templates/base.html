@@ -27,29 +27,28 @@
     <!--  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css"/> -->
 
   <!-- app.css goes after Bootstrap reference to CSS, otherwise, the default scheme will apply. -->
+
      <link rel="stylesheet" href="{% static 'css/forms.css' %}">
      <link rel="stylesheet" href="{% static 'css/tables.css' %}">
      <link rel="stylesheet" href="{% static 'css/tsap.css' %}">
-
-
+     <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
 
     <!--   <link rel="stylesheet" href="{% static 'css/bootstrap-datetimepicker-4-17-37.css' %}"> -->
 
       <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css"
             integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp"
             crossorigin="anonymous">
-
+    <!-- Scrollbar Custom CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.min.css">
     {% block stylesheet %}{% endblock %}
-
 
 <!-- jQuery first, then Popper.js, then Bootstrap JS -->
 <!--  jQuery -->
       <script src="https://code.jquery.com/jquery-3.4.1.min.js"
 			  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
 			  crossorigin="anonymous"> </script>
-        <!-- <script	  src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
-			  integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
-			  crossorigin="anonymous"></script> -->
+
+
 <!--  Bootstrap - Popper -->
       <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"></script>
       <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"></script>
@@ -71,26 +70,43 @@
       <script src="{% static 'js/headerbar.js' %}"></script>
       <script src="{% static 'js/timepicker.js' %}"></script>
 
+     <!-- jQuery Custom Scroller CDN  - for sidebar vertical scrollbar -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.concat.min.js"></script>
+
     <!--  <script src="{% static 'js/bootstrap-datetimepicker-4-17-37.js' %}"></script> -->
     <!--  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script> -->
 
       {% block script %}{% endblock %}
 
   </head>
-  <body>
-      {% block modal %}{% endblock %}
-    <header>
-      {% include 'includes/header.html' %}
-    </header>
+  <body><!-- class wrapper -->
+<div class="wrapper">
 
-    {% block body %}
-       <!--  <div class="container"> -->
-        {% block breadcrumb %}{% endblock %}
-        {% include 'includes/messages.html' %}
-        {% block content %}{% endblock %}
-       <!--  </div> -->
-    {% endblock body %}
+    <!-- SIDE BAR -->
+        {% block sidebar %}{% endblock %}
+    <!-- END SIDE BAR -->
 
-    {% include 'session_security/all.html' %}
+        <!-- PAGE CONTENT -->
+            <div id="id_content">
+                {% block modal %}
+                {% endblock %}
+
+                <header>
+                    {% include 'includes/header.html' %}
+                </header>
+
+                {% block body %}
+                   <!--  <div class="container"> -->
+                    {% block breadcrumb %}{% endblock %}
+                    {% include 'includes/messages.html' %}
+                    {% block content %}{% endblock %}
+                   <!--  </div> -->
+                {% endblock body %}
+
+                {% include 'session_security/all.html' %}
+            </div>
+        <!-- END PAGE CONTENT -->
+  </div>
   </body>
+<!-- end class wrapper -->
 </html>

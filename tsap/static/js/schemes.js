@@ -127,9 +127,9 @@ $(function() {
  // remove highlighted row when clicked outside tabelrows
             let tr_selected = get_tablerow_selected(event.target)
             if(!tr_selected) {
-                DeselectHighlightedRows(tblBody_items)};
+                DeselectHighlightedRows(tr_selected)};
             if(event.target.getAttribute("id") !== "id_btn_delete_schemeitem" && !get_tablerow_selected(event.target)) {
-                DeselectHighlightedRows();
+                DeselectHighlightedRows(tr_selected);
             }
 
 // close el_popup_wdy
@@ -551,8 +551,7 @@ $(function() {
 
         if(!!tr_clicked) {
 // ---  deselect all highlighted rows
-            let tbody_clicked = tr_clicked.parentNode;
-            DeselectHighlightedRows(tbody_clicked, cls_selected);
+            DeselectHighlightedRows(tr_clicked, cls_selected);
 
 // ---  highlight clicked row
             tr_clicked.classList.add(cls_selected)
@@ -690,7 +689,7 @@ $(function() {
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows
-        DeselectHighlightedRows(tr_clicked.parentNode, cls_selected);
+        DeselectHighlightedRows(tr_clicked, cls_selected);
 
 // ---  get clicked tablerow
         if(!!tr_clicked) {
@@ -741,11 +740,8 @@ $(function() {
     function HandleCreateSchemeItem() {
         // console.log("=== HandleCreateSchemeItem =========");
 
-        tbody_clicked =  tblRow.parentNode;
-        // console.log( "tbody_clicked ", tbody_clicked);
-
 // ---  deselect all highlighted rows
-        DeselectHighlightedRows(tbody_clicked, cls_selected);
+        DeselectHighlightedRows(tblRow, cls_selected);
 
 //-- increase id_new
         id_new = id_new + 1
@@ -2882,8 +2878,7 @@ $(function() {
         //console.log( tblRow);
 
 // ---  deselect all highlighted rows
-        let tblBody = tblRow.parentNode;
-        DeselectHighlightedRows(tblBody, cls_selected);
+        DeselectHighlightedRows(tblRow, cls_selected);
 
 // ---  get clicked tablerow
         if(!!tblRow) {
@@ -3512,8 +3507,14 @@ function validate_input_blank(el_input, el_err, msg_blank){
             let el_popup_date_container = el_popup_date.parentNode
             let popRect = el_popup_date_container.getBoundingClientRect();
             let inpRect = el_input.getBoundingClientRect();
-            let topPos = inpRect.top; // + inpRect.height;
-            let leftPos = inpRect.left; // let leftPos = elemRect.left - 160;
+
+            const pop_width = 220; // to center popup under input box
+            const correction_left = -120 - pop_width/2 ; // -240 because of sidebar
+            const correction_top = -32; // -32 because of menubar
+            //console.log("inpRect", inpRect)
+            let topPos = inpRect.top + inpRect.height + correction_top;
+            let leftPos = inpRect.left + correction_left; // let leftPos = elemRect.left - 160;
+
             let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
             el_popup_date_container.setAttribute("style", msgAttr)
 

@@ -55,13 +55,13 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
                 if 'fill' in rosterdate_fill_dict:
                     rosterdate_str = rosterdate_fill_dict['fill']
                     rosterdate_fill_dte, msg_txt = f.get_date_from_ISOstring(rosterdate_str)
-
-                    FillRosterdate(rosterdate_fill_dte, request, comp_timezone)
+                    logfile = []
+                    FillRosterdate(rosterdate_fill_dte, request, comp_timezone, logfile)
 
                 # update rosterdate_current in companysettings
                     m.Companysetting.set_setting(c.KEY_COMP_ROSTERDATE_CURRENT, rosterdate_fill_dte, request.user.company)
                     update_dict['rosterdate'] = get_rosterdatefill_dict(request.user.company, comp_timezone, user_lang)
-
+                    update_dict['logfile'] = logfile
                 elif 'remove' in rosterdate_fill_dict:
                     rosterdate_str = rosterdate_fill_dict['remove']
                     rosterdate_remove_dte, msg_txt = f.get_date_from_ISOstring(rosterdate_str)
@@ -93,16 +93,17 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
 
 #######################################################
 
-def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-08-01
-    logger.debug(' ============= FillRosterdate ============= ')
-    logger.debug('new_rosterdate: ' + str(new_rosterdate) + ' ' + str(type(new_rosterdate)))
-    logger.debug('isocalendar year: ' + str(new_rosterdate.isocalendar()[0]))
-    logger.debug('isocalendar weeknr: ' + str(new_rosterdate.isocalendar()[1]))
-    logger.debug('isocalendar: daynr' + str(new_rosterdate.isocalendar()[2]))
-    logger.debug('isocalendar' + str(new_rosterdate.isocalendar()))
-    # new_rosterdate: 2019-04-10 <class 'datetime.date'>
+def FillRosterdate(new_rosterdate_dte, request, comp_timezone, logfile):  # PR2019-08-01
 
-    if new_rosterdate:
+    logger.debug(' ============= FillRosterdate ============= ')
+    logger.debug('new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
+    logger.debug('isocalendar year: ' + str(new_rosterdate_dte.isocalendar()[0]))
+    logger.debug('isocalendar weeknr: ' + str(new_rosterdate_dte.isocalendar()[1]))
+    logger.debug('isocalendar: daynr' + str(new_rosterdate_dte.isocalendar()[2]))
+    logger.debug('isocalendar' + str(new_rosterdate_dte.isocalendar()))
+    # new_rosterdate_dte: 2019-04-10 <class 'datetime.date'>
+
+    if new_rosterdate_dte:
         # update schemeitem rosterdate.
         # before filling emplhours with rosterdate you must update the schemitems.
         # rosterdates that are before the new rosterdate must get a date on or aftter the new rosterdate
@@ -111,93 +112,117 @@ def FillRosterdate(new_rosterdate, request, comp_timezone):  # PR2019-08-01
         entry_balance = m.get_entry_balance(request, comp_timezone)
         logger.debug('entry_balance: ' + str(entry_balance))
 #===============================================================
-        logger.debug('#===============================================================: ')
-        logger.debug('Fill roster of date: ' + str(new_rosterdate))
-        logger.debug('#===============================================================: ')
+        logfile.append('================================================ ')
+        logfile.append('  Fill roster of date: ' + str(new_rosterdate_dte))
+        logfile.append('================================================ ')
 #===============================================================
 
-# loop through all customers:
-        customers = m.Customer.objects.filter(company=request.user.company)
+# loop through all customers:, except for absence and template
+        customers = m.Customer.objects.filter(company=request.user.company, cat__lt=c.SHIFT_CAT_0512_ABSENCE)
         if not customers:
-            logger.debug('No customers')
+            logfile.append('No customers found.')
         else:
             for customer in customers:
-                logger.debug('================================ ')
-                logger.debug('Customer: ' + str(customer.code))
+                logfile.append('================================ ')
+                logfile.append('Customer: ' + str(customer.code))
                 if customer.locked:
-                    logger.debug('    - customer is locked')
+                    logfile.append('    - customer is locked')
                 elif customer.inactive:
-                    logger.debug('    - customer is inactive')
+                    logfile.append('    - customer is inactive')
                 else:
                     orders = m.Order.objects.filter(customer=customer)
                     if not orders:
-                        logger.debug('    - customer has no orders')
+                        logfile.append('    - customer has no orders')
                     else:
                         for order in orders:
-                            logger.debug('---------------------- ')
-                            logger.debug('Order: ' + str(order.code))
+                            logfile.append('---------------------- ')
+                            logfile.append('Order: ' + str(order.code))
                             if order.locked:
-                                logger.debug(' - order is locked')
+                                logfile.append(' - order is locked')
                             elif order.inactive:
-                                logger.debug(' - order is inactive')
-                            elif not v.date_within_range(order.datefirst, order.datelast, new_rosterdate):
-                                logger.debug(' - rosterdate not within order period: ' + str(order.datefirst) + ' - ' + str(order.datelast))
+                                logfile.append(' - order is inactive')
+                            elif not f.date_within_range(order.datefirst, order.datelast, new_rosterdate_dte):
+                                logfile.append(' - rosterdate outside order period: ' + str(order.datefirst) + ' - ' + str(order.datelast))
                             else:
                                 schemes = m.Scheme.objects.filter(order=order)
                                 if not schemes:
-                                    logger.debug(' - order has no schemes')
+                                    logfile.append(' - order has no schemes')
                                 else:
                                     for scheme in schemes:
+                                        range = ''
+                                        if scheme.datefirst:
+                                            range = ' from ' + str(scheme.datefirst)
+                                        if scheme.datelast:
+                                            range += ' thru ' + str(scheme.datelast)
+                                        logfile.append('   Scheme: ' + str(scheme.code) + range)
                                         if scheme.inactive:
-                                            logger.debug("     Scheme '" + str(scheme.code) + "' is inactive.")
-                                        elif not v.date_within_range(scheme.datefirst, scheme.datelast, new_rosterdate):
-                                            logger.debug("     Scheme '" + str(scheme.code) + "' skipped. Rosterdate not within scheme period: " + str(scheme.datefirst) + " - " + str(scheme.datelast))
+                                            logfile.append("     scheme is inactive.")
+                                        elif not f.date_within_range(scheme.datefirst, scheme.datelast, new_rosterdate_dte):
+                                            logfile.append('     scheme skipped. Rosterdate outside scheme period')
                                         else:
                                             schemeitems = m.Schemeitem.objects.filter(scheme=scheme)
                                             if not schemeitems:
-                                                logger.debug("     Scheme '" + str(scheme.code) + "' has no shifts.")
+                                                logfile.append("     scheme  has no shifts.")
                                             else:
-                                                logger.debug("     Scheme: '" + str(scheme.code) + "':")
-            # 1. create a recordset of schemeitem records with rosterdate = new_rosterdate
-                                            #   Exclude cat absence and template (0 = normal, 1 = internal, 2 = absence, 3 = template)
+            # 1. create a recordset of schemeitem records with rosterdate = new_rosterdate_dte
+                                            #   Exclude cat absence and template (# order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
                                             #   Exclude inactive scheme)
                                             #  order and scheme must be in range datefirst - datelast
                                             #crit = Q(scheme__order__customer__company=request.user.company)  & \
-                                            #       Q(scheme__cat__lte=CAT_01_INTERNAL) & \
+                                            #       Q(scheme__cat__lte=SHIFT_CAT_0001_INTERNAL) & \
                                             #       Q(scheme__inactive=False) & \
-                                            #       (Q(scheme__order__datefirst__lte=new_rosterdate) | Q(scheme__order__datefirst__isnull=True)) & \
-                                            #       (Q(scheme__order__datelast__gte=new_rosterdate) | Q(scheme__order__datelast__isnull=True)) & \
-                                            #       (Q(scheme__datefirst__lte=new_rosterdate) | Q(scheme__datefirst__isnull=True)) & \
-                                            #       (Q(scheme__datelast__gte=new_rosterdate) | Q(scheme__datelast__isnull=True))
+                                            #       (Q(scheme__order__datefirst__lte=new_rosterdate_dte) | Q(scheme__order__datefirst__isnull=True)) & \
+                                            #       (Q(scheme__order__datelast__gte=new_rosterdate_dte) | Q(scheme__order__datelast__isnull=True)) & \
+                                            #       (Q(scheme__datefirst__lte=new_rosterdate_dte) | Q(scheme__datefirst__isnull=True)) & \
+                                            #       (Q(scheme__datelast__gte=new_rosterdate_dte) | Q(scheme__datelast__isnull=True))
                                             #schemeitems = m.Schemeitem.objects.filter(crit)
                                             # logger.debug(schemeitems.query)
 
                                                 for schemeitem in schemeitems:
          # 2. update the rosterdate of schemeitem when it is outside the current cycle,
-                                                    update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone)
+                                                    update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone)
+                                                    #logger.debug(' new schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
+                                                    # new schemeitem.rosterdate: 2019-08-30 00:00:00 <class 'datetime.datetime'>
+                                                    new_schemeitem_rosterdate_naive = schemeitem.rosterdate
+                                                    # logger.debug(' new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
+                                                    new_schemeitem_rosterdate_dte = new_schemeitem_rosterdate_naive.date()
+                                                    # logger.debug(' new_schemeitem_rosterdate_dte: ' + str(new_schemeitem_rosterdate_dte) + ' ' + str(type(new_schemeitem_rosterdate_dte)))
+                                                    # new_rosterdate_dte: 2019-08-29 <class 'datetime.date'>
+        # 3. skip if schemeitem.rosterdate does not equal new_rosterdate_dte
+                                                    shift_code = '-'
+                                                    if schemeitem.shift:
+                                                        shift_code = schemeitem.shift.code
+                                                    logfile.append(" ... shift: '" + str(shift_code) + "' of " + str(new_schemeitem_rosterdate_dte) + "")
 
-        # 3. skip if schemeitem.rosterdate does not equal new_rosterdate
-                                                    if schemeitem.rosterdate == new_rosterdate:
+                                                    if new_schemeitem_rosterdate_dte != new_rosterdate_dte:
+                                                        logfile.append("   - shift skipped. Date not equal to this rosterdate")
+                                                    else:
                                                         if schemeitem.inactive:
-                                                            logger.debug('  - shift ' + str(schemeitem.shift)  + ' is inactive')
+                                                            logfile.append("   - shift is inactive.")
                                                         else:
                                                             if not schemeitem.shift:
-                                                                logger.debug('  - shift is blank')
+                                                                logfile.append("   - shift is blank.")
                                                             else:
-                                                                if schemeitem.shift.cat == 1:
+                                                                if schemeitem.shift.cat == c.SHIFT_CAT_0064_RESTSHIFT:
                                                                     # TODO add to rest order, to prevent overlapping shifts
-                                                                    logger.debug('  - shift ' + str(schemeitem.shift)  + ' is rest shift')
+                                                                    logfile.append('  - shift is rest shift')
                                                                 else:
-                                                                    logger.debug(' add shift: ' + str(schemeitem.shift) + ' to roster')
-                                                                    AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_count)  # PR2019-08-12
+                                                                    AddSchemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_count, logfile)  # PR2019-08-12
 
-                                                                # OR DON't?? add 1 cycle to today's schemeitems
-                                                                #next_rosterdate = new_rosterdate + timedelta(days=1)
+                                                                # DON't add 1 cycle to today's schemeitems, added rosterday must be visible in planning, to check
+                                                                #next_rosterdate = new_rosterdate_dte + timedelta(days=1)
                                                                 # update_schemeitem_rosterdate(schemeitem, next_rosterdate, comp_timezone)
 
-def AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_count):  # PR2019-08-12
+def AddSchemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_count, logfile):  # PR2019-08-12
+
+    logger.debug(' ============= AddSchemeitem ============= ')
+    logger.debug('new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
+    logger.debug('schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
 
     oh_is_locked = False
+    shift_code = '-'
+    if schemeitem.shift:
+        shift_code = schemeitem.shift.code
 # 4. update existing orderhour that is linked to this schemeitem
 # a. check if an orderhour from this schemeitem and this rosterdate already exists
 
@@ -210,16 +235,28 @@ def AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_coun
         order=schemeitem.scheme.order,
         rosterdate=schemeitem.rosterdate).first()
     if orderhour:
+        shift_code = '-'
+        if schemeitem.shift:
+            shift_code = schemeitem.shift.code
+
+        logfile.append("   - shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " already exist.")
+
 # b. if exists, check if status is STATUS_02_START_CONFIRMED or higher
         # skip update this orderhour when it is locked or has status STATUS_02_START_CONFIRMED or higher
         oh_is_locked = (orderhour.status > c.STATUS_01_CREATED or orderhour.locked)
+
+        if oh_is_locked:
+            logfile.append("   - shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " already exist and is locked. Shift will be skipped.")
+        else:
+            logfile.append("   - shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " already exist and will be overwritten.")
 
 # 5. if not exists: create new orderhour
     else:
         orderhour = m.Orderhour(
             order=schemeitem.scheme.order,
             schemeitem=schemeitem,
-            rosterdate=new_rosterdate)
+            rosterdate=new_rosterdate_dte)
+
     entry_count = entry_count + 1
 
 # get shift info
@@ -251,10 +288,10 @@ def AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_coun
     if orderhour and not oh_is_locked:
         orderhour.order = schemeitem.scheme.order
         orderhour.schemeitem = schemeitem
-        orderhour.rosterdate = new_rosterdate
-        orderhour.yearindex = new_rosterdate.year
-        orderhour.monthindex = new_rosterdate.month
-        orderhour.weekindex = new_rosterdate.isocalendar()[1]  # isocalendar() is tuple: (2019, 15, 4)
+        orderhour.rosterdate = new_rosterdate_dte
+        orderhour.yearindex = new_rosterdate_dte.year
+        orderhour.monthindex = new_rosterdate_dte.month
+        orderhour.weekindex = new_rosterdate_dte.isocalendar()[1]  # isocalendar() is tuple: (2019, 15, 4)
         orderhour.shift = shift_code
         orderhour.duration = schemeitem.timeduration
         orderhour.status = c.STATUS_01_CREATED
@@ -264,14 +301,14 @@ def AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_coun
 
         orderhour.save(request=request)
 
-        logger.debug("       shift: '" + str(orderhour.shift) + "' is added")
+        logfile.append("   - shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " is added to roster.")
 
 # create new emplhour, not when oh_is_locked
         # create new emplhour
 
         new_emplhour = m.Emplhour(
             orderhour=orderhour,
-            rosterdate=new_rosterdate,
+            rosterdate=new_rosterdate_dte,
             shift=shift_code,
             timestart=schemeitem.timestart,
             timeend=schemeitem.timeend,
@@ -281,97 +318,126 @@ def AddSchemeitem(schemeitem, new_rosterdate, request, comp_timezone, entry_coun
             status=c.STATUS_01_CREATED)
 
 # - lookup first employee within range in team.teammembers
-        teammember = m.Teammember.get_first_teammember_on_rosterdate(schemeitem.team, new_rosterdate)
+       #  teammember = m.Teammember.get_first_teammember_on_rosterdate(schemeitem.team, new_rosterdate_dte)
+        teammember = m.Teammember.get_first_teammember_on_rosterdate_with_logfile(schemeitem.team, new_rosterdate_dte, logfile)
         if teammember:
             # add employee (employe=null is filtered out)
             employee = teammember.employee
             if employee:
+                logfile.append("   - shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " is added to roster.")
                 logger.debug("       employee: '" + str(employee.code) + "' is added")
                 new_emplhour.employee = employee
                 new_emplhour.wagecode = employee.wagecode
         new_emplhour.save(request=request)
     logger.debug(' entry_count: ' + str( entry_count))
+
+    logger.debug(logfile)
     m.entry_balance_subtract(entry_count, request, comp_timezone)  # PR2019-08-04
 
 
-def update_schemeitem_rosterdate(schemeitem, new_rosterdate, comp_timezone):  # PR2019-07-31
+def update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone):  # PR2019-07-31
+    # update the rosterdate of a schemeitem when it is outside the current cycle,
+    # it will be replaced  with a rosterdate that falls within within the current cycle, by adding n x cycle days
+    # the timestart and timeend will also be changed
+    # logger.debug(' --- update_schemeitem_rosterdate new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
+
+    # the curent cycle has index 0. It starts with new_rosterdate and ends with new_rosterdate + cycle -1
+
+    if schemeitem and new_rosterdate_dte:
+        new_rosterdate_naive = f.get_datetime_naive_from_date(new_rosterdate_dte)
+        new_si_rosterdate_naive = schemeitem.get_rosterdate_within_cycle(new_rosterdate_dte)
+        # logger.debug(' new_rosterdate_naive: ' + str(new_rosterdate_naive) + ' ' + str(type(new_rosterdate_naive)))
+        # new_rosterdate_naive: 2019-08-27 00:00:00 <class 'datetime.datetime'>
+        # logger.debug(' new_si_rosterdate_naive: ' + str(new_si_rosterdate_naive) + ' ' + str(type(new_si_rosterdate_naive)))
+        # new_si_rosterdate_naive: 2019-08-29 00:00:00 <class 'datetime.datetime'>
+
+        if new_si_rosterdate_naive:
+            # save new_si_rosterdate
+            # logger.debug('old si_rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
+            # old si_rosterdate: 2019-08-29 <class 'datetime.date'>
+            schemeitem.rosterdate = new_si_rosterdate_naive
+            # logger.debug('new_si_rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
+            # new_si_rosterdate: 2019-07-27 <class 'datetime.date'>
+
+            # convert to dattime object
+            new_si_rosterdatetime = f.get_datetime_naive_from_date(new_si_rosterdate_naive)
+
+            # get new_schemeitem.time_start and new_schemeitem.time_end
+            new_timestart = None
+            new_timeend = None
+            breakduration = 0
+            if new_si_rosterdatetime:
+                if schemeitem.shift:
+                    if schemeitem.shift.offsetstart:
+                        new_timestart = f.get_datetimelocal_from_offset(
+                            rosterdate=new_si_rosterdatetime,
+                            offset=schemeitem.shift.offsetstart,
+                            comp_timezone=comp_timezone)
+                    if schemeitem.shift.offsetend:
+                        new_timeend = f.get_datetimelocal_from_offset(
+                            rosterdate=new_si_rosterdatetime,
+                            offset=schemeitem.shift.offsetend,
+                            comp_timezone=comp_timezone)
+                    if schemeitem.shift.breakduration:
+                        breakduration = schemeitem.shift.breakduration
+            schemeitem.timestart = new_timestart
+            schemeitem.timeend = new_timeend
+            # logger.debug('new_timeend: ' + str(new_timeend) + ' ' + str(type(new_timeend)))
+
+            # get new_schemeitem.timeduration
+            new_timeduration = 0
+            if new_timestart and new_timeend:
+                new_timeduration = f.get_time_minutes(
+                    timestart=new_timestart,
+                    timeend=new_timeend,
+                    break_minutes=breakduration)
+            schemeitem.timeduration = new_timeduration
+
+            # logger.debug('new_timeduration: ' + str(new_timeduration) + ' ' + str(type(new_timeduration)))
+            # save without (request=request) keeps modifiedby and modifieddate
+            schemeitem.save()
+            # logger.debug('schemeitem.saved rosterdate: ' + str(schemeitem.rosterdate))
+
+
+###############
+# moved to model schemeitem - TODO let it stay till other one is tested
+def get_schemeitem_rosterdate_within_cycle(schemeitem, new_rosterdate):
+    new_si_rosterdate = None
+    # new_rosterdate has format : 2019-07-27 <class 'datetime.date'>
     # update the rosterdate of a schemeitem when it is outside the current cycle,
     # it will be replaced  with a rosterdate that falls within within the current cycle, by adding n x cycle days
     # the timestart and timeend will also be changed
 
     # the curent cycle has index 0. It starts with new_rosterdate and ends with new_rosterdate + cycle -1
 
-    if schemeitem:
-        logger.debug('----- update_schemeitem_rosterdate ')
+    if schemeitem and new_rosterdate:
+        si_rosterdate = schemeitem.rosterdate
+        # logger.debug('si_rosterdate: ' + str(si_rosterdate) + ' ' + str(type(si_rosterdate)))
+        # logger.debug('new_rosterdate: ' + str(new_rosterdate) + ' ' + str(type(new_rosterdate)))
+        # logger.debug('si_time: ' + str(schemeitem.timestart) + ' - ' + str(schemeitem.timeend))
 
-        if new_rosterdate:
-            si_rosterdate = schemeitem.rosterdate
-            logger.debug('si_rosterdate: ' + str(si_rosterdate) + ' ' + str(type(si_rosterdate)))
-            logger.debug('new_rosterdate: ' + str(new_rosterdate) + ' ' + str(type(new_rosterdate)))
-            logger.debug('si_time: ' + str(schemeitem.timestart) + ' - ' + str(schemeitem.timeend))
+        datediff = si_rosterdate - new_rosterdate  # datediff is class 'datetime.timedelta'
+        datediff_days = datediff.days  # <class 'int'>
+        # logger.debug('datediff_days: ' + str(datediff_days))
 
-            datediff = si_rosterdate - new_rosterdate  # datediff is class 'datetime.timedelta'
-            datediff_days = datediff.days  # <class 'int'>
-            logger.debug('datediff_days: ' + str(datediff_days))
+        cycle_int = schemeitem.scheme.cycle
+        # logger.debug('cycle: ' + str(cycle_int) + ' ' + str(type(cycle_int)))
+        if cycle_int:
+            # cycle starting with new_rosterdate has index 0, previous cycle has index -1, next cycle has index 1 etc
+            # // operator: Floor division - division that results into whole number adjusted to the left in the number line
+            index = datediff_days // cycle_int
+            # logger.debug('index: ' + str(index) + ' ' + str(type(index)))
+            # adjust si_rosterdate when index <> 0
+            if index:
+                # negative index adds positive day and vice versa
+                days_add = cycle_int * index * -1
+                # logger.debug('days_add: ' + str(days_add) + ' ' + str(type(days_add)))
+                new_si_rosterdate = si_rosterdate + timedelta(days=days_add)
 
-            cycle_int = schemeitem.scheme.cycle
-            logger.debug('cycle: ' + str(cycle_int) + ' ' + str(type(cycle_int)))
-            if cycle_int:
-                # cycle starting with new_rosterdate has index 0, previous cycle has index -1, next cycle has index 1 etc
-                # // operator: Floor division - division that results into whole number adjusted to the left in the number line
-                index = datediff_days // cycle_int
-                logger.debug('index: ' + str(index) + ' ' + str(type(index)))
-                # adjust si_rosterdate when index <> 0
-                if index:
-                    # negative index adds positive day and vice versa
-                    days_add = cycle_int * index * -1
-                    logger.debug('days_add: ' + str(days_add) + ' ' + str(type(days_add)))
-                    new_si_rosterdate = si_rosterdate + timedelta(days=days_add)
+    return new_si_rosterdate
 
-                    # save new_si_rosterdate
-                    schemeitem.rosterdate = new_si_rosterdate
-                    logger.debug('new_si_rosterdate: ' + str(new_si_rosterdate) + ' ' + str(type(new_si_rosterdate)))
-                    # new_si_rosterdate: 2019-07-27 <class 'datetime.date'>
 
-                    # convert to dattime object
-                    new_si_rosterdatetime = f.get_datetime_naive_from_date(new_si_rosterdate)
-
-                    # get new_schemeitem.time_start and new_schemeitem.time_end
-                    new_timestart = None
-                    new_timeend = None
-                    breakduration = 0
-                    if new_si_rosterdatetime:
-                        if schemeitem.shift:
-                            if schemeitem.shift.offsetstart:
-                                new_timestart = f.get_datetimelocal_from_offset(
-                                    rosterdate=new_si_rosterdatetime,
-                                    offset=schemeitem.shift.offsetstart,
-                                    comp_timezone=comp_timezone)
-                            if schemeitem.shift.offsetend:
-                                new_timeend = f.get_datetimelocal_from_offset(
-                                    rosterdate=new_si_rosterdatetime,
-                                    offset=schemeitem.shift.offsetend,
-                                    comp_timezone=comp_timezone)
-                            if schemeitem.shift.breakduration:
-                                breakduration = schemeitem.shift.breakduration
-                    schemeitem.timestart = new_timestart
-                    schemeitem.timeend = new_timeend
-                    logger.debug('new_timeend: ' + str(new_timeend) + ' ' + str(type(new_timeend)))
-
-                    # get new_schemeitem.timeduration
-                    new_timeduration = 0
-                    if new_timestart and new_timeend:
-                        new_timeduration = f.get_time_minutes(
-                            timestart=new_timestart,
-                            timeend=new_timeend,
-                            break_minutes=breakduration)
-                    schemeitem.timeduration = new_timeduration
-
-                    logger.debug('new_timeduration: ' + str(new_timeduration) + ' ' + str(type(new_timeduration)))
-                    # save without (request=request) keeps modifiedby and modifieddate
-                    schemeitem.save()
-                    logger.debug('schemeitem.saved rosterdate: ' + str(schemeitem.rosterdate))
-
+#################
 
 # 5555555555555555555555555555555555555555555555555555555555555555555555555555
 

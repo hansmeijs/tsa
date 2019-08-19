@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load i18n %} {% load l10n %}
+{% load static %}
+
+{% block stylesheet %}
+{% endblock %}
+{% block script %}
+    <script src="{% static 'js/review.js' %}"></script>
+{% endblock %}
+
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar">
+        <div class="sidebar-header">
+            <h3>Sidebar</h3>
+        </div>
+        <ul class="list-unstyled components">
+            <li class="active">
+                <a href="#homeSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Home</a>
+                <ul class="collapse list-unstyled" id="homeSubmenu">
+                    <li>
+                        <a href="#">Home 1</a>
+                    </li>
+                    <li>
+                        <a href="#">Home 2</a>
+                    </li>
+                    <li>
+                        <a href="#">Home 3</a>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <a href="#">About</a>
+            </li>
+            <li>
+                <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Pages</a>
+                <ul class="collapse list-unstyled" id="pageSubmenu">
+                    <li>
+                        <a href="#">Page 1</a>
+                    </li>
+                    <li>
+                        <a href="#">Page 2</a>
+                    </li>
+                    <li>
+                        <a href="#">Page 3</a>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <a href="#">Portfolio</a>
+            </li>
+            <li>
+                <a href="#">Contact</a>
+            </li>
+        </ul>
+    </nav>
+{% endblock %}
+<!-- END SIDE BAR -->
+
+<!-- MODAL -->
+{% block modal %}
+{% endblock %}
+<!-- END MODAL -->
+{% block content %}
+<!-- class wrapper -->
+    <div class="wrapper">
+    <!-- is_authenticated -->
+        {% if user.is_authenticated %}
+
+
+                <!-- =================== DATA TABLE  =================== -->
+                <table id="id_table_schemeitems" class="table table-condensed tsa-tbl ">
+                    <thead id="id_thead_schemeitems" class="thead-inverse"></thead>
+                    <tbody id="id_tbody_schemeitems"></tbody>
+                </table>
+                <!-- =================== END DATA TABLE  =================== -->
+                <div id="id_data"
+                    data-imgsrc_stat04="{% static 'img/stat04.png' %}"
+                >
+                </div>
+                <datalist id="id_datalist_employees">
+                </datalist>
+
+        {% else %}
+            <div class="alert alert-danger">{% trans 'Error' %}</div>
+            <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+        {% endif %}
+    <!-- end is_authenticated -->
+    </div>
+<!-- end class wrapper -->
+{% endblock %}
+<!-- endblock content -->

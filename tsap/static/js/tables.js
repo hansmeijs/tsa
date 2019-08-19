@@ -184,6 +184,7 @@
         }
         return id_dict
     }
+
 //========= function get_iddict_from_element  ======== PR2019-06-01
     function get_iddict_from_element (el) {
         // function gets 'data-pk' and 'data-ppk' from el
@@ -403,6 +404,7 @@
         }
         return date_str;
     }
+
 //========= format_datemedium_from_datetimelocal  ========== PR2019-07-09
     function format_datemedium(dtl, weekday_list, month_list, skip_weekday, skip_year) {
         "use strict";
@@ -514,6 +516,24 @@
         return time_formatted
     }
 
+//========= GetRosterdateLocal  ====================================
+//moved from timepicker
+    function GetRosterdateLocal(data_rosterdate, comp_timezone) {
+        // PR2019-07-07
+        // function gets rosterdate from data_rosterdate: "2019-06-23 T 00:00:00Z"
+        // converts it to moment object and set time to midnight
+        let rosterdate_date_local;
+        if (!!data_rosterdate  && !!comp_timezone){
+            const rosterdate_datetime_local = moment.tz(data_rosterdate, comp_timezone)
+            // cur_rosterdate_local:  2019-06-23 T 02:00:00 +02:00
+            rosterdate_date_local = rosterdate_datetime_local.clone().startOf("day");
+            // curRosterdate:  2019-06-23 T 00:00:00 +02:00
+        };
+        return rosterdate_date_local;
+    }  // GetRosterdateLocal
+
+
+//###########################################################
 //========= format_text_element  ======== PR2019-06-09
     function format_text_element (el_input, el_msg, field_dict) {
         //console.log("--- format_text_element ---")
@@ -1328,12 +1348,14 @@
 
 
 //=========  DeselectHighlightedRows  ================ PR2019-04-30 PR2019-08-08
-    function DeselectHighlightedRows(tableBody, cls_selected, cls_background) {
+    function DeselectHighlightedRows(tr_selected, cls_selected, cls_background) {
         //console.log("=========  DeselectHighlightedRows =========");
+        //console.log("cls_selected", cls_selected, "cls_background", cls_background);
 
         if(!cls_selected){cls_selected = "tsa_tr_selected"}
 
-        if(!!tableBody){
+        if(!!tr_selected){
+            const tableBody = tr_selected.parentNode
             let tblrows = tableBody.getElementsByClassName(cls_selected);
             for (let i = 0, len = tblrows.length; i < len; i++) {
                 if(!!tblrows[i]){

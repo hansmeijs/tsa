@@ -47,7 +47,7 @@ $(function() {
                 if(!tr_selected) {
                     console.log("set selected_employee_pk = 0")
                     selected_employee_pk = 0;
-                    DeselectHighlightedRows(tblBody_items)};
+                    DeselectHighlightedRows(tr_selected)};
             }
         }, false);
 
@@ -301,7 +301,7 @@ $(function() {
                 //if (j === 0 ){el.classList.add("mx-2")}
 
     // --- add width to time fields and date fileds
-                if ([0,].indexOf( j ) > -1){el.classList.add("td_width_150")} else
+                if ([0,].indexOf( j ) > -1){el.classList.add("td_width_200")} else
                 if ([1, 2].indexOf( j ) > -1){el.classList.add("td_width_240")} else
                 if ([3, 4, 5 ].indexOf( j ) > -1){el.classList.add("td_width_120")} else
                 if ([44, 54].indexOf( j ) > -1){el.classList.add("td_width_090")} else
@@ -461,7 +461,7 @@ $(function() {
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows
-        DeselectHighlightedRows(tr_clicked.parentNode)
+        DeselectHighlightedRows(tr_clicked)
 
 // ---  get clicked tablerow
         if(!!tr_clicked) {
