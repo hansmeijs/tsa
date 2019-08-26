@@ -112,6 +112,7 @@ class TsaBaseModel(Model):
             dte_str = f.get_date_longstr_from_dte(self.modifiedat, lang)
         return dte_str
 
+
 class Company(TsaBaseModel):
     objects = TsaManager()
 
@@ -132,6 +133,23 @@ class Company(TsaBaseModel):
         id_str = '000000' + str(self.pk)
         return id_str[-6:]
 
+
+class Taxcode(TsaBaseModel):
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='taxcodes', on_delete=PROTECT)
+
+    rate = IntegerField(default=0)  # /10000 unitless
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    datefirst = None
+    datelast = None
+    locked = None
+
+    class Meta:
+        ordering = [Lower('code')]
+
+    def __str__(self):
+        return self.code
 
 class Customer(TsaBaseModel):
     objects = TsaManager()
@@ -160,10 +178,13 @@ class Order(TsaBaseModel):
 
     customer = ForeignKey(Customer, related_name='orders', on_delete=PROTECT)
     cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
+    sequence = PositiveSmallIntegerField(default=0)  # sequence of abscat
 
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
-    rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
-    taxrate = IntegerField(default=0) # /10000 unit
+    rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG) per hour
+
+    taxcode = ForeignKey(Taxcode, related_name='orders', on_delete=PROTECT, null=True, blank=True)
+
     ishourlybasis = BooleanField(default=False)
     interval = PositiveSmallIntegerField(default=c.TIMEINTERVAL_DEFAULT)
 
@@ -246,58 +267,15 @@ class OrderObject(TsaBaseModel): # PR2019-06-23 added
     inactive = None
 
 
-class Scheme(TsaBaseModel):
+class Timecode(TsaBaseModel):
     objects = TsaManager()
-    order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
-    cat = PositiveSmallIntegerField(default=0)  # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
+    company = ForeignKey(Company, related_name='timecodes', on_delete=PROTECT)
 
-    cycle = PositiveSmallIntegerField(default=7)
-    excludeweekend = BooleanField(default=False)
-    excludepublicholiday = BooleanField(default=False)
+    rate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    locked = None
-    name = None
-
-    class Meta:
-        ordering = [Lower('code')]
-
-    def __str__(self):
-        return self.code
-
-
-class Shift(TsaBaseModel):
-    objects = TsaManager()
-    scheme = ForeignKey(Scheme, related_name='shifts', on_delete=CASCADE)
-    successor = ForeignKey('self', related_name='+', on_delete=SET_NULL, null=True)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    name = None
     datefirst = None
     datelast = None
-    inactive = None
-    locked = None
-
-    cat = PositiveSmallIntegerField(default=0)
-    offsetstart = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)  # dhm" "-1;17;45"
-    offsetend = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
-    breakduration = IntegerField(default=0) # unit is minute
-
-    class Meta:
-        ordering = [Lower('code')]
-
-    def __str__(self):
-        return self.code
-
-class Team(TsaBaseModel):
-    objects = TsaManager()
-    scheme = ForeignKey(Scheme, related_name='teams', on_delete=CASCADE)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    name = None
-    datefirst = None
-    datelast = None
-    inactive = None
     locked = None
 
     class Meta:
@@ -343,15 +321,59 @@ class Wagefactor(TsaBaseModel):
         return self.code
 
 
-class Timecode(TsaBaseModel):
+class Scheme(TsaBaseModel):
     objects = TsaManager()
-    company = ForeignKey(Company, related_name='timecodes', on_delete=PROTECT)
+    order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
+    cat = PositiveSmallIntegerField(default=0)  # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
 
-    rate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+    cycle = PositiveSmallIntegerField(default=7)
+    excludeweekend = BooleanField(default=False)
+    excludepublicholiday = BooleanField(default=False)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    locked = None
+    name = None
+
+    class Meta:
+        ordering = [Lower('code')]
+
+    def __str__(self):
+        return self.code
+
+
+class Shift(TsaBaseModel):
+    objects = TsaManager()
+    scheme = ForeignKey(Scheme, related_name='shifts', on_delete=CASCADE)
+    successor = ForeignKey('self', related_name='+', on_delete=SET_NULL, null=True)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
     datefirst = None
     datelast = None
+    inactive = None
+    locked = None
+
+    cat = PositiveSmallIntegerField(default=0)
+    offsetstart = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)  # dhm" "-1;17;45"
+    offsetend = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    breakduration = IntegerField(default=0) # unit is minute
+    wagefactor = ForeignKey(Wagefactor, related_name='shifts', on_delete=SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = [Lower('code')]
+
+    def __str__(self):
+        return self.code
+
+class Team(TsaBaseModel):
+    objects = TsaManager()
+    scheme = ForeignKey(Scheme, related_name='teams', on_delete=CASCADE)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    datefirst = None
+    datelast = None
+    inactive = None
     locked = None
 
     class Meta:
@@ -359,6 +381,7 @@ class Timecode(TsaBaseModel):
 
     def __str__(self):
         return self.code
+
 
 
 class Employee(TsaBaseModel):
@@ -490,7 +513,7 @@ class Teammember(TsaBaseModel):
 
     @classmethod
     def get_first_teammember_on_rosterdate_with_logfile(cls, team, rosterdate_dte, logfile):
-        logfile.append(" --- lookup employees in team")
+        logfile.append("         lookup employees in team")
 
         added_teammember = None
         if team and rosterdate_dte:
@@ -508,7 +531,7 @@ class Teammember(TsaBaseModel):
             added_teammember = None
             for teammember in teammembers:
                 empl = teammember.employee
-                logfile.append(" --- " + empl.code)
+                logfile.append("           " + empl.code)
                 df = '---'
                 dl = '---'
                 if not f.date_within_range(empl.datefirst, empl.datelast, rosterdate_dte):
@@ -517,17 +540,17 @@ class Teammember(TsaBaseModel):
                         range = ' from ' + str(empl.datefirst)
                     if empl.datelast:
                         range += ' thru ' + str(empl.datelast)
-                    logfile.append(' --- employee not in service on rosterdate: ' + range + '.')
+                    logfile.append('           employee not in service on rosterdate: ' + range + '.')
                 elif not f.date_within_range(teammember.datefirst, teammember.datelast, rosterdate_dte):
                     range = ''
                     if teammember.datefirst:
                         range = ' from ' + str(teammember.datefirst)
                     if teammember.datelast:
                         range += ' thru ' + str(teammember.datelast)
-                    logfile.append(' --- rosterdate outside shift period: ' + range + '.')
+                    logfile.append('           rosterdate outside shift period: ' + range + '.')
                 else:
                     added_teammember = teammember
-                    logfile.append(" --- employee added to shift.")
+                    logfile.append("           employee added to shift.")
                     break
 
         return added_teammember
@@ -539,7 +562,6 @@ class Schemeitem(TsaBaseModel):
     scheme = ForeignKey(Scheme, related_name='schemeitems', on_delete=CASCADE)
     shift = ForeignKey(Shift, related_name='schemeitems', on_delete=SET_NULL, null=True, blank=True)
     team = ForeignKey(Team, related_name='schemeitems', on_delete=SET_NULL, null=True, blank=True)
-    wagefactor = ForeignKey(Wagefactor, related_name='schemeitems', on_delete=SET_NULL, null=True, blank=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
@@ -616,6 +638,7 @@ class Orderhour(TsaBaseModel):
 
     yearindex = PositiveSmallIntegerField(default=0)
     monthindex = PositiveSmallIntegerField(default=0)
+    quincenaindex = PositiveSmallIntegerField(default=0)
     weekindex = PositiveSmallIntegerField(default=0)
 
     cat = PositiveSmallIntegerField(default=0)
@@ -624,7 +647,7 @@ class Orderhour(TsaBaseModel):
     status = PositiveSmallIntegerField(db_index=True, default=0)
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
-    taxrate = IntegerField(default=0) # /10000 unit
+    tax = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
 
     class Meta:
         ordering = ['rosterdate']
@@ -646,12 +669,11 @@ class Emplhour(TsaBaseModel):
 
     orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=PROTECT)
     employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
-    wagecode = ForeignKey(Wagecode, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
-    wagefactor = ForeignKey(Wagefactor, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
     yearindex = PositiveSmallIntegerField(default=0)
     monthindex = PositiveSmallIntegerField(default=0)
+    quincenaindex = PositiveSmallIntegerField(default=0)
     weekindex = PositiveSmallIntegerField(default=0)
 
     cat = PositiveSmallIntegerField(default=0)
@@ -660,6 +682,11 @@ class Emplhour(TsaBaseModel):
     timeend = DateTimeField(db_index=True, null=True, blank=True)
     timeduration = IntegerField(default=0)
     breakduration = IntegerField(default=0)
+
+    wagerate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
+    wagefactor = IntegerField(default=0) # /10000 unitless, 0 = factor 100%  = 10.000)
+    wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+
     status = PositiveSmallIntegerField(db_index=True, default=0)
 
     class Meta:
@@ -926,7 +953,6 @@ def get_instance(table, pk_int, parent, update_dict=None):
         elif table == 'emplhour':
             instance = Emplhour.objects.get_or_none(id=pk_int, orderhour=parent)
 
-
         if instance:
             if update_dict:
                 if 'id' not in update_dict:
@@ -938,15 +964,18 @@ def get_instance(table, pk_int, parent, update_dict=None):
 
 
 def delete_instance(instance, update_dict, request, this_text=None):
-    # function deletes instance of table,  PR2019-07-21
-
+    # function deletes instance of table,  PR2019-08-25
+    delete_failed = False
     if instance:
         try:
             instance.delete(request=request)
-            update_dict['id']['deleted'] = True
         except:
+            delete_failed = True
             if this_text:
                 msg_err = _('%(tbl)s could not be deleted.') % {'tbl': this_text}
             else:
                 msg_err = _('This item could not be deleted.')
             update_dict['id']['error'] = msg_err
+        else:
+            update_dict['id']['deleted'] = True
+    return not delete_failed

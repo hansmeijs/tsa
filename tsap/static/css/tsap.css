@@ -3,7 +3,6 @@ h4 h5 {
 }
 
 
-
 .headerbar {
   display: -ms-flexbox;
   display: flex;
@@ -19,6 +18,8 @@ h4 h5 {
   list-style: none;
   color: #868e96;
   background-color: #ffd01c;
+  border-bottom: 1px solid #f3f3f3; /* offwhite */
+
 }
 
 .headerbutton {
@@ -94,7 +95,10 @@ h4 h5 {
   text-decoration: none;
   list-style: none;
 
-  background-color: #f8f8f8;
+
+  background-color: #f5f5f5; /* this is reddish: background-color: #f8f8f8;*/
+
+
     /* test*/
     position: fixed;
     z-index: 98;
@@ -160,6 +164,17 @@ h4 h5 {
   display: none;
 }
 
+.display_none {
+   display: none;
+}
+.visibility_show {
+  visibility: visible; /* visibility: collapse fr table elements */
+}
+
+.visibility_hide {
+  visibility: hidden;
+}
+
 /* from https://stackoverflow.com/questions/32459337/how-to-remove-bootstrap-modal-overlay*/
 /* remove grey background from modal  PR2019-04-12 */
 /* from https://stackoverflow.com/questions/53594423/how-to-open-a-bootstrap-modal-without-jquery-or-bootstrap-js-javascript */
@@ -209,12 +224,6 @@ h4 h5 {
 /* =================================*/
 
 
-
-
-
-
-
-
 .tsa_bc_yellow {
     background-color: #ffd01c; /* tsa yellow */
 }
@@ -235,13 +244,13 @@ h4 h5 {
     background-color: #a5a5a5; /* medium grey; 165 165 165 */
 }
 .tsa_bc_lightgrey {
-    background-color: #e0e0e0; /* light grey 224 224 224 */
+    background-color:  #d8d8d8;  /* light grey 218 218 218 100%  /*  #e0e0e0; light grey 224 224 224 */
+    #d8d8d8
 }
 .tsa_bc_lightlightgrey {
-    background: #f8f8f8; /*licht licht grijs 248 248 248 */
-}
-.tsa_bc_lightred {
-    background-color: #f1b5b5; /* licht rood; */
+    /*background: #f8f8f8; /*licht licht licht grijs 248 248 248 */
+    /*background: #e8e8e880; /*licht licht grijs 232 232 232 50% */
+    background-color: #f5f5f5; /* this is reddish: background-color: #f8f8f8;*/
 }
 
 .tsa_bc_lightgreen {
@@ -280,6 +289,26 @@ h4 h5 {
 .tsa_color_darkgrey {
     color: #808080; /* Dark grey; */
 }
+.tsa_color_white {
+    color: #f3f3f3; / offwhite */
+     /*font-weight: bold;*/
+}
+
+.tsa_bc_lightlightred {
+    background: #ffe8e8cc; /* 255-232-232 80% licht lichtrood; */
+}
+.tsa_bc_lightred {
+    background: #f1b5b580; /* #ffd0d0 255-208-208 50% licht rood; */
+
+}
+.tsa_bc_lightmediumred {
+    background: #f1b5b5cc; /* 241-181-181 80% light medium rood; */
+}
+.tsa_bc_mediumred {
+    background: #ffacac; /* 255-172-172  medium rood; */
+}
+
+
 
 /*==================================================*/
 /* https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_popup */

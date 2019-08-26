@@ -1,6 +1,14 @@
 {% extends 'base.html' %}
 {% load i18n %}
-
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar">
+        <div class="sidebar-header">
+            <h3>{% trans 'Welcome' %}</h3>
+        </div>
+    </nav>
+{% endblock %}
+<!-- END SIDE BAR -->
 {% block content %}
     {% if not user.is_authenticated %}
         <div class="row justify-content-center">

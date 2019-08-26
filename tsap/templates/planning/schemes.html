@@ -14,32 +14,31 @@
             <h3>{% trans 'Planning' %}</h3>
         </div>
 
-        <div class="mx-2 my-2">
+        <div class="td_width_200 mx-2 my-2">
              <h6>
-                <select id="id_select_customer" class="td_width_200"></select>
+                <select id="id_select_customer"class="td_width_200" ></select>
                 <option value="" disabled selected hidden>{% trans 'Select customer' %}...</option>
             </h6>
+
             <h6>
                 <select id="id_select_order" class="td_width_200"></select>
             </h6>
-            <div class="mt-2">
-                <table class="table table-condensed tsa-tbl ">
-                    <thead id="id_thead_scheme_select" class="mx-1 my-1 "></thead>
-                    <tbody id="id_tbody_scheme_select"></tbody>
-                </table>
-            </div>
-            <div class="mt-2">
-                <table class="table table-condensed tsa-tbl ">
-                    <thead id="id_thead_shift_select"class="mx-1 my-1 "></thead>
-                    <tbody id="id_tbody_shift_select"></tbody>
-                </table>
-            </div>
-            <div class="mt-2">
-                <table class="table table-condensed tsa-tbl ">
-                    <thead id="id_thead_team_select"class="mx-1 my-1 "></thead>
-                    <tbody id="id_tbody_team_select"></tbody>
-                </table>
-            </div>
+
+            <table class="mt-4">
+                <thead id="id_thead_scheme_select" ></thead>
+                <tbody id="id_tbody_scheme_select"></tbody>
+            </table>
+
+             <table class="mt-4">
+                <thead id="id_thead_shift_select"class="mx-1 my-1 "></thead>
+                <tbody id="id_tbody_shift_select"></tbody>
+            </table>
+
+            <table class="mt-4">
+                <thead id="id_thead_team_select"class="mx-1 my-1 "></thead>
+                <tbody id="id_tbody_team_select"></tbody>
+            </table>
+
 
         </div>
     </nav>
@@ -48,18 +47,18 @@
 
 <!-- MODAL -->
 {% block modal %}
-<!-- =================== MODAL SCHEME ADD  =================== -->
-    <div class="modal fade" id="id_mod_scheme_add" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+<!-- =================== MODAL SCHEME  =================== -->
+    <div class="modal fade" id="id_mod_scheme" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">
             <div class="modal-content">
                 <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_mod_scheme_add_header" class="modal-title mx-2" >{% trans 'Add new scheme' %}</h4>
+                    <h4 id="id_mod_scheme_header" class="modal-title mx-2" >{% trans 'Add new scheme' %}</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
-                <div  id="id_mod_scheme_add_body" class="modal-body">
+                <div  id="id_mod_scheme_body" class="modal-body">
                     <div class="modal_container">
 
 <!-- modal_body_left contains template select table -->
@@ -67,47 +66,49 @@
                             <div class="mod_flex mx-2 my-2">
 
                                 <div class="form-group">
-                                    <label for="id_mod_customer" class="mx-2 my-2">{% trans 'Customer' %}:</label>
-                                    <select id="id_mod_customer" class="form-control"></select>
-                                    <small id="id_mod_cust_err" class="color_invalid mx-2 display_hide"></small>
+                                    <label for="id_mod_scheme_customer" class="mx-2 my-2">{% trans 'Customer' %}:</label>
+                                    <select id="id_mod_scheme_customer" class="form-control"></select>
+                                    <small id="id_mod_scheme_customer_err" class="color_invalid mx-2 display_hide"></small>
                                 </div>
                                 <div class="form-group">
-                                    <label for="id_mod_order" class="mx-2 my-2">{% trans 'Order' %}:</label>
-                                    <select id="id_mod_order" class="form-control"></select>
-                                    <small id="id_mod_order_err" class="color_invalid mx-2 display_hide"></small>
+                                    <label for="id_mod_scheme_order" class="mx-2 my-2">{% trans 'Order' %}:</label>
+                                    <select id="id_mod_scheme_order" class="form-control"></select>
+                                    <small id="id_mod_scheme_order_err" class="color_invalid mx-2 display_hide"></small>
                                 </div>
                                 <div class="form-group">
-                                    <label for="id_mod_code" class="mx-2 my-2">{% trans 'Scheme' %}:</label>
-                                    <input id="id_mod_code" type="text"
+                                    <label for="id_mod_scheme_code" class="mx-2 my-2">{% trans 'Scheme' %}:</label>
+                                    <input id="id_mod_scheme_code" type="text"
                                         autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                                        class="form-control">
-                                    <small id="id_mod_code_err" class="color_invalid mx-2 display_hide"></small>
+                                        class="form-control"
+                                        placeholder="{% trans 'Enter scheme name...' %}"
+                                    >
+                                    <small id="id_mod_scheme_code_err" class="color_invalid mx-2 display_hide"></small>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="id_mod_cycle" class="mx-2 my-2">{% trans 'Cycle days' %}:</label>
-                                    <input id="id_mod_cycle" type="number" value="7" min="0" max="366"
+                                    <label for="id_mod_scheme_cycle" class="mx-2 my-2">{% trans 'Cycle days' %}:</label>
+                                    <input id="id_mod_scheme_cycle" type="number" value="7" min="0" max="366"
                                         autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                         class="form-control">
                                     <div><small class="mx-2">{% trans 'Enter the length of the cycle in days, enter zero for once-only.' %}</small></div>
-                                    <div><small id="id_mod_cycle_err" class="color_invalid mx-2 display_hide"></small></div>
+                                    <div><small id="id_mod_scheme_cycle_err" class="color_invalid mx-2 display_hide"></small></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer ">
-                    <div id="id_mod_scheme_add_msg" class="mod_flex modal_body_left tr_color_red mx-2"></div>
+                    <div id="id_mod_scheme_msg" class="mod_flex modal_body_left tsa_color_red mx-2"></div>
                     <div>
                         <button type="button"  class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                        <button id="id_mod_scheme_add_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                        <button id="id_mod_scheme_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
                     </div>
                 </div>
 
             </div>
         </div>
     </div>
-<!-- =================== END MODAL ADDNEW  =================== -->
+<!-- =================== END MODAL SCHEME =================== -->
 <!-- =================== MODAL COPYFROM TEMPLATE  =================== -->
     <div class="modal fade" id="id_mod_copyfrom" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
@@ -154,7 +155,7 @@
                                 <!--
                                 <div>
 
-                                    <label for="id_mod_cycle" class="mx-2 my-2">{% trans 'Start date of cycle' %}:</label>
+                                    <label for="id_mod_scheme_cycle" class="mx-2 my-2">{% trans 'Start date of cycle' %}:</label>
                                     <input id="id_mod_copyfrom_datestart" type="date"
                                         autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                         class="form-control">
@@ -171,7 +172,7 @@
             </div>
         </div>
     </div>
-<!-- =================== MODAL COPYTO TEMPLATE  =================== -->
+<!-- =================== MODAL COPY TO TEMPLATE  =================== -->
     <div class="modal fade" id="id_mod_copyto" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">
             <div class="modal-content">
@@ -198,7 +199,74 @@
             </div>
         </div>
     </div>
-<!-- =================== END MODAL COPYTO TEMPLATE  =================== -->
+<!-- =================== END MODAL COPY TO TEMPLATE  =================== -->
+<!-- =================== MODAL EMPLOYEE  =================== -->
+    <div class="modal fade" id="id_mod_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_mod_employee_header" class="modal-title mx-2" >{% trans 'Employee' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div  id="id_mod_employee_body" class="modal-body">
+                    <div class="modal_container">
+
+<!-- modal_body_left contains employee select table -->
+                        <div class="modal_body_left">
+                            <div class="content_subheader_left mx-2 my-1">
+                                 <div class="fieldname m-2">
+                                    <input id="id_mod_employee_filter_employee"
+                                    type="text"
+                                    class="fieldname pt-0 pb-0"
+                                    colspan=2
+                                    placeholder="{% trans 'filter name...' %}"
+                                    >
+                                </div>
+                                <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                    <table class="table table-condensed tsa-tbl mx-1 my-1">
+                                        <tbody id="id_mod_employee_tblbody" data-table="employee">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="id_mod_employee_body_right"  class="modal_body_right mx-2 my-2">
+
+                            <div class="mx-2 my-2 ">
+                                <h6>{% trans 'Select employee' %}:</h6>
+                            </div>
+
+                            <div class="text_align_center">
+                                <img id="id_mod_employee_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="display_hide" >
+                            </div>
+
+                            <div id="id_div_mod_employee" class="mod_flex mx-2 my-2">
+                                <div class="form-group">
+                                    <input id="id_mod_employee_input_employee"
+                                        type="text"
+                                        autocomplete="off"
+                                        ondragstart="return false;"
+                                        ondrop="return false;"
+                                        class="form-control"
+                                        placeholder="{% trans 'Type a few letters and select employee in the list ...' %}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div id="id_mod_ftr_msg"></div>
+                    <button id="id_mod_employee_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL EMPLOYEE  =================== -->
 {% endblock %}
 <!-- END MODAL -->
 
@@ -218,7 +286,7 @@
                 <h6 id="id_hdr_order">{% trans 'Order' %}</h6>
             </div>
         </div>
-
+        <!-- box with scheme input elements -->
         <div class="content_wrapper mx-4 my-1">
              <div class="content_header">
                 <div class="content_subheader_left ">
@@ -261,7 +329,7 @@
                 </div>
             </div>
         </div>
-
+        <!-- END box with scheme input elements -->
         <div class="content_header">
             <div class="content_subheader_left">
                 <input id="id_filter_name"
@@ -360,7 +428,7 @@
             data-err_msg_template_select="{% trans 'Please select a template.' %}"
             data-err_msg_name_exists= "{% trans 'This name already exists. Please enter a different name.' %}"
             data-err_msg_name_blank= "{% trans 'Name cannot be blank. Please enter a name.' %}"
-            data-err_msg_code= "{% trans 'Please enter a scheme name.' %}"
+            data-err_msg_code= "{% trans 'Please enter the name of the scheme.' %}"
             data-err_msg_cycle= "{% trans 'Please enter the number of cycle days.' %}"
             data-err_msg_template_blank = "{% trans 'Please enter a template name.' %}"
 
@@ -390,8 +458,8 @@
             data-txt_of = "{% trans 'of' %}"
             data-txt_shift= "{% trans 'Shift' %}"
             data-txt_shifts= "{% trans 'Shifts' %}"
-            data-txt_rest= "{% trans 'Rest' %}"
-            data-txt_successor= "{% trans 'Subsequent shift' %}"
+            data-txt_shift_rest= "{% trans 'Rest' %}"
+            data-txt_shift_successor= "{% trans 'Next shift' %}"
             data-txt_shift_add= "{% trans 'Add shift' %}"
             data-txt_shift_enter= "{% trans 'Enter shift' %}"
             data-txt_shift_delete= "{% trans 'Delete shift' %}"
@@ -403,10 +471,23 @@
             data-txt_team_delete= "{% trans 'Delete team' %}"
             data-txt_show_teams= "{% trans 'Go to teams' %}"
 
+            data-txt_employee = "{% trans 'Employee' %}"
+            data-txt_employees= "{% trans 'Employees' %}"
+            data-txt_employee_select= "{% trans 'Select employee' %}"
+            data-txt_employee_select_none= "{% trans 'No employees' %}"
+            data-txt_employee_add= "{% trans 'Add employee' %}"
+            data-txt_employee_enter= "{% trans 'Enter employee' %}"
+            data-txt_employee_replacement= "{% trans 'Replacement employee' %}"
+            data-txt_employee_replacement_add= "{% trans 'Add replacement employee' %}"
+
+            data-txt_datefirst= "{% trans 'Start date' %}"
+            data-txt_datelast= "{% trans 'End date' %}"
+
             data-txt_timestart= "{% trans 'Start time' %}"
             data-txt_timeend= "{% trans 'End time' %}"
             data-txt_breakhours= "{% trans 'Break' %}"
             data-txt_workinghours= "{% trans 'Working hours' %}"
+            data-txt_wagefactor= "{% trans 'Wage factor' %}"
 
             data-timepicker_curday= "{% trans 'Current day' %}"
             data-timepicker_prevday= "{% trans 'Previous day' %}"
@@ -414,16 +495,6 @@
             data-timepicker_prevday_info= "{% trans 'Shift starts on the previous day' %}"
             data-timepicker_nextday_info= "{% trans 'Shift ends on the next day' %}"
 
-            data-txt_employee= "{% trans 'Employee' %}"
-            data-txt_employees= "{% trans 'Employees' %}"
-            data-txt_employee_select= "{% trans 'Select employee' %}"
-            data-txt_replacement= "{% trans 'Replaces' %}"
-            data-txt_datefirst= "{% trans 'Start date' %}"
-            data-txt_datelast= "{% trans 'End date' %}"
-
-            data-txt_employee_add= "{% trans 'Add employee' %}"
-            data-txt_replacement_add= "{% trans 'Add replacement employee' %}"
-            data-txt_employee_enter= "{% trans 'Enter employee' %}"
             data-msg_confirm_del1= "{% trans 'Do you want to delete the shift of' %}"
             data-msg_confirm_del2= "{% trans 'Do you want to delete this shift?' %}"
         >

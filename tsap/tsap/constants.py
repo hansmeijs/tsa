@@ -158,7 +158,7 @@ SHIFT_CAT_0032_REPLACEMENT = 32  #  (cat_replacement not in use in table order)
 SHIFT_CAT_0064_RESTSHIFT = 64
 # SHIFT_CAT_0128_AVAILABLE = 128
 # SHIFT_CAT_0256_AVAILABLE = 256
-SHIFT_CAT_0512_ABSENCE = 512 # used in table customer, order, scheme TODO check if also needed in orderhour emplhour)
+SHIFT_CAT_0512_ABSENCE = 512 # used in table customer, order, scheme , orderhour,  emplhour)
 # SHIFT_CAT_1024_AVAILABLE = 1024
 # SHIFT_CAT_2048_AVAILABLE = 2048
 SHIFT_CAT_4096_TEMPLATE = 4096
@@ -188,18 +188,21 @@ TEMPLATE_TEXT = {LANG_EN: 'Template', LANG_NL: 'Sjabloon'}
 REST_TEXT = {LANG_EN: 'Rest', LANG_NL: 'Rust'}
 
 # PR2019-06-24
-ABSENCE = {LANG_EN: 'Absence', LANG_NL: 'Afwezigheid'}
+ABSENCE = {
+    LANG_EN: ('Absence', 'Absence'),
+    LANG_NL: ('Afwezig', 'Afwezigheid')
+          }
 
 # PR2019-06-24
 ABSENCE_CATEGORY = {LANG_EN: (
-                        ('0', 'Unknown', 'Unknown absence'),
+                        ('0', 'Unknown', 'Unknown'),
                         ('1', 'Vacation', 'Vacation leave'),
                         ('2', 'Sick leave', 'Sick leave'),
                         ('3', 'Special leave', 'Special leave'),
                         ('4', 'Unpaid leave', 'Unpaid leave'),
                         ('5', 'Unauthorized', 'Unauthorized absence')),
                     LANG_NL: (
-                        ('0', 'Onbekend', 'Onbekend verzuim'),
+                        ('0', 'Onbekend', 'Onbekend'),
                         ('1', 'Vakantie', 'Vakantie'),
                         ('2', 'Ziekte', 'Ziekteverzuim'),
                         ('3', 'Buitengewoon', 'Buitengewoon verlof'),
@@ -215,42 +218,39 @@ KEY_COMP_REPLACEMENT_PERIOD = 'repl_period'
 KEY_USER_QUICKSAVE = 'quicksave'
 KEY_USER_EMPLHOUR_PERIOD = 'emplhour_period'
 
-SHIFT_DEFAULT = {LANG_EN: (
-                        (0, 'Night', 'Night shift', '-1;22;0', '0;7;0'),
-                        (1, 'Day', 'Day shift', '0;7;0', '0;15;0'),
-                        (2, 'Evening', 'Evening shift', '0;15;0', '0;22;0')),
-                LANG_NL: (
-                    (0, 'Nacht', 'Nachtdienst', '-1;22;0', '0;7;0'),
-                    (1, 'Dag', 'Dagdienst', '0;7;0', '0;15;0'),
-                    (2, 'Avond', 'Avonddienst', '0;15;0', '0;22;0'))
-                }
-TEAM_DEFAULT = {LANG_EN: (
-                        (0, 'Team A'),
-                        (1, 'Team B'),
-                        (2, 'Team C'),
-                        (3, 'Team D')),
-                LANG_NL: (
-                        (0, 'Ploeg A'),
-                        (1, 'Ploeg B'),
-                        (2, 'Ploeg C'),
-                        (3, 'Ploeg D'))
-                }
-SCHEME_24H_DEFAULT  =  ((1, 0, 0), (1, 1, 1), (1, 2, 2),  # cycleday, shift, team
-                        (2, 0, 0), (2, 1, 1), (2, 2, 3),
-                        (3, 0, 0), (3, 1, 2), (3, 2, 3),
-                        (4, 0, 0), (4, 1, 2), (4, 2, 3),
-                        (5, 0, 1), (5, 1, 2), (5, 2, 3),
-                        (6, 0, 1), (6, 1, 2), (6, 2, 0),
-                        (7, 0, 1), (7, 1, 3), (7, 2, 0),
-                        (8, 0, 1), (8, 1, 3), (8, 2, 0),
-                        (9, 0, 2), (9, 1, 3), (9, 2, 0),
-                        (10, 0, 2), (10, 1, 3), (10, 2, 1),
-                        (11, 0, 2), (11, 1, 0), (11, 2, 1),
-                        (12, 0, 2), (12, 1, 0), (12, 2, 1),
-                        (13, 0, 3), (13, 1, 0), (13, 2, 1),
-                        (14, 0, 3), (14, 1, 0), (14, 2, 2),
-                        (15, 0, 3), (15, 1, 1), (15, 2, 2),
-                        (16, 0, 3), (16, 1, 1), (16, 2, 2))
+# code, cycle, excludeweekend, excludepublicholiday PR2019-08-24
+SCHEME_24H_DEFAULT = {LANG_EN: ('24 hours 16 days', 16, False, False),
+                      LANG_NL: ('24 uur 16 daags', 16, False, False)}
+
+# code, offsetstart, offsetend, breakduration, successor_index PR2019-08-24
+SHIFT_24H_DEFAULT = {LANG_EN: (
+                        ('night shift', '-1;22;0', '', 0, 1),
+                        ('day shift', '0;7;0', '', 0, 2),
+                        ('evening shift', '0;15;0', '', 0, 0)),
+                    LANG_NL: (
+                        ('nachtdienst', '-1;22;0', '', 0, 1),
+                        ('dagdienst', '0;7;0', '', 0, 2),
+                        ('avonddienst', '0;15;0', '', 0, 0))
+                    }
+TEAM_24H_DEFAULT = {LANG_EN: ('Employee 1', 'Employee 2', 'Employee 3', 'Employee 4'),
+                    LANG_NL: ('Medewerker 1', 'Medewerker 2', 'Medewerker 3', 'Medewerker 4')
+                    }
+SCHEMEITEM_24H_DEFAULT = ((1, 0, 0), (1, 1, 1), (1, 2, 2),  # 0 = cycleday, 1 = shift, 2 = team
+                      (2, 0, 0), (2, 1, 1), (2, 2, 3),
+                      (3, 0, 0), (3, 1, 2), (3, 2, 3),
+                      (4, 0, 0), (4, 1, 2), (4, 2, 3),
+                      (5, 0, 1), (5, 1, 2), (5, 2, 3),
+                      (6, 0, 1), (6, 1, 2), (6, 2, 0),
+                      (7, 0, 1), (7, 1, 3), (7, 2, 0),
+                      (8, 0, 1), (8, 1, 3), (8, 2, 0),
+                      (9, 0, 2), (9, 1, 3), (9, 2, 0),
+                      (10, 0, 2), (10, 1, 3), (10, 2, 1),
+                      (11, 0, 2), (11, 1, 0), (11, 2, 1),
+                      (12, 0, 2), (12, 1, 0), (12, 2, 1),
+                      (13, 0, 3), (13, 1, 0), (13, 2, 1),
+                      (14, 0, 3), (14, 1, 0), (14, 2, 2),
+                      (15, 0, 3), (15, 1, 1), (15, 2, 2),
+                      (16, 0, 3), (16, 1, 1), (16, 2, 2))
 
 # LOCALE #
 
@@ -301,15 +301,21 @@ CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
                     }
 
 # this one is not working: update_dict = dict.fromkeys(field_list, {})
-FIELDS_EMPLHOUR = ('pk', 'id', 'orderhour', 'shift', 'employee', 'wagecode', 'wagefactor', 'rosterdate',
-                        'timestart', 'timeend', 'timeduration', 'breakduration', 'status')
+FIELDS_EMPLHOUR = ('pk', 'id', 'orderhour', 'employee', 'rosterdate', 'cat', 'shift',
+                        'timestart', 'timeend', 'timeduration', 'breakduration',
+                        'wagerate', 'wagefactor', 'wage', 'status')
 
-FIELDS_SCHEMEITEM = ('pk', 'id', 'rosterdate', 'shift', 'team', 'timestart', 'timeend',
-                     'timeduration', 'iscyclestart', 'inactive')
-# inactive schemeitem to skip certain shifts (wghen customers
-
-FIELDS_SHIFT = ('pk', 'id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'successor')
+FIELDS_SCHEME = ('pk', 'id', 'order', 'cat',
+                'cycle', 'excludeweekend', 'excludepublicholiday')
 
 FIELDS_TEAM = ('pk', 'id', 'code')
 
-FIELDS_TEAMMEMBER = ('pk', 'id', 'employee', 'datefirst', 'datelast')
+FIELDS_SHIFT = ('pk', 'id', 'scheme', 'code', 'cat',
+                'offsetstart', 'offsetend', 'breakduration', 'wagefactor', 'successor')
+
+FIELDS_SCHEMEITEM = ('pk', 'id', 'scheme', 'shift', 'team',
+                     'rosterdate', 'iscyclestart', 'timestart', 'timeend',
+                     'timeduration', 'inactive')
+# inactive schemeitem needed to skip certain shifts (when customer provides his own people)
+
+FIELDS_TEAMMEMBER = ('pk', 'id', 'team', 'employee', 'datefirst', 'datelast')

@@ -192,20 +192,20 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, logfile):  # PR20
                                                     shift_code = '-'
                                                     if schemeitem.shift:
                                                         shift_code = schemeitem.shift.code
-                                                    logfile.append(" ... shift: '" + str(shift_code) + "' of " + str(new_schemeitem_rosterdate_dte) + "")
+                                                    logfile.append("     shift: '" + str(shift_code) + "' of " + str(new_schemeitem_rosterdate_dte) + "")
 
                                                     if new_schemeitem_rosterdate_dte != new_rosterdate_dte:
-                                                        logfile.append("   - shift skipped. Date not equal to this rosterdate")
+                                                        logfile.append("       shift skipped. Date not equal to this rosterdate")
                                                     else:
                                                         if schemeitem.inactive:
-                                                            logfile.append("   - shift is inactive.")
+                                                            logfile.append("       shift is inactive.")
                                                         else:
                                                             if not schemeitem.shift:
-                                                                logfile.append("   - shift is blank.")
+                                                                logfile.append("       shift is blank.")
                                                             else:
                                                                 if schemeitem.shift.cat == c.SHIFT_CAT_0064_RESTSHIFT:
                                                                     # TODO add to rest order, to prevent overlapping shifts
-                                                                    logfile.append('  - shift is rest shift')
+                                                                    logfile.append('       shift is rest shift')
                                                                 else:
                                                                     AddSchemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_count, logfile)  # PR2019-08-12
 
@@ -228,7 +228,7 @@ def AddSchemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_
 
     # fields of orderhour are:
     #   order, schemeitem, rosterdate, yearindex, monthindex, weekindex,
-    #   shift, duration, status, rate, amount, taxrate, locked, modifiedby, modifiedat
+    #   shift, duration, status, rate, amount, sequence, locked, modifiedby, modifiedat
 
     orderhour = m.Orderhour.objects.filter(
         schemeitem=schemeitem,
@@ -239,50 +239,61 @@ def AddSchemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_
         if schemeitem.shift:
             shift_code = schemeitem.shift.code
 
-        logfile.append("   - shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " already exist.")
+        logfile.append("       shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " already exist.")
 
 # b. if exists, check if status is STATUS_02_START_CONFIRMED or higher
         # skip update this orderhour when it is locked or has status STATUS_02_START_CONFIRMED or higher
         oh_is_locked = (orderhour.status > c.STATUS_01_CREATED or orderhour.locked)
 
         if oh_is_locked:
-            logfile.append("   - shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " already exist and is locked. Shift will be skipped.")
+            logfile.append("       shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " already exist and is locked. Shift will be skipped.")
         else:
-            logfile.append("   - shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " already exist and will be overwritten.")
+            logfile.append("       shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " already exist and will be overwritten.")
 
 # 5. if not exists: create new orderhour
     else:
+        yearindex = new_rosterdate_dte.year
+        monthindex = new_rosterdate_dte.month
+        weekindex = new_rosterdate_dte.isocalendar()[1]  # isocalendar() is tuple: (2019, 15, 4)
+        #  week 1 is de week, waarin de eerste donderdag van dat jaar zit
+        #weekday = new_rosterdate_dte.weekday() #  0 = Monday
+        # quincena 1 starts day after begin of week 1 (assumption)
+
         orderhour = m.Orderhour(
             order=schemeitem.scheme.order,
             schemeitem=schemeitem,
-            rosterdate=new_rosterdate_dte)
+            rosterdate=new_rosterdate_dte,
+            yearindex=yearindex,
+            monthindex=monthindex,
+            weekindex=weekindex
+        )
 
     entry_count = entry_count + 1
 
 # get shift info
     shift_code = None
     shift_breakduration = 0
+    shift_wagefactor = 0
     if schemeitem.shift:
         if schemeitem.shift.breakduration:
             shift_breakduration = schemeitem.shift.breakduration
         if schemeitem.shift.code:
             shift_code = schemeitem.shift.code
+        if schemeitem.shift.wagefactor:
+            shift_wagefactor = schemeitem.shift.wagefactor
 
 # get order info
     order_rate = 0
-    order_taxrate = 0
     if schemeitem.scheme.order:
         if schemeitem.scheme.order.rate:
             order_rate = schemeitem.scheme.order.rate
-        if schemeitem.scheme.order.taxrate:
-            order_taxrate = schemeitem.scheme.order.taxrate
+
 
 # get schemeitem info
     timeduration = 0
     if schemeitem.timeduration:
         timeduration = schemeitem.timeduration
     amount = (timeduration / 60) * (order_rate)
-
 
 # d. if not locked: replace values of existing orderhour
     if orderhour and not oh_is_locked:
@@ -297,24 +308,26 @@ def AddSchemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_
         orderhour.status = c.STATUS_01_CREATED
         orderhour.rate = order_rate
         orderhour.amount = amount
-        orderhour.taxrate = order_taxrate
 
         orderhour.save(request=request)
 
-        logfile.append("   - shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " is added to roster.")
+        logfile.append("       shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " is added to roster.")
 
 # create new emplhour, not when oh_is_locked
         # create new emplhour
 
         new_emplhour = m.Emplhour(
             orderhour=orderhour,
-            rosterdate=new_rosterdate_dte,
+            rosterdate=orderhour.rosterdate,
+            yearindex=orderhour.yearindex,
+            monthindex=orderhour.monthindex,
+            weekindex=orderhour.weekindex,
             shift=shift_code,
             timestart=schemeitem.timestart,
             timeend=schemeitem.timeend,
             timeduration=timeduration,
             breakduration=shift_breakduration,
-            wagefactor=schemeitem.wagefactor,
+            wagefactor=shift_wagefactor,
             status=c.STATUS_01_CREATED)
 
 # - lookup first employee within range in team.teammembers
@@ -324,7 +337,7 @@ def AddSchemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_
             # add employee (employe=null is filtered out)
             employee = teammember.employee
             if employee:
-                logfile.append("   - shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " is added to roster.")
+                logfile.append("       shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " is added to roster.")
                 logger.debug("       employee: '" + str(employee.code) + "' is added")
                 new_emplhour.employee = employee
                 new_emplhour.wagecode = employee.wagecode

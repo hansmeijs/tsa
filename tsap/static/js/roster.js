@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let tblBody_items = document.getElementById("id_tbody_items");
         let tblHead_items = document.getElementById("id_thead_items");
 
-        let el_mod_employee_tbody =  document.getElementById("id_mod_employee_tblbody");
+        let el_mod_employee_tblbody =  document.getElementById("id_mod_employee_tblbody");
 
         let el_mod_employee_body = document.getElementById("id_mod_employee_body")
         let el_mod_employee_body_right = document.getElementById("id_mod_employee_body_right")
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 let fill_table = false, check_status = false;
                 if ("abscat" in response) {
                     abscat_list= response["abscat"];
-                    FillSelectOption("abscat", abscat_list)
+                    ModEmployeeFillOptionAbscat(abscat_list)
                 }
                 if ("employee" in response) {
                     employee_list= response["employee"];
@@ -565,11 +565,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // console.log("is_new_item", is_new_item)
 
 //+++ insert tblRow ino tblBody_items
+        const tblName =  "emplhour"
         let tblRow = tblBody_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-        tblRow.setAttribute("id", pk);
+        tblRow.setAttribute("id", tblName + pk);
         tblRow.setAttribute("data-pk", pk);
         tblRow.setAttribute("data-ppk", parent_pk);
-        tblRow.setAttribute("data-table", "emplhour");
+        tblRow.setAttribute("data-table", tblName);
 
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
@@ -632,7 +633,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ([1, 2].indexOf( j ) > -1){
                     if (is_new_item){el.addEventListener("change", function() {UploadChanges(el);}, false )} } else
                 if (j === 3){
-                    el.addEventListener("click", function() {ModalEmployeeOpen(el);}, false ) } else
+                    el.addEventListener("click", function() {ModEmployeeOpen(el);}, false ) } else
                 if ([4, 6].indexOf( j ) > -1){
                     el.addEventListener("click", function() {
                         OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_emplhour_upload,
@@ -747,8 +748,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblName, tblRow, item_dict){
-        //console.log(" ------>>  UpdateTableRow");
+        //console.log(" ------>>  UpdateTableRow", tblName);
         //console.log(item_dict);
+        //console.log(tblRow);
 
         if (!!item_dict && !!tblRow) {
 
@@ -810,7 +812,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // tblRow can be deleted in  if (is_deleted){
             if (!!tblRow){
-
 // --- new record: replace temp_pk_str with id_pk when new record is saved
         // if 'new' and 'pk both exist: it is a newly saved record. Change id of tablerow from new to pk
         // if 'new' exists and 'pk' not: it is an unsaved record (happens when code is entered and name is blank)
@@ -895,6 +896,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
 
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
+                                //console.log("----------fieldname", fieldname);
                                 format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
 
                             } else if (["timeduration", "breakduration"].indexOf( fieldname ) > -1){
@@ -923,7 +925,359 @@ document.addEventListener('DOMContentLoaded', function() {
         };  // if (!!item_dict && !!tblRow)
     }  // function UpdateTableRow
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// ++++ MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+//=========  ModEmployeeOpen  ================ PR2019-06-23
+    function ModEmployeeOpen(el_input) {
+        //console.log(" -----  ModEmployeeOpen   ----")
+        // console.log(el_input)
+
+// reset
+        let el_mod_employee_header = document.getElementById("id_mod_employee_header")
+        el_mod_employee_header.innerText = null
+
+        el_mod_employee_input_employee.value = null
+        let el_mod_employee_filter_employee = document.getElementById("id_mod_employee_filter_employee")
+        document.getElementById("id_mod_employee_filter_employee").value = null
+        document.getElementById("id_mod_employee_abscat").innerText = null
+        document.getElementById("id_mod_employee_switch_date").innerText = null
+        document.getElementById("id_mod_employee_select_shift").innerText = null
+        document.getElementById("id_mod_employee_split_time").innerText = null
+
+        document.getElementById("id_mod_employee_btn_switch").classList.remove("tsa_btn_selected")
+        document.getElementById("id_mod_employee_btn_split").classList.remove("tsa_btn_selected")
+        document.getElementById("id_mod_employee_btn_absent").classList.remove("tsa_btn_selected")
+
+        document.getElementById("id_mod_employee_filter_employee").removeAttribute("tsa_btn_selected")
+
+        document.getElementById("id_mod_employee_body_right").classList.add(cls_hide)
+
+// get tr_selected
+        let tr_selected = get_tablerow_selected(el_input)
+
+// get eplh_pk and eplh_ppk from tr_selected
+        const data_table = get_attr_from_el(tr_selected, "data-table")
+        const eplh_pk_str = get_attr_from_el(tr_selected, "data-pk")
+        const eplh_ppk_str = get_attr_from_el(tr_selected, "data-ppk");
+        //console.log("data_table", data_table, "eplh_pk_str", eplh_pk_str, "eplh_ppk_str", eplh_ppk_str)
+
+// get rosterdate from el_input.rosterdate
+        const el_rosterdate = tr_selected.cells[0].firstChild;
+        const data_rosterdate = get_attr_from_el(el_rosterdate, "data-value");
+        //console.log("data_rosterdate", data_rosterdate)
+
+// get values from el_input
+        const data_field_value = el_input.value;
+        const data_field = get_attr_from_el(el_input, "data-field");
+        const cur_employee_pk_int = get_attr_from_el_int(el_input, "data-pk");
+        const cur_employee_ppk_int = get_attr_from_el_int(el_input, "data-ppk");
+        //console.log("field", data_field, "cur_employee_pk_int", cur_employee_pk_int, typeof cur_employee_pk_int)
+
+// put values in el_mod_employee_body
+        el_mod_employee_body.setAttribute("data-table", data_table);
+        el_mod_employee_body.setAttribute("data-pk", eplh_pk_str);
+        el_mod_employee_body.setAttribute("data-ppk", eplh_ppk_str);
+
+        el_mod_employee_body.setAttribute("data-field", data_field);
+        el_mod_employee_body.setAttribute("data-field_value", data_field_value);
+        el_mod_employee_body.setAttribute("data-field_pk", cur_employee_pk_int);
+        el_mod_employee_body.setAttribute("data-field_ppk", cur_employee_ppk_int);
+
+        el_mod_employee_body.setAttribute("data-rosterdate", data_rosterdate);
+
+        let header_text;
+        if (!!el_input.value) {
+            header_text = el_input.value
+        } else {
+            header_text = get_attr_from_el(el_data, "data-txt_employee_select") + ":";
+            // el_mod_employee_body_right.classList.add(cls_hide)
+        }
+        el_mod_employee_header.innerText = header_text
+        // fill select table employees
+
+        ModEmployeeFillSelectTableEmployee(cur_employee_pk_int)
+
+        // change label 'txt_employee_replacement' to 'select_employee' if no employee, hide right panel
+        let data_text, mode;
+        if(!!cur_employee_pk_int){
+            document.getElementById("id_mod_employee_body_right").classList.remove(cls_hide)
+            data_text = "data-txt_employee_replacement"
+            mode = "absent"
+
+        } else {
+            document.getElementById("id_mod_employee_body_right").classList.add(cls_hide)
+            data_text = "data-txt_employee_select"
+            mode = "enter"
+        }
+        document.getElementById("id_label_mod_employee").innerText =  el_data.getAttribute(data_text)
+
+// set default button absence
+        ModEmployeeBtnSelect(mode)
+
+// hide save button in mode = 'enter'
+        if(mode === "enter"){
+            document.getElementById("id_mod_employee_btn_save").classList.add(cls_hide)
+        } else {
+            document.getElementById("id_mod_employee_btn_save").classList.remove(cls_hide)
+        }
+
+
+// ---  show modal
+        $("#id_mod_employee").modal({backdrop: true});
+
+    };  // ModEmployeeOpen
+
+//=========  ModEmployeeSave  ================ PR2019-06-23
+    function ModEmployeeSave() {
+        console.log("===  ModEmployeeSave =========");
+
+        let btn_name = el_mod_employee_body.getAttribute("data-action");
+
+// get emplhour pk and parent_pk , create id_dict Emplhour
+        let emplhour_dict = get_iddict_from_element(el_mod_employee_body);
+        const eplh_rosterdate = get_attr_from_el(el_mod_employee_body, "data-rosterdate");
+        if(!!eplh_rosterdate){emplhour_dict["rosterdate"] = eplh_rosterdate}
+        //console.log("--- emplhour_dict", emplhour_dict)
+
+        let emplhour_pk = get_datapk_from_element(el_mod_employee_body);
+        console.log("--- emplhour_pk", emplhour_pk)
+        const id_str = "emplhour" + emplhour_pk.toString();
+        console.log("--- id_str", id_str)
+        let emplhour_tblRow = document.getElementById(id_str)
+        console.log("--- emplhour_tblRow", emplhour_tblRow)
+
+        let abscat_dict = {};
+        let replacement_dict = {};
+        let employee_dict = {};
+        let switch_dict = {};
+
+// get current employee of emplhour_tblRow create id_dict Employee
+        const cur_employee_pk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_pk")
+        const cur_employee_ppk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_ppk")
+        const cur_employee_code = get_attr_from_el(el_mod_employee_body, "data-field_value")
+
+        if(!!cur_employee_pk_int){
+            employee_dict["field"] = "employee";
+            employee_dict["pk"] = cur_employee_pk_int;
+            employee_dict["ppk"] = cur_employee_ppk_int;
+            employee_dict["code"] = cur_employee_code;
+        }
+    //console.log("curemployee_dict: ", curemployee_dict);
+
+// get employee from select list when mode = 'enter''
+        if (btn_name === "enter"){
+            let el_tblbody = document.getElementById("id_mod_employee_tblbody")
+            const pk_int = get_attr_from_el_int(el_tblbody, "data-pk");
+            const ppk_int = get_attr_from_el_int(el_tblbody, "data-ppk");
+            const code = get_attr_from_el(el_tblbody, "data-code");
+
+            if(!!pk_int){
+                replacement_dict["field"] = "replacement";
+                employee_dict["update"] = true;
+                if(!!pk_int){replacement_dict["pk"] = pk_int};
+                if(!!ppk_int){replacement_dict["ppk"] = ppk_int};
+                if(!!code){replacement_dict["code"] = code};
+            }
+        } else {
+            const pk_int = get_datapk_from_element(el_mod_employee_input_employee);
+            const ppk_int = get_datappk_from_element(el_mod_employee_input_employee);
+            const code = el_mod_employee_input_employee.value
+            if(!!pk_int){
+                replacement_dict["field"] = "replacement";
+                if(!!pk_int){replacement_dict["pk"] = pk_int};
+                if(!!ppk_int){replacement_dict["ppk"] = ppk_int};
+                if(!!code){replacement_dict["code"] = code};
+            }
+
+// get replacement employee of input element 'employee'
+        }
+// get selected button
+        if (btn_name === "absent"){
+        // get absence category
+            let el_select_abscat = document.getElementById("id_mod_employee_abscat")
+            if(el_select_abscat.selectedIndex > -1){
+                const selected_option = el_select_abscat.options[el_select_abscat.selectedIndex];
+                const abscat_pk = parseInt(el_select_abscat.value)
+                const abscat_ppk = get_attr_from_el_int(selected_option, "data-ppk");
+                const abscat_code = selected_option.text;
+
+                abscat_dict["field"] = btn_name;
+                if(!!abscat_pk){abscat_dict["pk"] = abscat_pk};
+                if(!!abscat_ppk){abscat_dict["ppk"] = abscat_ppk};
+                if(!!abscat_code){abscat_dict["code"] = abscat_code};
+            }
+        }
+
+        if (btn_name === "switch"){
+            let el_select_replacement = document.getElementById("id_mod_employee_select_shift")
+            if(el_select_replacement.selectedIndex > -1){
+                let selected_option = el_select_replacement.options[el_select_replacement.selectedIndex];
+                    switch_dict["rosterdate"] = get_attr_from_el(selected_option, "data-rosterdate");
+                    switch_dict["employee_pk"] = get_attr_from_el_int(selected_option, "data-employee_pk");
+                    switch_dict["reployee_pk"] = get_attr_from_el_int(selected_option, "data-reployee_pk");
+                    switch_dict["si_pk"] = get_attr_from_el_int(selected_option, "data-si_pk");
+                    switch_dict["team_pk"] = get_attr_from_el_int(selected_option, "data-team_pk");
+                    switch_dict["tmmbr_pk"] = get_attr_from_el_int(selected_option, "data-tmmbr_pk");
+                    switch_dict["eplh_pk"] = get_attr_from_el_int(selected_option, "data-eplh_pk");
+            }
+        }
+        //console.log("switch_dict: ", switch_dict);
+
+        $('#id_mod_employee').modal('hide');
+
+// field_dict gets info of selected employee
+
+        if(!isEmpty(emplhour_dict)){
+            // {pk: 605, parent_pk: 1, table: "employee"}
+            let row_upload= {};
+
+            row_upload["id"] = emplhour_dict;
+
+            //let field_dict = get_iddict_from_element(select_tblRow);
+
+            row_upload["mode"] = btn_name;
+            if(!isEmpty(employee_dict)){row_upload["employee"] = employee_dict};
+            if(!isEmpty(replacement_dict)){row_upload["replacement"] = replacement_dict};
+            if(!isEmpty(abscat_dict)){row_upload["abscat"] = abscat_dict};
+            console.log ("row_upload: ", row_upload);
+
+            let parameters = {"emplhour": JSON.stringify (row_upload)};
+
+            let response;
+            $.ajax({
+                type: "POST",
+                url: url_emplhour_upload,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                    console.log ("response", response);
+                    if ("item_update" in response) {
+                        UpdateTableRow("emplhour", emplhour_tblRow, response["item_update"])
+                    }
+                },
+                error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
+                    alert(msg + '\n' + xhr.responseText);
+                }
+            });
+
+        }  // if(!isEmpty(id_dict)
+    }  // ModEmployeeSave
+
+//=========  ModEmployeeBtnSelect  ================ PR2019-05-25
+    function ModEmployeeBtnSelect(btn_name) {
+        //console.log( "===== ModEmployeeBtnSelect ========= ");
+
+        el_mod_employee_body.setAttribute("data-action", btn_name);
+
+        let el_div_mod_absent = document.getElementById("id_div_mod_absent")
+        let el_div_mod_switch = document.getElementById("id_div_mod_switch")
+        let el_div_mod_split = document.getElementById("id_div_mod_split")
+        let el_labl_mod_employee = document.getElementById("id_label_mod_employee")
+
+// ---  deselect all highlighted row
+        let btn_absent = document.getElementById("id_mod_employee_btn_absent")
+            btn_absent.classList.remove("tsa_btn_selected")
+        let btn_switch = document.getElementById("id_mod_employee_btn_switch")
+            btn_switch.classList.remove("tsa_btn_selected")
+        let btn_split = document.getElementById("id_mod_employee_btn_split")
+            btn_split.classList.remove("tsa_btn_selected")
+
+        switch (btn_name) {
+        case "absent":
+            el_div_mod_absent.classList.remove("display_hide")
+            el_div_mod_switch.classList.add("display_hide")
+            el_div_mod_split.classList.add("display_hide")
+            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_employee_replacement") + ":"
+            btn_absent.classList.add("tsa_btn_selected")
+            ModEmployeeFillOptionAbscat();
+            break;
+        case "switch":
+            el_div_mod_absent.classList.add("display_hide")
+            el_div_mod_switch.classList.remove("display_hide")
+            el_div_mod_split.classList.add("display_hide")
+            el_labl_mod_employee.innerText = el_data.getAttribute("data-txt_empl_switch_employee") + ":"
+            btn_switch.classList.add("tsa_btn_selected")
+            el_mod_employee_input_employee.focus()
+            break;
+        case "split":
+            el_div_mod_absent.classList.add("display_hide")
+            el_div_mod_switch.classList.add("display_hide")
+            el_div_mod_split.classList.remove("display_hide")
+            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_employee_replacement") + ":"
+            btn_split.classList.add("tsa_btn_selected")
+            el_mod_employee_input_employee.focus()
+		}
+
+    }
+
+//=========  ModEmployeeTableEmployeeSelect  ================ PR2019-05-24
+    function ModEmployeeTableEmployeeSelect(tblRow) {
+        //console.log( "===== ModEmployeeTableEmployeeSelect ========= ");
+        //console.log( tblRow);
+
+// ---  deselect all highlighted rows
+        DeselectHighlightedRows(tblRow, cls_selected)
+
+// get current employee from el_mod_employee_body data-field
+        const cur_employee_pk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_pk");
+        const cur_employee = get_attr_from_el(el_mod_employee_body, "data-field_value");
+        const cur_employee_ppk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_ppk");
+        const cur_rosterdate = get_attr_from_el(el_mod_employee_body, "data-rosterdate");
+
+// ---  get clicked tablerow
+        if(!!tblRow) {
+            let tblBody_select = tblRow.parentNode
+
+// ---  highlight clicked row
+            tblRow.classList.add(cls_selected)
+
+            // el_input is first child of td, td is cell of tblRow
+            const el_select = tblRow.cells[0].children[0];
+            const value = get_attr_from_el(el_select, "data-value");
+
+    // ---  get pk from id of select_tblRow
+            let reployee_pk = get_datapk_from_element (tblRow)
+            let reployee_ppk = get_datappk_from_element (tblRow)
+
+    // ---  store selected pk and ppk in input_employee, also in selecettablebody
+            el_mod_employee_input_employee.value = value
+            if (!!reployee_pk){
+                tblBody_select.setAttribute("data-pk", reployee_pk);
+                el_mod_employee_input_employee.setAttribute("data-pk", reployee_pk);
+            } else {
+                tblBody_select.removeAttribute("data-pk");
+                el_mod_employee_input_employee.removeAttribute("data-pk");
+            }
+            if (!!reployee_ppk){
+                tblBody_select.setAttribute("data-ppk", reployee_ppk);
+                el_mod_employee_input_employee.setAttribute("data-ppk", reployee_ppk);
+            } else {
+                tblBody_select.removeAttribute("data-ppk");
+                el_mod_employee_input_employee.removeAttribute("data-ppk");
+            }
+            if (!!value){
+                tblBody_select.setAttribute("data-code", value);
+                el_mod_employee_input_employee.setAttribute("data-code", value);
+            } else {
+                tblBody_select.removeAttribute("data-code");
+                el_mod_employee_input_employee.removeAttribute("data-code");
+            }
+            let data_action = el_mod_employee_body.getAttribute("data-action");
+
+            if (data_action === "enter" ) {
+            // save immediately whenmode = 'enter'
+                ModEmployeeSave()
+
+            } else if (data_action === "switch" ) {
+    // get shifts of switch employee
+                const datalist_request = {"replacement": { "action": data_action, "rosterdate": cur_rosterdate,
+                        "employee": cur_employee, "employee_pk": cur_employee_pk_int, "employee_ppk": cur_employee_ppk_int,
+                        "reployee": value, "reployee_pk": reployee_pk, "reployee_ppk": reployee_ppk}};
+                DatalistDownload(datalist_request);
+            }
+        }
+    }  // ModEmployeeTableEmployeeSelect
 
 //=========  ModEmployeeFilterEmployee  ================ PR2019-05-26
     function ModEmployeeFilterEmployee(option) {
@@ -956,10 +1310,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let has_selection = false, has_multiple = false;
         let select_value, select_pk, select_parentpk;
-        let len = el_mod_employee_tbody.rows.length;
+        let len = el_mod_employee_tblbody.rows.length;
         if (!skip_filter && !!len){
             for (let row_index = 0, tblRow, show_row, el, el_value; row_index < len; row_index++) {
-                tblRow = el_mod_employee_tbody.rows[row_index];
+                tblRow = el_mod_employee_tblbody.rows[row_index];
                 el = tblRow.cells[0].children[0]
                 show_row = false;
                 if (!filter_mod_employee){
@@ -1008,205 +1362,285 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }; // function ModEmployeeFilterEmployee
 
-//=========  ModEmployeeBtnSelect  ================ PR2019-05-25
-    function ModEmployeeBtnSelect(btn_name) {
-        //console.log( "===== ModEmployeeBtnSelect ========= ");
+//========= ModEmployeeFillSelectTableEmployee  ============= PR2019-08-18
+    function ModEmployeeFillSelectTableEmployee(selected_employee_pk) {
+        // console.log( "=== ModEmployeeFillSelectTableEmployee ");
 
-        el_mod_employee_body.setAttribute("data-action", btn_name);
+        const caption_one = get_attr_from_el(el_data, "data-txt_employee_select") + ":";
+        const caption_none = get_attr_from_el(el_data, "data-txt_employee_select_none") + ":";
 
-        let el_div_mod_absent = document.getElementById("id_div_mod_absent")
-        let el_div_mod_switch = document.getElementById("id_div_mod_switch")
-        let el_div_mod_split = document.getElementById("id_div_mod_split")
-        let el_labl_mod_employee = document.getElementById("id_label_mod_employee")
+        let tableBody = el_mod_employee_tblbody
+        let item_list = employee_list
+        tableBody.innerText = null;
 
-// ---  deselect all highlighted row
-        let btn_absent = document.getElementById("id_mod_employee_btn_absent")
-            btn_absent.classList.remove("tsa_btn_selected")
-        let btn_switch = document.getElementById("id_mod_employee_btn_switch")
-            btn_switch.classList.remove("tsa_btn_selected")
-        let btn_split = document.getElementById("id_mod_employee_btn_split")
-            btn_split.classList.remove("tsa_btn_selected")
+        let len = item_list.length;
+        let row_count = 0
 
-        switch (btn_name) {
-        case "absent":
-            el_div_mod_absent.classList.remove("display_hide")
-            el_div_mod_switch.classList.add("display_hide")
-            el_div_mod_split.classList.add("display_hide")
-            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_replacement") + ":"
-            btn_absent.classList.add("tsa_btn_selected")
-            break;
-        case "switch":
-            el_div_mod_absent.classList.add("display_hide")
-            el_div_mod_switch.classList.remove("display_hide")
-            el_div_mod_split.classList.add("display_hide")
-            el_labl_mod_employee.innerText = el_data.getAttribute("data-txt_empl_switch_employee") + ":"
-            btn_switch.classList.add("tsa_btn_selected")
-            el_mod_employee_input_employee.focus()
-            break;
-        case "split":
-            el_div_mod_absent.classList.add("display_hide")
-            el_div_mod_switch.classList.add("display_hide")
-            el_div_mod_split.classList.remove("display_hide")
-            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_replacement") + ":"
-            btn_split.classList.add("tsa_btn_selected")
-            el_mod_employee_input_employee.focus()
-		}
+//--- when no items found: show 'select_customer_none'
+        if (len === 0){
+            let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+            let td = tblRow.insertCell(-1);
+            td.innerText = caption_none;
+        } else {
 
-    }
+//--- loop through item_list
+            for (let i = 0; i < len; i++) {
+                let item_dict = item_list[i];
+                // item_dict = {id: {pk: 12, parent_pk: 2}, code: {value: "13 uur"},  cycle: {value: 13}}
+                // team_list dict: {pk: 21, id: {pk: 21, parent_pk: 20}, code: {value: "C"}}
+                const pk_int = get_pk_from_id (item_dict)
+                const ppk_int = get_ppk_from_id (item_dict)
+                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
+                // console.log( "pk: ", pk, " ppk_int: ", ppk_int, " code_value: ", code_value);
 
-//=========  HandleTableEmployeeSelect  ================ PR2019-05-24
-    function HandleTableEmployeeSelect(tblRow) {
-        console.log( "===== HandleTableEmployeeSelect ========= ");
-        console.log( tblRow);
+//- skip selected employee
+                if (pk_int !== selected_employee_pk){
 
-// ---  deselect all highlighted rows
-        DeselectHighlightedRows(tblRow, cls_selected)
+//- insert tableBody row
+                    let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+                    // NOT IN USE tblRow.setAttribute("id", tablename + "_" + pk.toString());
+                    tblRow.setAttribute("data-pk", pk_int);
+                    tblRow.setAttribute("data-ppk", ppk_int);
+                    // NOT IN USE, put in tableBody. Was:  tblRow.setAttribute("data-table", tablename);
 
-// get current employee from el_mod_employee_body data-field
-        const cur_employee_pk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_pk");
-        const cur_employee = get_attr_from_el(el_mod_employee_body, "data-field_value");
-        const cur_employee_ppk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_ppk");
-        const cur_rosterdate = get_attr_from_el(el_mod_employee_body, "data-rosterdate");
+//- add hover to tableBody row
+                    tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
+                    tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
 
-// ---  get clicked tablerow
-        if(!!tblRow) {
+//- add EventListener to Modal SelectEmployee row
+                    tblRow.addEventListener("click", function() {ModEmployeeTableEmployeeSelect(tblRow)}, false )
 
-// ---  highlight clicked row
-            tblRow.classList.add(cls_selected)
+// - add first td to tblRow.
+                    // index -1 results in that the new cell will be inserted at the last position.
+                    let code = get_subdict_value_by_key (item_dict, "code", "value", "")
+                    let td = tblRow.insertCell(-1);
 
-            // el_input is first child of td, td is cell of tblRow
-            const el_select = tblRow.cells[0].children[0];
-            const value = get_attr_from_el(el_select, "data-value");
-            console.log(">>>>>>>>> value: ", value)
+// --- add a element to td., necessary to get same structure as item_table, used for filtering
+                    let el = document.createElement("div");
+                        el.innerText = code;
+                        el.classList.add("mx-1")
+                        el.setAttribute("data-value", code_value);
+                        el.setAttribute("data-pk", pk_int);
+                        el.setAttribute("data-ppk", ppk_int);
+                        el.setAttribute("data-field", "code");
+                    td.appendChild(el);
 
-    // ---  get pk from id of select_tblRow
-            let reployee_pk = get_datapk_from_element (tblRow)
-            let reployee_ppk = get_datappk_from_element (tblRow)
+    // --- count tblRow
+                    row_count += 1
+                } //  if (pk_int !== selected_employee_pk){
+            } // for (let i = 0; i < len; i++)
+        }  // if (len === 0)
+    } // ModEmployeeFillSelectTableEmployee
 
-            console.log("reployee_pk: ", reployee_pk)
-            console.log("reployee_ppk: ", reployee_ppk)
-            el_mod_employee_input_employee.value = value
-            el_mod_employee_input_employee.setAttribute("data-pk", reployee_pk);
-            el_mod_employee_input_employee.setAttribute("data-ppk", reployee_ppk);
+//========= ModEmployeeFillOptionAbscat  ====================================
+    function ModEmployeeFillOptionAbscat() {
+        //console.log( "=== ModEmployeeFillOptionAbscat  ");
 
-    // get shifts of switch employee
-            let data_action = el_mod_employee_body.getAttribute("data-action");
-            if (data_action === "switch" ) {
-                const datalist_request = {"replacement": { "action": data_action, "rosterdate": cur_rosterdate,
-                        "employee": cur_employee, "employee_pk": cur_employee_pk_int, "employee_ppk": cur_employee_ppk_int,
-                        "reployee": value, "reployee_pk": reployee_pk, "reployee_ppk": reployee_ppk}};
-                DatalistDownload(datalist_request);
-            }
+// ---  fill options of select box
+        let curOption;
+        let option_text = "";
+        let el_select = document.getElementById("id_mod_employee_abscat")
+
+        el_select.innerText = null
+
+// --- loop through option list
+        let len = 0, row_count = 0
+        if(!!abscat_list){len = abscat_list.length}
+        if (!!len) {
+
+            for (let i = 0; i < len; i++) {
+                let dict = abscat_list[i];
+                // dict = { pk: 72,  id: {pk: 72, parent_pk: 61, table: "order"}, code: {value: "Vakantie"} }
+                //console.log("dict", dict);
+
+                let pk_int = get_pk_from_id(dict);
+                let ppk_int = get_ppk_from_id(dict)
+
+                const field = "code";
+                let value = "-";
+                if (field in dict) {if ("value" in dict[field]) {value = dict[field]["value"]}}
+                option_text += "<option value=\"" + pk_int + "\" data-ppk=\"" + ppk_int + "\"";
+                if (value === curOption) {option_text += " selected=true" };
+                option_text +=  ">" + value + "</option>";
+                row_count += 1
+            }  // for (let i = 0, len = option_list.length;
+        }  // if (!!len)
+
+        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
+
+        const select_text_abscat = get_attr_from_el(el_data, "data-txt_select_abscat");
+        const select_text_abscat_none = get_attr_from_el(el_data, "data-txt_select_abscat_none");
+
+        let select_first_option = false
+        if (!row_count){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text_abscat_none + "...</option>"
+        } else if (row_count === 1) {
+            select_first_option = true
+        } else if (row_count > 1){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text_abscat + "...</option>" + option_text
         }
-    }  // HandleTableEmployeeSelect
+        el_select.innerHTML = option_text;
 
-//=========  ModEmployeeSave  ================ PR2019-06-23
-    function ModEmployeeSave() {
-        console.log("===  ModEmployeeSave =========");
+// if there is only 1 option: select first option
+        if (select_first_option){
+            el_select.selectedIndex = 0
+        }
 
-// get emplhour pk and parent_pk , create id_dict Emplhour
-        let emplhour_dict = get_iddict_from_element(el_mod_employee_body);
-            console.log("--- emplhour_dict", emplhour_dict)
-            // emplhour_dict: {pk: 137, parent_pk: 141, table: "emplhour"}
-        let emplhour_pk = get_datapk_from_element(el_mod_employee_body);
-            console.log("emplhour_pk", emplhour_pk)
-        let emplhour_tblRow = document.getElementById(emplhour_pk)
-            console.log("emplhour_tblRow")
-            console.log(emplhour_tblRow)
+    }  //function ModEmployeeFillOptionAbscat
 
-        let abscat_dict = {};
-        let employee_dict = {};
-        let replacement_dict = {}
+//========= ModEmployeeFillOptionDates  ====================================
+    function ModEmployeeFillOptionDates(replacement_dates) {
+       // console.log( "=== ModEmployeeFillOptionDates  ");
+        //console.log(replacement_dates);
+        // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
 
-// get employee pk and employee parent_pk , create id_dict Employee
-        let employee_pk =  get_datapk_from_element(el_mod_employee_input_employee);
-        let employee_parent_pk = get_datappk_from_element(el_mod_employee_input_employee);
-        let employee_code = el_mod_employee_input_employee.value
+// ---  fill options of select box
+        let curOption;
+        let option_text = "";
+        let row_count = 0
 
-// get selected button
-        let btn_name = el_mod_employee_body.getAttribute("data-action");
-        if (!btn_name){btn_name = "employee"}
-        console.log("btn_name: ", btn_name);
-        switch (btn_name) {
-        case "absent":
-        // get absence category
-            let el_select_abscat = document.getElementById("id_mod_employee_abscat")
-            let abscat_pk = parseInt(el_select_abscat.value)
-            let abscat_parent_pk = get_datappk_from_element(el_select_abscat)
+        let el_select_date = document.getElementById("id_mod_employee_switch_date")
+        el_select_date.innerText = null
 
-            abscat_dict["field"] = "abscat";
-            abscat_dict["pk"] = abscat_pk;
-            abscat_dict["ppk"] = abscat_parent_pk;
-            console.log("abscat_dict: ", abscat_dict);
+        document.getElementById("id_mod_employee_select_shift").innerText = null
 
-            break;
-        case "switch":
-        // get replacement
+        let option_list = [], len = 0;
+        if (!!replacement_dates){
+            option_list = replacement_dates
+            //console.log("option_list", option_list);
+            if(!!option_list){len = option_list.length;}
+        }
 
-            let el_select_replacement = document.getElementById("id_mod_employee_switch_shift")
-            if(el_select_replacement.selectedIndex > -1){
-                let selected_option = el_select_replacement.options[el_select_replacement.selectedIndex];
-                    replacement_dict["rosterdate"] = get_attr_from_el(selected_option, "data-rosterdate");
-                    replacement_dict["employee_pk"] = get_attr_from_el_int(selected_option, "data-employee_pk");
-                    replacement_dict["reployee_pk"] = get_attr_from_el_int(selected_option, "data-reployee_pk");
-                    replacement_dict["si_pk"] = get_attr_from_el_int(selected_option, "data-si_pk");
-                    replacement_dict["team_pk"] = get_attr_from_el_int(selected_option, "data-team_pk");
-                    replacement_dict["tmmbr_pk"] = get_attr_from_el_int(selected_option, "data-tmmbr_pk");
-                    replacement_dict["eplh_pk"] = get_attr_from_el_int(selected_option, "data-eplh_pk");
+// --- loop through option list
+
+        if (!!len) {
+            for (let i = 0; i < len; i++) {
+                const rosterdate = option_list[i];
+                //console.log( "rosterdate: ", rosterdate);
+
+                const rosterdate_moment = moment(rosterdate, "YYYY-MM-DD")
+                //console.log( "rosterdate_moment: ", rosterdate_moment.format());
+
+                const rosterdate_format = format_datemedium(rosterdate_moment, weekday_list, month_list, false, false)
+
+
+                // dict = { pk: 72,  id: {pk: 72, parent_pk: 61, table: "order"}, code: {value: "Vakantie"} }
+                // console.log("dict", dict);
+                if (!!rosterdate){
+                    option_text += "<option value=\"" + rosterdate + "\"";
+                    option_text +=  ">" + rosterdate_format + "</option>";
+
+                    row_count += 1
+                }  // if (!!rosterdate){
+
+            }  // for (let i = 0, len = option_list.length;
+
+        }  // if (!!len)
+
+        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
+        const select_text_switch_date = get_attr_from_el(el_data, "data-txt_empl_switch_date");
+        const select_text_switch_dates_none = get_attr_from_el(el_data, "data-txt_empl_switch_nodates");
+
+        let select_first_option = false
+        if (!row_count){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text_switch_dates_none + "...</option>"
+        } else if (row_count === 1) {
+            select_first_option = true
+        } else if (row_count > 1){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text_switch_date + "...</option>" + option_text
+        }
+        el_select_date.innerHTML = option_text;
+
+// if there is only 1 option: select first option
+        if (select_first_option){
+            el_select_date.selectedIndex = 0
+        } else {
+            el_select_date.focus()
+        }
+
+        ModEmployeeFillOptionsShift(el_select_date.value)
+    }  //function ModEmployeeFillOptionDates
+
+//========= ModEmployeeFillOptionsShift  ====================================
+    function ModEmployeeFillOptionsShift(selected_rosterdate) {
+        console.log( "=== ModEmployeeFillOptionsShift  ");
+        // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
+
+// ---  fill options of select box
+        let option_text = "";
+
+        let el_select_shift = document.getElementById("id_mod_employee_select_shift")
+        el_select_shift.innerText = null
+
+        // selected_rosterdate only has value when there is only one rosterdate (called by ModEmployeeFillOptionDates)
+        // setfocus on select shift only after clicking date, ie when !selected_rosterdate
+        let set_focus = false;
+        if (!selected_rosterdate){
+            selected_rosterdate = document.getElementById("id_mod_employee_switch_date").value
+            set_focus = (!!selected_rosterdate)
+        }
+        console.log("selected_rosterdate", selected_rosterdate);
+        console.log("replacement_list", replacement_list);
+
+// --- loop through option list
+        let len = 0, row_count = 0
+        if (!!replacement_list){len = replacement_list.length;}
+        if (!!selected_rosterdate && !!len) {
+            for (let i = 0; i < len; i++) {
+                const shift_dict = replacement_list[i];
+                console.log( "shift_dict: ", shift_dict);
+                if(!!shift_dict){
+                    const rosterdate = get_dict_value_by_key(shift_dict, "rosterdate")
+                    if (rosterdate === selected_rosterdate){
+                        const cust_order_shift = get_dict_value_by_key(shift_dict, "cust_order_shift")
+                        const eplh_pk_str = get_dict_value_by_key(shift_dict, "eplh_pk")
+                        const reployee_pk_str = get_dict_value_by_key(shift_dict, "reployee_pk")
+                        const employee_pk_str = get_dict_value_by_key(shift_dict, "employee_pk")
+                        const team_pk_str = get_dict_value_by_key(shift_dict, "team_pk")
+
+                        option_text += "<option "; //
+                        if (!!rosterdate) {option_text += " data-rosterdate=\"" + rosterdate + "\""};
+                        if (!!eplh_pk_str) {option_text += " data-eplh_pk=\"" + eplh_pk_str + "\""};
+                        if (!!team_pk_str) {option_text += " data-team_pk=\"" + team_pk_str + "\""};
+                        if (!!reployee_pk_str) {option_text += " data-reployee_pk=\"" + reployee_pk_str + "\""};
+                        if (!!employee_pk_str) {option_text += " data-employee_pk=\"" + employee_pk_str + "\""};
+                        option_text +=  ">" + cust_order_shift + "</option>";
+
+                        row_count += 1
+
+                    }  // if (rosterdate === selected_rosterdate){
+                }  // if(!!selected_rosterdate){
+            }  // for (let i = 0, len = option_list.length;
+
+        }  // if (!!len)
+
+        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
+        const select_text = get_attr_from_el(el_data, "data-txt_empl_switch_shift");
+        const select_text_none = get_attr_from_el(el_data, "data-txt_empl_switch_noshifts");
+
+        let select_first_option = false
+        if (!row_count){
+            if(!!selected_rosterdate){
+                option_text = "<option value=\"\" disabled selected hidden>" + select_text_none + "...</option>"
             }
+        } else if (row_count === 1) {
+            select_first_option = true
+        } else if (row_count > 1){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text + "...</option>" + option_text
+        }
+        el_select_shift.innerHTML = option_text;
 
-            break;
-        case "split":
-            break;
-        default:
-            employee_dict["field"] = "employee";
-            employee_dict["pk"] = employee_pk;
-            employee_dict["ppk"] = employee_parent_pk;
-            employee_dict["code"] = employee_code;
-            console.log("employee_dict: ", employee_dict);
-		}
-
-        $('#id_mod_employee').modal('hide');
-
-// field_dict gets info of selected employee
-
-        if(!isEmpty(emplhour_dict)){
-            // {pk: 605, parent_pk: 1, table: "employee"}
-            let row_upload= {};
+// if there is only 1 option: select first option
+        if (select_first_option){
+            el_select_shift.selectedIndex = 0
+            set_focus = false;
+        }
+         if (set_focus){el_select_shift.focus()}
 
 
+    }  //function ModEmployeeFillOptionsShift
 
-            row_upload["id"] = emplhour_dict;
-
-            //let field_dict = get_iddict_from_element(select_tblRow);
-
-            row_upload["mode"] = btn_name;
-            if(!!employee_dict){row_upload["employee"] = employee_dict};
-            if(!!replacement_dict){row_upload["replacement"] = replacement_dict};
-            console.log ("row_upload: ", row_upload);
-
-            let parameters = {"emplhour": JSON.stringify (row_upload)};
-
-            let response;
-            $.ajax({
-                type: "POST",
-                url: url_emplhour_upload,
-                data: parameters,
-                dataType:'json',
-                success: function (response) {
-                console.log ("response", response);
-                    if ("item_update" in response) {
-                        UpdateTableRow("emplhour", emplhour_tblRow, response["item_update"])
-                    }
-                },
-                error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
-                    alert(msg + '\n' + xhr.responseText);
-                }
-            });
-
-        }  // if(!isEmpty(id_dict)
-    }  // ModEmployeeSave
+// ++++ MOD INTERVAL ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //=========  ModalIntervalSelect ================ PR2019-05-24
     function ModalIntervalSelect(tblRow) {
@@ -1230,6 +1664,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // ModalIntervalSelect
 
+// ++++ MOD RANGE ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  ModalRangeSelect  ================ PR2019-07-14
     function ModalRangeSelect(tblRow) {
         console.log( "===== ModalRangeSelect ========= ");
@@ -1242,6 +1677,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }  // ModalRangeSelect
 
+// ++++ TABLE ROWS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  HandleTableRowClicked  ================ PR2019-03-30
     function HandleTableRowClicked(tr_clicked) {
         // console.log("=== HandleTableRowClicked");
@@ -1437,302 +1873,6 @@ document.addEventListener('DOMContentLoaded', function() {
         el_btn_rosterdate_remove.innerText = text_remove
 
     }; // function SetNewRosterdate
-
-//========= FillSelectOption  ====================================
-    function FillSelectOption(mode, option_list) {
-        console.log( "=== FillSelectOption  ", option_list);
-        // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
-
-
-// ---  fill options of select box
-        let curOption;
-        let option_text = "";
-        let row_count = 0
-        let el_select
-        if (mode = "abscat") {
-            el_select = document.getElementById("id_mod_employee_abscat")
-        } else if (mode = "switch_date") {
-            el_select = document.getElementById("id_mod_employee_switch_date")
-        } else if (mode = "switch_shift") {
-            el_select = document.getElementById("id_mod_employee_switch_shift")
-        }
-        el_select.innerText = null
-
-// --- loop through option list
-        let len = option_list.length;
-        if (!!len) {
-
-            for (let i = 0; i < len; i++) {
-                let dict = option_list[i];
-                // dict = { pk: 72,  id: {pk: 72, parent_pk: 61, table: "order"}, code: {value: "Vakantie"} }
-                // console.log("dict", dict);
-
-                let pk = get_pk_from_id(dict);
-                let parent_pk = get_ppk_from_id(dict)
-
-                // --- put abscat_parent_pk  in data-oparent_pk of el_select
-                if (i === 0) {
-                    el_select.setAttribute("data-ppk", parent_pk);
-                }
-
-                const field = "code";
-                let value = "-";
-                if (field in dict) {if ("value" in dict[field]) {value = dict[field]["value"]}}
-                option_text += "<option value=\"" + pk + "\"";
-                if (value === curOption) {option_text += " selected=true" };
-                option_text +=  ">" + value + "</option>";
-                row_count += 1
-
-            }  // for (let i = 0, len = option_list.length;
-
-        }  // if (!!len)
-
-        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
-
-        const select_text_abscat = get_attr_from_el(el_data, "data-txt_select_abscat");
-        const select_text_abscat_none = get_attr_from_el(el_data, "data-txt_select_abscat_none");
-
-        let select_first_option = false
-        if (!row_count){
-            option_text = "<option value=\"\" disabled selected hidden>" + select_text_abscat_none + "...</option>"
-        } else if (row_count === 1) {
-            select_first_option = true
-        } else if (row_count > 1){
-            option_text = "<option value=\"\" disabled selected hidden>" + select_text_abscat + "...</option>" + option_text
-        }
-        el_select.innerHTML = option_text;
-
-// if there is only 1 option: select first option
-        if (select_first_option){
-            el_select.selectedIndex = 0
-        }
-
-    }  //function FillSelectOption
-
-//========= ModEmployeeFillOptionDates  ====================================
-    function ModEmployeeFillOptionDates(replacement_dates) {
-       // console.log( "=== ModEmployeeFillOptionDates  ");
-        //console.log(replacement_dates);
-        // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
-
-// ---  fill options of select box
-        let curOption;
-        let option_text = "";
-        let row_count = 0
-
-        let el_select_date = document.getElementById("id_mod_employee_switch_date")
-        el_select_date.innerText = null
-
-        document.getElementById("id_mod_employee_switch_shift").innerText = null
-
-        let option_list = [], len = 0;
-        if (!!replacement_dates){
-            option_list = replacement_dates
-            //console.log("option_list", option_list);
-            if(!!option_list){len = option_list.length;}
-        }
-
-// --- loop through option list
-
-        if (!!len) {
-            for (let i = 0; i < len; i++) {
-                const rosterdate = option_list[i];
-                //console.log( "rosterdate: ", rosterdate);
-
-                const rosterdate_moment = moment(rosterdate, "YYYY-MM-DD")
-                //console.log( "rosterdate_moment: ", rosterdate_moment.format());
-
-                const rosterdate_format = format_datemedium(rosterdate_moment, weekday_list, month_list, false, false)
-
-
-                // dict = { pk: 72,  id: {pk: 72, parent_pk: 61, table: "order"}, code: {value: "Vakantie"} }
-                // console.log("dict", dict);
-                if (!!rosterdate){
-                    option_text += "<option value=\"" + rosterdate + "\"";
-                    option_text +=  ">" + rosterdate_format + "</option>";
-
-                    row_count += 1
-                }  // if (!!rosterdate){
-
-            }  // for (let i = 0, len = option_list.length;
-
-        }  // if (!!len)
-
-        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
-        const select_text_switch_date = get_attr_from_el(el_data, "data-txt_empl_switch_date");
-        const select_text_switch_dates_none = get_attr_from_el(el_data, "data-txt_empl_switch_nodates");
-
-        let select_first_option = false
-        if (!row_count){
-            option_text = "<option value=\"\" disabled selected hidden>" + select_text_switch_dates_none + "...</option>"
-        } else if (row_count === 1) {
-            select_first_option = true
-        } else if (row_count > 1){
-            option_text = "<option value=\"\" disabled selected hidden>" + select_text_switch_date + "...</option>" + option_text
-        }
-        el_select_date.innerHTML = option_text;
-
-// if there is only 1 option: select first option
-        if (select_first_option){
-            el_select_date.selectedIndex = 0
-        } else {
-            el_select_date.focus()
-        }
-
-        ModEmployeeFillOptionsShift(el_select_date.value)
-    }  //function ModEmployeeFillOptionDates
-
-
-//========= ModEmployeeFillOptionsShift  ====================================
-    function ModEmployeeFillOptionsShift(selected_rosterdate) {
-        console.log( "=== ModEmployeeFillOptionsShift  ");
-        // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
-
-// ---  fill options of select box
-        let option_text = "";
-
-        let el_select_shift = document.getElementById("id_mod_employee_switch_shift")
-        el_select_shift.innerText = null
-
-        // selected_rosterdate only has value when there is only one rosterdate (called by ModEmployeeFillOptionDates)
-        // setfocus on select shift only after clicking date, ie when !selected_rosterdate
-        let set_focus = false;
-        if (!selected_rosterdate){
-            selected_rosterdate = document.getElementById("id_mod_employee_switch_date").value
-            set_focus = (!!selected_rosterdate)
-        }
-        console.log("selected_rosterdate", selected_rosterdate);
-        console.log("replacement_list", replacement_list);
-
-// --- loop through option list
-        let len = 0, row_count = 0
-        if (!!replacement_list){len = replacement_list.length;}
-        if (!!selected_rosterdate && !!len) {
-            for (let i = 0; i < len; i++) {
-                const shift_dict = replacement_list[i];
-                console.log( "shift_dict: ", shift_dict);
-                if(!!shift_dict){
-                    const rosterdate = get_dict_value_by_key(shift_dict, "rosterdate")
-                    if (rosterdate === selected_rosterdate){
-                        const cust_order_shift = get_dict_value_by_key(shift_dict, "cust_order_shift")
-                        const eplh_pk_str = get_dict_value_by_key(shift_dict, "eplh_pk")
-                        const reployee_pk_str = get_dict_value_by_key(shift_dict, "reployee_pk")
-                        const employee_pk_str = get_dict_value_by_key(shift_dict, "employee_pk")
-                        const team_pk_str = get_dict_value_by_key(shift_dict, "team_pk")
-
-                        option_text += "<option "; //
-                        if (!!rosterdate) {option_text += " data-rosterdate=\"" + rosterdate + "\""};
-                        if (!!eplh_pk_str) {option_text += " data-eplh_pk=\"" + eplh_pk_str + "\""};
-                        if (!!team_pk_str) {option_text += " data-team_pk=\"" + team_pk_str + "\""};
-                        if (!!reployee_pk_str) {option_text += " data-reployee_pk=\"" + reployee_pk_str + "\""};
-                        if (!!employee_pk_str) {option_text += " data-employee_pk=\"" + employee_pk_str + "\""};
-                        option_text +=  ">" + cust_order_shift + "</option>";
-
-                        row_count += 1
-
-                    }  // if (rosterdate === selected_rosterdate){
-                }  // if(!!selected_rosterdate){
-            }  // for (let i = 0, len = option_list.length;
-
-        }  // if (!!len)
-
-        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
-        const select_text = get_attr_from_el(el_data, "data-txt_empl_switch_shift");
-        const select_text_none = get_attr_from_el(el_data, "data-txt_empl_switch_noshifts");
-
-        let select_first_option = false
-        if (!row_count){
-            if(!!selected_rosterdate){
-                option_text = "<option value=\"\" disabled selected hidden>" + select_text_none + "...</option>"
-            }
-        } else if (row_count === 1) {
-            select_first_option = true
-        } else if (row_count > 1){
-            option_text = "<option value=\"\" disabled selected hidden>" + select_text + "...</option>" + option_text
-        }
-        el_select_shift.innerHTML = option_text;
-
-// if there is only 1 option: select first option
-        if (select_first_option){
-            el_select_shift.selectedIndex = 0
-            set_focus = false;
-        }
-         if (set_focus){el_select_shift.focus()}
-
-
-    }  //function ModEmployeeFillOptionsShift
-
-
-//========= FillSelectTableEmployee  ============= PR2019-08-18
-    function FillSelectTableEmployee(selected_employee_pk) {
-        // console.log( "=== FillSelectTableEmployee ");
-
-        const caption_one = get_attr_from_el(el_data, "data-txt_select_employee") + ":";
-        const caption_none = get_attr_from_el(el_data, "data-txt_select_employee_none") + ":";
-
-
-        let tableBody = el_mod_employee_tbody
-        let item_list = employee_list
-        tableBody.innerText = null;
-
-        let len = item_list.length;
-        let row_count = 0
-
-//--- when no items found: show 'select_customer_none'
-        if (len === 0){
-            let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            let td = tblRow.insertCell(-1);
-            td.innerText = caption_none;
-        } else {
-
-//--- loop through item_list
-            for (let i = 0; i < len; i++) {
-                let item_dict = item_list[i];
-                // item_dict = {id: {pk: 12, parent_pk: 2}, code: {value: "13 uur"},  cycle: {value: 13}}
-                // team_list dict: {pk: 21, id: {pk: 21, parent_pk: 20}, code: {value: "C"}}
-                const pk_int = get_pk_from_id (item_dict)
-                const ppk_int = get_ppk_from_id (item_dict)
-                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
-                // console.log( "pk: ", pk, " ppk_int: ", ppk_int, " code_value: ", code_value);
-
-//- only show items of ppk_int
-                if (pk_int !== selected_employee_pk){
-
-//- insert tableBody row
-                    let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-                    // NOT IN USE tblRow.setAttribute("id", tablename + "_" + pk.toString());
-                    tblRow.setAttribute("data-pk", pk_int);
-                    tblRow.setAttribute("data-ppk", ppk_int);
-                    // NOT IN USE, put in tableBody. Was:  tblRow.setAttribute("data-table", tablename);
-
-//- add hover to tableBody row
-                    tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-                    tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
-
-//- add EventListener to Modal SelectEmployee row
-                    tblRow.addEventListener("click", function() {HandleTableEmployeeSelect(tblRow)}, false )
-
-// - add first td to tblRow.
-                    // index -1 results in that the new cell will be inserted at the last position.
-                    let code = get_subdict_value_by_key (item_dict, "code", "value", "")
-                    let td = tblRow.insertCell(-1);
-
-// --- add a element to td., necessary to get same structure as item_table, used for filtering
-                    let el = document.createElement("div");
-                        el.innerText = code;
-                        el.classList.add("mx-1")
-                        el.setAttribute("data-value", code_value);
-                        el.setAttribute("data-pk", pk_int);
-                        el.setAttribute("data-ppk", ppk_int);
-                        el.setAttribute("data-field", "code");
-                    td.appendChild(el);
-
-    // --- count tblRow
-                    row_count += 1
-                } //  if (pk_int !== selected_employee_pk){
-            } // for (let i = 0; i < len; i++)
-        }  // if (len === 0)
-    } // FillSelectTableEmployee
 
 //========= FillDatalistShift  ====================================
     function FillDatalistShift(data_list) {
@@ -2349,8 +2489,8 @@ console.log("===  function HandlePopupWdySave =========");
         console.log("===  ModSettingSave =========");
         let upload_dict = {}
 
-        if (mode === "current"){upload_dict = {"mode": "current"}} else
-        if (mode === "prev"){upload_dict = {"mode": "prev"}} else
+        if (mode === "current"){ upload_dict = {"mode": "current"}
+        } else if (mode === "prev"){upload_dict = {"mode": "prev"}} else
         if (mode === "next"){upload_dict = {"mode": "next"}} else
         if (mode === "setting"){
             upload_dict = {"mode": "setting"};
@@ -2478,93 +2618,6 @@ console.log("===  function HandlePopupWdySave =========");
     }; // function DisplayPeriod
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-    function ModalEmployeeOpen(el_input) {
-        console.log(" -----  ModalEmployeeOpen   ----")
-        // console.log(el_input)
-
-        let el_mod_employee_header = document.getElementById("id_mod_employee_header")
-        el_mod_employee_header.innerText = null
-
-        el_mod_employee_input_employee.value = null
-        document.getElementById("id_mod_employee_filter_employee").value = null
-        document.getElementById("id_mod_employee_abscat").innerText = null
-        document.getElementById("id_mod_employee_switch_date").innerText = null
-        document.getElementById("id_mod_employee_switch_shift").innerText = null
-        document.getElementById("id_mod_employee_split_time").innerText = null
-
-        document.getElementById("id_mod_employee_btn_absent").classList.remove("tsa_btn_selected")
-        document.getElementById("id_mod_employee_btn_switch").classList.remove("tsa_btn_selected")
-        document.getElementById("id_mod_employee_btn_split").classList.remove("tsa_btn_selected")
-
-        el_mod_employee_body.setAttribute("data-action", "none");
-
-
-        document.getElementById("id_mod_employee_body_right").classList.add(cls_hide)
-
-
-// get tr_selected
-        let tr_selected = get_tablerow_selected(el_input)
-
-// get info pk etc from tr_selected
-        const data_table = get_attr_from_el(tr_selected, "data-table")
-        const eplh_id_str = get_attr_from_el(tr_selected, "data-pk")
-        const eplh_parent_pk_str = get_attr_from_el(tr_selected, "data-ppk");
-        //console.log("data_table", data_table, "eplh_id_str", eplh_id_str, "eplh_parent_pk_str", eplh_parent_pk_str)
-
-// get rosterdate from el_input.rosterdate
-        const el_rosterdate = tr_selected.cells[0].firstChild;
-        //console.log("el_rosterdate", el_rosterdate)
-        const data_rosterdate = get_attr_from_el(el_rosterdate, "data-value");
-        //console.log("data_rosterdate", data_rosterdate)
-
-// get values from el_input
-        const data_field_value = el_input.value;
-        const data_field = get_attr_from_el(el_input, "data-field");
-        const employee_pk_int = get_attr_from_el_int(el_input, "data-pk");
-        const field_ppk_int = get_attr_from_el_int(el_input, "data-ppk");
-        //console.log("field", data_field, "employee_pk_int", employee_pk_int, typeof employee_pk_int)
-
-// put values in el_mod_employee_body
-        el_mod_employee_body.setAttribute("data-table", data_table);
-        el_mod_employee_body.setAttribute("data-pk", eplh_id_str);
-        el_mod_employee_body.setAttribute("data-ppk", eplh_parent_pk_str);
-
-        el_mod_employee_body.setAttribute("data-field", data_field);
-        el_mod_employee_body.setAttribute("data-field_value", data_field_value);
-        el_mod_employee_body.setAttribute("data-field_pk", employee_pk_int);
-        el_mod_employee_body.setAttribute("data-field_ppk", field_ppk_int);
-
-        el_mod_employee_body.setAttribute("data-rosterdate", data_rosterdate);
-
-        let header_text;
-        if (!!el_input.value) {
-            header_text = el_input.value
-        } else {
-            header_text = get_attr_from_el(el_data, "data-txt_select_employee") + ":";
-            // el_mod_employee_body_right.classList.add(cls_hide)
-        }
-        el_mod_employee_header.innerText = header_text
-        // fill select table employees
-
-        FillSelectTableEmployee(employee_pk_int)
-
-        // change label 'txt_replacement' to 'select_employee' if no employee, hide right panel
-        let data_text;
-        if(!!employee_pk_int){
-            document.getElementById("id_mod_employee_body_right").classList.remove(cls_hide)
-            data_text = "data-txt_replacement"
-        } else {
-            document.getElementById("id_mod_employee_body_right").classList.add(cls_hide)
-            data_text = "data-txt_select_employee"
-        }
-        document.getElementById("id_label_mod_employee").innerText =  el_data.getAttribute(data_text)
-
-    // ---  show modal
-        $("#id_mod_employee").modal({backdrop: true});
-
-    };  // ModalEmployeeOpen
-
 //========= ModalStatusOpen====================================
     function ModalStatusOpen (el_input) {
         console.log("===  ModalStatusOpen  =====") ;

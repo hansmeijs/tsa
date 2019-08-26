@@ -219,7 +219,6 @@
 
                             <div class="mx-2 my-2 ">
                                 <h6>{% trans 'Select an option' %}:</h6>
-
                             </div>
 
                             <div id="id_div_mod_buttons" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
@@ -264,8 +263,8 @@
 
                                 </div>
                                 <div class="form-group">
-                                    <label for="id_mod_employee_switch_shift" class="mx-2 my-2">{% trans 'Select shift' %}:</label>
-                                    <select id="id_mod_employee_switch_shift" class="form-control">
+                                    <label for="id_mod_employee_select_shift" class="mx-2 my-2">{% trans 'Select shift' %}:</label>
+                                    <select id="id_mod_employee_select_shift" class="form-control">
                                     </select>
                                 </div>
 
@@ -354,6 +353,7 @@
                  </div>
 <!-- =================== TIMEPICKER  =================== -->
                 {% include 'includes/timepicker.html' %}
+
 <!-- =================== DATA TABLE  =================== -->
                 <table class="table table-condensed tsa-tbl mx-4 my-1">
 
@@ -382,9 +382,11 @@
                             </a>
                         </th>
                     </thead>
+
                     <tbody id="id_tbody_items">
                     </tbody>
                 </table>
+<!-- =================== END DATA TABLE  =================== -->
             </div>
 
         </div>
@@ -462,9 +464,9 @@
             data-txt_workinghours= "{% trans 'Working hours' %}"
 
             data-txt_employee = "{% trans 'Employee' %}"
-            data-txt_select_employee= "{% trans 'Select employee' %}"
-            data-txt_select_employee_none= "{% trans 'No employees' %}"
-            data-txt_replacement= "{% trans 'Replacement employee' %}"
+            data-txt_employee_select= "{% trans 'Select employee' %}"
+            data-txt_employee_select_none= "{% trans 'No employees' %}"
+            data-txt_employee_replacement= "{% trans 'Replacement employee' %}"
             data-txt_empl_switch_employee= "{% trans 'Employee to be switched with' %}"
             data-txt_empl_switch_date= "{% trans 'Select date' %}"
             data-txt_empl_switch_nodates= "{% trans 'No dates with shifts that can be switched' %}"

@@ -8,7 +8,7 @@
 
 // get values from tr_selected and put them in el_timepicker
         let tr_selected = get_tablerow_selected(el_input)
-
+        console.log("tr_selected", tr_selected) ;
         // in mod_shift_add is no tblRow, get ifno from el instead
         if (!tr_selected){tr_selected= el_input}
 
@@ -89,14 +89,14 @@
 
 // ---  position popup under el_input
         let popRect = el_timepicker.getBoundingClientRect();
-        console.log("popRect", popRect)
+        //console.log("popRect", popRect)
         let inpRect = el_input.getBoundingClientRect();
-        console.log("inpRect", inpRect)
+        //console.log("inpRect", inpRect)
 
         const pop_width = 180; // to center popup under input box
         const correction_left = -240 - pop_width/2 ; // -240 because of sidebar
         const correction_top = -32; // -32 because of menubar
-        console.log("inpRect", inpRect)
+        //console.log("inpRect", inpRect)
         let topPos = inpRect.top + inpRect.height + correction_top;
         let leftPos = inpRect.left + correction_left; // let leftPos = elemRect.left - 160;
 
@@ -440,7 +440,7 @@
         console.log("==== SetAmPm  =====");
 
     // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tr_notallowed"))
+        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
         if (!disabled){
 
         // get new ampm from td data-ampm of td
@@ -523,7 +523,7 @@
        //console.log("==== SetHour  =====");
 
     // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tr_notallowed"))
+        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
        //console.log("disabled", disabled);
         if (!disabled){
 
@@ -616,7 +616,7 @@
         //console.log("==== SetMinute  =====");
 
     // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tr_notallowed"))
+        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
         if (!disabled){
 
         // get new minutes from data-minute of td
@@ -685,7 +685,7 @@
 
 //=========  HandleTimepickerSave  ================ PR2019-06-27
     function HandleTimepickerSave(el_timepicker, el_data, UpdateTableRow, mode) {
-        console.log("===  function HandleTimepickerSave =========");
+        //console.log("===  function HandleTimepickerSave =========");
 
 // ---  change quicksave when clicked on button 'Quicksave'
 
@@ -695,7 +695,7 @@
 
 // get quicksave from el_data
         let quicksave = get_quicksave_from_eldata(el_data);
-        console.log("quicksave", quicksave, typeof quicksave);
+        //console.log("quicksave", quicksave, typeof quicksave);
 
 // ---  change quicksave
         let save_datetime = true;
@@ -715,9 +715,9 @@
         const timeformat = get_attr_from_el(el_timepicker, "data-timeformat");
         const cls_highl = get_attr_from_el(el_timepicker, "data-cls_highl");
         const cls_hover = get_attr_from_el(el_timepicker, "data-cls_hover");
-        console.log ("field = ", field, "table = ", table)
+        //console.log ("field = ", field, "table = ", table)
 
-        console.log ("is_offset = ", is_offset, typeof is_offset)
+        //console.log ("is_offset = ", is_offset, typeof is_offset)
         //console.log (el_timepicker)
 
     // get values from el_timepicker
@@ -733,9 +733,9 @@
             const min_datetime_iso = get_attr_from_el(el_timepicker, "data-mindatetime");
             const max_datetime_iso = get_attr_from_el(el_timepicker, "data-maxdatetime");
 
-            console.log ("cur_datetime_iso = ", cur_datetime_iso, typeof cur_datetime_iso)
-            console.log ("min_datetime_iso = ", min_datetime_iso, typeof min_datetime_iso)
-            console.log ("max_datetime_iso = ", max_datetime_iso, typeof max_datetime_iso)
+            //console.log ("cur_datetime_iso = ", cur_datetime_iso, typeof cur_datetime_iso)
+            //console.log ("min_datetime_iso = ", min_datetime_iso, typeof min_datetime_iso)
+            //console.log ("max_datetime_iso = ", max_datetime_iso, typeof max_datetime_iso)
 
 
             let dict = CalcMinMaxHoursMinutes(cur_rosterdate_iso ,cur_datetime_iso,
@@ -743,7 +743,7 @@
                                               comp_timezone, timeformat);
 
             curOffset = dict["curOffset"];
-            console.log ("curOffset = ", curOffset)
+            //console.log ("curOffset = ", curOffset)
 
         // check if datetime is within min max range
             const cur_datetime_local = dict["cur_datetime_local"];
@@ -751,10 +751,10 @@
             const max_datetime_local = dict["max_datetime_local"];
             const within_range = DatetimeWithinRange(cur_datetime_local, min_datetime_local, max_datetime_local)
 
-            console.log ("cur_datetime_local = ", cur_datetime_local.format())
-            console.log ("min_datetime_local = ", min_datetime_local.format())
-            console.log ("max_datetime_local = ", max_datetime_local.format())
-            console.log ("within_range = ", within_range)
+            //console.log ("cur_datetime_local = ", cur_datetime_local.format())
+           // console.log ("min_datetime_local = ", min_datetime_local.format())
+           // console.log ("max_datetime_local = ", max_datetime_local.format())
+            //console.log ("within_range = ", within_range)
 
             if (!within_range) {
             //  TODO  console.log("not within_range: " + cur_datetime_local.format())
@@ -796,13 +796,7 @@
             const row_id = table + pk_str;
             let tr_selected = document.getElementById(row_id)
 
-            console.log ("-->>> quicksave = ", quicksave)
-            console.log ("mode = ", mode)
-
             const url_str = get_attr_from_el(el_timepicker, "data-url_str");
-            console.log ("url_str: ", url_str);
-            console.log ("---------------row_upload: ");
-            console.log (row_upload);
 
             let parameters = {}
             if (table === "schemeitem") {
@@ -820,11 +814,11 @@
                 success: function (response) {
                     console.log ("response", response);
                     if ("item_update" in response) {
-                        console.log("...... UpdateTableRow .....");
+                        console.log("...... UpdateTableRow ..... item_update", table);
                         UpdateTableRow(table, tr_selected, response["item_update"])
                     }
                     if ("shift_update" in response) {
-                        console.log("==... UpdateTableRow .....");
+                        console.log("==... UpdateTableRow .... shift_update", table);
                         UpdateTableRow(table, tr_selected, response["shift_update"])
                     }
                 },
@@ -978,13 +972,13 @@
             td.classList.add("tr_disabled");
             td.classList.remove(cls_highl)
             if (!!highlighted){
-                td.classList.add("tr_notallowed")
+                td.classList.add("tsa_color_notallowed")
             } else {
-                td.classList.remove("tr_notallowed")
+                td.classList.remove("tsa_color_notallowed")
             }
         } else {
             td.classList.remove("tr_disabled")
-            td.classList.remove("tr_notallowed")
+            td.classList.remove("tsa_color_notallowed")
             if (!!highlighted){
                 td.classList.add(cls_highl)
             } else {
@@ -1335,7 +1329,7 @@ function CalcMinMaxHoursMinutes(cur_rosterdate_iso, cur_datetime_iso,
 //========= ShowHover  ====================================
     function ShowHover(td, event, cls_hover) {
         if(!!td){
-            const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tr_notallowed"))
+            const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
             if (event.type === "mouseenter" && !disabled){
                 td.classList.add(cls_hover)
             } else {

@@ -5,14 +5,14 @@
 
 //========= GetItemDictFromTablerow  ============= PR2019-05-11
     function GetItemDictFromTablerow(tr_changed) {
-        console.log("======== GetItemDictFromTablerow");
+        //console.log("======== GetItemDictFromTablerow");
         //console.log(tr_changed);
 
         let item_dict = {};
 
 // ---  create id_dict
         let id_dict = get_iddict_from_element(tr_changed);
-        console.log("--- id_dict", id_dict);
+        //console.log("--- id_dict", id_dict);
 
 // add id_dict to item_dict
         if (!! tr_changed && !!id_dict){
@@ -44,7 +44,7 @@
                             };
     // ---  get old value
                             o_value = get_attr_from_el(el_input, "data-o_value"); // data-value="2019-03-29"
-                            console.log("fieldname", fieldname, "n_value", n_value, "o_value", o_value);
+                            //console.log("fieldname", fieldname, "n_value", n_value, "o_value", o_value);
     // ---  check if value has changed
                             let value_has_changed = false
                             if(!!n_value){
@@ -52,7 +52,7 @@
                                 } else {value_has_changed = true }
                             } else { value_has_changed = (!!o_value)};
                             if (value_has_changed){
-                                console.log("value_has_changed", value_has_changed)
+                                //console.log("value_has_changed", value_has_changed)
     // get pk from element
                                 let pk;
                                 if (["shift", "team", "employee", "order"].indexOf( fieldname ) > -1){
@@ -62,9 +62,9 @@
                                     }
                                 } else if (fieldname === "orderhour"){
 
-                                    console.log("fieldname", fieldname)
-                                    console.log("n_value", n_value)
-                                    console.log("field_dict", field_dict)
+                                    //console.log("fieldname", fieldname)
+                                    //console.log("n_value", n_value)
+                                    //console.log("field_dict", field_dict)
         // Note: pk in get pk from datalist when field is a look_up field
                                     if (!!n_value){
                                         field_dict["order_pk"] = parseInt(get_pk_from_datalist("id_datalist_orders", n_value));
@@ -78,7 +78,7 @@
                                     field_dict["pk"] = pk
                                 };
                                 field_dict["update"] = true;
-                                console.log("field_dict", field_dict);
+                                //console.log("field_dict", field_dict);
 
     // ---  add field_dict to item_dict
                                 item_dict[fieldname] = field_dict;
@@ -676,6 +676,47 @@
         };  // if(!!el_input)
     }  // function format_date_element
 
+    function format_date_iso (date_iso, month_list, weekday_list, hide_weekday, hide_year, user_lang) {
+        //console.log(" ----- format_date_iso", date_iso);
+
+        let display_value = "";
+        if(!!date_iso) {
+            let arr = date_iso.split("-");
+            //console.log("arr.length", arr.length);
+
+            if (arr.length === 3) {
+                let dte = moment(date_iso);
+                //console.log ("dte: ", dte.format(), typeof dte)
+                const this_weekday_iso = dte.isoWeekday();
+                //console.log ("isoWeekday: ", this_weekday_iso)
+
+                // use moment to get isoWeekday
+                const this_year = parseInt(arr[0]);
+                const this_month_iso =  parseInt(arr[1]);
+                const this_date = parseInt(arr[2]);
+                //console.log ("this_year: ", this_year)
+
+                let month_str = "",  weekday_str = "";
+                if (!!weekday_list){weekday_str = weekday_list[this_weekday_iso]};
+                if (!!month_list){month_str = month_list[this_month_iso]};
+
+                let comma_space = " ";
+                if(user_lang === "en") {
+                    comma_space = ", "
+                    display_value =  month_str + " " + this_date;
+                } else {
+                    comma_space = " "
+                    display_value =  this_date + " " + month_str;
+                }
+                if (!hide_year) {display_value += comma_space + this_year};
+                if (!hide_weekday) {display_value = weekday_str + comma_space  + display_value;};
+
+                //console.log ("display_value: ", display_value)
+            }  // if (arr.length === 2) {
+        }  // if(!!date_iso)
+        return display_value
+    }  // function format_date_iso
+
 
 
 //oooooooooooooooooooooooooooooooo
@@ -1097,6 +1138,85 @@
         } // if(!!el_input){
     }  // function format_duration_element
 
+//========= format_duration_element  ======== PR2019-08-21
+    function format_duration_str (value_int, user_lang) {
+        console.log("+++++++++ format_duration_str", value_int)
+        let time_format = "";
+
+        if (!!value_int) {
+               // NOT WORKING PROPERLY WITH NEGATIVE VALUES
+            let hour_text;
+            // PR2019-08-22 debug: dont use Math.floor, gives wrong hours when negative. Was: const hours = Math.floor(value_int/60);
+             // The Math.floor() function returns the largest integer less than or equal to a given number.
+            const hours = Math.trunc(value_int/60);  // The Math.floor() function returns the largest integer less than or equal to a given number.
+            if (hours > -100 && hours < 100) {
+                const hour_str = "00" + hours.toString()
+                hour_text = hour_str.slice(-2);
+            } else {
+                hour_text =  hours.toString()
+            }
+
+            const minutes = value_int % 60  // % is remainder operator
+            const minute_str = "00" + minutes.toString()
+            const minute_text = minute_str.slice(-2);
+
+            if(user_lang === "en") {
+                time_format = hour_text + ":" + minute_text;
+            } else {
+                time_format = hour_text + "." + minute_text + " u";
+            }
+
+        }  // if (!!value_int)
+        return time_format
+    }  // function format_duration_str
+
+
+//========= format_total_duration  ======== PR2019-08-22
+    function format_total_duration (value_int, user_lang) {
+        //console.log(" --- format_total_duration", value_int)
+        let time_format = "";
+
+        if (!!value_int) {
+            let minus_sign = "";
+            if (value_int < 0 ){
+                value_int = value_int * -1
+                minus_sign = "-";
+            }
+            let dotcomma = "."
+            if(user_lang === "en") {dotcomma = ","}
+
+            let hour_text;
+            // PR2019-08-22 debug: dont use Math.floor, gives wrong hours when negative. Was: const hours = Math.floor(value_int/60);
+              // The Math.floor() function returns the largest integer less than or equal to a given number.
+            const hours = Math.trunc(value_int/60);
+            hour_text =  hours.toString()
+            if (hours >= 1000000) {
+                const pos = hour_text.length - 6 ;
+                hour_text = [hour_text.slice(0, pos), hour_text.slice(pos)].join(dotcomma);
+            }
+            if (hours >= 1000) {
+                const pos = hour_text.length - 3 ;
+                hour_text = [hour_text.slice(0, pos), hour_text.slice(pos)].join(dotcomma);
+            }
+
+            const minutes = value_int - hours * 60  // % is remainder operator
+            const minute_str = "00" + minutes.toString()
+            const minute_text = minute_str.slice(-2);
+
+            //console.log("value_int: ", value_int)
+            //console.log("value_int/60: ", value_int/60)
+            //console.log("hours: ", hours, "minutes: ", minutes, "minute_text: ", minute_text)
+
+            time_format = minus_sign + hour_text + ":" + minute_text;
+
+
+        }  // if (!!value_int)
+        return time_format
+    }  // function format_total_duration
+
+
+
+
 //========= format_inactive_element  ======== PR2019-06-09
     function format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active, title_inactive, title_active) {
         // inactive: {value: true}
@@ -1349,7 +1469,7 @@
 
 //=========  DeselectHighlightedRows  ================ PR2019-04-30 PR2019-08-08
     function DeselectHighlightedRows(tr_selected, cls_selected, cls_background) {
-        //console.log("=========  DeselectHighlightedRows =========");
+       // console.log("=========  DeselectHighlightedRows =========");
         //console.log("cls_selected", cls_selected, "cls_background", cls_background);
 
         if(!cls_selected){cls_selected = "tsa_tr_selected"}
@@ -1357,12 +1477,13 @@
         if(!!tr_selected){
             const tableBody = tr_selected.parentNode
             let tblrows = tableBody.getElementsByClassName(cls_selected);
-            for (let i = 0, len = tblrows.length; i < len; i++) {
-                if(!!tblrows[i]){
-                    tblrows[i].classList.remove(cls_selected)
+            for (let i = 0, tblRow, len = tblrows.length; i < len; i++) {
+                tblRow = tblrows[i];
+                if(!!tblRow){
+                    tblRow.classList.remove(cls_selected)
 
                     if(!!cls_background){
-                        tblrows[i].classList.add(cls_background)
+                        tblRow.classList.add(cls_background)
                     };
                 }
             }

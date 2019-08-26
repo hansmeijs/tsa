@@ -124,6 +124,20 @@ $(function() {
         return value_dict;
     };
 
+//========= get_attr_from_el_dict  ============= PR2019-08-22
+    function get_attr_from_el_arr(element, key){
+        "use strict";
+        let value_arr = [];
+        if(!!element && !!key){
+            if(element.hasAttribute(key)){
+                const atr = element.getAttribute(key)
+                if(!!atr) {
+                    value_arr = JSON.parse(atr)
+                }
+            };
+        }
+        return value_arr;
+    };
 //========= get_arrayRow_by_keyValue  ====================================
     function get_arrayRow_by_keyValue (objArray, arrKey, keyValue) {
         "use strict";

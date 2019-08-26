@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def create_customer_list(company, inactive=None, cat=None, cat_lte=None):
-
+    logger.debug(' --- create_customer_list --- ')
 # --- create list of all active customers of this company PR2019-06-16
     crit = Q(company=company)
     if cat is not None:
@@ -22,6 +22,7 @@ def create_customer_list(company, inactive=None, cat=None, cat_lte=None):
 
     customer_list = []
     for customer in customers:
+        logger.debug(' customer: ' + str(customer.cat))
         item_dict = {}
         create_customer_dict(customer, item_dict)
         customer_list.append(item_dict)
@@ -75,7 +76,7 @@ def create_order_list(company, inactive=None, cat=None, cat_lte=None, rangemin=N
 
     orders = None
     if cat == c.SHIFT_CAT_0512_ABSENCE:
-        orders = Order.objects.filter(crit).order_by('taxrate')  # field 'taxrate' is used to store sequence
+        orders = Order.objects.filter(crit).order_by('sequence')
     else:
         orders = Order.objects.filter(crit).order_by('customer__code', 'code')  # field 'taxrate' is used to store sequence
 
@@ -148,7 +149,7 @@ def create_absencecategory_list(request):
 
     crit = (Q(customer__company=request.user.company) &
                 Q(cat=c.SHIFT_CAT_0512_ABSENCE))
-    orders = Order.objects.filter(crit).order_by('taxrate')  # field 'taxrate' contains sequence of absence
+    orders = Order.objects.filter(crit).order_by('sequence')
 
     for order in orders:
         dict = create_absencecat_dict(order)
@@ -183,6 +184,7 @@ def get_or_create_absence_customer(request):
         absence_locale = c.ABSENCE[user_lang]
     else:
         absence_locale = c.ABSENCE[c.LANG_DEFAULT]
+        # absence_locale = ('Afwezig', 'Afwezigheid')
 
 # - check if 'absence' customer exists for this company - only one 'absence' customer allowed
     # don't use get_or_none, it wil return None when multiple absence customers exist
@@ -190,8 +192,8 @@ def get_or_create_absence_customer(request):
     if customer is None:
 # - create 'absence' customer if not exists
         customer = Customer(company=request.user.company,
-                            code=absence_locale,
-                            name=absence_locale,
+                            code=absence_locale[0],
+                            name=absence_locale[1],
                             cat=c.SHIFT_CAT_0512_ABSENCE)
         customer.save(request=request)
 
@@ -225,7 +227,7 @@ def create_absence_orders(customer, user_lang, request):
             order = Order(customer=customer,
                           code=code,
                           name=name,
-                          taxrate=sequence,
+                          sequence=sequence,
                           cat=c.SHIFT_CAT_0512_ABSENCE)
             order.save(request=request)
 
@@ -242,7 +244,7 @@ def create_absence_orders(customer, user_lang, request):
 
 # === Create new 'template' customer and order
 def get_or_create_special_order(category, request):
-    # logger.debug(" === get_or_create_special_order ===")
+    logger.debug(" --- get_or_create_special_order ---")
 
     order = None
 
@@ -259,7 +261,7 @@ def get_or_create_special_order(category, request):
         template_locale = c.TEMPLATE_TEXT[lang]
 
     # 1. check if 'template' customer exists for this company - only one 'template' customer allowed
-    # don't use get_or_none, it wil return None when multiple customers exist
+    # don't use get_or_none, it wil return None when multiple customers exist, and create even more instances
     customer = Customer.objects.filter(cat=category, company=request.user.company).first()
     if customer is None:
         if template_locale:
@@ -271,18 +273,19 @@ def get_or_create_special_order(category, request):
                                 cat=category)
             customer.save(request=request)
 
-            # 3. check if 'template' customer has order - only one 'template' order allowed
-            if customer:
-                 # don't use get_or_none, it wil return None when multiple customers exist
-                order = Order.objects.filter(customer=customer).first()
-                if order is None:
-                    # 4. create 'template' order if not exists
-                    order = Order(customer=customer,
-                                  code=template_locale,
-                                  name=template_locale,
-                                  cat=category)
-                    order.save(request=request)
-                    # logger.debug("order.save: " + str(order.pk) + ' ' + str(order.code))
-
+# 3. check if 'template' customer has order - only one 'template' order allowed
+    logger.debug('customer: ' + str(customer))
+    if customer:
+         # don't use get_or_none, it wil return None when multiple customers exist
+        order = Order.objects.filter(customer=customer).first()
+        if order is None:
+            # 4. create 'template' order if not exists
+            order = Order(customer=customer,
+                          code=template_locale,
+                          name=template_locale,
+                          cat=category)
+            order.save(request=request)
+            # logger.debug("order.save: " + str(order.pk) + ' ' + str(order.code))
+    logger.debug('order: ' + str(order))
     return order
 

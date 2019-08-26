@@ -2,8 +2,8 @@
 {% load i18n %} {% load l10n %}
 {% load static %}
 
-{% block stylesheet %}
-{% endblock %}
+{% block stylesheet %}{% endblock %}
+
 {% block script %}
     <script src="{% static 'js/review.js' %}"></script>
 {% endblock %}
@@ -12,47 +12,8 @@
 {% block sidebar %}
     <nav id="id_sidebar">
         <div class="sidebar-header">
-            <h3>Sidebar</h3>
+            <h3>{% trans 'Review' %}</h3>
         </div>
-        <ul class="list-unstyled components">
-            <li class="active">
-                <a href="#homeSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Home</a>
-                <ul class="collapse list-unstyled" id="homeSubmenu">
-                    <li>
-                        <a href="#">Home 1</a>
-                    </li>
-                    <li>
-                        <a href="#">Home 2</a>
-                    </li>
-                    <li>
-                        <a href="#">Home 3</a>
-                    </li>
-                </ul>
-            </li>
-            <li>
-                <a href="#">About</a>
-            </li>
-            <li>
-                <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Pages</a>
-                <ul class="collapse list-unstyled" id="pageSubmenu">
-                    <li>
-                        <a href="#">Page 1</a>
-                    </li>
-                    <li>
-                        <a href="#">Page 2</a>
-                    </li>
-                    <li>
-                        <a href="#">Page 3</a>
-                    </li>
-                </ul>
-            </li>
-            <li>
-                <a href="#">Portfolio</a>
-            </li>
-            <li>
-                <a href="#">Contact</a>
-            </li>
-        </ul>
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
@@ -61,32 +22,93 @@
 {% block modal %}
 {% endblock %}
 <!-- END MODAL -->
+
 {% block content %}
-<!-- class wrapper -->
-    <div class="wrapper">
-    <!-- is_authenticated -->
-        {% if user.is_authenticated %}
+    {% if user.is_authenticated %}
 
+        <div class="popup display_hide" >
+            <span class="popuptext" id="id_msgbox"></span>
+        </div>
+    <h1 class="mt-4"></h1>
 
-                <!-- =================== DATA TABLE  =================== -->
-                <table id="id_table_schemeitems" class="table table-condensed tsa-tbl ">
-                    <thead id="id_thead_schemeitems" class="thead-inverse"></thead>
-                    <tbody id="id_tbody_schemeitems"></tbody>
-                </table>
-                <!-- =================== END DATA TABLE  =================== -->
-                <div id="id_data"
-                    data-imgsrc_stat04="{% static 'img/stat04.png' %}"
-                >
-                </div>
-                <datalist id="id_datalist_employees">
-                </datalist>
-
-        {% else %}
-            <div class="alert alert-danger">{% trans 'Error' %}</div>
-            <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
-        {% endif %}
-    <!-- end is_authenticated -->
+    <div class="image_container">
+        <img id="id_loader" src="{% static 'img/loader.gif' %}" height="32" width="32" class="cls_visible_hide" >
     </div>
-<!-- end class wrapper -->
+
+    <div >
+
+
+        <div class="content_header">
+            <div class="content_subheader_left mx-4 my-1">
+                <input id="id_filter_name"
+                type="text"
+                class="fieldname pt-0 pb-0"
+                placeholder="{% trans 'filter...' %}">
+            </div>
+        </div>
+
+        <div class="content_body mx-2">
+            <div class="popup-container">
+
+<!-- =================== DATA TABLE  =================== -->
+                <table class="table table-condensed tsa-tbl mx-4 my-1">
+
+                    <thead id="id_thead_items" class="thead-inverse">
+                        <th class="text_align_left">{% trans 'Date' %}</th>
+                        <th class="text_align_left">{% trans 'Customer' %}</th>
+                        <th class="text_align_left">{% trans 'Order' %}</th>
+                        <th class="text_align_left">{% trans 'Shift' %}</th>
+                        <th class="text_align_left">{% trans 'Employee' %}</th>
+                        <th class="text_align_left">{% trans 'Worked Hours' %}</th>
+                        <th class="text_align_left">{% trans 'Billed hours' %}</th>
+                        <th class="text_align_left">{% trans 'Difference' %}</th>
+                        <th>
+                            <a id="id_filter_check_end" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
+                              <img id="id_img_filter_check_end" src="{% static 'img/warning.gif' %}" height="18" width="18">
+                            </a>
+                        </th>
+                        <th>
+                            <a id="id_filter_status" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
+                                <img id="id_img_filter_status" src="{% static 'img/stat04.png' %}" height="18" width="18">
+                            </a>
+                        </th>
+                    </thead>
+
+                    <tbody id="id_tbody_items">
+                    </tbody>
+                </table>
+<!-- =================== END DATA TABLE  =================== -->
+            </div>
+
+        </div>
+    </div>
+
+        <datalist id="id_datalist_orders"></datalist>
+        <datalist id="id_datalist_shifts"></datalist>
+
+        <div id="id_data"
+            data-datalist_download_url="{% url 'datalist_download_url' %}"
+
+            data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
+            data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
+            data-imgsrc_delete="{% static 'img/delete.gif' %}"
+            data-imgsrc_warning="{% static 'img/warning.gif' %}"
+            data-imgsrc_questionmark="{% static 'img/questionmark.gif' %}"
+            data-imgsrc_stat00="{% static 'img/stat00.png' %}"
+            data-imgsrc_stat01="{% static 'img/stat01.png' %}"
+            data-imgsrc_stat02="{% static 'img/stat02.png' %}"
+            data-imgsrc_stat03="{% static 'img/stat03.png' %}"
+            data-imgsrc_stat04="{% static 'img/stat04.png' %}"
+            data-imgsrc_stat05="{% static 'img/stat05.png' %}"
+
+            data-lang ="{{ lang }}"
+            data-weekdays ="{{ weekdays }}"
+            data-months ="{{ months }}"
+        >
+        </div>
+
+    {% else %}
+        <div class="alert alert-danger">{% trans 'Error' %}</div>
+        <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>
+    {% endif %}
 {% endblock %}
-<!-- endblock content -->

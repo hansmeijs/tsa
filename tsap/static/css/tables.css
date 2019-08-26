@@ -119,19 +119,13 @@
     /*background: #fbedba; /* lighter shade of tsa yellow */
 }
 
-.text_align_center {
-    text-align: center;
-}
-
 .tsa_btn_selected  {
     background-color: #fbedba; /* lighter shade of tsa yellow */
     color: #303024; /* dark dark Panta Rhei grey 48 48 36 */
 }
 
 
-
 /* PR2019-04-06 from https://css-tricks.com/fixing-tables-long-strings/ */
-
 .tsa-tbl  {
     /*table-layout: auto;*/
     table-layout: fixed;
@@ -144,8 +138,9 @@
 .tsa-tbl th  {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
     margin: 0px;
-    background: #f8f8f8; /*licht licht grijs; */
-
+    /*background: #f8f8f8; /*licht licht licht grijs 248 248 248 100%; */
+    /*background: #e8e8e880; /*licht licht grijs 232 232 232 50% */
+    background-color: #f5f5f5; /* this is reddish: background-color: #f8f8f8;*/
     white-space: normal;
     /*overflow: hidden;
     text-overflow: ellipsis;*/
@@ -164,6 +159,10 @@
     text-overflow: ellipsis;
 }
 
+
+
+
+
 .text_align_left {
     text-align: left;
 }
@@ -171,6 +170,16 @@
 .text_align_right {
     text-align: right;
 }
+
+
+
+
+
+.image_container {
+  display: flex;
+  justify-content: center;
+}
+
 .td_width_360 {
     width: 360px;
 }
@@ -227,11 +236,22 @@
 
 .tsa_tr_error {
     background: #f1b5b5; /* licht rood; */
+    background: #ffe8e8; /* licht lichtrood; */
+
 }
 
 .tsa_tr_ok {
     background: #d7f4de; /* licht groen; */
 }
+
+.tsa_color_error {
+    color: orange; /* #f1b5b5; /* licht rood; */
+}
+.tsa_ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+}
+
 
 .status_icon {
   -o-object-fit: none;
@@ -276,11 +296,11 @@
     color: grey; /* #e0e0e0; /* default light grey */
 }
 
-.tr_notallowed {
-    color: red; /* #e0e0e0; /* default light grey */
-    font-weight: bold;
+.tsa_color_notallowed {
+    color: red !important; /* #e0e0e0; /* default light grey */
+    font-weight: bold !important;
 }
-.tr_color_red {
+.tsa_color_red {
     color: #cc0000; /* bit dark red ; /* default light grey */
 }
 

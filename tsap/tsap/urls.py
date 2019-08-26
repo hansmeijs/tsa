@@ -178,7 +178,7 @@ urlpatterns = [
     ])),
 
     path('review/', include([
-        path('view', planning_views.EmplhourView.as_view(), name='review_url'),
+        path('view', planning_views.ReviewView.as_view(), name='review_url'),
         path('fill', rosterfill_views.EmplhourFillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
         # path('upload', planning_views.EmplhourUploadXXXView.as_view(), name='emplhour_upload_url'),
     ])),

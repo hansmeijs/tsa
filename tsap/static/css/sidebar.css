@@ -78,7 +78,7 @@ a:focus {
 }
 
 #id_sidebar .sidebar-header {
-    padding: 20px;
+    padding: 20px 12px 12px 12px;;  /* top, right, bottom, left:
     /*background: #6d7fcc;   kind of pale blue */
     background-color: #a5a5a5; /* medium grey; 165 165 165*/
 }

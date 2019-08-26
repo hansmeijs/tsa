@@ -1,12 +1,15 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block breadcrumb %}
-  <ol class="breadcrumb my-3">
-    <li class="breadcrumb-item active">{{ user.company.name }}</li>
-  </ol>
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar">
+        <div class="sidebar-header">
+            <h3>{% trans 'Welcome' %}</h3>
+        </div>
+    </nav>
 {% endblock %}
-
+<!-- END SIDE BAR -->
 {% block content %}
   <h4>{% trans 'User added' %}</h4>
     {% csrf_token %}

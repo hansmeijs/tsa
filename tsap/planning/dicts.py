@@ -1,6 +1,9 @@
 from django.db.models import Q, Count
 from django.db.models.functions import Lower, Coalesce
 
+from django.db import connection
+
+
 from datetime import date, datetime, timedelta
 from timeit import default_timer as timer
 
@@ -542,7 +545,7 @@ def create_scheme_dict(instance, item_dict):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_schemeitem_template_list(company, comp_timezone):
     # --- create list of all template schemes of this company PR2019-07-24
-    #logger.debug("========== create_schemeitem_template_list ==== ")
+    # logger.debug("========== create_schemeitem_template_list ==== ")
 
     schemeitem_list = []
     order = m.Order.objects.get_or_none(cat=c.SHIFT_CAT_4096_TEMPLATE, customer__company=company)
@@ -596,6 +599,15 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
             elif field == 'rosterdate':
                 f.set_fielddict_date(dict=item_dict[field], dte=saved_value)
 
+            elif field == 'scheme':
+                scheme = getattr(instance, field)
+                if scheme:
+                    item_dict[field]['pk'] = scheme.id
+                    item_dict[field]['value'] = scheme.code
+                else:
+                    item_dict[field].pop('pk', None)
+                    item_dict[field].pop('value', None)
+
             elif field == 'shift':
                 shift = getattr(instance, field)
                 if shift:
@@ -641,15 +653,13 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
                                        comp_timezone=comp_timezone)
 
             # also zero when empty
-            elif field in ('breakduration', 'timeduration'):
+            elif field == 'timeduration':
                 if saved_value is None:
                     saved_value = 0
                 item_dict[field]['value'] = saved_value
-            else:
-                if saved_value is not None:
-                    item_dict[field]['value'] = saved_value
-                else:
-                    item_dict[field].pop('value', None)
+
+            elif field in ('iscyclestart', 'inactive'):
+                item_dict[field]['value'] = saved_value
 
 # --- remove empty attributes from item_dict
         f.remove_empty_attr_from_dict(item_dict)
@@ -674,24 +684,29 @@ def create_team_dict(team, item_dict):
     table = 'team'
     if team:
         for field in c.FIELDS_TEAM:
+
 # 1. create field_dict if it does not exist
             if field in item_dict:
                 field_dict = item_dict[field]
             else:
                 field_dict ={}
+
 # 2. create field_dict 'pk'
             if field == 'pk':
                 field_dict = team.pk
+
 # 3. create field_dict 'id'
             elif field == 'id':
                 field_dict['pk'] = team.pk
                 field_dict['ppk'] = team.scheme.pk
                 field_dict['table'] = table
+
 # 4. create other field_dicts
             elif field == 'code':
                 value = getattr(team, field, None)
                 if value:
                     field_dict['value'] = value
+
 # 5. add field_dict to item_dict
             item_dict[field] = field_dict
 # 6. remove empty attributes from item_dict
@@ -721,11 +736,15 @@ def create_shift_list(order, comp_timezone):
     return shift_list
 
 
-def create_shift_dict(shift, item_dict):
+def create_shift_dict(shift, update_dict):
+    logger.debug(' ----- update_shift ----- ')
+    logger.debug('update_dict: ' + str(update_dict))
     # --- create dict of this shift PR2019-08-08
-    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+    # update_dict has already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
-    # logger.debug('create_shift_dict: ', str(item_dict))
+    # logger.debug('create_shift_dict: ', str(update_dict))
+# FIELDS_SHIFT = ('pk', 'id', 'scheme', 'code', 'cat',
+#                 'offsetstart', 'offsetend', 'breakduration', 'wagefactor', 'successor')
 
     table = 'shift'
     field_tuple = c.FIELDS_SHIFT
@@ -734,8 +753,8 @@ def create_shift_dict(shift, item_dict):
         for field in field_tuple:
 
 # 1. create field_dict if it does not exist
-            if field in item_dict:
-                field_dict = item_dict[field]
+            if field in update_dict:
+                field_dict = update_dict[field]
             else:
                 field_dict ={}
 
@@ -766,14 +785,15 @@ def create_shift_dict(shift, item_dict):
                 successor = getattr(shift, field)
                 if successor_id:
                     field_dict['pk'] = successor.pk
-                    #if successor.code:
-                    #    field_dict['value'] = successor.code
+                    field_dict['ppk'] = successor.scheme_id
+                    if successor.code:
+                        field_dict['value'] = successor.code
 
-# 6. add field_dict to item_dict
-            item_dict[field] = field_dict
+# 6. add field_dict to update_dict
+            update_dict[field] = field_dict
 
-# 7. remove empty attributes from item_dict
-    f.remove_empty_attr_from_dict(item_dict)
+# 7. remove empty attributes from update_dict
+    f.remove_empty_attr_from_dict(update_dict)
 # --- end of create_shift_dict
 
 def create_date_dict(rosterdate, user_lang, status_text):
@@ -1158,6 +1178,71 @@ def create_replacementshift_list(dict, company):
         return_dict['replacement_list'] = replacementshift_list
     return return_dict
 
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def create_review_list(datefirst, datelast, request):  # PR2019-08-20
+    # create list of shifts of this order PR2019-08-08
+    logger.debug(' --- create_review_list --- ')
+    logger.debug('datefirst:  ' + str(datefirst) + ' datelast:  ' + str(datelast))
+    review_list = []
+    if request.user.company_id:
+
+        # logger.debug(emplhours.query)
+        # from django.db import connection
+        # logger.debug(connection.queries)
+        if datefirst is None:
+            datefirst = '1000-01-01'
+        if datelast is None:
+            datelast = '3000-01-01'
+        cursor = connection.cursor()
+        # fields in review_list:
+        #  0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json, 4: yearindex, 5: monthindex 6: quincenaindex 7: weekindex,
+        #  8: cust_code, 9: order_code, 10: order_cat, 11: shift
+        #  12: oh_duration, 13: oh.amount, 14: oh.tax,
+        #  15: eh_id_arr, 16: eh_dur_sum, 17: eh_wage_sum,
+        #  18: e_id_arr, 19: e_code_arr, 20: eh_duration_arr,
+        #  21: eh_wage_arr, 22: eh_wagerate_arr, 23: eh_wagefactor_arr
+
+        cursor.execute("""WITH eh_sub AS (SELECT eh.orderhour_id AS oh_id, 
+                                                ARRAY_AGG(eh.id) AS eh_id,
+                                                ARRAY_AGG(eh.employee_id) AS e_id,
+                                                COALESCE(STRING_AGG(e.code, ', '),'-') AS e_code,
+                                                ARRAY_AGG(eh.timeduration) AS e_dur,
+                                                ARRAY_AGG(eh.wage) AS e_wage,
+                                                ARRAY_AGG(eh.wagerate) AS e_wr,
+                                                ARRAY_AGG(eh.wagefactor) AS e_wf,
+                                                SUM(eh.timeduration) AS eh_dur, 
+                                                SUM(eh.wage) AS eh_wage  
+                                                FROM companies_emplhour AS eh
+                                                LEFT OUTER JOIN companies_employee AS e ON (eh.employee_id=e.id) 
+                                                GROUP BY oh_id) 
+                                       SELECT oh.id, o.id, c.id, to_json(oh.rosterdate), 
+                                       oh.yearindex AS y, oh.monthindex AS m, oh.quincenaindex AS q, oh.weekindex AS w,      
+                                       COALESCE(c.code,'-') AS c_code, COALESCE(o.code,'-') AS o_code, o.cat, COALESCE(oh.shift,'-'), 
+                                       oh.duration, oh.amount, oh.tax, eh_sub.eh_id, eh_sub.eh_dur, eh_sub.eh_wage, 
+                                       eh_sub.e_id, eh_sub.e_code, eh_sub.e_dur, eh_sub.e_wage, eh_sub.e_wr, eh_sub.e_wf   
+                                       FROM companies_orderhour AS oh
+                                       INNER JOIN eh_sub ON (eh_sub.oh_id=oh.id)
+                                       INNER JOIN companies_order AS o ON (oh.order_id=o.id)
+                                       INNER JOIN companies_customer AS c ON (o.customer_id=c.id)
+                                       WHERE (c.company_id = %s) 
+                                       AND (oh.rosterdate IS NOT NULL) 
+                                       AND (oh.rosterdate >= %s)
+                                       AND (oh.rosterdate <= %s)
+                                       ORDER BY c_code ASC, o_code ASC, oh.rosterdate ASC""", [request.user.company_id, datefirst, datelast])
+
+        # WITH td2_sub AS (
+        #                   SELECT t1_id, MAX(date) as max_date, count(*) as total
+        #                   FROM t2
+        #                   GROUP BY t1_id
+        # )
+
+        # rows = cursor.fetchall()
+        # rows = cursor.dictfetchall()
+        review_list =  cursor.fetchall()
+        logger.debug('------- >' + str(review_list))
+
+    return review_list
+
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def get_rosterdatefill_dict(company, company_timezone, user_lang):# PR2019-06-17
@@ -1358,6 +1443,7 @@ def get_range(range):  # PR2019-07-10
             hour_int = int(arr[3])
     return year_int, month_int, date_int, hour_int
 
+
 def split_datetime(dt):  # PR2019-07-10
     year_int = 0
     month_int = 0
@@ -1388,6 +1474,7 @@ def get_datetime_utc(dtm):
         # datetime_utc: 2019-06-23 00:00:00+00:00
         # logger.debug("datetime_utc: " + str(datetime_utc))
     return datetime_utc
+
 
 def get_rosterdate_utc(rosterdate):
     rosterdate_utc = None
@@ -1421,17 +1508,20 @@ def get_rosterdate_current(company): # PR2019-06-16
         rosterdate = date.today()
     return rosterdate
 
+
 def get_rosterdate_next(company): # PR2019-06-17
     #get current rosterdate from companysetting and add one day
     rosterdate_current = get_rosterdate_current(company)
     rosterdate_next = rosterdate_current + timedelta(days=1)
     return rosterdate_next
 
+
 def get_rosterdate_previous(company): # PR2019-06-17
     #get current rosterdate from companysetting and add one day
     rosterdate_current = get_rosterdate_current(company)
     rosterdate_previous = rosterdate_current + timedelta(days=-1)
     return rosterdate_previous
+
 
 def get_customer_order_code(order, delim=' '): # PR2019-08-16
     customer_order_code = ''

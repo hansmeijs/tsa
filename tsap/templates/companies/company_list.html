@@ -8,7 +8,45 @@
 {% block script %}
     <script src="{% static 'js/companies.js' %}"></script>
 {% endblock %}
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar">
+        <div class="sidebar-header">
+            <h3>{% trans 'Company' %}</h3>
+        </div>
 
+        <div class="sidebar-header">
+            <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+                <input type="hidden" name="cmd" value="_s-xclick">
+                <input type="hidden" name="hosted_button_id" value="8LXLQ9KHJN5TN">
+                <table>
+                    <tr><td><input type="hidden" name="on0" value="Opties">Buy shifts now</td></tr>
+                    <tr>
+                        <td>
+                            <select name="os0">
+                                <option value="Optie 1">10.00 USD</option>
+                                <option value="Optie 2">25.00 USD</option>
+                                <option value="Optie 3">50.00 USD</option>
+                                <option value="Optie 4">100.00 USD</option>
+                                <option value="Optie 5">250.00 USD</option>
+                                <option value="Optie 6">500.00 USD</option>
+                                <option value="Optie 7">1,000.00 USD</option>
+                            </select>
+                        </td>
+                    </tr>
+                </table>
+
+                <input type="hidden" name="currency_code" value="USD">
+
+                <input type="image" src="https://www.paypalobjects.com/nl_NL/NL/i/btn/btn_buynow_LG.gif" border="0" name="submit" alt="PayPal, de veilige en complete manier van online betalen.">
+                <img alt="" border="0" src="https://www.paypalobjects.com/nl_NL/i/scr/pixel.gif" width="1" height="1">
+            </form>
+
+        </div>
+
+    </nav>
+{% endblock %}
+<!-- END SIDE BAR -->
 {% block content %}
 <div class="container">
   {% if user.is_authenticated %}
@@ -66,6 +104,14 @@
 <!--  PayPal Logo <table border="0" cellpadding="10" cellspacing="0" align="center"><tbody><tr><td align="center"></td></tr><tr><td align="center">  -->
 <!--     <a href="https://www.paypal.com/nl/webapps/mpp/paypal-popup" title="Hoe PayPal Werkt" onclick="javascript:window.open('https://www.paypal.com/nl/webapps/mpp/paypal-popup','WIPaypal','toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=1060, height=700'); return false;"><img src="https://www.paypalobjects.com/webstatic/mktg/logo-center/logo_betalen_met_paypal_nl.jpg" border="0" alt="PayPal Acceptatie Logo" /></a>  -->
 <!--  </td></tr></tbody></table> PayPal Logo -->
+
+
+
+
+
+
+
+
         <div id="id_data"
             data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
             data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"

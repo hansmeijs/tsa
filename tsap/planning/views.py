@@ -55,7 +55,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     # logger.debug('request.user.company.timezone: ' + str(request.user.company.timezone))
 
                     datalist_dict = json.loads(request.POST['datalist_download'])
-                    logger.debug('datalist_dict: ' + str(datalist_dict) + ' ' + str(type(datalist_dict)))
+                    # logger.debug('datalist_dict: ' + str(datalist_dict) + ' ' + str(type(datalist_dict)))
 
                     # datalist_dict: {"customer": {inactive: false}, "order": {inactive: true},
                     #                   "employee": {inactive: false}, "rosterdate": true});
@@ -75,7 +75,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         include_inactive = False
                         if 'inactive' in table_dict:
                             include_inactive = table_dict['inactive']
-                        # logger.debug('datalist table: ' + str(table) + ' include_inactive: ' + str(include_inactive) + ' ' + str(type(include_inactive)))
+                        # logger.debug('datalist table: ' + str(table))
 
                         list = []
 
@@ -132,7 +132,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                             period_dict = d.get_period_dict_and_save(request, get_current)
                             datalists[table] = period_dict
-                            logger.debug('datalist[period]: ' + str(datalists[table]))
                             # datalist[period]: {'mode': 'range', 'interval': 24, 'overlap_prev': 24, 'overlap_next': 24,
                             # 'periodstart': '2019-07-29T22:00:00+00:00', 'periodend': '2019-08-01T22:00:00+00:00',
                             # 'range': '0;0;0;0', 'rangestart': '2019-03-30', 'rangeend': '', 'today': '2019-08-01'}
@@ -175,6 +174,13 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             if emplhour_list:
                                 datalists['emplhour'] = emplhour_list
 
+                        elif table == 'review':
+                            # TODO period
+                            datefirst = None
+                            datelast = None
+
+                            datalists[table] = d.create_review_list(datefirst, datelast, request)
+
                         elif table == 'rosterdatefill':
                             datalists[table] = d.get_rosterdatefill_dict(request.user.company, comp_timezone, user_lang)
 
@@ -194,12 +200,12 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             if order_pk:
                                 order = m.Order.objects.get_or_none(customer__company=request.user.company,
                                                              pk=order_pk)
-                            logger.debug('order: ' + str(order) + ' ' + str(type(order)))
-                            logger.debug('table: ' + str(table) + ' ' + str(type(table)))
+                            # logger.debug('order: ' + str(order) + ' ' + str(type(order)))
+                            # logger.debug('table: ' + str(table) + ' ' + str(type(table)))
                             # logger.debug('include_inactive: ' + str(include_inactive) + ' ' + str(type(include_inactive)))
 
                             if order:
-                                logger.debug('if order: ')
+                                # logger.debug('if order: ')
                                 if table == 'scheme':
                                     list = d.create_scheme_list(order, include_inactive)
                                 elif table == 'schemeitem':
@@ -209,11 +215,12 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 elif table == 'team':
                                     list = d.create_team_list(order)
                                 elif table == 'teammember':
-                                    logger.debug('teammember: ' + str(table) + ' ' + str(type(table)))
                                     list = create_teammember_list(order)
 
                         if list:
                             datalists[table] = list
+
+                        # logger.debug('datalist ' + str(table) + ' done')
 
         datalists_json = json.dumps(datalists, cls=LazyEncoder)
 
@@ -336,10 +343,9 @@ class SchemesView(View):
 
 # --- create list of all active customers of this company
             # inactive = False: include only active instances
-            inactive = False
             customer_list = create_customer_list(company=request.user.company,
                                                  inactive=False,
-                                                 cat_lte=c.SHIFT_CAT_0001_INTERNAL)
+                                                 cat_lte=c.SHIFT_CAT_4096_TEMPLATE)
             customer_json = json.dumps(customer_list)
 
 # --- create list of all active orders of this company
@@ -485,13 +491,24 @@ class SchemeUploadView(UpdateView):  # PR2019-07-21
 @method_decorator([login_required], name='dispatch')
 class SchemeTemplateUploadView(View):  # PR2019-07-20
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ====== SchemeTemplateUploadView ============= ')
+        logger.debug(' ====== SchemeTemplateUploadView ============= ')
         item_update_dict = {}
         if request.user is not None and request.user.company is not None:
-            # logger.debug(request.POST)
+
+ # - Reset language
+            # PR2019-08-24 Debug: language gets lost, get request.user.lang again
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+            activate(user_lang)
 
             upload_dict = {}
-            if 'copyfromtemplate' in request.POST:
+            if 'createdefaulttemplate' in request.POST:
+                upload_json = request.POST.get('createdefaulttemplate', None)
+                if upload_json:
+                    upload_dict = json.loads(upload_json)
+                    if upload_dict:
+                        create_deafult_templates(request, user_lang)
+
+            elif 'copyfromtemplate' in request.POST:
                 upload_json = request.POST.get('copyfromtemplate', None)
                 if upload_json:
                     upload_dict = json.loads(upload_json)
@@ -504,96 +521,132 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
                 upload_json = request.POST.get('copytotemplate', None)
                 if upload_json:
                     upload_dict = json.loads(upload_json)
-
-    # - get_iddict_variables
-                    id_dict = upload_dict.get('id')
-
-                    template_code = None
-                    if 'code' in upload_dict:
-                        code_dict = upload_dict['code']
-                        if 'value' in code_dict:
-                            template_code = code_dict['value']
-
-                    if id_dict and template_code:
-                        table = 'scheme'
-                        pk_int = int(id_dict.get('pk', 0))
-                        ppk_int = int(id_dict.get('ppk', 0))
-                        # logger.debug('pk_int: ' + str(pk_int) + ' ppk_int: ' + str(ppk_int))
-
-    # - check if parent exists (scheme is parent of schemeitem, team is parent of teammember (and scheme is parent of team)
-                        # parent_instance adds 'parent_pk' and 'table' to update_dict['id']
-                        # TODO make corrections update_dict
-                        update_dict = {}
-                        parent = m.get_parent(table, ppk_int, update_dict, request)
-                        # logger.debug('parent_instance: ' + str(parent))
-    # - get scheme
-                        # TODO update_dict
-                        instance = m.get_instance(table, pk_int, parent, update_dict)
-                        # logger.debug('instance: ' + str(instance))
-
-    # - check if template_order exists, create if not exists
-                        template_order = get_or_create_special_order (c.SHIFT_CAT_4096_TEMPLATE, request)
-                        # logger.debug("template_order: " + str(template_order.pk) + ' ' + str(template_order.code))
-
-    # - copy scheme to template  (don't copy datefirst, datelast)
-                        template_scheme = m.Scheme(
-                            order=template_order,
-                            cat=c.SHIFT_CAT_4096_TEMPLATE,
-                            code=template_code,
-                            cycle=instance.cycle,
-                            excludeweekend=instance.excludeweekend,
-                            excludepublicholiday=instance.excludepublicholiday)
-                        template_scheme.save(request=request)
-
-    # - copy teams to template
-                        teams = m.Team.objects.filter(scheme=instance)
-                        mapping = {}
-                        for team in teams:
-                            template_team = m.Team(
-                                scheme=template_scheme,
-                                code=team.code)
-                            template_team.save(request=request)
-                            # make dict with mapping of old and new team_id
-                            mapping[team.pk] = template_team.pk
-                        # logger.debug('mapping: ' + str(mapping))
-
-    # - copy schemeitems to template
-                        # Schemeitem ordering = ['rosterdate', 'timestart']
-                        schemeitems = m.Schemeitem.objects.filter(scheme=instance)
-                        # first item has cyclestart = True (needed for startdate of copied scheme, set False after first item
-                        is_cyclestart = True
-                        for schemeitem in schemeitems:
-                            # logger.debug('schemeitem: ' + str(schemeitem))
-                            template_schemeitem = m.Schemeitem(
-                                scheme=template_scheme,
-                                rosterdate=schemeitem.rosterdate,
-                                cyclestart=is_cyclestart,
-                                shift=schemeitem.shift,
-                                timestart=schemeitem.timestart,
-                                offsetstart=schemeitem.offsetstart,
-                                timeend=schemeitem.timeend,
-                                offsetend=schemeitem.offsetend,
-                                breakduration=schemeitem.breakduration,
-                                timeduration=schemeitem.timeduration,
-                            )
-                            is_cyclestart = False
-
-                            # loopkup team
-                            if schemeitem.team:
-                                lookup_team_pk = mapping[schemeitem.team.pk]
-                                team = m.Team.objects.get_or_none(pk=lookup_team_pk)
-                                if team:
-                                    template_schemeitem.team = team
-                            template_schemeitem.save(request=request)
-                            # logger.debug('template_schemeitem.shift: ' + str(template_schemeitem.shift))
+                    if upload_dict:
+                        copy_to_template(upload_dict, request)
 
 # - copy scheme_items to template  (don't copy datefirst, datelast)
-
-
 
         # update_dict =  {'scheme_update': {'scheme_pk': 21, 'code': '44', 'cycle': 44, 'weekend': 2, 'publicholiday': 1}}
         update_dict_json = json.dumps(item_update_dict, cls=LazyEncoder)
         return HttpResponse(update_dict_json)
+
+def copy_to_template(upload_dict, request):  # PR2019-08-24
+    logger.debug(' ====== copy_to_template ============= ')
+
+# - get_iddict_variables
+    id_dict = upload_dict.get('id')
+
+    template_code = None
+    if 'code' in upload_dict:
+        code_dict = upload_dict['code']
+        if 'value' in code_dict:
+            template_code = code_dict['value']
+
+    if id_dict and template_code:
+        table = 'scheme'
+        pk_int = int(id_dict.get('pk', 0))
+        ppk_int = int(id_dict.get('ppk', 0))
+        logger.debug('pk_int: ' + str(pk_int) + ' ppk_int: ' + str(ppk_int))
+
+# - check if parent exists (scheme is parent of schemeitem, team is parent of teammember (and scheme is parent of team)
+        # parent_instance adds 'parent_pk' and 'table' to update_dict['id']
+        # TODO make corrections update_dict
+        update_dict = {}
+        parent = m.get_parent(table, ppk_int, update_dict, request)
+        logger.debug('parent_instance: ' + str(parent))
+
+# - get scheme
+        # TODO update_dict
+        instance = m.get_instance(table, pk_int, parent, update_dict)
+        logger.debug('instance: ' + str(instance))
+
+# - check if template_order exists, create if not exists
+        template_order = get_or_create_special_order(c.SHIFT_CAT_4096_TEMPLATE, request)
+        logger.debug("template_order: " + str(template_order.pk) + ' ' + str(template_order.code))
+
+# - copy scheme to template  (don't copy datefirst, datelast)
+        template_scheme = m.Scheme(
+            order=template_order,
+            cat=c.SHIFT_CAT_4096_TEMPLATE,
+            code=template_code,
+            cycle=instance.cycle,
+            excludeweekend=instance.excludeweekend,
+            excludepublicholiday=instance.excludepublicholiday)
+        template_scheme.save(request=request)
+
+# - copy shifts to template
+        shifts = m.Shift.objects.filter(scheme=instance)
+        mapping_shifts = {}
+        for shift in shifts:
+            template_shift = m.Shift(
+                scheme=template_scheme,
+                successor=shift.successor,
+                cat=shift.cat,
+                code=shift.code,
+                offsetstart=shift.offsetstart,
+                offsetend=shift.offsetend,
+                breakduration=shift.breakduration
+            )
+            template_shift.save(request=request)
+            # make dict with mapping of old and new shift_id
+            mapping_shifts[shift.pk] = template_shift.pk
+        logger.debug('mapping_shifts: ' + str(mapping_shifts))
+
+# - copy teams to template
+        teams = m.Team.objects.filter(scheme=instance)
+        prefix = _('Employee')
+        count = 0
+        mapping_teams = {}
+        for team in teams:
+            count += 1
+            this_text = _("Employee %(tbl)s") % {'tbl': str(count)}
+            logger.debug('this_text: ' + str(this_text))
+
+            template_team = m.Team(
+                scheme=template_scheme,
+                code=this_text)
+            template_team.save(request=request)
+            # make dict with mapping of old and new team_id
+            mapping_teams[team.pk] = template_team.pk
+        logger.debug('mapping_teams: ' + str(mapping_teams))
+
+# - copy schemeitems to template
+        # Schemeitem ordering = ['rosterdate', 'timestart']
+        schemeitems = m.Schemeitem.objects.filter(scheme=instance)
+        # first item has cyclestart = True (needed for startdate of copied scheme, set False after first item
+        is_cyclestart = True
+        for schemeitem in schemeitems:
+            logger.debug('schemeitem: ' + str(schemeitem))
+            template_schemeitem = m.Schemeitem(
+                scheme=template_scheme,
+                shift=schemeitem.shift,
+                wagefactor=schemeitem.wagefactor,
+                rosterdate=schemeitem.rosterdate,
+                iscyclestart=is_cyclestart,
+                timestart=schemeitem.timestart,
+                timeend=schemeitem.timeend,
+                timeduration=schemeitem.timeduration,
+            )
+            is_cyclestart = False
+
+    # loopkup shift
+            if schemeitem.shift:
+                lookup_shift_pk = mapping_shifts[schemeitem.shift.pk]
+                shift = m.Shift.objects.get_or_none(pk=lookup_shift_pk)
+                if shift:
+                    template_schemeitem.shift = shift
+
+    # loopkup team
+            if schemeitem.team:
+                lookup_team_pk = mapping_teams[schemeitem.team.pk]
+                team = m.Team.objects.get_or_none(pk=lookup_team_pk)
+                if team:
+                    template_schemeitem.team = team
+
+    # save template_schemeitem
+            template_schemeitem.save(request=request)
+            logger.debug('template_schemeitem.shift: ' + str(template_schemeitem.shift))
+
 
 def copyfrom_template(upload_dict, request):  # PR2019-07-26
     # logger.debug(' ====== copyfrom_template ============= ')
@@ -694,6 +747,121 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                     new_schemeitem.save(request=request)
                     # logger.debug('new_schemeitem.shift: ' + str(new_schemeitem.shift))
 
+def create_deafult_templates(request, user_lang):  # PR2019-08-24
+    logger.debug(' ====== create_deafult_templates ============= ')
+
+ # get locale text of standard scheme
+    lang = user_lang if user_lang in c.SCHEME_24H_DEFAULT else c.LANG_DEFAULT
+    scheme_locale = c.SCHEME_24H_DEFAULT[lang] # (code, cycle, excludeweekend, excludepublicholiday) PR2019-08-24
+
+# - check if template_order exists, create if not exists
+    template_order = get_or_create_special_order(c.SHIFT_CAT_4096_TEMPLATE, request)
+    logger.debug("template_order: " + str(template_order.pk) + ' ' + str(template_order.code))
+
+# - add scheme to template  (don't add datefirst, datelast)
+    template_scheme = m.Scheme(
+        order=template_order,
+        cat=c.SHIFT_CAT_4096_TEMPLATE,
+        code=scheme_locale[0],
+        cycle=scheme_locale[1],
+        excludeweekend=scheme_locale[2],
+        excludepublicholiday=scheme_locale[3])
+    template_scheme.save(request=request)
+
+# - add shifts to template
+    mapping_shift = {}
+    shifts_locale = c.SHIFT_24H_DEFAULT[lang] # (code, cycle, excludeweekend, excludepublicholiday) PR2019-08-24
+    for index, shift in enumerate(shifts_locale):
+        template_shift = m.Shift(
+            scheme=template_scheme,
+            cat=c.SHIFT_CAT_4096_TEMPLATE,
+            code=shift[0])
+        if shift[1]:
+            template_shift.offsetstart=shift[1]
+        if shift[2]:
+            template_shift.offsetend=shift[2]
+        if shift[3]:
+            template_shift.breakduration=shift[3]
+        template_shift.save(request=request)
+# make dict with mapping of index in shifts_locale and new shift_id
+        mapping_shift[index] = template_shift.pk
+
+# add successors:
+    # iterate over the keys and values of a dictionary  # from https://www.afternerd.com/blog/python-enumerate/
+    for index, shift_locale in enumerate(shifts_locale):
+        # lookup shift_pk in mapping_shift
+        shift_pk = mapping_shift[index]
+        shift = m.Shift.objects.get_or_none(pk=shift_pk,scheme=template_scheme)
+        if shift:
+    # if successor in shift_locale
+            successor_index = shift_locale[4]  # shift[4] is successor
+            # dont use if successor_index:, because index can be 0 and then will be skipped
+     # lookup successor_pk in mapping_shift
+            successor_pk = mapping_shift[successor_index]
+            successor = m.Shift.objects.get_or_none(pk=successor_pk, scheme=template_scheme)
+            if successor:
+                shift.successor = successor
+                shift.offsetend = None
+                shift.save(request=request)
+
+# - add teams to template
+    mapping_team = {}
+    teams_locale = c.TEAM_24H_DEFAULT[lang]  # (code, cycle, excludeweekend, excludepublicholiday) PR2019-08-24
+    for index, team_code in enumerate(teams_locale):
+
+# - add teams to template
+        template_team = m.Team(
+            scheme=template_scheme,
+            cat=c.SHIFT_CAT_4096_TEMPLATE,
+            code=team_code)
+        template_team.save(request=request)
+        # make dict with mapping of index in shifts_locale and new shift_id
+        mapping_team[index] = template_team.pk
+
+
+# - add schemeitems to template
+    for index, item in enumerate(c.SCHEMEITEM_24H_DEFAULT):
+        # 0 = cycleday, 1 = shift, 2 = team
+        cycleday = item[0]
+
+# get rosterdate
+        today = date.today()
+        rosterdate = today + timedelta(days=cycleday)
+
+# first item has cyclestart = True (needed for startdate of copied scheme, set False after first item
+        is_cyclestart = True
+
+# get shift
+        shift = None
+        shift_pk = mapping_shift[item[1]]  # item[1] is shift_index
+        if shift_pk:
+            shift = m.Shift.objects.get_or_none(pk=shift_pk, scheme=template_scheme)
+ # get team
+        team = None
+        team_pk = mapping_team[item[2]]  # item[2] is team_index
+        if team_pk:
+            team = m.Team.objects.get_or_none(pk=team_pk, scheme=template_scheme)
+
+# - copy schemeitems to template
+        # fields: scheme, shift, team, wagefactor, rosterdate , iscyclestart, timestart, timeend, timeduration
+
+        template_schemeitem = m.Schemeitem(
+            scheme=template_scheme,
+            rosterdate=rosterdate,
+            iscyclestart=is_cyclestart,
+        )
+        if team:
+            template_schemeitem.team = team
+        if shift:
+            template_schemeitem.shift = shift
+            # TODO calc timestart timeend timeduration
+
+# save template_schemeitem
+        template_schemeitem.save(request=request)
+        logger.debug('template_schemeitem.shift: ' + str(template_schemeitem.shift))
+
+        is_cyclestart = False
+
 
 @method_decorator([login_required], name='dispatch')
 class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
@@ -723,7 +891,7 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
                 upload_json = request.POST.get(tblName, None)
                 if upload_json:
                     upload_dict = json.loads(upload_json)
-                    logger.debug('upload_dict ' + str(upload_dict))
+                    # logger.debug('upload_dict ' + str(upload_dict))
 
                     update_wrap = {}
                     if tblName == 'scheme':
@@ -732,6 +900,8 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
                         update_wrap = shift_upload(request, upload_dict, comp_timezone)
                     elif tblName == 'team':
                         update_wrap = team_upload(request, upload_dict)
+
+        logger.debug(' ============= update_wrap: ' + str(update_wrap))
 # 9. return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
@@ -741,17 +911,19 @@ def scheme_upload(request, upload_dict, user_lang):  # PR2019-05-31
     # logger.debug(upload_dict)
     #  {'id': {'temp_pk': 'new_1', 'create': True, 'parent_pk': 6}, 'code': {'update': True, 'value': 'new'}}
 
-    item_update_dict = {}
+    update_wrap = {}
     instance = None
 
-# 1. get_iddict_variables
+# 1. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+    field_list = (
+    'id', 'order', 'code', 'cycle', 'datefirst', 'datelast', 'excludeweekend', 'excludepublicholiday', 'locked',
+    'inactive')
+    update_dict = f.create_dict_with_empty_attr(field_list)
+
+    # 1. get_iddict_variables
     id_dict = upload_dict.get('id')
     pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = f.get_iddict_variables(id_dict)
     # logger.debug('id_dict: ' + str(id_dict))
-
-# 2. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
-    field_list = ('id', 'order', 'code', 'cycle', 'datefirst', 'datelast', 'excludeweekend', 'excludepublicholiday', 'locked', 'inactive')
-    update_dict = f.create_dict_with_empty_attr(field_list)
 
 # 5. check if parent exists (order is parent of scheme)
     parent = m.Order.objects.get_or_none(id=ppk_int, customer__company=request.user.company)
@@ -783,22 +955,22 @@ def scheme_upload(request, upload_dict, user_lang):  # PR2019-05-31
         f.remove_empty_attr_from_dict(update_dict)
         # logger.debug('update_dict: ' + str(update_dict))
 
-# 7. add update_dict to item_update_dict
+# 7. add update_dict to update_wrap
         if update_dict:
-            item_update_dict['item_update'] = update_dict
+            update_wrap['scheme_update'] = update_dict
 
 # 9. update order_list when changes are made
         # inactive = None: include active and inactive, issystem = None: include issystem and non-system
         include_inactive = False
         scheme_list = d.create_scheme_list(parent, include_inactive)
         if scheme_list:
-            item_update_dict['scheme_list'] = scheme_list
+            update_wrap['scheme_list'] = scheme_list
 
-    return item_update_dict
+    return update_wrap
 
 
 def shift_upload(request, upload_dict, comp_timezone):  # PR2019-08-08
-        logger.debug(' --- shift_upload --- ')
+        logger.debug(' ----- shift_upload ----- ')
         logger.debug(upload_dict)
         # {'id': {'temp_pk': 'new_2', 'create': True, 'ppk': 107}, 'code': {'update': True, 'value': 'ww'}}
 
@@ -814,43 +986,49 @@ def shift_upload(request, upload_dict, comp_timezone):  # PR2019-08-08
         id_dict = upload_dict.get('id')
         if id_dict:
             pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = f.get_iddict_variables(id_dict)
-            logger.debug('is_delete: ' + str(is_delete) + ' ' + str(type(is_delete)))
 
 # 4. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
             field_list = c.FIELDS_SHIFT
             update_dict = f.create_dict_with_empty_attr(field_list)
 
 # 5. check if parent exists (customer is parent of order)
+             # get_parent adds 'ppk' and 'table' to id_dict
             parent = m.get_parent(table, ppk_int, update_dict, request)
-            logger.debug('parent: ' + str(parent))
             if parent:
+
 # B. Delete instance
                 if is_delete:
+                    # get_instance adds 'pk'to id_dict and adds pk_dict
                     instance = m.get_instance(table, pk_int, parent, update_dict)
-                    logger.debug('is_delete instance: ' + str(instance) + ' ' + str(type(instance)))
-                    logger.debug('update_dict: ' + str(update_dict))
                     if instance.code:
                         this_text = _("Shift '%(tbl)s'") % {'tbl': instance.code}
                     else:
                         this_text = _('This shift')
-                    m.delete_instance(instance, update_dict, request, this_text)
+                    # delete_instance adds 'deleted' or 'error' to id_dict
+                    delete_ok = m.delete_instance(instance, update_dict, request, this_text)
+                    if delete_ok:
+                        instance = None
 
 # C. Create new shift
                 elif is_create:
+                    # create_shift adds 'temp_pk', 'created' to id_dict, and 'error' to code_dict
                     instance = create_shift(upload_dict, update_dict, request)
 # D. Get existing instance
                 else:
                     instance = m.get_instance(table, pk_int, parent, update_dict)
+                logger.debug('update_dict' + str(update_dict))
+
 # E. update instance, also when it is created
                 if instance:
                     update_shift(instance, parent, upload_dict, update_dict, request)
 
     # 6. remove empty attributes from update_dict
             f.remove_empty_attr_from_dict(update_dict)
+            logger.debug('remove_empty_attr_from_dict update_dict' + str(update_dict))
 
     # 7. add update_dict to update_wrap
             if update_dict:
-                update_wrap['item_update'] = update_dict
+                update_wrap['shift_update'] = update_dict
 
     # 8. update shift_list when changes are made
             shift_list = d.create_shift_list(parent.order, comp_timezone)
@@ -864,37 +1042,59 @@ def team_upload(request, upload_dict):  # PR2019-05-31
         logger.debug(' --- team_upload --- ')
         logger.debug(upload_dict)
         # {'id': {'temp_pk': 'new_2', 'table': 'team', 'create': True, 'ppk': 116}, 'code': {'update': True}}
-
+        # {'id': {'table': 'team', 'create': True, 'temp_pk': 'new_9', 'ppk': 1091},
+        # 'employee': {'table': 'employee', 'pk': 361, 'ppk': 2, 'value': 'Adriana S'}}
         update_wrap = {}
 
-        # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+# 1 Create empty update_dict with keys for all fields. Unused ones will be removed at the end
         update_dict = f.create_dict_with_empty_attr(c.FIELDS_TEAM) # FIELDS_TEAM = ('pk', 'id', 'code')
 
-# --- get id_dict  id_dict: {'temp_pk': 'new_1', 'create': True, 'parent_pk': 18}
+# 2. get_iddict_variables  id_dict: {'temp_pk': 'new_1', 'create': True, 'parent_pk': 18}
         id_dict = upload_dict.get('id')
-        pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, table = f.get_iddict_variables(id_dict)
+        pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = f.get_iddict_variables(id_dict)
+        logger.debug('pk_int: ' + str(pk_int) + ' ppk_int: ' + str(ppk_int))
 
 # check if parent exists
-        scheme = get_scheme(request.user.company, parent_pk_int)
+        scheme = m.Scheme.objects.get_or_none(id=ppk_int, order__customer__company=request.user.company)
+        logger.debug('scheme: ' + str(scheme))
         if scheme:
             save_changes = False
-            logger.debug('scheme', scheme)
+            team = None
 # ===== Create new team
             if 'create' in id_dict:
-                # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
-                if temp_pk_str:
-                    update_dict['id']['temp_pk'] = temp_pk_str
-                team = m.Team(scheme=scheme)
-                team.save(request=request)
-                if team:
-                    update_dict['id']['created'] = True
-                    save_changes = True
+
+    # only create team when employee is given
+                employee = None
+                if 'employee' in upload_dict:
+                    employee_dict = upload_dict['employee']
+                    employee_pk = employee_dict.get('pk')
+                    if employee_pk:
+                        employee = m.Employee.objects.get_or_none(id=employee_pk, company=request.user.company)
+                if employee:
+                    logger.debug('employee: ' + str(employee))
+
+                    # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
+                    if temp_pk_str:
+                        update_dict['id']['temp_pk'] = temp_pk_str
+                    team = m.Team(scheme=scheme)
+                    if employee.code:
+                        team.code = employee.code
+                    team.save(request=request)
+                    logger.debug('team: ' + str(team))
+                    if team:
+                        update_dict['id']['created'] = True
+                        save_changes = True
+                    teammember = m.Teammember(team=team, employee=employee)
+                    teammember.save(request=request)
+                    logger.debug('teammember: ' + str(teammember))
+
             else:
 # ===== or get existing team
                 team = m.Team.objects.filter(id=pk_int, scheme=scheme).first()
             if team:
                 update_dict['id']['pk'] = team.pk
                 update_dict['id']['ppk'] = team.scheme.pk
+                logger.debug('update_dict: ' + str(update_dict))
 # ===== Delete team
                 if 'delete' in id_dict and not 'create' in id_dict:
                     team.delete(request=request)
@@ -906,24 +1106,29 @@ def team_upload(request, upload_dict):  # PR2019-05-31
                         msg_err = _('This team could not be deleted.')
                         update_dict['id']['del_err'] = msg_err
                 else:
+
 # --- save changes in field 'code'
                     save_changes = False
                     field = 'code'
                     new_value = None
                     saved_value = None
+                    logger.debug('field: ' + str(field))
 
                     if field in upload_dict:
                         field_dict = upload_dict.get(field)
                         new_value = field_dict.get('value')
-                        saved_value = getattr(team, field, None)
-                        # don't update empty code - it will erase existing code
-                    if not new_value:
+                    saved_value = getattr(team, field, None)
+                    logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
+                    if not new_value and not saved_value:
                         new_value = _('Select employee') + '...'
-                    if new_value != saved_value:
+                    logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
+                    # don't update empty code - it will erase existing code
+                    if new_value and new_value != saved_value:
                         setattr(team, field, new_value)
                         update_dict[field]['updated'] = True
                         save_changes = True
 
+            logger.debug('update_dict: ' + str(update_dict))
 # --- save changes
             if save_changes:
                 team.save(request=request)
@@ -936,17 +1141,20 @@ def team_upload(request, upload_dict):  # PR2019-05-31
 # --- update team_list
                 team_list = d.create_team_list(scheme.order)
                 if team_list:
-                    update_wrap['team'] = team_list
+                    update_wrap['team_list'] = team_list
 
-# --- remove empty attributes from update_dict
+# 6. remove empty attributes from update_dict
         f.remove_empty_attr_from_dict(update_dict)
+
+# 7. add update_dict to update_wrap
         if update_dict:
             update_wrap['team_update'] = update_dict
+
         # update_dict: {'id': {'temp_pk': 'new_2', 'created': True, 'pk': 109, 'parent_pk': 20},
         #               'code': {'updated': True, 'value': 'ZZ'}}
         # update_dict: {'id': {'pk': 108, 'parent_pk': 20, 'del_err': 'Dit team kon niet worden gewist.'}}
 
-        logger.debug('update_wrap: ', str(update_wrap))
+        # logger.debug('update_wrap: ', str(update_wrap))
         return update_wrap
 
 
@@ -1325,23 +1533,37 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
 
 # 5. check if parent exists (team is parent of teammember)
                 parent = m.get_parent(table, ppk_int, update_dict, request)
-                # logger.debug('parent: ' + str(parent))
+                logger.debug('parent: ' + str(parent))
                 if parent:
 # B. Delete instance
                     # check if name of deleted teammember equals name of the team.code, must be changed later
                     team_code_needs_update = False
                     if is_delete:
+                        logger.debug('is_delete: ')
                         instance = m.get_instance(table, pk_int, parent, update_dict)
                         if instance:
+                            logger.debug('teammember: ' + str(parent))
                             if instance.employee and instance.team:
                                 logger.debug('instance.employee.code: ' + str(instance.employee.code))
                                 logger.debug('parent.code: ' + str(parent.code))
-                                team_code_needs_update = (instance.employee.code == parent.code)
+                                team_code_needs_update = (instance.employee.code != parent.code)
                             this_text = _('This teammember')
-                            m.delete_instance(instance, update_dict, request, this_text)
+                            deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
                             # undo team_code_needs_update when deleting failed
-                            # if instance:
-                                # team_code_needs_update = False
+
+                            logger.debug('deleted_ok: ' + str(deleted_ok))
+                            if not deleted_ok:
+                                team_code_needs_update = False
+                            else:
+                            # if this was the last teammember: also delete team
+                                logger.debug('team=parent: ' + str(parent))
+                                teammembers_exist = m.Teammember.objects.filter(team=parent).exists()
+                                logger.debug('teammembers_exist: ' + str(teammembers_exist))
+
+                                if not teammembers_exist:
+                                    logger.debug('no more Teammembers')
+                                    deleted_ok = m.delete_instance(parent, update_dict, request, this_text)
+                                    logger.debug('team deleted:' + str(deleted_ok))
 
 # C. Create new teammember
                     elif is_create:
@@ -1383,31 +1605,27 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 def refresh_team_code(team, request):
-    logger.debug('refresh_team_code: ' + str(team))
     # after deleting teaammmeber, lookup new team_code. Use 'Select employee...' if non available
     code = None
-    teammember = m.Teammember.objects.filter(team=team, employee__isnull=False).first()
-    logger.debug('teammember: ' + str(teammember) )
-    if teammember:
-        code = getattr(teammember.employee,'code')
-    if code is None:
-        code = _('Select employee...')
-
-    logger.debug('code: ' + str(code) )
-    team.code = code
-    team.save(request=request)
-    logger.debug('team: ' + str(team))
+    if team:
+        teammember = m.Teammember.objects.filter(team=team, employee__isnull=False).first()
+        if teammember:
+            code = getattr(teammember.employee,'code')
+        if code is None:
+            code = _('Select employee...')
+        team.code = code
+        team.save(request=request)
 
     # get all teammmbers of this team
 
 ####################################
-# === EmplhourView ===================================== PR2019-03-24
+# === ReviewView ===================================== PR2019-08-20
 @method_decorator([login_required], name='dispatch')
-class EmplhourView(View):
+class ReviewView(View):
 
     def get(self, request):
         param = {}
-        # logger.debug(' ============= EmplhourView ============= ')
+        # logger.debug(' ============= ReviewView ============= ')
         if request.user.company is not None:
     # get user_lang
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -1416,6 +1634,10 @@ class EmplhourView(View):
      # get weekdays translated
             lang = user_lang if user_lang in c.WEEKDAYS_ABBREV else c.LANG_DEFAULT
             weekdays_json = json.dumps(c.WEEKDAYS_ABBREV[lang])
+
+    # get months translated
+            lang = user_lang if user_lang in c.MONTHS_ABBREV else c.LANG_DEFAULT
+            months_json = json.dumps(c.MONTHS_ABBREV[lang])
 
     # get interval
             interval = 1
@@ -1429,42 +1651,14 @@ class EmplhourView(View):
             if not timeformat in c.TIMEFORMATS:
                 timeformat = '24h'
 
-            datefirst = None
-            datelast = None
-            crit = (Q(orderhour__order__customer__company=request.user.company) | Q(employee__company=request.user.company))
-            if datefirst:
-                crit.add(Q(rosterdate__gte=datefirst), crit.connector)
-            if datelast:
-                crit.add(Q(rosterdate__lte=datelast), crit.connector)
-            emplhours = m.Emplhour.objects.filter(crit)
 
-            for emplhour in emplhours:
-                string = str(emplhour.id)
-                if emplhour.rosterdate:
-                    string += ' - rosterdate: ' + str(emplhour.rosterdate)
-                if emplhour.orderhour:
-                    string += ' - order: ' + str(emplhour.orderhour.order.code)
-                # logger.debug(string)
-
-            employees = m.Employee.objects.filter(company=request.user.company, inactive=False).order_by(Lower('code'))
-            employee_list = []
-            for employee in employees:
-                employee_list.append({'pk': employee.id, 'code': employee.code})
-            employee_json = json.dumps(employee_list)
-
-    # get quicksave from Usersetting
-            quicksave = 0
-            quicksave_str = Usersetting.get_setting(c.KEY_USER_QUICKSAVE, request.user)
-            if quicksave_str:
-                quicksave = int(quicksave_str)
 
             param = get_headerbar_param(request, {
-                'items': emplhours,
-                'employee_list': employee_json,
                 'lang': lang,
                 'weekdays': weekdays_json,
+                'months': months_json,
+
                 'interval': interval,
-                'quicksave': quicksave,
                 'timeformat': timeformat
             })
             # logger.debug(param)
@@ -2186,134 +2380,9 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                 #               'rosterdate': {'value': '2019-04-13', 'update': True},
                 #               'orderhour': {'value': 'MCB - Hato', 'order_pk': 32, 'update': True}}
 
-    # 4. save period
+    # 4. get period
                 update_emplhour_list = False
-                rangemin = None
-                rangemax = None
-                period_dict = {}
-                if 'period' in upload_dict:  # PR2019-07-09
-                    # period': {'period': 12, 'interval': 6, 'overlap': 0, 'auto': True}}
-
-                    # get saved period_dict
-                    period_dict = d.get_period_from_settings(request)
-
-         # get today_midnight_local_iso
-                    comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-
-         # get today_midnight_local_iso
-                    today_utc = d.get_rosterdate_utc(date.today())
-                    today_utc = d.get_datetime_utc(datetime.utcnow())
-                    today_midnight_local = d.get_rosterdate_midnight_local(today_utc, comp_timezone)
-                    # logger.debug('today_midnight_local: ' + str(today_midnight_local) + str(type(today_midnight_local)))
-                    # today_midnight_local_iso = today_midnight_local.isoformat()
-                    # logger.debug('today_midnight_local_iso: ' + str(today_midnight_local_iso) + str( type(today_midnight_local_iso)))
-
-        # get now in utc
-                    now_dt = datetime.utcnow()
-                    # logger.debug('now_dt: ' + str(now_dt) + ' type: ' + str(type(now_dt)))
-                    # now_dt: 2019-07-10 14:48:15.742546 type: <class 'datetime.datetime'>
-                    now_utc = now_dt.replace(tzinfo=pytz.utc)  # NOTE: it works only with a fixed utc offset
-                    # logger.debug('now_utc: ' + str(now_utc) + ' type: ' + str(type(now_utc)))
-                    # now_utc: 2019-07-10 14:48:15.742546+00:00 type: <class 'datetime.datetime'>
-
-        # convert now to local
-                    # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
-                    # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
-                    timezone = pytz.timezone(comp_timezone)
-                    now_local = now_utc.astimezone(timezone)
-                    # logger.debug('now_local: ' + str(now_local) + str(type(now_local)))
-                    # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
-
-        # split now_local
-                    year_int, month_int, date_int, hour_int, minute_int = d.split_datetime(now_local)
-                    # logger.debug('now_local_arr: ' + str(year_int) + ';' + str(month_int) + ';' + str(date_int) + ';' + str(hour_int) + ';' + str(minute_int))
-                    # now_local_arr: 2019;7;10;16
-
-        # get interval
-                    interval = int(period_dict['interval'])
-                    interval_index = int(hour_int / interval)
-                    # logger.debug('xxx interval: ' + str(interval) + ' interval_index: ' + str(interval_index))
-
-        # get local start time of current interval
-                    interval_starthour = interval * interval_index
-                    # logger.debug('interval_starthour: ' + str(interval_starthour))
-                    interval_start_local = today_midnight_local + timedelta(hours=interval_starthour)
-                    #logger.debug('interval_start_local: ' + str(interval_start_local) + str(type(interval_start_local)))
-
-                    interval_end_local = interval_start_local + timedelta(hours=interval)
-                    # logger.debug('interval: ' + str(interval) + ' interval_end_local: ' + str(interval_end_local))
-
-        # get local start time of current interval with overlap
-                    overlap = int(period_dict['overlap'])
-                    overlap_start = -overlap
-                    overlap_start_local = interval_start_local + timedelta(hours=overlap_start)
-
-                    # logger.debug('overlap_start: ' + str(overlap_start) +  ' overlap_start_local: ' + str(overlap_start_local))
-
-                    utc = pytz.UTC
-                    overlap_start_utc = overlap_start_local.astimezone(utc)
-                    # logger.debug('mmmm  overlap_start_utc: ' + str(overlap_start_utc))
-
-        # get local end time of current interval with overlap
-                    overlap_end_local = interval_end_local + timedelta(hours=overlap)
-                    # logger.debug(  'overlap: ' + str(overlap) + ' overlap_end_local: ' + str(overlap_end_local))
-
-                    overlap_end_utc = overlap_end_local.astimezone(utc)
-                    # logger.debug('mmmm  overlap_end_utc: ' + str(overlap_end_utc))
-
-                    # get starthour of current interval
-                    # from https://riptutorial.com/python/example/4540/constructing-timezone-aware-datetimes
-
-        # get local end time of current interval with
-                    #range = period_dict['range']
-                   # year_add, month_add, date_add, hour_add = d.get_range(range)
-                    #logger.debug('range: ' + str(range))
-                    #logger.debug(str(year_add) + ' ; ' + str(month_add) + ' ; ' + str(date_add) + ' ; ' + str(hour_add))
-
-                    # convert now to local
-                    # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
-                    # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
-                    timezone = pytz.timezone(comp_timezone)
-                    # logger.debug('timezone: ' + str(timezone) + str(type(timezone)))
-
-                    # convert starthour to utc
-                    # get endhour of current interval with offset
-                    range = int(period_dict['range'])
-                    year_int, month_int, date_int, hour_int = d.get_range(range)
-                    interval_endhour_offset = interval_starthour + range
-
-                    rangemin = f.get_datetime_UTC_from_ISOstring(period_dict['datetimestart'])
-
-                    # rangemin: 2019-07-09T00:00:00+02:00 type: <class 'str'>
-                    # rangemin: 2019-07-09 00:00:00+00:00 type: <class 'datetime.datetime'>
-                    # logger.debug('rangemin: ' + str(rangemin) + ' type: ' + str(type(rangemin)))
-
-                    rangemin_arr = f.get_datetimearray_from_ISOstring(period_dict['datetimestart'])
-                    year_int = int(rangemin_arr[0])
-                    month_int = int(rangemin_arr[1])
-                    date_int = int(rangemin_arr[2])
-                    hour_int = int(rangemin_arr[3])
-                    # logger.debug(str(year_int) + ' ; ' + str(month_int) + ' ; ' + str(date_int) + ' ; ' + str(hour_int))
-
-                    arr = period_dict['range'].split(';')
-                    year_add = int(arr[0])
-                    month_add = int(arr[1])
-                    date_add = int(arr[2])
-                    hour_add = int(arr[3])
-                    if year_add:
-                        year_int = year_int + year_add
-                    if month_add:
-                        month_int = month_int + month_add
-                    if date_add:
-                        date_int = date_int + date_add
-                    if hour_add:
-                        hour_int = hour_int + hour_add
-                    rangemax = datetime(year_int, month_int, date_int, hour_int)
-                    # logger.debug('rangemax: ' + str(rangemax) + ' type: ' + str(type(rangemax)))
-                    # rangemax: 2019-07-16 00:00:00 type: <class 'datetime.datetime'>
-                    rangemax_utc = rangemax.astimezone(pytz.UTC)
-                    #  logger.debug('rangemax_utc: ' + str(rangemax_utc) + ' type: ' + str(type(rangemax_utc)))
-                    # rangemax_utc: 2019-07-16 04:00:00+00:00 type: <class 'datetime.datetime'>
+                rangemin, rangemax, period_dict = get_rangemin_rangemax(upload_dict, request)
 
     # 3. save quicksave
                 if 'quicksave' in upload_dict:
@@ -2346,16 +2415,6 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                         if parent:
                             instance = m.get_instance(table, pk_int, parent, update_dict)
 
-# TODO 'select': 'absent', not necessary
-                        # TODO dont create employeedict when empty
-                        # 'employee': {'field': 'employee', 'pk': 0, 'parent_pk': 0, 'code': ''},
-
-                        # upload_dict: {
-                        #  'id': {'pk': 137, 'parent_pk': 141, 'table': 'emplhour'},
-                        #  'select': 'absent',
-                        #  'employee': {'field': 'employee', 'pk': 638, 'parent_pk': 1, 'code': 'Charjamin'},
-                        #  'abscat': {'field': 'abscat', 'pk': 73, 'parent_pk': 61}}
-
                     if instance:
 # B. Delete instance
                         if is_delete:
@@ -2363,22 +2422,21 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
 # D. get existing instance
                         else:
                             # logger.debug('instance: ' + str(instance))
+
+                            # logger.debug('instance: ' + str(instance))
+                            mode = upload_dict.get('mode', '')
 # ============ make employee absent
-                            if 'abscat' in upload_dict:
+                            if mode == 'absent':
                                 # check if abscat dict is empty
                                 if upload_dict['abscat']:
-                                    logger.debug('abscat in upload_dict')
-                                    # - check if employee exists
-                                    employee = None
-                                    employee_dict = upload_dict.get('employee')
-                                    if employee_dict:
-                                        employee_pk = employee_dict.get('pk')
-                                        if employee_pk:
-                                            employee = m.get_instance('employee', employee_pk, request.user.company, update_dict)
+                                    make_absent(instance, upload_dict, request)
 
-                                    # logger.debug('employee: ' + str(employee))
-                                    make_absent(instance, employee, upload_dict, request)
-
+                            if mode == 'switch':
+                                pass
+                            if mode == 'switch':
+                                pass
+                            if mode == 'split':
+                                split_shift(instance, upload_dict, request)
 
 
 # E. Update instance, also when it is created
@@ -2428,6 +2486,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
         return HttpResponse(update_dict_json)
 
 
+
+
 def create_orderhour_emplhour(upload_dict, update_dict, request):
 
     #  'rosterdate': {'value': '2019-06-26', 'update': True},
@@ -2470,7 +2530,16 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
 
 # create orderhour
     if rosterdate and order:
-        orderhour = m.Orderhour(rosterdate=rosterdate, order=order)
+        yearindex = rosterdate.year
+        monthindex = rosterdate.month
+        weekindex = rosterdate.isocalendar()[1]  # isocalendar() is tuple: (2019, 15, 4)
+        orderhour = m.Orderhour(
+            order=order,
+            rosterdate=rosterdate,
+            yearindex=yearindex,
+            monthindex=monthindex,
+            weekindex=weekindex
+        )
         orderhour.save(request=request)
     # - create error when instance not created
     if orderhour is None:
@@ -2488,7 +2557,13 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
 # create emplhour
     # create orderhour
     if orderhour:
-        emplhour = m.Emplhour(rosterdate=rosterdate, orderhour=orderhour)
+        emplhour = m.Emplhour(
+            orderhour=orderhour,
+            rosterdate=orderhour.rosterdate,
+            yearindex=orderhour.yearindex,
+            monthindex=orderhour.monthindex,
+            weekindex=orderhour.weekindex
+        )
         emplhour.save(request=request)
 
     if emplhour is None:
@@ -2503,36 +2578,48 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
 
     return emplhour, orderhour
 
-def make_absent(emplhour, employee, upload_dict, request):
-    # - check if abscat_exists
-    abscat_order_exists = False
+def make_absent(emplhour, upload_dict, request):
+    logger.debug('make_absent')
+    logger.debug(str(upload_dict))
+    # {'id': {'pk': 85, 'ppk': 85, 'table': 'emplhour', 'rosterdate': '2019-08-23'},
+    # 'mode': 'absent',
+    # 'employee': {'field': 'employee', 'pk': 196, 'ppk': 2, 'code': 'Albertus G R'},
+    # 'replacement': {'field': 'replacement', 'pk': 300, 'ppk': 2, 'code': 'Scoop J J M'},
+    # 'abscat': {'field': 'absent', 'pk': 1090, 'ppk': 217, 'code': 'Buitengewoon verlof'}}
+
+    # in upload_dict is employee the current employee, to be added to abscat emplhour;
+    #  replacement employee must be put in original emplhour
+    # therefore use replacement as 'employee', in update_item the original employee will be repalced by replacement
+
+# - get replacement employee
+    # not necessary, replacement employee will be put in ecurrent emplhour in update_item
+
     abscat_dict = upload_dict.get('abscat')
     if abscat_dict:
         abscat_pk = abscat_dict.get('pk')
         abscat_parent_pk = abscat_dict.get('ppk')
 
-        # logger.debug('abscat_pk: ' + str(abscat_pk) + ' ' + str(type(abscat_pk)))
-        # logger.debug('abscat_parent_pk: ' + str(abscat_parent_pk) + ' ' + str(type(abscat_parent_pk)))
         if abscat_pk:
             #abscat_order = Order.objects.get_or_none(id=abscat_pk, customer=abscat_parent_pk, cat=c.SHIFT_CAT_0512_ABSENCE)
             abscat_order = m.Order.objects.filter(id=abscat_pk, cat=c.SHIFT_CAT_0512_ABSENCE).first()
-            # logger.debug('abscat_order: ' + str(abscat_order) + ' ' + str(type(abscat_order)))
             if abscat_order:
-                abscat_order_exists = True
-                # logger.debug('abscat_exists: ' + str(abscat_order_exists))
-
-# - check if abscat orderhour exists
-            if abscat_order_exists:
                 abscat_orderhour = m.Orderhour.objects.filter(id=abscat_pk, order=abscat_order).first()
                 if abscat_orderhour is None:
+
 # create new abscat_orderhour record if it does not exist
-                    abscat_orderhour = m.Orderhour(order=abscat_order)
+                    abscat_orderhour = m.Orderhour(
+                        order=abscat_order,
+                        cat=c.SHIFT_CAT_0512_ABSENCE
+                    )
                     abscat_orderhour.save(request=request)
                 if abscat_orderhour:
-                    abscat_emplhour = m.Emplhour(orderhour=abscat_orderhour)
-                    # Note: when abscat: employee is replacement_employee, to be put in emplhour
-                    abscat_emplhour.employee = emplhour.employee
 
+# create new abscat_emplhour record
+                    abscat_emplhour = m.Emplhour(orderhour=abscat_orderhour)
+# put current employee in abscat_emplhour
+                    abscat_emplhour.employee = emplhour.employee
+# copy other fields to abscat_emplhour
+                    abscat_emplhour.cat = c.SHIFT_CAT_0512_ABSENCE
                     abscat_emplhour.shift = emplhour.shift
                     abscat_emplhour.wagecode = emplhour.wagecode
                     abscat_emplhour.rosterdate = emplhour.rosterdate
@@ -2544,16 +2631,58 @@ def make_absent(emplhour, employee, upload_dict, request):
 
                     abscat_emplhour.save(request=request)
 
-                    # logger.debug('abscat_emplhour.save: ' + str(abscat_emplhour))
+def split_shift(emplhour, upload_dict, request):
+    logger.debug('split_shift')
+    logger.debug(str(upload_dict))
 
-# put replacement employee in emplhour, Null if no replacement employee
-                    if employee:
-                        emplhour.employee = employee
-                    else:
-                        emplhour.employee = None
-                    emplhour.save(request=request)
+    # upload_dict: {
+    # 'id': {'pk': 308, 'ppk': 302, 'table': 'emplhour', 'rosterdate': '2019-08-25'},
+    # 'mode': 'split',
+    # 'employee': {'field': 'employee', 'pk': 234, 'ppk': 2, 'code': 'Richardson R M'},
+    # 'replacement': {'field': 'replacement', 'pk': 219, 'ppk': 2, 'code': 'Daal E I J'}}
 
+    pk_int = 0
+    ppk_int = 0
+    id_dict = upload_dict.get('id')
+    if id_dict:
+        pk_int = int(id_dict.get('pk', 0))
+        ppk_int = int(id_dict.get('ppk', 0))
 
+# get replacement employee
+    reployee = None
+    field_dict = upload_dict.get('replacement')
+    if field_dict:
+        repl_pk_int = int(field_dict.get('pk', 0))
+        reployee = m.Employee.objects.get_or_none(pk=repl_pk_int, company=request.user.company)
+
+        logger.debug('reployee' + str(reployee))
+# - get emplhour))
+    split_emplhour = None
+    orderhour = m.Orderhour.objects.get_or_none(pk=ppk_int, order__customer__company=request.user.company)
+    if orderhour:
+        logger.debug('cur_orderhour' + str(orderhour))
+# - get emplhour))
+        emplhour = m.Emplhour.objects.get_or_none(pk=pk_int, orderhour=orderhour)
+        if emplhour:
+            logger.debug('emplhour' + str(emplhour))
+# create new split_emplhour record
+            split_emplhour = m.Emplhour(
+                orderhour=orderhour,
+                rosterdate=emplhour.rosterdate,
+                cat=emplhour.cat,
+                shift=emplhour.shift,
+                timeduration=0,
+                breakduration=0,
+                status=c.STATUS_00_NONE
+            )
+            # TODO  wagerate  wagefactor  wage cald timeduratio
+
+# put current employee in abscat_emplhour
+            if reployee:
+                split_emplhour.employee = reployee
+            split_emplhour.save(request=request)
+
+    logger.debug('split_emplhour' + str(split_emplhour))
 #######################################################
 def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, user_lang):
     # --- update existing and new emplhour PR2-019-06-23
@@ -2598,7 +2727,15 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
         # c. save field if changed and no_error
                     old_date = getattr(instance, field, None)
                     if new_date != old_date:
+                        yearindex = new_date.year
+                        monthindex = new_date.month
+                        weekindex = new_date.isocalendar()[1]  # isocalendar() is tuple: (2019, 15, 4)
+
                         setattr(instance, field, new_date)
+                        setattr(instance, 'yearindex', yearindex)
+                        setattr(instance, 'monthindex', monthindex)
+                        setattr(instance, 'weekindex', weekindex)
+
                         save_changes = True
                         update_dict[field]['updated'] = True
 
@@ -2608,12 +2745,15 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
         # 'employee': {'update': True, 'value': 'Kevin', 'pk': 1},
         field = 'employee'
         is_updated = False
-        if field in upload_dict:
+        # new employee is stored as 'replacement' in upload_dict
+        if 'replacement' in upload_dict:
             employee = None
+            logger.debug('upload_dict[replacement] found')
 
     # a. get new and old employee_pk
-            field_dict = upload_dict.get(field)
-            # logger.debug('field_dict[' + field + ']: ' + str(field_dict))
+            field_dict = upload_dict.get('replacement')
+            logger.debug('field_dict[' + field + ']: ' + str(field_dict))
+
             new_employee_pk = field_dict.get('pk')
             old_employee_pk = None
             if instance.employee_id:
@@ -2624,20 +2764,22 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
                 if employee is None:
                     new_employee_pk = None
     # c. save field if changed
-            # employeek is not required
+
+            logger.debug('new_employee_pk: ' + str(new_employee_pk) + 'old_employee_pk: ' + str(old_employee_pk))
+            # employee_pk is not required
             if new_employee_pk != old_employee_pk:
     # update field employee in emplhour
                 # setattr() sets the value ('team') of the specified attribute ('field') of the specified object (emplhour)
                 setattr(instance, field, employee)
                 save_changes = True
-                logger.debug('update_dict[' + field + ']: ' + str(update_dict))
+
+                logger.debug('save new_employee')
 
                 update_dict[field]['updated'] = True
                 if instance.employee:
                     update_dict[field]['value'] = instance.employee.code
                     update_dict[field]['pk'] = instance.employee.id
-
-        # logger.debug('update_dict[' + field + ']: ' + str(update_dict[field]))
+                logger.debug('update_dict[' + field + ']: ' + str(update_dict[field]))
         # --- save changes in time fields
         # upload_dict: {'id': {'pk': 4, 'parent_pk': 18}, 'timestart': {'value': '0;11;15', 'update': True}}
 
@@ -3106,6 +3248,134 @@ def update_schemeitem(instance, upload_dict, update_dict, request, comp_timezone
             update_dict['id']['error'] = msg_err
 
 
+def get_rangemin_rangemax (upload_dict, request):  # PR2019-08-19
+    rangemin = None
+    rangemax = None
+
+    period_dict = {}
+    if 'period' in upload_dict:  # PR2019-07-09
+        # period': {'period': 12, 'interval': 6, 'overlap': 0, 'auto': True}}
+
+# get saved period_dict
+        period_dict = d.get_period_from_settings(request)
+
+# get today_midnight_local_iso
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+
+# get today_midnight_local_iso
+        today_utc = d.get_datetime_utc(datetime.utcnow())
+        today_midnight_local = d.get_rosterdate_midnight_local(today_utc, comp_timezone)
+        # logger.debug('today_midnight_local: ' + str(today_midnight_local) + str(type(today_midnight_local)))
+        # today_midnight_local_iso = today_midnight_local.isoformat()
+        # logger.debug('today_midnight_local_iso: ' + str(today_midnight_local_iso) + str( type(today_midnight_local_iso)))
+
+# get now in utc
+        now_dt = datetime.utcnow()
+        # logger.debug('now_dt: ' + str(now_dt) + ' type: ' + str(type(now_dt)))
+        # now_dt: 2019-07-10 14:48:15.742546 type: <class 'datetime.datetime'>
+        now_utc = now_dt.replace(tzinfo=pytz.utc)  # NOTE: it works only with a fixed utc offset
+        # logger.debug('now_utc: ' + str(now_utc) + ' type: ' + str(type(now_utc)))
+        # now_utc: 2019-07-10 14:48:15.742546+00:00 type: <class 'datetime.datetime'>
+
+# convert now to local
+        # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+        # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
+        timezone = pytz.timezone(comp_timezone)
+        now_local = now_utc.astimezone(timezone)
+        # logger.debug('now_local: ' + str(now_local) + str(type(now_local)))
+        # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
+
+# split now_local
+        year_int, month_int, date_int, hour_int, minute_int = d.split_datetime(now_local)
+        # logger.debug('now_local_arr: ' + str(year_int) + ';' + str(month_int) + ';' + str(date_int) + ';' + str(hour_int) + ';' + str(minute_int))
+        # now_local_arr: 2019;7;10;16
+
+# get interval
+        interval = int(period_dict['interval'])
+        interval_index = int(hour_int / interval)
+        # logger.debug('xxx interval: ' + str(interval) + ' interval_index: ' + str(interval_index))
+
+# get local start time of current interval
+        interval_starthour = interval * interval_index
+        # logger.debug('interval_starthour: ' + str(interval_starthour))
+        interval_start_local = today_midnight_local + timedelta(hours=interval_starthour)
+        # logger.debug('interval_start_local: ' + str(interval_start_local) + str(type(interval_start_local)))
+
+        interval_end_local = interval_start_local + timedelta(hours=interval)
+        # logger.debug('interval: ' + str(interval) + ' interval_end_local: ' + str(interval_end_local))
+
+# get local start time of current interval with overlap
+        overlap = int(period_dict['overlap'])
+        overlap_start = -overlap
+        overlap_start_local = interval_start_local + timedelta(hours=overlap_start)
+        # logger.debug('overlap_start: ' + str(overlap_start) +  ' overlap_start_local: ' + str(overlap_start_local))
+
+        utc = pytz.UTC
+        overlap_start_utc = overlap_start_local.astimezone(utc)
+        # logger.debug('mmmm  overlap_start_utc: ' + str(overlap_start_utc))
+
+        # get local end time of current interval with overlap
+        overlap_end_local = interval_end_local + timedelta(hours=overlap)
+        # logger.debug(  'overlap: ' + str(overlap) + ' overlap_end_local: ' + str(overlap_end_local))
+
+        overlap_end_utc = overlap_end_local.astimezone(utc)
+        # logger.debug('mmmm  overlap_end_utc: ' + str(overlap_end_utc))
+
+# get starthour of current interval
+        # from https://riptutorial.com/python/example/4540/constructing-timezone-aware-datetimes
+
+        # get local end time of current interval with
+        # range = period_dict['range']
+        # year_add, month_add, date_add, hour_add = d.get_range(range)
+        # logger.debug('range: ' + str(range))
+        # logger.debug(str(year_add) + ' ; ' + str(month_add) + ' ; ' + str(date_add) + ' ; ' + str(hour_add))
+
+# convert now to local
+        # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+        # timezone: Europe/Amsterdam<class 'pytz.tzfile.Europe/Amsterdam'>
+        timezone = pytz.timezone(comp_timezone)
+        # logger.debug('timezone: ' + str(timezone) + str(type(timezone)))
+
+        # convert starthour to utc
+        # get endhour of current interval with offset
+        range = int(period_dict['range'])
+        year_int, month_int, date_int, hour_int = d.get_range(range)
+        interval_endhour_offset = interval_starthour + range
+
+        rangemin = f.get_datetime_UTC_from_ISOstring(period_dict['datetimestart'])
+
+        # rangemin: 2019-07-09T00:00:00+02:00 type: <class 'str'>
+        # rangemin: 2019-07-09 00:00:00+00:00 type: <class 'datetime.datetime'>
+        # logger.debug('rangemin: ' + str(rangemin) + ' type: ' + str(type(rangemin)))
+
+        rangemin_arr = f.get_datetimearray_from_ISOstring(period_dict['datetimestart'])
+        year_int = int(rangemin_arr[0])
+        month_int = int(rangemin_arr[1])
+        date_int = int(rangemin_arr[2])
+        hour_int = int(rangemin_arr[3])
+        # logger.debug(str(year_int) + ' ; ' + str(month_int) + ' ; ' + str(date_int) + ' ; ' + str(hour_int))
+
+        arr = period_dict['range'].split(';')
+        year_add = int(arr[0])
+        month_add = int(arr[1])
+        date_add = int(arr[2])
+        hour_add = int(arr[3])
+        if year_add:
+            year_int = year_int + year_add
+        if month_add:
+            month_int = month_int + month_add
+        if date_add:
+            date_int = date_int + date_add
+        if hour_add:
+            hour_int = hour_int + hour_add
+        rangemax = datetime(year_int, month_int, date_int, hour_int)
+        # logger.debug('rangemax: ' + str(rangemax) + ' type: ' + str(type(rangemax)))
+        # rangemax: 2019-07-16 00:00:00 type: <class 'datetime.datetime'>
+        # rangemax_utc = rangemax.astimezone(pytz.UTC)
+        #  logger.debug('rangemax_utc: ' + str(rangemax_utc) + ' type: ' + str(type(rangemax_utc)))
+        # rangemax_utc: 2019-07-16 04:00:00+00:00 type: <class 'datetime.datetime'>
+    return rangemin, rangemax, period_dict
+
 # <<<<<<<<<< recalculate timeduration >>>>>>>>>>>>>>>>>>>
 
 def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
@@ -3241,31 +3511,31 @@ def create_shift(upload_dict, update_dict, request):
             code_dict = upload_dict.get('code')
             if code_dict:
                 code = code_dict.get('value')
-
             if code:
-
-    # c. validate code
+# c. validate code
                 has_error = validate_code_name_identifier(table, 'code', code, parent, update_dict)
                 if not has_error:
 # 4. create and save shift
-                    shift = m.Shift(scheme=parent, code=code)
-                    shift.save(request=request)
-
+                    try:
+                        shift = m.Shift(scheme=parent, code=code)
+                        shift.save(request=request)
+                    except:
 # 5. return msg_err when shift not created
-                    if shift.pk is None:
                         msg_err = _('This shift could not be created.')
                         update_dict['code']['error'] = msg_err
                     else:
 # 6. put info in update_dict
                         update_dict['id']['created'] = True
+                        update_dict['id']['pk'] = shift.pk
+                        update_dict['pk'] = shift.pk
 
     return shift
 
 def update_shift(shift, parent, upload_dict, update_dict, request):
     # --- update existing and new shift PR2019-08-08
     #  add new values to update_dict (don't reset update_dict, it has values)
-    # alse refresh timestart timeend in schemeitems
-    logger.debug(' --- update_shift --- ')
+    #  also refresh timestart timeend in schemeitems
+    logger.debug(' ----- update_shift ----- ')
     logger.debug('upload_dict: ' + str(upload_dict))
 
     save_changes = False
@@ -3274,25 +3544,20 @@ def update_shift(shift, parent, upload_dict, update_dict, request):
 #  get comp_timezone
     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
-# 1. get_iddict_variables
+# 1. get_iddict_variables (only as parameter in validate_code_name_identifier)
     id_dict = upload_dict.get('id')
     if id_dict:
         table = id_dict.get('table', '')
         pk_int = shift.pk
-        ppk_int = shift.scheme.pk
-
-        update_dict['pk'] = pk_int
-        update_dict['id']['pk'] = pk_int
-        update_dict['id']['ppk'] = ppk_int
-        update_dict['id']['table'] = table
 
 # 2. save changes in fields
-        for field in ('code', 'cat', 'offsetstart', 'offsetend', 'breakduration'):
+        # FIELDS_SHIFT = ('pk', 'id', 'scheme', 'code', 'cat',
+        #                 'offsetstart', 'offsetend', 'breakduration', 'wagefactor', 'successor')
+        for field in ('code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor'):
             if field in upload_dict:
     # a. get new and old value
                 field_dict = upload_dict.get(field)
-                logger.debug('field: ' + str(field))
-                logger.debug('field_dict: ' + str(field_dict))
+                logger.debug('field: ' + str(field) + ' field_dict: ' + str(field_dict))
                 if 'update' in field_dict:
                     new_value = field_dict.get('value')
                     if field == 'breakduration':
@@ -3310,9 +3575,13 @@ def update_shift(shift, parent, upload_dict, update_dict, request):
                         if field == 'code':
                             has_error = validate_code_name_identifier(table, field, new_value, parent, update_dict, pk_int)
                         if not has_error:
+
     # c. save field if changed and no_error
                             setattr(shift, field, new_value)
                             update_dict[field]['updated'] = True
+                            if new_value:
+                                update_dict[field]['value'] = new_value
+
                             save_changes = True
     # e. if offsetend got value: remove successor
                             if field == 'offsetend':
@@ -3333,9 +3602,8 @@ def update_shift(shift, parent, upload_dict, update_dict, request):
             if 'update' in field_dict:
                 successor_code = field_dict.get('value')
                 successor_pk = int(field_dict.get('pk', 0))
-                logger.debug('successor_code[' + str(successor_pk) + ']: ' + str(successor_code))
-
-     # b. remove successor_code from shift when pk is None
+                logger.debug('successor pk: ' + str(successor_pk) + ' code: ' + str(successor_code))
+    # b. remove successor_code from shift when pk is None
                 if not successor_pk:
                     # set field blank
                     if shift.successor:
@@ -3346,13 +3614,16 @@ def update_shift(shift, parent, upload_dict, update_dict, request):
      # c. check if successor exists
                     successor = m.Shift.objects.get_or_none(pk=successor_pk)
                     if successor:
-# d. update successor
-                        logger.debug('successor exists: ' + str(successor))
+    # d. update successor
                         setattr(shift, fieldname, successor)
                         update_dict[fieldname]['updated'] = True
+                        update_dict[fieldname]['pk'] = successor.pk
+                        update_dict[fieldname]['ppk'] = successor.scheme_id
+                        if successor.code:
+                            update_dict[fieldname]['value'] = successor.code
                         save_changes = True
 
-# d. if offsetend has value: remove offsetend
+    # e. if offsetend has value: remove offsetend
                         offsetend = getattr(shift, 'offsetend')
                         if offsetend:
                             setattr(shift, 'offsetend', None)
@@ -3367,11 +3638,11 @@ def update_shift(shift, parent, upload_dict, update_dict, request):
                 msg_err = _('This %(tbl)s could not be updated.') % {'tbl': table}
                 update_dict['id']['error'] = msg_err
 
-# 6. also reclac schemitems
+# 6. also recalc schemitems
             recalc_schemeitems(shift, request, comp_timezone)
 
-# 6. put updated saved values in update_dict
-        d.create_shift_dict(shift, update_dict)
+# 6. put updated saved values in update_dict #PR2019-08-25 debug: don't, it erases pk from deleted insatnce
+        # d.create_shift_dict(shift, update_dict)
 
     return has_error
 
