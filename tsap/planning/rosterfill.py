@@ -111,11 +111,11 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, logfile):  # PR20
         entry_count = 0
         entry_balance = m.get_entry_balance(request, comp_timezone)
         logger.debug('entry_balance: ' + str(entry_balance))
-#===============================================================
+# ===============================================================
         logfile.append('================================================ ')
         logfile.append('  Fill roster of date: ' + str(new_rosterdate_dte))
         logfile.append('================================================ ')
-#===============================================================
+# ===============================================================
 
 # loop through all customers:, except for absence and template
         customers = m.Customer.objects.filter(company=request.user.company, cat__lt=c.SHIFT_CAT_0512_ABSENCE)
@@ -164,20 +164,6 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, logfile):  # PR20
                                             if not schemeitems:
                                                 logfile.append("     scheme  has no shifts.")
                                             else:
-            # 1. create a recordset of schemeitem records with rosterdate = new_rosterdate_dte
-                                            #   Exclude cat absence and template (# order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
-                                            #   Exclude inactive scheme)
-                                            #  order and scheme must be in range datefirst - datelast
-                                            #crit = Q(scheme__order__customer__company=request.user.company)  & \
-                                            #       Q(scheme__cat__lte=SHIFT_CAT_0001_INTERNAL) & \
-                                            #       Q(scheme__inactive=False) & \
-                                            #       (Q(scheme__order__datefirst__lte=new_rosterdate_dte) | Q(scheme__order__datefirst__isnull=True)) & \
-                                            #       (Q(scheme__order__datelast__gte=new_rosterdate_dte) | Q(scheme__order__datelast__isnull=True)) & \
-                                            #       (Q(scheme__datefirst__lte=new_rosterdate_dte) | Q(scheme__datefirst__isnull=True)) & \
-                                            #       (Q(scheme__datelast__gte=new_rosterdate_dte) | Q(scheme__datelast__isnull=True))
-                                            #schemeitems = m.Schemeitem.objects.filter(crit)
-                                            # logger.debug(schemeitems.query)
-
                                                 for schemeitem in schemeitems:
          # 2. update the rosterdate of schemeitem when it is outside the current cycle,
                                                     update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone)
@@ -207,13 +193,13 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, logfile):  # PR20
                                                                     # TODO add to rest order, to prevent overlapping shifts
                                                                     logfile.append('       shift is rest shift')
                                                                 else:
-                                                                    AddSchemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_count, logfile)  # PR2019-08-12
+                                                                    add_schemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_count, logfile)  # PR2019-08-12
 
                                                                 # DON't add 1 cycle to today's schemeitems, added rosterday must be visible in planning, to check
                                                                 #next_rosterdate = new_rosterdate_dte + timedelta(days=1)
                                                                 # update_schemeitem_rosterdate(schemeitem, next_rosterdate, comp_timezone)
 
-def AddSchemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_count, logfile):  # PR2019-08-12
+def add_schemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_count, logfile):  # PR2019-08-12
 
     logger.debug(' ============= AddSchemeitem ============= ')
     logger.debug('new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
@@ -311,7 +297,6 @@ def AddSchemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_
 
         orderhour.save(request=request)
 
-        logfile.append("       shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " is added to roster.")
 
 # create new emplhour, not when oh_is_locked
         # create new emplhour
@@ -337,11 +322,12 @@ def AddSchemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_
             # add employee (employe=null is filtered out)
             employee = teammember.employee
             if employee:
-                logfile.append("       shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " is added to roster.")
                 logger.debug("       employee: '" + str(employee.code) + "' is added")
                 new_emplhour.employee = employee
                 new_emplhour.wagecode = employee.wagecode
         new_emplhour.save(request=request)
+
+        logfile.append("       shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " is added to roster.")
     logger.debug(' entry_count: ' + str( entry_count))
 
     logger.debug(logfile)
@@ -357,7 +343,7 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone):
     # the curent cycle has index 0. It starts with new_rosterdate and ends with new_rosterdate + cycle -1
 
     if schemeitem and new_rosterdate_dte:
-        new_rosterdate_naive = f.get_datetime_naive_from_date(new_rosterdate_dte)
+        # new_rosterdate_naive = f.get_datetime_naive_from_date(new_rosterdate_dte)
         new_si_rosterdate_naive = schemeitem.get_rosterdate_within_cycle(new_rosterdate_dte)
         # logger.debug(' new_rosterdate_naive: ' + str(new_rosterdate_naive) + ' ' + str(type(new_rosterdate_naive)))
         # new_rosterdate_naive: 2019-08-27 00:00:00 <class 'datetime.datetime'>
@@ -451,7 +437,6 @@ def get_schemeitem_rosterdate_within_cycle(schemeitem, new_rosterdate):
 
 
 #################
-
 # 5555555555555555555555555555555555555555555555555555555555555555555555555555
 
 def RemoveRosterdate(rosterdate_current, request, comp_timezone):  # PR2019-06-17
@@ -459,38 +444,41 @@ def RemoveRosterdate(rosterdate_current, request, comp_timezone):  # PR2019-06-1
     logger.debug(' rosterdate_current:' + str(rosterdate_current))
 
     if rosterdate_current:
-# - create recordset of orderhour records with rosterdate = rosterdate_current and schemeitem Is Not Null
-#   schemeitem Is Not Null when generated by Scheme, schemeitem Is Null when manually added
-        crit = Q(rosterdate=rosterdate_current) & \
-               Q(schemeitem__isnull=False) & \
-               Q(order__customer__company=request.user.company)
+# - create recordset of orderhour records with rosterdate = rosterdate_current
+#   Don't filter on schemeitem Is Not Null (schemeitem Is Not Null when generated by Scheme, schemeitem Is Null when manually added)
+
+# check orderhour status:, skip if STATUS_02_START_CONFIRMED or higher
+        crit = Q(orderhour__order__customer__company=request.user.company) & \
+               Q(rosterdate=rosterdate_current) & \
+               (Q(status__gte=c.STATUS_02_START_CONFIRMED) | Q(orderhour__status__gte=c.STATUS_02_START_CONFIRMED))
+        count = m.Emplhour.objects.filter(crit).count()
+        logger.debug(' count:' + str(count))
+
+        if count:
+            if count == 1:
+                msg_err = _('This date has 1 shift that is confirmed. It can not be deleted.') %{'count': count}
+            else:
+                msg_err = _('This date has %(count)s shifts that are confirmed. They cannot be deleted.') %{'count': count}
+            #TODO return msg_err
+
+# get orderhour records of this date and status less than STATUS_02_START_CONFIRMED, also delete records with rosterdate Null
+        crit = Q(order__customer__company=request.user.company) & \
+              ((Q(rosterdate=rosterdate_current) & Q(status__lt=c.STATUS_02_START_CONFIRMED)) | Q(rosterdate__isnull=True))
         orderhours = m.Orderhour.objects.filter(crit)
-
         for orderhour in orderhours:
-
-# check emplhours status: TODO skip if STATUS_02_START_CONFIRMED or higher
-            # crit = Q(orderhour=orderhour) &  Q(status__gte=STATUS_02_START_CONFIRMED)
-
-            #emplhours_exist = Emplhour.objects.filter(crit).exists()
-
-            #for emplhour in emplhours:
-    # check orderhour status: skip if STATUS_02_START_CONFIRMED or higher
-            #    if orderhour.status < STATUS_02_START_CONFIRMED:
-            #        skip_update = True
-            #    else:
-            #        is_update = True
-            #    emplhour.delete(request=request)
-
-    # check orderhour status: skip if STATUS_02_START_CHECKED or higher
-            #if orderhour.status < STATUS_02_START_CONFIRMED:
-            #    skip_update = True
-            #else:
-            #    is_update = True
-
-# delete emplhours of orderhour
+            logger.debug(' orderhour:' + str(orderhour))
+            delete_orderhour = True
+# get emplhours of this orderhour
             emplhours = m.Emplhour.objects.filter(orderhour=orderhour)
             for emplhour in emplhours:
-                emplhour.delete(request=request)
-
+                logger.debug(' emplhour:' + str(emplhour))
+                # check emplhours status:, skip if STATUS_02_START_CONFIRMED or higher
+                if emplhour.status < c.STATUS_02_START_CONFIRMED \
+                        or not orderhour.rosterdate \
+                        or not emplhour.rosterdate:
+                    emplhour.delete(request=request)
+                else:
+                    delete_orderhour = False
 # delete orderhour
-            orderhour.delete(request=request)
+            if delete_orderhour:
+                orderhour.delete(request=request)

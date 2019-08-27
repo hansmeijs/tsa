@@ -200,8 +200,9 @@ document.addEventListener('DOMContentLoaded', function() {
         let tot_eh_wage = 0, cust_eh_wage = 0, ord_eh_wage = 0, dte_eh_wage = 0;
 
 // create END ROW
+// display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
         // display_list:  0 = date, 1 = cust, 2 = order, 3 = shift, 4 = employee, 5 = "eh_dur, 6 = oh_dur, 7 = diff, 8 = show warning
-        let display_list = ["",  "", "", "", "", "", "", "", false]
+        let display_list = ["",  "", "", "", "", "", false, false]
         tblRow =  CreateTableRow()
         UpdateTableRow(tblRow, 0, 0, 0, display_list,  "grnd")
 
@@ -232,9 +233,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const diff_format = format_total_duration (diff, user_lang)
                     const show_warning = (diff < 0);
 
-                    // display_list:  0 = date, 1 = cust, 2 = order, 3 = shift, 4 = employee, 5 = "eh_dur, 6 = oh_dur, 7 = diff, 8 = show warning
-                    display_list =["TOTAL " + dte_prev, "", "", dte_count.toString() + " shifts",
-                                    "", eh_dur_format, oh_dur_format, diff_format, show_warning]
+                    // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+                    display_list =["TOTAL " + dte_prev, "", dte_count.toString() + " shifts",
+                                    eh_dur_format, oh_dur_format, diff_format, show_warning]
 
                     tblRow =  CreateTableRow()
                     UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "dte")
@@ -256,10 +257,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const diff = ord_oh_dur - ord_eh_dur;
                     const diff_format = format_total_duration (diff, user_lang)
                     const show_warning = (diff < 0);
-
-                    // display_list:  0 = date, 1 = cust, 2 = order, 3 = shift, 4 = employee, 5 = "eh_dur, 6 = oh_dur, 7 = diff, 8 = show warning
-                    display_list =["TOTAL " + ord_code_prev, "", "", ord_count.toString() + " shifts",
-                                    "", eh_dur_format, oh_dur_format, diff_format, show_warning]
+                    // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+                    display_list =["TOTAL " + ord_code_prev, "",  ord_count.toString() + " shifts",
+                                    eh_dur_format, oh_dur_format, diff_format, show_warning]
 
                     tblRow =  CreateTableRow()
                     UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "ord")
@@ -281,10 +281,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const diff = cust_oh_dur - cust_eh_dur;
                     const diff_format = format_total_duration (diff, user_lang)
                     const show_warning = (diff < 0);
-
-                    // display_list:  0 = date, 1 = cust, 2 = order, 3 = shift, 4 = employee, 5 = "eh_dur, 6 = oh_dur, 7 = diff, 8 = show warning
-                    display_list = ["TOTAL " + cust_code_prev, "", "", cust_count.toString() + " shifts",
-                                    "", eh_dur_format, oh_dur_format, diff_format, show_warning]
+                    // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+                     display_list = ["TOTAL " + cust_code_prev, "",  cust_count.toString() + " shifts",
+                                     eh_dur_format, oh_dur_format, diff_format, show_warning]
 
                     tblRow =  CreateTableRow()
                     UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "cust")
@@ -336,11 +335,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const diff_format = format_total_duration (diff, user_lang)
                 const show_warning = (diff < 0);
 
-                // display_list:  0 = date, 1 = cust, 2 = order, 3 = shift, 4 = employee, 5 = "eh_dur, 6 = oh_dur, 7 = diff, 8 = show warning
-                //display_list = [dte_curr, cust_code_curr, ord_code_curr, row_list[idx_shift],
-                //                row_list[idx_empl_code_arr], eh_dur_format, oh_dur_format, diff_format, show_warning]
-                display_list = [dte_curr, row_list[idx_empl_code_arr], "", row_list[idx_shift],
-                                "", eh_dur_format, oh_dur_format, diff_format, show_warning]
+                // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+                display_list = [dte_curr, row_list[idx_empl_code_arr], row_list[idx_shift],
+                                eh_dur_format, oh_dur_format, diff_format, show_warning]
 
                 tblRow =  CreateTableRow()
                 UpdateTableRow(tblRow, row_list[idx_cust_pk], row_list[idx_ord_pk], row_list[idx_date], display_list)
@@ -366,9 +363,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const diff_format = format_total_duration (diff, user_lang)
             const show_warning = (diff < 0);
 
-            // display_list:  0 = date, 1 = cust, 2 = order, 3 = shift, 4 = employee, 5 = "eh_dur, 6 = oh_dur, 7 = diff, 8 = show warning
-            display_list =["TOTAL " + dte_prev, "", "", dte_count.toString() + " shifts",
-                            "", eh_dur_format, oh_dur_format, diff_format, show_warning]
+            // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+            display_list =["TOTAL " + dte_prev, "",  dte_count.toString() + " shifts",
+                            eh_dur_format, oh_dur_format, diff_format, show_warning]
 
             tblRow =  CreateTableRow()
             UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "dte")
@@ -383,9 +380,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const diff_format = format_total_duration (diff, user_lang)
             const show_warning = (diff < 0);
 
-            // display_list:  0 = date, 1 = cust, 2 = order, 3 = shift, 4 = employee, 5 = "eh_dur, 6 = oh_dur, 7 = diff, 8 = show warning
-            display_list =["TOTAL " + ord_code_prev, "", "", ord_count.toString() + " shifts",
-                            "", eh_dur_format, oh_dur_format, diff_format, show_warning]
+            // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+            display_list =["TOTAL " + ord_code_prev, "",  ord_count.toString() + " shifts",
+                             eh_dur_format, oh_dur_format, diff_format, show_warning]
 
             tblRow =  CreateTableRow()
             UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "ord")
@@ -400,9 +397,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const diff_format = format_total_duration (diff, user_lang)
                 const show_warning = (diff < 0);
 
-                // display_list:  0 = date, 1 = cust, 2 = order, 3 = shift, 4 = employee, 5 = "eh_dur, 6 = oh_dur, 7 = diff, 8 = show warning
-                display_list = ["TOTAL " + cust_code_prev, "", "", cust_count.toString() + " shifts",
-                                "", eh_dur_format, oh_dur_format, diff_format, show_warning]
+                // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+                display_list = ["TOTAL " + cust_code_prev, "",  cust_count.toString() + " shifts",
+                                eh_dur_format, oh_dur_format, diff_format, show_warning]
 
             tblRow =  CreateTableRow()
             UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "cust")
@@ -415,9 +412,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const diff_format = format_total_duration (diff, user_lang)
         const show_warning = (diff < 0);
 
-        // display_list:  0 = date, 1 = cust, 2 = order, 3 = shift, 4 = employee, 5 = "eh_dur, 6 = oh_dur, 7 = diff, 8 = show warning
-        display_list = ["GRAND TOTAL",  "", "", tot_count.toString() + " shifts",
-                        "", eh_dur_format, oh_dur_format, diff_format, show_warning]
+        // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+        display_list = ["GRAND TOTAL",  "", tot_count.toString() + " shifts",
+                        eh_dur_format, oh_dur_format, diff_format, show_warning]
 
         tblRow =  CreateTableRow()
         UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "grnd")
@@ -445,20 +442,20 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
 
-        const column_count = 10;
+        const column_count = 8;
 
-//+++ insert td's ino tblRow
+//+++ insert td's in tblRow
         for (let j = 0; j < column_count; j++) {
             // index -1 results in that the new cell will be inserted at the last position.
             let td = tblRow.insertCell(-1);
             let el;
 
 // --- add img to first and last td, first column not in new_item, first column not in teammembers
-            if ([8, 9].indexOf( j ) > -1){
+            if ([6, 7].indexOf( j ) > -1){
 
                 let img_src;
-                if (j === 8){img_src = imgsrc_stat00} else
-                if (j === 9){img_src = imgsrc_stat00}
+                if (j === 6){img_src = imgsrc_stat00} else
+                if (j === 7){img_src = imgsrc_stat00}
 
             // --- first add <a> element with EventListener to td
                 el = document.createElement("a");
@@ -498,13 +495,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     //el.addEventListener("click", function() {ModEmployeeOpen(el);}, false )
                 //};
 // --- add text_align
-                if ( [0,  3].indexOf( j ) > -1 ){
+                if ( [0, 2].indexOf( j ) > -1 ){
                     el.classList.add("text_align_left")
                     el.classList.add("td_width_90");
-                } else if ( [1, 2, 4].indexOf( j ) > -1 ){
+                } else if ( [1, ].indexOf( j ) > -1 ){
                     el.classList.add("text_align_left")
                     el.classList.add("td_width_180");
-                } else if ([5, 6, 7].indexOf( j ) > -1 ){
+                } else if ([3, 4, 5].indexOf( j ) > -1 ){
                     el.classList.add("text_align_right")
                     td.classList.add("td_width_90");
                 };
@@ -582,20 +579,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (i === 0) {
                         el.innerText = display_list[0]
                     } else  if (i === 1) { el.innerText = display_list[1]} else
-                    if (i === 2) { el.innerText = display_list[2]} else
-                    if (i === 3) {el.innerText = display_list[3]} else
-                    if (i === 4) {
-                        el.innerText = display_list[4]
+                    if (i === 2) {
+                        el.innerText = display_list[2]
                         el.classList.add("tsa_ellipsis");
                         el.classList.add("td_width_090");
                     } else
-                    if (i === 5) {
-                        el.innerText =  display_list[5]
-                    } else if (i === 6) {
-                        el.innerText = display_list[6]
-                    } else if (i === 7) {
-                        el.innerText = display_list[7]
-                        if (display_list[8]){
+                    if (i === 3) {
+                        el.innerText =  display_list[3]
+                    } else if (i === 4) {
+                        el.innerText = display_list[4]
+                    } else if (i === 5) {
+                        el.innerText = display_list[5]
+                        if (display_list[6]){
                             AppendChildIcon(el, imgsrc_warning, "18")
                         }
                     }

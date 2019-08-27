@@ -54,14 +54,12 @@
                 <table class="table table-condensed tsa-tbl mx-4 my-1">
 
                     <thead id="id_thead_items" class="thead-inverse">
-                        <th class="text_align_left">{% trans 'Date' %}</th>
-                        <th class="text_align_left">{% trans 'Customer' %}</th>
-                        <th class="text_align_left">{% trans 'Order' %}</th>
-                        <th class="text_align_left">{% trans 'Shift' %}</th>
-                        <th class="text_align_left">{% trans 'Employee' %}</th>
-                        <th class="text_align_left">{% trans 'Worked Hours' %}</th>
-                        <th class="text_align_left">{% trans 'Billed hours' %}</th>
-                        <th class="text_align_left">{% trans 'Difference' %}</th>
+                        <th class="text_align_left td_width_180">{% trans 'Date' %}</th>
+                        <th class="text_align_left">{% trans 'Order' %} / {% trans 'Employee' %}</th>
+                        <th class="text_align_left td_width_120">{% trans 'Shift' %}</th>
+                        <th class="text_align_left td_width_120">{% trans 'Worked Hours' %}</th>
+                        <th class="text_align_left td_width_120">{% trans 'Billed hours' %}</th>
+                        <th class="text_align_left td_width_120">{% trans 'Difference' %}</th>
                         <th>
                             <a id="id_filter_check_end" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
                               <img id="id_img_filter_check_end" src="{% static 'img/warning.gif' %}" height="18" width="18">

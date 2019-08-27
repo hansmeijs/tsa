@@ -1230,6 +1230,12 @@ def create_review_list(datefirst, datelast, request):  # PR2019-08-20
                                        AND (oh.rosterdate <= %s)
                                        ORDER BY c_code ASC, o_code ASC, oh.rosterdate ASC""", [request.user.company_id, datefirst, datelast])
 
+#                                          WHERE (c.company_id = %s)
+        #                                        AND (oh.rosterdate IS NOT NULL)
+        #                                        AND (oh.rosterdate >= %s)
+        #                                        AND (oh.rosterdate <= %s)
+
+
         # WITH td2_sub AS (
         #                   SELECT t1_id, MAX(date) as max_date, count(*) as total
         #                   FROM t2

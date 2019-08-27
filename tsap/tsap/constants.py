@@ -301,6 +301,10 @@ CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
                     }
 
 # this one is not working: update_dict = dict.fromkeys(field_list, {})
+FIELDS_ORDERHOUR = ('pk', 'id', 'order', 'schemeitem', 'rosterdate',
+                    'yearindex', 'monthindex','quincenaindex', 'weekindex',
+                    'cat', 'shift', 'duration', 'rate', 'amount', 'tax')
+
 FIELDS_EMPLHOUR = ('pk', 'id', 'orderhour', 'employee', 'rosterdate', 'cat', 'shift',
                         'timestart', 'timeend', 'timeduration', 'breakduration',
                         'wagerate', 'wagefactor', 'wage', 'status')

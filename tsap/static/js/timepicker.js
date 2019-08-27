@@ -804,7 +804,7 @@
             } else {
                 parameters[table] = JSON.stringify (row_upload);
             }
-
+            console.log ("parameters", parameters);
             let response;
             $.ajax({
                 type: "POST",

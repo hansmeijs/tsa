@@ -4,7 +4,7 @@ from django.utils import formats
 from django.utils.translation import ugettext_lazy as _
 
 from tsap.constants import BASE_DATE, MONTHS_ABBREV, WEEKDAYS_ABBREV, LANG_EN, LANG_NL, LANG_DEFAULT
-
+import math
 import re
 import json
 import pytz
@@ -348,17 +348,29 @@ def get_weekdaylist_for_DHM(rosterdate, lang):
     return weekdaylist
 
 
-def get_minutes_from_DHM(dhm_str):  #PR2019-06-13
+def get_minutes_from_offset(offset_str):  #PR2019-06-13
     # breakduration: {'value': '0;0;15', 'update': True}
     duration = 0
-    if dhm_str:
-        if ';' in dhm_str:
-            arr = dhm_str.split(';')
+    if offset_str:
+        if ';' in offset_str:
+            arr = offset_str.split(';')
+            days = int(arr[0])
             hours = int(arr[1])
             minutes = int(arr[2])
-            duration = 60 * hours + minutes
+            duration = 1440 * days + 60 * hours + minutes
     return duration
 
+def get_offset_from_minutes(duration):  #PR2019-08-26
+    # TODO check if it works
+    # returns offset_str '-1;22;30' from duration -90
+    offset_str = '0;0;0'
+    if duration:
+        days = math.floor(duration/1440)
+        remainder = duration - days * 1440
+        hours = math.floor(remainder/60)
+        minutes = remainder - hours * 60
+        offset_str = ';'.join([str(days), str(hours), str(minutes)])
+    return offset_str
 
 
 def get_datetimeUTC_from_DHM(rosterdate, dhm_str, comp_timezone):

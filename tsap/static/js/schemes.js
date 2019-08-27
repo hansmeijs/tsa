@@ -2523,9 +2523,9 @@ $(function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblName, tblRow, item_dict){
-         console.log("========= UpdateTableRow  =========");
+         //console.log("========= UpdateTableRow  =========");
          //console.log(item_dict);
-         console.log(tblRow);
+         //console.log(tblRow);
 
         if (!!item_dict && !!tblRow) {
             // console.log("tblRow", tblRow);
@@ -2545,7 +2545,7 @@ $(function() {
             if ("deleted" in id_dict) {is_deleted = true};
             if ("error" in id_dict) {msg_err = id_dict["error"]};
             if ("temp_pk" in id_dict) {temp_pk_str = id_dict["temp_pk"]};
-            console.log("id_dict", id_dict);
+            //console.log("id_dict", id_dict);
 
 // --- deleted record
             if (is_deleted){

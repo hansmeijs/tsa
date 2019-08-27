@@ -748,7 +748,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblName, tblRow, item_dict){
-        //console.log(" ------>>  UpdateTableRow", tblName);
+       // console.log(" ------>>  UpdateTableRow", tblName);
         //console.log(item_dict);
         //console.log(tblRow);
 
@@ -868,7 +868,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const hide_weekday = false, hide_year = true;
                                 format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
                                                     user_lang, comp_timezone, hide_weekday, hide_year)
-
                       // when row is new row: remove data-o_value from dict,
                       // otherwise will not recognize rosterdate as a new value and will not be saved
                                 if (!!temp_pk_str) {
@@ -907,7 +906,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                         imgsrc_delete, imgsrc_questionmark, imgsrc_warning,
                                         "", "please confirm", "confirmation past due")
 
-                            } else if (["status"].indexOf( fieldname ) > -1){
+                            } else if (["status"].indexOf(fieldname ) > -1){
+                                //console.log("----------fieldname", fieldname);
                                 format_status_element (el_input, field_dict,
                                         imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_stat04, imgsrc_stat05,
                                         "", "created", "starttime confirmed", "endtime confirmed", "start and endtime confirmed", "confirmation locked")
@@ -2392,8 +2392,9 @@ console.log("===  function HandlePopupWdySave =========");
         const data_field = get_attr_from_el(el_body, "data-field")
         const status_value = get_attr_from_el_int(el_body, "data-value")
         console.log("status_value", status_value, typeof status_value);
+        console.log("data_pk", data_pk, typeof data_pk);
 
-        let tr_changed = document.getElementById(data_pk)
+        let tr_changed = document.getElementById(data_table + data_pk)
 
         let id_dict = get_iddict_from_element(el_body);;
 

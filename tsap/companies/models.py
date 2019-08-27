@@ -383,7 +383,6 @@ class Team(TsaBaseModel):
         return self.code
 
 
-
 class Employee(TsaBaseModel):
     objects = TsaManager()
 
@@ -950,6 +949,10 @@ def get_instance(table, pk_int, parent, update_dict=None):
             instance = Team.objects.get_or_none(id=pk_int, scheme=parent)
         elif table == 'teammember':
             instance = Teammember.objects.get_or_none(id=pk_int, team=parent)
+        elif table == 'schemeitem':
+            instance = Schemeitem.objects.get_or_none(id=pk_int, scheme=parent)
+        elif table == 'orderhour':
+            instance = Orderhour.objects.get_or_none(id=pk_int, order=parent)
         elif table == 'emplhour':
             instance = Emplhour.objects.get_or_none(id=pk_int, orderhour=parent)
 
