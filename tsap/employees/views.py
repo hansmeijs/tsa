@@ -192,7 +192,7 @@ class EmployeeUploadView(UpdateView):# PR2019-07-30
     # 3. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
-                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = f.get_iddict_variables(id_dict)
+                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode, cat = f.get_iddict_variables(id_dict)
 
     # 4. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
                     field_list = ('id', 'code', 'namefirst', 'namelast', 'email', 'telephone', 'identifier',
@@ -492,28 +492,28 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                                         logger.debug('new_employee.datelast: ' + str(new_employee.datelast))
 
                                     # workhours per week * 60
-                                    workhours_in_minutes_per_week = 0
+                                    workhours_per_week_minutes = 0
                                     workhours = employee.get('workhours', 0)
                                     if workhours:
-                                        workhours_float = f.get_float_from_string(workhours)
-                                        workhours_in_minutes_per_week = int(workhours_float * 60)
-                                    new_employee.workhours = workhours_in_minutes_per_week
+                                        workhours_float, msg_err = f.get_float_from_string(workhours)
+                                        workhours_per_week_minutes = int(workhours_float * 60)
+                                    new_employee.workhours = workhours_per_week_minutes
 
-                                    # workdays per week * 10000
-                                    workdays_per_week_x10000 = 0
+                                    # workdays per week * 1440 (one day has 1440 minutes)
+                                    workdays_per_week_minutes = 0
                                     workdays = employee.get('workdays', 0)
                                     if workdays:
-                                        workdays_float = f.get_float_from_string(workdays)
-                                        workdays_per_week_x10000 = int(workdays_float * 10000)
-                                    new_employee.workdays = workdays_per_week_x10000
+                                        workdays_float, msg_err = f.get_float_from_string(workdays)
+                                        workdays_per_week_minutes = int(workdays_float * 1440)
+                                    new_employee.workdays = workdays_per_week_minutes
 
-                                    # leavedays per year * 10000
-                                    leavedays_per_year_x10000 = 0
+                                    # leave days per year, full time, * 1440 (one day has 1440 minutes)
+                                    leavedays_per_year_minutes = 0
                                     leavedays = employee.get('leavedays', 0)
                                     if leavedays:
-                                        leavedays_float = f.get_float_from_string(leavedays)
-                                        leavedays_per_year_x10000 = int(leavedays_float * 10000)
-                                    new_employee.leavedays = leavedays_per_year_x10000
+                                        leavedays_float, msg_err = f.get_float_from_string(leavedays)
+                                        leavedays_per_year_minutes = int(leavedays_float * 1440)
+                                    new_employee.leavedays = leavedays_per_year_minutes
 
                                     payrollcode = employee.get('payrollcode')
                                     if payrollcode:
@@ -551,9 +551,11 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                                         if new_employee.workhours:
                                             employee_dict['s_workhours'] = new_employee.workhours/60
                                         if new_employee.workdays:
-                                            employee_dict['s_workdays'] = new_employee.workdays/10000
+                                            # workdays per week * 1440 (one day has 1440 minutes)
+                                            employee_dict['s_workdays'] = new_employee.workdays/1440
                                         if new_employee.leavedays:
-                                            employee_dict['s_leavedays'] = new_employee.leavedays/10000
+                                            # leave days per year, full time, * 1440 (one day has 1440 minutes)
+                                            employee_dict['s_leavedays'] = new_employee.leavedays/1440
                                         if new_employee.payrollcode:
                                             employee_dict['s_payrollcode'] = new_employee.payrollcode
 
@@ -645,7 +647,7 @@ def update_employee(instance, parent, upload_dict, update_dict, request, user_la
 # 1. get_iddict_variables
     id_dict = upload_dict.get('id')
     if id_dict:
-        pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename = f.get_iddict_variables(id_dict)
+        pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename, mode, cat = f.get_iddict_variables(id_dict)
 
 # 2. save changes in field 'code', required field
         for field in ('code',):

@@ -41,7 +41,6 @@
 
 $(function() {
     "use strict";
-        console.log("Review document.ready");
 
     $("#id_sidebar").mCustomScrollbar({
          theme: "minimal"
@@ -58,6 +57,22 @@ $(function() {
     });
 
 })
+
+
+//=========  AddSubmenuButton  === PR2019-08-27
+    function AddSubmenuButton(el_div, el_data, a_id, a_function, a_data_txt, a_mx, a_href) {
+        // console.log(" ---  AddSubmenuButton --- ");
+        if (!a_href){a_href = "#"}
+        let el_a = document.createElement("a");
+            if(!!a_id){el_a.setAttribute("id", a_id)};
+            el_a.setAttribute("href", a_href);
+            el_a.innerText =  get_attr_from_el_str(el_data, a_data_txt);
+            if(!!a_function){el_a.addEventListener("click", a_function, false)};
+            if(!!a_mx){el_a.classList.add(a_mx)};
+        el_div.appendChild(el_a);
+    };//function AddSubmenuButton
+
+
 //========= isEmpty  ============= PR2019-05-11
     //PR2019-05-05 from https://coderwall.com/p/_g3x9q/how-to-check-if-javascript-object-is-empty'
     function isEmpty(obj) {
@@ -69,6 +84,31 @@ $(function() {
     return true;
 }
 
+//========= get_power_array  ============= PR2019-08-30
+    function get_power_array(value) {
+        //PR2019-08-30 function converts value '31' into array [1,2,4,8,16]  (31 = 2^0 + 2^1 + 2^2 + 2^3 + 2^4)
+        let power_list = []
+        if (!!value){
+            let i = 15;
+            if (value < 256) {i=8};
+            // In Do While loop, condition is tested at the end of the loop so, Do While executes the statements in the code block at least once
+            do  {
+                i--;
+                // get power of 'i'
+                power = 2 ** i  // ** is much faster then power = Math.pow(2, i); from http://bytewrangler.blogspot.com/2011/10/mathpowx2-vs-x-x.html
+                // if value >= power : add power to list
+                if (value >= power) {
+                    // unshift adds a new item to the beginning of an array:
+                    power_list.unshift(power);
+                    // deduct power from value, loop with remainder of value
+                    value -= power;
+                }
+            } while (value > 0 );
+        } else {
+             power_list.unshift(0);
+        }
+        return power_list
+    }
 //========= get_attr_from_el  =============PR2019-06-07
     function get_attr_from_el(element, key, default_value){
         "use strict";

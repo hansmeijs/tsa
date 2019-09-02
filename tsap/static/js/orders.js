@@ -29,14 +29,14 @@ $(function() {
         let tblBody_select_customers = document.getElementById("id_tbody_select")
         let tblBody_items = document.getElementById("id_tbody_items");
 
-        let el_loader = document.getElementById("id_loading_img");
+        let el_loader = document.getElementById("id_loader");
         let el_msg = document.getElementById("id_msgbox");
 
 // --- get header elements
         let hdr_customer = document.getElementById("id_hdr_customer")
         let hdr_order = document.getElementById("id_hdr_order")
 
-// buttons in popup_date)
+// popup_date
         let el_popup_date_container = document.getElementById("id_popup_date_container");
         let el_popup_date = document.getElementById("id_popup_date")
             el_popup_date.addEventListener("change", function() {HandlePopupDateSave();}, false )
@@ -727,7 +727,7 @@ $(function() {
                 //console.log("el_input",el_input)
                 el_input.classList.add("border_bg_invalid");
 
-                ShowMsgError(el_input, el_msg, msg_err, -60)
+                ShowMsgError(el_input, el_msg, msg_err, [-160, 80])
 
 // --- new created record
             } else if (is_created){
@@ -789,7 +789,7 @@ $(function() {
                                 };
 
                                 if(!!err){
-                                    ShowMsgError(el_input, el_msg, msg_err, -60)
+                                    ShowMsgError(el_input, el_msg, msg_err, [-160, 80])
                                 } else if(updated){
                                     el_input.classList.add("border_valid");
                                     setTimeout(function (){

@@ -56,7 +56,7 @@ a:focus {
     width: 100%;
 }
 
-#id_sidebar {
+.tsa_sidebar {
     width: 220px;
     position: fixed;
     top: 0;
@@ -66,45 +66,49 @@ a:focus {
 
 
     z-index: 999;
-    /*background: #7386D5; pale blue */
 
     background-color: #a5a5a5; /* medium grey; 165 165 165*/
     color: #fff;
     transition: all 0.3s;
 }
 
-#id_sidebar.active {
+.tsa_sidebar .active {
     margin-left: -220px;
 }
 
-#id_sidebar .sidebar-header {
+.tsa_sidebar .sidebar_header {
     padding: 20px 12px 12px 12px;;  /* top, right, bottom, left:
     /*background: #6d7fcc;   kind of pale blue */
     background-color: #a5a5a5; /* medium grey; 165 165 165*/
 }
-
-#id_sidebar ul.components {
+.tsa_sidebar .sidebar_filter {
+    /*padding: 20px 12px 12px 12px;;  /* top, right, bottom, left:*/
+    padding: .5rem; /* mx-2 my-2 = 0.5rem (8px if font-size is 16px)*/
+    /*background: #6d7fcc;   kind of pale blue */
+    background-color: #a5a5a5; /* medium grey; 165 165 165*/
+}
+.tsa_sidebar .components {
     padding: 20px 0;
     border-bottom: 1px solid #47748b;
 }
 
-#id_sidebar ul p {
+.tsa_sidebar ul p {
     color: #fff;
     padding: 10px;
 }
 
-#id_sidebar ul li a {
+.tsa_sidebar ul li a {
     padding: 10px;
     font-size: 1.1em;
     display: block;
 }
 
-#id_sidebar ul li a:hover {
+.tsa_sidebar ul li a:hover {
     color: #7386D5;
     background: #fff;
 }
 
-#id_sidebar ul li.active>a,
+.tsa_sidebar ul li.active>a,
 a[aria-expanded="true"] {
     color: #fff;
     /*background: #6d7fcc;   kind of pale blue */
@@ -141,7 +145,7 @@ ul.CTAs a {
     margin-bottom: 5px;
 }
 
-a.download {
+.download {
     background: #fff;
     color: #7386D5;
 }
@@ -158,7 +162,7 @@ a.article:hover {
 
 #id_content {
     width: calc(100% - 220px);
-    padding: 0px;
+    padding: 0;
     min-height: 100vh;
     transition: all 0.3s;
     position: absolute;
@@ -176,10 +180,10 @@ a.article:hover {
 ----------------------------------------------------- */
 
 @media (max-width: 768px) {
-    #id_sidebar {
+    .tsa_sidebar {
         margin-left: -220px;
     }
-    #id_sidebar.active {
+    .tsa_sidebar .active {
         margin-left: 0;
     }
     #id_content {
@@ -188,7 +192,7 @@ a.article:hover {
     #id_content.active {
         width: calc(100% - 220px);
     }
-    #id_sidebar span {
+    .tsa_sidebar span {
         display: none;
     }
 }

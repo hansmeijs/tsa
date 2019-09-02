@@ -23,7 +23,7 @@ $(function() {
 
         let company_list = [];
 
-        let el_loader = document.getElementById("id_loading_img");
+        let el_loader = document.getElementById("id_loader");
         let el_msg = document.getElementById("id_msgbox");
 
 // --- get data stored in page

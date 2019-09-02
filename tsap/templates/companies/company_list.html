@@ -10,8 +10,8 @@
 {% endblock %}
 <!-- SIDE BAR -->
 {% block sidebar %}
-    <nav id="id_sidebar">
-        <div class="sidebar-header">
+    <nav id="id_sidebar" class="tsa_sidebar">
+        <div class="sidebar_header">
             <h3>{% trans 'Company' %}</h3>
         </div>
 
@@ -56,7 +56,7 @@
             </div>
         {% endif %}
         <h4>{% trans 'Companies' %}</h4>
-        <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
+        <img id="id_loader" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
         <table class="table table table-condensed tbl">
           <thead class="thead-inverse">
             <tr>

@@ -5,17 +5,16 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("Review document.ready");
 
     // fields in review_list:
-    //  0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json, 4: yearindex, 5: monthindex 6: quincenaindex 7: weekindex,
+    //  0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json, 4: yearindex, 5: monthindex 6: weekindex, 7: payperiodindex
     //  8: cust_code, 9: order_code, 10: order_cat, 11: shift,  12: oh_duration, 13: oh.amount, 14: oh.tax,
     //  15: eh_id_arr, 16: eh_dur_sum, 17: eh_wage_sum,  18: e_id_arr, 19: e_code_arr,
-    // 20: eh_duration_arr,  21: eh_wage_arr, 22: eh_wagerate_arr, 23: eh_wagefactor_arr
+    // 20: eh_duration_arr,  21: eh_wage_arr, 22: eh_wagerate_arr, 23: eh_wagefactor_arr, 24 = diff
 
-    // let sub_list = [0, 0, 0, "", 0, 0, 0, 0, "", "", 0, "", 0, 0, 0,  [0], 0, 0, [0], [""], [0], [0], [0], [0]];
     const idx_oh_pk = 0, idx_ord_pk = 1, idx_cust_pk = 2, idx_date = 3;
     const idx_cust_code = 8, idx_ord_code = 9, idx_ord_cat = 10, idx_shift = 11;
     const idx_oh_dur = 12, idx_oh_amount = 13, idx_oh_tax = 14;
     const idx_eh_id_arr = 15, idx_eh_dur = 16, idx_eh_wage = 17;
-    const idx_empl_id_arr = 18, idx_empl_code_arr = 19;
+    const idx_empl_id_arr = 18, idx_empl_code_arr = 19,  idx_dur_diff = 24;
 
     const cls_selected = "tsa_tr_selected";
     const cls_active = "active";
@@ -63,6 +62,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const weekday_list = get_attr_from_el_dict(el_data, "data-weekdays");
     const month_list = get_attr_from_el_dict(el_data, "data-months");
 
+// --- create Submenu
+    CreateSubmenu();
+
     // period also returns emplhour_list
     const datalist_request = {"review": {get: true}
                                   };
@@ -73,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request) {
         console.log( "=== DatalistDownload ")
-        console.log("request: ", datalist_request)
+        // console.log("request: ", datalist_request)
         // datalist_request: {"schemeitems": {"ppk": pk}, "teams": {"ppk": pk}, "shifts": {"ppk": pk}
 
 // reset requested lists
@@ -116,65 +118,47 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }  // function DatalistDownload
 
-//=========  CreateSubmenu  === PR2019-07-08
+//=========  CreateSubmenu  === PR2019-08-27
     function CreateSubmenu() {
-        // console.log("===  CreateSubmenu == ");
-        // console.log("pk", pk, "ppk", parent_pk);
+        console.log("===  CreateSubmenu == ");
 
         let el_submenu = document.getElementById("id_submenu")
+        console.log("el_submenu ", el_submenu);
         let el_div = document.createElement("div");
         el_submenu.appendChild(el_div);
+        console.log("el_div", el_div);
+
+        const url_employee_import = get_attr_from_el(el_data, "data-employee_import_url");
 
     // --- first add <a> element with EventListener to td
         let el_a = document.createElement("a");
         el_a.setAttribute("href", "#");
-        el_a.innerText = " < ";
-        el_a.title =  get_attr_from_el_str(el_data, "data-txt_period_gotoprev");
-        el_a.addEventListener("click", function() {ModSettingSave("prev")}, false )
+        el_a.innerText = "Button 1"
+        el_div.appendChild(el_a);
+        console.log("el_a", el_a);
+
+    // --- first add <a> element with EventListener to td
+        el_a = document.createElement("a");
+        el_a.setAttribute("id", "id_submenu_employee_add");
+        el_a.setAttribute("href", "#");
+        el_a.classList.add("mx-2")
+        el_a.innerText = "Button 2"  //  get_attr_from_el_str(el_data, "data-txt_employee_add");
+        el_a.addEventListener("click", function() {ModalEmployeeAddOpen()}, false )
         el_div.appendChild(el_a);
 
     // --- first add <a> element with EventListener to td
         el_a = document.createElement("a");
-        el_a.setAttribute("id", "id_period_current");
+        el_a.setAttribute("id", "id_submenu_employee_delete");
         el_a.setAttribute("href", "#");
-        // from https://www.fileformat.info/info/unicode/char/25cb/index.htm
-        //el_a.innerText = " \u29BF "  /// circeled bullet: \u29BF,  bullet: \u2022 "  // "\uD83D\uDE00" "gear (settings) : \u2699" //
-        el_a.innerText = " \u25CB "  /// 'white circle' : \u25CB  /// black circle U+25CF
-        el_a.addEventListener("click", function() {ModSettingSave("current")}, false )
-        el_a.title = get_attr_from_el_str(el_data, "data-txt_period_gotocurr");
+        el_a.classList.add("mx-2")
+        el_a.innerText = "Print"
+        el_a.addEventListener("click", function() {printPDF()}, false )
         el_div.appendChild(el_a);
 
-    // --- first add <a> element with EventListener to td
-        el_a = document.createElement("a");
-        el_a.setAttribute("href", "#");
-        el_a.innerText = " > ";
-        el_a.title = get_attr_from_el_str(el_data, "data-txt_period_gotonext");
-        el_a.addEventListener("click", function() {ModSettingSave("next")}, false )
-        el_div.appendChild(el_a);
-
-    // --- first add <a> element with EventListener to td
-        el_a = document.createElement("a");
-        el_a.setAttribute("href", "#");
-        el_a.setAttribute("id", "id_period_display");
-        el_a.innerText = get_attr_from_el_str(el_data, "data-txt_period") + ": ";
-        el_a.addEventListener("click", function() {ModalRangeOpen()}, false )
-        el_div.appendChild(el_a);
-
-        el_div = document.createElement("div");
-        el_div.classList.add("text_align_right");
-        el_submenu.appendChild(el_div);
-
-        el_a = document.createElement("a");
-        el_a.setAttribute("id", "id_period_settings");
-        el_a.setAttribute("href", "#");
-        el_a.innerText =   " \u2699 "  // "\uD83D\uDE00" "gear (seetings) : \u2699" //
-        el_a.addEventListener("click", function() {ModalSettingOpen()}, false )
-        el_a.title = get_attr_from_el_str(el_data, "data-txt_period_setting");
-        el_div.appendChild(el_a);
-//TODO remove //
-        //el_submenu.classList.remove("display_hide");
+        el_submenu.classList.remove("display_hide");
 
     };//function CreateSubmenu
+
 
 //========= FillTableRows  ====================================
     function FillTableRows() {
@@ -198,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let tot_eh_dur = 0, cust_eh_dur = 0, ord_eh_dur = 0, dte_eh_dur = 0;
         let tot_eh_wage = 0, cust_eh_wage = 0, ord_eh_wage = 0, dte_eh_wage = 0;
+        let tot_dur_diff = 0, cust_dur_diff = 0, ord_dur_diff = 0, dte_dur_diff = 0;
 
 // create END ROW
 // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
@@ -211,8 +196,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (len > 0){
             for (let i = len - 1; i >= 0; i--) {  //  for (let i = 0; i < len; i++) {
                 let row_list = review_list[i];
-
-                //const oh_pk = row_list[idx_oh_pk];
 
                 cust_id_curr = row_list[idx_cust_pk];
                 cust_code_curr = row_list[idx_cust_code];
@@ -229,9 +212,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!!dte_flt_prev && dte_flt_curr !== dte_flt_prev){
                     const eh_dur_format = format_total_duration (dte_eh_dur, user_lang)
                     const oh_dur_format = format_total_duration (dte_oh_dur, user_lang)
-                    const diff = dte_oh_dur - dte_eh_dur;
-                    const diff_format = format_total_duration (diff, user_lang)
-                    const show_warning = (diff < 0);
+                    const diff_format = format_total_duration (dte_dur_diff, user_lang)
+                    const show_warning = (dte_dur_diff < 0);
 
                     // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
                     display_list =["TOTAL " + dte_prev, "", dte_count.toString() + " shifts",
@@ -246,6 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     dte_oh_tax = 0;
                     dte_eh_wage = 0;
                     dte_eh_dur = 0;
+                    dte_dur_diff = 0;
                 }
 
 
@@ -254,9 +237,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!!ord_id_prev && ord_id_curr !== ord_id_prev){
                     const eh_dur_format = format_total_duration (ord_eh_dur, user_lang)
                     const oh_dur_format = format_total_duration (ord_oh_dur, user_lang)
-                    const diff = ord_oh_dur - ord_eh_dur;
-                    const diff_format = format_total_duration (diff, user_lang)
-                    const show_warning = (diff < 0);
+                    const diff_format = format_total_duration (ord_dur_diff, user_lang)
+                    const show_warning = (ord_dur_diff < 0);
                     // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
                     display_list =["TOTAL " + ord_code_prev, "",  ord_count.toString() + " shifts",
                                     eh_dur_format, oh_dur_format, diff_format, show_warning]
@@ -271,6 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ord_oh_tax = 0;
                     ord_eh_wage = 0;
                     ord_eh_dur = 0;
+                    ord_dur_diff = 0;
                 }
 
 
@@ -278,9 +261,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!!cust_id_prev && cust_id_curr !== cust_id_prev){
                     const eh_dur_format = format_total_duration (cust_eh_dur, user_lang)
                     const oh_dur_format = format_total_duration (cust_oh_dur, user_lang)
-                    const diff = cust_oh_dur - cust_eh_dur;
-                    const diff_format = format_total_duration (diff, user_lang)
-                    const show_warning = (diff < 0);
+                    const diff_format = format_total_duration (cust_dur_diff, user_lang)
+                    const show_warning = (cust_dur_diff < 0);
                     // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
                      display_list = ["TOTAL " + cust_code_prev, "",  cust_count.toString() + " shifts",
                                      eh_dur_format, oh_dur_format, diff_format, show_warning]
@@ -296,6 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     cust_oh_tax = 0;
                     cust_eh_wage = 0;
                     cust_eh_dur = 0;
+                    cust_dur_diff = 0;
                 }
 
 
@@ -305,7 +288,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 tot_oh_amount += row_list[idx_oh_amount];
                 tot_oh_tax += row_list[idx_oh_tax];
                 tot_eh_dur += row_list[idx_eh_dur];
-                tot_eh_wage += row_list[idx_eh_wage]
+                tot_eh_wage += row_list[idx_eh_wage];
+                tot_dur_diff += row_list[idx_dur_diff];
 
                 cust_count += 1;
                 cust_oh_dur += row_list[idx_oh_dur];
@@ -313,6 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cust_oh_tax += row_list[idx_oh_tax];
                 cust_eh_dur += row_list[idx_eh_dur];
                 cust_eh_wage += row_list[idx_eh_wage];
+                cust_dur_diff += row_list[idx_dur_diff];
 
                 ord_count += 1;
                 ord_oh_dur += row_list[idx_oh_dur];
@@ -320,6 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ord_oh_tax += row_list[idx_oh_tax];
                 ord_eh_dur += row_list[idx_eh_dur];
                 ord_eh_wage += row_list[idx_eh_wage];
+                ord_dur_diff += row_list[idx_dur_diff];
 
                 dte_count += 1;
                 dte_oh_dur += row_list[idx_oh_dur];
@@ -327,13 +313,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 dte_oh_tax += row_list[idx_oh_tax];
                 dte_eh_dur += row_list[idx_eh_dur];
                 dte_eh_wage += row_list[idx_eh_wage];
+                dte_dur_diff += row_list[idx_dur_diff];
 
 // --- create DETAIL row
                 const eh_dur_format = format_total_duration (row_list[idx_eh_dur], user_lang)
                 const oh_dur_format = format_total_duration (row_list[idx_oh_dur], user_lang)
-                const diff = row_list[idx_oh_dur] - row_list[idx_eh_dur];
-                const diff_format = format_total_duration (diff, user_lang)
-                const show_warning = (diff < 0);
+                const diff_format = format_total_duration (row_list[idx_dur_diff], user_lang)
+                const show_warning = (row_list[idx_dur_diff] < 0);
 
                 // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
                 display_list = [dte_curr, row_list[idx_empl_code_arr], row_list[idx_shift],
@@ -359,9 +345,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!!dte_id_prev){
             const eh_dur_format = format_total_duration (dte_eh_dur, user_lang)
             const oh_dur_format = format_total_duration (dte_oh_dur, user_lang)
-            const diff = dte_oh_dur - dte_eh_dur;
-            const diff_format = format_total_duration (diff, user_lang)
-            const show_warning = (diff < 0);
+            const diff_format = format_total_duration (dte_dur_diff, user_lang)
+            const show_warning = (dte_dur_diff < 0);
 
             // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
             display_list =["TOTAL " + dte_prev, "",  dte_count.toString() + " shifts",
@@ -376,9 +361,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!!ord_id_prev){
             const eh_dur_format = format_total_duration (ord_eh_dur, user_lang)
             const oh_dur_format = format_total_duration (ord_oh_dur, user_lang)
-            const diff = ord_oh_dur - ord_eh_dur;
-            const diff_format = format_total_duration (diff, user_lang)
-            const show_warning = (diff < 0);
+            const diff_format = format_total_duration (ord_dur_diff, user_lang)
+            const show_warning = (ord_dur_diff < 0);
 
             // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
             display_list =["TOTAL " + ord_code_prev, "",  ord_count.toString() + " shifts",
@@ -388,18 +372,16 @@ document.addEventListener('DOMContentLoaded', function() {
             UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "ord")
         }
 
-
 // create last CUSTOMER subtotal row
         if(!!cust_id_prev){
-                const eh_dur_format = format_total_duration (cust_eh_dur, user_lang)
-                const oh_dur_format = format_total_duration (cust_oh_dur, user_lang)
-                const diff = cust_oh_dur - cust_eh_dur;
-                const diff_format = format_total_duration (diff, user_lang)
-                const show_warning = (diff < 0);
+            const eh_dur_format = format_total_duration (cust_eh_dur, user_lang)
+            const oh_dur_format = format_total_duration (cust_oh_dur, user_lang)
+            const diff_format = format_total_duration (cust_dur_diff, user_lang)
+            const show_warning = (cust_dur_diff < 0);
 
-                // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
-                display_list = ["TOTAL " + cust_code_prev, "",  cust_count.toString() + " shifts",
-                                eh_dur_format, oh_dur_format, diff_format, show_warning]
+            // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+            display_list = ["TOTAL " + cust_code_prev, "",  cust_count.toString() + " shifts",
+                            eh_dur_format, oh_dur_format, diff_format, show_warning]
 
             tblRow =  CreateTableRow()
             UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "cust")
@@ -408,9 +390,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // create GRAND TOTAL first row
         const eh_dur_format = format_total_duration (tot_eh_dur, user_lang)
         const oh_dur_format = format_total_duration (tot_oh_dur, user_lang)
-        const diff = tot_oh_dur - tot_eh_dur;
-        const diff_format = format_total_duration (diff, user_lang)
-        const show_warning = (diff < 0);
+        const diff_format = format_total_duration (tot_dur_diff, user_lang)
+        const show_warning = (tot_dur_diff < 0);
 
         // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
         display_list = ["GRAND TOTAL",  "", tot_count.toString() + " shifts",
@@ -421,23 +402,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // FillTableRows
 
-
 //=========  CreateTableRow  ================ PR2019-04-27
     function CreateTableRow() {
         //console.log("=========  function CreateTableRow =========");
         //console.log(row_list);
 
 //+++ insert tblRow ino tblBody_items
-        //const tblName =  "orderhour"
         let tblRow = tblBody_items.insertRow(0); //index -1 results in that the new row will be inserted at the last position.
-
-        // tblRow.setAttribute("id", row_list[idx_oh_pk]);
-        //tblRow.setAttribute("data-pk", row_list[idx_oh_pk]);
-        //tblRow.setAttribute("data-ord_pk", row_list[idx_ord_pk]);
-        //tblRow.setAttribute("data-cust_pk", row_list[idx_cust_pk]);
-        //tblRow.setAttribute("data-dte_pk", row_list[idx_date]);
-        //tblRow.setAttribute("data-empl_pk_arr", row_list[idx_empl_id_arr]);
-        //tblRow.setAttribute("data-table", tblName);
 
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
@@ -460,12 +431,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // --- first add <a> element with EventListener to td
                 el = document.createElement("a");
                 el.setAttribute("href", "#");
-                //let fieldname;
-                //if (j === 8){fieldname = "confirmend"} else
-                //if (j === 9){fieldname = "status"};
-
-                //el.setAttribute("data-field", fieldname);
-                //el.addEventListener("click", function() {ModalStatusOpen(el);}, false )
 
                 AppendChildIcon(el, img_src, "18")
                 td.appendChild(el);
@@ -478,32 +443,19 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add input element to td.
                 let el = document.createElement("a");
 
-// --- add data-name Attribute. fieldnames of 5,7,9 are alrady added above
-                // let fieldname;
-                // if (j === 0){fieldname = "rosterdate"} else
-                // if (j === 1){fieldname = "customer"} else
-                // if (j === 2){fieldname = "order"} else
-                // if (j === 3){fieldname = "shift"} else
-                // if (j === 4){fieldname = "employee"} else
-                // if (j === 5){fieldname = "eh_timeduration"} else
-                // if (j === 6){fieldname = "oh_timeduration"} else
-                // if (j === 7){fieldname = "difference"};
-                // el.setAttribute("data-field", fieldname);
-
-// --- add EventListener to td
-                //if (j === 3){
-                    //el.addEventListener("click", function() {ModEmployeeOpen(el);}, false )
-                //};
 // --- add text_align
-                if ( [0, 2].indexOf( j ) > -1 ){
+                if ( [0, 2, 5].indexOf( j ) > -1 ){
                     el.classList.add("text_align_left")
                     el.classList.add("td_width_90");
-                } else if ( [1, ].indexOf( j ) > -1 ){
+                } else if (j === 1){
                     el.classList.add("text_align_left")
-                    el.classList.add("td_width_180");
-                } else if ([3, 4, 5].indexOf( j ) > -1 ){
+                    el.classList.add("td_width_220");
+                } else if ([3, 4].indexOf( j ) > -1 ){
                     el.classList.add("text_align_right")
-                    td.classList.add("td_width_90");
+                    td.classList.add("td_width_120");
+                } else if ([6, 7].indexOf( j ) > -1 ){
+                    el.classList.add("text_align_left")
+                    td.classList.add("td_width_032");
                 };
 
                 td.appendChild(el);
@@ -516,14 +468,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, cust_pk, ord_pk, date, display_list, totalrow){
-        console.log(" ---- UpdateTableRow ---- ");
+        //console.log(" ---- UpdateTableRow ---- ");
 
         if (!!tblRow){
             const cust_id = "cust-" + cust_pk;
             const ord_id = "ord-" + ord_pk;
             const dte_id = "dte-" + date;
 
-            console.log("cust_id: ", cust_id, "ord_id: ", ord_id, "dte_id: ", dte_id);
+            //console.log("cust_id: ", cust_id, "ord_id: ", ord_id, "dte_id: ", dte_id);
 
             if(totalrow === "grnd"){
                 tblRow.classList.add("tsa_bc_darkgrey");
@@ -590,8 +542,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         el.innerText = display_list[4]
                     } else if (i === 5) {
                         el.innerText = display_list[5]
+                    } else if (i === 6) {
                         if (display_list[6]){
-                            AppendChildIcon(el, imgsrc_warning, "18")
+                            IconChange(el, imgsrc_warning)
                         }
                     }
                 };  // if(!!el)
@@ -719,4 +672,170 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+//========= function test PDF  ====  PR2019-08-27
+function printPDF() {
+        var pdf = new jsPDF('p', 'pt', 'letter');
+        // source can be HTML-formatted string, or a reference
+        // to an actual DOM element from which the text will be scraped.
+
+
+        let el_id_content = document.getElementById("id_tbl_items")
+        let el_child = el_id_content.firstChild
+        console.log("el_child", el_child)
+        let source = el_id_content
+        // we support special element handlers. Register them with jQuery-style
+        // ID selector for either ID or node name. ("#iAmID", "div", "span" etc.)
+        // There is no support for any other type of selectors
+        // (class, of compound) at this time.
+        let specialElementHandlers = {
+            // element with id of "bypass" - jQuery style selector
+            '#bypassme': function (element, renderer) {
+                // true = "handled elsewhere, bypass text extraction"
+                return true
+            }
+        };
+        const margins = {
+            top: 80,
+            bottom: 60,
+            left: 40,
+            width: 522
+        };
+        // all coords and widths are in jsPDF instance's declared units
+        // 'inches' in this case
+        pdf.fromHTML(
+            source, // HTML string or DOM elem ref.
+            margins.left, // x coord
+            margins.top, { // y coord
+                'width': margins.width, // max width of content on PDF
+                'elementHandlers': specialElementHandlers
+            },
+
+            function (dispose) {
+                // dispose: object with X, Y of the last line add to the PDF
+                //          this allow the insertion of new lines after html
+
+            pdf.save('Test.pdf');
+            }, margins
+        );
+
+       // let doc = new jsPDF()
+      //  doc.setFontSize(22)
+      //  doc.text(20,20,'This is a title')
+
+      //  doc.setFontSize(16)
+      //  doc.text(20,30,'This is some normal sized text underneath')
+      //  doc.save("file.pdf")
+
+    }
+
+
+    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+function printPDF() {
+            console.log("printPDF")
+			let doc = new jsPDF();
+			doc.rect(48, 10, 110, 50);
+			doc.setFontSize(12);
+			doc.text(50, 20, "Company");
+			doc.text(50, 30, "of");
+			doc.text(50, 40, "TSA secure");
+			doc.text(50, 50, "BETA");
+
+			doc.text(90, 20, ":");
+			doc.text(90, 30, ":");
+			doc.text(90, 40, ":");
+			doc.text(90, 50, ":");
+/*
+			doc.text(100, 20, "JSPDF");
+			doc.text(100, 30, doc.splitTextToSize('Word wrap Example !! Word wrap Example !! Word wrap Example !!', 60));
+			doc.text(100, 40, "Multi Page PDF");
+			doc.text(100, 50, "Plugin");
+*/
+			doc.rect(5, 70, 200, 10);
+			doc.setFontSize(10);
+			doc.text(6, 76, "Date");
+			doc.text(65, 76, "Order");
+			doc.text(105, 76, "Shift");
+			doc.text(130, 76, "Worked Hours");
+			doc.text(155, 76, "Billed hours");
+			doc.text(185, 76, "Difference");
+
+            let img_warning = new Image();
+            img_warning.src = imgsrc_warning;
+
+			let startHeight = 100;
+			let noOnFirstPage = 21;
+			let noOfRows = 28;
+			let z = 1;
+
+            const pos_x = [6, 65, 105, 130, 155, 185]
+            const line_height = 6
+            const len = tblBody_items.rows.length;
+            if (len > 0){
+
+                // for (let i = len - 1; i >= 0; i--) {  //  for (let i = 0; i < len; i++) {
+                for (let i = 0, tblRow; i < len; i++) {
+                    tblRow = tblBody_items.rows[i];
+
+                    if (!tblRow.classList.contains("display_none")) {
+                        if(i <= noOnFirstPage){
+                            startHeight = startHeight + line_height;
+                            addData(tblRow, pos_x, startHeight, doc, img_warning);
+                        }else{
+                            if(z ==1 ){
+                                startHeight = 0;
+                                doc.addPage();
+                            }
+                            if(z <= noOfRows){
+                                startHeight = startHeight + line_height;
+                                addData(tblRow, pos_x, startHeight ,doc, img_warning);
+                                z++;
+                            }else{
+                                z = 1;
+                            }
+                        }
+
+                    }  //  if (!tblRow.classList.contains("display_none")) {
+                }
+                //To View
+                //doc.output('datauri');
+
+                //To Save
+                doc.save('samplePdf');
+			}  // if (len > 0){
+    }  // printPDF
+		function addData(tblRow, pos_x, height, doc, img_warning){
+		    const column_count = 6;
+		    if(!!tblRow){
+                for (let j = 0, el, a, img ; j < column_count; j++) {
+                    if(!!tblRow.cells){
+                        el = tblRow.cells[j]
+                        if(!!el){
+                            if (j < column_count ){
+                                a = el.firstChild;
+                                if(!!a){
+                                    doc.text(pos_x[j], height, a.innerText);
+                                }
+                            } else {
+                                a = el.firstChild;
+                                if(!!a){
+                                    img = el.firstChild;
+                                   // if(!!img){
+                                        //if(img.src !== "/static/img/warning.gif") {//  imgsrc_warning;
+                                                                        //var options = {orientation: 'p', unit: 'mm', format: custom};
+                                 //var doc = new jsPDF(options);
+                                            //doc.addImage(img_warning, 'JPEG', pos_x[j], height, 12, 12);  // x, y wifth height
+                                        //    }
+                                   // }
+                                }
+                            }
+                        } // if(!!el){
+                    }
+
+                    }  // if(!!tblRow.cells[0]){
+		    }  // if(!!tblRow){
+		}  // function addData
+
+    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 }); // document.addEventListener('DOMContentLoaded', function()

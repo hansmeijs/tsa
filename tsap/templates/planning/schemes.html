@@ -9,8 +9,8 @@
 
 <!-- SIDE BAR -->
 {% block sidebar %}
-    <nav id="id_sidebar">
-        <div class="sidebar-header">
+    <nav id="id_sidebar" class="tsa_sidebar">
+        <div class="sidebar_header">
             <h3>{% trans 'Planning' %}</h3>
         </div>
 
@@ -277,7 +277,8 @@
             <span class="popuptext" id="id_msgbox"></span>
         </div>
 
-    <div class="content_subheader_left">
+    <div class="content_subheader_left mt-5 ">
+
         <div class="content_header">
             <div class="content_subheader_left mx-4 my-1">
                 <h6 id="id_hdr_customer">{% trans "Customer" %}</h6>
@@ -288,7 +289,7 @@
         </div>
         <!-- box with scheme input elements -->
         <div class="content_wrapper mx-4 my-1">
-             <div class="content_header">
+             <div class="content_header tsa_btn_selected">
                 <div class="content_subheader_left ">
                     <label for="id_scheme_code" >{% trans 'Scheme' %}*</label>
                     <input id="id_scheme_code"
@@ -372,8 +373,8 @@
                 {% include 'includes/timepicker.html' %}
 <!-- =================== DATA TABLE  =================== -->
                 <table id="id_table_schemeitems" class="table table-condensed tsa-tbl mx-4 my-1">
-                    <thead id="id_thead_schemeitems" class="thead-inverse"></thead>
-                    <tbody id="id_tbody_schemeitems"></tbody>
+                    <thead id="id_thead_items" class="thead-inverse"></thead>
+                    <tbody id="id_tbody_items"></tbody>
                 </table>
             </div>
 
@@ -384,7 +385,7 @@
         <div class="content_header">
             <h6></h6>
             <div class="content_subheader_right">
-                <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
+                <img id="id_loader" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
             </div>
             <div class="content_subheader_right">
                 <button id="id_btn_dayup" title="{% trans 'Set all rosterdates one day earlier' %}" class="btn btn-add"> &uarr; </button>
@@ -459,7 +460,6 @@
             data-txt_shift= "{% trans 'Shift' %}"
             data-txt_shifts= "{% trans 'Shifts' %}"
             data-txt_shift_rest= "{% trans 'Rest' %}"
-            data-txt_shift_successor= "{% trans 'Next shift' %}"
             data-txt_shift_add= "{% trans 'Add shift' %}"
             data-txt_shift_enter= "{% trans 'Enter shift' %}"
             data-txt_shift_delete= "{% trans 'Delete shift' %}"

@@ -588,6 +588,8 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
 
             if field == 'pk':
                 item_dict[field] = instance.pk
+                item_dict['ppk'] = instance.scheme.pk
+                item_dict['table'] = 'schemeitem'
 
             elif field == 'id':
                 id_dict = item_dict[field] if 'id' in item_dict else {}
@@ -614,7 +616,7 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
                     item_dict[field]['pk'] = shift.id
                     item_dict[field]['value'] = shift.code
 
-                    if shift.cat == c.SHIFT_CAT_0064_RESTSHIFT:
+                    if shift.cat == c.SHIFT_CAT_0256_RESTSHIFT:
                         item_dict[field]['value_R'] = shift.code + ' (R)'
                     breakduration = getattr(shift, 'breakduration', 0)
                     if breakduration:
@@ -666,15 +668,57 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
         # logger.debug('item_dict' + str(item_dict))
 
 def create_team_list(order):
-    # create list of teams of this order PR2019-08-08
+    # create list of teams of this order PR2019-09-02
+    logger.debug(' ----- create_team_list  -----  ')
+
     team_list = []
     if order:
-        teams = m.Team.objects.filter(scheme__order=order)
-        if teams:
-            for team in teams:
-                item_dict = {}
-                create_team_dict(team, item_dict)
+        crit = Q(scheme__order=order)
+
+        # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
+        teams = m.Team.objects \
+            .select_related('scheme') \
+            .filter(crit) \
+            .values('id', 'code',
+                    'scheme_id',
+                    'scheme__order_id',
+                    'scheme__code'
+                    ) \
+            .iterator()
+        # logger.debug(teammembers.query)
+
+        field_list = c.FIELDS_TEAM  # FIELDS_TEAM = ('id', 'scheme', 'code')
+        for row_dict in teams:
+            pk_int = row_dict.get('id', 0)
+            ppk_int = row_dict.get('scheme_id', 0)
+            item_dict = {'pk': pk_int, 'ppk': ppk_int}
+
+            for field in field_list:
+                field_dict = {}
+
+                if field == 'id':
+                    field_dict['pk'] = pk_int
+                    field_dict['ppk'] = ppk_int
+                    field_dict['table'] = 'team'
+
+            # scheme is parent of team
+                elif field == 'scheme':
+                    field_dict['pk'] = ppk_int
+                    field_dict['ppk'] = row_dict.get('scheme__order_id', 0)
+                    scheme_code = row_dict.get('scheme__code')
+                    if scheme_code:
+                        field_dict['value'] = scheme_code
+
+                elif field == 'code':
+                    code = row_dict.get('code')
+                    if code:
+                        field_dict['value'] = code
+
+                item_dict[field] = field_dict
+
+            if item_dict:
                 team_list.append(item_dict)
+
     return team_list
 
 def create_team_dict(team, item_dict):
@@ -743,8 +787,7 @@ def create_shift_dict(shift, update_dict):
     # update_dict has already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     # logger.debug('create_shift_dict: ', str(update_dict))
-# FIELDS_SHIFT = ('pk', 'id', 'scheme', 'code', 'cat',
-#                 'offsetstart', 'offsetend', 'breakduration', 'wagefactor', 'successor')
+    # FIELDS_SHIFT = ('pk', 'id', 'scheme', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor')
 
     table = 'shift'
     field_tuple = c.FIELDS_SHIFT
@@ -758,9 +801,11 @@ def create_shift_dict(shift, update_dict):
             else:
                 field_dict ={}
 
-# 2. create field_dict 'pk'
+# 2. create field_dict 'pk' and 'ppk'
             if field == 'pk':
                 field_dict = shift.pk
+                update_dict['ppk'] = shift.scheme.pk
+                update_dict['table'] = 'shift'
 
 # 3. create field_dict 'id'
             elif field == 'id':
@@ -777,17 +822,6 @@ def create_shift_dict(shift, update_dict):
                 value = getattr(shift, field, None)
                 if value:
                     field_dict['value'] = value
-
-# 6. create field_dict 'successor'
-            elif field == 'successor':
-                successor_id = shift.successor_id
-                # logger.debug('successor_id: ' + str(successor_id))
-                successor = getattr(shift, field)
-                if successor_id:
-                    field_dict['pk'] = successor.pk
-                    field_dict['ppk'] = successor.scheme_id
-                    if successor.code:
-                        field_dict['value'] = successor.code
 
 # 6. add field_dict to update_dict
             update_dict[field] = field_dict
@@ -817,7 +851,7 @@ def create_date_dict(rosterdate, user_lang, status_text):
 def create_emplhour_list(company, comp_timezone, user_lang,
                          time_min=None, time_max=None,
                          range_start_iso=None, range_end_iso=None, show_all=False): # PR2019-08-01
-    # logger.debug(' ============= create_emplhour_list ============= ')
+    logger.debug(' ============= create_emplhour_list ============= ')
 
     # TODO select_related on queyset
     #  queryset = Courses.objects.filter(published=True).prefetch_related('modules', 'modules__lessons', 'modules__lessons__exercises')
@@ -840,11 +874,11 @@ def create_emplhour_list(company, comp_timezone, user_lang,
     # logger.debug('range_end_iso: ' + str(range_end_iso)+ ' ' + str(type(range_end_iso)))
 
 
+    crit = Q(orderhour__order__customer__company=company)
    # Exclude template. Cat <= 2 (# order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
-    crit = Q(orderhour__order__customer__company=company) & \
-           Q(orderhour__order__cat__lte=c.SHIFT_CAT_0512_ABSENCE)
+    crit.add(Q(orderhour__order__cat__lte=c.SHIFT_CAT_0512_ABSENCE), crit.connector)
 
-# range overrules period
+    # range overrules period
     if not show_all:
         if range_start_iso or range_end_iso:
             if range_start_iso:
@@ -857,9 +891,22 @@ def create_emplhour_list(company, comp_timezone, user_lang,
             if time_max:
                 crit.add(Q(timestart__lt=time_max) | Q(timestart__isnull=True), crit.connector)
 
-    emplhours = m.Emplhour.objects.filter(crit)
 
-    #logger.debug(emplhours.query)
+    # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
+    emplhours = m.Emplhour.objects\
+        .select_related('employee')\
+        .select_related('orderhour')\
+        .select_related('orderhour__order')\
+        .select_related('orderhour__order__customer')\
+        .select_related('orderhour__order__customer__company')\
+        .filter(crit).order_by('rosterdate', 'timestart')\
+        .values('id', 'cat', 'status', 'shift', 'wagerate', 'wagefactor', 'wage',
+                'employee_id', 'employee__company__id', 'employee__code',
+                'orderhour__id', 'orderhour__order__id', 'orderhour__order__code', 'orderhour__order__customer__code',
+                'rosterdate', 'timestart', 'timeend', 'breakduration', 'timeduration'
+                ) \
+        .iterator()
+    # logger.debug(emplhours.query)
     # SELECT ...
     # WHERE ("companies_customer"."company_id" = 1 AND
     # "companies_emplhour"."rosterdate" >= 2019-07-13 AND "companies_emplhour"."rosterdate" <= 2019-07-14 AND
@@ -871,92 +918,93 @@ def create_emplhour_list(company, comp_timezone, user_lang,
     #logger.debug(timer() - starttime)
 
     emplhour_list = []
-    for emplhour in emplhours:
+    for row_dict in emplhours:
+        #logger.debug(str(row_dict))
+        # {'id': 403, 'cat': 0, 'employee_id': 239,
+        # 'employee__code': 'Banfield J R A', 'employee__company__id': 2,
+        # 'orderhour_id': 387, 'rosterdate': datetime.date(2019, 8, 25), 'timestart': datetime.datetime(2019, 8, 24, 20, 25, tzinfo=<UTC>), 'timeend': datetime.datetime(2019, 8, 25, 8, 30, tzinfo=<UTC>)}
+
         item_dict = {}
-        create_emplhour_dict(emplhour, item_dict, comp_timezone)
+        create_emplhour_dict(row_dict, item_dict, comp_timezone)
         emplhour_list.append(item_dict)
 
-    #logger.debug('list elapsed time  is :')
-    #logger.debug(timer() - starttime)
+    logger.debug('list elapsed time  is :')
+    logger.debug(timer() - starttime)
 
     return emplhour_list
 
 
-def create_emplhour_dict(instance, item_dict, comp_timezone):
+def create_emplhour_dict(row_dict, item_dict, comp_timezone):
     # --- create dict of this emplhour PR2019-08-14
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
     #logger.debug ('--- create_emplhour_dict ---')
     #logger.debug ('item_dict' + str(item_dict))
 
-    if instance:
-        # FIELDS_EMPLHOUR = ('pk', 'id', 'employee', 'wagecode', 'wagefactor', 'rosterdate',
-        #                   'timestart', 'timeend', 'timeduration', 'breakduration', 'status')
+    if row_dict:
 
+# FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
+        #                         'timestart', 'timeend', 'timeduration', 'breakduration',
+        #                         'wagerate', 'wagefactor', 'wage', 'status')
 
     # lock field when status = locked or higher
-        status_value = getattr(instance, 'status', 0)
-        #logger.debug ('status_value: ' + str(status_value))
+        status_value = row_dict.get('status', 0)
         locked = (status_value >= c.STATUS_08_LOCKED)
-        #logger.debug ('locked: ' + str(locked))
+
+        rosterdate = row_dict.get('rosterdate')
+        timestart = row_dict.get('timestart')
+        timeend = row_dict.get('timeend')
 
         for field in c.FIELDS_EMPLHOUR:
             if field not in item_dict:
                 item_dict[field] = {}
 
-            if locked and field != 'pk':
+            if locked:
                 item_dict[field]['locked'] = True
 
-            if field == 'pk':
-                item_dict[field] = instance.pk
-
             elif field == 'id':
+                pk_int = row_dict.get('id', 0)
+                ppk_int = row_dict.get('orderhour_id', 0)
+                item_dict['pk'] = pk_int
+                item_dict['ppk'] = ppk_int
+
                 id_dict = item_dict[field] if 'id' in item_dict else {}
-                # TOD)pk and ppk are the same. CHeck what is going wrong
-                id_dict['pk'] = instance.pk
-                id_dict['ppk'] = instance.orderhour.pk
+                id_dict['pk'] = pk_int
+                id_dict['ppk'] = ppk_int
                 id_dict['table'] = 'emplhour'
                 item_dict[field] = id_dict
 
             elif field == 'orderhour':
-                orderhour = getattr(instance, field)
+                pk_int = row_dict.get('orderhour__id', 0)
+                ppk_int = row_dict.get('orderhour__order__id', 0)
+                order_code = row_dict.get('orderhour__order__code', '')
+                cust_code = row_dict.get('orderhour__order__customer__code', '')
+                value = ' - '.join([cust_code, order_code])
 
-                if orderhour:
-                    item_dict[field]['pk'] = orderhour.pk
-                    item_dict[field]['ppk'] = orderhour.order.pk
-
-                    value = get_customer_order_code(orderhour.order, ' - ')
-                    if value:
-                        item_dict[field]['value'] = value
-                    else:
-                        item_dict[field].pop('value', None)
-                else:
-                    item_dict[field].pop('pk', None)
-                    item_dict[field].pop('ppk', None)
-                    item_dict[field].pop('value', None)
+                item_dict[field]['pk'] = pk_int
+                item_dict[field]['ppk'] = ppk_int
+                if value:
+                    item_dict[field]['value'] = value
 
             elif field == 'employee':
-                employee = getattr(instance, field)
-                if employee:
-                    item_dict[field]['pk'] = employee.pk
-                    item_dict[field]['ppk'] = employee.company.pk
-                    if employee.code:
-                        item_dict[field]['value'] = employee.code
-                else:
-                    item_dict[field].pop('pk', None)
-                    item_dict[field].pop('ppk', None)
-                    item_dict[field].pop('value', None)
+                if 'employee_id' in row_dict:
+                    pk_int = row_dict.get('employee_id', 0)
+                    ppk_int = row_dict.get('employee__company__id', 0)
+                    code = row_dict.get('employee__code')
+                    item_dict[field]['pk'] = pk_int
+                    item_dict[field]['ppk'] = ppk_int
+                    if code:
+                        item_dict[field]['value'] = code
 
             elif field == 'rosterdate':
-                rosterdate = getattr(instance, field)
                 f.set_fielddict_date(dict=item_dict[field], dte=rosterdate)
 
             # also add date when empty, to add min max date
             elif field in ('timestart', 'timeend'):
                 set_fielddict_datetime(field=field,
                                        field_dict=item_dict[field],
-                                       rosterdate=getattr(instance, 'rosterdate'),
-                                       timestart_utc=getattr(instance, 'timestart'),
-                                       timeend_utc=getattr(instance, 'timeend'),
+                                       rosterdate=rosterdate,
+                                       timestart_utc=timestart,
+                                       timeend_utc=timeend,
                                        comp_timezone=comp_timezone)
 
             # lock date when confirmed, field is already locked when >= locked
@@ -967,22 +1015,64 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
 
             # also zero when empty
             elif field in ('breakduration', 'timeduration'):
-                duration = getattr(instance, field)
-                if duration is None:
-                    duration = 0
-                item_dict[field]['value'] = duration
+                item_dict[field]['value'] = row_dict.get(field, 0)
 
             else:
-                saved_value = getattr(instance, field)
-                if saved_value is not None:
-                    item_dict[field]['value'] = saved_value
-                else:
-                    item_dict[field].pop('value', None)
+                value = row_dict.get(field)
+                if value:
+                    item_dict[field]['value'] = value
 
     # --- remove empty attributes from update_dict
         f.remove_empty_attr_from_dict(item_dict)
 
        #  logger.debug ('item_dict' + str(item_dict))
+
+
+def create_teammemberabsence_list(dict, company):
+    # logger.debug('create_emplabs_list: ' + str(dict))
+    # datalist_dict: {'replacement': {'action': 'switch', 'rosterdate': None, 'reployee_pk': 214}} <class 'dict'>
+    # {'action': 'switch', 'rosterdate': None, 'reployee_pk': 214, 'reployee_ppk': 2}
+    # create list of absence teammmber reocrds of this employee  PR2019-08-29
+
+    teammemberabsence_list = []
+    if dict and company:
+        employee_pk = getattr(dict, 'employee_pk', 0)
+        datemin_dte = getattr(dict, 'datemin', None)
+        datemax_dte = getattr(dict, 'datemax', None)
+
+# 1. get employee
+        employee = None
+        if employee_pk:
+            employee = m.Employee.objects.get_or_none(pk=employee_pk, company=company)
+        if employee:
+
+# 2. get abscat teammmembers of this employee within period
+            crit = Q(employee=employee) & \
+                   Q(cat=c.TEAMMEMBER_CAT_0512_ABSENCE)
+            if datemin_dte:
+                crit.add(Q(datelast__gte=datemin_dte) | Q(datelast__isnull=True), crit.connector)
+            if datemax_dte:
+                crit.add(Q(datefirst__lte=datemax_dte) | Q(datefirst__isnull=True), crit.connector)
+
+            teammembers = m.Teammember.objects.filter(crit).order_by('datefirst')
+            for teammember in teammembers:
+                dict = {}
+# 3. create dict
+                dict['pk'] = teammember.pk
+                dict['ppk'] = teammember.team.pk
+                dict['scheme_pk'] = teammember.team.scheme.pk
+                dict['order_pk'] = teammember.team.scheme.order.pk
+                dict['abscat'] = teammember.team.scheme.order.code
+                if teammember.datefirst:
+                    dict['datefirst'] = teammember.datefirst
+                if teammember.datelast:
+                    dict['datelast'] = teammember.datelast
+
+# 4. add to list
+                teammemberabsence_list.append(dict)
+
+    return teammemberabsence_list
+
 
 def create_replacementshift_list(dict, company):
     # logger.debug('create_replacementshift_list: ' + str(dict))
@@ -1074,7 +1164,7 @@ def create_replacementshift_list(dict, company):
             # exclude employee not in service
             # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
             crit = Q(team__scheme__order__customer__company=company) & \
-                   Q(team__scheme__order__cat__lt=c.SHIFT_CAT_0064_RESTSHIFT) & \
+                   Q(team__scheme__order__cat__lt=c.SHIFT_CAT_0256_RESTSHIFT) & \
                    Q(employee_id=reployee_pk) & \
                    (Q(employee__datefirst__lte=rosterdate_cur_str) | Q(employee__datefirst__isnull=True)) & \
                    (Q(employee__datelast__gte=rosterdate_cur_str) | Q(employee__datelast__isnull=True)) & \
@@ -1181,8 +1271,8 @@ def create_replacementshift_list(dict, company):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_review_list(datefirst, datelast, request):  # PR2019-08-20
     # create list of shifts of this order PR2019-08-08
-    logger.debug(' --- create_review_list --- ')
-    logger.debug('datefirst:  ' + str(datefirst) + ' datelast:  ' + str(datelast))
+    # logger.debug(' --- create_review_list --- ')
+    # logger.debug('datefirst:  ' + str(datefirst) + ' datelast:  ' + str(datelast))
     review_list = []
     if request.user.company_id:
 
@@ -1195,17 +1285,20 @@ def create_review_list(datefirst, datelast, request):  # PR2019-08-20
             datelast = '3000-01-01'
         cursor = connection.cursor()
         # fields in review_list:
-        #  0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json, 4: yearindex, 5: monthindex 6: quincenaindex 7: weekindex,
+        #  0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json, 4: yearindex, 5: monthindex 6: weekindex, 7: payperiodindex,
         #  8: cust_code, 9: order_code, 10: order_cat, 11: shift
         #  12: oh_duration, 13: oh.amount, 14: oh.tax,
         #  15: eh_id_arr, 16: eh_dur_sum, 17: eh_wage_sum,
         #  18: e_id_arr, 19: e_code_arr, 20: eh_duration_arr,
         #  21: eh_wage_arr, 22: eh_wagerate_arr, 23: eh_wagefactor_arr
+        #  24: diff
+#  case when oh.duration>0 then oh.duration-eh_sub.e_dur else 0 end as diff
+
 
         cursor.execute("""WITH eh_sub AS (SELECT eh.orderhour_id AS oh_id, 
                                                 ARRAY_AGG(eh.id) AS eh_id,
                                                 ARRAY_AGG(eh.employee_id) AS e_id,
-                                                COALESCE(STRING_AGG(e.code, ', '),'-') AS e_code,
+                                                COALESCE(STRING_AGG(DISTINCT e.code, ', '),'-') AS e_code,
                                                 ARRAY_AGG(eh.timeduration) AS e_dur,
                                                 ARRAY_AGG(eh.wage) AS e_wage,
                                                 ARRAY_AGG(eh.wagerate) AS e_wr,
@@ -1216,10 +1309,11 @@ def create_review_list(datefirst, datelast, request):  # PR2019-08-20
                                                 LEFT OUTER JOIN companies_employee AS e ON (eh.employee_id=e.id) 
                                                 GROUP BY oh_id) 
                                        SELECT oh.id, o.id, c.id, to_json(oh.rosterdate), 
-                                       oh.yearindex AS y, oh.monthindex AS m, oh.quincenaindex AS q, oh.weekindex AS w,      
+                                       oh.yearindex AS y, oh.monthindex AS m, oh.weekindex AS w, oh.payperiodindex AS p,    
                                        COALESCE(c.code,'-') AS c_code, COALESCE(o.code,'-') AS o_code, o.cat, COALESCE(oh.shift,'-'), 
                                        oh.duration, oh.amount, oh.tax, eh_sub.eh_id, eh_sub.eh_dur, eh_sub.eh_wage, 
-                                       eh_sub.e_id, eh_sub.e_code, eh_sub.e_dur, eh_sub.e_wage, eh_sub.e_wr, eh_sub.e_wf   
+                                       eh_sub.e_id, eh_sub.e_code, eh_sub.e_dur, eh_sub.e_wage, eh_sub.e_wr, eh_sub.e_wf, 
+                                       case when oh.duration>0 then oh.duration-eh_sub.eh_dur else 0 end as diff  
                                        FROM companies_orderhour AS oh
                                        INNER JOIN eh_sub ON (eh_sub.oh_id=oh.id)
                                        INNER JOIN companies_order AS o ON (oh.order_id=o.id)
@@ -1244,7 +1338,7 @@ def create_review_list(datefirst, datelast, request):  # PR2019-08-20
 
         # rows = cursor.fetchall()
         # rows = cursor.dictfetchall()
-        review_list =  cursor.fetchall()
+        review_list = cursor.fetchall()
         logger.debug('------- >' + str(review_list))
 
     return review_list

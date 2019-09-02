@@ -116,31 +116,6 @@
     This allows the default alignment (or the one specified by align-items) to be overridden for individual flex items.
     Please see the align-items explanation to understand the available values. */
 
-/*
-.sidebar {
-      height: 100%; /* Full-height: remove this if you want "auto" height */
-      width: 240x; /* Set the width of the sidebar */
-      position: fixed; /* Fixed Sidebar (stay in place on scroll) */
-      z-index: 1; /* Stay on top */
-      top: 24; /* Stay at the top */
-      left: 0;
-
-      overflow-x: hidden; /* Disable horizontal scroll */
-      padding-top: 8px;
-
-    /* flex: 0 1 auto; /* [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ] */
-    /*margin: 0px;
-
-    padding-right: 10px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    padding-left: 0;
-
-    border-color: #c4c4c4;
-
-    background-color: #a5a5a5; /* medium grey; 165 165 165
-}
-*/
 .flex_content {
 
 /*
@@ -198,29 +173,18 @@
     padding-left: 0;
 }
 
-
-
-
-
-
-
-
-
 .content_wrapper {
-
     -webkit-box-flex: 0;
         -ms-flex: 0 0 220px;
             flex: 0 1 220px; /* [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ] */
     -webkit-box-flex: 1;-ms-flex: 1 1 220px;flex: 1 1 220px;
 
+    margin: 32px 10px 10px 10px;
+    /* padding: <top><right><bottom><left> */
 
-    margin: 10px;
-
-   /*background: #fafafa; /* even ligher grey #f5f5f5; /* licht light grey */
-   /*background: #f8f8f8;   /* #f8f8f8 light light grey table header   #e0e0e0; /*light grey submenu */
-   /*background: #fbedba; /* lighter shade of tsa yellow */
-   background: #fdf7e1; /* more lighter shade of tsa yellow */
-   border: 1px solid #808080;    /* #808080 medium grey; #141619  dark grey; */
+   /* background: #fdf7e1; /* more lighter shade of tsa yellow */
+   /* border: 1px solid #808080;    /* #808080 medium grey; #141619  dark grey; */
+   border: 0;
 }
 
 .content_header {
@@ -348,7 +312,7 @@
         flex-grow: 0;     /* do not grow   - initial value: 0
         flex-shrink: 0;   /* do not shrink - initial value: 1
         flex-basis: 25em; /* width/height  - initial value: auto */
-    margin: 0px;
+    margin: 0;
    /*  border: 2px solid red;    /*  #2D4E77; HeaderBackColor Default Schema Blauw donkerblauw */
 
     padding: 10px;

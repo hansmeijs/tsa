@@ -76,7 +76,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
     # 3. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
-                    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, table = f.get_iddict_variables(id_dict)
+                    pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, table, mode, cat = f.get_iddict_variables(id_dict)
 
     # 4. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
                     field_list = ('pk', 'id', 'code', 'name', 'identifier', 'inactive')
@@ -174,7 +174,7 @@ class OrderUploadView(UpdateView):# PR2019-03-04
     # 3. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
-                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, table = f.get_iddict_variables(id_dict)
+                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode, cat = f.get_iddict_variables(id_dict)
 
     # 4. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
                     field_list = ('pk', 'id', 'code', 'name', 'identifier', 'datefirst', 'datelast', 'inactive')

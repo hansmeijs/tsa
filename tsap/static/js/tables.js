@@ -211,9 +211,22 @@
 // get table_name from data-table in el
             const tblName = get_attr_from_el(el, "data-table");
             if (!!tblName){id_dict["table"] = tblName}
+
+// get mode from data-table in el (mode is used in employees.js)
+            const btnName = get_attr_from_el(el, "data-mode");
+            if (!!btnName){id_dict["mode"] = btnName}
+
+// get cat from data-table in el
+            const cat = get_attr_from_el_int(el, "data-cat");
+            if (!!cat){id_dict["cat"] = cat}
         }
         return id_dict
     }  // function get_iddict_from_element
+
+
+
+
+
 
 //========= function get_datapk_from_element  ======== PR2019-06-02
     function get_datapk_from_element (el) {
@@ -548,7 +561,7 @@
 
             if(!!msg_err){
                 if(!value) { value = null} // otherwise 'undefined will show in tetbox
-                ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+                ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, value)
             } else if(updated){
                 el_input.classList.add("border_valid");
                 setTimeout(function (){
@@ -635,7 +648,7 @@
             //console.log("display_title", display_title, typeof display_title)
 
             if(!!msg_err){
-               ShowMsgError(el_input, el_msg, msg_err, - 160, true, display_value, data_value, display_title)
+               ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, display_value, data_value, display_title)
             } else if(updated){
                 el_input.classList.add("border_valid");
                 setTimeout(function (){
@@ -837,7 +850,7 @@
 
 // show msg_err or border_valid
                 if(!!msg_err){
-                   ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+                   ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, value)
                 } else if(updated){
                     el_input.classList.add("border_valid");
                     setTimeout(function (){
@@ -930,7 +943,7 @@
                 }  // if (!!value)
 
                 if(!!msg_err){
-                   ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+                   ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, value)
                 } else if(updated){
                     el_input.classList.add("border_valid");
                     setTimeout(function (){
@@ -1055,7 +1068,7 @@
 
 // show msg_err or border_valid
                 if(!!msg_err){
-                   ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
+                   ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, value)
                 } else if(updated){
                     el_input.classList.add("border_valid");
                     setTimeout(function (){
@@ -1099,16 +1112,8 @@
                 let updated = get_dict_value_by_key (field_dict, "updated");
                 let msg_err = get_dict_value_by_key (field_dict, "error");
 
-                if(!!msg_err){
-                   ShowMsgError(el_input, el_msg, msg_err, - 160, true, value)
-                } else if(updated){
-                    el_input.classList.add("border_valid");
-                    setTimeout(function (){
-                        el_input.classList.remove("border_valid");
-                        }, 2000);
-                }
 
-                let hour_str, hour_text, time_format;
+                let hour_str, hour_text, display_value = null;
                 const hours = Math.floor(value_int/60);  // The Math.floor() function returns the largest integer less than or equal to a given number.
                 if (hours > -100 && hours < 100) {
                     hour_str = "00" + hours.toString()
@@ -1121,16 +1126,30 @@
                 const minute_str = "00" + minutes.toString()
                 const minute_text = minute_str.slice(-2);
 
-                if(user_lang === "en") {
-                    time_format = hour_text + ":" + minute_text;
-                } else {
-                    time_format = hour_text + "." + minute_text + " u";
-                }
                 if(!!value_int){
-                    el_input.value = time_format;
-                } else {
-                    el_input.value = null
+                    if(user_lang === "en") {
+                        display_value = hour_text + ":" + minute_text;
+                    } else {
+                        display_value = hour_text + "." + minute_text + " u";
+                    }
                 }
+                el_input.value = display_value;
+
+
+                if(!!msg_err){
+                    //ShowMsgError(el_input, el_msg, msg_err, offset, set_value, display_value, data_value, display_title)
+                    //console.log("+++++++++ ShowMsgError")
+                   ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, display_value,  value_int)
+                } else if(updated){
+                    el_input.classList.add("border_valid");
+                    setTimeout(function (){
+                        el_input.classList.remove("border_valid");
+                        }, 2000);
+                }
+
+
+
+
             }  // if(!!field_dict)
 
             el_input.setAttribute("data-value", value_int);
@@ -1140,7 +1159,7 @@
 
 //========= format_duration_element  ======== PR2019-08-21
     function format_duration_str (value_int, user_lang) {
-        console.log("+++++++++ format_duration_str", value_int)
+        //console.log("+++++++++ format_duration_str", value_int)
         let time_format = "";
 
         if (!!value_int) {
@@ -1392,8 +1411,7 @@
         if (!!status) {
             if (!!status_sum) {
                 for (let i = 8, power; i >= 0; i--) {
-                    power = 2 ** i
-                    power = Math.pow(2, i);
+                    power = 2 ** i  // ** is much faster then power = Math.pow(2, i); from http://bytewrangler.blogspot.com/2011/10/mathpowx2-vs-x-x.html
                     if (status_sum >= power) {
                         if (power === status) {
                             found = true;
@@ -1414,17 +1432,27 @@
 
 //=========  ShowMsgError  ================ PR2019-06-01
     function ShowMsgError(el_input, el_msg, msg_err, offset, set_value, display_value, data_value, display_title) {
-        // show MsgBox with msg_err , offset shifts horizontal position
+        // show MsgBox with msg_err , offset[0] shifts horizontal position, offset[1] VERTICAL
+        //console.log("ShowMsgError", display_value, data_value, display_title )
         if(!!el_input && msg_err) {
             el_input.classList.add("border_bg_invalid");
                 // el_input.parentNode.classList.add("tsa_tr_error");
+
+    //var viewportWidth = document.documentElement.clientWidth;
+    //var viewportHeight = document.documentElement.clientHeight;
+    //console.log("viewportWidth: " + viewportWidth + " viewportHeight: " + viewportHeight  )
+
+    //var docWidth = document.body.clientWidth;
+    //var docHeight = document.body.clientHeight;
+    //console.log("docWidth: " + docWidth + " docHeight: " + docHeight  )
+
 
             el_msg.innerHTML = msg_err;
             el_msg.classList.add("show");
                 const elemRect = el_input.getBoundingClientRect();
                 const msgRect = el_msg.getBoundingClientRect();
-                const topPos = elemRect.top - (msgRect.height + 80);
-                const leftPos = elemRect.left + offset;
+                const topPos = elemRect.top - (msgRect.height + offset[1]);
+                const leftPos = elemRect.left + offset[0];
                 const msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
             el_msg.setAttribute("style", msgAttr)
 
@@ -1464,6 +1492,13 @@
             img.setAttribute("height", height);
             img.setAttribute("width", height);
         el.appendChild(img);
+    }
+//=========  AppendIcon  ================ PR2019-08-27
+    function IconChange(el, img_src ) {
+        if (!!el) {
+            let img = el.firstChild;
+            img.setAttribute("src", img_src);
+        }
     }
 
 
@@ -1509,8 +1544,8 @@
                 if(!!row) {
                     if (!!skip_cls_background){skip = row.classList.contains(skip_cls_background)}
                     if(!skip){
-                        if (!!new_cls_background){row.classList.add(new_cls_background)};
                         row.classList.remove(old_cls_background)
+                        if (!!new_cls_background){row.classList.add(new_cls_background)};
                     }
                 }
             }
@@ -1631,14 +1666,12 @@
             // console.log(  "show_row", show_row, "filter_name",  filter_name,  "col_length",  col_length);
                 if (show_row && !!filter_name){
                     let found = false
-                    for (let i = 0, len = tblRow.cells.length, el_value; i < len; i++) {
+                    for (let i = 0, len = tblRow.cells.length, el, el_value; i < len; i++) {
                         let tbl_cell = tblRow.cells[i];
                         if (!!tbl_cell){
-                            let el = tbl_cell.children[0];
+                            el = tbl_cell.children[0];
                             if (!!el) {
-                                //let fieldname = get_attr_from_el(el, "data-field")
-                                //console.log("fieldname", fieldname);
-                                // console.log("tagName", el.tagName.toLowerCase());
+                                let fieldname = get_attr_from_el(el, "data-field")
                                 if (el.tagName.toLowerCase() === "select"){
                                     //el_value = el.options[el.selectedIndex].text;
                                     el_value = get_attr_from_el(el, "data-value")
@@ -1648,8 +1681,6 @@
 // get value from el.value, from data-value if not found
 
                                 if (!el_value){el_value = get_attr_from_el(el, "data-value")}
-                                // console.log("el_value", el_value);
-
                                 if (!!el_value){
                                     el_value = el_value.toLowerCase();
                                     if (el_value.indexOf(filter_name) !== -1) {
@@ -1665,8 +1696,6 @@
                 }  // if (show_row && !!filter_name){
             } //  if(!is_new_row){
         }  // if (!!tblRow)
-
-        // console.log(  "show_row", show_row, typeof show_row);
         return show_row
     }; // function FilterTableRows
 
@@ -1832,7 +1861,7 @@
     function CreateTableRows(tableBase, stored_items, excel_items,
                     JustLinkedAwpId, JustUnlinkedAwpId, JustUnlinkedExcId) {
 
-    console.log("==== CreateMapTableRows  =========>> ", tableBase);
+    //console.log("==== CreateMapTableRows  =========>> ", tableBase);
         const cae_hv = "c_colAwpExcel_hover";
         //const cae_hl = "c_colAwpExcel_highlighted";
         const cli_hv = "c_colLinked_hover";
@@ -1926,7 +1955,7 @@
 
         // event.currentTarget is the element to which the event handler has been attached (which is #document)
         // event.target identifies the element on which the event occurred.
-console.log("=========   handle_table_row_clicked   ======================") ;
+//console.log("=========   handle_table_row_clicked   ======================") ;
 //console.log("e.target.currentTarget.id", e.currentTarget.id) ;
 
         if(!!e.target && e.target.parentNode.nodeName === "TR") {

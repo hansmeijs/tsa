@@ -30,10 +30,10 @@ logger = logging.getLogger(__name__)
 
 
 @method_decorator([login_required], name='dispatch')
-class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
+class FillRosterdateView(UpdateView):  # PR2019-05-26
 
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= EmplhourFillRosterdateView ============= ')
+        # logger.debug(' ============= FillRosterdateView ============= ')
 
         update_dict = {}
         if request.user is not None and request.user.company is not None:
@@ -62,6 +62,7 @@ class EmplhourFillRosterdateView(UpdateView):  # PR2019-05-26
                     m.Companysetting.set_setting(c.KEY_COMP_ROSTERDATE_CURRENT, rosterdate_fill_dte, request.user.company)
                     update_dict['rosterdate'] = get_rosterdatefill_dict(request.user.company, comp_timezone, user_lang)
                     update_dict['logfile'] = logfile
+
                 elif 'remove' in rosterdate_fill_dict:
                     rosterdate_str = rosterdate_fill_dict['remove']
                     rosterdate_remove_dte, msg_txt = f.get_date_from_ISOstring(rosterdate_str)
@@ -117,14 +118,120 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, logfile):  # PR20
         logfile.append('================================================ ')
 # ===============================================================
 
+# first add absence records, so shifts can be skipped when absence  exist
+
+        customers = m.Customer.objects.filter(company=request.user.company, cat=c.SHIFT_CAT_0512_ABSENCE)
+        if customers:
+            for customer in customers:
+                logfile.append(' === ABSENCE ===')
+                orders = m.Order.objects.filter(customer=customer)
+                if not orders:
+                    logfile.append('    - no absence categories found')
+                else:
+                    for order in orders:
+                        logfile.append('---------------------- ')
+                        logfile.append('Category: ' + str(order.name))
+                        logfile.append('---------------------- ')
+                        schemes = m.Scheme.objects.filter(order=order)
+                        if schemes:
+                            for scheme in schemes:
+                                teams = m.Team.objects.filter(scheme=scheme)
+                                if teams:
+                                    for team in teams:
+                                        teammembers = m.Teammember.objects.filter(team=team)
+                                        if teammembers:
+                                            for teammember in teammembers:
+                                                if teammember.employee:
+                                                    logfile.append(str(teammember.employee.code))
+
+                                                    range = ''
+                                                    if teammember.datefirst:
+                                                        range = 'from ' + str(teammember.datefirst)
+                                                    else:
+                                                        range = ' from <not entered> '
+                                                    if teammember.datelast:
+                                                        range += ' thru ' + str(teammember.datelast)
+                                                    else:
+                                                        range += ' thru <not entered>'
+                                                    if not f.date_within_range(teammember.datefirst, teammember.datelast,
+                                                                                 new_rosterdate_dte):
+                                                        logfile.append(
+                                                            '     absence skipped. Rosterdate outside absence period (' + range + ')')
+                                                    else:
+                                                        add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, request, logfile)
+
+# second add rest records, so shifts can be skipped when rest emplhour exist
+    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
+
+        crit = Q(scheme__order__customer__company=request.user.company) & \
+               Q(shift__cat__gte=0)
+             #  Q(scheme__order__customer__inactive=False) & \
+             #  Q(scheme__order__inactive=False) & \
+             #  Q(scheme__order__cat__lt=c.SHIFT_CAT_0512_ABSENCE) & \
+             # (Q(scheme__order__datefirst__lte=new_rosterdate_dte) | Q(scheme__order__datefirst__isnull=True)) & \
+             # (Q(scheme__order__datelast__gte=new_rosterdate_dte) | Q(scheme__order__datelast__isnull=True)) & \
+             #  Q(scheme__inactive=False) # & \
+             #  Q(shift__cat=c.SHIFT_CAT_0256_RESTSHIFT)
+              #(Q(scheme__datefirst__lte=new_rosterdate_dte) | Q(scheme__datefirst__isnull=True)) & \
+              #(Q(scheme__datelast__gte=new_rosterdate_dte) | Q(scheme__datelast__isnull=True)) & \
+               #Q(inactive=False) # & \
+
+        schemeitems = m.Schemeitem.objects.filter(crit)
+        # logger.debug(schemeitems.query)
+        logfile.append(' === REST SHIFTS ===')
+        logger.debug(' === REST SHIFTS ===')
+        logger.debug('count:' + str(m.Schemeitem.objects.filter(crit).count()))
+
+        for schemeitem in schemeitems:
+            logger.debug('schemeitem: ' + str(schemeitem))
+            if schemeitem.shift:
+                shift = schemeitem.shift
+                logger.debug('shift: ' + str(shift))
+                logger.debug('shift.cat: ' + str(shift.cat))
+
+            # 2. update the rosterdate of schemeitem when it is outside the current cycle,
+            update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone)
+            # logger.debug(' new schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
+            # new schemeitem.rosterdate: 2019-08-30 00:00:00 <class 'datetime.datetime'>
+            new_schemeitem_rosterdate_naive = schemeitem.rosterdate
+            # logger.debug(' new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
+            new_schemeitem_rosterdate_dte = new_schemeitem_rosterdate_naive.date()
+            # logger.debug(' new_schemeitem_rosterdate_dte: ' + str(new_schemeitem_rosterdate_dte) + ' ' + str(type(new_schemeitem_rosterdate_dte)))
+            # new_rosterdate_dte: 2019-08-29 <class 'datetime.date'>
+            # 3. skip if schemeitem.rosterdate does not equal new_rosterdate_dte
+            shift_code = '-'
+            if schemeitem.shift:
+                shift_code = schemeitem.shift.code
+            if new_schemeitem_rosterdate_dte == new_rosterdate_dte:
+                if not schemeitem.shift:
+                    logfile.append(
+                        "       shift '" + str(shift_code) + "' is blank.")
+                else:
+                    if schemeitem.shift.cat == c.SHIFT_CAT_0256_RESTSHIFT:
+                        # TODO add to rest order, to prevent overlapping shifts
+                        logfile.append(
+                            "       shift '" + str(shift_code) + "' is rest shift")
+                    else:
+                        entry_count = 0
+                        #add_orderhour(schemeitem, new_rosterdate_dte, request,
+                        #              comp_timezone, entry_count,
+                        #              logfile)  # PR2019-08-12
+
+                    # DON't add 1 cycle to today's schemeitems, added rosterday must be visible in planning, to check
+                    # next_rosterdate = new_rosterdate_dte + timedelta(days=1)
+                    # update_schemeitem_rosterdate(schemeitem, next_rosterdate, comp_timezone)
+
+    ########################################
 # loop through all customers:, except for absence and template
-        customers = m.Customer.objects.filter(company=request.user.company, cat__lt=c.SHIFT_CAT_0512_ABSENCE)
+        # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
+        customers = m.Customer.objects.filter(company=request.user.company, cat__lt=c.SHIFT_CAT_0256_RESTSHIFT)
         if not customers:
             logfile.append('No customers found.')
         else:
             for customer in customers:
                 logfile.append('================================ ')
                 logfile.append('Customer: ' + str(customer.code))
+                logfile.append('================================ ')
                 if customer.locked:
                     logfile.append('    - customer is locked')
                 elif customer.inactive:
@@ -178,28 +285,72 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, logfile):  # PR20
                                                     shift_code = '-'
                                                     if schemeitem.shift:
                                                         shift_code = schemeitem.shift.code
-                                                    logfile.append("     shift: '" + str(shift_code) + "' of " + str(new_schemeitem_rosterdate_dte) + "")
 
-                                                    if new_schemeitem_rosterdate_dte != new_rosterdate_dte:
-                                                        logfile.append("       shift skipped. Date not equal to this rosterdate")
-                                                    else:
+                                                    if new_schemeitem_rosterdate_dte == new_rosterdate_dte:
                                                         if schemeitem.inactive:
-                                                            logfile.append("       shift is inactive.")
+                                                            logfile.append("       shift '" + str(shift_code) + "' is inactive.")
                                                         else:
                                                             if not schemeitem.shift:
-                                                                logfile.append("       shift is blank.")
+                                                                logfile.append("       shift '" + str(shift_code) + "' is blank.")
                                                             else:
-                                                                if schemeitem.shift.cat == c.SHIFT_CAT_0064_RESTSHIFT:
+                                                                if schemeitem.shift.cat == c.SHIFT_CAT_0256_RESTSHIFT:
                                                                     # TODO add to rest order, to prevent overlapping shifts
-                                                                    logfile.append('       shift is rest shift')
+                                                                    logfile.append("       shift '" + str(shift_code) + "' is rest shift")
                                                                 else:
-                                                                    add_schemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_count, logfile)  # PR2019-08-12
+                                                                    add_orderhour(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_count, logfile)  # PR2019-08-12
 
                                                                 # DON't add 1 cycle to today's schemeitems, added rosterday must be visible in planning, to check
                                                                 #next_rosterdate = new_rosterdate_dte + timedelta(days=1)
                                                                 # update_schemeitem_rosterdate(schemeitem, next_rosterdate, comp_timezone)
 
-def add_schemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_count, logfile):  # PR2019-08-12
+
+def add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, request, logfile):  # PR2019-09-01
+
+    if order and teammember:
+        yearindex = new_rosterdate_dte.year
+        monthindex = new_rosterdate_dte.month
+        weekindex = new_rosterdate_dte.isocalendar()[1]  # isocalendar() is tuple: (2019, 15, 4)
+
+        orderhour = m.Orderhour(
+            order=order,
+            rosterdate=new_rosterdate_dte,
+            yearindex=yearindex,
+            monthindex=monthindex,
+            weekindex=weekindex,
+            payperiodindex=0,  # TODO
+            cat=c.SHIFT_CAT_0512_ABSENCE,
+            status=c.STATUS_01_CREATED)  # gets status created when time filled in by schemeitem
+        orderhour.save(request=request)
+
+        if orderhour:
+    # create new emplhour
+            # workhours_per_day_minutes = workhours_minutes / workdays_minutes * 1440
+            workhoursperday = getattr(teammember, 'workhoursperday', 0)
+            if not workhoursperday:
+                if teammember.employee:
+                    workhours = getattr(teammember.employee, 'workhours', 0)
+                    workdays = getattr(teammember.employee, 'workdays', 0)
+                    if workhours and workdays:
+                        workhoursperday = workhours / workdays * 1440
+
+            new_emplhour = m.Emplhour(
+                orderhour=orderhour,
+                rosterdate=new_rosterdate_dte,
+                yearindex=yearindex,
+                monthindex=monthindex,
+                weekindex=weekindex,
+                payperiodindex=0,  # TODO
+                employee=teammember.employee,
+                teammember=teammember,
+                timeduration=workhoursperday,
+                cat=c.SHIFT_CAT_0512_ABSENCE,
+                status=c.STATUS_01_CREATED) # gets status created when time filled in by schemeitem
+            new_emplhour.save(request=request)
+
+            logfile.append("       absence on '" + str(new_rosterdate_dte.isoformat()) + "' is added.")
+
+
+def add_orderhour(schemeitem, new_rosterdate_dte, request, comp_timezone, entry_count, logfile):  # PR2019-08-12
 
     logger.debug(' ============= AddSchemeitem ============= ')
     logger.debug('new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
@@ -213,7 +364,7 @@ def add_schemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry
 # a. check if an orderhour from this schemeitem and this rosterdate already exists
 
     # fields of orderhour are:
-    #   order, schemeitem, rosterdate, yearindex, monthindex, weekindex,
+    #   order, schemeitem, rosterdate, yearindex, monthindex, weekindex, payperiodindex,
     #   shift, duration, status, rate, amount, sequence, locked, modifiedby, modifiedat
 
     orderhour = m.Orderhour.objects.filter(
@@ -243,7 +394,6 @@ def add_schemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry
         weekindex = new_rosterdate_dte.isocalendar()[1]  # isocalendar() is tuple: (2019, 15, 4)
         #  week 1 is de week, waarin de eerste donderdag van dat jaar zit
         #weekday = new_rosterdate_dte.weekday() #  0 = Monday
-        # quincena 1 starts day after begin of week 1 (assumption)
 
         orderhour = m.Orderhour(
             order=schemeitem.scheme.order,
@@ -330,7 +480,7 @@ def add_schemeitem(schemeitem, new_rosterdate_dte, request, comp_timezone, entry
         logfile.append("       shift '" + str(shift_code) + "' of " + str( schemeitem.rosterdate) + " is added to roster.")
     logger.debug(' entry_count: ' + str( entry_count))
 
-    logger.debug(logfile)
+    # logger.debug(logfile)
     m.entry_balance_subtract(entry_count, request, comp_timezone)  # PR2019-08-04
 
 

@@ -147,7 +147,7 @@ STATUS_16_QUESTION = 16
 STATUS_32_REJECTED = 32
 STATUS_64_APPROVED = 64
 
-
+# shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
 SHIFT_CAT_0000_NORMAL = 0
 SHIFT_CAT_0001_INTERNAL = 1
 SHIFT_CAT_0002_BILLABLEBYTHEHOUR = 2
@@ -155,19 +155,21 @@ SHIFT_CAT_0002_BILLABLEBYTHEHOUR = 2
 # SHIFT_CAT_0008_AVAILABLE = 8
 SHIFT_CAT_0016_UNASSIGNED = 16
 SHIFT_CAT_0032_REPLACEMENT = 32  #  (cat_replacement not in use in table order)
-SHIFT_CAT_0064_RESTSHIFT = 64
+# SHIFT_CAT_0064_AVAILABLE = 64
 # SHIFT_CAT_0128_AVAILABLE = 128
-# SHIFT_CAT_0256_AVAILABLE = 256
+SHIFT_CAT_0256_RESTSHIFT = 256
 SHIFT_CAT_0512_ABSENCE = 512 # used in table customer, order, scheme , orderhour,  emplhour)
 # SHIFT_CAT_1024_AVAILABLE = 1024
 # SHIFT_CAT_2048_AVAILABLE = 2048
 SHIFT_CAT_4096_TEMPLATE = 4096
+
 # SHIFT_CAT_8192_AVAILABLE = 8192
 # SHIFT_CAT_16384_AVAILABLE = 16384
 
 # 0 = normal, 10 = replacement
 TEAMMEMBER_CAT_00_NORMAL = 0
 TEAMMEMBER_CAT_10_REPLACEMENT = 10
+TEAMMEMBER_CAT_0512_ABSENCE = 512
 
 #PR2019-08-05 # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
 ENTRY_CAT_00_GRACE = 0
@@ -190,27 +192,25 @@ REST_TEXT = {LANG_EN: 'Rest', LANG_NL: 'Rust'}
 # PR2019-06-24
 ABSENCE = {
     LANG_EN: ('Absence', 'Absence'),
-    LANG_NL: ('Afwezig', 'Afwezigheid')
+    LANG_NL: ('Afwezig', 'Absentie')
           }
 
 # PR2019-06-24
 ABSENCE_CATEGORY = {LANG_EN: (
                         ('0', 'Unknown', 'Unknown'),
                         ('1', 'Vacation', 'Vacation leave'),
-                        ('2', 'Sick leave', 'Sick leave'),
+                        ('2', 'Sick', 'Sick leave'),
                         ('3', 'Special leave', 'Special leave'),
                         ('4', 'Unpaid leave', 'Unpaid leave'),
                         ('5', 'Unauthorized', 'Unauthorized absence')),
                     LANG_NL: (
                         ('0', 'Onbekend', 'Onbekend'),
                         ('1', 'Vakantie', 'Vakantie'),
-                        ('2', 'Ziekte', 'Ziekteverzuim'),
+                        ('2', 'Ziek', 'Ziekte'),
                         ('3', 'Buitengewoon', 'Buitengewoon verlof'),
                         ('4', 'Onbetaald', 'Onbetaald verlof'),
                         ('5', 'Ongeoorloofd', 'Ongeoorloofd verzuim'))
                     }
-
-
 
 KEY_COMP_ROSTERDATE_CURRENT = 'rstdte_current'
 KEY_COMP_REPLACEMENT_PERIOD = 'repl_period'
@@ -302,24 +302,31 @@ CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
 
 # this one is not working: update_dict = dict.fromkeys(field_list, {})
 FIELDS_ORDERHOUR = ('pk', 'id', 'order', 'schemeitem', 'rosterdate',
-                    'yearindex', 'monthindex','quincenaindex', 'weekindex',
+                    'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
                     'cat', 'shift', 'duration', 'rate', 'amount', 'tax')
 
-FIELDS_EMPLHOUR = ('pk', 'id', 'orderhour', 'employee', 'rosterdate', 'cat', 'shift',
+FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
                         'timestart', 'timeend', 'timeduration', 'breakduration',
                         'wagerate', 'wagefactor', 'wage', 'status')
 
 FIELDS_SCHEME = ('pk', 'id', 'order', 'cat',
                 'cycle', 'excludeweekend', 'excludepublicholiday')
 
-FIELDS_TEAM = ('pk', 'id', 'code')
+FIELDS_TEAM = ('id', 'scheme', 'code')
 
-FIELDS_SHIFT = ('pk', 'id', 'scheme', 'code', 'cat',
-                'offsetstart', 'offsetend', 'breakduration', 'wagefactor', 'successor')
+FIELDS_SHIFT = ('pk', 'id', 'scheme', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor')
 
 FIELDS_SCHEMEITEM = ('pk', 'id', 'scheme', 'shift', 'team',
                      'rosterdate', 'iscyclestart', 'timestart', 'timeend',
                      'timeduration', 'inactive')
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
-FIELDS_TEAMMEMBER = ('pk', 'id', 'team', 'employee', 'datefirst', 'datelast')
+FIELDS_EMPLOYEE = ('id', 'code', 'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
+                   'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'inactive')
+WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, default is 40 hours per week = 2.400 minutes
+WORKDAYS_DEFAULT = 7200  # workdays per week * 1440, unit is minute (one day has 1440 minutes) , default is 5 days per week = 7200 minutes
+LEAVEDAYS_DEFAULT = 21600  # leavedays per year, = 15 days * 1440 = 21.600 minutes
+
+# workhours_per_day_minutes = workhours_minutes / workdays_minutes * 1440
+
+FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast', 'workhoursperday', 'scheme', 'order', 'customer')

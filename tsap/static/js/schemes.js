@@ -183,12 +183,12 @@ $(function() {
         let tblBody_shift_select = document.getElementById("id_tbody_shift_select")
         let tblBody_team_select = document.getElementById("id_tbody_team_select")
 
-        let tblBody_items = document.getElementById("id_tbody_schemeitems");
-        let tblHead_items = document.getElementById("id_thead_schemeitems");
+        let tblBody_items = document.getElementById("id_tbody_items");
+        let tblHead_items = document.getElementById("id_thead_items");
 
         let el_timepicker = document.getElementById("id_timepicker")
 
-        let el_loader = document.getElementById("id_loading_img");
+        let el_loader = document.getElementById("id_loader");
         let el_msg = document.getElementById("id_msgbox");
 
 // --- get header elements
@@ -614,6 +614,7 @@ $(function() {
                 ChangeBackgroundRows(sel_tr_clicked.parentNode, cls_bc_lightlightgrey, cls_bc_yellow_lightlight)
                 sel_tr_clicked.classList.remove(cls_bc_yellow_lightlight)
                 sel_tr_clicked.classList.add(cls_bc_yellow)
+
 // ---  remove highlightshift select tabel
                 ChangeBackgroundRows(tblBody_shift_select, cls_bc_yellow_lightlight, cls_bc_lightlightgrey)
                 ChangeBackgroundRows(tblBody_team_select, cls_bc_yellow_lightlight, cls_bc_lightlightgrey)
@@ -675,46 +676,33 @@ $(function() {
     }  // HandleSelectShift
 
 //=========  HandleSelectTeam  ================ PR2019-05-24
-    function HandleSelectTeam(id_dict, sel_tr_clicked) {
+    function HandleSelectTeam(sel_tr_clicked) {
         console.log( "===== HandleSelectTeam  ========= ");
-        console.log( "sel_tr_clicked", sel_tr_clicked);
 
-        let team_pk_int;
 // ---  get team_pk from id_dict or from sel_tr_clicked
-        if(!isEmpty(id_dict)){
-            console.log( "get team_pk_int from id_dict");
-            team_pk_int = parseInt(get_dict_value_by_key(id_dict,"pk"))
-            console.log( "get team_pk_int from id_dict", team_pk_int);
-        } else if(!!sel_tr_clicked) {
-            team_pk_int = get_attr_from_el_int(sel_tr_clicked, "data-pk");
-            console.log( "get team_pk_int from sel_tr_clicked", team_pk_int);
-            // ---  update selected_team_pk when not equal to team_pk_int
-            if (team_pk_int !== selected_team_pk) {
+        if(!!sel_tr_clicked) {
+            let team_pk_int = get_attr_from_el_int(sel_tr_clicked, "data-pk");
+            console.log( "team_pk_int", team_pk_int);
+
+
                 selected_team_pk = team_pk_int
 // ---  reset selected_item_pk  selected_team_pk has changed
                 selected_item_pk = 0// ---  highlight clicked row
 
-                ChangeBackgroundRows(sel_tr_clicked.parentNode, cls_bc_lightlightgrey, cls_bc_yellow_lightlight)
-                sel_tr_clicked.classList.remove(cls_bc_yellow_lightlight)
-                sel_tr_clicked.classList.add(cls_bc_yellow)
-
-            }
-        }
-        console.log( "team_pk_int:" , team_pk_int, " selected_team_pk:" , selected_team_pk);
-
-// ---  remove highlightshift select tabel
-            ChangeBackgroundRows(tblBody_scheme_select, cls_bc_yellow_lightlight, cls_bc_lightlightgrey)
-            ChangeBackgroundRows(tblBody_shift_select, cls_bc_yellow_lightlight, cls_bc_lightlightgrey)
+            ChangeBackgroundRows(sel_tr_clicked.parentNode, cls_bc_lightlightgrey, cls_bc_yellow_lightlight)
+            sel_tr_clicked.classList.remove(cls_bc_yellow_lightlight)
+            sel_tr_clicked.classList.add(cls_bc_yellow)
 
 // --- create header row
             CreateTableHeader("teammember");
 // --- fill data table teammembers
-            FillTableRows("teammember", team_pk_int)
+            FillTableRows("teammember", selected_team_pk)
 // --- hide fill buttons
             el_btn_dayup.classList.add(cls_hide)
             el_btn_daydown.classList.add(cls_hide)
             el_btn_autofill.classList.add(cls_hide)
 
+        }
     }  // HandleSelectTeam
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
@@ -974,7 +962,7 @@ $(function() {
                 } else if (tablename === "shift") {
                     // parent of schemeitem, shift and team is: scheme
                     const ppk_int = get_attr_from_el_int(tr_changed, "data-ppk");
-                    console.log("ppk_int", ppk_int);
+                    //console.log("ppk_int", ppk_int);
 
                     if (fieldname === "code") {
                         const code = el_input.value
@@ -986,17 +974,6 @@ $(function() {
                         let value_int = parseInt(el_input.value);
                         if(!value_int){value_int = 0}
                         field_dict["value"] = value_int;
-                        field_dict["update"] = true;
-                    } else if (fieldname === "successor") {
-                        const pk_int = parseInt(el_input.value);
-                        if(!!pk_int){
-                            field_dict["pk"] = pk_int
-                            field_dict["ppk"] = ppk_int
-                            if (el_input.selectedIndex > -1) {
-                                const code = el_input.options[el_input.selectedIndex].text;
-                                if(!!code){field_dict["value"] = code};
-                            }
-                        }
                         field_dict["update"] = true;
                     }
                 } else if (tablename === "teammember") {
@@ -1276,7 +1253,7 @@ $(function() {
 
 // --- when err: show error message
                 } else if ("error" in id_dict){
-                    ShowMsgError(tblRow.cells[0], el_msg, id_dict.error, -60)
+                    ShowMsgError(tblRow.cells[0], el_msg, id_dict.error, [-160, 80])
                 } // if (id_deleted){
 
 
@@ -1359,7 +1336,7 @@ $(function() {
                 const msg_err = get_dict_value_by_key (field_dict, "error");
 
                 if(!!msg_err){
-                    ShowMsgError(el_input, el_msg, msg_err, -60)
+                    ShowMsgError(el_input, el_msg, msg_err, [-160, 80])
                 } else if(updated){
                     el_input.classList.add("border_valid");
                     setTimeout(function (){
@@ -1496,7 +1473,6 @@ $(function() {
         console.log("========= ModEmployeeSave ===" );
         //console.log(el_mod_employee_input_employee);
 
-
    // ---  get team_pk and team_ppk from el_mod_employee_body
         let el_mod_employee_body = document.getElementById("id_mod_employee_body")
             let id_dict = {"table": "team", "create": true}
@@ -1515,6 +1491,7 @@ $(function() {
                 employee_dict["pk"] = pk_int
                 employee_dict["ppk"] = ppk_int
                 employee_dict["value"] = value
+                employee_dict["update"] = true
     // ---  put employee_code in team_code
             let field_dict = {"field": "code", "value": value, "update": true}
 
@@ -1530,12 +1507,11 @@ $(function() {
 //=========  UploadTeam  ================ PR2019-08-23
     function UploadTeam(team_dict) {
         console.log("========= UploadTeam ===" );
-            console.log("team_dict", team_dict);
 
         if (!!team_dict){
             let parameters = {};
             parameters["team"] = JSON.stringify (team_dict);
-            console.log("parameters", parameters);
+            console.log("parameters", team_dict);
 
             let response = "";
             $.ajax({
@@ -1546,10 +1522,21 @@ $(function() {
                 success: function (response) {
                     console.log ("response:");
                     console.log (response);
-                    // team_update: { id: { created: true pk: 1251 ppk: 1103 temp_pk: "new_12"} }
 
-                    if ("teammember" in response){
-                        teammember_list= response["teammember"];
+                    // team_update:
+                    // pk: 1314
+                    // ppk: 1116
+                    // id: {temp_pk: "new_2", created: true, pk: 1314, ppk: 1116, table: "team"}
+                    // code: {value: "Nocento R", updated: true}
+                    // employee: {pk: 440, ppk: 2, code: "Nocento R", updated: true}
+
+                    if ("team_list" in response){
+                        team_list= response["team_list"];
+                        FillSelectTable("team")
+                    }
+
+                    if ("teammember_list" in response){
+                        teammember_list= response["teammember_list"];
                         FillDatalist("id_datalist_teammembers", teammember_list)
                     }
 
@@ -1557,7 +1544,10 @@ $(function() {
                         const team_update = response["team_update"]
                             if ("id" in team_update){
                                 const id_dict = team_update["id"]
-                                HandleSelectTeam(id_dict)
+                                selected_team_pk = get_dict_value_by_key(team_update, "pk")
+                                let tblRowSelected = document.getElementById("sel_team_" + selected_team_pk.toString())
+                                HandleSelectTeam(tblRowSelected)
+
                         }
                     }
 
@@ -1655,11 +1645,15 @@ $(function() {
                     if ("shift_list" in response) {
                         shift_list= response["shift_list"];
                         FillSelectTable("shift")}
+                    if ("team_list" in response) {
+                        team_list = response["team_list"];
+                        FillSelectTable("team")}
+
                     if ("schemeitem" in response) {
                         schemeitem_list = response["schemeitem"]}
 
-                    if ("teammember" in response){
-                        teammember_list= response["teammember"];
+                    if ("teammember_list" in response){
+                        teammember_list= response["teammember_list"];
                         FillDatalist("id_datalist_teammembers", teammember_list)}
                     //if ("employee" in response) {
                     //    employee_list= response["employee"];
@@ -1723,7 +1717,7 @@ $(function() {
                         } else if (tblName ==="shift"){
                             HandleSelectShift(tblRowSelected)
                         } else if (tblName ==="team"){
-                            HandleSelectTeam({}, tblRowSelected)
+                            HandleSelectTeam(tblRowSelected)
                         }
                     }, 2000);
 // --- remove deleted record from list
@@ -1731,7 +1725,7 @@ $(function() {
                     tblRow.parentNode.removeChild(tblRow);
 // --- when err: show error message
                 } else if ("error" in id_dict){
-                    ShowMsgError(tblRow.cells[0], el_msg, id_dict.error, -60)
+                    ShowMsgError(tblRow.cells[0], el_msg, id_dict.error, [-160, 80])
                 } // if (id_deleted){
             } // if (!!tblRow){
         }  // if (!!update_dict)
@@ -1847,17 +1841,18 @@ $(function() {
 //========= FillOptionRest  ============= PR2019-08-10
     function FillOptionRest() {
         const rest_display = get_attr_from_el(el_data, "data-txt_shift_rest");
+        // SHIFT_CAT_0256_RESTSHIFT
+        const value = [0, 256];
         const display = ["-", rest_display];
         let option_text = "";
         for(let i = 0; i < 2; i++){
-            option_text += "<option value=\"" + i + "\">" + display[i] + "</option>";
+            option_text += "<option value=\"" + value[i] + "\">" + display[i] + "</option>";
         }
         return option_text
     }  // FillOptionRest
 
    //========= FillOptionShift  ============= PR2019-08-10
     function FillOptionShift(with_rest_abbrev) {
-        // ---  fill options of select successor
         let option_text = "";
         const parent_pk = selected_scheme_pk
         let option_list = shift_list
@@ -1896,7 +1891,6 @@ $(function() {
 
    //========= FillOptionTeam  ============= PR2019-08-11
     function FillOptionTeam() {
-        // ---  fill options of select successor
         let option_text = "";
         const parent_pk = selected_scheme_pk
         let option_list = team_list
@@ -1932,8 +1926,7 @@ $(function() {
 
 //========= FillSelectTable  ============= PR2019-05-25
     function FillSelectTable(table_name) {
-        console.log( "=== FillSelectTable ", table_name);
-        //console.log( "selected_order_pk ", selected_order_pk),"selected_scheme_pk ", selected_scheme_pk);
+        //console.log( "=== FillSelectTable ", table_name);
 
         let selected_parent_pk = 0
         let tableBody, item_list;
@@ -1981,7 +1974,9 @@ $(function() {
         let len = item_list.length;
         let row_count = 0
 
-        console.log(item_list);
+        // console.log("item_list");
+        // console.log(item_list);
+
 //--- loop through item_list
         for (let i = 0; i < len; i++) {
             let item_dict = item_list[i];
@@ -1991,6 +1986,7 @@ $(function() {
             const pk = get_pk_from_id (item_dict)
             const parent_pk = get_ppk_from_id (item_dict)
             const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
+            //console.log("parent_pk", parent_pk, "selected_parent_pk", selected_parent_pk );
 
 //--- only show items of selected_parent_pk
             if (parent_pk === selected_parent_pk){
@@ -2013,7 +2009,8 @@ $(function() {
                 let td = tblRow.insertCell(-1);
                 let inner_text = code_value
                 if (table_name === "shift"){
-                    if (get_subdict_value_by_key(item_dict, "cat", "value") === 1) { inner_text += " (R)"}
+                    // SHIFT_CAT_0256_RESTSHIFT
+                    if (get_subdict_value_by_key(item_dict, "cat", "value") === 256) { inner_text += " (R)"}
                 }
                 td.innerText = inner_text;
 
@@ -2022,7 +2019,7 @@ $(function() {
                 } else if (table_name === "shift"){
                     td.addEventListener("click", function() {HandleSelectShift(tblRow)}, false )
                 } else if (table_name === "team"){
-                    td.addEventListener("click", function() {HandleSelectTeam({}, tblRow)}, false )
+                    td.addEventListener("click", function() {HandleSelectTeam(tblRow)}, false )
                 }
 // --- add active img to second td in table
                 td = tblRow.insertCell(-1);
@@ -2154,7 +2151,7 @@ $(function() {
 
 //=========  CreateTableHeader  === PR2019-05-27
     function CreateTableHeader(tblName) {
-        console.log("===  CreateTableHeader == ", tblName);
+        //console.log("===  CreateTableHeader == ", tblName);
         // console.log("pk", pk, "ppk", parent_pk);
 
         tblHead_items.innerText = null
@@ -2164,7 +2161,7 @@ $(function() {
 //--- insert td's to tblHead_items
         let column_count;
         if (tblName === "schemeitem"){column_count = 9} else
-        if (tblName === "shift"){column_count = 8} else
+        if (tblName === "shift"){column_count = 7} else
         if (tblName === "teammember"){column_count = 4}
 
         for (let j = 0; j < column_count; j++) {
@@ -2209,11 +2206,10 @@ $(function() {
             if (j === 1){th.innerText = get_attr_from_el(el_data, "data-txt_shift_rest")} else
             if (j === 2){th.innerText = get_attr_from_el(el_data, "data-txt_timestart")} else
             if (j === 3){th.innerText = get_attr_from_el(el_data, "data-txt_timeend")} else
-            if (j === 4){th.innerText = get_attr_from_el(el_data, "data-txt_shift_successor")} else
-            if (j === 5){th.innerText = get_attr_from_el(el_data, "data-txt_breakhours")}
-            if (j === 6){th.innerText = get_attr_from_el(el_data, "data-txt_wagefactor")}
+            if (j === 4){th.innerText = get_attr_from_el(el_data, "data-txt_breakhours")}
+            if (j === 5){th.innerText = get_attr_from_el(el_data, "data-txt_wagefactor")}
 // --- add width to th
-            if ([0, 4].indexOf( j ) > -1){th.classList.add("td_width_120")}
+            if ([0, ].indexOf( j ) > -1){th.classList.add("td_width_120")}
             else if (j === 1){th.classList.add("td_width_032")}
             else {th.classList.add("td_width_090")};
 
@@ -2232,7 +2228,16 @@ $(function() {
 
 //========= FillTableRows  ====================================
     function FillTableRows(tblName, ppk_int) {
-        console.log( "===== FillTableRows  ========= ", tblName, ppk_int);
+        //console.log( "===== FillTableRows  ========= ", tblName, ppk_int);
+
+// item_dict:
+//{'pk': 37, 'table': 'teammember', 'ppk': 1124,
+//'teammember': {'pk': 37, 'ppk': 1124, 'cat': 0, 'datefirst': '2019-08-08', 'datelast': '2019-08-30'},
+//'employee': {'pk': 407, 'ppk': 2, 'value': 'Martina V'},
+//'scheme': {'pk': 1091, 'ppk': 1093},
+//'order': {'pk': 1093, 'ppk': 218, 'value': 'Jan Noorduynweg'},
+//'customer': {'pk': 218, 'value': 'Giro'}}
+
 
 // --- reset tblBody_items
         tblBody_items.innerText = null;
@@ -2245,10 +2250,8 @@ $(function() {
         } else if (tblName === "teammember"){
             item_list = teammember_list;
         } else if (tblName === "schemeitem"){
-
             item_list = schemeitem_list;
         };
-        console.log( "item_list ", item_list);
 
 // --- loop through item_list
         let len = item_list.length;
@@ -2259,11 +2262,13 @@ $(function() {
         if (len > 0 && ppk_int){
             for (let i = 0; i < len; i++) {
                 let dict = item_list[i];
-                let pk = get_pk_from_id (dict)
-                let parent_pk = get_ppk_from_id (dict)
+                //console.log( "dict ", dict);
+                let pk = parseInt(get_dict_value_by_key(dict, "pk", 0))
+                let ppk = parseInt(get_dict_value_by_key(dict, "ppk", 0))
+                //console.log( "pk ", pk, typeof pk), "ppk ", ppk, typeof ppk);
 
 // --- add item if parent_pk = ppk_int (list contains items of all parents)
-                if (!!parent_pk && parent_pk === ppk_int){
+                if (!!ppk && ppk === ppk_int){
                     tblRow = CreateTableRow(tblName, pk, ppk_int)
                     UpdateTableRow(tblName, tblRow, dict)
 
@@ -2326,7 +2331,7 @@ $(function() {
 
         let column_count;
         if (tblName === "schemeitem"){column_count = 9} else
-        if (tblName === "shift"){column_count = 8} else
+        if (tblName === "shift"){column_count = 7} else
         if (tblName === "teammember"){column_count = 4};
 
 //+++ insert td's ino tblRow
@@ -2359,11 +2364,11 @@ $(function() {
 
             } else if ((tblName === "schemeitem") && ([1, 2].indexOf( j ) > -1)){
                 el = document.createElement("select");
-            } else if ((tblName === "shift") && ([1, 4].indexOf( j ) > -1)){
+            } else if ((tblName === "shift") && ([1,].indexOf( j ) > -1)){
                 el = document.createElement("select");
             } else {
                 el = document.createElement("input");
-                if (tblName === "shift" && j === 5){
+                if (tblName === "shift" && j === 4){
                     el.setAttribute("type", "number");
                 } else {
                     el.setAttribute("type", "text");
@@ -2389,10 +2394,9 @@ $(function() {
                 if (j === 1){fieldname = "cat"} else
                 if (j === 2){fieldname = "offsetstart"} else
                 if (j === 3){fieldname = "offsetend"} else
-                if (j === 4){fieldname = "successor"} else
-                if (j === 5){fieldname = "breakduration"} else
-                if (j === 6){fieldname = "wagefactor"} else
-                if (j === 7){fieldname = "delete_row"};
+                if (j === 4){fieldname = "breakduration"} else
+                if (j === 5){fieldname = "wagefactor"} else
+                if (j === 6){fieldname = "delete_row"};
             // placeholder
                 if (j === 0 && is_new_item ){el.setAttribute("placeholder", get_attr_from_el(el_data, "data-txt_shift_add") + "...")}
             } else if (tblName === "teammember"){
@@ -2461,8 +2465,6 @@ $(function() {
             } else if (tblName === "shift"){
                 if (j === 1){
                     el.innerHTML = FillOptionRest()
-                } else if (j === 4) {
-                    el.innerHTML = FillOptionShift(false)
                 }
             } else if (tblName === "teammember"){
                 if (j === 0) {
@@ -2560,7 +2562,7 @@ $(function() {
                 //console.log("el_input",el_input)
                 el_input.classList.add("border_bg_invalid");
 
-                ShowMsgError(el_input, el_msg, msg_err, -60)
+                ShowMsgError(el_input, el_msg, msg_err, [-160, 80])
 
 // --- new created record
             } else if (is_created){
@@ -2588,7 +2590,7 @@ $(function() {
                 if (!!msg_err){
                    //console.log("show msg_err", msg_err);
                     tblRow.classList.add("border_bg_invalid");
-                    ShowMsgError(el_input, el_msg, msg_err, -60)
+                    ShowMsgError(el_input, el_msg, msg_err, [-160, 80])
                 }
 */
             };  // if (is_deleted){
@@ -2722,7 +2724,7 @@ $(function() {
                                     el_input.removeAttribute("data-pk");
                                 }
 
-                            } else if (["shift", "team", "successor",].indexOf( fieldname ) > -1){
+                            } else if (["shift", "team"].indexOf( fieldname ) > -1){
                                 el_input.value = pk_int
                                 el_input.setAttribute("data-value", value);
                                 el_input.setAttribute("data-pk", pk_int);
@@ -2771,7 +2773,7 @@ $(function() {
 
 // --- error
             if (!!msg_err){
-                ShowMsgError(el_scheme_code, el_msg, msg_err, -60)
+                ShowMsgError(el_scheme_code, el_msg, msg_err, [-160, 80])
 
 // --- new created record
             } else if (is_created){
@@ -3116,7 +3118,7 @@ $(function() {
 
 //========= FillDatalist  ====================================
     function FillDatalist(id_datalist, data_list, selected_parent_pk) {
-        console.log( "===== FillDatalist  ========= ", id_datalist);
+        //console.log( "===== FillDatalist  ========= ", id_datalist);
 
         let el_datalist = document.getElementById(id_datalist);
         if(!!el_datalist){

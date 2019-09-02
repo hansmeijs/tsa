@@ -48,14 +48,14 @@
     position:relative;
 
     z-index:99;
-    padding: 0px;
-    margin: 0px;
+    padding: 0;
+    margin: 0;
 }
 
 .popup_box {
     position: absolute;
-    padding: 0px;
-    margin: 0px;
+    padding: 0;
+    margin: 0;
 
     /*background-color: #808080; /* #e0e0e0; /* licht grijs; */
     /*background: #ffd01c; /* tsa yellow */
@@ -87,15 +87,15 @@
 }
 .pop_tbl th  {
     padding: 4px;
-    margin: 0px;
+    margin: 0;
     white-space: normal;
     /*overflow: hidden;
     text-overflow: ellipsis;*/
 }
 
 .pop_tbl tr {
-    padding: 0px;
-    margin: 0px;
+    padding: 0;
+    margin: 0;
 
     /*background-color: #808080; /* #e0e0e0; /* licht grijs; */
     /*background: #ffd01c; /* tsa yellow */
@@ -104,8 +104,8 @@
 }
 .pop_tbl td {
     /* padding: <top><right><bottom><left> */
-    padding: 2px 4px 0px 4px;
-    margin: 0px;
+    padding: 2px 4px 0 4px;
+    margin: 0;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -137,7 +137,7 @@
 }
 .tsa-tbl th  {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
-    margin: 0px;
+    margin: 0;
     /*background: #f8f8f8; /*licht licht licht grijs 248 248 248 100%; */
     /*background: #e8e8e880; /*licht licht grijs 232 232 232 50% */
     background-color: #f5f5f5; /* this is reddish: background-color: #f8f8f8;*/
@@ -148,31 +148,30 @@
 
 .tsa-tbl tr {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
-    margin: 0px;
+    margin: 0;
 }
 
 .tsa-tbl td {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
-    margin: 0px;
+    margin: 0;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
-
-
-
-
 .text_align_left {
     text-align: left;
 }
 
+.text_align_center {
+    text-align: center;
+}
 .text_align_right {
     text-align: right;
 }
-
-
-
+.line_height_normal {
+    line-height: normal;
+}
 
 
 .image_container {
@@ -275,6 +274,7 @@
     /* background-color: #808080; /* donker grijs*/
    /*color: #ffffff;*/
     color: #000000;
+    -moz-box-shadow: 3px 3px 5px 6px rgba(68, 68, 68, 0.6);
     -webkit-box-shadow: 3px 3px 5px 6px rgba(68, 68, 68, 0.6);  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */  /* Firefox 3.5 - 3.6 */
     /* box-shadow: [horizontal offset] [vertical offset] [blur radius] [optional spread radius] [color]; */
     box-shadow:         3px 3px 5px 6px rgba(68, 68, 68, 0.6);  /* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */
@@ -287,6 +287,7 @@
     background-color: #808080;
     color: #ffffff;
     font-weight: bold;
+        -moz-transition: background 0.25s ease-in-out;
         -webkit-transition: background 0.25s ease-in-out;
                -o-transition: background 0.25s ease-in-out;
                transition: background 0.25s ease-in-out;
@@ -304,70 +305,7 @@
     color: #cc0000; /* bit dark red ; /* default light grey */
 }
 
-/* for datetimepicker */
-.fa-chevron-left::before {
-  content: "<";
-}
-
-.fa-chevron-right::before {
-  content: ">";
-}
-
-i.fa-chevron-left::before, i.fa-chevron-right::before {
-  font-style: normal !important; // override wrapping <i>
-}
-
-.fa-arrow-left::before {
-  content: "<";
-}
-
-.fa-arrow-right::before {
-  content: ">";
-}
-
-i.fa-arrow-left::before, i.fa-arrow-right::before {
-  font-style: normal !important; // override wrapping <i>
-}
-
-/*----*/
-
-.glyphicon-chevron-left::before {
-  content: "<";
-}
-
-.glyphicon-chevron-right::before {
-  content: ">";
-}
-
-i.glyphicon-chevron-left::before, i.glyphicon-chevron-right::before {
-  font-style: normal !important; // override wrapping <i>
-}
-
-.fa-arrow-left::before {
-  content: "<";
-}
-
-.fa-arrow-right::before {
-  content: ">";
-}
-
-i.fa-arrow-left::before, i.fa-arrow-right::before {
-  font-style: normal !important; // override wrapping <i>
-}
-
 .tsa_padding_20 {
     /* padding: <top><right><bottom><left> */
     padding: 20px 20px 20px 20px;
 }
-
-
-/*
-icons:{time:"glyphicon glyphicon-time",
-        date:"glyphicon glyphicon-calendar",
-        up:"glyphicon glyphicon-chevron-up",
-        down:"glyphicon glyphicon-chevron-down",
-        previous:"glyphicon glyphicon-chevron-left",
-        next:"glyphicon glyphicon-chevron-right",
-        today:"glyphicon glyphicon-screenshot",
-        clear:"glyphicon glyphicon-trash",
-        close:"glyphicon glyphicon-remove"}*/

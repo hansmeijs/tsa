@@ -1190,7 +1190,7 @@ console.log("========== response Upload Orders ==>", typeof response,  response)
 
     function ShowLoadingGif(show) {
     //--------- show / hide loading gif PR2019-02-19
-        let el_loader = document.getElementById("id_loading_img");
+        let el_loader = document.getElementById("id_loader");
         let datatable = document.getElementById("id_table");
 
         if (show){

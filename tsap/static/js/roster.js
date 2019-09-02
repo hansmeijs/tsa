@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let hdr_customer = document.getElementById("id_hdr_customer")
         let hdr_order = document.getElementById("id_hdr_order")
 
-        let el_loader = document.getElementById("id_loading_img");
+        let el_loader = document.getElementById("id_loader");
         let el_msg = document.getElementById("id_msgbox");
 
 // add EventListener to document to close popup windows
@@ -773,7 +773,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 //console.log("el_input",el_input)
                 el_input.classList.add("border_bg_invalid");
 
-                ShowMsgError(el_input, el_msg, msg_err, -60)
+                ShowMsgError(el_input, el_msg, msg_err, [-160, 80])
 
 // --- new created record
             } else if (is_created){
@@ -805,7 +805,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!!msg_err){
                    console.log("show msg_err", msg_err);
                     tblRow.classList.add("border_bg_invalid");
-                    ShowMsgError(el_input, el_msg, msg_err, -60)
+                    ShowMsgError(el_input, el_msg, msg_err, [-160, 80])
                 }
 */
             };  // if (is_deleted){
@@ -1823,7 +1823,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }; // if (!pk_int)
             FilterTableRows(tblBody_items, filter_text);
         } // if(!!tblRow)
-    }  // function HandleFilterInactive
+    }  // function HandleDeleteTblrow
 
 //========= HandleFilterName  ====================================
     function HandleFilterName() {
@@ -1930,14 +1930,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }; // function FillDatalist
 
-
-
-
-
-
-
-
-
 // +++++++++  HandleFillRosterdate  ++++++++++++++++++++++++++++++ PR2019-06-07
     function HandleFillRosterdate(action) {
         console.log("=== HandleFillRosterdate =========");
@@ -1969,6 +1961,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
                     if ("rosterdate" in response) {
                         SetNewRosterdate(response["rosterdate"])
+                    };
+                    if ("logfile" in response) {
+                        printPDF(response["logfile"])
                     };
 
                     // hide loader
@@ -2847,5 +2842,64 @@ console.log("===  function HandlePopupWdySave =========");
             }  // for (let row_index = 0)
         }  // if ( !!len){
     }  // function CheckStatus
+
+
+//========= function test printPDF  ====  PR2019-09-02
+
+    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+function printPDF(log_list) {
+            console.log("printPDF")
+			let doc = new jsPDF();
+
+			doc.setFontSize(10);
+
+			let startHeight = 25;
+			let noOnFirstPage = 40;
+			let noOfRows = 40;
+			let z = 1;
+
+            const pos_x = 15
+            const line_height = 6
+            const len = log_list.length;
+            if (len > 0){
+
+                // for (let i = len - 1; i >= 0; i--) {  //  for (let i = 0; i < len; i++) {
+                for (let i = 0, item; i < len; i++) {
+                    item = log_list[i];
+                    if (!!item) {
+                        if(i <= noOnFirstPage){
+                            startHeight = startHeight + line_height;
+                            addData(item, pos_x, startHeight, doc);
+                        }else{
+                            if(z ==1 ){
+                                startHeight = 0;
+                                doc.addPage();
+                            }
+                            if(z <= noOfRows){
+                                startHeight = startHeight + line_height;
+                                addData(item, pos_x, startHeight, doc);
+                                z++;
+                            }else{
+                                z = 1;
+                            }
+                        }
+
+                    }  //  if (!item.classList.contains("display_none")) {
+                }
+                //To View
+                //doc.output('datauri');
+
+                //To Save
+                doc.save('samplePdf');
+			}  // if (len > 0){
+    }
+    function addData(item, pos_x, height, doc){
+        if(!!item){
+            doc.text(pos_x, height, item);
+        }  // if(!!tblRow){
+    }  // function addData
+
+    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 }); //$(document).ready(function()

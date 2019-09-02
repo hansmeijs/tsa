@@ -586,7 +586,6 @@ def get_date_yyyymmdd(dte):
     return dte_str
 
 
-
 def get_date_HM_from_minutes(minutes, lang):  # PR2019-05-07
     # logger.debug('.... get_date_WDM_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) +' lang: ' + str(lang))
     date_HM = ''
@@ -889,9 +888,10 @@ def date_within_range(outer_datefirst, outer_datelast, inner_date):
     return within_range
 
 # ################### NUMERIC FUNCTIONS ###################
-def get_float_from_string(value_str):  # PR2019-08-13
+def get_float_from_string(value_str):  # PR2019-09-01
 
     number = 0
+    msg_err = None
     if value_str:
         try:
             # replace comma by dot, remove space and '
@@ -900,9 +900,10 @@ def get_float_from_string(value_str):  # PR2019-08-13
             value_str = value_str.replace("'", "")
             number = float(value_str) if value_str != '' else 0
         except:
-            logger.debug('get_float_from_string: <' + str(value_str) + '> not valid')
-            pass
-    return number
+            msg_err = _('This field must be a number.')
+
+    return number, msg_err
+
 
 
 # ################### DICT FUNCTIONS ###################
@@ -978,6 +979,7 @@ def slice_firstlast_delim(list_str):  # PR2018-11-22
                 list_str = list_str[:-1]
     return list_str
 
+
 def create_dict_with_empty_attr(field_list):
 # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
     update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
@@ -986,26 +988,26 @@ def create_dict_with_empty_attr(field_list):
             update_dict[field] = {}
     return update_dict
 
+
 def get_iddict_variables(id_dict):
 # - get id_dict from upload_dict
     # 'id': {'temp_pk': 'new_26', 'create': True, 'parent_pk': 1, 'table': 'teammembers'}
 
-    table = ''
-    temp_pk_str = ''
-    pk_int = 0
-    ppk_int = 0
-    is_create = False
-    is_delete = False
+    mode, table, temp_pk_str = '', '', ''
+    pk_int, ppk_int, cat = 0, 0, 0
+    is_create, is_delete = False,  False
 
     if id_dict:
+        mode = id_dict.get('mode', '')
         table = id_dict.get('table', '')
         pk_int = int(id_dict.get('pk', 0))
         ppk_int = int(id_dict.get('ppk', 0))
+        cat = int(id_dict.get('cat', 0))
         temp_pk_str = id_dict.get('temp_pk', '')
         is_create = ('create' in id_dict)
         is_delete = ('delete' in id_dict)
 
-    return pk_int, ppk_int, temp_pk_str, is_create, is_delete, table
+    return pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode, cat
 
 
 def get_fielddict_variables(upload_dict, field):

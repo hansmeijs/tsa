@@ -24,7 +24,7 @@ $(function() {
 
         let tblBody_items = document.getElementById("id_tbody_items");
 
-        let el_loader = document.getElementById("id_loading_img");
+        let el_loader = document.getElementById("id_loader");
         let el_msg = document.getElementById("id_msgbox");
 
         document.addEventListener('click', function (event) {
@@ -289,7 +289,7 @@ $(function() {
                 //console.log("el_input",el_input)
                 el_input.classList.add("border_bg_invalid");
 
-                ShowMsgError(el_input, el_msg, msg_err, -60)
+                ShowMsgError(el_input, el_msg, msg_err, [-160, 80])
 
 // --- new created record
             } else if (is_created){
@@ -341,7 +341,7 @@ $(function() {
                                 msg_err = get_dict_value_by_key (field_dict, "error");
 
                                 if(!!msg_err){
-                                    ShowMsgError(el_input, el_msg, msg_err, -60)
+                                    ShowMsgError(el_input, el_msg, msg_err, [-160, 80])
                                 } else if(updated){
                                     el_input.classList.add("border_valid");
                                     setTimeout(function (){

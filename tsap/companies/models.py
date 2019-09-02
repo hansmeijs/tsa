@@ -151,11 +151,13 @@ class Taxcode(TsaBaseModel):
     def __str__(self):
         return self.code
 
+
 class Customer(TsaBaseModel):
     objects = TsaManager()
 
     company = ForeignKey(Company, related_name='customers', on_delete=PROTECT)
-    cat = PositiveSmallIntegerField(default=0)  # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
+    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
+    cat = PositiveSmallIntegerField(default=0)
 
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     email = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
@@ -177,7 +179,8 @@ class Order(TsaBaseModel):
     objects = TsaManager()
 
     customer = ForeignKey(Customer, related_name='orders', on_delete=PROTECT)
-    cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = internal, 2 = absence, 3 = template
+    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
+    cat = PositiveSmallIntegerField(default=0)
     sequence = PositiveSmallIntegerField(default=0)  # sequence of abscat
 
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -271,11 +274,15 @@ class Timecode(TsaBaseModel):
     objects = TsaManager()
     company = ForeignKey(Company, related_name='timecodes', on_delete=PROTECT)
 
-    rate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+    rosterdate = DateField(db_index=True)
+
+    cat = PositiveSmallIntegerField(default=0)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
     datefirst = None
     datelast = None
+    inactive = None
     locked = None
 
     class Meta:
@@ -344,7 +351,6 @@ class Scheme(TsaBaseModel):
 class Shift(TsaBaseModel):
     objects = TsaManager()
     scheme = ForeignKey(Scheme, related_name='shifts', on_delete=CASCADE)
-    successor = ForeignKey('self', related_name='+', on_delete=SET_NULL, null=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
@@ -364,6 +370,7 @@ class Shift(TsaBaseModel):
 
     def __str__(self):
         return self.code
+
 
 class Team(TsaBaseModel):
     objects = TsaManager()
@@ -397,9 +404,9 @@ class Employee(TsaBaseModel):
     payrollcode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
-    workhours = IntegerField(default=0)  # / working hours per week, unit is minute
-    workdays = IntegerField(default=0)  # / workdays per week * 10000
-    leavedays = IntegerField(default=0)  # /leave days per year, full time, * 10000
+    workhours = IntegerField(default=0)  # working hours per week * 60, unit is minute
+    workdays = IntegerField(default=0)  # workdays per week * 1440, unit is minute (one day has 1440 minutes)
+    leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
@@ -449,6 +456,28 @@ class Employee(TsaBaseModel):
         return instance
 
 
+class Emplrate(TsaBaseModel):
+    objects = TsaManager()
+    employee = ForeignKey(Employee, related_name='emplrates',  on_delete=CASCADE)
+    order = ForeignKey(Order, related_name='emplrates',  on_delete=CASCADE)
+
+    cat = PositiveSmallIntegerField(default=0)
+
+    wagerate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
+    wagefactor = IntegerField(default=0) # /10000 unitless, 0 = factor 100%  = 10.000)
+    wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+
+    status = PositiveSmallIntegerField(db_index=True, default=0)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    # code = None
+    name = None
+    datefirst = None
+    datelast = None
+    inactive = None
+    locked = None
+
+
 class Teammember(TsaBaseModel):
     objects = TsaManager()
 
@@ -461,8 +490,8 @@ class Teammember(TsaBaseModel):
     inactive = None
     locked = None
 
-
-    cat = PositiveSmallIntegerField(default=0)  # 0 = normal, 1 = replcement
+    cat = PositiveSmallIntegerField(default=0)  # teammember cat: 0 = normal, 1 = replacement, 512 = absent
+    workhoursperday = IntegerField(default=0)  # / working hours per day, unit is minute
 
     # 33333333333333333333333333333333333333333333333333
     @classmethod
@@ -602,7 +631,7 @@ class Schemeitem(TsaBaseModel):
             if datediff_days == 0:
                 new_si_rosterdate_naive = si_rosterdate_naive
             else:
-                scheme = Scheme.objects.get_or_none(pk=self.scheme_id)
+                scheme = Scheme.objects.get_or_none(pk=self.scheme.pk)
                 if scheme:
                     # logger.debug('scheme: ' + str(scheme.code))
                     # skip if cycle = 0 (once-only)
@@ -637,8 +666,8 @@ class Orderhour(TsaBaseModel):
 
     yearindex = PositiveSmallIntegerField(default=0)
     monthindex = PositiveSmallIntegerField(default=0)
-    quincenaindex = PositiveSmallIntegerField(default=0)
     weekindex = PositiveSmallIntegerField(default=0)
+    payperiodindex = PositiveSmallIntegerField(default=0)
 
     cat = PositiveSmallIntegerField(default=0)
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -668,12 +697,13 @@ class Emplhour(TsaBaseModel):
 
     orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=PROTECT)
     employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
+    teammember = ForeignKey(Teammember, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
     yearindex = PositiveSmallIntegerField(default=0)
     monthindex = PositiveSmallIntegerField(default=0)
-    quincenaindex = PositiveSmallIntegerField(default=0)
     weekindex = PositiveSmallIntegerField(default=0)
+    payperiodindex = PositiveSmallIntegerField(default=0)
 
     cat = PositiveSmallIntegerField(default=0)
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -806,6 +836,7 @@ def get_entry_balance(request, comp_timezone):  # PR2019-08-01
         balance = Companyinvoice.objects.filter(crit).aggregate(Sum('balance'))
         # from https://simpleisbetterthancomplex.com/tutorial/2016/12/06/how-to-create-group-by-queries.html
     return balance
+
 
 def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # PR2019-08-04
     # function returns avalable balance

@@ -1,9 +1,8 @@
 from django.db.models import Q
 
-from companies.models import Customer, Order, Scheme, Team
-
 from tsap import constants as c
 from tsap import functions as f
+from companies import models as m
 
 import logging
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ def create_customer_list(company, inactive=None, cat=None, cat_lte=None):
         crit.add(Q(cat__lte=cat_lte), crit.connector)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
-    customers = Customer.objects.filter(crit)  # order_by(Lower('code')) is in model class Meta
+    customers = m.Customer.objects.filter(crit)  # order_by(Lower('code')) is in model class Meta
 
     customer_list = []
     for customer in customers:
@@ -76,9 +75,9 @@ def create_order_list(company, inactive=None, cat=None, cat_lte=None, rangemin=N
 
     orders = None
     if cat == c.SHIFT_CAT_0512_ABSENCE:
-        orders = Order.objects.filter(crit).order_by('sequence')
+        orders = m.Order.objects.filter(crit).order_by('sequence')
     else:
-        orders = Order.objects.filter(crit).order_by('customer__code', 'code')  # field 'taxrate' is used to store sequence
+        orders = m.Order.objects.filter(crit).order_by('customer__code', 'code')  # field 'taxrate' is used to store sequence
 
     # logger.debug(orders.query)
 
@@ -123,6 +122,7 @@ def create_order_dict(order, item_dict):
                 value = getattr(order, field, None)
                 if value:
                     field_dict['value'] = value
+
 # 6. create  field_dicts 'datefirst', 'datelast'
             # also add date when empty, to add min max date
             elif field in ['datefirst', 'datelast']:
@@ -149,27 +149,53 @@ def create_absencecategory_list(request):
 
     crit = (Q(customer__company=request.user.company) &
                 Q(cat=c.SHIFT_CAT_0512_ABSENCE))
-    orders = Order.objects.filter(crit).order_by('sequence')
+    orders = m.Order.objects.filter(crit).order_by('sequence')
 
     for order in orders:
-        dict = create_absencecat_dict(order)
+        dict = create_absencecat_dict(order, request)
         order_list.append(dict)
 
     return order_list
 
-def create_absencecat_dict(instance):
+
+def create_absencecat_dict(instance, request):
 # --- create dict of this absece category PR2019-06-25
+    logger.debug(" --- create_absencecat_dict ---")
     dict = {}
     if instance:
         parent_pk = instance.customer.pk
 
         dict['pk'] = instance.pk
+        dict['ppk'] = parent_pk
+        dict['table'] = 'order'
         dict['id'] = {'pk': instance.pk, 'ppk': parent_pk, 'table': 'order'}
 
-        value = getattr(instance, 'name', None)
-        if value:
+        code = getattr(instance, 'code', None)
+        if code:
             # use model field 'name' in datalist filed 'code'
-            dict['code'] = {'value': value}
+            dict['code'] = {'value': code}
+
+    # get team of this abscat order, needed for absence in empoloyee page
+
+    # - create 'absence' scheme if not exists
+        if not m.Scheme.objects.filter(order=instance).exists():
+            scheme = create_absence_scheme(instance, code, request)
+        scheme = m.Scheme.objects.filter(order=instance).first()
+        logger.debug("scheme: " + str(scheme))
+        if scheme:
+    # - create 'absence' team if not exists
+            if not m.Team.objects.filter(scheme=scheme).exists():
+                create_absence_team(scheme, code, request)
+            team = m.Team.objects.filter(scheme=scheme).first()
+            logger.debug("team: " + str(team))
+            if team:
+                team_dict = {
+                    'pk': team.pk,
+                    'ppk': team.scheme_id,
+                    'code': team.code
+                }
+                logger.debug("team_dict: " + str(team_dict))
+                dict['team'] = team_dict
 
     return dict
 
@@ -187,11 +213,11 @@ def get_or_create_absence_customer(request):
         # absence_locale = ('Afwezig', 'Afwezigheid')
 
 # - check if 'absence' customer exists for this company - only one 'absence' customer allowed
-    # don't use get_or_none, it wil return None when multiple absence customers exist
-    customer = Customer.objects.filter(company=request.user.company, cat=c.SHIFT_CAT_0512_ABSENCE).first()
+    # don't use get_or_none, it wil return None when multiple absence customers exist, therefore adding another record
+    customer = m.Customer.objects.filter(company=request.user.company, cat=c.SHIFT_CAT_0512_ABSENCE).first()
     if customer is None:
 # - create 'absence' customer if not exists
-        customer = Customer(company=request.user.company,
+        customer = m.Customer(company=request.user.company,
                             code=absence_locale[0],
                             name=absence_locale[1],
                             cat=c.SHIFT_CAT_0512_ABSENCE)
@@ -199,7 +225,7 @@ def get_or_create_absence_customer(request):
 
     if customer:
 # - check if 'absence' customer has categories (orders)
-        absence_orders_exist = Order.objects.filter(customer=customer).exists()
+        absence_orders_exist = m.Order.objects.filter(customer=customer).exists()
 
 # - if no orders exist: create 'absence' orders - contains absence categories
         if not absence_orders_exist:
@@ -224,7 +250,7 @@ def create_absence_orders(customer, user_lang, request):
             name = category[2]
 
     # - create 'absence' order - contains absence categories
-            order = Order(customer=customer,
+            order = m.Order(customer=customer,
                           code=code,
                           name=name,
                           sequence=sequence,
@@ -232,19 +258,30 @@ def create_absence_orders(customer, user_lang, request):
             order.save(request=request)
 
             if order:
-    # - create scheme
-                scheme = Scheme(order=order, code=code, cat=c.SHIFT_CAT_0512_ABSENCE)
-                scheme.save(request=request)
-                # logger.debug(" scheme.save: " + str(scheme))
-    # - create team
-                team = Team(scheme=scheme, code=code)
-                team.save(request=request)
-                # logger.debug(" team.save: " + str(team))
+    # - create 'absence' scheme
+                scheme = create_absence_scheme(order, code, request)
+    # - create 'absence' team
+                if scheme:
+                    create_absence_team(scheme, code, request)
+
+
+def create_absence_scheme(order, code, request):
+    scheme = m.Scheme(order=order, code=code, cat=c.SHIFT_CAT_0512_ABSENCE)
+    scheme.save(request=request)
+    # logger.debug(" scheme.save: " + str(scheme))
+    return scheme
+
+
+def create_absence_team(scheme, code, request):
+    team = m.Team(scheme=scheme, code=code)
+    team.save(request=request)
+    # logger.debug(" team.save: " + str(team))
+    return team
 
 
 # === Create new 'template' customer and order
 def get_or_create_special_order(category, request):
-    logger.debug(" --- get_or_create_special_order ---")
+    #logger.debug(" --- get_or_create_special_order ---")
 
     order = None
 
@@ -253,7 +290,7 @@ def get_or_create_special_order(category, request):
 
     # get locale text
     template_locale = None
-    if category == c.SHIFT_CAT_0064_RESTSHIFT:
+    if category == c.SHIFT_CAT_0256_RESTSHIFT:
         lang = user_lang if user_lang in c.REST_TEXT else c.LANG_DEFAULT
         template_locale = c.REST_TEXT[lang]
     elif category == c.SHIFT_CAT_4096_TEMPLATE:
@@ -262,30 +299,30 @@ def get_or_create_special_order(category, request):
 
     # 1. check if 'template' customer exists for this company - only one 'template' customer allowed
     # don't use get_or_none, it wil return None when multiple customers exist, and create even more instances
-    customer = Customer.objects.filter(cat=category, company=request.user.company).first()
+    customer = m.Customer.objects.filter(cat=category, company=request.user.company).first()
     if customer is None:
         if template_locale:
 
             # 2. create 'template' customer if not exists
-            customer = Customer(company=request.user.company,
+            customer = m.Customer(company=request.user.company,
                                 code=template_locale,
                                 name=template_locale,
                                 cat=category)
             customer.save(request=request)
 
 # 3. check if 'template' customer has order - only one 'template' order allowed
-    logger.debug('customer: ' + str(customer))
+    #logger.debug('customer: ' + str(customer))
     if customer:
          # don't use get_or_none, it wil return None when multiple customers exist
-        order = Order.objects.filter(customer=customer).first()
+        order = m.Order.objects.filter(customer=customer).first()
         if order is None:
             # 4. create 'template' order if not exists
-            order = Order(customer=customer,
+            order = m.Order(customer=customer,
                           code=template_locale,
                           name=template_locale,
                           cat=category)
             order.save(request=request)
             # logger.debug("order.save: " + str(order.pk) + ' ' + str(order.code))
-    logger.debug('order: ' + str(order))
+    #logger.debug('order: ' + str(order))
     return order
 

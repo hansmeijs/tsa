@@ -10,8 +10,8 @@
 
 <!-- SIDE BAR -->
 {% block sidebar %}
-    <nav id="id_sidebar">
-        <div class="sidebar-header">
+    <nav id="id_sidebar" class="tsa_sidebar">
+        <div class="sidebar_header">
             <h3>{% trans 'Roster' %}</h3>
         </div>
     </nav>
@@ -305,7 +305,7 @@
             <div class="content_subheader_left mx-4 my-1">
                 <h6></h6>
             </div>
-            <img id="id_loading_img" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
+            <img id="id_loader" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
             <div class="content_subheader_right mx-4 my-1">
                 <a id="id_btn_rosterdate_fill" class="btn btn-add">{% trans 'Fill roster date ' %} ...</a>
                 <a id="id_btn_rosterdate_remove" class="btn btn-add">{% trans 'Remove roster date' %} ...</a>
