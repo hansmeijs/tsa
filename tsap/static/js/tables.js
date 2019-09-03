@@ -600,13 +600,16 @@
         // debug: shows 'invalid date' whem updated = true and value = null
 
             const data_value = get_dict_value_by_key (field_dict, "value");
-            const offset = get_dict_value_by_key (field_dict, "offset");
             const updated = get_dict_value_by_key (field_dict, "updated", false);
             const msg_err = get_dict_value_by_key (field_dict, "error");
 
             const mindate = get_dict_value_by_key (field_dict, "mindate");
             const maxdate = get_dict_value_by_key (field_dict, "maxdate");
             const rosterdate = get_dict_value_by_key (field_dict, "rosterdate");
+
+            const offset = get_dict_value_by_key (field_dict, "offset");
+            const minoffset = get_dict_value_by_key (field_dict, "minoffset");
+            const maxoffset = get_dict_value_by_key (field_dict, "maxoffset");
 
             //console.log("data_value: ", data_value);
             //console.log("updated: ", updated);
@@ -680,11 +683,24 @@
             } else {
                 el_input.removeAttribute("data-maxdate")
             };
+
             if(!!offset){
                 el_input.setAttribute("data-offset", offset)
             } else {
                 el_input.removeAttribute("data-offset")
             };
+             if(!!minoffset){
+                el_input.setAttribute("data-minoffset", minoffset)
+            } else {
+                el_input.removeAttribute("data-minoffset")
+            };
+            if(!!maxoffset){
+                el_input.setAttribute("data-maxoffset", maxoffset)
+            } else {
+                el_input.removeAttribute("data-maxoffset")
+            };
+
+
 
         };  // if(!!el_input)
     }  // function format_date_element
@@ -898,6 +914,10 @@
                 const updated = get_dict_value_by_key (field_dict, "updated");
                 const msg_err = get_dict_value_by_key (field_dict, "error");
 
+
+
+
+
                 let datetime_local, rosterdate, datetime_date, rosterdate_date;
 
                 if (!!value){
@@ -964,6 +984,14 @@
             }
             el_input.setAttribute("data-value", value);
             el_input.setAttribute("data-o_value", value);
+
+            // put values in element
+            const minoffset = get_dict_value_by_key (field_dict, "minoffset");
+            if(!!minoffset){el_input.setAttribute("data-minoffset", minoffset)
+                } else {el_input.removeAttribute("data-minoffset")};
+            const maxoffset = get_dict_value_by_key (field_dict, "maxoffset");
+            if(!!maxoffset){el_input.setAttribute("data-maxoffset", maxoffset)
+                } else {el_input.removeAttribute("data-maxoffset")};
 
         }  // if(!!el_input)
     }  // function format_offset_element

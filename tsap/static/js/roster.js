@@ -878,7 +878,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             } else if (fieldname === "shift") {
                                 let value = get_dict_value_by_key (field_dict, "value")
-                                el_input.value = value
+                                if(!!value){el_input.value = value} else {el_input.value = null}
 
                             } else if (["orderhour", "employee"].indexOf( fieldname ) > -1){
                                 const value = get_dict_value_by_key (field_dict, "value")
@@ -1963,7 +1963,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         SetNewRosterdate(response["rosterdate"])
                     };
                     if ("logfile" in response) {
-                        printPDF(response["logfile"])
+                        // printPDF(response["logfile"])
                     };
 
                     // hide loader

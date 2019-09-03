@@ -640,14 +640,14 @@ $(function() {
 
 //=========  HandleSelectShift  ================ PR2019-08-08
     function HandleSelectShift(sel_tr_clicked) {
-        console.log( "===== HandleSelectShift  ========= ");
-        console.log( sel_tr_clicked);
+        //console.log( "===== HandleSelectShift  ========= ");
+        //console.log( sel_tr_clicked);
         if(!!sel_tr_clicked) {
 // ---  get shift_pk from sel_tr_clicked
             const pk_int = parseInt(get_attr_from_el(sel_tr_clicked, "data-pk"));
             const ppk_int = parseInt(get_attr_from_el(sel_tr_clicked, "data-ppk"));
-            console.log( "pk_int", pk_int,  "ppk_int", ppk_int);
-            console.log( "selected_shift_pk", selected_shift_pk, typeof selected_shift_pk);
+            //console.log( "pk_int", pk_int,  "ppk_int", ppk_int);
+            //console.log( "selected_shift_pk", selected_shift_pk, typeof selected_shift_pk);
 
 // ---  update selected__pk when not equal to pk_int
             if (pk_int !== selected_shift_pk) {
@@ -677,12 +677,12 @@ $(function() {
 
 //=========  HandleSelectTeam  ================ PR2019-05-24
     function HandleSelectTeam(sel_tr_clicked) {
-        console.log( "===== HandleSelectTeam  ========= ");
+        //console.log( "===== HandleSelectTeam  ========= ");
 
 // ---  get team_pk from id_dict or from sel_tr_clicked
         if(!!sel_tr_clicked) {
             let team_pk_int = get_attr_from_el_int(sel_tr_clicked, "data-pk");
-            console.log( "team_pk_int", team_pk_int);
+            //console.log( "team_pk_int", team_pk_int);
 
 
                 selected_team_pk = team_pk_int
@@ -751,7 +751,7 @@ $(function() {
 
 //=========  HandleCreateSchemeItem  ================ PR2019-03-16
     function HandleCreateSchemeItem() {
-        console.log("=== HandleCreateSchemeItem =========");
+        //console.log("=== HandleCreateSchemeItem =========");
 
 // ---  deselect all highlighted rows
        //DeselectHighlightedRows(tblRow, cls_selected);

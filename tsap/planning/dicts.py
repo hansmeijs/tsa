@@ -818,13 +818,32 @@ def create_shift_dict(shift, update_dict):
                 field_dict['value'] = getattr(shift, field, 0)
 
 # 5. create field_dict 'code', 'offsetstart', 'offsetend', 'breakduration'
-            elif field in ('code', 'offsetstart', 'offsetend', 'breakduration'):
+            elif field == 'offsetstart':
+                value = getattr(shift, field, None)
+                if value:
+                    field_dict['value'] = value
+
+                field_dict["minoffset"] = "-1;12;0"
+                field_dict["maxoffset"] = getattr(shift, "offsetend", "1;12;0")
+
+# 5. create field_dict 'code', 'offsetstart', 'offsetend', 'breakduration'
+            elif field == 'offsetend':
+                value = getattr(shift, field, None)
+                if value:
+                    field_dict['value'] = value
+
+                field_dict["minoffset"] = getattr(shift, "offsetstart", "0;0;0")
+                field_dict["maxoffset"] = "1;12;0"
+
+# 5. create field_dict 'code', 'offsetstart', 'offsetend', 'breakduration'
+            elif field in ('code', 'breakduration'):
                 value = getattr(shift, field, None)
                 if value:
                     field_dict['value'] = value
 
 # 6. add field_dict to update_dict
             update_dict[field] = field_dict
+
 
 # 7. remove empty attributes from update_dict
     f.remove_empty_attr_from_dict(update_dict)
@@ -853,19 +872,8 @@ def create_emplhour_list(company, comp_timezone, user_lang,
                          range_start_iso=None, range_end_iso=None, show_all=False): # PR2019-08-01
     logger.debug(' ============= create_emplhour_list ============= ')
 
-    # TODO select_related on queyset
-    #  queryset = Courses.objects.filter(published=True).prefetch_related('modules', 'modules__lessons', 'modules__lessons__exercises')
     # TODO filter also on min max rosterdate, in case timestart / end is null
     starttime = timer()
-
-    # convert period_timestart_iso into period_timestart_local
-    # logger.debug('period_timestart_utc: ' + str(period_timestart_utc) + ' ' + str(type(period_timestart_utc)))
-    # logger.debug('period_timeend_utc: ' + str(period_timeend_utc)+ ' ' + str(type(period_timeend_utc)))
-
-    #date_min = period_timestart_utc.date()
-    #date_max = period_timeend_utc.date()
-
-
 
     # convert period_timestart_iso into period_timestart_local
     # logger.debug('period_timestart_utc: ' + str(time_min) + ' ' + str(type(time_min)))
@@ -873,9 +881,10 @@ def create_emplhour_list(company, comp_timezone, user_lang,
     # logger.debug('range_start_iso: ' + str(range_start_iso)+ ' ' + str(type(range_start_iso)))
     # logger.debug('range_end_iso: ' + str(range_end_iso)+ ' ' + str(type(range_end_iso)))
 
+    # Exclude template.
+    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
 
     crit = Q(orderhour__order__customer__company=company)
-   # Exclude template. Cat <= 2 (# order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
     crit.add(Q(orderhour__order__cat__lte=c.SHIFT_CAT_0512_ABSENCE), crit.connector)
 
     # range overrules period
@@ -901,22 +910,20 @@ def create_emplhour_list(company, comp_timezone, user_lang,
         .select_related('orderhour__order__customer__company')\
         .filter(crit).order_by('rosterdate', 'timestart')\
         .values('id', 'cat', 'status', 'shift', 'wagerate', 'wagefactor', 'wage',
-                'employee_id', 'employee__company__id', 'employee__code',
-                'orderhour__id', 'orderhour__order__id', 'orderhour__order__code', 'orderhour__order__customer__code',
-                'rosterdate', 'timestart', 'timeend', 'breakduration', 'timeduration'
+                'employee_id', 'employee__company_id', 'employee__code',
+                'rosterdate', 'timestart', 'timeend', 'breakduration', 'timeduration',
+                'orderhour_id', 'orderhour__order_id', 'orderhour__order__code', 'orderhour__order__customer__code'
                 ) \
         .iterator()
     # logger.debug(emplhours.query)
-    # SELECT ...
-    # WHERE ("companies_customer"."company_id" = 1 AND
-    # "companies_emplhour"."rosterdate" >= 2019-07-13 AND "companies_emplhour"."rosterdate" <= 2019-07-14 AND
-    # ("companies_emplhour"."timestart" <= 2019-07-14 22:00:00+00:00 OR "companies_emplhour"."timestart" IS NULL) AND
-    # ("companies_emplhour"."timeend" >= 2019-07-13 22:00:00+00:00 OR "companies_emplhour"."timeend" IS NULL))
-    # ORDER BY "companies_emplhour"."rosterdate" ASC, "companies_emplhour"."timestart" ASC
 
     #logger.debug('sql elapsed time  is :')
     #logger.debug(timer() - starttime)
 
+    # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
+    #                    'timestart', 'timeend', 'timeduration', 'breakduration',
+    #                    'wagerate', 'wagefactor', 'wage', 'status')
+    field_list = c.FIELDS_EMPLHOUR
     emplhour_list = []
     for row_dict in emplhours:
         #logger.debug(str(row_dict))
@@ -924,8 +931,81 @@ def create_emplhour_list(company, comp_timezone, user_lang,
         # 'employee__code': 'Banfield J R A', 'employee__company__id': 2,
         # 'orderhour_id': 387, 'rosterdate': datetime.date(2019, 8, 25), 'timestart': datetime.datetime(2019, 8, 24, 20, 25, tzinfo=<UTC>), 'timeend': datetime.datetime(2019, 8, 25, 8, 30, tzinfo=<UTC>)}
 
-        item_dict = {}
-        create_emplhour_dict(row_dict, item_dict, comp_timezone)
+
+        pk_int = row_dict.get('id', 0)
+        ppk_int = row_dict.get('orderhour_id', 0)
+
+        status_value = row_dict.get('status', 0)
+        locked = (status_value >= c.STATUS_08_LOCKED)
+
+        rosterdate = row_dict.get('rosterdate')
+        timestart = row_dict.get('timestart')
+        timeend = row_dict.get('timeend')
+
+        item_dict = {'pk': pk_int, 'ppk': ppk_int}
+
+        for field in field_list:
+            field_dict = {}
+
+            if locked:
+                item_dict[field]['locked'] = True
+            # lock date when confirmed, field is already locked when >= locked
+            else:
+                status_check = c.STATUS_02_START_CONFIRMED if field == 'timestart' else c.STATUS_04_END_CONFIRMED
+                if status_found_in_statussum(status_check, status_value):
+                    item_dict[field]['locked'] = True
+
+            if field == 'id':
+                field_dict['pk'] = pk_int
+                field_dict['ppk'] = ppk_int
+                field_dict['table'] = 'emplhour'
+
+            elif field == 'cat':
+                field_dict['value'] = row_dict.get('cat', 0)
+
+            # orderhour is parent of emplhour
+            elif field == 'orderhour':
+                field_dict['pk'] = ppk_int
+                field_dict['ppk'] = row_dict.get('orderhour__order_id', 0)
+
+                order_code = row_dict.get('orderhour__order__code', '')
+                cust_code = row_dict.get('orderhour__order__customer__code', '')
+                field_dict['value'] = ' - '.join([cust_code, order_code])
+
+            elif field == 'employee':
+                if 'employee_id' in row_dict:
+                    field_dict['pk'] = row_dict.get('employee_id', 0)
+                    field_dict['ppk'] = row_dict.get('employee__company_id', 0)
+                    field_dict['value'] = row_dict.get('employee__code', '')
+
+            elif field == 'rosterdate':
+                f.set_fielddict_date(dict=field_dict, dte=rosterdate)
+
+            # also add date when empty, to add min max date
+            elif field in ('timestart', 'timeend'):
+                set_fielddict_datetime(field=field,
+                                       field_dict=field_dict,
+                                       rosterdate=rosterdate,
+                                       timestart_utc=timestart,
+                                       timeend_utc=timeend,
+                                       comp_timezone=comp_timezone)
+
+            # also zero when empty
+            elif field in ('breakduration', 'timeduration'):
+                field_dict['value'] = row_dict.get(field, 0)
+
+            elif field in ('wagerate', 'wagefactor', 'wage'):
+                field_dict['value'] = row_dict.get(field, 0)
+
+            else:
+                value = row_dict.get(field)
+                logger.debug('field:' + str(field) + ' value:' + str(value)  )
+
+                if value:
+                    field_dict['value'] = value
+
+            item_dict[field] = field_dict
+
         emplhour_list.append(item_dict)
 
     logger.debug('list elapsed time  is :')
@@ -934,93 +1014,94 @@ def create_emplhour_list(company, comp_timezone, user_lang,
     return emplhour_list
 
 
-def create_emplhour_dict(row_dict, item_dict, comp_timezone):
-    # --- create dict of this emplhour PR2019-08-14
+def create_emplhour_dict(instance, item_dict, comp_timezone):
+    # --- create dict of this emplhour PR2019-09-02
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
     #logger.debug ('--- create_emplhour_dict ---')
     #logger.debug ('item_dict' + str(item_dict))
 
-    if row_dict:
+    if instance:
 
-# FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
-        #                         'timestart', 'timeend', 'timeduration', 'breakduration',
-        #                         'wagerate', 'wagefactor', 'wage', 'status')
+        # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
+        #                    'timestart', 'timeend', 'timeduration', 'breakduration',
+        #                    'wagerate', 'wagefactor', 'wage', 'status')
+        field_list = c.FIELDS_EMPLHOUR
 
     # lock field when status = locked or higher
-        status_value = row_dict.get('status', 0)
+        pk_int = instance.id
+        ppk_int = instance.orderhour.id
+
+        status_value = instance.status
         locked = (status_value >= c.STATUS_08_LOCKED)
 
-        rosterdate = row_dict.get('rosterdate')
-        timestart = row_dict.get('timestart')
-        timeend = row_dict.get('timeend')
+        rosterdate = instance.rosterdate if instance.rosterdate else None
+        timestart = instance.timestart if instance.timestart else None
+        timeend = instance.timeend if instance.timeend else None
 
-        for field in c.FIELDS_EMPLHOUR:
-            if field not in item_dict:
-                item_dict[field] = {}
+        item_dict = {'pk': pk_int, 'ppk': ppk_int}
+
+        for field in field_list:
+            field_dict = {}
 
             if locked:
                 item_dict[field]['locked'] = True
+            # lock date when confirmed, field is already locked when >= locked
+            else:
+                status_check = c.STATUS_02_START_CONFIRMED if field == 'timestart' else c.STATUS_04_END_CONFIRMED
+                if status_found_in_statussum(status_check, status_value):
+                    item_dict[field]['locked'] = True
 
-            elif field == 'id':
-                pk_int = row_dict.get('id', 0)
-                ppk_int = row_dict.get('orderhour_id', 0)
-                item_dict['pk'] = pk_int
-                item_dict['ppk'] = ppk_int
+            if field == 'id':
+                field_dict['pk'] = pk_int
+                field_dict['ppk'] = ppk_int
+                field_dict['table'] = 'emplhour'
 
-                id_dict = item_dict[field] if 'id' in item_dict else {}
-                id_dict['pk'] = pk_int
-                id_dict['ppk'] = ppk_int
-                id_dict['table'] = 'emplhour'
-                item_dict[field] = id_dict
+            elif field == 'cat':
+                field_dict['value'] = instance.cat
 
+            # orderhour is parent of emplhour
             elif field == 'orderhour':
-                pk_int = row_dict.get('orderhour__id', 0)
-                ppk_int = row_dict.get('orderhour__order__id', 0)
-                order_code = row_dict.get('orderhour__order__code', '')
-                cust_code = row_dict.get('orderhour__order__customer__code', '')
-                value = ' - '.join([cust_code, order_code])
-
-                item_dict[field]['pk'] = pk_int
-                item_dict[field]['ppk'] = ppk_int
-                if value:
-                    item_dict[field]['value'] = value
+                if instance.orderhour_id:
+                    field_dict['pk'] = ppk_int
+                    field_dict['ppk'] = instance.orderhour.order_id
+                    order_code = ''
+                    cust_code = ''
+                    if instance.orderhour.order.code:
+                        order_code = instance.orderhour.order.code
+                    if instance.orderhour.order.customer.code:
+                        cust_code = instance.orderhour.order.customer.code
+                    field_dict['value'] = ' - '.join([cust_code, order_code])
 
             elif field == 'employee':
-                if 'employee_id' in row_dict:
-                    pk_int = row_dict.get('employee_id', 0)
-                    ppk_int = row_dict.get('employee__company__id', 0)
-                    code = row_dict.get('employee__code')
-                    item_dict[field]['pk'] = pk_int
-                    item_dict[field]['ppk'] = ppk_int
-                    if code:
-                        item_dict[field]['value'] = code
+                if instance.employee_id:
+                    field_dict['pk'] = instance.employee_id
+                    field_dict['ppk'] = instance.employee.company_id
+                    if instance.employee.code:
+                        field_dict['value'] = instance.employee.code
 
             elif field == 'rosterdate':
-                f.set_fielddict_date(dict=item_dict[field], dte=rosterdate)
+                if instance.rosterdate:
+                    field_dict['value'] = instance.rosterdate.isoformat()
 
             # also add date when empty, to add min max date
             elif field in ('timestart', 'timeend'):
                 set_fielddict_datetime(field=field,
-                                       field_dict=item_dict[field],
-                                       rosterdate=rosterdate,
-                                       timestart_utc=timestart,
-                                       timeend_utc=timeend,
+                                       field_dict=field_dict,
+                                       rosterdate=instance.rosterdate,
+                                       timestart_utc=instance.timestart,
+                                       timeend_utc=instance.timeend,
                                        comp_timezone=comp_timezone)
 
-            # lock date when confirmed, field is already locked when >= locked
-                if (status_value < c.STATUS_08_LOCKED):
-                    status_check = c.STATUS_02_START_CONFIRMED if field == 'timestart' else c.STATUS_04_END_CONFIRMED
-                    if status_found_in_statussum(status_check, status_value):
-                        item_dict[field]['locked'] = True
-
             # also zero when empty
-            elif field in ('breakduration', 'timeduration'):
-                item_dict[field]['value'] = row_dict.get(field, 0)
+            elif field in ('breakduration', 'timeduration', 'wagerate', 'wagefactor', 'wage'):
+                field_dict['value'] = getattr(instance, 'breakduration', 0)
 
             else:
-                value = row_dict.get(field)
+                value = getattr(instance, field)
                 if value:
-                    item_dict[field]['value'] = value
+                    field_dict['value'] = value
+
+            item_dict[field] = field_dict
 
     # --- remove empty attributes from update_dict
         f.remove_empty_attr_from_dict(item_dict)
@@ -1378,7 +1459,7 @@ def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend
     min_datetime_utc, max_datetime_utc = get_minmax_datetime_utc(field, rosterdate,
                                                                  timestart_utc, timeend_utc, comp_timezone)
 
-    field_dict['field'] =field
+    field_dict['field'] = field
 
     datetime_utc = None
     if field == "timestart":

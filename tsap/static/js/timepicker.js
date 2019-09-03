@@ -8,7 +8,7 @@
 
 // get values from tr_selected and put them in el_timepicker
         let tr_selected = get_tablerow_selected(el_input)
-        console.log("tr_selected", tr_selected) ;
+        //console.log("tr_selected", tr_selected) ;
         // in mod_shift_add is no tblRow, get ifno from el instead
         if (!tr_selected){tr_selected= el_input}
 
@@ -57,29 +57,57 @@
         const is_offset = (data_table === "shift")
         el_timepicker.setAttribute("data-is_offset", is_offset)
 
+        let minOffset, maxOffset;
         if (is_offset){
             curOffset = get_attr_from_el(el_input, "data-value");
-            if (!curOffset){curOffset = "0;0;0"}
-            el_timepicker.setAttribute("data-offset", curOffset)
+            if (!!curOffset){
+                el_timepicker.setAttribute("data-offset", curOffset)
+            } else {
+                el_timepicker.removeAttribute("data-offset")
+            }
+
+            minOffset = get_attr_from_el(el_input, "data-minoffset");
+            if (!!minOffset){
+                el_timepicker.setAttribute("data-minoffset", minOffset)
+            } else {
+                el_timepicker.removeAttribute("data-minoffset")
+            }
+
+            maxOffset = get_attr_from_el(el_input, "data-maxoffset");
+            if (!!maxOffset){
+                el_timepicker.setAttribute("data-maxoffset", maxOffset)
+            } else {
+                el_timepicker.removeAttribute("data-maxoffset")
+            }
+
         } else {
             el_timepicker.removeAttribute("data-offset");
         }
         let dict = {};
         if (is_offset){
-            let start_offset, end_offset, is_start_offset;
-            dict = CalcMinMaxOffset(start_offset, end_offset, is_start_offset,
-                                          comp_timezone, timeformat);
+            let start_offset, end_offset;
+            const is_start_offset = (data_field === "offsetstart")
+            if (is_start_offset){
+                start_offset = curOffset
+                end_offset = maxOffset
+            } else {
+                end_offset = curOffset
+                start_offset = minOffset
+            }
+
+            dict = CalcMinMaxOffset(curOffset, minOffset, maxOffset);
 
         } else {
             dict = CalcMinMaxHoursMinutes(cur_rosterdate_iso, cur_datetime_iso,
                                           min_datetime_iso, max_datetime_iso,
                                           comp_timezone, timeformat);
         }
+        console.log("dict", dict) ;
+
 // display cur_datetime_local in header of el_timepicker
         CreateTimepickerDate(el_timepicker, el_data, UpdateTableRow, cur_datetime_iso, cur_rosterdate_iso, is_offset, comp_timezone, cls_hover) ;
         CreateTimepickerHours(el_timepicker, el_data, UpdateTableRow, dict, url_str, is_offset, comp_timezone, timeformat, interval, cls_hover, cls_highl);
         CreateTimepickerMinutes(el_timepicker, el_data, UpdateTableRow, dict, url_str, is_offset, comp_timezone, timeformat, interval, cls_hover, cls_highl);
-
 
         DisableBtnPrevNextDay(dict["prevday_disabled"], dict["nextday_disabled"]);
 
@@ -90,7 +118,6 @@
         HighlightAndDisableHours(el_timepicker, UpdateTableRow, curHours, minHours, maxHours, cls_hover, cls_highl);
         HighlightAndDisableMinutes(el_timepicker, curMinutes, minMinutes, maxMinutes,
                                     curHours, minHours, maxHours, cls_hover, cls_highl)
-
 
 // ---  position popup under el_input
         let popRect = el_timepicker.getBoundingClientRect();
@@ -539,7 +566,7 @@
 
 //========= SetHour  ====================================
     function SetHour(el_timepicker, tbody, td, el_data, UpdateTableRow, is_offset, cls_hover, cls_highl) {
-       console.log("==== SetHour  =====");
+       //console.log("==== SetHour  =====");
 
     // check if cell is disabeld
         const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
@@ -567,7 +594,7 @@
                     el_timepicker.setAttribute("data-offset", new_offset);
 
                     const new_dict = CalcMinMaxOffset(new_offset, "-1;12;0", "1;12;0");
-                    //console.log("new_dict", new_dict);
+                    console.log("new_dict", new_dict);
 
             // save when in quicksave mode
                     let quicksave = get_quicksave_from_eldata(el_data);
@@ -615,6 +642,7 @@
                 const min_datetime_local = new_dict["min_datetime_local"];
                 const max_datetime_local = new_dict["max_datetime_local"];
                 const within_range = DatetimeWithinRange(new_datetime_local, min_datetime_local, max_datetime_local)
+                //console.log("min_datetime", min_datetime_local.format(), "max_datetime", max_datetime_local.format(), "within_range", within_range);
 
         // disable btn_save if new datetime is not within min max range
                 let btn_save = document.getElementById("id_timepicker_save")
@@ -628,8 +656,7 @@
                 HighlightAndDisableMinutes(el_timepicker, curMinutes, minMinutes, maxMinutes,
                                             curHours, minHours, maxHours, cls_hover, cls_highl)
 
-
-
+                //console.log("new_dict", new_dict);
         // put new datetime back in el_timepicker data-datetime
                 if (within_range){
                     el_timepicker.setAttribute("data-datetime", new_datetime_iso);
@@ -729,7 +756,8 @@
 
 //=========  HandleTimepickerSave  ================ PR2019-06-27
     function HandleTimepickerSave(el_timepicker, el_data, UpdateTableRow, mode) {
-        //console.log("===  function HandleTimepickerSave =========");
+        console.log("===  function HandleTimepickerSave =========", mode);
+
 
 // ---  change quicksave when clicked on button 'Quicksave'
 
@@ -761,7 +789,7 @@
         const cls_hover = get_attr_from_el(el_timepicker, "data-cls_hover");
         //console.log ("field = ", field, "table = ", table)
 
-        //console.log ("is_offset = ", is_offset, typeof is_offset)
+        console.log ("is_offset = ", is_offset, typeof is_offset)
         //console.log (el_timepicker)
 
     // get values from el_timepicker
@@ -777,9 +805,9 @@
             const min_datetime_iso = get_attr_from_el(el_timepicker, "data-mindatetime");
             const max_datetime_iso = get_attr_from_el(el_timepicker, "data-maxdatetime");
 
-            //console.log ("cur_datetime_iso = ", cur_datetime_iso, typeof cur_datetime_iso)
-            //console.log ("min_datetime_iso = ", min_datetime_iso, typeof min_datetime_iso)
-            //console.log ("max_datetime_iso = ", max_datetime_iso, typeof max_datetime_iso)
+            console.log ("cur_datetime_iso = ", cur_datetime_iso, typeof cur_datetime_iso)
+            console.log ("min_datetime_iso = ", min_datetime_iso, typeof min_datetime_iso)
+            console.log ("max_datetime_iso = ", max_datetime_iso, typeof max_datetime_iso)
 
 
             let dict = CalcMinMaxHoursMinutes(cur_rosterdate_iso ,cur_datetime_iso,
@@ -787,7 +815,7 @@
                                               comp_timezone, timeformat);
 
             curOffset = dict["curOffset"];
-            //console.log ("curOffset = ", curOffset)
+            console.log ("curOffset = ", curOffset)
 
         // check if datetime is within min max range
             const cur_datetime_local = dict["cur_datetime_local"];
@@ -806,6 +834,7 @@
 
         }  //   if(is_offset)
 
+        console.log ("pk_str:", pk_str, "parent_pk:", parent_pk)
         if(!!pk_str && !! parent_pk){
             let id_dict = {}
         //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
@@ -848,7 +877,7 @@
             } else {
                 parameters[table] = JSON.stringify (row_upload);
             }
-            console.log ("parameters", parameters);
+            console.log ("parameters", row_upload);
             let response;
             $.ajax({
                 type: "POST",
@@ -1024,53 +1053,52 @@
     }  // HighlightAndDisableCell
 
 //========= CalcMinMaxOffset  ==================================== PR2018-08-11
-function CalcMinMaxOffset(start_offset, end_offset, is_start_offset) {
+function CalcMinMaxOffset(curOffset, minOffset, maxOffset) {
         console.log(" --- CalcMinMaxOffset ---")
-        console.log("start_offset", start_offset, "end_offset", end_offset, "is_start_offset", is_start_offset)
+        console.log("curOffset", curOffset, "minOffset", minOffset, "maxOffset", maxOffset)
 
-        let min_offset = "-1;12;0", max_offset = "1;12;0";
+        if(!minOffset){minOffset= "-1;12;0"}
+        if(!maxOffset){maxOffset= "1;12;0"}
 
-/*
-        if  (is_start_offset){
-            // use end_offset if max_offset > end_offset
-            if(offset01_gt_offset02(max_offset, end_offset)){
-                max_offset = end_offset
-            }
-        } else {
-            // use start_offset if start_offset > min_offset
-            if(offset02_gt_offset01(start_offset, min_offset)){
-                min_offset = start_offset
+        let curDateOffset = 0, curHours = 0, curMinutes = 0;
+        if(!!curOffset){
+            const arr01 = curOffset.split(";");
+            if(!!arr01) {
+            curDateOffset = parseInt(arr01[0]);
+            curHours = parseInt(arr01[1]);
+            curMinutes = parseInt(arr01[2])
             }
         }
 
-*/
-        let curHours = 0,  minHours= 0, maxHours = 24;
-        let curMinutes = 0, minMinutes= 0, maxMinutes = 60;
-
-        let curDateOffset = 0, prevday_disabled = false, nextday_disabled = false;
-        /*
-        if (!!curOffset){
-            let arr = curOffset.split(";")
-                offset02_gt_offset01(offset01, offset02)
-            curDateOffset = parseInt(arr[0]);
-            if (curDateOffset === -1){
-                prevday_disabled = true
-                // min is midday, max = maxoffset
-            } else if (curDateOffset === 1){
-                nextday_disabled = true
-                // min is minOffset, max is midday
+        let minDateOffset = 0, minHours = 0, minMinutes = 0;
+        if(!!minOffset){
+            const arr02 = minOffset.split(";");
+            if(!!arr02) {
+            minDateOffset = parseInt(arr02[0]);
+            minHours = parseInt(arr02[1]);
+            minMinutes = parseInt(arr02[2])
             }
-
-            curHours = parseInt(arr[1]);
-
-            curMinutes = parseInt(arr[2]);
-
         }
-*/
+
+        let maxDateOffset = 0, maxHours = 0, maxMinutes = 0;
+        if(!!maxOffset){
+            const arr03 = maxOffset.split(";");
+            if(!!arr03) {
+            maxDateOffset = parseInt(arr03[0]);
+            maxHours = parseInt(arr03[1]);
+            maxMinutes = parseInt(arr03[2])
+            }
+        }
+
+        const prevday_disabled = (curDateOffset <= minDateOffset) ;
+        const nextday_disabled = (curDateOffset >= maxDateOffset)
+
+        console.log("curOffset", curOffset, "minOffset", minOffset, "maxOffset", maxOffset)
+
         const new_dict = {"curDate": curDateOffset, "curHours": curHours, "curMinutes": curMinutes,
-            "curOffsetStart": start_offset, "curOffsetEnd": end_offset,
-            "minHours": minHours, "maxHours": maxHours,
-            "minMinutes": minMinutes, "maxMinutes": maxMinutes,
+            "minOffset": minOffset, "maxOffset": maxOffset,
+            "minHours": 0, "maxHours": 24,
+            "minMinutes": 0, "maxMinutes": 60,
             "prevday_disabled": prevday_disabled, "nextday_disabled": nextday_disabled
         }
         return new_dict
@@ -1088,9 +1116,9 @@ function offset01_gt_offset02(offset01, offset02) {
             minute01 = parseInt(arr01[2])
         }
     }
+    // add 10 days to prevent negative numbers
     let offset01_minutes = (24 * 60 * 10)
     if (!!day01 && !!hour01 && !!minute01) {
-        // add 10 days to prevent negative numbers
         offset01_minutes = minute01 + (60 * hour01) + (24 * 60 * (10 + day01))
     }
 
@@ -1103,6 +1131,7 @@ function offset01_gt_offset02(offset01, offset02) {
             minute02 = parseInt(arr02[2]);
         }
     }
+    // add 10 days to prevent negative numbers
     let offset02_minutes = (24 * 60 * 10)
     if (!!day02 && !!hour02 && !!minute02) {
         offset02_minutes = minute02 + (60 * hour02) + (24 * 60 * (10 + day02))
