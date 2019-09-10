@@ -576,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
 
         let column_count;
-        column_count = 10;
+        column_count = 11;
 
 //+++ insert td's ino tblRow
         for (let j = 0; j < column_count; j++) {
@@ -585,12 +585,12 @@ document.addEventListener('DOMContentLoaded', function() {
             let el;
 
 // --- add img to first and last td, first column not in new_item, first column not in teammembers
-            if ([5, 7, 9].indexOf( j ) > -1){
+            if ([5, 7, 10].indexOf( j ) > -1){
                 if (!is_new_item){
                     let img_src;
                     if (j === 5){img_src = imgsrc_questionmark} else
                     if (j === 7){img_src = imgsrc_warning} else
-                    if (j === 9){img_src = imgsrc_stat00}
+                    if (j === 10){img_src = imgsrc_stat00}
 
                 // --- first add <a> element with EventListener to td
                     el = document.createElement("a");
@@ -624,6 +624,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (j === 4){fieldname = "timestart"} else
                 if (j === 6){fieldname = "timeend"} else
                 if (j === 8){fieldname = "breakduration"};
+                if (j === 9){fieldname = "timeduration"};
 
                 el.setAttribute("data-field", fieldname);
 
@@ -638,7 +639,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     el.addEventListener("click", function() {
                         OpenTimepicker(el, el_timepicker, el_data, UpdateTableRow, url_emplhour_upload,
                                         comp_timezone, timeformat, interval, cls_hover, cls_highl)}, false )} else
-                if (j === 8){
+                if ([8, 9].indexOf( j ) > -1){
                     // el.addEventListener("click", function() {OpenPopupHM(el)}, false )
                 };
 
@@ -656,7 +657,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add text_align
                 if ( [0, 1, 2, 3].indexOf( j ) > -1 ){
                     el.classList.add("text_align_left")} else
-                if ( [4, 5, 6, 8].indexOf( j ) > -1 ){
+                if ( [4, 5, 6, 8, 9].indexOf( j ) > -1 ){
                     //el.classList.add("text_align_right")
                 }
 
@@ -664,7 +665,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (j === 1){
                     el.classList.add("td_width_240")
                 } else if (j === 3){
-                    el.classList.add("td_width_180");
+                    el.classList.add("td_width_150");
                 } else {
                     el.classList.add("td_width_090")};
 
@@ -675,7 +676,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     el.classList.add("input_popup_wdy");
                 } else if ([4, 6].indexOf( j ) > -1){
                     el.classList.add("input_timepicker")
-                } else if (j === 8){
+                } else if ([8, 9].indexOf( j ) > -1){
                     //el.classList.add("input_popup_hm")
                     // TODO change class
                     el.classList.add("input_text"); // makes background transparent
@@ -1963,7 +1964,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         SetNewRosterdate(response["rosterdate"])
                     };
                     if ("logfile" in response) {
-                        // printPDF(response["logfile"])
+                        printPDF(response["logfile"])
                     };
 
                     // hide loader

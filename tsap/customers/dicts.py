@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.db.models.functions import Lower
 
 from tsap import constants as c
 from tsap import functions as f
@@ -7,23 +8,59 @@ from companies import models as m
 import logging
 logger = logging.getLogger(__name__)
 
-def create_customer_list(company, inactive=None, cat=None, cat_lte=None):
-    logger.debug(' --- create_customer_list --- ')
-# --- create list of all active customers of this company PR2019-06-16
+
+def create_customer_list(company, inactive=None, cat=None, cat_lt=None):
+    # logger.debug(' --- create_customer_list --- ')
+
+# --- create list of customers of this company PR2019-09-03
+    # .order_by(Lower('code')) is in model
     crit = Q(company=company)
     if cat is not None:
         crit.add(Q(cat=cat), crit.connector)
-    elif cat_lte is not None:
-        crit.add(Q(cat__lte=cat_lte), crit.connector)
+    elif cat_lt is not None:
+        crit.add(Q(cat__lt=cat_lt), crit.connector)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
-    customers = m.Customer.objects.filter(crit)  # order_by(Lower('code')) is in model class Meta
+    # logger.debug('cat: ' + str(cat) + ' cat_lt: ' + str(cat_lt) + ' inactive: ' + str(inactive))
+    customers = m.Customer.objects\
+        .filter(crit)\
+        .values('id', 'company_id', 'cat', 'code', 'name', 'identifier', 'email', 'telephone', 'interval', 'inactive')\
+        .iterator()
+    # logger.debug(customers.query)
 
+    # FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier', 'email', 'telephone', 'interval', 'inactive')
+    field_list = c.FIELDS_CUSTOMER
     customer_list = []
-    for customer in customers:
-        logger.debug(' customer: ' + str(customer.cat))
+    for row_dict in customers:
         item_dict = {}
-        create_customer_dict(customer, item_dict)
+
+        pk_int = row_dict.get('id', 0)
+        ppk_int = row_dict.get('company_id', 0)
+        item_dict['pk'] = pk_int
+        item_dict['ppk'] = ppk_int
+        item_dict['table'] = 'customer'
+
+        for field in field_list:
+            field_dict = {}
+            if field in row_dict:
+                if field == 'id':
+                    field_dict = {'pk': pk_int}
+                    field_dict['ppk'] = ppk_int
+                    item_dict[field] = field_dict
+
+                elif field in ('cat', 'interval'):
+                    field_dict['value'] = row_dict.get(field, 0)
+
+                elif field == 'company':
+                    pass
+
+                else:  # ('code', 'name', 'identifier', 'email', 'telephone', 'inactive')
+                    value = row_dict.get(field)
+                    if value:
+                        item_dict[field] = {'value': value}
+
+        # logger.debug('item_dict: ' + str(item_dict))
+
         customer_list.append(item_dict)
     return customer_list
 
@@ -57,14 +94,14 @@ def create_customer_dict(instance, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_order_list(company, inactive=None, cat=None, cat_lte=None, rangemin=None, rangemax=None):
+def create_order_list(company, inactive=None, cat=None, cat_lt=None, rangemin=None, rangemax=None):
 # --- create list of all active orders of this company PR2019-06-16
     # logger.debug(' --- create_order_list --- ')
     crit = Q(customer__company=company)
     if cat is not None:
         crit.add(Q(customer__cat=cat), crit.connector)
-    elif cat_lte is not None:
-        crit.add(Q(customer__cat__lte=cat_lte), crit.connector)
+    elif cat_lt is not None:
+        crit.add(Q(customer__cat__lt=cat_lt), crit.connector)
 
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
@@ -160,7 +197,7 @@ def create_absencecategory_list(request):
 
 def create_absencecat_dict(instance, request):
 # --- create dict of this absece category PR2019-06-25
-    logger.debug(" --- create_absencecat_dict ---")
+    # logger.debug(" --- create_absencecat_dict ---")
     dict = {}
     if instance:
         parent_pk = instance.customer.pk
@@ -181,20 +218,20 @@ def create_absencecat_dict(instance, request):
         if not m.Scheme.objects.filter(order=instance).exists():
             scheme = create_absence_scheme(instance, code, request)
         scheme = m.Scheme.objects.filter(order=instance).first()
-        logger.debug("scheme: " + str(scheme))
+        # logger.debug("scheme: " + str(scheme))
         if scheme:
     # - create 'absence' team if not exists
             if not m.Team.objects.filter(scheme=scheme).exists():
                 create_absence_team(scheme, code, request)
             team = m.Team.objects.filter(scheme=scheme).first()
-            logger.debug("team: " + str(team))
+            # logger.debug("team: " + str(team))
             if team:
                 team_dict = {
                     'pk': team.pk,
                     'ppk': team.scheme_id,
                     'code': team.code
                 }
-                logger.debug("team_dict: " + str(team_dict))
+                # logger.debug("team_dict: " + str(team_dict))
                 dict['team'] = team_dict
 
     return dict
@@ -281,7 +318,7 @@ def create_absence_team(scheme, code, request):
 
 # === Create new 'template' customer and order
 def get_or_create_special_order(category, request):
-    #logger.debug(" --- get_or_create_special_order ---")
+    # logger.debug(" --- get_or_create_special_order ---")
 
     order = None
 
@@ -311,7 +348,7 @@ def get_or_create_special_order(category, request):
             customer.save(request=request)
 
 # 3. check if 'template' customer has order - only one 'template' order allowed
-    #logger.debug('customer: ' + str(customer))
+    # logger.debug('customer: ' + str(customer))
     if customer:
          # don't use get_or_none, it wil return None when multiple customers exist
         order = m.Order.objects.filter(customer=customer).first()
@@ -323,6 +360,6 @@ def get_or_create_special_order(category, request):
                           cat=category)
             order.save(request=request)
             # logger.debug("order.save: " + str(order.pk) + ' ' + str(order.code))
-    #logger.debug('order: ' + str(order))
+    # logger.debug('order: ' + str(order))
     return order
 

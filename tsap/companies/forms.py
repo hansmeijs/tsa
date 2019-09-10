@@ -49,12 +49,11 @@ class CompanyAddForm(ModelForm):
         # ======= field 'date_first' ============
         # in EditMode: get country from current record
         # no initial value in AddNew form
-        #self.initial_value = get_date_from_dateint(self.this_instance.date_first_int)
         self.fields['datefirst'] = DateField(
             required=False,
             widget=TextInput(attrs={'type': 'date'}),
             label=_('Start date'),
-           # initial=self.initial_value
+
         )
 
 

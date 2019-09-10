@@ -300,10 +300,12 @@ CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
                                  'linked_columns': 'Gekoppelde kolommen'}
                     }
 
-# this one is not working: update_dict = dict.fromkeys(field_list, {})
+
+FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier', 'email', 'telephone', 'interval', 'inactive')
+
 FIELDS_ORDERHOUR = ('pk', 'id', 'order', 'schemeitem', 'rosterdate',
                     'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
-                    'cat', 'shift', 'duration', 'rate', 'amount', 'tax')
+                    'cat', 'shift', 'duration', 'status', 'rate', 'amount', 'tax', 'locked')
 
 FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
                         'timestart', 'timeend', 'timeduration', 'breakduration',
@@ -314,7 +316,7 @@ FIELDS_SCHEME = ('pk', 'id', 'order', 'cat',
 
 FIELDS_TEAM = ('id', 'scheme', 'code')
 
-FIELDS_SHIFT = ('pk', 'id', 'scheme', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor')
+FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor')
 
 FIELDS_SCHEMEITEM = ('pk', 'id', 'scheme', 'shift', 'team',
                      'rosterdate', 'iscyclestart', 'timestart', 'timeend',
@@ -322,11 +324,11 @@ FIELDS_SCHEMEITEM = ('pk', 'id', 'scheme', 'shift', 'team',
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
 FIELDS_EMPLOYEE = ('id', 'code', 'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
-                   'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'inactive')
+                   'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'workhoursperday', 'inactive')
 WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, default is 40 hours per week = 2.400 minutes
 WORKDAYS_DEFAULT = 7200  # workdays per week * 1440, unit is minute (one day has 1440 minutes) , default is 5 days per week = 7200 minutes
 LEAVEDAYS_DEFAULT = 21600  # leavedays per year, = 15 days * 1440 = 21.600 minutes
 
 # workhours_per_day_minutes = workhours_minutes / workdays_minutes * 1440
 
-FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast', 'workhoursperday', 'scheme', 'order', 'customer')
+FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast', 'workhoursperday', 'wagerate', 'wagefactor', 'scheme', 'order', 'customer')

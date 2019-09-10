@@ -72,12 +72,13 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
+                logger.debug('upload_dict' + str(upload_dict))
 
     # 3. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
                     pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, table, mode, cat = f.get_iddict_variables(id_dict)
-
+# TODO check identifier for duplixta and empty
     # 4. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
                     field_list = ('pk', 'id', 'code', 'name', 'identifier', 'inactive')
                     update_dict = f.create_dict_with_empty_attr(field_list)
@@ -316,13 +317,15 @@ def create_customer(upload_dict, update_dict, request):
 def update_customer(instance, parent, upload_dict, update_dict, request):
     # --- update existing and new customer or order PR2019-06-24
     # add new values to update_dict (don't reset update_dict, it has values)
-    # logger.debug(' --- update_customer_or_order --- ')
-    # logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug(' --- update_customer --- ')
+    logger.debug('upload_dict: ' + str(upload_dict))
     # upload_dict: {'id': {'temp_pk': 'new_2', 'create': True, 'parent_pk': 3, 'table': 'order'},
     # 'code': {'update': True, 'value': 'ee'}}
 
     save_changes = False
     has_error = False
+
+# FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier', 'email', 'telephone', 'interval', 'inactive')
 
 # 1. get_iddict_variables
     id_dict = upload_dict.get('id')
@@ -332,6 +335,8 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
         ppk_int = instance.company.pk
 
         update_dict['pk'] = pk_int
+        update_dict['ppk'] = ppk_int
+
         update_dict['id']['pk'] = pk_int
         update_dict['id']['ppk'] = ppk_int
         update_dict['id']['table'] = table
@@ -356,43 +361,49 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
                             update_dict[field]['updated'] = True
                             save_changes = True
 
-# 3. save changes in date fields
-        for field in ['datefirst', 'datelast']:
-            if field in upload_dict:
-    # a. get new and old value
-                field_dict = upload_dict.get(field)
+        # 3. save changes in fields 'namefirst', 'namelast'
+        for field in ['identifier', 'email', 'telephone']:
+            field_dict = upload_dict.get(field)
+            if field_dict:
+                # a. get new and old value
                 if 'update' in field_dict:
-                    new_value = field_dict.get('value')  # new_value: '2019-04-12'
-                    new_date, msg_err = f.get_date_from_ISOstring(new_value, False)  # False = blank_allowed
-    # b. validate value
-                    if msg_err:
-                        has_error = True
-                        update_dict[field]['error'] = msg_err
-                    else:
-    # c. save field if changed and no_error
-                        old_date = getattr(instance, field, None)
-                        if new_date != old_date:
-                            setattr(instance, field, new_date)
-                            save_changes = True
-                            update_dict[field]['updated'] = True
-                            # logger.debug('date saved: ' + str(instance.datefirst))
-
-# 4. save changes in field 'inactive'
-        for field in ['inactive']:
-            if field in upload_dict:
-    # a. get new and old value
-                field_dict = upload_dict.get(field)
-                if 'update' in field_dict:
-                    value = field_dict.get('value')
-                    is_inactive = True  if value == 'true' else False
-                    saved_value = getattr(instance, field, None)
-                    # logger.debug('saved_value: ' + str(saved_value) + ' ' + str(type(saved_value)))
-
-                    if is_inactive != saved_value:
-    # b.  save field if no_error
-                        setattr(instance, field, is_inactive)
+                    new_value = field_dict.get('value')
+                    saved_value = getattr(instance, field)
+                    if new_value != saved_value:
+                        setattr(instance, field, new_value)
                         update_dict[field]['updated'] = True
                         save_changes = True
+
+        # 3. save changes in fields 'namefirst', 'namelast'
+        for field in ['cat', 'interval']:
+            field_dict = upload_dict.get(field)
+            if field_dict:
+                # a. get new and old value
+                if 'update' in field_dict:
+                    new_value = field_dict.get('value', 0)
+                    saved_value = getattr(instance, field, 0)
+                    if new_value != saved_value:
+                        setattr(instance, field, new_value)
+                        update_dict[field]['updated'] = True
+                        save_changes = True
+
+# 4. save changes in field 'inactive'
+        field = 'inactive'
+        logger.debug('field: ' + str(field))
+        field_dict = upload_dict.get(field)
+        logger.debug('field_dict: ' + str(field_dict))
+        if field_dict:
+            if 'update' in field_dict:
+                value = field_dict.get('value')
+                logger.debug('value: ' + str(value) + ' ' + str(type(value)))
+                is_inactive = True  if value == 'true' else False
+                saved_value = getattr(instance, field, False)
+                logger.debug('saved_value: ' + str(saved_value) + ' ' + str(type(saved_value)))
+                if is_inactive != saved_value:
+                    setattr(instance, field, is_inactive)
+                    update_dict[field]['updated'] = True
+                    save_changes = True
+                    logger.debug('new saved_value: ' + str(getattr(instance, field, False)) + ' ' + str(type(getattr(instance, field, False))))
 
 # 5. save changes
         if save_changes:

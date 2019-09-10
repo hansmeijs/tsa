@@ -2,7 +2,8 @@
 {% load i18n %} {% load l10n %}
 {% load static %}
 
-{% block stylesheet %}{% endblock %}
+{% block title %}{% trans 'Planning' %}{% endblock %}
+
 {% block script %}
     <script src="{% static 'js/schemes.js' %}"></script>
 {% endblock %}
@@ -485,9 +486,8 @@
 
             data-txt_timestart= "{% trans 'Start time' %}"
             data-txt_timeend= "{% trans 'End time' %}"
-            data-txt_breakhours= "{% trans 'Break' %}"
-            data-txt_workinghours= "{% trans 'Working hours' %}"
-            data-txt_wagefactor= "{% trans 'Wage factor' %}"
+            data-txt_break= "{% trans 'Break' %}"
+            data-txt_hours= "{% trans 'Hours' %}"
 
             data-timepicker_curday= "{% trans 'Current day' %}"
             data-timepicker_prevday= "{% trans 'Previous day' %}"

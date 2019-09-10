@@ -20,9 +20,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 from tsap.settings import TIME_ZONE
 
-from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_COLDEFS, \
-        LANG_DEFAULT, WEEKDAYS_ABBREV, MONTHS_ABBREV, COLDEF_EMPLOYEE, CAPTION_EMPLOYEE
-
+from tsap import constants as c
 from tsap import functions as f
 
 from tsap.headerbar import get_headerbar_param
@@ -69,17 +67,18 @@ class EmployeeListView(View):
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
     # get user_lang
-            user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
 
      # get weekdays translated
-            lang = user_lang if user_lang in WEEKDAYS_ABBREV else LANG_DEFAULT
-            weekdays_json = json.dumps(WEEKDAYS_ABBREV[lang])
+            lang = user_lang if user_lang in c.WEEKDAYS_ABBREV else c.LANG_DEFAULT
+            weekdays_json = json.dumps(c.WEEKDAYS_ABBREV[lang])
 
     # get months translated
-            lang = user_lang if user_lang in MONTHS_ABBREV else LANG_DEFAULT
-            months_json = json.dumps(MONTHS_ABBREV[lang])
+            lang = user_lang if user_lang in c.MONTHS_ABBREV else c.LANG_DEFAULT
+            months_json = json.dumps(c.MONTHS_ABBREV[lang])
 
             param = get_headerbar_param(request, {
+                'ppk': request.user.company.pk,
                 'employees': employees,
                 'lang': user_lang,
                 'timezone': comp_timezone,
@@ -176,36 +175,34 @@ class EmployeeUploadView(UpdateView):# PR2019-07-30
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
-# A.
-    # 1. Reset language
+
+# 1. Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-            user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 
-    # 2. get upload_dict from request.POST
+# 2. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
                 #logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: {'id': {'pk': 36, 'delete': True, 'table': 'employee'}}
 
-    # 3. get_iddict_variables
+# 3. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+                # FIELDS_EMPLOYEE = ('id', 'code', 'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
+                #                    'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'workhoursperday', 'inactive')
+                update_dict = f.create_dict_with_empty_attr(c.FIELDS_EMPLOYEE)
+
+# 4. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
                     pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode, cat = f.get_iddict_variables(id_dict)
 
-    # 4. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
-                    field_list = ('id', 'code', 'namefirst', 'namelast', 'email', 'telephone', 'identifier',
-                                  'datefirst', 'datelast', 'wagecode', 'workhours', 'inactive')
-                    update_dict = f.create_dict_with_empty_attr(field_list)
-
-    # 5. check if parent exists (company is parent of employee)
+# 5. check if parent exists (company is parent of employee)
                     # company is parent of employee
                     ppk_int = request.user.company.pk
                     instance = None
-                    #logger.debug('table: ' + str(table))
                     parent = get_parent(table, ppk_int, update_dict, request)
-                    #logger.debug('parent: ' + str(parent))
                     if parent:
 # B. Delete instance
                         if is_delete:
@@ -259,15 +256,15 @@ class EmployeeImportView(View):
             #                      {'tsaKey': 'orderdatelast', 'caption': _('Last date order')} ]
 # LOCALE #
     # get user_lang
-            user_lang = request.user.lang if request.user.lang else LANG_DEFAULT
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
 
     # get coldef_list employee
-            lang = user_lang if user_lang in COLDEF_EMPLOYEE else LANG_DEFAULT
-            coldef_list = COLDEF_EMPLOYEE[lang]
+            lang = user_lang if user_lang in c.COLDEF_EMPLOYEE else c.LANG_DEFAULT
+            coldef_list = c.COLDEF_EMPLOYEE[lang]
 
     # get caption list employee
-            lang = user_lang if user_lang in CAPTION_EMPLOYEE else LANG_DEFAULT
-            captions_dict = CAPTION_EMPLOYEE[lang]
+            lang = user_lang if user_lang in c.CAPTION_EMPLOYEE else c.LANG_DEFAULT
+            captions_dict = c.CAPTION_EMPLOYEE[lang]
 
             # oooooooooooooo get_mapped_coldefs_order ooooooooooooooooooooooooooooooooooooooooooooooooooo
             # function creates dict of fieldnames of table Order
@@ -278,16 +275,17 @@ class EmployeeImportView(View):
             #     "no_header": 0,
             #     "coldefs": [{"tsaKey": "idnumber", "caption": "ID nummer", "excKey": "ID"},
             #                 {"tsapKey": "lastname", "caption": "Achternaam", "excKey": "ANAAM"}, ....]
-            #logger.debug('==============get_mapped_coldefs_order ============= ')
+            logger.debug('==============get_mapped_coldefs_order ============= ')
 
             mapped_coldefs = {}
 
             # get mapped coldefs from table Companysetting
             # get stored setting from Companysetting
             stored_setting = {}
-            settings_json = Companysetting.get_setting(KEY_EMPLOYEE_COLDEFS, request.user.company)
+            settings_json = Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company)
+            logger.debug('settings_json: ' + str(settings_json))
             if settings_json:
-                stored_setting = json.loads(Companysetting.get_setting(KEY_EMPLOYEE_COLDEFS, request.user.company))
+                stored_setting = json.loads(Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company))
             # stored_setting = {'worksheetname': 'VakschemaQuery', 'no_header': False,
             #                   'coldefs': {'employee': 'level_abbrev', 'orderdatefirst': 'sector_abbrev'}}
 
@@ -363,7 +361,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                     # new_setting = json.loads(request.POST['setting'])
                     # new_setting_json = json.dumps(new_setting)
 
-                    Companysetting.set_setting(KEY_EMPLOYEE_COLDEFS, new_setting_json, request.user.company)
+                    Companysetting.set_setting(c.KEY_EMPLOYEE_COLDEFS, new_setting_json, request.user.company)
 
         return HttpResponse(json.dumps("Import settings uploaded", cls=LazyEncoder))
 
@@ -380,7 +378,7 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                 tablename = 'employee'
 
 # get stored setting from Companysetting
-                stored_setting_json = Companysetting.get_setting(KEY_EMPLOYEE_COLDEFS, request.user.company)
+                stored_setting_json = Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company)
                 codecalc  = 'linked'
                 if stored_setting_json:
                     stored_setting = json.loads(stored_setting_json)
@@ -405,12 +403,12 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                         #             'datefirst', 'datelast', 'wagecode', 'workhours', 'inactive')
 
                         namelast = None
-                        namelast_str = employee.get('namelast', '')[0:NAME_MAX_LENGTH]
+                        namelast_str = employee.get('namelast', '')[0:c.NAME_MAX_LENGTH]
                         if namelast_str:
                             namelast = namelast_str
 
                         namefirst = None
-                        namefirst_str = employee.get('namefirst', '')[0:NAME_MAX_LENGTH]
+                        namefirst_str = employee.get('namefirst', '')[0:c.NAME_MAX_LENGTH]
                         if namefirst_str:
                             namefirst = namefirst_str
                         logger.debug('namelast: ' + str(namelast) + ' namefirst: ' + str(namefirst))
@@ -427,10 +425,10 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                         else:  #  codecalc == 'linked'
                             code_str = employee.get('code', '')
                         if code_str:
-                            code = code_str[0:CODE_MAX_LENGTH]
+                            code = code_str[0:c.CODE_MAX_LENGTH]
 
                         identifier = None
-                        identifier_str = employee.get('identifier', '')[0:CODE_MAX_LENGTH]
+                        identifier_str = employee.get('identifier', '')[0:c.CODE_MAX_LENGTH]
                         if identifier_str:
                             identifier = identifier_str
 
@@ -464,11 +462,11 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                                     )
                                     logger.debug('saved new_employee: ' + str(new_employee.code))
 
-                                    email = employee.get('email', '')[0:NAME_MAX_LENGTH]
+                                    email = employee.get('email', '')[0:c.NAME_MAX_LENGTH]
                                     if email:
                                         new_employee.email = email
 
-                                    telephone = employee.get('tel', '')[0:USERNAME_SLICED_MAX_LENGTH]
+                                    telephone = employee.get('tel', '')[0:c.USERNAME_SLICED_MAX_LENGTH]
                                     if telephone:
                                         new_employee.tel = telephone
 
@@ -650,28 +648,28 @@ def update_employee(instance, parent, upload_dict, update_dict, request, user_la
         pk_int, parent_pk_int, temp_pk_str, is_create, is_delete, tablename, mode, cat = f.get_iddict_variables(id_dict)
 
 # 2. save changes in field 'code', required field
-        for field in ('code',):
-            if field in upload_dict:
-    # a. get new and old value
-                field_dict = upload_dict.get(field)
-                if 'update' in field_dict:
-                    logger.debug('field: ' + str(field) + ' field_dict: ' + str(field_dict))
-                    new_value = field_dict.get('value')
-                    saved_value = getattr(instance, field)
-                    logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
+        field = 'code'
+        if field in upload_dict:
+# a. get new and old value
+            field_dict = upload_dict.get(field)
+            if 'update' in field_dict:
+                logger.debug('field: ' + str(field) + ' field_dict: ' + str(field_dict))
+                new_value = field_dict.get('value')
+                saved_value = getattr(instance, field)
+                logger.debug('new_value: ' + str(new_value) + ' saved_value: ' + str(saved_value))
 
-                # validate_code_name_id checks for null, too long and exists. Puts msg_err in update_dict
-                    has_error = validate_code_name_identifier('employee', field, new_value, parent, update_dict, instance.pk)
+            # validate_code_name_id checks for null, too long and exists. Puts msg_err in update_dict
+                has_error = validate_code_name_identifier('employee', field, new_value, parent, update_dict, instance.pk)
 
-                    if not has_error:
-                        if new_value and new_value != saved_value:
-                            setattr(instance, field, new_value)
-                            # logger.debug('attr ' + field + 'saved to: ' + str(new_value))
-                            update_dict[field]['updated'] = True
-                            save_changes = True
-                            # logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
-        # update scheme_list when code has changed
-                            update_scheme_list = True
+                if not has_error:
+                    if new_value and new_value != saved_value:
+                        setattr(instance, field, new_value)
+                        # logger.debug('attr ' + field + 'saved to: ' + str(new_value))
+                        update_dict[field]['updated'] = True
+                        save_changes = True
+                        # logger.debug('update_dict[' + field + '] ' + str(update_dict[field]))
+    # update scheme_list when code has changed
+                        update_scheme_list = True
 
         # TODO  # validate_namelast_namefirst
         # has_error = validate_namelast_namefirst(namelast, namefirst, company, update_dict, this_pk=None):
@@ -712,6 +710,36 @@ def update_employee(instance, parent, upload_dict, update_dict, request, user_la
                             save_changes = True
                             update_dict[field]['updated'] = True
                             # logger.debug('date saved: ' + str(instance.datefirst))
+
+        field = 'workhoursperday'
+        if field in upload_dict:
+            field_dict = upload_dict.get(field)
+            logger.debug('field_dict[' + field + ']: ' + str(field_dict))
+            if 'update' in field_dict:
+                # value is entered as string ('7.5'), in hours
+                # TODO add hour picker in page
+                value = str(field_dict.get('value'))
+                # convert workhoursperday_hours to minutes per week
+                value_float, msg_err = f.get_float_from_string(value)
+                logger.debug('value_float: ' + str(value_float) + ' ' + str(type(value_float)))
+
+                if msg_err:
+                    update_dict[field]['error'] = msg_err
+                else:
+                    # get workdays from instance
+                    workdays = getattr(instance, 'workdays', c.WORKDAYS_DEFAULT)
+                    logger.debug('workdays: ' + str(workdays) + ' ' + str(type(workdays)))
+
+                    new_workhours_pwk = int(value_float * workdays / 24)  # (hours * 60) / (workdays_in_minutes / 1440)
+                    logger.debug('new_workhours_pwk: ' + str(new_workhours_pwk) + ' ' + str(type(new_workhours_pwk)))
+
+                    old_value = getattr(instance, 'workhours', 0)
+                    if new_workhours_pwk != old_value:
+                        setattr(instance, 'workhours', new_workhours_pwk)
+                        save_changes = True
+                        update_dict[field]['updated'] = True
+                        logger.debug('new_workhours_pwk[' + field + ']: ' + str(new_workhours_pwk))
+                        logger.debug('saved_value workhours]: ' + str(getattr(instance, 'workhours')))
 
 # 4. save changes in field 'inactive'
         for field in ['inactive']:

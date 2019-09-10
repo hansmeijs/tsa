@@ -2,9 +2,10 @@
 {% load i18n %} {% load l10n %}
 {% load static %}
 
-{% block stylesheet %}{% endblock %}
+{% block title %}{% trans 'Roster' %}{% endblock %}
 
 {% block script %}
+    <script src="{% static 'js/timepicker.js' %}"></script>
     <script src="{% static 'js/roster.js' %}"></script>
 {% endblock %}
 
@@ -362,20 +363,21 @@
                         <th class="text_align_left">{% trans 'Order' %}</th>
                         <th class="text_align_left">{% trans 'Shift' %}</th>
                         <th class="text_align_left">{% trans 'Employee' %}</th>
-                        <th >{% trans 'Start time' %}</th>
+                        <th >{% trans 'Start' %}</th>
                         <th>
                             <a id="id_filter_check" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
                                 <img id="id_img_filter_check" src="{% static 'img/questionmark.gif' %}" height="18" width="18">
                             </a>
                         </th>
-                        <th >{% trans 'End time' %}</th>
+                        <th >{% trans 'End' %}</th>
                         <th>
                             <a id="id_filter_check_end" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
                               <img id="id_img_filter_check_end" src="{% static 'img/questionmark.gif' %}" height="18" width="18">
                             </a>
                         </th>
 
-                        <th>{% trans 'Break hours' %}</th>
+                        <th>{% trans 'Break' %}</th>
+                        <th>{% trans 'Hours' %}</th>
                         <th>
                             <a id="id_filter_status" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
                                 <img id="id_img_filter_status" src="{% static 'img/stat04.png' %}" height="18" width="18">

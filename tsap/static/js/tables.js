@@ -6,8 +6,6 @@
 //========= GetItemDictFromTablerow  ============= PR2019-05-11
     function GetItemDictFromTablerow(tr_changed) {
         //console.log("======== GetItemDictFromTablerow");
-        //console.log(tr_changed);
-
         let item_dict = {};
 
 // ---  create id_dict
@@ -33,7 +31,8 @@
                             // The 'value' attribute determines the initial value (el_input.getAttribute("name").
                             // The 'value' property holds the current value (el_input.value).
 
-                            if (["rosterdate", "datefirst", "datelast", "timestart", "timeend", "offsetstart", "offsetend","inactive", "status"].indexOf( fieldname ) > -1){
+                            if (["rosterdate", "datefirst", "datelast", "timestart", "timeend", "offsetstart", "offsetend",
+                            "inactive", "status"].indexOf( fieldname ) > -1){
                                 n_value = get_attr_from_el(el_input, "data-value"); // data-value="2019-05-11"
                             } else {
                                 n_value = el_input.value;
@@ -94,7 +93,6 @@
 //========= get_tablerow_clicked  =============
     function get_tablerow_clicked(el_clicked){
         //console.log("=========  get_tablerow_clicked =========");
-
 
         let tr_clicked;
         if(!!el_clicked) {
@@ -548,7 +546,7 @@
 
 //###########################################################
 //========= format_text_element  ======== PR2019-06-09
-    function format_text_element (el_input, el_msg, field_dict) {
+    function format_text_element (el_input, el_msg, field_dict, offset) {
         //console.log("--- format_text_element ---")
         //console.log("field_dict: ", field_dict)
 
@@ -561,7 +559,7 @@
 
             if(!!msg_err){
                 if(!value) { value = null} // otherwise 'undefined will show in tetbox
-                ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, value)
+                ShowMsgError(el_input, el_msg, msg_err, offset, true, value)
             } else if(updated){
                 el_input.classList.add("border_valid");
                 setTimeout(function (){
@@ -897,36 +895,29 @@
         }  // if(!!el_input && !!field_dict){
     }  // function format_datetime_element
 
-//========= format_offset_element  ======== PR2019-07-03
-    function format_offset_element (el_input, el_msg, fieldname, field_dict, comp_timezone, timeformat, user_lang, title_prev, title_next) {
-        // timestart: {dhm: "Sun 10:00 p.m.", value: "-1;22;0"}
+//========= format_offset_element  ======== PR2019-09-08
+    function format_offset_element (el_input, el_msg, fieldname, field_dict, offset, timeformat, user_lang, title_prev, title_next) {
+        // offsetstart: {value: 0, minoffset: -720, maxoffset: 1440}
 
         if(!!el_input){
-            let value, display_text, title ;
+            let value = 0, display_text, title ;
             if(!!field_dict){
-               // console.log("------ format_offset_element --------------")
+                console.log("------ format_offset_element --------------", fieldname)
                 //console.log("el_input: ", el_input)
-                //console.log("field_dict: ", field_dict)
+                console.log("field_dict: ", field_dict)
 
-                // value:  "-1;22;15"
-                value = get_dict_value_by_key (field_dict, "value"); // value = datetime_utc_iso
-
+                // value:  "270" = 04:30
+                value = get_dict_value_by_key (field_dict, "value", 0); // value = datetime_utc_iso
                 const updated = get_dict_value_by_key (field_dict, "updated");
                 const msg_err = get_dict_value_by_key (field_dict, "error");
-
-
-
-
 
                 let datetime_local, rosterdate, datetime_date, rosterdate_date;
 
                 if (!!value){
-                    let days_offset = 0, curHours = 0, curMinutes = 0;
-                    const offset_arr = value.split(";")
-                    days_offset = parseInt(offset_arr[0])
-                    curHours = parseInt(offset_arr[1])
-                    curMinutes = parseInt(offset_arr[2])
-                    //console.log("days_offset: ", days_offset, "curHours: ", curHours, "curMinutes: ", curMinutes )
+                    let days_offset = Math.floor(value/1440)  // - 90 (1.5 h)
+                    const remainder = value - days_offset * 1440
+                    let curHours = Math.floor(remainder/60)
+                    const curMinutes = remainder - curHours * 60
 
                     const isAmPm = (timeformat === "AmPm");
                     const isEN = (user_lang === "en")
@@ -963,7 +954,7 @@
                 }  // if (!!value)
 
                 if(!!msg_err){
-                   ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, value)
+                   ShowMsgError(el_input, el_msg, msg_err, offset, true, value)
                 } else if(updated){
                     el_input.classList.add("border_valid");
                     setTimeout(function (){
@@ -986,143 +977,16 @@
             el_input.setAttribute("data-o_value", value);
 
             // put values in element
-            const minoffset = get_dict_value_by_key (field_dict, "minoffset");
-            if(!!minoffset){el_input.setAttribute("data-minoffset", minoffset)
-                } else {el_input.removeAttribute("data-minoffset")};
-            const maxoffset = get_dict_value_by_key (field_dict, "maxoffset");
-            if(!!maxoffset){el_input.setAttribute("data-maxoffset", maxoffset)
-                } else {el_input.removeAttribute("data-maxoffset")};
+            let minoffset = get_dict_value_by_key (field_dict, "minoffset");
+            if (!minoffset){if(fieldname === "offsetstart"){minoffset = -720} else { minoffset = 0}}
+            el_input.setAttribute("data-minoffset", minoffset)
+
+            let maxoffset = get_dict_value_by_key (field_dict, "maxoffset");
+            if (!maxoffset){ if(fieldname === "offsetstart"){maxoffset = 1440} else { maxoffset = 2160}}
+            el_input.setAttribute("data-maxoffset", maxoffset)
 
         }  // if(!!el_input)
     }  // function format_offset_element
-
-
-//========= format_offset_element  ======== PR2019-06-03
-    function format_offset_elementXXX (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list) {
-        //console.log("------ format_offset_element --------------")
-        //console.log("field_dict: ", field_dict)
-
-        if(!!el_input && !!field_dict){
-// timestart: {datetime: "2019-07-02T12:00:00Z", mindatetime: "2019-07-02T04:00:00Z",
-//                      maxdatetime: "2019-07-03T10:00:00Z", rosterdate: "2019-07-02T00:00:00Z"}
-
-// challenge: instead of 'zo 00.00 u' display 'za 24.00 u', only in time-end field
-            const rosterdate_iso = get_dict_value_by_key (field_dict, "rosterdate");  // value = rosterdate_iso
-            const curOffset = get_dict_value_by_key (field_dict, "offset");
-            const updated = get_dict_value_by_key (field_dict, "updated");
-            const msg_err = get_dict_value_by_key (field_dict, "error");
-
-// from https://www.techrepublic.com/article/convert-the-local-time-to-another-time-zone-with-this-javascript/
-// from  https://momentjs.com/timezone/
-            let fulltime, fulldatetime, shortdatetime, weekday_str = "", month_str = "";
-
-            const isAmPm = (timeformat === "AmPm")
-            // TODO use user_lang / timeformat
-            const isEN = (moment.locale() === "en")
-
-            if (!!curOffset){
-                if(!curOffset){curOffset = "0;0;0"}
-
-                let arr = curOffset.split(";");
-                curdate_rosterdate_diff = parseInt(arr[0])
-                curHours = parseInt(arr[1])
-                curMinutes = parseInt(arr[2])
-
-
-//check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
-                let display24 = false;
-                if(fieldname === "offsetend" && curMinutes === 0 ){
-                    if (curdate_rosterdate_diff === 0 && curHours === 24 ){
-                        display24 = true
-                    } else if (curdate_rosterdate_diff === 1 && curHours === 0 ){
-                        display24 = true
-                    }
-                }
-
-// get fulltime and fulltime_24h (is '24.00 u' when 00.00 u)
-                let curHours_str =  "00" + curHours.toString()
-                curHours_str = curHours_str(-2);
-
-                const curMinutess_str =  "00" + curMinutes.toString()
-                curMinutess_str = curMinutess_str(-2);
-
-                let fulltime_24h;
-                if (display24){
-                    if (isEN){ fulltime = "24:00"
-                    } else { fulltime = "24.00 u"}
-
-                } else {
-                    if (isEN){
-                        fulltime = curHours_str + ":" + curMinutess_str
-                    } else {
-                        fulltime = curHours_str + "." + curMinutess_str + " u"
-                    }
-                }
-
-// get display_datetime_local (is yesterday when display24)
-                // when display24 display shows: 'za 24.00 u' instead of 'zo 00.00 u'
-                let display_datetime_local;
-                if (display24){
-                    display_datetime_local = datetime_local.clone().add(-1, 'day')
-                } else {
-                    display_datetime_local = datetime_local.clone()
-                }
-
-// format fulldatetime
-                if (display24){
-                    if(isEN) {
-                        fulldatetime = display_datetime_local.format("dddd, MMMM D, YYYY") + " " + fulltime_24h
-                    } else {
-                        fulldatetime = display_datetime_local.format("dddd D MMMM YYYY") + " " + fulltime_24h
-                    }
-                } else {
-                    if(isEN) {
-                        fulldatetime = datetime_local.format("dddd, MMMM D, YYYY") + " " + fulltime
-                    } else {
-                        fulldatetime = datetime_local.format("dddd D MMMM YYYY") + " " + fulltime
-                    }
-                }
-
-
-// format time with weekday if different from rosterdate
-
-                if (display24){
-                    shortdatetime = fulltime_24h
-                } else {
-                    shortdatetime = fulltime
-                }
-                if(!!weekday_str){shortdatetime = weekday_str + " " + shortdatetime}
-
-
-// show msg_err or border_valid
-                if(!!msg_err){
-                   ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, value)
-                } else if(updated){
-                    el_input.classList.add("border_valid");
-                    setTimeout(function (){
-                        el_input.classList.remove("border_valid");
-                        }, 2000);
-                }
-            }  // if (!!datetime_iso)
-
-// put values in element
-            if(!!rosterdate_iso){el_input.setAttribute("data-rosterdate", rosterdate_iso)
-                } else {el_input.removeAttribute("data-rosterdate")};
-            if(!!datetime_iso){el_input.setAttribute("data-datetime", datetime_iso)
-                } else {el_input.removeAttribute("data-datetime")};
-            if(!!mindatetime){el_input.setAttribute("data-mindatetime", mindatetime)
-                } else {el_input.removeAttribute("data-mindatetime")};
-            if(!!maxdatetime){el_input.setAttribute("data-maxdatetime", maxdatetime)
-                } else {el_input.removeAttribute("data-maxdatetime")};
-            if(!!offset){el_input.setAttribute("data-offset", offset)
-                } else {el_input.removeAttribute("data-offset")};
-
-            if(!!shortdatetime){el_input.value = shortdatetime};
-
-            el_input.title = fulldatetime;
-
-        }  // if(!!el_input && !!field_dict){
-    }  // function format_datetime_element
 
 
 //========= format_duration_element  ======== PR2019-07-22
@@ -1140,29 +1004,8 @@
                 let updated = get_dict_value_by_key (field_dict, "updated");
                 let msg_err = get_dict_value_by_key (field_dict, "error");
 
-
-                let hour_str, hour_text, display_value = null;
-                const hours = Math.floor(value_int/60);  // The Math.floor() function returns the largest integer less than or equal to a given number.
-                if (hours > -100 && hours < 100) {
-                    hour_str = "00" + hours.toString()
-                    hour_text = hour_str.slice(-2);
-                } else {
-                    hour_text =  hours.toString()
-                }
-
-                const minutes = value_int % 60  // % is remainder operator
-                const minute_str = "00" + minutes.toString()
-                const minute_text = minute_str.slice(-2);
-
-                if(!!value_int){
-                    if(user_lang === "en") {
-                        display_value = hour_text + ":" + minute_text;
-                    } else {
-                        display_value = hour_text + "." + minute_text + " u";
-                    }
-                }
+                const display_value = display_duration (value_int, user_lang)
                 el_input.value = display_value;
-
 
                 if(!!msg_err){
                     //ShowMsgError(el_input, el_msg, msg_err, offset, set_value, display_value, data_value, display_title)
@@ -1175,48 +1018,12 @@
                         }, 2000);
                 }
 
-
-
-
             }  // if(!!field_dict)
 
             el_input.setAttribute("data-value", value_int);
             el_input.setAttribute("data-o_value", value_int);
         } // if(!!el_input){
     }  // function format_duration_element
-
-//========= format_duration_element  ======== PR2019-08-21
-    function format_duration_str (value_int, user_lang) {
-        //console.log("+++++++++ format_duration_str", value_int)
-        let time_format = "";
-
-        if (!!value_int) {
-               // NOT WORKING PROPERLY WITH NEGATIVE VALUES
-            let hour_text;
-            // PR2019-08-22 debug: dont use Math.floor, gives wrong hours when negative. Was: const hours = Math.floor(value_int/60);
-             // The Math.floor() function returns the largest integer less than or equal to a given number.
-            const hours = Math.trunc(value_int/60);  // The Math.floor() function returns the largest integer less than or equal to a given number.
-            if (hours > -100 && hours < 100) {
-                const hour_str = "00" + hours.toString()
-                hour_text = hour_str.slice(-2);
-            } else {
-                hour_text =  hours.toString()
-            }
-
-            const minutes = value_int % 60  // % is remainder operator
-            const minute_str = "00" + minutes.toString()
-            const minute_text = minute_str.slice(-2);
-
-            if(user_lang === "en") {
-                time_format = hour_text + ":" + minute_text;
-            } else {
-                time_format = hour_text + "." + minute_text + " u";
-            }
-
-        }  // if (!!value_int)
-        return time_format
-    }  // function format_duration_str
-
 
 //========= format_total_duration  ======== PR2019-08-22
     function format_total_duration (value_int, user_lang) {
@@ -1261,7 +1068,47 @@
         return time_format
     }  // function format_total_duration
 
+//========= display_duration  ======== PR2019-09-08
+    function display_duration (value_int, user_lang) {
+        // timeduration: {value: 540, hm: "9:00"}
+        //console.log("+++++++++ display_duration")
+        //console.log(field_dict)
+        // don't use Math.floor()
+        // Math.floor() returns the largest integer less than or equal to a given number. (-2.56 becomes -3)
+        // Math.trunc() cuts off the dot and the digits to the right of it. (-2.56 becomes -2)
+        // remainder (%) returns the remainder left over when x is divided by y ( -23 % 4 = -3
 
+        let display_value = null;
+        if(!!value_int){
+            const is_negative = (value_int < 0);
+            if (is_negative){
+                value_int = value_int * -1
+            }
+
+            let hour_text;
+            const hours = Math.trunc(value_int/60);
+            if (hours < 100) {
+                const hour_str = "00" + hours.toString()
+                hour_text = hour_str.slice(-2);
+            } else {
+                hour_text =  hours.toString()
+            }
+
+            const minutes = value_int % 60  // % is remainder operator
+            const minute_str = "00" + minutes.toString()
+            const minute_text = minute_str.slice(-2);
+
+            if(user_lang === "en") {
+                display_value = hour_text + ":" + minute_text;
+            } else {
+                display_value = hour_text + "." + minute_text + " u";
+            }
+
+            if(is_negative){display_value = "-" + display_value}
+        }  // if(!!value_int)
+
+        return display_value
+    }  // function display_duration
 
 
 //========= format_inactive_element  ======== PR2019-06-09
@@ -1461,7 +1308,8 @@
 //=========  ShowMsgError  ================ PR2019-06-01
     function ShowMsgError(el_input, el_msg, msg_err, offset, set_value, display_value, data_value, display_title) {
         // show MsgBox with msg_err , offset[0] shifts horizontal position, offset[1] VERTICAL
-        //console.log("ShowMsgError", display_value, data_value, display_title )
+        console.log("ShowMsgError", display_value, data_value, display_title )
+        console.log("ShowMsgError", offset, display_value, data_value, display_title )
         if(!!el_input && msg_err) {
             el_input.classList.add("border_bg_invalid");
                 // el_input.parentNode.classList.add("tsa_tr_error");
@@ -1656,10 +1504,16 @@
 //========= ShowTableRow  ====================================
     function ShowTableRow(tblRow, filter_name, col_inactive = -1, show_inactive = false) {  // PR2019-06-09
         //console.log( "===== ShowTableRow  ========= ");
-        // filter by inactive and substring of fields
-        // don't filter new row
-        //console.log( "filter_name: ", filter_name);
-
+        //console.log( tblRow);
+        // function filters by inactive and substring of fields
+        //  - iterates through cells of tblRow
+        //  - skips filter of new row (new row is always visible)
+        //  - if filter_name is not null:
+        //       - checks tblRow.cells[i].children[0], gets value, in case of select element: data-value
+        //       - returns show_row = true when filter_name found in value
+        //  - if col_inactive has value >= 0 and hide_inactive = true:
+        //       - checks data-value of column 'inactive'.
+        //       - hides row if inactive = true
         let show_row = true;
         if (!!tblRow){
             const pk_str = get_attr_from_el(tblRow, "data-pk");
@@ -1668,7 +1522,7 @@
             let is_new_row = false;
             if(!!pk_str){
     // skip new row (parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-               //  is_new_row = (! parseInt(pk_str))
+                is_new_row = (! parseInt(pk_str))
             }
             //console.log( "pk_str", pk_str, "is_new_row", is_new_row, "show_inactive",  show_inactive);
             if(!is_new_row){
@@ -1696,18 +1550,21 @@
                     let found = false
                     for (let i = 0, len = tblRow.cells.length, el, el_value; i < len; i++) {
                         let tbl_cell = tblRow.cells[i];
+                        //console.log( "tbl_cell", tbl_cell);
                         if (!!tbl_cell){
                             el = tbl_cell.children[0];
                             if (!!el) {
                                 let fieldname = get_attr_from_el(el, "data-field")
-                                if (el.tagName.toLowerCase() === "select"){
+                    // get value from el.value, innerText or data-value
+                                const el_tagName = el.tagName.toLowerCase()
+                                if (el_tagName === "select"){
                                     //el_value = el.options[el.selectedIndex].text;
                                     el_value = get_attr_from_el(el, "data-value")
-                                } else {
+                                } else if (el_tagName === "input"){
                                     el_value = el.value;
+                                } else {
+                                    el_value = el.innerText;
                                 }
-// get value from el.value, from data-value if not found
-
                                 if (!el_value){el_value = get_attr_from_el(el, "data-value")}
                                 if (!!el_value){
                                     el_value = el_value.toLowerCase();
@@ -1716,7 +1573,6 @@
                                         break;
                                     }
                                 }   // if (!!el_value){
-
                             }  // if (!!el) {
                         }  //  if (!!tbl_cell){
                     };  // for (let i = 1,

@@ -81,6 +81,7 @@ def add_status_to_statussum(status, old_status_sum):
         new_status_sum = status
     return new_status_sum
 
+
 def remove_status_from_statussum(status, old_status_sum):
     # PR2019-07-17 adds status to status_tuple if not yet exists
     # e.g.: status_tuple = (1,2,4,8) will be converted to status_sum = 15
@@ -667,6 +668,7 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
         f.remove_empty_attr_from_dict(item_dict)
         # logger.debug('item_dict' + str(item_dict))
 
+
 def create_team_list(order):
     # create list of teams of this order PR2019-09-02
     logger.debug(' ----- create_team_list  -----  ')
@@ -720,6 +722,7 @@ def create_team_list(order):
                 team_list.append(item_dict)
 
     return team_list
+
 
 def create_team_dict(team, item_dict):
     # --- create dict of this team PR2019-08-08
@@ -781,13 +784,13 @@ def create_shift_list(order, comp_timezone):
 
 
 def create_shift_dict(shift, update_dict):
-    logger.debug(' ----- update_shift ----- ')
-    logger.debug('update_dict: ' + str(update_dict))
+    logger.debug(' ----- create_shift_dict ----- ')
+    logger.debug('create_shift_dict: ' + str(create_shift_dict))
     # --- create dict of this shift PR2019-08-08
     # update_dict has already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     # logger.debug('create_shift_dict: ', str(update_dict))
-    # FIELDS_SHIFT = ('pk', 'id', 'scheme', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor')
+    # FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor')
 
     table = 'shift'
     field_tuple = c.FIELDS_SHIFT
@@ -801,14 +804,12 @@ def create_shift_dict(shift, update_dict):
             else:
                 field_dict ={}
 
-# 2. create field_dict 'pk' and 'ppk'
-            if field == 'pk':
-                field_dict = shift.pk
+# 3. create field_dict 'id'
+            if field == 'id':
+                update_dict['pk'] = shift.pk
                 update_dict['ppk'] = shift.scheme.pk
                 update_dict['table'] = 'shift'
 
-# 3. create field_dict 'id'
-            elif field == 'id':
                 field_dict['pk'] = shift.pk
                 field_dict['ppk'] = shift.scheme.pk
                 field_dict['table'] = table
@@ -817,23 +818,55 @@ def create_shift_dict(shift, update_dict):
             elif field == 'cat':
                 field_dict['value'] = getattr(shift, field, 0)
 
-# 5. create field_dict 'code', 'offsetstart', 'offsetend', 'breakduration'
             elif field == 'offsetstart':
-                value = getattr(shift, field, None)
-                if value:
+                #Note: value '0' is a valid value, so don't use 'if value:'
+                value = shift.offsetstart
+                offsetstart_hasvalue = False
+                offsetend_hasvalue = False
+                offsetend_value = 0
+                if value is not None:
                     field_dict['value'] = value
+                    offsetstart_hasvalue = True
+                field_dict["minoffset"] = -720
 
-                field_dict["minoffset"] = "-1;12;0"
-                field_dict["maxoffset"] = getattr(shift, "offsetend", "1;12;0")
+                maxoffset = 1440
+                if shift.offsetend is not None:
+                    maxoffset = shift.offsetend
+                    offsetend_value = maxoffset
+                    offsetend_hasvalue = True
+                    if maxoffset > 1440:
+                        maxoffset = 1440
+                field_dict["maxoffset"] = maxoffset
 
-# 5. create field_dict 'code', 'offsetstart', 'offsetend', 'breakduration'
+                if offsetstart_hasvalue and offsetend_hasvalue:
+                    breakduration = 0
+                    if shift.breakduration:
+                        breakduration = shift.breakduration
+                    update_dict["timeduration"] = {"value": offsetend_value - value - breakduration}
+
             elif field == 'offsetend':
-                value = getattr(shift, field, None)
-                if value:
-                    field_dict['value'] = value
+                #Note: value '0' is a valid value, so don't use 'if value:'
+                value = shift.offsetend
+                offsetstart_hasvalue = False
+                offsetend_hasvalue = False
+                offsetstart_value = 0
 
-                field_dict["minoffset"] = getattr(shift, "offsetstart", "0;0;0")
-                field_dict["maxoffset"] = "1;12;0"
+                if value is not None:
+                    field_dict['value'] = value
+                    offsetend_hasvalue = True
+                field_dict["maxoffset"] = 2160
+
+                minoffset = 0
+                if shift.offsetstart is not None:
+                    minoffset = shift.offsetstart
+                    offsetstart_value = minoffset
+                    offsetstart_hasvalue = False
+                    if minoffset < 0:
+                        minoffset = 0
+                field_dict["minoffset"] = minoffset
+
+                if offsetstart_hasvalue and offsetend_hasvalue:
+                    update_dict["timeduration"] = {"value": value - offsetstart_value}
 
 # 5. create field_dict 'code', 'offsetstart', 'offsetend', 'breakduration'
             elif field in ('code', 'breakduration'):
@@ -867,7 +900,7 @@ def create_date_dict(rosterdate, user_lang, status_text):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def create_emplhour_list(company, comp_timezone, user_lang,
+def create_emplhour_list(company, comp_timezone,
                          time_min=None, time_max=None,
                          range_start_iso=None, range_end_iso=None, show_all=False): # PR2019-08-01
     logger.debug(' ============= create_emplhour_list ============= ')
@@ -876,10 +909,11 @@ def create_emplhour_list(company, comp_timezone, user_lang,
     starttime = timer()
 
     # convert period_timestart_iso into period_timestart_local
-    # logger.debug('period_timestart_utc: ' + str(time_min) + ' ' + str(type(time_min)))
-    # logger.debug('period_timeend_utc: ' + str(time_max)+ ' ' + str(type(time_max)))
-    # logger.debug('range_start_iso: ' + str(range_start_iso)+ ' ' + str(type(range_start_iso)))
-    # logger.debug('range_end_iso: ' + str(range_end_iso)+ ' ' + str(type(range_end_iso)))
+    logger.debug('time_min: ' + str(time_min) + ' ' + str(type(time_min)))
+    logger.debug('time_max: ' + str(time_max)+ ' ' + str(type(time_max)))
+    logger.debug('range_start_iso: ' + str(range_start_iso)+ ' ' + str(type(range_start_iso)))
+    logger.debug('range_end_iso: ' + str(range_end_iso)+ ' ' + str(type(range_end_iso)))
+    logger.debug('show_all: ' + str(show_all)+ ' ' + str(type(show_all)))
 
     # Exclude template.
     # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
@@ -930,7 +964,6 @@ def create_emplhour_list(company, comp_timezone, user_lang,
         # {'id': 403, 'cat': 0, 'employee_id': 239,
         # 'employee__code': 'Banfield J R A', 'employee__company__id': 2,
         # 'orderhour_id': 387, 'rosterdate': datetime.date(2019, 8, 25), 'timestart': datetime.datetime(2019, 8, 24, 20, 25, tzinfo=<UTC>), 'timeend': datetime.datetime(2019, 8, 25, 8, 30, tzinfo=<UTC>)}
-
 
         pk_int = row_dict.get('id', 0)
         ppk_int = row_dict.get('orderhour_id', 0)
@@ -999,7 +1032,7 @@ def create_emplhour_list(company, comp_timezone, user_lang,
 
             else:
                 value = row_dict.get(field)
-                logger.debug('field:' + str(field) + ' value:' + str(value)  )
+                # logger.debug('field:' + str(field) + ' value:' + str(value)  )
 
                 if value:
                     field_dict['value'] = value
@@ -1021,63 +1054,71 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
     #logger.debug ('item_dict' + str(item_dict))
 
     if instance:
-
         # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
         #                    'timestart', 'timeend', 'timeduration', 'breakduration',
         #                    'wagerate', 'wagefactor', 'wage', 'status')
-        field_list = c.FIELDS_EMPLHOUR
+        field_tuple = c.FIELDS_EMPLHOUR
 
-    # lock field when status = locked or higher
-        pk_int = instance.id
-        ppk_int = instance.orderhour.id
-
+# lock field when status = locked or higher
         status_value = instance.status
         locked = (status_value >= c.STATUS_08_LOCKED)
 
-        rosterdate = instance.rosterdate if instance.rosterdate else None
-        timestart = instance.timestart if instance.timestart else None
-        timeend = instance.timeend if instance.timeend else None
+# get pk and ppk
+        pk_int = instance.id
+        ppk_int = instance.orderhour.id
 
-        item_dict = {'pk': pk_int, 'ppk': ppk_int}
+        for field in field_tuple:
+# 1. get or create field_dict
+            if field in item_dict:
+                field_dict = item_dict[field]
+            else:
+                field_dict = {}
 
-        for field in field_list:
-            field_dict = {}
-
+# 2. lock date when confirmed, field is already locked when >= locked
             if locked:
                 item_dict[field]['locked'] = True
-            # lock date when confirmed, field is already locked when >= locked
             else:
                 status_check = c.STATUS_02_START_CONFIRMED if field == 'timestart' else c.STATUS_04_END_CONFIRMED
                 if status_found_in_statussum(status_check, status_value):
                     item_dict[field]['locked'] = True
 
+# 3. create pk, ppk, table keys
             if field == 'id':
+                item_dict['pk'] = pk_int
+                item_dict['ppk'] = ppk_int
+
                 field_dict['pk'] = pk_int
                 field_dict['ppk'] = ppk_int
                 field_dict['table'] = 'emplhour'
 
             elif field == 'cat':
-                field_dict['value'] = instance.cat
+                field_dict['value'] = instance.cat  # required, default = 0
 
             # orderhour is parent of emplhour
             elif field == 'orderhour':
-                if instance.orderhour_id:
-                    field_dict['pk'] = ppk_int
-                    field_dict['ppk'] = instance.orderhour.order_id
+                if instance.orderhour:
+                    orderhour = instance.orderhour
+                    field_dict['pk'] = orderhour.pk
+                    field_dict['ppk'] = orderhour.order_id
                     order_code = ''
                     cust_code = ''
-                    if instance.orderhour.order.code:
-                        order_code = instance.orderhour.order.code
-                    if instance.orderhour.order.customer.code:
-                        cust_code = instance.orderhour.order.customer.code
-                    field_dict['value'] = ' - '.join([cust_code, order_code])
+                    order = orderhour.order
+                    if order:
+                        if order.code:
+                            order_code = order.code
+                        customer = order.customer
+                        if customer:
+                            if customer.code:
+                                cust_code = customer.code
+                        field_dict['value'] = ' - '.join([cust_code, order_code])
 
             elif field == 'employee':
-                if instance.employee_id:
-                    field_dict['pk'] = instance.employee_id
-                    field_dict['ppk'] = instance.employee.company_id
-                    if instance.employee.code:
-                        field_dict['value'] = instance.employee.code
+                employee = instance.employee
+                if employee:
+                    field_dict['pk'] = employee.pk
+                    field_dict['ppk'] = employee.company_id
+                    if employee.code:
+                        field_dict['value'] = employee.code
 
             elif field == 'rosterdate':
                 if instance.rosterdate:
@@ -1092,10 +1133,6 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
                                        timeend_utc=instance.timeend,
                                        comp_timezone=comp_timezone)
 
-            # also zero when empty
-            elif field in ('breakduration', 'timeduration', 'wagerate', 'wagefactor', 'wage'):
-                field_dict['value'] = getattr(instance, 'breakduration', 0)
-
             else:
                 value = getattr(instance, field)
                 if value:
@@ -1103,11 +1140,8 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
 
             item_dict[field] = field_dict
 
-    # --- remove empty attributes from update_dict
-        f.remove_empty_attr_from_dict(item_dict)
-
-       #  logger.debug ('item_dict' + str(item_dict))
-
+# --- remove empty attributes from update_dict > is called outside this function
+        #f.remove_empty_attr_from_dict(item_dict)
 
 def create_teammemberabsence_list(dict, company):
     # logger.debug('create_emplabs_list: ' + str(dict))
@@ -1394,16 +1428,18 @@ def create_review_list(datefirst, datelast, request):  # PR2019-08-20
                                        COALESCE(c.code,'-') AS c_code, COALESCE(o.code,'-') AS o_code, o.cat, COALESCE(oh.shift,'-'), 
                                        oh.duration, oh.amount, oh.tax, eh_sub.eh_id, eh_sub.eh_dur, eh_sub.eh_wage, 
                                        eh_sub.e_id, eh_sub.e_code, eh_sub.e_dur, eh_sub.e_wage, eh_sub.e_wr, eh_sub.e_wf, 
-                                       case when oh.duration>0 then oh.duration-eh_sub.eh_dur else 0 end as diff  
+                                       case when o.cat < %(cat)s then oh.duration-eh_sub.eh_dur else 0 end as diff  
                                        FROM companies_orderhour AS oh
                                        INNER JOIN eh_sub ON (eh_sub.oh_id=oh.id)
                                        INNER JOIN companies_order AS o ON (oh.order_id=o.id)
                                        INNER JOIN companies_customer AS c ON (o.customer_id=c.id)
-                                       WHERE (c.company_id = %s) 
+                                       WHERE (c.company_id = %(cid)s) 
                                        AND (oh.rosterdate IS NOT NULL) 
-                                       AND (oh.rosterdate >= %s)
-                                       AND (oh.rosterdate <= %s)
-                                       ORDER BY c_code ASC, o_code ASC, oh.rosterdate ASC""", [request.user.company_id, datefirst, datelast])
+                                       AND (oh.rosterdate >= %(df)s)
+                                       AND (oh.rosterdate <= %(dl)s)
+                                       ORDER BY c_code ASC, o_code ASC, oh.rosterdate ASC""",
+                                       {'cat': c.SHIFT_CAT_0512_ABSENCE, 'cid': request.user.company_id, 'df': datefirst, 'dl': datelast})
+
 
 #                                          WHERE (c.company_id = %s)
         #                                        AND (oh.rosterdate IS NOT NULL)
@@ -1476,7 +1512,7 @@ def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend
     if rosterdate:
         field_dict['rosterdate'] = rosterdate
 
-    #logger.debug('field_dict: '+ str(field_dict))
+    # logger.debug('field_dict: '+ str(field_dict))
 
 def get_minmax_datetime_utc(field, rosterdate, timestart_utc, timeend_utc, comp_timezone):  # PR2019-08-07
     # logger.debug(" ------- get_minmax_datetime_utc ---------- ")
@@ -1494,13 +1530,20 @@ def get_minmax_datetime_utc(field, rosterdate, timestart_utc, timeend_utc, comp_
 
         if field == field == 'timestart':
             # get mindatetime,  (midnight = rosterdate 00.00 u)
-            min_rosterdate_local = f.get_datetimelocal_from_offset(rosterdate, "-1;12;0", comp_timezone)
+            min_rosterdate_local = f.get_datetimelocal_from_offset(
+                rosterdate=rosterdate,
+                offset_int=-720,
+                comp_timezone=comp_timezone)
+
             min_datetime_utc = min_rosterdate_local.astimezone(pytz.utc)
             # logger.debug("min_rosterdate_local: " + str(min_rosterdate_local))
             # logger.debug("    min_datetime_utc: " + str(min_datetime_utc))
 
             # get maxdatetime, 24 hours after midnight
-            max_rosterdate_local = f.get_datetimelocal_from_offset(rosterdate, "1;0;0", comp_timezone)
+            max_rosterdate_local = f.get_datetimelocal_from_offset(
+                rosterdate=rosterdate,
+                offset_int=1440,
+                comp_timezone=comp_timezone)
             max_rosterdate_utc = max_rosterdate_local.astimezone(pytz.utc)
             # maxdatetime = timeend_utc if that comes before max_rosterdate_utc
             max_datetime_utc = timeend_utc if timeend_utc and timeend_utc < max_rosterdate_utc else max_rosterdate_utc
@@ -1510,7 +1553,10 @@ def get_minmax_datetime_utc(field, rosterdate, timestart_utc, timeend_utc, comp_
 
         elif field == field == 'timeend':
             # get mindatetime, equals midnight (midnight = rosterdate 00.00 u)
-            min_rosterdate_local = f.get_datetimelocal_from_offset(rosterdate, "0;0;0", comp_timezone)
+            min_rosterdate_local = f.get_datetimelocal_from_offset(
+                rosterdate=rosterdate,
+                offset_int=0,
+                comp_timezone=comp_timezone)
             min_rosterdate_utc = min_rosterdate_local.astimezone(pytz.utc)
             min_datetime_utc = timestart_utc if timestart_utc and timestart_utc > min_rosterdate_utc else min_rosterdate_utc
             # logger.debug("min_rosterdate_local: " + str(min_rosterdate_local))
@@ -1518,7 +1564,10 @@ def get_minmax_datetime_utc(field, rosterdate, timestart_utc, timeend_utc, comp_
             # logger.debug("    min_datetime_utc: " + str(min_datetime_utc))
 
             # get maxdatetime, 36 hours after midnight (midnight = rosterdate 00.00 u)
-            max_rosterdate_local = f.get_datetimelocal_from_offset(rosterdate, "1;12;0", comp_timezone)
+            max_rosterdate_local = f.get_datetimelocal_from_offset(
+                rosterdate=rosterdate,
+                offset_int=2160,
+                comp_timezone=comp_timezone)
             max_datetime_utc = max_rosterdate_local.astimezone(pytz.utc)
             # logger.debug("max_rosterdate_local: " + str(max_rosterdate_local))
             # logger.debug("    max_datetime_utc: " + str(max_datetime_utc))

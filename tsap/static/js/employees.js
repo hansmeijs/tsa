@@ -1,10 +1,7 @@
 // PR2019-02-07 deprecated: $(document).ready(function() {
 $(function() {
         "use strict";
-        console.log("Schemes document.ready");
-
-// ---  set selected menu button active
-        SetMenubuttonActive(document.getElementById("id_hdr_empl"));
+        console.log("Employees document.ready");
 
         const cls_active = "active";
         const cls_hover = "tr_hover";
@@ -21,78 +18,25 @@ $(function() {
 
         const cls_selected = "tsa_tr_selected";
 
+        let selected_employee_pk = 0;
+        let selected_item_pk = 0
+        let selected_mode = "list"
+
+        let employee_list = [];
+        let teammember_list = [];
+        let abscat_list = [];
+
 // ---  id_new assigns fake id to new records
         let id_new = 0;
         let idx = 0; // idx is id of each created (date) element 2019-07-28
         let filter_employee = "";
         let filter_mod_employee = "";
-        let filter_hide_inactive = true;
+        let filter_show_inactive = false;
 
         let quicksave = false
 
-// event handler for buttons
-        document.getElementById("id_btn_data").addEventListener("click", function() {HandleButtonSelect("data")}, false )
-        document.getElementById("id_btn_shift").addEventListener("click", function() {HandleButtonSelect("shift")}, false )
-        document.getElementById("id_btn_absence").addEventListener("click", function() {HandleButtonSelect("absence")}, false)
-        document.getElementById("id_btn_roster").addEventListener("click", function(){HandleButtonSelect("roster")}, false )
-
-// ---  add 'keyup' event handler to filter input
-        let el_flt_employee = document.getElementById("id_flt_employee");
-            el_flt_employee.addEventListener("keyup", function() {
-            setTimeout(function() {HandleFilterEmployee(el_flt_employee)}, 150);
-        });
-
-// ---  Popup date
-        let el_popup_date_container = document.getElementById("id_popup_date_container");
-        let el_popup_date = document.getElementById("id_popup_date")
-             el_popup_date.addEventListener("change", function() {HandlePopupDateSave(el_popup_date);}, false )
-
-// --- close windows
-        document.addEventListener('click', function (event) {
-            // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
-
-// hide msgbox
-            el_msg.classList.remove("show");
-
- // remove highlighted row when clicked outside tabelrows
-            let tr_selected = get_tablerow_selected(event.target)
-            if(!tr_selected) {
-                DeselectHighlightedRows(tr_selected)};
-            if(event.target.getAttribute("id") !== "id_btn_delete_schemeitem" && !get_tablerow_selected(event.target)) {
-                DeselectHighlightedRows(tr_selected);
-            }
-
-// close el_popup_date_container
-            // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
-            let close_popup = true
-            // don't close popup_dhm when clicked on row cell with class input_popup_date
-            if (event.target.classList.contains("input_popup_date")) {close_popup = false} else
-            // don't close popup when clicked on popup box, except for close button
-            if (el_popup_date_container.contains(event.target) && !event.target.classList.contains("popup_close")){close_popup = false}
-            if (close_popup) {
-                popupbox_removebackground();
-                el_popup_date_container.classList.add(cls_hide)
-            };
-        }, false);
-
-        let el_tbody_employee_select = document.getElementById("id_tbody_employee_select")
-
-        let tblBody_items = document.getElementById("id_tbody_items");
-        let tblHead_items = document.getElementById("id_thead_items");
-
-        let el_loader = document.getElementById("id_loader");
-        let el_msg = document.getElementById("id_msgbox");
-
-        let employee_list = [];
-        let teammember_list = [];
-        let abscat_list = [];
-        let selected_employee_pk = 0;
-        let selected_item_pk = 0
-        let selected_mode = "absence"
-
-// --- get data stored in page
+        // --- get data stored in page
         let el_data = document.getElementById("id_data");
-        const url_employee_upload = get_attr_from_el(el_data, "data-employee_upload_url");
         const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
         const url_teammember_upload = get_attr_from_el(el_data, "data-teammember_upload_url");
 
@@ -116,13 +60,74 @@ $(function() {
         // from https://stackoverflow.com/questions/17493309/how-do-i-change-the-language-of-moment-js
         moment.locale(user_lang)
 
+// get elements
+        let el_tbody_employee_select = document.getElementById("id_tbody_employee_select")
+
+        let tblHead_items = document.getElementById("id_thead_items");
+        let tblBody_items = document.getElementById("id_tbody_items");
+
+        let el_loader = document.getElementById("id_loader");
+        let el_msg = document.getElementById("id_msgbox");
+
+// ---  add 'keyup' event handler to filter input
+        let el_flt_employee = document.getElementById("id_flt_employee");
+            el_flt_employee.addEventListener("keyup", function() {
+            setTimeout(function() {HandleFilterEmployee(el_flt_employee)}, 150);
+        });
+
+// event handler for buttons
+        document.getElementById("id_btn_list").addEventListener("click", function() {HandleButtonSelect("list")}, false )
+        document.getElementById("id_btn_shift").addEventListener("click", function() {HandleButtonSelect("shift")}, false )
+        document.getElementById("id_btn_absence").addEventListener("click", function() {HandleButtonSelect("absence")}, false)
+        document.getElementById("id_btn_roster").addEventListener("click", function(){HandleButtonSelect("roster")}, false )
+        document.getElementById("id_btn_data").addEventListener("click", function() {HandleButtonSelect("data")}, false )
+
+
+// ---  Popup date
+        let el_popup_date_container = document.getElementById("id_popup_date_container");
+        let el_popup_date = document.getElementById("id_popup_date")
+             el_popup_date.addEventListener("change", function() {HandlePopupDateSave(el_popup_date);}, false )
+
+// --- close windows
+        // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
+        document.addEventListener('click', function (event) {
+// hide msgbox
+            el_msg.classList.remove("show");
+ // remove highlighted row when clicked outside tabelrows
+            let tr_selected = get_tablerow_selected(event.target)
+            if(!tr_selected) {
+                DeselectHighlightedRows(tr_selected)};
+            if(event.target.getAttribute("id") !== "id_btn_delete_schemeitem" && !get_tablerow_selected(event.target)) {
+                DeselectHighlightedRows(tr_selected);
+            }
+
+// close el_popup_date_container
+            // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
+            let close_popup = true
+            // don't close popup_dhm when clicked on row cell with class input_popup_date
+            if (event.target.classList.contains("input_popup_date")) {
+                close_popup = false
+            // don't close popup when clicked on popup box, except for close button
+            } else if (el_popup_date_container.contains(event.target) && !event.target.classList.contains("popup_close")){
+                close_popup = false
+            }
+            if (close_popup) {
+                popupbox_removebackground();
+                el_popup_date_container.classList.add(cls_hide)
+            };
+        }, false);
+
+// ---  set selected menu button active
+        SetMenubuttonActive(document.getElementById("id_hdr_empl"));
+
 // --- create Submenu
         CreateSubmenu()
 
-        HandleButtonSelect(selected_mode)
+        HandleButtonSelect("data")
 
 // --- create header row
-        CreateTableHeader("absence");
+        CreateTableHeader();
+
         // TODO set cat_lte 4096 incudes templates
         const cat_lte = 4096
         const datalist_request = {"period": {"mode": "saved", "page": "employee"},
@@ -223,18 +228,18 @@ $(function() {
             sel_tr_clicked.classList.add(cls_bc_yellow)
 
 // --- create header row
-            CreateTableHeader("absence");
+            CreateTableHeader();
 
 // --- fill data table shifts
-            FillTableRows("absence", selected_employee_pk, workhoursperday)
+            FillTableRows(workhoursperday)
 
         }  // if(!!sel_tr_clicked)
     }  // HandleSelectEmployee
 
 //=========  HandleButtonSelect  ================ PR2019-05-25
-    function HandleButtonSelect(selected_mode) {
+    function HandleButtonSelect(mode) {
         //console.log( "===== HandleButtonSelect ========= ");
-
+        selected_mode = mode
         let el_btn_container = document.getElementById("id_btn_container")
             el_btn_container.setAttribute("data-mode", selected_mode);
 
@@ -249,17 +254,28 @@ $(function() {
         let btn_selected = document.getElementById("id_btn_" + selected_mode )
         btn_selected.classList.add("tsa_btn_selected")
 
-        CreateTableHeader(selected_mode)
+        CreateTableHeader()
+
 // --- fill data table shifts
-        FillTableRows(selected_mode, selected_employee_pk)
+        FillTableRows()
 
     }  // HandleButtonSelect
 
 // ++++ FILL TABLE ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  CreateTableHeader  === PR2019-05-27
-    function CreateTableHeader(mode) {
+    function CreateTableHeader() {
         // console.log("===  CreateTableHeader == ", mode);
         // console.log("pk", pk, "ppk", parent_pk);
+
+        const mode = selected_mode
+        // 0: list, 1: shift, 2: absence, 3: review
+        let mod_int = 0 // "list"
+        if (mode === "list"){mod_int = 0}
+        if (mode === "shift"){mod_int = 1} else
+        if (mode === "absence"){mod_int = 2} else
+        if (mode === "review"){mod_int = 3} else
+        if (mode === "data"){mod_int = 4}
+        const data_txt = ["data-txt_employee","data-txt_shift", "data-txt_absence", "data-txt_order", "data-txt_employee"]
 
         tblHead_items.innerText = null
         // index -1 results in that the new cell will be inserted at the last position.
@@ -267,8 +283,9 @@ $(function() {
 
 //--- insert td's to tblHead_items
         let column_count;
-        if (mode === "shift"){column_count = 4} else  // shift: customer -- order --  datestart - dateend
+        if (mode === "list"){column_count = 5}  //absence: category - datefirst - datelast - delete
         if (mode === "absence"){column_count = 5}  //absence: category - datefirst - datelast - delete
+        if (mode === "shift"){column_count = 4}  // shift: customer -- order --  datestart - dateend
 
         for (let j = 0; j < column_count; j++) {
 // --- add th to tblRow.
@@ -279,129 +296,130 @@ $(function() {
             // if (j === 0 && mode === "schemeitem"){AppendChildIcon(th, imgsrc_warning)} else
             if (j === column_count - 1){
                 AppendChildIcon(th, imgsrc_delete);
-                th.classList.add("td_width_090");
-            }
-        if (mode === "shift"){
+                th.classList.add("td_width_032");
+            } else if (["list", "shift", "absence"].indexOf( mode ) > -1){
 // --- add innerText to th
-                if (j === 0){th.innerText = get_attr_from_el(el_data, "data-txt_order")} else
+                if (j === 0){th.innerText = get_attr_from_el(el_data, data_txt[mod_int])} else
                 if (j === 1){th.innerText = get_attr_from_el(el_data, "data-txt_datefirst")} else
-                if (j === 2){th.innerText = get_attr_from_el(el_data, "data-txt_datelast")};
+                if (j === 2){th.innerText = get_attr_from_el(el_data, "data-txt_datelast")} else
+                // only for list and absence
+                if (j === 3){th.innerText = get_attr_from_el(el_data, "data-txt_hoursperday")}
+
 // --- add width to th
-                if (j === 0){th.classList.add("td_width_270")} else
-                if ([1, 2].indexOf( j ) > -1){th.classList.add("td_width_120")}
+               // if (j === 0){
+               //     th.classList.add("td_width_270")
+               // } // else if ([1, 2].indexOf( j ) > -1){
+                 //   th.classList.add("td_width_150")
+               // } else {
+               //     th.classList.add("td_width_090")
+               // }
 // --- add text_align
                 th.classList.add("text_align_left");
 
-        } else if (mode === "absence"){
-// --- add innerText to th
-                if (j === 0){th.innerText = get_attr_from_el(el_data, "data-txt_absence")} else
-                if (j === 1){th.innerText = get_attr_from_el(el_data, "data-txt_datefirst")} else
-                if (j === 2){th.innerText = get_attr_from_el(el_data, "data-txt_datelast")} else
-                if (j === 3){th.innerText = get_attr_from_el(el_data, "data-txt_hoursperday")};
-// --- add width to th
-                if (j === 0){th.classList.add("td_width_270")} else
-                if ([1, 2, 3].indexOf( j ) > -1){th.classList.add("td_width_120")}
-// --- add text_align
-                th.classList.add("text_align_left");
-            }  //  if (mode === "schemeitem")
+            }  //  if (j === column_count - 1)
         }  // for (let j = 0; j < column_count; j++)
     };  //function CreateTableHeader
 
 //========= FillTableRows  ====================================
-    function FillTableRows(mode, selected_employee_pk, workhoursperday) {
-        console.log( "===== FillTableRows  ========= ", mode, selected_employee_pk);
-
+    function FillTableRows(workhoursperday) {
+        console.log( "===== FillTableRows  ========= ");
+        const mode = selected_mode
 // --- reset tblBody_items
         tblBody_items.innerText = null;
 
 // --- get  item_list
        let item_list;
 
-        if (["data", "list"].indexOf( mode ) > -1){
+        if (["list", "data"].indexOf( mode ) > -1){
             item_list = employee_list
         } else if (["shift", "absence"].indexOf( mode ) > -1){
             item_list = teammember_list
         };
-        if (!!selected_employee_pk){
-            if(!!item_list){
-    // --- loop through item_list
-                let tblRow, row_count = 0;
-                const len = item_list.length;
-                if (len > 0){
-                    for (let i = 0; i < len; i++) {
-                        let dict = item_list[i];
 
-                        // teammember_list item: {
-                            // pk: 92, ppk: 1298, table: "teammember"
-                            // id: {pk: 92, cat: 512, ppk: 1298},
-                            // order: {pk: 1090, ppk: 217, value: "Buitengewoon", cat: 512},
-                            // employee: {pk: 290, ppk: 2, value: "Albertoe S E W"}
-                            // scheme: {pk: 1110, ppk: 1090}
+        if(!!item_list){
+// --- loop through item_list
+            let tblRow, row_count = 0;
+            const len = item_list.length;
+            if (len > 0){
+                for (let i = 0; i < len; i++) {
+                    let dict = item_list[i];
 
-                        const pk = parseInt(get_dict_value_by_key(dict,"pk"))
-                        const ppk = parseInt(get_dict_value_by_key(dict,"ppk"))
-                        const cat = parseInt(get_subdict_value_by_key(dict,"cat", "value"))
-                        const employee_pk = parseInt(get_subdict_value_by_key(dict, "employee", "pk"))
+                    // teammember_list item: {
+                        // pk: 92, ppk: 1298, table: "teammember"
+                        // id: {pk: 92, cat: 512, ppk: 1298},
+                        // order: {pk: 1090, ppk: 217, value: "Buitengewoon", cat: 512},
+                        // employee: {pk: 290, ppk: 2, value: "Albertoe S E W"}
+                        // scheme: {pk: 1110, ppk: 1090}
 
-                        // shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacement, 64=rest, 512=absence, 4096=template
-                        let addRow = (!!selected_employee_pk && employee_pk === selected_employee_pk)
-                        if(addRow){
+                    const pk = parseInt(get_dict_value_by_key(dict,"pk"))
+                    const ppk = parseInt(get_dict_value_by_key(dict,"ppk"))
+                    const cat = parseInt(get_subdict_value_by_key(dict,"cat", "value"))
+                    const employee_pk = parseInt(get_subdict_value_by_key(dict, "employee", "pk"))
+
+                    // shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacement, 64=rest, 512=absence, 4096=template
+                    // in mode absence and shift: show only rows of selected_employee_pk
+                    let addRow = false;
+                    if (["shift", "absence"].indexOf( mode ) > -1){
+                        if (!!selected_employee_pk && employee_pk === selected_employee_pk){
                             if(mode === "absence") {
                                 const cat_array = get_power_array(cat);
-
                                 console.log( "cat_array: ", cat_array);
                                 // if 512=absence exists in cat_array
-                                addRow =  (cat_array.indexOf(512) > -1)
+                                addRow = (cat_array.indexOf(512) > -1)
                                 console.log( "addRow: ", addRow);
-
                             } else if(mode === "shift") {
                                 addRow = (cat < 64) // 64=rest
                             }
                         }
+                    } else {
+                        addRow = true;
+                    }
+
+    // --- add item if employee_pk = selected_employee_pk (list contains items of all employees)
+    // and cat = absence
+                    if (addRow){
+                        tblRow = CreateTableRow(pk, ppk, cat, employee_pk, workhoursperday)
+
+                        //console.log( ">>>>>>>>>>> dict ", dict);
+                        UpdateTableRow(mode, tblRow, dict)
+
+    // --- highlight selected row
+                        if (pk === selected_item_pk) {
+                            tblRow.classList.add(cls_selected)
+                        }
+                    }  // if (!!employee_pk && employee_pk === selected_employee_pk)
+
+                }  // for (let i = 0; i < len; i++)
+            }  // if (!!len)
 
 
-        // --- add item if employee_pk = selected_employee_pk (list contains items of all employees)
-        // and cat = absence
-                        if (addRow){
-                            tblRow = CreateTableRow(mode, pk, ppk, cat, employee_pk, workhoursperday)
+    // +++ add row 'add new' , only when absence
+            if (mode === "absence"){
+                id_new = id_new + 1
+                const pk_new = "new_" + id_new.toString()
+                const ppk_int = 0;
+                const cat = 512;
+                let dict = {};
+                dict["id"] = {"pk": pk_new, "ppk": ppk_int, "temp_pk": pk_new}
+                dict["workhoursperday"] = {value: workhoursperday}
+                let tblRow = CreateTableRow(pk_new, ppk_int, cat, selected_employee_pk, workhoursperday)
+                UpdateTableRow(mode, tblRow, dict)
+            };  //if (mode === "absence")
 
-                            console.log( ">>>>>>>>>>> dict ", dict);
-                            UpdateTableRow(mode, tblRow, dict)
-
-        // --- highlight selected row
-                            if (pk === selected_item_pk) {
-                                tblRow.classList.add(cls_selected)
-                            }
-                        }  // if (!!employee_pk && employee_pk === selected_employee_pk)
-
-                    }  // for (let i = 0; i < len; i++)
-                }  // if (!!len)
-
-
-        // +++ add row 'add new' , only when absence
-                if (mode === "absence"){
-                    id_new = id_new + 1
-                    const pk_new = "new_" + id_new.toString()
-                    const ppk_int = 0;
-                    const cat = 512;
-                    let dict = {};
-                    dict["id"] = {"pk": pk_new, "ppk": ppk_int, "temp_pk": pk_new}
-                    dict["workhoursperday"] = {value: workhoursperday}
-                    let tblRow = CreateTableRow(mode, pk_new, ppk_int, cat, selected_employee_pk, workhoursperday)
-                    UpdateTableRow(mode, tblRow, dict)
-                };  //if (mode === "absence")
-            }  // if (!!selected_employee_pk)
         }  // if(!!item_list)
     }  // FillTableRows
 
 //=========  CreateTableRow  ================ PR2019-08-29
-    function CreateTableRow(mode, pk, ppk, cat, employee_pk, workhoursperday) {
-         console.log("=========  function CreateTableRow =========");
-         console.log("pk", pk, "ppk", ppk, "new_name_or_date", );
-
+    function CreateTableRow(pk, ppk, cat, employee_pk, workhoursperday) {
+        const mode = selected_mode
+        //console.log("=========  function CreateTableRow =========", mode);
 // --- check if row is addnew row - when pk is NaN
         let is_new_item = !parseInt(pk);
-        console.log("is_new_item", is_new_item, "mode", mode)
+        //console.log("is_new_item", is_new_item, "mode", mode)
+
+// get default ppk when is_new_item (default ppk = company_pk)
+        if(!ppk) {ppk = get_attr_from_el(el_data, "data-ppk")};
+         //console.log("pk", pk, "ppk", ppk, "new_name_or_date", );
 
 //+++ insert tblRow ino tblBody_items
         let tblRow = tblBody_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
@@ -409,12 +427,13 @@ $(function() {
         tblRow.setAttribute("id", row_id);
         tblRow.setAttribute("data-pk", pk);
         tblRow.setAttribute("data-ppk", ppk);
-        tblRow.setAttribute("data-cat", cat);
-        tblRow.setAttribute("data-employee_pk", employee_pk);
         tblRow.setAttribute("data-workhoursperday", workhoursperday);
-
-        if (["shift", "absence"].indexOf(mode) > -1){
+        if (mode === "list"){
+            tblRow.setAttribute("data-table", "employee");
+        } else if (["shift", "absence"].indexOf(mode) > -1){
             tblRow.setAttribute("data-table", "teammember");
+            tblRow.setAttribute("data-cat", cat);
+            tblRow.setAttribute("data-employee_pk", employee_pk);
         };
         tblRow.setAttribute("data-mode", mode);
 
@@ -422,9 +441,9 @@ $(function() {
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow)}, false);
 
         let column_count;
-        if (mode === "list"){column_count = 9} else
-        if (mode === "shift"){column_count = 4} else
-        if (mode === "absence"){column_count = 5};
+        if (mode === "list"){column_count = 5} else
+        if (mode === "absence"){column_count = 5} else
+        if (mode === "shift"){column_count = 4};
 
 //+++ insert td's ino tblRow
         for (let j = 0; j < column_count; j++) {
@@ -435,7 +454,7 @@ $(function() {
             let el;
             // last td is delete button
             if (j === column_count - 1){
-            // --- first add <a> element with EventListener to td
+            // --- add <a> element with EventListener to td
                 el = document.createElement("a");
                 el.setAttribute("href", "#");
                 el.addEventListener("click", function() {UploadChanges(el)}, false )
@@ -444,42 +463,43 @@ $(function() {
                 td.appendChild(el);
                 td.classList.add("td_width_032")
 
-            } else if (mode === "shift"){
-                el = document.createElement("input");
-                el.setAttribute("type", "text");
-
-            } else if (mode === "absence"){
-                if (j === 0){
+            } else if (j === 0){
+                if (mode === "absence"){
                     el = document.createElement("select");
-                    if(is_new_item){
-                        el.classList.add("tsa_color_darkgrey")
-                    } else {
-                        el.classList.remove("tsa_color_darkgrey")
-                    }
-                   FillSelectOptionsAbscat(el, el_data, abscat_list)
-                } else if ([1, 2, 3].indexOf( j ) > -1){
+                    if(is_new_item){el.classList.add("tsa_color_darkgrey")}
+                    else {el.classList.remove("tsa_color_darkgrey")}
+                    FillSelectOptionsAbscat(el, el_data, abscat_list)
+                } else {
                     el = document.createElement("input");
                     el.setAttribute("type", "text");
-                    el.classList.add("input_text")
                 }
+            } else {
+                el = document.createElement("input");
+                el.setAttribute("type", "text");
+                el.classList.add("input_text")
             }
 
 // --- add data-name Attribute.
-            let fieldname;
+            let fieldname = "";
             if (j === column_count - 1){
                 fieldname = "delete_row";
             } else {
-                if (mode === "shift"){
-                    if (j === 0){fieldname = "order"}
-                } else if (mode === "absence"){
-                    if (j === 0){fieldname = "team"}
-                }
-                if (["shift", "absence"].indexOf( mode ) > -1){
-                    if (j === 1){fieldname = "datefirst"} else
-                    if (j === 2){fieldname = "datelast"}
-                };
-                if (mode === "absence"){
-                    if (j === 3){fieldname = "workhoursperday"};
+                if (j === 0){
+                    if (mode === "list"){fieldname = "code"} else
+                    if (mode === "shift"){fieldname = "order"} else
+                    if (mode === "absence"){fieldname = "team"}
+                } else if (j === 1){fieldname = "datefirst"
+                } else if (j === 2){fieldname = "datelast"
+                } else if (j === 3){
+                    if (["list", "absence"].indexOf( mode ) > -1){
+                        fieldname = "workhoursperday"
+                    };
+                } else {
+                    if (mode === "list"){
+                        if (j === 4){fieldname = "workdays"
+                        } else if (j === 5){fieldname = "leavedays"
+                        } else if (j === 6){fieldname = "identifier"};
+                    }
                 }
             }
             el.setAttribute("data-field", fieldname);
@@ -489,31 +509,43 @@ $(function() {
             el.setAttribute("id", "idx" + idx.toString());
 
 // --- add EventListener to td
-            if (mode === "absence"){
-                if ([0, 3].indexOf( j ) > -1){
-                    el.addEventListener("change", function() {UploadChanges(el);}, false )
+            if ([0].indexOf( j ) > -1){
+                if (["list", "absence"].indexOf( mode ) > -1){
+                    el.addEventListener("change", function() {UploadChanges(el);}, false)
                 }
             }
-            if (["shift", "absence"].indexOf( mode ) > -1){
-                if ([1, 2].indexOf( j ) > -1){
-                    el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false )
+            if ([1, 2].indexOf( j ) > -1){
+                if (["list", "absence", "shift"].indexOf( mode ) > -1){
+                    el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false)
                 };
             };
+            if ([3].indexOf( j ) > -1){
+                if (["list", "absence"].indexOf( mode ) > -1){
+                    el.addEventListener("change", function() {UploadChanges(el);}, false)
+                }
+            }
+            if ([4,5].indexOf( j ) > -1){
+                if (["list"].indexOf( mode ) > -1){
+                    el.addEventListener("change", function() {UploadChanges(el);}, false)
+                }
+            }
 
 // --- add text_align
-            if (["shift", "absence"].indexOf( mode ) > -1){
+            if (["list", "absence", "shift"].indexOf( mode ) > -1){
                 el.classList.add("text_align_left")
             };
+
 // --- add width to time fields and date fileds
-            if (["shift", "absence"].indexOf( mode ) > -1){
-                if (j === 0){el.classList.add("td_width_270")} else
-                if ([1, 2].indexOf( j ) > -1){el.classList.add("td_width_120")}
-            };
+            if (j === 0){el.classList.add("td_width_270")} else
+            if ([1, 2].indexOf( j ) > -1){el.classList.add("td_width_90")}
+            //if (mode === "list"){
+               //if ([3, 4, 5].indexOf( j ) > -1){el.classList.add("td_width_90")}
+            //};
 
 // --- add other classes to td - Necessary to skip closing popup
             el.classList.add("border_none");
             //el.classList.add("tsa_bc_transparent");
-            if (["shift", "absence"].indexOf( mode ) > -1){
+            if (["list", "absence", "shift"].indexOf( mode ) > -1){
                 if (j === 0) { el.classList.add("input_text")} else  // makes background transparent
                 if ([1, 2].indexOf( j ) > -1){el.classList.add("input_popup_date")}
             };
@@ -532,8 +564,8 @@ $(function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(mode, tblRow, item_dict){
-         console.log("========= UpdateTableRow  =========");
-         console.log(item_dict);
+         //console.log("========= UpdateTableRow  =========");
+         //console.log(item_dict);
 
         if (!isEmpty(item_dict) && !!tblRow) {
 
@@ -684,10 +716,22 @@ $(function() {
 
 
                             } else if (mode === "shift" && fieldname === "breakduration"){
-                                format_text_element (el_input, el_msg, field_dict)
-
-                            } else if (fieldname === "workhoursperday"){
+                                format_text_element (el_input, el_msg, field_dict, [-220, 60])
+                            } else if (fieldname === "workhoursperday") {
                                 format_duration_element (el_input, el_msg, field_dict, user_lang)
+
+                            } else if (["workdays", "workhours"].indexOf( fieldname ) > -1){
+                                if(!!value){
+                                    el_input.value = value / 1440
+                                    el_input.setAttribute("data-value", value);
+                                    el_input.setAttribute("data-o_value", value);
+                                    el_input.setAttribute("data-pk", pk_int);
+                                } else {
+                                    el_input.value = null;
+                                    el_input.removeAttribute("data-value");
+                                    el_input.removeAttribute("data-o_value");
+                                    el_input.removeAttribute("data-pk");
+                                }
 
                             } else if (fieldname === "inactive") {
                                if(isEmpty(field_dict)){field_dict = {value: false}}
@@ -763,7 +807,7 @@ $(function() {
                 if(mode === "absence") {id_dict["cat"] = 512}
                 const is_create = get_dict_value_by_key(id_dict, "create")
                 if(is_create){el_input.classList.remove("tsa_color_darkgrey")}
-                const employee_pk = get_attr_from_el_dict(tr_changed,"data-employee_pk")
+                const employee_pk = get_attr_from_el_int(tr_changed,"data-employee_pk")
                 const workhoursperday = get_attr_from_el_int (tr_changed, "data-workhoursperday")
                 //console.log("employee_pk: ", employee_pk);
 
@@ -780,7 +824,9 @@ $(function() {
     // add id_dict to upload_dict
                 upload_dict["id"] = id_dict;
     // add employee
-                upload_dict["employee"] = {"pk": employee_pk};
+                if (["absence", "shift"].indexOf( mode ) > -1){
+                    upload_dict["employee"] = {"pk": employee_pk};
+                }
 
     // --- dont add fielddict when is_delete
                 if(!is_delete){
@@ -805,11 +851,12 @@ $(function() {
                             const hours = workhoursperday / 60
                             upload_dict["workhoursperday"] = {"value": hours, "update": true }
                         }
-                    } else if(fieldname === "workhoursperday"){
-                        const workhours = el_input.value;
-                        field_dict["value"] = workhours;
+                    } else if (["workhoursperday", "workdays", "leavedays",].indexOf( fieldname ) > -1){
+                        const value = el_input.value;
+                        if(!value){value = 0}
+                        field_dict["value"] = value;
                         field_dict["update"] = true;
-                        upload_dict["workhoursperday"] = field_dict;
+                        upload_dict[fieldname] = field_dict;
                     }
 
 
@@ -837,11 +884,14 @@ $(function() {
             const tablename = get_subdict_value_by_key(upload_dict, "id", "table")
             console.log("tablename: ", tablename );
 
-            let url_str, parameters;
+            let url_str;
             if (["absence", "shift"].indexOf( mode ) > -1){
-                url_str = url_teammember_upload
-                parameters = {"upload": JSON.stringify (upload_dict)}
+                url_str = get_attr_from_el(el_data, "data-teammember_upload_url");
+            } else if (["list"].indexOf( mode ) > -1){
+                url_str = get_attr_from_el(el_data, "data-employee_upload_url");
             }
+            const parameters = {"upload": JSON.stringify (upload_dict)}
+
             console.log("url_str: ", url_str );
             console.log("upload_dict: ", upload_dict );
 
@@ -892,7 +942,7 @@ $(function() {
                             new_dict["id"] = {"pk": pk_new, "ppk": 0, "temp_pk": pk_new, "cat": 512, "mode": "absence", "table": "teammember"}
                             new_dict["workhoursperday"] = {"value": workhoursperday}
 
-                            let tblRow = CreateTableRow(mode, pk_new, parent_pk, cat, selected_employee_pk)
+                            let tblRow = CreateTableRow(pk_new, parent_pk, cat, selected_employee_pk)
                             UpdateTableRow(tblName, tblRow, new_dict)
                         }  // if (!!is_created)
                     }  // if (!!item_dict) {
@@ -910,14 +960,14 @@ $(function() {
     function HandleFilterInactive(el) {
         //console.log("=========  function HandleFilterInactive =========");
 // toggle value
-        filter_hide_inactive = !filter_hide_inactive
+        filter_show_inactive = !filter_show_inactive
 
 // toggle icon
         let img_src;
-        if(filter_hide_inactive) {img_src = imgsrc_active} else {img_src = imgsrc_inactive}
+        if(filter_show_inactive) {img_src = imgsrc_inactive} else {img_src = imgsrc_active}
         el.firstChild.setAttribute("src", img_src);
 
-        FilterTableRows(tblBody_scheme_select, "", 1, filter_hide_inactive)
+        FilterTableRows(tblBody_scheme_select, "", 1, filter_show_inactive)
     }  // function HandleFilterInactive
 
 //========= HandleFilterEmployee  ====================================
@@ -1229,12 +1279,9 @@ $(function() {
                 td.setAttribute("data-value", code_value);
                 td.addEventListener("click", function() {HandleSelectEmployee(tblRow)}, false )
 
-
 // --- count tblRow
                 row_count += 1
-
         } // for (let i = 0; i < len; i++)
-
     } // FillSelectTable
 
 
@@ -1754,7 +1801,6 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 // ---  hide el_popup_date
             popupbox_removebackground();
-            //el_popup_date_container.classList.add(cls_hide);
             el_popup_date.parentNode.classList.add(cls_hide);
 
 // ---  get n_value and o_value from el_popup_date
@@ -1938,7 +1984,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //========= HandlePopupDateOpen  ====================================
     function HandlePopupDateOpen(el_input) {
-        //console.log("===  HandlePopupDateOpen  =====") ;
+        console.log("===  HandlePopupDateOpen  =====") ;
 
         let el_popup_date = document.getElementById("id_popup_date")
 
@@ -1956,18 +2002,18 @@ function validate_input_blank(el_input, el_err, msg_blank){
             const data_table = get_attr_from_el(tr_selected, "data-table")
             const data_pk = get_attr_from_el(tr_selected, "data-pk")
             const data_ppk = get_attr_from_el(tr_selected, "data-ppk");
-            //console.log("data_table", data_table, "data_pk", data_pk, "data_ppk", data_ppk)
+            console.log("data_table", data_table, "data_pk", data_pk, "data_ppk", data_ppk)
 
 
 // get values from el_input
             //NIU const el_id = get_attr_from_el(el_input, "id");
             const data_field = get_attr_from_el(el_input, "data-field");
             const data_value = get_attr_from_el(el_input, "data-value");
-            //console.log("data_field", data_field, "data_value", data_value)
+            console.log("data_field", data_field, "data_value", data_value)
 
             const data_mindate = get_attr_from_el(el_input, "data-mindate");
             const data_maxdate = get_attr_from_el(el_input, "data-maxdate");
-            //console.log("data_mindate", data_mindate, "data_maxdate", data_maxdate);
+            console.log("data_mindate", data_mindate, "data_maxdate", data_maxdate);
 
     // put values in el_popup_date_container
             // NIU el_popup_date_container.setAttribute("data-el_id", el_id);
@@ -2005,7 +2051,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
     // ---  show el_popup
             el_popup_date_container.classList.remove(cls_hide);
-
+            console.log("el_popup_date_container", el_popup_date_container);
         }  // if (!!tr_selected){
 
 }; // function HandlePopupDateOpen
@@ -2086,6 +2132,9 @@ function validate_input_blank(el_input, el_err, msg_blank){
                     parameters = {"upload": JSON.stringify (upload_dict)}
                 } else if (btnName === "shift") {
                     url_str = url_teammember_upload
+                    parameters = {"upload": JSON.stringify (upload_dict)}
+                } else if (btnName === "list") {
+                    url_str = get_attr_from_el(el_data, "data-employee_upload_url");
                     parameters = {"upload": JSON.stringify (upload_dict)}
                 }
                 console.log (">>> parameters: ", upload_dict);

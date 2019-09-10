@@ -111,7 +111,7 @@ $(function() {
         if (get_attr_from_el_int(el_data, "data-quicksave") === 1 ) { quicksave = true};
         const timeformat = get_attr_from_el(el_data, "data-timeformat");
 
-        DatalistDownload({"customer": {inactive: false}, "order": {inactive: true}});
+        DatalistDownload({"customer": {inactive: false, cat_lt: 512}, "order": {inactive: true, cat_lt: 512}});
 
 // #############################################################################################################
 
@@ -781,7 +781,7 @@ $(function() {
 
                                 // console.log("updated: ", updated)
                                 if (["code", "name", "identifier"].indexOf( fieldname ) > -1){
-                                   format_text_element (el_input, el_msg, field_dict)
+                                   format_text_element (el_input, el_msg, field_dict, [-220, 60])
                                 } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
                                     const hide_weekday = true, hide_year = false;
                                     format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,

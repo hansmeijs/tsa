@@ -50,20 +50,20 @@ def get_datetimeUTC_from_datetime(datetime_obj):
 
     return datetime_utc
 
-def get_datetime_utc_from_offset(rosterdate, offset, comp_timezone):
+def get_datetime_utc_from_offset(rosterdate, offset_int, comp_timezone):
     # logger.debug(' +++ get_datetimelocal_from_offset +++')
     # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
-    # logger.debug('offset: ' + str(offset))
+    # logger.debug('offset_int: ' + str(offset_int))
 
     # !!! this is the correct way !!! PR2019-07-31
 
     dt_local = None
-    if rosterdate and offset:
+    if rosterdate and offset_int is not None:
 
-        # a. add local timezone to naive datetime object with offset
+        # a. add local timezone to naive datetime object with offset_int
         dt_local = get_datetimelocal_from_offset(
             rosterdate=rosterdate,
-            offset=offset,
+            offset_int=offset_int,
             comp_timezone=comp_timezone)
 
         # b. convert to utc
@@ -76,18 +76,18 @@ def get_datetime_utc_from_offset(rosterdate, offset, comp_timezone):
     return dt_local
 
 
-def get_datetimelocal_from_offset( rosterdate, offset, comp_timezone):
+def get_datetimelocal_from_offset( rosterdate, offset_int, comp_timezone):
     #logger.debug(' +++ get_datetimelocal_from_offset +++')
     # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
     # logger.debug('offset: ' + str(offset))
 
     dt_local = None
-    if rosterdate and offset:
+    if rosterdate and offset_int is not None:
 
     # !!! this is the correct way !!! PR2019-07-31
 
     # a. create new naive datetime object with hour and minute offset
-        dt = get_datetime_naive_from_offset(rosterdate, offset)
+        dt = get_datetime_naive_from_offset(rosterdate, offset_int)
         # logger.debug('dt with offset: ' + str(dt) + ' ' + str(type(dt)))
         # logger.debug('dt.tzinfo: ' + str(dt.tzinfo) + ' ' + str(type(dt.tzinfo)))
 
@@ -100,7 +100,7 @@ def get_datetimelocal_from_offset( rosterdate, offset, comp_timezone):
     return dt_local
 
 
-def get_datetime_naive_from_offset(rosterdate, offset):
+def get_datetime_naive_from_offset(rosterdate, offset_int):
     # logger.debug(' +++ get_datetime_naive_from_offset +++')
     # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
     # logger.debug('offset: ' + str(offset))
@@ -108,15 +108,18 @@ def get_datetime_naive_from_offset(rosterdate, offset):
     # !!! this is the correct way !!! PR2019-07-31
 
     dt_naive = None
-    if rosterdate and offset:
+    if rosterdate and offset_int is not None:
 
-    # a. get offset day, hour, minute from offset
-        day_offset, new_hour, new_minute = offset_split(offset)
+    # a. get offset day, hour, minute from offset_int
+        day_offset = math.floor(offset_int/1440)  # - 90 (1.5 h)
+        remainder = offset_int - day_offset * 1440
+        new_hour = math.floor(remainder/60)
+        new_minute = remainder - new_hour * 60
 
     # b. convert rosterdate (date object) to rosterdatetime (datetime object, naive)
         rosterdatetime = get_datetime_naive_from_date(rosterdate)
         # logger.debug('rosterdatetime: ' + str(rosterdatetime) + ' ' + str(type(rosterdatetime)))
-        # logger.debug('offset: ' + str(offset))
+        # logger.debug('offset: ' + str(offset_int))
 
     # c. add day_offset to the naive rosterdate (dont use local midnight, is not correct when DST changes)
         dt = rosterdatetime + timedelta(days=day_offset)
@@ -240,9 +243,7 @@ def get_datetime_UTC_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
     #  datetime_utc: 2019-06-26 07:20:00+00:00  <class 'datetime.datetime'>
     #  tzinfo: UTC  <class 'pytz.UTC'>
 
-
     return datetime_utc
-
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -360,70 +361,6 @@ def get_minutes_from_offset(offset_str):  #PR2019-06-13
             duration = 1440 * days + 60 * hours + minutes
     return duration
 
-def get_offset_from_minutes(duration):  #PR2019-08-26
-    # TODO check if it works
-    # returns offset_str '-1;22;30' from duration -90
-    offset_str = '0;0;0'
-    if duration:
-        days = math.floor(duration/1440)
-        remainder = duration - days * 1440
-        hours = math.floor(remainder/60)
-        minutes = remainder - hours * 60
-        offset_str = ';'.join([str(days), str(hours), str(minutes)])
-    return offset_str
-
-
-def get_datetimeUTC_from_DHM(rosterdate, dhm_str, comp_timezone):
-    # logger.debug(' +++ get_datetimeUTC_from_DHM +++')
-
-    # convert to dattime object
-    rosterdatetime = get_datetime_naive_from_date(rosterdate)
-
-    # dt_localized: 2019-03-31 04:48:00+02:00
-    dt_localized = get_datetimelocal_from_offset(
-        rosterdate=rosterdatetime,
-        offset=dhm_str,
-        comp_timezone=comp_timezone)
-
-    utc = pytz.UTC
-    dt_as_utc = dt_localized.astimezone(utc)
-
-    # dt_as_utc: 2019-03-31 02:48:00+00:00
-    # logger.debug('dt_as_utc: ' + str(dt_as_utc))
-
-    return dt_as_utc
-
-
-
-def get_date_from_dateint(date_int):  # PR2019-03-06
-# Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use dithis basedate)
-
-    return_date = None
-    if date_int:
-        # logger.debug('----------- get_date_from_dateint: ')
-        # logger.debug('base_date: ' + str(BASE_DATE) + str(type(BASE_DATE)))
-        # logger.debug('date_int: ' + str(date_int) + str(type(date_int)))
-
-        return_date = BASE_DATE + timedelta(days=date_int)
-        # logger.debug('return_date: ' + str(return_date) + str(type(return_date)))
-    return return_date
-
-def get_time_HHmm(date_time):
-    # Function return date 'HH:mm' PR2019-04-07
-    date_time_str = ''
-    # datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    # Out: '2016-07-18 18:26:18'
-
-    if date_time:
-        # logger.debug("date_time:" + str(date_time))
-        # logger.debug("date_time.strftime(%Z)):" + str(date_time.strftime("%Z")))
-        # logger.debug("date_time.strftime(%x)):" + str(date_time.strftime("%x")))
-        # logger.debug("date_time.strftime(%X)):" + str(date_time.strftime("%X")))
-
-        hour_str = str(date_time.strftime("%H"))
-        minute_str = str(date_time.strftime("%M")) # %m is zero-padded
-        date_time_str = ':'.join([hour_str, minute_str])
-    return date_time_str
 
 # ################### DATE STRING  FUNCTIONS ###################
 def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
@@ -485,7 +422,7 @@ def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
     return new_dat_str
 
 def detect_dateformat(dict, field):
-    logger.debug(' --- detect_dateformat ---')
+    # logger.debug(' --- detect_dateformat ---')
     # PR2019-08-05  detect date format
     format_str = ''
     try:
@@ -556,7 +493,7 @@ def detect_dateformat(dict, field):
                 if day_pos == 1:
                     format_str = 'mm-dd-yyyy'
 
-        logger.debug('format_str: ' + str(format_str) + ' max00: ' + str(arr00_max) + ' max01: ' + str(arr01_max) + ' max02: ' + str(arr02_max))
+        # logger.debug('format_str: ' + str(format_str) + ' max00: ' + str(arr00_max) + ' max01: ' + str(arr01_max) + ' max02: ' + str(arr02_max))
 
     except:
         logger.debug('detect_dateformat error: ' + str(date_string))
@@ -858,33 +795,40 @@ def get_time_minutes(timestart, timeend, break_minutes):  # PR2019-06-05
     return new_time_minutes
 
 
-def daterange_overlap(outer_datefirst, outer_datelast, inner_datefirst, inner_datelast=None ):
+def period_within_range(outer_datetime_first, outer_datetime_last, inner_datetime_first, inner_datetime_last):
     # check if inner range falls within outer range PR2019-06-05
+    # when inner_datetime_last == outer_datetime_first: not within range
+    within_range = True
+    if inner_datetime_first is None:
+        within_range = False
+    else:
+
+        if outer_datetime_first:
+            if inner_datetime_last <= outer_datetime_first:
+                within_range = False
+
+        if outer_datetime_last:
+            if inner_datetime_first >= outer_datetime_last:
+                within_range = False
+    return within_range
+
+
+def date_within_range(outer_datefirst, outer_datelast, inner_datefirst, inner_datelast=None):
+    # check if inner_date_first falls within outer range PR2019-06-05
+    # when inner_datelast == outer_datefirst: within_range = True
     within_range = True
     if inner_datefirst is None:
         within_range = False
     else:
         if inner_datelast is None:
             inner_datelast = inner_datefirst
-        if outer_datefirst:
-            if inner_datelast < outer_datefirst:
-                within_range = False
-        if outer_datelast:
-            if inner_datefirst > outer_datelast:
-                within_range = False
-    return within_range
 
+        if outer_datefirst and inner_datelast < outer_datefirst:
+            within_range = False
 
-def date_within_range(outer_datefirst, outer_datelast, inner_date):
-    # check if inner_date falls within outer range PR2019-06-05
-    within_range = True
-    if inner_date is None:
-        within_range = False
-    else:
-        if outer_datefirst and inner_date < outer_datefirst:
+        if outer_datelast and inner_datefirst > outer_datelast:
             within_range = False
-        if outer_datelast and inner_date > outer_datelast:
-            within_range = False
+
     return within_range
 
 # ################### NUMERIC FUNCTIONS ###################

@@ -2,7 +2,7 @@
 {% load i18n %} {% load l10n %}
 {% load static %}
 
-{% block stylesheet %}{% endblock %}
+{% block title %}{% trans 'Review' %}{% endblock %}
 
 {% block script %}
     <script src="{% static 'js/review.js' %}"></script>
@@ -10,7 +10,8 @@
 
 <!-- SIDE BAR -->
 {% block sidebar %}
-    <nav id="id_sidebar"    <nav id="id_sidebar" class="tsa_sidebar">        <div class="sidebar_header">
+    <nav id="id_sidebar" class="tsa_sidebar">
+        <div class="sidebar_header">
             <h3>{% trans 'Review' %}</h3>
         </div>
     </nav>
@@ -34,7 +35,7 @@
         <img id="id_loader" src="{% static 'img/loader.gif' %}" height="32" width="32" class="cls_visible_hide" >
     </div>
 
-    <div >
+    <div>
 
 
         <div class="content_header">

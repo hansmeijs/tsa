@@ -2,6 +2,8 @@
 {% load i18n %} {% load l10n %}
 {% load static %}
 
+{% block title %}{% trans 'Employees' %}{% endblock %}
+
 {% block script %}
     <script src="{% static 'js/employees.js' %}"></script>
 {% endblock %}
@@ -74,94 +76,81 @@
 
 {% block content %}
     {% if user.is_authenticated %}
-
+        <!-- =================== id_msgbox  =================== -->
         <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
         </div>
 
+        <!-- class container -->
         <div class="container">
 
-                 <!-- header -->
-                <div class="content_subheader mt-5">
-                    <div class="content_header">
-                        <div class="content_subheader_left mx-4">
-                            <h5 id="id_hdr_employee">{% trans 'Select employee' %}...</h5>
-                        </div>
-                        <div class="content_header_middle mx-4">
-                            <!-- loader -->
-                            <div id="id_loader" class="image_container visibility_hide">
-                                <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
-                            </div>
-                            <!-- loader -->
-                        </div>
-                        <div class="content_subheader_right mx-2 ">
-                        </div>
-                    </div>
-                    <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                        <button id="id_btn_data" type="button"  class="btn btn-secondary ">{% trans 'Data' %}</button>
-                        <button id="id_btn_absence" type="button"  class="btn btn-secondary ">{% trans 'Absence' %}</button>
-                        <button id="id_btn_shift" type="button"  class="btn btn-secondary ">{% trans 'Shifts' %}</button>
-                        <button id="id_btn_roster" type="button"  class="btn btn-secondary ">{% trans 'Roster' %}</button>
-                    </div>
-                    <div class="content_header">
-                        <div class="content_subheader_left">
-                            <input id="id_filter_orders"
-                            type="text"
-                            class="fieldname pt-0 pb-0"
-                            placeholder="{% trans 'filter...' %}">
-                        </div>
-                    </div>
-               </div>
-                <!--  header -->
+            <!-- class content_subheader mt-5 -->
+            <div class="content_subheader mt-5">
 
-        <div class="content_body mx-2">
-            <div class="popup-container">
-<!-- =================== POPUP DATE  =================== -->
-                 <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
-                     <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
-                 </div>
+                <!-- class content_header -->
+                <div class="content_header">
+                    <div class="content_subheader_left mx-4">
+                        <h5 id="id_hdr_employee">{% trans 'Select employee' %}...</h5>
+                    </div>
+                    <div class="content_header_middle mx-4">
+                        <!-- loader -->
+                        <div id="id_loader" class="image_container visibility_hide">
+                            <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
+                        </div>
+                        <!-- loader -->
+                    </div>
+                    <div class="content_subheader_right mx-2 ">
+                    </div>
+                </div>
+                <!-- end class content_header -->
 
-<!-- =================== DATA TABLE  =================== -->
-                <!--<table id="id_table_items"  class="table table-condensed tsa-tbl mx-4 my-1"> -->
-                <table id="id_table_items"  class="table table-condensed tsa-tbl my-1">
-                    <thead id="id_thead_items" class="thead-inverse"></thead>
-                    <tbody id="id_tbody_items"></tbody>
-                </table>
+                <!-- class btn-group btn-block mx-2 my-2 -->
+                <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                    <button id="id_btn_data" type="button"  class="btn btn-secondary ">{% trans 'Data' %}</button>
+                    <button id="id_btn_absence" type="button"  class="btn btn-secondary ">{% trans 'Absence' %}</button>
+                    <button id="id_btn_shift" type="button"  class="btn btn-secondary ">{% trans 'Shifts' %}</button>
+                    <button id="id_btn_roster" type="button"  class="btn btn-secondary ">{% trans 'Roster' %}</button>
+                    <button id="id_btn_list" type="button"  class="btn btn-secondary ">{% trans 'List' %}</button>
+                </div>
+                <!-- end class btn-group btn-block mx-2 my-2 -->
+
+                <!-- filter input-->
+                <div class="content_header">
+                    <div class="content_subheader_left">
+                        <input id="id_filter_orders"
+                        type="text"
+                        class="fieldname pt-0 pb-0"
+                        placeholder="{% trans 'filter...' %}">
+                    </div>
+                </div>
+                <!-- end filter input -->
+
             </div>
+            <!-- end class content_subheader mt-5 -->
+
+            <!-- class content body mx-2 -->
+            <div class="content_body mx-2">
+                <div class="popup-container">
+    <!-- =================== POPUP DATE  =================== -->
+                     <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
+                         <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
+                     </div>
+
+    <!-- =================== DATA TABLE  =================== -->
+                    <!--<table id="id_table_items"  class="table table-condensed tsa-tbl mx-4 my-1"> -->
+                    <table id="id_table_items"  class="table table-condensed table-responsive tsa-tbl my-1">
+                        <thead id="id_thead_items" class="thead-inverse"></thead>
+                        <tbody id="id_tbody_items"></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- end class content body mx-2 -->
 
         </div>
-    </div>
-<!--</div> flex_container -->
-
-
+        <!-- end class container -->
 
         <div id="id_data"
-            data-txt_employee= "{% trans 'Employee' %}"
-            data-txt_employee_list= "{% trans 'Employee list' %}"
-            data-txt_employee_data= "{% trans 'Employee data' %}"
-            data-txt_employee_orders= "{% trans 'Orders' %}"
-
-            data-txt_order= "{% trans 'Order' %}"
-            data-txt_absence= "{% trans 'Absence' %}"
-            data-txt_abscat = "{% trans 'Absence category' %}"
-            data-txt_select_abscat = "{% trans 'Select absence category' %}"
-            data-txt_select_abscat_none = "{% trans 'No absence categories' %}"
-
-            data-txt_datefirst= "{% trans 'First date' %}"
-            data-txt_datelast= "{% trans 'Last date' %}"
-
-            data-txt_employee_import= "{% trans 'Upload employees' %}"
-            data-txt_employee_delete= "{% trans 'Delete employee' %}"
-            data-txt_employee_add= "{% trans 'Add new employee' %}"
-            data-txt_make_inactive= "{% trans 'Make employee inactive' %}"
-            data-txt_make_active= "{% trans 'Make employee active' %}"
-
-            data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
-            data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
-            data-imgsrc_delete="{% static 'img/delete.gif' %}"
-            data-imgsrc_warning="{% static 'img/warning.gif' %}"
-            data-imgsrc_stat04="{% static 'img/stat04.png' %}"
-
+            data-ppk ="{{ ppk }}"
             data-lang ="{{ lang }}"
             data-timezone ="{{ timezone }}"
             data-interval ="{{ interval }}"
@@ -171,11 +160,44 @@
             data-months ="{{ months }}"
             data-today ="{{ today }}"
 
-
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-employee_import_url="{% url 'employee_import_url' %}"
             data-employee_upload_url="{% url 'employee_upload_url' %}"
             data-teammember_upload_url="{% url 'teammember_upload_url' %}"
+
+            data-txt_employee = "{% trans 'Employee' %}"
+            data-txt_employees= "{% trans 'Employees' %}"
+            data-txt_employee_select= "{% trans 'Select employee' %}"
+            data-txt_employee_select_none= "{% trans 'No employees' %}"
+            data-txt_employee_enter= "{% trans 'Enter employee' %}"
+            data-txt_employee_replacement= "{% trans 'Replacement employee' %}"
+            data-txt_employee_replacement_add= "{% trans 'Add replacement employee' %}"
+            data-txt_employee_list= "{% trans 'Employee list' %}"
+            data-txt_employee_data= "{% trans 'Employee data' %}"
+            data-txt_employee_orders= "{% trans 'Orders' %}"
+            data-txt_employee_import= "{% trans 'Upload employees' %}"
+            data-txt_employee_delete= "{% trans 'Delete employee' %}"
+            data-txt_employee_add= "{% trans 'Add new employee' %}"
+
+            data-txt_order= "{% trans 'Order' %}"
+            data-txt_absence= "{% trans 'Absence' %}"
+            data-txt_abscat = "{% trans 'Absence category' %}"
+            data-txt_select_abscat = "{% trans 'Select absence category' %}"
+            data-txt_select_abscat_none = "{% trans 'No absence categories' %}"
+            data-txt_select_order= "{% trans 'Select order' %}"
+            data-txt_select_order_none= "{% trans 'No orders' %}"
+            data-txt_select_scheme= "{% trans 'Select scheme' %}"
+            data-txt_select_scheme_none= "{% trans 'No schemes' %}"
+
+            data-txt_make_inactive= "{% trans 'Make employee inactive' %}"
+            data-txt_make_active= "{% trans 'Make employee active' %}"
+
+            data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
+            data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
+            data-imgsrc_delete="{% static 'img/delete.gif' %}"
+            data-imgsrc_warning="{% static 'img/warning.gif' %}"
+            data-imgsrc_stat04="{% static 'img/stat04.png' %}"
+
 
             data-err_msg01= "{% trans 'An error occurred.' %}"
             data-err_msg_order="{% trans 'Please select an order.' %}"
@@ -193,11 +215,7 @@
             data-txt_customer = "{% trans 'Customer' %}"
             data-txt_select_customer= "{% trans 'Select customer' %}"
             data-txt_select_customer_none= "{% trans 'No customers' %}"
-            data-txt_order= "{% trans 'Order' %}"
-            data-txt_select_order= "{% trans 'Select order' %}"
-            data-txt_select_order_none= "{% trans 'No orders' %}"
-            data-txt_select_scheme= "{% trans 'Select scheme' %}"
-            data-txt_select_scheme_none= "{% trans 'No schemes' %}"
+
 
             data-txt_date= "{% trans 'Date' %}"
             data-txt_scheme= "{% trans 'Scheme' %}"
@@ -225,18 +243,13 @@
             data-txt_team_delete= "{% trans 'Delete team' %}"
             data-txt_show_teams= "{% trans 'Go to teams' %}"
 
-            data-txt_employee = "{% trans 'Employee' %}"
-            data-txt_employees= "{% trans 'Employees' %}"
-            data-txt_employee_select= "{% trans 'Select employee' %}"
-            data-txt_employee_select_none= "{% trans 'No employees' %}"
-            data-txt_employee_add= "{% trans 'Add employee' %}"
-            data-txt_employee_enter= "{% trans 'Enter employee' %}"
-            data-txt_employee_replacement= "{% trans 'Replacement employee' %}"
-            data-txt_employee_replacement_add= "{% trans 'Add replacement employee' %}"
 
-            data-txt_datefirst= "{% trans 'Start date' %}"
-            data-txt_datelast= "{% trans 'End date' %}"
+            data-txt_datefirst= "{% trans 'First date' %}"
+            data-txt_datelast= "{% trans 'Last date' %}"
             data-txt_hoursperday= "{% trans 'Hours per day' %}"
+            data-txt_daysperweek= "{% trans 'Days per week' %}"
+            data-txt_vacation= "{% trans 'Vacation days' %}"
+            data-txt_identifier= "{% trans 'Identifier' %}"
 
             data-txt_timestart= "{% trans 'Start time' %}"
             data-txt_timeend= "{% trans 'End time' %}"

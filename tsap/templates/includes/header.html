@@ -104,13 +104,13 @@
 <div class="menubar">
     <div id="id_menubar">
         {% if user.is_authenticated %}
-            <a id="id_hdr_comp" href="{% url 'company_list_url' %}">{% trans 'Companies' %}</a>
-            <a id="id_hdr_empl" href="{% url 'employee_list_url' %}">{% trans 'Employees' %}</a>
-            <a id="id_hdr_cust" href="{% url 'customer_list_url' %}">{% trans 'Customers' %}</a>
-            <a id="id_hdr_ordr" href="{% url 'order_list_url' %}">{% trans 'Orders' %}</a>
-            <a id="id_hdr_schm" href="{% url 'schemes_url' %}">{% trans 'Planning' %}</a>
-            <a id="id_hdr_rost" href="{% url 'roster_url' %}">{% trans 'Roster' %}</a>
-            <a id="id_hdr_revi" href="{% url 'review_url' %}">{% trans 'Review' %}</a>
+            <a id="id_hdr_comp" href="#">{% trans 'Company' %}</a>
+            <a id="id_hdr_empl" href="#">{% trans 'Employees' %}</a>
+            <a id="id_hdr_cust" href="#">{% trans 'Customers' %}</a>
+            <a id="id_hdr_ordr" href="#">{% trans 'Orders' %}</a>
+            <a id="id_hdr_schm" href="#">{% trans 'Planning' %}</a>
+            <a id="id_hdr_rost" href="#">{% trans 'Roster' %}</a>
+            <a id="id_hdr_revi" href="#">{% trans 'Review' %}</a>
         {% else %}
             <a href="{% url 'home' %}">Home</a>
         {% endif %}
@@ -121,3 +121,13 @@
     </div>
 </div>
 
+        <div id="id_header_url"
+            data-home_url="{% url 'home' %}"
+            data-company_list_url="{% url 'company_list_url' %}"
+            data-employee_list_url="{% url 'employee_list_url' %}"
+            data-customer_list_url="{% url 'customer_list_url' %}"
+            data-order_list_url="{% url 'order_list_url' %}"
+            data-schemes_url="{% url 'schemes_url' %}"
+            data-roster_url="{% url 'roster_url' %}"
+            data-review_url="{% url 'review_url' %}"
+        > </div>

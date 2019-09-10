@@ -1,6 +1,6 @@
 # PR2019-02-28
 from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL, Sum
-from django.db.models import CharField, BooleanField, PositiveSmallIntegerField, IntegerField, \
+from django.db.models import CharField, BooleanField, PositiveSmallIntegerField, SmallIntegerField, IntegerField, \
     DateField, DateTimeField, Q, Value
 from django.db.models.functions import Lower, Coalesce
 
@@ -162,7 +162,7 @@ class Customer(TsaBaseModel):
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     email = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=c.USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
-    interval = PositiveSmallIntegerField(default=c.TIMEINTERVAL_DEFAULT)
+    interval = PositiveSmallIntegerField(default=0)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -189,7 +189,7 @@ class Order(TsaBaseModel):
     taxcode = ForeignKey(Taxcode, related_name='orders', on_delete=PROTECT, null=True, blank=True)
 
     ishourlybasis = BooleanField(default=False)
-    interval = PositiveSmallIntegerField(default=c.TIMEINTERVAL_DEFAULT)
+    interval = PositiveSmallIntegerField(default=0)
 
     class Meta:
         ordering = [Lower('code')]
@@ -200,43 +200,6 @@ class Order(TsaBaseModel):
     @property
     def id_str(self):
         return 'id_ord_' + self.pk
-
-    @classmethod
-    def create_instance(cls, customer, code, name, temp_pk_str, update_dict, request):
-        instance = None
-        pk_int = None
-        parent_pk_int = None
-        # - parent, code and name are required
-        if customer:
-            # TODO
-            code_ok = True  # TODO validate_code_name_identifier('order', 'code', code, update_dict, request.user.company)
-            name_ok = True  # TODO  validate_code_name_identifier('order', 'name', name, update_dict, request.user.company)
-
-# - create instance
-            if code_ok and name_ok:
-                instance = cls(customer=customer, code=code, name=name)
-# - save instance
-                instance.save(request=request)
-# - create error when instance not created
-            if instance is None:
-                msg_err = _('This order could not be created.')
-                update_dict['id']['error'] = msg_err
-            else:
-# - put info in id_dict
-                update_dict['pk'] = instance.pk
-                update_dict['id']['pk'] = instance.pk
-                update_dict['id']['ppk'] = customer.pk
-                update_dict['id']['created'] = True
-                update_dict['code']['value'] = instance.code
-                update_dict['code']['updated'] = True
-                update_dict['name']['value'] = instance.name
-                update_dict['name']['updated'] = True
-
-            # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
-            if temp_pk_str:
-                update_dict['id']['temp_pk'] = temp_pk_str
-
-        return instance
 
 
 class Object(TsaBaseModel):
@@ -360,8 +323,10 @@ class Shift(TsaBaseModel):
     locked = None
 
     cat = PositiveSmallIntegerField(default=0)
-    offsetstart = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)  # dhm" "-1;17;45"
-    offsetend = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+
+    offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
+    offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
+
     breakduration = IntegerField(default=0) # unit is minute
     wagefactor = ForeignKey(Wagefactor, related_name='shifts', on_delete=SET_NULL, null=True, blank=True)
 
@@ -420,63 +385,6 @@ class Employee(TsaBaseModel):
         self.n_prefix = str(self.prefix) if self.prefix else ''
         return ' '.join((self.n_first, self.n_prefix, self.n_last))
 
-    @classmethod
-    def create_instance(cls, company, code, namelast, temp_pk_str, update_dict, request):
-
-        instance = None
-# - parent, code and namelast are required
-        if company:
-            # TODO
-            code_ok = True  # TODO validate_code_name_identifier('employee', 'code', code, update_dict, request.user.company)
-            namelast_ok = True  # TODO  validate_code_name_identifier('employee', 'name', name, update_dict, request.user.company)
-
-# - create instance
-            if code_ok and namelast_ok:
-                instance = cls(company=company, code=code, namelast=namelast)
-# - save instance
-                instance.save(request=request)
-# - create error when instance not created
-            if instance is None:
-                msg_err = _('This employee could not be created.')
-                update_dict['id']['error'] = msg_err
-            else:
-# - put info in id_dict
-                update_dict['id']['created'] = True
-                update_dict['id']['pk'] = instance.pk
-                update_dict['id']['ppk'] = company.pk
-                update_dict['code']['value'] = instance.code
-                update_dict['code']['updated'] = True
-                update_dict['namelast']['value'] = instance.namelast
-                update_dict['namelast']['updated'] = True
-
-            # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
-            if temp_pk_str:
-                update_dict['id']['temp_pk'] = temp_pk_str
-
-        return instance
-
-
-class Emplrate(TsaBaseModel):
-    objects = TsaManager()
-    employee = ForeignKey(Employee, related_name='emplrates',  on_delete=CASCADE)
-    order = ForeignKey(Order, related_name='emplrates',  on_delete=CASCADE)
-
-    cat = PositiveSmallIntegerField(default=0)
-
-    wagerate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
-    wagefactor = IntegerField(default=0) # /10000 unitless, 0 = factor 100%  = 10.000)
-    wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
-
-    status = PositiveSmallIntegerField(db_index=True, default=0)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    # code = None
-    name = None
-    datefirst = None
-    datelast = None
-    inactive = None
-    locked = None
-
 
 class Teammember(TsaBaseModel):
     objects = TsaManager()
@@ -493,10 +401,14 @@ class Teammember(TsaBaseModel):
     cat = PositiveSmallIntegerField(default=0)  # teammember cat: 0 = normal, 1 = replacement, 512 = absent
     workhoursperday = IntegerField(default=0)  # / working hours per day, unit is minute
 
+    wagerate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
+    wagefactor = IntegerField(default=0) # /10000 unitless, 0 = factor 100%  = 10.000)
+
+
     # 33333333333333333333333333333333333333333333333333
     @classmethod
     def get_first_teammember_on_rosterdate(cls, team, rosterdate_dte):
-        logger.debug("------ get_first_teammember_on_rosterdate---" + str(rosterdate_dte))
+        # logger.debug("------ get_first_teammember_on_rosterdate---" + str(rosterdate_dte))
 
         teammember = None
         if team and rosterdate_dte:
@@ -515,18 +427,18 @@ class Teammember(TsaBaseModel):
                 # AND ("companies_teammember"."datefirst" <= 2019-08-14 OR "companies_teammember"."datefirst" IS NULL)
                 # AND ("companies_teammember"."datelast" >= 2019-08-14 OR "companies_teammember"."datelast" IS NULL))
 
-            # convert datelast null into '2200-01-01'.  (function Coalesce changes Null into '2200-01-01')
+            # convert datelast null into '2500-01-01'.  (function Coalesce changes Null into '2500-01-01')
             # from: https://stackoverflow.com/questions/5235209/django-order-by-position-ignoring-null
             # Coalesce works by taking the first non-null value.  So we give it
             # a date far after any non-null values of last_active.  Then it will
             # naturally sort behind instances of Box with a non-null last_active value.
 
-            # order_by datelast, null comes last (with Coalesce changes to '2200-01-01'
+            # order_by datelast, null comes last (with Coalesce changes to '2500-01-01'
             # - get employee with earliest endatlookup employee in teammembers
 
             # for testing:
             # teammembers = cls.objects.annotate(
-            #     new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
+            #     new_datelast=Coalesce('datelast', Value(datetime(2500, 1, 1))
             #                           )).filter(crit).order_by('new_datelast')
             # for member in teammembers:
             #     employee = getattr(member, 'employee')
@@ -534,55 +446,10 @@ class Teammember(TsaBaseModel):
             #        logger.debug('test employee: ' + str(employee) + ' datefirst: ' + str(member.datefirst) + ' datelast: ' + str(member.datelast))
 
             teammember = cls.objects.annotate(
-                new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
+                new_datelast=Coalesce('datelast', Value(datetime(2500, 1, 1))
                                       )).filter(crit).order_by('new_datelast').first()
         return teammember
-# 33333333333333333333333333333333333333333333333333
 
-    @classmethod
-    def get_first_teammember_on_rosterdate_with_logfile(cls, team, rosterdate_dte, logfile):
-        logfile.append("         lookup employees in team")
-
-        added_teammember = None
-        if team and rosterdate_dte:
-            # filter teammmembers that have new_rosterdate within range datefirst/datelast
-            crit = (Q(team=team)) & \
-                   (Q(employee__isnull=False)) # & \
-                   #(Q(employee__datefirst__lte=rosterdate_dte) | Q(employee__datefirst__isnull=True)) & \
-                   #(Q(employee__datelast__gte=rosterdate_dte) | Q(employee__datelast__isnull=True)) & \
-                   #(Q(datefirst__lte=rosterdate_dte) | Q(datefirst__isnull=True)) & \
-                   #(Q(datelast__gte=rosterdate_dte) | Q(datelast__isnull=True))
-
-            teammembers = cls.objects.annotate(
-                new_datelast=Coalesce('datelast', Value(datetime(2200, 1, 1))
-                                      )).filter(crit).order_by('new_datelast')
-            added_teammember = None
-            for teammember in teammembers:
-                empl = teammember.employee
-                logfile.append("           " + empl.code)
-                df = '---'
-                dl = '---'
-                if not f.date_within_range(empl.datefirst, empl.datelast, rosterdate_dte):
-                    range = ''
-                    if empl.datefirst:
-                        range = ' from ' + str(empl.datefirst)
-                    if empl.datelast:
-                        range += ' thru ' + str(empl.datelast)
-                    logfile.append('           employee not in service on rosterdate: ' + range + '.')
-                elif not f.date_within_range(teammember.datefirst, teammember.datelast, rosterdate_dte):
-                    range = ''
-                    if teammember.datefirst:
-                        range = ' from ' + str(teammember.datefirst)
-                    if teammember.datelast:
-                        range += ' thru ' + str(teammember.datelast)
-                    logfile.append('           rosterdate outside shift period: ' + range + '.')
-                else:
-                    added_teammember = teammember
-                    logfile.append("           employee added to shift.")
-                    break
-
-        return added_teammember
-# 33333333333333333333333333333333333333333333333333
 
 class Schemeitem(TsaBaseModel):
     objects = TsaManager()
@@ -840,8 +707,8 @@ def get_entry_balance(request, comp_timezone):  # PR2019-08-01
 
 def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # PR2019-08-04
     # function returns avalable balance
-    logger.debug('---  entry_balance_subtract  ------- ')
-    logger.debug('entries_tobe_subtracted ' + str(entries_tobe_subtracted))
+    # logger.debug('---  entry_balance_subtract  ------- ')
+    # logger.debug('entries_tobe_subtracted ' + str(entries_tobe_subtracted))
 
     balance = 0
     if request.user.company:
@@ -879,7 +746,7 @@ def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # 
                             invoice.used = saved_used + subtract
                             subtotal = subtotal - subtract
                             save_changes = True
-                            logger.debug('invoice.balance ' + str(invoice.balance))
+                            # logger.debug('invoice.balance ' + str(invoice.balance))
                 if save_changes:
                     invoice.save(request=request)
             # if any entries_tobe_subtracted left: subtract from garce entries
@@ -892,7 +759,7 @@ def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # 
                 grace_invoice.used = saved_used + subtotal
                 grace_invoice.save(request=request)
 
-                logger.debug('grace.balance ' + str(grace_invoice.balance))
+                # logger.debug('grace.balance ' + str(grace_invoice.balance))
 
 
 def get_or_create_grace_invoice(request):  # PR2019-08-13
@@ -928,9 +795,9 @@ def create_invoice(request, cat, entries=0, rate=0, datepayment=None, dateexpire
 def get_parent(table, ppk_int, update_dict, request):
     # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-07-30
     parent = None
-    logger.debug(' --- get_parent --- ')
+    # logger.debug(' --- get_parent --- ')
 
-    logger.debug('table: ' + str(table))
+    # logger.debug('table: ' + str(table))
     if table:
         if request.user.company:
             company = request.user.company
@@ -959,7 +826,7 @@ def get_parent(table, ppk_int, update_dict, request):
 
 def get_instance(table, pk_int, parent, update_dict=None):
     # function returns instance of table PR2019-07-30
-    logger.debug('====== get_instance: ' + str(table) + ' pk_int: ' + str(pk_int) + ' parent: ' + str(parent))
+    # logger.debug('====== get_instance: ' + str(table) + ' pk_int: ' + str(pk_int) + ' parent: ' + str(parent))
 
     instance = None
 
