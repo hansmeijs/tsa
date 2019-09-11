@@ -1286,7 +1286,9 @@
         if (!!status) {
             if (!!status_sum) {
                 for (let i = 8, power; i >= 0; i--) {
-                    power = 2 ** i  // ** is much faster then power = Math.pow(2, i); from http://bytewrangler.blogspot.com/2011/10/mathpowx2-vs-x-x.html
+                    //power = 2 ** i  // ** is much faster then power = Math.pow(2, i); from http://bytewrangler.blogspot.com/2011/10/mathpowx2-vs-x-x.html
+                    // exponentiation operator ** not working in IE11; back to Math.pow PR2019-09-11
+                    power = Math.pow(2, i);
                     if (status_sum >= power) {
                         if (power === status) {
                             found = true;

@@ -852,7 +852,7 @@ $(function() {
                             upload_dict["workhoursperday"] = {"value": hours, "update": true }
                         }
                     } else if (["workhoursperday", "workdays", "leavedays",].indexOf( fieldname ) > -1){
-                        const value = el_input.value;
+                        let value = el_input.value;
                         if(!value){value = 0}
                         field_dict["value"] = value;
                         field_dict["update"] = true;

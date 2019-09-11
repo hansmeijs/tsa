@@ -7,6 +7,10 @@ $(function() {
         const cls_active = "active";
         const cls_hover = "tr_hover";
         const cls_hide = "display_hide";
+
+        const cls_visible_hide = "visibility_hide";
+        const cls_visible_show = "visibility_show";
+
         const col_inactive = 2;
         const col_count = 3;
 
@@ -54,7 +58,7 @@ $(function() {
         }
 
 // show loader
-        el_loader.classList.remove(cls_hide)
+        el_loader.classList.remove(cls_visible_hide)
 
         let param = {"datalist_download": JSON.stringify (datalist_request)};
         let response = "";
@@ -67,7 +71,7 @@ $(function() {
                  console.log("response")
                  console.log(response)
                 // hide loader
-                el_loader.classList.add(cls_hide)
+                el_loader.classList.add(cls_visible_hide)
 
                 if ("submenu" in response) {
 
@@ -77,7 +81,7 @@ $(function() {
             },
             error: function (xhr, msg) {
                 // hide loader
-                el_loader.classList.add(cls_hide)
+                el_loader.classList.add(cls_visible_hide)
 
                 console.log(msg + '\n' + xhr.responseText);
                 alert(msg + '\n' + xhr.responseText);

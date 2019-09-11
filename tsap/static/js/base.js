@@ -56,30 +56,7 @@ $(function() {
         $('a[aria-expanded=true]').attr('aria-expanded', 'false');
     });
 
-        document.getElementById("id_hdr_comp").addEventListener("click", function() {HandleWindowOpen("comp")}, false )
-        document.getElementById("id_hdr_empl").addEventListener("click", function() {HandleWindowOpen("empl")}, false )
-        document.getElementById("id_hdr_cust").addEventListener("click", function() {HandleWindowOpen("cust")}, false )
-        document.getElementById("id_hdr_ordr").addEventListener("click", function() {HandleWindowOpen("ordr")}, false )
-        document.getElementById("id_hdr_schm").addEventListener("click", function() {HandleWindowOpen("schm")}, false )
-        document.getElementById("id_hdr_rost").addEventListener("click", function() {HandleWindowOpen("rost")}, false )
-        document.getElementById("id_hdr_revi").addEventListener("click", function() {HandleWindowOpen("revi")}, false )
 
-//=========  HandleWindowOpen  === PR2019-09-07
-    function HandleWindowOpen(mod) {
-
-        // --- get data stored in page
-        let el_url = document.getElementById("id_header_url");
-        let url_txt
-        if (mod === "comp"){url_txt = get_attr_from_el(el_url, "data-company_list_url") } else
-        if (mod === "empl"){url_txt = get_attr_from_el(el_url, "data-employee_list_url") } else
-        if (mod === "cust"){url_txt = get_attr_from_el(el_url, "data-customer_list_url") } else
-        if (mod === "ordr"){url_txt = get_attr_from_el(el_url, "data-order_list_url") } else
-        if (mod === "schm"){url_txt = get_attr_from_el(el_url, "data-schemes_url") } else
-        if (mod === "rost"){url_txt = get_attr_from_el(el_url, "data-roster_url") } else
-        if (mod === "revi"){url_txt = get_attr_from_el(el_url, "data-review_url") } else
-        {url_txt = get_attr_from_el(el_url, "data-home_url")}
-        window.open(url_txt, mod);
-    }
 
 })
 
@@ -120,8 +97,11 @@ $(function() {
             do  {
                 i--;
                 // get power of 'i'
-                power = 2 ** i  // ** is much faster then power = Math.pow(2, i); from http://bytewrangler.blogspot.com/2011/10/mathpowx2-vs-x-x.html
+                // power = 2 ** i  // ** is much faster then power = Math.pow(2, i); from http://bytewrangler.blogspot.com/2011/10/mathpowx2-vs-x-x.html
+                // exponentiation operator ** not working in IE11; back to Math.pow PR2019-09-11
                 // if value >= power : add power to list
+                power = Math.pow(2, i);
+
                 if (value >= power) {
                     // unshift adds a new item to the beginning of an array:
                     power_list.unshift(power);
@@ -563,3 +543,29 @@ $(function() {
             }
         }
     }
+    /*
+        //document.getElementById("id_hdr_comp").addEventListener("click", function() {HandleWindowOpen("comp")}, false )
+        //document.getElementById("id_hdr_empl").addEventListener("click", function() {HandleWindowOpen("empl")}, false )
+        //document.getElementById("id_hdr_cust").addEventListener("click", function() {HandleWindowOpen("cust")}, false )
+        //document.getElementById("id_hdr_ordr").addEventListener("click", function() {HandleWindowOpen("ordr")}, false )
+        //document.getElementById("id_hdr_schm").addEventListener("click", function() {HandleWindowOpen("schm")}, false )
+        //document.getElementById("id_hdr_rost").addEventListener("click", function() {HandleWindowOpen("rost")}, false )
+        //document.getElementById("id_hdr_revi").addEventListener("click", function() {HandleWindowOpen("revi")}, false )
+
+//=========  HandleWindowOpen  === PR2019-09-07
+    //function HandleWindowOpen(mod) {
+
+        // --- get data stored in page
+        //let el_url = document.getElementById("id_header_url");
+        //let url_txt
+        //if (mod === "comp"){url_txt = get_attr_from_el(el_url, "data-company_list_url") } else
+        //if (mod === "empl"){url_txt = get_attr_from_el(el_url, "data-employee_list_url") } else
+        //if (mod === "cust"){url_txt = get_attr_from_el(el_url, "data-customer_list_url") } else
+        //if (mod === "ordr"){url_txt = get_attr_from_el(el_url, "data-order_list_url") } else
+        //if (mod === "schm"){url_txt = get_attr_from_el(el_url, "data-schemes_url") } else
+        //if (mod === "rost"){url_txt = get_attr_from_el(el_url, "data-roster_url") } else
+        //if (mod === "revi"){url_txt = get_attr_from_el(el_url, "data-review_url") } else
+        //{url_txt = get_attr_from_el(el_url, "data-home_url")}
+        //window.open(url_txt, mod);
+    //}
+    */

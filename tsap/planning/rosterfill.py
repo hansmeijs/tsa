@@ -524,19 +524,17 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request, comp_timezon
             rest_dict=rest_dict,
             logfile=logfile
         )
-        if not teammember:
-            logfile.append("           No employee found for this shift.")
-        else:
+        employee_text = ", no employee was found for this shift."
+        if teammember:
             # add employee (employe=null is filtered out)
             employee = teammember.employee
             if employee:
                 new_emplhour.employee = employee
                 new_emplhour.wagecode = employee.wagecode
-                logfile.append("           Employee '" + str(employee.code) + "' is added to shift")
+                employee_text = " with employee: " + str(employee.code) + "."
 
         new_emplhour.save(request=request)
-
-        logfile.append("           Shift '" + str(shift_code) + "' is added to roster.")
+        logfile.append("           Shift '" + str(shift_code) + "' is added" + employee_text)
 
 
 # 33333333333333333333333333333333333333333333333333
