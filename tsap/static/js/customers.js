@@ -670,8 +670,8 @@ $(function() {
                 let td = tblRow.insertCell(-1);
                 let inner_text = code_value
                 if (table_name === "shift"){
-                    // SHIFT_CAT_0256_RESTSHIFT
-                    if (get_subdict_value_by_key(item_dict, "cat", "value") === 256) { inner_text += " (R)"}
+                    // SHIFT_CAT_1024_RESTSHIFT
+                    if (get_subdict_value_by_key(item_dict, "cat", "value") === 1024) { inner_text += " (R)"}
                 }
                 td.innerText = inner_text;
 

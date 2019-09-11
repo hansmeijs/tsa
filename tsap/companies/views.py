@@ -140,8 +140,8 @@ class CompanyAddView(CreateView):
             self.new_company.save(request=self.request)
 
             # create special customers and orders
-            get_or_create_special_order(c.SHIFT_CAT_0256_RESTSHIFT, request)
             get_or_create_absence_customer(request)
+            get_or_create_special_order(c.SHIFT_CAT_1024_RESTSHIFT, request)
             get_or_create_special_order(c.SHIFT_CAT_4096_TEMPLATE, request)
 
             return redirect('company_list_url')

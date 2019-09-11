@@ -327,7 +327,7 @@ def get_or_create_special_order(category, request):
 
     # get locale text
     template_locale = None
-    if category == c.SHIFT_CAT_0256_RESTSHIFT:
+    if category == c.SHIFT_CAT_1024_RESTSHIFT:
         lang = user_lang if user_lang in c.REST_TEXT else c.LANG_DEFAULT
         template_locale = c.REST_TEXT[lang]
     elif category == c.SHIFT_CAT_4096_TEMPLATE:

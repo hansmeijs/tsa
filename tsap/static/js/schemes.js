@@ -1840,8 +1840,8 @@ $(function() {
 //========= FillOptionRest  ============= PR2019-08-10
     function FillOptionRest() {
         const rest_display = get_attr_from_el(el_data, "data-txt_shift_rest");
-        // SHIFT_CAT_0256_RESTSHIFT
-        const value = [0, 256];
+        // SHIFT_CAT_1024_RESTSHIFT
+        const value = [0, 1024];
         const display = ["-", rest_display];
         let option_text = "";
         for(let i = 0; i < 2; i++){
@@ -2007,8 +2007,8 @@ $(function() {
                 let td = tblRow.insertCell(-1);
                 let inner_text = code_value
                 if (table_name === "shift"){
-                    // SHIFT_CAT_0256_RESTSHIFT
-                    if (get_subdict_value_by_key(item_dict, "cat", "value") === 256) { inner_text += " (R)"}
+                    // SHIFT_CAT_1024_RESTSHIFT
+                    if (get_subdict_value_by_key(item_dict, "cat", "value") === 1024) { inner_text += " (R)"}
                 }
                 td.innerText = inner_text;
 

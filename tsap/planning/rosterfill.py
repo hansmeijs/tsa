@@ -232,7 +232,7 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
         AND (tm.datefirst <= %(rd)s OR tm.datefirst IS NULL) AND (tm.datelast >= %(rd)s OR tm.datelast IS NULL)
         ORDER BY tm_sub.e_id ASC""",
                           {'cid': request.user.company_id,
-                           'cat': c.SHIFT_CAT_0256_RESTSHIFT,
+                           'cat': c.SHIFT_CAT_1024_RESTSHIFT,
                            'rd': new_rosterdate_dte})
         rest_rows = newcursor.fetchall()
         logger.debug('------- rest_rows >' + str(rest_rows))
@@ -292,7 +292,7 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
                             teammember=teammember,
                             new_rosterdate_dte=new_rosterdate_dte,
                             request=request,
-                            abscat=c.SHIFT_CAT_0256_RESTSHIFT)
+                            abscat=c.SHIFT_CAT_1024_RESTSHIFT)
 
                     if is_added:
                         logfile.append("       " + item[1] + " has rest from '" + item[3] + " - " + item[4] + "' on " + str(item[5].isoformat()) + ".")
@@ -303,7 +303,7 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
 
 # 4. create shifts
         # loop through all customers of this company, except for absence and template
-        # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
+        # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
         customers = m.Customer.objects.filter(company=request.user.company, cat__lt=c.SHIFT_CAT_0512_ABSENCE)
         if not customers:
             logfile.append('================================ ')
@@ -376,7 +376,7 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
                                                             logfile.append(shift_code + "' is blank.")
                                                         elif schemeitem.inactive:
                                                             logfile.append(shift_code + "' is inactive on this date.")
-                                                        elif schemeitem.shift.cat == c.SHIFT_CAT_0256_RESTSHIFT:
+                                                        elif schemeitem.shift.cat == c.SHIFT_CAT_1024_RESTSHIFT:
                                             # skip rest shift
                                                             count_skipped_restshift += 1
                                                         else:

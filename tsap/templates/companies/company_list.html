@@ -7,6 +7,7 @@
 {% block script %}
     <script src="{% static 'js/companies.js' %}"></script>
 {% endblock %}
+
 <!-- SIDE BAR -->
 {% block sidebar %}
     <nav id="id_sidebar" class="tsa_sidebar">
@@ -46,14 +47,13 @@
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
+
 {% block content %}
 <div class="container">
   {% if user.is_authenticated %}
         {% if user.is_role_system %}
-            <div class="mb-3">
-                <a href="{% url 'invoice_add_url' %}" class="btn btn-primary">{% trans 'Add invoice' %}</a>
-            </div>
-        {% endif %}
+    <div class="mt-5">
+    <div class="mt-5">
         <h4>{% trans 'Companies' %}</h4>
         <img id="id_loader" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
         <table class="table table table-condensed tbl">
@@ -130,6 +130,9 @@
             data-txt_invoice_add= "{% trans 'Add invoice' %}"
         ></div>
 
+    </div>
+    </div>
+        {% endif %}
 
   {% else %}
     <div class="alert alert-danger">Error</div>

@@ -617,7 +617,7 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
                     item_dict[field]['pk'] = shift.id
                     item_dict[field]['value'] = shift.code
 
-                    if shift.cat == c.SHIFT_CAT_0256_RESTSHIFT:
+                    if shift.cat == c.SHIFT_CAT_1024_RESTSHIFT:
                         item_dict[field]['value_R'] = shift.code + ' (R)'
                     breakduration = getattr(shift, 'breakduration', 0)
                     if breakduration:
@@ -916,7 +916,7 @@ def create_emplhour_list(company, comp_timezone,
     logger.debug('show_all: ' + str(show_all)+ ' ' + str(type(show_all)))
 
     # Exclude template.
-    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
+    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
 
     crit = Q(orderhour__order__customer__company=company)
     crit.add(Q(orderhour__order__cat__lte=c.SHIFT_CAT_0512_ABSENCE), crit.connector)
@@ -1193,7 +1193,7 @@ def create_replacementshift_list(dict, company):
     # logger.debug('create_replacementshift_list: ' + str(dict))
     # datalist_dict: {'replacement': {'action': 'switch', 'rosterdate': None, 'reployee_pk': 214}} <class 'dict'>
     # {'action': 'switch', 'rosterdate': None, 'reployee_pk': 214, 'reployee_ppk': 2}
-    # create list of avauilable shifts of this sreplacement employee PR2019-08-16
+    # create list of avauilable shifts of this replacement employee PR2019-08-16
 
     replacementshift_list = []
     rosterdate_list = []
@@ -1231,7 +1231,7 @@ def create_replacementshift_list(dict, company):
             count = count + 1
 
 # 6. get emplhour records of replacement employee of this date
-            # filter compnay, rosterdate
+            # filter company, rosterdate
             # exclude cat: skip emplhours from restshift, absence and template orders (replacement not in use in table order)
             # exclude emplhours that have STATUS_02_START_CONFIRMED or higher
 
@@ -1275,11 +1275,10 @@ def create_replacementshift_list(dict, company):
                 add_rosterdate_to_list = True
 
 # 7. lookup teams of replacement employee with this rosterdate
-            # exclude rest, absence and template orders
+            # exclude absence, rest and template orders
             # exclude employee not in service
-            # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
             crit = Q(team__scheme__order__customer__company=company) & \
-                   Q(team__scheme__order__cat__lt=c.SHIFT_CAT_0256_RESTSHIFT) & \
+                   Q(team__scheme__order__cat__lt=c.SHIFT_CAT_0512_ABSENCE) & \
                    Q(employee_id=reployee_pk) & \
                    (Q(employee__datefirst__lte=rosterdate_cur_str) | Q(employee__datefirst__isnull=True)) & \
                    (Q(employee__datelast__gte=rosterdate_cur_str) | Q(employee__datelast__isnull=True)) & \

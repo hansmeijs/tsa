@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block breadcrumb %}
-<div class="container">
-  <ol class="breadcrumb my-3">
-    <li class="breadcrumb-item"><a href="{% url 'home' %}">TSA secure</a></li>
-    <li class="breadcrumb-item"><a href="{% url 'company_list_url' %}">{% trans 'Companies' %}</a></li>
-    <li class="breadcrumb-item active">{% trans 'Add company' %}</li>
-  </ol>
-</div>
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar" class="tsa_sidebar">
+        <div class="sidebar_header">
+            <h3>{% trans 'Company' %}</h3>
+        </div>
+    </nav>
 {% endblock %}
+<!-- END SIDE BAR -->
 
 {% block content %}
 <div class="container">

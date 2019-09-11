@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-10 19:26-0400\n"
+"POT-Creation-Date: 2019-09-10 20:24-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,7 +19,8 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: .\accounts\forms.py:33 .\accounts\forms.py:106 .\companies\forms.py:85
-#: .\templates\accounts\users.html:17
+#: .\templates\accounts\users.html:17 .\templates\companies\company_add.html:7
+#: .\templates\companies\company_edit.html:8
 #: .\templates\companies\company_list.html:14
 #: .\templates\includes\header.html:107 .\tsap\constants.py:19
 #: .\tsap\constants.py:25
@@ -111,7 +112,7 @@ msgstr "U moet ingelogd zijn om deze pagina te kunnen bekijken."
 msgid "User has no role."
 msgstr "Gebruiker heeft geen organisatie."
 
-#: .\companies\forms.py:55 .\templates\companies\company_list.html:65
+#: .\companies\forms.py:55 .\templates\companies\company_list.html:66
 #: .\templates\customers\orders.html:90 .\templates\customers\orders.html:136
 #: .\templates\planning\roster.html:478 .\templates\planning\schemes.html:313
 #: .\templates\planning\schemes.html:484
@@ -119,7 +120,7 @@ msgid "Start date"
 msgstr "Begindatum"
 
 #: .\companies\forms.py:64 .\customers\forms.py:14 .\employees\forms.py:15
-#: .\employees\forms.py:31 .\templates\companies\company_list.html:63
+#: .\employees\forms.py:31 .\templates\companies\company_list.html:64
 #: .\tsap\validators.py:203
 msgid "Code"
 msgstr ""
@@ -148,7 +149,7 @@ msgstr "Vergrendeld"
 msgid "Inactive"
 msgstr "Niet aktief"
 
-#: .\companies\forms.py:70 .\templates\companies\company_list.html:69
+#: .\companies\forms.py:70 .\templates\companies\company_list.html:70
 msgid "Time format"
 msgstr "Tijdsweergave"
 
@@ -156,7 +157,7 @@ msgstr "Tijdsweergave"
 msgid "Timezone"
 msgstr "Tijdzone"
 
-#: .\companies\forms.py:72 .\templates\companies\company_list.html:70
+#: .\companies\forms.py:72 .\templates\companies\company_list.html:71
 #: .\templates\customers\customers.html:108
 msgid "Interval"
 msgstr ""
@@ -181,20 +182,12 @@ msgstr "Vervallen"
 msgid "Note"
 msgstr "Opmerking"
 
-#: .\companies\models.py:222 .\customers\views.py:476
-msgid "This order could not be created."
-msgstr "Deze opdracht kon niet worden aangemaakt."
-
-#: .\companies\models.py:442 .\employees\views.py:620
-msgid "This employee could not be created."
-msgstr "Deze medewerker kon niet worden aangemaakt."
-
-#: .\companies\models.py:948
+#: .\companies\models.py:876
 #, python-format
 msgid "%(tbl)s could not be deleted."
 msgstr "%(tbl)s kon niet worden gewist."
 
-#: .\companies\models.py:950 .\planning\views.py:1759
+#: .\companies\models.py:878 .\planning\views.py:1759
 msgid "This item could not be deleted."
 msgstr "Dit item kon niet worden gewist."
 
@@ -222,6 +215,10 @@ msgstr "Deze klant kon niet worden aangemaakt."
 msgid "This %(tbl)s could not be updated."
 msgstr "Dit %(tbl)s kon niet worden gewist."
 
+#: .\customers\views.py:476
+msgid "This order could not be created."
+msgstr "Deze opdracht kon niet worden aangemaakt."
+
 #: .\employees\dict.py:385
 msgid "This employee already exists."
 msgstr "Deze medewerker komt al voor."
@@ -242,6 +239,10 @@ msgstr "Medewerker '%(tbl)s'"
 #: .\employees\views.py:527
 msgid "An error occurred. The employee data is not saved."
 msgstr "Er is een fout opgetreden. De gegevens zijn niet opgeslagen."
+
+#: .\employees\views.py:620
+msgid "This employee could not be created."
+msgstr "Deze medewerker kon niet worden aangemaakt."
 
 #: .\employees\views.py:767
 msgid "This employee could not be updated."
@@ -385,11 +386,11 @@ msgstr "Nee, annuleer"
 #: .\templates\accounts\password_change.html:28
 #: .\templates\accounts\user_add.html:32 .\templates\accounts\user_edit.html:23
 #: .\templates\accounts\user_set_password.html:18
-#: .\templates\accounts\users.html:39 .\templates\companies\company_add.html:23
-#: .\templates\companies\company_add.html:27
-#: .\templates\companies\company_edit.html:31
-#: .\templates\companies\company_edit.html:35
-#: .\templates\companies\company_list.html:136
+#: .\templates\accounts\users.html:39 .\templates\companies\company_add.html:22
+#: .\templates\companies\company_add.html:26
+#: .\templates\companies\company_edit.html:22
+#: .\templates\companies\company_edit.html:26
+#: .\templates\companies\company_list.html:137
 #: .\templates\companies\invoice_add.html:20
 #: .\templates\companies\invoice_add.html:24
 #: .\templates\customers\customer_add.html:20
@@ -450,8 +451,7 @@ msgstr "Het TSA-secure team"
 #: .\templates\accounts\password_reset_confirm.html:15
 #: .\templates\accounts\password_reset_done.html:9
 #: .\templates\accounts\password_setpassword.html:9
-#: .\templates\accounts\registration\login.html:9
-#: .\templates\companies\company_edit.html:17 .\templates\home.html:7
+#: .\templates\accounts\registration\login.html:9 .\templates\home.html:7
 msgid "Welcome"
 msgstr "Welkom"
 
@@ -736,22 +736,13 @@ msgstr "Geactiveerd"
 msgid "Permissions"
 msgstr "Permissies"
 
-#: .\templates\companies\company_add.html:8
-#: .\templates\companies\company_edit.html:8
-#: .\templates\companies\company_list.html:5
-#: .\templates\companies\company_list.html:57
-#: .\templates\companies\invoice_add.html:7
-msgid "Companies"
-msgstr "Bedrijven"
-
-#: .\templates\companies\company_add.html:9
-#: .\templates\companies\company_add.html:20
-#: .\templates\companies\company_list.html:129
+#: .\templates\companies\company_add.html:19
+#: .\templates\companies\company_list.html:130
 msgid "Add company"
 msgstr "Bedrijf toevoegen"
 
-#: .\templates\companies\company_add.html:22
-#: .\templates\companies\company_edit.html:30
+#: .\templates\companies\company_add.html:21
+#: .\templates\companies\company_edit.html:21
 #: .\templates\companies\invoice_add.html:19
 #: .\templates\customers\customer_add.html:19
 #: .\templates\employees\emplhours.html:70
@@ -764,34 +755,39 @@ msgstr "Bedrijf toevoegen"
 msgid "Save"
 msgstr "Opslaan"
 
-#: .\templates\companies\company_edit.html:9
-#: .\templates\companies\company_edit.html:28
+#: .\templates\companies\company_edit.html:19
 msgid "Edit company"
 msgstr "Bedrijf wijzigen"
 
-#: .\templates\companies\company_list.html:54
-#: .\templates\companies\company_list.html:130
+#: .\templates\companies\company_list.html:5
+#: .\templates\companies\company_list.html:58
+#: .\templates\companies\invoice_add.html:7
+msgid "Companies"
+msgstr "Bedrijven"
+
+#: .\templates\companies\company_list.html:55
+#: .\templates\companies\company_list.html:131
 #: .\templates\companies\invoice_add.html:8
 #: .\templates\companies\invoice_add.html:17
 msgid "Add invoice"
 msgstr "Rekening toevoegen"
 
-#: .\templates\companies\company_list.html:64
+#: .\templates\companies\company_list.html:65
 msgid "Company name"
 msgstr "Bedrijfsnaam"
 
-#: .\templates\companies\company_list.html:66
+#: .\templates\companies\company_list.html:67
 #: .\templates\customers\orders.html:91 .\templates\customers\orders.html:137
 #: .\templates\planning\roster.html:479 .\templates\planning\schemes.html:323
 #: .\templates\planning\schemes.html:485
 msgid "End date"
 msgstr "Einddatum"
 
-#: .\templates\companies\company_list.html:67
+#: .\templates\companies\company_list.html:68
 msgid "Balance"
 msgstr "Saldo"
 
-#: .\templates\companies\company_list.html:68
+#: .\templates\companies\company_list.html:69
 msgid "Time zone"
 msgstr "Tijdzone"
 
@@ -825,12 +821,12 @@ msgstr ""
 #: .\templates\customers\customers.html:67
 #: .\templates\employees\employees.html:113
 msgid "List"
-msgstr ""
+msgstr "Lijst"
 
 #: .\templates\customers\customers.html:68
 #: .\templates\employees\employees.html:109
 msgid "Data"
-msgstr ""
+msgstr "Gegevens"
 
 #: .\templates\customers\customers.html:69 .\templates\customers\orders.html:5
 #: .\templates\customers\orders.html:15

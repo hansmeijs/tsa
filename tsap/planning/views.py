@@ -87,7 +87,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 datalists[table]['user_is_role_company_and_perm_admin'] = True
 
                         elif table == 'customer':
-                            # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
+                            # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
                             cat_lt = table_dict.get('cat_lt')  # None = all
                             inactive = table_dict.get('inactive') # True: show inactive only, False: active only , None: show all
                             list = create_customer_list(company=request.user.company, cat_lt=cat_lt, inactive=inactive)
@@ -3533,7 +3533,7 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
             new_value = int(datediff_minutes - breakduration)
 
  # when rest shift : timeduration = 0     # cst = 0 = normal, 1 = rest
-            if shift_cat == c.SHIFT_CAT_0256_RESTSHIFT:
+            if shift_cat == c.SHIFT_CAT_1024_RESTSHIFT:
                 new_value = 0
 
             if fieldname not in update_dict:

@@ -147,7 +147,7 @@ STATUS_16_QUESTION = 16
 STATUS_32_REJECTED = 32
 STATUS_64_APPROVED = 64
 
-# shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
+# shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
 SHIFT_CAT_0000_NORMAL = 0
 SHIFT_CAT_0001_INTERNAL = 1
 SHIFT_CAT_0002_BILLABLEBYTHEHOUR = 2
@@ -157,9 +157,9 @@ SHIFT_CAT_0016_UNASSIGNED = 16
 SHIFT_CAT_0032_REPLACEMENT = 32  #  (cat_replacement not in use in table order)
 # SHIFT_CAT_0064_AVAILABLE = 64
 # SHIFT_CAT_0128_AVAILABLE = 128
-SHIFT_CAT_0256_RESTSHIFT = 256
+# SHIFT_CAT_0256_AVAILABLE = 256
 SHIFT_CAT_0512_ABSENCE = 512 # used in table customer, order, scheme , orderhour,  emplhour)
-# SHIFT_CAT_1024_AVAILABLE = 1024
+SHIFT_CAT_1024_RESTSHIFT = 1024
 # SHIFT_CAT_2048_AVAILABLE = 2048
 SHIFT_CAT_4096_TEMPLATE = 4096
 

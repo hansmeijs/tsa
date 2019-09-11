@@ -156,7 +156,7 @@ class Customer(TsaBaseModel):
     objects = TsaManager()
 
     company = ForeignKey(Company, related_name='customers', on_delete=PROTECT)
-    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
+    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
     cat = PositiveSmallIntegerField(default=0)
 
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -179,7 +179,7 @@ class Order(TsaBaseModel):
     objects = TsaManager()
 
     customer = ForeignKey(Customer, related_name='orders', on_delete=PROTECT)
-    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 256=rest, 512=absence, 4096=template
+    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
     cat = PositiveSmallIntegerField(default=0)
     sequence = PositiveSmallIntegerField(default=0)  # sequence of abscat
 
