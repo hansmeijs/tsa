@@ -45,7 +45,6 @@ $(function() {
 // ---  Select Scheme
         // in FillSelectTable is created function HandleSelectScheme
 
-
         let tblBody_scheme_select = document.getElementById("id_tbody_scheme_select")
         let tblBody_shift_select = document.getElementById("id_tbody_shift_select")
         let tblBody_team_select = document.getElementById("id_tbody_team_select")
@@ -60,10 +59,7 @@ $(function() {
 
 // --- get header elements
         let hdr_customer = document.getElementById("id_hdr_customer")
-        let el_hdr_order = document.getElementById("id_hdr_order")
 
-// --- get data stored in page
-        let el_data = document.getElementById("id_data");
         let customer_list = [];
         let order_list = [];
 
@@ -79,6 +75,8 @@ $(function() {
         let teammember_list = [];
         let employee_list = [];
 
+// --- get data stored in page
+        let el_data = document.getElementById("id_data");
         const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
         const url_scheme_template_upload = get_attr_from_el(el_data, "data-scheme_template_upload_url");
 
@@ -133,10 +131,6 @@ $(function() {
         let el_mod_employee_filter_employee = document.getElementById("id_mod_employee_filter_employee");
             el_mod_employee_filter_employee.addEventListener("keyup", function(){
                 setTimeout(function() {ModEmployeeFilterEmployee("filter")}, 50)});
-        let el_mod_employee_input_employee = document.getElementById("id_mod_employee_input_employee")
-            el_mod_employee_input_employee.addEventListener("keyup", function(){
-                setTimeout(function() {ModEmployeeFilterEmployee("input")}, 250)});
-        document.getElementById("id_mod_employee_btn_save").addEventListener("click", function() {ModEmployeeSave()}, false )
 
 // ---  Modal Addnew
         let el_mod_cust = document.getElementById("id_mod_scheme_customer")
@@ -267,7 +261,6 @@ $(function() {
 
 // --- create header row
         CreateTableHeader("schemeitem");
-        // TODO set cat_lte 4096 incudes templates
         const cat_lt = 512  //512= absence
         const datalist_request = {"customer": {inactive: false, "cat_lt": cat_lt},
                                   "order": {inactive: false, "cat_lt": cat_lt},
@@ -325,7 +318,8 @@ $(function() {
 
                 // hide loader
                 el_loader.classList.add(cls_hide)
-                // must come before 'customer'
+
+                // 'order' must come before 'customer'
                 if ("order" in response) {
                     order_list= response["order"]}
 
@@ -339,7 +333,10 @@ $(function() {
 
             // if there is only 1 customer, that one is selected
                     selected_customer_pk = parseInt(el_select_customer.value);
-                    if (!!selected_customer_pk){HandleSelectCustomer()};
+                    if (!!selected_customer_pk){
+                        el_select_customer.value = selected_customer_pk
+                        HandleSelectCustomer(el_select_customer)
+                    };
                 }
                 if ("scheme" in response) {
                     scheme_list= response["scheme"]}
@@ -423,19 +420,23 @@ $(function() {
 
 //=========  HandleSelectCustomer  ================ PR2019-03-23
     function HandleSelectCustomer(el) {
-        //console.log("--- HandleSelectCustomer")
+        console.log("--- HandleSelectCustomer")
 
 // reset lists
+        scheme_list = [];
         schemeitem_list = [];
+        shift_list = [];
         team_list = [];
         teammember_list = [];
-        shift_list = [];
+
+// reset selected customer
+        selected_customer_pk = 0
 
 // reset selected order
         selected_order_pk = 0
-        el_hdr_order.innerText = null
         el_select_order.innerText = null
         el_mod_order.innerText = null
+        el_mod_copyfrom_order.innerText = null
 
 // reset selected scheme
         selected_scheme_pk = 0;
@@ -453,6 +454,7 @@ $(function() {
         tblBody_scheme_select.innerText = null;
         tblBody_shift_select.innerText = null;
         tblBody_team_select.innerText = null;
+
         tblBody_items.innerText = null;
 
 // get selected customer, put name in header
@@ -460,54 +462,55 @@ $(function() {
         // after first DatalistDownload, when there is only 1 customer, selected_customer_pk gets this value
         //  HandleSelectCustomer has then no parameter 'el' and selected_customer_pk has value
         if(!!el){
-            const value = parseInt(el.value);
-            if (!!value){
-                selected_customer_pk = value
-            } else {
-                selected_customer_pk = 0
-            }
-            if (el.id === "id_select_customer") {
-                el_mod_cust.selectedIndex = el.selectedIndex
-                el_mod_copyfrom_cust.selectedIndex = el.selectedIndex
-            } else if (el.id === "id_mod_scheme_customer") {
-                el_select_customer.selectedIndex = el.selectedIndex
-                el_mod_copyfrom_cust.selectedIndex = el.selectedIndex
-            } else if (el.id === "id_mod_copyfrom_customer") {
-                el_select_customer.selectedIndex = el.selectedIndex
-                el_mod_cust.selectedIndex = el.selectedIndex
-            }
-        }
+            const pk_int = parseInt(el.value);
+            if (!!pk_int){
+// copy selected customer, to other fields with selected customer
+                selected_customer_pk = pk_int
+                if (el.id === "id_select_customer") {
+                    el_mod_cust.selectedIndex = el.selectedIndex
+                    el_mod_copyfrom_cust.selectedIndex = el.selectedIndex
+                } else if (el.id === "id_mod_scheme_customer") {
+                    el_select_customer.selectedIndex = el.selectedIndex
+                    el_mod_copyfrom_cust.selectedIndex = el.selectedIndex
+                } else if (el.id === "id_mod_copyfrom_customer") {
+                    el_select_customer.selectedIndex = el.selectedIndex
+                    el_mod_cust.selectedIndex = el.selectedIndex
+                }
 
-        let selected_customer_name =  el_select_customer.options[el_select_customer.selectedIndex].text;
-        const txt_customer = get_attr_from_el(el_data, "data-txt_customer");
-        hdr_customer.innerText = txt_customer + ": " + selected_customer_name
+                hdr_customer.innerText =  el_select_customer.options[el_select_customer.selectedIndex].text;
 
-        let select_text = get_attr_from_el(el_data, "data-txt_select_order");
-        let select_text_none = get_attr_from_el(el_data, "data-txt_select_order_none");
+                let select_text = get_attr_from_el(el_data, "data-txt_select_order");
+                let select_text_none = get_attr_from_el(el_data, "data-txt_select_order_none");
 
-// fill select order
-        FillSelectOptions(el_select_order, order_list, select_text, select_text_none, selected_customer_pk)
-        FillSelectOptions(el_mod_order, order_list, select_text, select_text_none, selected_customer_pk)
-        FillSelectOptions(el_mod_copyfrom_order, order_list, select_text, select_text_none, selected_customer_pk)
+        // fill select order
+                FillSelectOptions(el_select_order, order_list, select_text, select_text_none, selected_customer_pk)
+                FillSelectOptions(el_mod_order, order_list, select_text, select_text_none, selected_customer_pk)
+                FillSelectOptions(el_mod_copyfrom_order, order_list, select_text, select_text_none, selected_customer_pk)
 
-// if there is only 1 order, that one is selected
-        selected_order_pk = parseInt(el_select_order.value);
-        if (!!selected_order_pk){
-            HandleSelectOrder();
-        };
+        // if there is only 1 order, that one is selected
+                selected_order_pk = parseInt(el_select_order.value);
+                if (!!selected_order_pk){HandleSelectOrder(el_select_order);};
+
+        // download lists of this customer: schemes, schemeitems, shifts, teams
+                const datalist_request = {"scheme": {"customer_pk": selected_customer_pk, "inactive": true},
+                                          "schemeitem": {"customer_pk": selected_customer_pk},
+                                          "shift": {"customer_pk": selected_customer_pk},
+                                          "team": {"customer_pk": selected_customer_pk},
+                                          "teammember": {"customer_pk": selected_customer_pk}};
+                DatalistDownload(datalist_request);
+            }  //  if (!!pk_int)
+        }  // if(!!el)
     }
 
 //=========  HandleSelectOrder  ================ PR2019-03-24
     function HandleSelectOrder(el) {
-        //console.log("--- HandleSelectOrder")
+        console.log("--- HandleSelectOrder")
+        console.log(el)
 
 // reset lists
-        schemeitem_list = [];
-        teammember_list = [];
-        team_list = [];
-        shift_list = [];
-
-// reset selected scheme and team
+        // don't reset, all items from this customer are in lists
+// reset selected order, scheme, shift, team and schemeitem
+        selected_order_pk = 0
         selected_scheme_pk = 0;
         selected_shift_pk = 0;
         selected_team_pk = 0;
@@ -525,39 +528,45 @@ $(function() {
         // after first DatalistDownload, when there is only 1 customer, selected_customer_pk gets this value
         //  HandleSelectOrder has then no parameter 'el' and selected_order_pk has valeu
         if(!!el){
-            const value = parseInt(el.value);
-            if (!!value){
-                selected_order_pk = value
-            } else {
-                selected_order_pk = 0
-            }
-            if (el.id === "id_select_order") {
-                el_mod_order.selectedIndex = el.selectedIndex
-                el_mod_copyfrom_order.selectedIndex = el.selectedIndex
-            } else if (el.id === "id_mod_scheme_order") {
-                el_select_order.selectedIndex = el.selectedIndex
-                el_mod_copyfrom_order.selectedIndex = el.selectedIndex
-            } else if (el.id === "id_mod_copyfrom_order") {
-                el_select_order.selectedIndex = el.selectedIndex
-                el_mod_order.selectedIndex = el.selectedIndex
-            }
-        }
+            const pk_int = parseInt(el.value);
+            if (!!pk_int){
+                selected_order_pk = pk_int
+                console.log("selected_order_pk", selected_order_pk)
 
-        let txt_order = get_attr_from_el(el_data, "data-txt_order") + ": ";
-        if(el_select_order.selectedIndex > -1){
-            if(!!el_select_order.options[el_select_order.selectedIndex].text){
-                txt_order +=  el_select_order.options[el_select_order.selectedIndex].text
-            };
-        }
-        el_hdr_order.innerText = txt_order
+                if (el.id === "id_select_order") {
+                    el_mod_order.selectedIndex = el.selectedIndex
+                    el_mod_copyfrom_order.selectedIndex = el.selectedIndex
+                } else if (el.id === "id_mod_scheme_order") {
+                    el_select_order.selectedIndex = el.selectedIndex
+                    el_mod_copyfrom_order.selectedIndex = el.selectedIndex
+                } else if (el.id === "id_mod_copyfrom_order") {
+                    el_select_order.selectedIndex = el.selectedIndex
+                    el_mod_order.selectedIndex = el.selectedIndex
+                }
 
-// download lists of this order: schemes, schemeitems, shifts, teams
-        const datalist_request = {"scheme": {"order_pk": selected_order_pk, "inactive": true},
-                                  "schemeitem": {"order_pk": selected_order_pk},
-                                  "shift": {"order_pk": selected_order_pk},
-                                  "team": {"order_pk": selected_order_pk},
-                                  "teammember": {"order_pk": selected_order_pk}};
-        DatalistDownload(datalist_request);
+                let header_text = "";
+                if(el_select_customer.selectedIndex > -1){
+                    if(!!el_select_customer.options[el_select_customer.selectedIndex].text){
+                        header_text = el_select_customer.options[el_select_customer.selectedIndex].text
+                    };
+                }
+                console.log("el.selectedIndex", el.selectedIndex)
+                console.log("el.el.options[el.selectedIndex].text", el.options[el.selectedIndex].text)
+                // index 0 contains 'select order' when tehre are multiple options)
+                // skip if no option selected or when option = 0 with multiple options
+                if ((el.selectedIndex < 0) || (el.selectedIndex === 0 && el.options.length === 1)) {
+                    if(!!el.options[el.selectedIndex].text){
+                        header_text += "  -  " + el.options[el.selectedIndex].text
+                    };
+                }
+                hdr_customer.innerText = header_text
+                console.log("header_text", header_text)
+
+                FillSelectTable("scheme")
+
+            } //  if (!!pk_int)
+        }  // if(!!el){
+
 
 // select table 'scheme' is filled by FillSelectTable("scheme"). This function is called in DatalistDownload
 
@@ -566,6 +575,7 @@ $(function() {
 //=========  HandleSelectScheme  ================ PR2019-05-24
     function HandleSelectScheme(sel_tr_clicked) {
         console.log( "===== HandleSelectScheme  ========= ");
+        console.log(sel_tr_clicked);
 
         if(!!sel_tr_clicked) {
 // ---  deselect all highlighted rows
@@ -574,12 +584,8 @@ $(function() {
 // ---  highlight clicked row
             sel_tr_clicked.classList.add(cls_selected)
 
-// ---  fill selected scheme
-
 // reset input fields and tables
             selected_scheme_pk = 0
-
-            let field_list = ["code", "cycle", "datefirst", "datelast"];
 
             tblBody_items.innerText = null;
 
@@ -594,17 +600,33 @@ $(function() {
             el_scheme_datelast.readOnly = true
 
             //let scheme_pk = get_attr_from_el_int(sel_tr_clicked, "data-pk");
-            let scheme_pk = get_datapk_from_element (sel_tr_clicked)
-            if(!!scheme_pk){
-                selected_scheme_pk = scheme_pk
+            let pk_int = get_datapk_from_element (sel_tr_clicked)
+            if(!!pk_int){
+                selected_scheme_pk = pk_int
 
     // get selected scheme from scheme_dict
-                let scheme_dict = get_arrayRow_by_keyValue (scheme_list, "pk", scheme_pk)
+                let scheme_dict = get_arrayRow_by_keyValue (scheme_list, "pk", pk_int)
                 //scheme_dict: {pk: 18, id: {pk: 18, parent_pk: 6, code: {value: "MCB scheme"}, cycle: {value: 7}}}
                  console.log( "scheme_dict", scheme_dict);
 
     // fill scheme fields
                 if (!!scheme_dict){
+
+                    let header_text = "";
+                    if(el_select_customer.selectedIndex > -1){
+                        if(!!el_select_customer.options[el_select_customer.selectedIndex].text){
+                            header_text = el_select_customer.options[el_select_customer.selectedIndex].text
+                        };
+                    }
+                    if ((el_select_order.selectedIndex < 0) || (el_select_order.selectedIndex === 0 && el_select_order.options.length === 1)) {
+                        if(!!el_select_order.options[el_select_order.selectedIndex].text){
+                            header_text += "  -  " + el_select_order.options[el_select_order.selectedIndex].text
+                        };
+                    }
+                    const scheme_code = get_subdict_value_by_key(scheme_dict,"code", "value")
+                    if(!!scheme_code){header_text += "  -  " + scheme_code}
+                    hdr_customer.innerText = header_text
+
                     UpdateSchemeInputElements(scheme_dict)
 
     // --- Fill select table Shift and Teams
@@ -635,7 +657,7 @@ $(function() {
                     el_btn_autofill.classList.remove(cls_hide)
 
                 }  // if (!!scheme_dict){
-            }  // if(!!scheme_pk){
+            }  // if(!!pk_int)
         } // if(!!sel_tr_clicked)
     }  // function HandleSelectScheme
 
@@ -1015,17 +1037,16 @@ $(function() {
             const tablename = get_subdict_value_by_key(upload_dict, "id", "table")
             //console.log("tablename: ", tablename );
 
-            let url_str, parameters;
+            let url_str;
             if (tablename === "teammember") {
                 url_str = url_teammember_upload
-                parameters = {"teammember": JSON.stringify (upload_dict)}
             } else if (tablename === "shift") {
                 url_str = url_scheme_shift_team_upload
-                parameters = {"shift": JSON.stringify (upload_dict)}
             } else if (tablename === "schemeitem") {
                 url_str = url_schemeitem_upload
-                parameters = {"schemeitem": JSON.stringify (upload_dict)}
             }
+            const parameters = {"upload": JSON.stringify (upload_dict)}
+
             console.log("url_str: ", url_str );
             console.log("upload_dict: ", upload_dict );
 
@@ -1156,17 +1177,16 @@ $(function() {
                     // make row red
                     tr_changed.classList.add("tsa_tr_error");
 
-                    let url_str, parameters;
+                    let url_str;
                     if (tablename === "teammember") {
                         url_str = url_teammember_upload
-                        parameters = {"teammember": JSON.stringify (row_upload)}
                     } else if (tablename === "schemeitem") {
                         url_str = url_schemeitem_upload
-                        parameters = {"schemeitem": JSON.stringify (row_upload)}
                     } else if (tablename === "shift") {
                         url_str = url_scheme_shift_team_upload
-                        parameters = {"shift": JSON.stringify (row_upload)}
                     }
+                    const parameters = {"upload": JSON.stringify (row_upload)}
+
                     let response = "";
                     $.ajax({
                         type: "POST",
@@ -1467,99 +1487,6 @@ $(function() {
 
         }  //  if (!!tblRow)
     }
-//=========  ModEmployeeSave  ================ PR2019-08-08
-    function ModEmployeeSave() {
-        console.log("========= ModEmployeeSave ===" );
-        //console.log(el_mod_employee_input_employee);
-
-   // ---  get team_pk and team_ppk from el_mod_employee_body
-        let el_mod_employee_body = document.getElementById("id_mod_employee_body")
-            let id_dict = {"table": "team", "create": true}
-            id_dict["temp_pk"] = get_attr_from_el(el_mod_employee_body, "data-team_pk");
-            id_dict["ppk"] = get_attr_from_el_int(el_mod_employee_body, "data-team_ppk");
-
-// ---  get employee_pk and employee_ppk from el_mod_employee_body
-        let el_mod_employee_tblbody = document.getElementById("id_mod_employee_tblbody");
-            const pk_int = get_attr_from_el_int(el_mod_employee_tblbody, "data-pk");
-            const ppk_int = get_attr_from_el_int(el_mod_employee_tblbody, "data-ppk");
-            const value = get_attr_from_el(el_mod_employee_tblbody, "data-value");
-            console.log(" pk_int", pk_int, " ppk_int", ppk_int, " value", value);
-            if (!!pk_int){
-    // ---  create employee_dict
-                let employee_dict = {"table": "employee"};
-                employee_dict["pk"] = pk_int
-                employee_dict["ppk"] = ppk_int
-                employee_dict["value"] = value
-                employee_dict["update"] = true
-    // ---  put employee_code in team_code
-            let field_dict = {"field": "code", "value": value, "update": true}
-
-// ---  hide modal
-         $("#id_mod_employee").modal("hide");
-
-            let team_dict = {"id": id_dict, "code": field_dict, "employee": employee_dict}
-            UploadTeam(team_dict)
-
-        }  //  if (!!pk_str)
-    } // ModEmployeeSave
-
-//=========  UploadTeam  ================ PR2019-08-23
-    function UploadTeam(team_dict) {
-        console.log("========= UploadTeam ===" );
-
-        if (!!team_dict){
-            let parameters = {};
-            parameters["team"] = JSON.stringify (team_dict);
-            console.log("parameters", team_dict);
-
-            let response = "";
-            $.ajax({
-                type: "POST",
-                url: url_scheme_shift_team_upload,
-                data: parameters,
-                dataType:'json',
-                success: function (response) {
-                    console.log ("response:");
-                    console.log (response);
-
-                    // team_update:
-                    // pk: 1314
-                    // ppk: 1116
-                    // id: {temp_pk: "new_2", created: true, pk: 1314, ppk: 1116, table: "team"}
-                    // code: {value: "Nocento R", updated: true}
-                    // employee: {pk: 440, ppk: 2, code: "Nocento R", updated: true}
-
-                    if ("team_list" in response){
-                        team_list= response["team_list"];
-                        FillSelectTable("team")
-                    }
-
-                    if ("teammember_list" in response){
-                        teammember_list= response["teammember_list"];
-                        FillDatalist("id_datalist_teammembers", teammember_list)
-                    }
-
-                    if ("team_update" in response){
-                        const team_update = response["team_update"]
-                            if ("id" in team_update){
-                                const id_dict = team_update["id"]
-                                selected_team_pk = get_dict_value_by_key(team_update, "pk")
-                                let tblRowSelected = document.getElementById("sel_team_" + selected_team_pk.toString())
-                                HandleSelectTeam(tblRowSelected)
-
-                        }
-                    }
-
-
-                },
-                error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
-                    alert(msg + '\n' + xhr.responseText);
-                }
-            });
-
-        }  // if (!!tblRow)
-    }  // function UploadTeam
 
 
 //=========  UploadSchemeOrShiftOrTeam  ================ PR2019-08-08
@@ -1570,7 +1497,7 @@ $(function() {
         let tblName = get_attr_from_el(tblRow, "data-table");
         console.log(" tblName", tblName);
 
-        let dict = {};
+        let upload_dict = {};
         if (!!tblRow){
 
 // ---  get pk from id of tblRow
@@ -1602,7 +1529,7 @@ $(function() {
 
     // add id_dict to dict
             if (!!id_dict){
-                dict["id"] = id_dict
+                upload_dict["id"] = id_dict
                 // el_input is first child of td, td is cell of tblRow
                 let fieldname, value, o_value, n_value, field_dict = {};
                 let el_input = tblRow.cells[0].children[0];
@@ -1616,12 +1543,11 @@ $(function() {
                     field_dict["update"] = true;
                     if(!!n_value){field_dict["value"] = n_value};
                 };
-                // add field_dict to dict
-                if (!isEmpty(field_dict)){dict["code"] = field_dict;};
+                // add field_dict to upload_dict
+                if (!isEmpty(field_dict)){upload_dict["code"] = field_dict;};
             };  // if (!!id_dict){
 
-            let parameters = {};
-            parameters[tblName] = JSON.stringify (dict);
+            const parameters = {"upload": JSON.stringify (upload_dict)}
             console.log("parameters", parameters);
 
             let response = "";
@@ -1924,7 +1850,7 @@ $(function() {
 
 //========= FillSelectTable  ============= PR2019-05-25
     function FillSelectTable(table_name) {
-        //console.log( "=== FillSelectTable ", table_name);
+        console.log( "=== FillSelectTable ", table_name);
 
         let selected_parent_pk = 0
         let tableBody, item_list;
@@ -2504,7 +2430,10 @@ $(function() {
                 if ([2, 3].indexOf( j ) > -1){ el.classList.add("input_timepicker")}
             } else if ( tblName === "teammember"){
                 if (j === 0) { el.classList.add("input_text")} else  // makes background transparent
-                if ([1, 2].indexOf( j ) > -1){ el.classList.add("input_popup_date")}
+                if ([1, 2].indexOf( j ) > -1){
+                    el.classList.add("input_popup_date");
+                    el.classList.add("tsa_transparent");
+                    }
             };
     // --- add other attributes to td
             el.setAttribute("autocomplete", "off");
@@ -2883,17 +2812,7 @@ $(function() {
 //=========  ModEmployeeOpen  ================ PR2019-08-23
     function ModEmployeeOpen(sel_tr_selected) {
         console.log(" -----  ModEmployeeOpen   ----")
-         console.log(sel_tr_selected)
-
-// reset
-        let el_mod_employee_header = document.getElementById("id_mod_employee_header")
-        el_mod_employee_header.innerText = null
-
-        el_mod_employee_input_employee.value = null
-
-        el_mod_employee_filter_employee.value = null
-        el_mod_employee_filter_employee.removeAttribute("tsa_btn_selected")
-
+        console.log(sel_tr_selected)
 
 // get eplh_pk and eplh_ppk from sel_tr_selected
         const data_table = get_attr_from_el(sel_tr_selected, "data-table")
@@ -2915,11 +2834,16 @@ $(function() {
             header_text = get_attr_from_el(el_data, "data-txt_employee_add") + ":";
             // el_mod_employee_body_right.classList.add(cls_hide)
         }
-        el_mod_employee_header.innerText = header_text
-        // fill select table employees
 
         ModEmployeeFillSelectTableEmployee()
+        document.getElementById("id_mod_employee_header").innerText = header_text
+        el_mod_employee_filter_employee.value = null
 
+        // Timeout funntion necessary, otherwise focus wont work becuse of fade(300)
+
+        setTimeout(function (){
+            el_mod_employee_filter_employee.focus()
+        }, 500);
 
 // ---  show modal
         $("#id_mod_employee").modal({backdrop: true});
@@ -2927,56 +2851,121 @@ $(function() {
 
     };  // ModEmployeeOpen
 
-//=========  ModEmployeeTableEmployeeSelect  ================ PR2019-05-24
-    function ModEmployeeTableEmployeeSelect(tblRow) {
-        console.log( "===== ModEmployeeTableEmployeeSelect ========= ");
-        //console.log( tblRow);
 
+//=========  ModEmployeeSelect  ================ PR2019-05-24
+    function ModEmployeeSelect(tblRow) {
+        console.log( "===== ModEmployeeSelect ========= ");
+        //console.log( tblRow);
     // ---  deselect all highlighted rows
         DeselectHighlightedRows(tblRow, cls_selected)
-
-    // get current employee from el_mod_employee_body data-field
-        let el_mod_employee_body = document.getElementById("id_mod_employee_body");
-        const cur_employee_pk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_pk");
-        const cur_employee = get_attr_from_el(el_mod_employee_body, "data-field_value");
-        const cur_employee_ppk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_ppk");
-        const cur_rosterdate = get_attr_from_el(el_mod_employee_body, "data-rosterdate");
-
     // ---  get clicked tablerow
         if(!!tblRow) {
-
     // ---  highlight clicked row
             tblRow.classList.add(cls_selected)
+            ModEmployeeSave(tblRow);
+        }
+    }  // ModEmployeeSelect
 
-    // ---  store employee name in input_employee
-            const employee_code = tblRow.cells[0].children[0].innerText
-            el_mod_employee_input_employee.value = employee_code
+//=========  ModEmployeeSave  ================ PR2019-08-08
+    function ModEmployeeSave(tblRow) {
+        console.log("========= ModEmployeeSave ===" );
+
+   // ---  get team_pk and team_ppk from el_mod_employee_body
+        let el_mod_employee_body = document.getElementById("id_mod_employee_body")
+            let id_dict = {"table": "team", "create": true}
+            id_dict["temp_pk"] = get_attr_from_el(el_mod_employee_body, "data-team_pk");
+            id_dict["ppk"] = get_attr_from_el_int(el_mod_employee_body, "data-team_ppk");
 
     // ---  get pk from id of select_tblRow
-            const pk_int = tblRow.id.toString()
-            const ppk_int = get_attr_from_el_int(tblRow, "data-ppk")
+        const pk_int = parseInt(tblRow.id)
+        const ppk_int = get_attr_from_el_int(tblRow, "data-ppk")
+        const value = get_attr_from_el(tblRow, "data-value");
+        console.log(" pk_int", pk_int, " ppk_int", ppk_int, " value", value);
 
-    // ---  store selected pk and ppk in  in tblBody_select
-            let tblBody_select = tblRow.parentNode
-            tblBody_select.setAttribute("data-value", employee_code)
-            tblBody_select.setAttribute("data-pk", pk_int)
-            tblBody_select.setAttribute("data-ppk", ppk_int)
-        }
-    }  // ModEmployeeTableEmployeeSelect
+        if (!!pk_int){
+// ---  create employee_dict
+            let employee_dict = {"table": "employee"};
+            employee_dict["pk"] = pk_int
+            employee_dict["ppk"] = ppk_int
+            employee_dict["value"] = value
+            employee_dict["update"] = true
+
+// ---  put employee_code in team_code
+            let field_dict = {"field": "code", "value": value, "update": true}
+            let team_dict = {"id": id_dict, "code": field_dict, "employee": employee_dict}
+
+// ---  hide modal
+             $("#id_mod_employee").modal("hide");
+
+            UploadTeam(team_dict)
+
+        }  //  if (!!pk_str)
+    } // ModEmployeeSave
+
+//=========  UploadTeam  ================ PR2019-08-23
+    function UploadTeam(team_dict) {
+        console.log("========= UploadTeam ===" );
+
+        if (!!team_dict){
+            const parameters = {"upload": JSON.stringify (team_dict)}
+            console.log("parameters", team_dict);
+
+            let response = "";
+            $.ajax({
+                type: "POST",
+                url: url_scheme_shift_team_upload,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                    console.log ("response:");
+                    console.log (response);
+
+                    // team_update:
+                    // pk: 1314
+                    // ppk: 1116
+                    // id: {temp_pk: "new_2", created: true, pk: 1314, ppk: 1116, table: "team"}
+                    // code: {value: "Nocento R", updated: true}
+                    // employee: {pk: 440, ppk: 2, code: "Nocento R", updated: true}
+
+                    if ("team_list" in response){
+                        team_list= response["team_list"];
+                        FillSelectTable("team")
+                    }
+
+                    if ("teammember_list" in response){
+                        teammember_list= response["teammember_list"];
+                        FillDatalist("id_datalist_teammembers", teammember_list)
+                    }
+
+                    if ("team_update" in response){
+                        const team_update = response["team_update"]
+                            if ("id" in team_update){
+                                const id_dict = team_update["id"]
+                                selected_team_pk = get_dict_value_by_key(team_update, "pk")
+                                let tblRowSelected = document.getElementById("sel_team_" + selected_team_pk.toString())
+                                HandleSelectTeam(tblRowSelected)
+
+                        }
+                    }
+
+
+                },
+                error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
+                    alert(msg + '\n' + xhr.responseText);
+                }
+            });
+
+        }  // if (!!tblRow)
+    }  // function UploadTeam
+
 
 //=========  ModEmployeeFilterEmployee  ================ PR2019-05-26
     function ModEmployeeFilterEmployee(option) {
         console.log( "===== ModEmployeeFilterEmployee  ========= ", option);
 
-        let new_filter = "";
+        let new_filter = el_mod_employee_filter_employee.value;
         let skip_filter = false
-        if (option === "input") {
-            if (!!el_mod_employee_input_employee.value) {
-                new_filter = el_mod_employee_input_employee.value
-            }
-        } else {
-            new_filter = el_mod_employee_filter_employee.value;
-        }  //  if (option === "input") {
 
         let el_mod_employee_tblbody = document.getElementById("id_mod_employee_tblbody");
 
@@ -3036,8 +3025,6 @@ $(function() {
             }  //  for (let row_index = 0, show
         } //  if (!skip_filter) {
         if (has_selection && !has_multiple ) {
-            el_mod_employee_input_employee.value = select_value
-
             el_mod_employee_tblbody.setAttribute("data-pk", select_pk)
             el_mod_employee_tblbody.setAttribute("data-ppk", select_parentpk)
             el_mod_employee_tblbody.setAttribute("data-value", select_value)
@@ -3082,12 +3069,13 @@ $(function() {
                     tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
 
 //- add EventListener to Modal SelectEmployee row
-                    tblRow.addEventListener("click", function() {ModEmployeeTableEmployeeSelect(tblRow)}, false )
+                    tblRow.addEventListener("click", function() {ModEmployeeSelect(tblRow)}, false )
 
 // - add first td to tblRow.
                     // index -1 results in that the new cell will be inserted at the last position.
                     let code = get_subdict_value_by_key (item_dict, "code", "value", "")
                     let td = tblRow.insertCell(-1);
+                    tblRow.setAttribute("data-value", code);
 
 // --- add a element to td., necessary to get same structure as item_table, used for filtering
                     let el = document.createElement("div");
@@ -3917,13 +3905,8 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 if (!isEmpty(field_dict)){row_upload[fieldname] = field_dict};
                 console.log ("row_upload: ", row_upload);
 
-                let url_str, parameters;
-                if (tablename === "teammember") {
-                    url_str = url_teammember_upload
-                } else {
-                    url_str = url_scheme_upload
-                }
-                parameters = {"upload": JSON.stringify (row_upload)}
+                const url_str = (tablename === "teammember") ? url_teammember_upload : url_scheme_upload;
+                const parameters = {"upload": JSON.stringify (row_upload)}
                 console.log("url_str:", url_str, "parameters:", parameters);
 
                 let response;
@@ -4674,8 +4657,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 let tr_selected = document.getElementById(row_id)
 
                 const url_str = url_scheme_shift_team_upload  // get_attr_from_el(el_timepicker, "data-url_str");
-                let parameters = {}
-                parameters[table] = JSON.stringify (row_upload);
+                const parameters = {"upload": JSON.stringify (row_upload)};
                 console.log ("parameters", table, row_upload);
 
                 let response;
@@ -4812,8 +4794,8 @@ function validate_input_blank(el_input, el_err, msg_blank){
 //========= HighlightAndDisableHours  ====================================
     function HighlightAndDisableHours(curOffset, minOffset, maxOffset) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        console.log( ">>>>>>>>>>>>>>>>>>>>=== HighlightAndDisableHours  ");
-        console.log( "minOffset", minOffset, "curOffset", curOffset, "maxOffset", maxOffset);
+        //console.log( ">>>>>>>>>>>>>>>>>>>>=== HighlightAndDisableHours  ");
+        //console.log( "minOffset", minOffset, "curOffset", curOffset, "maxOffset", maxOffset);
 
         const curDay = Math.floor(curOffset/1440);  // curOffset = - 90 ( = 1.5 h before midnight
         const curRemainder = (curOffset - curDay * 1440);
@@ -4827,9 +4809,9 @@ function validate_input_blank(el_input, el_err, msg_blank){
         const maxDayHours = Math.floor(maxOffset/60)
         const maxMinutes = maxOffset - maxDayHours * 60;
 
-        console.log("curDay", curDay,  "curDayHours", curDayHours,  "curHours", curHours, "curMinutes", curMinutes);
+        //console.log("curDay", curDay,  "curDayHours", curDayHours,  "curHours", curHours, "curMinutes", curMinutes);
 
-        console.log("minDayHours", minDayHours,  "minMinutes", minMinutes,  "maxDayHours", maxDayHours, "maxMinutes", maxMinutes);
+        //console.log("minDayHours", minDayHours,  "minMinutes", minMinutes,  "maxDayHours", maxDayHours, "maxMinutes", maxMinutes);
 
 // 1. all hours are disabled if (curDay < minDay) OR (curDay > maxDay)  Value of minDay = -1 OR 0, Value of maxDay = 0 OR 1
 // 2. all hours are enabled if (curDay > minDay) AND (curDay < maxDay)
@@ -4850,7 +4832,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
         }
 
     //========= HighlightAndDisableMinutes  ====================================
-        console.log( "--------- HighlightAndDisableMinutes  ");
+        //console.log( "--------- HighlightAndDisableMinutes  ");
 
         // all minutes are disabled if curDate outside min-max DayHours
         const all_disabled = (curDayHours < minDayHours || curDayHours > maxDayHours )
@@ -4865,7 +4847,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
         // create new offset and put back in el_timepicker
             const newOffset = curDayHours * 60 + cell_value
-            console.log( "newOffset", newOffset,  " minOffset",  minOffset,  "maxOffset", maxOffset);
+            //console.log( "newOffset", newOffset,  " minOffset",  minOffset,  "maxOffset", maxOffset);
 
             let disabled=false;
             if (!none_disabled){
@@ -4873,7 +4855,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
             }
 
             const highlighted = (curMinutes === cell_value);
-            console.log( "disabled", disabled, "highlighted", highlighted);
+            //console.log( "disabled", disabled, "highlighted", highlighted);
             HighlightAndDisableCell(td, disabled, highlighted);
         }
     }  // HighlightAndDisableHours
@@ -4901,7 +4883,6 @@ function validate_input_blank(el_input, el_err, msg_blank){
             td.classList.remove("tsa_color_notallowed")
         }
     }  // HighlightAndDisableCell
-
 
 //========= GetDatetimeLocal  ====================================
     function GetDatetimeLocal(data_datetime, comp_timezone) {
@@ -4933,8 +4914,6 @@ function validate_input_blank(el_input, el_err, msg_blank){
         return within_range
     }  // DatetimeWithinRange
 
-
-
 //========= HideSaveButtonOnQuicksave  ====================================
     function HideSaveButtonOnQuicksave(el_data, cls_hide) {
 // hide save button on quicksave
@@ -4954,7 +4933,6 @@ function validate_input_blank(el_input, el_err, msg_blank){
         }
         btn_quicksave.innerText = txt_quicksave
     }  //  HideSaveButtonOnQuicksave
-
 
 //========= get_quicksave_from_eldata  ====================================
     function get_quicksave_from_eldata(el_data) {
@@ -4984,7 +4962,6 @@ function validate_input_blank(el_input, el_err, msg_blank){
             } else {
                 td.classList.remove(cls_hover)}}
     }
-
 
 //0000000000000000000000000000000000000000000000000000000000000000000000000000000
 

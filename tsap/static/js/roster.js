@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(function() {ModEmployeeFilterEmployee("filter")}, 50)});
         let el_mod_employee_input_employee = document.getElementById("id_mod_employee_input_employee")
             el_mod_employee_input_employee.addEventListener("keyup", function(){
-                setTimeout(function() {ModEmployeeFilterEmployee("input")}, 250)});
+                setTimeout(function() {ModEmployeeFilterEmployee("input")}, 50)});
 
 // buttons in  modal
         document.getElementById("id_mod_employee_btn_absent").addEventListener("click", function() {ModEmployeeBtnSelect("absent")}, false )

@@ -167,9 +167,9 @@ def create_order_dict(order, item_dict):
                 maxdate = getattr(order, 'datelast')
                 if mindate or maxdate:
                     if field == 'datefirst':
-                        f.set_fielddict_date(dict=field_dict, dte=mindate, maxdate=maxdate)
+                        f.set_fielddict_date(field_dict=field_dict, date_value=mindate, maxdate=maxdate)
                     elif field == 'datelast':
-                        f.set_fielddict_date(dict=field_dict, dte=maxdate, mindate=mindate)
+                        f.set_fielddict_date(field_dict=field_dict, date_value=maxdate, mindate=mindate)
 # 7. add field_dict to item_dict
             item_dict[field] = field_dict
 # 8. remove empty attributes from item_update
@@ -253,6 +253,7 @@ def get_or_create_absence_customer(request):
     # don't use get_or_none, it wil return None when multiple absence customers exist, therefore adding another record
     customer = m.Customer.objects.filter(company=request.user.company, cat=c.SHIFT_CAT_0512_ABSENCE).first()
     if customer is None:
+
 # - create 'absence' customer if not exists
         customer = m.Customer(company=request.user.company,
                             code=absence_locale[0],

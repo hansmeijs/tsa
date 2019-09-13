@@ -311,8 +311,7 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
                         'timestart', 'timeend', 'timeduration', 'breakduration',
                         'wagerate', 'wagefactor', 'wage', 'status')
 
-FIELDS_SCHEME = ('pk', 'id', 'order', 'cat',
-                'cycle', 'excludeweekend', 'excludepublicholiday')
+FIELDS_SCHEME = ('id', 'order', 'cat', 'code', 'cycle', 'excludeweekend', 'excludepublicholiday', 'inactive')
 
 FIELDS_TEAM = ('id', 'scheme', 'code')
 

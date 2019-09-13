@@ -122,13 +122,15 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
         for schemeitem in schemeitems:
             update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone)
 
-        entry_count = 0
+        entries_count = 0
         entry_balance = m.get_entry_balance(request, comp_timezone)
+        entries_employee_list = []
+
         logger.debug('entry_balance: ' + str(entry_balance))
         # ===============================================================
-        logfile.append('================================================ ')
-        logfile.append('  Fill roster of date: ' + str(new_rosterdate_dte))
-        logfile.append('================================================ ')
+        logfile.append('===================================================================================== ')
+        logfile.append('  ' + str(request.user.company.code) + '  -  Fill roster of date: ' + str(new_rosterdate_dte))
+        logfile.append('===================================================================================== ')
         # ===============================================================
 
         # first add absence records, so shifts can be skipped when absence exist
@@ -136,7 +138,7 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
 # 2 create list of employees who are absent on new_rosterdate_dte
         #  LOWER(e.code) must be in SELECT
         newcursor = connection.cursor()
-        newcursor.execute("""SELECT tm.id, o.id, tm.employee_id, e.code, o.code, LOWER(e.code) 
+        newcursor.execute("""SELECT tm.id, o.id, tm.employee_id, e.code, o.code, tm.datefirst, tm.datelast, LOWER(e.code) 
         FROM companies_teammember AS tm 
         INNER JOIN companies_employee AS e ON (tm.employee_id = e.id)
         INNER JOIN companies_team AS t ON (tm.team_id = t.id)
@@ -163,7 +165,8 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
         if absence_rows:
             empl_id = 0
             for item in absence_rows:
-                # (0: tm_id, 1: order_id, 2: employee_id, 3: 'Agata G M', 4: 'Buitengewoon', 5: 'agata g m'),
+                logger.debug( str(item))
+                # (0: tm_id, 1: order_id, 2: employee_id, 3: 'Agata G M', 4: 'Buitengewoon', 5: datefirst, 6: datelast 7: 'agata g m'),
                 if empl_id == item[2]:
                     logfile.append("            " + item[3] + " is already absent. Absence '" + item[4] + "' skipped.")
                 else:
@@ -182,7 +185,8 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
                         is_added = add_absence_orderhour_emplhour(
                             order, teammember, new_rosterdate_dte, request, c.SHIFT_CAT_0512_ABSENCE)
                     if is_added:
-                        logfile.append("       " + item[3] + " has absence '" + item[4] + "' on " + str(new_rosterdate_dte.isoformat()) + ".")
+                        range = get_range_text(item[5], item[6], True)  # True: with parentheses
+                        logfile.append("       " + item[3] + " has absence '" + item[4] + "' " + range + ".")
                     else:
                         logfile.append("       Error adding absence '" + item[4] + "' of " + item[3] + " on " + str(new_rosterdate_dte.isoformat()) + ".")
 
@@ -242,7 +246,6 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
         logfile.append('================================ ')
         if rest_rows:
             empl_id = 0
-            empl_list = []
             row_list = []
             for item in rest_rows:
                 # item = [ 0: employee_id, 1: employee_code, 2: teammember_id, 3: customer_code, 4: order_code,
@@ -332,8 +335,8 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
                             elif order.inactive:
                                 logfile.append("      order is inactive.")
                             elif not f.date_within_range(order.datefirst, order.datelast, new_rosterdate_dte):
-                                range = get_range_text(order.datefirst, order.datelast)
-                                logfile.append("      rosterdate outside order period (" + range + ")")
+                                range = get_range_text(order.datefirst, order.datelast, True)  # True: with parentheses
+                                logfile.append("      rosterdate outside order period " + range)
                             else:
                                 schemes = m.Scheme.objects.filter(order=order)
                                 if not schemes:
@@ -394,7 +397,8 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
                                                                 schemeitem=schemeitem,
                                                                 new_rosterdate_dte=new_rosterdate_dte,
                                                                 request=request,
-                                                                comp_timezone=comp_timezone,
+                                                                entries_employee_list=entries_employee_list,
+                                                                entries_count=entries_count,
                                                                 absence_dict=absence_dict,
                                                                 rest_dict=rest_dict,
                                                                 logfile=logfile)  # PR2019-08-12
@@ -408,9 +412,23 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
                                                     if count_skipped_not_on_rosterdate == 1:
                                                         skipped_text = "1 shift was skipped (not on this rosterdate)"
                                                     logfile.append("       " + skipped_text)
-                                            # 5. add entries TODO
 
-def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request, comp_timezone, absence_dict, rest_dict, logfile):  # PR2019-08-12
+        if entries_count == 0:
+            entry_text = 'No shifts were'
+        elif entries_count == 1:
+            entry_text = '1 shift was'
+        else:
+            entry_text = str(entries_count) + ' shifts were'
+        entry_text += ' subtracted from your balance.'
+        # logger.debug('===============================================================')
+        # logger.debug(entry_text)
+        # logger.debug('===============================================================')
+
+
+
+def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
+    entries_employee_list, entries_count, absence_dict, rest_dict, logfile):  # PR2019-08-12
+
     # logger.debug(' ============= add_orderhour_emplhour ============= ')
     # logger.debug('new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
     # logger.debug('schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
@@ -525,16 +543,41 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request, comp_timezon
             logfile=logfile
         )
         employee_text = ", no employee was found for this shift."
+
+        employee_id = 0
         if teammember:
             # add employee (employe=null is filtered out)
             employee = teammember.employee
             if employee:
+                employee_id = employee.id
                 new_emplhour.employee = employee
                 new_emplhour.wagecode = employee.wagecode
                 employee_text = " with employee: " + str(employee.code) + "."
-
         new_emplhour.save(request=request)
+
         logfile.append("           Shift '" + str(shift_code) + "' is added" + employee_text)
+
+#  add entry to entries_count
+# if shift has employee: skip if employee was already added, if no employee: add always
+        # logger.debug("xxxxx    entries_count '" + str(entries_count))
+        # logger.debug("xxxxx    employee_id '" + str(employee_id))
+        # logger.debug("xxxxx    entries_employee_list '" + str(entries_employee_list))
+        # if employee_id:
+        #    if employee_id not in entries_employee_list:
+                # logger.debug("ADD        employee_id '" + str(employee_id) + "' not in " + str(entries_employee_list))
+        #         entries_count = entries_count + 1
+        #         entries_employee_list.append(employee_id)
+        #     else:
+                # logger.debug("           employee_id '" + str(employee_id) + "' found in " + str(entries_employee_list))
+
+
+        # else:
+            # logger.debug("ADD        employee_id '" + str(employee_id) + "' is 0")
+        #    entries_count = entries_count + 1
+
+        # logger.debug("           entries_count '" + str(entries_count))
+        # logger.debug("           entries_employee_list '" + str(entries_employee_list))
+
 
 
 # 33333333333333333333333333333333333333333333333333

@@ -127,8 +127,6 @@ urlpatterns = [
         path('<int:pk>/delete/', company_views.CompanyDeleteView.as_view(), name='company_delete_url'),
 
         path('invoiceadd/', company_views.InvoiceAddView.as_view(), name='invoice_add_url'),
-
-
     ])),
 
     path('customer/', include([

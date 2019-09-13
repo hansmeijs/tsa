@@ -34,6 +34,7 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
                    # 'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'inactive')
 
     employee_list = []
+    table = 'employee'
     for row_dict in employees:
         item_dict = {}
 
@@ -41,7 +42,6 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
         ppk_int = row_dict.get('company_id', 0)
         item_dict['pk'] = pk_int
         item_dict['ppk'] = ppk_int
-        item_dict['table'] = 'employee'
 
         workhours = 0
         workdays = 0
@@ -51,6 +51,7 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
                 if field == 'id':
                     field_dict = {'pk': pk_int}
                     field_dict['ppk'] = ppk_int
+                    field_dict['table'] = table
                     item_dict[field] = field_dict
 
                 # also add date when empty, to add min max date
@@ -59,9 +60,9 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
                     maxdate = row_dict.get('datelast')
                     if mindate or maxdate:
                         if field == 'datefirst':
-                            f.set_fielddict_date(dict=field_dict, dte=mindate, maxdate=maxdate)
+                            f.set_fielddict_date(field_dict=field_dict, date_value=mindate, maxdate=maxdate)
                         elif field == 'datelast':
-                            f.set_fielddict_date(dict=field_dict, dte=maxdate, mindate=mindate)
+                            f.set_fielddict_date(field_dict=field_dict, date_value=maxdate, mindate=mindate)
                     item_dict[field] = field_dict
 
                 elif field == 'workhours':
@@ -110,15 +111,15 @@ def create_employee_dict(instance, item_dict):
     # FIELDS_EMPLOYEE = ('id', 'code', 'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
     #                    'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'workhoursperday', 'inactive')
     field_tuple = c.FIELDS_EMPLOYEE
+    table = 'employee'
 
     if instance:
-        parent_pk = instance.company.pk
+        # get min max date from employee
+        datefirst = getattr(instance, 'datefirst')
+        datelast = getattr(instance, 'datelast')
 
         for field in field_tuple:
-            if field in item_dict:
-                field_dict = item_dict[field]
-            else:
-                field_dict ={}
+            field_dict = item_dict[field] if field in item_dict else {}
 
             if field == 'id':
                 pk_int = instance.pk
@@ -126,10 +127,10 @@ def create_employee_dict(instance, item_dict):
 
                 item_dict['pk'] = pk_int
                 item_dict['ppk'] = ppk_int
-                field_dict['table'] = 'employee'
 
                 field_dict['pk'] = pk_int
                 field_dict['ppk'] = ppk_int
+                field_dict['table'] =table
 
             elif field in ['code', 'namelast', 'namefirst','identifier',
                            'leavedays', 'inactive']:
@@ -153,18 +154,27 @@ def create_employee_dict(instance, item_dict):
                 maxdate = getattr(instance, 'datelast')
                 if mindate or maxdate:
                     if field == 'datefirst':
-                        f.set_fielddict_date(dict=field_dict, dte=mindate, maxdate=maxdate)
+                        f.set_fielddict_date(field_dict=field_dict, date_value=mindate, maxdate=maxdate)
                     elif field == 'datelast':
-                        f.set_fielddict_date(dict=field_dict, dte=maxdate, mindate=mindate)
+                        f.set_fielddict_date(field_dict=field_dict, date_value=maxdate, mindate=mindate)
+
+            # also add date when empty, to add min max date
+            elif field in ['datefirst', 'datelast']:
+                if datefirst or datelast:
+                    if field == 'datefirst':
+                        f.set_fielddict_date(field_dict=field_dict, date_value=datefirst, maxdate=datelast)
+                    elif field == 'datelast':
+                        f.set_fielddict_date(field_dict=field_dict, date_value=datelast, mindate=datefirst)
+                item_dict[field] = field_dict
 
             item_dict[field] = field_dict
-# >>>   create_employee_dict
+# >>>   end create_employee_dict
 
 
 def create_teammember_list(table_dict, company):
     # --- create list of all teammembers of this order PR2019-08-29
-    # logger.debug(' ----- create_teammember_list  -----  ')
-    # logger.debug('table_dict' + str(table_dict) )
+    logger.debug(' ----- create_teammember_list  -----  ')
+    logger.debug('table_dict' + str(table_dict) )
     # teammember: {order_pk: null datefirst: null datelast: null}
 
     cat = table_dict.get('cat')
@@ -173,14 +183,14 @@ def create_teammember_list(table_dict, company):
     order = table_dict.get('order')
 
     crit = Q(team__scheme__order__customer__company=company)
-    if cat:
-        crit.add(Q(team__scheme__order__cat=cat), crit.connector)
-    if order:
-        crit.add(Q(order=order), crit.connector)
-    if datelast:
-        crit.add(Q(datefirst__lte=datelast) | Q(datefirst__isnull=True), crit.connector)
-    if datefirst:
-        crit.add(Q(datelast__gte=datefirst) | Q(datelast__isnull=True), crit.connector)
+    # if cat:
+        # crit.add(Q(team__scheme__order__cat=cat), crit.connector)
+    # if order:
+        # crit.add(Q(order=order), crit.connector)
+    # if datelast:
+        # crit.add(Q(datefirst__lte=datelast) | Q(datefirst__isnull=True), crit.connector)
+    # if datefirst:
+        # crit.add(Q(datelast__gte=datefirst) | Q(datelast__isnull=True), crit.connector)
     # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
     teammembers = Teammember.objects\
         .select_related('employee')\
@@ -191,6 +201,9 @@ def create_teammember_list(table_dict, company):
         .filter(crit).order_by('datefirst')\
         .values('id', 'cat', 'datefirst', 'datelast', 'workhoursperday', 'wagerate', 'wagefactor',
                 'employee_id', 'employee__company__id', 'employee__code', 'employee__workhours', 'employee__workdays',
+                'employee__datefirst', 'employee__datelast',
+                'team__scheme__datefirst', 'team__scheme__datelast',
+                'team__scheme__order__datefirst', 'team__scheme__order__datelast',
                 'team_id', 'team__code',
                 'team__scheme__id',
                 'team__scheme__order__id',
@@ -209,15 +222,29 @@ def create_teammember_list(table_dict, company):
 
     teammember_list = []
     for row_dict in teammembers:
-       # create_teammember_dict(teammember, item_dict)
-        #teammember_list.append(item_dict)
-
-        workhours = 0
-        workdays = 0
 
         pk_int = row_dict.get('id', 0)
         ppk_int = row_dict.get('team_id', 0)
         item_dict = {'pk': pk_int, 'ppk': ppk_int}
+
+        teammember_datefirst = row_dict.get('datefirst')
+        teammember_datelast = row_dict.get('datelast')
+
+        scheme_datefirst = row_dict.get('team__scheme__datefirst')
+        if scheme_datefirst is None:
+            scheme_datefirst = row_dict.get('team__scheme__order__datefirst')
+        employee_datefirst = row_dict.get('employee__datefirst')
+        mindate_scheme_employee = f.date_latest_of_two(scheme_datefirst, employee_datefirst)
+        mindate = f.date_latest_of_two(mindate_scheme_employee, teammember_datefirst)
+
+        scheme_datelast = row_dict.get('team__scheme__datelast')
+        if scheme_datelast is None:
+            scheme_datelast = row_dict.get('team__scheme__order__datelast')
+        employee_datelast = row_dict.get('employee__datelast')
+        maxdate_scheme_employee = f.date_earliest_of_two(scheme_datelast, employee_datelast)
+
+        maxdate = f.date_earliest_of_two(maxdate_scheme_employee, teammember_datelast)
+
 
         for field in field_list:
             field_dict = {}
@@ -226,27 +253,31 @@ def create_teammember_list(table_dict, company):
                 field_dict['pk'] = pk_int
                 field_dict['ppk'] = ppk_int
                 field_dict['table'] = 'teammember'
+                field_dict['cat'] = row_dict.get('cat', 0)
 
             # team is parent of teammember
             elif field == 'team':
                 field_dict['pk'] = ppk_int
                 field_dict['ppk'] = row_dict.get('team__scheme__id', 0)
-                team_code =  row_dict.get('team__code')
+                team_code = row_dict.get('team__code')
                 if team_code:
                     field_dict['value'] = team_code
 
-            elif field == 'cat':
-                field_dict['value'] = row_dict.get('cat', 0)
-
             # also add date when empty, to add min max date
-            elif field in ['datefirst', 'datelast']:
-                mindate = row_dict.get('datefirst')
-                maxdate = row_dict.get ('datelast')
-                if mindate or maxdate:
-                    if field == 'datefirst':
-                        f.set_fielddict_date(dict=field_dict, dte=mindate, maxdate=maxdate)
-                    elif field == 'datelast':
-                        f.set_fielddict_date(dict=field_dict, dte=maxdate, mindate=mindate)
+            elif field == 'datefirst':
+                if teammember_datefirst or mindate_scheme_employee or maxdate:
+                    f.set_fielddict_date(
+                        field_dict=field_dict,
+                        date_value=teammember_datefirst,
+                        mindate=mindate_scheme_employee,
+                        maxdate=maxdate)
+            elif field == 'datelast':
+                if teammember_datelast or mindate or maxdate_scheme_employee:
+                    f.set_fielddict_date(
+                        field_dict=field_dict,
+                        date_value=teammember_datelast,
+                        mindate=mindate,
+                        maxdate=maxdate_scheme_employee)
 
             elif field == 'workhoursperday':
                 workhoursperday = row_dict.get(field, 0)
@@ -285,6 +316,8 @@ def create_teammember_list(table_dict, company):
                 field_dict['code'] = row_dict.get('team__scheme__order__customer__code', '')
 
             item_dict[field] = field_dict
+
+        f.remove_empty_attr_from_dict(item_dict)
 
         if item_dict:
             teammember_list.append(item_dict)
@@ -353,9 +386,9 @@ def create_teammember_dict(instance, item_dict):
                 maxdate = getattr(instance, 'datelast')
                 if mindate or maxdate:
                     if field == 'datefirst':
-                        f.set_fielddict_date(dict=field_dict, dte=mindate, maxdate=maxdate)
+                        f.set_fielddict_date(field_dict=field_dict, date_value=mindate, maxdate=maxdate)
                     elif field == 'datelast':
-                        f.set_fielddict_date(dict=field_dict, dte=maxdate, mindate=mindate)
+                        f.set_fielddict_date(field_dict=field_dict, date_value=maxdate, mindate=mindate)
 
             elif field == 'workhoursperday':
                 field_dict['value'] = getattr(instance, field)

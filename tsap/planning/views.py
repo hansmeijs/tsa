@@ -69,7 +69,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                     for table in datalist_dict:
                         table_dict = datalist_dict[table]
-                        logger.debug('table_dict: ' + str(table_dict))
+                        # logger.debug('table_dict: ' + str(table_dict))
 
 # - get include_inactive from table_dict
                         include_inactive = False
@@ -105,10 +105,10 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             list = create_order_list(company=request.user.company, cat=c.SHIFT_CAT_4096_TEMPLATE)
 
                         elif table == 'scheme_template':
-                            list = d.create_scheme_template_list(request.user.company)
+                            list = d.create_scheme_template_list(request)
 
                         elif table == 'schemeitem_template':
-                            list = d.create_schemeitem_template_list(request.user.company, comp_timezone)
+                            list = d.create_schemeitem_template_list(request, comp_timezone)
 
                         elif table == 'abscat':
                             list = create_absencecategory_list(request)
@@ -189,26 +189,36 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             datalists[table] = {'value': quicksave}
 
                         else:
-                            # - get order from table_dict
-                            order_pk = table_dict.get('order_pk')
-                            order = None
-                            if order_pk:
-                                order = m.Order.objects.get_or_none(customer__company=request.user.company,
-                                                             pk=order_pk)
+                            # - get customer from table_dict
+                            customer_pk = table_dict.get('customer_pk')
+                            if customer_pk:
+                                customer = m.Customer.objects.get_or_none(
+                                    company=request.user.company,
+                                    pk=customer_pk)
                             # logger.debug('order: ' + str(order) + ' ' + str(type(order)))
                             # logger.debug('table: ' + str(table) + ' ' + str(type(table)))
                             # logger.debug('include_inactive: ' + str(include_inactive) + ' ' + str(type(include_inactive)))
 
-                            if order:
-                                # logger.debug('if order: ')
-                                if table == 'scheme':
-                                    list = d.create_scheme_list(order, include_inactive)
-                                elif table == 'schemeitem':
-                                    list = d.create_schemeitem_list(order, comp_timezone)
-                                elif table == 'shift':
-                                    list = d.create_shift_list(order, comp_timezone)
-                                elif table == 'team':
-                                    list = d.create_team_list(order)
+                                if customer:
+                                    # logger.debug('if order: ')
+                                    if table == 'scheme':
+                                        list = d.create_scheme_list(
+                                            request=request,
+                                            customer=customer,
+                                            include_inactive=include_inactive)
+                                    elif table == 'schemeitem':
+                                        list = d.create_schemeitem_list(
+                                            request=request,
+                                            customer=customer,
+                                            comp_timezone=comp_timezone)
+                                    elif table == 'shift':
+                                        list = d.create_shift_list(
+                                            request=request,
+                                            customer=customer)
+                                    elif table == 'team':
+                                        list = d.create_team_list(
+                                            request=request,
+                                            customer=customer)
 
 
                         if list:
@@ -471,9 +481,9 @@ class SchemeUploadView(UpdateView):  # PR2019-07-21
                         update_wrap['item_update'] = item_update
 
 # 8. update scheme_list when changes are made
-                    # inactive = None: include active and inactive, issystem = None: include issystem and non-system
-                    include_inactive = False
-                    scheme_list = d.create_scheme_list(parent, include_inactive)
+                    scheme_list = d.create_scheme_list(request=request,
+                                                       order=parent,
+                                                       include_inactive=False)
                     if scheme_list:
                         update_wrap['scheme'] = scheme_list
 
@@ -854,26 +864,24 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
     # b. get comp_timezone
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
-            tblName = ''
-            if 'scheme' in request.POST:
-                tblName = 'scheme'
-            if 'shift' in request.POST:
-                tblName = 'shift'
-            elif 'team' in request.POST:
-                tblName = 'team'
-            if tblName:
-                upload_json = request.POST.get(tblName, None)
-                if upload_json:
-                    upload_dict = json.loads(upload_json)
-                    # logger.debug('upload_dict ' + str(upload_dict))
+            upload_json = request.POST.get("upload")
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+                # logger.debug('upload_dict ' + str(upload_dict))
 
-                    update_wrap = {}
-                    if tblName == 'scheme':
-                        update_wrap = scheme_upload(request, upload_dict, user_lang)
-                    if tblName == 'shift':
-                        update_wrap = shift_upload(request, upload_dict, comp_timezone)
-                    elif tblName == 'team':
-                        update_wrap = team_upload(request, upload_dict, comp_timezone)
+            # 1. get_iddict_variables
+                table = ''
+                id_dict = upload_dict.get('id')
+                if id_dict:
+                    table = id_dict.get('table', '')
+
+                update_wrap = {}
+                if table == 'scheme':
+                    update_wrap = scheme_upload(request, upload_dict, user_lang)
+                if table == 'shift':
+                    update_wrap = shift_upload(request, upload_dict, comp_timezone)
+                elif table == 'team':
+                    update_wrap = team_upload(request, upload_dict, comp_timezone)
 
 # 9. return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
@@ -933,9 +941,9 @@ def scheme_upload(request, upload_dict, user_lang):  # PR2019-05-31
             update_wrap['scheme_update'] = update_dict
 
 # 9. update order_list when changes are made
-        # inactive = None: include active and inactive, issystem = None: include issystem and non-system
-        include_inactive = False
-        scheme_list = d.create_scheme_list(parent, include_inactive)
+        scheme_list = d.create_scheme_list(request=request,
+                                           order=parent,
+                                           include_inactive=False)
         if scheme_list:
             update_wrap['scheme_list'] = scheme_list
 
@@ -1009,12 +1017,18 @@ def shift_upload(request, upload_dict, comp_timezone):  # PR2019-08-08
         update_wrap['shift_update'] = update_dict
 
 # 8. update shift_list
-    shift_list = d.create_shift_list(parent.order, comp_timezone)
+    shift_list = d.create_shift_list(
+        request=request,
+        customer=parent.order.customer)
     if shift_list:
         update_wrap['shift_list'] = shift_list
 
 # 9. update schemeitem_list when changes are made
-    item_list = d.create_schemeitem_list(parent.order, comp_timezone)
+    item_list = d.create_schemeitem_list(
+        request=request,
+        customer=parent.order.customer,
+        comp_timezone=comp_timezone)
+
     if item_list:
         update_wrap['schemeitem'] = item_list
 
@@ -1025,9 +1039,11 @@ def shift_upload(request, upload_dict, comp_timezone):  # PR2019-08-08
 def team_upload(request, upload_dict, comp_timezone):  # PR2019-05-31
     logger.debug(' --- team_upload --- ')
     logger.debug(upload_dict)
-    # {'id': {'table': 'team', 'create': True, 'temp_pk': 'new_2', 'ppk': 1116},
-    # 'code': {'field': 'code', 'value': 'Zhen X', 'update': True},
-    # 'employee': {'table': 'employee', 'pk': 1269, 'ppk': 0, 'value': 'Zhen X', 'update': True}}
+
+    # {'id': {'table': 'team', 'create': True, 'temp_pk': 'new_2', 'ppk': 1107},
+    # 'code': {'field': 'code', 'value': 'Look R', 'update': True},
+    # 'employee': {'table': 'employee', 'pk': 433, 'ppk': 2, 'value': 'Look R', 'update': True}}
+
     update_wrap = {}
 
 # 1 Create empty update_dict with keys for all fields. Unused ones will be removed at the end
@@ -1060,11 +1076,13 @@ def team_upload(request, upload_dict, comp_timezone):  # PR2019-05-31
                 # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
                 if temp_pk_str:
                     update_dict['id']['temp_pk'] = temp_pk_str
+
                 team = m.Team(scheme=scheme)
                 if employee.code:
                     team.code = employee.code
                 team.save(request=request)
                 logger.debug('team: ' + str(team))
+
                 if team:
                     update_dict['id']['created'] = True
                     save_changes = True
@@ -1072,7 +1090,19 @@ def team_upload(request, upload_dict, comp_timezone):  # PR2019-05-31
                                      'code': employee.code, 'updated': True}
                     update_dict['employee'] = employee_dict
 
-                    teammember = m.Teammember(team=team, employee=employee)
+# ===== Create new teammember
+                    # TODO give value to variables
+                    workhoursperday = 0
+                    wagerate = 0
+                    wagefactor = 0
+                    teammember = m.Teammember(
+                        team=team,
+                        employee=employee,
+                        cat=cat,
+                        workhoursperday=workhoursperday,
+                        wagerate=wagerate,
+                        wagefactor=wagefactor
+                    )
                     teammember.save(request=request)
                     logger.debug('teammember: ' + str(teammember))
 
@@ -1136,7 +1166,9 @@ def team_upload(request, upload_dict, comp_timezone):  # PR2019-05-31
                         update_dict[field]['value'] = team.code
 
 # --- update team_list
-            team_list = d.create_team_list(scheme.order)
+            team_list = d.create_team_list(
+                request=request,
+                customer=scheme.order.customer)
             if team_list:
                 update_wrap['team_list'] = team_list
 
@@ -1154,7 +1186,10 @@ def team_upload(request, upload_dict, comp_timezone):  # PR2019-05-31
         update_wrap['team_update'] = update_dict
 
 # 9. update schemeitem_list when changes are made
-    item_list = d.create_schemeitem_list(scheme.order, comp_timezone)
+    item_list = d.create_schemeitem_list(
+        request=request,
+        customer=scheme.order.customer,
+        comp_timezone=comp_timezone)
     if item_list:
         update_wrap['schemeitem'] = item_list
     return update_wrap
@@ -1209,17 +1244,24 @@ class SchemeitemDownloadView(View):  # PR2019-03-10
                         # logger.debug('datalists: ' + str(datalists))
 
                         # create shift_list
-                        shift_list = d.create_shift_list(scheme.order)
+                        shift_list = d.create_shift_list(
+                            request=request,
+                            customer=scheme.order.customer)
                         if shift_list:
                             datalists['shift_list'] = shift_list
 
                         # create team_list
-                        team_list = d.create_team_list(scheme.order)
+                        team_list = d.create_team_list(
+                            request=request,
+                            customer=scheme.order.customer)
                         if team_list:
                             datalists['team_list'] = team_list
 
                         # create schemeitem_list
-                        schemeitem_list = d.create_schemeitem_list(scheme.order, comp_timezone)
+                        schemeitem_list = d.create_schemeitem_list(
+                            request=request,
+                            customer=scheme.order.customer,
+                            comp_timezone=comp_timezone)
                         if schemeitem_list:
                             datalists['schemeitem_list'] = schemeitem_list
                             # shift_list.sort()
@@ -1409,7 +1451,10 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                             update_schemeitem(schemeitem, upload_dict, item_update, request, comp_timezone)
 
                 # e. create schemeitem_list
-                schemeitem_list = d.create_schemeitem_list(scheme.order, comp_timezone)
+                schemeitem_list = d.create_schemeitem_list(
+                    request=request,
+                    customer=scheme.order.customer,
+                    comp_timezone=comp_timezone)
 
                 if has_new_schemeitem:
                     item_update_dict['item_update'] = {'created': True}
@@ -1436,7 +1481,7 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
 # 2. get upload_dict from request.POST
-            upload_json = request.POST.get('schemeitem', None)
+            upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
                 logger.debug('upload_dict: ' + str(upload_dict))
@@ -1488,7 +1533,10 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
                         update_wrap['item_update'] = update_dict
 
 # 8. update schemeitem_list when changes are made
-                    item_list = d.create_schemeitem_list(parent.order, comp_timezone)
+                    item_list = d.create_schemeitem_list(
+                        request=request,
+                        customer=parent.order.customer,
+                        comp_timezone=comp_timezone)
                     if item_list:
                         update_wrap[table] = item_list
 
@@ -1532,6 +1580,8 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
                 # 'employee': {'pk': 290},
                 # 'team': {'pk': 1299, 'value': 'Ziekte', 'ppk': 1111, 'update': True}}
 
+                # upload_dict: {'id': {'temp_pk': 'new_8', 'create': True, 'ppk': 1121, 'table': 'teammember', 'delete': True}}
+
 # 3. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
                 # c.FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast',
                 #                       'workhoursperday', 'wagerate', 'wagefactor', 'scheme', 'order', 'customer')
@@ -1557,43 +1607,54 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
                 if parent:
 # B. Delete instance
                     # check if name of deleted teammember equals name of the team.code, must be changed later
-                    team_code_needs_update = False
+                    teamcode_needs_update = False
                     if is_delete:
-                        logger.debug('is_delete: ')
+                        this_text = _('This teammember')
+                        logger.debug('is_delete: ' + str(is_delete))
                         instance = m.get_instance(table, pk_int, parent, update_dict)
                         if instance:
+                            teamcode_equals_employeecode = False
                             logger.debug('teammember: ' + str(parent))
                             if instance.employee and instance.team:
-                                logger.debug('instance.employee.code: ' + str(instance.employee.code))
-                                logger.debug('parent.code: ' + str(parent.code))
-                                team_code_needs_update = (instance.employee.code != parent.code)
-                            this_text = _('This teammember')
+                                logger.debug('employee.code: ' + str(instance.employee.code))
+                                logger.debug('team.code: ' + str(parent.code))
+                                teamcode_equals_employeecode = (parent.code == instance.employee.code)
+                                logger.debug('teamcode_equals_employeecode: ' + str(teamcode_equals_employeecode))
                             deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
-                            # undo team_code_needs_update when deleting failed
 
-                            logger.debug('deleted_ok: ' + str(deleted_ok))
-                            if not deleted_ok:
-                                team_code_needs_update = False
-                            else:
-                            # if this was the last teammember: also delete team
-                                logger.debug('team=parent: ' + str(parent))
-                                teammembers_exist = m.Teammember.objects.filter(team=parent).exists()
-                                logger.debug('teammembers_exist: ' + str(teammembers_exist))
+                            # update team code when deleted_ok, not when absence
+                            if mode != 'absence' and teamcode_equals_employeecode and deleted_ok:
+                                teamcode_needs_update = True
 
-                                if not teammembers_exist:
-                                    logger.debug('no more Teammembers')
-                                    deleted_ok = m.delete_instance(parent, update_dict, request, this_text)
-                                    logger.debug('team deleted:' + str(deleted_ok))
+                    # delete team if there are no more teammembers
+                        logger.debug('team=parent: ' + str(parent))
+                        teammembers_exist = m.Teammember.objects.filter(team=parent).exists()
+                        logger.debug('teammembers_exist: ' + str(teammembers_exist))
 
+                        if not teammembers_exist:
+                            logger.debug('no more Teammembers')
+                            deleted_ok = m.delete_instance(parent, update_dict, request, this_text)
+                            logger.debug('team deleted:' + str(deleted_ok))
+                            # no need to update team, it does not exist
+                            if deleted_ok:
+                                teamcode_needs_update = False
+
+                        logger.debug('teamcode_needs_update:' + str(teamcode_needs_update))
 # C. Create new teammember
                     elif is_create:
                         instance = create_teammember(upload_dict, update_dict, request)
+                        if instance and mode != 'absence':
+                            teamcode_needs_update = True
 # D. get existing instance
                     else:
                         instance = m.get_instance(table, pk_int, parent, update_dict)
 # E. update instance, also when it is created
                     if instance:
                         update_teammember(instance, upload_dict, update_dict, request, user_lang)
+
+# 9. update team_code if necessary
+                    if teamcode_needs_update:
+                        update_team_code(parent, request)
 
 # F. Add all saved values to update_dict, add id_dict to update_dict
                     e.create_teammember_dict(instance, update_dict)
@@ -1606,7 +1667,9 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
                         update_wrap['item_update'] = update_dict
 
 # 8. update teammember_list
-                    team_list = d.create_team_list(order=parent.scheme.order)
+                    team_list = d.create_team_list(
+                        request=request,
+                        customer=parent.scheme.order.customer)
                     if team_list:
                         update_wrap['team'] = team_list
 
@@ -1615,31 +1678,31 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
                     if teammember_list:
                         update_wrap['teammember'] = teammember_list
 
-# 9. update team_code if necessary
-                    if team_code_needs_update:
-                        refresh_team_code(parent, request)
 
 # 8. update team_list
-                    team_list = d.create_team_list(order=parent.scheme.order)
+                    team_list = d.create_team_list(
+                        request=request,
+                        customer=parent.scheme.order.customer)
                     if team_list:
                         update_wrap['team'] = team_list
 
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
-def refresh_team_code(team, request):
+def update_team_code(team, request):
+    logger.debug(' --- update_team_code --- ')
     # after deleting teaammmeber, lookup new team_code. Use 'Select employee...' if non available
     code = None
     if team:
         teammember = m.Teammember.objects.filter(team=team, employee__isnull=False).first()
+
         if teammember:
             code = getattr(teammember.employee,'code')
+            if code:
+                logger.debug(' code' + str(code))
         if code is None:
             code = _('Select employee...')
         team.code = code
         team.save(request=request)
-
-    # get all teammmbers of this team
-
 
 ####################################
 # === ReviewView ===================================== PR2019-08-20
@@ -2938,8 +3001,6 @@ def update_teammember(instance, upload_dict, update_dict, request, user_lang):
 # 1. get_iddict_variables
     id_dict = upload_dict.get('id')
     if id_dict:
-        updated_teamcode = None
-
         table = 'teammember'
         mode = upload_dict.get('mode', '')
         logger.debug('mode: ' + str(mode))
@@ -2993,8 +3054,6 @@ def update_teammember(instance, upload_dict, update_dict, request, user_lang):
                     employee = m.Employee.objects.get_or_none(id=pk, company=request.user.company)
                 logger.debug('employee]: ' + str(employee) + ' ' + str(type(employee)))
 
-                add_employee = False
-
                 if employee is None:
                     update_dict[field]['error'] = _('This field cannot be blank.')
                 else:
@@ -3006,9 +3065,6 @@ def update_teammember(instance, upload_dict, update_dict, request, user_lang):
                         update_dict[field]['updated'] = True
                         save_changes = True
 
-        # 4. put employeename in team code  - not when absence
-                        if mode != 'absence':
-                            updated_teamcode = getattr(employee, 'code')
 
         field = 'workhoursperday'
         if field in upload_dict:
@@ -3054,13 +3110,6 @@ def update_teammember(instance, upload_dict, update_dict, request, user_lang):
         if save_changes:
             try:
                 instance.save(request=request)
-                # 4. put updated_teamcode in team code
-                logger.debug('updated_teamcode]: ' + str(updated_teamcode) + ' ' + str(type(updated_teamcode)))
-                if updated_teamcode:
-                    team = instance.team
-                    setattr(team, 'code', updated_teamcode)
-                    team.save(request=request)
-                    logger.debug('team]: ' + str(team) + ' ' + str(type(team)))
             except:
                 msg_err = _('This %(tbl)s could not be updated.') % {'tbl': table}
                 update_dict['id']['error'] = msg_err
@@ -3197,10 +3246,10 @@ def update_scheme(instance, upload_dict, update_dict, request):
                 # also add date when empty, to add min max date
                 elif fieldname == 'datefirst':
                     maxdate = getattr(instance, 'datelast')
-                    f.set_fielddict_date(dict=update_dict[fieldname], dte=saved_value, maxdate=maxdate)
+                    f.set_fielddict_date(field_dict=update_dict[fieldname], date_value=saved_value, maxdate=maxdate)
                 elif fieldname == 'datelast':
                     mindate = getattr(instance, 'datefirst')
-                    f.set_fielddict_date(dict=update_dict[fieldname], dte=saved_value, mindate=mindate)
+                    f.set_fielddict_date(field_dict=update_dict[fieldname], date_value=saved_value, mindate=mindate)
 
 
 #######################################################
@@ -3884,7 +3933,6 @@ def create_teammember(upload_dict, update_dict, request):
 
 # 3. get employee
                 # employee: {value: "Chester", pk: 75, update: true}
-                employee = None
                 field_dict = upload_dict.get('employee')
                 if field_dict:
                     employee_pk =  field_dict.get('pk')

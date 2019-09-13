@@ -19,6 +19,7 @@ $(function() {
         const cls_selected = "tsa_tr_selected";
 
         let selected_employee_pk = 0;
+        let selected_employee_code = "";
         let selected_item_pk = 0
         let selected_mode = "list"
 
@@ -215,10 +216,20 @@ $(function() {
 
 // ---  update selected__pk when not equal to pk_int
             selected_employee_pk = pk_int
+            selected_employee_code = code_value
             console.log( "pk_int", pk_int, "selected_employee_pk", selected_employee_pk);
+            console.log( "pk_int", pk_int, "selected_employee_code", selected_employee_code);
 
             let el = sel_tr_clicked.firstChild
-            document.getElementById("id_hdr_employee").innerText = el.innerText
+            let header_text;
+            if (selected_mode === "list") {
+                header_text = get_attr_from_el_str(el_data, "data-txt_employee_list")
+            } else if (!!el.innerText) {
+                header_text = el.innerText
+            } else {
+                header_text = get_attr_from_el_str(el_data, "data-txt_employee_select")
+            }
+            document.getElementById("id_hdr_employee").innerText = header_text
 
 // ---  highlight clicked row
             //ChangeBackgroundRows(sel_tr_clicked.parentNode, cls_bc_lightlightgrey, cls_bc_yellow_lightlight)
@@ -238,8 +249,10 @@ $(function() {
 
 //=========  HandleButtonSelect  ================ PR2019-05-25
     function HandleButtonSelect(mode) {
-        //console.log( "===== HandleButtonSelect ========= ");
+        console.log( "===== HandleButtonSelect ========= ");
         selected_mode = mode
+        console.log( "selected_mode ", selected_mode);
+
         let el_btn_container = document.getElementById("id_btn_container")
             el_btn_container.setAttribute("data-mode", selected_mode);
 
@@ -254,9 +267,19 @@ $(function() {
         let btn_selected = document.getElementById("id_btn_" + selected_mode )
         btn_selected.classList.add("tsa_btn_selected")
 
+        let header_text;
+        if (selected_mode === "list") {
+            header_text = get_attr_from_el_str(el_data, "data-txt_employee_list")
+        } else if (!selected_employee_pk) {
+            header_text = get_attr_from_el_str(el_data, "data-txt_employee_select")
+        } else {
+            header_text = selected_employee_code
+        }
+        document.getElementById("id_hdr_employee").innerText = header_text
+
         CreateTableHeader()
 
-// --- fill data table shifts
+// --- fill data table
         FillTableRows()
 
     }  // HandleButtonSelect
@@ -322,7 +345,7 @@ $(function() {
 
 //========= FillTableRows  ====================================
     function FillTableRows(workhoursperday) {
-        console.log( "===== FillTableRows  ========= ");
+        console.log( "===== FillTableRows  ========= ", selected_mode);
         const mode = selected_mode
 // --- reset tblBody_items
         tblBody_items.innerText = null;
@@ -343,6 +366,7 @@ $(function() {
             if (len > 0){
                 for (let i = 0; i < len; i++) {
                     let dict = item_list[i];
+                    //console.log( "dict", dict);
 
                     // teammember_list item: {
                         // pk: 92, ppk: 1298, table: "teammember"
@@ -351,10 +375,13 @@ $(function() {
                         // employee: {pk: 290, ppk: 2, value: "Albertoe S E W"}
                         // scheme: {pk: 1110, ppk: 1090}
 
-                    const pk = parseInt(get_dict_value_by_key(dict,"pk"))
-                    const ppk = parseInt(get_dict_value_by_key(dict,"ppk"))
-                    const cat = parseInt(get_subdict_value_by_key(dict,"cat", "value"))
+                    const pk_int = get_dict_value_by_key(dict,"pk")
+                    const ppk_int = get_dict_value_by_key(dict,"ppk")
+                    const cat = get_subdict_value_by_key(dict,"id", "cat")
                     const employee_pk = parseInt(get_subdict_value_by_key(dict, "employee", "pk"))
+                    //console.log( "cat", cat, typeof cat);
+                    //console.log( "employee_pk", employee_pk, typeof employee_pk);
+                    //console.log( "pk", pk_int, typeof pk_int);
 
                     // shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacement, 64=rest, 512=absence, 4096=template
                     // in mode absence and shift: show only rows of selected_employee_pk
@@ -363,12 +390,10 @@ $(function() {
                         if (!!selected_employee_pk && employee_pk === selected_employee_pk){
                             if(mode === "absence") {
                                 const cat_array = get_power_array(cat);
-                                console.log( "cat_array: ", cat_array);
                                 // if 512=absence exists in cat_array
                                 addRow = (cat_array.indexOf(512) > -1)
-                                console.log( "addRow: ", addRow);
                             } else if(mode === "shift") {
-                                addRow = (cat < 64) // 64=rest
+                                addRow = (cat < 512) // 512=absence
                             }
                         }
                     } else {
@@ -378,13 +403,13 @@ $(function() {
     // --- add item if employee_pk = selected_employee_pk (list contains items of all employees)
     // and cat = absence
                     if (addRow){
-                        tblRow = CreateTableRow(pk, ppk, cat, employee_pk, workhoursperday)
+                        tblRow = CreateTableRow(pk_int, ppk_int, cat, employee_pk, workhoursperday)
 
                         //console.log( ">>>>>>>>>>> dict ", dict);
                         UpdateTableRow(mode, tblRow, dict)
 
     // --- highlight selected row
-                        if (pk === selected_item_pk) {
+                        if (pk_int === selected_item_pk) {
                             tblRow.classList.add(cls_selected)
                         }
                     }  // if (!!employee_pk && employee_pk === selected_employee_pk)
@@ -675,12 +700,17 @@ $(function() {
                                         el_input.removeAttribute("data-o_value");
                                     }
                             } else if (fieldname ===  "order"){
-                                //console.log("=================fieldname: ", fieldname);
-                                //console.log("=================field_dict: ", field_dict);
+                                console.log("=================fieldname: ", fieldname);
+                                console.log("=================field_dict: ", field_dict);
+                                console.log("=================item_dict: ", item_dict);
                                 // abscat is stored in order of customer 'absence'
-                                const order_pk = parseInt(get_subdict_value_by_key (item_dict, "order", "pk"))
-                                const order_value = get_subdict_value_by_key (item_dict, "order", "value")
-                                const customer_value = get_subdict_value_by_key (item_dict, "customer", "value")
+                                const order_pk = get_dict_value_by_key (field_dict, "pk")
+                                const order_value = get_dict_value_by_key (field_dict, "code")
+                                const customer_value = get_subdict_value_by_key (item_dict, "customer", "code")
+
+                                console.log("order_pk", order_pk, typeof order_pk);
+                                console.log("order_value", order_pk);
+                                console.log("customer_value", customer_value);
 
                                 el_input.value = customer_value + " - " + order_value
                                 el_input.setAttribute("data-value", order_value);
@@ -1273,7 +1303,7 @@ $(function() {
                 let td = tblRow.insertCell(-1);
                 let inner_text = code_value
                 if (table_name === "shift"){
-                    if (get_subdict_value_by_key(item_dict, "cat", "value") === 1) { inner_text += " (R)"}
+                    if (get_subdict_value_by_key(item_dict, "id", "cat") === 1) { inner_text += " (R)"}
                 }
                 td.innerText = code_value;
                 td.setAttribute("data-value", code_value);
@@ -1829,14 +1859,8 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 if (!isEmpty(field_dict)){row_upload[fieldname] = field_dict};
                 console.log ("row_upload: ", row_upload);
 
-                let url_str, parameters;
-                if (tablename === "teammember") {
-                    url_str = url_teammember_upload
-                    parameters = {"upload": JSON.stringify (row_upload)}
-                } else {
-                    url_str = url_scheme_upload
-                    parameters = {"upload": JSON.stringify (row_upload)}
-                }
+                const url_str = (tablename === "teammember") ? url_teammember_upload : url_scheme_upload;
+                const parameters = {"upload": JSON.stringify (row_upload)}
 
                 let response;
                 $.ajax({
@@ -2129,14 +2153,13 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 let url_str, parameters;
                 if (btnName === "absence") {
                     url_str = url_teammember_upload
-                    parameters = {"upload": JSON.stringify (upload_dict)}
                 } else if (btnName === "shift") {
                     url_str = url_teammember_upload
-                    parameters = {"upload": JSON.stringify (upload_dict)}
                 } else if (btnName === "list") {
                     url_str = get_attr_from_el(el_data, "data-employee_upload_url");
-                    parameters = {"upload": JSON.stringify (upload_dict)}
                 }
+                parameters = {"upload": JSON.stringify (upload_dict)}
+
                 console.log (">>> parameters: ", upload_dict);
 
                 let response;

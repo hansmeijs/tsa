@@ -13,7 +13,7 @@
             <h3>{% trans 'Customers' %}</h3>
         </div>
 
-        <div class="td_width_200 mx-2 my-2">
+        <div class="td_width_200 mx-2 mt-2 mb-5">
             <table >
                 <thead id="id_thead_select"class="mx-1 my-1 ">
                 <tr>
@@ -39,56 +39,51 @@
             <span class="popuptext" id="id_msgbox"></span>
         </div>
 
-        <!-- class container -->
+    <!-- =================== CONTAINER =================== -->
         <div class="container">
+            <!-- CONTENT HEADER - LOADER -->
+            <div class="mt-5">
 
-            <!-- class content_subheader mt-5
-            <div class="content_subheader mt-5"> -->
                 <!-- class content_header -->
-                <div class="content_header mt-3">
-                    <div class="content_subheader_left mx-4">
+                <div class="content_header">
+
+                    <div class="content_subheader_left mx-2">
                         <h5 id="id_hdr_customer">{% trans 'Select customer' %}...</h5>
                     </div>
+                                        <!-- loader -->
                     <div class="content_header_middle mx-4">
-                        <!-- loader -->
-                        <div id="id_loader" class="image_container visibility_hide">
+                        <div id="id_loader" class="image_container XXXvisibility_hide">
                             <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
                         </div>
-                        <!-- loader -->
                     </div>
-                    <div class="content_subheader_right mx-2 ">
-                    </div>
+                    <!-- loader -->
 
                 </div>
                 <!-- end class content_header -->
 
-                <!-- class btn-group btn-block mx-2 my-2 -->
-                <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                    <button id="id_btn_list" type="button"  class="btn btn-secondary ">{% trans 'List' %}</button>
-                    <button id="id_btn_data" type="button"  class="btn btn-secondary ">{% trans 'Data' %}</button>
-                    <button id="id_btn_order" type="button"  class="btn btn-secondary ">{% trans 'Orders' %}</button>
-                    <button id="id_btn_roster" type="button"  class="btn btn-secondary ">{% trans 'Roster' %}</button>
-                </div>
-                <!-- end class btn-group btn-block mx-2 my-2 -->
+            </div>
+            <!-- end CONTENT HEADER - LOADER -->
 
-            <!--</div>
-             end class content_subheader mt-5 -->
-
-            <!-- class content body mx-2 -->
+            <!-- BUTTON GROUP -->
+            <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                <button id="id_btn_list" type="button"  class="btn btn-secondary ">{% trans 'List' %}</button>
+                <button id="id_btn_data" type="button"  class="btn btn-secondary ">{% trans 'Data' %}</button>
+                <button id="id_btn_order" type="button"  class="btn btn-secondary ">{% trans 'Orders' %}</button>
+                <button id="id_btn_roster" type="button"  class="btn btn-secondary ">{% trans 'Roster' %}</button>
+            </div>
+            <!-- end BUTTON GROUP -->
+    <!-- =================== DATA TABLE  =================== -->
             <div class="content_body mx-2">
                 <div class="popup-container">
-    <!-- =================== DATA TABLE  =================== -->
                     <table class="table tsa-tbl">
                         <thead id="id_thead_items" class="thead-inverse"></thead>
                         <tbody id="id_tbody_items"></tbody>
                     </table>
                 </div>
              </div>
-            <!-- end class content body mx-2 -->
-
+    <!-- =================== END DATA TABLE  =================== -->
         </div>
-        <!-- end class container -->
-
+    <!-- =================== END CONTAINER =================== -->
         <div id="id_data"
             data-ppk ="{{ ppk }}"
             data-lang ="{{ lang }}"

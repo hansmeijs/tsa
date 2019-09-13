@@ -464,37 +464,44 @@ def get_today(request):  # PR2019-07-14
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def create_scheme_template_list(company):
+def create_scheme_template_list(request):
     # --- create list of all template schemes of this company PR2019-07-24
     # logger.debug("========== create_scheme_template_list ==== ")
 
     scheme_list = []
-    order = m.Order.objects.get_or_none(cat=c.SHIFT_CAT_4096_TEMPLATE, customer__company=company)
+    order = m.Order.objects.get_or_none(cat=c.SHIFT_CAT_4096_TEMPLATE, customer__company=request.user.company)
 
     if order:
-        scheme_list = create_scheme_list(order, cat=c.SHIFT_CAT_4096_TEMPLATE)
+        scheme_list = create_scheme_list(request=request,
+                                         order=order,
+                                         cat=c.SHIFT_CAT_4096_TEMPLATE)
 
     return scheme_list
 
 
-def create_scheme_list(order, include_inactive=False, cat=c.SHIFT_CAT_0000_NORMAL):
+def create_scheme_list(request, customer=None, order=None, include_inactive=False, cat=c.SHIFT_CAT_0000_NORMAL):
 # --- create list of all /  active schemes of this company PR2019-06-16
     #logger.debug("========== create_scheme_list ==== order: " + str(order))
     #logger.debug("include_inactive: " + str(include_inactive))
     scheme_list = []
+
+    crit = Q(order__customer__company=request.user.company)
+    if customer:
+        crit.add(Q(order__customer=customer), crit.connector)
     if order:
-        crit = Q(order=order) & Q(cat=cat)
+        crit.add(Q(order=order), crit.connector)
+    if cat is not None:
+        crit.add(Q(cat=cat), crit.connector)
+    if not include_inactive:
+        crit.add(Q(inactive=False), crit.connector)
+    schemes = m.Scheme.objects.filter(crit).order_by(Lower('code'))
 
-        if not include_inactive:
-            crit.add(Q(inactive=False), crit.connector)
-        schemes = m.Scheme.objects.filter(order=order).order_by(Lower('code'))
-
-        for scheme in schemes:
-            #logger.debug("scheme: " + str(scheme))
-            item_dict = {}
-            create_scheme_dict(scheme, item_dict)
-            scheme_list.append(item_dict)
-            #logger.debug(item_dict)
+    for scheme in schemes:
+        #logger.debug("scheme: " + str(scheme))
+        item_dict = {}
+        create_scheme_dict(scheme, item_dict)
+        scheme_list.append(item_dict)
+        #logger.debug(item_dict)
 
     return scheme_list
 
@@ -503,74 +510,96 @@ def create_scheme_dict(instance, item_dict):
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
     # logger.debug ('--- create_scheme_dict ---')
 
-    field_tuple = ('code', 'cat', 'cycle', 'datefirst', 'datelast', 'excludeweekend', 'excludepublicholiday', 'inactive')
-
+    # FIELDS_SCHEME = ('id', 'order', 'cat', 'cycle', 'excludeweekend', 'excludepublicholiday', 'inactive')
+    field_tuple = c.FIELDS_SCHEME
+    table = 'scheme'
     if instance:
-        item_dict['pk'] = instance.pk
+        # get min max date from scheme and order
+        scheme_datefirst = getattr(instance, 'datefirst')
+        order_datefirst = getattr(instance.order, 'datefirst')
+        mindate = f.date_latest_of_two(scheme_datefirst, order_datefirst)  # PR2019-09-12
 
-        id_dict = item_dict['id'] if 'id' in item_dict else {}
-        id_dict['pk'] = instance.pk
-        id_dict['ppk'] = instance.order.pk
-        id_dict['table'] = 'scheme'
-        item_dict['id'] = id_dict
+        scheme_datelast = getattr(instance, 'datelast')
+        order_datelast = getattr(instance.order, 'datelast')
+        maxdate = f.date_earliest_of_two(scheme_datelast, order_datelast)  # PR2019-09-12
 
         for field in field_tuple:
+            field_dict = item_dict[field] if field in item_dict else {}
 
-            #item_dict[field]{'error': 'Code moet ingevuld zijn.', 'value': 'weekend33'}
-            # logger.debug ('field: ' + str(field))
-            if field not in item_dict:
-                item_dict[field] = {}
+            if field == 'id':
+                pk_int = instance.pk
+                ppk_int = instance.order.pk
 
-            saved_value = getattr(instance, field)
-            # also add date when empty, to add min max date
-            if field == 'datefirst':
-                maxdate = getattr(instance, 'datelast')
-                f.set_fielddict_date(dict=item_dict[field], dte=saved_value, maxdate=maxdate)
-            elif field == 'datelast':
-                mindate = getattr(instance, 'datefirst')
-                f.set_fielddict_date(dict=item_dict[field], dte=saved_value, mindate=mindate)
+                item_dict['pk'] = pk_int
+                item_dict['ppk'] = ppk_int
+
+                field_dict['pk'] = pk_int
+                field_dict['ppk'] = ppk_int
+                field_dict['table'] = table
+
+                field_dict['cat'] = getattr(instance, 'cat', 0)
+
             elif field == 'cycle':
-                # 0 must also be passed as value, required field, default = 0
-                if not saved_value:
-                    saved_value = 0
-                item_dict[field]['value'] = saved_value
-            else:
-                if saved_value is not None:
-                    item_dict[field]['value'] = saved_value
-                else:
-                    item_dict[field].pop('value', None)
+                field_dict['value'] = getattr(instance, field, 0)
+
+            elif field in ['code', 'excludeweekend', 'excludepublicholiday', 'inactive']:
+                value = getattr(instance, field)
+                if value:
+                    field_dict['value'] = value
+
+            # also add date when empty, to add min max date
+            elif field == 'datefirst':
+                f.set_fielddict_date(
+                    field_dict=field_dict,
+                    date_value=scheme_datefirst,
+                    mindate=order_datefirst,
+                    maxdate=maxdate)
+            elif field == 'datelast':
+                f.set_fielddict_date(
+                    field_dict=field_dict,
+                    date_value=scheme_datelast,
+                    mindate=mindate,
+                    maxdate=order_datelast)
+
+            item_dict[field] = field_dict
+# >>>   end create_scheme_dict
 
 # --- remove empty attributes from item_dict
     f.remove_empty_attr_from_dict(item_dict)
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def create_schemeitem_template_list(company, comp_timezone):
+def create_schemeitem_template_list(request, comp_timezone):
     # --- create list of all template schemes of this company PR2019-07-24
     # logger.debug("========== create_schemeitem_template_list ==== ")
 
     schemeitem_list = []
-    order = m.Order.objects.get_or_none(cat=c.SHIFT_CAT_4096_TEMPLATE, customer__company=company)
+    order = m.Order.objects.get_or_none(cat=c.SHIFT_CAT_4096_TEMPLATE, customer__company=request.user.company)
     #logger.debug("order: " + str(order))
     if order:
-        schemeitem_list = create_schemeitem_list(order, comp_timezone)
+        schemeitem_list = create_schemeitem_list(
+            request=request,
+            customer=order.customer,
+            comp_timezone=comp_timezone)
 
     #logger.debug("schemeitem_list " + str(schemeitem_list))
     return schemeitem_list
 
 
-def create_schemeitem_list(order, comp_timezone):
+def create_schemeitem_list(request, customer,comp_timezone):
     # create list of schemeitems of this scheme PR2019-07-20
-    # filter datefirst, datelast not in use
     schemeitem_list = []
-    if order:
-        crit = (Q(scheme__order=order))
-        schemeitems = m.Schemeitem.objects.filter(crit)
 
-        for schemeitem in schemeitems:
-            item_dict = {}
-            create_schemeitem_dict(schemeitem, item_dict, comp_timezone)
-            if item_dict:
-                schemeitem_list.append(item_dict)
+    crit = Q(scheme__order__customer__company=request.user.company)
+    if customer:
+        crit.add(Q(scheme__order__customer=customer), crit.connector)
+    schemeitems = m.Schemeitem.objects.filter(crit)
+
+    for schemeitem in schemeitems:
+        item_dict = {}
+        create_schemeitem_dict(schemeitem, item_dict, comp_timezone)
+        if item_dict:
+            schemeitem_list.append(item_dict)
+
     return schemeitem_list
 
 
@@ -600,7 +629,7 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
                 item_dict[field] = id_dict
 
             elif field == 'rosterdate':
-                f.set_fielddict_date(dict=item_dict[field], dte=saved_value)
+                f.set_fielddict_date(field_dict=item_dict[field], date_value=saved_value)
 
             elif field == 'scheme':
                 scheme = getattr(instance, field)
@@ -669,57 +698,174 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
         # logger.debug('item_dict' + str(item_dict))
 
 
-def create_team_list(order):
-    # create list of teams of this order PR2019-09-02
-    logger.debug(' ----- create_team_list  -----  ')
+def create_shift_list(request, customer):
+    # create list of shifts of this order PR2019-08-08
+    # logger.debug(' --- create_shift_list --- ')
+    shift_list = []
 
-    team_list = []
-    if order:
-        crit = Q(scheme__order=order)
+    crit = Q(scheme__order__customer__company=request.user.company)
+    if customer:
+        crit.add(Q(scheme__order__customer=customer), crit.connector)
+    shifts = m.Shift.objects.filter(crit)
 
-        # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
-        teams = m.Team.objects \
-            .select_related('scheme') \
-            .filter(crit) \
-            .values('id', 'code',
-                    'scheme_id',
-                    'scheme__order_id',
-                    'scheme__code'
-                    ) \
-            .iterator()
-        # logger.debug(teammembers.query)
+    for shift in shifts:
+        item_dict = {}
+        create_shift_dict(shift, item_dict)
+        shift_list.append(item_dict)
+    return shift_list
 
-        field_list = c.FIELDS_TEAM  # FIELDS_TEAM = ('id', 'scheme', 'code')
-        for row_dict in teams:
-            pk_int = row_dict.get('id', 0)
-            ppk_int = row_dict.get('scheme_id', 0)
-            item_dict = {'pk': pk_int, 'ppk': ppk_int}
 
-            for field in field_list:
+def create_shift_dict(shift, update_dict):
+    # logger.debug(' ----- create_shift_dict ----- ')
+    # logger.debug('create_shift_dict: ' + str(update_dict))
+    # --- create dict of this shift PR2019-08-08
+    # update_dict has already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+
+    # logger.debug('create_shift_dict: ', str(update_dict))
+    # FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor')
+
+    table = 'shift'
+    field_tuple = c.FIELDS_SHIFT
+
+    if shift:
+        for field in field_tuple:
+
+            # 1. create field_dict if it does not exist
+            if field in update_dict:
+                field_dict = update_dict[field]
+            else:
                 field_dict = {}
 
-                if field == 'id':
-                    field_dict['pk'] = pk_int
-                    field_dict['ppk'] = ppk_int
-                    field_dict['table'] = 'team'
+            # 3. create field_dict 'id'
+            if field == 'id':
+                update_dict['pk'] = shift.pk
+                update_dict['ppk'] = shift.scheme.pk
 
-            # scheme is parent of team
-                elif field == 'scheme':
-                    field_dict['pk'] = ppk_int
-                    field_dict['ppk'] = row_dict.get('scheme__order_id', 0)
-                    scheme_code = row_dict.get('scheme__code')
-                    if scheme_code:
-                        field_dict['value'] = scheme_code
+                field_dict['pk'] = shift.pk
+                field_dict['ppk'] = shift.scheme.pk
+                field_dict['cat'] = getattr(shift, field, 0)
+                field_dict['table'] = table
 
-                elif field == 'code':
-                    code = row_dict.get('code')
-                    if code:
-                        field_dict['value'] = code
+            elif field == 'offsetstart':
+                # Note: value '0' is a valid value, so don't use 'if value:'
+                value = shift.offsetstart
+                offsetstart_hasvalue = False
+                offsetend_hasvalue = False
+                offsetend_value = 0
+                if value is not None:
+                    field_dict['value'] = value
+                    offsetstart_hasvalue = True
+                field_dict["minoffset"] = -720
 
-                item_dict[field] = field_dict
+                maxoffset = 1440
+                if shift.offsetend is not None:
+                    maxoffset = shift.offsetend
+                    offsetend_value = maxoffset
+                    offsetend_hasvalue = True
+                    if maxoffset > 1440:
+                        maxoffset = 1440
+                field_dict["maxoffset"] = maxoffset
 
-            if item_dict:
-                team_list.append(item_dict)
+                if offsetstart_hasvalue and offsetend_hasvalue:
+                    breakduration = 0
+                    if shift.breakduration:
+                        breakduration = shift.breakduration
+                    update_dict["timeduration"] = {"value": offsetend_value - value - breakduration}
+
+            elif field == 'offsetend':
+                # Note: value '0' is a valid value, so don't use 'if value:'
+                value = shift.offsetend
+                offsetstart_hasvalue = False
+                offsetend_hasvalue = False
+                offsetstart_value = 0
+
+                if value is not None:
+                    field_dict['value'] = value
+                    offsetend_hasvalue = True
+                field_dict["maxoffset"] = 2160
+
+                minoffset = 0
+                if shift.offsetstart is not None:
+                    minoffset = shift.offsetstart
+                    offsetstart_value = minoffset
+                    offsetstart_hasvalue = False
+                    if minoffset < 0:
+                        minoffset = 0
+                field_dict["minoffset"] = minoffset
+
+                if offsetstart_hasvalue and offsetend_hasvalue:
+                    update_dict["timeduration"] = {"value": value - offsetstart_value}
+
+            # 5. create field_dict 'code', 'offsetstart', 'offsetend', 'breakduration'
+            elif field in ('code', 'breakduration'):
+                value = getattr(shift, field, None)
+                if value:
+                    field_dict['value'] = value
+
+            # 6. add field_dict to update_dict
+            update_dict[field] = field_dict
+
+    # 7. remove empty attributes from update_dict
+    f.remove_empty_attr_from_dict(update_dict)
+
+
+# --- end of create_shift_dict
+
+
+def create_team_list(request, customer):
+    # create list of teams of this order PR2019-09-02
+    # logger.debug(' ----- create_team_list  -----  ')
+
+    team_list = []
+
+    crit = Q(scheme__order__customer__company=request.user.company)
+    if customer:
+        crit.add(Q(scheme__order__customer=customer), crit.connector)
+
+    # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
+    teams = m.Team.objects \
+        .select_related('scheme') \
+        .filter(crit) \
+        .values('id', 'code',
+                'scheme_id',
+                'scheme__order_id',
+                'scheme__code'
+                ) \
+        .iterator()
+    # logger.debug(teammembers.query)
+
+    field_list = c.FIELDS_TEAM  # FIELDS_TEAM = ('id', 'scheme', 'code')
+    for row_dict in teams:
+        # logger.debug(str(row_dict))
+        pk_int = row_dict.get('id', 0)
+        ppk_int = row_dict.get('scheme_id', 0)
+        item_dict = {'pk': pk_int, 'ppk': ppk_int}
+
+        for field in field_list:
+            field_dict = {}
+
+            if field == 'id':
+                field_dict['pk'] = pk_int
+                field_dict['ppk'] = ppk_int
+                field_dict['table'] = 'team'
+
+        # scheme is parent of team
+            elif field == 'scheme':
+                field_dict['pk'] = ppk_int
+                field_dict['ppk'] = row_dict.get('scheme__order_id', 0)
+                scheme_code = row_dict.get('scheme__code')
+                if scheme_code:
+                    field_dict['value'] = scheme_code
+
+            elif field == 'code':
+                code = row_dict.get('code')
+                if code:
+                    field_dict['value'] = code
+
+            item_dict[field] = field_dict
+
+        if item_dict:
+            team_list.append(item_dict)
 
     return team_list
 
@@ -759,128 +905,6 @@ def create_team_dict(team, item_dict):
 # 6. remove empty attributes from item_dict
     f.remove_empty_attr_from_dict(item_dict)
 
-
-def create_shift_list(order, comp_timezone):
-    # create list of shifts of this order PR2019-08-08
-    # logger.debug(' --- create_shift_list --- ')
-    shift_list = []
-    if order:
-        # return all shifts of this order
-
-        # was: lookup shifts in schemeitems
-        #shifts = Schemeitem.objects.filter(scheme__order=order).\
-        #    exclude(shift__exact='').\
-        #    exclude(shift__isnull=True).\
-        #    values('scheme_id', 'shift', 'offsetstart', 'offsetend', 'breakduration')\
-        #    .annotate(count=Count('shift'))\
-        #    .order_by(Lower('shift'))
-
-        shifts = m.Shift.objects.filter(scheme__order=order)
-        for shift in shifts:
-            item_dict = {}
-            create_shift_dict(shift, item_dict)
-            shift_list.append(item_dict)
-    return shift_list
-
-
-def create_shift_dict(shift, update_dict):
-    logger.debug(' ----- create_shift_dict ----- ')
-    logger.debug('create_shift_dict: ' + str(create_shift_dict))
-    # --- create dict of this shift PR2019-08-08
-    # update_dict has already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-
-    # logger.debug('create_shift_dict: ', str(update_dict))
-    # FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor')
-
-    table = 'shift'
-    field_tuple = c.FIELDS_SHIFT
-
-    if shift:
-        for field in field_tuple:
-
-# 1. create field_dict if it does not exist
-            if field in update_dict:
-                field_dict = update_dict[field]
-            else:
-                field_dict ={}
-
-# 3. create field_dict 'id'
-            if field == 'id':
-                update_dict['pk'] = shift.pk
-                update_dict['ppk'] = shift.scheme.pk
-                update_dict['table'] = 'shift'
-
-                field_dict['pk'] = shift.pk
-                field_dict['ppk'] = shift.scheme.pk
-                field_dict['table'] = table
-
-# 4. create field_dict 'cat'
-            elif field == 'cat':
-                field_dict['value'] = getattr(shift, field, 0)
-
-            elif field == 'offsetstart':
-                #Note: value '0' is a valid value, so don't use 'if value:'
-                value = shift.offsetstart
-                offsetstart_hasvalue = False
-                offsetend_hasvalue = False
-                offsetend_value = 0
-                if value is not None:
-                    field_dict['value'] = value
-                    offsetstart_hasvalue = True
-                field_dict["minoffset"] = -720
-
-                maxoffset = 1440
-                if shift.offsetend is not None:
-                    maxoffset = shift.offsetend
-                    offsetend_value = maxoffset
-                    offsetend_hasvalue = True
-                    if maxoffset > 1440:
-                        maxoffset = 1440
-                field_dict["maxoffset"] = maxoffset
-
-                if offsetstart_hasvalue and offsetend_hasvalue:
-                    breakduration = 0
-                    if shift.breakduration:
-                        breakduration = shift.breakduration
-                    update_dict["timeduration"] = {"value": offsetend_value - value - breakduration}
-
-            elif field == 'offsetend':
-                #Note: value '0' is a valid value, so don't use 'if value:'
-                value = shift.offsetend
-                offsetstart_hasvalue = False
-                offsetend_hasvalue = False
-                offsetstart_value = 0
-
-                if value is not None:
-                    field_dict['value'] = value
-                    offsetend_hasvalue = True
-                field_dict["maxoffset"] = 2160
-
-                minoffset = 0
-                if shift.offsetstart is not None:
-                    minoffset = shift.offsetstart
-                    offsetstart_value = minoffset
-                    offsetstart_hasvalue = False
-                    if minoffset < 0:
-                        minoffset = 0
-                field_dict["minoffset"] = minoffset
-
-                if offsetstart_hasvalue and offsetend_hasvalue:
-                    update_dict["timeduration"] = {"value": value - offsetstart_value}
-
-# 5. create field_dict 'code', 'offsetstart', 'offsetend', 'breakduration'
-            elif field in ('code', 'breakduration'):
-                value = getattr(shift, field, None)
-                if value:
-                    field_dict['value'] = value
-
-# 6. add field_dict to update_dict
-            update_dict[field] = field_dict
-
-
-# 7. remove empty attributes from update_dict
-    f.remove_empty_attr_from_dict(update_dict)
-# --- end of create_shift_dict
 
 def create_date_dict(rosterdate, user_lang, status_text):
     dict = None
@@ -957,44 +981,45 @@ def create_emplhour_list(company, comp_timezone,
     # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
     #                    'timestart', 'timeend', 'timeduration', 'breakduration',
     #                    'wagerate', 'wagefactor', 'wage', 'status')
-    field_list = c.FIELDS_EMPLHOUR
+    field_tuple = c.FIELDS_EMPLHOUR
+
     emplhour_list = []
     for row_dict in emplhours:
-        #logger.debug(str(row_dict))
-        # {'id': 403, 'cat': 0, 'employee_id': 239,
-        # 'employee__code': 'Banfield J R A', 'employee__company__id': 2,
-        # 'orderhour_id': 387, 'rosterdate': datetime.date(2019, 8, 25), 'timestart': datetime.datetime(2019, 8, 24, 20, 25, tzinfo=<UTC>), 'timeend': datetime.datetime(2019, 8, 25, 8, 30, tzinfo=<UTC>)}
-
-        pk_int = row_dict.get('id', 0)
-        ppk_int = row_dict.get('orderhour_id', 0)
-
+# lock field when status = locked or higher
         status_value = row_dict.get('status', 0)
         locked = (status_value >= c.STATUS_08_LOCKED)
+
+# get pk and ppk
+        pk_int = row_dict.get('id', 0)
+        ppk_int = row_dict.get('orderhour_id', 0)
 
         rosterdate = row_dict.get('rosterdate')
         timestart = row_dict.get('timestart')
         timeend = row_dict.get('timeend')
 
-        item_dict = {'pk': pk_int, 'ppk': ppk_int}
-
-        for field in field_list:
+        item_dict = {}
+        table = 'emplhour'
+        for field in field_tuple:
+# 1. create field_dict
             field_dict = {}
 
+# 2. lock date when confirmed, field is already locked when locked = True
             if locked:
                 item_dict[field]['locked'] = True
-            # lock date when confirmed, field is already locked when >= locked
             else:
                 status_check = c.STATUS_02_START_CONFIRMED if field == 'timestart' else c.STATUS_04_END_CONFIRMED
                 if status_found_in_statussum(status_check, status_value):
                     item_dict[field]['locked'] = True
 
+# 3. create pk, ppk, table keys
             if field == 'id':
+                item_dict['pk'] = pk_int
+                item_dict['ppk'] = ppk_int
+
                 field_dict['pk'] = pk_int
                 field_dict['ppk'] = ppk_int
-                field_dict['table'] = 'emplhour'
-
-            elif field == 'cat':
-                field_dict['value'] = row_dict.get('cat', 0)
+                field_dict['cat'] = row_dict.get('cat', 0)
+                field_dict['table'] = table
 
             # orderhour is parent of emplhour
             elif field == 'orderhour':
@@ -1012,7 +1037,8 @@ def create_emplhour_list(company, comp_timezone,
                     field_dict['value'] = row_dict.get('employee__code', '')
 
             elif field == 'rosterdate':
-                f.set_fielddict_date(dict=field_dict, dte=rosterdate)
+                if rosterdate:
+                    field_dict['value'] = rosterdate.isoformat()
 
             # also add date when empty, to add min max date
             elif field in ('timestart', 'timeend'):
@@ -1024,16 +1050,11 @@ def create_emplhour_list(company, comp_timezone,
                                        comp_timezone=comp_timezone)
 
             # also zero when empty
-            elif field in ('breakduration', 'timeduration'):
-                field_dict['value'] = row_dict.get(field, 0)
-
-            elif field in ('wagerate', 'wagefactor', 'wage'):
+            elif field in ('breakduration', 'timeduration', 'wagerate', 'wagefactor', 'wage'):
                 field_dict['value'] = row_dict.get(field, 0)
 
             else:
                 value = row_dict.get(field)
-                # logger.debug('field:' + str(field) + ' value:' + str(value)  )
-
                 if value:
                     field_dict['value'] = value
 
@@ -1053,12 +1074,12 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
     #logger.debug ('--- create_emplhour_dict ---')
     #logger.debug ('item_dict' + str(item_dict))
 
-    if instance:
-        # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
-        #                    'timestart', 'timeend', 'timeduration', 'breakduration',
-        #                    'wagerate', 'wagefactor', 'wage', 'status')
-        field_tuple = c.FIELDS_EMPLHOUR
+    # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
+    #                    'timestart', 'timeend', 'timeduration', 'breakduration',
+    #                    'wagerate', 'wagefactor', 'wage', 'status')
+    field_tuple = c.FIELDS_EMPLHOUR
 
+    if instance:
 # lock field when status = locked or higher
         status_value = instance.status
         locked = (status_value >= c.STATUS_08_LOCKED)
@@ -1067,6 +1088,8 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
         pk_int = instance.id
         ppk_int = instance.orderhour.id
 
+
+        table = 'emplhour'
         for field in field_tuple:
 # 1. get or create field_dict
             if field in item_dict:
@@ -1074,7 +1097,7 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
             else:
                 field_dict = {}
 
-# 2. lock date when confirmed, field is already locked when >= locked
+# 2. lock date when confirmed, field is already locked when locked = True
             if locked:
                 item_dict[field]['locked'] = True
             else:
@@ -1089,10 +1112,8 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
 
                 field_dict['pk'] = pk_int
                 field_dict['ppk'] = ppk_int
-                field_dict['table'] = 'emplhour'
-
-            elif field == 'cat':
-                field_dict['value'] = instance.cat  # required, default = 0
+                field_dict['cat'] = instance.cat  # required, default = 0
+                field_dict['table'] = table
 
             # orderhour is parent of emplhour
             elif field == 'orderhour':
@@ -1100,6 +1121,7 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
                     orderhour = instance.orderhour
                     field_dict['pk'] = orderhour.pk
                     field_dict['ppk'] = orderhour.order_id
+
                     order_code = ''
                     cust_code = ''
                     order = orderhour.order
@@ -1132,6 +1154,10 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
                                        timestart_utc=instance.timestart,
                                        timeend_utc=instance.timeend,
                                        comp_timezone=comp_timezone)
+
+            # also zero when empty
+            elif field in ('breakduration', 'timeduration', 'wagerate', 'wagefactor', 'wage'):
+                field_dict['value'] = getattr(instance, field, 0)
 
             else:
                 value = getattr(instance, field)
@@ -1469,8 +1495,8 @@ def get_rosterdatefill_dict(company, company_timezone, user_lang):# PR2019-06-17
     rosterdate_dict['next'] = {}
 
     # TODO: add min max date
-    f.set_fielddict_date(rosterdate_dict['current'], rosterdate_current)
-    f.set_fielddict_date(rosterdate_dict['next'], rosterdate_next)
+    f.set_fielddict_date(field_dict=rosterdate_dict['current'], date_value=rosterdate_current)
+    f.set_fielddict_date(field_dict=rosterdate_dict['next'], date_value=rosterdate_next)
 
     # companyoffset stores offset from UTC to company_timezone in seconds
     datetime_now = datetime.now()

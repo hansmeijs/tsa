@@ -831,6 +831,30 @@ def date_within_range(outer_datefirst, outer_datelast, inner_datefirst, inner_da
 
     return within_range
 
+
+def date_earliest_of_two(date_01, date_02):  # PR2019-09-12
+    if date_02 is None:
+        date_earliest = date_01
+    elif date_01 is None:
+        date_earliest = date_02
+    elif date_02 < date_01:
+        date_earliest = date_02
+    else:
+        date_earliest = date_01
+    return date_earliest
+
+
+def date_latest_of_two(date_01, date_02):  # PR2019-09-12
+    if date_02 is None:
+        date_latest = date_01
+    elif date_01 is None:
+        date_latest = date_02
+    elif date_02 > date_01:
+        date_latest = date_02
+    else:
+        date_latest = date_01
+    return date_latest
+
 # ################### NUMERIC FUNCTIONS ###################
 def get_float_from_string(value_str):  # PR2019-09-01
 
@@ -984,18 +1008,18 @@ def fielddict_str(value):
     return dict
 
 
-def set_fielddict_date(dict, dte, rosterdate=None, mindate=None, maxdate=None):
+def set_fielddict_date(field_dict, date_value, rosterdate=None, mindate=None, maxdate=None):
     # PR2019-07-18
-    if dte:
-        dict['value'] = dte.isoformat()
+    if date_value:
+        field_dict['value'] = date_value.isoformat()
 
     # return rosterdate and min max date also when date is empty
     if rosterdate:
-        dict['rosterdate'] = rosterdate.isoformat()
+        field_dict['rosterdate'] = rosterdate.isoformat()
     if mindate:
-        dict['mindate'] = mindate.isoformat()
+        field_dict['mindate'] = mindate.isoformat()
     if maxdate:
-        dict['maxdate'] = maxdate.isoformat()
+        field_dict['maxdate'] = maxdate.isoformat()
 
 
 def fielddict_duration(duration, user_lang):
