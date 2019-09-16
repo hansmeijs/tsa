@@ -479,7 +479,7 @@ def create_scheme_template_list(request):
     return scheme_list
 
 
-def create_scheme_list(request, customer=None, order=None, include_inactive=False, cat=c.SHIFT_CAT_0000_NORMAL):
+def create_scheme_list(request, customer=None, order=None, include_inactive=False, cat=None):
 # --- create list of all /  active schemes of this company PR2019-06-16
     #logger.debug("========== create_scheme_list ==== order: " + str(order))
     #logger.debug("include_inactive: " + str(include_inactive))
@@ -722,21 +722,40 @@ def create_shift_dict(shift, update_dict):
     # update_dict has already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     # logger.debug('create_shift_dict: ', str(update_dict))
-    # FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor')
+    # FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'timeduration', 'wagefactor')
 
     table = 'shift'
     field_tuple = c.FIELDS_SHIFT
 
     if shift:
+        offsetstart_value = None
+        if shift.offsetstart:
+            offsetstart_value = shift.offsetstart
+
+        offsetend_value = None
+        if shift.offsetend:
+            offsetend_value = shift.offsetend
+
+        breakduration_value = 0
+        if shift.breakduration:
+            breakduration_value = shift.breakduration
+
+# calculate timeduration
+        timeduration_incl_break = 0
+        timeduration_minus_break = 0
+        if offsetstart_value is not None and offsetend_value is not None:
+            timeduration_incl_break = offsetend_value - offsetstart_value
+            timeduration_minus_break = timeduration_incl_break - breakduration_value
+
         for field in field_tuple:
 
-            # 1. create field_dict if it does not exist
+# 1. create field_dict if it does not exist
             if field in update_dict:
                 field_dict = update_dict[field]
             else:
                 field_dict = {}
 
-            # 3. create field_dict 'id'
+# 3. create field_dict 'id'
             if field == 'id':
                 update_dict['pk'] = shift.pk
                 update_dict['ppk'] = shift.scheme.pk
@@ -748,62 +767,53 @@ def create_shift_dict(shift, update_dict):
 
             elif field == 'offsetstart':
                 # Note: value '0' is a valid value, so don't use 'if value:'
-                value = shift.offsetstart
-                offsetstart_hasvalue = False
-                offsetend_hasvalue = False
-                offsetend_value = 0
-                if value is not None:
-                    field_dict['value'] = value
-                    offsetstart_hasvalue = True
+                if offsetstart_value is not None:
+                    field_dict['value'] = offsetstart_value
                 field_dict["minoffset"] = -720
 
                 maxoffset = 1440
-                if shift.offsetend is not None:
-                    maxoffset = shift.offsetend
-                    offsetend_value = maxoffset
-                    offsetend_hasvalue = True
+                if offsetend_value is not None:
+                    maxoffset = offsetend_value - breakduration_value
                     if maxoffset > 1440:
                         maxoffset = 1440
                 field_dict["maxoffset"] = maxoffset
 
-                if offsetstart_hasvalue and offsetend_hasvalue:
-                    breakduration = 0
-                    if shift.breakduration:
-                        breakduration = shift.breakduration
-                    update_dict["timeduration"] = {"value": offsetend_value - value - breakduration}
-
             elif field == 'offsetend':
                 # Note: value '0' is a valid value, so don't use 'if value:'
-                value = shift.offsetend
-                offsetstart_hasvalue = False
-                offsetend_hasvalue = False
-                offsetstart_value = 0
-
-                if value is not None:
-                    field_dict['value'] = value
-                    offsetend_hasvalue = True
+                if offsetend_value is not None:
+                    field_dict['value'] = offsetend_value
                 field_dict["maxoffset"] = 2160
 
                 minoffset = 0
-                if shift.offsetstart is not None:
-                    minoffset = shift.offsetstart
-                    offsetstart_value = minoffset
-                    offsetstart_hasvalue = False
+                if offsetstart_value is not None:
+                    minoffset = offsetstart_value + breakduration_value
                     if minoffset < 0:
                         minoffset = 0
                 field_dict["minoffset"] = minoffset
 
-                if offsetstart_hasvalue and offsetend_hasvalue:
-                    update_dict["timeduration"] = {"value": value - offsetstart_value}
+            elif field == 'breakduration':
+                field_dict['value'] = breakduration_value
+                field_dict["minoffset"] = 0
+
+ # calculate timeduration
+            elif field == 'timeduration':
+                field_dict['value'] = timeduration_minus_break
 
             # 5. create field_dict 'code', 'offsetstart', 'offsetend', 'breakduration'
-            elif field in ('code', 'breakduration'):
+            elif field == 'code':
                 value = getattr(shift, field, None)
                 if value:
                     field_dict['value'] = value
 
             # 6. add field_dict to update_dict
             update_dict[field] = field_dict
+
+        # calculate timeduration
+        timeduration_incl_break = 0
+        if offsetstart_value is not None and offsetend_value is not None:
+            timeduration_incl_break = offsetend_value - offsetstart_value
+            update_dict["timeduration"] = {"value": timeduration_incl_break - breakduration_value}
+
 
     # 7. remove empty attributes from update_dict
     f.remove_empty_attr_from_dict(update_dict)

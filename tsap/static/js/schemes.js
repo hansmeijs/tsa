@@ -24,6 +24,7 @@ $(function() {
         let selected_shift_pk = 0;
         let selected_team_pk = 0;
         let selected_item_pk = 0;
+        let show_templates = false;
 
 // ---  id_new assigns fake id to new records
         let id_new = 0;
@@ -31,6 +32,7 @@ $(function() {
         let filter_name = "";
         let filter_mod_employee = "";
         let filter_hide_inactive = true;
+        let filter_dict = {};
 
         let quicksave = false
 
@@ -119,12 +121,6 @@ $(function() {
             el_btn_daydown.addEventListener("click", function() {HandleAutofillDayupDown("schemeitem_daydown")}, false )
         let el_btn_autofill = document.getElementById("id_btn_autofill")
             el_btn_autofill.addEventListener("click", function() {HandleAutofillDayupDown("schemeitem_autofill")}, false )
-
-// ---  add 'keyup' event handler to filter input
-        let el_filter_name = document.getElementById("id_filter_name");
-        el_filter_name.addEventListener("keyup", function() {
-            setTimeout(function() {HandleFilterName(el_filter_name)}, 150);
-        });
 
 // ---  Modal Employee
         let el_mod_employee_body = document.getElementById("id_mod_employee_body");
@@ -246,13 +242,15 @@ $(function() {
 
 // buttons in  timepicker
         let btn_prevday = document.getElementById("id_timepicker_prevday")
-            btn_prevday.addEventListener("click", function () {SetPrevNextDay("prevday")}, false);
+            btn_prevday.addEventListener("click", function () {SetPrevNextDay(el_timepicker, el_data, -1, timeformat)}, false);
         let btn_nextday = document.getElementById("id_timepicker_nextday")
-            btn_nextday.addEventListener("click", function () { SetPrevNextDay("nextday")}, false);
-        let btn_save = document.getElementById("id_timepicker_save")
-            btn_save.addEventListener("click", function() {TimepickerSave("btn_save")}, false )
+            btn_nextday.addEventListener("click", function () { SetPrevNextDay(el_timepicker, el_data, 1, timeformat)}, false);
+        document.getElementById("id_timepicker_save").addEventListener("click", function() {
+            OffsetPickerSave("btn_save")}, false )
+        document.getElementById("id_timepicker_delete").addEventListener("click", function() {
+            OffsetPickerSave("btn_delete")}, false )
         let btn_quicksave = document.getElementById("id_timepicker_quicksave")
-            btn_quicksave.addEventListener("click", function() {TimepickerSave("btn_qs")}, false )
+            btn_quicksave.addEventListener("click", function() {OffsetPickerSave("btn_qs")}, false )
             btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add(cls_hover);});
             btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove(cls_hover);});
 
@@ -261,7 +259,8 @@ $(function() {
 
 // --- create header row
         CreateTableHeader("schemeitem");
-        const cat_lt = 512  //512= absence
+
+        const cat_lt = 512  // less then 512 = absence // 4096 template
         const datalist_request = {"customer": {inactive: false, "cat_lt": cat_lt},
                                   "order": {inactive: false, "cat_lt": cat_lt},
                                   "order_template": {inactive: false},
@@ -330,6 +329,10 @@ $(function() {
                     FillSelectOptions(el_select_customer, customer_list, txt_select, txt_select_none);
                     FillSelectOptions(el_mod_cust, customer_list, txt_select, txt_select_none);
                     FillSelectOptions(el_mod_copyfrom_cust, customer_list, txt_select, txt_select_none);
+
+                    const data_txt = (show_templates) ? "data-txt_hide_templates" : "data-txt_show_templates" ;
+                    const btn_txt = get_attr_from_el_str(el_data, data_txt);
+                    document.getElementById("id_submenu_show_templates").innerText = btn_txt;
 
             // if there is only 1 customer, that one is selected
                     selected_customer_pk = parseInt(el_select_customer.value);
@@ -413,10 +416,41 @@ $(function() {
         el_a.addEventListener("click", function() {ModalCopytoTemplateOpen()}, false )
         el_div.appendChild(el_a);
 
+    // --- add <a> element with EventListener to td
+        el_a = document.createElement("a");
+        el_a.setAttribute("id", "id_submenu_show_templates");
+        el_a.setAttribute("href", "#");
+        el_a.classList.add("mx-2")
+        el_a.innerText = get_attr_from_el_str(el_data, "data-txt_show_templates");
+        el_a.addEventListener("click", function() {TemplateShow()}, false )
+        el_div.appendChild(el_a);
 
         el_submenu.classList.remove("display_hide");
 
     };//function CreateSubmenu
+
+//=========  TemplateShow  ================ PR2019-09-15
+    function TemplateShow(el) {
+        console.log("--- TemplateShow")
+        show_templates = !show_templates
+
+       // const data_txt = (show_templates) ? "data-txt_hide_templates" : "data-txt_show_templates" ;
+        //const btn_txt = get_attr_from_el_str(el_data, data_txt);
+       // document.getElementById("id_submenu_show_templates").innerText = btn_txt;
+
+        //cat = 512= absence // ct = 4096 template
+        let datalist_request;
+        if(show_templates){
+            datalist_request = {"customer": {inactive: false, "cat": 4096},
+                                  "order": {inactive: false, "cat": 4096}
+                                  };
+        } else {
+            datalist_request = {"customer": {inactive: false, "cat_lt": 512},
+                                  "order": {inactive: false, "cat_lt": 512},
+                                  };
+        }
+        DatalistDownload(datalist_request);
+    }
 
 //=========  HandleSelectCustomer  ================ PR2019-03-23
     function HandleSelectCustomer(el) {
@@ -574,8 +608,8 @@ $(function() {
 
 //=========  HandleSelectScheme  ================ PR2019-05-24
     function HandleSelectScheme(sel_tr_clicked) {
-        console.log( "===== HandleSelectScheme  ========= ");
-        console.log(sel_tr_clicked);
+        //console.log( "===== HandleSelectScheme  ========= ");
+        //console.log(sel_tr_clicked);
 
         if(!!sel_tr_clicked) {
 // ---  deselect all highlighted rows
@@ -607,7 +641,7 @@ $(function() {
     // get selected scheme from scheme_dict
                 let scheme_dict = get_arrayRow_by_keyValue (scheme_list, "pk", pk_int)
                 //scheme_dict: {pk: 18, id: {pk: 18, parent_pk: 6, code: {value: "MCB scheme"}, cycle: {value: 7}}}
-                 console.log( "scheme_dict", scheme_dict);
+                //console.log( "scheme_dict", scheme_dict);
 
     // fill scheme fields
                 if (!!scheme_dict){
@@ -1067,6 +1101,8 @@ $(function() {
                         FillSelectTable("scheme")}
                     if ("schemeitem" in response) {
                         schemeitem_list = response["schemeitem"]}
+                        console.log("schemeitem in response: ");
+                        console.log(schemeitem_list);
                     if ("shift_list" in response) {
                         shift_list= response["shift_list"];
                         FillSelectTable("shift")
@@ -1434,31 +1470,6 @@ $(function() {
         FilterTableRows(tblBody_scheme_select, "", 1, filter_hide_inactive)
     }  // function HandleFilterInactive
 
-//========= HandleFilterName  ====================================
-    function HandleFilterName(el_filter_name) {
-        console.log( "===== HandleFilterName  ========= ");
-        // skip filter if filter value has not changed, update variable filter_name
-
-        let new_filter = el_filter_name.value;
-        let skip_filter = false
-        if (!new_filter){
-            if (!filter_name){
-                skip_filter = true
-            } else {
-                filter_name = "";
-            }
-        } else {
-            if (new_filter.toLowerCase() === filter_name) {
-                skip_filter = true
-            } else {
-                filter_name = new_filter.toLowerCase();
-            }
-        }
-        console.log( "filter_name:", filter_name, "skip_filter", skip_filter);
-        if (!skip_filter) {
-            FilterTableRows(tblBody_items, filter_name)
-        } //  if (!skip_filter) {
-    }; // function HandleFilterName
 
 //=========  AddShift  ================ PR2019-08-08
     function AddShift(tblRow) {
@@ -1766,6 +1777,7 @@ $(function() {
 //========= FillOptionRest  ============= PR2019-08-10
     function FillOptionRest() {
         const rest_display = get_attr_from_el(el_data, "data-txt_shift_rest");
+
         // SHIFT_CAT_1024_RESTSHIFT
         const value = [0, 1024];
         const display = ["-", rest_display];
@@ -2092,63 +2104,110 @@ $(function() {
             let th = document.createElement("th");
             tblRow.appendChild(th);
 
+// --- add caption to th
+            let headertext = {
+                "schemeitem": ["data-txt_date", "data-txt_shift", "data-txt_employee", "data-txt_timestart",
+                               "data-txt_timeend", "data-txt_break", "data-txt_hours", , , ],
+                "shift": ["data-txt_shift", "data-txt_shift_rest", "data-txt_timestart", "data-txt_timeend",
+                               "data-txt_break", "data-txt_hours", , ],
+                "teammember": ["data-txt_employee", "data-txt_datefirst", "data-txt_datelast", , ]}
+            let data_txt = headertext[tblName][j];
+            if(!!data_txt){th.innerText = get_attr_from_el(el_data, data_txt)}
+
+// --- add textalign to th
+            if ((tblName === "schemeitem" && [0, 1, 2].indexOf( j ) > -1)  ||
+                (tblName === "shift"      && [0, 1].indexOf( j ) > -1)  ||
+                (tblName === "teammember" && [0, 1, 2].indexOf( j ) > -1)  ) {
+                    th.classList.add("text_align_left")
+            } else {th.classList.add("text_align_right")}
+
 // --- add img to first th and last th, first img not in teammembers
             // if (j === 0 && tblName === "schemeitem"){AppendChildIcon(th, imgsrc_warning)} else
             if (j === column_count - 2 && tblName === "schemeitem"){
                 AppendChildIcon(th, imgsrc_inactive);
-                th.classList.add("td_width_090");
+                th.classList.add("td_width_060");
             }
             if (j === column_count - 1){
                 AppendChildIcon(th, imgsrc_delete);
-                th.classList.add("td_width_090");
+                th.classList.add("td_width_060");
             }
-            if (tblName === "schemeitem"){
-    // --- add text to th
-                if (j === 0){th.innerText = get_attr_from_el(el_data, "data-txt_date")} else
-                if (j === 1){th.innerText = get_attr_from_el(el_data, "data-txt_shift")} else
-                if (j === 2){th.innerText = get_attr_from_el(el_data, "data-txt_employee")} else
-                if (j === 3){th.innerText = get_attr_from_el(el_data, "data-txt_timestart")} else
-                if (j === 4){th.innerText = get_attr_from_el(el_data, "data-txt_timeend")} else
-                if (j === 5){th.innerText = get_attr_from_el(el_data, "data-txt_break")} else
-                if (j === 6){th.innerText = get_attr_from_el(el_data, "data-txt_hours")};
 
-// --- text_align
-                if ([0, 1, 2].indexOf( j ) > -1){th.classList.add("text_align_left")
-                } else {th.classList.add("text_align_right")}
-// --- width
-                if ([0, 1].indexOf( j ) > -1){th.classList.add("td_width_120")} else
-                if (j === 2){th.classList.add("td_width_180")} else
-                if ([3, 4, 5, 6].indexOf( j ) > -1){th.classList.add("td_width_090")} else
-                if ([7, ].indexOf( j ) > -1){th.classList.add("td_width_032")}
+    // --- add width to th
+            set_class_width(th, tblName, j);
 
-        } else if (tblName === "shift"){
-// --- add text_align
-            if ([2, 3, 4, 5].indexOf( j ) > -1){th.classList.add("text_align_right")}
-            else {th.classList.add("text_align_left")};
-    // --- add text to th
-            if (j === 0){th.innerText = get_attr_from_el(el_data, "data-txt_shift")} else
-            if (j === 1){th.innerText = get_attr_from_el(el_data, "data-txt_shift_rest")} else
-            if (j === 2){th.innerText = get_attr_from_el(el_data, "data-txt_timestart")} else
-            if (j === 3){th.innerText = get_attr_from_el(el_data, "data-txt_timeend")} else
-            if (j === 4){th.innerText = get_attr_from_el(el_data, "data-txt_break")}
-            if (j === 5){th.innerText = get_attr_from_el(el_data, "data-txt_hours")}
-// --- add width to th
-            if ([0, ].indexOf( j ) > -1){th.classList.add("td_width_120")}
-            else if (j === 1){th.classList.add("td_width_032")}
-            else {th.classList.add("td_width_090")};
-
-        } else if (tblName === "teammember"){
-// --- add text_align
-            if ([0, 1, 2].indexOf( j ) > -1){th.classList.add("text_align_left")}
-// --- add text to th
-                if (j === 0){th.innerText = get_attr_from_el(el_data, "data-txt_employee")} else
-                if (j === 1){th.innerText = get_attr_from_el(el_data, "data-txt_datefirst")} else
-                if (j === 2){th.innerText = get_attr_from_el(el_data, "data-txt_datelast")};
-// --- add width to th
-                if ([0, 1, 2].indexOf( j ) > -1){th.classList.add("td_width_120")}
-            }  //  if (tblName === "schemeitem")
         }  // for (let j = 0; j < column_count; j++)
+
+        if (tblName === "schemeitem"){CreateTableHeaderFilter()}
+
     };  //function CreateTableHeader
+
+    function set_class_width(el, tblName, j) {
+        // --- add width to th
+
+        if (tblName === "schemeitem"){
+            if ([0, 1].indexOf( j ) > -1){el.classList.add("td_width_120")} else
+            if (j === 2){el.classList.add("td_width_180")} else
+            if ([3, 4, 5, 6].indexOf( j ) > -1){el.classList.add("td_width_090")} else
+            if ([7, 8].indexOf( j ) > -1){el.classList.add("td_width_060")}
+        } else if (tblName === "shift"){
+            if (j === 0){el.classList.add("td_width_180")} else
+            if (j === 1){el.classList.add("td_width_090")} else
+            if ([2, 3, 4, 5].indexOf( j ) > -1){el.classList.add("td_width_090")}
+        } else if (tblName === "teammember"){
+            if (j === 0){el.classList.add("td_width_180")}
+            if ([1, 2].indexOf( j ) > -1){el.classList.add("td_width_150")}
+        }
+
+    }
+
+//=========  CreateTableHeaderFilter  ================ PR2019-09-15
+    function CreateTableHeaderFilter(tblName) {
+        console.log("=========  function CreateTableFilter =========");
+
+        let thead_items = document.getElementById("id_thead_items");
+// only for table 'schemeitem'
+//+++ insert tblRow ino thead_items
+        let tblRow = thead_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+        tblRow.setAttribute("id", "id_thead_filter");
+        tblRow.classList.add("tsa_bc_lightlightgrey");
+
+//+++ iterate through columns
+        const column_count = 9;
+        for (let j = 0, td, el; j < column_count; j++) {
+// insert td ino tblRow
+            td = tblRow.insertCell(-1);
+// create element
+            let el_tag = ([7, 8].indexOf( j ) > -1) ? "a" : "input"
+            el = document.createElement(el_tag);
+// add fieldname
+            let fieldnames = ["rosterdate", "shift", "team", "timestart", "timeend", "breakduration", "timeduration",
+                              "inactive", "delete_row"];
+            el.setAttribute("data-field", fieldnames[j]);
+// --- add img imgsrc_inactive
+            if (j === 7){
+                el = document.createElement("a");
+                el.setAttribute("href", "#");
+                //AppendChildIcon(el, imgsrc_inactive, "18");
+            } else {
+// --- add input element to td.
+                el.setAttribute("type", "text");
+                el.classList.add("tsa_color_darkgrey")
+                el.classList.add("tsa_transparent")
+                el.classList.add("td_width_090")
+// --- add other attributes to td
+                el.setAttribute("autocomplete", "off");
+                el.setAttribute("ondragstart", "return false;");
+                el.setAttribute("ondrop", "return false;");
+            }  //if (j === 0)
+// --- add EventListener to td
+            el.addEventListener("keyup", function(event){HandleFilterName(el, j, event.which)});
+            td.appendChild(el);
+
+// --- add width to td
+            set_class_width(el, tblName, j);
+
+        }  // for (let j = 0;
+    };  //function CreateTableHeaderFilter
 
 //========= FillTableRows  ====================================
     function FillTableRows(tblName, ppk_int) {
@@ -2276,8 +2335,8 @@ $(function() {
 
                 AppendChildIcon(el, imgsrc_delete)
                 td.appendChild(el);
-                td.classList.add("td_width_032")
-
+                td.classList.add("td_width_060")
+                td.classList.add("text_align_right")
             } else if (tblName === "schemeitem" && j === column_count - 2){
             // --- first add <a> element with EventListener to td inactive
                 el = document.createElement("a");
@@ -2286,7 +2345,8 @@ $(function() {
 
                 AppendChildIcon(el, imgsrc_active)
                 td.appendChild(el);
-                td.classList.add("td_width_032")
+                td.classList.add("td_width_060")
+                td.classList.add("text_align_right")
 
             } else if ((tblName === "schemeitem") && ([1, 2].indexOf( j ) > -1)){
                 el = document.createElement("select");
@@ -2298,49 +2358,28 @@ $(function() {
             }
 
 // --- add data-name Attribute.
-            let fieldname;
-            if (tblName === "schemeitem"){
-                if (j === 0){fieldname = "rosterdate"} else
-                if (j === 1){fieldname = "shift"} else
-                if (j === 2){fieldname = "team"} else
-                if (j === 3){fieldname = "timestart"} else
-                if (j === 4){fieldname = "timeend"} else
-                if (j === 5){fieldname = "breakduration"} else
-                if (j === 6){fieldname = "timeduration"} else
-                if (j === 7){fieldname = "inactive"} else
-                if (j === 8){fieldname = "delete_row"};
-            // placeholder
-                if (j === 1 && is_new_item ){el.setAttribute("placeholder", get_attr_from_el(el_data, "data-txt_shift_add") + "...")}
-            } else if (tblName === "shift"){
-                if (j === 0){fieldname = "code"} else
-                if (j === 1){fieldname = "cat"} else
-                if (j === 2){fieldname = "offsetstart"} else
-                if (j === 3){fieldname = "offsetend"} else
-                if (j === 4){fieldname = "breakduration"} else
-                if (j === 5){fieldname = "timeduration"} else
-                if (j === 6){fieldname = "delete_row"};
-            // placeholder
-                if (j === 0 && is_new_item ){el.setAttribute("placeholder", get_attr_from_el(el_data, "data-txt_shift_add") + "...")}
-            } else if (tblName === "teammember"){
-                if (j === 0){fieldname = "employee"} else
-                if (j === 1){fieldname = "datefirst"} else
-                if (j === 2){fieldname = "datelast"} else
-                if (j === 3){fieldname = "delete_row"};
-            // placeholder
-                if (j === 0 && is_new_item ){
-                    if(row_count === 0){
-                        el.setAttribute("placeholder", get_attr_from_el(el_data, "data-txt_employee_select") + "...")
-                    } else {
-                        el.setAttribute("placeholder", get_attr_from_el(el_data, "data-txt_employee_replacement_add") + "...")
-                    }
-                }
-            }
-            el.setAttribute("data-field", fieldname);
+            let fieldnames = {
+                "schemeitem": ["rosterdate", "shift", "team", "timestart",
+                               "timeend", "breakduration", "timeduration", "inactive", "delete_row" ],
+                "shift": ["code", "cat", "offsetstart", "offsetend",
+                               "breakduration", "timeduration", "delete_row" ],
+                "teammember": ["employee", "datefirst", "datelast", "delete_row"]}
+            el.setAttribute("data-field", fieldnames[tblName][j]);
 
-// also add row data to each field
-            // NIU, use tr.data-pk Was:  el.setAttribute("data-pk", pk);
-            // NIU, use tr.data-ppk Was:   el.setAttribute("data-ppk", parent_pk);
-            // NIU, use tr.data-table Was:  el.setAttribute("data-table", tblName);
+// --- add placeholder
+            if (is_new_item ){
+                let data_txt, placeholder_txt;
+                if (tblName === "schemeitem" && j === 1){data_txt = "data-txt_shift_add" } else
+                if (tblName === "shift" && j === 0){data_txt = "data-txt_shift_add"} else
+                if (tblName === "teammember" && j === 0){
+                   data_txt = (row_count === 0) ? "data-txt_employee_select" : "data-txt_employee_replacement_add"
+                }
+                const placeholder = get_attr_from_el(el_data, data_txt) ;
+                console.log("placeholder", placeholder, !!placeholder)
+                if(!!placeholder){el.setAttribute("placeholder", placeholder +  "...")}
+            }
+
+
 
 // add id to each input element
             idx += 1;
@@ -2353,15 +2392,15 @@ $(function() {
                 } else if ([1, 2].indexOf( j ) > -1){
                     el.addEventListener("change", function() {UploadChanges(el)}, false)
                 //} else if ([3, 4].indexOf( j ) > -1){
-                    //el.addEventListener("click", function() { OpenTimepicker(el)}, false )
+                    //el.addEventListener("click", function() { OffsetPickerOpen(el)}, false )
                 } else  if ([5, 6].indexOf( j ) > -1){
                     //el.addEventListener("click", function() {OpenPopupHM(el)}, false )
                 };
             } else if (tblName === "shift"){
-                if ([0, 1, 4].indexOf( j ) > -1){
+                if ([0, 1].indexOf( j ) > -1){
                      el.addEventListener("change", function() {UploadChanges(el);}, false)
-                } else if ([2, 3].indexOf( j ) > -1){
-                    el.addEventListener("click", function() {OpenTimepicker(el)}, false)};
+                } else if ([2, 3, 4].indexOf( j ) > -1){
+                    el.addEventListener("click", function() {OffsetPickerOpen(el)}, false)};
             } else if (tblName === "teammember"){
                 if ( j === 0){
                     el.addEventListener("change", function() {UploadChanges(el);}, false)} else
@@ -2383,39 +2422,19 @@ $(function() {
                 }
             } else if (tblName === "teammember"){
                 if (j === 0) {
-                    el.setAttribute("list", "id_datalist_" + fieldname + "s")}
+                    el.setAttribute("list", "id_datalist_" + fieldnames[tblName][j] + "s")}
             }
 
-// --- add text_align
-            if (tblName === "schemeitem"){
-                if ( ([0, 1, 2].indexOf( j ) > -1) ){
+// --- add textalign to th
+            if ((tblName === "schemeitem" && [0, 1, 2].indexOf( j ) > -1)  ||
+                (tblName === "shift"      && [0, 1].indexOf( j ) > -1)     ||
+                (tblName === "teammember" && [0, 1, 2].indexOf( j ) > -1)  ){
                     el.classList.add("text_align_left")
-                } else {
-                    el.classList.add("text_align_right")
-                }
-            } else if (tblName === "shift"){
-                if ( ([0, 1].indexOf( j ) > -1) ){
-                    el.classList.add("text_align_left")
-                } else {
-                    el.classList.add("text_align_right")
-                }
-            } else if (tblName === "teammember"){
-                if ( ([1, 2].indexOf( j ) > -1) ){
-                    el.classList.add("text_align_left")}
-            };
+            } else {el.classList.add("text_align_right")}
 
-// --- add width to time fields and date fileds
-            if (tblName === "schemeitem"){
-                if ( j === 0){el.classList.add("td_width_090")} else
-                if ([1, 2].indexOf( j ) > -1){el.classList.add("td_width_180")} else
-                if ([3, 4, 5, 6].indexOf( j ) > -1){el.classList.add("td_width_090")}
-            } else if (tblName === "shift"){
-                if ( j === 0){el.classList.add("td_width_180")} else
-                if ([1, 2, 3, 4, 5].indexOf( j ) > -1){el.classList.add("td_width_090")}
-            } else if (tblName === "teammember"){
-                if (j === 0){el.classList.add("td_width_220")}
-                // else if ([1, 2].indexOf( j ) > -1){el.classList.add("td_width_090")}
-            };
+
+// --- add width to fields
+            set_class_width(el, tblName, j);
 
 // --- add other classes to td - Necessary to skip closing popup
             el.classList.add("border_none");
@@ -2426,8 +2445,8 @@ $(function() {
                 //if ([5, 6].indexOf( j ) > -1){  el.classList.add("input_popup_date") }
                 else { el.classList.add("input_text"); }; // makes background transparent
             } else if ( tblName === "shift"){
-                if ([0, 1, 4, 5].indexOf( j ) > -1) { el.classList.add("input_text")} else  // makes background transparent
-                if ([2, 3].indexOf( j ) > -1){ el.classList.add("input_timepicker")}
+                if ([0, 1, 5].indexOf( j ) > -1) { el.classList.add("input_text")} else  // makes background transparent
+                if ([2, 3, 4].indexOf( j ) > -1){ el.classList.add("input_timepicker")}
             } else if ( tblName === "teammember"){
                 if (j === 0) { el.classList.add("input_text")} else  // makes background transparent
                 if ([1, 2].indexOf( j ) > -1){
@@ -2657,10 +2676,11 @@ $(function() {
                                 //console.log("field_dict",field_dict)
                                 format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
 
-                            } else if (["offsetstart", "offsetend"].indexOf( fieldname ) > -1){
-                                format_offset_element (el_input, el_msg, fieldname, field_dict, [-220, 80], timeformat, user_lang, title_prev, title_next)
+                            } else if (["offsetstart", "offsetend", "breakduration"].indexOf( fieldname ) > -1){
+                                const blank_when_zero = (fieldname === "breakduration") ? true : false;
+                                format_offset_element (el_input, el_msg, fieldname, field_dict, [-220, 80], timeformat, user_lang, title_prev, title_next, blank_when_zero)
 
-                            } else if (["timeduration", "breakduration"].indexOf( fieldname ) > -1){
+                            } else if ([ "timeduration"].indexOf( fieldname ) > -1){
                                 format_duration_element (el_input, el_msg, field_dict, user_lang)
 
                             } else if (fieldname === "inactive") {
@@ -3094,7 +3114,7 @@ $(function() {
 
 //========= FillDatalist  ====================================
     function FillDatalist(id_datalist, data_list, selected_parent_pk) {
-        console.log( "===== FillDatalist  ========= ", id_datalist);
+        //console.log( "===== FillDatalist  ========= ", id_datalist);
 
         let el_datalist = document.getElementById(id_datalist);
         if(!!el_datalist){
@@ -4126,473 +4146,78 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
 //0000000000000000000000000000000000000000000000000000000000000000000000000000000
 
-// ++++++++++++  TIMEPICKER +++++++++++++++++++++++++++++++++++++++
+// ++++++++++++  OFFSETPICKER +++++++++++++++++++++++++++++++++++++++
     "use strict";
 
-//========= OpenTimepicker  ====================================
-    function OpenTimepicker(el_input) {
-        //console.log("===  OpenTimepicker  =====") ;
+//========= OffsetPickerOpen  ====================================
+    function OffsetPickerOpen(el_input) {
+        //console.log("===  OffsetPickerOpen  =====") ;
         //console.log(el_input) ;
 
 // get values from tr_selected and put them in el_timepicker
         let tr_selected = get_tablerow_selected(el_input);
         if (!tr_selected){tr_selected = el_input};
 
-        el_timepicker.setAttribute("data-table", get_attr_from_el_str(tr_selected, "data-table"));
-        el_timepicker.setAttribute("data-pk", get_attr_from_el_int(tr_selected, "data-pk"));
-        el_timepicker.setAttribute("data-ppk", get_attr_from_el_int(tr_selected, "data-ppk"));
-
-// get values from el_input and put them in el_timepicker
-        el_timepicker.setAttribute("data-field", get_attr_from_el_str(el_input, "data-field"))
-
-        const curOffset = get_attr_from_el_int(el_input, "data-value");
-        const minOffset = get_attr_from_el_int(el_input, "data-minoffset");
-        const maxOffset = get_attr_from_el_int(el_input, "data-maxoffset");
-        console.log("curOffset", curOffset, "minOffset", minOffset, "maxOffset", maxOffset)
-
-        el_timepicker.setAttribute("data-offset", curOffset)
-        el_timepicker.setAttribute("data-minoffset", minOffset)
-        el_timepicker.setAttribute("data-maxoffset", maxOffset)
-
-        const curDay = Math.floor(curOffset/1440)  // - 90 (1.5 h)
-        const curRemainder = (curOffset - curDay * 1440)
-        const curHours = Math.floor(curRemainder / 60)
-        const curMinutes = curRemainder - curHours * 60
-
-// display cur_datetime_local in header of el_timepicker
-        CreateTimepickerDate(curOffset) ;
-        CreateTimepickerHours(curOffset, minOffset, maxOffset);
-        CreateTimepickerMinutes(curOffset, minOffset, maxOffset);
-
-        DisableBtnPrevNextDay(curOffset, minOffset, maxOffset);
-
-        if (timeformat === "AmPm") {HighlightAndDisableAmpm(curOffset, minOffset, maxOffset)}
-        HighlightAndDisableHours(curOffset, minOffset, maxOffset);
-        //HighlightAndDisableMinutes(curOffset, minOffset, maxOffset)
-
-// ---  position popup under el_input
-        let popRect = el_timepicker.getBoundingClientRect();
-        //console.log("popRect", popRect)
-        let inpRect = el_input.getBoundingClientRect();
-        //console.log("inpRect", inpRect)
-
-        const pop_width = 180; // to center popup under input box
-        const correction_left = -240 - pop_width/2 ; // -240 because of sidebar
-        const correction_top = -32; // -32 because of menubar
-        //console.log("inpRect", inpRect)
-        let topPos = inpRect.top + inpRect.height + correction_top;
-        let leftPos = inpRect.left + correction_left; // let leftPos = elemRect.left - 160;
-
-        let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
-        //let msgAttr = "position:relative;top:" + topPos + "px;" + "left:" + leftPos + "px;"
-        //console.log("msgAttr", msgAttr)
-        el_timepicker.setAttribute("style", msgAttr)
-
-// ---  change background of el_input
-        // first remove selected color from all imput popups
-        //elements = document.getElementsByClassName("el_input");
-        popupbox_removebackground("input_timepicker");
-        el_input.classList.add("pop_background");
-
-// hide save button on quicksave
-        HideSaveButtonOnQuicksave(el_data, cls_hide)
-
-// ---  show el_popup
-        el_timepicker.classList.remove(cls_hide);
-
-    }; // function OpenTimepicker
-
-//========= CreateTimepickerDate  ====================================
-    function CreateTimepickerDate(curOffset) {
-        // console.log( "--- CreateTimepickerDate  ", curOffset );
-        // display 'Previous day', 'Current day' and 'Next day' in header of el_timepicker
-
-    // add EventListeners to buttons
-        // eventhandlers are added in scheme.js, to prevent multiple event handlers
-
-        const curDay = Math.floor(curOffset/1440)  // - 90 (= 1.5 h before midnight)
-
-        let date_str;
-        if (curDay < 0){
-            date_str = get_attr_from_el(el_data, "data-timepicker_prevday");
-        } else if (curDay > 0){
-            date_str = get_attr_from_el(el_data, "data-timepicker_nextday");
-        } else {
-            date_str = get_attr_from_el(el_data, "data-timepicker_curday");
-        }
-        document.getElementById("id_timepicker_date").innerText = date_str
-
-    }  // CreateTimepickerDate
-
- //========= CreateTimepickerHours  ====================================
-    function CreateTimepickerHours(curOffset, minOffset, maxOffset, url_str) {
-        console.log( "--- CreateTimepickerHours  ");
-
-        let tbody = document.getElementById("id_timepicker_tbody_hour");
-        tbody.innerText = null
-
-        const curDay = Math.floor(curOffset/1440)  // - 90 (1.5 h)
-        const curRemainder = curOffset - curDay * 1440
-        const curHours = Math.floor(curRemainder/60)
-        const curMinutes = curRemainder - curHours * 60
-
-        const prevday_disabled = (curDay < 0);
-        const nextday_disabled = (curDay > 0)
-
-        const minHours = 0, maxHours = 24;
-        const minMinutes = 0, maxMinutes = 60;
-
-        //timeformat = 'AmPm' or '24h'
-        const is_ampm = (timeformat === 'AmPm')
-        let maxAllowedHours = 24;
-        let hourRows = 4;
-
-        if (is_ampm) {
-            hourRows = 2
-            maxAllowedHours = 12;
-        }
-
-        let tblRow, td, el_a, hours, hour_text, disabled = false;
-
-// --- add '00'/'12' on separate row ( '00'when 24h, '12' when ampm)
-            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            for (let j = 0; j < 6; j++) {
-                td = tblRow.insertCell(-1);
-                if (j === 0 ) {
-                    hours = 0;
-                    if(is_ampm){hour_text = "12"} else { hour_text = "00"};
-                    CreateTimepickerCell(tbody, td, "hour", hours, hour_text)
-                }
-            }
-
-// --- loop
-        for (let i = 0; i < hourRows; i++) {
-            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-
-            for (let j = 0; j < 6; j++) {
-                hours = (1+j) + (i*6)
-                //if (hours === maxAllowedHours) {hours = 0 }
-                hour_text = "00" + hours.toString()
-                hour_text = hour_text.slice(-2);
-                disabled = false
-
-                td = tblRow.insertCell(-1);
-
-                // skip last 00, zero is added at the first row
-                if (hours !== 0) {
-                    CreateTimepickerCell(tbody, td, "hour", hours, hour_text)
-                }
-
-            }
-        }  // for (let i = 0,
-        if(is_ampm){
-
-            tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            td.setAttribute("colspan",6)
-
-            for (let j = 0, td, el_a, ampm_text; j < 2; j++) {
-                if(j === 0) {ampm_text = "AM"} else {ampm_text = "PM"}
-
-                td = tblRow.insertCell(-1);
-                td.setAttribute("colspan",3)
-                CreateTimepickerCell(tbody, td, "ampm", j, ampm_text)
-            }
-        }
-    }  //function CreateTimepickerHours
-
-//========= CreateTimepickerMinutes  ====================================
-    function CreateTimepickerMinutes(curOffset, minOffset, maxOffset, url_str) {
-        //console.log( "=== CreateTimepickerMinutes  ");
-
-// ---  set references to elements
-        let tbody = document.getElementById("id_timepicker_tbody_minute");
-        tbody.innerText = null
-
-        const curDayOffset = Math.floor(curOffset/1440)  // - 90 (1.5 h)
-        const curRemainder = curOffset - curDayOffset * 1440
-        const curHours = Math.floor(curRemainder/60)
-        const curMinutes = curRemainder - curHours * 60
-
-        const prevday_disabled = (curDayOffset < 0);
-        const nextday_disabled = (curDayOffset > 0)
-
-        const minHours = 0, maxHours = 24;
-        const minMinutes = 0, maxMinutes = 60;
-
-        // hide minutes tables when interval = 60
-        let el_cont_minute = document.getElementById("id_timepicker_cont_minute");
-        if(interval === 60) {
-            el_cont_minute.classList.add(cls_hide)
-        } else {
-            el_cont_minute.classList.remove(cls_hide)
-
-            let minutes = 0, minutes_text;
-            let rows = 0, columns = 0;
-            if ([1, 2].indexOf( interval ) > -1){rows = 6} else
-            if ([3, 5].indexOf( interval ) > -1){rows = 4} else
-            if ([10, 15].indexOf( interval ) > -1){rows = 2} else
-            if ([12, 20, 30].indexOf( interval ) > -1){rows = 1}
-            columns = (60 / interval / rows)
-
-            //console.log( "interval", interval, "rows", rows,  "columns", columns);
-    // --- add '00' on separate row
-
-            let tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            for (let j = 0, td; j < columns; j++) {
-                td = tblRow.insertCell(-1);
-                if (j === 0 ) {
-                    minutes = 0; minutes_text = "00";
-                    td.setAttribute("data-minute", minutes);
-                    CreateTimepickerCell(tbody, td, "minute", minutes, minutes_text)
-                }
-            }
-
-    // --- loop through option list
-            for (let i = 0; i < rows; i++) {
-                tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-
-                for (let j = 0, td, el_a ; j < columns; j++) {
-                    minutes = minutes + interval
-                    if (minutes === 60) {minutes = 0}
-                    minutes_text = "00" + minutes.toString()
-                    minutes_text = minutes_text.slice(-2);
-
-                    td = tblRow.insertCell(-1);
-
-                    td.setAttribute("data-minute", minutes);
-
-                    // skip last 00
-                    if (minutes !== 0) {
-                        CreateTimepickerCell(tbody, td, "minute", minutes, minutes_text)}
-                }
-        }  // for (let i = 0,
-        }  // if(interval === 60)
-    }  //function CreateTimepickerMinutes
-
-//========= CreateTimepickerCell  ====================================
-    function CreateTimepickerCell(tbody, td, data_name, value, value_text) {
-        //console.log( "--- CreateTimepickerCell  ");
-        //console.log("value", value, "value_text", value_text)
-
-    // get current offset from el_timepicker
-        const curOffset = get_attr_from_el_int(el_timepicker, "data-offset");
-        const minOffset = get_attr_from_el_int(el_timepicker, "data-minoffset");
-        const maxOffset = get_attr_from_el_int(el_timepicker, "data-maxoffset");
-
-        if (value !== -1){td.setAttribute("data-" + data_name, value)}
-        td.classList.add("timepicker_" + data_name);
-        td.setAttribute("align", "center")
-        if (data_name === "hour"){
-            td.addEventListener("click", function() {
-                SetHour(td, value)
-            }, false)
-        } else if (data_name === "minute"){
-            td.addEventListener("click", function() {
-                SetMinute(td, value)
-            }, false)
-        } else if (data_name === "ampm"){
-            td.addEventListener("click", function() {
-                SetAmPm(tbody, td)
-            }, false)
-        }
-
-        // add hover EventListener
-        td.addEventListener("mouseenter", function(event) {ShowHover(td, event, cls_hover)}, false)
-        td.addEventListener("mouseleave", function() {ShowHover(td, event, cls_hover)}, false)
-
-        let el_a = document.createElement("a");
-        el_a.innerText = value_text
-        td.appendChild(el_a);
-
-    }  // CreateTimepickerCell
-
-//========= SetPrevNextDay  ====================================
-    function SetPrevNextDay(mode) {
-        console.log("==== SetPrevNextDay  ===== ", mode);
-
-// set  day_add to 1 or -1
-        let day_add = 1;
-        if (mode === "prevday") { day_add = -1};
-
-// get curOffset from el_timepicker
-        const curOffset = get_attr_from_el(el_timepicker, "data-offset");
-        const minOffset = get_attr_from_el(el_timepicker, "data-minoffset");
-        const maxOffset = get_attr_from_el(el_timepicker, "data-maxoffset");
-
-// calculate newDay and newOffset
-        const curDay = Math.floor(curOffset/1440)  // - 90 (1.5 h)
-        const curRemainder = curOffset - curDay * 1440
-        const minDay = Math.floor(minOffset/1440)  // - 90 (1.5 h)
-        const maxDay = Math.floor(maxOffset/1440)  // - 90 (1.5 h)
-        let newDay = curDay + day_add;
-        if (newDay > 1){newDay = 1}
-        if (newDay < -1){newDay = -1}
-        const newOffset = (newDay * 1440) + curRemainder
-
-// put new offset back in el_timepicker data-offset
-        el_timepicker.setAttribute("data-offset", newOffset);
-
-// update header in Timepicker
-        CreateTimepickerDate(newOffset)
-        DisableBtnPrevNextDay(newOffset, minOffset, maxOffset)
-        HighlightAndDisableHours(newOffset, minOffset, maxOffset);
-
-    }  // SetPrevNextDay
-
-//========= SetAmPm  ====================================
-    function SetAmPm(tbody, td) {
-        console.log("==== SetAmPm  =====");
-
-    // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
-        if (!disabled){
-            const comp_timezone = get_attr_from_el(el_timepicker, "data-timezone");
-            const timeformat = get_attr_from_el(el_timepicker, "data-timeformat");
-        // get new ampm from td data-ampm of td
-            const new_ampm = get_attr_from_el_int(td, "data-ampm");
-            if (is_offset){
-            // set new hour in new_datetime_local
-                const cur_offset = get_attr_from_el(el_timepicker, "data-offset");
-                const arr = cur_offset.split(";")
-                let new_offset = arr[0] + ";" + arr[1] + ";" + new_minutes.toString()
-
-        // put new offset back in el_timepicker data-offset
-                // TODO
-                let within_range = true;
-                if (within_range){
-                    el_timepicker.setAttribute("data-offset", new_offset);
-
-                }
-
-                const minHours = 0, maxHours = 24, minMinutes = 0, maxMinutes = 60;
-                if ((timeformat === "AmPm")) { HighlightAndDisableAmpm(curOffset, minOffset, maxOffset)};
-                HighlightAndDisableHours(curOffset, minOffset, maxOffset);
-                //HighlightAndDisableMinutes(curOffset, minOffset, maxOffset)
-
-
+        const pk_int = get_attr_from_el_int(tr_selected, "data-pk");
+        // dont open when new row is not saved yet, then pk_int = NaN
+        if(!!pk_int){
+            el_timepicker.setAttribute("data-table", get_attr_from_el_str(tr_selected, "data-table"));
+            el_timepicker.setAttribute("data-pk", pk_int);
+            el_timepicker.setAttribute("data-ppk", get_attr_from_el_int(tr_selected, "data-ppk"));
+
+            //console.log("data-pk", get_attr_from_el_int(tr_selected, "data-pk")) ;
+
+    // get values from el_input and put them in el_timepicker
+            el_timepicker.setAttribute("data-field", get_attr_from_el_str(el_input, "data-field"))
+
+            const fieldname = get_attr_from_el(el_input, "data-field");
+            const curOffset = get_attr_from_el_int(el_input, "data-value");
+            const minOffset = get_attr_from_el_int(el_input, "data-minoffset");
+            const maxOffset = get_attr_from_el_int(el_input, "data-maxoffset");
+
+            if(!!curOffset || curOffset === 0 ) {
+                el_timepicker.setAttribute("data-value", curOffset)
             } else {
-
-        //console.log("new_ampm", new_ampm, typeof new_ampm)
-                const cur_rosterdate_iso = get_attr_from_el(el_timepicker, "data-rosterdate");
-                const cur_datetime_iso = get_attr_from_el(el_timepicker, "data-datetime");
-                const min_datetime_iso = get_attr_from_el(el_timepicker, "data-mindatetime");
-                const max_datetime_iso = get_attr_from_el(el_timepicker, "data-maxdatetime");
-
-
-                const is_offset = false, cur_offset = "";
-                let dict = {} // TODO
-                const curHours = dict["curHours"];
-
-            // set value of hour_add: add 12 hours when PM and curHours < 12; subtract 12 hours when AM and curHours >= 12;
-                let hour_add = 0;
-                if(new_ampm === 0) {
-                    if (curHours >= 12) {hour_add =  -12}
-                } else {
-                    if (curHours < 12) {hour_add =  12}
-                }
-
-            // set new hour in new_datetime_local
-                const cur_datetime_local = dict["cur_datetime_local"];
-                let new_datetime_local = cur_datetime_local.clone();
-                if (!!hour_add) {new_datetime_local.add(hour_add, 'hour')}
-                const new_datetime_utc = new_datetime_local.utc()
-                const new_datetime_iso = new_datetime_utc.toISOString()
-                //console.log("new_datetime_iso", new_datetime_iso);
-
-        // calculate new min max
-                const new_dict = {}  // TODO
-
-        // check if new datetime is within min max range
-                const min_datetime_local = new_dict["min_datetime_local"];
-                const max_datetime_local = new_dict["max_datetime_local"];
-                const within_range = DatetimeWithinRange(new_datetime_local, min_datetime_local, max_datetime_local)
-
-        // disable btn_save if new datetime is not within min max range
-                let btn_save = document.getElementById("id_timepicker_save")
-                btn_save.disabled = !within_range;
-
-                const minHours = 0, maxHours = 24, minMinutes = 0, maxMinutes = 60;
-                if ((timeformat === "AmPm")) { HighlightAndDisableAmpm(curOffset, minOffset, maxOffset)};
-                HighlightAndDisableHours(curOffset, minOffset, maxOffset);
-                //HighlightAndDisableMinutes(curOffset, minOffset, maxOffset)
-
-        // put new datetime back in el_timepicker data-datetime
-                if (within_range){
-                    el_timepicker.setAttribute("data-datetime", new_datetime_iso);
-                } // if (within_range)
-
-            }  // if (is_offset)
-        }  // if (!disabled)
-    }  // SetAmPm
-
-//========= SetHour  ====================================
-    function SetHour(td, newHours) {
-       console.log("==== SetHour  =====", newHours);
-
-    // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
-
-        if (!disabled){
-        // get curOffset from el_timepicker
-            const curOffset = get_attr_from_el(el_timepicker, "data-offset");
-            const minOffset = get_attr_from_el(el_timepicker, "data-minoffset");
-            const maxOffset = get_attr_from_el(el_timepicker, "data-maxoffset");
-
-        // get DayOffset, Hours and Minutes from current offset
-            const curDay = Math.floor(curOffset/1440)  // - 90 (1.5 h)
-            const curRemainder = curOffset - curDay * 1440
-            const curHours = Math.floor(curRemainder/60)
-            const curMinutes = curRemainder - curHours * 60
-
-        // create new offset and put back in el_timepicker
-            const newOffset = curDay * 1440 + newHours * 60 + curMinutes
-
-            el_timepicker.setAttribute("data-offset", newOffset);
-            console.log("newHours", newHours, "newOffset", newOffset)
-
-        // save when in quicksave mode
-            let quicksave = get_quicksave_from_eldata(el_data);
-            if (quicksave){TimepickerSave("btn_hour")}
-
-            if (timeformat === "AmPm") { HighlightAndDisableAmpm(newOffset, minOffset, maxOffset)};
-            HighlightAndDisableHours(newOffset, minOffset, maxOffset);
-
-        }  // if (!disabled)
-    }  // SetHour
-
-//========= SetMinute  ====================================
-    function SetMinute(td, newMinutes) {
-        //console.log("==== SetMinute  =====", newMinutes);
-
-    // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
-        if (!disabled){
-
-        // get curOffset from el_timepicker
-            const curOffset = get_attr_from_el(el_timepicker, "data-offset");
-            const minOffset = get_attr_from_el(el_timepicker, "data-minoffset");
-            const maxOffset = get_attr_from_el(el_timepicker, "data-maxoffset");
-
-        // get DayOffset, Hours and Minutes from current offset
-            const curDay = Math.floor(curOffset/1440)  // - 90 (1.5 h)
-            const curRemainder = curOffset - curDay * 1440
-            const curHours = Math.floor(curRemainder/60)
-            const curMinutes = curRemainder - curHours * 60
-
-        // create new offset and put back in el_timepicker
-            const newOffset = curDay * 1440 + curHours * 60 + newMinutes
-            if (newOffset >= minOffset && newOffset <=maxOffset ){
-                el_timepicker.setAttribute("data-offset", newOffset);
-                //console.log("newMinutes", newMinutes, "newOffset", newOffset)
-                HighlightAndDisableHours(newOffset, minOffset, maxOffset);
+                el_timepicker.removeAttribute("data-value")
             }
+            el_timepicker.setAttribute("data-minoffset", minOffset)
+            el_timepicker.setAttribute("data-maxoffset", maxOffset)
 
-        }  // if (!disabled)
-    }  // SetMinute
+            CreateTimepickerDate(el_data, curOffset, fieldname) ;
+            CreateTimepickerHours(el_timepicker, el_data, timeformat, OffsetPickerSave);
+            CreateTimepickerMinutes(el_timepicker, el_data, interval);
 
-//=========  TimepickerSave  ================ PR2019-06-27
-    function TimepickerSave(mode) {
-        //console.log("===  function TimepickerSave =========", mode);
+            HighlightAndDisableHours(el_data, fieldname, curOffset, minOffset, maxOffset, timeformat);
+
+    // ---  position popup under el_input
+            let popRect = el_timepicker.getBoundingClientRect();
+            let inpRect = el_input.getBoundingClientRect();
+            const pop_width = 180; // to center popup under input box
+            const correction_left = -240 - pop_width/2 ; // -240 because of sidebar
+            const correction_top = -32; // -32 because of menubar
+            const topPos = inpRect.top + inpRect.height + correction_top;
+            const leftPos = inpRect.left + correction_left; // let leftPos = elemRect.left - 160;
+            const msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+            el_timepicker.setAttribute("style", msgAttr)
+
+    // ---  change background of el_input
+            // first remove selected color from all imput popups
+            //elements = document.getElementsByClassName("el_input");
+            popupbox_removebackground("input_timepicker");
+            el_input.classList.add("pop_background");
+
+    // hide save button on quicksave
+            HideSaveButtonOnQuicksave(el_data, cls_hide)
+
+    // ---  show el_popup
+            el_timepicker.classList.remove(cls_hide);
+        }  //  if(!!pk_int)
+
+    }; // function OffsetPickerOpen
+
+//=========  OffsetPickerSave  ================ PR2019-06-27
+    function OffsetPickerSave(mode) {
+        //console.log("===  function OffsetPickerSave =========", mode);
 
 // ---  change quicksave when clicked on button 'Quicksave'
 
@@ -4617,15 +4242,18 @@ function validate_input_blank(el_input, el_err, msg_blank){
         const field = el_timepicker.getAttribute("data-field")
         const table = el_timepicker.getAttribute("data-table")
 
-
     // get values from el_timepicker
-
-        const curOffset = get_attr_from_el_int(el_timepicker, "data-offset");
+        let curOffset = get_attr_from_el_int(el_timepicker, "data-value");
         const minOffset = get_attr_from_el_int(el_timepicker, "data-minoffset");
         const maxOffset = get_attr_from_el_int(el_timepicker, "data-maxoffset");
         //console.log("curOffset", curOffset, "minOffset", minOffset, "maxOffset", maxOffset);
 
-        if(curOffset >= minOffset && curOffset <= maxOffset){
+        let save_offset = (curOffset >= minOffset && curOffset <= maxOffset)
+        if (mode ==="btn_delete") {
+            curOffset = null;
+            save_offset = true;
+        }
+        if(save_offset){
             if(!!pk_str && !! ppk_int){
                 let id_dict = {}
             //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
@@ -4658,7 +4286,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
                 const url_str = url_scheme_shift_team_upload  // get_attr_from_el(el_timepicker, "data-url_str");
                 const parameters = {"upload": JSON.stringify (row_upload)};
-                console.log ("parameters", table, row_upload);
+                console.log ("upload url", url_str, row_upload);
 
                 let response;
                 $.ajax({
@@ -4672,11 +4300,11 @@ function validate_input_blank(el_input, el_err, msg_blank){
                             console.log("...... UpdateTableRow ..... item_update", table);
                             UpdateTableRow(table, tr_selected, response["item_update"])
                         }
-                        if ("shift_update" in response) {
-                            console.log("==... UpdateTableRow .... shift_update", table);
-                            UpdateTableRow(table, tr_selected, response["shift_update"])
-                        }
-                    },
+                        if ("schemeitem" in response) {
+                            schemeitem_list = response["schemeitem"]}
+                            console.log("...... schemeitem in response: ");
+                            console.log(schemeitem_list);
+                        },
                     error: function (xhr, msg) {
                         console.log(msg + '\n' + xhr.responseText);
                         alert(msg + '\n' + xhr.responseText);
@@ -4687,7 +4315,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
 
         // close timepicker, except when clicked on quicksave off
 
-            if (mode === "btn_save") {
+            if (["btn_save", "btn_delete"].indexOf( mode ) > -1){
                 popupbox_removebackground("input_timepicker");
                 el_timepicker.classList.add(cls_hide);
             } else if (mode === "btn_qs") {
@@ -4704,185 +4332,9 @@ function validate_input_blank(el_input, el_err, msg_blank){
                 }
             }
         }  // if(curOffset >= minOffset && curOffset <= maxOffset)
-    }  // TimepickerSave
-
-//========= DisableBtnPrevNextDay  ====================================
-    function DisableBtnPrevNextDay(curOffset, minOffset, maxOffset) {
-        console.log("DisableBtnPrevNextDay");
-        console.log("curOffset", curOffset,   "minOffset", minOffset,  "maxOffset", maxOffset);
-
-        const curDay = Math.floor(curOffset/1440)
-        const minDay = Math.floor(minOffset/1440)
-        const maxDay = Math.floor(maxOffset/1440)
-        const prevday_disabled = (curDay <= minDay);
-        const nextday_disabled = (curDay >= maxDay)
-        console.log("curDay", curDay,   "minDay", minDay,  "maxDay", maxDay);
-        console.log("prevday_disabled", prevday_disabled,   "nextday_disabled", nextday_disabled);
-
-        let el_btn_prevday = document.getElementById("id_timepicker_prevday");
-        let el_btn_nextday = document.getElementById("id_timepicker_nextday");
-
-        if(prevday_disabled) {
-            el_btn_prevday.classList.add(cls_visible_hide)
-            el_btn_prevday.classList.remove(cls_visible_show)
-        } else {
-            el_btn_prevday.classList.add(cls_visible_show)
-            el_btn_prevday.classList.remove(cls_visible_hide)
-        }
-        if(nextday_disabled){
-            el_btn_nextday.classList.add(cls_visible_hide)
-            el_btn_nextday.classList.remove(cls_visible_show)
-        } else {
-            el_btn_nextday.classList.add(cls_visible_show)
-            el_btn_nextday.classList.remove(cls_visible_hide)
-        }
-    }  // DisableBtnPrevNextDay
-
-//========= HighlightAndDisableAmpm  ====================================
-    function HighlightAndDisableAmpm(curOffset, minOffset, maxOffset) {
-        // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        console.log( ">>>>=== HighlightAndDisableAmpm  ");
-
-        const curDayOffset = Math.floor(curOffset/1440);  // - 90 (1.5 h)
-        const curRemainder = (curOffset - curDayOffset * 1440);
-        const curHours = Math.floor(curRemainder / 60);
-        const curMinutes = curRemainder - curHours * 60;
-
-        const prevday_disabled = (curDayOffset < 0);
-        const nextday_disabled = (curDayOffset > 0);
-
-        const isAmpm = (timeformat === "AmPm");
-        if (isAmpm) {
-            let curAmPm = 0;
-            let curHoursAmpm = curHours;
-            if (curHours >= 12){
-                curHoursAmpm = curHours - 12;
-                curAmPm = 1;
-            }
-            console.log("isAmpm", isAmpm, "curAmPm", curAmPm, "curHoursAmpm", curHoursAmpm);
-
-            const tbody = document.getElementById("id_timepicker_tbody_hour");
-            let tds = tbody.getElementsByClassName("timepicker_ampm")
-            for (let i=0, td, cell_value, highlighted, period_within_range, disabled; td = tds[i]; i++) {
-                cell_value = get_attr_from_el_int(td, "data-ampm");
-                highlighted = (curAmPm === cell_value);
-                console.log("curAmPm", curAmPm, "cell_value", cell_value, "highlighted", highlighted)
-
-                // am: period is from 00.00u till 12.00 u  pm: period is from 12.00u till 24.00 u
-                // on current day AM is from offset 0-720, PM from 720-1440. Add/subtract 1440 for next/prev day
-                const AM_or_PM_min = (curDayOffset * 1440 + cell_value * 720);
-                const AM_or_PM_max = (AM_or_PM_min + 720);
-                const AM_or_PM_within_range = OffsetWithinRange(AM_or_PM_min, AM_or_PM_max, minOffset, maxOffset)
-                console.log("minOffset", minOffset, "maxOffset", maxOffset)
-                console.log("AM_or_PM_min", AM_or_PM_min, "AM_or_PM_max", AM_or_PM_max, "within_range", AM_or_PM_within_range)
-
-                disabled = !period_within_range;
-
-                console.log("highlighted", highlighted, "cls_hover", cls_hover, "cls_highl", cls_highl)
-                HighlightAndDisableCell(td, disabled, highlighted);
-            }
-        }  //  if (timeformat === 'AmPm') {
-    }  // HighlightAndDisableAmpm
+    }  // OffsetPickerSave
 
 
-//========= OffsetWithinRange  ====================================
-    function OffsetWithinRange(outer_min, outer_max, inner_min, inner_max) {
-        // PR2019-08-04 Note: period is also out of range when diff === 0
-        return (inner_min < outer_max && inner_max > outer_min)
-    }
-
-//========= HighlightAndDisableHours  ====================================
-    function HighlightAndDisableHours(curOffset, minOffset, maxOffset) {
-        // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        //console.log( ">>>>>>>>>>>>>>>>>>>>=== HighlightAndDisableHours  ");
-        //console.log( "minOffset", minOffset, "curOffset", curOffset, "maxOffset", maxOffset);
-
-        const curDay = Math.floor(curOffset/1440);  // curOffset = - 90 ( = 1.5 h before midnight
-        const curRemainder = (curOffset - curDay * 1440);
-        const curDayHours = Math.floor(curOffset/60);
-        const curHours = Math.floor(curRemainder / 60);
-        const curMinutes = curRemainder - curHours * 60;
-
-        const minDayHours = Math.floor(minOffset/60)
-        const minMinutes = minOffset - minDayHours * 60;
-
-        const maxDayHours = Math.floor(maxOffset/60)
-        const maxMinutes = maxOffset - maxDayHours * 60;
-
-        //console.log("curDay", curDay,  "curDayHours", curDayHours,  "curHours", curHours, "curMinutes", curMinutes);
-
-        //console.log("minDayHours", minDayHours,  "minMinutes", minMinutes,  "maxDayHours", maxDayHours, "maxMinutes", maxMinutes);
-
-// 1. all hours are disabled if (curDay < minDay) OR (curDay > maxDay)  Value of minDay = -1 OR 0, Value of maxDay = 0 OR 1
-// 2. all hours are enabled if (curDay > minDay) AND (curDay < maxDay)
-// 3. part of hours are disabled if (curDay = minDay) OR (curDay = maxDay)
-        // if curHour is disabled: minutes are also disabled
-
-        const tbody_hour = document.getElementById("id_timepicker_tbody_hour");
-        const tds_hour = tbody_hour.getElementsByClassName("timepicker_hour")
-        for (let i=0, td, cell_value, cell_offset_hour, highlighted, disabled; td = tds_hour[i]; i++) {
-            cell_value = get_attr_from_el_int(td, "data-hour");
-            cell_offset_hour = curDay * 24 + cell_value
-
-            //console.log("minDayHours", minDayHours,   "cell_offset_hour", cell_offset_hour,  "maxDayHours", maxDayHours);
-            highlighted = (curHours === cell_value);
-            disabled = (cell_offset_hour < minDayHours || cell_offset_hour > maxDayHours)
-
-            HighlightAndDisableCell(td, disabled, highlighted);
-        }
-
-    //========= HighlightAndDisableMinutes  ====================================
-        //console.log( "--------- HighlightAndDisableMinutes  ");
-
-        // all minutes are disabled if curDate outside min-max DayHours
-        const all_disabled = (curDayHours < minDayHours || curDayHours > maxDayHours )
-        // all minutes are enabled if curDayHours within min-max DayHours
-        const none_disabled = (curDayHours > minDayHours && curDayHours < maxDayHours )
-        // else: check with value of minutes
-
-        const tbody_minute = document.getElementById("id_timepicker_tbody_minute");
-        const tds_minute = tbody_minute.getElementsByClassName("timepicker_minute")
-        for (let i=0, td; td = tds_minute[i]; i++) {
-            const cell_value = get_attr_from_el_int(td, "data-minute");
-
-        // create new offset and put back in el_timepicker
-            const newOffset = curDayHours * 60 + cell_value
-            //console.log( "newOffset", newOffset,  " minOffset",  minOffset,  "maxOffset", maxOffset);
-
-            let disabled=false;
-            if (!none_disabled){
-                disabled = (all_disabled || newOffset < minOffset || newOffset > maxOffset)
-            }
-
-            const highlighted = (curMinutes === cell_value);
-            //console.log( "disabled", disabled, "highlighted", highlighted);
-            HighlightAndDisableCell(td, disabled, highlighted);
-        }
-    }  // HighlightAndDisableHours
-
-
-//========= HighlightAndDisableCell  ====================================
-    function HighlightAndDisableCell(td, disabled, highlighted) {
-        //console.log(" ======== HighlightAndDisableCell  ==========")
-        //console.log("disabled: ", disabled, "highlighted: ", highlighted)
-        if (!!disabled){
-            td.classList.add("tr_disabled");
-            td.classList.remove(cls_highl)
-            if (!!highlighted){
-                td.classList.add("tsa_color_notallowed")
-            } else {
-                td.classList.remove("tsa_color_notallowed")
-            }
-        } else {
-            td.classList.remove("tr_disabled")
-            if (!!highlighted){
-                td.classList.add(cls_highl)
-            } else {
-                td.classList.remove(cls_highl)
-            }
-            td.classList.remove("tsa_color_notallowed")
-        }
-    }  // HighlightAndDisableCell
 
 //========= GetDatetimeLocal  ====================================
     function GetDatetimeLocal(data_datetime, comp_timezone) {
@@ -4914,56 +4366,187 @@ function validate_input_blank(el_input, el_err, msg_blank){
         return within_range
     }  // DatetimeWithinRange
 
-//========= HideSaveButtonOnQuicksave  ====================================
-    function HideSaveButtonOnQuicksave(el_data, cls_hide) {
-// hide save button on quicksave
-        let btn_save = document.getElementById("id_timepicker_save")
-        let btn_quicksave = document.getElementById("id_timepicker_quicksave")
+// +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-// get quicksave from el_data
-        let quicksave = get_quicksave_from_eldata(el_data);
+//========= HandleFilterName  ====================================
+    function HandleFilterName(el, index, el_key) {
+        console.log( "===== HandleFilterName  ========= ");
 
-        let txt_quicksave;
-        if (quicksave){
-            btn_save.classList.add(cls_hide);
-            txt_quicksave = get_attr_from_el(el_data, "data-txt_quicksave_remove");
+        console.log( "el.value", el.value, index, typeof index);
+        console.log( "el.filter_dict", filter_dict, typeof filter_dict);
+        // skip filter if filter value has not changed, update variable filter_text
+
+        console.log( "el_key", el_key);
+
+
+        let skip_filter = false
+        if (el_key === 27) {
+            filter_dict = {}
+
+            let tblRow = get_tablerow_clicked(el);
+            for (let i = 0, len = tblRow.cells.length; i < len; i++) {
+                let el = tblRow.cells[i].children[0];
+                if(!!el){
+                    el.value = null
+                }
+            }
         } else {
-            btn_save.classList.remove(cls_hide);
-            txt_quicksave = get_attr_from_el(el_data, "data-txt_quicksave");
-        }
-        btn_quicksave.innerText = txt_quicksave
-    }  //  HideSaveButtonOnQuicksave
+            let filter_dict_text = ""
+            if (index in filter_dict) {filter_dict_text = filter_dict[index];}
+            //if(!filter_dict_text){filter_dict_text = ""}
+            console.log( "filter_dict_text: <" + filter_dict_text + ">");
 
-//========= get_quicksave_from_eldata  ====================================
-    function get_quicksave_from_eldata(el_data) {
-        let quicksave = false;
-        const qs = get_attr_from_el(el_data, "data-quicksave");
-        if(qs.toLowerCase() === "true") {quicksave = true}
-        return quicksave
-    }
-//========= save_quicksave_in_eldata  ====================================
-    function save_quicksave_in_eldata(el_data, quicksave) {
-        el_data.setAttribute("data-quicksave", quicksave)
-    }
-
-//========= RemoveHighlightFromCells  ====================================
-    function RemoveHighlightFromCells(class_name, tbody, cls_highl) {
-        let tds = tbody.getElementsByClassName(class_name);
-        for (let x = 0, len = tds.length; x < len; x++) {
-            tds[x].classList.remove(cls_highl);
-        }
-    }
-//========= ShowHover  ====================================
-    function ShowHover(td, event, cls_hover) {
-        if(!!td){
-            const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
-            if (event.type === "mouseenter" && !disabled){
-                td.classList.add(cls_hover)
+            let new_filter = el.value.toString();
+            console.log( "new_filter: <" + new_filter + ">");
+            if (!new_filter){
+                if (!filter_dict_text){
+                    console.log( "skip_filter = true");
+                    skip_filter = true
+                } else {
+                    console.log( "delete filter_dict");
+                    delete filter_dict[index];
+                    console.log( "deleted filter : ", filter_dict);
+                }
             } else {
-                td.classList.remove(cls_hover)}}
-    }
+                if (new_filter.toLowerCase() === filter_dict_text) {
+                    skip_filter = true
+                    console.log( "skip_filter = true");
+                } else {
+                    filter_dict[index] = new_filter.toLowerCase();
+                    console.log( "filter_dict[index]: ", filter_dict[index]);
+                }
+            }
 
-//0000000000000000000000000000000000000000000000000000000000000000000000000000000
+        }
+        console.log( " filter_dict ", filter_dict);
+
+        if (!skip_filter) {
+            FilterTableRows_dict();
+        } //  if (!skip_filter) {
+
+
+    }; // function HandleFilterName
+
+
+//========= FilterTableRows_dict  ====================================
+    function FilterTableRows_dict() {  // PR2019-06-09
+        console.log( "===== FilterTableRows_dict  ========= ");
+        //console.log( "filter", filter, "col_inactive", col_inactive, typeof col_inactive);
+        //console.log( "show_inactive", show_inactive, typeof show_inactive);
+        const len = tblBody_items.rows.length;
+        if (!!len){
+            for (let i = 0, tblRow, show_row; i < len; i++) {
+                tblRow = tblBody_items.rows[i]
+                //console.log( tblRow);
+                show_row = ShowTableRow_dict(tblRow)
+                if (show_row) {
+                    tblRow.classList.remove("display_hide")
+                } else {
+                    tblRow.classList.add("display_hide")
+                };
+            }
+        };
+    }; // function FilterTableRows_dict
+
+
+//========= ShowTableRow_dict  ====================================
+    function ShowTableRow_dict(tblRow) {  // PR2019-09-15
+        // console.log( "===== ShowTableRow_dict  ========= ");
+        //console.log( tblRow);
+        // function filters by inactive and substring of fields
+        //  - iterates through cells of tblRow
+        //  - skips filter of new row (new row is always visible)
+        //  - if filter_name is not null:
+        //       - checks tblRow.cells[i].children[0], gets value, in case of select element: data-value
+        //       - returns show_row = true when filter_name found in value
+        //  - if col_inactive has value >= 0 and hide_inactive = true:
+        //       - checks data-value of column 'inactive'.
+        //       - hides row if inactive = true
+        let hide_row = false;
+        if (!!tblRow){
+            const pk_str = get_attr_from_el(tblRow, "data-pk");
+
+    // check if row is_new_row. This is the case when pk is a string ('new_3'). Not all search tables have "id" (select customer has no id in tblrow)
+            let is_new_row = false;
+            if(!!pk_str){
+    // skip new row (parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+                is_new_row = (!parseInt(pk_str))
+            }
+            //console.log( "pk_str", pk_str, "is_new_row", is_new_row, "show_inactive",  show_inactive);
+            if(!is_new_row){
+            // hide inactive rows if filter_hide_inactive
+            /* TODO filter status
+                if(col_inactive !== -1 && !show_inactive) {
+                    // field 'inactive' has index col_inactive
+                    let cell_inactive = tblRow.cells[col_inactive];
+                    if (!!cell_inactive){
+                        let el_inactive = cell_inactive.children[0];
+                        if (!!el_inactive){
+                            let value = get_attr_from_el(el_inactive,"data-value")
+                            if (!!value) {
+                                if (value.toLowerCase() === "true") {
+                                    show_row = false;
+                                }
+                            }
+                        }
+                    }
+                }; // if(col_inactive !== -1){
+            */
+
+// show all rows if filter_name = ""
+            // console.log(  "show_row", show_row, "filter_name",  filter_name,  "col_length",  col_length);
+                if (!hide_row){
+                    Object.keys(filter_dict).forEach(function(key) {
+                        const filter_text = filter_dict[key];
+                        const filter_blank = (filter_text ==="#")
+                        let tbl_cell = tblRow.cells[key];
+                        //console.log( "tbl_cell", tbl_cell);
+                        if(!hide_row){
+                            if (!!tbl_cell){
+                                let el = tbl_cell.children[0];
+                                if (!!el) {
+                            // skip if no filter om this colums
+                                    if(!!filter_text){
+                            // get value from el.value, innerText or data-value
+                                        const el_tagName = el.tagName.toLowerCase()
+                                        let el_value;
+                                        if (el_tagName === "select"){
+                                            //el_value = el.options[el.selectedIndex].text;
+                                            el_value = get_attr_from_el(el, "data-value")
+                                        } else if (el_tagName === "input"){
+                                            el_value = el.value;
+                                        } else {
+                                            el_value = el.innerText;
+                                        }
+                                        if (!el_value){el_value = get_attr_from_el(el, "data-value")}
+
+                                        if (!!el_value){
+                                            if (filter_blank){
+                                                hide_row = true
+                                            } else {
+                                                el_value = el_value.toLowerCase();
+                                                // hide row if filter_text not found
+                                                if (el_value.indexOf(filter_text) === -1) {
+                                                    hide_row = true
+                                                }
+                                            }
+                                        } else {
+                                            if (!filter_blank){
+                                                hide_row = true
+                                            } // iif (filter_blank){
+                                        }   // if (!!el_value)
+                                    }  //  if(!!filter_text)
+                                }  // if (!!el) {
+                            }  //  if (!!tbl_cell){
+                        }  // if(!hide_row){
+                    });  // Object.keys(filter_dict).forEach(function(key) {
+                }  // if (!hide_row)
+            } //  if(!is_new_row){
+        }  // if (!!tblRow)
+        return !hide_row
+    }; // function ShowTableRow_dict
+
+    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 
 

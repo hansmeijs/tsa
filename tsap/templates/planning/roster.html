@@ -300,25 +300,16 @@
         </div>
     <h1 class="mt-4"></h1>
 
-    <div class="content_subheader_right">
+   <!--   <div class="content_subheader_right"> -->
         <div class="content_header ">
 
             <div class="content_subheader_left mx-4 my-1">
                 <h6></h6>
             </div>
-            <img id="id_loader" src="{% static 'img/loader.gif' %}" height="32" width="32" class="display_hide" >
+            <img id="id_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="display_hide" >
             <div class="content_subheader_right mx-4 my-1">
                 <a id="id_btn_rosterdate_fill" class="btn btn-add">{% trans 'Fill roster date ' %} ...</a>
                 <a id="id_btn_rosterdate_remove" class="btn btn-add">{% trans 'Remove roster date' %} ...</a>
-            </div>
-        </div>
-
-        <div class="content_header">
-            <div class="content_subheader_left mx-4 my-1">
-                <input id="id_filter_name"
-                type="text"
-                class="fieldname pt-0 pb-0"
-                placeholder="{% trans 'filter...' %}">
             </div>
         </div>
 
@@ -388,11 +379,11 @@
                     <tbody id="id_tbody_items">
                     </tbody>
                 </table>
-<!-- =================== END DATA TABLE  =================== -->
+  <!-- =================== END DATA TABLE  =================== -->
             </div>
 
         </div>
-    </div>
+  <!--  </div> -->
 
         <datalist id="id_datalist_orders"></datalist>
         <datalist id="id_datalist_shifts"></datalist>

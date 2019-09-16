@@ -145,7 +145,7 @@ $(function() {
 //========= get_attr_from_el_int  ============= PR2019-06-07
     function get_attr_from_el_int(element, key){
         "use strict";
-        let value_int = 0;
+        let value_int = null;
         if(!!element && !!key){
             if(element.hasAttribute(key)){
                 value_int = parseInt(element.getAttribute(key))
@@ -509,7 +509,20 @@ $(function() {
 
         return userOffset;
 
-}
+    }
+
+// NOT WORKING YET
+//========= addfunction removeItem to object prototype  ========== PR2019-09-15
+// from https://stackoverflow.com/questions/346021/how-do-i-remove-objects-from-a-javascript-associative-array
+   // Object.prototype.removeItem = function (key, value) {
+   //     if (value == undefined)
+   //         return;
+   //     for (var i in this) {
+   //         if (this[i][key] == value) {
+   //             this.splice(i, 1);
+   //         }
+   //     }
+   // };
 
 //========= function value_has_changed  ==== PR2019-06-08
     function value_has_changed(value,o_value ) {

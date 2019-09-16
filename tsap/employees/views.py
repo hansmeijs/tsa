@@ -1,10 +1,9 @@
 
 # PR2019-03-02
-
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, Http404
-
-from django.db.models.functions import Lower
+from django.db.models import Q, Value
+from django.db.models.functions import Lower, Coalesce
 from django.shortcuts import render, redirect #, get_object_or_404
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -26,7 +25,7 @@ from tsap import functions as f
 from tsap.headerbar import get_headerbar_param
 from tsap.validators import validate_namelast_namefirst, validate_code_name_identifier, validate_employee_has_emplhours
 
-from companies.models import Companysetting, Employee, get_parent, get_instance, delete_instance
+from companies import models as m
 from employees.forms import EmployeeAddForm, EmployeeEditForm
 from employees.dict import create_employee_list, create_employee_dict
 
@@ -53,7 +52,7 @@ class EmployeeListView(View):
         if request.user.company is not None:
 
             # add employee_list to headerbar parameters PR2019-03-02
-            employees = Employee.objects.filter(company=request.user.company)
+            employees = m.Employee.objects.filter(company=request.user.company)
             employee_list = []
             for employee in employees:
                 dict = {}
@@ -136,7 +135,7 @@ class EmployeeAddView(CreateView):
 @method_decorator([login_required], name='dispatch')
 class EmployeeEditView(UpdateView):
     # PR2018-04-17 debug: Specifying both 'fields' and 'form_class' is not permitted.
-    model = Employee
+    model = m.Employee
     form_class = EmployeeEditForm
     template_name = 'employee_edit.html'
     pk_url_kwarg = 'pk'
@@ -151,7 +150,7 @@ class EmployeeEditView(UpdateView):
 
 @method_decorator([login_required], name='dispatch')
 class EmployeeDeleteView(DeleteView):
-    model = Employee
+    model = m.Employee
     template_name = 'employee_delete.html'  # without template_name Django searches for examyear_confirm_delete.html
     success_url = reverse_lazy('employee_list_url')
 
@@ -171,7 +170,6 @@ class EmployeeUploadView(UpdateView):# PR2019-07-30
         logger.debug(' ============= EmployeeUploadView ============= ')
         # upload_dict: {'id': {'pk': 107, 'parent_pk': 1, 'table': 'employees'}, 'code': {'value': 'Abdula', 'update': True}}
         # upload: "{"id":{"pk":103,"delete":true,"table":"employee"}}"
-
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -202,22 +200,25 @@ class EmployeeUploadView(UpdateView):# PR2019-07-30
                     # company is parent of employee
                     ppk_int = request.user.company.pk
                     instance = None
-                    parent = get_parent(table, ppk_int, update_dict, request)
+                    parent = m.get_parent(table, ppk_int, update_dict, request)
                     if parent:
 # B. Delete instance
                         if is_delete:
-                            instance = get_instance(table, pk_int, parent, update_dict)
+                            instance = m.get_instance(table, pk_int, parent, update_dict)
                             this_text = _("Employee '%(tbl)s'") % {'tbl': instance.code}
+
+    # 2. check if employee is teammember
+                            has_emplhours = validate_employee_has_emplhours(instance, update_dict)
      # 2. check if employee has emplhours
                             has_emplhours = validate_employee_has_emplhours(instance, update_dict)
                             if not has_emplhours:
-                                delete_instance(instance, update_dict, request, this_text)
+                                m.delete_instance(instance, update_dict, request, this_text)
 # C. Create new employee
                         elif is_create:
                             instance = create_employee(upload_dict, update_dict, request)
 # - update instance
                         else:
-                            instance = get_instance(table, pk_int, parent, update_dict)
+                            instance = m.get_instance(table, pk_int, parent, update_dict)
                             logger.debug('instance: ' + str(instance))
 
                             # update_item, also when it is a created item
@@ -282,10 +283,10 @@ class EmployeeImportView(View):
             # get mapped coldefs from table Companysetting
             # get stored setting from Companysetting
             stored_setting = {}
-            settings_json = Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company)
+            settings_json = m.Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company)
             logger.debug('settings_json: ' + str(settings_json))
             if settings_json:
-                stored_setting = json.loads(Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company))
+                stored_setting = json.loads(m.Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company))
             # stored_setting = {'worksheetname': 'VakschemaQuery', 'no_header': False,
             #                   'coldefs': {'employee': 'level_abbrev', 'orderdatefirst': 'sector_abbrev'}}
 
@@ -361,7 +362,7 @@ class EmployeeImportUploadSetting(View):   # PR2019-03-10
                     # new_setting = json.loads(request.POST['setting'])
                     # new_setting_json = json.dumps(new_setting)
 
-                    Companysetting.set_setting(c.KEY_EMPLOYEE_COLDEFS, new_setting_json, request.user.company)
+                    m.Companysetting.set_setting(c.KEY_EMPLOYEE_COLDEFS, new_setting_json, request.user.company)
 
         return HttpResponse(json.dumps("Import settings uploaded", cls=LazyEncoder))
 
@@ -378,7 +379,7 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                 tablename = 'employee'
 
 # get stored setting from Companysetting
-                stored_setting_json = Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company)
+                stored_setting_json = m.Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company)
                 codecalc  = 'linked'
                 if stored_setting_json:
                     stored_setting = json.loads(stored_setting_json)
@@ -453,7 +454,7 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                                 else:
                                     logger.debug('namelast, namefirst has no error')
 
-                                    new_employee = Employee(
+                                    new_employee = m.Employee(
                                         company=request.user.company,
                                         code=code,
                                         namelast=namelast,
@@ -596,7 +597,7 @@ def create_employee(upload_dict, update_dict, request):
             update_dict['id']['temp_pk'] = temp_pk_str
 
 # 2. get parent instance
-        parent = get_parent(table, ppk_int, update_dict, request)
+        parent = m.get_parent(table, ppk_int, update_dict, request)
         if parent:
 
 # 3. Get value of 'code'
@@ -612,7 +613,7 @@ def create_employee(upload_dict, update_dict, request):
 
                 if not has_error:
 # 4. create and save 'customer' or 'order'
-                    instance = Employee(company=parent, code=code)
+                    instance = m.Employee(company=parent, code=code)
                     instance.save(request=request)
 
 # 5. return msg_err when instance not created
@@ -833,4 +834,53 @@ def get_initials(firstnames, with_space):
             initials = initials + initial.upper()
     # logger.debug('initials: ' + str(initials))
     return initials
+
+
+def delete_employee_from_teammember(employee_id, request):
+    # validate if employee has teammember records PR2019-09-15
+    if employee_id:
+        for teammember in m.Teammember.objects.filter(employee=employee_id):
+            cat = teammember.team.scheme.order.cat
+            if cat == c.SHIFT_CAT_0512_ABSENCE:
+                teammember.delete(request=request)
+            else:
+                team = teammember.team
+                # check if this is the only teammember of this team
+                teammember.employee = None
+                teammember.save(request=request)
+                # check if team has other teammembers
+                other_teammembers_exist = m.Teammember.objects.filter(Q(team=team) & ~Q(employee_id=employee_id.pk)).exists
+                if other_teammembers_exist:
+                    # delete this teammember
+                    teammember.delete(request=request)
+
+                update_team_code(teammember.team, request)
+
+
+def update_team_code(team, request):
+    logger.debug(' --- update_team_code --- ')
+    # after deleting teaammmeber, lookup new team_code. Use 'Select employee...' if non available
+    code = None
+    if team:
+        # teammember = m.Teammember.objects.filter(team=team, employee__isnull=False).first()
+
+        # 1. iterate through teammembers, latest enddate first
+        teammembers = m.Teammember.objects.annotate(
+            new_datelast=Coalesce('datelast', Value(datetime(2500, 1, 1))
+                                  )).filter(team=team, employee__isnull=False).order_by('-new_datelast')
+
+        skip_rest = False
+        for teammember in teammembers:
+            employee = teammember.employee
+            code = getattr(employee, 'code')
+            if code is None:
+                code = _('Select employee...')
+            logger.debug('teammember.employee code: ' + str(code))
+            if not skip_rest:
+                team.code = code
+                team.save(request=request)
+                skip_rest = True
+                logger.debug('saved team.code: ' + str(team.code))
+
+
 

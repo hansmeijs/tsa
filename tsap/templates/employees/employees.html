@@ -32,8 +32,38 @@
 
 <!-- MODAL -->
 {% block modal %}
+<!-- =================== MODAL EMPLOYEE ADD  =================== -->
+    <div class="modal " id="id_mod_empl_add" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_mod_empl_add_header" class="modal-title mx-2" >{% trans 'Add employee' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div  id="id_mod_empl_create_body" class="modal-body">
+                    <div class="modal_container">
+                        <div class="modal_body_left mx-2">
+                            <div>
+                            <h6 class="modal-title mx-2" >{% trans 'Add employee' %}:</h6>
+                                <p id="id_mod_employee_add" class="mx-2"></p>
+                                <small id="id_mod_employee_add_err" class="color_invalid mx-2 display_hide"></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                    <button id="id_mod_empl_add_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- =================== END EMPLOYEE ADD  =================== -->
+
 <!-- =================== MODAL EMPLOYEE DELETE  =================== -->
-    <div class="modal " id="id_mod_empl_del" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+    <div class="modal fade" id="id_mod_empl_del" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">
             <div class="modal-content">
 
@@ -45,32 +75,28 @@
                 </div>
 
                 <div  id="id_mod_empl_del_body" class="modal-body">
-
                     <div class="modal_container">
-
                         <div class="modal_body_left mx-2">
                             <div>
-                            <h6 class="modal-title mx-2" >{% trans 'Delete employee' %}:</h6>
+                            <h6 class="modal-title mx-2" >{% trans 'This employee will be deleted.' %}</h6>
+                            <h6 class="modal-title mx-2" >{% trans 'Do you want to continue?' %}</h6>
                                 <p id="id_mod_employee" class="mx-2"></p>
                                 <small id="id_mod_employee_err" class="color_invalid mx-2 display_hide"></small>
                             </div>
                         </div>
-
                     </div>
-
                 </div>
-
                 <div class="modal-footer">
-
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                    <button id="id_mod_empl_del_btn_save" type="button" class="btn btn-primary">{% trans 'Delete' %}</button>
-
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'No' %}</button>
+                    <button id="id_mod_empl_del_btn_save" type="button" class="btn btn-primary">{% trans 'Yes' %}</button>
                 </div>
 
             </div>
         </div>
     </div>
-<!-- =================== END MODAL EMPLOYEE  =================== -->
+<!-- =================== END EMPLOYEE DELETE  =================== -->
+
+
 {% endblock %}
 <!-- endblock MODAL -->
 
@@ -112,17 +138,6 @@
                     <button id="id_btn_list" type="button"  class="btn btn-secondary ">{% trans 'List' %}</button>
                 </div>
             <!-- end BUTTON GROUP -->
-
-                <!-- filter input-->
-                <div class="content_header">
-                    <div class="content_subheader_left">
-                        <input id="id_filter_orders"
-                        type="text"
-                        class="fieldname pt-0 pb-0"
-                        placeholder="{% trans 'filter...' %}">
-                    </div>
-                </div>
-                <!-- end filter input -->
 
             </div>
             <!-- end class content_subheader mt-5 -->

@@ -6,6 +6,7 @@
 
 {% block script %}
     <script src="{% static 'js/schemes.js' %}"></script>
+    <script src="{% static 'js/offsetpicker.js' %}"></script>
 {% endblock %}
 
 <!-- SIDE BAR -->
@@ -328,14 +329,6 @@
             </div>
         </div>
         <!-- END box with scheme input elements -->
-        <div class="content_header">
-            <div class="content_subheader_left">
-                <input id="id_filter_name"
-                type="text"
-                class="fieldname pt-0 pb-0"
-                placeholder="{% trans 'filter...' %}">
-            </div>
-        </div>
 
         <!-- end class content_subheader mt-5 -->
         <!-- class content body mx-2 -->
@@ -371,24 +364,24 @@
 <!-- =================== TIMEPICKER  =================== -->
                 {% include 'includes/timepicker.html' %}
 <!-- =================== DATA TABLE  =================== -->
-                <table id="id_table_schemeitems" class="table table-condensed tsa-tbl mx-4 my-1">
+                <table id="id_table_schemeitems" class="table table-condensed tsa-tbl mx-2 my-2">
                     <thead id="id_thead_items" class="thead-inverse"></thead>
                     <tbody id="id_tbody_items"></tbody>
                 </table>
             </div>
 
-        </div>
-    </div>
-<!--</div> flex_container -->
 
         <div class="content_header">
-            <div class="content_subheader_right">
-                <button id="id_btn_dayup" title="{% trans 'Set all rosterdates one day earlier' %}" class="btn btn-add"> &uarr; </button>
+            <div class="content_subheader_left">
+                <button id="id_btn_dayup" title="{% trans 'Set all rosterdates one day earlier' %}" class="btn btn-add ml-2"> &uarr; </button>
                 <button id="id_btn_daydown" title="{% trans 'Set all rosterdates one day later' %}" class="btn btn-add"> &darr; </button>
                 <button id="id_btn_autofill" class="btn btn-add">{% trans 'Fill scheme' %}</button>
             </div>
         </div>
 
+        </div>
+    </div>
+<!--</div> flex_container -->
 
         <div id="id_data"
             data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
@@ -447,6 +440,8 @@
             data-txt_copyfrom_select_none= "{% trans 'No templates' %}"
             data-txt_scheme_from_template= "{% trans 'Copy from template' %}"
             data-txt_scheme_to_template= "{% trans 'Copy to template' %}"
+            data-txt_show_templates= "{% trans 'Show templates' %}"
+            data-txt_hide_templates="{% trans 'Hide templates' %}"
             data-txt_cycle_once= "{% trans 'Once only' %}"
 
             data-txt_rosterdate= "{% trans 'Rosterdate' %}"

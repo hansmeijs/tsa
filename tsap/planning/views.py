@@ -20,6 +20,8 @@ from tsap import functions as f
 from planning import dicts as d
 from employees import dict as e
 
+from employees.views import update_team_code
+
 from tsap.settings import TIME_ZONE
 from tsap.headerbar import get_headerbar_param
 
@@ -88,17 +90,18 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                         elif table == 'customer':
                             # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
+                            cat = table_dict.get('cat')  # None = all
                             cat_lt = table_dict.get('cat_lt')  # None = all
                             inactive = table_dict.get('inactive') # True: show inactive only, False: active only , None: show all
-                            list = create_customer_list(company=request.user.company, cat_lt=cat_lt, inactive=inactive)
+                            list = create_customer_list(company=request.user.company, cat=cat, cat_lt=cat_lt, inactive=inactive)
 
                         elif table == 'order':
                             # default: show orders with cat normal, internal, hide absence and template
-                            cat_lt = table_dict.get('cat_lt', c.SHIFT_CAT_0000_NORMAL)
-                            # inactive = None: include active and inactive, False: only active
+                            cat = table_dict.get('cat')  # None = all
+                            cat_lt = table_dict.get('cat_lt')  # None = all
                             inactive = False if not include_inactive else None
 
-                            list = create_order_list(company=request.user.company, cat_lt=cat_lt, inactive=inactive)
+                            list = create_order_list(company=request.user.company, cat=cat, cat_lt=cat_lt, inactive=inactive)
 
                         elif table == 'order_template':
                             # inactive = None: include active and inactive, False: only active
@@ -219,7 +222,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                         list = d.create_team_list(
                                             request=request,
                                             customer=customer)
-
 
                         if list:
                             datalists[table] = list
@@ -588,7 +590,8 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
                 code=shift.code,
                 offsetstart=shift.offsetstart,
                 offsetend=shift.offsetend,
-                breakduration=shift.breakduration
+                breakduration=shift.breakduration,
+                wagefactor=shift.wagefactor
             )
             template_shift.save(request=request)
             # make dict with mapping of old and new shift_id
@@ -597,7 +600,6 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
 
 # - copy teams to template
         teams = m.Team.objects.filter(scheme=instance)
-        prefix = _('Employee')
         count = 0
         mapping_teams = {}
         for team in teams:
@@ -607,7 +609,8 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
 
             template_team = m.Team(
                 scheme=template_scheme,
-                code=this_text)
+                code=this_text,
+                cat=c.SHIFT_CAT_4096_TEMPLATE)
             template_team.save(request=request)
             # make dict with mapping of old and new team_id
             mapping_teams[team.pk] = template_team.pk
@@ -623,7 +626,6 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
             template_schemeitem = m.Schemeitem(
                 scheme=template_scheme,
                 shift=schemeitem.shift,
-                wagefactor=schemeitem.wagefactor,
                 rosterdate=schemeitem.rosterdate,
                 iscyclestart=is_cyclestart,
                 timestart=schemeitem.timestart,
@@ -1000,7 +1002,6 @@ def shift_upload(request, upload_dict, comp_timezone):  # PR2019-08-08
 # D. Get existing instance
         else:
             instance = m.get_instance(table, pk_int, parent, update_dict)
-        logger.debug('update_dict' + str(update_dict))
 
 # E. update instance, also when it is created
         if instance:
@@ -1014,7 +1015,7 @@ def shift_upload(request, upload_dict, comp_timezone):  # PR2019-08-08
 
 # 7. add update_dict to update_wrap
     if update_dict:
-        update_wrap['shift_update'] = update_dict
+        update_wrap['item_update'] = update_dict
 
 # 8. update shift_list
     shift_list = d.create_shift_list(
@@ -1687,22 +1688,6 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
                         update_wrap['team'] = team_list
 
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
-
-def update_team_code(team, request):
-    logger.debug(' --- update_team_code --- ')
-    # after deleting teaammmeber, lookup new team_code. Use 'Select employee...' if non available
-    code = None
-    if team:
-        teammember = m.Teammember.objects.filter(team=team, employee__isnull=False).first()
-
-        if teammember:
-            code = getattr(teammember.employee,'code')
-            if code:
-                logger.debug(' code' + str(code))
-        if code is None:
-            code = _('Select employee...')
-        team.code = code
-        team.save(request=request)
 
 ####################################
 # === ReviewView ===================================== PR2019-08-20
@@ -3654,6 +3639,7 @@ def update_shift(instance, parent, upload_dict, update_dict, request):
 
 #  get comp_timezone
     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+
 # FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor')
 # 1. get_iddict_variables
     id_dict = upload_dict.get('id')
@@ -3663,6 +3649,7 @@ def update_shift(instance, parent, upload_dict, update_dict, request):
         ppk_int = instance.scheme.pk
 
         update_dict['pk'] = pk_int
+
         update_dict['id']['pk'] = pk_int
         update_dict['id']['ppk'] = ppk_int
         update_dict['id']['table'] = table
@@ -3691,25 +3678,34 @@ def update_shift(instance, parent, upload_dict, update_dict, request):
         for field in ('offsetstart', 'offsetend'):
             if field in upload_dict:
                 field_dict = upload_dict.get(field)
+                logger.debug('upload_dict: ' + str(upload_dict))
                 if 'update' in field_dict:
     # a. get new and old value
-                    new_value = field_dict.get('value', 0)
+                    new_value = field_dict.get('value')
                     logger.debug('new_value' + str(new_value) + ' ' + str(type(new_value)))
                     saved_value = getattr(instance, field)
                     logger.debug('saved_value' + str(saved_value) + ' ' + str(type(saved_value)))
-                    if new_value != saved_value:
+
+                    if new_value != saved_value:  # (None != 0)=True (None != None)=False
     # c. save field if changed and no_error
+                        logger.debug('>>>>>>>>>>>> save new_value' + str(new_value))
                         setattr(instance, field, new_value)
                         update_dict[field]['updated'] = True
                         update_dict[field]['value'] = new_value
                         save_changes = True
 
+                        logger.debug('=========== saved new_value' + str(getattr(instance, field)))
+
     # d. set min or max in other field
                         if field == 'offsetstart':
-                            offsetend_minvalue = new_value if new_value >= 0 else 0
+                            offsetend_minvalue = 0
+                            if new_value and new_value > 0:
+                                offsetend_minvalue = new_value
                             update_dict['offsetend']['minvalue'] = offsetend_minvalue
                         elif field == 'offsetend':
-                            offsetstart_maxvalue = new_value if new_value <= 1440 else 1440
+                            offsetstart_maxvalue =  1440
+                            if new_value and new_value < 1440:
+                                offsetstart_maxvalue = new_value
                             update_dict['offsetstart']['maxvalue'] = offsetstart_maxvalue
 
 # 4. save changes in fields 'cat', 'breakduration', 'wagefactor'
@@ -3733,20 +3729,15 @@ def update_shift(instance, parent, upload_dict, update_dict, request):
         if field in upload_dict:
             field_dict = upload_dict.get(field)
             if 'update' in field_dict:
-                # value is entered as string ('7.5'), in hours
-                # TODO add hour picker in page
-                value = str(field_dict.get('value'))
-                # convert workhoursperday_hours to minutes per week
-                value_float, msg_err = f.get_float_from_string(value)
-                if msg_err:
-                    update_dict[field]['error'] = msg_err
-                else:
-                    new_value = int(value_float * 60)
-                    old_value = getattr(instance, field, 0)
-                    if new_value != old_value:
-                        setattr(instance, field, new_value)
-                        save_changes = True
-                        update_dict[field]['updated'] = True
+                new_value = field_dict.get('value')
+                if new_value is None:
+                    new_value = 0
+                old_value = getattr(instance, field, 0)
+                logger.debug('new_value: ' + str(new_value) + ' old_value: ' + str(old_value))
+                if new_value != old_value:
+                    setattr(instance, field, new_value)
+                    save_changes = True
+                    update_dict[field]['updated'] = True
 
 # 5. save changes
         if save_changes:
@@ -3754,7 +3745,7 @@ def update_shift(instance, parent, upload_dict, update_dict, request):
                 instance.save(request=request)
             except:
                 has_error = True
-                msg_err = _('This %(tbl)s could not be updated.') % {'tbl': table}
+                msg_err = _('This shift could not be updated.')
                 update_dict['id']['error'] = msg_err
 
 # 6. also recalc schemitems

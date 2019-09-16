@@ -311,7 +311,7 @@ def create_absence_scheme(order, code, request):
 
 
 def create_absence_team(scheme, code, request):
-    team = m.Team(scheme=scheme, code=code)
+    team = m.Team(scheme=scheme, code=code, cat=c.SHIFT_CAT_0512_ABSENCE)
     team.save(request=request)
     # logger.debug(" team.save: " + str(team))
     return team

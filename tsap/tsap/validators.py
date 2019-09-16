@@ -5,9 +5,9 @@ from django.db.models.functions import Upper, Lower
 
 from django.utils.translation import ugettext_lazy as _
 
-from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, KEY_EMPLOYEE_COLDEFS
+from companies import models as m
+from tsap import constants as c
 
-from companies.models import Company, Customer, Order, Employee, Scheme, Shift, Team, Emplhour
 
 import logging
 logger = logging.getLogger(__name__)
@@ -37,16 +37,16 @@ def validate_customer(field, value, company, this_pk = None):
     else:
         if field == 'name':
             if this_pk:
-                customer = Customer.objects.filter(name__iexact=value, company=company).exclude(pk=this_pk).first()
+                customer = m.Customer.objects.filter(name__iexact=value, company=company).exclude(pk=this_pk).first()
             else:
-                customer = Customer.objects.filter(name__iexact=value, company=company).first()
+                customer = m.Customer.objects.filter(name__iexact=value, company=company).first()
             if customer:
                 msg_dont_add = _("This name already exists.")
         elif field == 'code':
             if this_pk:
-                customer = Customer.objects.filter(code__iexact=value, company=company).exclude(pk=this_pk).first()
+                customer = m.Customer.objects.filter(code__iexact=value, company=company).exclude(pk=this_pk).first()
             else:
-                customer = Customer.objects.filter(code__iexact=value, company=company).first()
+                customer = m.Customer.objects.filter(code__iexact=value, company=company).first()
             if customer:
                 msg_dont_add = _("This code already exists.")
     return msg_dont_add
@@ -65,9 +65,9 @@ class validate_unique_company_code(object):  # PR2019-03-15
         if value is None:
             _value_exists = False
         elif self.instance_id is None:
-            _value_exists = Company.objects.filter(code__iexact=value).exists()
+            _value_exists = m.Company.objects.filter(code__iexact=value).exists()
         else:
-            _value_exists = Company.objects.filter(code__iexact=value).exclude(
+            _value_exists = m.Company.objects.filter(code__iexact=value).exclude(
                 pk=self.instance_id).exists()
         if _value_exists:
             raise ValidationError(_('Company code already exists.'))
@@ -87,9 +87,9 @@ class validate_unique_company_name(object):  # PR2019-03-15
         if value is None:
             _value_exists = False
         elif self.instance_id is None:
-            _value_exists = Company.objects.filter(name__iexact=value).exists()
+            _value_exists = m.Company.objects.filter(name__iexact=value).exists()
         else:
-            _value_exists = Company.objects.filter(name__iexact=value).exclude(
+            _value_exists = m.Company.objects.filter(name__iexact=value).exclude(
                 pk=self.instance_id).exists()
         if _value_exists:
             raise ValidationError(_('Company name already exists.'))
@@ -116,11 +116,11 @@ class validate_unique_code(object):  # PR2019-03-16, PR2019-04-25
         else:
             cls = None
             if self.model == 'company':
-                cls = Company
+                cls = m.Company
             elif self.model == 'customer':
-                cls = Customer
+                cls = m.Customer
             elif self.model == 'employee':
-                cls = Employee
+                cls = m.Employee
 
             if cls is not None:
                 if value is None:
@@ -173,9 +173,9 @@ class validate_unique_employee_name(object):  # PR2019-03-15
         if value is None:
             _value_exists = False
         elif self.instance_id is None:
-            _value_exists = Company.objects.filter(name__iexact=value).exists()
+            _value_exists = m.Company.objects.filter(name__iexact=value).exists()
         else:
-            _value_exists = Company.objects.filter(name__iexact=value).exclude(
+            _value_exists = m.Company.objects.filter(name__iexact=value).exclude(
                 pk=self.instance_id).exists()
         if _value_exists:
             raise ValidationError(_('Employee name already exists.'))
@@ -190,7 +190,7 @@ def validate_code_name_identifier(table, field, new_value, parent, update_dict, 
     if not parent:
         msg_err = _("No parent record.")
     else:
-        max_len = NAME_MAX_LENGTH if field == 'name' else CODE_MAX_LENGTH
+        max_len = c.NAME_MAX_LENGTH if field == 'name' else c.CODE_MAX_LENGTH
 
         length = 0
         if new_value:
@@ -232,22 +232,22 @@ def validate_code_name_identifier(table, field, new_value, parent, update_dict, 
             exists = False
             if table == 'employee':
                 crit.add(Q(company=parent), crit.connector)
-                exists = Employee.objects.filter(crit).exists()
+                exists = m.Employee.objects.filter(crit).exists()
             elif table == 'customer':
                 crit.add(Q(company=parent), crit.connector)
-                exists = Customer.objects.filter(crit).exists()
+                exists = m.Customer.objects.filter(crit).exists()
             elif table == 'order':
                 crit.add(Q(customer=parent), crit.connector)
-                exists = Order.objects.filter(crit).exists()
+                exists = m.Order.objects.filter(crit).exists()
             elif table == 'scheme':
                 crit.add(Q(order=parent), crit.connector)
-                exists = Scheme.objects.filter(crit).exists()
+                exists = m.Scheme.objects.filter(crit).exists()
             elif table == 'shift':
                 crit.add(Q(scheme=parent), crit.connector)
-                exists = Shift.objects.filter(crit).exists()
+                exists = m.Shift.objects.filter(crit).exists()
             elif table == 'team':
                 crit.add(Q(scheme=parent), crit.connector)
-                exists = Team.objects.filter(crit).exists()
+                exists = m.Team.objects.filter(crit).exists()
             else:
                 msg_err = _("Model '%(mdl)s' not found.") % {'mdl': table}
 
@@ -279,20 +279,20 @@ def validate_namelast_namefirst(namelast, namefirst, company, update_dict, this_
         if not namelast:
             msg_err_namelast = _("Last name cannot be blank.")
     if msg_err_namelast is None:
-        if len(namelast) > NAME_MAX_LENGTH:
-            msg_err_namelast = _("Last name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
-        elif len(namefirst) > NAME_MAX_LENGTH:
-            msg_err_namefirst = _("First name is too long.") + str(NAME_MAX_LENGTH) + _(' characters or fewer.')
+        if len(namelast) > c.NAME_MAX_LENGTH:
+            msg_err_namelast = _("Last name is too long.") + str(c.NAME_MAX_LENGTH) + _(' characters or fewer.')
+        elif len(namefirst) > c.NAME_MAX_LENGTH:
+            msg_err_namefirst = _("First name is too long.") + str(c.NAME_MAX_LENGTH) + _(' characters or fewer.')
 
         # check if first + lastname already exists
         if msg_err_namelast is None and msg_err_namefirst is None:
             if this_pk:
-                name_exists = Employee.objects.filter(namelast__iexact=namelast,
+                name_exists = m.Employee.objects.filter(namelast__iexact=namelast,
                                                       namefirst__iexact=namefirst,
                                                       company=company
                                                       ).exclude(pk=this_pk).exists()
             else:
-                name_exists = Employee.objects.filter(namelast__iexact=namelast,
+                name_exists = m.Employee.objects.filter(namelast__iexact=namelast,
                                                       namefirst__iexact=namefirst,
                                                       company=company
                                                       ).exists()
@@ -321,15 +321,15 @@ def employee_email_exists(email, company, this_pk = None):
         msg_dont_add = _("No company.")
     elif not email:
         msg_dont_add = _("Email address cannot be blank.")
-    elif len(email) > NAME_MAX_LENGTH:
-        msg_dont_add = _('Email address is too long. ') + str(CODE_MAX_LENGTH) + _(' characters or fewer.')
+    elif len(email) > c.NAME_MAX_LENGTH:
+        msg_dont_add = _('Email address is too long. ') + str(c.CODE_MAX_LENGTH) + _(' characters or fewer.')
     else:
         if this_pk:
-            email_exists = Employee.objects.filter(email__iexact=email,
+            email_exists = m.Employee.objects.filter(email__iexact=email,
                                                   company=company
                                                   ).exclude(pk=this_pk).exists()
         else:
-            email_exists = Employee.objects.filter(email__iexact=email,
+            email_exists = m.Employee.objects.filter(email__iexact=email,
                                                   company=company).exists()
         if email_exists:
             msg_dont_add = _("This email address already exists.")
@@ -342,7 +342,7 @@ def validate_employee_has_emplhours(instance, update_dict):
 
     has_emplhours = False
     if instance:
-        has_emplhours = Emplhour.objects.filter(employee=instance).exists()
+        has_emplhours = m.Emplhour.objects.filter(employee=instance).exists()
         if has_emplhours:
             msg_err = _("Employee '%(tbl)s' has shifts and cannot be deleted.") % {'tbl': instance.code}
             update_dict['id']['error'] = msg_err

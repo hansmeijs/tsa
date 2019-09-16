@@ -348,6 +348,8 @@ class Team(TsaBaseModel):
     inactive = None
     locked = None
 
+    cat = PositiveSmallIntegerField(default=0)
+
     class Meta:
         ordering = [Lower('code')]
 

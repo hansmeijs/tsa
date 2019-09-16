@@ -150,7 +150,7 @@ STATUS_64_APPROVED = 64
 # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
 SHIFT_CAT_0000_NORMAL = 0
 SHIFT_CAT_0001_INTERNAL = 1
-SHIFT_CAT_0002_BILLABLEBYTHEHOUR = 2
+SHIFT_CAT_0002_BILLABLE = 2
 # SHIFT_CAT_0004_AVAILABLE = 4
 # SHIFT_CAT_0008_AVAILABLE = 8
 SHIFT_CAT_0016_UNASSIGNED = 16
@@ -315,7 +315,7 @@ FIELDS_SCHEME = ('id', 'order', 'cat', 'code', 'cycle', 'excludeweekend', 'exclu
 
 FIELDS_TEAM = ('id', 'scheme', 'code')
 
-FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'wagefactor')
+FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'timeduration', 'wagefactor')
 
 FIELDS_SCHEMEITEM = ('pk', 'id', 'scheme', 'shift', 'team',
                      'rosterdate', 'iscyclestart', 'timestart', 'timeend',

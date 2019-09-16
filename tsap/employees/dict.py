@@ -173,8 +173,8 @@ def create_employee_dict(instance, item_dict):
 
 def create_teammember_list(table_dict, company):
     # --- create list of all teammembers of this order PR2019-08-29
-    logger.debug(' ----- create_teammember_list  -----  ')
-    logger.debug('table_dict' + str(table_dict) )
+    # logger.debug(' ----- create_teammember_list  -----  ')
+    # logger.debug('table_dict' + str(table_dict) )
     # teammember: {order_pk: null datefirst: null datelast: null}
 
     cat = table_dict.get('cat')
@@ -244,7 +244,6 @@ def create_teammember_list(table_dict, company):
         maxdate_scheme_employee = f.date_earliest_of_two(scheme_datelast, employee_datelast)
 
         maxdate = f.date_earliest_of_two(maxdate_scheme_employee, teammember_datelast)
-
 
         for field in field_list:
             field_dict = {}

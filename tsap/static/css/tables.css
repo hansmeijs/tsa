@@ -59,9 +59,8 @@
 
     /*background-color: #808080; /* #e0e0e0; /* licht grijs; */
     /*background: #ffd01c; /* tsa yellow */
-    /*background: #fdf7e1; /* more lighter shade of tsa yellow */
-    background: #fbedba; /* lighter shade of tsa yellow */
-
+    /*background: #fbedba; /* tsa_bc_yellow_light lighter shade of tsa yellow */
+    background: #fdf7e1; /* tsa_bc_yellow_lightlight more lighter shade of tsa yellow */
 
     color: #868e96;
     z-index: 99;
@@ -99,8 +98,8 @@
 
     /*background-color: #808080; /* #e0e0e0; /* licht grijs; */
     /*background: #ffd01c; /* tsa yellow */
-    /*background: #fdf7e1; /* more lighter shade of tsa yellow */
-    background: #fbedba; /* lighter shade of tsa yellow */
+    /*background: #fbedba; /* tsa_bc_yellow_light lighter shade of tsa yellow */
+    background: #fdf7e1; /* tsa_bc_yellow_lightlight more lighter shade of tsa yellow */
 }
 .pop_tbl td {
     /* padding: <top><right><bottom><left> */
@@ -114,9 +113,9 @@
 .pop_background {
     /*border: 1px solid  #4cbd67;  /*  #28a745; is green like in django is-valid */
     /*border-radius: .25rem; */
-    background: #ffd01c; /* tsa yellow */
-    background: #fdf7e1; /* more lighter shade of tsa yellow */
-    /*background: #fbedba; /* lighter shade of tsa yellow */
+    /*background: #ffd01c; /* tsa yellow */
+    /*background: #fdf7e1; /* more lighter shade of tsa yellow */
+    background: #fbedba; /* lighter shade of tsa yellow */
 }
 
 .tsa_btn_selected  {
@@ -173,7 +172,6 @@
     line-height: normal;
 }
 
-
 .image_container {
   display: flex;
   justify-content: center;
@@ -206,7 +204,9 @@
 .td_width_110 {
     width: 100px;
 }
-.td_width_090 {width: 90px;}
+.td_width_090 {
+    width: 90px;
+    }
 .td_width_hours {
     padding: 2px;
     width: 60px;

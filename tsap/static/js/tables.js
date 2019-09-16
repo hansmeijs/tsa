@@ -325,12 +325,13 @@
 
 //========= function get_subdict_value_by_key  ================= PR2019-05-24
     function get_subdict_value_by_key (dict, key, subkey, default_value) {
-        let value;
+        let value = null;
         let subdict = get_dict_value_by_key (dict, key)
         if (!!subdict){
             value = get_dict_value_by_key (subdict, subkey)
         }
-        if (!value && !!default_value){
+        // (value == null) equals to (value === undefined || value === null)
+        if (value == null && default_value != null) {
             value = default_value
         }
         return value
@@ -339,17 +340,16 @@
 //========= function get_dict_value_by_key  ====================================
     function get_dict_value_by_key (dict, key, default_value) {
         // Function returns value of key in obj PR2019-02-19 PR2019-04-27 PR2019-06-12
-        let value;
+        let value = null;
         if (!!key && !isEmpty(dict) ){
             // or: if (key in dict) { value = dict[key];}
             if (dict.hasOwnProperty(key)) {
                 value = dict[key];
             }
         }
-        if (value === undefined || value === null) {
-            if (default_value !== undefined && default_value !== null) {
-                value = default_value
-            }
+        // (value == null) equals to (value === undefined || value === null)
+        if (value == null && default_value != null) {
+            value = default_value
         }
         return value;
     }
@@ -369,24 +369,6 @@
         }
         return offset_dict;
     }
-
-//=========  get_dhm_dict  ====================================
-    function get_dhm_dict (dhm_str) {
-        // Function returns dict with offset days PR2019-05-03
-        // offset_str "-1:ma,0:di,1:wo"
-        // offset_dict:  {0: "di", 1: "wo", -1: "ma"}
-        let dhm_dict = {};
-        if (!!dhm_str){
-            let dhm_arr = dhm_str.split(";")
-            if(!!dhm_arr){
-                dhm_dict["offset"] = dhm_arr[0]
-                dhm_dict["hours"] = dhm_arr[1]
-                dhm_dict["minutes"] = dhm_arr[2]
-            }
-        }
-        return dhm_dict;
-    }
-
 
 // +++++++++++++++++ FORMAT ++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -526,6 +508,38 @@
 
         return time_formatted
     }
+
+//========= format_offset_time  ========== PR2019-09-14
+    function format_offset_time(datetime_local, timeformat, user_lang, display24) {
+        //  when display24 = true: zo 00.00 u is dispalyed as 'za 24.00 u'
+
+        "use strict";
+        let time_formatted;
+
+        const isAmPm = (timeformat === "AmPm")
+        const isEN = (user_lang === "en")
+
+        let hour_str = "", ampm_str = "", delim = "";
+        const minute_str = datetime_local.format("mm")
+
+        if(isAmPm){
+            hour_str =  datetime_local.format("hh")
+            ampm_str = " " + datetime_local.format("a")
+            delim = ":"
+        } else {
+            if (datetime_local.hour() === 0 && display24) {
+                hour_str = "24"
+            } else {
+                hour_str =  datetime_local.format("HH")
+            }
+            delim = "."
+            if(!isEN){ ampm_str = " u"}
+        }
+
+        time_formatted = hour_str + delim + minute_str + ampm_str
+
+        return time_formatted
+    }  // format_offset_time
 
 //========= GetRosterdateLocal  ====================================
 //moved from timepicker
@@ -896,24 +910,26 @@
     }  // function format_datetime_element
 
 //========= format_offset_element  ======== PR2019-09-08
-    function format_offset_element (el_input, el_msg, fieldname, field_dict, offset, timeformat, user_lang, title_prev, title_next) {
+    function format_offset_element (el_input, el_msg, fieldname, field_dict, offset, timeformat, user_lang, title_prev, title_next, blank_when_zero) {
         // offsetstart: {value: 0, minoffset: -720, maxoffset: 1440}
 
         if(!!el_input){
-            let value = 0, display_text, title ;
+            let value = null, display_text, title;
             if(!!field_dict){
-                console.log("------ format_offset_element --------------", fieldname)
+                //console.log("------ format_offset_element --------------", fieldname)
                 //console.log("el_input: ", el_input)
-                console.log("field_dict: ", field_dict)
+                //console.log("field_dict: ", field_dict)
 
-                // value:  "270" = 04:30
-                value = get_dict_value_by_key (field_dict, "value", 0); // value = datetime_utc_iso
+                // value:  "270" = 04:30, value can be null
+                value = get_dict_value_by_key(field_dict, "value");
+                //console.log("value: ", value)
+
                 const updated = get_dict_value_by_key (field_dict, "updated");
                 const msg_err = get_dict_value_by_key (field_dict, "error");
+                // (variable == null) will catch null and undefined simultaneously. Equal to (variable === undefined || variable === null)
+                let hide_value = (value == null) || (blank_when_zero && value === 0);
 
-                let datetime_local, rosterdate, datetime_date, rosterdate_date;
-
-                if (!!value){
+                if (!hide_value){
                     let days_offset = Math.floor(value/1440)  // - 90 (1.5 h)
                     const remainder = value - days_offset * 1440
                     let curHours = Math.floor(remainder/60)
@@ -921,13 +937,22 @@
 
                     const isAmPm = (timeformat === "AmPm");
                     const isEN = (user_lang === "en")
+                    const ampm_list = [" am", " pm"]
+                    let curAmPm = (curHours >= 12) ? 1 : 0
+
+
 
                     //check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
-                    if(!isAmPm && fieldname === "offsetend"){
+                    if(!!isAmPm) {  // } && fieldname === "offsetend"){
+                        if (curHours >= 12){
+                            curHours -= 12;
+                        }
+                    } else {
                         if (days_offset === 1 && curHours === 0 && curMinutes === 0){
                             days_offset = 0
                             curHours = 24;
-                    }}
+                        }
+                    }
 
                     const hour_str = "00" + curHours.toString()
                     let hour_text = hour_str.slice(-2);
@@ -973,8 +998,11 @@
             } else {
                 el_input.removeAttribute("title");
             }
-            el_input.setAttribute("data-value", value);
-            el_input.setAttribute("data-o_value", value);
+            if(!!value || value === 0){
+                el_input.setAttribute("data-value", value);
+            } else {
+                el_input.removeAttribute("data-value");
+            }
 
             // put values in element
             let minoffset = get_dict_value_by_key (field_dict, "minoffset");
@@ -1000,11 +1028,13 @@
             if(!!field_dict){
                 value_int = parseInt(get_dict_value_by_key (field_dict, "value"));
                 if (!value_int) {value_int = 0}
+        //console.log("value_int: ", value_int)
 
                 let updated = get_dict_value_by_key (field_dict, "updated");
                 let msg_err = get_dict_value_by_key (field_dict, "error");
 
                 const display_value = display_duration (value_int, user_lang)
+        //console.log("display_value: ", display_value)
                 el_input.value = display_value;
 
                 if(!!msg_err){
@@ -1335,7 +1365,9 @@
             el_msg.setAttribute("style", msgAttr)
 
             setTimeout(function (){
-                    // el_input.parentNode.classList.remove("tsa_tr_error");
+                    let tblRow = get_tablerow_clicked(el_input);
+                    if(!!tblRow){tblRow.classList.remove("tsa_tr_error")};
+
                     if (set_value){
                         if(!!display_value){el_input.value = display_value} else {el_input.value = null}
                         if(!!display_title){el_input.title = display_title} else {el_input.title = ""}

@@ -65,6 +65,7 @@
         if (is_offset){
             offset_int = get_attr_from_el_int(el_input, "data-value");
             el_timepicker.setAttribute("data-offset", offset_int)
+                console.log("setAttribute offset_int ", offset_int, typeof offset_int);
 
             const minOffset = get_attr_from_el_int(el_input, "data-minoffset");
             el_timepicker.setAttribute("data-minoffset", get_attr_from_el_int(el_input, "data-minoffset"))
@@ -134,7 +135,7 @@
     }; // function OpenTimepicker
 
 //========= CreateTimepickerDate  ====================================
-    function CreateTimepickerDate(el_data, UpdateTableRow, data_datetime, data_rosterdate,
+    function XXXCreateTimepickerDate(el_data, UpdateTableRow, data_datetime, data_rosterdate,
                                     is_offset, offset_int, comp_timezone, cls_hover) {
          console.log( "--- CreateTimepickerDate  ", is_offset, offset_int );
         // display cur_datetime_local in header of el_timepicker
@@ -389,6 +390,7 @@
             let within_range = true;
             if (within_range){
                 el_timepicker.setAttribute("data-offset", new_offset);
+                console.log("setAttribute new_offset ", new_offset, typeof new_offset);
 
         // display new date in el_timepicker
                 let date_str;
@@ -476,6 +478,7 @@
                 let within_range = true;
                 if (within_range){
                     el_timepicker.setAttribute("data-offset", new_offset);
+                console.log("setAttribute new_offset ", new_offset, typeof new_offset);
 
                 }
 
@@ -582,6 +585,7 @@
                 //let within_range = true;
                 //if (within_range){
                     el_timepicker.setAttribute("data-offset", newOffset);
+                console.log("setAttribute newOffset ", newOffset, typeof newOffset);
 
                     const new_dict = OffsetDict(newOffset, minOffset, maxOffset);
 
@@ -692,6 +696,7 @@
                 //let within_range = true;
                 //if (within_range){
                 el_timepicker.setAttribute("data-offset", newOffset);
+                console.log("setAttribute newOffset ", newOffset, typeof newOffset);
 
                 const minHours = 0, maxHours = 24, minMinutes = 0, maxMinutes = 60;
                 HighlightAndDisableMinutes(el_timepicker, newMinutes, minMinutes, maxMinutes,

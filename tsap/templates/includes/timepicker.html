@@ -28,6 +28,11 @@
                 <label id="id_timepicker_quicksave" class="px-1 py-1"><i>{% trans 'Quick save' %}</i></label>
             </div>
             <div class="content_subheader_right mr-1 mb-1">
+                <button id="id_timepicker_delete" type="button" class="timepicker_close" title="{% trans 'Delete' %}">
+                    <img id="id_img_filter_inactive" src="{% static 'img/delete.gif' %}" height="16" width="16">
+                </button>
+            </div>
+            <div class="content_subheader_right mr-1 mb-1">
                 <button id="id_timepicker_save" type="button" class="timepicker_close">{% trans 'Save' %}</button>
             </div>
         </div>
