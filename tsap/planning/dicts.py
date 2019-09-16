@@ -988,9 +988,10 @@ def create_emplhour_list(company, comp_timezone,
     #logger.debug('sql elapsed time  is :')
     #logger.debug(timer() - starttime)
 
+
     # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
-    #                    'timestart', 'timeend', 'timeduration', 'breakduration',
-    #                    'wagerate', 'wagefactor', 'wage', 'status')
+    #                         'timestart', 'timeend', 'timeduration', 'breakduration',
+    #                         'wagerate', 'wagefactor', 'wage', 'status')
     field_tuple = c.FIELDS_EMPLHOUR
 
     emplhour_list = []
@@ -1015,11 +1016,11 @@ def create_emplhour_list(company, comp_timezone,
 
 # 2. lock date when confirmed, field is already locked when locked = True
             if locked:
-                item_dict[field]['locked'] = True
+                field_dict['locked'] = True
             else:
                 status_check = c.STATUS_02_START_CONFIRMED if field == 'timestart' else c.STATUS_04_END_CONFIRMED
                 if status_found_in_statussum(status_check, status_value):
-                    item_dict[field]['locked'] = True
+                    field_dict['locked'] = True
 
 # 3. create pk, ppk, table keys
             if field == 'id':
