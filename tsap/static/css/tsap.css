@@ -138,7 +138,8 @@ h4 h5 {
 .border_bg_invalid {
     border: 1px solid #dc3545;    /*  red like in django is-invalid */
     border-radius: .25rem;
-    background-color: #f1b5b5;
+    /*background-color: #f1b5b5;*/
+    background: #ffe8e8; /* licht lichtrood; */
 }
 .border_invalid {
     border: 1px solid #dc3545;    /*  red like in django is-invalid */
@@ -153,6 +154,13 @@ h4 h5 {
     border-radius: .25rem;
     background-color: #d7f4de; /*#ade8bb;*/
 }
+
+.border_scheme {
+    border: 1px solid #808080; /* Dark grey; */
+    border-radius: .25rem;
+    background-color: #fdf7e1; /* more lighter shade of tsa yellow */
+}
+
 
 .display_show {
   display: block;
@@ -307,8 +315,6 @@ h4 h5 {
 .tsa_bc_mediumred {
     background: #ffacac; /* 255-172-172  medium rood; */
 }
-
-
 
 /*==================================================*/
 /* https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_popup */

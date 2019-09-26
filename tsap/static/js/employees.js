@@ -942,7 +942,7 @@ $(function() {
     function UploadChanges(el_input) {
         console.log("--- UploadChanges  --------------");
         console.log("el_input", el_input);
-        let tr_changed = get_tablerow_clicked(el_input)
+        let tr_changed = get_tablerow_selected(el_input)
         //console.log("tr_changed: ", tr_changed);
 
         if (!!tr_changed){
@@ -1065,7 +1065,7 @@ $(function() {
                     item_dict = response["item_update"]
                     if (!!item_dict) {
                         console.log( ">>>>>>>> item_dict =", item_dict);
-                        const pk_int = get_pk_from_id (item_dict)
+                        const pk_int = get_pk_from_dict (item_dict)
                         const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
                         const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
                         const employee_pk = get_subdict_value_by_key (item_dict, "employee", "pk", 0)
@@ -1084,7 +1084,7 @@ $(function() {
 // add new empty row
                             id_new = id_new + 1
                             const pk_new = "new_" + id_new.toString()
-                            const parent_pk = get_ppk_from_id (item_dict)
+                            const parent_pk = get_ppk_from_dict (item_dict)
 
                             let new_dict = {}
                             new_dict["id"] = {"pk": pk_new, "ppk": 0, "temp_pk": pk_new, "cat": 512, "mode": "absence", "table": "teammember"}
@@ -1164,8 +1164,8 @@ $(function() {
 
         if (!!update_dict) {
 // get id_new and id_pk from update_dict["id"]
-            const pk = get_pk_from_id(update_dict);
-            const parent_pk = get_ppk_from_id(update_dict);
+            const pk = get_pk_from_dict(update_dict);
+            const parent_pk = get_ppk_from_dict(update_dict);
             //console.log("pk: ", pk, "parent_pk: ", parent_pk);
 
             let id_dict = get_dict_value_by_key (update_dict, "id")
@@ -1222,8 +1222,8 @@ $(function() {
 // --- loop through option list
         for (let i = 0, len = option_list.length; i < len; i++) {
             let dict = option_list[i];
-            let pk = get_pk_from_id(dict);
-            let ppk_in_dict = get_ppk_from_id(dict)
+            let pk = get_pk_from_dict(dict);
+            let ppk_in_dict = get_ppk_from_dict(dict)
 
 // skip if parent_pk exists and does not match ppk_in_dict
             let addrow = false;
@@ -1325,8 +1325,8 @@ $(function() {
 // --- loop through option list
         for (let i = 0, len = option_list.length; i < len; i++) {
             let dict = option_list[i];
-            pk = get_pk_from_id(dict);
-            ppk_in_dict = get_ppk_from_id(dict)
+            pk = get_pk_from_dict(dict);
+            ppk_in_dict = get_ppk_from_dict(dict)
 
 // skip if parent_pk exists and does not match ppk_in_dict
             if (!!parent_pk && ppk_in_dict === parent_pk) {
@@ -1360,8 +1360,8 @@ $(function() {
             let item_dict = item_list[i];
             // item_dict = {id: {pk: 12, parent_pk: 2}, code: {value: "13 uur"},  cycle: {value: 13}}
             // team_list dict: {pk: 21, id: {pk: 21, parent_pk: 20}, code: {value: "C"}}
-            const pk = get_pk_from_id (item_dict)
-            const parent_pk = get_ppk_from_id (item_dict)
+            const pk = get_pk_from_dict (item_dict)
+            const parent_pk = get_ppk_from_dict (item_dict)
             const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
             const workhoursperday = get_subdict_value_by_key(item_dict, "workhoursperday", "value", 0)
 
@@ -1586,7 +1586,7 @@ $(function() {
 //--- loop through employee_list
             for (let i = 0; i < len; i++) {
                 const item_dict = employee_list[i];
-                const pk_int = get_pk_from_id (item_dict)
+                const pk_int = get_pk_from_dict (item_dict)
 
 //- skip selected employee
                 if (pk_int !== selected_employee_pk){
@@ -1594,7 +1594,7 @@ $(function() {
 //- insert tableBody row
                     let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
                     tblRow.id = pk_int.toString()
-                    tblRow.setAttribute("data-ppk", get_ppk_from_id (item_dict));
+                    tblRow.setAttribute("data-ppk", get_ppk_from_dict (item_dict));
 
 //- add hover to tableBody row
                     tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
@@ -1643,8 +1643,8 @@ $(function() {
                 let item_dict = item_list[i];
                 // item_dict = {id: {pk: 12, parent_pk: 2}, code: {value: "13 uur"},  cycle: {value: 13}}
                 // team_list dict: {pk: 21, id: {pk: 21, parent_pk: 20}, code: {value: "C"}}
-                const pk = get_pk_from_id (item_dict)
-                const parent_pk = get_ppk_from_id (item_dict)
+                const pk = get_pk_from_dict (item_dict)
+                const parent_pk = get_ppk_from_dict (item_dict)
                 const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
                 // console.log( "pk: ", pk, " parent_pk: ", parent_pk, " code_value: ", code_value);
 
@@ -2087,7 +2087,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
         }
     }; // function FilterRows
 
-
+//##################################################################################
 //========= HandlePopupDateOpen  ====================================
     function HandlePopupDateOpen(el_input) {
         console.log("===  HandlePopupDateOpen  =====") ;
@@ -2291,7 +2291,7 @@ function validate_input_blank(el_input, el_err, msg_blank){
         if (el_key === 27) {
             filter_dict = {}
 
-            let tblRow = get_tablerow_clicked(el);
+            let tblRow = get_tablerow_selected(el);
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 let el = tblRow.cells[i].children[0];
                 if(!!el){

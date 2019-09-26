@@ -19,6 +19,7 @@ def create_customer_list(company, inactive=None, cat=None, cat_lt=None):
         crit.add(Q(cat=cat), crit.connector)
     elif cat_lt is not None:
         crit.add(Q(cat__lt=cat_lt), crit.connector)
+
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
     # logger.debug('cat: ' + str(cat) + ' cat_lt: ' + str(cat_lt) + ' inactive: ' + str(inactive))
@@ -30,6 +31,7 @@ def create_customer_list(company, inactive=None, cat=None, cat_lt=None):
 
     # FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier', 'email', 'telephone', 'interval', 'inactive')
     field_list = c.FIELDS_CUSTOMER
+    table = 'customer'
     customer_list = []
     for row_dict in customers:
         item_dict = {}
@@ -38,7 +40,6 @@ def create_customer_list(company, inactive=None, cat=None, cat_lt=None):
         ppk_int = row_dict.get('company_id', 0)
         item_dict['pk'] = pk_int
         item_dict['ppk'] = ppk_int
-        item_dict['table'] = 'customer'
 
         for field in field_list:
             field_dict = {}
@@ -46,22 +47,26 @@ def create_customer_list(company, inactive=None, cat=None, cat_lt=None):
                 if field == 'id':
                     field_dict = {'pk': pk_int}
                     field_dict['ppk'] = ppk_int
-                    item_dict[field] = field_dict
+                    field_dict['table'] = table
+                    field_dict['cat'] = row_dict.get('cat', 0)
 
-                elif field in ('cat', 'interval'):
-                    field_dict['value'] = row_dict.get(field, 0)
-
-                elif field == 'company':
+                elif field in ['company', 'cat']:
                     pass
+
+                elif field == 'interval':
+                    field_dict['value'] = row_dict.get(field, 0)
 
                 else:  # ('code', 'name', 'identifier', 'email', 'telephone', 'inactive')
                     value = row_dict.get(field)
                     if value:
-                        item_dict[field] = {'value': value}
+                        field_dict['value'] = value
 
-        # logger.debug('item_dict: ' + str(item_dict))
+                if field_dict:
+                    item_dict[field] = field_dict
 
-        customer_list.append(item_dict)
+        if item_dict:
+            customer_list.append(item_dict)
+
     return customer_list
 
 def create_customer_dict(instance, item_dict):
@@ -94,9 +99,10 @@ def create_customer_dict(instance, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_order_list(company, inactive=None, cat=None, cat_lt=None, rangemin=None, rangemax=None):
-# --- create list of all active orders of this company PR2019-06-16
+def create_order_list(company, inactive=None, cat=None, cat_lt=None):
     # logger.debug(' --- create_order_list --- ')
+
+# --- create list of orders of this company PR2019-06-16
     crit = Q(customer__company=company)
     if cat is not None:
         crit.add(Q(customer__cat=cat), crit.connector)
@@ -105,32 +111,81 @@ def create_order_list(company, inactive=None, cat=None, cat_lt=None, rangemin=No
 
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
-    if rangemax is not None:
-        crit.add(Q(datefirst__lte=rangemax) | Q(datefirst__isnull=True), crit.connector)
-    if rangemin is not None:
-        crit.add(Q(datelast__gte=rangemin) | Q(datelast__isnull=True), crit.connector)
 
-    orders = None
     if cat == c.SHIFT_CAT_0512_ABSENCE:
-        orders = m.Order.objects.filter(crit).order_by('sequence')
+        orders = m.Order.objects\
+            .filter(crit)\
+            .values('id', 'customer_id', 'cat', 'code', 'name', 'datefirst', 'datelast', 'sequence', 'identifier',
+                    'rate', 'taxcode', 'locked', 'inactive')\
+            .order_by('sequence')\
+            .iterator()
     else:
-        orders = m.Order.objects.filter(crit).order_by('customer__code', 'code')  # field 'taxrate' is used to store sequence
-
+        orders = m.Order.objects\
+            .filter(crit)\
+            .values('id', 'customer_id', 'cat', 'code', 'name', 'datefirst', 'datelast', 'sequence', 'identifier',
+                    'rate', 'taxcode', 'locked', 'inactive')\
+            .order_by('customer__code', 'code')\
+            .iterator()
     # logger.debug(orders.query)
 
+    # FIELDS_ORDER = ('id', 'customer', 'cat', 'code', 'name', 'identifier', 'datefirst', 'datelast',
+    #                  'sequence', 'rate', 'taxcode', 'ishourlybasis', 'interval', 'locked', 'inactive')
+    field_list = c.FIELDS_ORDER
+    table = 'order'
     order_list = []
-    for order in orders:
+    for row_dict in orders:
         item_dict = {}
-        create_order_dict(order, item_dict)
-        # logger.debug(' item_dict ' + str(item_dict))
-        order_list.append(item_dict)
+
+        pk_int = row_dict.get('id', 0)
+        ppk_int = row_dict.get('customer_id', 0)
+        item_dict['pk'] = pk_int
+        item_dict['ppk'] = ppk_int
+
+        mindate = row_dict.get('datefirst')
+        maxdate = row_dict.get('datelast')
+
+        for field in field_list:
+            if field in row_dict:
+                field_dict = {}
+                if field == 'id':
+                    field_dict = {'pk': pk_int}
+                    field_dict['ppk'] = ppk_int
+                    field_dict['table'] = table
+                    field_dict['cat'] = row_dict.get('cat', 0)
+
+                elif field in ['customer', 'cat']:
+                    pass
+
+                # also add date when empty, to add min max date
+                elif field in ['datefirst', 'datelast']:
+                    if mindate or maxdate:
+                        if field == 'datefirst':
+                            f.set_fielddict_date(field_dict=field_dict, date_value=mindate, maxdate=maxdate)
+                        elif field == 'datelast':
+                            f.set_fielddict_date(field_dict=field_dict, date_value=maxdate, mindate=mindate)
+
+                else: # ('code', 'name', 'identifier', 'sequence', 'rate', 'taxcode',  'locked', 'inactive')
+                    value = row_dict.get(field)
+                    if value:
+                        field_dict['value'] = value
+
+                if field_dict:
+                    item_dict[field] = field_dict
+
+        if item_dict:
+            order_list.append(item_dict)
+
     return order_list
+
 
 def create_order_dict(order, item_dict):
     # --- create dict of this order PR2019-07-26
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    field_tuple = ('pk', 'id', 'customer', 'code', 'name', 'identifier',
-                  'datefirst', 'datelast', 'inactive', 'customer')
+
+    # FIELDS_ORDER = ('id', 'customer', 'cat', 'code', 'name', 'identifier', 'datefirst', 'datelast',
+    #                 'sequence', 'rate', 'taxcode', 'ishourlybasis', 'interval', 'locked', 'inactive')
+
+    field_tuple = c.FIELDS_ORDER
     table = 'order'
     if order:
         for field in field_tuple:
@@ -146,6 +201,8 @@ def create_order_dict(order, item_dict):
             elif field == 'id':
                 field_dict['pk'] = order.pk
                 field_dict['ppk'] = order.customer.pk
+                field_dict['cat'] = getattr(order, 'cat')
+
                 field_dict['table'] = table
 # 4. create field_dict 'customer'
             elif field == 'customer':

@@ -209,7 +209,7 @@
 
 // get curOffset from el_timepicker
         const fieldname = get_attr_from_el(el_timepicker, "data-field");
-        let curOffset = get_attr_from_el_int(el_timepicker, "data-value");
+        let curOffset = get_attr_from_el_int(el_timepicker, "data-offset");
         const minOffset = get_attr_from_el_int(el_timepicker, "data-minoffset");
         const maxOffset = get_attr_from_el_int(el_timepicker, "data-maxoffset");
         console.log("curOffset ", curOffset, typeof curOffset);
@@ -234,8 +234,8 @@
         console.log( "newDay", newDay);
         console.log( "newOffset", newOffset);
 
-// put new offset back in el_timepicker data-value
-        el_timepicker.setAttribute("data-value", newOffset);
+// put new offset back in el_timepicker data-offset
+        el_timepicker.setAttribute("data-offset", newOffset);
         console.log("setAttribute newOffset ", newOffset, typeof newOffset);
 
 // update header in Timepicker
@@ -258,18 +258,18 @@
             const new_ampm = get_attr_from_el_int(td, "data-ampm");
             if (is_offset){
             // set new hour in new_datetime_local
-                const cur_offset = get_attr_from_el(el_timepicker, "data-value");
+                const cur_offset = get_attr_from_el(el_timepicker, "data-offset");
 
                 // arr = [curDay, curRemainder, curHours, curMinutes, curDayHours]
 
                 const arr = cur_offset.split(";")
                 let newoffset = arr[0] + ";" + arr[1] + ";" + new_minutes.toString()
 
-        // put new offset back in el_timepicker data-value
+        // put new offset back in el_timepicker data-offset
                 // TODO
                 let within_range = true;
                 if (within_range){
-                    el_timepicker.setAttribute("data-value", newoffset);
+                    el_timepicker.setAttribute("data-offset", newoffset);
                     console.log("setAttribute newOffset ", newOffset, typeof newOffset);
                 }
 
@@ -340,7 +340,7 @@
 
     // get curOffset from el_timepicker
             const fieldname = el_timepicker.getAttribute("data-field")
-            const curOffset = el_timepicker.getAttribute("data-value")
+            const curOffset = el_timepicker.getAttribute("data-offset")
             const minOffset = el_timepicker.getAttribute("data-minoffset")
             const maxOffset = el_timepicker.getAttribute("data-maxoffset")
             console.log("fieldname", fieldname)
@@ -359,7 +359,7 @@
             if (newOffset > maxOffset) {newOffset = maxOffset}
             if (newOffset < minOffset) {newOffset = minOffset}
 
-            el_timepicker.setAttribute("data-value", newOffset);
+            el_timepicker.setAttribute("data-offset", newOffset);
             console.log("setAttribute newOffset ", newOffset, typeof newOffset);
 
         // save when in quicksave mode
@@ -381,7 +381,7 @@
 
     // get curOffset from el_timepicker
             const fieldname = el_timepicker.getAttribute("data-field")
-            const curOffset = el_timepicker.getAttribute("data-value")
+            const curOffset = el_timepicker.getAttribute("data-offset")
             const minOffset = el_timepicker.getAttribute("data-minoffset")
             const maxOffset = el_timepicker.getAttribute("data-maxoffset")
 
@@ -394,7 +394,7 @@
             if (newOffset > maxOffset) {newOffset = maxOffset}
             if (newOffset < minOffset) {newOffset = minOffset}
 
-            el_timepicker.setAttribute("data-value", newOffset);
+            el_timepicker.setAttribute("data-offset", newOffset);
             console.log("setAttribute newOffset ", newOffset, typeof newOffset);
             //console.log("newMinutes", newMinutes, "newOffset", newOffset)
             HighlightAndDisableHours(el_data, fieldname, newOffset, minOffset, maxOffset, timeformat);

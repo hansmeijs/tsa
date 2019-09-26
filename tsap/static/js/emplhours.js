@@ -151,7 +151,7 @@ $(function() {
         console.log( "el_changed: ", el_changed, typeof el_changed);
 
 // ---  get clicked tablerow
-        let tr_changed = get_tablerow_clicked(el_changed)
+        let tr_changed = get_tablerow_selected(el_changed)
         if(!!tr_changed) {
             console.log( "tr_changed: ", tr_changed, typeof tr_changed);
             if(tr_changed.hasAttribute("id")){
@@ -404,7 +404,7 @@ console.log("=========  function HandleCreateRecord =========");
         console.log("+++--------- UploadChanges  --------------");
 
        // ---  get clicked tablerow
-        let tr_changed = get_tablerow_clicked(el_changed)
+        let tr_changed = get_tablerow_selected(el_changed)
         UploadTblrowChanged(tr_changed);
     }
 //========= UploadTblrowChanged  ============= PR2019-03-03

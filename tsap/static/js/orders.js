@@ -1,10 +1,16 @@
 // PR2019-02-07 deprecated: $(document).ready(function() {
-$(function() {
+// with pure vanilla Javascript. Was jQuery: $(function() {
+document.addEventListener('DOMContentLoaded', function() {
         "use strict";
+
+        console.log("Orders document.ready");
 
         const cls_active = "active";
         const cls_hover = "tr_hover";
         const cls_hide = "display_hide";
+
+        const cls_bc_lightlightgrey = "tsa_bc_lightlightgrey";
+
         const col_inactive = 4;
         const col_count = 5;
 
@@ -23,8 +29,8 @@ $(function() {
         let filter_orders = "";
         let filter_inactive_included = false;
 
-        let customer_list = [];
-        let order_list = [];
+        let customer_dict = {};
+        let order_dict = {};
 
         let tblBody_select_customers = document.getElementById("id_tbody_select")
         let tblBody_items = document.getElementById("id_tbody_items");
@@ -80,13 +86,13 @@ $(function() {
 // ---  add 'keyup' event handler to filter orders and customers
         document.getElementById("id_filter_orders").addEventListener("keyup", function() {
             setTimeout(function() {HandleFilterOrders();}, 25)});
-        document.getElementById("id_filter_customers").addEventListener("keyup", function() {
+        document.getElementById("id_flt_select").addEventListener("keyup", function() {
             setTimeout(function() {HandleFilterCustomers();}, 25)});
 
 
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
-        customer_list = get_attr_from_el(el_data, "data-customer_list");
+        customer_dict = get_attr_from_el(el_data, "data-customer_list");
 
         const url_order_upload = get_attr_from_el(el_data, "data-order_upload_url");
         const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
@@ -123,8 +129,8 @@ $(function() {
 // reset requested lists
         for (let key in datalist_request) {
             // check if the property/key is defined in the object itself, not in parent
-            if (key === "customer") {customer_list = []};
-            if (key === "order") {order_list = []};
+            if (key === "customer") {customer_dict = {}};
+            if (key === "order") {order_dict = {}};
         }
         let param = {"datalist_download": JSON.stringify (datalist_request)};
         let response = "";
@@ -134,15 +140,15 @@ $(function() {
             data: param,
             dataType: 'json',
             success: function (response) {
-                //console.log("response")
-                //console.log(response)
+                console.log("response")
+                console.log(response)
 
-                if ("customer" in response) {customer_list= response["customer"]}
+                if ("customer" in response) {customer_dict= response["customer"]}
                 let txt_select = get_attr_from_el(el_data, "data-txt_select_customer");
                 let txt_select_none = get_attr_from_el(el_data, "data-txt_select_customer_none");
-                FillSelectTable("customer", tblBody_select_customers, customer_list)
+                FillSelectTable("customer", tblBody_select_customers, customer_dict)
 
-                if ("order" in response) {order_list= response["order"]}
+                if ("order" in response) {order_dict= response["order"]}
 
             },
             error: function (xhr, msg) {
@@ -161,8 +167,8 @@ $(function() {
         for (let row_index = 0, tblRow, hide_row, len = data_list.length; row_index < len; row_index++) {
 
             let dict = data_list[row_index];
-            let pk = get_pk_from_id (dict)
-            let parent_pk = get_ppk_from_id (dict)
+            let pk = get_pk_from_dict (dict)
+            let parent_pk = get_ppk_from_dict (dict)
             let code = get_subdict_value_by_key (dict, "code", "value", "")
 
             let skip = (!!scheme_pk && scheme_pk !== parent_pk)
@@ -180,8 +186,43 @@ $(function() {
         }
     }; // function FillDatalist
 
+//========= FillSelectTable  ============= PR2019-09-22
+    function FillSelectTable() {
+        let tblBody_select = document.getElementById("id_tbody_select")
+        tblBody_select.innerText = null;
+        let el_a;
+        const id_prefix = "sel_"
+//--- loop through customer_dict
+        for (let cust_key in customer_dict) {
+            if (customer_dict.hasOwnProperty(cust_key)) {
+                const pk_int = parseInt(cust_key);
+                const item_dict = customer_dict[cust_key];
+                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
+//--------- insert tableBody row
+                let tblRow = tblBody_select.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+                tblRow.setAttribute("id", id_prefix + cust_key);
+                tblRow.setAttribute("data-pk", pk_int);
+                tblRow.setAttribute("data-value", code_value);
+                tblRow.classList.add(cls_bc_lightlightgrey);
+//- add hover to select row
+                tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover)});
+                tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover)});
+
+//- add EventListener to tableBody row
+                tblRow.addEventListener("click", function() {HandleSelectCustomer(tblRow)}, false )
+
+// --- add first td to tblRow.
+                // index -1 results in that the new cell will be inserted at the last position.
+                let td = tblRow.insertCell(-1);
+                td.innerText = code_value;
+                td.classList.add("px-2")
+            }  // if (customer_dict.hasOwnProperty(cust_key)) {
+        }  // for (let cust_key in customer_dict) {
+    } // FillSelectTable
+
+
 //========= FillSelectTable  ============= PR2019-05-25
-    function FillSelectTable(tablename, tableBody, item_list) {
+    function FillSelectTablXXXe(tablename, tableBody, item_list) {
         //console.log( "=== FillSelectTable ");
 
         const caption_one = get_attr_from_el(el_data, "data-txt_select_customer") + ":";
@@ -204,8 +245,8 @@ $(function() {
                 let item_dict = item_list[i];
                 // item_dict = {id: {pk: 12, parent_pk: 2}, code: {value: "13 uur"},  cycle: {value: 13}}
                 // team_list dict: {pk: 21, id: {pk: 21, parent_pk: 20}, code: {value: "C"}}
-                const pk = get_pk_from_id (item_dict)
-                const parent_pk = get_ppk_from_id (item_dict)
+                const pk = get_pk_from_dict (item_dict)
+                const parent_pk = get_ppk_from_dict (item_dict)
                 const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
                 // console.log( "pk: ", pk, " parent_pk: ", parent_pk, " code_value: ", code_value);
 
@@ -249,7 +290,7 @@ $(function() {
 
 //=========  HandleSelectCustomer  ================ PR2019-05-24
     function HandleSelectCustomer(tblRow) {
-        //console.log( "===== HandleSelectCustomer ========= ");
+        console.log( "===== HandleSelectCustomer ========= ");
 
 // reset selected customer
         selected_customer_pk = 0
@@ -264,6 +305,11 @@ $(function() {
             selected_customer_pk = get_datapk_from_element (tblRow)
             const customer_code = get_attr_from_el_str(tblRow.cells[0].children[0], "data-value");
             const header_text = get_attr_from_el(el_data, "data-txt_orders_of_customer");
+
+            console.log( "selected_customer_pk ", selected_customer_pk);
+            console.log( "customer_code ", customer_code);
+            console.log( "header_text ", header_text);
+
 
 // ---  highlight clicked row
             tblRow.classList.add("tsa_tr_selected")
@@ -360,7 +406,7 @@ $(function() {
         el_changed.children[0].setAttribute("src", imgsrc);
 
         if (is_inactive_str === "true" && !filter_inactive_included) {
-            let tr_clicked = get_tablerow_clicked(el_changed);
+            let tr_clicked = get_tablerow_selected(el_changed);
             tr_clicked.classList.add(cls_hide)
         }
 
@@ -370,7 +416,7 @@ $(function() {
 
 //========= UploadChanges  ============= PR2019-03-03
     function UploadChanges(el_changed) {
-        let tr_changed = get_tablerow_clicked(el_changed)
+        let tr_changed = get_tablerow_selected(el_changed)
         UploadTblrowChanged(tr_changed);
     }
 
@@ -409,7 +455,7 @@ $(function() {
                         // add new empty row
                             id_new = id_new + 1
                             const pk_new = "new_" + id_new.toString()
-                            const parent_pk = get_ppk_from_id (item_dict)
+                            const parent_pk = get_ppk_from_dict (item_dict)
 
                             let new_dict = {}
                             new_dict["id"] = {"pk": pk_new, "ppk": parent_pk}
@@ -460,7 +506,7 @@ $(function() {
         //console.log( "===== HandleFilterCustomers  ========= ");
 
         // skip filter if filter value has not changed, update variable filter_customers
-        let new_filter = document.getElementById("id_filter_customers").value;
+        let new_filter = document.getElementById("id_flt_select").value;
         let skip_filter = false
         if (!new_filter){
             if (!filter_customers){
@@ -498,8 +544,8 @@ $(function() {
 // --- loop through option list
         for (let i = 0, len = option_list.length; i < len; i++) {
             let dict = option_list[i];
-            let pk = get_pk_from_id(dict);
-            let parent_pk_in_dict = get_ppk_from_id(dict)
+            let pk = get_pk_from_dict(dict);
+            let parent_pk_in_dict = get_ppk_from_dict(dict)
 
 // skip if parent_pk exists and does not match parent_pk_in_dict
             let addrow = false;
@@ -546,7 +592,7 @@ $(function() {
 
 // --- get  item_list and  selected_parent_pk
         let item_list, selected_parent_pk;
-        item_list = order_list;
+        item_list = order_dict;
         selected_parent_pk = selected_customer_pk
 
 // --- loop through item_list
@@ -555,8 +601,8 @@ $(function() {
         if (!!len && selected_parent_pk){
             for (let i = 0; i < len; i++) {
                 let dict = item_list[i];
-                let pk = get_pk_from_id (dict)
-                let parent_pk = get_ppk_from_id (dict)
+                let pk = get_pk_from_dict (dict)
+                let parent_pk = get_ppk_from_dict (dict)
 
 // --- add item if parent_pk = selected_parent_pk
                 if (!!parent_pk && parent_pk === selected_parent_pk){

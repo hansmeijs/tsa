@@ -188,9 +188,6 @@ class Order(TsaBaseModel):
 
     taxcode = ForeignKey(Taxcode, related_name='orders', on_delete=PROTECT, null=True, blank=True)
 
-    ishourlybasis = BooleanField(default=False)
-    interval = PositiveSmallIntegerField(default=0)
-
     class Meta:
         ordering = [Lower('code')]
 
@@ -488,8 +485,8 @@ class Schemeitem(TsaBaseModel):
         new_si_rosterdate_naive = None
 
         if new_rosterdate_dte:
-            si_rosterdate_naive = f.get_datetime_naive_from_date(self.rosterdate)
-            new_rosterdate_naive = f.get_datetime_naive_from_date(new_rosterdate_dte)
+            si_rosterdate_naive = f.get_datetime_naive_from_dateobject(self.rosterdate)
+            new_rosterdate_naive = f.get_datetime_naive_from_dateobject(new_rosterdate_dte)
             # logger.debug('si_rosterdate_naive: ' + str(si_rosterdate_naive) + ' ' + str(type(si_rosterdate_naive)))
             # logger.debug('new_rosterdate_naive: ' + str(new_rosterdate_naive) + ' ' + str(type(new_rosterdate_naive)))
 
@@ -586,6 +583,7 @@ class Emplhour(TsaBaseModel):
     wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
+    overlap = SmallIntegerField(default=0)  # stores if record has overlapping emplhour records: 1 overlap start, 2 overlap end, 3 full overlap
 
     class Meta:
         ordering = ['rosterdate', 'timestart']
@@ -870,6 +868,7 @@ def delete_instance(instance, update_dict, request, this_text=None):
     # function deletes instance of table,  PR2019-08-25
     delete_failed = False
     if instance:
+        update_dict['id']['pk'] = instance.pk
         try:
             instance.delete(request=request)
         except:

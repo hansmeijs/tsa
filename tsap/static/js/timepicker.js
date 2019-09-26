@@ -4,7 +4,7 @@
 
 //========= OpenTimepicker  ====================================
     function OpenTimepicker(el_input, el_timepicker, el_data, UpdateTableRow, url_str, comp_timezone, timeformat, interval, cls_hover, cls_highl) {
-        console.log("===  OpenTimepicker  =====") ;
+        //console.log("===  OpenTimepicker  =====") ;
 
 // get values from tr_selected and put them in el_timepicker
         let tr_selected = get_tablerow_selected(el_input)
@@ -135,7 +135,7 @@
     }; // function OpenTimepicker
 
 //========= CreateTimepickerDate  ====================================
-    function XXXCreateTimepickerDate(el_data, UpdateTableRow, data_datetime, data_rosterdate,
+    function CreateTimepickerDate(el_data, UpdateTableRow, data_datetime, data_rosterdate,
                                     is_offset, offset_int, comp_timezone, cls_hover) {
          console.log( "--- CreateTimepickerDate  ", is_offset, offset_int );
         // display cur_datetime_local in header of el_timepicker
@@ -687,7 +687,7 @@
                 const curDayOffset = Math.floor(curOffset/1440)  // - 90 (1.5 h)
                 const remainder = curOffset - curDayOffset * 1440
                 const curHours = Math.floor(remainder/60)
-                //const curMinutes = remainder - curHours * 60
+                const curMinutes = remainder - curHours * 60
 
                 const newOffset = curDayOffset * 1440 + curHours * 60 + newMinutes
 
@@ -719,7 +719,7 @@
         // set new minutes in datetime_local
                 let cur_datetime_local = dict["cur_datetime_local"];
                 let new_datetime_local = cur_datetime_local.clone()
-                new_datetime_local.minutes(new_minutes);
+                new_datetime_local.minutes(newMinutes);
                 const new_datetime_utc = new_datetime_local.utc()
                 const new_datetime_iso = new_datetime_utc.toISOString()
                 //console.log("new_datetime_iso", new_datetime_iso);
@@ -776,23 +776,15 @@
         const parent_pk =  parseInt(el_timepicker.getAttribute("data-ppk"))
         const field = el_timepicker.getAttribute("data-field")
         const table = el_timepicker.getAttribute("data-table")
-        const is_offset = ( el_timepicker.getAttribute("data-is_offset") === "true")
+
         const comp_timezone = get_attr_from_el(el_timepicker, "data-timezone");
         const timeformat = get_attr_from_el(el_timepicker, "data-timeformat");
         const cls_highl = get_attr_from_el(el_timepicker, "data-cls_highl");
         const cls_hover = get_attr_from_el(el_timepicker, "data-cls_hover");
-        //console.log ("field = ", field, "table = ", table)
-
-        console.log ("is_offset = ", is_offset, typeof is_offset)
-        //console.log (el_timepicker)
 
     // get values from el_timepicker
         let cur_rosterdate_iso;
-
-        let curOffset;
-        if(is_offset){
-            curOffset = get_attr_from_el_int(el_timepicker, "data-offset");
-        } else {
+        //const curOffset = get_attr_from_el_int(el_timepicker, "data-offset");
 
             cur_rosterdate_iso = get_attr_from_el(el_timepicker, "data-rosterdate");
             const cur_datetime_iso = get_attr_from_el(el_timepicker, "data-datetime");
@@ -803,12 +795,11 @@
             console.log ("min_datetime_iso = ", min_datetime_iso, typeof min_datetime_iso)
             console.log ("max_datetime_iso = ", max_datetime_iso, typeof max_datetime_iso)
 
-
             let dict = CalcMinMaxHoursMinutes(cur_rosterdate_iso ,cur_datetime_iso,
                                                 min_datetime_iso, max_datetime_iso,
                                               comp_timezone, timeformat);
 
-            curOffset = dict["curOffset"];
+            const curOffset = dict["curOffset"];
             console.log ("curOffset = ", curOffset)
 
         // check if datetime is within min max range
@@ -826,7 +817,6 @@
             //  TODO  console.log("not within_range: " + cur_datetime_local.format())
             }
 
-        }  //   if(is_offset)
 
         console.log ("pk_str:", pk_str, "parent_pk:", parent_pk)
         if(!!pk_str && !! parent_pk){
@@ -860,8 +850,8 @@
                     }
                 }
             }
-            const row_id = table + pk_str;
-            let tr_selected = document.getElementById(row_id)
+
+            let tr_selected = document.getElementById(pk_str)
 
             const url_str = get_attr_from_el(el_timepicker, "data-url_str");
 
@@ -871,6 +861,7 @@
             } else {
                 parameters[table] = JSON.stringify (row_upload);
             }
+            console.log ("url_str", url_str);
             console.log ("parameters", row_upload);
             let response;
             $.ajax({
@@ -881,11 +872,11 @@
                 success: function (response) {
                     console.log ("response", response);
                     if ("item_update" in response) {
-                        console.log("...... UpdateTableRow ..... item_update", table);
+                        // console.log("...... UpdateTableRow ..... item_update", table);
                         UpdateTableRow(table, tr_selected, response["item_update"])
                     }
                     if ("shift_update" in response) {
-                        console.log("==... UpdateTableRow .... shift_update", table);
+                        // console.log("==... UpdateTableRow .... shift_update", table);
                         UpdateTableRow(table, tr_selected, response["shift_update"])
                     }
                 },
@@ -1164,7 +1155,12 @@ function CalcMinMaxHoursMinutes(cur_rosterdate_iso, cur_datetime_iso,
             //console.log("curDate", curDate.format(), "curHours", curHours, "curMinutes", curMinutes)
 
             curdate_rosterdate_diff = curDate.diff(curRosterdate, "days");
-            curOffset = curdate_rosterdate_diff.toString() + ";" + curHours.toString() + ";" + curMinutes.toString()
+
+            //console.log("curdate_rosterdate_diff", curdate_rosterdate_diff, typeof curdate_rosterdate_diff)
+            //console.log("curHours", curHours, typeof curHours)
+            //console.log("curMinutes", curMinutes, typeof curMinutes)
+
+            curOffset = curdate_rosterdate_diff * 1440 + curHours * 60 + curMinutes;
             //console.log("curOffset", curOffset)
 
     // calc minHours and minMinutes

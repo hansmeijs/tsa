@@ -17,12 +17,23 @@
             <table >
                 <thead id="id_thead_select"class="mx-1 my-1 ">
                 <tr>
-                    {% trans 'Select customer' %}:
-
-                <input id="id_flt_select"
-                    type="text"
-                    class="td_width_200 line_height_normal"
-                    placeholder="{% trans 'filter ...' %}">
+                    <h6 class="td_width_200 line_height_normal px-2">
+                        {% trans 'Select customer' %}:
+                    </h6>
+                </tr>
+                <tr>
+                    <td>
+                    <input id="id_flt_select"
+                        type="text"
+                        class="td_width_150 tsa_bc_transparent border_none px-2"
+                        autocomplete="off"
+                        placeholder="{% trans 'filter ...' %}">
+                        </td>
+                    <td>
+                        <a id="id_sel_inactive" href="#">
+                            <img id="id_sel_img_inactive"  src="{% static 'img/inactive_lightgrey.png' %}" height="24" width="24">
+                        </a>
+                        </td>
                 </tr>
                 </thead>
                 <tbody id="id_tbody_select"></tbody>
@@ -34,13 +45,13 @@
 
 {% block content %}
     {% if user.is_authenticated %}
-        <!-- =================== id_msgbox  =================== -->
-        <div class="popup display_hide">
-            <span class="popuptext" id="id_msgbox"></span>
-        </div>
 
+<!-- =================== TIMEPICKER  =================== -->
+        {% include 'includes/confirm.html' %}
     <!-- =================== CONTAINER =================== -->
         <div class="container">
+
+
             <!-- CONTENT HEADER - LOADER -->
             <div class="mt-5">
 
@@ -66,15 +77,43 @@
 
             <!-- BUTTON GROUP -->
             <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                <button id="id_btn_list" type="button"  class="btn btn-secondary ">{% trans 'List' %}</button>
-                <button id="id_btn_data" type="button"  class="btn btn-secondary ">{% trans 'Data' %}</button>
-                <button id="id_btn_order" type="button"  class="btn btn-secondary ">{% trans 'Orders' %}</button>
-                <button id="id_btn_roster" type="button"  class="btn btn-secondary ">{% trans 'Roster' %}</button>
+                <button id="id_btn_cust" type="button" class="btn btn-secondary">{% trans 'Customer list' %}</button>
+                <button id="id_btn_order" type="button" class="btn btn-secondary">{% trans 'Orders' %}</button>
+                <button id="id_btn_data" type="button" class="btn btn-secondary">{% trans 'Data' %}</button>
+                <!--<button id="id_btn_roster" type="button" class="btn btn-secondary">{% trans 'Roster' %}</button> -->
             </div>
             <!-- end BUTTON GROUP -->
-    <!-- =================== DATA TABLE  =================== -->
+
+<!-- =================== POPUP DATE  =================== -->
+             <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
+                 <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
+             </div>
+
+
+<!-- =================== id_msgbox  =================== -->
+            <div class="popup display_hide">
+                <span class="popuptext" id="id_msgbox"></span>
+            </div>
+
+
             <div class="content_body mx-2">
-                <div class="popup-container">
+<!-- =================== DATA FORM  =================== -->
+            <div id="id_div_data_form" class="display_hide">
+                <div class="form-group mx-2">
+                    <label for="id_form_cust_code" class="mx-2 my-2">{% trans 'Short name of customer' %}:</label>
+                    <input id="id_form_cust_code" type="text" data-field= "code"
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                    <label for="id_form_cust_name" class="mx-2 my-2">{% trans 'Customer name' %}:</label>
+                    <input id="id_form_cust_name" type="text" data-field= "name"
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                </div>
+                <div class="mx-2 my-2">
+                    <button id="id_form_cust_btn_add" type="button" class="btn btn-outline-primary">{% trans 'Add customer' %}</button>
+                    <button id="id_form_cust_btn_delete" type="button" disabled class="btn btn-outline-danger">{% trans 'Delete customer' %}</button>
+                </div>
+            </div>
+<!-- =================== DATA TABLE  =================== -->
+                <div id="id_div_data_table">
                     <table class="table tsa-tbl">
                         <thead id="id_thead_items" class="thead-inverse"></thead>
                         <tbody id="id_tbody_items"></tbody>
@@ -85,26 +124,38 @@
         </div>
     <!-- =================== END CONTAINER =================== -->
         <div id="id_data"
-            data-ppk ="{{ ppk }}"
-            data-lang ="{{ lang }}"
-
-            data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
-            data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
-            data-imgsrc_delete="{% static 'img/delete.gif' %}"
-
-
             data-customer_upload_url="{% url 'customer_upload_url' %}"
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-err_msg01= "{% trans 'An error occurred.' %}"
 
-            data-txt_shortname= "{% trans 'Short name' %}"
-            data-txt_customer_name= "{% trans 'Customer name' %}"
-            data-txt_identifier = "{% trans 'Identifier' %}"
-            data-txt_interval = "{% trans 'Interval' %}"
+            data-lang ="{{ lang }}"
+            data-timezone ="{{ timezone }}"
+            data-weekdays ="{{ weekdays }}"
+            data-months ="{{ months }}"
 
+            data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
+            data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
+            data-imgsrc_active_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
+
+            data-imgsrc_delete="{% static 'img/delete.gif' %}"
+
+
+            data-txt_shortname= "{% trans 'Short name' %}"
+            data-txt_cust_code_enter= "{% trans 'Enter a short name of the customer' %}..."
+            data-txt_customer_name= "{% trans 'Customer name' %}"
             data-txt_customer_add= "{% trans 'Add new customer' %}"
-            data-txt_make_inactive= "{% trans 'Make customer inactive' %}"
-            data-txt_make_active= "{% trans 'Make customer active' %}"
+            data-txt_order_name= "{% trans 'Order name' %}"
+            data-txt_order_add= "{% trans 'Add new order' %}"
+            data-txt_datefirst= "{% trans 'Start date' %}"
+            data-txt_datelast= "{% trans 'End date' %}"
+
+            data-txt_identifier = "{% trans 'Identifier' %}"
+
+            data-txt_confirm_msg01_customer_delete = "{% trans 'This customer will be deleted.' %}"
+            data-txt_confirm_msg01_order_delete = "{% trans 'This order will be deleted.' %}"
+            data-txt_confirm_btn_delete = "{% trans 'Yes, delete' %}"
+            data-txt_confirm_msg01_inactive = "{% trans 'This customer will be made inactive.' %}"
+            data-txt_confirm_btn_inactive = "{% trans 'Yes, make inactive' %}"
 
         >
         </div>

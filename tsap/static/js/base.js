@@ -114,17 +114,38 @@ $(function() {
         }
         return power_list
     }
+
+//========= get_itemdict_from_tblRow  ============= PR2019-09-20
+    function get_itemdict_from_tblRow(el, dict) {
+        // function gets pk_str form 'id' of tblRow, looks up 'id' in dict
+        let item_dict = {}, pk_int = null;
+        const tblRow = get_tablerow_selected(el);
+        if(!!tblRow){
+            pk_int = parseInt(tblRow["id"]);
+            if(!!pk_int){
+        //--- loop through dict
+                for (let key in dict) {
+                    if (dict.hasOwnProperty(key)) {
+                        const pk_in_dict = get_dict_value_by_key(dict[key], "pk")
+                        if(pk_in_dict ===pk_int){
+                            item_dict = dict[key];
+                            break;
+        }}}}};
+        return item_dict
+    }
+
 //========= get_attr_from_el  =============PR2019-06-07
     function get_attr_from_el(element, key, default_value){
         "use strict";
     // ---  get attr value from key: i.e. element["name"] = "breakduration"
-        let value;
+        let value = null;
         if(!!element && !!key){
             if(element.hasAttribute(key)){
                 value = element.getAttribute(key);
             };
         }
-        if (!value && !!default_value){
+        // (value == null) equals to (value === undefined || value === null)
+        if (value == null && default_value != null) {
             value = default_value
         }
         return value;
@@ -152,6 +173,25 @@ $(function() {
             };
         }
         return value_int;
+    };
+
+//========= get_attr_from_el_bool  ============= PR2019-09-20
+    // TODO test, seems not to work with mouseenter event
+    function get_attr_from_el_bool(element, key){
+        "use strict";
+        let value_bool = false;
+                console.log(" --- get_attr_from_el_bool --- ")
+                console.log(element)
+
+        if(!!element && !!key){
+                console.log("element", element, typeof element)
+            if(element.hasAttribute(key)){
+                console.log("element.hasAttribute")
+                const value = element.getAttribute(key);
+                value_bool = (value === 'true');
+            };
+        }
+        return value_bool;
     };
 
 //========= get_attr_from_el_dict  ============= PR2019-06-13
@@ -254,6 +294,9 @@ $(function() {
         }
         return item;
     }
+
+
+
 
 
 //========= get_today_local  ======== PR2019-07-09

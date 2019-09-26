@@ -77,7 +77,6 @@
     /*font-weight: bold;*/
   }
 
-
 /* PR2019-04-13 for popup box */
 .pop_tbl {
     table-layout: auto;
@@ -122,7 +121,6 @@
     background-color: #fbedba; /* lighter shade of tsa yellow */
     color: #303024; /* dark dark Panta Rhei grey 48 48 36 */
 }
-
 
 /* PR2019-04-06 from https://css-tricks.com/fixing-tables-long-strings/ */
 .tsa-tbl  {

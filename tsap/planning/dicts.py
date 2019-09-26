@@ -1,8 +1,7 @@
-from django.db.models import Q, Count
-from django.db.models.functions import Lower, Coalesce
-
 from django.db import connection
-
+from django.db.models import Q, Value
+from django.db.models.functions import Lower, Coalesce
+from django.utils.translation import ugettext_lazy as _
 
 from datetime import date, datetime, timedelta
 from timeit import default_timer as timer
@@ -11,7 +10,6 @@ from accounts.models import Usersetting
 from companies import models as m
 
 from tsap.settings import TIME_ZONE
-
 from tsap import constants as c
 from tsap import functions as f
 
@@ -319,9 +317,6 @@ def get_range_enddate_iso(range, range_startdate_iso, comp_timezone):  # PR2019-
     logger.debug(' range_startdate_iso: ' + str(range_startdate_iso) + ' rang: ' + str(range))
      # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
 
-
-
-
 # split range
     year_add = 0
     month_add = 0
@@ -355,7 +350,7 @@ def get_range_enddate_iso(range, range_startdate_iso, comp_timezone):  # PR2019-
         new_year = year_int + year_add
 
         date_end_plus_one = date(new_year, new_month, date_int)
-        datetime_end_plus_one = f.get_datetime_naive_from_date(date_end_plus_one)
+        datetime_end_plus_one = f.get_datetime_naive_from_dateobject(date_end_plus_one)
         datetime_end = datetime_end_plus_one + timedelta(days=-1)
         range_end_date = datetime_end.date()
 
@@ -480,28 +475,76 @@ def create_scheme_template_list(request):
 
 
 def create_scheme_list(request, customer=None, order=None, include_inactive=False, cat=None):
-# --- create list of all /  active schemes of this company PR2019-06-16
-    #logger.debug("========== create_scheme_list ==== order: " + str(order))
-    #logger.debug("include_inactive: " + str(include_inactive))
-    scheme_list = []
+    # logger.debug(' --- create_scheme_list --- ')
 
+# --- create list of schemes of this customer / order PR2019-06-16
     crit = Q(order__customer__company=request.user.company)
-    if customer:
-        crit.add(Q(order__customer=customer), crit.connector)
     if order:
         crit.add(Q(order=order), crit.connector)
+    elif customer:
+        crit.add(Q(order__customer=customer), crit.connector)
+
     if cat is not None:
         crit.add(Q(cat=cat), crit.connector)
+
     if not include_inactive:
         crit.add(Q(inactive=False), crit.connector)
     schemes = m.Scheme.objects.filter(crit).order_by(Lower('code'))
 
-    for scheme in schemes:
-        #logger.debug("scheme: " + str(scheme))
+    # FIELDS_SCHEME = ('id', 'order', 'cat', 'code', 'datefirst', 'datelast',
+     #            'cycle', 'excludeweekend', 'excludepublicholiday', 'inactive')
+    schemes = m.Scheme.objects \
+        .filter(crit) \
+        .values('id', 'order_id', 'cat', 'code', 'datefirst', 'datelast', 'cycle', 'excludeweekend', 'excludepublicholiday', 'inactive') \
+        .iterator()
+
+    field_list = c.FIELDS_SCHEME
+    table = 'scheme'
+    scheme_list = []
+    for row_dict in schemes:
         item_dict = {}
-        create_scheme_dict(scheme, item_dict)
-        scheme_list.append(item_dict)
-        #logger.debug(item_dict)
+
+        pk_int = row_dict.get('id', 0)
+        ppk_int = row_dict.get('order_id', 0)
+        item_dict['pk'] = pk_int
+        item_dict['ppk'] = ppk_int
+
+        datefirst = row_dict.get('datefirst')
+        datelast = row_dict.get('datelast')
+
+        for field in field_list:
+            if field in row_dict:
+                field_dict = {}
+                if field == 'id':
+                    field_dict = {'pk': pk_int}
+                    field_dict['ppk'] = ppk_int
+                    field_dict['table'] = table
+                    field_dict['cat'] = row_dict.get('cat', 0)
+
+                elif field in ['order', 'cat']:
+                    pass
+
+                # also add date when empty, to add min max date
+                elif field in ['datefirst', 'datelast']:
+                    if datefirst or datelast:
+                        if field == 'datefirst':
+                            f.set_fielddict_date(field_dict=field_dict, date_value=datefirst, maxdate=datelast)
+                        elif field == 'datelast':
+                            f.set_fielddict_date(field_dict=field_dict, date_value=datelast, mindate=datefirst)
+
+                elif field == 'cycle':
+                    field_dict['value'] = row_dict.get(field, 0)
+
+                else: #  ('code', 'excludeweekend', 'excludepublicholiday', 'inactive')
+                    value = row_dict.get(field)
+                    if value:
+                        field_dict['value'] = value
+
+                if field_dict:
+                    item_dict[field] = field_dict
+
+        if item_dict:
+            scheme_list.append(item_dict)
 
     return scheme_list
 
@@ -597,6 +640,7 @@ def create_schemeitem_list(request, customer,comp_timezone):
     for schemeitem in schemeitems:
         item_dict = {}
         create_schemeitem_dict(schemeitem, item_dict, comp_timezone)
+
         if item_dict:
             schemeitem_list.append(item_dict)
 
@@ -677,11 +721,14 @@ def create_schemeitem_dict(instance, item_dict, comp_timezone):
 
             # also add date when empty, to add min max date
             elif field in ('timestart', 'timeend'):
+                # TODO calculate overlap
+                has_overlap = False
                 set_fielddict_datetime(field=field,
                                        field_dict=item_dict[field],
                                        rosterdate=getattr(instance, 'rosterdate'),
                                        timestart_utc=getattr(instance, 'timestart'),
                                        timeend_utc=getattr(instance, 'timeend'),
+                                       has_overlap=has_overlap,
                                        comp_timezone=comp_timezone)
 
             # also zero when empty
@@ -711,7 +758,10 @@ def create_shift_list(request, customer):
     for shift in shifts:
         item_dict = {}
         create_shift_dict(shift, item_dict)
-        shift_list.append(item_dict)
+
+        if item_dict:
+            shift_list.append(item_dict)
+
     return shift_list
 
 
@@ -868,9 +918,13 @@ def create_team_list(request, customer):
                     field_dict['value'] = scheme_code
 
             elif field == 'code':
-                code = row_dict.get('code')
+                #code = row_dict.get('code')
+                code, title = get_team_code(pk_int)
+
                 if code:
                     field_dict['value'] = code
+                if title:
+                    field_dict['title'] = title
 
             item_dict[field] = field_dict
 
@@ -937,17 +991,17 @@ def create_date_dict(rosterdate, user_lang, status_text):
 def create_emplhour_list(company, comp_timezone,
                          time_min=None, time_max=None,
                          range_start_iso=None, range_end_iso=None, show_all=False): # PR2019-08-01
-    logger.debug(' ============= create_emplhour_list ============= ')
+    # logger.debug(' ============= create_emplhour_list ============= ')
 
     # TODO filter also on min max rosterdate, in case timestart / end is null
     starttime = timer()
 
     # convert period_timestart_iso into period_timestart_local
-    logger.debug('time_min: ' + str(time_min) + ' ' + str(type(time_min)))
-    logger.debug('time_max: ' + str(time_max)+ ' ' + str(type(time_max)))
-    logger.debug('range_start_iso: ' + str(range_start_iso)+ ' ' + str(type(range_start_iso)))
-    logger.debug('range_end_iso: ' + str(range_end_iso)+ ' ' + str(type(range_end_iso)))
-    logger.debug('show_all: ' + str(show_all)+ ' ' + str(type(show_all)))
+    # logger.debug('time_min: ' + str(time_min) + ' ' + str(type(time_min)))
+    # logger.debug('time_max: ' + str(time_max)+ ' ' + str(type(time_max)))
+    # logger.debug('range_start_iso: ' + str(range_start_iso)+ ' ' + str(type(range_start_iso)))
+    # logger.debug('range_end_iso: ' + str(range_end_iso)+ ' ' + str(type(range_end_iso)))
+    # logger.debug('show_all: ' + str(show_all)+ ' ' + str(type(show_all)))
 
     # Exclude template.
     # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
@@ -968,7 +1022,6 @@ def create_emplhour_list(company, comp_timezone,
             if time_max:
                 crit.add(Q(timestart__lt=time_max) | Q(timestart__isnull=True), crit.connector)
 
-
     # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
     emplhours = m.Emplhour.objects\
         .select_related('employee')\
@@ -977,7 +1030,7 @@ def create_emplhour_list(company, comp_timezone,
         .select_related('orderhour__order__customer')\
         .select_related('orderhour__order__customer__company')\
         .filter(crit).order_by('rosterdate', 'timestart')\
-        .values('id', 'cat', 'status', 'shift', 'wagerate', 'wagefactor', 'wage',
+        .values('id', 'cat', 'status', 'overlap', 'shift', 'wagerate', 'wagefactor', 'wage',
                 'employee_id', 'employee__company_id', 'employee__code',
                 'rosterdate', 'timestart', 'timeend', 'breakduration', 'timeduration',
                 'orderhour_id', 'orderhour__order_id', 'orderhour__order__code', 'orderhour__order__customer__code'
@@ -991,11 +1044,32 @@ def create_emplhour_list(company, comp_timezone,
 
     # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
     #                         'timestart', 'timeend', 'timeduration', 'breakduration',
-    #                         'wagerate', 'wagefactor', 'wage', 'status')
+    #                         'wagerate', 'wagefactor', 'wage', 'status', 'overlap')
     field_tuple = c.FIELDS_EMPLHOUR
 
     emplhour_list = []
     for row_dict in emplhours:
+        item_dict, pk_int = create_emplhour_itemdict(row_dict, {}, field_tuple, comp_timezone)
+        if item_dict:
+            emplhour_list.append(item_dict)
+
+    # logger.debug('list elapsed time  is :')
+    # logger.debug(timer() - starttime)
+
+    return emplhour_list
+
+
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+def create_emplhour_itemdict(row_dict, update_dict, field_tuple, comp_timezone):  # PR2019-09-21
+    # logger.debug(' ============= create_emplhour_itemdict ============= ')
+    # logger.debug('>>>>>>>>>>>>>>>>>>> update_dict')
+    # logger.debug(str(update_dict))
+    # row_dict: {'id': 3625, 'cat': 0, 'status': 1, 'overlap': 0, 'shift': 'avond', 'wagerate': 0, 'wagefactor': 0, 'wage': 0, 'employee_id': 1249, 'employee__company_id': 2, 'employee__code': 'Wu Y', 'rosterdate': datetime.date(2019, 3, 31), 'timestart': datetime.datetime(2019, 3, 31, 15, 0, tzinfo=<UTC>), 'timeend': datetime.datetime(2019, 3, 31, 21, 30, tzinfo=<UTC>), 'breakduration': 90, 'timeduration': 300, 'orderhour_id': 3145, 'orderhour__order_id': 1103, 'orderhour__order__code': 'Test', 'orderhour__order__customer__code': 'Giro'}]>
+    item_dict = update_dict
+    pk_int = 0
+    if row_dict:
 # lock field when status = locked or higher
         status_value = row_dict.get('status', 0)
         locked = (status_value >= c.STATUS_08_LOCKED)
@@ -1007,12 +1081,15 @@ def create_emplhour_list(company, comp_timezone,
         rosterdate = row_dict.get('rosterdate')
         timestart = row_dict.get('timestart')
         timeend = row_dict.get('timeend')
+        overlap = row_dict.get('overlap', 0)
 
-        item_dict = {}
         table = 'emplhour'
         for field in field_tuple:
 # 1. create field_dict
-            field_dict = {}
+            if field in update_dict:
+                field_dict = update_dict[field]
+            else:
+                field_dict = {}
 
 # 2. lock date when confirmed, field is already locked when locked = True
             if locked:
@@ -1046,6 +1123,12 @@ def create_emplhour_list(company, comp_timezone,
                     field_dict['pk'] = row_dict.get('employee_id', 0)
                     field_dict['ppk'] = row_dict.get('employee__company_id', 0)
                     field_dict['value'] = row_dict.get('employee__code', '')
+                    #  make field red when has overlap
+                    if overlap: # overlap: 1 overlap start, 2 overlap end, 3 full overlap
+                        field_dict['overlap'] = True
+                    #  lock field employee when start is confirmed
+                    if status_value >= c.STATUS_02_START_CONFIRMED:
+                        field_dict['locked'] = True
 
             elif field == 'rosterdate':
                 if rosterdate:
@@ -1053,16 +1136,22 @@ def create_emplhour_list(company, comp_timezone,
 
             # also add date when empty, to add min max date
             elif field in ('timestart', 'timeend'):
+                has_overlap = (field == 'timestart' and overlap in (1,3)) or \
+                              (field == 'timeend' and overlap in (2,3))
                 set_fielddict_datetime(field=field,
                                        field_dict=field_dict,
                                        rosterdate=rosterdate,
                                        timestart_utc=timestart,
                                        timeend_utc=timeend,
+                                       has_overlap=has_overlap,
                                        comp_timezone=comp_timezone)
 
             # also zero when empty
             elif field in ('breakduration', 'timeduration', 'wagerate', 'wagefactor', 'wage'):
                 field_dict['value'] = row_dict.get(field, 0)
+
+            elif field == 'overlap':
+                pass
 
             else:
                 value = row_dict.get(field)
@@ -1071,15 +1160,50 @@ def create_emplhour_list(company, comp_timezone,
 
             item_dict[field] = field_dict
 
-        emplhour_list.append(item_dict)
+# --- remove empty attributes from update_dict
+        f.remove_empty_attr_from_dict(item_dict)
+    # logger.debug('return item_dict pk_int' + str(pk_int))
+    # logger.debug(item_dict)
+    return item_dict, pk_int
 
-    logger.debug('list elapsed time  is :')
-    logger.debug(timer() - starttime)
-
-    return emplhour_list
 
 
-def create_emplhour_dict(instance, item_dict, comp_timezone):
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+def create_emplhour_dict(update_dict, comp_timezone):
+    # logger.debug ('--- create_emplhour_dict ---')
+    # logger.debug ('update_dict: ' + str(update_dict))
+    # update_dict: {'id': {'ppk': 3145, 'table': 'emplhour', 'pk': 3625},
+    # 'orderhour': {}, 'rosterdate': {}, 'cat': {},
+    # 'employee': {'updated': True, 'value': 'Windster L I L', 'pk': 269},
+    # 'shift': {}, 'timestart': {}, 'timeend': {}, 'timeduration': {}, 'breakduration': {},
+    # 'wagerate': {}, 'wagefactor': {}, 'wage': {}, 'status': {}, 'overlap': {}, 'pk': 3625}
+
+    item_dict = {}
+    id_dict = update_dict.get('id')
+    if 'id' in update_dict:
+        pk_int = id_dict.get('pk',0)
+        # logger.debug ('pk_int' + str(pk_int) + ' ' + str(type(pk_int)))
+
+        if pk_int:
+            row_dict = m.Emplhour.objects\
+                .select_related('employee')\
+                .select_related('orderhour')\
+                .select_related('orderhour__order')\
+                .select_related('orderhour__order__customer')\
+                .select_related('orderhour__order__customer__company')\
+                .filter(id=pk_int)\
+                .values('id', 'cat', 'status', 'overlap', 'shift', 'wagerate', 'wagefactor', 'wage',
+                        'employee_id', 'employee__company_id', 'employee__code',
+                        'rosterdate', 'timestart', 'timeend', 'breakduration', 'timeduration',
+                        'orderhour_id', 'orderhour__order_id', 'orderhour__order__code', 'orderhour__order__customer__code'
+                        )\
+                .first()
+
+            create_emplhour_itemdict(row_dict, update_dict, c.FIELDS_EMPLHOUR, comp_timezone)
+
+
+def create_emplhour_dictOLD(instance, item_dict, comp_timezone):
     # --- create dict of this emplhour PR2019-09-02
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
     #logger.debug ('--- create_emplhour_dict ---')
@@ -1159,11 +1283,14 @@ def create_emplhour_dict(instance, item_dict, comp_timezone):
 
             # also add date when empty, to add min max date
             elif field in ('timestart', 'timeend'):
+                # TODO calculate overlap
+                has_overlap = False
                 set_fielddict_datetime(field=field,
                                        field_dict=field_dict,
                                        rosterdate=instance.rosterdate,
                                        timestart_utc=instance.timestart,
                                        timeend_utc=instance.timeend,
+                                       has_overlap=has_overlap,
                                        comp_timezone=comp_timezone)
 
             # also zero when empty
@@ -1498,6 +1625,253 @@ def create_review_list(datefirst, datelast, request):  # PR2019-08-20
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def reset_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
+
+    if not datefirst:
+        datefirst = '1900-01-01'
+    if not datelast:
+        datelast = '2500-01-01'
+
+# 2. reset overlap in the timerange
+    cursor = connection.cursor()
+    cursor.execute("""WITH oh_sub AS (SELECT oh.id AS oh_id  
+                        FROM companies_orderhour AS oh 
+                        INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
+                        INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
+                        WHERE c.company_id = %(cid)s)     
+        UPDATE companies_emplhour AS eh
+        SET overlap = 0
+        FROM oh_sub 
+        WHERE (eh.orderhour_id = oh_sub.oh_id)
+        AND (eh.overlap IS NOT NULL) 
+        AND (eh.rosterdate >= %(df)s)
+        AND (eh.rosterdate <= %(dl)s)""", {'cid': request.user.company_id, 'df': datefirst, 'dl': datelast})
+
+def check_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
+    # logger.debug(' === check_overlapping_shifts === ' + ' datefirst: ' + str(datefirst) + ' datelast: ' + str(datelast))
+
+    # cursor.fetchall(): [(427, ), (238, ), (363, )]
+    # from https://docs.djangoproject.com/en/2.2/topics/db/sql/
+    # warning: Do not use string formatting on raw queries or quote placeholders in your SQL strings!
+    # not like this: query = 'SELECT * FROM myapp_person WHERE last_name = %s' % lname
+    # neither:       query = "SELECT * FROM myapp_person WHERE last_name = '%s'"
+    # the right way: query = 'SELECT * FROM myapp_person WHERE last_name = %s', [lname])
+
+    # convert datelast null into '2500-01-01'.  (function Coalesce changes Null into '2500-01-01')
+    # from: https://stackoverflow.com/questions/5235209/django-order-by-position-ignoring-null
+    # Coalesce works by taking the first non-null value.  So we give it
+    # a date far after any non-null values of last_active.  Then it will
+    # naturally sort behind instances of Box with a non-null last_active value.
+
+    # order_by datelast, null comes last (with Coalesce changes to '2500-01-01'
+    # - get employee with earliest endatlookup employee in teammembers
+
+    # for testing:
+    # teammembers = cls.objects.annotate(
+    #     new_datelast=Coalesce('datelast', Value(datetime(2500, 1, 1))
+    #                           )).filter(crit).order_by('new_datelast')
+    # for member in teammembers:
+    #     employee = getattr(member, 'employee')
+    #     if employee:
+    #        logger.debug('test employee: ' + str(employee) + ' datefirst: ' + str(member.datefirst) + ' datelast: ' + str(member.datelast))
+
+ # 1. create 'extende range' -  add 1 day at beginning and end for overlapping shifts of previous and next day
+    if not datefirst:
+        datefirst = '1900-01-01'
+    datefirst_dte = f.get_date_from_ISO(datefirst)
+    # logger.debug('datefirst_dte: ' + str(datefirst_dte) + ' ' + str(type(datefirst_dte)))
+    datefirst_dtm = datefirst_dte + timedelta(days=-1)
+    datefirst_iso = datefirst_dtm.isoformat()
+    datefirst_extended = datefirst_iso.split('T')[0]
+
+    # logger.debug('datefirst_extended: ' + str(datefirst_extended) + ' ' + str(type(datefirst_extended)))
+
+    if not datelast:
+        datelast = '2500-01-01'
+    datelast_dte = f.get_date_from_ISO(datelast)
+    # logger.debug('datelast_dte: ' + str(datelast_dte) + ' ' + str(type(datelast_dte)))
+    datelast_dtm = datelast_dte + timedelta(days=1)
+    datelast_iso = datelast_dtm.isoformat()
+    datelast_extended = datelast_iso.split('T')[0]
+    # logger.debug('datelast_extended: ' + str(datelast_extended) + ' ' + str(type(datelast_extended)))
+
+# 2. reset overlap in the narrow timerange - i.e. NOT the extended timerange
+    reset_overlapping_shifts(datefirst, datelast, request)
+
+# 3. create list of employees with multiple emplhours in the extended timerange
+    cursor = connection.cursor()
+    cursor.execute("""SELECT eh.employee_id AS empl_id, COUNT(eh.id) 
+        FROM companies_emplhour AS eh
+        INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id=oh.id)
+        INNER JOIN companies_order AS o ON (oh.order_id=o.id)
+        INNER JOIN companies_customer AS c ON (o.customer_id=c.id)
+        WHERE (c.company_id = %(cid)s) 
+            AND (eh.employee_id IS NOT NULL) 
+            AND (eh.rosterdate IS NOT NULL) 
+            AND (eh.rosterdate >= %(df)s)
+            AND (eh.rosterdate <= %(dl)s)
+        GROUP BY empl_id
+        HAVING COUNT(eh.id) > 1""",
+        {'cid': request.user.company_id, 'df': datefirst_extended, 'dl': datelast_extended})
+    employee_list = cursor.fetchall()
+    # logger.debug('employee_list: ' + str(employee_list) + ' ' + str(type(employee_list)))
+    # employee_list: [(393,), (155,), (363,), (1252,), (265,), (281,), (1352,)] <class 'list'>
+
+# 4. loop through list of employees with multiple emplhours
+    for item in employee_list:
+        employee_id = item[0]
+        # logger.debug('employee_id: ' + str(employee_id) + ' ' + str(type(employee_id)))
+
+        # eplh_update_list not in use in check_overlapping_shifts
+        eplh_update_list = []
+        update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelast_extended, request, eplh_update_list)
+
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+def update_emplhour_overlap(employee_id, rosterdate, request, eplh_update_list):  # PR2019-09-21
+    logger.debug('--- update_emplhour_overlap --- ' + str(employee_id))
+    logger.debug('rosterdate' + str(rosterdate) + ' ' + str(type(rosterdate)))
+    # 1. create 'extende range' -  add 1 day at beginning and end for overlapping shifts of previous and next day
+    # eplh_update_list strores eplh.id's of records that are updated
+
+    datefirst_dtm = rosterdate + timedelta(days=-1)
+    datefirst = datefirst_dtm.isoformat().split('T')[0]
+
+    datefirst_extended_dtm = rosterdate + timedelta(days=-2)
+    datefirst_extended = datefirst_extended_dtm.isoformat().split('T')[0]
+
+    datelast_dtm = rosterdate + timedelta(days=1)
+    datelast = datelast_dtm.isoformat().split('T')[0]
+
+    datelast_extended_dtm = rosterdate + timedelta(days=2)
+    datelast_extended = datelast_extended_dtm.isoformat().split('T')[0]
+
+    update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelast_extended, request, eplh_update_list)
+
+    logger.debug('eplh_update_list: ' + str(eplh_update_list))
+
+def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelast_extended, request, eplh_update_list):  # PR2019-09-21
+    # logger.debug(' === update_overlap === employee_id ' + ' ' + str(employee_id))
+    # logger.debug(' datefirst: ' + str(datefirst) + ' datelast: ' + str(datelast))
+    # logger.debug(' datefirst_extended: ' + str(datefirst_extended) +  'datelast_extended: ' + str(datelast_extended))
+    # logger.debug(' eplh_update_list: ' + str(eplh_update_list))
+
+    # cursor.fetchall(): [(427, ), (238, ), (363, )]
+    # from https://docs.djangoproject.com/en/2.2/topics/db/sql/
+    # warning: Do not use string formatting on raw queries or quote placeholders in your SQL strings!
+    # not like this: query = 'SELECT * FROM myapp_person WHERE last_name = %s' % lname
+    # neither:       query = "SELECT * FROM myapp_person WHERE last_name = '%s'"
+    # the right way: query = 'SELECT * FROM myapp_person WHERE last_name = %s', [lname])
+
+    # convert datelast null into '2500-01-01'.  (function Coalesce changes Null into '2500-01-01')
+    # from: https://stackoverflow.com/questions/5235209/django-order-by-position-ignoring-null
+    # Coalesce works by taking the first non-null value.  So we give it
+    # a date far after any non-null values of last_active.  Then it will
+    # naturally sort behind instances of Box with a non-null last_active value.
+
+    # order_by datelast, null comes last (with Coalesce changes to '2500-01-01'
+    # - get employee with earliest endatlookup employee in teammembers
+
+    # for testing:
+    # teammembers = cls.objects.annotate(
+    #     new_datelast=Coalesce('datelast', Value(datetime(2500, 1, 1))
+    #                           )).filter(crit).order_by('new_datelast')
+    # for member in teammembers:
+    #     employee = getattr(member, 'employee')
+    #     if employee:
+    #        logger.debug('test employee: ' + str(employee) + ' datefirst: ' + str(member.datefirst) + ' datelast: ' + str(member.datelast))
+
+
+    # logger.debug('------- ')
+    # logger.debug('------- > employee_id: ' + str(employee_id) + '' + str(type(employee_id)))
+
+# 5. create queryset of this employee with emplhours in the narrow timerange
+    crit = Q(orderhour__order__customer__company=request.user.company) & \
+           Q(employee_id=employee_id) & \
+           Q(rosterdate__isnull=False) & \
+           Q(rosterdate__gte=datefirst) & Q(rosterdate__lte=datelast)
+    emplhours = m.Emplhour.objects.annotate(
+        timestart_nonull=Coalesce('timestart', Value(datetime(1900, 1, 1))),
+        timeend_nonull=Coalesce('timeend', Value(datetime(2500, 1, 1)))
+    ).filter(crit).order_by('id')
+
+# 6. create queryset of this employee with emplhours in the extended timerange
+    crit = Q(orderhour__order__customer__company=request.user.company) & \
+           Q(employee_id=employee_id) & \
+           Q(rosterdate__isnull=False) & \
+           Q(rosterdate__gte=datefirst_extended) & Q(rosterdate__lte=datelast_extended)
+    emplhours_extended = m.Emplhour.objects.annotate(
+        timestart_nonull=Coalesce('timestart', Value(datetime(1900, 1, 1))),
+        timeend_nonull=Coalesce('timeend', Value(datetime(2500, 1, 1)))
+        ).\
+        filter(crit).\
+        values('id', 'timestart_nonull', 'timeend_nonull').\
+        order_by('id')
+    # logger.debug(str(emplhours_extended.query))
+    # logger.debug(str(emplhours_extended))
+
+# 5. loop through narrow queryset
+    for emplhour in emplhours:
+        # logger.debug(str(emplhour.employee.code) + ' ' + str(emplhour.shift)  + ' ' + str(emplhour.rosterdate))
+
+# 6. loop through extended queryset and check if record overlaps with other record
+
+        overlap_start = 0
+        overlap_end = 0
+        for sub_eplh in emplhours_extended:
+            if sub_eplh['id'] != emplhour.id:
+                x = emplhour.timestart_nonull
+                y = emplhour.timeend_nonull
+                a = sub_eplh['timestart_nonull']
+                b = sub_eplh['timeend_nonull']
+
+                # logger.debug(str(emplhour.id) + ': x = ' + str(x.isoformat()) + ' y = ' + str(y.isoformat()))
+                # logger.debug(str(sub_eplh['id']) + ': a = ' + str(a.isoformat()) + ' b = ' + str(b.isoformat()))
+
+                # no overlap                x|_________|y
+                #               a|_____|b                  a|_____|b
+                #                       b <= x     or      a >= y
+
+                # part overlap                x|_________|y
+                #                        a|_____|b    a|_____|b
+                #        a < x and b > x and b <= y       a < y and a >= x and b > y
+
+                # full overlap              x|______|y
+                #                     a|__________________|b
+                #                     a <= x    and    b >= y
+
+                # full overlap          x|__________________|y
+                #                             a|__|b
+                #                     a >= x   and   b <= y
+
+                if (a <= x and b >= y) or (a >= x and b <= y):
+                    # logger.debug(' full overlap (a <= x and b >= y) or (a >= x and b <= y)')
+                    # full overlap
+                    overlap_start = 1
+                    overlap_end = 2
+                elif a < x < b <= y:    #  a < x and b > x and b <= y:
+                    # logger.debug(' overlap_start (a < x and b > x and b <= y)')
+                    overlap_start = 1
+                elif  x <= a < y < b:   #  a >= x and a < y and b > y:
+                    # logger.debug(' overlap_end (a >= x and a < y and b > y)')
+                    overlap_end = 2
+                # else:
+                    # logger.debug(' no overlap')
+
+            if overlap_start == 1 and overlap_end == 2:
+                break
+
+# 6. save overlap when changed
+        old_overlap = emplhour.overlap
+        emplhour.overlap = overlap_start + overlap_end
+        emplhour.save()  # save without request parameter: modifiedat and modifiedby will not be updated
+
+# 6. add emplhour.id to eplh_update_list
+        if overlap_start + overlap_end != old_overlap:
+            if emplhour.id not in eplh_update_list:
+                eplh_update_list.append(emplhour.id)
+        # logger.debug('eplh_update_list: ' + str(eplh_update_list))
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def get_rosterdatefill_dict(company, company_timezone, user_lang):# PR2019-06-17
     rosterdate_dict = {}
     rosterdate_current = get_rosterdate_current(company)
@@ -1520,24 +1894,69 @@ def get_rosterdatefill_dict(company, company_timezone, user_lang):# PR2019-06-17
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend_utc, comp_timezone):
+def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend_utc, has_overlap, comp_timezone):
+    # logger.debug(" ")
     # logger.debug(" ------- set_fielddict_datetime ---------- ")
     # logger.debug("rosterdate " + str(rosterdate) + ' ' + str(type(rosterdate)))
     # logger.debug("timestart_utc " + str(timestart_utc) + ' ' + str(type(timestart_utc)))
     # logger.debug("timeend_utc " + str(timeend_utc) + ' ' + str(type(timeend_utc)))
     # logger.debug("comp_timezone " + str(comp_timezone) + ' ' + str(type(comp_timezone)))
 
+    timezone = pytz.timezone(comp_timezone)
+
     # get mindatetime and  maxdatetime
     min_datetime_utc, max_datetime_utc = get_minmax_datetime_utc(field, rosterdate,
                                                                  timestart_utc, timeend_utc, comp_timezone)
 
+    min_offset_int = None
+    if min_datetime_utc:
+        min_datetime_local = min_datetime_utc.astimezone(timezone)
+        min_offset_int = f.get_offset_from_datetimelocal(rosterdate, min_datetime_local)
+        # logger.debug("min_datetime_utc " + str(min_datetime_utc) + ' ' + str(type(min_datetime_utc)))
+        #  logger.debug("min_datetime_local " + str(min_datetime_local) + ' ' + str(type(min_datetime_local)))
+        # logger.debug("min_offset_int " + str(min_offset_int) + ' ' + str(type(min_offset_int)))
+
+    max_offset_int = None
+    if max_datetime_utc:
+        max_datetime_local = max_datetime_utc.astimezone(timezone)
+        max_offset_int = f.get_offset_from_datetimelocal(rosterdate, max_datetime_local)
+        # logger.debug("rosterdate " + str(rosterdate) + ' ' + str(type(rosterdate)))
+        # logger.debug("max_datetime_utc " + str(max_datetime_utc) + ' ' + str(type(max_datetime_utc)))
+        # logger.debug("max_datetime_local " + str(max_datetime_local) + ' ' + str(type(max_datetime_local)))
+        # logger.debug("max_offset_int " + str(max_offset_int) + ' ' + str(type(max_offset_int)))
+
     field_dict['field'] = field
 
     datetime_utc = None
+    offset_int = None
     if field == "timestart":
         datetime_utc = timestart_utc
+        if datetime_utc:
+            datetime_local = datetime_utc.astimezone(timezone)
+            offset_int = f.get_offset_from_datetimelocal(rosterdate, datetime_local)
+
+            # logger.debug("datetime_utc.isoformat() " + str(datetime_utc.isoformat()) + ' ' + str(type(datetime_utc.isoformat())))
+            # logger.debug("datetime_local " + str(datetime_local) + ' ' + str(type(datetime_local)))
+            # logger.debug("offset_int " + str(offset_int) + ' ' + str(type(offset_int)))
+
     elif field == "timeend":
         datetime_utc = timeend_utc
+        if datetime_utc:
+            datetime_local = datetime_utc.astimezone(timezone)
+            offset_int = f.get_offset_from_datetimelocal(rosterdate, datetime_local)
+
+            # logger.debug("datetime_utc.isoformat() " + str(datetime_utc.isoformat()) + ' ' + str(type(datetime_utc.isoformat())))
+            # logger.debug("datetime_local " + str(datetime_local) + ' ' + str(type(datetime_local)))
+            # logger.debug("offset_int " + str(offset_int) + ' ' + str(type(offset_int)))
+
+    if offset_int is not None:
+        field_dict['offset'] = offset_int
+
+    if min_offset_int is not None:
+        field_dict['minoffset'] = min_offset_int
+
+    if max_offset_int is not None:
+        field_dict['maxoffset'] = max_offset_int
 
     if datetime_utc:
         field_dict['datetime'] = datetime_utc.isoformat()
@@ -1547,6 +1966,8 @@ def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend
         field_dict['maxdatetime'] = max_datetime_utc.isoformat()
     if rosterdate:
         field_dict['rosterdate'] = rosterdate
+    if has_overlap:
+        field_dict['overlap'] = True
 
     # logger.debug('field_dict: '+ str(field_dict))
 
@@ -1798,3 +2219,36 @@ def get_customer_order_code(order, delim=' '): # PR2019-08-16
             order_code = order.code
             customer_order_code += delim + order_code
     return customer_order_code
+
+def get_team_code(team_id):
+    # logger.debug(' --- get_team_code --- ')
+    team_code = ''
+    team_title =''
+    count = 0
+    if team_id:
+        # 1. iterate through teammembers, latest enddate first
+        teammembers = m.Teammember.objects\
+            .select_related('employee')\
+            .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1))))\
+            .filter(team_id=team_id, employee__isnull=False)\
+            .values('id', 'employee__code', 'datelast_nonull')\
+            .order_by('-datelast_nonull')
+        # logger.debug('teammembers SQL: ' + str(teammembers.query))
+
+        for teammember in teammembers:
+            # logger.debug('teammember: ' + str(teammember))
+            # teammember: {'id': 300, 'employee__code': 'Crisostomo Ortiz R Y', 'datelast_nonull': datetime.datetime(2500, 1, 1, 0, 0)}
+            if count == 0:
+                team_code = teammember['employee__code']
+            else:
+                team_title += '+ ' if count == 1 else ', '
+                team_title += teammember['employee__code']
+            count +=1
+
+        if count == 0:
+            team_code = _('Select employee...')
+        if count <= 1:
+            team_title = None
+
+        # logger.debug('  .... team_code: ' + str(team_code) + ' team_title: ' + str(team_title))
+    return team_code, team_title

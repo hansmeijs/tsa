@@ -1,9 +1,12 @@
-from django.db.models import Q
-from django.utils.translation import activate, ugettext_lazy as _
+from django.db.models import Q, Value
+from django.db.models.functions import  Coalesce, Lower
+from datetime import datetime
 
-from companies.models import Employee, Teammember
+from django.utils.translation import ugettext_lazy as _
+
 from tsap import functions as f
 from tsap import constants as c
+from companies import models as m
 
 import logging
 logger = logging.getLogger(__name__)
@@ -19,14 +22,15 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
     if rangemin is not None:
         crit.add(Q(datelast__gte=rangemin) | Q(datelast__isnull=True), crit.connector)
 
-    employees = Employee.objects\
+    employees = m.Employee.objects\
         .select_related('wagecode')\
         .filter(crit).order_by('code')\
         .values('id', 'code', 'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
                 'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'inactive',
                 'company_id',
                 'wagecode_id', 'wagecode__company__id', 'wagecode__code',
-                ) \
+                )\
+        .order_by(Lower('code'))\
         .iterator()
 
     # logger.debug(employees.query)
@@ -43,6 +47,9 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
         item_dict['pk'] = pk_int
         item_dict['ppk'] = ppk_int
 
+        datefirst = row_dict.get('datefirst')
+        datelast = row_dict.get('datelast')
+
         workhours = 0
         workdays = 0
         for field in field_list:
@@ -56,13 +63,11 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
 
                 # also add date when empty, to add min max date
                 elif field in ['datefirst', 'datelast']:
-                    mindate = row_dict.get('datefirst')
-                    maxdate = row_dict.get('datelast')
-                    if mindate or maxdate:
+                    if datefirst or datelast:
                         if field == 'datefirst':
-                            f.set_fielddict_date(field_dict=field_dict, date_value=mindate, maxdate=maxdate)
+                            f.set_fielddict_date(field_dict=field_dict, date_value=datefirst, maxdate=datelast)
                         elif field == 'datelast':
-                            f.set_fielddict_date(field_dict=field_dict, date_value=maxdate, mindate=mindate)
+                            f.set_fielddict_date(field_dict=field_dict, date_value=datelast, mindate=datefirst)
                     item_dict[field] = field_dict
 
                 elif field == 'workhours':
@@ -84,9 +89,9 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
 
                 elif field == 'wagecode':
                     field_dict = {}
-                    pk_int = row_dict.get('wagecode_id',0)
-                    if pk_int:
-                        field_dict['pk'] = pk_int
+                    wagecode_pk_int = row_dict.get('wagecode_id',0)
+                    if wagecode_pk_int:
+                        field_dict['pk'] = wagecode_pk_int
                         field_dict['ppk'] = row_dict.get('wagecode__company__id',0)
                         field_dict['code'] = row_dict.get('wagecode__code', '')
                         field_dict['rate'] = row_dict.get('wagecode__rate', 0)
@@ -101,9 +106,9 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
             workhoursperday = workhours / workdays * 1440 # workhours_per_day is in minutes
             item_dict['workhoursperday'] = {'value': workhoursperday}
 
-        employee_list.append(item_dict)
+        if item_dict:
+            employee_list.append(item_dict)
     return employee_list
-
 
 def create_employee_dict(instance, item_dict):
     # --- create dict of this employee PR2019-07-26
@@ -192,13 +197,25 @@ def create_teammember_list(table_dict, company):
     # if datefirst:
         # crit.add(Q(datelast__gte=datefirst) | Q(datelast__isnull=True), crit.connector)
     # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
-    teammembers = Teammember.objects\
+
+
+    #         teammembers = m.Teammember.objects\
+    #             .select_related('employee')\
+    #             .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1))))\
+    #             .filter(team_id=team_id, employee__isnull=False)\
+    #             .values('id', 'employee__code', 'datelast_nonull')\
+    #             .order_by('-datelast_nonull')
+    #         logger.debug('teammembers SQL: ' + str(teammembers.query))
+
+
+    teammembers = m.Teammember.objects\
         .select_related('employee')\
         .select_related('team')\
         .select_related('team__scheme')\
         .select_related('team__scheme__order')\
-        .select_related('team__scheme__order__customer')\
-        .filter(crit).order_by('datefirst')\
+        .select_related('team__scheme__order__customer') \
+        .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1)))) \
+        .filter(crit).order_by('-datelast_nonull')\
         .values('id', 'cat', 'datefirst', 'datelast', 'workhoursperday', 'wagerate', 'wagefactor',
                 'employee_id', 'employee__company__id', 'employee__code', 'employee__workhours', 'employee__workdays',
                 'employee__datefirst', 'employee__datelast',
@@ -401,6 +418,9 @@ def create_teammember_dict(instance, item_dict):
 
         # 7. remove empty attributes from item_update
         f.remove_empty_attr_from_dict(item_dict)
+# >>>>>>>>>>>>>>>>>>>>
+
+
 
 # >>>>>>>>>>>>>>>>>>>
 
@@ -412,7 +432,7 @@ def validate_employee_exists_in_teammembers(employee, team, this_pk):  # PR2019-
         crit = Q(team=team) & Q(employee=employee)
         if this_pk:
             crit.add(~Q(pk=this_pk), crit.connector)
-        exists = Teammember.objects.filter(crit).exists()
+        exists = m.Teammember.objects.filter(crit).exists()
     if exists:
         msg_err = _('This employee already exists.')
     return msg_err

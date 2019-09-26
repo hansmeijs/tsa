@@ -303,15 +303,19 @@ CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
 
 FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier', 'email', 'telephone', 'interval', 'inactive')
 
+FIELDS_ORDER = ('id', 'customer', 'cat', 'code', 'name', 'datefirst', 'datelast',
+                'sequence', 'identifier', 'rate', 'taxcode', 'locked', 'inactive')
+
 FIELDS_ORDERHOUR = ('pk', 'id', 'order', 'schemeitem', 'rosterdate',
                     'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
                     'cat', 'shift', 'duration', 'status', 'rate', 'amount', 'tax', 'locked')
 
 FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
                         'timestart', 'timeend', 'timeduration', 'breakduration',
-                        'wagerate', 'wagefactor', 'wage', 'status')
+                        'wagerate', 'wagefactor', 'wage', 'status', 'overlap')
 
-FIELDS_SCHEME = ('id', 'order', 'cat', 'code', 'cycle', 'excludeweekend', 'excludepublicholiday', 'inactive')
+FIELDS_SCHEME = ('id', 'order', 'cat', 'code', 'datefirst', 'datelast',
+                 'cycle', 'excludeweekend', 'excludepublicholiday', 'inactive')
 
 FIELDS_TEAM = ('id', 'scheme', 'code')
 

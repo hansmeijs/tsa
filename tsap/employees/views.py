@@ -183,7 +183,7 @@ class EmployeeUploadView(UpdateView):# PR2019-07-30
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: {'id': {'pk': 36, 'delete': True, 'table': 'employee'}}
 
 # 3. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
@@ -207,11 +207,12 @@ class EmployeeUploadView(UpdateView):# PR2019-07-30
                             instance = m.get_instance(table, pk_int, parent, update_dict)
                             this_text = _("Employee '%(tbl)s'") % {'tbl': instance.code}
 
-    # 2. check if employee is teammember
-                            has_emplhours = validate_employee_has_emplhours(instance, update_dict)
-     # 2. check if employee has emplhours
+     # a. check if employee has emplhours
                             has_emplhours = validate_employee_has_emplhours(instance, update_dict)
                             if not has_emplhours:
+     # b. check if there are teammembers with this employee, change rteam.code if necessary
+                                delete_employee_from_teammember(instance, request)
+     # c. delete employee
                                 m.delete_instance(instance, update_dict, request, this_text)
 # C. Create new employee
                         elif is_create:
@@ -836,23 +837,40 @@ def get_initials(firstnames, with_space):
     return initials
 
 
-def delete_employee_from_teammember(employee_id, request):
-    # validate if employee has teammember records PR2019-09-15
-    if employee_id:
-        for teammember in m.Teammember.objects.filter(employee=employee_id):
+def delete_employee_from_teammember(employee, request):
+    logger.debug(' --- delete_employee_from_teammember ---')
+    # delete employee from teammember records, update team.code if necessary PR2019-09-15
+    if employee:
+        logger.debug(' --- employee <' + str() + '> has the following teammembers:')
+        for teammember in m.Teammember.objects.filter(employee=employee):
+            logger.debug(' --- teammember ' + str(teammember.id) + ' <' + str(teammember.team.code) + '> cat ' + str(teammember.team.catcode))
+        logger.debug(' --- loop teammembers:')
+
+        for teammember in m.Teammember.objects.filter(employee=employee):
+# remove teammember if abscat
             cat = teammember.team.scheme.order.cat
+            logger.debug(' --- teammember ' + str(teammember.id) + ' cat ' + str(teammember.team.catcode))
             if cat == c.SHIFT_CAT_0512_ABSENCE:
                 teammember.delete(request=request)
+                logger.debug(' --- delete_employee_from_ ABSENCE')
             else:
-                team = teammember.team
-                # check if this is the only teammember of this team
+# remove employee from teammember
                 teammember.employee = None
                 teammember.save(request=request)
-                # check if team has other teammembers
-                other_teammembers_exist = m.Teammember.objects.filter(Q(team=team) & ~Q(employee_id=employee_id.pk)).exists
+                logger.debug(' --- remove employee from teammember')
+
+# check if team has other teammembers
+                team = teammember.team
+                other_teammembers_exist = m.Teammember.objects.filter(
+                    Q(team=team) &
+                    ~Q(employee=employee) &
+                    Q(employee__isnull=False)
+                ).exists
+# if so: delete this teammember
+
+                logger.debug(' --- other_teammembers_exist:' + str(other_teammembers_exist))
                 if other_teammembers_exist:
-                    # delete this teammember
-                    teammember.delete(request=request)
+                      teammember.delete(request=request)
 
                 update_team_code(teammember.team, request)
 
@@ -873,9 +891,10 @@ def update_team_code(team, request):
         for teammember in teammembers:
             employee = teammember.employee
             code = getattr(employee, 'code')
+
             if code is None:
                 code = _('Select employee...')
-            logger.debug('teammember.employee code: ' + str(code))
+            logger.debug('  .... employee code: ' + str(code) +  str(teammember.new_datelast))
             if not skip_rest:
                 team.code = code
                 team.save(request=request)

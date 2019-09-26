@@ -90,31 +90,6 @@
         return item_dict;
     };  // function GetItemDictFromTablerow
 
-//========= get_tablerow_clicked  =============
-    function get_tablerow_clicked(el_clicked){
-        //console.log("=========  get_tablerow_clicked =========");
-
-        let tr_clicked;
-        if(!!el_clicked) {
-            // el_clicked can either be TR or TD (when clicked 2nd time, apparently)
-            //console.log ("el_clicked.nodeName: ", el_clicked.nodeName)
-            switch(el_clicked.nodeName){
-            case "INPUT":
-            case "SELECT":
-            case "A":
-                tr_clicked =  el_clicked.parentNode.parentNode;
-                break;
-            case "TD":
-                tr_clicked =  el_clicked.parentNode;
-                break;
-            case "TR":
-                tr_clicked =  el_clicked;
-            }
-        };
-        //console.log(tr_clicked);
-        return tr_clicked;
-    }; // get_tablerow_clicked UploadChanges
-
 //========= get_tablerow_selected  =============
     function get_tablerow_selected(el_selected){
         // PR2019-04-16 function 'bubbles up' till tablerow element is found
@@ -143,7 +118,7 @@
 //========= get_tablerow_id  ============= PR2019-04-28
     function get_tablerow_id(el_clicked){
         let dict = {};
-        let tr_clicked = get_tablerow_clicked(el_clicked)
+        let tr_clicked = get_tablerow_selected(el_clicked)
         if (!!tr_clicked){
             if (tr_clicked.hasAttribute("id")){
                 dict["pk"] = tr_clicked.getAttribute("id")
@@ -174,6 +149,25 @@
 
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
 
+//========= lookup_itemdict_from_datadict  ======== PR2019-09-24
+    function lookup_itemdict_from_datadict(data_dict, selected_pk) {
+        let dict = {}, found = false;
+        for (let key in data_dict) {
+            if (data_dict.hasOwnProperty(key)) {
+                dict = data_dict[key];
+                // returns NaN wghen not found, Don't use get_pk_from_dict, it returns 0
+                // when pk not found and makes (pk_int === sel_cust_pk) = true when sel_cust_pk = 0
+                const pk_int = parseInt(get_subdict_value_by_key (dict, "id", "pk"))
+                if (pk_int === selected_pk) {
+                    found = true;
+                    break;
+                }
+           }
+        }
+        const item_dict = found ?  dict : {};
+        return item_dict
+    }
+
 //========= get_iddict_from_dict  ======== PR2019-07-28
     function get_iddict_from_dict (dict) {
         let id_dict = {};
@@ -185,9 +179,9 @@
 
 //========= function get_iddict_from_element  ======== PR2019-06-01
     function get_iddict_from_element (el) {
-        // function gets 'data-pk' and 'data-ppk' from el
-        // and puts it as 'pk', 'parent_pk', 'temp_pk' and 'create' in id_dict
-        // id_dict = {'temp_pk': 'new_4', 'create': True, 'parent_pk': 120}
+        // function gets 'data-pk', 'data-ppk', 'data-table', 'data-mode', 'data-cat' from element
+        // and puts it as 'pk', 'ppk', 'temp_pk' and 'create', mode, cat in id_dict
+        // id_dict = {'temp_pk': 'new_4', 'create': True, 'ppk': 120}
         let id_dict = {};
         if(!!el) {
 // ---  get pk from data-pk in el
@@ -296,15 +290,18 @@
         return dict_pk;
     }
 
-//========= function get_pk_from_id  ================= PR2019-05-24
-    function get_pk_from_id (dict) {
+//========= function get_pk_from_dict  ================= PR2019-05-24
+    function get_pk_from_dict (dict) {
         return parseInt(get_subdict_value_by_key (dict, "id", "pk", 0))
     }
-//========= function get_ppk_from_id  ================= PR2019-05-24
-    function get_ppk_from_id (dict) {
+//========= function get_ppk_from_dict  ================= PR2019-05-24
+    function get_ppk_from_dict (dict) {
         return parseInt(get_subdict_value_by_key (dict, "id", "ppk", 0))
     }
-
+//========= function get_cat_from_dict  ================= PR2019-09-24
+    function get_cat_from_dict (dict) {
+        return parseInt(get_subdict_value_by_key (dict, "id", "cat", 0))
+    }
 //========= function is_updated  ================= PR2019-06-06
     function is_updated (field_dict){
         let updated = false
@@ -560,7 +557,7 @@
 
 //###########################################################
 //========= format_text_element  ======== PR2019-06-09
-    function format_text_element (el_input, el_msg, field_dict, offset) {
+    function format_text_element (el_input, el_msg, field_dict, msg_offset, title_overlap) {
         //console.log("--- format_text_element ---")
         //console.log("field_dict: ", field_dict)
 
@@ -569,18 +566,28 @@
             let updated = get_dict_value_by_key (field_dict, "updated");
             let msg_err = get_dict_value_by_key (field_dict, "error");
 
-            //console.log("????? value: ", value)
+            // lock element when locked
+            const locked = get_dict_value_by_key (field_dict, "locked");
+            el_input.disabled = locked
 
+            // add red border and background when has_overlap, add title_overlap
+            const has_overlap = get_dict_value_by_key (field_dict, "overlap", false);
+            if(has_overlap){
+                el_input.classList.add("border_bg_invalid")
+                el_input.setAttribute("title", title_overlap);
+            } else {
+                el_input.classList.remove("border_bg_invalid")
+                el_input.removeAttribute("title");
+            }
             if(!!msg_err){
                 if(!value) { value = null} // otherwise 'undefined will show in tetbox
-                ShowMsgError(el_input, el_msg, msg_err, offset, true, value)
+                ShowMsgError(el_input, el_msg, msg_err, msg_offset, true, value)
             } else if(updated){
                 el_input.classList.add("border_valid");
                 setTimeout(function (){
                     el_input.classList.remove("border_valid");
                     }, 2000);
             }
-
             if (!!value){
                 el_input.value = value;
                 el_input.setAttribute("data-value", value);
@@ -591,7 +598,7 @@
                 el_input.removeAttribute("data-o_value");
             }
         }
-    }
+    }  // format_text_element
 
 //========= function format_date_element  ======== PR2019-07-02
     function format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
@@ -624,7 +631,7 @@
             const maxoffset = get_dict_value_by_key (field_dict, "maxoffset");
 
             //console.log("data_value: ", data_value);
-            //console.log("updated: ", updated);
+            //console.log("updated: ", updated, typeof updated);
 
             let wdmy = "", wdm = "", dmy = "", dm = "";
             if(!!data_value) {
@@ -759,10 +766,9 @@
     }  // function format_date_iso
 
 
-
 //oooooooooooooooooooooooooooooooo
 //========= format_datetime_element  ======== PR2019-06-03
-    function format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list) {
+    function format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap) {
         //console.log("------ format_datetime_element --------------")
         //console.log("field_dict: ", field_dict)
 
@@ -777,10 +783,48 @@
             const maxdatetime = get_dict_value_by_key (field_dict, "maxdatetime");
 
             const fieldname = get_dict_value_by_key (field_dict, "field");
-            const offset = get_dict_value_by_key (field_dict, "offset");
+            const offset = parseInt(get_dict_value_by_key (field_dict, "offset"));
+            const minOffset = parseInt(get_dict_value_by_key (field_dict, "minoffset"));
+            const maxOffset = parseInt(get_dict_value_by_key (field_dict, "maxoffset"));
+
+            //console.log("offset: ", offset, typeof offset)
+            //console.log("minOffset: ", minOffset, typeof minOffset)
+            //console.log("maxOffset: ", maxOffset, typeof maxOffset)
+
             const updated = get_dict_value_by_key (field_dict, "updated");
-            const locked = get_dict_value_by_key (field_dict, "locked");
             const msg_err = get_dict_value_by_key (field_dict, "error");
+
+
+            // lock element when locked
+            const locked = get_dict_value_by_key (field_dict, "locked");
+            el_input.disabled = locked
+
+
+            const has_overlap = get_dict_value_by_key (field_dict, "overlap", false);
+            if(has_overlap){
+                el_input.classList.add("border_bg_invalid")
+                el_input.setAttribute("title", title_overlap);
+            } else {
+                el_input.classList.remove("border_bg_invalid")
+                el_input.removeAttribute("title");
+            }
+
+// put values in element
+            if(!!rosterdate_iso){el_input.setAttribute("data-rosterdate", rosterdate_iso)
+                } else {el_input.removeAttribute("data-rosterdate")};
+            if(!!datetime_iso){el_input.setAttribute("data-datetime", datetime_iso)
+                } else {el_input.removeAttribute("data-datetime")};
+            if(!!mindatetime){el_input.setAttribute("data-mindatetime", mindatetime)
+                } else {el_input.removeAttribute("data-mindatetime")};
+            if(!!maxdatetime){el_input.setAttribute("data-maxdatetime", maxdatetime)
+                } else {el_input.removeAttribute("data-maxdatetime")};
+            if(!!offset || offset === 0){el_input.setAttribute("data-offset", offset)
+                } else {el_input.removeAttribute("data-offset")};
+            if(!!minOffset || minOffset === 0){el_input.setAttribute("data-minoffset", minOffset)
+                } else {el_input.removeAttribute("data-minoffset")};
+            if(!!maxOffset || maxOffset === 0){el_input.setAttribute("data-maxoffset", maxOffset)
+                } else {el_input.removeAttribute("data-maxoffset")};
+
 
 // from https://www.techrepublic.com/article/convert-the-local-time-to-another-time-zone-with-this-javascript/
 // from  https://momentjs.com/timezone/
@@ -887,24 +931,21 @@
                 }
             }  // if (!!datetime_iso)
 
-// put values in element
-            if(!!rosterdate_iso){el_input.setAttribute("data-rosterdate", rosterdate_iso)
-                } else {el_input.removeAttribute("data-rosterdate")};
-            if(!!datetime_iso){el_input.setAttribute("data-datetime", datetime_iso)
-                } else {el_input.removeAttribute("data-datetime")};
-            if(!!mindatetime){el_input.setAttribute("data-mindatetime", mindatetime)
-                } else {el_input.removeAttribute("data-mindatetime")};
-            if(!!maxdatetime){el_input.setAttribute("data-maxdatetime", maxdatetime)
-                } else {el_input.removeAttribute("data-maxdatetime")};
-            if(!!offset){el_input.setAttribute("data-offset", offset)
-                } else {el_input.removeAttribute("data-offset")};
 
             if(!!shortdatetime){el_input.value = shortdatetime};
 
-            el_input.title = fulldatetime;
+            let title = !has_overlap ? fulldatetime : title_overlap;
 
-            // lock element when locked
-            el_input.disabled = locked
+            el_input.title = title;
+
+
+
+            // set border invalid when overlap
+            let hasoverlap = false;
+            if(!isEmpty(field_dict)) {
+            hasoverlap = ("overlap" in field_dict)
+        }
+
 
         }  // if(!!el_input && !!field_dict){
     }  // function format_datetime_element
@@ -1015,7 +1056,6 @@
 
         }  // if(!!el_input)
     }  // function format_offset_element
-
 
 //========= format_duration_element  ======== PR2019-07-22
     function format_duration_element (el_input, el_msg, field_dict, user_lang) {
@@ -1140,7 +1180,6 @@
         return display_value
     }  // function display_duration
 
-
 //========= format_inactive_element  ======== PR2019-06-09
     function format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active, title_inactive, title_active) {
         // inactive: {value: true}
@@ -1178,16 +1217,34 @@
     }  // format_inactive_element
 
 
-//========= format_status_element  ======== PR2019-06-09
+//========= format_overlap_element  ======== PR2019-09-19
+    function format_overlap_element (el_input, field_dict, imgsrc_no_overlap, imgsrc_overlap, title_overlap) {
+        if(!!el_input){
+            let has_overlap = false;
+            if(!isEmpty(field_dict)){has_overlap = get_dict_value_by_key (field_dict, "value")}
+
+            const imgsrc = has_overlap ? imgsrc_overlap : imgsrc_no_overlap;
+
+            let el_img = el_input.children[0];
+            if (!!el_img){el_img.setAttribute("src", imgsrc)};
+
+            if (!!has_overlap){
+                el_input.setAttribute("title", title_overlap);
+            } else {
+                el_input.removeAttribute("title");
+            }
+        }
+    }  // format_overlap_element
+
+//========= format_confirmation_element  ======== PR2019-06-09
     function format_confirmation_element (el_input, field_dict,
         imgsrc_stat00, imgsrc_questionmark, imgsrc_warning,
         title_stat00, title_question_start, title_question_end, title_warning_start, title_warning_end ) {
          "use strict";
-// TODO under consctruction
-        // inactive: {value: true}
-        //console.log("+++++++++ format_status_element")
-        //console.log(field_dict)
-        // console.log(el_input)
+
+        console.log("+++++++++ format_confirmation_element")
+        console.log(field_dict)
+         console.log(el_input)
 
         if(!!el_input){
             let status_sum = 0;
@@ -1239,15 +1296,15 @@
                 el_input.setAttribute("title", title);
             }
         }
-    }  // function format_status_element
+    }  // function format_confirmation_element
 
 
-
-//========= format_status_element  ======== PR2019-06-09
+//========= format_status_element  ======== PR2019-09-18
     function format_status_element (el_input, field_dict,
         imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_stat04, imgsrc_stat05,
-        title_stat00, title_stat01, title_stat02, title_stat03, title_stat04, title_stat05 ) {
-         "use strict";
+        title_stat00, title_stat01, title_stat02, title_stat03, title_stat04, title_stat05) {
+
+        "use strict";
 
         // inactive: {value: true}
         //console.log("+++++++++ format_status_element")
@@ -1340,8 +1397,12 @@
 //=========  ShowMsgError  ================ PR2019-06-01
     function ShowMsgError(el_input, el_msg, msg_err, offset, set_value, display_value, data_value, display_title) {
         // show MsgBox with msg_err , offset[0] shifts horizontal position, offset[1] VERTICAL
-        console.log("ShowMsgError", display_value, data_value, display_title )
-        console.log("ShowMsgError", offset, display_value, data_value, display_title )
+        console.log("ShowMsgError")
+        console.log("display_value", set_value, typeof set_value )
+        console.log("display_value", display_value, typeof display_value )
+        console.log("display_value", data_value, typeof data_value )
+        console.log("display_value", display_title, typeof display_title )
+
         if(!!el_input && msg_err) {
             el_input.classList.add("border_bg_invalid");
                 // el_input.parentNode.classList.add("tsa_tr_error");
@@ -1365,7 +1426,7 @@
             el_msg.setAttribute("style", msgAttr)
 
             setTimeout(function (){
-                    let tblRow = get_tablerow_clicked(el_input);
+                    let tblRow = get_tablerow_selected(el_input);
                     if(!!tblRow){tblRow.classList.remove("tsa_tr_error")};
 
                     if (set_value){
@@ -1403,6 +1464,7 @@
             img.setAttribute("width", height);
         el.appendChild(img);
     }
+
 //=========  AppendIcon  ================ PR2019-08-27
     function IconChange(el, img_src ) {
         if (!!el) {
@@ -1411,38 +1473,33 @@
         }
     }
 
-
-//=========  DeselectHighlightedRows  ================ PR2019-04-30 PR2019-08-08
+//=========  DeselectHighlightedRows  ================ PR2019-04-30 PR2019-09-23
     function DeselectHighlightedRows(tr_selected, cls_selected, cls_background) {
-       // console.log("=========  DeselectHighlightedRows =========");
+        if(!!tr_selected){
+            DeselectHighlightedTblbody(tr_selected.parentNode, cls_selected, cls_background)
+        }
+    }
+
+//=========  DeselectHighlightedTblbody  ================ PR2019-04-30 PR2019-09-23
+    function DeselectHighlightedTblbody(tableBody, cls_selected, cls_background) {
+       // console.log("=========  DeselectHighlightedTblbody =========");
         //console.log("cls_selected", cls_selected, "cls_background", cls_background);
 
         if(!cls_selected){cls_selected = "tsa_tr_selected"}
 
-        if(!!tr_selected){
-            const tableBody = tr_selected.parentNode
+        if(!!tableBody){
             let tblrows = tableBody.getElementsByClassName(cls_selected);
             for (let i = 0, tblRow, len = tblrows.length; i < len; i++) {
                 tblRow = tblrows[i];
                 if(!!tblRow){
                     tblRow.classList.remove(cls_selected)
-
                     if(!!cls_background){
                         tblRow.classList.add(cls_background)
                     };
                 }
             }
-// don't remove tsa_tr_error
-            //tblrows = tableBody.getElementsByClassName("tsa_tr_error");
-            //for (let i = 0, len = tblrows.length; i < len; i++) {
-            //   tblrows[i].classList.remove("tsa_tr_error")
-            //}
-            //tblrows = tableBody.getElementsByClassName("tsa_bc_yellow_lightlight");
-            //for (let i = 0, len = tblrows.length; i < len; i++) {
-            //    tblrows[i].classList.remove("tsa_bc_yellow_lightlight")
-            //}
         }
-    }
+    }  // DeselectHighlightedTblbody
 
 //=========  ChangeBackgroundRows  ================ PR2019-08-11
     function ChangeBackgroundRows(tableBody, old_cls_background, new_cls_background, skip_cls_background) {
@@ -1461,7 +1518,6 @@
             }
         }
     }
-
 
 
 //========= function found_in_list_str  ======== PR2019-01-22
@@ -1515,7 +1571,7 @@
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= FilterTableRows  ====================================
-    function FilterTableRows(tblBody, filter, col_inactive, show_inactive) {  // PR2019-06-09
+    function FilterTableRows(tblBody, filter, col_inactive = -1, show_inactive = false) {  // PR2019-06-09
         //console.log( "===== FilterRows  ========= ");
         //console.log( "filter", filter, "col_inactive", col_inactive, typeof col_inactive);
         //console.log( "show_inactive", show_inactive, typeof show_inactive);
@@ -1770,10 +1826,7 @@
     }; // function ShowRow
 */
 
-
-
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 
 //========= CreateTableRows  ====================================
     function CreateTableRows(tableBase, stored_items, excel_items,

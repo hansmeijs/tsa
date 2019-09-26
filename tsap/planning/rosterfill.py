@@ -127,9 +127,10 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
         entries_employee_list = []
 
         logger.debug('entry_balance: ' + str(entry_balance))
+        dte_formatted = f.format_WDMY_from_dte(new_rosterdate_dte, user_lang)
         # ===============================================================
         logfile.append('===================================================================================== ')
-        logfile.append('  ' + str(request.user.company.code) + '  -  Fill roster of date: ' + str(new_rosterdate_dte))
+        logfile.append('  ' + str(request.user.company.code) + '  -  Fill roster of date: ' + str(dte_formatted))
         logfile.append('===================================================================================== ')
         # ===============================================================
 
@@ -155,7 +156,7 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
             'cat': c.SHIFT_CAT_0512_ABSENCE,
             'rd': new_rosterdate_dte})
         absence_rows = newcursor.fetchall()
-        logger.debug('++++++++++ >' + str(absence_rows))
+        logger.debug('++++++++++ absence_rows >' + str(absence_rows))
         # (446, 'Agata G M', 'Buitengewoon', 'agata g m'),
         # (446, 'Agata G M', 'Vakantie', 'agata g m'),
 
@@ -194,7 +195,8 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
             logfile.append('   no absent employees on ' + str(new_rosterdate_dte.isoformat()) + '.')
 
 # 3. create list of employees who have rest_shifts on new_rosterdate_dte, also on previous and nec=xt rosterdate
-        logger.debug(absence_dict)
+        logger.debug('absence_dict:  ' + str(absence_dict))
+
         # absence_dict = {361: 'Vakantie', 446: 'Buitengewoon', 363: 'Ziekte', 290: 'Vakantie', 196: 'Buitengewoon', 341: 'Vakantie', 152: 'Onbetaald'}
         logger.debug(str('############################'))
         # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
@@ -347,7 +349,6 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
                                         range = get_range_text(scheme.datefirst, scheme.datelast, True)  # True: with parentheses
 
                                         logfile.append('. . . . . . . . . . . . . . . . . . . . . . . . .')
-                                        logfile.append('   Scheme: ')
                                         logfile.append('   Scheme: ' + str(scheme_code) + ' ' + range)
 
                                         if scheme.inactive:
@@ -588,18 +589,13 @@ def get_first_teammember_on_rosterdate_with_logfile(schemeitem, rosterdate_dte, 
 
     team = schemeitem.team
     if team and rosterdate_dte:
-        # filter teammmembers that have new_rosterdate within range datefirst/datelast
-        crit = (Q(team=team)) & \
-               (Q(employee__isnull=False))  # & \
-        # (Q(employee__datefirst__lte=rosterdate_dte) | Q(employee__datefirst__isnull=True)) & \
-        # (Q(employee__datelast__gte=rosterdate_dte) | Q(employee__datelast__isnull=True)) & \
-        # (Q(datefirst__lte=rosterdate_dte) | Q(datefirst__isnull=True)) & \
-        # (Q(datelast__gte=rosterdate_dte) | Q(datelast__isnull=True))
+        # don't filter teammmembers within range datefirst/datelast, but give message further
 
-        # 1. iterate through teammembers
-        teammembers = m.Teammember.objects.annotate(
-            new_datelast=Coalesce('datelast', Value(datetime(2500, 1, 1))
-                                  )).filter(crit).order_by('new_datelast')
+# 1. iterate through teammembers
+        teammembers = m.Teammember.objects\
+            .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1))))\
+            .filter(team=team)\
+            .order_by('datelast_nonull')
 
         if not teammembers:
             logfile.append("       This shift has no employees.")
@@ -698,7 +694,7 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone):
     # the curent cycle has index 0. It starts with new_rosterdate and ends with new_rosterdate + cycle -1
 
     if schemeitem and new_rosterdate_dte:
-        # new_rosterdate_naive = f.get_datetime_naive_from_date(new_rosterdate_dte)
+        # new_rosterdate_naive = f.get_datetime_naive_from_dateobject(new_rosterdate_dte)
         new_si_rosterdate_naive = schemeitem.get_rosterdate_within_cycle(new_rosterdate_dte)
         # logger.debug(' new_rosterdate_naive: ' + str(new_rosterdate_naive) + ' ' + str(type(new_rosterdate_naive)))
         # new_rosterdate_naive: 2019-08-27 00:00:00 <class 'datetime.datetime'>
@@ -714,7 +710,7 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone):
             # new_si_rosterdate: 2019-07-27 <class 'datetime.date'>
 
             # convert to dattime object
-            new_si_rosterdatetime = f.get_datetime_naive_from_date(new_si_rosterdate_naive)
+            new_si_rosterdatetime = f.get_datetime_naive_from_dateobject(new_si_rosterdate_naive)
 
             # get new_schemeitem.time_start and new_schemeitem.time_end
             new_timestart = None

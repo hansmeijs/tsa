@@ -14,25 +14,25 @@
         <div class="sidebar_header">
             <h3>{% trans 'Orders' %}</h3>
         </div>
-        <div class="mx-2 my-2"> <!-- this div is necessary to get standard structure for FilterTableRows -->
-            <table class="table table-condensed tsa-tbl td_width_180 mx-2 my-1 border_none">
-                <thead>
-                    <tr>
-                        <td>{% trans 'Select customer' %}:</td>
-                    </tr>
-                    <tr>
-                        <td >
-                            <input id="id_filter_customers" type="text" class="fieldname pt-0 pb-0" colspan=2 placeholder="{% trans 'filter name...' %}">
-                        </td>
-                    </tr>
+
+        <div class="td_width_200 mx-2 mt-2 mb-5">
+            <table >
+                <thead id="id_thead_select"class="mx-1 my-1 ">
+                <tr>
+                    {% trans 'Select customer' %}:
+                <input id="id_flt_select"
+                    type="text"
+                    class="td_width_200 line_height_normal px-2"
+                    autocomplete="off"
+                    placeholder="{% trans 'filter ...' %}">
+                </tr>
                 </thead>
-                <tbody id="id_tbody_select" data-table="customer"></tbody>
+                <tbody id="id_tbody_select"></tbody>
             </table>
         </div>
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
-
 
 
 
@@ -64,6 +64,7 @@
                             <input id="id_filter_orders"
                             type="text"
                             class="fieldname pt-0 pb-0"
+                            autocomplete="off"
                             placeholder="{% trans 'filter...' %}">
                         </div>
                     </div>
