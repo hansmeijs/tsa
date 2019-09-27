@@ -195,21 +195,21 @@ ABSENCE = {
     LANG_NL: ('Afwezig', 'Absentie')
           }
 
-# PR2019-06-24
+# PR2019-06-24  PR2019-09-26  fields: sequence, code, name, rate. rate=1 means default category
 ABSENCE_CATEGORY = {LANG_EN: (
-                        ('0', 'Unknown', 'Unknown'),
-                        ('1', 'Vacation', 'Vacation leave'),
-                        ('2', 'Sick', 'Sick leave'),
-                        ('3', 'Special leave', 'Special leave'),
-                        ('4', 'Unpaid leave', 'Unpaid leave'),
-                        ('5', 'Unauthorized', 'Unauthorized absence')),
+                        ('0', 'Unknown', 'Unknown', '1'),
+                        ('1', 'Vacation', 'Vacation leave', '0'),
+                        ('2', 'Sick', 'Sick leave', '0'),
+                        ('3', 'Special leave', 'Special leave', '0'),
+                        ('4', 'Unpaid leave', 'Unpaid leave', '0'),
+                        ('5', 'Unauthorized', 'Unauthorized absence', '0')),
                     LANG_NL: (
-                        ('0', 'Onbekend', 'Onbekend'),
-                        ('1', 'Vakantie', 'Vakantie'),
-                        ('2', 'Ziek', 'Ziekte'),
-                        ('3', 'Buitengewoon', 'Buitengewoon verlof'),
-                        ('4', 'Onbetaald', 'Onbetaald verlof'),
-                        ('5', 'Ongeoorloofd', 'Ongeoorloofd verzuim'))
+                        ('0', 'Onbekend', 'Onbekend', '1'),
+                        ('1', 'Vakantie', 'Vakantie', '0'),
+                        ('2', 'Ziek', 'Ziekte', '0'),
+                        ('3', 'Buitengewoon', 'Buitengewoon verlof', '0'),
+                        ('4', 'Onbetaald', 'Onbetaald verlof', '0'),
+                        ('5', 'Ongeoorloofd', 'Ongeoorloofd verzuim', '0'))
                     }
 
 KEY_COMP_ROSTERDATE_CURRENT = 'rstdte_current'

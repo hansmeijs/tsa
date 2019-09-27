@@ -252,19 +252,19 @@ def create_absencecategory_list(request):
     return order_list
 
 
-def create_absencecat_dict(instance, request):
+def create_absencecat_dict(abscat_order, request):
 # --- create dict of this absece category PR2019-06-25
     # logger.debug(" --- create_absencecat_dict ---")
     dict = {}
-    if instance:
-        parent_pk = instance.customer.pk
+    if abscat_order:
+        parent_pk = abscat_order.customer.pk
 
-        dict['pk'] = instance.pk
+        dict['pk'] = abscat_order.pk
         dict['ppk'] = parent_pk
         dict['table'] = 'order'
-        dict['id'] = {'pk': instance.pk, 'ppk': parent_pk, 'table': 'order'}
+        dict['id'] = {'pk': abscat_order.pk, 'ppk': parent_pk, 'table': 'order'}
 
-        code = getattr(instance, 'code', None)
+        code = getattr(abscat_order, 'code', None)
         if code:
             # use model field 'name' in datalist filed 'code'
             dict['code'] = {'value': code}
@@ -272,15 +272,17 @@ def create_absencecat_dict(instance, request):
     # get team of this abscat order, needed for absence in empoloyee page
 
     # - create 'absence' scheme if not exists
-        if not m.Scheme.objects.filter(order=instance).exists():
-            scheme = create_absence_scheme(instance, code, request)
-        scheme = m.Scheme.objects.filter(order=instance).first()
+        if not m.Scheme.objects.filter(order=abscat_order).exists():
+            scheme = create_absence_scheme(abscat_order, code, request)
+        else:
+            scheme = m.Scheme.objects.filter(order=abscat_order).first()
         # logger.debug("scheme: " + str(scheme))
         if scheme:
     # - create 'absence' team if not exists
             if not m.Team.objects.filter(scheme=scheme).exists():
                 create_absence_team(scheme, code, request)
-            team = m.Team.objects.filter(scheme=scheme).first()
+            else:
+                team = m.Team.objects.filter(scheme=scheme).first()
             # logger.debug("team: " + str(team))
             if team:
                 team_dict = {
@@ -308,26 +310,26 @@ def get_or_create_absence_customer(request):
 
 # - check if 'absence' customer exists for this company - only one 'absence' customer allowed
     # don't use get_or_none, it wil return None when multiple absence customers exist, therefore adding another record
-    customer = m.Customer.objects.filter(company=request.user.company, cat=c.SHIFT_CAT_0512_ABSENCE).first()
-    if customer is None:
+    abs_cust = m.Customer.objects.filter(company=request.user.company, cat=c.SHIFT_CAT_0512_ABSENCE).first()
+    if abs_cust is None:
 
 # - create 'absence' customer if not exists
-        customer = m.Customer(company=request.user.company,
+        abs_cust = m.Customer(company=request.user.company,
                             code=absence_locale[0],
                             name=absence_locale[1],
                             cat=c.SHIFT_CAT_0512_ABSENCE)
-        customer.save(request=request)
+        abs_cust.save(request=request)
 
-    if customer:
+    if abs_cust:
 # - check if 'absence' customer has categories (orders)
-        absence_orders_exist = m.Order.objects.filter(customer=customer).exists()
+        absence_orders_exist = m.Order.objects.filter(customer=abs_cust).exists()
 
 # - if no orders exist: create 'absence' orders - contains absence categories
         if not absence_orders_exist:
-            create_absence_orders(customer, user_lang, request)
+            create_absence_orders(abs_cust, user_lang, request)
 
 
-def create_absence_orders(customer, user_lang, request):
+def create_absence_orders(abs_cust, user_lang, request):
 # === Create new 'absence' customer, order and scheme and team PR2019-06-24
     # logger.debug(" === create_absence_orders ===")
 
@@ -336,22 +338,26 @@ def create_absence_orders(customer, user_lang, request):
     else:
         categories_locale = c.ABSENCE_CATEGORY[c.LANG_DEFAULT]
 
-    # ABSENCE_CATEGORY: ('0', 'Unknown', 'Unknown absence'), etc
-    if customer:
+    # ABSENCE_CATEGORY: ('0', 'Unknown', 'Unknown', '1'),, etc
+    # fields: (sequence, code, name, rate). rate=1 means default category
+
+    if abs_cust:
         for category in categories_locale:
             # sequencce is stored in field 'taxrate'
             sequence = category[0]
             code = category[1]
             name = category[2]
+            rate = category[3]
 
     # - create 'absence' order - contains absence categories
-            order = m.Order(customer=customer,
+            order = m.Order(customer=abs_cust,
                           code=code,
                           name=name,
                           sequence=sequence,
+                          rate=rate,
                           cat=c.SHIFT_CAT_0512_ABSENCE)
             order.save(request=request)
-
+    # this def is only called when order does not exist, therefore also scheme and team don't exist
             if order:
     # - create 'absence' scheme
                 scheme = create_absence_scheme(order, code, request)

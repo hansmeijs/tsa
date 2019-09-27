@@ -181,9 +181,10 @@ class Order(TsaBaseModel):
     customer = ForeignKey(Customer, related_name='orders', on_delete=PROTECT)
     # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
     cat = PositiveSmallIntegerField(default=0)
-    sequence = PositiveSmallIntegerField(default=0)  # sequence of abscat
+    sequence = PositiveSmallIntegerField(default=0)  # sequence of abscat,
 
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    # in abscat order: rate=1 is default abscat order
     rate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG) per hour
 
     taxcode = ForeignKey(Taxcode, related_name='orders', on_delete=PROTECT, null=True, blank=True)

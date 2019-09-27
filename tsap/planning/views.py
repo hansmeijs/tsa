@@ -2422,17 +2422,6 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
         item_update_dict = {}
         if request.user is not None and request.user.company is not None:
-            logger.debug('request.POST: ' + str(request.POST))
-            # request.POST: <QueryDict: {'emplhour': ['{"id":{"pk":9,"ppk":9,"table":"emplhour"},
-            # "timestart":{"offset":"-1;5;0","rosterdate":"2019-07-25","update":true}}']}>
-
-            #id: {temp_pk: "new_1", create: true, table: "emplhour"}
-            # orderhour: {value: "MCB - Habaai", order_pk: 6, update: true}
-            # rosterdate: {value: "2019-07-26", update: true}
-
-            # QueryDict: {'item_upload': ['{"id":{"pk":79,"ppk":80,"table":"emplhour"},"status":{"value":2,"update":true}}']}>
-
-
 # 1. Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -2442,11 +2431,10 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
 
 # 3. get upload_dict from request.POST
-            upload_json = request.POST.get('emplhour', None)
+            upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                # logger.debug('upload_dict: ' + str(upload_dict))
-                # logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: {'id': {'pk': 153, 'parent_pk': 158, 'table': 'emplhour'},
                 # 'timestart': {'value': '2019-06-22T11:15:00.000Z', 'update': True}}
 
@@ -2472,18 +2460,12 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                 id_dict = upload_dict.get('id')
                 if id_dict:
                     pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode, cat = f.get_iddict_variables(id_dict)
-                    # id_dict is added to update_dict after check if parent_exists and item_exists
-                    # logger.debug('id_dict: ' + str(id_dict))
-                    # id_dict: {'temp_pk': 'new_3', 'create': True, 'parent_pk': 154, 'table': 'emplhour'}
-                    # id_dict: {'id': {'pk': 150, 'parent_pk': 154, 'table': 'emplhour'}
-                    # id_dict: {'temp_pk': 'new_1', 'create': True, 'table': 'emplhour'}
 
 # 4. Create empty update_dict with keys for all fields if not exist. Unused ones will be removed at the end
                     # this one is not working: update_dict = dict.fromkeys(field_list, {})
                     update_dict = f.create_dict_with_empty_attr(c.FIELDS_EMPLHOUR)
 
 # C. Create new orderhour / emplhour - before check if parent exists
-                    parent = None
                     instance = None
                     if is_create:
                         instance, parent = create_orderhour_emplhour(upload_dict, update_dict, request)
@@ -2673,10 +2655,10 @@ def make_absent(emplhour, upload_dict, request):
 
     # in upload_dict is employee the current employee, to be added to abscat emplhour;
     #  replacement employee must be put in original emplhour
-    # therefore use replacement as 'employee', in update_item the original employee will be repalced by replacement
+    # therefore use replacement as 'employee', in update_item the original employee will be replaced by replacement
 
 # - get replacement employee
-    # not necessary, replacement employee will be put in ecurrent emplhour in update_item
+    # not necessary, replacement employee will be put in current emplhour in update_item
 
 # - get parent (orderhour) of emplhour
     parent = emplhour.orderhour
@@ -2684,47 +2666,51 @@ def make_absent(emplhour, upload_dict, request):
     abscat_dict = upload_dict.get('abscat')
     if abscat_dict:
         abscat_pk = abscat_dict.get('pk')
-        abscat_parent_pk = abscat_dict.get('ppk')
-
+        abscat_order = None
         if abscat_pk:
             abscat_order = m.Order.objects.filter(id=abscat_pk, cat=c.SHIFT_CAT_0512_ABSENCE).first()
-            if abscat_order:
-# create new abscat_orderhour record if it does not exist
-                abscat_orderhour = m.Orderhour(
-                    order=abscat_order,
-                    schemeitem=parent.schemeitem,
-                    rosterdate=parent.rosterdate,
-                    yearindex=parent.yearindex,
-                    monthindex=parent.monthindex,
-                    weekindex=parent.weekindex,
-                    payperiodindex=parent.payperiodindex,
-                    cat=c.SHIFT_CAT_0512_ABSENCE,
-                    shift=parent.shift,
-                    duration=parent.duration
-                )
-                abscat_orderhour.save(request=request)
-                if abscat_orderhour:
+        else:
+            # set default abscat if category not entered (default abscat has rate=1)
+            abscat_cust = m.Customer.objects.filter(company=request.user.company, cat=c.SHIFT_CAT_0512_ABSENCE).first()
+            if abscat_cust:
+                abscat_order = m.Order.objects.filter(customer= abscat_cust, rate=1, cat=c.SHIFT_CAT_0512_ABSENCE).first()
+        if abscat_order:
+# create new abscat_orderhour
+            abscat_orderhour = m.Orderhour(
+                order=abscat_order,
+                schemeitem=parent.schemeitem,
+                rosterdate=parent.rosterdate,
+                yearindex=parent.yearindex,
+                monthindex=parent.monthindex,
+                weekindex=parent.weekindex,
+                payperiodindex=parent.payperiodindex,
+                cat=c.SHIFT_CAT_0512_ABSENCE,
+                shift=parent.shift,
+                duration=parent.duration
+            )
+            abscat_orderhour.save(request=request)
+            if abscat_orderhour:
 
 # FIELDS_EMPLHOUR = ('pk', 'id', 'orderhour', 'employee', 'rosterdate', 'cat', 'shift',
 #                         'timestart', 'timeend', 'timeduration', 'breakduration',
 #                         'wagerate', 'wagefactor', 'wage', 'status')
 
 # create new abscat_emplhour record
-                    abscat_emplhour = m.Emplhour(orderhour=abscat_orderhour)
+                abscat_emplhour = m.Emplhour(orderhour=abscat_orderhour)
 # put current employee in abscat_emplhour
-                    abscat_emplhour.employee = emplhour.employee
+                abscat_emplhour.employee = emplhour.employee
 # copy other fields to abscat_emplhour
-                    abscat_emplhour.rosterdate = emplhour.rosterdate
-                    abscat_emplhour.cat = c.SHIFT_CAT_0512_ABSENCE
-                    abscat_emplhour.shift = emplhour.shift
-                    abscat_emplhour.timestart = emplhour.timestart
-                    abscat_emplhour.timeend = emplhour.timeend
-                    abscat_emplhour.timeduration = emplhour.timeduration
-                    abscat_emplhour.breakduration = emplhour.breakduration
-                    abscat_emplhour.wagerate = emplhour.wagerate
-                    abscat_emplhour.wage = emplhour.wage
-                    abscat_emplhour.status = c.STATUS_00_NONE
-                    abscat_emplhour.save(request=request)
+                abscat_emplhour.rosterdate = emplhour.rosterdate
+                abscat_emplhour.cat = c.SHIFT_CAT_0512_ABSENCE
+                abscat_emplhour.shift = emplhour.shift
+                abscat_emplhour.timestart = emplhour.timestart
+                abscat_emplhour.timeend = emplhour.timeend
+                abscat_emplhour.timeduration = emplhour.timeduration
+                abscat_emplhour.breakduration = emplhour.breakduration
+                abscat_emplhour.wagerate = emplhour.wagerate
+                abscat_emplhour.wage = emplhour.wage
+                abscat_emplhour.status = c.STATUS_00_NONE
+                abscat_emplhour.save(request=request)
 
 def split_shift(emplhour, upload_dict, request):
     logger.debug('split_shift')
@@ -2785,13 +2771,9 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
     # --- update existing and new emplhour PR2-019-06-23
     # add new values to update_dict (don't reset update_dict, it has values)
     logger.debug(' --- update_ emplhour ---')
-    logger.debug('upload_dict: ' + str(upload_dict))
-    logger.debug('update_dict: ' + str(update_dict))
-    logger.debug('instance: ' + str(instance))
-    # upload_dict: {'id': {'pk': 11, 'ppk': 11, 'table': 'emplhour'},
-    # 'select': 'absent',
-    # 'employee': {'field': 'employee', 'pk': 30, 'ppk': 1, 'code': 'Anoushelly'},
-    # 'abscat': {'field': 'abscat', 'pk': 9, 'ppk': 6}}
+
+    mode = upload_dict.get('mode', '')
+    logger.debug('mode: ' + str(mode))
 
 # 1. get_iddict_variables
     id_dict = upload_dict.get('id')
@@ -2842,53 +2824,84 @@ def update_emplhour(instance, upload_dict, update_dict, request, comp_timezone, 
 # 3. save changes in field 'employee'
         # 'employee': {'update': True, 'value': 'Kevin', 'pk': 1},
         field = 'employee'
-        new_employee_pk = None
-        old_employee_pk = None
 
-        # new employee is stored as 'replacement' in upload_dict
-        if 'replacement' in upload_dict:
-            employee = None
-            logger.debug('upload_dict[replacement] found')
+        old_employee_pk = None  # is used at end for update_emplhour_overlap
+        # mode has only value when employee has changed
+        if mode:
+            if field in upload_dict or 'replacement' in upload_dict:
+        # get current employee
+                cur_employee_pk = None
+                cur_employee = None
+                if instance.employee_id:
+                    cur_employee_pk = instance.employee_id
+                # b. check if employee exists
+                    if cur_employee_pk:
+                        cur_employee = m.Employee.objects.filter(company=request.user.company, pk=cur_employee_pk).first()
+                        if cur_employee is None:
+                            cur_employee_pk = None
+                logger.debug('cur_employee: ' + str(cur_employee))
 
-    # a. get new and old employee_pk
-            field_dict = upload_dict.get('replacement')
-            logger.debug('field_dict[' + field + ']: ' + str(field_dict))
+            # get replacement employee
+                repl_employee = None
+                repl_employee_pk = None
+                if 'replacement' in upload_dict:
+                    logger.debug('upload_dict[replacement] found')
+                    field_dict = upload_dict.get('replacement')
+                    repl_employee_pk = field_dict.get('pk')
+                    logger.debug('field_dict[' + field + ']: ' + str(field_dict))
+                    if repl_employee_pk:
+                        repl_employee = m.Employee.objects.filter(company=request.user.company, pk=repl_employee_pk).first()
+                        if repl_employee is None:
+                            repl_employee_pk = None
+                logger.debug('repl_employee' + str(repl_employee))
 
-            new_employee_pk = field_dict.get('pk')
-            old_employee_pk = None
-            if instance.employee_id:
-                old_employee_pk = instance.employee_id
-    # b. check if employee exists
-            if new_employee_pk:
-                employee = m.Employee.objects.filter(company=request.user.company, pk=new_employee_pk).first()
-                if employee is None:
-                    new_employee_pk = None
-    # c. save field if changed
+                new_employee_pk = None
+                new_employee = None
+                old_employee_pk = cur_employee_pk
+                old_employee = cur_employee
+                if mode == 'enter':
+                    # enter mode: no current employee, replacement employee is new_employee
+                    new_employee = repl_employee
+                    new_employee_pk = repl_employee_pk
+                elif mode == 'absent':
+                    # absent mode: current employee is stored in new abscat, emplhour , replacement employee is new_employee
+                    new_employee = repl_employee
+                    new_employee_pk = repl_employee_pk
+                elif mode == 'switch':
+                    # switch mode: current employee is stored in emplhour of replacement, replacement employee is new_employee
+                    new_employee = repl_employee
+                    new_employee_pk = repl_employee_pk
+                elif mode == 'split':
+                    # split mode: current employee unchanged in this emplhour, replacement employee stored in new emplhour
+                    new_employee = cur_employee
+                    new_employee_pk = cur_employee_pk
+                logger.debug('new_employee: ' + str(new_employee))
+                logger.debug('old_employee: ' + str(old_employee))
 
-            logger.debug('new_employee_pk: ' + str(new_employee_pk) + 'old_employee_pk: ' + str(old_employee_pk))
-            # employee_pk is not required
-            if new_employee_pk != old_employee_pk:
-    # update field employee in emplhour
-                # setattr() sets the value ('team') of the specified attribute ('field') of the specified object (emplhour)
-                setattr(instance, field, employee)
-                save_changes = True
+            # c. save field if changed
+                # employee_pk is not required
+                if new_employee_pk != old_employee_pk:
+        # update field employee in emplhour
+                    # setattr() sets the value ('team') of the specified attribute ('field') of the specified object (emplhour)
+                    setattr(instance, field, new_employee)
+                    save_changes = True
 
-                logger.debug('save new_employee')
+                    logger.debug('save new_employee')
 
-                update_dict[field]['updated'] = True
-                if instance.employee:
-                    update_dict[field]['value'] = instance.employee.code
-                    update_dict[field]['pk'] = instance.employee.id
-                logger.debug('update_dict[' + field + ']: ' + str(update_dict[field]))
-        # --- save changes in time fields
-        # upload_dict: {'id': {'pk': 4, 'parent_pk': 18}, 'timestart': {'value': '0;11;15', 'update': True}}
+                    update_dict[field]['updated'] = True
+                    if instance.employee:
+                        update_dict[field]['value'] = instance.employee.code
+                        update_dict[field]['pk'] = instance.employee.id
+                    logger.debug('update_dict[' + field + ']: ' + str(update_dict[field]))
+                # --- save changes in time fields
+                # upload_dict: {'id': {'pk': 4, 'parent_pk': 18}, 'timestart': {'value': '0;11;15', 'update': True}}
 
 # 4. save changes in field 'timestart', 'timeend'
         for field in ('timestart', 'timeend'):
             if field in upload_dict:
                 field_dict = upload_dict.get(field)
                 logger.debug('field_dict: ' + str(field_dict))
-# ????????????????????? TODO  change to offset_int
+# TODO  change to offset_int
                 # 'timestart': {'value': '0;9;0', 'update': True, 'rosterdate': '2019-08-13'}}
                 if 'update' in field_dict:
                     # use saved_rosterdate instead of rosterdate from dict

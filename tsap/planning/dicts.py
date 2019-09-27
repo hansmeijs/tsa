@@ -1120,15 +1120,18 @@ def create_emplhour_itemdict(row_dict, update_dict, field_tuple, comp_timezone):
 
             elif field == 'employee':
                 if 'employee_id' in row_dict:
-                    field_dict['pk'] = row_dict.get('employee_id', 0)
-                    field_dict['ppk'] = row_dict.get('employee__company_id', 0)
-                    field_dict['value'] = row_dict.get('employee__code', '')
-                    #  make field red when has overlap
-                    if overlap: # overlap: 1 overlap start, 2 overlap end, 3 full overlap
-                        field_dict['overlap'] = True
-                    #  lock field employee when start is confirmed
-                    if status_value >= c.STATUS_02_START_CONFIRMED:
-                        field_dict['locked'] = True
+                    # if employee_id does not exist in row, it returns 'None'. Therefore default value 0 does not work
+                    employee_pk = row_dict.get('employee_id')
+                    if employee_pk:
+                        field_dict['pk'] = employee_pk
+                        field_dict['ppk'] = row_dict.get('employee__company_id', 0)
+                        field_dict['value'] = row_dict.get('employee__code', '')
+                        #  make field red when has overlap
+                        if overlap: # overlap: 1 overlap start, 2 overlap end, 3 full overlap
+                            field_dict['overlap'] = True
+                        #  lock field employee when start is confirmed
+                        if status_value >= c.STATUS_02_START_CONFIRMED:
+                            field_dict['locked'] = True
 
             elif field == 'rosterdate':
                 if rosterdate:
@@ -1147,7 +1150,7 @@ def create_emplhour_itemdict(row_dict, update_dict, field_tuple, comp_timezone):
                                        comp_timezone=comp_timezone)
 
             # also zero when empty
-            elif field in ('breakduration', 'timeduration', 'wagerate', 'wagefactor', 'wage'):
+            elif field in ('status', 'breakduration', 'timeduration', 'wagerate', 'wagefactor', 'wage'):
                 field_dict['value'] = row_dict.get(field, 0)
 
             elif field == 'overlap':

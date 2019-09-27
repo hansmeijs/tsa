@@ -31,12 +31,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let filter_dict = {};
 
-    let customer_dict = {};
-    let order_dict = {};
-    let shift_list = [];
-    let abscat_list = [];
-    let employee_dict = {};
-    let emplhour_dict = {};
+    let emplhour_map = new Map();
+    let abscat_map = new Map();
+    let employee_map = new Map();
+    let customer_map = new Map();
+    let order_map = new Map();
+
     let replacement_list = [];
 
     let period_dict = {};
@@ -135,7 +135,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_mod_employee_btn_save").addEventListener("click", function() {ModEmployeeSave()}, false )
         document.getElementById("id_mod_employee_switch_date").addEventListener("change", function() {ModEmployeeFillOptionsShift()}, false )
 
-
         document.getElementById("id_mod_setting_btn_save").addEventListener("click", function() {ModSettingSave("setting")}, false )
         document.getElementById("id_mod_range_btn_save").addEventListener("click", function() {ModSettingSave("range")}, false )
 
@@ -227,9 +226,9 @@ document.addEventListener('DOMContentLoaded', function() {
         CreateTableRange();
         DisplayPeriod(period_dict)
 
-        // TODO let intervalID = window.setInterval(CheckStatus, 5000);
+        let intervalID = window.setInterval(CheckStatus, 5000);
 
-        // period also returns emplhour_dict
+        // period also returns emplhour_map
         const datalist_request = {"customer": {inactive: false},
                                   "order": {inactive: false, cat_lte: 1},
                                   "period": {"mode": "saved"},
@@ -251,20 +250,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function DatalistDownload(datalist_request) {
         console.log( "=== DatalistDownload ")
         console.log("request: ", datalist_request)
-        // datalist_request: {"schemeitems": {"ppk": pk}, "teams": {"ppk": pk}, "shifts": {"ppk": pk}
+
 
 // reset requested lists
         let is_replacement = false
         for (let key in datalist_request) {
             // check if the property/key is defined in the object itself, not in parent
-            if (key === "customer") {customer_dict = {}};
-            if (key === "order") {order_dict = {}};
-            if (key === "abscat") {abscat_list = []};
-            if (key === "scheme") {scheme_list = []};
-            if (key === "schemeitem") {schemeitem_list = []};
-            if (key === "shift") {shift_list = []};
-            if (key === "employee") {employee_dict = {}};
-            if (key === "emplhour") {emplhour_dict = {}};
+
             if (key === "replacement") {
                 replacement_list = [];
                 is_replacement = true;
@@ -300,44 +292,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById("id_mod_employee_loader").classList.add(cls_hide)
                 let fill_table = false, check_status = false;
                 if ("abscat" in response) {
-                    abscat_list= response["abscat"];
-                    ModEmployeeFillOptionAbscat(abscat_list)
+                    abscat_map.clear()
+                    for (let i = 0, len = response["abscat"].length; i < len; i++) {
+                        const item_dict = response["abscat"][i];
+                        const pk_int = parseInt(item_dict["pk"]);
+                        abscat_map.set(pk_int, item_dict);
+                    }
+                    ModEmployeeFillOptionAbscat(abscat_map)
                 }
                 if ("employee" in response) {
-                    employee_dict = response["employee"];
+                    employee_map.clear()
+                    for (let i = 0, len = response["employee"].length; i < len; i++) {
+                        const item_dict = response["employee"][i];
+                        const pk_int = parseInt(item_dict["pk"]);
+                        employee_map.set(pk_int, item_dict);
+                    }
                 }
                 if ("customer" in response) {
-                    console.log("mmmmmmmmmmmmmmmmmmm customer_dict")
-                    customer_dict = response["customer"];
-                    console.log( customer_dict)
+                    customer_map.clear()
+                    for (let i = 0, len = response["customer"].length; i < len; i++) {
+                        const item_dict = response["customer"][i];
+                        const pk_int = parseInt(item_dict["pk"]);
+                        customer_map.set(pk_int, item_dict);
+                    }
                 }
                 if ("order" in response) {
-                    order_dict = response["order"];
+                    order_map.clear()
+                    for (let i = 0, len = response["order"].length; i < len; i++) {
+                        const item_dict = response["order"][i];
+                        const pk_int = parseInt(item_dict["pk"]);
+                        order_map.set(pk_int, item_dict);
+                    }
                     FillDatalistOrder()
                 }
 
                 if ("rosterdatefill" in response) {
                     SetNewRosterdate(response["rosterdatefill"])
-                    if ("emplhour" in response) {
-                        // emplhour_dict= response["emplhour"];
-                        emplhour_dict = {}
-                        // --- loop through cells of tablerow
-                        for (let i = 0, len = response["emplhour"].length; i < len; i++) {
-                            let pk_int = parseInt(response["emplhour"][i]["pk"]);
-                            emplhour_dict[pk_int] = response["emplhour"][i];
-                        }
-                    console.log(emplhour_dict)
-                        fill_table = true;
-                    }
                 }
                 if ("emplhour" in response) {
-                    // emplhour_dict= response["emplhour"];
-                    emplhour_dict = {}
+                    emplhour_map.clear()
                     for (let i = 0, len = response["emplhour"].length; i < len; i++) {
-                        let pk_int = parseInt(response["emplhour"][i]["pk"]);
-                        emplhour_dict[pk_int] = response["emplhour"][i];
+                        const item_dict = response["emplhour"][i];
+                        const pk_int = parseInt(item_dict["pk"]);
+                        emplhour_map.set(pk_int, item_dict);
                     }
-                    console.log(emplhour_dict)
                     fill_table = true;
                     check_status = true;
                 }
@@ -682,7 +680,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!is_new_item){
 
                 // --- first add <a> element with EventListener to td
-                   // el.setAttribute("href", "#");
+
                     el.addEventListener("click", function() {ModalStatusOpen(el);}, false )
 
                     AppendChildIcon(el, imgsrc_stat00, "18")
@@ -694,6 +692,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             HandleConfirmMouseenter(el, img_src)
                         });
                         el.addEventListener("mouseleave", function(){el.firstChild.setAttribute("src", imgsrc_stat00)});
+                    } else if (j === 10){
+                       el.setAttribute("href", "#");
                     }
                     td.appendChild(el);
 
@@ -777,7 +777,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= FillTableRows  ====================================
     function HandleConfirmMouseenter(el, img_src_cfm) {
         //console.log(" --- HandleConfirmMouseenter --- ")
-        const item_dict = get_itemdict_from_tblRow(el, emplhour_dict)
+        const item_dict = get_itemdict_from_map_by_el(el, emplhour_map)
         let data_field = get_attr_from_el_str(el, "data-field")
         const fieldname = (data_field === "confirmstart") ? "timestart" : "timeend"
         const field_dict = get_dict_value_by_key(item_dict, fieldname)
@@ -794,28 +794,23 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- reset tblBody_items
         tblBody_items.innerText = null;
 
-// --- loop through emplhour_dict
+// --- loop through emplhour_map
         let previous_rosterdate_dict = {};
         let tblRow;
 
-        if(!isEmpty(emplhour_dict)) {
-            for (let key in emplhour_dict) {
-                // check if the property/key is defined in the object itself, not in parent
-                if (emplhour_dict.hasOwnProperty(key)) {
-                    let item_dict = emplhour_dict[key];
-                    let pk = get_pk_from_dict (item_dict)
-                    let parent_pk = get_ppk_from_dict (item_dict)
+        if(!!emplhour_map.size) {
+            for (const [pk_int, item_dict] of emplhour_map.entries()) {
+                const ppk_int = get_ppk_from_dict(item_dict)
 
-    // get rosterdate to be used in addnew row
-                    previous_rosterdate_dict = get_dict_value_by_key(item_dict, 'rosterdate')
+// get rosterdate to be used in addnew row
+                previous_rosterdate_dict = get_dict_value_by_key(item_dict, 'rosterdate')
 
-                    tblRow =  CreateTableRow(pk, parent_pk)
-                    UpdateTableRow("emplhour", tblRow, item_dict)
+                tblRow =  CreateTableRow(pk_int, ppk_int)
+                UpdateTableRow("emplhour", tblRow, item_dict)
 
-    // --- highlight selected row
-                    if (pk === selected_item_pk) {
-                        tblRow.classList.add(cls_selected)
-                    }
+// --- highlight selected row
+                if (pk_int === selected_item_pk) {
+                    tblRow.classList.add(cls_selected)
                 }
             }
         }
@@ -983,10 +978,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  ModEmployeeOpen  ================ PR2019-06-23
     function ModEmployeeOpen(el_input) {
         console.log(" -----  ModEmployeeOpen   ----")
-        console.log(el_input)
-
-// reset
-
 
         el_mod_employee_input_employee.value = null
         let el_mod_employee_filter_employee = document.getElementById("id_mod_employee_filter_employee")
@@ -1002,8 +993,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         document.getElementById("id_mod_employee_filter_employee").removeAttribute("tsa_btn_selected")
 
-// get tblRow, get id from tblRow, lookup item_dict in emplhour_dict
-        let item_dict = get_itemdict_from_tblRow(el_input, emplhour_dict)
+// get tblRow, get id from tblRow, lookup item_dict in emplhour_map
+        let item_dict = get_itemdict_from_map_by_el(el_input, emplhour_map)
         let id_dict = item_dict["id"];
         console.log("item_dict", item_dict) ;
         let pk_str = id_dict["pk"]
@@ -1058,55 +1049,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModEmployeeSave  ================ PR2019-06-23
     function ModEmployeeSave() {
-        console.log("===  ModEmployeeSave =========");
-
         let btn_name = el_mod_employee_body.getAttribute("data-action");
+        console.log("===  ModEmployeeSave ========= btn_name: ", btn_name);
 
-        const emplhour_pk = get_attr_from_el(el_mod_employee_body, "data-pk");
-        console.log("emplhour_pk: ", emplhour_pk, typeof emplhour_pk);
+        const emplhour_pk = get_attr_from_el_int(el_mod_employee_body, "data-pk");
+        let emplhour_dict = get_itemdict_from_map_by_id(emplhour_pk, emplhour_map);
+        console.log("emplhour_dict: ", emplhour_dict, typeof emplhour_dict);
 
-        let item_dict = get_dict_value_by_key(emplhour_dict, emplhour_pk);
-        console.log("item_dict: ", item_dict, typeof item_dict);
-
-        let curemployee_dict = get_dict_value_by_key(item_dict, "employee");
-        console.log("curemployee_dict: ", curemployee_dict);
+// get current employee of emplhour_tblRow
+        let cur_employee_dict = get_dict_value_by_key(emplhour_dict, "employee");
+        console.log("cur_employee_dict: ", cur_employee_dict);
 
         let emplhour_tblRow = document.getElementById(emplhour_pk)
 
+        let new_employee_dict = {};
         let abscat_dict = {};
-        let replacement_dict = {};
-        let employee_dict = {};
         let switch_dict = {};
 
-// get current employee of emplhour_tblRow create id_dict Employee
 
-// get employee from select list when mode = 'enter''
+// get new employee from select list
+        let el_tblbody = document.getElementById("id_mod_employee_tblbody")
+        const pk_int = get_attr_from_el_int(el_tblbody, "data-pk");
+        const ppk_int = get_attr_from_el_int(el_tblbody, "data-ppk");
+        const code = get_attr_from_el(el_tblbody, "data-code");
+        if(!!pk_int){
+            new_employee_dict = {"pk": pk_int, "ppk": ppk_int, "field": "new_employee", "update": true}
+            if(!!code){new_employee_dict["code"] = code};
+        }
+
+// when mode = enter: get new employee from select list
         if (btn_name === "enter"){
             let el_tblbody = document.getElementById("id_mod_employee_tblbody")
-            const pk_int = get_attr_from_el_int(el_tblbody, "data-pk");
-            const ppk_int = get_attr_from_el_int(el_tblbody, "data-ppk");
-            const code = get_attr_from_el(el_tblbody, "data-code");
-
-            if(!!pk_int){
-                replacement_dict["field"] = "replacement";
-                employee_dict["update"] = true;
-                if(!!pk_int){replacement_dict["pk"] = pk_int};
-                if(!!ppk_int){replacement_dict["ppk"] = ppk_int};
-                if(!!code){replacement_dict["code"] = code};
-            }
+                const pk_int = get_attr_from_el_int(el_tblbody, "data-pk");
+                const ppk_int = get_attr_from_el_int(el_tblbody, "data-ppk");
+                const code = get_attr_from_el(el_tblbody, "data-code");
+// when mode = absence, switch, split: get new employee from input field
         } else {
             const pk_int = get_datapk_from_element(el_mod_employee_input_employee);
             const ppk_int = get_datappk_from_element(el_mod_employee_input_employee);
             const code = el_mod_employee_input_employee.value
-            if(!!pk_int){
-                replacement_dict["field"] = "replacement";
-                if(!!pk_int){replacement_dict["pk"] = pk_int};
-                if(!!ppk_int){replacement_dict["ppk"] = ppk_int};
-                if(!!code){replacement_dict["code"] = code};
-            }
-
-// get replacement employee of input element 'employee'
         }
+        if(!!pk_int){
+            new_employee_dict = {"pk": pk_int, "ppk": ppk_int, "field": "replacement", "update": true}
+            if(!!code){new_employee_dict["code"] = code};
+        }
+
 // get selected button
         if (btn_name === "absent"){
         // get absence category
@@ -1117,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const abscat_ppk = get_attr_from_el_int(selected_option, "data-ppk");
                 const abscat_code = selected_option.text;
 
-                abscat_dict["field"] = btn_name;
+                abscat_dict = {"field": btn_name};
                 if(!!abscat_pk){abscat_dict["pk"] = abscat_pk};
                 if(!!abscat_ppk){abscat_dict["ppk"] = abscat_ppk};
                 if(!!abscat_code){abscat_dict["code"] = abscat_code};
@@ -1143,41 +1130,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // field_dict gets info of selected employee
 
-        if(!isEmpty(emplhour_dict)){
-            // {pk: 605, parent_pk: 1, table: "employee"}
-            let row_upload= {};
+        let row_upload = {"id": emplhour_dict["id"], "mode": btn_name};
 
-            row_upload["id"] = emplhour_dict;
+        if(!isEmpty(cur_employee_dict)){row_upload["employee"] = cur_employee_dict};
+        if(!isEmpty(new_employee_dict)){row_upload["replacement"] = new_employee_dict};
+        if(!isEmpty(abscat_dict)){row_upload["abscat"] = abscat_dict};
+        console.log ("row_upload: ", row_upload);
 
-            //let field_dict = get_iddict_from_element(select_tblRow);
+        let parameters = {"upload": JSON.stringify (row_upload)};
 
-            row_upload["mode"] = btn_name;
-            if(!isEmpty(employee_dict)){row_upload["employee"] = employee_dict};
-            if(!isEmpty(replacement_dict)){row_upload["replacement"] = replacement_dict};
-            if(!isEmpty(abscat_dict)){row_upload["abscat"] = abscat_dict};
-            console.log (">>????? row_upload: ", row_upload);
-
-            let parameters = {"emplhour": JSON.stringify (row_upload)};
-
-            let response;
-            $.ajax({
-                type: "POST",
-                url: url_emplhour_upload,
-                data: parameters,
-                dataType:'json',
-                success: function (response) {
-                    console.log ("response", response);
-                    if ("item_update" in response) {
-                        UpdateTableRow("emplhour", emplhour_tblRow, response["item_update"])
-                    }
-                },
-                error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
-                    alert(msg + '\n' + xhr.responseText);
+        let response;
+        $.ajax({
+            type: "POST",
+            url: url_emplhour_upload,
+            data: parameters,
+            dataType:'json',
+            success: function (response) {
+                console.log ("response", response);
+                if ("item_update" in response) {
+                    UpdateTableRow("emplhour", emplhour_tblRow, response["item_update"])
                 }
-            });
+            },
+            error: function (xhr, msg) {
+                console.log(msg + '\n' + xhr.responseText);
+                alert(msg + '\n' + xhr.responseText);
+            }
+        });
 
-        }  // if(!isEmpty(id_dict)
     }  // ModEmployeeSave
 
 //=========  ModEmployeeBtnSelect  ================ PR2019-05-25
@@ -1392,58 +1371,54 @@ document.addEventListener('DOMContentLoaded', function() {
         let row_count = 0
 
 //--- when no items found: show 'select_customer_none'
-        if (isEmpty(employee_dict)){
+        if (employee_map.size === 0){
             let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
             let td = tblRow.insertCell(-1);
             td.innerText = caption_none;
         } else {
 
-//--- loop through employee_dict
-            for (let key in employee_dict) {
-                if (employee_dict.hasOwnProperty(key)) {
-                    const item_dict = employee_dict[key];
-                    const pk_int = get_pk_from_dict(item_dict)
-                    const ppk_int = get_ppk_from_dict (item_dict)
-                    const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
+//--- loop through employee_map
+            for (const [pk_int, item_dict] of employee_map.entries()) {
+                const ppk_int = get_ppk_from_dict(item_dict)
+                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
 
-    //- skip selected employee
-                    if (pk_int !== selected_employee_pk){
+//- skip selected employee
+                if (pk_int !== selected_employee_pk){
 
-    //- insert tableBody row
-                        let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-                        // NOT IN USE tblRow.setAttribute("id", tablename + "_" + pk.toString());
-                        tblRow.setAttribute("data-pk", pk_int);
-                        tblRow.setAttribute("data-ppk", ppk_int);
-                        // NOT IN USE, put in tableBody. Was:  tblRow.setAttribute("data-table", tablename);
+//- insert tableBody row
+                    let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+                    // NOT IN USE tblRow.setAttribute("id", tablename + "_" + pk.toString());
+                    tblRow.setAttribute("data-pk", pk_int);
+                    tblRow.setAttribute("data-ppk", ppk_int);
+                    // NOT IN USE, put in tableBody. Was:  tblRow.setAttribute("data-table", tablename);
 
-    //- add hover to tableBody row
-                        tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-                        tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+//- add hover to tableBody row
+                    tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
+                    tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
 
-    //- add EventListener to Modal SelectEmployee row
-                        tblRow.addEventListener("click", function() {ModEmployeeTableEmployeeSelect(tblRow)}, false )
+//- add EventListener to Modal SelectEmployee row
+                    tblRow.addEventListener("click", function() {ModEmployeeTableEmployeeSelect(tblRow)}, false )
 
-    // - add first td to tblRow.
-                        // index -1 results in that the new cell will be inserted at the last position.
-                        let code = get_subdict_value_by_key (item_dict, "code", "value", "")
-                        let td = tblRow.insertCell(-1);
+// - add first td to tblRow.
+                    // index -1 results in that the new cell will be inserted at the last position.
+                    let code = get_subdict_value_by_key (item_dict, "code", "value", "")
+                    let td = tblRow.insertCell(-1);
 
-    // --- add a element to td., necessary to get same structure as item_table, used for filtering
-                        let el = document.createElement("div");
-                            el.innerText = code;
-                            el.classList.add("mx-1")
-                            el.setAttribute("data-value", code_value);
-                            el.setAttribute("data-pk", pk_int);
-                            el.setAttribute("data-ppk", ppk_int);
-                            el.setAttribute("data-field", "code");
-                        td.appendChild(el);
+// --- add a element to td., necessary to get same structure as item_table, used for filtering
+                    let el = document.createElement("div");
+                        el.innerText = code;
+                        el.classList.add("mx-1")
+                        el.setAttribute("data-value", code_value);
+                        el.setAttribute("data-pk", pk_int);
+                        el.setAttribute("data-ppk", ppk_int);
+                        el.setAttribute("data-field", "code");
+                    td.appendChild(el);
 
-        // --- count tblRow
-                        row_count += 1
-                    } //  if (pk_int !== selected_employee_pk)
-                } // if (employee_dict.hasOwnProperty(key))
-            } // for (let key in employee_dict)
-        }  // if (isEmpty(employee_dict)
+    // --- count tblRow
+                    row_count += 1
+                } //  if (pk_int !== selected_employee_pk)
+            } // for (const [pk_int, item_dict] of employee_map.entries())
+        }  // if (employee_map.size === 0)
     } // ModEmployeeFillSelectTableEmployee
 
 //========= ModEmployeeFillOptionAbscat  ====================================
@@ -1457,31 +1432,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
         el_select.innerText = null
 
+
+        let row_count = 0
+// --- loop through abscat_map
+        for (const [pk_int, item_dict] of abscat_map.entries()) {
+            const ppk_int = get_ppk_from_dict(item_dict)
+
 // --- loop through option list
-        let len = 0, row_count = 0
-        if(!!abscat_list){len = abscat_list.length}
-        if (!!len) {
-
-            for (let i = 0; i < len; i++) {
-                let dict = abscat_list[i];
-                // dict = { pk: 72,  id: {pk: 72, parent_pk: 61, table: "order"}, code: {value: "Vakantie"} }
-                //console.log("dict", dict);
-
-                let pk_int = get_pk_from_dict(dict);
-                let ppk_int = get_ppk_from_dict(dict)
-
-                const field = "code";
-                let value = "-";
-                if (field in dict) {if ("value" in dict[field]) {value = dict[field]["value"]}}
-                option_text += "<option value=\"" + pk_int + "\" data-ppk=\"" + ppk_int + "\"";
-                if (value === curOption) {option_text += " selected=true" };
-                option_text +=  ">" + value + "</option>";
-                row_count += 1
-            }  // for (let i = 0, len = option_list.length;
-        }  // if (!!len)
+            let value = get_subdict_value_by_key(item_dict, "code", "value", "-")
+            option_text += "<option value=\"" + pk_int + "\" data-ppk=\"" + ppk_int + "\"";
+            if (value === curOption) {option_text += " selected=true" };
+            option_text +=  ">" + value + "</option>";
+            row_count += 1
+        }  // for (let i = 0, len = option_list.length;
 
         // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
-
         const select_text_abscat = get_attr_from_el(el_data, "data-txt_select_abscat");
         const select_text_abscat_none = get_attr_from_el(el_data, "data-txt_select_abscat_none");
 
@@ -1726,7 +1691,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("new_item", new_item);
 
         if(!!new_item) {
-            let parameters = {"emplhour": JSON.stringify (new_item)};
+            let parameters = {"upload": JSON.stringify (new_item)};
 
             let response = "";
             $.ajax({
@@ -1737,9 +1702,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 success: function (response) {
                     console.log( "response");
                     console.log( response);
-
-                    if ("schemeitem_list" in response) {
-                        schemeitem_list= response["schemeitem_list"]}
 
                     if ("item_update" in response) {
                         const item_dict =response["item_update"]
@@ -1759,15 +1721,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             let new_dict = {}
                             new_dict["id"] = {"pk": pk_new, "ppk": parent_pk}
 
-                            if (tblName === "schemeitems"){
-                                let rosterdate_dict = get_dict_value_by_key (item_dict, "rosterdate")
-                    // remove 'updated' from dict, otherwise rosterdate in new row will become green also
-                                delete rosterdate_dict["updated"];
-                                // rosterdate_dict["update"] = true;
-
-                            if(isEmpty(rosterdate_dict)){rosterdate_dict = today_dict}
-                                new_dict["rosterdate"] = rosterdate_dict
-                            } else  if (tblName === "teammembers"){
+                            if (tblName === "teammembers"){
                                 const team_code = get_subdict_value_by_key (item_dict, "team", "value")
                                 new_dict["team"] = {"pk": parent_pk, "value": team_code}
                             }
@@ -1812,7 +1766,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // delete  record
                     // make row red
                     tblRow.classList.add("tsa_tr_error");
-                    let parameters = {"item_upload": JSON.stringify (param)};
+                    let parameters = {"upload": JSON.stringify (param)};
                     let response = "";
 
                     $.ajax({
@@ -1825,7 +1779,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             console.log (response);
                             if ("item_update" in response){
                                 let update_dict = response["item_update"]
-                                //UpdateSchemeitemOrTeammmember(tblRow, update_dict)
                             };
                         },
                         error: function (xhr, msg) {
@@ -1841,13 +1794,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= HandleFilterName  ====================================
     function HandleFilterName(el, index, el_key) {
-        console.log( "===== HandleFilterName  ========= ");
+        //console.log( "===== HandleFilterName  ========= ");
 
-        console.log( "el.value", el.value, index, typeof index);
-        console.log( "el.filter_dict", filter_dict, typeof filter_dict);
+        //console.log( "el.value", el.value, index, typeof index);
+        //console.log( "el.filter_dict", filter_dict, typeof filter_dict);
         // skip filter if filter value has not changed, update variable filter_text
 
-        console.log( "el_key", el_key);
+        //console.log( "el_key", el_key);
 
 
         let skip_filter = false
@@ -1865,31 +1818,31 @@ document.addEventListener('DOMContentLoaded', function() {
             let filter_dict_text = ""
             if (index in filter_dict) {filter_dict_text = filter_dict[index];}
             //if(!filter_dict_text){filter_dict_text = ""}
-            console.log( "filter_dict_text: <" + filter_dict_text + ">");
+            //console.log( "filter_dict_text: <" + filter_dict_text + ">");
 
             let new_filter = el.value.toString();
-            console.log( "new_filter: <" + new_filter + ">");
+            //console.log( "new_filter: <" + new_filter + ">");
             if (!new_filter){
                 if (!filter_dict_text){
-                    console.log( "skip_filter = true");
+                    //console.log( "skip_filter = true");
                     skip_filter = true
                 } else {
-                    console.log( "delete filter_dict");
+                    //console.log( "delete filter_dict");
                     delete filter_dict[index];
-                    console.log( "deleted filter : ", filter_dict);
+                    //console.log( "deleted filter : ", filter_dict);
                 }
             } else {
                 if (new_filter.toLowerCase() === filter_dict_text) {
                     skip_filter = true
-                    console.log( "skip_filter = true");
+                    //console.log( "skip_filter = true");
                 } else {
                     filter_dict[index] = new_filter.toLowerCase();
-                    console.log( "filter_dict[index]: ", filter_dict[index]);
+                    //console.log( "filter_dict[index]: ", filter_dict[index]);
                 }
             }
 
         }
-        console.log( " filter_dict ", filter_dict);
+        //console.log( " filter_dict ", filter_dict);
 
         if (!skip_filter) {
             FilterTableRows_dict();
@@ -1954,37 +1907,30 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_datalist = document.getElementById("id_datalist_orders");
         el_datalist.innerText = null;
 
-        for (let cust_key in customer_dict) {
-            if (customer_dict.hasOwnProperty(cust_key)) {
-                const cust_dict = customer_dict[cust_key];
-                const cust_cat = get_cat_from_dict(cust_dict);
-                if (cust_cat < 512){  // SHIFT_CAT_0512_ABSENCE
-                    const cust_pk_int = get_pk_from_dict(cust_dict)
-                    const cust_code = get_subdict_value_by_key (cust_dict, "code", "value", "")
-                    for (let order_key in order_dict) {
-                        if (order_dict.hasOwnProperty(order_key)) {
-                            const ord_dict = order_dict[order_key];
-                            const ord_pk_int = get_pk_from_dict(ord_dict)
-                            const ord_ppk_int = get_ppk_from_dict(ord_dict)
 
-                            if(ord_ppk_int === cust_pk_int){
-                                const ord_code = get_subdict_value_by_key (ord_dict, "code", "value", "")
-                                const order = cust_code + " - " + ord_code;
+//--- loop through employee_map
+        for (const [cust_pk_int, cust_dict] of customer_map.entries()) {
+            const cust_cat = get_cat_from_dict(cust_dict);
 
-                                let el = document.createElement('option');
-                                el.setAttribute("value", order);
-                                // name can be looked up by datalist.options.namedItem PR2019-06-01
-                                el.setAttribute("name", order);
-                                if (!!ord_pk_int){el.setAttribute("pk", ord_pk_int)};
-                                if (!!ord_ppk_int){el.setAttribute("ppk", ord_ppk_int)};
-                                el_datalist.appendChild(el);
-                            }
-                        }
+            if (cust_cat < 512){  // SHIFT_CAT_0512_ABSENCE
+                const cust_code = get_subdict_value_by_key(cust_dict, "code", "value", "")
+                for (const [ord_pk_int, ord_dict] of order_map.entries()) {
+                    const ord_ppk_int = get_ppk_from_dict(ord_dict)
+                    if(ord_ppk_int === cust_pk_int){
+                        const ord_code = get_subdict_value_by_key (ord_dict, "code", "value", "")
+                        const order = cust_code + " - " + ord_code;
+
+                        let el = document.createElement('option');
+                        el.setAttribute("value", order);
+                        // name can be looked up by datalist.options.namedItem PR2019-06-01
+                        el.setAttribute("name", order);
+                        if (!!ord_pk_int){el.setAttribute("pk", ord_pk_int)};
+                        if (!!ord_ppk_int){el.setAttribute("ppk", ord_ppk_int)};
+                        el_datalist.appendChild(el);
                     }
                 }
             }
         }
-
     }; // function FillDatalist
 
 // +++++++++  HandleFillRosterdate  ++++++++++++++++++++++++++++++ PR2019-06-07
@@ -2013,8 +1959,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log( "response");
                 console.log( response);
                     if ("emplhour" in response) {
-                        emplhour_dict= response["emplhour"];
-                        FillTableRows()
+                        emplhour_map.clear()
+                        for (let i = 0, len = response["emplhour"].length; i < len; i++) {
+                            const item_dict = response["emplhour"][i];
+                            const pk_int = parseInt(item_dict["pk"]);
+                            emplhour_map.set(pk_int, item_dict);
+                        }
+                        FillTableRows();
                     };
                     if ("rosterdate" in response) {
                         SetNewRosterdate(response["rosterdate"])
@@ -2310,7 +2261,7 @@ console.log("===  function HandlePopupWdySave =========");
                 row_upload[field_name] = field_dict;
                 console.log ("row_upload: ", row_upload);
 
-                let parameters = {"item_upload": JSON.stringify (row_upload)};
+                let parameters = {"upload": JSON.stringify (row_upload)};
 
                 let response;
                 $.ajax({
@@ -2406,7 +2357,7 @@ console.log("===  function HandlePopupWdySave =========");
                 console.log ("row_upload: ");
                 console.log (row_upload);
 
-                let parameters = {"item_upload": JSON.stringify (row_upload)};
+                let parameters = {"upload": JSON.stringify (row_upload)};
                 let response;
                 $.ajax({
                     type: "POST",
@@ -2469,7 +2420,7 @@ console.log("===  function HandlePopupWdySave =========");
         if(!!upload_dict) {
              console.log( "upload_dict", upload_dict);
 
-            let parameters = {"emplhour": JSON.stringify (upload_dict)};
+            let parameters = {"upload": JSON.stringify (upload_dict)};
 
             let response = "";
             $.ajax({
@@ -2501,15 +2452,7 @@ console.log("===  function HandlePopupWdySave =========");
                             let new_dict = {}
                             new_dict["id"] = {"pk": pk_new, "ppk": parent_pk, "temp_pk": pk_new}
 
-                            if (tblName === "schemeitems"){
-                                let rosterdate_dict = get_dict_value_by_key (item_dict, "rosterdate")
-                    // remove 'updated' from dict, otherwise rosterdate in new row will become green also
-                                delete rosterdate_dict["updated"];
-                                // rosterdate_dict["update"] = true;
-
-                                if(isEmpty(rosterdate_dict)){rosterdate_dict = today_dict}
-                                new_dict["rosterdate"] = rosterdate_dict
-                            } else  if (tblName === "teammembers"){
+                            if (tblName === "teammembers"){
                                 const team_code = get_subdict_value_by_key (item_dict, "team", "value")
                                 new_dict["team"] = {"pk": parent_pk, "value": team_code}
                             }
@@ -2594,12 +2537,15 @@ console.log("===  function HandlePopupWdySave =========");
                         DisplayPeriod(period_dict);
                     }
                     if ("emplhour" in response) {
-                        emplhour_dict= response["emplhour"];
-                        console.log( " emplhour FillTableRows");
-                        FillTableRows()
+                        emplhour_map.clear()
+                        for (let i = 0, len = response["emplhour"].length; i < len; i++) {
+                            const item_dict = response["emplhour"][i];
+                            const pk_int = parseInt(item_dict["pk"]);
+                            emplhour_map.set(pk_int, item_dict);
+                        }
+                        FillTableRows();
                         //CheckStatus()
                     }
-
                 },
                 error: function (xhr, msg) {
                      // hide loader
@@ -2667,9 +2613,8 @@ console.log("===  function HandlePopupWdySave =========");
 //========= ModalStatusOpen====================================
     function ModalStatusOpen (el_input) {
         console.log("===  ModalStatusOpen  =====") ;
-        console.log(el_input) ;
 
-        let item_dict = get_itemdict_from_tblRow(el_input, emplhour_dict)
+        let item_dict = get_itemdict_from_map_by_el(el_input, emplhour_map)
         let id_dict = item_dict["id"];
         console.log("item_dict", item_dict) ;
 
@@ -2697,11 +2642,11 @@ console.log("===  function HandlePopupWdySave =========");
         if (data_field === "confirmstart") {
             header_text = "Confirm start of shift"
             time_label = "Start time:"
-            time_col_index = 5
+            time_col_index = 4
         } else if (data_field === "confirmend") {
             header_text = "Confirm end of shift"
             time_label = "End time:"
-            time_col_index = 7
+            time_col_index = 6
         } else if (data_field === "status") {
             is_field_status = true;
 
@@ -2744,7 +2689,6 @@ console.log("===  function HandlePopupWdySave =========");
             const order = get_subdict_value_by_key(item_dict,"orderhour", "value")
             if(!!order){el_order.innerText = order} else {el_order.innerText = null};
 
-
             let el_shift = document.getElementById("id_mod_status_shift");
 
             let el_employee = document.getElementById("id_mod_status_employee");
@@ -2752,9 +2696,9 @@ console.log("===  function HandlePopupWdySave =========");
 
             let el_time = document.getElementById("id_mod_status_time");
 
-            const shift = tr_selected.cells[3].firstChild.value
+            const shift = tr_selected.cells[2].firstChild.value
             if(!!shift){el_shift.innerText = shift} else {el_shift.innerText = null};
-            const employee = tr_selected.cells[4].firstChild.value
+            const employee = tr_selected.cells[3].firstChild.value
             const time = tr_selected.cells[time_col_index].firstChild.title
             if(!!time){el_time.innerText = time} else {el_time.innerText = null};
 
@@ -2829,7 +2773,7 @@ console.log("===  function HandlePopupWdySave =========");
             for (let row_index = 0, tblRow; row_index < len; row_index++) {
                 tblRow = tblBody_items.rows[row_index];
 
-                let item_dict = get_itemdict_from_tblRow(tblRow, emplhour_dict)
+                let item_dict = get_itemdict_from_map_by_tblRow(tblRow, emplhour_map);
 
                 const status_sum = get_subdict_value_by_key(item_dict, "status", "value")
                 const start_confirmed = status_found_in_statussum(2, status_sum);//STATUS_02_START_CONFIRMED
@@ -3039,13 +2983,8 @@ console.log("===  function HandlePopupWdySave =========");
                     success: function (response) {
                         console.log ("response", response);
                         if ("item_update" in response) {
-                            console.log("...... UpdateTableRow ..... item_update", table);
                             UpdateTableRow(table, tr_selected, response["item_update"])
                         }
-                        if ("schemeitem" in response) {
-                            schemeitem_list = response["schemeitem"]}
-                            console.log("...... schemeitem in response: ");
-                            console.log(schemeitem_list);
                         },
                     error: function (xhr, msg) {
                         console.log(msg + '\n' + xhr.responseText);

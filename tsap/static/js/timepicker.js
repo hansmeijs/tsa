@@ -856,11 +856,8 @@
             const url_str = get_attr_from_el(el_timepicker, "data-url_str");
 
             let parameters = {}
-            if (table === "schemeitem") {
-                parameters["upload"] = JSON.stringify (row_upload);
-            } else {
-                parameters[table] = JSON.stringify (row_upload);
-            }
+            parameters["upload"] = JSON.stringify (row_upload);
+
             console.log ("url_str", url_str);
             console.log ("parameters", row_upload);
             let response;

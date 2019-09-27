@@ -115,25 +115,56 @@ $(function() {
         return power_list
     }
 
-//========= get_itemdict_from_tblRow  ============= PR2019-09-20
-    function get_itemdict_from_tblRow(el, dict) {
+//========= get_itemdict_from_map_by_el  ============= PR2019-09-20
+    function get_itemdict_from_map_by_el(el, data_map) {
         // function gets pk_str form 'id' of tblRow, looks up 'id' in dict
-        let item_dict = {}, pk_int = null;
+        let item_dict = {};
         const tblRow = get_tablerow_selected(el);
         if(!!tblRow){
-            pk_int = parseInt(tblRow["id"]);
+            const pk_int = parseInt(tblRow["id"]);
             if(!!pk_int){
-        //--- loop through dict
-                for (let key in dict) {
-                    if (dict.hasOwnProperty(key)) {
-                        const pk_in_dict = get_dict_value_by_key(dict[key], "pk")
-                        if(pk_in_dict ===pk_int){
-                            item_dict = dict[key];
-                            break;
-        }}}}};
+// --- loop through data_map
+                for (const [key, data_dict] of data_map.entries()) {
+                    if(key === pk_int){
+                        item_dict = data_dict;
+                        break;
+                    }
+                }
+            }
+        };
         return item_dict
     }
 
+//========= get_itemdict_from_map_by_tblRow  ============= PR2019-09-26
+    function get_itemdict_from_map_by_tblRow(tblRow, data_map) {
+        // function gets pk_str form 'id' of tblRow, looks up 'id' in dict
+        let item_dict = {};
+        if(!!tblRow){
+            const pk_int = parseInt(tblRow["id"]);
+            if(!!pk_int){
+// --- loop through data_map
+                for (const [key, data_dict] of data_map.entries()) {
+                    if(key === pk_int){
+                        item_dict = data_dict;
+                        break;
+                    }
+                }
+            }
+        };
+        return item_dict
+    }
+//========= get_itemdict_from_map_by_id  ============= PR2019-09-26
+    function get_itemdict_from_map_by_id(pk_int, data_map) {
+        // function gets pk_str form 'id' of tblRow, looks up 'id' in dict
+        let item_dict = {};
+        for (const [key, data_dict] of data_map.entries()) {
+            if(key === pk_int){
+                item_dict = data_dict;
+                break;
+            }
+        };
+        return item_dict
+    }
 //========= get_attr_from_el  =============PR2019-06-07
     function get_attr_from_el(element, key, default_value){
         "use strict";
