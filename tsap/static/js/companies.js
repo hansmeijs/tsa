@@ -60,7 +60,7 @@ $(function() {
 // show loader
         el_loader.classList.remove(cls_visible_hide)
 
-        let param = {"datalist_download": JSON.stringify (datalist_request)};
+        let param = {"download": JSON.stringify (datalist_request)};
         let response = "";
         $.ajax({
             type: "POST",

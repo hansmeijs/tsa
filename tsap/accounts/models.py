@@ -6,6 +6,8 @@ from django.core.validators import RegexValidator
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from django.contrib.postgres.fields import JSONField
+
 from tsap.constants import USERNAME_MAX_LENGTH, USERNAME_SLICED_MAX_LENGTH, CODE_MAX_LENGTH, \
     CHOICES_ROLE, CHOICES_ROLE_DICT, IS_ACTIVE_DICT, \
     ROLE_00_EMPLOYEE, ROLE_01_COMPANY, ROLE_02_SYSTEM, \
@@ -16,9 +18,9 @@ from companies.models import Company
 from companies.models import Employee
 from tsap.settings import AUTH_USER_MODEL
 
+import json
 import logging
 logger = logging.getLogger(__name__)
-
 
 # === USER =====================================
 # PR2018-05-22 added to create a case-insensitive username
@@ -337,10 +339,11 @@ class Usersetting(Model):
     key = CharField(db_index=True, max_length=CODE_MAX_LENGTH)
     setting = CharField(max_length=2048, null=True, blank=True)
 
+    jsonsetting = JSONField(null=True)  # stores invoice dates for this customer
 #===========  Classmethod
     @classmethod
     def get_setting(cls, key_str, user): #PR2019-07-02
-        # function returns value of setting row that match the filter
+        # function returns value of setting row that matches the filter
         # logger.debug('---  get_setting  ------- ')
         setting = None
         if user and key_str:
@@ -352,7 +355,7 @@ class Usersetting(Model):
 
     @classmethod
     def set_setting(cls, key_str, setting, user): #PR2019-07-02
-        # function returns list of setting rows that match the filter
+        # function returns list of setting rows that matches the filter
         # logger.debug('---  set_setting  ------- ')
         # logger.debug('setting: ' + str(setting))
         # get
@@ -364,3 +367,37 @@ class Usersetting(Model):
                 if setting:
                     row = cls(user=user, key=key_str, setting=setting)
             row.save()
+
+    @classmethod
+    def get_jsonsetting(cls, key_str, user):  # PR2019-07-02
+        # new_setting is in json format, no need for json.loads and json.dumps
+        # new_setting = json.loads(request.POST['setting'])
+        # new_setting_json = json.dumps(new_setting)
+
+        setting_dict = {}
+        if user and key_str:
+            row = cls.objects.filter(user=user, key=key_str).first()
+            if row:
+                if row.jsonsetting:
+                    setting_dict = json.loads(row.jsonsetting)
+
+        return setting_dict
+
+    @classmethod
+    def set_jsonsetting(cls, key_str, setting_dict, user):  # PR2019-07-02
+        # new_setting is in json format, no need for json.loads and json.dumps
+        # new_setting = json.loads(request.POST['setting'])
+        # new_setting_json = json.dumps(new_setting)
+
+        new_setting_json = json.dumps(setting_dict)
+        if user and key_str:
+            try:
+                row = cls.objects.filter(user=user, key=key_str).first()
+                if row:
+                    row.jsonsetting = new_setting_json
+                else:
+                    if new_setting_json:
+                        row = cls(user=user, key=key_str, jsonsetting=new_setting_json)
+                row.save()
+            except:
+                pass

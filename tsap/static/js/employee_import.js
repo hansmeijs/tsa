@@ -125,7 +125,7 @@ console.log(" ========== handle_worksheet_list ===========");
                         FillDataTable(worksheet_range);
                         UpdateDatatableHeader();
                         // upload new settings tsaCaption
-                        UploadSettings ();
+                        UploadSettingsImport ();
             }}}
         }  // if(!!workbook)
     }  // function handle_worksheet_list()
@@ -144,14 +144,14 @@ console.log(" ========== handle_checkbox_noheader_changed ===========");
             FillDataTable(worksheet_range);
             UpdateDatatableHeader();
             // upload new settings tsaCaption
-            UploadSettings ();
+            UploadSettingsImport ();
         }  // if(!!worksheet){
     }; //handle_checkbox_noheader_changed
 
 //=========   handle_select_code_calc   ======================
     function handle_select_code_calc() {
         // console.log("=========   handle_select_code_calc   ======================") ;
-        UploadSettings ();
+        UploadSettingsImport ();
     }  // handle_select_code_calc
 
 //=========   handle_EAL_row_clicked   ======================
@@ -338,7 +338,7 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
                                     UpdateDatatableHeader();
 
                                     // upload new settings tsaCaption
-                                    UploadSettings ();
+                                    UploadSettingsImport ();
                                 }
                             }
                         }
@@ -1044,7 +1044,7 @@ console.log("==== CreateMapTableWrap  =========> ", tableBase);
             UpdateDatatableHeader();
         }
     // upload new settings
-       UploadSettings();
+       UploadSettingsImport();
     };
 
 //========= unlinkColumns =======================================================
@@ -1052,7 +1052,7 @@ console.log("==== CreateMapTableWrap  =========> ", tableBase);
         // function deletes attribute 'excKey' from stored_items
         // and deletes attributes 'tsaKey' and 'tsaCaption' from ExcelDef
         // if type= 'col': UpdateDatatableHeader
-        // calls UploadSettings and
+        // calls UploadSettingsImport and
 //console.log("====== unlinkColumns =======================");
 
 // function removes 'excKey' from stored_items and 'tsaKey' from excel_items
@@ -1094,14 +1094,14 @@ console.log("==== CreateMapTableWrap  =========> ", tableBase);
         }
 
     // upload new settings
-       UploadSettings();
+       UploadSettingsImport();
 
     }  // function unlinkColumns(idTsaCol)
 
 
 //========= UPLOAD SETTING COLUMNS =====================================
-    function UploadSettings () {
-//console.log ("==========  UploadSettings");
+    function UploadSettingsImport () {
+//console.log ("==========  UploadSettingsImport");
         if(!!stored_coldefs) {
             // stored_coldefs is an array and has a .length property
             if(stored_coldefs.length > 0){
@@ -1144,7 +1144,7 @@ console.log(msg + '\n' + xhr.responseText);
                 });  // $.ajax
             }; //if(stored_coldefs > 0)
         }  //  if(!!stored_coldefs)
-    }; // function (UploadSettings)
+    }; // function (UploadSettingsImport)
 
 
 //========= UPLOAD DATA =====================================

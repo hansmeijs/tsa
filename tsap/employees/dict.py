@@ -1,3 +1,4 @@
+from django.db import connection
 from django.db.models import Q, Value
 from django.db.models.functions import  Coalesce, Lower
 from datetime import datetime
@@ -11,7 +12,7 @@ from companies import models as m
 import logging
 logger = logging.getLogger(__name__)
 
-def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
+def create_employee_list(company, user_lang, inactive=None, rangemin=None, rangemax=None):
     # --- create list of all active employees of this company PR2019-06-16
     # logger.debug(' --- create_employee_list   ')
     crit = Q(company=company)
@@ -24,162 +25,97 @@ def create_employee_list(company, inactive=None, rangemin=None, rangemax=None):
 
     employees = m.Employee.objects\
         .select_related('wagecode')\
-        .filter(crit).order_by('code')\
-        .values('id', 'code', 'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
-                'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'inactive',
-                'company_id',
-                'wagecode_id', 'wagecode__company__id', 'wagecode__code',
-                )\
-        .order_by(Lower('code'))\
-        .iterator()
-
-    # logger.debug(employees.query)
-    field_list = c.FIELDS_EMPLOYEE  # ('id', 'code', 'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
-                   # 'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'inactive')
+        .filter(crit)\
+        .order_by(Lower('code'))
 
     employee_list = []
-    table = 'employee'
-    for row_dict in employees:
+    for employee in employees:
         item_dict = {}
-
-        pk_int = row_dict.get('id', 0)
-        ppk_int = row_dict.get('company_id', 0)
-        item_dict['pk'] = pk_int
-        item_dict['ppk'] = ppk_int
-
-        datefirst = row_dict.get('datefirst')
-        datelast = row_dict.get('datelast')
-
-        workhours = 0
-        workdays = 0
-        for field in field_list:
-            field_dict = {}
-            if field in row_dict:
-                if field == 'id':
-                    field_dict = {'pk': pk_int}
-                    field_dict['ppk'] = ppk_int
-                    field_dict['table'] = table
-                    item_dict[field] = field_dict
-
-                # also add date when empty, to add min max date
-                elif field in ['datefirst', 'datelast']:
-                    if datefirst or datelast:
-                        if field == 'datefirst':
-                            f.set_fielddict_date(field_dict=field_dict, date_value=datefirst, maxdate=datelast)
-                        elif field == 'datelast':
-                            f.set_fielddict_date(field_dict=field_dict, date_value=datelast, mindate=datefirst)
-                    item_dict[field] = field_dict
-
-                elif field == 'workhours':
-                    workhours = row_dict.get('workhours', c.WORKHOURS_DEFAULT)
-                    item_dict['workhours'] = {'value': workhours}
-
-                    workdays = row_dict.get('workdays', c.WORKDAYS_DEFAULT)
-                    item_dict['workdays'] = {'value': workdays}
-
-                    if workhours and workdays:
-                        workhoursperday = workhours / workdays * 1440
-                        if workhoursperday:
-                            item_dict['workhoursperday'] = {'value': workhoursperday}
-
-                elif field == 'leavedays':
-                    leavedays = row_dict.get('leavedays', c.LEAVEDAYS_DEFAULT)
-                    if leavedays:
-                        item_dict[field] = {'value': leavedays}
-
-                elif field == 'wagecode':
-                    field_dict = {}
-                    wagecode_pk_int = row_dict.get('wagecode_id',0)
-                    if wagecode_pk_int:
-                        field_dict['pk'] = wagecode_pk_int
-                        field_dict['ppk'] = row_dict.get('wagecode__company__id',0)
-                        field_dict['code'] = row_dict.get('wagecode__code', '')
-                        field_dict['rate'] = row_dict.get('wagecode__rate', 0)
-                        item_dict[field] = field_dict
-
-                else:  # 'code', 'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode', 'inactive'
-                    value = row_dict.get(field)
-                    if value:
-                        item_dict[field] = {'value': value}
-
-        if workhours and workdays:
-            workhoursperday = workhours / workdays * 1440 # workhours_per_day is in minutes
-            item_dict['workhoursperday'] = {'value': workhoursperday}
-
+        create_employee_dict(employee, item_dict, user_lang)
         if item_dict:
             employee_list.append(item_dict)
     return employee_list
 
-def create_employee_dict(instance, item_dict):
+def create_employee_dict(instance, item_dict, user_lang):
     # --- create dict of this employee PR2019-07-26
 
-    # FIELDS_EMPLOYEE = ('id', 'code', 'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
-    #                    'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'workhoursperday', 'inactive')
-    field_tuple = c.FIELDS_EMPLOYEE
-    table = 'employee'
+    # FIELDS_EMPLOYEE = ('id', 'code', 'datefirst', 'datelast',
+    #                    'namelast', 'namefirst', 'email', 'telephone', 'identifier',
+    #                    'address', 'zipcode', 'city', 'country',
+    #                    'payrollcode', 'wagerate', 'wagecode',
+    #                    'workhours', 'workdays', 'leavedays', 'priceratejson', 'inactive')
 
     if instance:
-        # get min max date from employee
+
+# ---  get min max date
         datefirst = getattr(instance, 'datefirst')
         datelast = getattr(instance, 'datelast')
 
-        for field in field_tuple:
+        workhours = getattr(instance, 'workhours', 0)
+        workdays = getattr(instance, 'workdays', 0)
+        workhoursperday = 0
+        if workhours and workdays:
+            workhoursperday = int(workhours / workdays * 1440)
+
+        for field in c.FIELDS_EMPLOYEE:
+# --- get field_dict from  item_dict if it exists
             field_dict = item_dict[field] if field in item_dict else {}
 
             if field == 'id':
-                pk_int = instance.pk
-                ppk_int = instance.company.pk
+                field_dict['pk'] = instance.pk
+                field_dict['ppk'] = instance.company.pk
+                field_dict['table'] = 'employee'
+                item_dict['pk'] = instance.pk
 
-                item_dict['pk'] = pk_int
-                item_dict['ppk'] = ppk_int
+            elif field in ['datefirst', 'datelast']:
+            # also add date when empty, to add min max date
+                if datefirst or datelast:
+                    if field == 'datefirst':
+                        f.set_fielddict_date(
+                            field_dict=field_dict,
+                            date_value=datefirst,
+                            maxdate=datelast)
+                    elif field == 'datelast':
+                        f.set_fielddict_date(
+                            field_dict=field_dict,
+                            date_value=datelast,
+                            mindate=datefirst)
 
-                field_dict['pk'] = pk_int
-                field_dict['ppk'] = ppk_int
-                field_dict['table'] =table
+            elif field == 'workhours':
+                if workhours:
+                    field_dict['value'] = workhours
+            elif field == 'workdays':
+                if workdays:
+                    field_dict['value'] = workdays
 
-            elif field in ['code', 'namelast', 'namefirst','identifier',
-                           'leavedays', 'inactive']:
-                value = getattr(instance, field, None)
+            elif field in ['priceratejson']:
+                pricerate = getattr(instance, field)
+                if pricerate is not None:
+                    field_dict['value'] = pricerate
+                field_dict['display'] = f.get_rate_display(pricerate, user_lang)
+
+            else:
+                value = getattr(instance, field)
                 if value:
                     field_dict['value'] = value
 
-            elif field == 'workhours':
-                workhours = getattr(instance, 'workhours', 0)
-                workdays = getattr(instance, 'workdays', 0)
-                if workhours:
-                    item_dict['workhours']['value'] = workhours
-                if workdays:
-                    item_dict['workdays']['value'] = workdays
-                if workhours and workdays:
-                    item_dict['workhoursperday']['value'] = workhours / workdays * 1440
-
-            # also add date when empty, to add min max date
-            elif field in ['datefirst', 'datelast']:
-                mindate = getattr(instance, 'datefirst')
-                maxdate = getattr(instance, 'datelast')
-                if mindate or maxdate:
-                    if field == 'datefirst':
-                        f.set_fielddict_date(field_dict=field_dict, date_value=mindate, maxdate=maxdate)
-                    elif field == 'datelast':
-                        f.set_fielddict_date(field_dict=field_dict, date_value=maxdate, mindate=mindate)
-
-            # also add date when empty, to add min max date
-            elif field in ['datefirst', 'datelast']:
-                if datefirst or datelast:
-                    if field == 'datefirst':
-                        f.set_fielddict_date(field_dict=field_dict, date_value=datefirst, maxdate=datelast)
-                    elif field == 'datelast':
-                        f.set_fielddict_date(field_dict=field_dict, date_value=datelast, mindate=datefirst)
-                item_dict[field] = field_dict
-
             item_dict[field] = field_dict
+
+        if workhours and workdays:
+            fld = 'workhoursperday'
+            if fld not in item_dict:
+                item_dict[fld] = {}
+            item_dict[fld]['value'] = workhoursperday
+
+# 7. remove empty attributes from item_update
+    f.remove_empty_attr_from_dict(item_dict)
 # >>>   end create_employee_dict
 
 
-def create_teammember_list(table_dict, company):
+def create_teammember_list(table_dict, company, user_lang):
     # --- create list of all teammembers of this order PR2019-08-29
-    # logger.debug(' ----- create_teammember_list  -----  ')
-    # logger.debug('table_dict' + str(table_dict) )
+    #logger.debug(' ----- create_teammember_list  -----  ')
+    #logger.debug('table_dict' + str(table_dict) )
     # teammember: {order_pk: null datefirst: null datelast: null}
 
     cat = table_dict.get('cat')
@@ -198,7 +134,6 @@ def create_teammember_list(table_dict, company):
         # crit.add(Q(datelast__gte=datefirst) | Q(datelast__isnull=True), crit.connector)
     # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
 
-
     #         teammembers = m.Teammember.objects\
     #             .select_related('employee')\
     #             .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1))))\
@@ -215,132 +150,23 @@ def create_teammember_list(table_dict, company):
         .select_related('team__scheme__order')\
         .select_related('team__scheme__order__customer') \
         .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1)))) \
-        .filter(crit).order_by('-datelast_nonull')\
-        .values('id', 'cat', 'datefirst', 'datelast', 'workhoursperday', 'wagerate', 'wagefactor',
-                'employee_id', 'employee__company__id', 'employee__code', 'employee__workhours', 'employee__workdays',
-                'employee__datefirst', 'employee__datelast',
-                'team__scheme__datefirst', 'team__scheme__datelast',
-                'team__scheme__order__datefirst', 'team__scheme__order__datelast',
-                'team_id', 'team__code',
-                'team__scheme__id',
-                'team__scheme__order__id',
-                'team__scheme__order__code',
-                'team__scheme__order__cat',
-                'team__scheme__order__customer__id',
-                'team__scheme__order__customer__code',
-                'team__scheme__order__customer__company__id',
-                )\
-        .iterator()
+        .filter(crit).order_by('-datelast_nonull')
+
+    # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
     # logger.debug(teammembers.query)
 
-    # c.FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast',
-    #                       'workhoursperday', 'wagerate', 'wagefactor', 'scheme', 'order', 'customer')
-    field_list = c.FIELDS_TEAMMEMBER
-
     teammember_list = []
-    for row_dict in teammembers:
+    for teammember in teammembers:
 
-        pk_int = row_dict.get('id', 0)
-        ppk_int = row_dict.get('team_id', 0)
-        item_dict = {'pk': pk_int, 'ppk': ppk_int}
-
-        teammember_datefirst = row_dict.get('datefirst')
-        teammember_datelast = row_dict.get('datelast')
-
-        scheme_datefirst = row_dict.get('team__scheme__datefirst')
-        if scheme_datefirst is None:
-            scheme_datefirst = row_dict.get('team__scheme__order__datefirst')
-        employee_datefirst = row_dict.get('employee__datefirst')
-        mindate_scheme_employee = f.date_latest_of_two(scheme_datefirst, employee_datefirst)
-        mindate = f.date_latest_of_two(mindate_scheme_employee, teammember_datefirst)
-
-        scheme_datelast = row_dict.get('team__scheme__datelast')
-        if scheme_datelast is None:
-            scheme_datelast = row_dict.get('team__scheme__order__datelast')
-        employee_datelast = row_dict.get('employee__datelast')
-        maxdate_scheme_employee = f.date_earliest_of_two(scheme_datelast, employee_datelast)
-
-        maxdate = f.date_earliest_of_two(maxdate_scheme_employee, teammember_datelast)
-
-        for field in field_list:
-            field_dict = {}
-
-            if field == 'id':
-                field_dict['pk'] = pk_int
-                field_dict['ppk'] = ppk_int
-                field_dict['table'] = 'teammember'
-                field_dict['cat'] = row_dict.get('cat', 0)
-
-            # team is parent of teammember
-            elif field == 'team':
-                field_dict['pk'] = ppk_int
-                field_dict['ppk'] = row_dict.get('team__scheme__id', 0)
-                team_code = row_dict.get('team__code')
-                if team_code:
-                    field_dict['value'] = team_code
-
-            # also add date when empty, to add min max date
-            elif field == 'datefirst':
-                if teammember_datefirst or mindate_scheme_employee or maxdate:
-                    f.set_fielddict_date(
-                        field_dict=field_dict,
-                        date_value=teammember_datefirst,
-                        mindate=mindate_scheme_employee,
-                        maxdate=maxdate)
-            elif field == 'datelast':
-                if teammember_datelast or mindate or maxdate_scheme_employee:
-                    f.set_fielddict_date(
-                        field_dict=field_dict,
-                        date_value=teammember_datelast,
-                        mindate=mindate,
-                        maxdate=maxdate_scheme_employee)
-
-            elif field == 'workhoursperday':
-                workhoursperday = row_dict.get(field, 0)
-                if workhoursperday == 0:
-                    workhours = row_dict.get('employee__workhours', c.WORKHOURS_DEFAULT)
-                    workdays = row_dict.get('employee__workdays', c.WORKHOURS_DEFAULT)
-                    if workhours and workdays:
-                        workhoursperday = workhours / workdays * 1440
-                field_dict['value'] = workhoursperday
-
-            elif field in ['wagerate', 'wagefactor']:
-                value = row_dict.get(field)
-                if value:
-                    field_dict['value'] = value
-
-            elif field == 'employee':
-                field_dict['pk'] = row_dict.get('employee_id', 0)
-                field_dict['ppk'] = row_dict.get('employee__company__id', 0)
-                field_dict['value'] = row_dict.get('employee__code', '')
-                field_dict['workhours'] =  row_dict.get('employee__workhours', c.WORKHOURS_DEFAULT)
-
-            elif field == 'scheme':
-                field_dict['pk'] = row_dict.get('team__scheme__id', 0)
-                field_dict['ppk'] = row_dict.get('team__scheme__order__id', 0)
-                field_dict['code'] = row_dict.get('team__scheme__code', '')
-
-            elif field == 'order':
-                field_dict['pk'] = row_dict.get('team__scheme__order__id', 0)
-                field_dict['ppk'] = row_dict.get('team__scheme__order__customer__id', 0)
-                field_dict['code'] = row_dict.get('team__scheme__order__code', '')
-                field_dict['cat'] = row_dict.get('team__scheme__order__cat', 0)
-
-            elif field == 'customer':
-                field_dict['pk'] = row_dict.get('team__scheme__order__customer__id', 0)
-                field_dict['ppk'] = row_dict.get('team__scheme__order__customer__company__id', 0)
-                field_dict['code'] = row_dict.get('team__scheme__order__customer__code', '')
-
-            item_dict[field] = field_dict
-
-        f.remove_empty_attr_from_dict(item_dict)
+        item_dict = {}
+        create_teammember_dict(teammember, item_dict, user_lang)
 
         if item_dict:
             teammember_list.append(item_dict)
 
     return teammember_list
 
-def create_teammember_dict(instance, item_dict):
+def create_teammember_dict(instance, item_dict, user_lang):
     # --- create dict of this teammember PR2019-07-26
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
     # logger.debug ('--- create_schemeitem_dict ---')
@@ -348,31 +174,51 @@ def create_teammember_dict(instance, item_dict):
 
     # c.FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast',
     #                       'workhoursperday', 'wagerate', 'wagefactor', 'scheme', 'order', 'customer')
-    field_tuple = c.FIELDS_TEAMMEMBER
 
     if instance:
-# get pk and ppk
-        pk_int = instance.pk
-        ppk_int = instance.team.pk
 
-        for field in field_tuple:
-# 1. get or create field_dict
-            if field in item_dict:
-                field_dict = item_dict[field]
-            else:
-                field_dict = {}
+# ---  get min max date
+        teammember_datefirst = getattr(instance, 'datefirst')
+        scheme_datefirst = None
+        scheme = instance.team.scheme
+        if scheme:
+            scheme_datefirst = getattr(scheme, 'datefirst')
+            if scheme_datefirst is None:
+                if scheme.order:
+                    scheme_datefirst = getattr(scheme.order, 'datefirst')
+        employee_datefirst = None
+        if instance.employee:
+            employee_datefirst = getattr(instance.employee, 'datefirst')
+        mindate_scheme_employee = f.date_latest_of_two(scheme_datefirst, employee_datefirst)
+        mindate = f.date_latest_of_two(mindate_scheme_employee, teammember_datefirst)
 
-# 3. create pk, ppk, table keys
+        teammember_datelast = getattr(instance, 'datelast')
+        scheme_datelast = None
+        if scheme:
+            scheme_datelast = getattr(scheme, 'datelast')
+            if scheme_datelast is None:
+                if scheme.order:
+                    scheme_datelast = getattr(scheme.order, 'datelast')
+        employee_datelast = None
+        if instance.employee:
+            employee_datelast = getattr(instance.employee, 'datelast')
+        maxdate_scheme_employee = f.date_earliest_of_two(scheme_datelast, employee_datelast)
+        maxdate = f.date_earliest_of_two(maxdate_scheme_employee, teammember_datelast)
+
+        for field in c.FIELDS_TEAMMEMBER:
+
+# --- get field_dict from  item_dict if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+
             if field == 'id':
-                item_dict['pk'] = pk_int
-                item_dict['ppk'] = ppk_int
-
-                field_dict['pk'] = pk_int
-                field_dict['ppk'] = ppk_int
+                field_dict['pk'] = instance.pk
+                field_dict['ppk'] = instance.team.pk
                 field_dict['table'] = 'teammember'
+                item_dict['pk'] = instance.pk
 
-            elif field == 'cat':
-                field_dict['value'] = instance.cat  # required, default = 0
+            elif field in ['cat']:
+                cat_sum = getattr(instance, field, 0)
+                field_dict['value'] = cat_sum
 
             # team is parent of teammember
             elif field == 'team':
@@ -381,11 +227,18 @@ def create_teammember_dict(instance, item_dict):
                     field_dict['pk'] = team.pk
                     field_dict['ppk'] = team.scheme.pk
                     if team.code:
-                        field_dict['value'] = team.code
-                    if team.scheme.order:
-                        order_dict = {'pk': team.scheme.order.pk}
-                        if team.scheme.order.code:
-                            order_dict['value'] = team.scheme.order.code
+                        field_dict['code'] = team.code
+                    if team.cat:
+                        field_dict['cat'] = team.cat
+
+                    order = team.scheme.order
+                    if order:
+                        order_dict = {'pk': order.pk}
+                        if order.code:
+                            order_dict['code'] = order.code
+                        item_dict['order'] = order_dict
+                        if order.cat:
+                            order_dict['cat'] = order.cat
                         item_dict['order'] = order_dict
 
             elif field == 'employee':
@@ -394,35 +247,130 @@ def create_teammember_dict(instance, item_dict):
                     field_dict['pk'] = employee.pk
                     field_dict['ppk'] = employee.company_id
                     if employee.code:
-                        field_dict['value'] = employee.code
+                        field_dict['code'] = employee.code
+                    if employee.workhours:
+                        field_dict['workhours'] = employee.workhours
 
-            # also add date when empty, to add min max date
             elif field in ['datefirst', 'datelast']:
-                mindate = getattr(instance, 'datefirst')
-                maxdate = getattr(instance, 'datelast')
-                if mindate or maxdate:
+                # also add date when empty, to add min max date
+                value = getattr(instance, field)
+                if value or mindate or maxdate:
                     if field == 'datefirst':
-                        f.set_fielddict_date(field_dict=field_dict, date_value=mindate, maxdate=maxdate)
+                        f.set_fielddict_date(
+                            field_dict=field_dict,
+                            date_value=value,
+                            maxdate=maxdate)
                     elif field == 'datelast':
-                        f.set_fielddict_date(field_dict=field_dict, date_value=maxdate, mindate=mindate)
+                        f.set_fielddict_date(
+                            field_dict=field_dict,
+                            date_value=value,
+                            mindate=mindate)
+
+            elif field in ['priceratejson']:
+                pricerate = getattr(instance, field)
+                if pricerate is not None:
+                    field_dict['value'] = pricerate
+                field_dict['display'] = f.get_rate_display(pricerate, user_lang)
 
             elif field == 'workhoursperday':
-                field_dict['value'] = getattr(instance, field)
+                workhoursperday = getattr(instance, field, 0)
+                if workhoursperday == 0:
+                    employee= instance.employee
+                    if employee:
+                        workhours = getattr(employee, 'workhours', c.WORKHOURS_DEFAULT)
+                        workdays = getattr(employee, 'workdays', c.WORKHOURS_DEFAULT)
+                        if workhours and workdays:
+                            workhoursperday = workhours / workdays * 1440
+                field_dict['value'] = workhoursperday
 
-            elif field in ['wagerate', 'wagefactor']:
+            else:
                 value = getattr(instance, field)
                 if value:
                     field_dict['value'] = value
 
             item_dict[field] = field_dict
 
-        # 7. remove empty attributes from item_update
+# 7. remove empty attributes from item_update
         f.remove_empty_attr_from_dict(item_dict)
-# >>>>>>>>>>>>>>>>>>>>
-
-
-
 # >>>>>>>>>>>>>>>>>>>
+
+
+def create_employee_pricerate_list(company, user_lang):
+    logger.debug(' --- create_employee_pricerate_list --- ')
+
+    pricerate_list = []
+
+# 1 create list of employees with teammembers, LEFT JOIN, includes employees wiyhout teammember
+    #  LOWER(e.code) must be in SELECT
+    newcursor = connection.cursor()
+    newcursor.execute("""WITH tm_sub AS (SELECT tm.id AS tm_id, tm.employee_id AS e_id, tm.team_id AS team_id, 
+            c.code AS c_code, o.code AS o_code, s.code AS s_code, 
+            tm.pricerate AS tm_pricerate, tm.override AS tm_override,  
+            LOWER(c.code) AS c_lower, LOWER(o.code) AS o_lower, LOWER(s.code) AS s_lower 
+            FROM companies_teammember AS tm 
+            INNER JOIN companies_team AS t ON (tm.team_id = t.id)
+            INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
+            INNER JOIN companies_order AS o ON (s.order_id = o.id) 
+            INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
+            WHERE (c.company_id = %(cid)s) AND (o.cat < %(cat)s) 
+            ORDER BY c_lower, o_lower, s_lower ASC )  
+        SELECT e.id, e.company_id, e.code AS e_code, e.pricerate, tm_sub.tm_id, tm_sub.team_id, tm_sub.tm_pricerate, tm_sub.tm_override, 
+        tm_sub.c_code, tm_sub.o_code, tm_sub.s_code,LOWER(e.code) AS e_lower  
+        FROM companies_employee AS e 
+        LEFT JOIN tm_sub ON (e.id = tm_sub.e_id)
+        WHERE (e.company_id = %(cid)s) 
+        ORDER BY e_lower ASC""", {
+              'cid': company.pk,
+              'cat': c.SHIFT_CAT_0512_ABSENCE})
+    teammember_rows = newcursor.fetchall()
+    # logger.debug('++++++++++ teammember_rows >' + str(teammember_rows))
+
+    # (395, 1456, 'Abienso, Curvin', 'MCB', 'Punda', 'dag', None, None, False, 'abienso, curvin', 'mcb', 'punda', 'dag')
+
+    if teammember_rows:
+        previous_employee_pk = 0
+        for item in teammember_rows:
+            item_dict = {}
+            # e.id, e.company_id, e.code AS e_code, e.pricerate, tm_sub.tm_id, tm_sub.c_code, tm_sub.o_code, tm_sub.s_code,
+
+            employee_pk = item[0]
+            employee_ppk = item[1]
+            employee_code = item[2]
+            employee_pricerate = item[3] if item[3] else 0
+            teammember_pk = item[4] if item[4] else 0
+            teammember_ppk = item[5] if item[5] else 0
+            teammember_pricerate = item[6] if item[6] else 0
+            teammember_override = item[7] if item[7] else False
+            customer_code = item[8] if item[8] else ''
+            order_code = item[9] if item[9] else ''
+            scheme_code = item[10] if item[10] else ''
+            # create employee row when employee_pk has changed
+
+# create employee row when employee_pk has changed
+            if employee_pk != previous_employee_pk:
+                previous_employee_pk = employee_pk
+                item_dict = {}
+                item_dict['employee_pk'] = employee_pk
+                item_dict['id'] = {'pk': employee_pk, 'ppk': employee_ppk, 'table': 'employee'}
+                item_dict['employee'] = {'value': employee_code}
+                display_text = f.get_rate_display(employee_pricerate, user_lang)
+                item_dict['priceratejson'] = {'value': employee_pricerate, 'display': display_text}
+                pricerate_list.append(item_dict)
+
+            if teammember_pk:
+                item_dict = {}
+                item_dict['employee_pk'] = employee_pk
+                item_dict['id'] = {'pk': teammember_pk, 'ppk': teammember_ppk, 'table': 'teammember'}
+                teammmember_code =  customer_code
+                if order_code:
+                    teammmember_code += ' - ' + order_code
+                item_dict['order'] = {'value': teammmember_code}
+                display_text = f.get_rate_display(teammember_pricerate, user_lang)
+                item_dict['priceratejson'] = {'value': teammember_pricerate, 'display': display_text}
+                item_dict['override'] = {'value': teammember_override}
+                pricerate_list.append(item_dict)
+
+    return pricerate_list
 
 def validate_employee_exists_in_teammembers(employee, team, this_pk):  # PR2019-06-11
     # - check if employee exists - employee is required field of teammember, is skipped in schemeitems (no field employee)

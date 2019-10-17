@@ -75,6 +75,30 @@ $(function() {
     };//function AddSubmenuButton
 
 
+//========= UploadSettings  ============= PR2019-10-09
+ function UploadSettings (upload_dict, url_str) {
+        console.log("=== UploadSettings");
+        console.log("url_str", url_str);
+        if(!!upload_dict) {
+            const parameters = {"upload": JSON.stringify (upload_dict)}
+            let response = "";
+            $.ajax({
+                type: "POST",
+                url: url_str,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                    //console.log( "response");
+                    //console.log( response);
+                },  // success: function (response) {
+                error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
+                    //alert(msg + '\n' + xhr.responseText);
+                }  // error: function (xhr, msg) {
+            });  // $.ajax({
+        }  //  if(!!row_upload)
+    };  // UploadSettings
+
 //========= isEmpty  ============= PR2019-05-11
     //PR2019-05-05 from https://coderwall.com/p/_g3x9q/how-to-check-if-javascript-object-is-empty'
     function isEmpty(obj) {
@@ -85,7 +109,34 @@ $(function() {
         }
     return true;
 }
+//========= get_power_array  ============= PR2019-08-30
+    function get_absence_from_catsum(cat_sum) {
+        //PR2019-10-04 checks if 512 is in catsum array 08-30 function converts value '31' into array [1,2,4,8,16]  (31 = 2^0 + 2^1 + 2^2 + 2^3 + 2^4)
+        let is_absence = false
+        if (cat_sum >= 512){
+            let i = 15;
+            // In Do While loop, condition is tested at the end of the loop so, Do While executes the statements in the code block at least once
+            do  {
+                i--;
+                // get power of 'i'
+                // power = 2 ** i  // ** is much faster then power = Math.pow(2, i); from http://bytewrangler.blogspot.com/2011/10/mathpowx2-vs-x-x.html
+                // exponentiation operator ** not working in IE11; back to Math.pow PR2019-09-11
+                // if cat_sum >= power : add power to list
+                power = Math.pow(2, i);
 
+                if (cat_sum >= power) {
+                    // unshift adds a new item to the beginning of an array:
+                    if (power === 512){
+                         is_absence = true;
+                         break
+                     }
+                    // deduct power from cat_sum, loop with remainder of cat_sum
+                    cat_sum -= power;
+                }
+            } while (cat_sum > 0 );
+        }
+        return is_absence
+    }
 //========= get_power_array  ============= PR2019-08-30
     function get_power_array(value) {
         //PR2019-08-30 function converts value '31' into array [1,2,4,8,16]  (31 = 2^0 + 2^1 + 2^2 + 2^3 + 2^4)
@@ -115,53 +166,51 @@ $(function() {
         return power_list
     }
 
-//========= get_itemdict_from_map_by_el  ============= PR2019-09-20
-    function get_itemdict_from_map_by_el(el, data_map) {
-        // function gets pk_str form 'id' of tblRow, looks up 'id' in dict
+//========= get_itemdict_from_datamap_by_el  ============= PR2019-10-12
+    function get_fielddict_from_datamap_by_el(el, data_map, override_fieldname) {
+        let field_dict = {};
+        const fieldname = (!!override_fieldname) ? override_fieldname : fieldname = get_attr_from_el_str(el, "data-field");
+        const item_dict = get_itemdict_from_datamap_by_el(el, data_map);
+        if (!isEmpty(item_dict)) {
+            field_dict = get_dict_value_by_key(item_dict, fieldname)
+        }
+        return field_dict
+    }
+
+
+//========= get_itemdict_from_datamap_by_el  ============= PR2019-10-12
+    function get_itemdict_from_datamap_by_el(el, data_map) {
+        // function gets map_id form 'data-map_id' of tblRow, looks up 'map_id' in data_map
         let item_dict = {};
         const tblRow = get_tablerow_selected(el);
         if(!!tblRow){
-            const pk_int = parseInt(tblRow["id"]);
-            if(!!pk_int){
-// --- loop through data_map
-                for (const [key, data_dict] of data_map.entries()) {
-                    if(key === pk_int){
-                        item_dict = data_dict;
-                        break;
-                    }
-                }
-            }
-        };
+            const map_id = get_attr_from_el(tblRow, "data-map_id")
+            item_dict = get_itemdict_from_datamap_by_id(map_id, data_map);
+        }
         return item_dict
     }
 
-//========= get_itemdict_from_map_by_tblRow  ============= PR2019-09-26
-    function get_itemdict_from_map_by_tblRow(tblRow, data_map) {
-        // function gets pk_str form 'id' of tblRow, looks up 'id' in dict
+//========= get_itemdict_from_map_by_tblRow  ============= PR2019-10-12
+    function get_itemdict_from_datamap_by_tblRow(tblRow, data_map) {
+        // function gets map_id form 'data-map_id' of tblRow, looks up 'map_id' in data_map
         let item_dict = {};
         if(!!tblRow){
-            const pk_int = parseInt(tblRow["id"]);
-            if(!!pk_int){
-// --- loop through data_map
-                for (const [key, data_dict] of data_map.entries()) {
-                    if(key === pk_int){
-                        item_dict = data_dict;
-                        break;
-                    }
-                }
-            }
+            const map_id = get_attr_from_el(tblRow, "data-map_id")
+            item_dict = get_itemdict_from_datamap_by_id(map_id, data_map);
         };
         return item_dict
     }
-//========= get_itemdict_from_map_by_id  ============= PR2019-09-26
-    function get_itemdict_from_map_by_id(pk_int, data_map) {
-        // function gets pk_str form 'id' of tblRow, looks up 'id' in dict
+//========= get_itemdict_from_datamap_by_id  ============= PR2019-09-26
+    function get_itemdict_from_datamap_by_id(map_id, data_map) {
+        // function looks up map_id in data_map and returns dict from map
         let item_dict = {};
-        for (const [key, data_dict] of data_map.entries()) {
-            if(key === pk_int){
-                item_dict = data_dict;
-                break;
-            }
+        if(!!data_map && !!map_id){
+            for (const [key, data_dict] of data_map.entries()) {
+                if(key === map_id){
+                    item_dict = data_dict;
+                    break;
+                }
+            };
         };
         return item_dict
     }
@@ -325,10 +374,6 @@ $(function() {
         }
         return item;
     }
-
-
-
-
 
 //========= get_today_local  ======== PR2019-07-09
     function get_today_local(comp_timezone) {

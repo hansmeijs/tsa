@@ -52,29 +52,9 @@
             <div class="popup-container">
 
 <!-- =================== DATA TABLE  =================== -->
-                <table id="id_tbl_items" class="table table-condensed tsa-tbl mx-4 my-1">
-
-                    <thead id="id_thead_items" class="thead-inverse">
-                        <th class="text_align_left td_width_180">{% trans 'Date' %}</th>
-                        <th class="text_align_left td_width_220">{% trans 'Order' %} / {% trans 'Employee' %}</th>
-                        <th class="text_align_left td_width_120">{% trans 'Shift' %}</th>
-                        <th class="text_align_left td_width_120">{% trans 'Worked Hours' %}</th>
-                        <th class="text_align_left td_width_120">{% trans 'Billed hours' %}</th>
-                        <th class="text_align_left td_width_90">{% trans 'Difference' %}</th>
-                        <th>
-                            <a id="id_filter_check_end" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
-                              <img id="id_img_filter_check_end" src="{% static 'img/warning.gif' %}" height="18" width="18">
-                            </a>
-                        </th>
-                        <th>
-                            <a id="id_filter_status" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
-                                <img id="id_img_filter_status" src="{% static 'img/stat04.png' %}" height="18" width="18">
-                            </a>
-                        </th>
-                    </thead>
-
-                    <tbody id="id_tbody_items">
-                    </tbody>
+                <table id="id_tbl_items" class="table tsa-tbl mx-4 my-1">
+                    <thead id="id_thead_items" class="thead-inverse"></thead>
+                    <tbody id="id_tbody_items"></tbody>
                 </table>
 <!-- =================== END DATA TABLE  =================== -->
             </div>
@@ -103,6 +83,16 @@
             data-lang ="{{ lang }}"
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
+
+            data-txt_date= "{% trans 'Date' %}"
+            data-txt_orderemployee= "{% trans 'Order / Employee' %}"
+            data-txt_shift= "{% trans 'Shift' %}"
+            data-txt_workedhours = "{% trans 'Worked hours' %}"
+            data-txt_billedhours = "{% trans 'Billed hours' %}"
+            data-txt_difference= "{% trans 'Difference' %}"
+            data-txt_rate= "{% trans 'Rate' %}"
+            data-txt_amount= "{% trans 'Amount' %}"
+
         >
         </div>
 

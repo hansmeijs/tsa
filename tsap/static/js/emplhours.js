@@ -785,7 +785,7 @@ console.log("=========  function HandleCreateRecord =========");
         let rosterdatefirst = "2019-04-03";
         let rosterdatelast = "2019-04-05";
         let datalist_download = {"rosterdatefirst": {"value": rosterdatefirst}, "rosterdatelast": {"value": rosterdatelast}}
-        let param = {"datalist_download": JSON.stringify (datalist_download)};
+        let param = {"download": JSON.stringify (datalist_download)};
         order_list = [];
         employee_list = [];
         console.log("param", param)

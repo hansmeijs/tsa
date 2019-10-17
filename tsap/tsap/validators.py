@@ -262,13 +262,12 @@ def validate_code_name_identifier(table, field, new_value, parent, update_dict, 
     return has_error
 
 
-def validate_namelast_namefirst(namelast, namefirst, company, update_dict, this_pk=None):
+def validate_namelast_namefirst(namelast, namefirst, company, update_field, update_dict, this_pk=None):
     # validate if employee already_exists in this company PR2019-03-16
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
-    # logger.debug('employee_exists: ' + str(code) + ' ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(company) + ' ' + str(this_pk))
+    logger.debug(' --- validate_namelast_namefirst --- ' + str(namelast) + ' ' + str(namefirst) + ' ' + str(this_pk))
 
-    field = 'namelast'
     msg_err_namelast = None
     msg_err_namefirst = None
     has_error = False
@@ -297,14 +296,21 @@ def validate_namelast_namefirst(namelast, namefirst, company, update_dict, this_
                                                       company=company
                                                       ).exists()
             if name_exists:
-                msg_err_namelast = _("This employee name already exists.")
+                new_name = ' '.join([namefirst, namelast])
+                msg_err = _("'%(val)s' already exists.") % {'val': new_name}
+                if update_field == 'namelast':
+                    msg_err_namelast = msg_err
+                elif update_field == 'namefirst':
+                    msg_err_namefirst = msg_err
     if msg_err_namelast or msg_err_namefirst:
         if msg_err_namelast:
             has_error = True
+            field = 'namelast'
             if field not in update_dict:
                 update_dict[field] = {}
             update_dict[field]['error'] = msg_err_namelast
         if msg_err_namefirst:
+            field = 'namefirst'
             has_error = True
             if field not in update_dict:
                 update_dict[field] = {}

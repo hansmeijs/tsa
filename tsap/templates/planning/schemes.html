@@ -6,7 +6,7 @@
 
 {% block script %}
     <script src="{% static 'js/schemes.js' %}"></script>
-    <script src="{% static 'js/offsetpicker.js' %}"></script>
+    <script src="{% static 'js/timepicker.js' %}"></script>
 {% endblock %}
 
 <!-- SIDE BAR -->
@@ -289,26 +289,39 @@
 
         <!-- box with scheme input elements -->
         <div class="mx-4 my-1">
-             <div class="content_header border_scheme">
-                <div class="content_subheader_left ">
+             <div id="id_scheme_box"  class="content_header border_scheme">
+                <div class="content_subheader_left mx-2">
                     <div>{% trans 'Scheme' %}*</div>
-                    <input id="id_scheme_code" type="text" data-table= "scheme" data-field= "code"
-                    class="td_width_120 my-1 pt-0 pb-0" autocomplete="off"  readonly>
-                </div>
-                <div class="content_subheader_left">
-                    <div>{% trans 'Cycle length' %}*</div>
-                    <input id="id_scheme_cycle" type="number" data-table= "scheme" data-field= "cycle"
+                    <input id="id_scheme_code" type="text" data-table="scheme" data-field="code"
                     class="td_width_120 my-1 pt-0 pb-0" autocomplete="off" readonly>
                 </div>
-                <div class="content_subheader_left">
+                <div class="content_subheader_left mx-2">
+                    <div>{% trans 'Cycle length' %}*</div>
+                    <input id="id_scheme_cycle" type="number" data-table="scheme" data-field="cycle"
+                    class="td_width_120 my-1 pt-0 pb-0" autocomplete="off" readonly>
+                </div>
+                <div class="content_subheader_left mx-2">
                     <div>{% trans 'Start date' %}</div>
-                    <input id="id_scheme_datefirst" type="text" data-table= "scheme" data-field= "datefirt"
+                    <input id="id_scheme_datefirst" type="text" data-table="scheme" data-field="datefirst"
                     class="input_popup_date td_width_120 my-1 pt-0 pb-0" autocomplete="off" readonly>
                 </div>
-                <div class="content_subheader_left">
+                <div class="content_subheader_left mx-2">
                     <div>{% trans 'End date' %}</div>
-                    <input id="id_scheme_datelast" type="text" data-table= "scheme" data-field= "datelast"
-                    class="input_popup_date td_width_120 my-1 pt-0 pb-0" autocomplete="off"  readonly>
+                    <input id="id_scheme_datelast" type="text" data-table="scheme" data-field="datelast"
+                    class="input_popup_date td_width_120 my-1 pt-0 pb-0" autocomplete="off" readonly>
+                </div>
+                <div class="content_subheader_left mx-2">
+                    <div>{% trans 'Hourly rate' %}</div>
+                    <input id="id_scheme_pricerate" type="text" data-table="scheme" data-field="pricerate"
+                    class="input_popup_date td_width_120 my-1 pt-0 pb-0" autocomplete="off" readonly>
+                </div>
+                 <div class="content_subheader_left mx-2">
+                    <div>{% trans 'Billable' %}</div>
+                    <div class="my-1 pt-0 pb-0">
+                    <a id="id_scheme_billable" data-table="scheme" data-field="billable">
+                        <img id="id_sel_img_billable" src="{% static 'img/stat00.png' %}" height="18" width="18">
+                    </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -374,7 +387,14 @@
             data-imgsrc_active_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
             data-imgsrc_delete="{% static 'img/delete.gif' %}"
             data-imgsrc_warning="{% static 'img/warning.gif' %}"
-            data-imgsrc_stat04="{% static 'img/stat04.png' %}"
+            data-imgsrc_b_black = "{% static 'img/b_black.png' %}"
+            data-imgsrc_b_grey = "{% static 'img/b_grey.png' %}"
+            data-imgsrc_d_black = "{% static 'img/d_black.png' %}"
+            data-imgsrc_d_grey = "{% static 'img/d_grey.png' %}"
+            data-imgsrc_rest_black = "{% static 'img/rest_black.png' %}"
+            data-imgsrc_cross_red = "{% static 'img/cross_red.png' %}"
+            data-imgsrc_cross_grey = "{% static 'img/cross_grey.png' %}"
+            data-imgsrc_stat00="{% static 'img/stat00.png' %}"
 
             data-lang ="{{ lang }}"
             data-timezone ="{{ timezone }}"
@@ -407,6 +427,7 @@
             data-err_msg_cycle= "{% trans 'Please enter the number of cycle days.' %}"
             data-err_msg_template_blank = "{% trans 'Please enter a template name.' %}"
 
+            data-txt_save = "{% trans 'Save' %}"
             data-txt_quicksave = "{% trans 'Quick save' %}"
             data-txt_quicksave_remove = "{% trans 'Exit Quick save' %}"
 
@@ -435,7 +456,7 @@
             data-txt_of = "{% trans 'of' %}"
             data-txt_shift= "{% trans 'Shift' %}"
             data-txt_shifts= "{% trans 'Shifts' %}"
-            data-txt_shift_rest= "{% trans 'Rest' %}"
+            data-txt_shift_rest= "{% trans 'Rest shift' %}"
             data-txt_shift_add= "{% trans 'Add shift' %}"
             data-txt_shift_enter= "{% trans 'Enter shift' %}"
             data-txt_shift_delete= "{% trans 'Delete shift' %}"
@@ -458,11 +479,12 @@
 
             data-txt_datefirst= "{% trans 'Start date' %}"
             data-txt_datelast= "{% trans 'End date' %}"
+            data-txt_pricerate= "{% trans 'Hourly rate' %}"
+            data-txt_billable = "{% trans 'Billable' %}"
 
             data-txt_timestart= "{% trans 'Start time' %}"
             data-txt_timeend= "{% trans 'End time' %}"
             data-txt_break= "{% trans 'Break' %}"
-            data-txt_hours= "{% trans 'Hours' %}"
 
             data-timepicker_curday= "{% trans 'Current day' %}"
             data-timepicker_prevday= "{% trans 'Previous day' %}"
@@ -476,6 +498,9 @@
             data-msg_confdel_si_hdr= "{% trans 'Delete scheme shifts' %}"
             data-msg_confdel_si_01= "{% trans 'All shifts of this scheme will be deleted.' %}"
 
+            data-title_billable= "{% trans 'Billable hours. Changes in worked hours will also change the billing hours.' %}"
+            data-title_notbillable=  "{% trans 'Fixed billing hours. Changes in worked hours will not affect the billing hours.' %}"
+            data-title_restshift =  "{% trans 'Rest shift' %}"
         >
         </div>
 

@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (key === "customer") {customer_dict = {}};
             if (key === "order") {order_dict = {}};
         }
-        let param = {"datalist_download": JSON.stringify (datalist_request)};
+        let param = {"download": JSON.stringify (datalist_request)};
         let response = "";
         $.ajax({
             type: "POST",

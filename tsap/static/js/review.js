@@ -5,16 +5,19 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("Review document.ready");
 
     // fields in review_list:
-    //  0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json, 4: yearindex, 5: monthindex 6: weekindex, 7: payperiodindex
-    //  8: cust_code, 9: order_code, 10: order_cat, 11: shift,  12: oh_duration, 13: oh.amount, 14: oh.tax,
-    //  15: eh_id_arr, 16: eh_dur_sum, 17: eh_wage_sum,  18: e_id_arr, 19: e_code_arr,
-    // 20: eh_duration_arr,  21: eh_wage_arr, 22: eh_wagerate_arr, 23: eh_wagefactor_arr, 24 = diff
+    // 0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json, 4: yearindex, 5: monthindex 6: weekindex, 7: payperiodindex,
+    // 8: cust_code, 9: order_code, 10: order_cat, 11: shift
+    //  12: oh_duration, 13: oh.pricerate, 14: oh.amount, 15: oh.tax,
+    //  16: eh_id_arr, 17: eh_dur_sum, 18: eh_wage_sum,
+    // 19: e_id_arr, 20: e_code_arr, 21: eh_duration_arr,
+    // 22: eh_wage_arr, 23: eh_wagerate_arr, 24: eh_wagefactor_arr
+    // 25: diff
 
     const idx_oh_pk = 0, idx_ord_pk = 1, idx_cust_pk = 2, idx_date = 3;
     const idx_cust_code = 8, idx_ord_code = 9, idx_ord_cat = 10, idx_shift = 11;
-    const idx_oh_dur = 12, idx_oh_amount = 13, idx_oh_tax = 14;
-    const idx_eh_id_arr = 15, idx_eh_dur = 16, idx_eh_wage = 17;
-    const idx_empl_id_arr = 18, idx_empl_code_arr = 19,  idx_dur_diff = 24;
+    const idx_oh_dur = 12, idx_oh_billable = 13, idx_oh_pricerate = 14, idx_oh_amount = 15, idx_oh_tax = 16;
+    const idx_eh_id_arr = 17, idx_eh_dur = 18, idx_eh_wage = 19;
+    const idx_empl_id_arr = 20, idx_empl_code_arr = 21,  idx_dur_diff = 26;
 
     const cls_selected = "tsa_tr_selected";
     const cls_active = "active";
@@ -62,12 +65,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const weekday_list = get_attr_from_el_dict(el_data, "data-weekdays");
     const month_list = get_attr_from_el_dict(el_data, "data-months");
 
+    const tbl_col_count = {"review": 11};
+    const thead_text = {"review": ["txt_date", "txt_orderemployee", "txt_shift",
+                                    "txt_workedhours", "", "txt_billedhours", "txt_difference", "",
+                                    "txt_rate", "txt_amount", ""]}
+    const field_width = {"review": ["090", "220", "090", "060", "016", "060", "060", "032", "090", "120", "032"]}
+    const field_align = {"review": ["left", "left", "left", "right","center", "right",  "right", "center",  "right",  "right", "center"]};
+
 // --- create Submenu
     CreateSubmenu();
 
     // period also returns emplhour_list
-    const datalist_request = {"review": {get: true}
-                                  };
+    const datalist_request = {"review": {get: true}};
     DatalistDownload(datalist_request);
 
 //  #############################################################################################################
@@ -86,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // TODO document.getElementById("id_loader").classList.remove(cls_visible_hide)
        // document.getElementById("id_loader").classList.add(cls_visible_show)
 
-        let param = {"datalist_download": JSON.stringify (datalist_request)};
+        let param = {"download": JSON.stringify (datalist_request)};
         let response = "";
         $.ajax({
             type: "POST",
@@ -159,12 +168,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     };//function CreateSubmenu
 
-
 //========= FillTableRows  ====================================
     function FillTableRows() {
         console.log( "     FillTableRows");
         // loop through rows in reverse order, put rows at beginning of table.
         // In that way totals will be counted and put on top of detail items
+
+        CreateTableHeader();
 
 // --- reset tblBody_items
         tblBody_items.innerText = null;
@@ -183,11 +193,11 @@ document.addEventListener('DOMContentLoaded', function() {
         let tot_eh_dur = 0, cust_eh_dur = 0, ord_eh_dur = 0, dte_eh_dur = 0;
         let tot_eh_wage = 0, cust_eh_wage = 0, ord_eh_wage = 0, dte_eh_wage = 0;
         let tot_dur_diff = 0, cust_dur_diff = 0, ord_dur_diff = 0, dte_dur_diff = 0;
+        let tot_bill_count = 0, cust_bill_count = 0, ord_bill_count = 0, dte_bill_count = 0;
 
 // create END ROW
-// display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
-        // display_list:  0 = date, 1 = cust, 2 = order, 3 = shift, 4 = employee, 5 = "eh_dur, 6 = oh_dur, 7 = diff, 8 = show warning
-        let display_list = ["",  "", "", "", "", "", false, false]
+        // display_list:  0 = date, 1 = cust /order/employee, 2 = shift,  3 = eh_dur, 4 = billable, 5 = oh_dur, 6 = diff, 7 = show warning, 8=status
+        let display_list =["" , "", "", "",  "", "", "", "", "", "", ""]
         tblRow =  CreateTableRow()
         UpdateTableRow(tblRow, 0, 0, 0, display_list,  "grnd")
 
@@ -215,9 +225,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const diff_format = format_total_duration (dte_dur_diff, user_lang)
                     const show_warning = (dte_dur_diff < 0);
 
-                    // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+                    const dte_pricerate_format = (!!dte_oh_amount && !!dte_oh_dur) ? format_amount ((dte_oh_amount / dte_oh_dur * 60), user_lang) : null
+                    const dte_amount_format = format_amount (dte_oh_amount, user_lang)
+                    const billable_format = (dte_bill_count === 0) ? "" : (dte_bill_count === dte_count) ? ">" : "-";
+
                     display_list =["TOTAL " + dte_prev, "", dte_count.toString() + " shifts",
-                                    eh_dur_format, oh_dur_format, diff_format, show_warning]
+                                    eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, dte_pricerate_format, dte_amount_format]
 
                     tblRow =  CreateTableRow()
                     UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "dte")
@@ -229,6 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     dte_eh_wage = 0;
                     dte_eh_dur = 0;
                     dte_dur_diff = 0;
+                    dte_bill_count = 0;
                 }
 
 
@@ -239,9 +253,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     const oh_dur_format = format_total_duration (ord_oh_dur, user_lang)
                     const diff_format = format_total_duration (ord_dur_diff, user_lang)
                     const show_warning = (ord_dur_diff < 0);
-                    // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+
+                    const ord_pricerate_format = (!!ord_oh_amount && !!ord_oh_dur) ? format_amount ((ord_oh_amount / ord_oh_dur * 60), user_lang) : null
+                    const ord_amount_format = format_amount (ord_oh_amount, user_lang)
+                    const billable_format = (ord_bill_count === 0) ? "" : (ord_bill_count === ord_count) ? ">" : "-";
+
                     display_list =["TOTAL " + ord_code_prev, "",  ord_count.toString() + " shifts",
-                                    eh_dur_format, oh_dur_format, diff_format, show_warning]
+                                    eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, ord_pricerate_format, ord_amount_format]
 
                     tblRow =  CreateTableRow()
                     UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "ord")
@@ -254,6 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ord_eh_wage = 0;
                     ord_eh_dur = 0;
                     ord_dur_diff = 0;
+                    ord_bill_count = 0;
                 }
 
 
@@ -263,9 +282,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     const oh_dur_format = format_total_duration (cust_oh_dur, user_lang)
                     const diff_format = format_total_duration (cust_dur_diff, user_lang)
                     const show_warning = (cust_dur_diff < 0);
-                    // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+
+                    const cust_pricerate_format = (!!cust_oh_amount && !!cust_oh_dur) ? format_amount ((cust_oh_amount / cust_oh_dur * 60), user_lang) : null
+                    const cust_amount_format = format_amount (cust_oh_amount, user_lang)
+                    const billable_format = (cust_bill_count === 0) ? "" : (cust_bill_count === cust_count) ? ">" : "-";
+
                      display_list = ["TOTAL " + cust_code_prev, "",  cust_count.toString() + " shifts",
-                                     eh_dur_format, oh_dur_format, diff_format, show_warning]
+                                     eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, cust_pricerate_format, cust_amount_format]
 
                     tblRow =  CreateTableRow()
                     UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "cust")
@@ -279,6 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     cust_eh_wage = 0;
                     cust_eh_dur = 0;
                     cust_dur_diff = 0;
+                    cust_bill_count = 0;
                 }
 
 
@@ -290,6 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 tot_eh_dur += row_list[idx_eh_dur];
                 tot_eh_wage += row_list[idx_eh_wage];
                 tot_dur_diff += row_list[idx_dur_diff];
+                if (!!row_list[idx_oh_billable]){tot_bill_count += 1};
 
                 cust_count += 1;
                 cust_oh_dur += row_list[idx_oh_dur];
@@ -298,6 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cust_eh_dur += row_list[idx_eh_dur];
                 cust_eh_wage += row_list[idx_eh_wage];
                 cust_dur_diff += row_list[idx_dur_diff];
+                if (!!row_list[idx_oh_billable]){cust_bill_count += 1};
 
                 ord_count += 1;
                 ord_oh_dur += row_list[idx_oh_dur];
@@ -306,6 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ord_eh_dur += row_list[idx_eh_dur];
                 ord_eh_wage += row_list[idx_eh_wage];
                 ord_dur_diff += row_list[idx_dur_diff];
+                if (!!row_list[idx_oh_billable]){ord_bill_count += 1};
 
                 dte_count += 1;
                 dte_oh_dur += row_list[idx_oh_dur];
@@ -314,6 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 dte_eh_dur += row_list[idx_eh_dur];
                 dte_eh_wage += row_list[idx_eh_wage];
                 dte_dur_diff += row_list[idx_dur_diff];
+                if (!!row_list[idx_oh_billable]){dte_bill_count += 1};
 
 // --- create DETAIL row
                 const eh_dur_format = format_total_duration (row_list[idx_eh_dur], user_lang)
@@ -321,9 +349,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const diff_format = format_total_duration (row_list[idx_dur_diff], user_lang)
                 const show_warning = (row_list[idx_dur_diff] < 0);
 
-                // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+                const oh_pricerate_format = format_amount (row_list[idx_oh_pricerate], user_lang)
+                const oh_amount_format = format_amount (row_list[idx_oh_amount], user_lang)
+                const billable_format = (!!row_list[idx_oh_billable]) ? ">" : "";
+
                 display_list = [dte_curr, row_list[idx_empl_code_arr], row_list[idx_shift],
-                                eh_dur_format, oh_dur_format, diff_format, show_warning]
+                                eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, oh_pricerate_format, oh_amount_format ]
 
                 tblRow =  CreateTableRow()
                 UpdateTableRow(tblRow, row_list[idx_cust_pk], row_list[idx_ord_pk], row_list[idx_date], display_list)
@@ -348,9 +379,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const diff_format = format_total_duration (dte_dur_diff, user_lang)
             const show_warning = (dte_dur_diff < 0);
 
-            // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
-            display_list =["TOTAL " + dte_prev, "",  dte_count.toString() + " shifts",
-                            eh_dur_format, oh_dur_format, diff_format, show_warning]
+            const dte_pricerate_format = (!!dte_oh_amount && !!dte_oh_dur) ? format_amount ((dte_oh_amount / dte_oh_dur * 60), user_lang) : null
+            const dte_amount_format = format_amount (dte_oh_amount, user_lang)
+            const billable_format = (dte_bill_count === 0) ? "" : (dte_bill_count === dte_count) ? ">" : "-";
+
+            display_list =["TOTAL " + dte_prev, "", dte_count.toString() + " shifts",
+                            eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, dte_pricerate_format, dte_amount_format]
 
             tblRow =  CreateTableRow()
             UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "dte")
@@ -364,9 +398,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const diff_format = format_total_duration (ord_dur_diff, user_lang)
             const show_warning = (ord_dur_diff < 0);
 
-            // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+            const ord_pricerate = (!!ord_oh_amount && !!ord_oh_dur) ?  parseInt((ord_oh_amount / ord_oh_dur * 60)) : 0
+            const ord_pricerate_format = format_amount (ord_pricerate, user_lang)
+            const ord_amount_format = format_amount (ord_oh_amount, user_lang)
+            const billable_format = (ord_bill_count === 0) ? "" : (ord_bill_count === ord_count) ? ">" : "-";
+
             display_list =["TOTAL " + ord_code_prev, "",  ord_count.toString() + " shifts",
-                             eh_dur_format, oh_dur_format, diff_format, show_warning]
+                             eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, ord_pricerate_format, ord_amount_format]
 
             tblRow =  CreateTableRow()
             UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "ord")
@@ -379,9 +417,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const diff_format = format_total_duration (cust_dur_diff, user_lang)
             const show_warning = (cust_dur_diff < 0);
 
-            // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+            const cust_pricerate_format = (!!cust_oh_amount && !!cust_oh_dur) ? format_amount ((cust_oh_amount / cust_oh_dur * 60), user_lang) : null
+            const cust_amount_format = format_amount (cust_oh_amount, user_lang)
+            const billable_format = (cust_bill_count === 0) ? "" : (cust_bill_count === cust_count) ? ">" : "-";
+
             display_list = ["TOTAL " + cust_code_prev, "",  cust_count.toString() + " shifts",
-                            eh_dur_format, oh_dur_format, diff_format, show_warning]
+                            eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, cust_pricerate_format, cust_amount_format]
 
             tblRow =  CreateTableRow()
             UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "cust")
@@ -393,19 +434,64 @@ document.addEventListener('DOMContentLoaded', function() {
         const diff_format = format_total_duration (tot_dur_diff, user_lang)
         const show_warning = (tot_dur_diff < 0);
 
-        // display_list:  0 = date, 1 = cust /order/employee,, 2 = shift,  3 = "eh_dur, 4 = oh_dur, 5 = diff, 6 = show warning, 7=status
+        const tot_pricerate_format = (!!tot_oh_amount && !!tot_oh_dur) ? format_amount ((tot_oh_amount / tot_oh_dur * 60), user_lang) : null
+        const tot_amount_format = format_amount (tot_oh_amount, user_lang)
+        const billable_format = (tot_bill_count === 0) ? "" : (tot_bill_count === tot_count) ? ">" : "-";
+
         display_list = ["GRAND TOTAL",  "", tot_count.toString() + " shifts",
-                        eh_dur_format, oh_dur_format, diff_format, show_warning]
+                        eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, tot_pricerate_format, tot_amount_format]
 
         tblRow =  CreateTableRow()
         UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "grnd")
 
     }  // FillTableRows
 
+//=========  CreateTableHeader  === PR2019-05-27
+    function CreateTableHeader() {
+        //console.log("===  CreateTableHeader == ");
+
+        tblHead_items.innerText = null
+
+        let tblRow = tblHead_items.insertRow (-1); // index -1: insert new cell at last position.
+
+//--- insert td's to tblHead_items
+        const tblName = "review";
+        const column_count = tbl_col_count[tblName];
+
+        for (let j = 0; j < column_count; j++) {
+// --- add th to tblRow.
+            let th = document.createElement("th");
+            tblRow.appendChild(th);
+
+// --- add div to th, margin not workign with th
+            let el = document.createElement("div");
+            th.appendChild(el)
+
+            if (tblName === "review" && j === 7)  {
+                AppendChildIcon(el, imgsrc_warning)
+            } else if (tblName === "review" && j === 10)  {
+                AppendChildIcon(el, imgsrc_stat04)
+            } else {
+                el.innerText = get_attr_from_el(el_data, "data-" + thead_text[tblName][j])
+            }
+
+// --- add margin to first column
+            if (j === 0 ){el.classList.add("ml-2")}
+
+// --- add width to el
+                el.classList.add("td_width_" + field_width[tblName][j])
+// --- add text_align
+                el.classList.add("text_align_" + field_align[tblName][j])
+
+
+        }  // for (let j = 0; j < column_count; j++)
+    };  //function CreateTableHeader
 //=========  CreateTableRow  ================ PR2019-04-27
     function CreateTableRow() {
         //console.log("=========  function CreateTableRow =========");
         //console.log(row_list);
+        const tblName = "review";
+        const column_count = tbl_col_count[tblName];
 
 //+++ insert tblRow ino tblBody_items
         let tblRow = tblBody_items.insertRow(0); //index -1 results in that the new row will be inserted at the last position.
@@ -413,52 +499,30 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
 
-        const column_count = 8;
-
 //+++ insert td's in tblRow
         for (let j = 0; j < column_count; j++) {
             // index -1 results in that the new cell will be inserted at the last position.
             let td = tblRow.insertCell(-1);
-            let el;
+            let el = document.createElement("a");
+            td.appendChild(el);
+
+// --- add width to td
+            td.classList.add("td_width_" + field_width[tblName][j])// --- add text_align
+// --- add text_align
+            td.classList.add("text_align_" + field_align[tblName][j])
 
 // --- add img to first and last td, first column not in new_item, first column not in teammembers
-            if ([6, 7].indexOf( j ) > -1){
+            if ([7, 10].indexOf( j ) > -1){
 
                 let img_src;
-                if (j === 6){img_src = imgsrc_stat00} else
-                if (j === 7){img_src = imgsrc_stat00}
+                if (j === 7){img_src = imgsrc_stat00} else
+                if (j === 10){img_src = imgsrc_stat00}
 
             // --- first add <a> element with EventListener to td
-                el = document.createElement("a");
                 el.setAttribute("href", "#");
-
                 AppendChildIcon(el, img_src, "18")
-                td.appendChild(el);
-
-                td.classList.add("td_width_032")
                 td.classList.add("pt-0")
 
-            } else {
-
-// --- add input element to td.
-                let el = document.createElement("a");
-
-// --- add text_align
-                if ( [0, 2, 5].indexOf( j ) > -1 ){
-                    el.classList.add("text_align_left")
-                    el.classList.add("td_width_90");
-                } else if (j === 1){
-                    el.classList.add("text_align_left")
-                    el.classList.add("td_width_220");
-                } else if ([3, 4].indexOf( j ) > -1 ){
-                    el.classList.add("text_align_right")
-                    td.classList.add("td_width_120");
-                } else if ([6, 7].indexOf( j ) > -1 ){
-                    el.classList.add("text_align_left")
-                    td.classList.add("td_width_032");
-                };
-
-                td.appendChild(el);
             }  //if (j === 0)
         }  // for (let j = 0; j < 8; j++)
 
@@ -528,24 +592,20 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 let el = tblRow.cells[i].children[0];
                 if(!!el){
-                    if (i === 0) {
-                        el.innerText = display_list[0]
-                    } else  if (i === 1) { el.innerText = display_list[1]} else
                     if (i === 2) {
-                        el.innerText = display_list[2]
+                        el.innerText = display_list[i]
                         el.classList.add("tsa_ellipsis");
                         el.classList.add("td_width_090");
-                    } else
-                    if (i === 3) {
-                        el.innerText =  display_list[3]
-                    } else if (i === 4) {
-                        el.innerText = display_list[4]
-                    } else if (i === 5) {
-                        el.innerText = display_list[5]
-                    } else if (i === 6) {
-                        if (display_list[6]){
+                    } else if (i === 7) {
+                        if (display_list[i]){
                             IconChange(el, imgsrc_warning)
                         }
+                    } else if (i === 10) {
+                        if (display_list[i]){
+                            IconChange(el, imgsrc_warning)
+                        }
+                    } else {
+                        el.innerText = display_list[i]
                     }
                 };  // if(!!el)
             }  //  for (let j = 0; j < 8; j++)

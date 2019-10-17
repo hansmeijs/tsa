@@ -1,9 +1,10 @@
 # PR2018-05-28
 from datetime import date, time, datetime, timedelta
-from django.utils import formats
 from django.utils.translation import ugettext_lazy as _
 
-from tsap.constants import BASE_DATE, MONTHS_ABBREV, WEEKDAYS_ABBREV, LANG_EN, LANG_NL, LANG_DEFAULT
+from tsap import constants as c
+from companies import models as m
+
 import math
 import re
 import json
@@ -358,23 +359,23 @@ def get_weekdaylist_for_DHM(rosterdate, lang):
     if rosterdate:
 
         # get weekdays translated
-        if not lang in WEEKDAYS_ABBREV:
-            lang = LANG_DEFAULT
+        if not lang in c.WEEKDAYS_ABBREV:
+            lang = c.LANG_DEFAULT
 
         datetime = rosterdate + timedelta(days=-1)
         weekday_int = int(datetime.strftime("%w"))
-        weekday = WEEKDAYS_ABBREV[lang][weekday_int]
+        weekday = c.WEEKDAYS_ABBREV[lang][weekday_int]
         weekdaylist = '-1:' + weekday + ','
         # weekday_dict[-1] = weekday
 
         weekday_int = int(rosterdate.strftime("%w"))
-        weekday = WEEKDAYS_ABBREV[lang][weekday_int]
+        weekday = c.WEEKDAYS_ABBREV[lang][weekday_int]
         weekdaylist = weekdaylist + '0:' + weekday + ','
         # weekday_dict[0] = weekday
 
         datetime = rosterdate + timedelta(days=1)
         weekday_int = int(datetime.strftime("%w"))
-        weekday = WEEKDAYS_ABBREV[lang][weekday_int]
+        weekday = c.WEEKDAYS_ABBREV[lang][weekday_int]
         weekdaylist = weekdaylist +  '1:' + weekday
         # weekday_dict[1] = weekday
 
@@ -471,6 +472,7 @@ def detect_dateformat(dict, field):
     # logger.debug(' --- detect_dateformat ---')
     # PR2019-08-05  detect date format
     format_str = ''
+    date_string = ''
     try:
         arr00_max = 0
         arr01_max = 0
@@ -551,7 +553,7 @@ def get_date_str_from_dateint(date_int):  # PR2019-03-08
     # Function calculates date from dat_int. Base_date is Dec 31, 1899 (Excel dates use this basedate)
     dte_str = ''
     if date_int:
-        return_date = BASE_DATE + timedelta(days=date_int)
+        return_date = c.BASE_DATE + timedelta(days=date_int)
         year_str = str(return_date.strftime("%Y"))
         month_str = str(return_date.strftime("%m")) # %m is zero-padded
         day_str = str(return_date.strftime("%d"))  # %d is zero-padded
@@ -582,8 +584,8 @@ def get_date_HM_from_minutes(minutes, lang):  # PR2019-05-07
 
         # get weekdays translated
         if not lang:
-            lang = LANG_DEFAULT
-        if lang == LANG_NL:
+            lang = c.LANG_DEFAULT
+        if lang == c.LANG_NL:
             date_HM = hour_str + '.' + minute_str
         else:
             date_HM = hour_str + ':' + minute_str
@@ -600,15 +602,15 @@ def get_date_WDM_from_dte(dte, lang):  # PR2019-05-01
             day_str = str(dte.day)
             month_lang = ''
 
-            if lang in MONTHS_ABBREV:
-                month_lang = MONTHS_ABBREV[lang]
+            if lang in c.MONTHS_ABBREV:
+                month_lang = c.MONTHS_ABBREV[lang]
             month_str = month_lang[dte.month]
 
             # get weekdays translated
-            if not lang in WEEKDAYS_ABBREV:
-                lang = LANG_DEFAULT
+            if not lang in c.WEEKDAYS_ABBREV:
+                lang = c.LANG_DEFAULT
             weekday_int = int(dte.strftime("%w"))
-            weekday_str = WEEKDAYS_ABBREV[lang][weekday_int]
+            weekday_str = c.WEEKDAYS_ABBREV[lang][weekday_int]
 
             date_WDM = ' '.join([weekday_str, day_str, month_str])
         except:
@@ -623,8 +625,8 @@ def get_date_DM_from_dte(dte, lang):  # PR2019-06-17
         try:
             day_str = str(dte.day)
             month_lang = ''
-            if lang in MONTHS_ABBREV:
-                month_lang = MONTHS_ABBREV[lang]
+            if lang in c.MONTHS_ABBREV:
+                month_lang = c.MONTHS_ABBREV[lang]
             month_str = month_lang[dte.month]
             date_DM = ' '.join([ day_str, month_str])
         except:
@@ -636,16 +638,17 @@ def get_date_DM_from_dte(dte, lang):  # PR2019-06-17
 # ################### FORMAT FUNCTIONS ###################
 def formatWHM_from_datetime(dte, timezone, lang):
     # returns 'zo 16.30 u' PR2019-06-16
+    date_WHM = ''
+    if dte:
+        date_HM = format_HM_from_dtetime(dte, timezone, lang)
 
-    date_HM = format_HM_from_dtetime(dte, timezone, lang)
+        # get weekdays translated
+        if not lang in c.WEEKDAYS_ABBREV:
+            lang = c.LANG_DEFAULT
+        weekday_int = int(dte.strftime("%w"))
+        weekday_str = c.WEEKDAYS_ABBREV[lang][weekday_int]
 
-    # get weekdays translated
-    if not lang in WEEKDAYS_ABBREV:
-        lang = LANG_DEFAULT
-    weekday_int = int(dte.strftime("%w"))
-    weekday_str = WEEKDAYS_ABBREV[lang][weekday_int]
-
-    date_WHM = ' '.join([weekday_str, date_HM])
+        date_WHM = ' '.join([weekday_str, date_HM])
 
     return date_WHM
 
@@ -653,10 +656,11 @@ def formatWHM_from_datetime(dte, timezone, lang):
 def formatDMYHM_from_datetime(dte, timezone, lang):
     # returns 'zo 16 juni 2019 16.30 u' PR2019-06-14
     date_DMYHM = ''
-    date_WDMY =  format_WDMY_from_dte(dte, lang)
-    date_HM = format_HM_from_dtetime(dte, timezone, lang)
+    if dte:
+        date_WDMY =  format_WDMY_from_dte(dte, lang)
+        date_HM = format_HM_from_dtetime(dte, timezone, lang)
 
-    date_DMYHM = ' '.join([date_WDMY, date_HM])
+        date_DMYHM = ' '.join([date_WDMY, date_HM])
     return date_DMYHM
 
 
@@ -668,10 +672,10 @@ def format_WDMY_from_dte(dte, lang):
             date_DMY = format_DMY_from_dte(dte, lang)
 
             # get weekdays translated
-            if not lang in WEEKDAYS_ABBREV:
-                lang = LANG_DEFAULT
+            if not lang in c.WEEKDAYS_ABBREV:
+                lang = c.LANG_DEFAULT
             weekday_int = int(dte.strftime("%w"))
-            weekday_str = WEEKDAYS_ABBREV[lang][weekday_int]
+            weekday_str = c.WEEKDAYS_ABBREV[lang][weekday_int]
 
             date_WDMY = ' '.join([weekday_str, date_DMY])
         except:
@@ -729,8 +733,8 @@ def format_DMY_from_dte(dte, lang):  # PR2019-06-09
             day_str = str(dte.day)
             month_lang = ''
 
-            if lang in MONTHS_ABBREV:
-                month_lang = MONTHS_ABBREV[lang]
+            if lang in c.MONTHS_ABBREV:
+                month_lang = c.MONTHS_ABBREV[lang]
             month_str = month_lang[dte.month]
 
             date_DMY = ' '.join([day_str, month_str, year_str])
@@ -748,15 +752,15 @@ def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09
             year_str = str(dte.year)
             day_str = str(dte.day)
             month_lang = ''
-            if lang in MONTHS_ABBREV:
-                month_lang = MONTHS_ABBREV[lang]
+            if lang in c.MONTHS_ABBREV:
+                month_lang = c.MONTHS_ABBREV[lang]
             month_str = month_lang[dte.month]
 
-            if lang == LANG_EN:
+            if lang == c.LANG_EN:
                 time_longstr = dte.strftime("%H:%M %p")
                 day_str = day_str + ','
                 date_longstr = ' '.join([month_str, day_str, year_str, time_longstr])
-            elif lang == LANG_NL:
+            elif lang == c.LANG_NL:
                 time_longstr = dte.strftime("%H.%M") + 'u'
                 date_longstr = ' '.join([day_str, month_str, year_str, time_longstr])
         except:
@@ -781,15 +785,15 @@ def get_time_longstr_from_dte(dte, lang):  # PR2019-04-13
             year_str = str(dte.year)
             day_str = str(dte.day)
             month_lang = ''
-            if lang in MONTHS_ABBREV:
-                month_lang = MONTHS_ABBREV[lang]
+            if lang in c.MONTHS_ABBREV:
+                month_lang = c.MONTHS_ABBREV[lang]
             month_str = month_lang[dte.month]
 
-            if lang == LANG_EN:
+            if lang == c.LANG_EN:
                 time_longstr = dte.strftime("%H:%M %p")
                 day_str  = day_str + ','
                 date_longstr = ' '.join([month_str, day_str, year_str, time_longstr])
-            elif lang == LANG_NL:
+            elif lang == c.LANG_NL:
                 time_longstr = dte.strftime("%H.%M") + 'u'
                 date_longstr = ' '.join([day_str, month_str, year_str, time_longstr])
         except:
@@ -1008,43 +1012,34 @@ def get_iddict_variables(id_dict):
     # 'id': {'temp_pk': 'new_26', 'create': True, 'parent_pk': 1, 'table': 'teammembers'}
 
     mode, table, temp_pk_str = '', '', ''
-    pk_int, ppk_int, cat = 0, 0, 0
-    is_create, is_delete = False,  False
+    pk_int, ppk_int = 0, 0
+    is_create, is_delete = False, False
 
     if id_dict:
         mode = id_dict.get('mode', '')
         table = id_dict.get('table', '')
         pk_int = int(id_dict.get('pk', 0))
         ppk_int = int(id_dict.get('ppk', 0))
-        cat = int(id_dict.get('cat', 0))
         temp_pk_str = id_dict.get('temp_pk', '')
         is_create = ('create' in id_dict)
         is_delete = ('delete' in id_dict)
 
-    return pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode, cat
+    return pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode
 
 
-def get_fielddict_variables(upload_dict, field):
+def get_fielddict_variable(upload_dict, field, key):
 # - get dict from upload_dict PR2019-06-12
     # 'rosterdate': {'update': True, 'value': '2019-06-12'}
     value = None
-    is_update = False
     # logger.debug('get_fielddict_variables upload_dict: ' + str(upload_dict) + ' field' + str(field))
-
-    # {'id': {'temp_pk': 'new_3', 'create': True, 'parent_pk': 2, 'table': 'schemeitems'},
-    # 'shift': {'update': True, 'value': 'nacht'},
-    # 'team': {'update': True, 'value': 'A'}}
-    # field: rosterdate
-
     if field:
         if field in upload_dict:
-            if upload_dict[field]:
-                dict = upload_dict[field]
-                if 'value' in dict:
-                    value = dict.get('value', '')
-                if 'update' in dict:
-                    is_update = dict.get('update', False)
-    return is_update, value
+            dict = upload_dict[field]
+            if dict:
+                if key in dict:
+                    value = dict.get(key)
+
+    return value
 
 
 def fielddict_str(value):
@@ -1067,6 +1062,223 @@ def set_fielddict_date(field_dict, date_value, rosterdate=None, mindate=None, ma
     if maxdate:
         field_dict['maxdate'] = maxdate.isoformat()
 
+
+def get_fielddict_pricerate(table, instance, field_dict, user_lang):
+    # PR2019-09-20 rate is in cents.
+    # Value 'None' removes current value, gives inherited value
+    # value '0' gives rate zero (if you dont want to charge for these hours
+
+    # pricerate employee is different function below, to be corrected
+
+    logger.debug('  ')
+    logger.debug(' --- get_fielddict_pricerate --- table: ' + str(table) + ' instance: ' + str(instance))
+
+    field = 'priceratejson'
+
+    # TODO select rosterdate,  wagefactor
+    cur_rosterdate = None
+    cur_wagefactor = None
+    pricerate = None
+    saved_pricerate = None
+
+# lookup pricerate in tbale ( table can be order, scheme, shift, schemeitem)
+    saved_value_json = getattr(instance, field)  # {"0": {"0": 4400}}
+    logger.debug('saved_value_json: ' + str(saved_value_json))
+    if saved_value_json is not None:
+        saved_value_dict = json.loads(saved_value_json)  # {'0': {'0': 4400}}
+        logger.debug('saved_value_dict: ' + str(saved_value_dict))
+        saved_pricerate = get_pricerate_from_dict(saved_value_dict, cur_rosterdate, cur_wagefactor)
+        if saved_pricerate is not None: # 0 is a value, so don't use 'if pricerate:'
+            pricerate = saved_pricerate
+
+# lookup pricerate in order if value == null, not whe ntable = order
+    if pricerate is None:
+        if table == 'scheme':
+            if pricerate is None and instance.order is not None:
+                pricerate = get_pricerate_from_instance(instance.order, field, cur_rosterdate, cur_wagefactor)
+
+        elif table == 'shift':
+            if pricerate is None and instance.scheme is not None:
+                pricerate = get_pricerate_from_instance(instance.scheme, field, cur_rosterdate, cur_wagefactor)
+
+                if pricerate is None and instance.scheme.order is not None:
+                    pricerate = get_pricerate_from_instance(instance.scheme.order, field, cur_rosterdate, cur_wagefactor)
+
+        elif table == 'schemeitem':
+            if pricerate is None and instance.shift is not None:
+                pricerate = get_pricerate_from_instance(instance.shift, field, cur_rosterdate, cur_wagefactor)
+
+            if pricerate is None and instance.scheme is not None:
+                pricerate = get_pricerate_from_instance(instance.scheme, field, cur_rosterdate, cur_wagefactor)
+                if pricerate is None and instance.scheme.order is not None:
+                    pricerate = get_pricerate_from_instance(instance.scheme.order, field, cur_rosterdate, cur_wagefactor)
+
+    display_text = get_rate_display(pricerate, user_lang)
+    # logger.debug('display_text: ' + str(display_text))
+
+    if pricerate is not None:  # 0 is a value, so don't use 'if pricerate:'
+        field_dict['value'] = pricerate
+    if display_text:
+        field_dict['display'] = display_text
+    if saved_pricerate is None and pricerate is not None:
+        field_dict['inherited'] = True
+
+
+def get_pricerate_from_instance(instance, field, cur_rosterdate, cur_wagefactor):
+    logger.debug(' --- get_pricerate_from_instance: ' + str(instance))
+    pricerate = None
+    if instance is not None:
+        saved_value_json = getattr(instance, field)
+        logger.debug('saved_value_json: ' + str(saved_value_json))
+        if saved_value_json is not None:
+            saved_value_dict = json.loads(saved_value_json)  # {'0': {'0': 4400}}
+            logger.debug('saved_value_dict: ' + str(saved_value_dict))
+            saved_pricerate = get_pricerate_from_dict(saved_value_dict, cur_rosterdate, cur_wagefactor)
+            logger.debug('saved_pricerate: ' + str(saved_pricerate))
+            if saved_pricerate is not None:  # 0 is a value, so don't use 'if pricerate:'
+                pricerate = saved_pricerate
+                logger.debug('pricerate: ' + str(pricerate))
+    return pricerate
+
+
+ # TODO to correct
+def get_fielddict_pricerate_employee(table, instance, field_dict, user_lang):
+    # First lookup pricerate in teammember, only if table == 'schemeitem':
+    # teammember pricerate only overrules schemeiten when value > 0 (schemeitem  pricerate = 0 overrules, = None not)
+    pricerate = None
+    cur_rosterdate = None
+    cur_wagefactor = None
+    if pricerate is None:
+        if table == 'schemeitem':
+            if instance.team:
+                teammember = m.Teammember.get_first_teammember_on_rosterdate(instance.team, instance.rosterdate)
+                if teammember:
+                    priceratejson = getattr(teammember, 'priceratejson')
+                    if priceratejson:
+                        teammember_pricerate = get_pricerate_from_dict(json.loads(priceratejson), cur_rosterdate,
+                                                                       cur_wagefactor)
+                        logger.debug(' teammember_pricerate: ' + str(teammember_pricerate))
+                        if teammember_pricerate:
+                            pricerate = teammember_pricerate
+                        elif teammember_pricerate is None:
+                            if teammember.employee:
+                                priceratejson = getattr(teammember.employee, 'priceratejson')
+                                if priceratejson:
+                                    employee_pricerate = get_pricerate_from_dict(json.loads(priceratejson),
+                                                                                 cur_rosterdate,
+                                                                                 cur_wagefactor)
+                                    if employee_pricerate:
+                                        pricerate = employee_pricerate
+                                        # logger.debug(' teammember.employee pricerate: ' + str(saved_value))
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+def get_billable_order(order):
+    # PR2019-10-10
+    # value 0 = no override, 1= override NotBillable, 2= override Billable
+
+    field = 'billable'
+    is_billable = False
+    is_override = False
+
+    if order:
+        value = getattr(order, field, 0)
+        is_override = (value > 0)
+        if is_override:
+            is_billable = (value == 2)
+        else:
+            # get default company_billable, has no value 'is_override'
+            value = getattr(order.customer.company, field, 0)
+            is_billable = (value == 2)
+    return is_override, is_billable
+
+
+def get_billable_scheme(scheme):
+    # PR2019-10-10
+    # value 0 = no override, 1= override NotBillable, 2= override Billable
+
+    field = 'billable'
+    is_billable = False
+    is_override = False
+
+    if scheme:
+        value = getattr(scheme, field, 0)
+        is_override = (value > 0)
+        if is_override:
+            is_billable = (value == 2)
+        else:
+            value = getattr(scheme.order, field, 0)
+            if value > 0: # is_override when value > 0
+                is_billable = (value == 2)
+            else:
+                # get default company_billable, has no value 'is_override'
+                value = getattr(scheme.order.customer.company, field, 0)
+                is_billable = (value == 2)
+    return is_override, is_billable
+
+def get_billable_shift(shift):
+    # PR2019-10-10
+    # value 0 = no override, 1= override NotBillable, 2= override Billable
+
+    field = 'billable'
+    is_billable = False
+    is_override = False
+
+    if shift:
+        value = getattr(shift, field, 0)
+        is_override = (value > 0)
+        if is_override:
+            is_billable = (value == 2)
+        else:
+            value = getattr(shift.scheme, field, 0)
+            if value > 0: # is_override when value > 0
+                is_billable = (value == 2)
+            else:
+                value = getattr(shift.scheme.order, field, 0)
+                if value > 0: # is_override when value > 0
+                    is_billable = (value == 2)
+                else:
+                    # get default company_billable, has no value 'is_override'
+                    value = getattr(shift.scheme.order.customer.company, field, 0)
+                    is_billable = (value == 2)
+    return is_override, is_billable
+
+
+def get_billable_schemeitem(schemeitem):
+    # PR2019-10-10
+    # value 0 = no override, 1= override NotBillable, 2= override Billable
+
+    field = 'billable'
+    is_billable = False
+    is_override = False
+    if schemeitem:
+        value = getattr(schemeitem, field, 0)
+        is_override = (value > 0)
+        if is_override:
+            is_billable = (value == 2)
+        else:
+            shift_override = False
+            if schemeitem.shift:
+                value = getattr(schemeitem.shift, field, 0)
+                shift_override = (value > 0)
+                if shift_override:
+                    is_billable = (value == 2)
+            if not shift_override:
+                if schemeitem.scheme:
+                    value = getattr(schemeitem.scheme, field, 0)
+                    if value > 0: # is_override when value > 0
+                        is_billable = (value == 2)
+                    else:
+                        if schemeitem.scheme.order:
+                            value = getattr(schemeitem.scheme.order, field, 0)
+                            if value > 0: # is_override when value > 0
+                                is_billable = (value == 2)
+                            else:
+                                # get default company_billable, has no value 'is_override'
+                                value = getattr(schemeitem.scheme.order.customer.company, field, 0)
+                                is_billable = (value == 2)
+    return is_override, is_billable
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 def fielddict_duration(duration, user_lang):
     dict = {}
@@ -1094,3 +1306,199 @@ def remove_empty_attr_from_dict(dict):
                 del dict[field]
                 # logger.debug('deleted: ' + str(field))
     # logger.debug('dict: ' + str(dict))
+
+
+
+def get_rate_display(value, user_lang):
+    # PR2019-09-20 returns '35,25' or '35.25'
+    display_value = ''
+    if value is not None:
+        dot_str = ',' if user_lang == 'nl' else '.'
+        dollars =  int (value / 100)
+        cents_str = '00' + str(value - dollars * 100)
+        display_value = str(dollars) + dot_str + cents_str[-2:]
+    return display_value
+
+
+def get_rate_from_value(value):
+    # PR2019-09-20 rate is in cents.
+    # Value 'None' removes current value, gives inherited value
+    # value '0' gives rate zero (if you dont want to charge for these hours
+    # logger.debug(' --- get_rate_from_value ---')
+
+    # logger.debug('pricerate: ' + str(value) + ' ' + str(type(value)))
+
+    msg_err = None
+    rate = None
+    if value is not None:
+        value_str = str(value)
+        # logger.debug('value_str <' + str(value_str) + '> ' +  str(type(value_str)))
+        value_str = value_str.replace(' ', '')
+
+        if value_str:
+            error = False
+            dollars = 0
+            cents = 0
+        # replace comma by dot
+            value_str = value_str.replace(',', '.')
+            if value_str.count('.') == 0:
+                if value_str.isnumeric():
+                    dollars = int(value_str)
+                else:
+                    error = True
+            elif value_str.count('.') == 1:
+                arr = value_str.split('.')  # If separator is not provided then any white space is a separator.
+                if arr[0]:
+                    if arr[0].isnumeric():
+                        dollars = int(arr[0])
+                    else:
+                        error = True
+                if arr[1]:
+                    if arr[1].isnumeric():
+                        centts_str = arr[1] + '00'
+                        cents_str = centts_str[:2]
+                        cents = int(cents_str)
+                    else:
+                        error = True
+                else:
+                    error = True
+            else:
+                error = True
+            rate = dollars * 100 + cents
+
+            if error:
+                msg_err = _("'%(value)s' is not a valid number.") % {'value': value_str}
+
+    # logger.debug('rate <' + str(rate) + '> ' + str(type(rate)))
+    return rate, msg_err
+
+
+def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
+    # function gets rate from pricerate_dict PR2019-10-15
+    # pricerate_dict = {'2019-10-15': {100: 2500, 150: 3000, 200: 3500}, '2020-01-01': {100: 2600, 150: 3200, 200: 3800}
+    # key_startdate is the startdate of the new pricerate
+    # from https://realpython.com/iterate-through-dictionary-python/
+
+    logger.debug(' --- get_pricerate_from_dict --- ')
+
+    if cur_rosterdate is None:
+        cur_rosterdate = '0'
+    key_str = '00000000'
+    if cur_wagefactor:
+        key_str += str(cur_wagefactor)
+    cur_wagefactor_key = key_str[-8:]
+
+    pricerate = None
+    # lookup rosterdate_dict with key_startdate that is closest to cur_rosterdate and <= cur_rosterdate
+    if pricerate_dict:
+        lookup_startdate = '0'
+        # iterate over key_startdate of pricerate_dict, get the greatest key_startdate that is <= cur_rosterdate
+        for key_startdate in pricerate_dict.keys():
+            # check if key_startdate <= cur_rosterdate
+            if lookup_startdate < key_startdate <= cur_rosterdate:
+                # store key in lookup_startdate if it is greater than the stored key
+               lookup_startdate = key_startdate
+        if lookup_startdate in pricerate_dict:
+    # lookup wagefactor that is closest to cur_wagefactor and <= cur_wagefactor
+    # get pricerate of this wagefactor
+            # iterate over key_wagefactor of rosterdate_dict, get the greatest key_wagefactor that is <= cur_wagefactor
+            lookup_wagefactor = ''
+            rosterdate_dict = pricerate_dict[lookup_startdate]
+            for key_wagefactor in rosterdate_dict.keys():
+                # check if key_wagefactor <= cur_wagefactor
+                if lookup_wagefactor < key_wagefactor <= cur_wagefactor_key:
+                    # store key in lookup_wagefactor if it is greater than the stored key
+                    lookup_wagefactor = key_wagefactor
+            if lookup_wagefactor in rosterdate_dict:
+                pricerate = rosterdate_dict[lookup_wagefactor]
+    return pricerate
+
+def save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field):
+    logger.debug('   ')
+    logger.debug(' --- save_pricerate_to_instance --- ' + str(instance) + ' value: ' + str(new_value))
+    logger.debug('field ' + str(field))
+
+    is_updated = False
+    new_rate, msg_err = get_rate_from_value(new_value)
+    if msg_err:
+        update_dict[field]['error'] = msg_err
+    else:
+        # a. get saved pricerate_dict
+        saved_pricerate_dict = {}
+        priceratejson = getattr(instance, 'priceratejson')
+        if priceratejson:
+            saved_pricerate_dict = json.loads(priceratejson)
+
+        # b. add or replace new_rate in pricerate_dict
+        # TODO save pricerate with date and wagefactor
+        new_pricerate_dict, is_update = set_pricerate_to_dict(saved_pricerate_dict, rosterdate, wagefactor, new_rate)
+        logger.debug('new_pricerate_dict ' + str(new_pricerate_dict))
+
+        if is_update:
+            # c. save new pricerate_dict
+            new_pricerate_json = None
+            if new_pricerate_dict:
+                new_pricerate_json = json.dumps(new_pricerate_dict)  # dumps takes an object and produces a string:
+                logger.debug('new_pricerate_json ' + str(new_pricerate_json))
+            setattr(instance, 'priceratejson', new_pricerate_json)
+            is_updated = True
+
+    return is_updated
+
+
+def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate):
+    # function gets rate from pricerate_dict PR2019-10-15
+    # pricerate_dict = {'2019-10-15': {100: 2500, 150: 3000, 200: 3500}, '2020-01-01': {100: 2600, 150: 3200, 200: 3800}
+    # key_startdate is the startdate of the new pricerate
+    # from https://realpython.com/iterate-through-dictionary-python/
+
+    logger.debug('  ')
+    logger.debug(' -->>>- set_pricerate_to_dict --- ')
+    logger.debug('rosterdate: ' + str(rosterdate))
+    logger.debug('wagefactor: ' + str(wagefactor))
+    logger.debug('new_pricerate: ' + str(new_pricerate))
+
+    is_update = False
+    if rosterdate is None:
+        rosterdate_key = '0'  # rosterdate is string '2019-10-16'
+    else:
+        rosterdate_key = rosterdate
+    if wagefactor is None:
+        wagefactor_key = '0'  # wagefactor as key is string, wagefactor as value  is integer
+    else:
+        wagefactor_key = str(wagefactor)
+    # --- get rosterdate_dict from  pricerate_dict if it exists, if not: create new dict
+    rosterdate_dict = {}
+    if pricerate_dict:
+        if rosterdate_key in pricerate_dict.keys():
+            rosterdate_dict = pricerate_dict[rosterdate_key]
+    else:
+        pricerate_dict = {}
+
+    logger.debug('rosterdate_dict: ' + str(rosterdate_dict))
+    logger.debug('wagefactor_key: ' + str(wagefactor_key))
+
+# --- add or replace key 'wagefactor_key' with value 'new_pricerate' to rosterdate_dict
+    if wagefactor_key in rosterdate_dict.keys():
+        old_pricerate = rosterdate_dict[wagefactor_key]
+        logger.debug('wagefactor_key: ' + str(wagefactor_key) + ' old_pricerate: ' + str(old_pricerate))
+        logger.debug('wagefactor_key: ' + str(wagefactor_key) + ' new_pricerate: ' + str(new_pricerate))
+
+        if new_pricerate != old_pricerate:
+            rosterdate_dict[wagefactor_key] = new_pricerate
+            is_update = True
+            logger.debug('is_update: rosterdate_dict ' + str(rosterdate_dict))
+    else:
+        rosterdate_dict[wagefactor_key] = new_pricerate
+        is_update = True
+        logger.debug('new rosterdate_dict: ' + str(rosterdate_dict))
+
+# --- add or replace rosterdate_dict in pricerate_dict
+    if rosterdate_dict:
+        pricerate_dict[rosterdate_key] = rosterdate_dict
+    logger.debug('new pricerate_dict: ' + str(pricerate_dict))
+    logger.debug('new is_update: ' + str(is_update))
+
+    return pricerate_dict, is_update
+
+# -- end of save_pricerate_to_dict

@@ -4,12 +4,9 @@
 <!-- =================== TIMEPICKER  =================== -->
 <div id="id_timepicker" class="popup_box display_hide">
      <div id="id_timepicker_header" class="popup_header">
-        <button id="id_timepicker_prevday" type="button"><-</button> <!-- &#8249; -->
-        <label id="id_timepicker_date" class="mx-4 my-1" ></label>
-        <button  id="id_timepicker_nextday" type="button">-></button>  <!-- &#8250; -->
      </div>
    <!-- popup-body -->
-        <div id="id_timepicker_body" class="content_header td_width_240">
+        <div id="id_timepicker_body" class="content_header td_width_270 p-1">
             <div class="content_subheader_left mx-1">
                 <a>{% trans "Hours" %}</a>
                 <table class="pop_tbl tbl_border">
@@ -23,18 +20,7 @@
                 </table>
             </div>
         </div>
-        <div id="id_timepicker_footer" class="content_header td_width_240">
-            <div class="content_subheader_left ml-1 mb-">
-                <label id="id_timepicker_quicksave" class="px-1 py-1"><i>{% trans 'Quick save' %}</i></label>
-            </div>
-            <div class="content_subheader_right mr-1 mb-1">
-                <button id="id_timepicker_delete" type="button" class="timepicker_close" title="{% trans 'Delete' %}">
-                    <img id="id_img_filter_inactive" src="{% static 'img/delete.gif' %}" height="16" width="16">
-                </button>
-            </div>
-            <div class="content_subheader_right mr-1 mb-1">
-                <button id="id_timepicker_save" type="button" class="timepicker_close">{% trans 'Save' %}</button>
-            </div>
+        <div id="id_timepicker_footer" class="content_header td_width_270 m-1">
         </div>
     <!-- end popup-body  -->
 </div>

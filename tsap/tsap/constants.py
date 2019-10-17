@@ -106,10 +106,17 @@ LANG_DEFAULT = LANG_NL
 MONTHS_ABBREV = {LANG_EN: ('', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'),
              LANG_NL: ('', 'jan', 'feb', 'mrt', 'apr', 'mei', 'juni', 'juli', 'aug', 'sep', 'okt', 'nov', 'dec')
              }
-
+MONTHS_LONG = {LANG_EN: ('', 'January', 'February', 'March', 'April', 'May', 'June',
+                         'July', 'August', 'September', 'October', 'November', 'December'),
+             LANG_NL: ('', 'januari', 'februari', 'maart', 'april', 'mei', 'juni',
+                       'juli', 'augustus', 'september', 'oktober', 'november', 'december')
+             }
 #PR2019-04-13
 WEEKDAYS_ABBREV = {LANG_EN: ('', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'),
              LANG_NL: ('', 'ma', 'di', 'wo', 'do', 'vr', 'za', 'zo')
+             }
+WEEKDAYS_LONG = {LANG_EN: ('', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'),
+             LANG_NL: ('', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag')
              }
 
 #PR2019-07-23
@@ -150,8 +157,8 @@ STATUS_64_APPROVED = 64
 # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
 SHIFT_CAT_0000_NORMAL = 0
 SHIFT_CAT_0001_INTERNAL = 1
-SHIFT_CAT_0002_BILLABLE = 2
-# SHIFT_CAT_0004_AVAILABLE = 4
+SHIFT_CAT_0002_BILLABLE_OVERRIDE = 2
+SHIFT_CAT_0004_BILLABLE = 4
 # SHIFT_CAT_0008_AVAILABLE = 8
 SHIFT_CAT_0016_UNASSIGNED = 16
 SHIFT_CAT_0032_REPLACEMENT = 32  #  (cat_replacement not in use in table order)
@@ -162,9 +169,12 @@ SHIFT_CAT_0512_ABSENCE = 512 # used in table customer, order, scheme , orderhour
 SHIFT_CAT_1024_RESTSHIFT = 1024
 # SHIFT_CAT_2048_AVAILABLE = 2048
 SHIFT_CAT_4096_TEMPLATE = 4096
-
 # SHIFT_CAT_8192_AVAILABLE = 8192
 # SHIFT_CAT_16384_AVAILABLE = 16384
+
+
+
+
 
 # 0 = normal, 10 = replacement
 TEAMMEMBER_CAT_00_NORMAL = 0
@@ -185,6 +195,9 @@ ENTRY_CAT_CHOICES = (
 
 REPLACEMENT_PERIOD_DEFAULT = 14 # days
 
+# PR2019-10-160
+EMPLOYEE_TEXT = {LANG_EN: 'Employee', LANG_NL: 'Medewerker'}
+
 # PR2019-07-20
 TEMPLATE_TEXT = {LANG_EN: 'Template', LANG_NL: 'Sjabloon'}
 REST_TEXT = {LANG_EN: 'Rest', LANG_NL: 'Rust'}
@@ -195,7 +208,7 @@ ABSENCE = {
     LANG_NL: ('Afwezig', 'Absentie')
           }
 
-# PR2019-06-24  PR2019-09-26  fields: sequence, code, name, rate. rate=1 means default category
+# PR2019-06-24  PR2019-09-26  fields: sequence, code, name, pricerate. pricerate=1 means default category
 ABSENCE_CATEGORY = {LANG_EN: (
                         ('0', 'Unknown', 'Unknown', '1'),
                         ('1', 'Vacation', 'Vacation leave', '0'),
@@ -217,7 +230,7 @@ KEY_COMP_REPLACEMENT_PERIOD = 'repl_period'
 
 KEY_USER_QUICKSAVE = 'quicksave'
 KEY_USER_EMPLHOUR_PERIOD = 'emplhour_period'
-
+KEY_USER_PAGE_SETTINGS = 'page_settings'
 # code, cycle, excludeweekend, excludepublicholiday PR2019-08-24
 SCHEME_24H_DEFAULT = {LANG_EN: ('24 hours 16 days', 16, False, False),
                       LANG_NL: ('24 uur 16 daags', 16, False, False)}
@@ -300,38 +313,48 @@ CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
                                  'linked_columns': 'Gekoppelde kolommen'}
                     }
 
+FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier',
+                    'contactname', 'address', 'zipcode', 'city', 'country',
+                   'email', 'telephone', 'interval', 'inactive')
 
-FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier', 'email', 'telephone', 'interval', 'inactive')
-
-FIELDS_ORDER = ('id', 'customer', 'cat', 'code', 'name', 'datefirst', 'datelast',
-                'sequence', 'identifier', 'rate', 'taxcode', 'locked', 'inactive')
+FIELDS_ORDER = ('id', 'customer', 'cat', 'billable', 'code', 'name', 'datefirst', 'datelast',
+                'contactname', 'address', 'zipcode', 'city', 'country',
+                'sequence', 'identifier', 'billable', 'priceratejson', 'invoicedates', 'taxcode', 'locked', 'inactive')
 
 FIELDS_ORDERHOUR = ('pk', 'id', 'order', 'schemeitem', 'rosterdate',
                     'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
-                    'cat', 'shift', 'duration', 'status', 'rate', 'amount', 'tax', 'locked')
+                    'cat', 'billable', 'shift', 'duration', 'status', 'pricerate', 'amount', 'tax', 'locked')
 
 FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
                         'timestart', 'timeend', 'timeduration', 'breakduration',
                         'wagerate', 'wagefactor', 'wage', 'status', 'overlap')
 
-FIELDS_SCHEME = ('id', 'order', 'cat', 'code', 'datefirst', 'datelast',
-                 'cycle', 'excludeweekend', 'excludepublicholiday', 'inactive')
+FIELDS_SCHEME = ('id', 'order', 'cat', 'cycle', 'billable', 'code', 'datefirst', 'datelast',
+                 'priceratejson', 'excludeweekend', 'excludepublicholiday', 'inactive')
 
-FIELDS_TEAM = ('id', 'scheme', 'code')
+FIELDS_TEAM = ('id', 'scheme', 'cat', 'code')
 
-FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'timeduration', 'wagefactor')
+FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'billable',
+                'offsetstart', 'offsetend', 'breakduration', 'wagefactor', 'priceratejson')
 
-FIELDS_SCHEMEITEM = ('pk', 'id', 'scheme', 'shift', 'team',
+FIELDS_SCHEMEITEM = ('id', 'scheme', 'cat', 'billable', 'shift', 'team',
                      'rosterdate', 'iscyclestart', 'timestart', 'timeend',
-                     'timeduration', 'inactive')
+                     'timeduration', 'priceratejson', 'inactive')
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
-FIELDS_EMPLOYEE = ('id', 'code', 'namelast', 'namefirst', 'email', 'telephone', 'identifier', 'payrollcode',
-                   'datefirst', 'datelast', 'wagecode', 'workhours', 'workdays', 'leavedays', 'workhoursperday', 'inactive')
+FIELDS_EMPLOYEE = ('id', 'code', 'datefirst', 'datelast',
+                   'namelast', 'namefirst', 'email', 'telephone', 'identifier',
+                   'address', 'zipcode', 'city', 'country',
+                   'payrollcode', 'wagerate', 'wagecode',
+                   'workhours', 'workdays', 'leavedays', 'priceratejson', 'inactive')
+
+
 WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, default is 40 hours per week = 2.400 minutes
 WORKDAYS_DEFAULT = 7200  # workdays per week * 1440, unit is minute (one day has 1440 minutes) , default is 5 days per week = 7200 minutes
 LEAVEDAYS_DEFAULT = 21600  # leavedays per year, = 15 days * 1440 = 21.600 minutes
 
 # workhours_per_day_minutes = workhours_minutes / workdays_minutes * 1440
 
-FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast', 'workhoursperday', 'wagerate', 'wagefactor', 'scheme', 'order', 'customer')
+FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast',
+                     'workhoursperday', 'wagerate', 'wagefactor',
+                     'priceratejson', 'override')

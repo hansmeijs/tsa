@@ -81,7 +81,7 @@ class InvoiceAddForm(ModelForm):
 
     class Meta:
         model = Companyinvoice
-        fields = ('company', 'cat', 'entries', 'rate', 'datepayment', 'dateexpired', 'note')
+        fields = ('company', 'cat', 'entries', 'entryrate', 'datepayment', 'dateexpired', 'note')
         labels = {'company': _('Company'),
                   'cat': _('Category'),
                   'datepayment': _('Payment date'),

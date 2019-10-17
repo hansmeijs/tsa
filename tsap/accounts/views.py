@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin  # PR2018-11-03
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib import messages
 from django.core.mail import send_mail
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy
@@ -20,9 +21,10 @@ from django.views.decorators.csrf import csrf_protect # PR2018-10-14
 from django.contrib.auth import update_session_auth_hash # PR2018-10-14
 from django.views.decorators.cache import never_cache # PR2018-10-14
 
-from companies.models import Company
-
+import json
 from tsap.headerbar import get_headerbar_param
+
+from companies.views import LazyEncoder
 
 from django.contrib.auth import (
     REDIRECT_FIELD_NAME, get_user_model, login as auth_login,
@@ -42,7 +44,6 @@ logger = logging.getLogger(__name__)
 @method_decorator([login_required], name='dispatch')
 class UserListView(ListView):
     # PR 2018-04-22 template_name = 'user_list.html' is not necessary, Django looks for <appname>/<model>_list.html
-
 
     def get(self, request, *args, **kwargs):
         User = get_user_model()
@@ -520,6 +521,52 @@ class UserActivatedSuccess(View):
 class UserDeleteView(DeleteView):
     model = User
     success_url = reverse_lazy('user_list_url')
+
+
+
+@method_decorator([login_required], name='dispatch')
+class UserSettingsUploadView(UpdateView):# PR2019-10-09
+
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ============= UserSettingsUploadView ============= ')
+
+        update_wrap = {}
+        if request.user is not None and request.user.company is not None:
+
+            logger.debug('request.POST ' + str(request.POST))
+    # 2. get upload_dict from request.POST
+            upload_json = request.POST.get('upload', None)
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+    # 3. get_iddict_variables
+                settings_dict = upload_dict.get('settings')
+                logger.debug('settings_dict ' + str(settings_dict))
+                # settings_dict {'page_employee': {'selected_mode': 'absence'}}
+                if settings_dict:
+                    key = c.KEY_USER_PAGE_SETTINGS
+                    page = 'pagexx'
+                    new_setting_dict = {}
+                    selected_mode = settings_dict.get('selected_mode')
+                    logger.debug('selected_mode ' + str(selected_mode))
+
+                    # TODO: multiple settings, get saves settingsfirst, then update new setting
+                    new_page_dict = {}
+                    new_page_dict[page] = {'selected_mode': selected_mode}
+                    logger.debug('new_page_dict ' + str(new_page_dict))
+
+                    # new_setting is in json format, no need for json.loads and json.dumps
+                    # new_setting = json.loads(request.POST['setting'])
+                    # new_setting_json = json.dumps(new_setting)
+
+                    Usersetting.set_jsonsetting(key, settings_dict, request.user)
+
+    # c. add update_dict to update_wrap
+
+            update_wrap['settings'] = {"result": "ok"}
+# F. return update_wrap
+        return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
+
+
 
 
 """

@@ -5,7 +5,6 @@
 {% block title %}{% trans 'Roster' %}{% endblock %}
 
 {% block script %}
-    <!-- <script src="{% static 'js/timepicker.js' %}"></script> -->
     <script src="{% static 'js/roster.js' %}"></script>
     <script src="{% static 'js/timepicker.js' %}"></script>
 {% endblock %}
@@ -15,6 +14,30 @@
     <nav id="id_sidebar" class="tsa_sidebar">
         <div class="sidebar_header">
             <h3>{% trans 'Roster' %}</h3>
+        </div>
+                <div class="td_width_200 mx-2 mt-2 mb-5">
+            <table >
+                <thead id="id_thead_select"class="mx-1 my-1 ">
+                <tr>
+                    <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select period' %}</h6>
+                </tr>
+                <tr>
+                    <td>
+                    <input id="id_flt_select"
+                        type="text"
+                        class="td_width_150 tsa_bc_transparent border_none px-2"
+                        autocomplete="off"
+                        placeholder="{% trans 'filter ...' %}">
+                        </td>
+                    <td>
+                        <a id="id_sel_inactive" href="#">
+                            <img id="id_sel_img_inactive"  src="{% static 'img/inactive_lightgrey.png' %}" height="24" width="24">
+                        </a>
+                        </td>
+                </tr>
+                </thead>
+                <tbody id="id_tbody_select"></tbody>
+            </table>
         </div>
     </nav>
 {% endblock %}
@@ -406,7 +429,6 @@
             data-timezone ="{{ timezone }}"
             data-interval ="{{ interval }}"
             data-timeformat ="{{ timeformat }}"
-            data-quicksave ="{{ quicksave }}"
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
             data-today ="{{ today }}"
@@ -418,6 +440,7 @@
 
             data-err_msg01= "{% trans 'An error occurred.' %}"
 
+            data-txt_save = "{% trans 'Save' %}"
             data-txt_quicksave = "{% trans 'Quick save' %}"
             data-txt_quicksave_remove = "{% trans 'Exit Quick save' %}"
 

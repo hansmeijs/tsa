@@ -132,6 +132,7 @@
     display: block;
     overflow: auto;
 }
+
 .tsa-tbl th  {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
     margin: 0;
@@ -139,6 +140,7 @@
     /*background: #e8e8e880; /*licht licht grijs 232 232 232 50% */
     background-color: #f5f5f5; /* this is reddish: background-color: #f8f8f8;*/
     white-space: normal;
+    overflow-wrap: break-word; /* TODO not working*/
     /*overflow: hidden;
     text-overflow: ellipsis;*/
 }
@@ -213,10 +215,11 @@
     width: 60px;
 }
 .td_width_032 {
-    /* border-right: 1px solid #808080; /* grijs; */
     width: 32px;
 }
-
+.td_width_016 {
+    width: 16px;
+}
 .tbl_border {
     border: 1px solid #808080; /* grijs; */
 }
@@ -307,3 +310,26 @@
     /* padding: <top><right><bottom><left> */
     padding: 20px 20px 20px 20px;
 }
+
+.tsa_margin_top_32 {
+    /* margin: <top><right><bottom><left> */
+   margin-top: 32px
+}
+
+.tsa_margin_top_64 {
+    /* margin: <top><right><bottom><left> */
+   margin-top: 72px
+}
+
+.tsa_margin_form_label {
+    margin: 16px 8px 4px 8px;; /* mx-2 = .5 rem, mx-1 = .25 rem, 1 rem = 16 px*/
+}
+
+
+.tsa_flex_1 {
+    flex: 1;
+}
+.tsa_flex_2 {
+    flex: 2;
+}
+

@@ -147,7 +147,41 @@
         return elt.options[elt.selectedIndex].text;
     }
 
+// ================ GETTERS ========================
+
+//========= get_datamap  ================== PR2019-10-03
+    function get_datamap(data_list, data_map) {
+        data_map.clear();
+        if (!!data_list) {
+            for (let i = 0, len = data_list.length; i < len; i++) {
+                const item_dict = data_list[i];
+                const id_dict = get_dict_value_by_key(item_dict, "id");
+                const pk_str = get_dict_value_by_key(id_dict, "pk");
+                const table = get_dict_value_by_key(id_dict, "table");
+                const map_id = table + pk_str;
+                data_map.set(map_id, item_dict);
+            }
+        }
+    };
+
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
+//========= remove_err_del_cre_updated__from_itemdict  ======== PR2019-10-11
+    function remove_err_del_cre_updated__from_itemdict(item_dict) {
+
+        console.log("remove_err_del_cre_updated__from_itemdict")
+//--- remove 'updated, deleted created and msg_err from item_dict
+        Object.keys(item_dict).forEach(function(key) {
+            const field_dict = item_dict[key];
+            if (!isEmpty(field_dict)){
+                if ("updated" in field_dict){delete field_dict["updated"]};
+                if ("msg_err" in field_dict){delete field_dict["msg_err"]};
+                if(key === "id"){
+                    if ("created" in field_dict){delete field_dict["created"]};
+                    if ("deleted" in field_dict){delete field_dict["deleted"]};
+                }
+            }
+        });
+    };  // remove_err_del_cre_updated__from_itemdict
 
 //========= lookup_itemdict_from_datadict  ======== PR2019-09-24
     function lookup_itemdict_from_datadict(data_dict, selected_pk) {
@@ -214,11 +248,6 @@
         }
         return id_dict
     }  // function get_iddict_from_element
-
-
-
-
-
 
 //========= function get_datapk_from_element  ======== PR2019-06-02
     function get_datapk_from_element (el) {
@@ -288,6 +317,17 @@
             dict_pk = get_dict_value_by_key (dict, "pk")
         }
         return dict_pk;
+    }
+
+//========= function get_pk_from_dict  ================= PR2019-10-08
+    function get_mapid_from_dict (dict) {
+        let map_id = null;
+        if(!isEmpty(dict)){
+            const pk_str = get_dict_value_by_key(dict,"pk").toString();
+            const tblName = get_subdict_value_by_key (dict, "id", "table");
+            map_id = tblName + pk_str;
+        }
+        return map_id
     }
 
 //========= function get_pk_from_dict  ================= PR2019-05-24
@@ -505,7 +545,7 @@
 
         return time_formatted
     }
-
+// NOT IN USE
 //========= format_offset_time  ========== PR2019-09-14
     function format_offset_time(datetime_local, timeformat, user_lang, display24) {
         //  when display24 = true: zo 00.00 u is dispalyed as 'za 24.00 u'
@@ -591,14 +631,81 @@
             if (!!value){
                 el_input.value = value;
                 el_input.setAttribute("data-value", value);
-                el_input.setAttribute("data-o_value", value);
             } else {
                 el_input.value = '';
                 el_input.removeAttribute("data-value");
-                el_input.removeAttribute("data-o_value");
             }
         }
     }  // format_text_element
+
+
+//========= format_amount  ======== PR2019-10-10
+    function format_amount (value, user_lang) {
+    // PR2019-09-20 returns '1.035,25' or '1,035.25'
+        let display_value = null;
+        if (!!value){
+            value = Math.trunc(value)
+            const dot_str = (user_lang === "nl") ? "," : "."
+            const separator = (user_lang === "nl") ? "." : ","
+            let dollars = parseInt(value / 100);
+            let cents = value - dollars * 100;
+            let cents_str = '00' + cents.toString();
+            cents_str = cents_str.slice(-2)
+            let dollars_str ="0"
+            if(!!dollars){
+                dollars_str = dollars.toString();
+                if (dollars > 1000000){
+                    dollars_str = dollars_str.slice(0,-6) + separator + dollars_str.slice(-6)
+                }
+                if (dollars > 1000){
+                    dollars_str = dollars_str.slice(0,-3) + separator + dollars_str.slice(-3)
+                }
+            }
+            display_value = dollars_str + dot_str + cents_str
+        }
+        return display_value;
+    }  // format_amount
+
+//========= format_price_element  ======== PR2019-09-29
+    function format_price_element (el_input, el_msg, field_dict, msg_offset, user_lang) {
+        console.log("--- format_price_element ---")
+        console.log("field_dict: ", field_dict)
+        //console.log("el_input: ", el_input)
+
+        if(!!el_input && !!field_dict){
+            let value = get_dict_value_by_key (field_dict, "value");
+            const display_value = get_dict_value_by_key (field_dict, "display");
+            const inherited = get_dict_value_by_key (field_dict, "inherited");
+            let updated = get_dict_value_by_key (field_dict, "updated");
+            let msg_err = get_dict_value_by_key (field_dict, "error");
+
+            // lock element when locked
+            const locked = get_dict_value_by_key (field_dict, "locked");
+            el_input.disabled = locked
+
+            if(!!msg_err){
+                if(!value) {value = null} // otherwise 'undefined will show in textbox
+                ShowMsgError(el_input, el_msg, msg_err, msg_offset, true, display_value, value)
+            } else if(updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){el_input.classList.remove("border_valid");}, 2000);
+            }
+
+            el_input.value = (!!display_value) ? display_value : null
+
+            if (!!value){
+                el_input.setAttribute("data-value", value);
+            } else {
+                el_input.removeAttribute("data-value");
+            }
+            if (inherited){
+                el_input.classList.add("tsa_color_mediumgrey")
+            } else {
+                el_input.classList.remove("tsa_color_mediumgrey")
+            }
+        }
+    }  // format_price_element
+
 
 //========= function format_date_element  ======== PR2019-07-02
     function format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
@@ -687,10 +794,8 @@
             };
             if(!!data_value){
                 el_input.setAttribute("data-value", data_value)
-                el_input.setAttribute("data-o_value", data_value)
             } else {
                 el_input.removeAttribute("data-value");
-                el_input.removeAttribute("data-o_value")
             };
             if(!!mindate){
                 el_input.setAttribute("data-mindate", mindate)
@@ -766,6 +871,32 @@
     }  // function format_date_iso
 
 
+//========= format_datetime_element without moment.js  ======== PR2019-10-12
+    function format_date_vanillaJS (date_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year) {
+        //console.log(" ----- format_date_vanillaJS", date_JS);
+        let display_value = "";
+        if(!!date_JS) {
+            const year_str = date_JS.getFullYear().toString();
+            const month_index =  date_JS.getMonth();
+            const date_str = date_JS.getDate().toString();
+            const weekday_index = (!!date_JS.getDay()) ? date_JS.getDay() : 7;  // index 0 is index 7 in weekday_list
+            //console.log(" ----- weekday_index", weekday_index);
+
+            const weekday_str = (!!weekday_list) ? weekday_list[weekday_index] : "";
+            const month_str = (!!month_list) ? month_list[month_index + 1] : "";
+
+            //console.log(" ----- weekday_str", weekday_str);
+            const is_en = (user_lang === "en");
+            const comma_space = (is_en) ? ", " : " ";
+            display_value = (is_en) ? month_str + " " + date_str :  date_str + " " + month_str;
+
+            if (!hide_year) {display_value += comma_space + year_str};
+            if (!hide_weekday) {display_value = weekday_str + comma_space  + display_value;};
+        }  // if(!!date_JS)
+        return display_value
+    }  // function format_date_iso
+
+
 //oooooooooooooooooooooooooooooooo
 //========= format_datetime_element  ======== PR2019-06-03
     function format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap) {
@@ -794,11 +925,9 @@
             const updated = get_dict_value_by_key (field_dict, "updated");
             const msg_err = get_dict_value_by_key (field_dict, "error");
 
-
             // lock element when locked
             const locked = get_dict_value_by_key (field_dict, "locked");
             el_input.disabled = locked
-
 
             const has_overlap = get_dict_value_by_key (field_dict, "overlap", false);
             if(has_overlap){
@@ -828,7 +957,7 @@
 
 // from https://www.techrepublic.com/article/convert-the-local-time-to-another-time-zone-with-this-javascript/
 // from  https://momentjs.com/timezone/
-            let fulltime, fulldatetime, shortdatetime, weekday_str = "", month_str = "";
+            let fulltime, fulldatetime, shortdatetime = null, weekday_str = "", month_str = "";
 
             const isAmPm = (timeformat === "AmPm")
             // TODO use user_lang / timeformat
@@ -891,8 +1020,9 @@
                 }
 
 // format weekday_str and month_str
-                // don't show weekday when display_date and rosterdate are the same
-                const show_weekday = (display_datetime_local.date() !== rosterdate_local.date())
+                // Not in use: don't show weekday when display_date and rosterdate are the same
+                // const show_weekday = (display_datetime_local.date() !== rosterdate_local.date())
+                const show_weekday = true;
 
                 if (show_weekday && !!weekday_list){
                     const weekday_iso = display_datetime_local.isoWeekday();
@@ -932,7 +1062,7 @@
             }  // if (!!datetime_iso)
 
 
-            if(!!shortdatetime){el_input.value = shortdatetime};
+            el_input.value = shortdatetime;
 
             let title = !has_overlap ? fulldatetime : title_overlap;
 
@@ -962,8 +1092,8 @@
                 //console.log("field_dict: ", field_dict)
 
                 // value:  "270" = 04:30, value can be null
-                value = get_dict_value_by_key(field_dict, "value");
-                //console.log("value: ", value)
+                const fld = (fieldname === "breakduration") ? "value" : "offset";
+                value = get_dict_value_by_key(field_dict, fld);
 
                 const updated = get_dict_value_by_key (field_dict, "updated");
                 const msg_err = get_dict_value_by_key (field_dict, "error");
@@ -1091,7 +1221,6 @@
             }  // if(!!field_dict)
 
             el_input.setAttribute("data-value", value_int);
-            el_input.setAttribute("data-o_value", value_int);
         } // if(!!el_input){
     }  // function format_duration_element
 
@@ -1142,7 +1271,6 @@
     function display_duration (value_int, user_lang) {
         // timeduration: {value: 540, hm: "9:00"}
         //console.log("+++++++++ display_duration")
-        //console.log(field_dict)
         // don't use Math.floor()
         // Math.floor() returns the largest integer less than or equal to a given number. (-2.56 becomes -3)
         // Math.trunc() cuts off the dot and the digits to the right of it. (-2.56 becomes -2)
@@ -1155,6 +1283,7 @@
                 value_int = value_int * -1
             }
 
+            //console.log("value_int", value_int)
             let hour_text;
             const hours = Math.trunc(value_int/60);
             if (hours < 100) {
@@ -1163,6 +1292,7 @@
             } else {
                 hour_text =  hours.toString()
             }
+            //console.log("hour_text", hour_text)
 
             const minutes = value_int % 60  // % is remainder operator
             const minute_str = "00" + minutes.toString()
@@ -1177,8 +1307,84 @@
             if(is_negative){display_value = "-" + display_value}
         }  // if(!!value_int)
 
+        //console.log("display_value", display_value)
         return display_value
     }  // function display_duration
+
+
+//========= format_restshift_element  ======== PR2019-10-03
+    function format_restshift_element (el_input, field_dict, imgsrc_rest_black, imgsrc_stat00, title) {
+        //console.log("+++++++++ format_restshift_element")
+        //console.log("field_dict", field_dict)
+        if(!!el_input){
+            const is_restshift = get_dict_value_by_key(field_dict, "value", false)
+            const imgsrc = (is_restshift) ? imgsrc_rest_black : imgsrc_stat00;
+
+            let el_img = el_input.children[0];
+            if(!!el_img){el_img.setAttribute("src", imgsrc);};
+
+            if(is_restshift){
+                el_input.setAttribute("title", title);
+            } else {
+                el_input.removeAttribute("title");
+            }
+            const is_updated = get_dict_value_by_key(field_dict, "updated", false);
+            if(is_updated){
+                el_input.classList.add("border_valid");
+                setTimeout(function (){el_input.classList.remove("border_valid")}, 2000);
+            }
+        }  // if(!!el_input)
+    }  // format_restshift_element
+
+//========= format_billable_element  ======== PR2019-09-28
+    function format_billable_element (el_input, field_dict,
+            imgsrc_billable_black, imgsrc_billable_cross, imgsrc_billable_grey, imgsrc_stat00,
+            title_billable, title_notbillable, has_infotext) {
+        //console.log("+++++++++ format_billable_element")
+        //console.log(field_dict)
+        let info_text = null
+
+        if(!!el_input){
+            //console.log("el_input", el_input)
+            let is_override = false, is_billable = false;
+            if(isEmpty(field_dict)){
+                el_input.removeAttribute("href");
+                el_input.children[0].setAttribute("src", imgsrc_stat00);
+                el_input.removeAttribute("title");
+            } else {
+                el_input.setAttribute("href", "#");
+                is_override = get_dict_value_by_key(field_dict, "override")
+                is_billable = get_dict_value_by_key(field_dict, "billable")
+                //console.log("is_override", is_override, "is_billable", is_billable)
+                let el_img = el_input.children[0]
+                //console.log("el_img", el_img)
+                if(!!el_img){
+                    const imgsrc = (is_override) ?
+                        ((is_billable) ? imgsrc_billable_black : imgsrc_billable_cross) :
+                        ((is_billable) ? imgsrc_billable_grey : imgsrc_stat00);
+                    //console.log("imgsrc", imgsrc)
+                    el_img.setAttribute("src", imgsrc);
+                }
+
+                const title = (is_billable) ? title_billable : title_notbillable;
+                //console.log("is_override", is_override, "is_billable", is_billable)
+                if(has_infotext){
+                    info_text = title;
+                    el_input.removeAttribute("title");
+                } else {
+                    el_input.setAttribute("title", title);
+                }
+
+                if(get_dict_value_by_key (field_dict, "updated")){
+                    el_input.classList.add("border_valid");
+                    setTimeout(function (){
+                        el_input.classList.remove("border_valid");
+                        }, 2000);
+                }
+            }  // if(isEmpty(field_dict)){
+        }  // if(!!el_input)
+        return info_text;
+    }  // format_billable_element
 
 //========= format_inactive_element  ======== PR2019-06-09
     function format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active, title_inactive, title_active) {
@@ -1194,7 +1400,6 @@
             //console.log("is_inactive: ", is_inactive, typeof is_inactive)
 
             el_input.setAttribute("data-value", is_inactive);
-            el_input.setAttribute("data-o_value", is_inactive);
 
             // update icon if img existst
             let el_img = el_input.children[0];
@@ -1213,7 +1418,9 @@
                     el_input.setAttribute("title", title);
                 } else {
                     el_input.removeAttribute("title");
-        }}}
+                }
+            }
+        }
     }  // format_inactive_element
 
 
@@ -1237,63 +1444,34 @@
     }  // format_overlap_element
 
 //========= format_confirmation_element  ======== PR2019-06-09
-    function format_confirmation_element (el_input, field_dict,
-        imgsrc_stat00, imgsrc_questionmark, imgsrc_warning,
+    function format_confirmation_element (el_input, field_dict, fieldname,
+        imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_questionmark, imgsrc_warning,
         title_stat00, title_question_start, title_question_end, title_warning_start, title_warning_end ) {
+
          "use strict";
 
-        console.log("+++++++++ format_confirmation_element")
-        console.log(field_dict)
-         console.log(el_input)
+        //console.log("+++++++++ format_confirmation_element", fieldname, field_dict)
+
 
         if(!!el_input){
-            let status_sum = 0;
-            if(!isEmpty(field_dict)){
-                status_sum = parseInt(get_dict_value_by_key(field_dict, "value"));
-            }
-            //console.log("status_sum: ", status_sum)
-
-            el_input.setAttribute("data-value", status_sum);
-
-            // update icon if img existst
             let el_img = el_input.children[0];
-            // console.log ("el_img", el_img)
+            //console.log ("el_img", el_img)
             if (!!el_img){
+                const status_sum = (!isEmpty(field_dict)) ? parseInt(get_dict_value_by_key(field_dict, "value")) : 0;
+                const start_confirmed = status_found_in_statussum(2, status_sum); //STATUS_02_START_CONFIRMED
+                const end_confirmed = status_found_in_statussum(4, status_sum); //STATUS_04_END_CONFIRMED
+                //console.log("status_sum", status_sum, "start_confirmed", start_confirmed, "end_confirmed", end_confirmed)
 
                 let imgsrc = imgsrc_stat00;
-                let title = "";
-                if (status_sum >= 8) { //STATUS_08_LOCKED = 8
-                    imgsrc = imgsrc_stat05;
-                    title = title_stat05
-                } else {
-                    //STATUS_02_START_CONFIRMED
-                    //STATUS_04_END_CONFIRMED
-                    const start_confirmed = status_found_in_statussum(2, status_sum);
-                    const end_confirmed = status_found_in_statussum(4, status_sum);
 
-                    //console.log("start_confirmed: ", start_confirmed)
-                    //console.log("end_confirmed: ", end_confirmed)
-
-                    if (start_confirmed) {
-                        if (end_confirmed) {
-                            imgsrc = imgsrc_stat04;
-                            title = title_stat04
-                        } else {
-                            imgsrc = imgsrc_stat02
-                            title = title_stat02;
-                        }
-                    } else {
-                        if (end_confirmed) {
-                            imgsrc = imgsrc_stat03;
-                            title = title_stat03
-                        } else if (status_sum%2 !== 0) {// % is remainder operator
-                            imgsrc = imgsrc_stat01 //STATUS_01_CREATED
-                            title = title_stat01;
-                        }
-                    }
+                if (fieldname === "confirmstart"){
+                    imgsrc = start_confirmed ? imgsrc_stat02 : imgsrc_stat00
+                } else if (fieldname === "confirmend"){
+                    imgsrc = end_confirmed ? imgsrc_stat03 : imgsrc_stat00
                 }
+                //console.log("imgsrc", imgsrc)
                 el_img.setAttribute("src", imgsrc);
-                el_input.setAttribute("title", title);
+                //el_input.setAttribute("title", title);
             }
         }
     }  // function format_confirmation_element
@@ -1368,7 +1546,7 @@
     function status_found_in_statussum(status, status_sum) {
         // PR2019-07-17 checks if status is in status_sum
         // e.g.: status_sum=15 will be converted to status_tuple = (1,2,4,8)
-        // ststus = 0 gives always True
+        // status = 0 gives always True
         let found = false;
         if (!!status) {
             if (!!status_sum) {
@@ -1392,6 +1570,36 @@
         return found
     }  // function status_found_in_statussum
 
+//========= cat_found_in_catsum  =====
+    function cat_found_in_catsum(cat, cat_sum) {
+        // PR2018-09-27 checks if cat is in cat_sum. same as status_found_in_statussum, only higher power
+        // cat = 0 gives always True
+        let found = false;
+        let max_power = 15;
+        if (cat_sum < 64) { max_power = 7
+        } else if (cat_sum < 1024) { max_power = 11 };
+        if (!!cat) {
+            if (!!cat_sum) {
+                for (let i = max_power, power; i >= 0; i--) {
+                    // Note: exponentiation operator ** not working in IE11; back to Math.pow PR2019-09-11
+                    // Was: power = 2 ** i  // ** is much faster then power = Math.pow(2, i); from http://bytewrangler.blogspot.com/2011/10/mathpowx2-vs-x-x.html
+                    power = Math.pow(2, i);
+                    if (cat_sum >= power) {
+                        if (power === cat) {
+                            found = true;
+                            break;
+                        } else {
+                            cat_sum -= power;
+                        }
+                    }
+                }
+            }
+        } else {
+            found = true;
+        }
+        return found
+    }  // function cat_found_in_catsum
+
 // +++++++++++++++++ OTHER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //=========  ShowMsgError  ================ PR2019-06-01
@@ -1400,8 +1608,8 @@
         console.log("ShowMsgError")
         console.log("display_value", set_value, typeof set_value )
         console.log("display_value", display_value, typeof display_value )
-        console.log("display_value", data_value, typeof data_value )
-        console.log("display_value", display_title, typeof display_title )
+        console.log("data_value", data_value, typeof data_value )
+        console.log("display_title", display_title, typeof display_title )
 
         if(!!el_input && msg_err) {
             el_input.classList.add("border_bg_invalid");
@@ -1447,8 +1655,6 @@
 //=========  ShowOkClass  ================ PR2019-05-31
     function ShowOkClass(tblRow ) {
     // make row green, / --- remove class 'ok' after 2 seconds
-    //console.log ("---- ShowOkClass ---- ")
-    //console.log (tblRow )
         tblRow.classList.add("tsa_tr_ok");
         setTimeout(function (){
             tblRow.classList.remove("tsa_tr_ok");
@@ -1519,6 +1725,27 @@
         }
     }
 
+
+//=========  HighlightSelectedTblRowByPk  ================ PR2019-10-05
+    function HighlightSelectedTblRowByPk(tableBody, selected_pk, cls_selected, cls_background) {
+        if(!cls_selected){cls_selected = "tsa_tr_selected"}
+        if(!!tableBody){
+            let tblrows = tableBody.rows;
+            for (let i = 0, tblRow, len = tblrows.length; i < len; i++) {
+                tblRow = tblrows[i];
+                if(!!tblRow){
+                    const pk_int = parseInt(tblRow.getAttribute("data-pk"));
+                    if (!!selected_pk && pk_int === selected_pk){
+                        if(!!cls_background){tblRow.classList.remove(cls_background)};
+                        tblRow.classList.add(cls_selected)
+                    } else if(tblRow.classList.contains(cls_selected)) {
+                        tblRow.classList.remove(cls_selected);
+                        if(!!cls_background){tblRow.classList.add(cls_background)}
+                    }
+                }
+            }
+        }
+    }  // HighlightSelectedTblRowByPk
 
 //========= function found_in_list_str  ======== PR2019-01-22
     function found_in_list_str(value, list_str ){

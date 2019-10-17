@@ -115,6 +115,10 @@ urlpatterns = [
         path('add', account_views.UserAddView.as_view(), name='user_add_url'),
         path('<int:pk>/edit', account_views.UserEditView.as_view(), name='user_edit_url'),
         path('<int:pk>/delete', account_views.UserDeleteView.as_view(), name='user_delete_url'),
+
+        path('settings_upload', account_views.UserSettingsUploadView.as_view(),
+             name='settings_upload_url'),
+
     ])),
 
     path('session_security', include('session_security.urls')),
@@ -133,8 +137,9 @@ urlpatterns = [
 
         path('customers/', customer_views.CustomerListView.as_view(), name='customer_list_url'),
         path('customer_upload/', customer_views.CustomerUploadView.as_view(), name='customer_upload_url'),
+        path('pricerate_upload/', customer_views.PricerateUploadView.as_view(), name='pricerate_upload_url'),
         path('orders/', customer_views.OrderListView.as_view(), name='order_list_url'),
-        path('order_upload/', customer_views.OrderUploadView.as_view(), name='order_upload_url'),
+        # path('order_upload/', customer_views.OrderUploadView.as_view(), name='order_upload_url'),
     ])),
 
     path('employee/', include([
@@ -145,12 +150,12 @@ urlpatterns = [
     #        path('delete/', employee_views.EmployeeDeleteView.as_view(), name='employee_delete_url'),
     #    ])),
         path('import', employee_views.EmployeeImportView.as_view(), name='employee_import_url'),
-        path('ajax/', include([
-            path('upload/', employee_views.EmployeeUploadView.as_view(), name='employee_upload_url'),
-            path('uploadsetting', employee_views.EmployeeImportUploadSetting.as_view(),
-                 name='employee_uploadsetting_url'),
-            path('uploaddata', employee_views.EmployeeImportUploadData.as_view(), name='employee_uploaddata_url'),
-        ])),
+
+        path('upload/', employee_views.EmployeeUploadView.as_view(), name='employee_upload_url'),
+        path('uploadsetting', employee_views.EmployeeImportUploadSetting.as_view(),
+             name='employee_uploadsetting_url'),
+        path('uploaddata', employee_views.EmployeeImportUploadData.as_view(), name='employee_uploaddata_url'),
+
     ])),
 
     path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),
@@ -169,7 +174,7 @@ urlpatterns = [
     ])),
     path('roster/', include([
         path('view', planning_views.RosterView.as_view(), name='roster_url'),
-        path('roster_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
+        path('emplhour_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
         path('interval_upload', planning_views.PeriodUploadView.as_view(), name='period_upload_url'),
         path('replacement', planning_views.ReplacementUploadView.as_view(), name='replacement_upload_url'),
     ])),

@@ -16,6 +16,7 @@ from companies.views import LazyEncoder
 from tsap import constants as c
 from tsap import functions as f
 from tsap import validators as v
+from planning import dicts as d
 
 from planning.dicts import get_rosterdatefill_dict, create_emplhour_list,\
     get_period_from_settings, get_timesstartend_from_perioddict
@@ -53,11 +54,13 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                 rosterdate_fill = None
                 rosterdate_remove = None
 
+                update_list = []
+
                 if 'fill' in rosterdate_fill_dict:
                     rosterdate_str = rosterdate_fill_dict['fill']
                     rosterdate_fill_dte, msg_txt = f.get_date_from_ISOstring(rosterdate_str)
                     logfile = []
-                    FillRosterdate(rosterdate_fill_dte, request, comp_timezone, user_lang, logfile)
+                    FillRosterdate(rosterdate_fill_dte, update_list, request, comp_timezone, user_lang, logfile)
 
                 # update rosterdate_current in companysettings
                     m.Companysetting.set_setting(c.KEY_COMP_ROSTERDATE_CURRENT, rosterdate_fill_dte, request.user.company)
@@ -78,6 +81,10 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                 period_timestart_utc, period_timeend_utc = get_timesstartend_from_perioddict(period_dict, request)
                 # TODO range
                 show_all = False
+                list = update_list
+
+                # logger.debug(('update_list: ' + str(update_list)))
+                """
                 list = create_emplhour_list(company=request.user.company,
                                                      comp_timezone=comp_timezone,
                                                      time_min=None,
@@ -85,23 +92,23 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                                                      range_start_iso='',
                                                      range_end_iso='',
                                                      show_all=show_all)  # PR2019-08-01
-
+                """
                 # debug: also update table in window when list is empty, Was: if list:
-                update_dict['emplhour'] = list
+                update_dict['emplhour_list'] = list
 
         update_dict_json = json.dumps(update_dict, cls=LazyEncoder)
         return HttpResponse(update_dict_json)
 
 #######################################################
 
-def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfile):  # PR2019-08-01
+def FillRosterdate(new_rosterdate_dte, update_list, request, comp_timezone, user_lang, logfile):  # PR2019-08-01
 
     logger.debug(' ============= FillRosterdate ============= ')
     logger.debug('new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
-    logger.debug('isocalendar year: ' + str(new_rosterdate_dte.isocalendar()[0]))
-    logger.debug('isocalendar weeknr: ' + str(new_rosterdate_dte.isocalendar()[1]))
-    logger.debug('isocalendar: daynr' + str(new_rosterdate_dte.isocalendar()[2]))
-    logger.debug('isocalendar' + str(new_rosterdate_dte.isocalendar()))
+    # logger.debug('isocalendar year: ' + str(new_rosterdate_dte.isocalendar()[0]))
+    # logger.debug('isocalendar weeknr: ' + str(new_rosterdate_dte.isocalendar()[1]))
+    # logger.debug('isocalendar: daynr' + str(new_rosterdate_dte.isocalendar()[2]))
+    # logger.debug('isocalendar' + str(new_rosterdate_dte.isocalendar()))
     # new_rosterdate_dte: 2019-04-10 <class 'datetime.date'>
 
     if new_rosterdate_dte:
@@ -136,7 +143,7 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
 
         # first add absence records, so shifts can be skipped when absence exist
 
-# 2 create list of employees who are absent on new_rosterdate_dte
+# 2 create list of employees who are absent on new rosterdate
         #  LOWER(e.code) must be in SELECT
         newcursor = connection.cursor()
         newcursor.execute("""SELECT tm.id, o.id, tm.employee_id, e.code, o.code, tm.datefirst, tm.datelast, LOWER(e.code) 
@@ -194,7 +201,7 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
         else:
             logfile.append('   no absent employees on ' + str(new_rosterdate_dte.isoformat()) + '.')
 
-# 3. create list of employees who have rest_shifts on new_rosterdate_dte, also on previous and nec=xt rosterdate
+# 3. create list of employees who have rest_shifts on new_rosterdate_dte, also on previous and next rosterdate
         logger.debug('absence_dict:  ' + str(absence_dict))
 
         # absence_dict = {361: 'Vakantie', 446: 'Buitengewoon', 363: 'Ziekte', 290: 'Vakantie', 196: 'Buitengewoon', 341: 'Vakantie', 152: 'Onbetaald'}
@@ -202,12 +209,12 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
         # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
 
         # function MOD(x,y) gives remainder of x/y.
-        # (si.rosterdate - %s) is the difference between si.rosterdate and new_rosterdate_dte in daays
+        # (si.rosterdate - %s) is the difference between si.rosterdate and new_rosterdate_dte in days
         # When (MOD(si.rosterdate - newdate, cycle) = 0) the difference is a multiple of cycle
         # only shifts whose rosterdate difference is a multiple of cycle are selected
 
         # select also records with diff -1 and 1, because shift can extend to the following or previous day
-        # PR2019-09-07 debug: added also rest shift of prevoius / next day. Filter: add only restshift on rosterdate:
+        # PR2019-09-07 debug: added also rest shift of previous / next day. Filter: add only restshift on rosterdate:
 
         # filter also on datfirst datelast of order, schemeitem and teammember
         newcursor.execute("""WITH tm_sub AS (SELECT tm.team_id AS tm_teamid, tm.id AS tm_id, 
@@ -217,7 +224,7 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
                                 INNER JOIN companies_employee AS e ON (tm.employee_id = e.id) ), 
                             si_sub AS (SELECT si.team_id AS si_teamid, 
                                 si.rosterdate AS sh_rd, si.timestart AS sh_ts, si.timeend AS sh_te,
-                                sh.code AS sh_code, sh.cat AS sh_cat 
+                                sh.code AS sh_code, sh.isrestshift AS sh_rst 
                                 FROM companies_schemeitem AS si
                                 INNER JOIN companies_shift AS sh ON (si.shift_id = sh.id) )
         SELECT DISTINCT tm_sub.e_id, tm_sub.e_code, tm_sub.tm_id, c.code, o.code, 
@@ -230,7 +237,7 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
         INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
         INNER JOIN companies_order AS o ON (s.order_id = o.id) 
         INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-        WHERE (c.company_id = %(cid)s) AND (si_sub.sh_cat = %(cat)s) 
+        WHERE (c.company_id = %(cid)s) AND (si_sub.sh_rst) 
         AND (MOD(si_sub.sh_rd - %(rd)s, s.cycle) >= -1)
         AND (MOD(si_sub.sh_rd - %(rd)s, s.cycle) <= 1) 
         AND (o.datefirst <= %(rd)s OR o.datefirst IS NULL) AND (o.datelast >= %(rd)s OR o.datelast IS NULL)
@@ -238,11 +245,10 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
         AND (tm.datefirst <= %(rd)s OR tm.datefirst IS NULL) AND (tm.datelast >= %(rd)s OR tm.datelast IS NULL)
         ORDER BY tm_sub.e_id ASC""",
                           {'cid': request.user.company_id,
-                           'cat': c.SHIFT_CAT_1024_RESTSHIFT,
                            'rd': new_rosterdate_dte})
         rest_rows = newcursor.fetchall()
         logger.debug('------- rest_rows >' + str(rest_rows))
-
+        # rest_rows: [(1554, 'Sluis, Christepher', 401, 'MCB', 'Punda', datetime.date(2019, 3, 31), None, None, 'rust', 1)]
         logfile.append('================================ ')
         logfile.append('   Rest shifts')
         logfile.append('================================ ')
@@ -283,13 +289,14 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
                 # logger.debug('item[5]: ' + str(item[5]) + ' ' + str(type(item[5])))
                 # logger.debug('new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
 
-                # PR2019-09-07 debug: added also rest shift of prevoius / next day. Filter: add only restshift on rosterdate:
+                # PR2019-09-07 debug: added also rest shift of previous / next day. Filter: add only restshift on rosterdate:
                 if item[5] == new_rosterdate_dte:
                     is_added = False
                     teammember = m.Teammember.objects.get_or_none(
                         team__scheme__order__customer__company=request.user.company,
                         pk=item[2]
                     )
+                    """
                     if teammember:
                         order = teammember.team.scheme.order
                         is_added = add_absence_orderhour_emplhour(
@@ -298,7 +305,7 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
                             new_rosterdate_dte=new_rosterdate_dte,
                             request=request,
                             abscat=c.SHIFT_CAT_1024_RESTSHIFT)
-
+                    """
                     if is_added:
                         logfile.append("       " + item[1] + " has rest from '" + item[3] + " - " + item[4] + "' on " + str(item[5].isoformat()) + ".")
                     else:
@@ -402,7 +409,11 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
                                                                 entries_count=entries_count,
                                                                 absence_dict=absence_dict,
                                                                 rest_dict=rest_dict,
+                                                                update_list=update_list,
+                                                                comp_timezone=comp_timezone,
                                                                 logfile=logfile)  # PR2019-08-12
+
+
                                                 if count_skipped_restshift:
                                                     skipped_text = str(count_skipped_restshift) + " rest shifts were skipped"
                                                     if count_skipped_restshift == 1:
@@ -426,11 +437,10 @@ def FillRosterdate(new_rosterdate_dte, request, comp_timezone, user_lang, logfil
         # logger.debug('===============================================================')
 
 
-
 def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
-    entries_employee_list, entries_count, absence_dict, rest_dict, logfile):  # PR2019-08-12
+    entries_employee_list, entries_count, absence_dict, rest_dict, update_list, comp_timezone, logfile):  # PR2019-08-12
 
-    # logger.debug(' ============= add_orderhour_emplhour ============= ')
+    logger.debug(' ============= add_orderhour_emplhour ============= ')
     # logger.debug('new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
     # logger.debug('schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
 
@@ -441,7 +451,7 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
     shift_cat = 0
     shift_breakduration = 0
     shift_wagefactor = 0
-
+    shift_isrestshift = False
     shift = schemeitem.shift
     if shift:
         if shift.cat:
@@ -452,31 +462,39 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
             shift_breakduration = shift.breakduration
         if shift.wagefactor:
             shift_wagefactor = shift.wagefactor
+        shift_isrestshift = shift.isrestshift
 
 # get info from order
-    order_rate = 0
     tax_rate = 0
     order = schemeitem.scheme.order
     if order:
-        if order.rate:
-            order_rate = order.rate
         if order.taxcode:
             tax_code = order.taxcode
-            if tax_code:
-                if tax_code.rate:
-                    tax_rate = tax_code.rate
+            if tax_code.taxrate:
+                tax_rate = tax_code.taxrate
 
-# get info from schemeitem
+# get pricerate info from schemeitem or shift, scheme, order
+    pricerate = get_schemeitem_pricerate(schemeitem)
+    # pricerate and amount can be overwritten by teammember
+
+    logger.debug('pricerate: ' + str(pricerate) + ' ' + str(type(pricerate)))
+
+# get billable info from schemeitem or shift, scheme, order, company
+    is_override, is_billable = f.get_billable_schemeitem(schemeitem)
+
     timeduration = getattr(schemeitem, 'timeduration', 0)
-    amount = (timeduration / 60) * (order_rate)
+    amount = 0
+    tax = 0
+    # with restshift: amount = 0, pricerate = 0, billable = false
+    if shift_isrestshift:
+        pricerate = 0
+        is_billable = False
+    else:
+        amount = (timeduration / 60) * (pricerate)
+        tax = amount * tax_rate / 10000  # taxrate 600 = 6%
 
 # 1. update existing orderhour that is linked to this schemeitem
     # a. check if an orderhour from this schemeitem and this rosterdate already exists
-
-    # fields of orderhour are:
-    # order, schemeitem , rosterdate, yearindex, monthindex, weekindex, payperiodindex,
-    # cat, shift, duration, status, rate, amount, tax, locked,  modifiedby , modifiedat
-
     orderhour = m.Orderhour.objects.filter(
         schemeitem=schemeitem,
         order=schemeitem.scheme.order,
@@ -513,9 +531,12 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
         orderhour.shift = shift_code
         orderhour.cat = shift_cat
         orderhour.duration = schemeitem.timeduration
-        orderhour.rate = order_rate
+        orderhour.isrestshift = shift_isrestshift
+        orderhour.isbillable = is_billable
+        orderhour.pricerate = pricerate
         orderhour.amount = amount
-        orderhour.tax = amount * tax_rate
+        orderhour.taxrate = tax_rate
+        orderhour.tax = tax
         orderhour.save(request=request)
 
 # create new emplhour, not when oh_is_locked
@@ -545,16 +566,42 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
         )
         employee_text = ", no employee was found for this shift."
 
-        employee_id = 0
+        employee_pk = 0
         if teammember:
+            new_emplhour.wagefactor = teammember.wagefactor
+
             # add employee (employe=null is filtered out)
             employee = teammember.employee
             if employee:
-                employee_id = employee.id
+                employee_pk = employee.id
                 new_emplhour.employee = employee
                 new_emplhour.wagecode = employee.wagecode
+                new_emplhour.wagerate = employee.wagerate
                 employee_text = " with employee: " + str(employee.code) + "."
+
+# if teammember.override if override=TRue: use teammember/employee pricerate, else: use orderhour pricerate
+                if teammember.override:
+                    pricerate = None
+                    if teammember.pricerate:
+                        pricerate = teammember.pricerate
+                    elif employee.pricerate:
+                        pricerate = employee.pricerate
+                    if pricerate:
+                        new_emplhour.pricerate = pricerate
+
         new_emplhour.save(request=request)
+
+        if new_emplhour :
+            # - put info in id_dict
+            id_dict = {'pk': new_emplhour.pk, 'ppk': new_emplhour.orderhour.pk, 'created': True }
+            update_dict = {'id': id_dict}
+            logger.debug(('update_dict: ' + str(update_dict)))
+
+            d.create_emplhour_itemdict(new_emplhour, update_dict, comp_timezone)
+            logger.debug(('update_dict: ' + str(update_dict)))
+
+            update_list.append(update_dict)
+            logger.debug(('update_list: ' + str(update_list)))
 
         logfile.append("           Shift '" + str(shift_code) + "' is added" + employee_text)
 
@@ -563,23 +610,19 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
         # logger.debug("xxxxx    entries_count '" + str(entries_count))
         # logger.debug("xxxxx    employee_id '" + str(employee_id))
         # logger.debug("xxxxx    entries_employee_list '" + str(entries_employee_list))
-        # if employee_id:
-        #    if employee_id not in entries_employee_list:
-                # logger.debug("ADD        employee_id '" + str(employee_id) + "' not in " + str(entries_employee_list))
-        #         entries_count = entries_count + 1
-        #         entries_employee_list.append(employee_id)
-        #     else:
-                # logger.debug("           employee_id '" + str(employee_id) + "' found in " + str(entries_employee_list))
-
-
-        # else:
+        if employee_pk:
+            if employee_pk not in entries_employee_list:
+                logger.debug("ADD        employee_id '" + str(employee_pk) + "' not in " + str(entries_employee_list))
+                entries_count += 1
+                entries_employee_list.append(employee_pk)
+            else:
+                logger.debug("           employee_id '" + str(employee_pk) + "' found in " + str(entries_employee_list))
+        else:
             # logger.debug("ADD        employee_id '" + str(employee_id) + "' is 0")
-        #    entries_count = entries_count + 1
+            entries_count += 1
 
         # logger.debug("           entries_count '" + str(entries_count))
         # logger.debug("           entries_employee_list '" + str(entries_employee_list))
-
-
 
 # 33333333333333333333333333333333333333333333333333
 
@@ -850,3 +893,25 @@ def get_range_text(datefirst, datelast, parenthesis=False):
     if range_text and parenthesis:
         range_text = '(' + range_text + ')'
     return range_text
+
+
+def get_schemeitem_pricerate(schemeitem):
+    # PR2019-10-10 rate is in cents.
+    # Value 'None' removes current value, gives inherited value
+    # value '0' gives rate zero (if you dont want to charge for these hours
+
+    field = 'priceratejson'
+    pricerate = f.get_pricerate_from_instance(schemeitem, field, None, None)
+    logger.debug('schemeitem pricerate' + str(pricerate))
+    if pricerate is None and schemeitem.shift:
+        pricerate = f.get_pricerate_from_instance(schemeitem.shift, field, None, None)
+        logger.debug('shift pricerate' + str(pricerate))
+    if pricerate is None and schemeitem.scheme:
+        pricerate = f.get_pricerate_from_instance(schemeitem.scheme, field, None, None)
+        logger.debug('scheme pricerate' + str(pricerate))
+        if pricerate is None and schemeitem.scheme.order:
+            pricerate = f.get_pricerate_from_instance(schemeitem.scheme.order, field, None, None)
+            logger.debug('order pricerate' + str(pricerate))
+    if pricerate is None:
+        pricerate = 0
+    return pricerate

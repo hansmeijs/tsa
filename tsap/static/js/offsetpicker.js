@@ -11,7 +11,7 @@
 
 //========= CreateTimepickerDate  ====================================
     function CreateTimepickerDate(el_data, curOffset, fieldname) {
-        //console.log( "--- CreateTimepickerDate  ", curOffset, fieldname );
+        console.log( "--- CreateTimepickerDate  ", curOffset, fieldname );
         // display 'Previous day', 'Current day' and 'Next day' in header of el_timepicker, or 'Break'
 
     // add EventListeners to buttons
