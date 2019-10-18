@@ -1028,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const row_index = emplhour_tblRow.rowIndex
         console.log("row_index", row_index);
 
-        let emplhour_dict = get_itemdict_from_datamap_by_id(map_id, emplhour_map);
+        let emplhour_dict = get_itemdict_from_datamap_by_id(emplhour_map, map_id);
         let id_dict = get_dict_value_by_key(emplhour_dict, "id")
         id_dict["mode"] = btn_name
         id_dict["rowindex"] = row_index

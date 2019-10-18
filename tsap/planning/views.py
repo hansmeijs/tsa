@@ -471,7 +471,7 @@ class SchemeUploadView(UpdateView):  # PR2019-07-21
                         instance = m.Scheme.objects.get_or_none(id=pk_int, order=parent)
                         if instance:
                             this_text = _("Scheme '%(tbl)s'") % {'tbl': instance.code}
-                            m.delete_instance(instance, table, item_update, request, this_text)
+                            m.delete_instance(instance, parent, table, item_update, request, this_text)
 
 # C. Create new scheme
                     elif is_create:
@@ -929,7 +929,7 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
                 instance = m.Scheme.objects.get_or_none(id=pk_int, order=parent)
                 if instance:
                     this_text = _("Scheme '%(tbl)s'") % {'tbl': instance.code}
-                    m.delete_instance(instance, table, update_dict, request, this_text)
+                    m.delete_instance(instance, parent, table, update_dict, request, this_text)
             else:
 # C. Create new scheme
                 if is_create:
@@ -1008,7 +1008,7 @@ def shift_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-08-0
             else:
                 this_text = _('This shift')
             # delete_instance adds 'deleted' or 'error' to id_dict
-            delete_ok = m.delete_instance(instance, table, update_dict, request, this_text)
+            delete_ok = m.delete_instance(instance, parent, table, update_dict, request, this_text)
             if delete_ok:
                 instance = None
 
@@ -1074,9 +1074,10 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
             instance = m.get_instance(table, pk_int, parent, update_dict)
             this_text = _('This employee')
             # delete_instance adds 'deleted' or 'error' to id_dict
-            delete_ok = m.delete_instance(instance, table, update_dict, request, this_text)
+            delete_ok = m.delete_instance(instance, parent, table, update_dict, request, this_text)
             if delete_ok:
                 instance = None
+
 # C. Create new team
         elif is_create:
             # create_team adds 'temp_pk', 'created' to id_dict, and 'error' to code_dict
@@ -1088,7 +1089,7 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
 
 # E. update instance, also when it is created
         # team has no fields that need to be updated (maybe 'cat', we will see)
-            # update_team(instance, parent, upload_dict, update_dict, user_lang, request)
+            update_team(instance, parent, upload_dict, update_dict, request)
 
 # F. Add all saved values to update_dict, add id_dict to update_dict
         d.create_team_dict(instance, update_dict)
@@ -1148,27 +1149,21 @@ def create_team(upload_dict, update_dict, request):
         if parent:
 
 # 4. create team name
-            max_number = 0
-            for team in m.Team.objects.filter(scheme=parent):
-                if team.code:
-                    try:
-                        nr = int(team.code)
-                    except:
-                        nr = 0
-                    if nr > max_number:
-                       max_number = nr
-            team_code = str(max_number + 1)
+            team_text = _('Team')
+            team_count = m.Team.objects.filter(scheme=parent).count()
+            logger.debug('team_count' + str(team_count) + ' ' + str(type(team_count)))
+            team_code = team_text + ' ' + str(team_count + 1)
+
+            logger.debug('team_code: ' + str(team_code))
 
     # 4. create and save team
-            # team_code is calculated field
-
             team = m.Team(
                 scheme=parent,
-                code=team_code, # team_code stores sequence of team, ppu 'Employee' in front of it in get team_dict
+                code=team_code,
                 cat=team_cat)
             team.save(request=request)
             team_pk = team.pk
-            logger.debug(' --- new  team_pk : ' + str(team_pk))
+            logger.debug(' --- new  team_pk: ' + str(team_pk))
 
     # 6. put info in update_dict
             update_dict['id']['created'] = True
@@ -1204,7 +1199,81 @@ def create_team(upload_dict, update_dict, request):
                         update_dict['employee'] = employee_dict
 
     return team
+######################
 
+def update_team(instance, parent, upload_dict, update_dict, request):
+    # --- update existing and new team PR2019-10-18
+    #  add new values to update_dict (don't reset update_dict, it has values)
+    #  also refresh timestart timeend in schemeitems
+    logger.debug(' ----- update_team ----- ')
+    logger.debug('upload_dict: ' + str(upload_dict))
+
+#  get comp_timezone
+    comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+
+    has_error = False
+    if instance:
+        # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code'),
+
+        table = 'team'
+        save_changes = False
+        for field in c.FIELDS_TEAM:
+            # --- get field_dict from  item_dict  if it exists
+            field_dict = upload_dict[field] if field in upload_dict else {}
+            if field_dict:
+                if 'update' in field_dict:
+                    is_updated = False
+                    # a. get new_value
+                    new_value = field_dict.get('value')
+
+# 2. save changes in field 'code'
+                    if field in ['code']:
+            # a. get old value
+                        saved_value = getattr(instance, field)
+                        # field 'code' is required
+                        if new_value != saved_value:
+            # b. validate code
+                            has_error = validate_code_name_identifier(
+                                table=table,
+                                field=field,
+                                new_value=new_value,
+                                parent=parent,
+                                update_dict=update_dict,
+                                this_pk=instance.pk)
+                            if not has_error:
+             # c. save field if changed and no_error
+                                setattr(instance, field, new_value)
+                                is_updated = True
+# 3. save changes in fields 'cat'
+                    elif field in ['cat']:
+                        if not new_value:
+                            new_value = 0
+                        saved_value = getattr(instance, field, 0)
+                        if new_value != saved_value:
+                            setattr(instance, field, new_value)
+                            is_updated = True
+
+    # 5. add 'updated' to field_dict'
+                    if is_updated:
+                        update_dict[field]['updated'] = True
+                        save_changes = True
+                        logger.debug('update_dict: ' + str(update_dict))
+
+ # 5. save changes
+        if save_changes:
+            try:
+                instance.save(request=request)
+            except:
+                has_error = True
+                msg_err = _('This team could not be updated.')
+                update_dict['id']['error'] = msg_err
+
+# 6. put updated saved values in update_dict
+        d.create_team_dict(instance, update_dict)
+    return has_error
+
+
+############################
 
 @method_decorator([login_required], name='dispatch')
 class SchemeitemDownloadView(View):  # PR2019-03-10
@@ -1505,7 +1574,7 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
                         # delete_instance adds 'deleted' or 'error' to id_dict
                         this_text = _("This shift")
                         instance = m.Schemeitem.objects.get_or_none(id=pk_int, scheme=parent)
-                        delete_ok = m.delete_instance(instance, table, update_dict, request, this_text)
+                        delete_ok = m.delete_instance(instance, parent, table, update_dict, request, this_text)
                         if delete_ok:
                             instance = None
 # C. Create new schemeitem
@@ -1602,7 +1671,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
 # D. Delete instance
                             if is_delete:
                                 this_text = _('This teammember')
-                                m.delete_instance(instance, table, update_dict, request, this_text)
+                                m.delete_instance(instance, parent, table, update_dict, request, this_text)
                             else:
 # E. update instance, also when it is created
                                 # TODO fix update_teammember
@@ -2413,7 +2482,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                             instance = m.Emplhour.objects.get_or_none(id=pk_int, orderhour=parent)
                             if instance:
                                 this_text = _('This shift')
-                                m.delete_instance(instance, table, update_dict, request, this_text)
+                                m.delete_instance(instance, parent, table, update_dict, request, this_text)
                     else:
                         instance = None
 # C. Create new orderhour / emplhour

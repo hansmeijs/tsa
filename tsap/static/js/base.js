@@ -185,7 +185,7 @@ $(function() {
         const tblRow = get_tablerow_selected(el);
         if(!!tblRow){
             const map_id = get_attr_from_el(tblRow, "data-map_id")
-            item_dict = get_itemdict_from_datamap_by_id(map_id, data_map);
+            item_dict = get_itemdict_from_datamap_by_id(data_map, map_id);
         }
         return item_dict
     }
@@ -196,12 +196,12 @@ $(function() {
         let item_dict = {};
         if(!!tblRow){
             const map_id = get_attr_from_el(tblRow, "data-map_id")
-            item_dict = get_itemdict_from_datamap_by_id(map_id, data_map);
+            item_dict = get_itemdict_from_datamap_by_id(data_map, map_id);
         };
         return item_dict
     }
 //========= get_itemdict_from_datamap_by_id  ============= PR2019-09-26
-    function get_itemdict_from_datamap_by_id(map_id, data_map) {
+    function get_itemdict_from_datamap_by_id(data_map, map_id) {
         // function looks up map_id in data_map and returns dict from map
         let item_dict = {};
         if(!!data_map && !!map_id){

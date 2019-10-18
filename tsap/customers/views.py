@@ -107,7 +107,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 instance = m.Customer.objects.get_or_none(id=pk_int, company=parent)
                                 if instance:
                                     this_text = _("Customer '%(tbl)s'") % {'tbl': instance.code}
-                                    m.delete_instance(instance, table, update_dict, request, this_text)
+                                    m.delete_instance(instance, parent, table, update_dict, request, this_text)
                             else:
 # C. Create new customer
                                 if is_create:
@@ -151,7 +151,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 instance = m.Order.objects.get_or_none(id=pk_int, customer=parent)
                                 if instance:
                                     this_text = _("Order '%(tbl)s'") % {'tbl': instance.code}
-                                    m.delete_instance(instance, table, update_dict, request, this_text)
+                                    m.delete_instance(instance, parent, table, update_dict, request, this_text)
                             else:
 # C. Create new order
                                 if is_create:
@@ -329,7 +329,7 @@ class OrderUploadView(UpdateView):# PR2019-03-04
                         if is_delete:
                             instance = m.get_instance(table, pk_int, parent, update_dict)
                             this_text = _("Order '%(tbl)s'") % {'tbl': instance.code}
-                            m.delete_instance(instance, table, update_dict, request, this_text)
+                            m.delete_instance(instance, parent, table, update_dict, request, this_text)
 # C. Create new order
                         elif is_create:
                             instance = create_order(upload_dict, update_dict, request)

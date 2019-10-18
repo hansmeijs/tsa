@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selected_employee_dict = {};
             const map_id = get_attr_from_el_str(tr_clicked, "data-map_id")
             if (!!map_id){
-                selected_employee_dict = get_itemdict_from_datamap_by_id(map_id, employee_map);
+                selected_employee_dict = get_itemdict_from_datamap_by_id(employee_map, map_id);
                 selected_employee_pk = get_pk_from_dict(selected_employee_dict);
             }
 
@@ -882,7 +882,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selected_employee_dict = {};
             const map_id = get_attr_from_el_str(tr_clicked, "data-map_id")
             if (!!map_id){
-                selected_employee_dict = get_itemdict_from_datamap_by_id(map_id, employee_map);
+                selected_employee_dict = get_itemdict_from_datamap_by_id(employee_map, map_id);
                 selected_employee_pk = get_pk_from_dict(selected_employee_dict);
             }
 
@@ -941,7 +941,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 // get id from existing record
                 const map_id = "employee" + selected_employee_pk.toString();
-                let itemdict = get_itemdict_from_datamap_by_id(map_id, employee_map)
+                let itemdict = get_itemdict_from_datamap_by_id(employee_map, map_id)
                 id_dict = get_dict_value_by_key(itemdict, "id")
             }  // if(!selected_employee_pk)
 
@@ -1023,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // add employee
                 const map_id = "employee" + employee_pk.toString();
-                const employee_dict = get_itemdict_from_datamap_by_id(map_id, employee_map)
+                const employee_dict = get_itemdict_from_datamap_by_id(employee_map, map_id)
                 const employee_code = get_subdict_value_by_key(employee_dict, "code", "value")
                 let workhoursperday = get_subdict_value_by_key(employee_dict, "workhoursperday", "value")
                 if(!workhoursperday){workhoursperday = 0}
@@ -1092,7 +1092,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const tblName = get_dict_value_by_key(id_dict, "table")
                 if (!!pk_str && tblName === "employee"){
                     const map_id = tblName + pk_str;
-                    const employee_dict = get_itemdict_from_datamap_by_id(map_id, employee_map)
+                    const employee_dict = get_itemdict_from_datamap_by_id(employee_map, map_id)
                     const employee_pk = get_pk_from_dict(employee_dict);
                     const employee_code = get_subdict_value_by_key(employee_dict, "code", "value")
                     const workhoursperday = get_subdict_value_by_key(employee_dict, "workhoursperday", "value")
@@ -1862,7 +1862,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!!map_id) {
 //--- get item_dict from  employee_map
             const data_map = (tblName === "employee") ? employee_map : teammember_map
-            const item_dict = get_itemdict_from_datamap_by_id(map_id, data_map)
+            const item_dict = get_itemdict_from_datamap_by_id(data_map, map_id)
             console.log( item_dict);
 
 // get values from el_input
@@ -1918,9 +1918,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  get item_dict from employee_map
         let item_dict;
         if(tblName === "employee"){
-            item_dict = get_itemdict_from_datamap_by_id(map_id, employee_map);
+            item_dict = get_itemdict_from_datamap_by_id(employee_map, map_id);
         } else  if(tblName === "teammember"){
-            item_dict= get_itemdict_from_datamap_by_id(map_id, teammember_map);
+            item_dict= get_itemdict_from_datamap_by_id(teammember_map, map_id);
         }
         const pk_int = get_pk_from_dict(item_dict)
         const ppk_int = get_ppk_from_dict(item_dict)

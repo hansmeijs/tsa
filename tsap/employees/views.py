@@ -205,7 +205,7 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
          # b. check if there are teammembers with this employee
                                     delete_employee_from_teammember(instance, request)
      # c. delete employee
-                                    m.delete_instance(instance, table, update_dict, request, this_text)
+                                    m.delete_instance(instance, parent, table, update_dict, request, this_text)
                         else:
 # B. Create new employee
                             if is_create:

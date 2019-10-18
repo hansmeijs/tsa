@@ -941,11 +941,12 @@ def get_instance(table, pk_int, parent, update_dict=None):
     return instance
 
 
-def delete_instance(instance, table, update_dict, request, this_text=None):
+def delete_instance(instance, parent, table, update_dict, request, this_text=None):
     # function deletes instance of table,  PR2019-08-25
     delete_failed = False
     if instance:
         update_dict['id']['pk'] = instance.pk
+        update_dict['id']['ppk'] = parent.pk
         update_dict['id']['table'] = table
         try:
             instance.delete(request=request)

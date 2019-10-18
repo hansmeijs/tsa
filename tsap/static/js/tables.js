@@ -668,8 +668,8 @@
 
 //========= format_price_element  ======== PR2019-09-29
     function format_price_element (el_input, el_msg, field_dict, msg_offset, user_lang) {
-        console.log("--- format_price_element ---")
-        console.log("field_dict: ", field_dict)
+        //console.log("--- format_price_element ---")
+        //console.log("field_dict: ", field_dict)
         //console.log("el_input: ", el_input)
 
         if(!!el_input && !!field_dict){

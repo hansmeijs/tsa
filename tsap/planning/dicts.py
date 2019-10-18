@@ -867,7 +867,8 @@ def create_team_list(request, customer):
 def create_team_dict(team, update_dict):
     # --- create dict of this team PR2019-08-08
     # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-
+    logger.debug(' --- create_team_dict ---')
+    logger.debug('update_dict: ' + str(update_dict))
     # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code')
     if team:
         for field in c.FIELDS_TEAM:
@@ -894,9 +895,11 @@ def create_team_dict(team, update_dict):
                 field_dict['value'] = getattr(team, field, 0)
 
             elif field == 'code':
-                code, title = get_team_code(team.pk)
+                code, suffix, title = get_team_code(team)
                 if code:
                     field_dict['value'] = code
+                if suffix:
+                    field_dict['suffix'] = suffix
                 if title:
                     field_dict['title'] = title
 
@@ -2152,35 +2155,28 @@ def get_customer_order_code(order, delim=' '): # PR2019-08-16
             customer_order_code += delim + order_code
     return customer_order_code
 
-def get_team_code(team_id):
+def get_team_code(team):
     # logger.debug(' --- get_team_code --- ')
-    team_code = ''
+
     team_title = ''
     count = 0
-    if team_id:
+    if team:
         # 1. iterate through teammembers, latest enddate first
         teammembers = m.Teammember.objects\
             .select_related('employee')\
-            .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1))))\
-            .filter(team_id=team_id, employee__isnull=False)\
-            .values('id', 'employee__code', 'datelast_nonull')\
-            .order_by('-datelast_nonull')
+            .filter(team=team, employee__isnull=False)
         # logger.debug('teammembers SQL: ' + str(teammembers.query))
-
         for teammember in teammembers:
             # logger.debug('teammember: ' + str(teammember))
             # teammember: {'id': 300, 'employee__code': 'Crisostomo Ortiz R Y', 'datelast_nonull': datetime.datetime(2500, 1, 1, 0, 0)}
-            if count == 0:
-                team_code = teammember['employee__code']
-            else:
-                team_title += '+ ' if count == 1 else ', '
-                team_title += teammember['employee__code']
+            if count:
+                team_title += '; '
+            team_title += teammember.employee.code
             count +=1
+    suffix = ''
+    if count == 0:
+        suffix = ' (-)'
+    elif count > 1:
+        suffix = ' (' + str(count) + ')'
 
-        if count == 0:
-            team_code = _('Select employee...')
-        if count <= 1:
-            team_title = None
-
-        # logger.debug('  .... team_code: ' + str(team_code) + ' team_title: ' + str(team_title))
-    return team_code, team_title
+    return team.code, suffix, team_title

@@ -656,7 +656,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selected_customer_dict = {};
             const map_id = get_attr_from_el_str(tr_clicked, "data-map_id")
             if (!!map_id){
-                selected_customer_dict = get_itemdict_from_datamap_by_id(map_id, customer_map);
+                selected_customer_dict = get_itemdict_from_datamap_by_id(customer_map, map_id);
                 new_customer_pk = get_pk_from_dict(selected_customer_dict);
             };
 // ---  update selected__pk
@@ -897,13 +897,15 @@ document.addEventListener('DOMContentLoaded', function() {
 //--- remove 'updated, deleted created and msg_err from item_dict
         remove_err_del_cre_updated__from_itemdict(item_dict)
 
-//--- replace updated item in map
-        if (tblName === "customer"){
-            customer_map.set(map_id, item_dict)
-        } else if (tblName === "order"){
-            order_map.set(map_id, item_dict)
-        } else if (tblName === "teammember"){
-            teammember_map.set(map_id, item_dict)
+//--- replace updated item in map or remove deleted item from map
+        if(is_deleted){
+            if (tblName === "customer"){customer_map.delete(map_id)} else
+            if (tblName === "order"){order_map.delete(map_id)} else
+            if (tblName === "teammember"){teammember_map.delete(map_id)};
+        } else {
+            if (tblName === "customer"){customer_map.set(map_id, item_dict)} else
+            if (tblName === "order"){order_map.set(map_id, item_dict)} else
+            if (tblName === "teammember"){teammember_map.set(map_id, item_dict)};
         }
 
 //--- refresh select table
@@ -972,7 +974,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selected_customer_dict = {};
             const map_id = get_attr_from_el_str(sel_tr_clicked, "data-map_id")
             if (!!map_id){
-                selected_customer_dict = get_itemdict_from_datamap_by_id(map_id, customer_map);
+                selected_customer_dict = get_itemdict_from_datamap_by_id(customer_map, map_id);
                 const customer_pk = get_pk_from_dict(selected_customer_dict);
                 if(customer_pk !== selected_customer_pk){
                     selected_customer_pk = customer_pk;
@@ -1012,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const pk_str = get_attr_from_el(tblRow, "data-pk")
                 const tblName = get_attr_from_el(tblRow, "data-table")
                 const map_id = tblName + pk_str;
-                const itemdict = get_itemdict_from_datamap_by_id(map_id, pricerate_map)
+                const itemdict = get_itemdict_from_datamap_by_id(pricerate_map, map_id)
                 console.log("itemdict", itemdict);
                 // billable: {override: false, billable: false}
 
@@ -1081,7 +1083,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 id_dict = {temp_pk: temp_pk_str, "create": true, "table": "customer", "mode": selected_mode}
             } else {
                 // update existing record
-                let itemdict = get_itemdict_from_datamap_by_id(selected_customer_pk, customer_map)
+                // TODO check if this works
+                const map_id = "customer" + selected_customer_pk.toString();
+                let itemdict = get_itemdict_from_datamap_by_id(customer_map, map_id)
                 id_dict = get_dict_value_by_key(itemdict, "id")
             }  // if(!selected_customer_pk)
     // create upload_dict

@@ -515,7 +515,7 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
         weekindex = new_rosterdate_dte.isocalendar()[1]  # isocalendar() is tuple: (2019, 15, 4)
         #  week 1 is de week, waarin de eerste donderdag van dat jaar zit
         # TODO payperiodindex
-
+        payperiodindex = 0
         orderhour = m.Orderhour(
             order=schemeitem.scheme.order,
             schemeitem=schemeitem,
@@ -523,16 +523,17 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
             yearindex=yearindex,
             monthindex=monthindex,
             weekindex=weekindex,
+            payperiodindex=payperiodindex,
             status=c.STATUS_01_CREATED
         )
 
 # d. if new record or not locked: replace values of existing orderhour
     if orderhour and not oh_is_locked:
-        orderhour.shift = shift_code
         orderhour.cat = shift_cat
-        orderhour.duration = schemeitem.timeduration
-        orderhour.isrestshift = shift_isrestshift
         orderhour.isbillable = is_billable
+        orderhour.isrestshift = shift_isrestshift
+        orderhour.shift = shift_code
+        orderhour.duration = schemeitem.timeduration
         orderhour.pricerate = pricerate
         orderhour.amount = amount
         orderhour.taxrate = tax_rate
@@ -540,33 +541,91 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
         orderhour.save(request=request)
 
 # create new emplhour, not when oh_is_locked
+
+# - iterate through team.teammembers within range
+        teammembers = m.Teammember.objects.filter(team=schemeitem.team)
+        if not teammembers:
+            # add emplhour without employee
+            add_emplhour(
+                orderhour=orderhour,
+                schemeitem=schemeitem,
+                teammember=None,
+                shift_code=shift_code,
+                shift_cat=shift_cat,
+                shift_breakduration=shift_breakduration,
+                shift_wagefactor=shift_wagefactor,
+                shift_isrestshift=shift_isrestshift,
+                timeduration=timeduration,
+                logfile=logfile,
+                update_list=update_list,
+                entries_employee_list=entries_employee_list,
+                entries_count=entries_count,
+                comp_timezone=comp_timezone,
+                request=request)
+            logfile.append("       This shift has no employees.")
+
+        else:
+            for teammember in teammembers:
+# 1. iterate through teammembers
+                add_emplhour(
+                    orderhour=orderhour,
+                    schemeitem=schemeitem,
+                    teammember=teammember,
+                    shift_code=shift_code,
+                    shift_cat=shift_cat,
+                    shift_breakduration=shift_breakduration,
+                    shift_wagefactor=shift_wagefactor,
+                    shift_isrestshift=shift_isrestshift,
+                    timeduration=timeduration,
+                    logfile=logfile,
+                    update_list=update_list,
+                    entries_employee_list=entries_employee_list,
+                    entries_count=entries_count,
+                    comp_timezone=comp_timezone,
+                    request=request)
+
+        # logger.debug("           entries_count '" + str(entries_count))
+        # logger.debug("           entries_employee_list '" + str(entries_employee_list))
+
+# 33333333333333333333333333333333333333333333333333
+
+
+def add_emplhour(orderhour, schemeitem, teammember,
+            shift_code, shift_cat, shift_breakduration, shift_wagefactor, shift_isrestshift, timeduration,
+            logfile, update_list, entries_employee_list, entries_count, comp_timezone, request):
+    # create new emplhour, not when oh_is_locked
+    if orderhour:
+        # TODO give value
+        payperiodindex=0
+        wagerate = 0
+        wage = 0
+        pricerate = None
+        overlap=0
+
         new_emplhour = m.Emplhour(
             orderhour=orderhour,
             rosterdate=orderhour.rosterdate,
             yearindex=orderhour.yearindex,
             monthindex=orderhour.monthindex,
             weekindex=orderhour.weekindex,
+            payperiodindex=payperiodindex,
+            cat=shift_cat,
+            isrestshift=shift_isrestshift,
             shift=shift_code,
-            cat = shift_cat,
             timestart=schemeitem.timestart,
             timeend=schemeitem.timeend,
             timeduration=timeduration,
             breakduration=shift_breakduration,
+            wagerate=wagerate,
             wagefactor=shift_wagefactor,
-            status=c.STATUS_01_CREATED)
-
-# - lookup first employee within range in team.teammembers
-       #  teammember = m.Teammember.get_first_teammember_on_rosterdate(schemeitem.team, new_rosterdate_dte)
-        teammember = get_first_teammember_on_rosterdate_with_logfile(
-            schemeitem=schemeitem,
-            rosterdate_dte=new_rosterdate_dte,
-            absence_dict=absence_dict,
-            rest_dict=rest_dict,
-            logfile=logfile
+            wage=wage,
+            pricerate=pricerate,
+            status=c.STATUS_01_CREATED,
+            overlap=overlap
         )
-        employee_text = ", no employee was found for this shift."
 
         employee_pk = 0
+        employee_text = ''
         if teammember:
             new_emplhour.wagefactor = teammember.wagefactor
 
@@ -579,7 +638,7 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
                 new_emplhour.wagerate = employee.wagerate
                 employee_text = " with employee: " + str(employee.code) + "."
 
-# if teammember.override if override=TRue: use teammember/employee pricerate, else: use orderhour pricerate
+                # if teammember.override if override=TRue: use teammember/employee pricerate, else: use orderhour pricerate
                 if teammember.override:
                     pricerate = None
                     if teammember.pricerate:
@@ -591,9 +650,9 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
 
         new_emplhour.save(request=request)
 
-        if new_emplhour :
+        if new_emplhour:
             # - put info in id_dict
-            id_dict = {'pk': new_emplhour.pk, 'ppk': new_emplhour.orderhour.pk, 'created': True }
+            id_dict = {'pk': new_emplhour.pk, 'ppk': new_emplhour.orderhour.pk, 'created': True}
             update_dict = {'id': id_dict}
             logger.debug(('update_dict: ' + str(update_dict)))
 
@@ -605,8 +664,8 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
 
         logfile.append("           Shift '" + str(shift_code) + "' is added" + employee_text)
 
-#  add entry to entries_count
-# if shift has employee: skip if employee was already added, if no employee: add always
+        #  add entry to entries_count
+        # if shift has employee: skip if employee was already added, if no employee: add always
         # logger.debug("xxxxx    entries_count '" + str(entries_count))
         # logger.debug("xxxxx    employee_id '" + str(employee_id))
         # logger.debug("xxxxx    entries_employee_list '" + str(entries_employee_list))
@@ -624,59 +683,49 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte, request,
         # logger.debug("           entries_count '" + str(entries_count))
         # logger.debug("           entries_employee_list '" + str(entries_employee_list))
 
-# 33333333333333333333333333333333333333333333333333
+# >>>>>>>>>>>>>>>>>>>>>>>
 
-def get_first_teammember_on_rosterdate_with_logfile(schemeitem, rosterdate_dte, absence_dict, rest_dict, logfile):
 
-    added_teammember = None
+def get_teammember_on_rosterdate_with_logfile(teammember, schemeitem, rosterdate_dte, absence_dict, rest_dict, logfile):
 
-    team = schemeitem.team
-    if team and rosterdate_dte:
+    add_teammember = False
+
+    if teammember and rosterdate_dte:
         # don't filter teammmembers within range datefirst/datelast, but give message further
 
-# 1. iterate through teammembers
-        teammembers = m.Teammember.objects\
-            .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1))))\
-            .filter(team=team)\
-            .order_by('datelast_nonull')
+        employee = teammember.employee
+# 1. skip if employee is absent
+        # absence_dict = {111: 'Vakantie', 112: 'Ziek'}
 
-        if not teammembers:
-            logfile.append("       This shift has no employees.")
+        if employee.pk in absence_dict:
+            range = get_range_text(teammember.datefirst, teammember.datelast)  # True: with parentheses
+            logfile.append("           Employee '" + employee.code + "' is absent (" + absence_dict[employee.pk] + ") " + range + ".")
         else:
-            for teammember in teammembers:
-                empl = teammember.employee
-# 2. skip if employee is absent
-                # absence_dict = {111: 'Vakantie', 112: 'Ziek'}
+            has_rest_shift = False
+            if employee.pk in rest_dict:
+                # rest_dict = {111: [(timestart, timeend, cust-order), (timestart, timeend, cust-ord]}
 
-                if empl.pk in absence_dict:
-                    range = get_range_text(teammember.datefirst, teammember.datelast)  # True: with parentheses
-                    logfile.append("           Employee '" + empl.code + "' is absent (" + absence_dict[empl.pk] + ") " + range + ".")
+# 3. skip if shift is within range of rest shift
+                rest_list = rest_dict[employee.pk]
+                for rest_item in rest_list:
+                    has_rest_shift = f.period_within_range(rest_item[0], rest_item[1], schemeitem.timestart,
+                                                         schemeitem.timeend)
+                    if has_rest_shift:
+                        logfile.append("           Employee '" + employee.code + "' has rest shift from: " + rest_item[2] + ".")
+                        break
+
+            if not has_rest_shift:
+                if not f.date_within_range(employee.datefirst, employee.datelast, rosterdate_dte):
+                    range = get_range_text(employee.datefirst, employee.datelast, True)  # True: with parentheses
+                    logfile.append("           Employee '" + employee.code + "' not in service " + range )
+                elif not f.date_within_range(teammember.datefirst, teammember.datelast, rosterdate_dte):
+                    range = get_range_text(teammember.datefirst, teammember.datelast)
+                    logfile.append("           Employee '" + employee.code + "', rosterdate outside shift period of employee: " + range + ".")
                 else:
-                    has_rest_shift = False
-                    if empl.pk in rest_dict:
-                        # rest_dict = {111: [(timestart, timeend, cust-order), (timestart, timeend, cust-ord]}
+                    add_teammember = True
 
- # 3. skip if shift is within range of rest shift
-                        rest_list = rest_dict[empl.pk]
-                        for rest_item in rest_list:
-                            has_rest_shift = f.period_within_range(rest_item[0], rest_item[1], schemeitem.timestart,
-                                                                 schemeitem.timeend)
-                            if has_rest_shift:
-                                logfile.append("           Employee '" + empl.code + "' has rest shift from: " + rest_item[2] + ".")
-                                break
 
-                    if not has_rest_shift:
-                        if not f.date_within_range(empl.datefirst, empl.datelast, rosterdate_dte):
-                            range = get_range_text(empl.datefirst, empl.datelast, True)  # True: with parentheses
-                            logfile.append("           Employee '" + empl.code + "' not in service " + range )
-                        elif not f.date_within_range(teammember.datefirst, teammember.datelast, rosterdate_dte):
-                            range = get_range_text(teammember.datefirst, teammember.datelast)
-                            logfile.append("           Employee '" + empl.code + "', rosterdate outside shift period of employee: " + range + ".")
-                        else:
-                            added_teammember = teammember
-                            break
-
-    return added_teammember
+    return add_teammember
 
 
 # 33333333333333333333333333333333333333333333333333
