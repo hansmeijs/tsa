@@ -992,31 +992,71 @@ def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
     # # ext_row: [['568-0', 'a', 0, 1440, 4], ['568-1', 'a', 1440, 2880, 4]],
 
     has_overlap = False
+
+    is_equal = False
+    is_full_outer = False
+    is_full_inner = False
+    is_partly_end = False
+    is_partly_start = False
+
+    delete_this_row = False
     if cur_row and ext_row:
         logger.debug('----')
         logger.debug('cur_row:  ' + str(cur_row))
         logger.debug('ext_row:  ' + str(ext_row))
 
-        x = cur_row[2] # osdif
-        y = cur_row[3] # oedif
+        x = ext_row[2] # osdif
+        y = ext_row[3] # oedif
 
-        a = ext_row[2] # osdif
-        b = ext_row[3] # oedif
+        a = cur_row[2] # osdif
+        b = cur_row[3] # oedif
 
         # no overlap                x|_________|y
         #               a|_____|b                  a|_____|b
         #                       b <= x     or      a >= y
 
-        has_overlap = (b > x and a < y)
-        if has_overlap:
-            pass
-            # TODO decide if shift must be deleted
-            # cur_cat = cur_row[1]
-            # cur_seq = cur_row[4]
-            # ext_cat = ext_row[1]
-            # ext_seq = ext_row[4]
+# validate if timeend before timestart
+        if b < a or y < x:
+            logger.debug('ERROR: timeend before timestart ')
+        else:
+# check if has_overlap
 
-    return has_overlap
+            if b > x and a < y:
+                has_overlap = True
+
+                if a == x and b == y:
+                    is_equal = True
+                elif a <= x and b >= y:
+                    is_full_outer = True # cur_row is bigger then ext_row
+                elif a >= x and b <= y:
+                    is_full_inner = True # cur_row is smaller then ext_row
+                elif x <= a < y < b:  # a >= x and a < y and b > y:
+                    is_partly_end = True # end of cur_row is later then ext_row
+                elif a < x < b <= y:  # a < x and b > x and b <= y:
+                    is_partly_start = True # start of cur_row is earlier then ext_row
+
+                cur_cat = cur_row[1]
+                cur_seq = cur_row[4]
+                ext_cat = ext_row[1]
+                ext_seq = ext_row[4]
+    # delete this row when:
+            # - cur_row is a shift row
+            # - ext_row is restrow or absence row
+            # - cur_row is swallowed by ext_row (is_full_inner = True)
+                if cur_cat == 's':
+                    if ext_cat in ['a', 'r']:
+                        if is_full_inner:
+                            delete_this_row = True
+            # - cur_row is a restrow
+            # - ext_row absence row
+            # - cur_row is swallowed by ext_row (is_full_inner = True)
+                elif cur_cat == 'r':
+                    if ext_cat == 'a':
+                        if is_full_inner:
+                            delete_this_row = True
+                elif cur_cat == 'a':
+                    pass
+    return has_overlap, delete_this_row
 
 
 def check_absence_overlap(cur_fid, cur_row, ext_fid, ext_row):  # PR2019-10-29
@@ -1037,8 +1077,26 @@ def check_absence_overlap(cur_fid, cur_row, ext_fid, ext_row):  # PR2019-10-29
         #               a|_____|b                  a|_____|b
         #                       b <= x     or      a >= y
 
-# check if has overlap
-        if b > x and a < y:
+    # check if timeend before timestart
+        if b < a or y < x:
+            logger.debug('ERROR: timeend before timestart ')
+        else:
+    # check if has overlap
+            if b > x and a < y:
+                has_overlap = True
+
+                if a == x and b == y:
+                    is_equal = True
+                elif a <= x and b >= y:
+                    is_full_outer = True
+                elif a >= x and b <= y:
+                    is_full_inner = True
+                elif x <= a < y < b:  # a >= x and a < y and b > y:
+                    is_partly_end = True
+                elif a < x < b <= y:  # a < x and b > x and b <= y:
+                    is_partly_start = True
+
+        if has_overlap:
 # if overlap: lowest sequence stays, except for 0
             # logger.debug('cur_row --- ' + str(cur_row))
             # logger.debug('ext_row --- ' + str(ext_row))

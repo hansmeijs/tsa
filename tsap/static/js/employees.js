@@ -311,7 +311,8 @@ document.addEventListener('DOMContentLoaded', function() {
         AddSubmenuButton(el_div, el_data, "id_submenu_employee_import", null, "data-txt_employee_import","mx-2", url_employee_import )
         AddSubmenuButton(el_div, el_data, "id_submenu_employee_add", function() {HandleButtonEmployeeAdd()}, "data-txt_employee_add", "mx-2")
         AddSubmenuButton(el_div, el_data, "id_submenu_employee_delete", function() {ModConfirmOpen("delete")}, "data-txt_employee_delete", "mx-2")
-        AddSubmenuButton(el_div, el_data, "id_submenu_employee_print", function() {PrintReport()}, "data-txt_employee_print", "mx-2")
+        AddSubmenuButton(el_div, el_data, "id_submenu_employee_print", function() {PrintReport("preview")}, "data-txt_employee_preview", "mx-2")
+        AddSubmenuButton(el_div, el_data, "id_submenu_employee_print", function() {PrintReport("print")}, "data-txt_planning_download", "mx-2")
 
         el_submenu.classList.remove(cls_hide);
 
@@ -857,9 +858,9 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, update_dict){
-        console.log("========= UpdateTableRow  =========");
-        console.log("update_dict", update_dict);
-        console.log("tblRow", tblRow);
+        //console.log("========= UpdateTableRow  =========");
+        //console.log("update_dict", update_dict);
+        //console.log("tblRow", tblRow);
 
         if (!isEmpty(update_dict) && !!tblRow) {
 
@@ -917,7 +918,6 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
                 tblBody.insertBefore(tblRow, tblBody.childNodes[row_index -1]);
 
                 tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
-
 
 // remove placeholder from element 'code
                 let el_code = tblRow.cells[0].children[0];
@@ -2962,10 +2962,10 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
 
 // ###################################################################################
 
-    function PrintReport() {
+    function PrintReport(option) {
         console.log("PrintReport")
         console.log("selected_period", selected_period)
-
+        const is_preview = (option === "preview");
         const company = get_subdict_value_by_key(company_dict, "name", "value", "");
         const period_txt = get_period_formatted(selected_period);
 
@@ -3063,7 +3063,7 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
 
 //---------- print last week of previous employee
                     PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting, label_list, value_list, colhdr_list, doc)
-                    console.log(">>>> after PrintWeek prev: ", prev_duration_sum , " this: ", this_duration_sum);
+
 //---------- print new page
                     doc.addPage();
                 }
@@ -3160,9 +3160,8 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
             if(!!shift) { shift_list.push(shift)};
             if(!!customer) { shift_list.push(customer)};
             if(!!order) { shift_list.push(order )};
-            // TODO don't show duration. is for testing
-            if(!!duration) { shift_list.push(display_duration (duration, user_lang))};
-
+            // don't show duration. is for testing
+            //if(!!duration) { shift_list.push(display_duration (duration, user_lang))};
 
             let day_list = week_list[this_weekday]
             day_list.push(shift_list);
@@ -3173,15 +3172,17 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
         PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting, label_list, value_list, colhdr_list, doc)
 
 // ================ print To View  ==================
-        //let string = doc.output('datauristring');
-        //let embed = "<embed width='100%' height='100%' src='" + string + "'/>"
-        //let x = window.open();
-        //x.document.open();
-        //x.document.write(embed);
-        //x.document.close();
-
+        if(is_preview){
+            let string = doc.output('datauristring');
+            let embed = "<embed width='100%' height='100%' src='" + string + "'/>"
+            let wndw = window.open();
+            wndw.document.open();
+            wndw.document.write(embed);
+            wndw.document.close();
+        } else {
         //To Save
-        doc.save('planning');
+            doc.save('planning');
+        }
 
     }  // PrintReport
 
@@ -3268,6 +3269,8 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
     // --- calculate height of the week shifts, to check if it fits on page
             const padding_top = 2;
             const height_weekdata = padding_top + calc_weekdata_height(week_list, duration_sum, setting)
+            console.log("height_weekdata", height_weekdata );
+
     // add new page when total height exceeds page_height, reset pos.top
             if (pos.top + height_weekdata > setting.page_height){
                 doc.addPage();
@@ -3374,7 +3377,8 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
     function printDayData(day_list, pos_x, pos_y, setting, doc){
         //console.log(" --- printDayData" )
         //console.log("day_list", day_list )
-        // day_list = [  ["16.00 - 22.30", "avond", "MCB", "Punda"],  ["07.00 - 16.00", "dag", "MCB", "Punda"]  ]
+        // skip fiirst item of shift_list, it contains 'has_overlap'
+        // day_list = [  [false, "23.30 - 07.00", "nacht", "MCB", "Punda"],  [...]  ]
         // setting = {"left": margin_left,  "top": margin_top, "column_width": 35,"line_height": 5, "fontsize_line": 10,"padding_left": 2, "header_width": 260, "header_height": 7,"max_dayheight": 0}
 
         const paddingleft = setting.padding_left;
@@ -3397,7 +3401,7 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
 
             // print overlappin shift red
             const overlap = shift_list[0];
-            if(overlap){doc.setTextColor(128,0,0)}  // VenV red
+            if(overlap){doc.setTextColor(224,0,0)}  // VenV red
 
             for (let j = 1, text_str, len = shift_list.length ; j < len; j++) {
                 //doc.text(100, 30, doc.splitTextToSize(text_str, colwidth));
@@ -3405,8 +3409,6 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
                 if(!!text_str){
                     pos_y += lineheight;
                     //doc.text(left + paddingleft, pos_y, text_str);
-
-
 
                     doc.text(pos_x + paddingleft, pos_y, doc.splitTextToSize(text_str, colwidth));
                 }
@@ -3456,8 +3458,14 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
             // add padding when multiple shifts in one day
             if(!!i){ height += padding_top;};
             shift_list = day_list[i];
-            for (let j = 0, len = shift_list.length ; j < len; j++) {
-                if(!!shift_list[j]){ height += setting.line_height;}
+            // skip fiirst item of shift_list, it contains 'has_overlap'
+            const len = shift_list.length;
+            if (len > 1) {
+                for (let j = 1 ; j < len; j++) {
+                    if(!!shift_list[j]){
+                        height += setting.line_height
+                    }
+                }
             }
         }
         return height ;
