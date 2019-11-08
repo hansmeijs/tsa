@@ -14,24 +14,24 @@
         </div>
 
         <div class="td_width_200 mx-2 mt-2 mb-5">
+            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select customer' %}</h6>
 
-                    <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select customer' %}</h6>
-
-            <table >
+            <table>
                 <thead id="id_thead_select"class="mx-1 my-1 ">
                 <tr>
                     <td>
                     <input id="id_flt_select"
                         type="text"
-                        class="td_width_150 tsa_bc_transparent border_none px-2"
+                        class="td_width_150 tsa_color_white border_none px-2"
                         autocomplete="off"
                         placeholder="{% trans 'filter ...' %}">
-                        </td>
+                    </td>
                     <td>
                         <a id="id_sel_inactive" href="#">
                             <img id="id_sel_img_inactive"  src="{% static 'img/inactive_lightgrey.png' %}" height="24" width="24">
                         </a>
-                        </td>
+                    </td>
+
                 </tr>
                 </thead>
                 <tbody id="id_tbody_select"></tbody>
@@ -168,11 +168,12 @@
             data-txt_billable = "{% trans 'Billable' %}"
             data-txt_identifier = "{% trans 'Identifier' %}"
 
-            data-txt_confirm_msg01_customer_delete = "{% trans 'This customer will be deleted.' %}"
-            data-txt_confirm_msg01_order_delete = "{% trans 'This order will be deleted.' %}"
+            data-txt_this_customer = "{% trans 'This customer ' %}"
+            data-txt_this_order = "{% trans 'This order ' %}"
+            data-txt_confirm_msg01_delete = "{% trans 'will be deleted.' %}"
+            data-txt_confirm_msg01_inactive = "{% trans 'will be made inactive.' %}"
 
             data-txt_confirm_btn_delete = "{% trans 'Yes, delete' %}"
-            data-txt_confirm_msg01_inactive = "{% trans 'This customer will be made inactive.' %}"
             data-txt_confirm_btn_inactive = "{% trans 'Yes, make inactive' %}"
 
         >

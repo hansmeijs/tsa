@@ -374,20 +374,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // HandleBtnSelect
 
 //=========  HandleSelectTable ================ PR2019-08-28
-    function HandleSelectTable(tr_clicked) {
+    function HandleSelectTable(sel_tr_clicked) {
         console.log( "===== HandleSelectTable  ========= ");
 
-        if(!!tr_clicked) {
-            //console.log( tr_clicked);
-            const tblName = get_attr_from_el_str(tr_clicked, "data-table");
-            const pk_str = get_attr_from_el_str(tr_clicked, "data-pk");
+        if(!!sel_tr_clicked) {
+            //console.log( sel_tr_clicked);
+            const tblName = get_attr_from_el_str(sel_tr_clicked, "data-table");
+            const pk_str = get_attr_from_el_str(sel_tr_clicked, "data-pk");
             const map_id = get_map_id(tblName, pk_str);
 
  // ---  highlight clicked row in select table
-            DeselectHighlightedRows(tr_clicked, cls_bc_yellow, cls_bc_lightlightgrey);
+            DeselectHighlightedRows(sel_tr_clicked, cls_bc_yellow, cls_bc_lightlightgrey);
             // yelllow won/t show if you dont first remove background color
-            tr_clicked.classList.remove(cls_bc_lightlightgrey)
-            tr_clicked.classList.add(cls_bc_yellow)
+            sel_tr_clicked.classList.remove(cls_bc_lightlightgrey)
+            sel_tr_clicked.classList.add(cls_bc_yellow)
 
 // ---  update selected_employee_pk, check if it exists in employee_map
         // function 'get_mapdict_from_.....' returns empty dict if tblName or pk_str are not defined or key not exists.
@@ -425,7 +425,7 @@ console.log( "HandleSelectTable CreateAddnewRowIfNotExists ", selected_mode );
                     FilterTableRows_dict(tblBody)
                 } //  if(!!tblBody){
             }  // if(selected_mode === "employee_form"){
-        }  // if(!!tr_clicked)
+        }  // if(!!sel_tr_clicked)
 
 // ---  enable add button, also when no employee selected
         document.getElementById("id_form_btn_add").disabled = false;
@@ -1304,6 +1304,7 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
     // ---  when absence: cat = 512
                 const cat = (selected_mode === "absence") ? 512 : 0;
                 upload_dict["cat"] = {"value": cat}
+
     // if delete: add 'delete' to id_dict and make tblRow red
                 if(is_delete){
                     id_dict["delete"] = true
@@ -1580,7 +1581,7 @@ console.log( "FillTableRows CreateAddnewRowIfNotExists mode:", mode);
         UpdateSelectRow(selectRow, update_dict);
 
 //--- remove 'updated, deleted created and msg_err from update_dict
-        //remove_err_del_cre_updated__from_itemdict(update_dict)
+        remove_err_del_cre_updated__from_itemdict(update_dict)
 
 //--- replace updated item in map
         let data_map = (tblName === "employee") ? employee_map :

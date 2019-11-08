@@ -693,8 +693,8 @@ $(function() {
 
 //=========  HandleSelectScheme  ================ PR2019-05-24
     function HandleSelectScheme(sel_tr_clicked) {
-        //console.log( "===== HandleSelectScheme  ========= ");
-        //console.log(sel_tr_clicked);
+        console.log( "===== HandleSelectScheme  ========= ");
+        console.log(sel_tr_clicked);
         if(!!sel_tr_clicked) {
 
 // reset input fields and tables
@@ -2201,7 +2201,8 @@ $(function() {
         let upload_dict = {};
 
 // ---  create id_dict
-        let id_dict = get_iddict_from_element(el_scheme_code);
+        const map_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", selected_scheme_pk)
+        let id_dict = get_dict_value_by_key(map_dict, "id");
         console.log("id_dict: ", id_dict);
 
 // add id_dict to upload_dict
@@ -2213,7 +2214,7 @@ $(function() {
                 if(!!id_dict["pk"]){upload_dict["pk"] = id_dict["pk"]}
 
     // ---  loop through input elements of scheme
-                const field_list = ["code", "cycle", "datefirst", "datelast", "pricerate"];
+                const field_list = ["code", "cycle", "datefirst", "datelast"];
                 for(let i = 0, fieldname, n_value, o_value, len = field_list.length; i < len; i++){
                     fieldname = field_list[i];
                     let el_input = document.getElementById("id_scheme_" + fieldname )
@@ -2222,7 +2223,7 @@ $(function() {
                         // The 'value' attribute determines the initial value (el_input.getAttribute("name").
                         // The 'value' property holds the current value (el_input.value).
                     n_value = null;
-                    if (["code", "cycle", "pricerate"].indexOf( fieldname ) > -1){
+                    if (["code", "cycle"].indexOf( fieldname ) > -1){
                         if(!!el_input.value) {n_value = el_input.value};
                     } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
                         if(!isEmpty(dtp_dict)){
@@ -2778,6 +2779,10 @@ $(function() {
                             UpdateFromResponse(response["update_list"][i]);
                         }
                     }
+                    // TODO make update_list insted of  scheme_update
+                    if ("scheme_update" in response) {
+                        UpdateFromResponse(response["scheme_update"]);
+                    }
                 },
                 error: function (xhr, msg) {
                     console.log(msg + '\n' + xhr.responseText);
@@ -2817,11 +2822,17 @@ $(function() {
             const field_dict = get_dict_value_by_key(update_dict, "code")
             format_text_element (el_team_code, el_msg, field_dict, [-220, 60])
         } else {
-//--- lookup tablerow of updated item
+
+        //--- lookup tablerow of updated item
             // created row has id 'teammemnber_new1', existing has id 'teammemnber_379'
             // 'is_created' is false when creating failed, use instead: (!is_created && !map_id)
             let row_id_str = ((is_created) || (!is_created && !map_id)) ? tblName + "_" + temp_pk_str : map_id;
             let tblRow = document.getElementById(row_id_str);
+
+            console.log("is_created", is_created);
+            console.log("map_id", map_id);
+            console.log("row_id_str", row_id_str);
+            console.log("tblRow", tblRow);
 
 //--- update Table Row
             if (["shift", "teammember", "schemeitem"].indexOf( tblName ) > -1){
@@ -2860,8 +2871,7 @@ $(function() {
         }  // if( tblName === "scheme"...
 
 //--- remove 'updated, deleted created and msg_err from update_dict
-        // TODO enable
-        //remove_err_del_cre_updated__from_itemdict(update_dict)
+        remove_err_del_cre_updated__from_itemdict(update_dict)
 
         if(tblName === "scheme"){
             UpdateSchemeInputElements(update_dict);
@@ -3209,8 +3219,8 @@ $(function() {
 
 //=========  UpdateSchemeInputElements  ================ PR2019-08-07
     function UpdateSchemeInputElements(item_dict) {
-        //console.log( "===== UpdateSchemeInputElements  ========= ");
-        //console.log(item_dict);
+        console.log( "===== UpdateSchemeInputElements  ========= ");
+        console.log(item_dict);
 
         ResetSchemeInputElements()
 

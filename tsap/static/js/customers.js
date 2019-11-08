@@ -56,12 +56,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  id of selected customer
         const id_sel_prefix = "sel_"
         let selected_customer_pk = 0;
-        let selected_customer_dict = {};
         let selected_order_pk = 0;
 
         let selected_mode = "customer"
         let mod_upload_dict = {};
-        let company_pk ;
+        let company_dict = {};
 
 // ---  id_new assigns fake id to new records
         let id_new = 0;
@@ -207,18 +206,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // --- hide loader
                 el_loader.classList.add(cls_visible_hide)
                 let fill_tblRows = false;
-                if ("company_list" in response) {
-                    const dict = response["company_list"][0];
-                    company_pk = get_dict_value_by_key(dict, "pk")
+                if ("company_dict" in response) {
+                    company_dict = response["company_dict"];
                 }
                 if ("customer_list" in response) {
                     get_datamap(response["customer_list"], customer_map)
-
                     FillSelectTable();
                     FilterSelectRows;
-
                     fill_tblRows = true;
-
                 }
                 if ("order_list" in response) {
                     get_datamap(response["order_list"], order_map)
@@ -280,9 +275,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!!data_map){
 // --- loop through data_map
                 for (const [map_id, item_dict] of data_map.entries()) {
-                    const pk_int = get_pk_from_dict(item_dict)
-                    const ppk_int = get_ppk_from_dict(item_dict)
-                    const row_tblName = get_subdict_value_by_key(item_dict, "id", "table")
+                    const id_dict = get_dict_value_by_key(item_dict, "id");
+                        const row_tblName = get_dict_value_by_key(id_dict, "table");
+                        const pk_int = Number(get_dict_value_by_key(id_dict, "pk"));
+                        const ppk_int = Number(get_dict_value_by_key(id_dict, "ppk"));
 
                     // in mode order or pricerate: show only rows of selected_customer_pk
                     let add_Row = false;
@@ -314,6 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (show_new_row) {
                 id_new = id_new + 1
                 const pk_new = "new" + id_new.toString()
+                const company_pk = parseInt(get_subdict_value_by_key (company_dict, "id", "pk", 0))
                 const ppk_int = (selected_mode === "order") ? selected_customer_pk : company_pk
 
                 let dict = {};
@@ -387,9 +384,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- insert tblRow ino tblBody_items
             tblRow = tblBody_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
-            const map_id = tblName + pk_str;
+            const map_id = get_map_id(tblName, pk_str)
             tblRow.setAttribute("id", map_id);
-            tblRow.setAttribute("data-map_id", map_id );
             tblRow.setAttribute("data-pk", pk_str);
             tblRow.setAttribute("data-ppk", ppk_str);
             tblRow.setAttribute("data-table", tblName);
@@ -539,7 +535,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const pk_str = ("pk" in id_dict) ? id_dict["pk"].toString() : null;
                 const ppk_str = ("ppk" in id_dict) ? id_dict["ppk"].toString() : null;
                 const temp_pk_str = ("temp_pk" in id_dict) ? id_dict["temp_pk"] : null;
-                const map_id = (!!pk_str) ? tblName + pk_str : null
+                const map_id = get_map_id(tblName, pk_str)
                 const is_created = ("created" in id_dict);
                 const is_deleted = ("deleted" in id_dict);
                 const msg_err = ("error" in id_dict) ? id_dict["error"] : null;
@@ -568,7 +564,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // update tablerow.id from temp_pk_str to id_pk
                 tblRow.setAttribute("id", map_id);
-                tblRow.setAttribute("data-map_id", map_id );
                 tblRow.setAttribute("data-pk", pk_str);
                 tblRow.setAttribute("data-ppk", ppk_str);
                 tblRow.setAttribute("data-table", tblName);
@@ -696,19 +691,15 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "pk_str: ", pk_str, typeof pk_str);
         let setting_dict = {}
         if (tblName === "customer"){
-            let new_customer_pk = 0
-            selected_customer_dict = {};
-            const map_id = get_attr_from_el_str(tr_clicked, "data-map_id")
-            if (!!map_id){
-                selected_customer_dict = get_mapdict_from_datamap_by_id(customer_map, map_id);
-                new_customer_pk = get_pk_from_dict(selected_customer_dict);
-            };
-// ---  update selected__pk
+// ---  update selected_customer_pk
+            const map_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, tblName, pk_str)
+            const new_customer_pk = parseInt(get_subdict_value_by_key (map_dict, "id", "pk", 0))
+            //console.log( "new_customer_pk: ", new_customer_pk, typeof new_customer_pk);
             // deselect selected_order_pk when selected customer changes
             if(new_customer_pk !== selected_customer_pk){selected_order_pk = 0}
             selected_customer_pk = new_customer_pk
 
-// --- save selected_customer_pk in Usersettings
+// --- save selected_customer_pk in Usersettings ( UploadSettings at the end of this function)
             setting_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
 
 // ---  update header text
@@ -723,7 +714,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selected_order_pk = parseInt(pk_str);
             console.log( "selected_order_pk: ", selected_order_pk);
 
-// --- save selected_customer_pk in Usersettings
+// --- save selected_order_pk in Usersettings
             setting_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
 
         };  // if (tblName === "customer")
@@ -761,8 +752,8 @@ document.addEventListener('DOMContentLoaded', function() {
     //========= UpdateForm  ============= PR2019-10-05
     function UpdateForm(){
         //console.log("========= UpdateForm  =========");
-
-        const customer_pk = get_pk_from_dict (selected_customer_dict)
+        const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk)
+        const customer_pk = parseInt(get_subdict_value_by_key(customer_dict, "id", "pk"));
         const readonly = (!customer_pk);
 
 // ---  employee form
@@ -770,7 +761,7 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0, len = form_elements.length; i < len; i++) {
             let el_input = form_elements[i];
             el_input.readOnly = readonly;
-            UpdateField(el_input, selected_customer_dict);
+            UpdateField(el_input, customer_dict);
         }
     };
 
@@ -794,15 +785,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tblName = "customer";
         if(row_index == null){row_index = -1}
+
         let tblRow;
         if (!isEmpty(item_dict)) {
 //--- get info from item_dict
             const id_dict = get_dict_value_by_key (item_dict, "id");
                 const tblName = ("table" in id_dict) ? id_dict["table"] : null;
-                const pk_int = ("pk" in id_dict) ? id_dict["pk"] : null;
-                const ppk_int = ("ppk" in id_dict) ? id_dict["ppk"] : null;
+                const pk_str = ("pk" in id_dict) ? id_dict["pk"] : null;
                 const temp_pk_str = ("temp_pk" in id_dict) ? id_dict["temp_pk"] : null;
-                const map_id = (!!pk_int) ? tblName + pk_int.toString() : null
+                const map_id = get_map_id(tblName, pk_str);
                 const is_created = ("created" in id_dict);
                 const is_deleted = ("deleted" in id_dict);
                 const msg_err = ("error" in id_dict) ? id_dict["error"] : null;
@@ -813,9 +804,9 @@ document.addEventListener('DOMContentLoaded', function() {
 //--------- insert tblBody_select row
             const row_id = id_sel_prefix + map_id
             tblRow = tblBody_select.insertRow(row_index);
+
             tblRow.setAttribute("id", row_id);
-            tblRow.setAttribute("data-map_id", map_id );
-            tblRow.setAttribute("data-pk", pk_int);
+            tblRow.setAttribute("data-pk", pk_str);
             tblRow.setAttribute("data-table", tblName);
             tblRow.setAttribute("data-inactive", inactive_value);
 
@@ -842,7 +833,7 @@ document.addEventListener('DOMContentLoaded', function() {
             td = tblRow.insertCell(-1);
                 el_a = document.createElement("a");
                 el_a.addEventListener("click", function(){
-                    // HandleSelectTable(tblRow);
+                    //HandleSelectTable(tblRow);
                     HandleBtnInactiveDeleteClicked("inactive", el_a)
                 }, false )
                 el_a.setAttribute("href", "#");
@@ -915,7 +906,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (selected_mode === "customer") { //show 'Customer list' in header when List button selected
             header_text = get_attr_from_el_str(el_data, "data-txt_customer_list")
         } else if (!!selected_customer_pk) {
-            const customer_code = get_subdict_value_by_key(selected_customer_dict,"code", "value")
+            const dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk)
+            const customer_code = get_subdict_value_by_key(dict,"code", "value")
             if(!!selected_customer_pk){header_text = customer_code}
         } else {
             if (!!is_addnew_mode){
@@ -932,7 +924,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  UpdateFromResponse  ================ PR2019-10-20
     function UpdateFromResponse(update_dict) {
         console.log(" --- UpdateFromResponse  ---");
-        //console.log("update_dict", update_dict, typeof update_dict);
+        console.log("update_dict", update_dict);
 
 //--- get info from update_dict["id"]
         const id_dict = get_dict_value_by_key (update_dict, "id");
@@ -940,9 +932,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const pk_int = ("pk" in id_dict) ? id_dict["pk"] : null;
             const ppk_int = ("ppk" in id_dict) ? id_dict["ppk"] : null;
             const temp_pk_str = ("temp_pk" in id_dict) ? id_dict["temp_pk"] : null;
-            const map_id = (!!pk_int) ? tblName + pk_int.toString() : null
+            const map_id = get_map_id( tblName, pk_int)
             const is_created = ("created" in id_dict);
             const is_deleted = ("deleted" in id_dict);
+
+        console.log("is_created", is_created);
 
         if(selected_mode === "customer_form"){
             UpdateForm()
@@ -950,15 +944,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //--- reset selected_customer when deleted
             if(is_deleted){
-                selected_customer_pk = 0;
-                selected_customer_dict = {};
+                selected_order_pk = 0;
+                if (tblName === "customer") {
+                    selected_customer_pk = 0;
+                }
             }
 
 //--- lookup table row of updated item
             // created row has id 'customernew_1', existing has id 'customer379'
             // 'is_created' is false when creating failed, use instead: (!is_created && !map_id)
             const row_id_str = ((is_created) || (!is_created && !map_id)) ? tblName + "_" + temp_pk_str : map_id;
+
+        console.log("row_id_str", row_id_str);
+
             let tblRow = document.getElementById(row_id_str);
+        console.log("tblRow", tblRow);
 
 //--- update Table Row
             UpdateTableRow(tblRow, update_dict)
@@ -1063,10 +1063,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleSelectTable ================ PR2019-08-28
     function HandleSelectTable(sel_tr_clicked) {
-        //console.log( "===== HandleSelectTable  ========= ");
-        //console.log( sel_tr_clicked);
+        console.log( "===== HandleSelectTable  ========= ");
+        console.log( sel_tr_clicked);
 
         if(!!sel_tr_clicked) {
+            const tblName = get_attr_from_el_str(sel_tr_clicked, "data-table");
+            const pk_str = get_attr_from_el_str(sel_tr_clicked, "data-pk");
+            const map_id = get_map_id(tblName, pk_str);
+
  // ---  highlight clicked row in select table
             DeselectHighlightedRows(sel_tr_clicked, cls_bc_yellow, cls_bc_lightlightgrey);
             // yelllow won/t show if you dont first remove background color
@@ -1074,21 +1078,16 @@ document.addEventListener('DOMContentLoaded', function() {
             sel_tr_clicked.classList.add(cls_bc_yellow)
 
 // ---  update selected_customer_pk
-            selected_customer_pk = 0
-            selected_customer_dict = {};
-            const map_id = get_attr_from_el_str(sel_tr_clicked, "data-map_id")
-            if (!!map_id){
-                selected_customer_dict = get_mapdict_from_datamap_by_id(customer_map, map_id);
-                const customer_pk = get_pk_from_dict(selected_customer_dict);
-                if(customer_pk !== selected_customer_pk){
-                    selected_customer_pk = customer_pk;
+            const map_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, tblName, pk_str);
+            selected_customer_pk = parseInt(get_subdict_value_by_key(map_dict, "id", "pk", 0));
+            console.log( "selected_customer_pk: ", selected_customer_pk);
+
 // --- deselect selected_order_pk when selected customer changes
-                    selected_order_pk = 0
+            selected_order_pk = 0
+
 // --- save selected_customer_pk in Usersettings
-                    const upload_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
-                    UploadSettings (upload_dict, url_settings_upload);
-                }
-            }
+            const upload_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
+            UploadSettings (upload_dict, url_settings_upload);
 
 // ---  highlight row in list table
             HighlightSelectedTblRowByPk(tblBody_items, selected_customer_pk)
@@ -1119,9 +1118,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!!el_changed){
             const tblRow = get_tablerow_selected(el_changed);
             if(!!tblRow){
-                const pk_str = get_attr_from_el(tblRow, "data-pk")
-                const tblName = get_attr_from_el(tblRow, "data-table")
-                const map_id = tblName + pk_str;
+                const tblName = get_attr_from_el_str(tblRow, "data-table");
+                const pk_str = get_attr_from_el_str(tblRow, "data-pk");
+                const map_id = get_map_id(tblName, pk_str);
+
                 const itemdict = get_mapdict_from_datamap_by_id(pricerate_map, map_id)
                 console.log("itemdict", itemdict);
                 // billable: {override: false, billable: false}
@@ -1192,7 +1192,9 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 // update existing record
                 // TODO check if this works
-                const map_id = "customer" + selected_customer_pk.toString();
+                const tblName = get_attr_from_el(tblRow, "data-table")
+                const pk_str = get_attr_from_el_str(sel_tr_clicked, "data-pk");
+                const map_id = get_map_id(tblName, pk_str);
                 let itemdict = get_mapdict_from_datamap_by_id(customer_map, map_id)
                 id_dict = get_dict_value_by_key(itemdict, "id")
             }  // if(!selected_customer_pk)
@@ -1216,9 +1218,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let tblRow = get_tablerow_selected(el_input)
         if(!!tblRow){
-            const pk_str = get_attr_from_el(tblRow, "data-pk")
             const tblName = get_attr_from_el(tblRow, "data-table")
-            const map_id = tblName + pk_str;
+            const pk_str = get_attr_from_el_str(tblRow, "data-pk");
+            const map_id = get_map_id(tblName, pk_str);
             let map_dict;
             if (tblName === "customer"){ map_dict = customer_map.get(map_id)} else
             if (tblName === "order") { map_dict = order_map.get(map_id)} else
@@ -1294,16 +1296,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UploadDeleteChanges  ============= PR2019-10-23
     function UploadDeleteChanges(upload_dict, url_str) {
+        console.log("--- UploadDeleteChanges  --------------");
+        console.log("upload_dict");
 
 // if delete: add 'delete' to id_dict and make tblRow red
     const is_delete = (!!get_subdict_value_by_key(upload_dict, "id","delete"))
+        console.log("is_delete:", is_delete, typeof is_delete);
 
     if(is_delete){
         const pk_str = get_subdict_value_by_key(upload_dict, "id", "pk");
         const tblName = get_subdict_value_by_key(upload_dict, "id", "table");
-        const id_str = tblName + pk_str;
+        const map_id = get_map_id(tblName, pk_str);
+        console.log("is_delete:", is_delete, typeof is_delete);
 
-        let tr_changed = document.getElementById(id_str);
+        let tr_changed = document.getElementById(map_id);
         if(!!tr_changed){
             tr_changed.classList.add("tsa_tr_error");
             setTimeout(function (){
@@ -1534,13 +1540,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!!tblRow){
             tblName = get_attr_from_el(tblRow, "data-table")
             const pk_str = get_attr_from_el(tblRow, "data-pk")
-            const map_id = tblName + pk_str;
-            let map_dict;
-            if (tblName === "customer"){
-                map_dict = customer_map.get(map_id);
-            } else if (tblName === "order") {
-                map_dict = order_map.get(map_id);
-            };
+            const map_id = get_map_id(tblName, pk_str);
+            const data_map = (tblName === "customer") ? customer_map :
+                             (tblName === "order") ? order_map : null;
+            const map_dict = data_map.get(map_id);
+
             cust_code = get_subdict_value_by_key(map_dict, "code", "value")
         } else {
             // get info from mod_upload_dict
@@ -1548,33 +1552,27 @@ document.addEventListener('DOMContentLoaded', function() {
             cust_code = get_subdict_value_by_key(mod_upload_dict, "code", "value")
         }
 
-        let msg_01_txt;
-        if (mode === "inactive"){
-            if (tblName === "customer"){
-                msg_01_txt = get_attr_from_el(el_data, "data-txt_confirm_msg01_inactive");
-            } else if (tblName === "order") {
-                // TODO add inactive order
-            }
-        } else if (mode === "delete"){
-            if (tblName === "customer"){
-                msg_01_txt = get_attr_from_el(el_data, "data-txt_confirm_msg01_customer_delete");
-            } else if (tblName === "order") {
-                msg_01_txt = get_attr_from_el(el_data, "data-txt_confirm_msg01_order_delete");
-            }
-        }
+        const data_key_01 = (tblName === "customer") ? "data-txt_this_customer" :
+                            (tblName === "order") ? "data-txt_this_order" : null;
+        const data_key_02 = (mode === "delete") ?  "data-txt_confirm_msg01_delete" :
+                            (mode === "inactive") ? "data-txt_confirm_msg01_inactive" : null;
+        const msg_01_txt = get_attr_from_el(el_data, data_key_01) + " " + get_attr_from_el(el_data, data_key_02)
+
 // put text in modal form
         document.getElementById("id_confirm_header").innerText = cust_code;
         document.getElementById("id_confirm_msg01").innerText = msg_01_txt;
         const data_txt_btn_save = "data-txt_confirm_btn_" + mode
         document.getElementById("id_confirm_btn_save").innerText = get_attr_from_el(el_data, data_txt_btn_save);
+
 // show modal
         $("#id_mod_confirm").modal({backdrop: true});
-
 
     };  // ModConfirmOpen
 
 //=========  ModConfirmSave  ================ PR2019-06-23
     function ModConfirmSave() {
+        console.log(" --- ModConfirmSave --- ");
+        console.log("mod_upload_dict: ", mod_upload_dict);
 // ---  hide modal
         $("#id_mod_confirm").modal("hide");
 // ---  Upload Changes
@@ -1778,7 +1776,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if ("sel_cust_pk" in sel_dict ){
                         selected_customer_pk = sel_dict["sel_cust_pk"];
 // check if selected_customer_pk exists and is not inactive.
-                        const map_id = "customer" + sel_dict["sel_cust_pk"];
+
+                        const map_id = get_map_id("customer", sel_dict["sel_cust_pk"]);
                         const map_dict = get_mapdict_from_datamap_by_id(customer_map, map_id);
                         if (!isEmpty(map_dict)) {
                             const inactive = get_subdict_value_by_key(map_dict, "inactive", "value", false)
