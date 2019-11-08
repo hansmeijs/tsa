@@ -841,7 +841,7 @@ function printPDF() {
                     if (!tblRow.classList.contains("display_none")) {
                         if(i <= noOnFirstPage){
                             startHeight = startHeight + line_height;
-                            addData(tblRow, pos_x, startHeight, doc, img_warning);
+                            printData(tblRow, pos_x, startHeight, doc, img_warning);
                         }else{
                             if(z ==1 ){
                                 startHeight = 0;
@@ -849,7 +849,7 @@ function printPDF() {
                             }
                             if(z <= noOfRows){
                                 startHeight = startHeight + line_height;
-                                addData(tblRow, pos_x, startHeight ,doc, img_warning);
+                                printData(tblRow, pos_x, startHeight ,doc, img_warning);
                                 z++;
                             }else{
                                 z = 1;
@@ -865,37 +865,6 @@ function printPDF() {
                 doc.save('samplePdf');
 			}  // if (len > 0){
     }  // printPDF
-		function addData(tblRow, pos_x, height, doc, img_warning){
-		    const column_count = 6;
-		    if(!!tblRow){
-                for (let j = 0, el, a, img ; j < column_count; j++) {
-                    if(!!tblRow.cells){
-                        el = tblRow.cells[j]
-                        if(!!el){
-                            if (j < column_count ){
-                                a = el.firstChild;
-                                if(!!a){
-                                    doc.text(pos_x[j], height, a.innerText);
-                                }
-                            } else {
-                                a = el.firstChild;
-                                if(!!a){
-                                    img = el.firstChild;
-                                   // if(!!img){
-                                        //if(img.src !== "/static/img/warning.gif") {//  imgsrc_warning;
-                                                                        //var options = {orientation: 'p', unit: 'mm', format: custom};
-                                 //var doc = new jsPDF(options);
-                                            //doc.addImage(img_warning, 'JPEG', pos_x[j], height, 12, 12);  // x, y wifth height
-                                        //    }
-                                   // }
-                                }
-                            }
-                        } // if(!!el){
-                    }
-
-                    }  // if(!!tblRow.cells[0]){
-		    }  // if(!!tblRow){
-		}  // function addData
 
     // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 }); // document.addEventListener('DOMContentLoaded', function()

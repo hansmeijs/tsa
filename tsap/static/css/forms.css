@@ -336,10 +336,10 @@ table {
     /*background-color: #d7e4f3;/* is even lighter blueish */
 
 
-    background: #e0e0e0; /* default light grey */
+    /*background: #e0e0e0; /* default light grey */
 
-    color: #376191;  /* Default Schema Blauw donkerblauw */
-    color: #141619;  /*dark grey; */
+    /*color: #376191;  /* Default Schema Blauw donkerblauw */
+    /*color: #141619;  /*dark grey; */
     color: #000000;  /* black; */
     /* to prevent text selection */
     -webkit-touch-callout: none;
@@ -384,7 +384,6 @@ color: #000;
     -ms-user-select: none;
     user-select: none;
 }
-
 
 .tr {
     /* to prevent text selection */

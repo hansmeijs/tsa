@@ -211,16 +211,16 @@ ABSENCE = {
 # PR2019-06-24  PR2019-09-26  fields: sequence, code, name, pricerate. pricerate=1 means default category
 ABSENCE_CATEGORY = {LANG_EN: (
                         ('0', 'Unknown', 'Unknown', '1'),
-                        ('1', 'Vacation', 'Vacation leave', '0'),
-                        ('2', 'Sick', 'Sick leave', '0'),
-                        ('3', 'Special leave', 'Special leave', '0'),
+                        ('1', 'Sick', 'Sick leave', '0'),
+                        ('2', 'Special leave', 'Special leave', '0'),
+                        ('3', 'Vacation', 'Vacation leave', '0'),
                         ('4', 'Unpaid leave', 'Unpaid leave', '0'),
                         ('5', 'Unauthorized', 'Unauthorized absence', '0')),
                     LANG_NL: (
                         ('0', 'Onbekend', 'Onbekend', '1'),
-                        ('1', 'Vakantie', 'Vakantie', '0'),
-                        ('2', 'Ziek', 'Ziekte', '0'),
-                        ('3', 'Buitengewoon', 'Buitengewoon verlof', '0'),
+                        ('1', 'Ziek', 'Ziekte', '0'),
+                        ('2', 'Buitengewoon', 'Buitengewoon verlof', '0'),
+                        ('3', 'Vakantie', 'Vakantie', '0'),
                         ('4', 'Onbetaald', 'Onbetaald verlof', '0'),
                         ('5', 'Ongeoorloofd', 'Ongeoorloofd verzuim', '0'))
                     }
@@ -230,7 +230,7 @@ KEY_COMP_REPLACEMENT_PERIOD = 'repl_period'
 
 KEY_USER_QUICKSAVE = 'quicksave'
 KEY_USER_EMPLHOUR_PERIOD = 'emplhour_period'
-KEY_USER_PAGE_SETTINGS = 'page_settings'
+KEY_USER_SETTINGS = ('selected_pk', 'page_employee', 'page_customer', 'planning_period', 'quicksave')
 # code, cycle, excludeweekend, excludepublicholiday PR2019-08-24
 SCHEME_24H_DEFAULT = {LANG_EN: ('24 hours 16 days', 16, False, False),
                       LANG_NL: ('24 uur 16 daags', 16, False, False)}
@@ -313,6 +313,8 @@ CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
                                  'linked_columns': 'Gekoppelde kolommen'}
                     }
 
+FIELDS_COMPANY = ('id', 'code', 'name')
+
 FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier',
                     'contactname', 'address', 'zipcode', 'city', 'country',
                    'email', 'telephone', 'interval', 'inactive')
@@ -321,32 +323,37 @@ FIELDS_ORDER = ('id', 'customer', 'cat', 'billable', 'code', 'name', 'datefirst'
                 'contactname', 'address', 'zipcode', 'city', 'country',
                 'sequence', 'identifier', 'billable', 'priceratejson', 'invoicedates', 'taxcode', 'locked', 'inactive')
 
-FIELDS_ORDERHOUR = ('pk', 'id', 'order', 'schemeitem', 'rosterdate',
+FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
                     'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
-                    'cat', 'billable', 'shift', 'duration', 'status', 'pricerate', 'amount', 'tax', 'locked')
+                    'isbillable', 'isrestshift', 'shift', 'duration', 'status',
+                    'pricerate', 'additionrate', 'taxrate', 'amount', 'tax', 'locked')
 
-FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
-                        'timestart', 'timeend', 'timeduration', 'breakduration',
-                        'wagerate', 'wagefactor', 'wage', 'status', 'overlap')
+FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat',
+                   'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
+                   'isrestshift', 'shift',
+                   'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',
+                   'wagerate', 'wagefactor', 'wage', 'pricerate', 'pricerate',
+                   'status', 'overlap', 'locked')
 
-FIELDS_SCHEME = ('id', 'order', 'cat', 'cycle', 'billable', 'code', 'datefirst', 'datelast',
-                 'priceratejson', 'excludeweekend', 'excludepublicholiday', 'inactive')
+FIELDS_SCHEME = ('id', 'order', 'cat', 'code', 'datefirst', 'datelast',
+                 'cycle', 'billable', 'excludeweekend', 'excludepublicholiday',
+                 'priceratejson', 'additionjson', 'inactive')
 
 FIELDS_TEAM = ('id', 'scheme', 'cat', 'code')
 
 FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'billable',
-                'offsetstart', 'offsetend', 'breakduration', 'wagefactor', 'priceratejson')
+                'offsetstart', 'offsetend', 'breakduration', 'wagefactor', 'priceratejson', 'additionjson')
 
-FIELDS_SCHEMEITEM = ('id', 'scheme', 'cat', 'billable', 'shift', 'team',
-                     'rosterdate', 'iscyclestart', 'timestart', 'timeend',
-                     'timeduration', 'priceratejson', 'inactive')
+FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team', 'cat', 'billable',
+                     'rosterdate', 'iscyclestart', 'timestart', 'timeend', 'timeduration',
+                     'priceratejson', 'additionjson', 'inactive')
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
-FIELDS_EMPLOYEE = ('id', 'code', 'datefirst', 'datelast',
+FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
                    'namelast', 'namefirst', 'email', 'telephone', 'identifier',
                    'address', 'zipcode', 'city', 'country',
-                   'payrollcode', 'wagerate', 'wagecode',
-                   'workhours', 'workdays', 'leavedays', 'priceratejson', 'inactive')
+                   'payrollcode', 'wagerate', 'wagecode', 'workhours', 'workdays', 'leavedays',
+                   'priceratejson', 'additionjson', 'inactive', 'locked')
 
 
 WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, default is 40 hours per week = 2.400 minutes
@@ -357,4 +364,7 @@ LEAVEDAYS_DEFAULT = 21600  # leavedays per year, = 15 days * 1440 = 21.600 minut
 
 FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast',
                      'workhoursperday', 'wagerate', 'wagefactor',
-                     'priceratejson', 'override')
+                     'offsetstart', 'offsetend',
+                     'priceratejson', 'additionjson', 'override', 'jsonsetting')
+# teammember wagerate not in use
+# teammember pricerate not in use

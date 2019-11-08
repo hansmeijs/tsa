@@ -8,6 +8,30 @@ import json
 import logging
 logger = logging.getLogger(__name__)
 
+def create_company_list(company):
+    # logger.debug(' --- create_customer_list --- ')
+    item_dict = {}
+    if company:
+        # FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier', 'email', 'telephone',
+        # 'interval', 'inactive')
+        for field in c.FIELDS_COMPANY:
+
+            # --- get field_dict from  item_dict  if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+
+            if field == 'id':
+                field_dict['pk'] = company.pk
+                field_dict['table'] = 'company'
+                item_dict['pk'] = company.pk
+
+            else:
+                value = getattr(company, field)
+                if value:
+                    field_dict['value'] = value
+
+            item_dict[field] = field_dict
+
+    return item_dict
 
 def create_customer_list(company, inactive=None, cat=None, cat_lt=None):
     # logger.debug(' --- create_customer_list --- ')
@@ -83,7 +107,8 @@ def create_order_list(company, user_lang, inactive=None, cat=None, cat_lt=None):
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
 
-    if cat == c.SHIFT_CAT_0512_ABSENCE:
+    is_absence = f.get_absence(cat)
+    if is_absence:
         orders = m.Order.objects.filter(crit).order_by('sequence')
     else:
         orders = m.Order.objects.filter(crit).order_by('customer__code', 'code')
@@ -185,6 +210,7 @@ def create_order_dict(order, item_dict, user_lang):
 
 def create_absencecategory_list(request):
     # --- create list of all active absence categories of this company PR2019-06-25
+    # each absence category contains abscat_customer, abscat_order, abscat_scheme and abscat_team
     order_list = []
 
     # create an absence customer, order scheme and teams if they do not exist yet PR2019-07-27
@@ -202,7 +228,7 @@ def create_absencecategory_list(request):
 
 
 def create_absencecat_dict(abscat_order, request):
-# --- create dict of this absece category PR2019-06-25
+# --- create dict of this absence category PR2019-06-25
     # logger.debug(" --- create_absencecat_dict ---")
     dict = {}
     if abscat_order:
@@ -252,7 +278,7 @@ def create_absencecat_dict(abscat_order, request):
 def get_or_create_absence_customer(request):
     # logger.debug(" === get_or_create_absence_customer ===")
 
-# get locale text of absene categories
+# 1. get locale text of absene categories
     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
     if user_lang in c.ABSENCE:
         absence_locale = c.ABSENCE[user_lang]
@@ -260,12 +286,12 @@ def get_or_create_absence_customer(request):
         absence_locale = c.ABSENCE[c.LANG_DEFAULT]
         # absence_locale = ('Afwezig', 'Afwezigheid')
 
-# - check if 'absence' customer exists for this company - only one 'absence' customer allowed
+# 2. check if 'absence' customer exists for this company - only one 'absence' customer allowed
     # don't use get_or_none, it wil return None when multiple absence customers exist, therefore adding another record
     abs_cust = m.Customer.objects.filter(company=request.user.company, cat=c.SHIFT_CAT_0512_ABSENCE).first()
     if abs_cust is None:
 
-# - create 'absence' customer if not exists
+# 3. create 'absence' customer if not exists
         abs_cust = m.Customer(company=request.user.company,
                             code=absence_locale[0],
                             name=absence_locale[1],
@@ -273,10 +299,11 @@ def get_or_create_absence_customer(request):
         abs_cust.save(request=request)
 
     if abs_cust:
-# - check if 'absence' customer has categories (orders)
+
+# 4. check if 'absence' customer has categories (orders)
         absence_orders_exist = m.Order.objects.filter(customer=abs_cust).exists()
 
-# - if no orders exist: create 'absence' orders - contains absence categories
+# 5. if no orders exist: create 'absence' orders - contains absence categories
         if not absence_orders_exist:
             create_absence_orders(abs_cust, user_lang, request)
 
@@ -302,7 +329,7 @@ def create_absence_orders(abs_cust, user_lang, request):
             name = category[2]
             pricerate = category[3]
 
-    # - create 'absence' order - contains absence categories
+# 1. create 'absence' order - contains absence categories
             order = m.Order(customer=abs_cust,
                           code=code,
                           name=name,
@@ -312,9 +339,9 @@ def create_absence_orders(abs_cust, user_lang, request):
             order.save(request=request)
     # this def is only called when order does not exist, therefore also scheme and team don't exist
             if order:
-    # - create 'absence' scheme
+# 2. create 'absence' scheme
                 scheme = create_absence_scheme(order, code, request)
-    # - create 'absence' team
+# 3. create 'absence' team
                 if scheme:
                     create_absence_team(scheme, code, request)
 

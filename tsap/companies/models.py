@@ -177,11 +177,9 @@ class Customer(TsaBaseModel):
     email = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=c.USERNAME_SLICED_MAX_LENGTH, null=True, blank=True)
 
-
     interval = PositiveSmallIntegerField(default=0)
 
     invoicedates = JSONField(null=True)  # stores invoice dates for this customer
-
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -214,6 +212,7 @@ class Order(TsaBaseModel):
 
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
+    additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
 
     invoicedates = JSONField(null=True)  # stores invoice dates for this order
 
@@ -330,8 +329,12 @@ class Scheme(TsaBaseModel):
     excludeweekend = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
 
+    # pricerate is deprecated
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
+    additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
+
+
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     locked = None
@@ -364,8 +367,10 @@ class Shift(TsaBaseModel):
 
     breakduration = IntegerField(default=0) # unit is minute
     wagefactor = ForeignKey(Wagefactor, related_name='shifts', on_delete=SET_NULL, null=True, blank=True)
+    # pricerate is deprecated
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
+    additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
 
     class Meta:
         ordering = [Lower('code')]
@@ -401,6 +406,7 @@ class Employee(TsaBaseModel):
 
     namelast = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH)
     namefirst = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
+    # deprecated
     prefix = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     email = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
@@ -419,16 +425,16 @@ class Employee(TsaBaseModel):
     workhours = IntegerField(default=0)  # working hours per week * 60, unit is minute
     workdays = IntegerField(default=0)  # workdays per week * 1440, unit is minute (one day has 1440 minutes)
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
-
+    # pricerate is deprecated, use priceratejson
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
+    additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
 
     class Meta:
         ordering = [Lower('namelast'), Lower('namefirst')]
-
 
     def __str__(self):
         self.n_last = str(self.namelast)
@@ -461,6 +467,7 @@ class Teammember(TsaBaseModel):
 
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
+    additionjson = JSONField(null=True)  # /10000 unitless additionrate 2500 = 25%
     override = BooleanField(default=True)
 
     jsonsetting = JSONField(null=True)  # stores invoice dates for this customer
@@ -533,9 +540,13 @@ class Schemeitem(TsaBaseModel):
     timestart = DateTimeField(db_index=True, null=True, blank=True)
     timeend = DateTimeField(db_index=True, null=True, blank=True)
     timeduration = IntegerField(default=0)  # unit is minute
-
+    # deprecated
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
+    additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
+
+
+
 
     class Meta:
         ordering = ['rosterdate', 'timestart']
@@ -594,13 +605,13 @@ class Orderhour(TsaBaseModel):
     schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
+    cat = PositiveSmallIntegerField(default=0)
 
     yearindex = PositiveSmallIntegerField(default=0)
     monthindex = PositiveSmallIntegerField(default=0)
     weekindex = PositiveSmallIntegerField(default=0)
     payperiodindex = PositiveSmallIntegerField(default=0)
 
-    cat = PositiveSmallIntegerField(default=0)
     isbillable = BooleanField(default=False)
     isrestshift = BooleanField(default=False)
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -608,9 +619,9 @@ class Orderhour(TsaBaseModel):
     status = PositiveSmallIntegerField(db_index=True, default=0)
 
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG)
-    amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
-
+    additionrate = IntegerField(default=0)  # /10000 unitless   additionrate 2500 = 25%
     taxrate = IntegerField(default=0)  # /10000 unitless   taxrate 600 = 6%
+    amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
     tax = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
 
     class Meta:
@@ -633,15 +644,17 @@ class Emplhour(TsaBaseModel):
 
     orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=PROTECT)
     employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
+    # deprecated, use teammemberid instead
     teammember = ForeignKey(Teammember, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
     rosterdate = DateField(db_index=True, null=True, blank=True)
+    cat = PositiveSmallIntegerField(default=0)
+
     yearindex = PositiveSmallIntegerField(default=0)
     monthindex = PositiveSmallIntegerField(default=0)
     weekindex = PositiveSmallIntegerField(default=0)
     payperiodindex = PositiveSmallIntegerField(default=0)
 
-    cat = PositiveSmallIntegerField(default=0)
     # emplhour isrestshift not in use
     isrestshift = BooleanField(default=False)
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -649,15 +662,24 @@ class Emplhour(TsaBaseModel):
     timeend = DateTimeField(db_index=True, null=True, blank=True)
     timeduration = IntegerField(default=0)
     breakduration = IntegerField(default=0)
+    plannedduration = IntegerField(default=0)
 
     wagerate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     wagefactor = IntegerField(default=0) # /10000 unitless, 0 = factor 100%  = 10.000)
     wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG)
+    additionrate = IntegerField(default=0)  # /10000 unitless   additionrate 2500 = 25%
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
     overlap = SmallIntegerField(default=0)  # stores if record has overlapping emplhour records: 1 overlap start, 2 overlap end, 3 full overlap
+
+    # combination rosterdate + schemeitemid + teammemberid is used to identify schemeitem / teammember that is used to create this emplhour
+    schemeitemid = IntegerField(null=True)
+    teammemberid = IntegerField(null=True)
+
+
+
 
 
     class Meta:
@@ -669,6 +691,23 @@ class Emplhour(TsaBaseModel):
     datefirst = None
     datelast = None
     inactive = None
+
+    @property
+    def has_status01_created(self):  # PR2019-10-18
+        has_status_created = False
+        field_value = getattr(self, 'status', 0)
+        status_int = int(field_value)
+        status_str = bin(status_int)[-1:1:-1]  # status 31 becomes '11111', first char is STATUS_01_CREATED
+        if status_str[:1] == '1':
+            has_status_created = True
+        return has_status_created
+
+
+    @property
+    def has_status_confirmed_or_higher(self):  # PR2019-10-18
+        field_value = getattr(self, 'status', 0)
+        status_int = int(field_value)
+        return True if status_int > 1 else False
 
 
 class Emplhourlog(TsaBaseModel):
@@ -941,17 +980,16 @@ def get_instance(table, pk_int, parent, update_dict=None):
     return instance
 
 
-def delete_instance(instance, parent, table, update_dict, request, this_text=None):
+def delete_instance(instance, update_dict, request, this_text=None):
     # function deletes instance of table,  PR2019-08-25
-    delete_failed = False
+    delete_ok = False
     if instance:
-        update_dict['id']['pk'] = instance.pk
-        update_dict['id']['ppk'] = parent.pk
-        update_dict['id']['table'] = table
+        # id_dict is added in create_update_dict
+        if 'delete' in update_dict['id']:
+            del update_dict['id']['delete']
         try:
             instance.delete(request=request)
         except:
-            delete_failed = True
             if this_text:
                 msg_err = _('%(tbl)s could not be deleted.') % {'tbl': this_text}
             else:
@@ -959,5 +997,9 @@ def delete_instance(instance, parent, table, update_dict, request, this_text=Non
             update_dict['id']['error'] = msg_err
         else:
             update_dict['id']['deleted'] = True
+            delete_ok = True
+    # instance = None does not work here, it works outside this function
+    #if delete_ok:
+    #    instance = None
 
-    return not delete_failed
+    return delete_ok

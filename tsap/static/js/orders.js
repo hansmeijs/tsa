@@ -454,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (is_created){
                         // add new empty row
                             id_new = id_new + 1
-                            const pk_new = "new_" + id_new.toString()
+                            const pk_new = "new" + id_new.toString()
                             const parent_pk = get_ppk_from_dict (item_dict)
 
                             let new_dict = {}
@@ -620,7 +620,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // === add row 'add new'
         let dict = {};
         id_new = id_new + 1
-        const pk_new = "new_" + id_new.toString()
+        const pk_new = "new" + id_new.toString()
 
         dict["id"] = {"pk": pk_new, "ppk": selected_customer_pk, "new": true}
 

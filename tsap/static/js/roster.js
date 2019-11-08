@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // period also returns emplhour_map
         const datalist_request = {
-            "settings": {"page_roster": {"mode": "get_saved"}},
+            "setting": {"page_roster": {"mode": "get"}},
             "customer": {inactive: false},
             "order": {inactive: false, cat_lte: 1},
             "period": {"mode": "saved"},
@@ -564,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // === add row 'add new'
         let dict = {};
         id_new = id_new + 1
-        const pk_new = "new_" + id_new.toString()
+        const pk_new = "new" + id_new.toString()
 
         dict["id"] = {"pk": pk_new, "temp_pk": pk_new}
 
@@ -704,9 +704,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ([1, 2].indexOf( j ) > -1){
                     if (is_new_item){el.addEventListener("change", function() {UploadElChanges(el)}, false )} } else
                 if (j === 3){
-                    el.addEventListener("click", function() {ModEmployeeOpen(el);}, false ) } else
+                    el.addEventListener("click", function() {ModEmployeeOpen(el)}, false )} else
                 if ([4, 6].indexOf( j ) > -1){
-                    el.addEventListener("click", function() {HandleTimepickerOpen(el);}, false)} else
+                    el.addEventListener("click", function() {HandleTimepickerOpen(el)}, false)} else
                 if ([8, 9].indexOf( j ) > -1){
                     // el.addEventListener("click", function() {OpenPopupHM(el)}, false )
                 };
@@ -873,7 +873,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (fieldname === "orderhour") {
                                     field_dict["locked"] = true
                                 }
-                                format_text_element (el_input, el_msg, field_dict, [-220, 60] , title_overlap);
+                                format_text_element (el_input, el_msg, field_dict, [-220, 60], title_overlap);
 
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
                                 format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)
@@ -1028,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const row_index = emplhour_tblRow.rowIndex
         console.log("row_index", row_index);
 
-        let emplhour_dict = get_itemdict_from_datamap_by_id(emplhour_map, map_id);
+        let emplhour_dict = get_mapdict_from_datamap_by_id(emplhour_map, map_id);
         let id_dict = get_dict_value_by_key(emplhour_dict, "id")
         id_dict["mode"] = btn_name
         id_dict["rowindex"] = row_index
@@ -1326,7 +1326,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const caption_none = get_attr_from_el(el_data, "data-txt_employee_select_none") + ":";
 
         let tableBody = el_mod_employee_tblbody
-
         tableBody.innerText = null;
 
         let row_count = 0
@@ -2412,7 +2411,7 @@ console.log("===  function HandlePopupWdySave =========");
 // add new empty row
                     console.log( "UploadTblrowChanged >>> add new empty row");
                             id_new = id_new + 1
-                            const pk_new = "new_" + id_new.toString()
+                            const pk_new = "new" + id_new.toString()
                             const parent_pk = get_ppk_from_dict (item_dict)
 
                             let new_dict = {}
@@ -3194,44 +3193,43 @@ console.log("===  function HandlePopupWdySave =========");
 
 //========= UploadTimepickerChanged  ============= PR2019-10-12
     function UploadTimepickerChanged(tp_dict) {
-        console.log("===> UploadTimepickerChanged");
-        console.log("===> tp_dict", tp_dict);
+        console.log("=== UploadTimepickerChanged");
+        console.log("tp_dict", tp_dict);
 
         let upload_dict = {"id": tp_dict["id"]};
-        if("quicksave" in tp_dict ) {upload_dict["quicksave"] = tp_dict["quicksave"]};
-        upload_dict[tp_dict["field"]] = {"value": tp_dict["offset"], "update": true};
+        if("quicksave" in tp_dict) {quicksave = tp_dict["quicksave"]};
 
-        const tablename = "emplhour";
-        const map_id = tablename + get_subdict_value_by_key(tp_dict, "id", "pk").toString()
-        let tr_changed = document.getElementById(map_id)
+        // when clicked on 'Exit quicksave' and then 'Cancel' changes must not be saved, but quicksave does
+        if("save_changes" in tp_dict) {
 
-        let parameters = {"upload": JSON.stringify (upload_dict)}
-        console.log ("upload_dict", upload_dict);;
+            upload_dict[tp_dict["field"]] = {"value": tp_dict["offset"], "update": true};
 
-        const url_str = url_emplhour_upload;
-        console.log ("url_str", url_str);
+            const tablename = "emplhour";
+            const map_id = get_map_id(tblName, get_subdict_value_by_key(tp_dict, "id", "pk").toString());
+            let tr_changed = document.getElementById(map_id)
 
-        let response;
-        $.ajax({
-            type: "POST",
-            url: url_str,
-            data: parameters,
-            dataType:'json',
-            success: function (response) {
-                console.log ("response", response);
-                if ("update_list" in response) {
-                    let update_list = response["update_list"];
-                    UpdateFromResponseNEW(tablename, update_list)
+            let parameters = {"upload": JSON.stringify (upload_dict)}
+            const url_str = url_emplhour_upload;
+            let response;
+            $.ajax({
+                type: "POST",
+                url: url_str,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                    console.log ("response", response);
+                    if ("update_list" in response) {
+                        let update_list = response["update_list"];
+                        UpdateFromResponseNEW(tablename, update_list)
+                    }
+
+                },
+                error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
+                    alert(msg + '\n' + xhr.responseText);
                 }
-
-            },
-            error: function (xhr, msg) {
-                console.log(msg + '\n' + xhr.responseText);
-                alert(msg + '\n' + xhr.responseText);
-            }
-        });
-
-
+            });
+    }  // if("save_changes" in tp_dict) {
  }  //UploadTimepickerChanged
 
 //========= UploadChanges  ============= PR2019-10-12
@@ -3342,7 +3340,7 @@ console.log("===  function HandlePopupWdySave =========");
             if (is_created){
 // add new empty row
                 id_new = id_new + 1
-                const pk_new = tablename +  "new_" + id_new.toString()
+                const pk_new = tablename +  "_new" + id_new.toString()
                 const ppk = get_ppk_from_dict (item_dict)
 
                 let new_dict = {"id": {"pk": pk_new, "ppk": ppk}}

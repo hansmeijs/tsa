@@ -14,11 +14,11 @@
         </div>
 
         <div class="td_width_200 mx-2 mt-2 mb-5">
+
+                    <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select customer' %}</h6>
+
             <table >
                 <thead id="id_thead_select"class="mx-1 my-1 ">
-                <tr>
-                    <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select customer' %}</h6>
-                </tr>
                 <tr>
                     <td>
                     <input id="id_flt_select"
@@ -142,6 +142,7 @@
             data-title_billable= "{% trans 'Billable hours. Changes in worked hours will also change the billing hours.' %}"
             data-title_notbillable=  "{% trans 'Fixed billing hours. Changes in worked hours will not affect the billing hours.' %}"
             data-imgsrc_delete="{% static 'img/delete.gif' %}"
+            data-imgsrc_deletered="{% static 'img/deletered.gif' %}"
 
 
             data-txt_shortname = "{% trans 'Short name' %}"

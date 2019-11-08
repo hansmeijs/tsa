@@ -15,11 +15,10 @@
         </div>
 
         <div class="td_width_200 mx-2 mt-2 mb-5">
+            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select employee' %}</h6>
             <table >
                 <thead id="id_thead_select"class="mx-1 my-1 ">
-                <tr>
-                    <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select employee' %}</h6>
-                </tr>
+
                 <tr>
                     <td>
                     <input id="id_flt_select"
@@ -79,9 +78,12 @@
 
 {% block content %}
     {% if user.is_authenticated %}
+<!-- =================== MODAL SELECT EMPLOYEE  =================== -->
+    {% include 'includes/selectemployee.html' %}
 <!-- =================== CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
-
+<!-- =================== MODAL PERIOD  =================== -->
+        {% include 'includes/modperiod.html' %}
 <!-- =================== CONTAINER =================== -->
         <div class="container ">
 
@@ -94,9 +96,13 @@
                     </div>
         <!-- loader -->
                     <div class="content_header_middle mx-4">
-                        <div id="id_loader" class="image_container XXXvisibility_hide">
+                        <div id="id_loader" class="image_container visibility_hide">
                             <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
                         </div>
+                    </div>
+
+                    <div id="id_div_hdr_period" class="content_subheader_right pointer_show mx-2">
+                        <h5 id="id_hdr_period"></h5>
                     </div>
         <!-- end loader -->
                 </div>
@@ -105,8 +111,10 @@
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                     <button id="id_btn_list" type="button" data-mode="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
                     <button id="id_btn_absence" type="button"  data-mode="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
-                    <button id="id_btn_shift" type="button"  data-mode="shift" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
-                    <button id="id_btn_pricerate" type="button"  data-mode="pricerate" class="btn btn-secondary ">{% trans 'Hourly rates' %}</button>
+                    <button id="id_btn_team" type="button"  data-mode="team" class="btn btn-secondary ">{% trans 'Teams' %}</button>
+                    <button id="id_btn_planning" type="button"  data-mode="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
+                    <!-- <button id="id_btn_roster" type="button"  data-mode="roster" class="btn btn-secondary ">{% trans 'Roster' %}</button>
+                    <button id="id_btn_pricerate" type="button"  data-mode="pricerate" class="btn btn-secondary ">{% trans 'Hourly rates' %}</button> -->
                     <button id="id_btn_data" type="button"  data-mode="employee_form" class="btn btn-secondary ">{% trans 'Data' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
@@ -246,10 +254,34 @@
                     </div>
                 </div>
     <!-- =================== DATA TABLE  =================== -->
-                <div id="id_div_data_table">
+                <div id="id_div_tbl_employee" class="display_hide">
+                     <table class="table tsa-tbl ">
+                        <thead id="id_thead_employee"></thead>
+                        <tbody id="id_tbody_employee"></tbody>
+                    </table>
+                </div>
+                <div id="id_div_tbl_absence" class="display_hide">
                      <table  class="table tsa-tbl ">
-                        <thead id="id_thead_items"></thead>
-                        <tbody id="id_tbody_items"></tbody>
+                        <thead id="id_thead_absence"></thead>
+                        <tbody id="id_tbody_absence"></tbody>
+                    </table>
+                </div>
+                <div id="id_div_tbl_team" class="display_hide">
+                     <table  class="table tsa-tbl ">
+                        <thead id="id_thead_team"></thead>
+                        <tbody id="id_tbody_team"></tbody>
+                    </table>
+                </div>
+                <div id="id_div_tbl_planning" class="display_hide">
+                     <table  class="table tsa-tbl">
+                        <thead id="id_thead_planning"></thead>
+                        <tbody id="id_tbody_planning"></tbody>
+                    </table>
+                </div>
+                <div id="id_div_tbl_pricerate" class="display_hide">
+                     <table  class="table tsa-tbl">
+                        <thead id="id_thead_pricerate"></thead>
+                        <tbody id="id_tbody_pricerate"></tbody>
                     </table>
                 </div>
    <!-- =================== END DATA TABLE  =================== -->
@@ -275,6 +307,7 @@
             data-employee_upload_url="{% url 'employee_upload_url' %}"
             data-teammember_upload_url="{% url 'teammember_upload_url' %}"
 
+            data-txt_company = "{% trans 'Company' %}"
             data-txt_employee = "{% trans 'Employee' %}"
             data-txt_employees= "{% trans 'Employees' %}"
             data-txt_employee_select= "{% trans 'Select employee' %}"
@@ -287,13 +320,20 @@
             data-txt_employee_import= "{% trans 'Upload employees' %}"
             data-txt_employee_delete= "{% trans 'Delete employee' %}"
             data-txt_employee_add= "{% trans 'Add new employee' %}"
+            data-txt_employee_print= "{% trans 'Print report' %}"
 
             data-txt_order= "{% trans 'Order' %}"
+            data-txt_shift= "{% trans 'Shift' %}"
+            data-txt_team= "{% trans 'Team' %}"
+            data-txt_of= "{% trans 'of' %}"
             data-txt_absence= "{% trans 'Absence' %}"
             data-txt_abscat = "{% trans 'Absence category' %}"
             data-txt_select_abscat = "{% trans 'Select absence category' %}"
             data-txt_select_abscat_none = "{% trans 'No absence categories' %}"
-
+            data-txt_period = "{% trans 'Period' %}"
+            data-txt_select_period = "{% trans 'Select period' %}"
+            data-txt_planning = "{% trans 'Planning' %}"
+            data-txt_printdate = "{% trans 'Print date' %}"
             data-txt_make_inactive= "{% trans 'Make employee inactive' %}"
             data-txt_make_active= "{% trans 'Make employee active' %}"
 
@@ -301,11 +341,16 @@
             data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
             data-imgsrc_active_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
             data-imgsrc_delete="{% static 'img/delete.gif' %}"
+            data-imgsrc_deletered="{% static 'img/deletered.gif' %}"
             data-imgsrc_warning="{% static 'img/warning.gif' %}"
             data-imgsrc_cross_red = "{% static 'img/cross_red.png' %}"
             data-imgsrc_cross_grey = "{% static 'img/cross_grey.png' %}"
             data-imgsrc_stat04="{% static 'img/stat04.png' %}"
 
+            data-txt_date="{% trans 'Date' %}"
+            data-txt_rosterdate="{% trans 'Rosterdate' %}"
+            data-txt_timestart= "{% trans 'Start time' %}"
+            data-txt_timeend= "{% trans 'End time' %}"
             data-txt_datefirst= "{% trans 'First date' %}"
             data-txt_datelast= "{% trans 'Last date' %}"
             data-txt_hoursperday= "{% trans 'Hours per day' %}"

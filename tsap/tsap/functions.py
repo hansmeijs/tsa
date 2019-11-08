@@ -23,6 +23,23 @@ logger = logging.getLogger(__name__)
 
 # >>>>>> This is the right way, I think >>>>>>>>>>>>>
 
+def get_dateobj_from_ISOstring(date_ISOstring):  # PR2019-10-25
+
+    dte = None
+    if date_ISOstring:
+        arr = get_datetimearray_from_ISOstring(date_ISOstring)
+        dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
+    return dte
+
+
+def get_datetime_naive_from_ISOstring(date_ISOstring):  # PR2019-10-25
+    datetime_naive = None
+    if date_ISOstring:
+        date_obj = get_dateobj_from_ISOstring(date_ISOstring)
+        if date_obj:
+            datetime_naive = get_datetime_naive_from_dateobject(date_obj)
+    return datetime_naive
+
 # Finally solved some headache:
 # convert date object to datetime object
 def get_datetime_naive_from_dateobject(date_obj):
@@ -882,28 +899,47 @@ def date_within_range(outer_datefirst, outer_datelast, inner_datefirst, inner_da
     return within_range
 
 
-def date_earliest_of_two(date_01, date_02):  # PR2019-09-12
-    if date_02 is None:
-        date_earliest = date_01
-    elif date_01 is None:
-        date_earliest = date_02
-    elif date_02 < date_01:
-        date_earliest = date_02
+def date_earliest_of_two(date_01, date_02):  # PR2019-10-19
+    date_earliest = None
+    if date_01 is None:
+        if date_02 is not None:
+            date_earliest = date_02
     else:
-        date_earliest = date_01
+        if date_02 is None:
+            date_earliest = date_01
+        else:
+            if date_02 < date_01:
+                date_earliest = date_02
+            else:
+                date_earliest = date_01
     return date_earliest
 
+def date_earliest_of_three(date_01, date_02, date_03):  # PR2019-10-19
+    earliest_01_02 = date_earliest_of_two(date_01, date_02)
 
-def date_latest_of_two(date_01, date_02):  # PR2019-09-12
-    if date_02 is None:
-        date_latest = date_01
-    elif date_01 is None:
-        date_latest = date_02
-    elif date_02 > date_01:
-        date_latest = date_02
+    return date_earliest_of_two(earliest_01_02, date_03)
+
+
+def date_latest_of_two(date_01, date_02):  # PR2019-10-19
+    date_latest = None
+    if date_01 is None:
+        if date_02 is not None:
+            date_latest = date_02
     else:
-        date_latest = date_01
+        if date_02 is None:
+            date_latest = date_01
+        else:
+            if date_02 > date_01:
+                date_latest = date_02
+            else:
+                date_latest = date_01
     return date_latest
+
+def date_latest_of_three(date_01, date_02, date_03):  # PR2019-10-19
+    latest_01_02 = date_latest_of_two(date_01, date_02)
+
+    return date_latest_of_two(latest_01_02, date_03)
+
 
 # ################### NUMERIC FUNCTIONS ###################
 def get_float_from_string(value_str):  # PR2019-09-01
@@ -923,6 +959,199 @@ def get_float_from_string(value_str):  # PR2019-09-01
     return number, msg_err
 
 
+def get_cat_value(cat_sum, cat_index):
+    has_cat_value = False
+    if cat_sum:
+        # bin(512) = 0b1000000000
+        # str(bin(512))[2:] = '1000000000'
+        # ''.join(reversed(str(bin(512))[2:])) = '0000000001'
+        binary_str = ''.join(reversed(str(bin(cat_sum))[2:]))
+        value_str = binary_str[cat_index]
+        has_cat_value = value_str == '1'
+    return has_cat_value
+
+
+def get_absence(cat_sum):
+    is_absence = False
+    if cat_sum:
+        if cat_sum >= c.SHIFT_CAT_0512_ABSENCE:
+            # bin(512) = 0b1000000000
+            # str(bin(512))[2:] = '1000000000'
+            # ''.join(reversed(str(bin(512))[2:])) = '0000000001'
+            binary_str = ''.join(reversed(str(bin(cat_sum))[2:]))
+            value_str = binary_str[9]  # 9 is index of absence
+            is_absence = (value_str == '1')
+    return is_absence
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
+    logger.debug(' --- check_shift_overlap --- ')
+    # has_overlap = True when overlap and lower priority. With same priority: lower fid gets 'has_overlap = True'
+
+    # # ext_row: [['568-0', 'a', 0, 1440, 4], ['568-1', 'a', 1440, 2880, 4]],
+
+    has_overlap = False
+    if cur_row and ext_row:
+        logger.debug('----')
+        logger.debug('cur_row:  ' + str(cur_row))
+        logger.debug('ext_row:  ' + str(ext_row))
+
+        x = cur_row[2] # osdif
+        y = cur_row[3] # oedif
+
+        a = ext_row[2] # osdif
+        b = ext_row[3] # oedif
+
+        # no overlap                x|_________|y
+        #               a|_____|b                  a|_____|b
+        #                       b <= x     or      a >= y
+
+        has_overlap = (b > x and a < y)
+        if has_overlap:
+            pass
+            # TODO decide if shift must be deleted
+            # cur_cat = cur_row[1]
+            # cur_seq = cur_row[4]
+            # ext_cat = ext_row[1]
+            # ext_seq = ext_row[4]
+
+    return has_overlap
+
+
+def check_absence_overlap(cur_fid, cur_row, ext_fid, ext_row):  # PR2019-10-29
+    # logger.debug(' --- check_overlap --- ')
+    # has_overlap = True when overlap and lower priority. With same priority: lower fid gets 'has_overlap = True'
+    # row: '503-7': {'rosterdate': '2019-10-05', 'tm_id': 503, 'e_id': 1465, 'e_code': 'Andrea, Johnatan',
+    # 'ddif': 7, 'o_cat': 512, 'o_seq': 2, 'osdif': 10080, 'oedif': 11520}}
+
+    has_overlap = False
+    if cur_row and ext_row:
+        x = cur_row['osdif']
+        y = cur_row['oedif']
+
+        a = ext_row['osdif']
+        b = ext_row['oedif']
+
+        # no overlap                x|_________|y
+        #               a|_____|b                  a|_____|b
+        #                       b <= x     or      a >= y
+
+# check if has overlap
+        if b > x and a < y:
+# if overlap: lowest sequence stays, except for 0
+            # logger.debug('cur_row --- ' + str(cur_row))
+            # logger.debug('ext_row --- ' + str(ext_row))
+
+            cur_row_seq = cur_row['o_seq'] if cur_row['o_seq'] is not None else 0
+            ext_row_seq = ext_row['o_seq'] if ext_row['o_seq'] is not None else 0
+
+            # logger.debug('cur_row_seq --- ' + str(cur_row_seq) + ' ext_row_seq --- ' + str(ext_row_seq))
+            if cur_row_seq:
+                if ext_row_seq:
+                    if cur_row_seq > ext_row_seq:
+                        # cur_row_seq > ext_row_seq means cur_row has lower priority. overlap = True will delete cur_row
+                        # logger.debug('has_overlap = True --- ' + str(cur_row_seq) + ' > ' + str(ext_row_seq))
+                        has_overlap = True
+                    elif cur_row_seq == ext_row_seq:
+                        # priority the same: just choose one, so that other will stay when it is cheked for overlap
+                        if cur_fid < ext_fid:
+                            has_overlap = True
+                            # logger.debug('priority the same cur_fid > ext_fid --- ' + str(cur_fid) + ' > ' + str(ext_fid))
+            else:
+                if ext_row_seq:
+                    has_overlap = True
+                else:
+                    # priority the same: just choose one, so that other will stay when it is cheked for overlap
+                    if cur_fid < ext_fid:
+                        has_overlap = True
+                        # logger.debug('priority both 0 --- ' + str(cur_fid) + ' > ' + str(ext_fid))
+
+    #logger.debug('return has_overlap --- ' + str(has_overlap))
+    return has_overlap
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+def check_XXXoverlap(row, all_rows, rosterdate):
+    logger.debug(' --- check_overlap --- ')
+    logger.debug('rosterdate: ' + str(rosterdate))
+
+    is_equal, is_full_outer, is_full_inner, is_partly_end, is_partly_start = False, False, False, False, False
+    has_overlap = False
+    other_has_higher_seq = False
+    if row:
+        offsetstart_when_none = -99999
+        offsetend_when_none = 99999
+        x = row['offsetstart'] if row['offsetstart'] is not None else offsetstart_when_none
+        y = row['offsetend'] if row['offsetend'] is not None else offsetend_when_none
+        row_seq = row['o_seq'] if row['o_seq'] is not None else 0
+        logger.debug('tm_id: ' + str(row['tm_id']) + ': x = ' + str(x) + ' y = ' + str(y))
+        for sub_row in all_rows:
+            logger.debug('sub_row tm_id: ' + str(sub_row['tm_id']))
+            # skip sub_row that equals row
+            if sub_row['tm_id'] != row['tm_id']:
+        # compare sequence (only used in absence)
+                subrow_seq = sub_row['o_seq'] if sub_row['o_seq'] is not None else 0
+                if subrow_seq > row_seq:
+                    other_has_higher_seq = True
+        # correct offset when rosterdate is previous or next day
+                offset_diff = 0
+                if sub_row['rosterdate'] != rosterdate:
+                    datediff = sub_row['rosterdate'] - rosterdate  # datediff is class 'datetime.timedelta'
+                    offset_diff = datediff.days * 1440
+
+                a = sub_row['offsetstart'] + offset_diff if sub_row['offsetstart'] is not None else offsetstart_when_none
+                b = sub_row['offsetend'] + offset_diff if sub_row['offsetend'] is not None else offsetend_when_none
+                logger.debug('sub_row tm_id: ' + str(sub_row['tm_id']) + ': a = ' + str(a) + ' b = ' + str(b))
+
+                # logger.debug(str(emplhour.id) + ': x = ' + str(x.isoformat()) + ' y = ' + str(y.isoformat()))
+                # logger.debug(str(sub_eplh['id']) + ': a = ' + str(a.isoformat()) + ' b = ' + str(b.isoformat()))
+
+                # no overlap                x|_________|y
+                #               a|_____|b                  a|_____|b
+                #                       b <= x     or      a >= y
+
+                # full outer overlap        x|______|y
+                #                     a|__________________|b
+                #                     a <= x    and    b >= y  (except a = x and b = y)
+
+                # full inner overlap  x|__________________|y
+                #                             a|__|b
+                #                     a >= x   and   b <= y     (except a = x and b = y)
+
+                # part overlap start         x|_________|y
+                #                        a|_____|b
+                #                     a < x and b > x and b <= y
+
+                # part overlap end           x|_________|y
+                #                                   a|_____|b
+                #                     a < y and a >= x and b > y
+
+                # equal                x|_________|y
+                #                      a|_________|b
+                #                   a == x     and b == y
+
+
+                if a == x and b == y:
+                    has_overlap = True
+                    is_equal = True
+                elif a <= x and b >= y:
+                    has_overlap = True
+                    is_full_outer = True
+                elif a >= x and b <= y:
+                    has_overlap = True
+                    is_full_inner = True
+                elif x <= a < y < b:  # a >= x and a < y and b > y:
+                    has_overlap = True
+                    is_partly_end = True
+                elif a < x < b <= y:  # a < x and b > x and b <= y:
+                    has_overlap = True
+                    is_partly_start = True
+    has_overlap_without_higher_sequence = has_overlap and not other_has_higher_seq
+    return has_overlap_without_higher_sequence
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 # ################### DICT FUNCTIONS ###################
 def get_depbase_list_field_sorted_zerostripped(depbase_list):  # PR2018-08-23
@@ -998,12 +1227,15 @@ def slice_firstlast_delim(list_str):  # PR2018-11-22
     return list_str
 
 
-def create_dict_with_empty_attr(field_list):
+def create_update_dict(field_list, id_dict):
 # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
     update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
     for field in field_list:
-        if not field in update_dict:
-            update_dict[field] = {}
+        update_dict[field] = {}
+        if field == 'id':
+            if id_dict:
+                update_dict[field] = id_dict
+
     return update_dict
 
 
@@ -1070,8 +1302,8 @@ def get_fielddict_pricerate(table, instance, field_dict, user_lang):
 
     # pricerate employee is different function below, to be corrected
 
-    logger.debug('  ')
-    logger.debug(' --- get_fielddict_pricerate --- table: ' + str(table) + ' instance: ' + str(instance))
+    # logger.debug('  ')
+    # logger.debug(' --- get_fielddict_pricerate --- table: ' + str(table) + ' instance: ' + str(instance))
 
     field = 'priceratejson'
 
@@ -1083,10 +1315,10 @@ def get_fielddict_pricerate(table, instance, field_dict, user_lang):
 
 # lookup pricerate in tbale ( table can be order, scheme, shift, schemeitem)
     saved_value_json = getattr(instance, field)  # {"0": {"0": 4400}}
-    logger.debug('saved_value_json: ' + str(saved_value_json))
+    # logger.debug('saved_value_json: ' + str(saved_value_json))
     if saved_value_json is not None:
         saved_value_dict = json.loads(saved_value_json)  # {'0': {'0': 4400}}
-        logger.debug('saved_value_dict: ' + str(saved_value_dict))
+        # logger.debug('saved_value_dict: ' + str(saved_value_dict))
         saved_pricerate = get_pricerate_from_dict(saved_value_dict, cur_rosterdate, cur_wagefactor)
         if saved_pricerate is not None: # 0 is a value, so don't use 'if pricerate:'
             pricerate = saved_pricerate
@@ -1125,19 +1357,19 @@ def get_fielddict_pricerate(table, instance, field_dict, user_lang):
 
 
 def get_pricerate_from_instance(instance, field, cur_rosterdate, cur_wagefactor):
-    logger.debug(' --- get_pricerate_from_instance: ' + str(instance))
+    # logger.debug(' --- get_pricerate_from_instance: ' + str(instance))
     pricerate = None
     if instance is not None:
         saved_value_json = getattr(instance, field)
-        logger.debug('saved_value_json: ' + str(saved_value_json))
+        # logger.debug('saved_value_json: ' + str(saved_value_json))
         if saved_value_json is not None:
             saved_value_dict = json.loads(saved_value_json)  # {'0': {'0': 4400}}
-            logger.debug('saved_value_dict: ' + str(saved_value_dict))
+            # logger.debug('saved_value_dict: ' + str(saved_value_dict))
             saved_pricerate = get_pricerate_from_dict(saved_value_dict, cur_rosterdate, cur_wagefactor)
-            logger.debug('saved_pricerate: ' + str(saved_pricerate))
+            # logger.debug('saved_pricerate: ' + str(saved_pricerate))
             if saved_pricerate is not None:  # 0 is a value, so don't use 'if pricerate:'
                 pricerate = saved_pricerate
-                logger.debug('pricerate: ' + str(pricerate))
+                # logger.debug('pricerate: ' + str(pricerate))
     return pricerate
 
 
@@ -1157,7 +1389,7 @@ def get_fielddict_pricerate_employee(table, instance, field_dict, user_lang):
                     if priceratejson:
                         teammember_pricerate = get_pricerate_from_dict(json.loads(priceratejson), cur_rosterdate,
                                                                        cur_wagefactor)
-                        logger.debug(' teammember_pricerate: ' + str(teammember_pricerate))
+                        # logger.debug(' teammember_pricerate: ' + str(teammember_pricerate))
                         if teammember_pricerate:
                             pricerate = teammember_pricerate
                         elif teammember_pricerate is None:
@@ -1379,7 +1611,7 @@ def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
     # key_startdate is the startdate of the new pricerate
     # from https://realpython.com/iterate-through-dictionary-python/
 
-    logger.debug(' --- get_pricerate_from_dict --- ')
+    # logger.debug(' --- get_pricerate_from_dict --- ')
 
     if cur_rosterdate is None:
         cur_rosterdate = '0'
@@ -1414,9 +1646,9 @@ def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
     return pricerate
 
 def save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field):
-    logger.debug('   ')
-    logger.debug(' --- save_pricerate_to_instance --- ' + str(instance) + ' value: ' + str(new_value))
-    logger.debug('field ' + str(field))
+    # logger.debug('   ')
+    # logger.debug(' --- save_pricerate_to_instance --- ' + str(instance) + ' value: ' + str(new_value))
+    # logger.debug('field ' + str(field))
 
     is_updated = False
     new_rate, msg_err = get_rate_from_value(new_value)
@@ -1432,14 +1664,14 @@ def save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, upda
         # b. add or replace new_rate in pricerate_dict
         # TODO save pricerate with date and wagefactor
         new_pricerate_dict, is_update = set_pricerate_to_dict(saved_pricerate_dict, rosterdate, wagefactor, new_rate)
-        logger.debug('new_pricerate_dict ' + str(new_pricerate_dict))
+        # logger.debug('new_pricerate_dict ' + str(new_pricerate_dict))
 
         if is_update:
             # c. save new pricerate_dict
             new_pricerate_json = None
             if new_pricerate_dict:
                 new_pricerate_json = json.dumps(new_pricerate_dict)  # dumps takes an object and produces a string:
-                logger.debug('new_pricerate_json ' + str(new_pricerate_json))
+                # logger.debug('new_pricerate_json ' + str(new_pricerate_json))
             setattr(instance, 'priceratejson', new_pricerate_json)
             is_updated = True
 
@@ -1452,11 +1684,11 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
     # key_startdate is the startdate of the new pricerate
     # from https://realpython.com/iterate-through-dictionary-python/
 
-    logger.debug('  ')
-    logger.debug(' -->>>- set_pricerate_to_dict --- ')
-    logger.debug('rosterdate: ' + str(rosterdate))
-    logger.debug('wagefactor: ' + str(wagefactor))
-    logger.debug('new_pricerate: ' + str(new_pricerate))
+    # logger.debug('  ')
+    # logger.debug(' -->>>- set_pricerate_to_dict --- ')
+    # logger.debug('rosterdate: ' + str(rosterdate))
+    # logger.debug('wagefactor: ' + str(wagefactor))
+    # logger.debug('new_pricerate: ' + str(new_pricerate))
 
     is_update = False
     if rosterdate is None:
@@ -1475,30 +1707,39 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
     else:
         pricerate_dict = {}
 
-    logger.debug('rosterdate_dict: ' + str(rosterdate_dict))
-    logger.debug('wagefactor_key: ' + str(wagefactor_key))
+    # logger.debug('rosterdate_dict: ' + str(rosterdate_dict))
+    # logger.debug('wagefactor_key: ' + str(wagefactor_key))
 
 # --- add or replace key 'wagefactor_key' with value 'new_pricerate' to rosterdate_dict
     if wagefactor_key in rosterdate_dict.keys():
         old_pricerate = rosterdate_dict[wagefactor_key]
-        logger.debug('wagefactor_key: ' + str(wagefactor_key) + ' old_pricerate: ' + str(old_pricerate))
-        logger.debug('wagefactor_key: ' + str(wagefactor_key) + ' new_pricerate: ' + str(new_pricerate))
+        # logger.debug('wagefactor_key: ' + str(wagefactor_key) + ' old_pricerate: ' + str(old_pricerate))
+        # logger.debug('wagefactor_key: ' + str(wagefactor_key) + ' new_pricerate: ' + str(new_pricerate))
 
         if new_pricerate != old_pricerate:
             rosterdate_dict[wagefactor_key] = new_pricerate
             is_update = True
-            logger.debug('is_update: rosterdate_dict ' + str(rosterdate_dict))
+            # logger.debug('is_update: rosterdate_dict ' + str(rosterdate_dict))
     else:
         rosterdate_dict[wagefactor_key] = new_pricerate
         is_update = True
-        logger.debug('new rosterdate_dict: ' + str(rosterdate_dict))
+        # logger.debug('new rosterdate_dict: ' + str(rosterdate_dict))
 
 # --- add or replace rosterdate_dict in pricerate_dict
     if rosterdate_dict:
         pricerate_dict[rosterdate_key] = rosterdate_dict
-    logger.debug('new pricerate_dict: ' + str(pricerate_dict))
-    logger.debug('new is_update: ' + str(is_update))
+    # logger.debug('new pricerate_dict: ' + str(pricerate_dict))
+    # logger.debug('new is_update: ' + str(is_update))
 
     return pricerate_dict, is_update
 
 # -- end of save_pricerate_to_dict
+
+def dictfetchall(cursor):
+    # PR2019-10-25 from https://docs.djangoproject.com/en/2.1/topics/db/sql/#executing-custom-sql-directly
+    # creates dict from output cusror.execute instead of list
+    columns = [col[0] for col in cursor.description]
+    return [
+        dict(zip(columns, row))
+        for row in cursor.fetchall()
+    ]

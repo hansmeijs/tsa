@@ -28,7 +28,7 @@ $(document).ready(function() {
     let stored_coldefs = {};
     if (!!div_data.data("captions")){captions = div_data.data("captions")};
 
-    const settings = div_data.data("settings");
+    const settings = div_data.data("setting");
     if (!!settings){
         if (!!settings.stored_coldefs){stored_coldefs = settings.stored_coldefs};
     };

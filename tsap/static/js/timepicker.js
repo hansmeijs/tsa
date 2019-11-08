@@ -5,7 +5,8 @@
 //========= OpenTimepicker  ====================================
     function OpenTimepicker(el_input, UploadTimepickerChanged, tp_dict, st_dict) {
         console.log("===  OpenTimepicker  =====");
-        console.log("st_dict", st_dict);
+        //console.log( "tp_dict: ", tp_dict);
+        console.log( "st_dict: ", st_dict);
 
         CalcMinMax(tp_dict)
         console.log("tp_dict", tp_dict);
@@ -82,9 +83,10 @@
 
 //========= CreateFooter  ====================================
     function CreateFooter(tp_dict, st_dict, UploadTimepickerChanged) {
-        //console.log( "--- CreateFooter  ");
+        console.log( "--- CreateFooter  ");
+        console.log("tp_dict", tp_dict);
 
-        let qs_txt = (tp_dict["qs"]) ? st_dict["data-txt_quicksave_remove"] : st_dict["data-txt_quicksave"];
+        // btn_quicksave.innerText is set in HideSaveButtonOnQuicksave
 
         let el_footer = document.getElementById("id_timepicker_footer")
         el_footer.innerText = null
@@ -93,12 +95,10 @@
             div_left.classList.add("p-1")
             let btn_quicksave = document.createElement("a");
                 btn_quicksave.setAttribute("id", "id_timepicker_quicksave")
-                btn_quicksave.innerText = qs_txt;
                 btn_quicksave.classList.add("p-1")
+                btn_quicksave.classList.add("pointer_show")
                 btn_quicksave.addEventListener("click", function() {
-                        HandleTimepickerSave(tp_dict, st_dict,
-                            UploadTimepickerChanged,
-                            "btn_qs")}, false )
+                        HandleTimepickerSave(tp_dict, st_dict, UploadTimepickerChanged, "btn_qs")}, false )
                 btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add("tr_hover")});
                 btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove("tr_hover")});
 
@@ -110,9 +110,7 @@
                 btn_delete.setAttribute("type", "button")
                 btn_delete.classList.add("timepicker_close")
                 btn_delete.addEventListener("click", function() {
-                    HandleTimepickerSave(tp_dict, st_dict,
-                            UploadTimepickerChanged,
-                            "btn_delete")}, false )
+                    HandleTimepickerSave(tp_dict, st_dict, UploadTimepickerChanged, "btn_delete")}, false )
                 AppendChildIcon(btn_delete, st_dict["imgsrc_delete"], "18")
             el_footer.appendChild(btn_delete);
         }
@@ -123,16 +121,13 @@
             btn_save.innerText = st_dict["txt_save"];
             btn_save.classList.add("timepicker_close")
             btn_save.addEventListener("click", function() {
-                HandleTimepickerSave( tp_dict, st_dict,
-                    UploadTimepickerChanged,
-                    "btn_save")}, false )
+                HandleTimepickerSave( tp_dict, st_dict, UploadTimepickerChanged, "btn_save")}, false )
         el_footer.appendChild(btn_save);
     }  // CreateFooter
 
  //========= CreateTimepickerHours  ====================================
     function CreateTimepickerHours(UploadTimepickerChanged, tp_dict, st_dict) {
-        console.log( "--- CreateTimepickerHours  ");
-        //console.log(tp_dict)
+        //console.log( "--- CreateTimepickerHours  ");
 
         let tbody = document.getElementById("id_timepicker_tbody_hour");
         tbody.innerText = null
@@ -199,7 +194,7 @@
 
 //========= CreateTimepickerMinutes  ====================================
     function CreateTimepickerMinutes(UploadTimepickerChanged, tp_dict, st_dict) {
-        console.log( "=== CreateTimepickerMinutes  ");
+        //console.log( "=== CreateTimepickerMinutes  ");
 
 // ---  set references to elements
         let tbody = document.getElementById("id_timepicker_tbody_minute");
@@ -289,10 +284,7 @@
 
 //========= SetPrevNextDay  ====================================
     function SetPrevNextDay(type_str, tp_dict, st_dict) {
-        console.log("==== SetPrevNextDay  ===== ", type_str);
-        console.log("tp_dict", tp_dict);
-        console.log("st_dict", st_dict);
-
+        //console.log("==== SetPrevNextDay  ===== ", type_str);
 
     // make offset 0 when null
         if(tp_dict["offset"] == null ){
@@ -308,15 +300,14 @@
         let day_add = (type_str === "prevday") ? -1 : 1;
 
         const curRemainder = tp_dict["offset"] - curDayOffset * 1440;
-        console.log("curRemainder", curRemainder);
 
         let new_day_offset = curDayOffset + day_add;
         if (new_day_offset < minDayOffset){new_day_offset = minDayOffset}
         if (new_day_offset > maxDayOffset){new_day_offset = maxDayOffset}
-        console.log("new_day_offset", new_day_offset);
+        //console.log("new_day_offset", new_day_offset);
 
         let new_offset = (new_day_offset * 1440) + curRemainder
-        console.log("new_offset", new_offset);
+        //console.log("new_offset", new_offset);
 
     // put new offset back in dict
         tp_dict["offset"] = new_offset
@@ -331,7 +322,7 @@
 
 //========= SetAmPm  ====================================
     function SetAmPm(tbody, td, UploadTimepickerChanged, tp_dict, st_dict) {
-        console.log("==== SetAmPm  =====");
+        //console.log("==== SetAmPm  =====");
 
     // check if cell is disabeld
         const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
@@ -350,7 +341,7 @@
             let within_range = true;
             if (within_range){
                 el_timepicker.setAttribute("data-offset", new_offset);
-            console.log("setAttribute new_offset ", new_offset, typeof new_offset);
+            //console.log("setAttribute new_offset ", new_offset, typeof new_offset);
 
             }
 
@@ -366,16 +357,16 @@
 
 //========= SetHour  ====================================
     function SetHour(tbody, td, UploadTimepickerChanged, tp_dict, st_dict) {
-       console.log("==== SetHour  =====");
+       //console.log("==== SetHour  =====");
 
     // check if cell is disabeld
         const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
-        console.log("disabled", disabled);
+        //console.log("disabled", disabled);
 
         if (!disabled){
         // get new hour from data-hour of td
             const newHours = get_attr_from_el_int(td, "data-hour");
-            console.log("newHours", newHours, typeof newHours)
+            //console.log("newHours", newHours, typeof newHours)
 
         // set new hour in offset
             const curOffset = tp_dict["offset"];
@@ -388,7 +379,7 @@
             const curMinutes = remainder - curHours * 60
 
             const newOffset = curDayOffset * 1440 + newHours * 60 + curMinutes
-            console.log("newOffset ", newOffset, typeof newOffset);
+            //console.log("newOffset ", newOffset, typeof newOffset);
 
     // put new offset back in dict
             tp_dict["offset"] = newOffset
@@ -408,7 +399,7 @@
 
 //========= SetMinute  ====================================
     function SetMinute(tbody, td, UploadTimepickerChanged, tp_dict, st_dict) {
-        console.log("==== SetMinute  =====");
+        //console.log("==== SetMinute  =====");
 
     // check if cell is disabeld
         const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
@@ -416,7 +407,7 @@
 
         // get new minutes from data-minute of td
             const newMinutes = get_attr_from_el_int(td, "data-minute");
-            console.log("newMinutes", newMinutes, typeof newMinutes)
+            //console.log("newMinutes", newMinutes, typeof newMinutes)
 
         // set new hour in offset
             const curOffset = tp_dict["offset"];
@@ -433,7 +424,7 @@
     // put new offset back in dict
             tp_dict["offset"] = newOffset
             CalcMinMax(tp_dict)
-            console.log("newOffset ", newOffset, typeof newOffset);
+            //console.log("newOffset ", newOffset, typeof newOffset);
 
             HighlightAndDisableMinutes(tp_dict);
 
@@ -449,8 +440,9 @@
 //      btn_quick > on  > send new_offset + qs > close timepicker (next time do.t show btn_save)
 //                > off > send qs only         > don't close timepicker > show btn_save)
 
-        let quicksave = get_subdict_value_by_key(tp_dict, "quicksave", "value")
-        console.log( "quicksave", quicksave);
+        let quicksave = tp_dict["quicksave"]
+
+        console.log("quicksave", quicksave);
         let save_changes = false;
     // close timepicker, except when clicked on quicksave off
         if (mode === "btn_save") {
@@ -458,14 +450,20 @@
         } else if (mode === "btn_qs") {
 // ---  toggle quicksave
             quicksave = !quicksave
-            console.log( "new quicksave", quicksave);
-            tp_dict["quicksave"] = {"value": quicksave, "update": true }
-            console.log("tp_dict quicksave", tp_dict["quicksave"] );
+            tp_dict["quicksave"] = quicksave
             if(quicksave){
                 save_changes = true;
             } else {
                 HideSaveButtonOnQuicksave(tp_dict, st_dict);
             }
+// --- save quicksave in Usersettings
+            const url_settings_upload = get_dict_value_by_key(st_dict, "url_settings_upload")
+            const setting_dict = {"quicksave": quicksave};
+            UploadSettings (setting_dict, url_settings_upload);
+
+            // without 'save_changes'
+            UploadTimepickerChanged(tp_dict);
+
         } else if (mode === "btn_hour") {
             if(quicksave){
                 save_changes = true
@@ -476,15 +474,15 @@
             save_changes = true;
         }
 
-        console.log("within_range", tp_dict["within_range"]);
         if(save_changes){
-            console.log( ">>>>=== save_changes  ");
+            //console.log( ">>>>=== save_changes  ");
             popupbox_removebackground("input_timepicker");
 
             let el_timepicker = document.getElementById("id_timepicker")
             el_timepicker.classList.add("display_hide");
             // save only when offset is within range or null (when changing date hour/minumtes can go outside min/max range)
             if(tp_dict["within_range"]){
+                tp_dict["save_changes"] = true;
                 UploadTimepickerChanged(tp_dict);
             }
         }
@@ -494,7 +492,7 @@
 //========= HighlightAndDisableAmpm  ====================================
     function HighlightAndDisableAmpm(UploadTimepickerChanged, tp_dict, st_dict) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        console.log( ">>>>=== HighlightAndDisableAmpm  ");
+        //console.log( ">>>>=== HighlightAndDisableAmpm  ");
 
         const curDate_is_rosterdate = dict["curDate_is_rosterdate"];
         const prevday_disabled = dict["prevday_disabled"];
@@ -512,7 +510,7 @@
 
         let curAmPm = dict["curAmpm"];
         let curHoursAmpm = dict["curHoursAmpm"];
-        console.log("curAmPm", curAmPm, "curHoursAmpm", curHoursAmpm);
+        //console.log("curAmPm", curAmPm, "curHoursAmpm", curHoursAmpm);
 
         if (dict["isampm"]) {
             const tbody = document.getElementById("id_timepicker_tbody_hour");
@@ -520,7 +518,7 @@
             for (let i=0, td, cell_value, highlighted, period_within_range, disabled; td = tds[i]; i++) {
                 cell_value = get_attr_from_el_int(td, "data-ampm");
                 highlighted = (curAmPm === cell_value);
-                console.log("curAmPm", curAmPm, "cell_value", cell_value, "highlighted", highlighted)
+                //console.log("curAmPm", curAmPm, "cell_value", cell_value, "highlighted", highlighted)
 
                 let period_min, period_max // am: period is from 00.00u till 12.00 u  pm: period is from 12.00u till 24.00 u
                 if (cell_value === 0){
@@ -531,9 +529,9 @@
                     period_max =  curDateEndOfDay;
                 }
                 period_within_range = PeriodWithinRange(period_min, period_max, range_min, range_max)
-                console.log("period_min", period_min.format(), "period_max", period_max.format())
-                console.log("range_min", range_min.format(), "range_max", range_max.format())
-                console.log("period_within_range", period_within_range)
+                //console.log("period_min", period_min.format(), "period_max", period_max.format())
+                //console.log("range_min", range_min.format(), "range_max", range_max.format())
+                //console.log("period_within_range", period_within_range)
 
                 disabled = !period_within_range;
 
@@ -545,14 +543,14 @@
 //========= HighlightAndDisableHours  ====================================
     function HighlightAndDisableHours(tp_dict) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        console.log( "--------- HighlightAndDisableHours  ");
+        //console.log( "--------- HighlightAndDisableHours  ");
 
         CalcMinMax(tp_dict)
 
         const curHours = tp_dict["curHours"]
         const minHours = tp_dict["minHours"]
         const maxHours = tp_dict["maxHours"]
-        console.log( "curHours", curHours,  "minHours", minHours,  "maxHours", maxHours);
+        //console.log( "curHours", curHours,  "minHours", minHours,  "maxHours", maxHours);
 
         let curHourDisabled = false;
         let tbody = document.getElementById("id_timepicker_tbody_hour");
@@ -569,13 +567,13 @@
 //========= HighlightAndDisableMinutes  ====================================
     function HighlightAndDisableMinutes(tp_dict) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        console.log( "--------->>>>=== HighlightAndDisableMinutes  ");
+        //console.log( "--------->>>>=== HighlightAndDisableMinutes  ");
         //console.log( "tp_dict[curMinutes]", tp_dict["curMinutes"]);
         //console.log( tp_dict);
 
         const curHourDisabled = (tp_dict["curHours"] < tp_dict["minHours"] || tp_dict["curHours"] > tp_dict["maxHours"]);
-       console.log("curHourDisabled", curHourDisabled);
-       console.log("curMinutes", tp_dict["curMinutes"], "minMinutes", tp_dict["minMinutes"], "maxMinutes", tp_dict["maxMinutes"]);
+       //console.log("curHourDisabled", curHourDisabled);
+       //console.log("curMinutes", tp_dict["curMinutes"], "minMinutes", tp_dict["minMinutes"], "maxMinutes", tp_dict["maxMinutes"]);
 
         let tbody = document.getElementById("id_timepicker_tbody_minute");
         let tds = tbody.getElementsByClassName("timepicker_minute")
@@ -614,12 +612,12 @@
 
 //========= CalcMinMax  ==================================== PR2018-08-02
 function CalcMinMax(dict) {
-        console.log(" --- CalcMinMax ---")
+        //console.log(" --- CalcMinMax ---")
 
         const curOffset = dict["offset"];
         const minOffset = dict["minoffset"];
         const maxOffset = dict["maxoffset"];
-        console.log("curOffset", curOffset, "minOffset", minOffset, "maxOffset", maxOffset)
+        //console.log("curOffset", curOffset, "minOffset", minOffset, "maxOffset", maxOffset)
 
         if(minOffset == null){minOffset = 0};
         if(maxOffset == null){maxOffset = 1440};
@@ -719,35 +717,31 @@ function CalcMinMax(dict) {
 
 //========= HideSaveButtonOnQuicksave  ====================================
     function HideSaveButtonOnQuicksave(tp_dict, st_dict) {
-        console.log( "--- HideSaveButtonOnQuicksave  ");
+        //console.log( "--- HideSaveButtonOnQuicksave  ");
         // hide save button on quicksave
 
-        const quicksave = get_subdict_value_by_key(tp_dict, "quicksave", "value")
-        console.log( "quicksave", quicksave);
+        const quicksave = tp_dict["quicksave"]
+
+        let qs_txt = (quicksave) ? st_dict["txt_quicksave_remove"] : st_dict["txt_quicksave"];
+        document.getElementById("id_timepicker_quicksave").innerText = qs_txt
 
         let btn_save = document.getElementById("id_timepicker_save")
-        let btn_quicksave = document.getElementById("id_timepicker_quicksave")
-
-        let txt_quicksave;
         if (quicksave){
             btn_save.classList.add("display_hide");
-            txt_quicksave = st_dict["txt_quicksave_remove"];
         } else {
             btn_save.classList.remove("display_hide");
-            txt_quicksave = st_dict["txt_quicksave"];
         }
-        btn_quicksave.innerText = txt_quicksave
     }  //  HideSaveButtonOnQuicksave
 
 //========= set_header_date  ========================= PR2019-10-13
     function get_header_date(tp_dict, st_dict) {
-        console.log( "--- get_header_date  ");
+        //console.log( "--- get_header_date  ");
         // Using vanlla JS instead of moment.js.
 
         const fieldname = tp_dict["field"];
         const rosterdate = tp_dict["rosterdate"];
         let curDayOffset = tp_dict["curDayOffset"];
-        console.log( "curDayOffset ", curDayOffset);
+        //console.log( "curDayOffset ", curDayOffset);
 
         let date_str = null;
         if (fieldname === "breakduration"){

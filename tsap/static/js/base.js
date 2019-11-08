@@ -77,8 +77,9 @@ $(function() {
 
 //========= UploadSettings  ============= PR2019-10-09
  function UploadSettings (upload_dict, url_str) {
-        console.log("=== UploadSettings");
-        console.log("url_str", url_str);
+        //console.log("=== UploadSettings");
+        //console.log("url_str", url_str);
+        //console.log("upload_dict", upload_dict);
         if(!!upload_dict) {
             const parameters = {"upload": JSON.stringify (upload_dict)}
             let response = "";
@@ -109,8 +110,28 @@ $(function() {
         }
     return true;
 }
-//========= get_power_array  ============= PR2019-08-30
-    function get_absence_from_catsum(cat_sum) {
+
+//========= get_cat_value  ============= PR2019-10-19
+    function get_cat_value(cat_sum, cat_index) {
+        //console.log(" --- get_cat_value --- cat_sum: ", cat_sum, "cat_index", cat_index);
+        let reversed = '';
+        // 27 = get_cat_str 11011
+        // 512 = get_cat_str 0000000001 =  2^9
+        cat_value = false;
+        if(!!cat_sum){
+            // absence = 512 = 2^9 > index = 9
+            const binary = (cat_sum).toString(2); // "11111111" (radix 2, i.e. binary)
+            for (const character of binary) {
+                reversed = character + reversed
+            }
+            const char = reversed.charAt(cat_index); // charAt returns '' when index not found
+            cat_value = (char === "1")
+        }
+        return cat_value
+}
+// NOT IN USE
+//========= get_absence_from_catsum  ============= PR2019-08-30
+    function get_XXXabsence_from_catsumXXX(cat_sum) {
         //PR2019-10-04 checks if 512 is in catsum array 08-30 function converts value '31' into array [1,2,4,8,16]  (31 = 2^0 + 2^1 + 2^2 + 2^3 + 2^4)
         let is_absence = false
         if (cat_sum >= 512){
@@ -137,8 +158,9 @@ $(function() {
         }
         return is_absence
     }
+// NOT IN USE
 //========= get_power_array  ============= PR2019-08-30
-    function get_power_array(value) {
+    function get_XXXpower_arrayXXX(value) {
         //PR2019-08-30 function converts value '31' into array [1,2,4,8,16]  (31 = 2^0 + 2^1 + 2^2 + 2^3 + 2^4)
         let power_list = []
         if (!!value){
@@ -184,35 +206,53 @@ $(function() {
         let item_dict = {};
         const tblRow = get_tablerow_selected(el);
         if(!!tblRow){
-            const map_id = get_attr_from_el(tblRow, "data-map_id")
-            item_dict = get_itemdict_from_datamap_by_id(data_map, map_id);
+            const map_id = get_attr_from_el(tblRow, "data-table") + "_" + get_attr_from_el(tblRow, "data-pk")
+            item_dict = get_mapdict_from_datamap_by_id(data_map, map_id);
         }
         return item_dict
     }
 
-//========= get_itemdict_from_map_by_tblRow  ============= PR2019-10-12
+//========= get_itemdict_from_datamap_by_tblRow  ============= PR2019-10-12
     function get_itemdict_from_datamap_by_tblRow(tblRow, data_map) {
         // function gets map_id form 'data-map_id' of tblRow, looks up 'map_id' in data_map
         let item_dict = {};
         if(!!tblRow){
-            const map_id = get_attr_from_el(tblRow, "data-map_id")
-            item_dict = get_itemdict_from_datamap_by_id(data_map, map_id);
+            const map_id = get_attr_from_el(tblRow, "data-table") + "_" + get_attr_from_el(tblRow, "data-pk")
+            item_dict = get_mapdict_from_datamap_by_id(data_map, map_id);
         };
         return item_dict
     }
-//========= get_itemdict_from_datamap_by_id  ============= PR2019-09-26
-    function get_itemdict_from_datamap_by_id(data_map, map_id) {
-        // function looks up map_id in data_map and returns dict from map
-        let item_dict = {};
-        if(!!data_map && !!map_id){
-            for (const [key, data_dict] of data_map.entries()) {
-                if(key === map_id){
-                    item_dict = data_dict;
-                    break;
-                }
-            };
+ //========= get_mapdict_from_datamap_by_tblName_pk  ============= PR2019-11-01
+    function get_mapdict_from_datamap_by_tblName_pk(data_map, tblName, pk_str) {
+        // function gets map_id form tblName and  pk_int, looks up 'map_id' in data_map
+        let map_dict;
+        if(!!tblName && !!pk_str){
+            const map_id = tblName + "_" + pk_str;
+            map_dict = data_map.get(map_id);
+            // instead of:  map_dict = get_mapdict_from_datamap_by_id(data_map, map_id);
         };
-        return item_dict
+        // map.get returns 'undefined' if the key can't be found in the Map object.
+        if (!map_dict) {map_dict = {}}
+        return map_dict
+    }    // get_mapdict_from_datamap_by_tblName_pk
+
+//========= get_mapdict_from_datamap_by_id  ============= PR2019-09-26
+    function get_mapdict_from_datamap_by_id(data_map, map_id) {
+        // function looks up map_id in data_map and returns dict from map
+        let map_dict;
+        if(!!data_map && !!map_id){
+            map_dict = data_map.get(map_id);
+            // instead of:
+            //for (const [key, data_dict] of data_map.entries()) {
+            //    if(key === map_id){
+            //        map_dict = data_dict;
+            //        break;
+            //    }
+            //};
+        };
+        // map.get returns 'undefined' if the key can't be found in the Map object.
+        if (!map_dict) {map_dict = {}}
+        return map_dict
     }
 //========= get_attr_from_el  =============PR2019-06-07
     function get_attr_from_el(element, key, default_value){
@@ -675,6 +715,10 @@ $(function() {
             }
         }
     }
+
+
+
+
     /*
         //document.getElementById("id_hdr_comp").addEventListener("click", function() {HandleWindowOpen("comp")}, false )
         //document.getElementById("id_hdr_empl").addEventListener("click", function() {HandleWindowOpen("empl")}, false )

@@ -147,7 +147,27 @@
         return elt.options[elt.selectedIndex].text;
     }
 
-// ================ GETTERS ========================
+// ================ MAP ========================
+
+//========= get_map_id  ================== PR2019-11-01
+    function get_map_id(tblName, pk) {
+        if (!!tblName && !!pk) {
+            return tblName + "_" + pk.toString();
+        } else {
+            return null;
+        }
+    }
+
+//========= function get_mapid_from_dict  ================= PR2019-10-08
+    function get_mapid_from_dict (dict) {
+        let map_id = null;
+        if(!isEmpty(dict)){
+            const pk_str = get_subdict_value_by_key(dict, "id", "pk").toString();
+            const tblName = get_subdict_value_by_key (dict, "id", "table");
+            map_id = tblName + "_" + pk_str;
+        }
+        return map_id
+    }
 
 //========= get_datamap  ================== PR2019-10-03
     function get_datamap(data_list, data_map) {
@@ -158,16 +178,16 @@
                 const id_dict = get_dict_value_by_key(item_dict, "id");
                 const pk_str = get_dict_value_by_key(id_dict, "pk");
                 const table = get_dict_value_by_key(id_dict, "table");
-                const map_id = table + pk_str;
+                const map_id = table + "_" + pk_str;
                 data_map.set(map_id, item_dict);
             }
         }
     };
 
+
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= remove_err_del_cre_updated__from_itemdict  ======== PR2019-10-11
     function remove_err_del_cre_updated__from_itemdict(item_dict) {
-
         console.log("remove_err_del_cre_updated__from_itemdict")
 //--- remove 'updated, deleted created and msg_err from item_dict
         Object.keys(item_dict).forEach(function(key) {
@@ -177,8 +197,9 @@
                 if ("msg_err" in field_dict){delete field_dict["msg_err"]};
                 if(key === "id"){
                     if ("created" in field_dict){delete field_dict["created"]};
+                    if ("temp_pk" in field_dict){delete field_dict["temp_pk"]};
                     if ("deleted" in field_dict){delete field_dict["deleted"]};
-                }
+                }  //  if(key === "id"){
             }
         });
     };  // remove_err_del_cre_updated__from_itemdict
@@ -319,17 +340,6 @@
         return dict_pk;
     }
 
-//========= function get_pk_from_dict  ================= PR2019-10-08
-    function get_mapid_from_dict (dict) {
-        let map_id = null;
-        if(!isEmpty(dict)){
-            const pk_str = get_dict_value_by_key(dict,"pk").toString();
-            const tblName = get_subdict_value_by_key (dict, "id", "table");
-            map_id = tblName + pk_str;
-        }
-        return map_id
-    }
-
 //========= function get_pk_from_dict  ================= PR2019-05-24
     function get_pk_from_dict (dict) {
         return parseInt(get_subdict_value_by_key (dict, "id", "pk", 0))
@@ -408,9 +418,9 @@
     }
 
 // +++++++++++++++++ FORMAT ++++++++++++++++++++++++++++++++++++++++++++++++++
-
 //========= format_datelong_from_datetimelocal  ========== PR2019-06-27
-    function format_datelong_from_datetimelocal(datetime_local) {
+    function XXXformat_datelong_from_datetimelocal(datetime_local) {
+// NOT IN USE
         // PR2019-07-01 was:
             //const this_date = datetime_local.date();   //Sunday = 0
             //const this_month_index = 1 + datetime_local.month();   //January = 0
@@ -476,7 +486,6 @@
         //console.log(" -- format_period_from_datetimelocal  -- ")
         //console.log("periodstart_local", periodstart_local.format())
         //console.log("periodend_local", periodend_local.format())
-        periodstart_local, periodend_local
 
         // from https://momentjs.com/guides/
         let startdate = periodstart_local.clone().startOf("day");
@@ -510,39 +519,41 @@
         return period_str;
     }
 
+
 //========= format_time  ========== PR2019-06-27
     function format_time(datetime_local, timeformat, display24) {
-        //  when display24 = true: zo 00.00 u is dispalyed as 'za 24.00 u'
+        //  when display24 = true: zo 00.00 u is displayed as 'za 24.00 u'
 
         "use strict";
-        let time_formatted;
+        let time_formatted = "";
+        if (!!datetime_local){
+            let isAmPm = false
+            if (timeformat.toLowerCase() === "ampm"){isAmPm = true};
 
-        let isAmPm = false
-        if (timeformat.toLowerCase() === "ampm"){isAmPm = true};
+            // TODO insted of moment.locale use user_lang and timeformat
+            let isEN = false
+            if (moment.locale() === "en"){isEN = true};
 
-        // TODO insted of moment.locale use user_lang and timeformat
-        let isEN = false
-        if (moment.locale() === "en"){isEN = true};
+            let hour_str = "", ampm_str = "", delim = "";
+            const minute_str = datetime_local.format("mm")
 
-        let hour_str = "", ampm_str = "", delim = "";
-        const minute_str = datetime_local.format("mm")
-
-        if(isAmPm){
-            hour_str =  datetime_local.format("hh")
-            ampm_str = " " + datetime_local.format("a")
-            delim = ":"
-        } else {
-            if (datetime_local.hour() === 0 && display24) {
-                hour_str = "24"
+            if(isAmPm){
+                hour_str =  datetime_local.format("hh")
+                ampm_str = " " + datetime_local.format("a")
+                delim = ":"
             } else {
-                hour_str =  datetime_local.format("HH")
+                if (datetime_local.hour() === 0 && display24) {
+                    hour_str = "24"
+                } else {
+                    hour_str =  datetime_local.format("HH")
+                }
+                delim = "."
+                if(!isEN){ ampm_str = " u"}
             }
-            delim = "."
-            if(!isEN){ ampm_str = " u"}
-        }
 
-        time_formatted = hour_str + delim + minute_str + ampm_str
+            time_formatted = hour_str + delim + minute_str + ampm_str
 
+        }  // if (!!datetime_local){
         return time_formatted
     }
 // NOT IN USE
@@ -578,9 +589,9 @@
         return time_formatted
     }  // format_offset_time
 
-//========= GetRosterdateLocal  ====================================
+//========= get_date_moment_from_datetimeISO  ====================================
 //moved from timepicker
-    function GetRosterdateLocal(data_rosterdate, comp_timezone) {
+    function get_date_moment_from_datetimeISO(data_rosterdate, comp_timezone) {
         // PR2019-07-07
         // function gets rosterdate from data_rosterdate: "2019-06-23 T 00:00:00Z"
         // converts it to moment object and set time to midnight
@@ -592,7 +603,7 @@
             // curRosterdate:  2019-06-23 T 00:00:00 +02:00
         };
         return rosterdate_date_local;
-    }  // GetRosterdateLocal
+    }  // get_date_moment_from_datetimeISO
 
 
 //###########################################################
@@ -601,10 +612,13 @@
         //console.log("--- format_text_element ---")
         //console.log("field_dict: ", field_dict)
 
-        if(!!el_input && !!field_dict){
-            let value = get_dict_value_by_key (field_dict, "value");
-            let updated = get_dict_value_by_key (field_dict, "updated");
-            let msg_err = get_dict_value_by_key (field_dict, "error");
+        if(!!el_input && !isEmpty(field_dict)){
+            const value = get_dict_value_by_key (field_dict, "value");
+            const pk = get_dict_value_by_key (field_dict, "pk");
+            const ppk = get_dict_value_by_key (field_dict, "ppk");
+            const updated = get_dict_value_by_key (field_dict, "updated");
+            const msg_err = get_dict_value_by_key (field_dict, "error");
+            // NIU  const placeholder_txt = get_dict_value_by_key (field_dict, "placeholder");
 
             // lock element when locked
             const locked = get_dict_value_by_key (field_dict, "locked");
@@ -634,7 +648,13 @@
             } else {
                 el_input.value = '';
                 el_input.removeAttribute("data-value");
+                // NIU if (!!placeholder_txt) { el_input.setAttribute("placeholder", placeholder_txt)}
             }
+
+            if(!!pk){el_input.setAttribute("data-pk", pk)
+            } else {el_input.removeAttribute("data-pk")};
+            if(!!ppk){el_input.setAttribute("data-ppk", ppk)
+            } else {el_input.removeAttribute("data-ppk")};
         }
     }  // format_text_element
 
@@ -823,9 +843,6 @@
             } else {
                 el_input.removeAttribute("data-maxoffset")
             };
-
-
-
         };  // if(!!el_input)
     }  // function format_date_element
 
@@ -871,6 +888,77 @@
     }  // function format_date_iso
 
 
+//========= format_period  ========== PR2019-07-09
+    function format_period(datefirst_ISO, datelast_ISO, weekday_list, month_list, user_lang) {
+        const hide_weekday = true, hide_year = false;
+        const datefirst_JS = get_dateJS_from_dateISO (datefirst_ISO);
+        const datefirst_formatted = format_date_vanillaJS (datefirst_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year);
+
+        const datelast_JS = get_dateJS_from_dateISO (datelast_ISO);
+        const datelast_formatted = format_date_vanillaJS (datelast_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year);
+
+        let formatted_period = "";
+        if (!!datefirst_formatted || !!datelast_formatted ) {
+            formatted_period = datefirst_formatted + " - " + datelast_formatted;
+        }
+        return formatted_period
+    }  // format_period
+
+//========= get_dateJS_from_dateISO  ======== PR2019-10-28
+    function get_dateJS_from_dateISO (date_ISO) {
+        let date_JS = null;
+        if (!!date_ISO){
+            let arr = date_ISO.split("-");
+            if (arr.length > 2) {
+                date_JS = new Date(parseInt(arr[0]), parseInt(arr[1]) - 1, parseInt(arr[2]))
+            }
+        }
+        return date_JS
+    }  //  get_dateJS_from_dateISO
+
+//========= addDaysJS  ======== PR2019-11-03
+    // from https://codewithhugo.com/add-date-days-js/
+    function addDaysJS(date, days) {
+      const copy = new Date(Number(date))
+      copy.setDate(date.getDate() + days)
+      return copy
+    }
+
+//========= getWeek  ======== PR2019-11-03
+    // from https://weeknumber.net/how-to/javascript
+    // Returns the ISO week of the date.
+    Date.prototype.getWeek = function() {
+      var date = new Date(this.getTime());
+      date.setHours(0, 0, 0, 0);
+      // Thursday in current week decides the year.
+      date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+      // January 4 is always in week 1.
+      var week1 = new Date(date.getFullYear(), 0, 4);
+      // Adjust to Thursday in week 1 and count number of weeks from date to week1.
+      return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000
+                            - 3 + (week1.getDay() + 6) % 7) / 7);
+    }
+
+    // Returns the four-digit year corresponding to the ISO week of the date.
+    Date.prototype.getWeekYear = function() {
+      var date = new Date(this.getTime());
+      date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+      return date.getFullYear();
+    }
+
+
+    Date.prototype.getWeekIndex = function() {
+         // PR2019-11-03
+        // weekindex = "201944'
+        // use weekindex to print multiple years "201944" - "202001"
+        let weekIndex = 0
+        if (!!this){
+            weekIndex = this.getWeekYear() * 100 + this.getWeek();
+        }
+        return weekIndex;
+    }
+
+
 //========= format_datetime_element without moment.js  ======== PR2019-10-12
     function format_date_vanillaJS (date_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year) {
         //console.log(" ----- format_date_vanillaJS", date_JS);
@@ -912,6 +1000,7 @@
             const datetime_iso = get_dict_value_by_key (field_dict, "datetime"); // value = datetime_utc_iso
             const mindatetime = get_dict_value_by_key (field_dict, "mindatetime");
             const maxdatetime = get_dict_value_by_key (field_dict, "maxdatetime");
+            //console.log("datetime_iso: ", datetime_iso, typeof datetime_iso)
 
             const fieldname = get_dict_value_by_key (field_dict, "field");
             const offset = parseInt(get_dict_value_by_key (field_dict, "offset"));
@@ -1080,77 +1169,45 @@
         }  // if(!!el_input && !!field_dict){
     }  // function format_datetime_element
 
+
 //========= format_offset_element  ======== PR2019-09-08
     function format_offset_element (el_input, el_msg, fieldname, field_dict, offset, timeformat, user_lang, title_prev, title_next, blank_when_zero) {
-        // offsetstart: {value: 0, minoffset: -720, maxoffset: 1440}
+        //console.log("------ format_offset_element --------------", fieldname)
+       // offsetstart: {offset: 0, minoffset: -720, maxoffset: 1440}
 
         if(!!el_input){
-            let value = null, display_text, title;
+            let offset = null, display_text, title;
             if(!!field_dict){
-                //console.log("------ format_offset_element --------------", fieldname)
-                //console.log("el_input: ", el_input)
-                //console.log("field_dict: ", field_dict)
 
-                // value:  "270" = 04:30, value can be null
+                // offset:  "270" = 04:30, value can be null
                 const fld = (fieldname === "breakduration") ? "value" : "offset";
-                value = get_dict_value_by_key(field_dict, fld);
+                offset = get_dict_value_by_key(field_dict, fld);
 
                 const updated = get_dict_value_by_key (field_dict, "updated");
                 const msg_err = get_dict_value_by_key (field_dict, "error");
                 // (variable == null) will catch null and undefined simultaneously. Equal to (variable === undefined || variable === null)
-                let hide_value = (value == null) || (blank_when_zero && value === 0);
+                let hide_value = (offset == null) || (blank_when_zero && offset === 0);
 
                 if (!hide_value){
-                    let days_offset = Math.floor(value/1440)  // - 90 (1.5 h)
-                    const remainder = value - days_offset * 1440
+                    let days_offset = Math.floor(offset/1440)  // - 90 (1.5 h)
+                    const remainder = offset - days_offset * 1440
                     let curHours = Math.floor(remainder/60)
                     const curMinutes = remainder - curHours * 60
 
-                    const isAmPm = (timeformat === "AmPm");
-                    const isEN = (user_lang === "en")
-                    const ampm_list = [" am", " pm"]
-                    let curAmPm = (curHours >= 12) ? 1 : 0
-
-
-
                     //check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
-                    if(!!isAmPm) {  // } && fieldname === "offsetend"){
-                        if (curHours >= 12){
-                            curHours -= 12;
-                        }
-                    } else {
+                    if(timeformat !== "AmPm") {
                         if (days_offset === 1 && curHours === 0 && curMinutes === 0){
                             days_offset = 0
                             curHours = 24;
                         }
                     }
+                    title =  (days_offset < 0) ? title_prev : (days_offset > 0) ? title_next : null
 
-                    const hour_str = "00" + curHours.toString()
-                    let hour_text = hour_str.slice(-2);
-                    const minute_str = "00" + curMinutes.toString()
-                    let minute_text = minute_str.slice(-2);
-
-                    let delim  = "", prefix = "", suffix = ""
-                    if(isEN){
-                        delim = ":";
-                    } else {
-                        delim = ".";
-                        suffix = " u"
-                    }
-
-                    if (days_offset < 0) {
-                        prefix = "<- ";
-                        title = title_prev
-                    } else if (days_offset > 0) {
-                        suffix = suffix + " ->";
-                        title = title_next
-                    }
-
-                    display_text = prefix + hour_text + delim + minute_text + suffix;
-                }  // if (!!value)
+                    display_text = display_offset_time (offset, timeformat, user_lang, blank_when_zero)
+                }  //  if (!hide_value){
 
                 if(!!msg_err){
-                   ShowMsgError(el_input, el_msg, msg_err, offset, true, value)
+                   ShowMsgError(el_input, el_msg, msg_err, offset, true, offset)
                 } else if(updated){
                     el_input.classList.add("border_valid");
                     setTimeout(function (){
@@ -1169,8 +1226,8 @@
             } else {
                 el_input.removeAttribute("title");
             }
-            if(!!value || value === 0){
-                el_input.setAttribute("data-value", value);
+            if(!!offset || offset === 0){
+                el_input.setAttribute("data-value", offset);
             } else {
                 el_input.removeAttribute("data-value");
             }
@@ -1186,6 +1243,50 @@
 
         }  // if(!!el_input)
     }  // function format_offset_element
+
+    //>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    //========= display_offset_time  ======== PR2019-10-22
+    function display_offset_time (offset, timeformat, user_lang, skip_prefix_suffix) {
+        //console.log("------ display_offset_time --------------", fieldname)
+
+        let days_offset = Math.floor(offset/1440)  // - 90 (1.5 h)
+        const remainder = offset - days_offset * 1440
+        let curHours = Math.floor(remainder/60)
+        const curMinutes = remainder - curHours * 60
+
+        const isAmPm = (timeformat === "AmPm");
+        const isEN = (user_lang === "en")
+        const ampm_list = [" am", " pm"]
+        let curAmPm = (curHours >= 12) ? 1 : 0
+
+        //check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
+        if(!!isAmPm) {  // } && fieldname === "offsetend"){
+            if (curHours >= 12){
+                curHours -= 12;
+            }
+        } else {
+            if (days_offset === 1 && curHours === 0 && curMinutes === 0){
+                days_offset = 0
+                curHours = 24;
+            }
+        }
+
+        const hour_str = "00" + curHours.toString()
+        let hour_text = hour_str.slice(-2);
+        const minute_str = "00" + curMinutes.toString()
+        let minute_text = minute_str.slice(-2);
+
+        const delim = (isEN) ? ":" : ".";
+        const prefix = (!skip_prefix_suffix && days_offset < 0) ? "<- " : "";
+        let suffix = (!skip_prefix_suffix && !isEN) ? " u" : "";
+        if(!!isAmPm) {suffix += ampm_list[curAmPm]};
+        if (days_offset > 0) { suffix += " ->"};
+
+        return prefix + hour_text + delim + minute_text + suffix;
+    }  // function display_offset_time
+
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 
 //========= format_duration_element  ======== PR2019-07-22
     function format_duration_element (el_input, el_msg, field_dict, user_lang) {
@@ -1276,7 +1377,7 @@
         // Math.trunc() cuts off the dot and the digits to the right of it. (-2.56 becomes -2)
         // remainder (%) returns the remainder left over when x is divided by y ( -23 % 4 = -3
 
-        let display_value = null;
+        let display_value = "";
         if(!!value_int){
             const is_negative = (value_int < 0);
             if (is_negative){
@@ -1391,38 +1492,29 @@
         // inactive: {value: true}
         //console.log("+++++++++ format_inactive_element")
         //console.log(field_dict)
-        // console.log(el_input)
+        //console.log(el_input)
         if(!!el_input){
-            let is_inactive = false;
-            if(!isEmpty(field_dict)){
-                is_inactive = get_dict_value_by_key (field_dict, "value")
-            }
-            //console.log("is_inactive: ", is_inactive, typeof is_inactive)
-
+            let is_inactive = get_dict_value_by_key (field_dict, "value", false)
+        //console.log("is_inactive", is_inactive)
             el_input.setAttribute("data-value", is_inactive);
 
-            // update icon if img existst
             let el_img = el_input.children[0];
-            // console.log ("el_img", el_img)
             if (!!el_img){
-                let imgsrc, title;
-                if (is_inactive) {
-                    imgsrc = imgsrc_inactive;
-                    title = title_inactive;
-                } else  {
-                    imgsrc = imgsrc_active
-                    title = title_active;
-                }
+                const imgsrc = (is_inactive) ? imgsrc_inactive : imgsrc_active;
+                const title = (is_inactive) ? title_inactive : title_active;
+
                 el_img.setAttribute("src", imgsrc);
+
                 if (!!title){
                     el_input.setAttribute("title", title);
                 } else {
                     el_input.removeAttribute("title");
                 }
             }
+            // make el_input green for 2 seconds
+            if("updated" in field_dict){ShowOkClass(el_input)}
         }
     }  // format_inactive_element
-
 
 //========= format_overlap_element  ======== PR2019-09-19
     function format_overlap_element (el_input, field_dict, imgsrc_no_overlap, imgsrc_overlap, title_overlap) {
@@ -1679,6 +1771,103 @@
         }
     }
 
+
+//========= GetNewSelectRowIndex  ============= PR2019-10-20
+    function GetNewSelectRowIndex(tblBody, code_colindex, item_dict, user_lang) {
+        console.log(" --- GetNewSelectRowIndex --- ")
+        let row_index = -1
+        if (!!item_dict){
+            const new_code = get_subdict_value_by_key(item_dict, "code", "value", "").toLowerCase()
+            const len = tblBody.rows.length;
+            if (!!len){
+                for (let i = 0, tblRow; i < len; i++) {
+                    tblRow = tblBody.rows[i]
+                    const el_code = tblRow.cells[code_colindex].children[0]
+                    const row_code = get_attr_from_el_str(el_code,"data-value").toLowerCase()
+
+                    console.log("new_code: ",new_code,  "row_code: ", row_code)
+                    // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
+                    // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
+                    // row_code 'acu' new_code 'giro' compare = -1
+                    // row_code 'mcb' new_code 'giro' compare =  1
+                    let compare = row_code.localeCompare(new_code, user_lang, { sensitivity: 'base' });
+                    if (compare > 0) {
+                        row_index = tblRow.rowIndex -1;  // -1 because first row is filter row
+                        console.log("row_index: ", row_index)
+                        break;
+                    }
+                }
+            }
+        };
+        return row_index;
+    }  // GetNewSelectRowIndex
+
+
+//=========  HighlightSelectedTblRowByPk  ================ PR2019-10-05
+    function HighlightSelectedTblRowByPk(tableBody, selected_pk, cls_selected, cls_background) {
+        //console.log(" --- HighlightSelectedTblRowByPk ---")
+        //console.log("selected_pk", selected_pk, typeof selected_pk)
+        let selected_row;
+        if(!cls_selected){cls_selected = "tsa_tr_selected"}
+        if(!!tableBody){
+            let tblrows = tableBody.rows;
+            for (let i = 0, tblRow, len = tblrows.length; i < len; i++) {
+                tblRow = tblrows[i];
+                if(!!tblRow){
+                    const pk_int = parseInt(tblRow.getAttribute("data-pk"));
+                    if (!!selected_pk && pk_int === selected_pk){
+                        if(!!cls_background){tblRow.classList.remove(cls_background)};
+                        tblRow.classList.add(cls_selected)
+                        selected_row = tblRow;
+
+                        //tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' });
+
+                    } else if(tblRow.classList.contains(cls_selected)) {
+                        tblRow.classList.remove(cls_selected);
+                        if(!!cls_background){tblRow.classList.add(cls_background)}
+                    }
+                }
+            }
+        }
+        return selected_row
+    }  // HighlightSelectedTblRowByPk
+
+//=========  HighlightSelectRowByPk  ================ PR2019-10-05
+    function HighlightSelectRowByPk(tableBody, selected_pk, cls_selected, cls_background) {
+        //console.log(" --- HighlightSelectedSelectRowByPk ---")
+        //console.log("selected_pk", selected_pk, typeof selected_pk)
+
+        if(!!tableBody){
+            DeselectHighlightedTblbody(tableBody, cls_selected, cls_background)
+
+            let tblrows = tableBody.rows;
+            for (let i = 0, tblRow, len = tblrows.length; i < len; i++) {
+                tblRow = tblrows[i];
+                if(!!tblRow){
+                    const pk_int = parseInt(tblRow.getAttribute("data-pk"));
+                    if (!!selected_pk && pk_int === selected_pk){
+                        if(!!cls_background){tblRow.classList.remove(cls_background)};
+                        tblRow.classList.add(cls_selected)
+                    } else if(tblRow.classList.contains(cls_selected)) {
+                        tblRow.classList.remove(cls_selected);
+                        if(!!cls_background){tblRow.classList.add(cls_background)}
+                    }
+                }
+            }
+        }
+    }  // HighlightSelectRowByPk
+
+//========= HighlightSelectRow  ============= PR2019-10-22
+    function HighlightSelectRow(selectRow, cls_selected, cls_background){
+    // ---  highlight selected row in select table
+        if(!!selectRow){
+            DeselectHighlightedTblbody(selectRow.parentNode, cls_selected, cls_background)
+            // yelllow won/t show if you dont first remove background color
+            selectRow.classList.remove(cls_background)
+            selectRow.classList.add(cls_selected)
+        }
+    }  //  HighlightSelectRow
+
 //=========  DeselectHighlightedRows  ================ PR2019-04-30 PR2019-09-23
     function DeselectHighlightedRows(tr_selected, cls_selected, cls_background) {
         if(!!tr_selected){
@@ -1688,7 +1877,7 @@
 
 //=========  DeselectHighlightedTblbody  ================ PR2019-04-30 PR2019-09-23
     function DeselectHighlightedTblbody(tableBody, cls_selected, cls_background) {
-       // console.log("=========  DeselectHighlightedTblbody =========");
+        //console.log("=========  DeselectHighlightedTblbody =========");
         //console.log("cls_selected", cls_selected, "cls_background", cls_background);
 
         if(!cls_selected){cls_selected = "tsa_tr_selected"}
@@ -1724,28 +1913,6 @@
             }
         }
     }
-
-
-//=========  HighlightSelectedTblRowByPk  ================ PR2019-10-05
-    function HighlightSelectedTblRowByPk(tableBody, selected_pk, cls_selected, cls_background) {
-        if(!cls_selected){cls_selected = "tsa_tr_selected"}
-        if(!!tableBody){
-            let tblrows = tableBody.rows;
-            for (let i = 0, tblRow, len = tblrows.length; i < len; i++) {
-                tblRow = tblrows[i];
-                if(!!tblRow){
-                    const pk_int = parseInt(tblRow.getAttribute("data-pk"));
-                    if (!!selected_pk && pk_int === selected_pk){
-                        if(!!cls_background){tblRow.classList.remove(cls_background)};
-                        tblRow.classList.add(cls_selected)
-                    } else if(tblRow.classList.contains(cls_selected)) {
-                        tblRow.classList.remove(cls_selected);
-                        if(!!cls_background){tblRow.classList.add(cls_background)}
-                    }
-                }
-            }
-        }
-    }  // HighlightSelectedTblRowByPk
 
 //========= function found_in_list_str  ======== PR2019-01-22
     function found_in_list_str(value, list_str ){
@@ -1979,8 +2146,6 @@
                 let sorted_str = "";
                 if (!!sorted_val){sorted_str = sorted_val.toString()}
 
-
-
                 // check if item_str should be inserted before or after sorted_str
 
                  // A negative number if the reference string occurs before the compare string;
@@ -2013,7 +2178,6 @@
         // console.log ("insert_index: ", insert_index)
         return insert_index
     };  // SortItem
-
 
 /*
 //NOT IN USE ========= ShowRow ========= PR2019-06-09

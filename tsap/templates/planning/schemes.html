@@ -17,28 +17,32 @@
         </div>
 
         <div class="td_width_200 mx-2 my-2">
+             <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select customer' %}</h6>
              <h6>
-                <select id="id_select_customer"class="td_width_200" ></select>
+                <select id="id_select_customer"class="td_width_200 px-2" ></select>
                 <option value="" disabled selected hidden>{% trans 'Select customer' %}...</option>
             </h6>
-
+             <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select order' %}</h6>
             <h6>
-                <select id="id_select_order" class="td_width_200"></select>
+                <select id="id_select_order" class="td_width_200 px-2"></select>
             </h6>
 
-            <table class="mt-4">
-                <thead id="id_thead_scheme_select" ></thead>
-                <tbody id="id_tbody_scheme_select"></tbody>
+            <table id="id_select_table_scheme" class="display_hide mt-4">
+                <thead id="id_select_thead_scheme" class="tsa_color_white m-1"></thead>
+                <tbody id="id_select_tbody_scheme"></tbody>
+                <tfoot id="id_select_tfoot_scheme"></tfoot>
             </table>
 
-             <table class="mt-4">
-                <thead id="id_thead_shift_select"class="mx-1 my-1 "></thead>
-                <tbody id="id_tbody_shift_select"></tbody>
+             <table id="id_select_table_shift" class="display_hide mt-4">
+                <thead id="id_select_thead_shift" class="tsa_color_white m-1"></thead>
+                <tbody id="id_select_tbody_shift"></tbody>
+                <tfoot id="id_select_tfoot_shift"></tfoot>
             </table>
 
-            <table class="mt-4 mb-5">
-                <thead id="id_thead_team_select"class="mx-1 my-1 "></thead>
-                <tbody id="id_tbody_team_select"></tbody>
+            <table id="id_select_table_team" class="display_hide mt-4 mb-5">
+                <thead id="id_select_thead_team"class="tsa_color_white m-1"></thead>
+                <tbody id="id_select_tbody_team"></tbody>
+                <tfoot id="id_select_tfoot_team"></tfoot>
             </table>
 
 
@@ -202,54 +206,10 @@
         </div>
     </div>
 <!-- =================== END MODAL COPY TO TEMPLATE  =================== -->
-<!-- =================== MODAL EMPLOYEE  =================== -->
-    <div class="modal fade" id="id_mod_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-md " role="document">
-            <div class="modal-content">
-                <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_mod_employee_header" class="modal-title mx-2" >{% trans 'Employee' %}</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-
-                <div  id="id_mod_employee_body" class="modal-body">
-                    <div class="modal_container">
-
-<!-- modal_body_left contains employee select table -->
-                        <div class="modal_body_left">
-                            <div class="content_subheader_left mx-1 my-1">
-                                <div class="form-group">
-                                    <input id="id_mod_employee_filter_employee"
-                                        type="text"
-                                        autocomplete="off"
-                                        ondragstart="return false;"
-                                        ondrop="return false;"
-                                        class="form-control"
-                                        placeholder="{% trans 'Type a few letters and select employee in the list ...' %}">
-                                </div>
-
-
-                                <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
-                                    <table class="table tsa-tbl mx-1 my-1">
-                                        <tbody id="id_mod_employee_tblbody" data-table="employee">
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="modal-footer">
-                </div>
-
-            </div>
-        </div>
-    </div>
-<!-- =================== END MODAL EMPLOYEE  =================== -->
-<!-- =================== CONFIRM DELETE  =================== -->
-    {% include 'includes/confirm_delete.html' %}
+<!-- =================== MODAL SELECT EMPLOYEE  =================== -->
+    {% include 'includes/selectemployee.html' %}
+<!-- =================== CONFIRM =================== -->
+    {% include 'includes/confirm.html' %}
 {% endblock %}
 <!-- END MODAL -->
 
@@ -309,19 +269,6 @@
                     <div>{% trans 'End date' %}</div>
                     <input id="id_scheme_datelast" type="text" data-table="scheme" data-field="datelast"
                     class="input_popup_date td_width_120 my-1 pt-0 pb-0" autocomplete="off" readonly>
-                </div>
-                <div class="content_subheader_left mx-2">
-                    <div>{% trans 'Hourly rate' %}</div>
-                    <input id="id_scheme_pricerate" type="text" data-table="scheme" data-field="pricerate"
-                    class="input_popup_date td_width_120 my-1 pt-0 pb-0" autocomplete="off" readonly>
-                </div>
-                 <div class="content_subheader_left mx-2">
-                    <div>{% trans 'Billable' %}</div>
-                    <div class="my-1 pt-0 pb-0">
-                    <a id="id_scheme_billable" data-table="scheme" data-field="billable">
-                        <img id="id_sel_img_billable" src="{% static 'img/stat00.png' %}" height="18" width="18">
-                    </a>
-                    </div>
                 </div>
             </div>
         </div>
@@ -391,6 +338,17 @@
 <!--</div> flex_container -->
 
         <div id="id_data"
+            data-datalist_download_url="{% url 'datalist_download_url' %}"
+            data-settings_upload_url="{% url 'settings_upload_url' %}"
+            data-scheme_template_upload_url="{% url 'scheme_template_upload_url' %}"
+            data-schemeitem_upload_url= "{% url 'schemeitem_upload_url' %}"
+            data-schemeitem_fill_url= "{% url 'schemeitem_fill_url' %}"
+            data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
+            data-scheme_upload_url="{% url 'scheme_upload_url' %}"
+            data-schemeorshiftorteam_upload_url="{% url 'schemeorshiftorteam_upload_url' %}"
+            data-teammember_upload_url="{% url 'teammember_upload_url' %}"
+            data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
+
             data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
             data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
             data-imgsrc_active_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
@@ -410,22 +368,9 @@
             data-timezone ="{{ timezone }}"
             data-interval ="{{ interval }}"
             data-timeformat ="{{ timeformat }}"
-            data-quicksave ="{{ quicksave }}"
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
             data-today ="{{ today }}"
-
-            data-datalist_download_url="{% url 'datalist_download_url' %}"
-            data-scheme_template_upload_url="{% url 'scheme_template_upload_url' %}"
-            data-schemeitem_upload_url= "{% url 'schemeitem_upload_url' %}"
-            data-schemeitem_fill_url= "{% url 'schemeitem_fill_url' %}"
-            data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
-            data-scheme_upload_url="{% url 'scheme_upload_url' %}"
-            data-schemeorshiftorteam_upload_url="{% url 'schemeorshiftorteam_upload_url' %}"
-            data-teammember_upload_url="{% url 'teammember_upload_url' %}"
-
-            data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
-
 
             data-err_msg01= "{% trans 'An error occurred.' %}"
             data-err_msg_order="{% trans 'Please select an order.' %}"
@@ -484,8 +429,7 @@
             data-txt_employee_select_none= "{% trans 'No employees' %}"
             data-txt_employee_add= "{% trans 'Add employee' %}"
             data-txt_employee_enter= "{% trans 'Enter employee' %}"
-            data-txt_employee_replacement= "{% trans 'Replacement employee' %}"
-            data-txt_employee_replacement_add= "{% trans 'Add replacement employee' %}"
+            data-txt_replaces= "{% trans 'Replaces' %}"
 
             data-txt_datefirst= "{% trans 'Start date' %}"
             data-txt_datelast= "{% trans 'End date' %}"
@@ -506,6 +450,21 @@
             data-msg_confdel_si_01= "{% trans 'All shifts of this scheme will be deleted.' %}"
             data-msg_confdel_team= "{% trans 'This team will be deleted.' %}"
             data-msg_confdel_shift= "{% trans 'This shift will be deleted.' %}"
+
+            data-txt_conf_scheme = "{% trans 'This scheme' %}"
+            data-txt_conf_schemeitem = "{% trans 'This scheme shift' %}"
+            data-txt_conf_shift = "{% trans 'This shift' %}"
+            data-txt_conf_team = "{% trans 'This team' %}"
+            data-txt_conf_teammember = "{% trans 'This teammember' %}"
+            data-txt_conf_team_hasteammember = "{% trans 'This team has one employee.' %}"
+            data-txt_conf_team_hasteammembers01 = "{% trans 'This team has ' %}"
+            data-txt_conf_team_hasteammembers02 = "{% trans ' employees.' %}"
+            data-txt_conf_inactive = "{% trans ' will be made inactive.' %}"
+            data-txt_conf_delete = "{% trans ' will be deleted.' %}"
+            data-txt_conf_remove = "{% trans ' will be removed from ' %}"
+
+            data-txt_conf_btn_delete = "{% trans 'Yes, delete' %}"
+            data-txt_conf_btn_inactive = "{% trans 'Yes, make inactive' %}"
 
             data-title_billable= "{% trans 'Billable hours. Changes in worked hours will also change the billing hours.' %}"
             data-title_notbillable=  "{% trans 'Fixed billing hours. Changes in worked hours will not affect the billing hours.' %}"

@@ -399,5 +399,6 @@ class Usersetting(Model):
                     if new_setting_json:
                         row = cls(user=user, key=key_str, jsonsetting=new_setting_json)
                 row.save()
+                logger.debug()
             except:
                 pass

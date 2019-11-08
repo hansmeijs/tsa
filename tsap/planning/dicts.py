@@ -15,10 +15,8 @@ from tsap import functions as f
 
 import pytz
 import json
-
 import logging
 logger = logging.getLogger(__name__)
-
 
 
 def status_found_in_statussum(status, status_sum):
@@ -855,33 +853,33 @@ def create_team_list(request, customer):
     # logger.debug(teammembers.query)
 
     for team in teams:
-        update_dict = {}
-        create_team_dict(team, update_dict)
+        item_dict = {}
+        create_team_dict(team, item_dict)
 
-        if update_dict:
-            team_list.append(update_dict)
+        if item_dict:
+            team_list.append(item_dict)
 
     return team_list
 
 
-def create_team_dict(team, update_dict):
+def create_team_dict(team, item_dict):
     # --- create dict of this team PR2019-08-08
-    # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    logger.debug(' --- create_team_dict ---')
-    logger.debug('update_dict: ' + str(update_dict))
+    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+    # logger.debug(' --- create_team_dict ---')
+    # logger.debug('item_dict: ' + str(item_dict))
     # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code')
     if team:
         for field in c.FIELDS_TEAM:
 
-# --- get field_dict from  update_dict if it exists
-            field_dict = update_dict[field] if field in update_dict else {}
+# --- get field_dict from  item_dict if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
 
 # --- create field_dict 'id'
             if field == 'id':
                 field_dict['pk'] = team.pk
                 field_dict['ppk'] = team.scheme.pk
                 field_dict['table'] = 'team'
-                update_dict['pk'] = team.pk
+                item_dict['pk'] = team.pk
 
         # scheme is parent of team
             elif field == 'scheme':
@@ -903,21 +901,23 @@ def create_team_dict(team, update_dict):
                 if title:
                     field_dict['title'] = title
 
-# 5. add field_dict to update_dict
+# 5. add field_dict to item_dict
             if field_dict:
-                update_dict[field] = field_dict
+                item_dict[field] = field_dict
 
-# 6. remove empty attributes from update_dict
-    f.remove_empty_attr_from_dict(update_dict)
+# 6. remove empty attributes from item_dict
+    f.remove_empty_attr_from_dict(item_dict)
 # --- end of create_team_dict
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def create_emplhour_list(company, comp_timezone,
                          time_min=None, time_max=None,
                          range_start_iso=None, range_end_iso=None, show_all=False): # PR2019-08-01
-    # logger.debug(' ============= create_emplhour_list ============= ')
+    logger.debug(' ============= create_emplhour_list ============= ')
 
     # TODO filter also on min max rosterdate, in case timestart / end is null
+    # TODO remove show_all
+    show_all = True
     starttime = timer()
 
     # convert period_timestart_iso into period_timestart_local
@@ -953,7 +953,7 @@ def create_emplhour_list(company, comp_timezone,
         .select_related('orderhour__order')\
         .select_related('orderhour__order__customer')\
         .select_related('orderhour__order__customer__company')\
-        .filter(crit).order_by('rosterdate', 'timestart') # \
+        .filter().order_by('rosterdate', 'timestart') # \
         # .values('id', 'cat', 'status', 'overlap', 'shift', 'wagerate', 'wagefactor', 'wage',
         #         'employee_id', 'employee__company_id', 'employee__code',
         #         'rosterdate', 'timestart', 'timeend', 'breakduration', 'timeduration',
@@ -974,8 +974,10 @@ def create_emplhour_list(company, comp_timezone,
 
     emplhour_list = []
     for emplhour in emplhours:
+        logger.debug("emplhour: "  + str(emplhour))
         item_dict = {}
         create_emplhour_itemdict(emplhour, item_dict, comp_timezone)
+        logger.debug('create_emplhour_itemdict: ' + str(item_dict))
         if item_dict:
             emplhour_list.append(item_dict)
 
@@ -984,9 +986,7 @@ def create_emplhour_list(company, comp_timezone,
 
     return emplhour_list
 
-
-
-# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 def create_emplhour_itemdict(instance, item_dict, comp_timezone):  # PR2019-09-21
     # --- create dict of this emplhour PR2019-10-11
@@ -1612,22 +1612,21 @@ def check_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
  # 1. create 'extende range' -  add 1 day at beginning and end for overlapping shifts of previous and next day
     if not datefirst:
         datefirst = '1900-01-01'
-    datefirst_dte = f.get_date_from_ISO(datefirst)
+    datefirst_dte = f.get_date_from_ISO(datefirst)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
     # logger.debug('datefirst_dte: ' + str(datefirst_dte) + ' ' + str(type(datefirst_dte)))
-    datefirst_dtm = datefirst_dte + timedelta(days=-1)
-    datefirst_iso = datefirst_dtm.isoformat()
-    datefirst_extended = datefirst_iso.split('T')[0]
-
+    datefirst_dtm = datefirst_dte + timedelta(days=-1)  # datefirst_dtm: 1899-12-31 <class 'datetime.date'>
+    # logger.debug('datefirst_dtm: ' + str(datefirst_dtm) + ' ' + str(type(datefirst_dtm)))
+    datefirst_iso = datefirst_dtm.isoformat()  # datefirst_iso: 1899-12-31 <class 'str'>
+    # logger.debug('datefirst_iso: ' + str(datefirst_iso) + ' ' + str(type(datefirst_iso)))
+    datefirst_extended = datefirst_iso.split('T')[0]  # datefirst_extended: 1899-12-31 <class 'str'>
     # logger.debug('datefirst_extended: ' + str(datefirst_extended) + ' ' + str(type(datefirst_extended)))
 
     if not datelast:
         datelast = '2500-01-01'
     datelast_dte = f.get_date_from_ISO(datelast)
-    # logger.debug('datelast_dte: ' + str(datelast_dte) + ' ' + str(type(datelast_dte)))
     datelast_dtm = datelast_dte + timedelta(days=1)
     datelast_iso = datelast_dtm.isoformat()
     datelast_extended = datelast_iso.split('T')[0]
-    # logger.debug('datelast_extended: ' + str(datelast_extended) + ' ' + str(type(datelast_extended)))
 
 # 2. reset overlap in the narrow timerange - i.e. NOT the extended timerange
     reset_overlapping_shifts(datefirst, datelast, request)
@@ -1720,7 +1719,7 @@ def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelas
     # logger.debug('------- ')
     # logger.debug('------- > employee_id: ' + str(employee_id) + '' + str(type(employee_id)))
 
-# 5. create queryset of this employee with emplhours in the narrow timerange
+# 1. create queryset of this employee with emplhours in the narrow timerange
     crit = Q(orderhour__order__customer__company=request.user.company) & \
            Q(employee_id=employee_id) & \
            Q(rosterdate__isnull=False) & \
@@ -1730,7 +1729,7 @@ def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelas
         timeend_nonull=Coalesce('timeend', Value(datetime(2500, 1, 1)))
     ).filter(crit).order_by('id')
 
-# 6. create queryset of this employee with emplhours in the extended timerange
+# 2. create queryset of this employee with emplhours in the extended timerange
     crit = Q(orderhour__order__customer__company=request.user.company) & \
            Q(employee_id=employee_id) & \
            Q(rosterdate__isnull=False) & \
@@ -1806,7 +1805,7 @@ def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelas
             if emplhour.id not in eplh_update_list:
                 eplh_update_list.append(emplhour.id)
         # logger.debug('eplh_update_list: ' + str(eplh_update_list))
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 def get_rosterdatefill_dict(company, company_timezone, user_lang):# PR2019-06-17
     rosterdate_dict = {}
     rosterdate_current = get_rosterdate_current(company)
@@ -2164,14 +2163,16 @@ def get_team_code(team):
         # 1. iterate through teammembers, latest enddate first
         teammembers = m.Teammember.objects\
             .select_related('employee')\
-            .filter(team=team, employee__isnull=False)
+            .filter(team=team)
         # logger.debug('teammembers SQL: ' + str(teammembers.query))
         for teammember in teammembers:
             # logger.debug('teammember: ' + str(teammember))
             # teammember: {'id': 300, 'employee__code': 'Crisostomo Ortiz R Y', 'datelast_nonull': datetime.datetime(2500, 1, 1, 0, 0)}
-            if count:
-                team_title += '; '
-            team_title += teammember.employee.code
+            employee = teammember.employee
+            if employee:
+                if team_title:
+                    team_title += '; '
+                team_title += employee.code
             count +=1
     suffix = ''
     if count == 0:

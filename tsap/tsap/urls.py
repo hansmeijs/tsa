@@ -116,8 +116,7 @@ urlpatterns = [
         path('<int:pk>/edit', account_views.UserEditView.as_view(), name='user_edit_url'),
         path('<int:pk>/delete', account_views.UserDeleteView.as_view(), name='user_delete_url'),
 
-        path('settings_upload', account_views.UserSettingsUploadView.as_view(),
-             name='settings_upload_url'),
+        path('settings_upload', account_views.UserSettingsUploadView.as_view(), name='settings_upload_url'),
 
     ])),
 
@@ -149,13 +148,13 @@ urlpatterns = [
     #        path('edit/', employee_views.EmployeeEditView.as_view(), name='employee_edit_url'),
     #        path('delete/', employee_views.EmployeeDeleteView.as_view(), name='employee_delete_url'),
     #    ])),
-        path('import', employee_views.EmployeeImportView.as_view(), name='employee_import_url'),
-
         path('upload/', employee_views.EmployeeUploadView.as_view(), name='employee_upload_url'),
-        path('uploadsetting', employee_views.EmployeeImportUploadSetting.as_view(),
-             name='employee_uploadsetting_url'),
-        path('uploaddata', employee_views.EmployeeImportUploadData.as_view(), name='employee_uploaddata_url'),
 
+        path('teammember_upload', employee_views.TeammemberUploadView.as_view(), name='teammember_upload_url'),
+
+        path('import', employee_views.EmployeeImportView.as_view(), name='employee_import_url'),
+        path('uploadsetting', employee_views.EmployeeImportUploadSetting.as_view(), name='employee_uploadsetting_url'),
+        path('uploaddata', employee_views.EmployeeImportUploadData.as_view(), name='employee_uploaddata_url'),
     ])),
 
     path('datalist_download', planning_views.DatalistDownloadView.as_view(), name='datalist_download_url'),
@@ -170,7 +169,6 @@ urlpatterns = [
 
         path('scheme_template_upload', planning_views.SchemeTemplateUploadView.as_view(), name='scheme_template_upload_url'),
 
-        path('teammember_upload', planning_views.TeammemberUploadView.as_view(), name='teammember_upload_url'),
     ])),
     path('roster/', include([
         path('view', planning_views.RosterView.as_view(), name='roster_url'),
