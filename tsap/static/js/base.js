@@ -39,7 +39,23 @@
         }; //if(!!e.target)
     }; //function SetMenubuttonActive()
 
-$(function() {
+//=========  CreateSubmenu  === PR2019-11-13
+    function CreateSubmenuButton(el_div, id, btn_text, class_key, function_on_click) {
+        // console.log("CreateSubmenuButton")
+
+    // --- add <a> element with EventListener to td
+        let el_a = document.createElement("a");
+            if(!!id) {el_a.setAttribute("id", id)};
+            el_a.setAttribute("href", "#");
+            if(!!class_key) { el_a.classList.add(class_key)}
+            el_a.innerText = btn_text;
+            el_a.addEventListener("click", function() {function_on_click()}, false )
+            el_div.appendChild(el_a);
+    }
+
+//$(function() {
+
+document.addEventListener('DOMContentLoaded', function() {
     "use strict";
 
     $("#id_sidebar").mCustomScrollbar({
@@ -227,7 +243,7 @@ $(function() {
         // function gets map_id form tblName and  pk_int, looks up 'map_id' in data_map
         let map_dict;
         if(!!tblName && !!pk_str){
-            const map_id = tblName + "_" + pk_str;
+            const map_id = get_map_id(tblName, pk_str);
             map_dict = data_map.get(map_id);
             // instead of:  map_dict = get_mapdict_from_datamap_by_id(data_map, map_id);
         };
@@ -415,6 +431,55 @@ $(function() {
         return item;
     }
 
+
+//========= get_today_iso new  ========== PR2019-11-15
+    function get_today_iso() {
+        const today_JS = new Date();
+        // this one returns '2019-11-1' and doesn't work with date input
+        //const arr = [today.getFullYear(), 1 + today.getMonth(), today.getDate()];
+        return get_yyyymmdd_from_ISOstring(today_JS.toISOString())
+    }
+
+//========= get_thismonday_iso new  ========== PR2019-11-15
+    function get_thisweek_monday_sunday_iso() {
+        const today_JS = new Date();
+        let today_weekday = today_JS.getDay()
+        if (today_weekday === 0 ) {today_weekday = 7}// JS sunday = 0, iso sunday = 7
+        const monday_JS = addDaysJS(today_JS, + 1 - today_weekday)
+        const sunday_JS = addDaysJS(today_JS, + 7 - today_weekday)
+        // this one returns '2019-11-1' and doesn't work with date input
+        //const monday_iso = [monday_JS.getFullYear(), 1 + monday_JS.getMonth(), monday_JS.getDate()].join("-");
+        const monday_iso = get_yyyymmdd_from_ISOstring(monday_JS.toISOString())
+        const sunday_iso = get_yyyymmdd_from_ISOstring(sunday_JS.toISOString())
+        return [monday_iso, sunday_iso];
+    }  // get_thisweek_monday_sunday_iso
+
+//========= get_thismonday_iso new  ========== PR2019-11-15
+    function get_thismonth_first_last_iso() {
+        const today_JS = new Date(), y = today_JS.getFullYear(), m = today_JS.getMonth();
+        const firstday_JS = new Date(y, m, 1);
+        const lastday_JS = new Date(y, m + 1, 0);
+        // this one returns '2019-11-1' and doesn't work with date input
+        //const firstday_iso = [firstday_JS.getFullYear(), 1 + firstday_JS.getMonth(), firstday_JS.getDate()].join("-");
+        const firstday_iso = get_yyyymmdd_from_ISOstring(firstday_JS.toISOString())
+        const lastday_iso = get_yyyymmdd_from_ISOstring(lastday_JS.toISOString())
+        return [firstday_iso, lastday_iso];
+    }  // get_thisweek_monday_sunday_iso
+
+//========= get_tomorrow_iso new  ========== PR2019-11-15
+    function get_tomorrow_iso() {
+        const tomorrow_JS = addDaysJS(new Date(), + 1)
+        // add 1 to month, getMonth starts with 0 for January
+        return [tomorrow_JS.getFullYear(), 1 + tomorrow_JS.getMonth(), tomorrow_JS.getDate()].join("-");
+    }
+
+//========= get_yesterday_iso new  ========== PR2019-11-15
+    function get_yesterday_iso() {
+        const yesterday_JS = addDaysJS(new Date(), - 1)
+        // add 1 to month, getMonth starts with 0 for January
+        return [yesterday_JS.getFullYear(), 1 + yesterday_JS.getMonth(), yesterday_JS.getDate()].join("-");
+    }
+
 //========= get_today_local  ======== PR2019-07-09
     function get_today_local(comp_timezone) {
         // from: https://stackoverflow.com/questions/18448347/how-to-create-time-in-a-specific-time-zone-with-moment-js
@@ -510,7 +575,6 @@ $(function() {
         return arr_int;
 
     } // function get_array_from_ISOstring
-
 
 //========= function get_yyyymmdd_from_ISOstring  ========== PR2019-06-21
     function get_yyyymmdd_from_ISOstring(datetime_iso) {
@@ -655,6 +719,8 @@ $(function() {
 
         return now_utc;
     }
+
+
 
 //========= get_userOffset new  ========== PR2019-06-27
     function get_userOffset() {

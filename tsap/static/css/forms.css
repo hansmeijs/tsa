@@ -432,6 +432,7 @@ color: #000;
 
 .modal_body_flex3 {
     flex: 3;
-    /*text-align: left;*/
-
+}
+.modal_body_flex4 {
+    flex: 4;
 }

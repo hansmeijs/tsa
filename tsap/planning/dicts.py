@@ -1,7 +1,6 @@
 from django.db import connection
-from django.db.models import Q, Value
-from django.db.models.functions import Lower, Coalesce
-from django.utils.translation import ugettext_lazy as _
+from django.db.models import Q, Value, Max
+from django.db.models.functions import Coalesce
 
 from datetime import date, datetime, timedelta
 from timeit import default_timer as timer
@@ -92,6 +91,73 @@ def remove_status_from_statussum(status, old_status_sum):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
+    logger.debug(' --- get_rosterdate_check --- ')
+    # function gets last rosterdate from orderhour and adds one day to it.
+    # Generates a "SELECT MAX..." query, return value is a dict
+    # # upload_dict: (input) {rosterdate: "2019-11-14"} or (create) {next: True} or (delete) {last: True}
+    # 'rosterdate_check': {'mode': 'delete', 'rosterdate': '2019-12-14'}} <class 'dict'>
+    rosterdate = None
+    rosterdate_iso = None
+    rosterdate_dict = {}
+
+    mode = upload_dict.get('mode')
+    rosterdate_dict = {'mode': mode}
+    logger.debug('mode: ' + str(mode))
+
+# if rosterdate in dict: check rosterdate, otherwise check last or next
+    if 'rosterdate' in upload_dict:
+        rosterdate_iso = upload_dict.get('rosterdate')
+        rosterdate = f.get_dateobj_from_ISOstring(rosterdate_iso)
+    else:
+
+# get last rosterdate of Emplhour
+        max_rosterdate_dict = m.Orderhour.objects.\
+            filter(order__customer__company=request.user.company).\
+            aggregate(Max('rosterdate'))
+        # last_rosterdate_dict: {'rosterdate__max': datetime.date(2019, 12, 19)} <class 'dict'>
+        if max_rosterdate_dict:
+            rosterdate = max_rosterdate_dict['rosterdate__max'] # datetime.date(2019, 10, 28)
+            rosterdate_iso = rosterdate.isoformat()
+
+# in create mode: get next rosterdate
+            if rosterdate and mode == 'create':
+                # add one day to change rosterdate
+                rosterdate = rosterdate + timedelta(days=1)
+                rosterdate_iso = rosterdate.isoformat()
+
+    if 'rosterdate':
+        rosterdate_count, rosterdate_confirmed = check_rosterdate_confirmed(rosterdate, request.user.company)
+        rosterdate_dict['rosterdate'] = rosterdate_iso
+        rosterdate_dict['count'] = rosterdate_count
+        rosterdate_dict['confirmed'] = rosterdate_confirmed
+
+    return rosterdate_dict
+
+
+def check_rosterdate_confirmed(rosterdate_dte, company):  # PR2019-11-12
+    # logger.debug(' ============= check_rosterdate_confirmed ============= ')
+    # logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+    # check if rosterdate has orderhours / emplhours. If so, check if there are lockes  /confirmed shifts
+
+# get emplhour records of this date and status less than STATUS_02_START_CONFIRMED, also delete records with rosterdate Null
+    row_count_confirmed_or_locked = 0
+    # count emplhour records on this date
+    row_count = m.Emplhour.objects.filter(
+        orderhour__order__customer__company=company,
+        rosterdate=rosterdate_dte).count()
+
+    if(row_count):
+    # if any: count emplhour records that are confirmed
+        row_count_confirmed_or_locked = m.Emplhour.objects.filter(
+            orderhour__order__customer__company=company,
+            rosterdate=rosterdate_dte,
+            status__gte=c.STATUS_02_START_CONFIRMED).count()
+
+    # logger.debug('row_count: ' + str(row_count) + ' row_count_confirmed_or_locked: ' + str(row_count_confirmed_or_locked))
+    return row_count, row_count_confirmed_or_locked
+
+
 def get_period_dict_and_save(request, get_current):  # PR2019-07-13
     # logger.debug(' --- get_period_dict_and_save --- ')
     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
@@ -151,7 +217,7 @@ def get_period_dict_and_save(request, get_current):  # PR2019-07-13
                 new_period_dict['periodend'] = period_endtime_iso
 
     # add today to dict
-        today = get_today(request)
+        today = f.get_today_local_iso(request)
         new_period_dict['today'] = today
 
         period_dict_json = json.dumps(new_period_dict)  # dumps takes an object and produces a string:
@@ -423,40 +489,6 @@ def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, ove
 
     return period_endtime_utc
 
-
-def get_today(request):  # PR2019-07-14
-    # logger.debug(' ============= get_current_period ============= ')
-     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
-
-    date_local_iso = None
-
-    if request.user is not None and request.user.company is not None:
-
-# get comp_timezone
-        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-
-# get now without timezone
-        now_utc_naive = datetime.utcnow()
-        # now_utc_naive: 2019-07-10 14:48:15.742546 <class 'datetime.datetime'>
-
-# convert now to timezone utc
-        now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
-        # now_utc: 2019-07-10 14:48:15.742546+00:00 <class 'datetime.datetime'>
-
-# convert now_utc to now_local ( = company timezone)
-        # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
-        timezone = pytz.timezone(comp_timezone)
-        now_local = now_utc.astimezone(timezone)
-        # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
-
-        date_local = now_local.date()
-
-        date_local_iso = date_local.isoformat()
-        # logger.debug('date_local_iso: ' + str(date_local_iso) + ' ' + str(type(date_local_iso)))
-
-    return date_local_iso
-
-
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_scheme_template_list(request, user_lang):
     # --- create list of all template schemes of this company PR2019-07-24
@@ -674,17 +706,7 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
                 team = getattr(schemeitem, field)
                 if team:
                     field_dict['pk'] = team.id
-
-                    # - lookup first employee within range in team.teammembers
-                    value = None
-                    teammember = m.Teammember.get_first_teammember_on_rosterdate(team, schemeitem.rosterdate)
-                    if teammember:
-                        if teammember.employee:
-                            if teammember.employee.code:
-                                value = teammember.employee.code
-                    # logger.debug('teammember.employee' + str(teammember.employee))
-                    if value:
-                        field_dict['value'] = value
+                    field_dict['value'] = team.code
 
             # also add date when empty, to add min max date
             elif field in ('timestart', 'timeend'):
@@ -910,14 +932,142 @@ def create_team_dict(team, item_dict):
 # --- end of create_team_dict
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def create_emplhour_list(company, comp_timezone,
-                         time_min=None, time_max=None,
-                         range_start_iso=None, range_end_iso=None, show_all=False): # PR2019-08-01
+def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
+    logger.debug(' ============== period_get_and_save ================ ')
+    logger.debug(' period_dict: ' + str(period_dict))
+    # period_dict: {'get': True, 'now': [2019, 11, 17, 7, 9]}
+    # period_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
+
+    update_dict = {}
+    if period_dict:
+        now_usercomp_dtm = None
+        today_iso = ''
+        today_dte = None
+
+        now_arr = period_dict.get('now',[])
+        if now_arr:
+            # now is the time of the computer of the current user. May be different from company local
+            year_str = str(now_arr[0])
+            month_str = str(now_arr[1])
+            date_str = str(now_arr[2])
+            today_iso = '-'.join([year_str, month_str, date_str])
+            logger.debug(' today_iso: ' + str(today_iso) + ' ' + str(type(today_iso)))
+            # today_iso: 2019-11-17 <class 'str'>
+            now_usercomp_dtm = f.get_datetime_from_arr(now_arr)
+            logger.debug(' now_usercomp_dtm: ' + str(now_usercomp_dtm) + ' ' + str(type(now_usercomp_dtm)))
+            # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
+            today_dte = f.get_date_from_arr(now_arr)
+            logger.debug(' today_dte: ' + str(today_dte) + ' ' + str(type(today_dte)))
+            # today_dte: 2019-11-17 <class 'datetime.date'>
+
+        get_saved = period_dict.get('get', False)
+        if get_saved:
+            update_dict = Usersetting.get_jsonsetting(c.KEY_USER_ROSTER_PERIOD, request.user)
+            logger.debug('old update_dict: ' + str(update_dict))
+        else:
+            Usersetting.set_jsonsetting(c.KEY_USER_ROSTER_PERIOD, period_dict, request.user)
+            update_dict = period_dict
+            logger.debug('new update_dict: ' + str(update_dict))
+            # new update_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
+
+        if update_dict:
+            period_index = update_dict.get('period_index', 0)
+            offset = update_dict.get('extend_offset', 0)
+
+            # default is today
+            rosterdatefirst_dte = today_dte
+            rosterdatelast_dte = today_dte
+            # default offest start is 0 - offset, (midnight - offset)
+            # default offest start is 1440 + offset (24 h after midnight + offset)
+            # value for morning, evening, night and day are different
+            offset_firstdate = 0 - offset
+            offset_lastdate = 1440 + offset
+
+            # use set dates when they have value
+            if period_index == 0:  # 60: 'Now'
+                periodstart_datetimelocal = now_usercomp_dtm - timedelta(minutes=offset)
+                periodend_datetimelocal = now_usercomp_dtm + timedelta(minutes=offset)
+            else:
+                if period_index == 1:  # 1: 'This night', offset_firstdate is default:  0 - offset
+                    offset_lastdate = 360 + offset
+                elif period_index == 2:  #  2: 'This morning'
+                    offset_firstdate = 360 - offset
+                    offset_lastdate = 720 + offset
+                elif period_index == 3:  # 3: 'This afternoon'
+                    offset_firstdate = 720 - offset
+                    offset_lastdate = 1080 + offset
+                elif period_index == 4:  # 4: 'This evening', , offset_lastdate is default: 1440 + offset
+                    offset_firstdate = 1080 - offset
+                elif period_index == 5:  # 5: 'Today'
+                    pass
+                elif period_index == 6:  # 6: 'Tomorrow'
+                    rosterdatefirst_dte = today_dte + timedelta(days=1)
+                    rosterdatelast_dte = today_dte + timedelta(days=1)
+                elif period_index == 7:  # 7: 'Yesterday'
+                    rosterdatefirst_dte = today_dte + timedelta(days=-1)
+                    rosterdatelast_dte = today_dte + timedelta(days=-1)
+                elif period_index == 8:  # 8: 'This week'
+                    rosterdatefirst_dte = today_dte + timedelta(days=(1 - today_dte.isoweekday()))
+                    rosterdatelast_dte = today_dte + timedelta(days=(7 - today_dte.isoweekday()))
+                elif period_index == 9:  # 9: 'This month'
+                    rosterdatefirst_dte = today_dte + timedelta(days=(1 - today_dte.day))
+                    # get first of next month, then subtract one day
+                    year = rosterdatefirst_dte.year
+                    nextmonth = rosterdatefirst_dte.month + 1
+                    if nextmonth > 12:
+                        nextmonth -= 12
+                        year += 1
+                    firstof_nextmonth_dte = date(year, nextmonth, 1)
+                    rosterdatelast_dte = firstof_nextmonth_dte + timedelta(days=-1)
+                elif period_index == 10:  # 10: 'Custom period'
+                    periodstart = update_dict.get('periodstart')
+                    periodend = update_dict.get('periodend')
+                    # if one date blank: use other date, if both blank: use today
+                    if periodstart is None:
+                        if periodend is None:
+                            periodstart = today_iso
+                            periodend = today_iso
+                        else:
+                            periodstart = periodend
+                    else:
+                        if periodend is None:
+                            periodend = periodstart
+                    rosterdatefirst_dte = f.get_dateobj_from_ISOstring(periodstart)
+                    rosterdatelast_dte = f.get_dateobj_from_ISOstring(periodend)
+
+                periodstart_datetimelocal = f.get_datetimelocal_from_offset(rosterdatefirst_dte, offset_firstdate, comp_timezone)
+                periodend_datetimelocal = f.get_datetimelocal_from_offset(rosterdatelast_dte, offset_lastdate, comp_timezone)
+
+            rosterdatefirst_minus1 = rosterdatefirst_dte - timedelta(days=1)
+            rosterdatelast_plus1 = rosterdatelast_dte + timedelta(days=1)
+
+            update_dict['periodstart'] = periodstart_datetimelocal
+            update_dict['periodend'] = periodend_datetimelocal
+            update_dict['rosterdatefirst'] = rosterdatefirst_dte.isoformat()
+            update_dict['rosterdatelast'] = rosterdatelast_dte.isoformat()
+            update_dict['rosterdatefirst_minus1'] = rosterdatefirst_minus1.isoformat()
+            update_dict['rosterdatelast_plus1'] = rosterdatelast_plus1.isoformat()
+
+    logger.debug('update_dict: ' + str(update_dict))
+    #  update_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360,
+    #  'now': [2019, 11, 17, 7, 58],
+    #  'periodstart': datetime.datetime(2019, 11, 17, 18, 0, tzinfo=<DstTzInfo 'Europe/Amsterdam' CET+1:00:00 STD>),
+    #  'periodend': datetime.datetime(2019, 11, 19, 6, 0, tzinfo=<DstTzInfo 'Europe/Amsterdam' CET+1:00:00 STD>),
+    #  'rosterdatefirst': '2019-11-17', 'rosterdatelast': '2019-11-19'}
+
+    return update_dict
+
+def create_emplhour_list(rosterdatefirst, rosterdatelast, periodtimestart, periodtimeend, company, comp_timezone): # PR2019-11-16
     logger.debug(' ============= create_emplhour_list ============= ')
 
+    logger.debug('rosterdatefirst: ' + str(rosterdatefirst) + ' ' + str(type(rosterdatefirst)))
+    logger.debug('rosterdatelast: ' + str(rosterdatelast) + ' ' + str(type(rosterdatelast)))
+    logger.debug('periodtimestart: ' + str(periodtimestart) + ' ' + str(type(periodtimestart)))
+    logger.debug('periodtimeend: ' + str(periodtimeend) + ' ' + str(type(periodtimeend)))
+
+
     # TODO filter also on min max rosterdate, in case timestart / end is null
-    # TODO remove show_all
-    show_all = True
+
     starttime = timer()
 
     # convert period_timestart_iso into period_timestart_local
@@ -930,42 +1080,48 @@ def create_emplhour_list(company, comp_timezone,
     # Exclude template.
     # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
 
-    crit = Q(orderhour__order__customer__company=company)
-    crit.add(Q(orderhour__order__cat__lte=c.SHIFT_CAT_0512_ABSENCE), crit.connector)
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
+    company_id = company.pk
+    customer_id = None
+    order_id = None
+    employee_id = None
 
-    # range overrules period
-    if not show_all:
-        if range_start_iso or range_end_iso:
-            if range_start_iso:
-                crit.add(Q(rosterdate__gte=range_start_iso), crit.connector)
-            if range_end_iso:
-                crit.add(Q(rosterdate__lte=range_end_iso), crit.connector)
-        else:
-            if time_min:
-                crit.add(Q(timeend__gt=time_min) | Q(timeend__isnull=True), crit.connector)
-            if time_max:
-                crit.add(Q(timestart__lt=time_max) | Q(timestart__isnull=True), crit.connector)
+    newcursor = connection.cursor()
+    newcursor.execute("""
+        SELECT eh.id AS eh_id, oh.id AS oh_id, o.id AS o_id, eh.rosterdate AS eh_rd, eh.shift AS eh_sh, 
+        eh.timestart AS eh_ts, eh.timeend AS eh_te, eh.status AS eh_st, eh.overlap AS eh_ov,
+        c.code AS c_code, o.code AS o_code, 
+        e.id AS e_id, e.code AS e_code
+        FROM companies_emplhour AS eh 
+        LEFT JOIN companies_employee AS e ON (eh.employee_id = e.id)
+        INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id = oh.id) 
+        INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
+        INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
+        WHERE (c.company_id = %(cid)s) 
+        AND (c.id = %(cust_id)s OR %(cust_id)s IS NULL) 
+        AND (o.id = %(ord_id)s OR %(ord_id)s IS NULL) 
+        AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL) 
+        AND (eh.rosterdate >= %(rdf)s)  AND (eh.rosterdate <= %(rdl)s) 
+        AND (eh.timestart < %(pte)s OR %(pte)s IS NULL)  
+        AND (eh.timeend > %(pts)s OR  %(pts)s IS NULL) 
+        ORDER BY eh.rosterdate ASC, eh.timestart ASC, LOWER(c.code) ASC, LOWER(o.code) ASC
+            """, {
+                'cid': company_id,
+                'cust_id': customer_id,
+                'ord_id': order_id,
+                'empl_id': employee_id,
+                'rdf': rosterdatefirst,
+                'rdl': rosterdatelast,
+                'pts': periodtimestart,
+                'pte': periodtimeend
+                })
 
-    # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
-    emplhours = m.Emplhour.objects\
-        .select_related('employee')\
-        .select_related('orderhour')\
-        .select_related('orderhour__order')\
-        .select_related('orderhour__order__customer')\
-        .select_related('orderhour__order__customer__company')\
-        .filter().order_by('rosterdate', 'timestart') # \
-        # .values('id', 'cat', 'status', 'overlap', 'shift', 'wagerate', 'wagefactor', 'wage',
-        #         'employee_id', 'employee__company_id', 'employee__code',
-        #         'rosterdate', 'timestart', 'timeend', 'breakduration', 'timeduration',
-        #         'orderhour_id', 'orderhour__order_id', 'orderhour__order__code', 'orderhour__order__customer__code'
-        #        ) \
-        # .iterator()
-    # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
-    # logger.debug(emplhours.query)
-
-    #logger.debug('sql elapsed time  is :')
-    #logger.debug(timer() - starttime)
-
+    # logger.debug("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVV")
+    emplhours_rows = f.dictfetchall(newcursor)
+    # dictfetchall returns a list with dicts for each emplhour row
+    # logger.debug(str(emplhours_rows))
+    # emplhours_rows:  [ {'eh_id': 4504, 'eh_rd': datetime.date(2019, 11, 14), 'c_code': 'MCB', 'o_code': 'Punda', 'e_code': 'Bernardus-Cornelis, Yaha'},
 
     # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
     #                         'timestart', 'timeend', 'timeduration', 'breakduration',
@@ -973,11 +1129,107 @@ def create_emplhour_list(company, comp_timezone,
     field_tuple = c.FIELDS_EMPLHOUR
 
     emplhour_list = []
-    for emplhour in emplhours:
-        logger.debug("emplhour: "  + str(emplhour))
+    for row in emplhours_rows:
+        # logger.debug("row: "  + str(row))
         item_dict = {}
-        create_emplhour_itemdict(emplhour, item_dict, comp_timezone)
-        logger.debug('create_emplhour_itemdict: ' + str(item_dict))
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# --- start of create_emplhour_itemdict
+
+        # get pk and ppk
+        pk_int = row.get('eh_id') # emplhour.id
+        ppk_int = row.get('oh_id')  # orderhour.id
+
+        rosterdate = row.get('eh_rd')  # instance.rosterdate
+        timestart = row.get('eh_ts')  # instance.timestart
+        timeend = row.get('eh_te')  # instance.timeend
+        overlap = row.get('eh_ov')  # instance.overlap if instance.overlap else 0
+
+        # lock field when status = locked or higher
+        status_sum = row.get('eh_st')  # instance.status
+        status_conf_start = f.get_status_value(status_sum, 1)
+        status_conf_end = f.get_status_value(status_sum, 2)
+        status_locked = (status_sum >= c.STATUS_08_LOCKED)
+
+        fields = ('id', 'orderhour', 'employee', 'rosterdate', 'cat',
+                           'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
+                           'isrestshift', 'shift',
+                           'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',)
+
+        fields = ('id', 'orderhour', 'employee', 'rosterdate', 'cat',
+                           'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
+                           'isrestshift', 'shift',
+                           'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',
+                             'status', 'overlap', 'locked')
+        for field in fields:
+            field_dict = {}
+
+            # 2. lock date when locked=true of  timestart and timeend are both confirmed
+            if status_locked or (status_conf_start and status_conf_end):
+                field_dict['locked'] = True
+            elif field in ('timestart', 'employee')and status_conf_start:
+                field_dict['locked'] = True
+            elif field == 'timeend'and status_conf_end:
+                field_dict['locked'] = True
+
+            if field == 'id':
+                field_dict['pk'] = pk_int
+                field_dict['ppk'] = ppk_int
+                field_dict['table'] = 'emplhour'
+                item_dict['pk'] = pk_int
+
+            # orderhour is parent of emplhour
+            elif field == 'orderhour':
+                field_dict['pk'] = ppk_int
+                field_dict['ppk'] = row.get('o_id')   # order.id
+                field_dict['value'] = ' - '.join([row.get('c_code'), row.get('o_code')])
+
+            elif field == 'employee':
+                e_id = row.get('e_id')
+                if e_id is not None:
+                    # if employee_id does not exist in row, it returns 'None'. Therefore default value 0 does not work
+                    field_dict['pk'] = e_id  # employee.id
+                    field_dict['ppk'] = company_id
+                    field_dict['value'] = row.get('e_code', '')
+                    #  make field red when has overlap
+                    if overlap:  # overlap: 1 overlap start, 2 overlap end, 3 full overlap
+                        field_dict['overlap'] = True
+                    #  lock field employee when start is confirmed > already locked above
+
+            elif field == 'rosterdate':
+                if rosterdate:
+                    field_dict['value'] = rosterdate.isoformat()
+
+            # also add date when empty, to add min max date
+            elif field in ('timestart', 'timeend'):
+                has_overlap = (field == 'timestart' and overlap in (1, 3)) or \
+                              (field == 'timeend' and overlap in (2, 3))
+                set_fielddict_datetime(field=field,
+                                       field_dict=field_dict,
+                                       rosterdate=rosterdate,
+                                       timestart_utc=timestart,
+                                       timeend_utc=timeend,
+                                       has_overlap=has_overlap,
+                                       comp_timezone=comp_timezone)
+
+            elif field == 'shift':
+                eh_sh = row.get('eh_sh')
+                if eh_sh:
+                    field_dict['value'] = eh_sh
+
+            #else:
+               # value = getattr(instance, field)
+              #  if value:
+                #    field_dict['value'] = value
+
+            item_dict[field] = field_dict
+
+        # --- remove empty attributes from update_dict
+        f.remove_empty_attr_from_dict(item_dict)
+
+# --- end of create_emplhour_itemdict
+ # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+        # logger.debug('create_emplhour_itemdict: ' + str(item_dict))
         if item_dict:
             emplhour_list.append(item_dict)
 
@@ -1501,6 +1753,7 @@ def create_review_list(datefirst, datelast, request):  # PR2019-08-20
 #  case when oh.duration>0 then oh.duration-eh_sub.e_dur else 0 end as diff
 
         # don't show rest shifts)
+    # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
         show_restshifts = False
         cursor.execute("""WITH eh_sub AS (SELECT eh.orderhour_id AS oh_id, 
                                                 ARRAY_AGG(eh.id) AS eh_id,
@@ -1567,6 +1820,7 @@ def reset_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
         datelast = '2500-01-01'
 
 # 2. reset overlap in the timerange
+    # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
     cursor = connection.cursor()
     cursor.execute("""WITH oh_sub AS (SELECT oh.id AS oh_id  
                         FROM companies_orderhour AS oh 
@@ -1632,6 +1886,7 @@ def check_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
     reset_overlapping_shifts(datefirst, datelast, request)
 
 # 3. create list of employees with multiple emplhours in the extended timerange
+    # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
     cursor = connection.cursor()
     cursor.execute("""SELECT eh.employee_id AS empl_id, COUNT(eh.id) 
         FROM companies_emplhour AS eh
@@ -1806,23 +2061,15 @@ def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelas
                 eplh_update_list.append(emplhour.id)
         # logger.debug('eplh_update_list: ' + str(eplh_update_list))
 
-def get_rosterdatefill_dict(company, company_timezone, user_lang):# PR2019-06-17
+def get_rosterdatefill_dict(rosterdate_fill_dte, company):  # PR2019-11-12
     rosterdate_dict = {}
-    rosterdate_current = get_rosterdate_current(company)
-    rosterdate_next = rosterdate_current + timedelta(days=1)
-    rosterdate_dict['current'] = {}
-    rosterdate_dict['next'] = {}
-
-    # TODO: add min max date
-    f.set_fielddict_date(field_dict=rosterdate_dict['current'], date_value=rosterdate_current)
-    f.set_fielddict_date(field_dict=rosterdate_dict['next'], date_value=rosterdate_next)
-
-    # companyoffset stores offset from UTC to company_timezone in seconds
-    datetime_now = datetime.now()
-    timezone = pytz.timezone(company_timezone)
-    datetime_now_aware = datetime_now.astimezone(timezone)
-    companyoffset = datetime_now_aware.utcoffset().total_seconds()
-    rosterdate_dict['companyoffset'] = {'value': companyoffset} # in seconds
+    # count added orderhours
+    row_count = m.Orderhour.objects.filter(
+        order__customer__company=company,
+        rosterdate=rosterdate_fill_dte.isoformat()
+    ).count()
+    rosterdate_dict['row_count'] = row_count
+    rosterdate_dict['rosterdate'] = rosterdate_fill_dte.isoformat()
 
     return rosterdate_dict
 
@@ -2113,11 +2360,11 @@ def get_rosterdate_utc(rosterdate):
     return rosterdate_utc
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+# TODO not in use
 def get_rosterdate_current(company): # PR2019-06-16
 #get next rosterdate from companysetting
-    rstdte_current_str = m.Companysetting.get_setting(c.KEY_COMP_ROSTERDATE_CURRENT, company)
-    rosterdate, msg_err = f.get_date_from_ISOstring(rstdte_current_str)
+    rd_cur_str = m.Companysetting.get_setting(c.KEY_COMP_ROSTERDATE_CURRENT, company)
+    rosterdate, msg_err = f.get_date_from_ISOstring(rd_cur_str)
 
     # logger.debug('rosterdate: ' + str(rosterdate) + ' type: ' + str(type(rosterdate)))
 # if no date found in settings: get first rosterdate of all schemitems of company PR2019-06-07

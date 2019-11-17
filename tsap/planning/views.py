@@ -17,11 +17,10 @@ from customers import dicts as cust_dicts
 
 from tsap import constants as c
 from tsap import functions as f
+from tsap import locale as l
 from planning import dicts as d
 from planning import rosterfill as r
 from employees import dicts as e
-
-from employees.views import update_team_code
 
 from tsap.settings import TIME_ZONE
 from tsap.headerbar import get_headerbar_param
@@ -43,12 +42,16 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= DatalistDownloadView ============= ')
+        logger.debug('request.POST' + str(request.POST))
+        # {'download': ['{"period":{"period_index":5,"datefirst":"2019-11-16","datelast":"2019-11-16","extend_index":3}}']}
 
         datalists = {}
         if request.user is not None:
             if request.user.company is not None:
                 if request.POST['download']:
 
+# TODO update_is_absence is one time only, to be removed after update
+                    f.update_is_absence()
 # - get user_lang
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                     activate(user_lang)
@@ -78,6 +81,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             # 'order': {'cat_lt': 512},
                             # 'order_pricerate': {'value': True}}
 
+
+
                     for table in datalist_dict:
                         table_dict = datalist_dict[table]
                         # logger.debug('table: ' + str(table))
@@ -98,6 +103,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             if request.user.is_role_company_and_perm_admin:
                                 datalists[table]['user_is_role_company_and_perm_admin'] = True
 
+                        if table == 'locale':
+                            datalists['locale_dict'] = l.get_locale_dict(table_dict, user_lang)
+
                         elif table == 'company':
                             company_dict = cust_dicts.create_company_list(company=request.user.company)
                             if company_dict:
@@ -108,14 +116,27 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             cat = table_dict.get('cat')  # None = all
                             cat_lt = table_dict.get('cat_lt')  # None = all
                             inactive = table_dict.get('inactive') # True: show inactive only, False: active only , None: show all
-                            dict_list = cust_dicts.create_customer_list(company=request.user.company, cat=cat, cat_lt=cat_lt, inactive=inactive)
+                            isabsence = table_dict.get('isabsence') # True: show absence only, False: no absence , None: show all
+                            dict_list = cust_dicts.create_customer_list(
+                                                        company=request.user.company,
+                                                        inactive=inactive,
+                                                        isabsence=isabsence,
+                                                        cat=cat,
+                                                        cat_lt=cat_lt)
 
                         elif table == 'order':
                             # default: show orders with cat normal, internal, hide absence and template
                             cat = table_dict.get('cat')  # None = all
                             cat_lt = table_dict.get('cat_lt')  # None = all
-                            inactive = False if not include_inactive else None
-                            dict_list = cust_dicts.create_order_list(company=request.user.company, user_lang=user_lang, cat=cat, cat_lt=cat_lt, inactive=inactive)
+                            inactive = table_dict.get('inactive') # True: show inactive only, False: active only , None: show all
+                            isabsence = table_dict.get('isabsence') # True: show absence only, False: no absence , None: show all
+                            dict_list = cust_dicts.create_order_list(
+                                company=request.user.company,
+                                user_lang=user_lang,
+                                inactive=inactive,
+                                isabsence=isabsence,
+                                cat=cat,
+                                cat_lt=cat_lt)
 
                         elif table == 'order_pricerate':
                             dict_list = cust_dicts.create_order_pricerate_list(company=request.user.company, user_lang=user_lang)
@@ -145,55 +166,35 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         elif table == 'teammember':
                             dict_list = e.create_teammember_list(table_dict, request.user.company, user_lang)
 
+                        elif table == 'rosterdate_check':
+                            # rosterdate_check: {rosterdate: "2019-11-14"}
+                            datalists[table] = d.get_rosterdate_check(table_dict, request)
+
                         elif table == 'period':
-                            logger.debug(' table: ' + str(table))
-                            get_current = False
-                            if 'mode' in table_dict:
-                                if table_dict['mode'] == 'current':
-                                    get_current = True
+                            logger.debug('downloaded period_dict: ' + str(table_dict))
+                            period_dict = d.period_get_and_save(table_dict, request, comp_timezone)
+                            logger.debug('period_dict: ' + str(period_dict))
+                            datalists['period'] = period_dict
 
-                            period_dict = d.get_period_dict_and_save(request, get_current)
-                            datalists[table] = period_dict
-                            # datalist[period]: {'mode': 'range', 'interval': 24, 'overlap_prev': 24, 'overlap_next': 24,
-                            # 'periodstart': '2019-07-29T22:00:00+00:00', 'periodend': '2019-08-01T22:00:00+00:00',
-                            # 'range': '0;0;0;0', 'rangestart': '2019-03-30', 'rangeend': '', 'today': '2019-08-01'}
+                            periodstart_datetimelocal = period_dict.get('periodstart')
+                            periodend_datetimelocal = period_dict.get('periodend')
+                            rosterdatefirst_minus1 = period_dict.get('rosterdatefirst_minus1')
+                            rosterdatelast_plus1 = period_dict.get('rosterdatelast_plus1')
 
-                            is_range = False
-                            show_all = False
-                            if 'mode' in period_dict:
-                                if period_dict['mode'] == 'range':
-                                    is_range = True
-                                if 'range' in period_dict:
-                                    if period_dict['range'] == '0;0;0;0':
-                                        show_all = True
+                            #period_timestart_utc = f.get_datetime_UTC_from_ISOstring(period_timestart_iso)
+                            #period_timeend_utc = f.get_datetime_UTC_from_ISOstring(period_timeend_iso)
 
-                            period_timestart_utc = None
-                            period_timeend_utc = None
-                            range_start_iso = ''
-                            range_end_iso = ''
-                            if is_range:
-                                if 'rangestart' in period_dict:
-                                    range_start_iso = period_dict['rangestart']
-                                if 'rangeend' in period_dict:
-                                    range_end_iso = period_dict['rangeend']
-                            else:
-                                if 'periodstart' in period_dict:
-                                    period_timestart_iso = period_dict['periodstart']
-                                    period_timestart_utc = f.get_datetime_UTC_from_ISOstring(period_timestart_iso)
-                                if 'periodend' in period_dict:
-                                    period_timeend_iso = period_dict['periodend']
-                                    period_timeend_utc = f.get_datetime_UTC_from_ISOstring(period_timeend_iso)
+                            # d.check_overlapping_shifts(range_start_iso, range_end_iso, request)  # PR2019-09-18
+                            # don't use the variable 'list', because table = 'period' and will create dict 'period_list'
+
+                            emplhour_list = d.create_emplhour_list(rosterdatefirst=rosterdatefirst_minus1,
+                                                                   rosterdatelast=rosterdatelast_plus1,
+                                                                   periodtimestart=periodstart_datetimelocal,
+                                                                   periodtimeend=periodend_datetimelocal,
+                                                                   company=request.user.company,
+                                                                   comp_timezone=comp_timezone)
 
 
-                            d.check_overlapping_shifts(range_start_iso, range_end_iso, request)  # PR2019-09-18
-                            # don't use  the variable 'list', because table = 'period' and will create dict 'period_list'
-                            emplhour_list = d.create_emplhour_list(company=request.user.company,
-                                                                 comp_timezone=comp_timezone,
-                                                                 time_min=period_timestart_utc,
-                                                                 time_max=period_timeend_utc,
-                                                                 range_start_iso=range_start_iso,
-                                                                 range_end_iso=range_end_iso,
-                                                                 show_all=show_all)  # PR2019-08-01
 
                             if emplhour_list:
                                 datalists['emplhour_list'] = emplhour_list
@@ -205,20 +206,23 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                             datalists[table] = d.create_review_list(datefirst, datelast, request)
 
-                        elif table == 'rosterplanning':
-                            datefirst, datelast = None, None
-                            employee_list = []
-                            if 'datefirst' in table_dict:
-                                datefirst = table_dict['datefirst']
-                            if 'datelast' in table_dict:
-                                datelast = table_dict['datelast']
-                            if 'employee_list' in table_dict:
-                                employee_list = table_dict['employee_list']
+                        elif table == 'employee_planning':
+                            datefirst = table_dict['datefirst'] if 'datefirst' in table_dict else None
+                            datelast = table_dict['datelast'] if 'datelast' in table_dict else None
+                            employee_list = table_dict['employee_list'] if 'employee_list' in table_dict else []
 
-                            dict_list = r.create_rosterplanning_dictlist(datefirst, datelast, employee_list, comp_timezone, request)
+                            dict_list = r.create_employee_planning(datefirst, datelast, employee_list, comp_timezone, request)
+
+                        elif table == 'customer_planning':
+                            datefirst = table_dict['datefirst'] if 'datefirst' in table_dict else None
+                            datelast = table_dict['datelast'] if 'datelast' in table_dict else None
+                            customer_list = table_dict['customer_list'] if 'customer_list' in table_dict else []
+
+                            dict_list = r.create_customer_planning(datefirst, datelast, customer_list, comp_timezone, request)
 
                         elif table == 'rosterdatefill':
-                            datalists[table] = d.get_rosterdatefill_dict(request.user.company, comp_timezone, user_lang)
+                            pass
+                            # datalists[table] = d.get_rosterdatefill_dict(rosterdate_fill_dte, request.user.company)
 
                         elif table == 'quicksave':
                             # get quicksave from Usersetting
@@ -321,7 +325,7 @@ class RosterView(View):
 
     # get months translated
             lang = user_lang if user_lang in c.MONTHS_ABBREV else c.LANG_DEFAULT
-            months_json = json.dumps(c.MONTHS_LONG[lang])
+            months_json = json.dumps(c.MONTHS_ABBREV[lang])
 
             # get interval
             interval = 1
@@ -2284,15 +2288,15 @@ class PeriodUploadView(UpdateView):  # PR2019-07-12
 
                         # logger.debug('new_period_dict: ' + str(new_period_dict))
 # 9. return emplhour_list
-                    show_all = False
-                    emplhour_list = d.create_emplhour_list(company=request.user.company,
-                                                         comp_timezone=comp_timezone,
-                                                         time_min=period_timestart_utc,
-                                                         time_max=period_timeend_utc,
-                                                         range_start_iso=range_start_iso,
-                                                         range_end_iso=range_end_iso,
-                                                         show_all=show_all)  # PR2019-08-01
 
+                    rosterdatefirst = '2019-11-01'
+                    rosterdatelast = '2019-11-30'
+                    emplhour_list = d.create_emplhour_list(rosterdatefirst=rosterdatefirst,
+                                                           rosterdatelast=rosterdatelast,
+                                                           periodtimestart=period_timestart_utc,
+                                                           periodtimeend=period_timeend_utc,
+                                                           company=request.user.company,
+                                                           comp_timezone=comp_timezone)
 
                     # debug: must also upload when list is empty
                     item_update_dict['emplhour'] = emplhour_list
@@ -2364,7 +2368,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                         quicksave_str = '1' if quicksave_bool else '0'
                         Usersetting.set_setting(c.KEY_USER_QUICKSAVE, quicksave_str, request.user)  # PR2019-07-02
 
-                # 6. get_iddict_variables
+# 6. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 logger.debug('id_dict: ' + str(id_dict))
                 if id_dict:
@@ -2594,12 +2598,19 @@ def make_absent_or_split_shift(mode, emplhour, upload_dict, comp_timezone, reque
         if 'abscat' in upload_dict:
             abscat_dict = upload_dict.get('abscat')
             logger.debug('abscat_dict: ' + str(abscat_dict))
-            abscat_pk = abscat_dict.get('pk')
-            logger.debug('abscat_pk: ' + str(abscat_pk))
-            abscat_order = None
-            if abscat_pk:
+            abscat_team_pk = abscat_dict.get('pk')
+            logger.debug('abscat_team_pk: ' + str(abscat_team_pk))
+
 # - lookup abscat_order
-                abscat_order = m.Order.objects.filter(id=abscat_pk, cat=c.SHIFT_CAT_0512_ABSENCE).first()
+            abscat_order = None
+            if abscat_team_pk:
+                abscat_team = m.Team.objects.get_or_none(
+                    id=abscat_team_pk,
+                    scheme__order__customer__company=request.user.company,
+                    isabsence=True)
+                if abscat_team:
+                    abscat_order = abscat_team.scheme.order
+
 # - set default abscat if category not entered (default abscat has pricerate=1)
             logger.debug('abscat_order: ' + str(abscat_order))
             if abscat_order is None:
@@ -2623,7 +2634,7 @@ def make_absent_or_split_shift(mode, emplhour, upload_dict, comp_timezone, reque
                     monthindex=parent.monthindex,
                     weekindex=parent.weekindex,
                     payperiodindex=parent.payperiodindex,
-                    cat=c.SHIFT_CAT_0512_ABSENCE,
+                    isabsence=True,
                     shift=parent.shift,
                     duration=parent.duration
                 )
@@ -2640,7 +2651,7 @@ def make_absent_or_split_shift(mode, emplhour, upload_dict, comp_timezone, reque
             orderhour=new_orderhour,
             employee=new_employee,
             rosterdate=emplhour.rosterdate,
-            cat=c.SHIFT_CAT_0512_ABSENCE,
+            isabsence=emplhour.isabsence,
             shift=emplhour.shift,
             timestart=new_timestart,
             timeend=emplhour.timeend,
@@ -3335,11 +3346,11 @@ def get_rangemin_rangemax (upload_dict, request):  # PR2019-08-19
 # <<<<<<<<<< recalculate timeduration >>>>>>>>>>>>>>>>>>>
 def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
     # logger.debug('------------------ calc_schemeitem_timeduration --------------------------')
-
+    # called by SchemeitemFillView, update_schemeitem and update_shift > recalc_schemeitems
     offsetstart = 0
     offsetend = 0
     breakduration = 0
-    shift_cat = c.SHIFT_CAT_0000_NORMAL
+    is_restshift = False
     msg_err = None
 
 # a. check if shift exists
@@ -3353,11 +3364,12 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
         offsetend = getattr(shift, 'offsetend')
 # d. get breakduration of this shift
         breakduration = getattr(shift, 'breakduration', 0)
-# e. get shift_cat of this shift
-        shift_cat = getattr(shift, 'cat', c.SHIFT_CAT_0000_NORMAL)
+# e. get is_restshift of this shift
+        is_restshift = getattr(shift, 'isrestshift', False)
 
     # logger.debug('offsetstart :' + str(offsetstart) + ' offsetend :' + str(offsetend))
 
+# f. if error: set 'timestart', 'timeend' to None, 'timeduration' to 0
     if msg_err:
         # when called by SchemeitemFillView, update_dict is blank
         if update_dict:
@@ -3367,15 +3379,17 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
         for fld in ('timestart', 'timeend'):
             setattr(schemeitem, fld, None)
     else:
-        # calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
 
-# a. convert stored rosterdate '2019-08-09' to datetime object
+# calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
+
+# a. convert stored date_obj 'rosterdate' '2019-08-09' to datetime object 'rosterdatetime_naive'
         rosterdatetime_naive = f.get_datetime_naive_from_dateobject(schemeitem.rosterdate)
         # logger.debug(' schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
+            # schemeitem.rosterdate: 2019-11-21 <class 'datetime.date'>
         # logger.debug(' rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
+            # rosterdatetime_naive: 2019-11-21 00:00:00 <class 'datetime.datetime'>
 
 # b. get starttime from rosterdate and offsetstart
-        # logger.debug(' b. get starttime from rosterdate and offsetstart ')
         new_starttime = f.get_datetimelocal_from_offset(
             rosterdate=rosterdatetime_naive,
             offset_int=offsetstart,
@@ -3407,7 +3421,7 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
             new_value = int(datediff_minutes - breakduration)
 
  # when rest shift : timeduration = 0     # cst = 0 = normal, 1 = rest
-            if shift_cat == c.SHIFT_CAT_1024_RESTSHIFT:
+            if is_restshift:
                 new_value = 0
 
             if fieldname not in update_dict:

@@ -46,9 +46,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- get data stored in page
     let el_data = document.getElementById("id_data");
     const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
-    const url_period_upload = get_attr_from_el(el_data, "data-period_upload_url");
+    // TODO rename : const url_period_upload = get_attr_from_el(el_data, "data-period_upload_url");
 
-    const imgsrc_inactive = get_attr_from_el(el_data, "data-imgsrc_inactive");
+    const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
     const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
     const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
     const imgsrc_warning = get_attr_from_el(el_data, "data-imgsrc_warning");

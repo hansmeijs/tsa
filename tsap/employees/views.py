@@ -207,7 +207,7 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
      # a. check if employee has emplhours
                                 has_emplhours = validate_employee_has_emplhours(instance, update_dict)
                                 if not has_emplhours:
-         # b. check if there are teammembers with this employee
+    # b. check if there are teammembers with this employee
                                     delete_employee_from_teammember(instance, request)
      # c. delete employee
                                     deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
@@ -269,13 +269,11 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
                 #               workhoursperday: {value: 0, update: true}
 
                 # upload_dict: {'id': {'pk': 471, 'ppk': 1517, 'table': 'teammember', 'delete': True}}
-                # upload_dict: {'id': {'pk': 550, 'ppk': 1557, 'table': 'teammember', 'delete': True}}
+
     # c. get_iddict_variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
                     pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode = f.get_iddict_variables(id_dict)
-                    cat = f.get_fielddict_variable(upload_dict, 'cat', 'value')
-                    is_absence = f.get_absence(cat)
 
     # d. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
                     # FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast',
@@ -288,7 +286,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
                     update_dict = f.create_update_dict(c.FIELDS_TEAMMEMBER, id_dict)
 
 # A. new absence has no parent, get ppk_int from team_dict and put it back in upload_dict
-                    is_absence = f.get_absence(cat)
+                    is_absence = f.get_fielddict_variable(upload_dict, 'isabsence', 'value')
                     if is_create and is_absence:
                         team_dict = upload_dict.get('team')
                         # logger.debug('team_dict: ' + str(team_dict))
@@ -394,7 +392,9 @@ def create_teammember(upload_dict, update_dict, request):
                                 instance = m.Teammember(
                                     team=parent,
                                     employee=employee,
-                                    cat=parent.cat)
+                                    cat=parent.cat,
+                                    isabsence=parent.isabsence
+                                )
                                 instance.save(request=request)
                             except:
                                 update_dict['id']['error'] = _('This teammember could not be created.')
@@ -402,8 +402,6 @@ def create_teammember(upload_dict, update_dict, request):
                                 update_dict['id']['pk'] = instance.pk
                                 update_dict['id']['created'] = True
 
-                            # logger.debug(' instance.cat' + str(instance.cat))
-                            # logger.debug(' update_dict.cat' + str(update_dict))
     return instance
 
 def update_teammember(instance, upload_dict, update_dict, request):
@@ -416,10 +414,6 @@ def update_teammember(instance, upload_dict, update_dict, request):
     if instance:
 
 # 1. get_iddict_variables
-        # FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast',
-        #                      'workhoursperday', 'wagerate', 'wagefactor',
-        #                      'priceratejson', 'override')
-
         save_changes = False
         for field in c.FIELDS_TEAMMEMBER:
 
@@ -432,7 +426,7 @@ def update_teammember(instance, upload_dict, update_dict, request):
                     new_value = field_dict.get('value')
 
 # 2. save changes in field 'team' (in absence mode parent 'team'' can be changed)
-                    if field in ['team']:
+                    if field == 'team':
                         pk = field_dict.get('pk', 0)
                         team = None
                         if pk:
@@ -450,7 +444,7 @@ def update_teammember(instance, upload_dict, update_dict, request):
 
 # 2. save changes in field 'employee'
             # 'employee': {'update': True, 'value': 'Camila', 'pk': 243}}
-                    elif field in ['employee']:
+                    elif field == 'employee':
                         pk = field_dict.get('pk')
                         employee = None
                         if pk:
@@ -473,7 +467,7 @@ def update_teammember(instance, upload_dict, update_dict, request):
                         setattr(instance, field, employee)
                         is_updated = True
 
-                    elif field in ['workhoursperday']:
+                    elif field == 'workhoursperday':
                         # value is entered as string ('7.5'), in hours
                         # TODO add hour picker in page
                         value = str(field_dict.get('value'))
@@ -506,7 +500,7 @@ def update_teammember(instance, upload_dict, update_dict, request):
                                 is_updated = True
 
         # 4. save changes in fields 'priceratejson'
-                    elif field in ['priceratejson']:
+                    elif field == 'priceratejson':
                         new_rate, msg_err = f.get_rate_from_value(new_value)
                         if msg_err:
                             update_dict[field]['error'] = msg_err
@@ -517,7 +511,7 @@ def update_teammember(instance, upload_dict, update_dict, request):
                                 is_updated = True
 
         # 4. save changes in field 'override'
-                    elif field in ['override']:
+                    elif field == 'override':
                         if not new_value:
                             new_value = False
                         saved_value = getattr(instance, field, False)
@@ -1143,6 +1137,9 @@ def get_initials(firstnames, with_space):
 def delete_employee_from_teammember(employee, request):
     logger.debug(' --- delete_employee_from_teammember ---')
     # delete employee from teammember records, update team.code if necessary PR2019-09-15
+    # if teammember is absence: teammember will be deleted.
+    # else: employee will be removed from teammember
+    # TODO also delete teammember when it is not part of a scheme
     if employee:
         logger.debug(' --- employee <' + str() + '> has the following teammembers:')
         for teammember in m.Teammember.objects.filter(employee=employee):
@@ -1150,60 +1147,19 @@ def delete_employee_from_teammember(employee, request):
         logger.debug(' --- loop teammembers:')
 
         for teammember in m.Teammember.objects.filter(employee=employee):
-# remove teammember if abscat
-            cat = teammember.team.scheme.order.cat
-            is_absence = f.get_absence(cat)
-            logger.debug(' --- teammember ' + str(teammember.id) + ' cat ' + str(teammember.team.catcode))
+
+# delete teammember if is_absence
+            is_absence = teammember.isabsence
+            logger.debug(' --- teammember ' + str(teammember.id) + ' is_absence ' + str(is_absence))
             if is_absence:
                 teammember.delete(request=request)
                 logger.debug(' --- delete_employee_from_ ABSENCE')
             else:
-# remove employee from teammember
+# if not absence: remove employee from teammember
                 teammember.employee = None
                 teammember.save(request=request)
                 logger.debug(' --- remove employee from teammember')
 
-# check if team has other teammembers
-                team = teammember.team
-                other_teammembers_exist = m.Teammember.objects.filter(
-                    Q(team=team) &
-                    ~Q(employee=employee) &
-                    Q(employee__isnull=False)
-                ).exists
-# if so: delete this teammember
-
-                logger.debug(' --- other_teammembers_exist:' + str(other_teammembers_exist))
-                if other_teammembers_exist:
-                      teammember.delete(request=request)
-
-                update_team_code(teammember.team, request)
-
-
-def update_team_code(team, request):
-    #logger.debug(' --- update_team_code --- ')
-    # after deleting teaammmeber, lookup new team_code. Use 'Select employee...' if non available
-    code = None
-    if team:
-        # teammember = m.Teammember.objects.filter(team=team, employee__isnull=False).first()
-
-        # 1. iterate through teammembers, latest enddate first
-        teammembers = m.Teammember.objects.annotate(
-            new_datelast=Coalesce('datelast', Value(datetime(2500, 1, 1))
-                                  )).filter(team=team, employee__isnull=False).order_by('-new_datelast')
-
-        skip_rest = False
-        for teammember in teammembers:
-            employee = teammember.employee
-            code = getattr(employee, 'code')
-
-            if code is None:
-                code = _('Select employee...')
-            #logger.debug('  .... employee code: ' + str(code) +  str(teammember.new_datelast))
-            if not skip_rest:
-                team.code = code
-                team.save(request=request)
-                skip_rest = True
-                #logger.debug('saved team.code: ' + str(team.code))
 
 
 

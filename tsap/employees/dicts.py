@@ -218,9 +218,12 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                 field_dict['table'] = 'teammember'
                 item_dict['pk'] = teammember.pk
 
-            elif field in ['cat']:
+            elif field == 'cat':
                 cat_sum = getattr(teammember, field, 0)
                 field_dict['value'] = cat_sum
+
+            elif field == 'isabsence':
+                field_dict['value'] = teammember.isabsence
 
             # team is parent of teammember
             elif field == 'team':
@@ -326,6 +329,7 @@ def create_employee_pricerate_list(company, user_lang):
 
 # 1 create list of employees with teammembers, LEFT JOIN, includes employees without teammember
     #  LOWER(e.code) must be in SELECT
+    # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
     newcursor = connection.cursor()
     newcursor.execute("""WITH tm_sub AS (SELECT tm.id AS tm_id, tm.employee_id AS e_id, tm.team_id AS team_id, 
             c.code AS c_code, o.code AS o_code, s.code AS s_code, 

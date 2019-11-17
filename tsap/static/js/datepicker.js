@@ -313,7 +313,9 @@ while (i < calendarObj.length) {
 }
 
 //+++++++++++++++++++++++++++
-$(document).ready(function() {
+// PR2019-02-07 deprecated: $(document).ready(function() {
+// with pure vanilla Javascript. Was jQuery: $(function() {
+document.addEventListener('DOMContentLoaded', function() {
 
     console.log("Customers document.ready");
 

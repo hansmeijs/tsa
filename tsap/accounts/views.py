@@ -343,13 +343,13 @@ class UserEditView(UserPassesTestMixin, UpdateView):
 class UserLanguageView(View):
 
     def get(self, request, lang, pk):
-        logger.debug('UserLanguageView get self: ' + str(self) + 'request: ' + str(request) + ' lang: ' + str(lang) + ' pk: ' + str(pk))
+        # logger.debug('UserLanguageView get self: ' + str(self) + 'request: ' + str(request) + ' lang: ' + str(lang) + ' pk: ' + str(pk))
         if request.user is not None :
-            logger.debug('UserLanguageView get request.user: ' + str(request.user))
+            # logger.debug('UserLanguageView get request.user: ' + str(request.user))
             request.user.lang = lang
-            logger.debug('UserLanguageView get request.user.language: ' + str(request.user.lang))
+            # logger.debug('UserLanguageView get request.user.language: ' + str(request.user.lang))
             request.user.save(self.request)
-            logger.debug('UserLanguageView get saved.language: ' + str(request.user.lang))
+            # logger.debug('UserLanguageView get saved.language: ' + str(request.user.lang))
         return redirect('home')
 
 
@@ -370,7 +370,7 @@ class UserActivateView(UpdateView):
     context_object_name = 'UserActivateForm'  # "context_object_name" changes the original parameter name "object_list"
     # this one doesnt word: goes to login form, user not activated
     def activate(request, uidb64, token):
-        logger.debug('UserActivateView def activate request: ' +  str(request))
+        # logger.debug('UserActivateView def activate request: ' +  str(request))
 
         #try:
         uid = force_text(urlsafe_base64_decode(uidb64))
@@ -391,7 +391,7 @@ class UserActivateView(UpdateView):
             user.is_active = True
             user.activated = True
             user.save()
-            logger.debug('UserActivateView def activate user.saved: ' + str(user))
+            # logger.debug('UserActivateView def activate user.saved: ' + str(user))
             # login(request, user)
             # logger.debug('UserActivateView def activate user.loggedin: ' + str(user))
 
@@ -406,15 +406,15 @@ class UserActivateView(UpdateView):
                     if request.user.is_role_school_perm_admin:
                         display_school = True
 
-            param = {'display_school': display_school, 'display_user': True, }
+            param = {'display_user': True }
             headerbar_param = f.get_headerbar_param(request, param)
             headerbar_param['form'] = form
-            logger.debug('def home(request) headerbar_param: ' + str(headerbar_param))
+            # logger.debug('def home(request) headerbar_param: ' + str(headerbar_param))
 
             return render(request, 'user_add.html', headerbar_param)
 
         else:
-            logger.debug('def activate account_activation_token.check_token False')
+            # logger.debug('def activate account_activation_token.check_token False')
             return render(request, 'account_activation_invalid.html')
 
 

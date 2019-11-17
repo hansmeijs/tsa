@@ -1,5 +1,7 @@
 // PR2019-02-07 deprecated: $(document).ready(function() {
-$(function() {
+// PR2019-11-09
+// with pure vanilla Javascript. Was jQuery: $(function() {
+document.addEventListener('DOMContentLoaded', function() {
         "use strict";
         console.log("Schemes document.ready");
 
@@ -26,12 +28,14 @@ $(function() {
         let selected_team_pk = 0;
         let selected_item_pk = 0;
         let show_templates = false;
+        let rosterdate_dict = {};
 
         let setting_customer_pk = 0;
         let setting_order_pk = 0;
         let setting_scheme_pk = 0;
 
         let mod_upload_dict = {};
+        let loc = {};  // locale_dict
 
 // ---  id_new assigns fake id to new records
         let id_new = 0;
@@ -128,7 +132,7 @@ $(function() {
         const interval = get_attr_from_el_int(el_data, "data-interval");
         const timeformat = get_attr_from_el(el_data, "data-timeformat");
 
-        const imgsrc_inactive = get_attr_from_el(el_data, "data-imgsrc_inactive");
+        const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
         const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
         const imgsrc_active_lightgrey = get_attr_from_el(el_data, "data-imgsrc_active_lightgrey");
 
@@ -159,7 +163,7 @@ $(function() {
         let el_btn_autofill = document.getElementById("id_btn_autofill")
             el_btn_autofill.addEventListener("click", function() {HandleAutofillDayupDown("autofill")}, false )
         let el_btn_scheme_delete = document.getElementById("id_btn_scheme_delete")
-            el_btn_scheme_delete.addEventListener("click", function() {ModConfirmDeleteOpen("schemeitems")}, false )
+            el_btn_scheme_delete.addEventListener("click", function() {ModConfirmOpen("schemeitems")}, false )
 
 // --- hide fill buttons
         ShowSchemeFillButtons(false);
@@ -208,6 +212,10 @@ $(function() {
 // ---  save button in ModConfirm
         let el_confirm_btn_save = document.getElementById("id_confirm_btn_save");
             el_confirm_btn_save.addEventListener("click", function(){ModConfirmSave()});
+
+// ---  save and delete button in ModRosterdate
+        document.getElementById("id_mod_rosterdate_input").addEventListener("change", function(){ModRosterdateEdit()}, false)
+        document.getElementById("id_mod_rosterdate_btn_ok").addEventListener("click", function(){ModRosterdateSave()}, false)
 
 // ---  Popup date
         let el_popup_date_container = document.getElementById("id_popup_date_container");
@@ -287,31 +295,31 @@ $(function() {
             };
         }, false);
 
-
-// --- create Submenu
-        CreateSubmenu()
-
 // --- create header row and addnew row
         const tblList = ["scheme", "shift", "team"]
         for (let i = 0; i < 3; i++) {
             CreateSelectHeaderRow(tblList[i]);
             CreateSelectAddnewRow(tblList[i])
         }
+
 // --- create header row
         CreateTblHeader("schemeitem");
 
+// --- first get locale, to make it faster
+        DatalistDownload({"setting": {"page_scheme": {"mode": "get"},
+                                      "selected_pk": {"mode": "get"},
+                                      "quicksave": {"mode": "get"},
+                                      },
+                           "locale": {page: "scheme"}
+                           });
+
         const cat_lt = 512  // less then 512 = absence // 4096 template
-        const datalist_request = {"setting": {"page_scheme": {"mode": "get"},
-                                              "selected_pk": {"mode": "get"},
-                                              "quicksave": {"mode": "get"}},
-                                  "customer": {inactive: false, "cat_lt": cat_lt},
+        const datalist_request = {"customer": {inactive: false, "cat_lt": cat_lt},
                                   "order": {inactive: false, "cat_lt": cat_lt},
                                   "order_template": {inactive: false},
                                   "scheme_template": {inactive: false},
                                   "schemeitem_template": {inactive: false},
-                                  "employee": {inactive: false},
-                                  "rosterdatefill": {next: true}
-                                  };
+                                  "employee": {inactive: false}};
         DatalistDownload(datalist_request);
 
 //  #############################################################################################################
@@ -319,7 +327,7 @@ $(function() {
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request) {
         console.log( "=== DatalistDownload ")
-        //console.log( "datalist_request", datalist_request)
+        console.log( "datalist_request", datalist_request)
 
 // reset requested lists
         for (let key in datalist_request) {
@@ -344,6 +352,13 @@ $(function() {
                 // hide loader
                 el_loader.classList.add(cls_hide)
 
+
+                if ("locale_dict" in response) {
+                    loc = response["locale_dict"];
+                    // --- create Submenu after downloading locale
+                    CreateSubmenu()
+                }
+
                 // setting_list come before 'customer' and 'order'
                 if ("setting_list" in response) {
                     UpdateSettings(response["setting_list"])
@@ -363,10 +378,6 @@ $(function() {
 
                     HandleSelectCustomer(el_select_customer)
                 }
-                const data_txt = (show_templates) ? "data-txt_hide_templates" : "data-txt_show_templates" ;
-                const btn_txt = get_attr_from_el_str(el_data, data_txt);
-                document.getElementById("id_submenu_show_templates").innerText = btn_txt;
-
 
                 if ("order_template_list" in response) {
                     order_template_list = response["order_template_list"]}
@@ -377,12 +388,14 @@ $(function() {
                 if ("schemeitem_template_list" in response) {
                     schemeitem_template_list = response["schemeitem_template_list"]}
 
-
-
-
                 if ("employee_list" in response) {
                     get_datamap(response["employee_list"], employee_map)
                 }
+
+                if ("rosterdate_check" in response) {
+                    ModRosterdateChecked(response["rosterdate_check"]);
+                };
+
                 if ("quicksave" in response) {
                     quicksave =  get_subdict_value_by_key(response, "quicksave", "value", false)
                 }
@@ -415,43 +428,20 @@ $(function() {
 
         let el_submenu = document.getElementById("id_submenu")
         let el_div = document.createElement("div");
+
+    // --- first add <a> element with EventListener to td
+
+
+        CreateSubmenuButton(el_div, null, loc.menubtn_add_scheme, null, ModSchemeOpen);
+        CreateSubmenuButton(el_div, null, loc.menubtn_copy_from_template, "mx-2", ModalCopyfromTemplateOpen);
+        CreateSubmenuButton(el_div, null, loc.menubtn_copy_to_template, "mx-2", ModalCopytoTemplateOpen);
+        CreateSubmenuButton(el_div, "id_menubtn_show_templates", loc.menubtn_show_templates, "mx-2", TemplateShow);
+        CreateSubmenuButton(el_div, null, loc.menubtn_roster_create, "mx-2", ModRosterdateCreate);
+        CreateSubmenuButton(el_div, null, loc.menubtn_roster_delete, "mx-2", ModRosterdateDelete);
+
         el_submenu.appendChild(el_div);
-
-    // --- first add <a> element with EventListener to td
-        let el_a = document.createElement("a");
-        el_a.innerText = get_attr_from_el_str(el_data, "data-txt_scheme_add");
-        el_a.setAttribute("href", "#");
-        el_a.addEventListener("click", function() {ModSchemeOpen()}, false )
-        el_div.appendChild(el_a);
-
-    // --- first add <a> element with EventListener to td
-        el_a = document.createElement("a");
-        el_a.setAttribute("id", "id_period_current");
-        el_a.setAttribute("href", "#");
-        el_a.classList.add("mx-2")
-        el_a.innerText =  get_attr_from_el_str(el_data, "data-txt_scheme_from_template");
-        el_a.addEventListener("click", function() {ModalCopyfromTemplateOpen()}, false )
-        el_div.appendChild(el_a);
-
-    // --- first add <a> element with EventListener to td
-        el_a = document.createElement("a");
-        el_a.setAttribute("id", "id_period_current");
-        el_a.setAttribute("href", "#");
-        el_a.classList.add("mx-2")
-        el_a.innerText = get_attr_from_el_str(el_data, "data-txt_scheme_to_template");
-        el_a.addEventListener("click", function() {ModalCopytoTemplateOpen()}, false )
-        el_div.appendChild(el_a);
-
-    // --- add <a> element with EventListener to td
-        el_a = document.createElement("a");
-        el_a.setAttribute("id", "id_submenu_show_templates");
-        el_a.setAttribute("href", "#");
-        el_a.classList.add("mx-2")
-        el_a.innerText = get_attr_from_el_str(el_data, "data-txt_show_templates");
-        el_a.addEventListener("click", function() {TemplateShow()}, false )
-        el_div.appendChild(el_a);
-
         el_submenu.classList.remove(cls_hide);
+
 
     };//function CreateSubmenu
 
@@ -460,9 +450,8 @@ $(function() {
         //console.log("--- TemplateShow")
         show_templates = !show_templates
 
-       // const data_txt = (show_templates) ? "data-txt_hide_templates" : "data-txt_show_templates" ;
-        //const btn_txt = get_attr_from_el_str(el_data, data_txt);
-       // document.getElementById("id_submenu_show_templates").innerText = btn_txt;
+        const btn_txt = (show_templates) ? loc.menubtn_show_templates : loc.menubtn_hide_templates ;
+        document.getElementById("id_menubtn_show_templates").innerText = btn_txt;
 
         //cat = 512= absence // ct = 4096 template
         let datalist_request;
@@ -933,63 +922,11 @@ $(function() {
 
         // update icon
         let imgsrc;
-        if (is_inactive) {imgsrc = imgsrc_inactive} else {imgsrc = imgsrc_active}
+        if (is_inactive) {imgsrc = imgsrc_inactive_black} else {imgsrc = imgsrc_active}
         el_changed.children[0].setAttribute("src", imgsrc);
 
         UploadElChanged(el_changed)
     }  // HandleInactiveClicked
-
-
-//========= UploadDeleteInactive  ============= PR2019-09-23
-    function UploadDeleteInactive(mode, el_input) {
-        console.log( " ==== UploadDeleteInactive ====", mode);
-
-        let tblRow = get_tablerow_selected(el_input)
-        if(!!tblRow){
-            const tblName = get_attr_from_el(tblRow, "data-table")
-            const pk_str = get_attr_from_el(tblRow, "data-pk")
-            const map_id = get_map_id(tblName, pk_str);
-            const map_dict = get_map_dict_from_tblRow(tblRow);
-
-            console.log( "tblName", tblName, typeof tblName);
-            console.log( "pk_str", pk_str, typeof pk_str);
-            console.log( "map_id", map_id, typeof map_id);
-            console.log( "map_dict", map_dict);
-
-            if (!isEmpty(map_dict)){
-    // ---  create upload_dict with id_dict
-                let upload_dict = {"id": map_dict["id"]};
-                mod_upload_dict = {"id": map_dict["id"]};
-                if (tblName === "teammember" && !isEmpty(map_dict["employee"])){
-                    mod_upload_dict["employee"] = map_dict["employee"]
-                };
-
-                if (mode === "delete"){
-                    mod_upload_dict["id"]["delete"] = true;
-                    ModConfirmOpen("delete", el_input);
-                    return false;
-                } else if (mode === "inactive"){
-            // get inactive from map_dict
-                    const inactive = get_subdict_value_by_key(map_dict, "inactive", "value", false)
-            // toggle inactive
-                    const new_inactive = (!inactive);
-                    upload_dict["inactive"] = {"value": new_inactive, "update": true};
-            // change inactive icon, before uploading
-                    format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive, imgsrc_active_lightgrey)
-            // ---  show modal, only when made inactive
-                    if(!!new_inactive){
-                        mod_upload_dict["inactive"] = {"value": new_inactive, "update": true};
-                        ModConfirmOpen("inactive", el_input);
-                        return false;
-                    }
-                }
-                const url_str = (tblName === "teammember") ? url_teammember_upload : url_scheme_shift_team_upload
-                UploadChanges(upload_dict, url_str);
-
-            }  // if (!isEmpty(map_dict))
-        }  //   if(!!tblRow)
-    }  // UploadDeleteInactive
-
 
 // +++++++++  HandleAutofillDayupDown  ++++++++++++++++++++++++++++++ PR2019-03-16 PR2019-06-14
     function HandleAutofillDayupDown(param_name) {
@@ -1057,8 +994,6 @@ $(function() {
             tblBody.setAttribute("data-ppk", ppk);
         }
     }  // HandleTemplateSelect
-
-
 
 //=========  HandleCreateSchemeItem  ================ PR2019-03-16
     function HandleCreateSchemeItem() {
@@ -1139,12 +1074,11 @@ $(function() {
 
 // toggle icon
         let img_src;
-        if(filter_hide_inactive) {img_src = imgsrc_active} else {img_src = imgsrc_inactive}
+        if(filter_hide_inactive) {img_src = imgsrc_active} else {img_src = imgsrc_inactive_black}
         el.firstChild.setAttribute("src", img_src);
 
         FilterTableRows(tblBody_scheme_select, "", 1, filter_hide_inactive)
     }  // function HandleFilterInactive
-
 
 //##################################################################################
 
@@ -1628,16 +1562,16 @@ $(function() {
 
 
         if (!!selected_order_pk){
-            document.getElementById("id_select_table_scheme").classList.remove("display_hide")
+            document.getElementById("id_select_table_scheme").classList.remove(cls_hide)
         } else {
-            document.getElementById("id_select_table_scheme").classList.add("display_hide")
+            document.getElementById("id_select_table_scheme").classList.add(cls_hide)
         }
         if (!!selected_scheme_pk){
-            document.getElementById("id_select_table_shift").classList.remove("display_hide")
-            document.getElementById("id_select_table_team").classList.remove("display_hide")
+            document.getElementById("id_select_table_shift").classList.remove(cls_hide)
+            document.getElementById("id_select_table_team").classList.remove(cls_hide)
         } else {
-            document.getElementById("id_select_table_shift").classList.add("display_hide")
-            document.getElementById("id_select_table_team").classList.add("display_hide")
+            document.getElementById("id_select_table_shift").classList.add(cls_hide)
+            document.getElementById("id_select_table_team").classList.add(cls_hide)
         }
 // ++++++ select row if only exists or when setting_scheme_pk has value  ++++++
         // TODO
@@ -1660,7 +1594,7 @@ $(function() {
 
 //========= CreateSelectHeaderRow  ============= PR2019-11-02
     function CreateSelectHeaderRow(tblName, row_count) {
-        console.log("CreateSelectHeaderRow tblName: " , tblName)
+        //console.log("CreateSelectHeaderRow tblName: " , tblName)
 
         let caption = null;
         if (tblName === "scheme"){
@@ -1679,19 +1613,19 @@ $(function() {
     // ++++++ add tHeadRow  ++++++
         let tblHead = document.getElementById("id_select_thead_" + tblName)
         tblHead.innerText = null
-        console.log("tblHead: " , tblHead)
+        //console.log("tblHead: " , tblHead)
         let tHeadRow = tblHead.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
             let th = document.createElement('th');
                 th.innerText = caption
                 th.classList.add("px-2")
         tHeadRow.appendChild(th);
-        console.log("tHeadRow: " , tHeadRow)
+        //console.log("tHeadRow: " , tHeadRow)
 
     }  // CreateSelectHeaderRow
 
 //========= CreateSelectAddnewRow  ============= PR2019-11-01
     function CreateSelectAddnewRow(tblName) {
-        console.log("CreateSelectAddnewRow tblName: " , tblName)
+        console.log(">>>>>>>>>>>>>>>>CreateSelectAddnewRow tblName: " , tblName)
         let ppk_int = (tblName === "scheme") ? selected_order_pk : selected_scheme_pk
         // ppk_int has no value yet, because AddnewRow is added at startup
 
@@ -1709,8 +1643,6 @@ $(function() {
         tblRow.setAttribute("data-ppk", ppk_int)
         tblRow.setAttribute("data-table", tblName);
 
-        console.log("CreateSelectAddnewRow tblName: " , tblName)
-
         tblRow.classList.add(cls_bc_lightlightgrey);
     //- add hover to tblFoot row
         // don't add hover to row 'Add scheme/Team'
@@ -1722,6 +1654,7 @@ $(function() {
         // index -1 results in that the new cell will be inserted at the last position.
         let td = tblRow.insertCell(-1);
         let el_a = document.createElement("div");
+
     // --- add EventListener to input element, add innerText
             if (tblName === "scheme"){
                 el_a.innerText = get_attr_from_el(el_data, "data-txt_scheme_add") + "..."
@@ -1766,7 +1699,7 @@ $(function() {
                 el.classList.add("ml-4")
                 el.title = get_attr_from_el(el_data, "data-txt_shift_rest")
             } else if (tblName === "schemeitem" && j === 6) {
-                AppendChildIcon(el, imgsrc_inactive);
+                AppendChildIcon(el, imgsrc_inactive_black);
                 el.classList.add("ml-4")
             } else {
 // --- add caption to el, keep last th empty (delete column)
@@ -1811,7 +1744,7 @@ $(function() {
              if ([6, 7].indexOf( j ) > -1){
                 //el = document.createElement("a");
                 //el.setAttribute("href", "#");
-                //AppendChildIcon(el, imgsrc_inactive, "18");
+                //AppendChildIcon(el, imgsrc_inactive_black, "18");
                 //el.classList.add("ml-2")
             } else {
 // --- add input element to td.
@@ -1836,7 +1769,6 @@ $(function() {
 
         }  // for (let j = 0;
     };  //function CreateTblHeaderFilter
-
 
 //========= FillTableRows  ====================================
     function FillTableRows(tblName, selected_ppk_int) {
@@ -2206,7 +2138,7 @@ $(function() {
         console.log("id_dict: ", id_dict);
 
 // add id_dict to upload_dict
-        if (!!id_dict){
+        if (!isEmpty(id_dict)){
 
 // skip if parent_pk does not exist (then it is an empty scheme)
             if(!!id_dict["ppk"]){
@@ -2254,7 +2186,7 @@ $(function() {
                 };  //  for (let i = 0, el_input,
 
             }  // if(!!id_dict["arent_pk"])
-        };  // if (!!id_dict){
+        };  // if (!isEmpty(id_dict))
 
         console.log("upload_dict", upload_dict);
 
@@ -2279,7 +2211,7 @@ $(function() {
         let id_dict = get_dict_value_by_key(team_dict, "id");
         console.log("id_dict: ", id_dict);
         // add id_dict to upload_dict
-        if (!!id_dict){
+        if (!isEmpty(id_dict)){
             let upload_dict = {"id": id_dict};
 
             const new_value = el_team_code.value;
@@ -2382,7 +2314,7 @@ $(function() {
             }
     // add id_dict to dict
             let upload_dict = {};
-            if (!!id_dict){
+            if (!isEmpty(id_dict)){
                 upload_dict["id"] = id_dict
                 // el_input is first child of td, td is cell of tblRow
                 let fieldname, value, o_value, n_value, field_dict = {};
@@ -2399,7 +2331,7 @@ $(function() {
                 };
                 // add field_dict to upload_dict
                 if (!isEmpty(field_dict)){upload_dict["code"] = field_dict;};
-            };  // if (!!id_dict){
+            };  // if (!isEmpty(id_dict))
 
             const parameters = {"upload": JSON.stringify (upload_dict)}
             console.log("upload_dict", upload_dict);
@@ -2465,7 +2397,7 @@ $(function() {
         //console.log("id_dict", id_dict);
 
     // add id_dict to dict
-            if (!!id_dict){
+            if (!isEmpty(id_dict)){
                 upload_dict["id"] = id_dict
                 // el_input is first child of td, td is cell of tblRow
                 let fieldname, value, o_value, n_value, field_dict = {};
@@ -2482,7 +2414,7 @@ $(function() {
                 };
                 // add field_dict to upload_dict
                 if (!isEmpty(field_dict)){upload_dict["code"] = field_dict;};
-            };  // if (!!id_dict){
+            };  // if (!isEmpty(id_dict))
 
             const parameters = {"upload": JSON.stringify (upload_dict)}
             console.log("upload_dict", upload_dict);
@@ -2537,6 +2469,33 @@ $(function() {
         }  // if (!!tblRow)
     }  // function UploadSchemeOrShiftOrTeam
 
+//=========  UploadTeammember  ================ PR2019-11-11
+    function UploadTeammember(mod_upload_dict) {
+        console.log(" === UploadTeammember ===")
+        console.log("mod_upload_dict " , mod_upload_dict)
+        const id_dict = get_dict_value_by_key(mod_upload_dict, "id")
+        const is_delete = get_dict_value_by_key(mod_upload_dict, "delete", false)
+
+    // make tblRow red when delete
+        if("delete" in id_dict){
+        console.log("id_dict " , id_dict)
+            const pk_int = get_dict_value_by_key(id_dict, "pk");
+            const tblName = get_dict_value_by_key(id_dict, "table");
+            const map_id = get_map_id(tblName, pk_int);
+            let tr_changed = document.getElementById(map_id);
+
+
+            if(!!tr_changed){
+                tr_changed.classList.add("tsa_tr_error");
+                setTimeout(function (){
+                    tr_changed.classList.remove("tsa_tr_error");
+                    }, 2000);
+            }
+        }
+
+        UploadChanges(mod_upload_dict, url_teammember_upload)
+        // TODO refresh selecttable
+    }  // function UploadTeammember
 
 //========= UploadTimepickerChanged  ============= PR2019-10-12
     function UploadTimepickerChanged(tp_dict) {
@@ -2584,6 +2543,60 @@ $(function() {
         }
 
  }  //UploadTimepickerChanged
+
+
+
+//========= UploadDeleteInactive  ============= PR2019-09-23
+    function UploadDeleteInactive(mode, el_input) {
+        console.log( " ==== UploadDeleteInactive ====", mode);
+
+        let tblRow = get_tablerow_selected(el_input)
+        if(!!tblRow){
+            const tblName = get_attr_from_el(tblRow, "data-table")
+            const pk_str = get_attr_from_el(tblRow, "data-pk")
+            const map_id = get_map_id(tblName, pk_str);
+            const map_dict = get_map_dict_from_tblRow(tblRow);
+
+            console.log( "tblName", tblName, typeof tblName);
+            console.log( "pk_str", pk_str, typeof pk_str);
+            console.log( "map_id", map_id, typeof map_id);
+            console.log( "map_dict", map_dict);
+
+            if (!isEmpty(map_dict)){
+    // ---  create upload_dict with id_dict
+                let upload_dict = {"id": map_dict["id"]};
+                mod_upload_dict = {"id": map_dict["id"]};
+                if (tblName === "teammember" && !isEmpty(map_dict["employee"])){
+                    mod_upload_dict["employee"] = map_dict["employee"]
+                };
+
+                if (mode === "delete"){
+                    mod_upload_dict["id"]["delete"] = true;
+                    ModConfirmOpen("delete", el_input);
+                    return false;
+                } else if (mode === "inactive"){
+            // get inactive from map_dict
+                    const inactive = get_subdict_value_by_key(map_dict, "inactive", "value", false)
+            // toggle inactive
+                    const new_inactive = (!inactive);
+                    upload_dict["inactive"] = {"value": new_inactive, "update": true};
+            // change inactive icon, before uploading
+                    format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive_black, imgsrc_active_lightgrey)
+            // ---  show modal, only when made inactive
+                    if(!!new_inactive){
+                        mod_upload_dict["inactive"] = {"value": new_inactive, "update": true};
+                        ModConfirmOpen("inactive", el_input);
+                        return false;
+                    }
+                }
+                const url_str = (tblName === "teammember") ? url_teammember_upload : url_scheme_shift_team_upload
+                UploadChanges(upload_dict, url_str);
+
+            }  // if (!isEmpty(map_dict))
+        }  //   if(!!tblRow)
+    }  // UploadDeleteInactive
+
+
 
 //========= UploadElChanged  ============= PR2019-03-03
     function UploadElChanged(el_input) {
@@ -2783,6 +2796,10 @@ $(function() {
                     if ("scheme_update" in response) {
                         UpdateFromResponse(response["scheme_update"]);
                     }
+                    if ("rosterdate" in response) {
+                        ModRosterdateFinished(response["rosterdate"]);
+                    }
+
                 },
                 error: function (xhr, msg) {
                     console.log(msg + '\n' + xhr.responseText);
@@ -2803,11 +2820,11 @@ $(function() {
 
 //--- get id_dict of updated item
         const id_dict = get_dict_value_by_key (update_dict, "id");
-            const tblName = ("table" in id_dict) ? id_dict["table"] : null;
-            const pk_int = ("pk" in id_dict) ? id_dict["pk"] : null;  // update_dict["pk"] does not exist when item is deleted
-            const ppk_int = ("ppk" in id_dict) ? id_dict["ppk"] : null;
-            const temp_pk_str = ("temp_pk" in id_dict) ? id_dict["temp_pk"] : null;
-            const map_id = get_map_id(tblName, pk_int.toString());
+            const tblName = get_dict_value_by_key(id_dict, "table");
+            const pk_int = get_dict_value_by_key(id_dict, "pk");
+            const ppk_int = get_dict_value_by_key(id_dict, "ppk");
+            const temp_pk_str = get_dict_value_by_key(id_dict, "temp_pk");
+            const map_id = get_map_id(tblName, pk_int);
             const is_created = ("created" in id_dict);
             const is_deleted = ("deleted" in id_dict);
 
@@ -2829,10 +2846,6 @@ $(function() {
             let row_id_str = ((is_created) || (!is_created && !map_id)) ? tblName + "_" + temp_pk_str : map_id;
             let tblRow = document.getElementById(row_id_str);
 
-            console.log("is_created", is_created);
-            console.log("map_id", map_id);
-            console.log("row_id_str", row_id_str);
-            console.log("tblRow", tblRow);
 
 //--- update Table Row
             if (["shift", "teammember", "schemeitem"].indexOf( tblName ) > -1){
@@ -2843,8 +2856,8 @@ $(function() {
             if (is_created){
                 id_new = id_new + 1
                 const pk_new = "new" + id_new.toString()
-
                 const new_dict = {"id":{"pk": pk_new, "ppk": ppk_int}}
+
                 let tblRow = CreateTblRow(tblName, pk_new, ppk_int.toString(), true);
                 UpdateTableRow(tblRow, new_dict)
             }
@@ -2887,10 +2900,9 @@ $(function() {
        //     FillSelectTable(tblName, pk_int, true)
       //  }
 
-
 //--- remove 'updated', deleted created and msg_err from update_dict
         // NOTE: first update tblRow, then remove these keys from update_dict, then replace update_dict in map
-        //remove_err_del_cre_updated__from_itemdict(update_dict)
+        remove_err_del_cre_updated__from_itemdict(update_dict)
 
 //--- replace updated item in map or remove deleted item from map
         if(is_deleted){
@@ -2922,9 +2934,9 @@ $(function() {
 
 //--- refresh header text
 // TODO correct
-        if(pk_int === selected_cust_pk){
-            UpdateHeaderText();
-        }
+
+        UpdateHeaderText();
+
 
     }  // UpdateFromResponse
 
@@ -3045,7 +3057,13 @@ $(function() {
                 } else if (fieldname === "isrestshift"){
                     format_restshift_element (el_input, field_dict,
                         imgsrc_rest_black, imgsrc_stat00, title_restshift)
-                } else if (["shift", "team"].indexOf( fieldname ) > -1){
+                } else if (fieldname === "shift"){
+                    el_input.value = pk_int
+                    el_input.setAttribute("data-value", value);
+                    el_input.setAttribute("data-pk", pk_int);
+                } else if (fieldname === "team"){
+                console.log("--- update_dict  --------------", update_dict);
+
                     el_input.value = pk_int
                     el_input.setAttribute("data-value", value);
                     el_input.setAttribute("data-pk", pk_int);
@@ -3058,7 +3076,7 @@ $(function() {
                     format_duration_element (el_input, el_msg, field_dict, user_lang)
                 } else if (fieldname === "inactive") {
                    if(isEmpty(field_dict)){field_dict = {value: false}}
-                   format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active)
+                   format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_active)
                 };
             }  else {
 
@@ -3099,7 +3117,8 @@ $(function() {
 //=========  UpdateHeaderText ================ PR2019-10-06
     function UpdateHeaderText(is_addnew_mode) {
         //console.log( "===== UpdateHeaderText  ========= ");
-// TODO correct
+// TODO correct -- selected_mode is temp to prevent err msg
+        const selected_mode = "customer";
         let header_text = null;
         if (selected_mode === "customer") { //show 'Customer list' in header when List button selected
             header_text = get_attr_from_el_str(el_data, "data-txt_customer_list")
@@ -3286,7 +3305,33 @@ $(function() {
         } // if(!!tr_clicked)
     }  // function UpdateSchemeInputElements
 
+// +++++++++  UpdateRosterdateFilled  ++++++++++++++++++++++++++++++ PR2019-11-12
+    function UpdateRosterdateFilled(update_dict) {
+        console.log(" -----  UpdateRosterdateFilled   ----")
+        console.log("update_dict", update_dict)
+        // update_dict: {row_count: 10, rosterdate: "2019-11-04"}
 
+ // hide loader in modal form
+        document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
+
+// info
+        const new_rosterdate = get_subdict_value_by_key(update_dict, "rosterdate", "rosterdate")
+        const row_count = Number(get_subdict_value_by_key(update_dict, "rosterdate", "row_count"));
+        const rosterdate_formatted = format_date_iso (new_rosterdate, month_list, weekday_list, false, false, user_lang)
+
+        let info_01 = null
+        if(!!row_count){
+            if(row_count === 1){
+                info_01 = loc.rosterdate_added_one; // One shift was added.'
+            } else {
+                info_01 = row_count.toString() + loc.rosterdate_added_multiple
+            }
+            info_01 +=  loc.rosterdate_added_success
+        }
+        document.getElementById("id_mod_rosterdate_info_01").innerText = info_01;
+        document.getElementById("id_mod_rosterdate_btn_ok").innerText = loc.btn_close;
+
+    }
 //###########################################################################
 // ++++++++++++  MODALS +++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -3323,7 +3368,6 @@ $(function() {
                        (tblName === "team") ? "data-txt_conf_team" : null
         let msg_01_txt = get_attr_from_el(el_data, data_key);
         let msg_02_txt = null;
-
 
         if (mode === "inactive"){
             msg_01_txt = msg_01_txt + " " + get_attr_from_el(el_data, "data-txt_conf_inactive");
@@ -3374,7 +3418,6 @@ $(function() {
             header_text = get_subdict_value_by_key(map_dict, "code", "value")
         }
 
-
         document.getElementById("id_confirm_header").innerText = header_text;
         document.getElementById("id_confirm_msg01").innerText = msg_01_txt;
         // TODO document.getElementById("id_confirm_msg02").innerText = msg_02_txt;
@@ -3392,6 +3435,7 @@ $(function() {
 
 // ---  hide modal
         $('#id_mod_confirm').modal('hide');
+
 // ---  Upload Changes
         const tblName = get_subdict_value_by_key(mod_upload_dict,"id", "table")
         if(tblName === "schemeitem"){
@@ -3401,11 +3445,276 @@ $(function() {
                 UploadChanges(mod_upload_dict, url_schemeitem_upload)
             }
         } else if(tblName === "teammember"){
-            UploadChanges(mod_upload_dict, url_teammember_upload)
+            UploadTeammember(mod_upload_dict, url_teammember_upload)
         } else {
             UploadChanges(mod_upload_dict, url_scheme_shift_team_upload)
         }
     } // ModConfirmSave
+
+// +++++++++ MOD ROSTERDATE ++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    function ModRosterdateCreate() {
+        ModRosterdateOpen("create")
+    };
+    function ModRosterdateDelete() {
+        ModRosterdateOpen("delete")
+    };
+//=========  ModRosterdateOpen  ================ PR2019-11-11
+    function ModRosterdateOpen(mode) {
+        console.log(" -----  ModRosterdateOpen   ----")
+        console.log("rosterdate_dict", rosterdate_dict)
+
+        const is_delete = (mode === "delete")
+
+// hide loader
+        document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
+
+// reset mod_upload_dict
+        mod_upload_dict = {};
+
+// --- check if rosterdate has emplhour records and confirmed records
+        const datalist_request = {"rosterdate_check": {"mode": mode}};
+        DatalistDownload(datalist_request);
+        // returns function ModRosterdateChecked
+
+// set header
+        const hdr_text = (is_delete) ? loc.rosterdate_hdr_delete : loc.rosterdate_hdr_create
+        document.getElementById("id_mod_period_header").innerText = hdr_text;
+
+// set value of input label
+        document.getElementById("id_mod_rosterdate_label").innerText = loc.rosterdate + ": "
+
+// set value of input element blank, set readOnly = true
+        let el_input = document.getElementById("id_mod_rosterdate_input")
+        el_input.value = null
+        el_input.readOnly = true;
+
+// Set focus to el_mod_employee_input
+        //Timeout function necessary, otherwise focus wont work because of fade(300)
+        setTimeout(function (){
+            el_input.focus()
+        }, 500);
+
+// set info textboxes
+        const info01_txt = loc.rosterdate_checking + "..."
+        document.getElementById("id_mod_rosterdate_info_01").innerText = info01_txt
+        document.getElementById("id_mod_rosterdate_info_02").innerText = ""
+        document.getElementById("id_mod_rosterdate_info_03").innerText = ""
+
+// reset buttons
+        const btn_class_add = (is_delete) ? "btn-outline-danger" : "btn-primary"
+        const btn_class_remove = (is_delete) ? "btn-primary" :  "btn-outline-danger";
+        const btn_text = (is_delete) ? loc.btn_delete : loc.btn_create
+        let el_btn_ok = document.getElementById("id_mod_rosterdate_btn_ok")
+            el_btn_ok.innerText = btn_text;
+            el_btn_ok.classList.remove(btn_class_remove)
+            el_btn_ok.classList.add(btn_class_add)
+            el_btn_ok.classList.remove(cls_hide)
+            el_btn_ok.disabled = true;
+        let el_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
+            el_btn_cancel.innerText = loc.btn_cancel;
+
+// ---  show modal
+        $("#id_mod_rosterdate").modal({backdrop: true});
+    };  // ModRosterdateOpen
+
+// +++++++++  ModRosterdateEdit  ++++++++++++++++++++++++++++++ PR2019-11-12
+    function ModRosterdateEdit() {
+        console.log("=== ModRosterdateEdit =========");
+        console.log("mod_upload_dict: ", mod_upload_dict);
+        // called when date input changed
+
+// reset mod_upload_dict, keep 'mode'
+        const mode = get_dict_value_by_key(mod_upload_dict, "mode")
+        const is_delete = (mode === "delete")
+        mod_upload_dict = {"mode": mode}
+        console.log("vv mod_upload_dict: ", mod_upload_dict);
+
+// get value from input element
+        const new_value = document.getElementById("id_mod_rosterdate_input").value;
+
+// update value of input label
+        const label_txt = loc.rosterdate + ": " +
+            format_date_iso (new_value, loc.months_long, loc.weekdays_long, false, false, user_lang);
+        document.getElementById("id_mod_rosterdate_label").innerText = label_txt
+
+// --- check if new rosterdate has emplhour records and confirmed records
+        const datalist_request = {"rosterdate_check": {"mode": mode, "rosterdate": new_value}}
+        DatalistDownload(datalist_request);
+        // returns function ModRosterdateChecked
+
+// set info textboxes
+        const info01_txt = loc.rosterdate_checking + "..."
+        document.getElementById("id_mod_rosterdate_info_01").innerText = info01_txt
+        document.getElementById("id_mod_rosterdate_info_02").innerText = ""
+        document.getElementById("id_mod_rosterdate_info_03").innerText = ""
+
+// reset buttons
+        const btn_add_class = (is_delete) ? "btn-outline-danger" : "btn-primary"
+        const btn_remove_class = (is_delete) ? "btn-primary" :  "btn-outline-danger";
+        const btn_text = (is_delete) ? loc.btn_delete : loc.btn_create
+        let el_btn_ok = document.getElementById("id_mod_rosterdate_btn_ok")
+            el_btn_ok.innerText = btn_text;
+            el_btn_ok.classList.remove(btn_remove_class)
+            el_btn_ok.classList.add(btn_add_class)
+            el_btn_ok.disabled = true;
+        let el_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
+            el_btn_cancel.innerText = loc.btn_cancel;
+
+    }  // ModRosterdateEdit
+
+// +++++++++  ModRosterdateSave  ++++++++++++++++++++++++++++++ PR2019-11-14
+    function ModRosterdateSave() {
+        console.log("=== ModRosterdateSave =========");
+        console.log("mod_upload_dict", mod_upload_dict);
+        const mode = get_dict_value_by_key(mod_upload_dict, "mode")
+        const is_delete = (mode === "delete")
+        // mod_upload_dict: {mode: "create", rosterdate: "2019-12-20", confirmed: 0, count: 0}
+
+    // make input field readonly
+            document.getElementById("id_mod_rosterdate_input").readOnly = true;
+
+    // show loader
+            document.getElementById("id_mod_rosterdate_loader").classList.remove(cls_hide);
+
+    // set info textboxes
+            const info_txt = (is_delete) ? loc.rosterdate_deleting : loc.rosterdate_adding;
+            document.getElementById("id_mod_rosterdate_info_01").innerText = info_txt + "...";
+            document.getElementById("id_mod_rosterdate_info_02").innerText = null;
+            document.getElementById("id_mod_rosterdate_info_03").innerText = null;
+
+    // set buttons
+            document.getElementById("id_mod_rosterdate_btn_ok").disabled = true;
+
+    // Upload Changes:
+           UploadChanges(mod_upload_dict, url_emplhour_fill_rosterdate);
+
+    }  // function ModRosterdateSave
+
+// +++++++++  ModRosterdateChecked  ++++++++++++++++++++++++++++++ PR2019-11-13
+    function ModRosterdateChecked(response_dict) {
+        console.log("=== ModRosterdateChecked =========" );
+        console.log("response_dict:", response_dict );
+        // response_dict: {mode: "last", value: "2019-12-19", count: 10, confirmed: 0}
+
+        // when create: count is always > 0, otherwise this function is not called
+        // hide loader in modal form
+
+// add 'checked' to mod_upload_dict, so left button will know it must cancel
+        mod_upload_dict = response_dict
+
+// hide loader
+        document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
+
+// remove input field readonly
+        let el_input = document.getElementById("id_mod_rosterdate_input");
+        el_input.value = get_dict_value_by_key(response_dict, "rosterdate");
+        el_input.readOnly = false;
+
+// set info textboxes
+        set_label_and_infoboxes(response_dict)
+
+    }  // function ModRosterdateChecked
+
+
+// +++++++++  ModRosterdateFinished  ++++++++++++++++++++++++++++++ PR2019-11-13
+    function ModRosterdateFinished(response_dict) {
+        console.log("=== ModRosterdateFinished =========" );
+        console.log("response_dict", response_dict );
+        // rosterdate: {rosterdate: {…}, logfile:
+        const mode = get_dict_value_by_key(response_dict,"mode")
+        const is_delete = (mode === "delete")
+        console.log("mode", mode );
+        console.log("is_delete", is_delete );
+
+// hide loader
+        document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
+
+    // set info textboxes
+        const info_txt = loc.rosterdate_finished + ((is_delete) ? loc.deleted : loc.created) + ".";
+        console.log("info_txt", info_txt );
+        document.getElementById("id_mod_rosterdate_info_01").innerText = info_txt;
+        document.getElementById("id_mod_rosterdate_info_02").innerText = null;
+        document.getElementById("id_mod_rosterdate_info_03").innerText = null;
+
+    // hide ok button, put 'Close' on cancel button
+        document.getElementById("id_mod_rosterdate_btn_ok").classList.add(cls_hide);
+        document.getElementById("id_mod_rosterdate_btn_cancel").innerText = loc.close;
+
+    }  // function ModRosterdateFinished
+
+
+//=========  set_label_and_infoboxes  ================ PR2019-11-13
+    function set_label_and_infoboxes(response_dict) {
+        console.log(" -----  set_label_and_infoboxes   ----")
+
+// set info textboxes
+        const mode = get_dict_value_by_key(response_dict, "mode");
+        const is_delete = (mode === "delete");
+
+        const rosterdate_iso = get_dict_value_by_key(response_dict,"rosterdate");
+        const count = get_dict_value_by_key(response_dict,"count");
+        const confirmed = get_dict_value_by_key(response_dict,"confirmed");
+
+        let text_list = ["", "", "", ""];
+        // set value of input label
+        text_list[0] = loc.rosterdate + ": " +
+            format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_long, false, false, user_lang);
+
+        if(!count){
+    // This rosterdate has no shifts
+             text_list[1] = loc.rosterdate_count_none;
+        } else {
+    // This rosterdate has [count] shifts
+            text_list[1] = loc.rosterdate_count
+            text_list[1] += ((count === 1) ? loc.one : count.toString()) + " ";
+            text_list[1] += ((count === 1) ? loc.shift : loc.shifts);
+
+            if(!confirmed){
+                text_list[1] += ".";
+            } else {
+    // [confirmed] of them are confirmed shifts.
+                text_list[1] += ((confirmed === 1) ?
+                                    (", " + loc.rosterdate_confirmed_one) :
+                                    (", " + confirmed.toString()) + " " + loc.rosterdate_confirmed_multiple);
+            }
+
+            if(!confirmed){
+    // 'These shifts will be updated.' / deleted
+                 text_list[2] = ((count === 1) ? loc.rosterdate_shift_willbe : loc.rosterdate_shifts_willbe) +
+                                ((is_delete) ? loc.deleted : loc.updated) + ".";
+            } else {
+    // 'Shifts that are not confirmed will be updated/deleted, confirmed shifts will be skipped.')
+                text_list[2] = loc.rosterdate_skip01 +
+                               ((is_delete) ? loc.deleted : loc.updated) +
+                               loc.rosterdate_skip02;
+            }
+            text_list[3] =  loc.want_to_continue
+        }  // if(!count)
+
+        document.getElementById("id_mod_rosterdate_label").innerText = text_list[0];
+        document.getElementById("id_mod_rosterdate_info_01").innerText = text_list[1];
+        document.getElementById("id_mod_rosterdate_info_02").innerText = text_list[2];
+        document.getElementById("id_mod_rosterdate_info_03").innerText = text_list[3];
+
+// set buttons
+        // no record te be deleted, disable ok button
+        // all records are confirmed, disable ok button
+        // also disable when no rosterdate
+        const is_disabled = ((!rosterdate_iso) || ((is_delete) && (!count || count === confirmed)))
+
+        const ok_txt = (is_delete) ? ((!!count) ? loc.yes_delete : loc.btn_delete) :
+                                     ((!!count) ? loc.yes_create : loc.btn_create);
+        const cancel_txt = (!!count) ? loc.no_cancel : loc.btn_cancel
+
+        let el_ok = document.getElementById("id_mod_rosterdate_btn_ok");
+            el_ok.innerText = ok_txt;
+            el_ok.disabled = is_disabled;
+
+        let el_cancel = document.getElementById("id_mod_rosterdate_btn_cancel");
+            el_cancel.innerText = cancel_txt;
+
+    } // function set_label_and_infoboxes
 
 // +++++++++ MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  ModEmployeeOpen  ================ PR2019-08-23
@@ -3585,7 +3894,7 @@ $(function() {
     function ModEmployeeSave(mode) {
         //console.log("========= ModEmployeeSave ===" );
         let upload_dict = {"id": mod_upload_dict["id"]};
-        if (mode ==="remove"){
+        if (mode ==="delete"){
 // remove current employee from teammemember, is removed when {employee: {update: true} without pk
             upload_dict["employee"] = {"update": true}
         } else {
@@ -3651,8 +3960,6 @@ $(function() {
             } // for (const [pk_int, item_dict] of employee_map.entries())
         }  //  if (employee_map.size === 0)
     } // ModEmployeeFillSelectTableEmployee
-
-
 
 //=========  ModSchemeOpen  ================ PR2019-07-20
     function ModSchemeOpen() {
@@ -4320,7 +4627,7 @@ $(function() {
             id_dict["ppk"] = ppk_int
             id_dict["table"] = tblName
 
-            if (!!id_dict){
+            if (!isEmpty(id_dict)){
                 row_upload["id"] = id_dict
             };
 
@@ -4422,7 +4729,7 @@ $(function() {
         let wdmy =  get_attr_from_el(el_input, "data-wdmy");
         //console.log("data_field", data_field, "data_value", data_value, "wdmy", wdmy)
 
- // if no rosterdate put today as rostedate
+ // if no rosterdate put today as rosterdate
         if (!data_value) {
             data_value = today_dict["value"]
             wdmy = today_dict["wdmy"]
@@ -4509,8 +4816,8 @@ $(function() {
 
 // change n_date to format "2019-05-06"
         const n_date_iso = n_date.toISOString();
-        const n_date_arr = n_date_iso.split("T");
-        const n_date_yyymmdd = n_date_arr[0]
+        const n_date_yyymmdd = get_yyyymmdd_from_ISOstring(n_date_iso)
+
         //console.log("n_date_yyymmdd: ", n_date_yyymmdd, typeof n_date_yyymmdd)
 
 // put n_date_yyymmdd in attr. data-value
@@ -4876,7 +5183,6 @@ $(function() {
                     setting_scheme_pk = ("sel_scheme_pk" in sel_dict ) ? sel_dict["sel_scheme_pk"] : 0;
                 } else if (key === "quicksave"){
                     quicksave = setting_dict[key];
-                    console.log("quicksave", quicksave, typeof quicksave)
                 }
 
 

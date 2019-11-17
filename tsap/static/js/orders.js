@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const url_order_upload = get_attr_from_el(el_data, "data-order_upload_url");
         const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
 
-        const imgsrc_inactive = get_attr_from_el(el_data, "data-imgsrc_inactive");
+        const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
         const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
         const imgsrc_warning = get_attr_from_el(el_data, "data-imgsrc_warning");
@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 };  //  for (let i = 0, el_input,
 
             }  // if (!!tr_changed.cells){
-        };  // if (!!id_dict){
+        };  // if (!isEmpty(id_dict))
         return item_dict;
     };  // function GetItemFromTablerow
 
@@ -402,7 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // update icon
         let imgsrc;
-        if (is_inactive_str === "true") {imgsrc = imgsrc_inactive} else  {imgsrc = imgsrc_active}
+        if (is_inactive_str === "true") {imgsrc = imgsrc_inactive_black} else  {imgsrc = imgsrc_active}
         el_changed.children[0].setAttribute("src", imgsrc);
 
         if (is_inactive_str === "true" && !filter_inactive_included) {
@@ -481,7 +481,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // toggle icon
         let el_img_filter_inactive = document.getElementById("id_img_filter_inactive");
         if (filter_inactive_included) {
-            el_img_filter_inactive.setAttribute("src", imgsrc_inactive);
+            el_img_filter_inactive.setAttribute("src", imgsrc_inactive_black);
             el_img_filter_inactive.setAttribute("data-value", "true");
         } else {
             el_img_filter_inactive.setAttribute("src", imgsrc_active);
@@ -846,7 +846,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                             if (fieldname === "inactive") {
                                if(isEmpty(field_dict)){field_dict = {value: false}}
-                               format_inactive_element (el_input, field_dict, imgsrc_inactive, imgsrc_active, title_inactive, title_active)
+                               format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_active, title_inactive, title_active)
                             };
 
                         };  // if(!!el_input)
@@ -961,7 +961,7 @@ document.addEventListener('DOMContentLoaded', function() {
             id_dict["ppk"] = parent_pk
             id_dict["table"] = tablename
 
-            if (!!id_dict){
+           if (!isEmpty(id_dict)){
                 row_upload["id"] = id_dict
             };
 

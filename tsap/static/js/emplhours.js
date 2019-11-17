@@ -94,7 +94,7 @@ $(function() {
         const url_fill_rosterdate = get_attr_from_el(el_data, "data-url_fill_rosterdate");
         const url_emplhour_upload = get_attr_from_el(el_data, "data-url_emplhour_upload");
         const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
-        const imgsrc_inactive = get_attr_from_el(el_data, "data-imgsrc_inactive");
+        const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
         const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
         const imgsrc_stat00 = get_attr_from_el(el_data, "data-imgsrc_stat00");
@@ -748,7 +748,7 @@ console.log("=========  function HandleCreateRecord =========");
         if (filter_hide_inactive) {
             el_img_filter_inactive.setAttribute("src", imgsrc_active);
         } else {
-            el_img_filter_inactive.setAttribute("src", imgsrc_inactive);
+            el_img_filter_inactive.setAttribute("src", imgsrc_inactive_black);
         }
         FilterRows();
     }  // function HandleFilterInactive

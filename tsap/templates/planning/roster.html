@@ -15,30 +15,24 @@
         <div class="sidebar_header">
             <h3>{% trans 'Roster' %}</h3>
         </div>
-                <div class="td_width_200 mx-2 mt-2 mb-5">
-            <table >
-                <thead id="id_thead_select"class="mx-1 my-1 ">
-                <tr>
-                    <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select period' %}</h6>
-                </tr>
-                <tr>
-                    <td>
-                    <input id="id_flt_select"
-                        type="text"
-                        class="td_width_150 tsa_bc_transparent border_none px-2"
-                        autocomplete="off"
-                        placeholder="{% trans 'filter...' %}">
-                        </td>
-                    <td>
-                        <a id="id_sel_inactive" href="#">
-                            <img id="id_sel_img_inactive"  src="{% static 'img/inactive_lightgrey.png' %}" height="24" width="24">
-                        </a>
-                        </td>
-                </tr>
-                </thead>
-                <tbody id="id_tbody_select"></tbody>
-            </table>
+        <div class="td_width_200 mx-2 mt-2 mb-5">
+            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select period' %}:</h6>
+            <input id="id_flt_period"
+                type="text"
+                class="td_width_200 border_none pointer_show px-2"
+                autocomplete="off"
+                placeholder="{% trans 'Period' %}":
+                readonly>
+<!--
+            <h6 class="td_width_200 line_height_normal mt-2 px-2">{% trans 'Select order' %}:</h6>
+            <input id="id_flt_order"
+                type="text"
+                class="td_width_200 border_none pointer_show px-2"
+                autocomplete="off"
+                placeholder="{% trans 'Period' %}":
+                readonly>
         </div>
+-->
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
@@ -118,90 +112,131 @@
             </div>
         </div>
     </div>
-<!-- =================== MODAL SETTING  =================== -->
-    <div class="modal fade" id="id_mod_setting" tabindex="-1" role="dialog" aria-labelledby="id_mod_cont_label" aria-hidden="true">
+
+<!-- =================== MODAL PERIOD  =================== -->
+    <div class="modal fade" id="id_mod_period" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">
             <div class="modal-content">
 
                 <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_mod_setting_header" class="modal-title mx-2" >{% trans 'Select interval' %}:</h4>
+                    <h4 id="id_mod_period_header" class="modal-title mx-2" >{% trans 'Select period' %}</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
-                <div  id="id_mod_setting_body" class="modal-body">
-                    <div class="modal_container">
-<!-- this div contains interval select table -->
-                        <div class="modal_body_left">
-                            <div class="content_subheader_left mx-2 my-1">
-                               <table class="table table-condensed tsa-tbl mx-1 my-1">
-                                    <tbody id="id_mod_tbody_interval">
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div class="modal_body_left">
-                            <div class="form-group">
-
-                                <label for="id_mod_setting_overlap_prev" class="mx-2 my-1">{% trans 'Overlap with previous interval' %}: </label>
-                                <input id="id_mod_setting_overlap_prev" type="number"  class="form-control mx-2 my-1" min="0" max="24">
-
-                                <label for="id_mod_setting_overlap_next" class="mx-2 my-1">{% trans 'Overlap with next interval' %}: </label>
-                                <input id="id_mod_setting_overlap_next" type="number"  class="form-control mx-2 my-1" min="0" max="24">
-
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="modal-footer">
-                     <button id="id_mod_setting_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
-                </div>
-            </div>
-        </div>
-    </div>
-<!-- =================== MODAL RANGE  =================== -->
-    <div class="modal fade" id="id_mod_range" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-md " role="document">
-            <div class="modal-content">
-
-                <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_mod_range_header" class="modal-title mx-2" >{% trans 'Select period' %}</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-
-                <div  id="id_mod_range_body" class="modal-body">
+                <div  id="id_mod_period_body" class="modal-body">
+                    <h6 class="mx-2 my-1">{% trans 'Select an option' %}:</h6>
                     <div class="modal_container">
 <!-- this div contains range select table -->
                         <div class="modal_body_left">
                             <div class="content_subheader_left mx-2 my-1">
                                <table class="table table-condensed tsa-tbl mx-1 my-1">
-                                    <tbody id="id_mod_range_tblbody">
+                                    <tbody id="id_mod_period_tblbody">
                                     </tbody>
                                 </table>
+
                             </div>
                         </div>
                         <div class="modal_body_left">
                              <div class="form-group">
-                                <label for="id_mod_range_datestart" class="mx-2 my-1">{% trans 'Period start date' %}:</label>
-                                <input id="id_mod_range_datestart" type="date" class="form-control mx-2 my-1">
+                                <label for="id_mod_period_datefirst" class="mx-2 my-1">{% trans 'Period start date' %}:</label>
+                                <input id="id_mod_period_datefirst" type="date" class="form-control mx-2 my-1">
+                                <label for="id_mod_period_datelast" class="mx-2 my-1">{% trans 'Period end date' %}:</label>
+                                <input id="id_mod_period_datelast" type="date" class="form-control mx-2 my-1">
                              </div>
                         </div>
                     </div>
+
+                        <h6 class="mx-2 my-1">{% trans 'Extend period with' %}:</h6>
+                        <select id="id_mod_period_extend"
+                               autocomplete="off"
+                               ondragstart="return false;"
+                               ondrop="return false;"
+                               class="form-control">
+                        </select>
+                        <small class="mx-2 my-1">{% trans 'You can add up to 24 hours to the beginning and end of the period.' %}:</small>
+
                 </div>
 
                 <div class="modal-footer">
-                    <div id="id_mod_range_ftr_msg"></div>
-                    <button id="id_mod_range_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                    <button id="id_mod_period_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
                 </div>
 
             </div>
         </div>
     </div>
+
+<!-- =================== MODAL ORDER  ===================
+    <div class="modal fade" id="id_mod_order" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md " role="document">
+            <div class="modal-content">
+
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_mod_order_header" class="modal-title mx-2" >{% trans 'Select customer and order' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div  id="id_mod_order_body" class="modal-body">
+                    <div class="modal_container">
+
+                        <div class="modal_body_left">
+                        <h6 class="mx-2 my-1">{% trans 'Select customer' %}:</h6>
+                            <div class="content_subheader_left mx-2 my-1">
+
+                                <table>
+                                    <thead id="id_mod_order_thead_select_cust"class="mx-1 my-1 ">
+                                        <tr>
+                                            <td>
+                                            <input id="id_mod_order_flt_select_cust"
+                                                type="text"
+                                                class="td_width_150 tsa_bc_transparent border_none px-2"
+                                                autocomplete="off"
+                                                placeholder="{% trans 'filter ...' %}">
+                                            </td>
+
+                                        </tr>
+                                    </thead>
+                                    <tbody id="id_mod_order_tblbody_cust"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal_body_left">
+                            <h6 class="mx-2 my-1">{% trans 'Select order' %}:</h6>
+                            <div class="content_subheader_left mx-2 my-1">
+                                <table>
+                                    <thead id="id_mod_order_thead_select_order"class="mx-1 my-1 ">
+                                        <tr>
+                                            <td>
+                                            <input id="id_mod_order_flt_select_order"
+                                                type="text"
+                                                class="td_width_150 tsa_bc_transparent border_none px-2"
+                                                autocomplete="off"
+                                                placeholder="{% trans 'filter ...' %}">
+                                            </td>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="id_mod_order_tblbody_order"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                    <button id="id_mod_order_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+-->
+
+
 <!-- =================== MODAL EMPLOYEE  =================== -->
     <div class="modal fade" id="id_mod_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
@@ -262,7 +297,6 @@
                                            ondrop="return false;"
                                            class="form-control">
                                     </select>
-
                                 </div>
                             </div>
 
@@ -330,8 +364,7 @@
             </div>
             <img id="id_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="display_hide" >
             <div class="content_subheader_right mx-4 my-1">
-                <a id="id_btn_rosterdate_fill" class="btn btn-add">{% trans 'Fill roster date ' %} ...</a>
-                <a id="id_btn_rosterdate_remove" class="btn btn-add">{% trans 'Remove roster date' %} ...</a>
+
             </div>
         </div>
 
@@ -412,7 +445,8 @@
         <datalist id="id_datalist_shifts"></datalist>
 
         <div id="id_data"
-            data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
+            data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
+            data-imgsrc_inactive_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
             data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
             data-imgsrc_delete="{% static 'img/delete.gif' %}"
             data-imgsrc_warning="{% static 'img/warning.gif' %}"

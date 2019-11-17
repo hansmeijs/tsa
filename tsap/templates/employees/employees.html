@@ -3,10 +3,8 @@
 {% load static %}
 
 {% block title %}{% trans 'Employees' %}{% endblock %}
+{% block script %}<script src="{% static 'js/employees.js' %}"></script>{% endblock %}
 
-{% block script %}
-    <script src="{% static 'js/employees.js' %}"></script>
-{% endblock %}
 <!-- SIDE BAR -->
 {% block sidebar %}
     <nav id="id_sidebar" class="tsa_sidebar">
@@ -15,24 +13,24 @@
         </div>
 
         <div class="td_width_200 mx-2 mt-2 mb-5">
-            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select employee' %}</h6>
+            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select employee' %}:</h6>
+
             <table >
                 <thead id="id_thead_select"class="mx-1 my-1 ">
-
-                <tr>
-                    <td>
-                    <input id="id_flt_select"
-                        type="text"
-                        class="td_width_150 tsa_bc_transparent border_none px-2"
-                        autocomplete="off"
-                        placeholder="{% trans 'filter ...' %}">
+                    <tr>
+                        <td>
+                        <input id="id_flt_select"
+                            type="text"
+                            class="td_width_150 tsa_bc_transparent border_none px-2"
+                            autocomplete="off"
+                            placeholder="{% trans 'filter ...' %}">
+                            </td>
+                        <td>
+                            <a id="id_sel_inactive" href="#">
+                                <img id="id_sel_img_inactive"  src="{% static 'img/inactive_lightgrey.png' %}" height="24" width="24">
+                            </a>
                         </td>
-                    <td>
-                        <a id="id_sel_inactive" href="#">
-                            <img id="id_sel_img_inactive"  src="{% static 'img/inactive_lightgrey.png' %}" height="24" width="24">
-                        </a>
-                    </td>
-                </tr>
+                    </tr>
                 </thead>
                 <tbody id="id_tbody_select"></tbody>
             </table>
@@ -78,18 +76,19 @@
 
 {% block content %}
     {% if user.is_authenticated %}
-<!-- =================== MODAL SELECT EMPLOYEE  =================== -->
-    {% include 'includes/selectemployee.html' %}
-<!-- =================== CONFIRM  =================== -->
+<!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL PERIOD  =================== -->
         {% include 'includes/modperiod.html' %}
+<!-- =================== MODAL SELECT EMPLOYEE  =================== -->
+        {% include 'includes/selectemployee.html' %}
 <!-- =================== CONTAINER =================== -->
         <div class="container ">
 
 <!-- CONTENT HEADER - LOADER -->
             <div class="tsa_margin_top_64">
     <!-- class content_header -->
+         <!-- header_text -->
                 <div class="content_header">
                     <div class="content_subheader_left mx-2">
                         <h5 id="id_hdr_text"></h5>
@@ -100,7 +99,7 @@
                             <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
                         </div>
                     </div>
-
+        <!-- period -->
                     <div id="id_div_hdr_period" class="content_subheader_right pointer_show mx-2">
                         <h5 id="id_hdr_period"></h5>
                     </div>
@@ -320,9 +319,10 @@
             data-txt_employee_import= "{% trans 'Upload employees' %}"
             data-txt_employee_delete= "{% trans 'Delete employee' %}"
             data-txt_employee_add= "{% trans 'Add new employee' %}"
-            data-txt_planning_download= "{% trans 'Download planning' %}"
-            data-txt_employee_preview= "{% trans 'Preview planning' %}"
+            data-txt_planning_download = "{% trans 'Download planning' %}"
+            data-txt_planning_preview = "{% trans 'Preview planning' %}"
 
+            data-txt_customer = "{% trans 'Customer' %}"
             data-txt_order= "{% trans 'Order' %}"
             data-txt_shift= "{% trans 'Shift' %}"
             data-txt_team= "{% trans 'Team' %}"
@@ -335,10 +335,10 @@
             data-txt_select_period = "{% trans 'Select period' %}"
             data-txt_planning = "{% trans 'Planning' %}"
             data-txt_printdate = "{% trans 'Print date' %}"
-            data-txt_make_inactive= "{% trans 'Make employee inactive' %}"
-            data-txt_make_active= "{% trans 'Make employee active' %}"
+            data-txt_make_inactive = "{% trans 'Make employee inactive' %}"
+            data-txt_make_active = "{% trans 'Make employee active' %}"
 
-            data-imgsrc_inactive = "{% static 'img/inactive_black.png' %}"
+            data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
             data-imgsrc_active = "{% static 'img/inactive_grey.png' %}"
             data-imgsrc_active_lightgrey = "{% static 'img/inactive_lightgrey.png' %}"
             data-imgsrc_delete="{% static 'img/delete.gif' %}"
@@ -366,7 +366,6 @@
             data-txt_confirm_btn_delete = "{% trans 'Yes, delete' %}"
             data-txt_confirm_msg01_inactive = "{% trans 'This employee will be made inactive.' %}"
             data-txt_confirm_btn_inactive = "{% trans 'Yes, make inactive' %}"
-
         >
         </div>
 

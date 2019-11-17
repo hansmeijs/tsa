@@ -2,7 +2,9 @@
 //    xls:"application/vnd.ms-excel",
 //    xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"};
 
-$(document).ready(function() {
+// PR2019-02-07 deprecated: $(document).ready(function() {
+// with pure vanilla Javascript. Was jQuery: $(function() {
+document.addEventListener('DOMContentLoaded', function() {
 
 // ---  set selected menu button active
     const cls_active = "active";

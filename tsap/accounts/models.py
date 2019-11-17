@@ -385,6 +385,8 @@ class Usersetting(Model):
 
     @classmethod
     def set_jsonsetting(cls, key_str, setting_dict, user):  # PR2019-07-02
+        logger.debug('set_jsonsetting key' + str(key_str))
+        logger.debug('setting_dict key' + str(setting_dict))
         # new_setting is in json format, no need for json.loads and json.dumps
         # new_setting = json.loads(request.POST['setting'])
         # new_setting_json = json.dumps(new_setting)
@@ -399,6 +401,6 @@ class Usersetting(Model):
                     if new_setting_json:
                         row = cls(user=user, key=key_str, jsonsetting=new_setting_json)
                 row.save()
-                logger.debug()
+                logger.debug('new_setting_json' + str(new_setting_json))
             except:
                 pass

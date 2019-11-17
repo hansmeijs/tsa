@@ -33,7 +33,7 @@ def create_company_list(company):
 
     return item_dict
 
-def create_customer_list(company, inactive=None, cat=None, cat_lt=None):
+def create_customer_list(company, inactive=None, isabsence=None, cat=None, cat_lt=None):
     # logger.debug(' --- create_customer_list --- ')
 
 # --- create list of customers of this company PR2019-09-03
@@ -46,6 +46,10 @@ def create_customer_list(company, inactive=None, cat=None, cat_lt=None):
 
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
+
+    if isabsence is not None:
+        crit.add(Q(isabsence=isabsence), crit.connector)
+
     # logger.debug('cat: ' + str(cat) + ' cat_lt: ' + str(cat_lt) + ' inactive: ' + str(inactive))
     customers = m.Customer.objects.filter(crit)
     # logger.debug(str(customers.query))
@@ -94,7 +98,7 @@ def create_customer_dict(customer, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_order_list(company, user_lang, inactive=None, cat=None, cat_lt=None):
+def create_order_list(company, user_lang, inactive=None, isabsence=None, cat=None, cat_lt=None):
     # logger.debug(' --- create_order_list --- ')
 
 # --- create list of orders of this company PR2019-06-16
@@ -107,8 +111,10 @@ def create_order_list(company, user_lang, inactive=None, cat=None, cat_lt=None):
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
 
-    is_absence = f.get_absence(cat)
-    if is_absence:
+    if isabsence is not None:
+        crit.add(Q(isabsence=isabsence), crit.connector)
+
+    if isabsence:
         orders = m.Order.objects.filter(crit).order_by('sequence')
     else:
         orders = m.Order.objects.filter(crit).order_by('customer__code', 'code')
@@ -216,9 +222,7 @@ def create_absencecategory_list(request):
     # create an absence customer, order scheme and teams if they do not exist yet PR2019-07-27
     get_or_create_absence_customer(request)
 
-    crit = (Q(customer__company=request.user.company) &
-                Q(cat=c.SHIFT_CAT_0512_ABSENCE))
-    orders = m.Order.objects.filter(crit).order_by('sequence')
+    orders = m.Order.objects.filter(customer__company=request.user.company, isabsence=True).order_by('sequence')
 
     for order in orders:
         dict = create_absencecat_dict(order, request)
@@ -238,6 +242,7 @@ def create_absencecat_dict(abscat_order, request):
             'pk': abscat_order.pk,
             'ppk': abscat_order.customer.pk,
             'cat': abscat_order.cat,
+            'isabsence': abscat_order.isabsence,
             'code': abscat_code,
             'name': abscat_order.name
         }
@@ -257,6 +262,7 @@ def create_absencecat_dict(abscat_order, request):
                 'pk': scheme.pk,
                 'ppk': scheme.order.pk,
                 'cat': scheme.cat,
+                'isabsence': scheme.isabsence,
                 'code': scheme.code
             }
     # - create 'absence' team if not exists
@@ -270,6 +276,7 @@ def create_absencecat_dict(abscat_order, request):
                 dict['ppk'] = team.scheme_id
                 dict['id'] = {'pk': team.pk, 'ppk': team.scheme_id, 'table': 'team'}
                 dict['cat'] = {'value': team.cat}
+                dict['isabsence'] = {'value': team.isabsence}
 
     return dict
 
@@ -295,7 +302,7 @@ def get_or_create_absence_customer(request):
         abs_cust = m.Customer(company=request.user.company,
                             code=absence_locale[0],
                             name=absence_locale[1],
-                            cat=c.SHIFT_CAT_0512_ABSENCE)
+                            isabsence=True)
         abs_cust.save(request=request)
 
     if abs_cust:
@@ -331,11 +338,11 @@ def create_absence_orders(abs_cust, user_lang, request):
 
 # 1. create 'absence' order - contains absence categories
             order = m.Order(customer=abs_cust,
-                          code=code,
-                          name=name,
-                          sequence=sequence,
-                          pricerate=pricerate,
-                          cat=c.SHIFT_CAT_0512_ABSENCE)
+                        code=code,
+                        name=name,
+                        sequence=sequence,
+                        pricerate=pricerate,
+                        isabsence=True)
             order.save(request=request)
     # this def is only called when order does not exist, therefore also scheme and team don't exist
             if order:
@@ -347,14 +354,20 @@ def create_absence_orders(abs_cust, user_lang, request):
 
 
 def create_absence_scheme(order, code, request):
-    scheme = m.Scheme(order=order, code=code, cat=c.SHIFT_CAT_0512_ABSENCE)
+    scheme = m.Scheme(
+        order=order,
+        code=code,
+        isabsence=True)
     scheme.save(request=request)
     # logger.debug(" scheme.save: " + str(scheme))
     return scheme
 
 
 def create_absence_team(scheme, code, request):
-    team = m.Team(scheme=scheme, code=code, cat=c.SHIFT_CAT_0512_ABSENCE)
+    team = m.Team(
+        scheme=scheme,
+        code=code,
+        isabsence=True)
     team.save(request=request)
     # logger.debug(" team.save: " + str(team))
     return team

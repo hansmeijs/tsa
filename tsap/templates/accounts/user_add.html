@@ -37,7 +37,9 @@
   <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 
   <script>
-      $(document).ready(function(){
+    // PR2019-02-07 deprecated: $(document).ready(function() {
+    // with pure vanilla Javascript. Was jQuery: $(function() {
+    document.addEventListener('DOMContentLoaded', function() {
 
         var role_list = document.getElementById("id_role_list");
         role_list.addEventListener("change", role_list_changed(company_list), false);

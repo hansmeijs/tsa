@@ -5,11 +5,10 @@
 //========= OpenTimepicker  ====================================
     function OpenTimepicker(el_input, UploadTimepickerChanged, tp_dict, st_dict) {
         console.log("===  OpenTimepicker  =====");
-        //console.log( "tp_dict: ", tp_dict);
+        console.log( "tp_dict: ", tp_dict);
         console.log( "st_dict: ", st_dict);
 
         CalcMinMax(tp_dict)
-        console.log("tp_dict", tp_dict);
 
 // display cur_datetime_local in header of el_timepicker
         CreateHeader(tp_dict, st_dict);
@@ -306,12 +305,7 @@
         if (new_day_offset > maxDayOffset){new_day_offset = maxDayOffset}
         //console.log("new_day_offset", new_day_offset);
 
-        let new_offset = (new_day_offset * 1440) + curRemainder
-        //console.log("new_offset", new_offset);
-
-    // put new offset back in dict
-        tp_dict["offset"] = new_offset
-        CalcMinMax(tp_dict)
+        CalcMinMax_with_newValues(tp_dict, new_day_offset, null, null)
 
     // show new date, also when not in range
         document.getElementById("id_timepicker_date").innerText = get_header_date(tp_dict, st_dict)
@@ -332,12 +326,13 @@
             const new_ampm = get_attr_from_el_int(td, "data-ampm");
 
         // set new hour in new_datetime_local
+            // TODO correct
             const cur_offset = get_attr_from_el(el_timepicker, "data-offset");
             const arr = cur_offset.split(";")
             let new_offset = arr[0] + ";" + arr[1] + ";" + new_minutes.toString()
 
     // put new offset back in el_timepicker data-offset
-            // TODO
+            // TODO correct
             let within_range = true;
             if (within_range){
                 el_timepicker.setAttribute("data-offset", new_offset);
@@ -357,7 +352,8 @@
 
 //========= SetHour  ====================================
     function SetHour(tbody, td, UploadTimepickerChanged, tp_dict, st_dict) {
-       //console.log("==== SetHour  =====");
+       console.log("==== SetHour  =====");
+        console.log("tp_dict", tp_dict);
 
     // check if cell is disabeld
         const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
@@ -366,25 +362,10 @@
         if (!disabled){
         // get new hour from data-hour of td
             const newHours = get_attr_from_el_int(td, "data-hour");
-            //console.log("newHours", newHours, typeof newHours)
+    // recalculate values of tp_dict
+            CalcMinMax_with_newValues(tp_dict, null, newHours, null);
 
-        // set new hour in offset
-            const curOffset = tp_dict["offset"];
-            const minOffset = tp_dict["minoffset"];
-            const maxOffset = tp_dict["maxoffset"];
-
-            const curDayOffset = Math.floor(curOffset/1440)  // - 90 (1.5 h)
-            const remainder = curOffset - curDayOffset * 1440
-            const curHours = Math.floor(remainder/60)
-            const curMinutes = remainder - curHours * 60
-
-            const newOffset = curDayOffset * 1440 + newHours * 60 + curMinutes
-            //console.log("newOffset ", newOffset, typeof newOffset);
-
-    // put new offset back in dict
-            tp_dict["offset"] = newOffset
-
-        // save when in quicksave mode
+    // save when in quicksave mode
             if (tp_dict["quicksave"]){
                 HandleTimepickerSave(tp_dict, st_dict, UploadTimepickerChanged, "btn_hour")
             }
@@ -405,26 +386,10 @@
         const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
         if (!disabled){
 
-        // get new minutes from data-minute of td
+    // get new minutes from data-minute of td
             const newMinutes = get_attr_from_el_int(td, "data-minute");
-            //console.log("newMinutes", newMinutes, typeof newMinutes)
-
-        // set new hour in offset
-            const curOffset = tp_dict["offset"];
-            const minOffset = tp_dict["minoffset"];
-            const maxOffset = tp_dict["maxoffset"];
-
-            const curDayOffset = Math.floor(curOffset/1440)  // - 90 (1.5 h)
-            const remainder = curOffset - curDayOffset * 1440
-            const curHours = Math.floor(remainder/60)
-            const curMinutes = remainder - curHours * 60
-
-            const newOffset = curDayOffset * 1440 + curHours * 60 + newMinutes
-
-    // put new offset back in dict
-            tp_dict["offset"] = newOffset
-            CalcMinMax(tp_dict)
-            //console.log("newOffset ", newOffset, typeof newOffset);
+    // recalculate values of tp_dict
+            CalcMinMax_with_newValues(tp_dict, null, null, newMinutes);
 
             HighlightAndDisableMinutes(tp_dict);
 
@@ -434,7 +399,11 @@
 //=========  HandleTimepickerSave  ================ PR2019-06-27
     function HandleTimepickerSave(tp_dict, st_dict, UploadTimepickerChanged, mode) {
         console.log("===  function HandleTimepickerSave =========", mode);
+        console.log(tp_dict);
+            console.log("==== JSON.stringify: ", JSON.stringify(tp_dict));
 // ---  change quicksave when clicked on button 'Quicksave'
+
+
 
 // ---  btn_save  >       send new_offset      > close timepicker
 //      btn_quick > on  > send new_offset + qs > close timepicker (next time do.t show btn_save)
@@ -462,6 +431,7 @@
             UploadSettings (setting_dict, url_settings_upload);
 
             // without 'save_changes'
+
             UploadTimepickerChanged(tp_dict);
 
         } else if (mode === "btn_hour") {
@@ -470,17 +440,24 @@
             };
         } else if (mode === "btn_delete") {
             tp_dict["offset"] = null;
+
+        console.log("HandleTimepickerSave --- CalcMinMax ---")
             CalcMinMax(tp_dict)
             save_changes = true;
         }
 
         if(save_changes){
-            //console.log( ">>>>=== save_changes  ");
+            console.log( ">>>>=== save_changes  ");
             popupbox_removebackground("input_timepicker");
 
             let el_timepicker = document.getElementById("id_timepicker")
             el_timepicker.classList.add("display_hide");
             // save only when offset is within range or null (when changing date hour/minumtes can go outside min/max range)
+            console.log( ">>>> tp_dict: ", tp_dict);
+            console.log("JSON.stringify: ", JSON.stringify(tp_dict));
+
+            const within_range = tp_dict["within_range"];
+            console.log( ">>>>=== within_range", within_range, typeof within_range);
             if(tp_dict["within_range"]){
                 tp_dict["save_changes"] = true;
                 UploadTimepickerChanged(tp_dict);
@@ -543,14 +520,13 @@
 //========= HighlightAndDisableHours  ====================================
     function HighlightAndDisableHours(tp_dict) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        //console.log( "--------- HighlightAndDisableHours  ");
-
+        console.log( "-VVVVVVVVVVVV-------- HighlightAndDisableHours  ");
         CalcMinMax(tp_dict)
 
         const curHours = tp_dict["curHours"]
         const minHours = tp_dict["minHours"]
         const maxHours = tp_dict["maxHours"]
-        //console.log( "curHours", curHours,  "minHours", minHours,  "maxHours", maxHours);
+        console.log( "curHours", curHours,  "minHours", minHours,  "maxHours", maxHours);
 
         let curHourDisabled = false;
         let tbody = document.getElementById("id_timepicker_tbody_hour");
@@ -610,19 +586,45 @@
 
     }  // HighlightAndDisableCell
 
+//========= CalcMinMax  ==================================== PR2018-11-08
+function CalcMinMax_with_newValues(tp_dict, newDayOffset, newHours, newMinutes) {
+
+// get curHours and curMinutes from curOffset in tp_dict
+        const curOffset = tp_dict["offset"];
+        const minOffset = tp_dict["minoffset"];
+        const maxOffset = tp_dict["maxoffset"];
+
+        const curDayOffset = Math.floor(curOffset/1440)  // - 90 (1.5 h)
+        const remainder = curOffset - curDayOffset * 1440
+        const curHours = Math.floor(remainder/60)
+        const curMinutes = remainder - curHours * 60
+
+        if(newDayOffset == null){newDayOffset = curDayOffset};
+        if(newHours == null){newHours = curHours};
+        if(newMinutes == null){newMinutes = curMinutes};
+
+        const newOffset = newDayOffset * 1440 + newHours * 60 + newMinutes
+        //console.log("newOffset ", newOffset, typeof newOffset);
+
+// put new offset back in dict
+        tp_dict["offset"] = newOffset
+
+// re calculate values of tp_dict
+        CalcMinMax(tp_dict)
+}
+
 //========= CalcMinMax  ==================================== PR2018-08-02
 function CalcMinMax(dict) {
-        //console.log(" --- CalcMinMax ---")
+        console.log(" --- CalcMinMax ---")
 
         const curOffset = dict["offset"];
         const minOffset = dict["minoffset"];
         const maxOffset = dict["maxoffset"];
-        //console.log("curOffset", curOffset, "minOffset", minOffset, "maxOffset", maxOffset)
 
         if(minOffset == null){minOffset = 0};
         if(maxOffset == null){maxOffset = 1440};
 
-        let curDayOffset = null, curRemainder = null, curHours = null,  curMinutes = null, curHoursAmpm = null;
+        let curDayOffset = null, curRemainder = null, curHours = null, curMinutes = null, curHoursAmpm = null;
         let prevday_disabled = false, nextday_disabled = false;
         if (curOffset != null){
             curDayOffset = Math.floor(curOffset/1440);  // - 90 (1.5 h)
@@ -630,6 +632,7 @@ function CalcMinMax(dict) {
             curHours = Math.floor(curRemainder/60);
             curMinutes = curRemainder - curHours * 60;
         };
+        if(curDayOffset == null){curDayOffset = 0}
 
         let minDayOffset = Math.floor(minOffset/1440);  // - 90 (1.5 h)
         let minRemainder = minOffset - minDayOffset * 1440;
@@ -639,17 +642,12 @@ function CalcMinMax(dict) {
         let maxDayOffset = Math.floor(maxOffset/1440);  // - 90 (1.5 h)
         let maxRemainder = maxOffset - maxDayOffset * 1440;
         let maxHours = Math.floor(maxRemainder/60);
-        let maxMinutes = minRemainder - maxHours * 60;
+        let maxMinutes = maxRemainder - maxHours * 60;
 
-        // if mindate < curdate: minHours=0 and minMinutes=0
-        // if mindate = curdate: minHours=min_datetime_local.hours and minMinutes=0 min_datetime_local.hours
-        // if mindate > curdate: minHours=24 and minMinutes=60
-
-        if(curDayOffset == null || minDayOffset < curDayOffset){  //  (minDate < curDate)
+        if(minDayOffset < curDayOffset){  //  (minDate < curDate)
             minHours = 0
             minMinutes = 0
         } else if(minDayOffset === curDayOffset){  // (minDate = curDate)
-
             // minHours =  Math.floor(minRemainder/60);
             if (curHours < minHours) {
                 minMinutes = 99  // also 0 not allowed
@@ -688,11 +686,6 @@ function CalcMinMax(dict) {
             maxHours = 0
             maxMinutes = 0
         }
-        curHoursAmpm = (dict["isampm"]) ? (curHours < 12) ? curHours : curHours - 12 : 0
-        prevday_disabled = (curOffset != null && curDayOffset <= minDayOffset);
-        nextday_disabled = (curOffset != null && curDayOffset >= maxDayOffset);
-
-        const within_range = ((curOffset == null) || (curOffset >= minOffset && curOffset <= maxOffset))
 
         dict["curHours"] = curHours
         dict["curMinutes"] = curMinutes
@@ -706,13 +699,10 @@ function CalcMinMax(dict) {
         dict["maxMinutes"] = maxMinutes
         dict["maxDayOffset"] = maxDayOffset
 
-        dict["curHoursAmpm"] = curHoursAmpm
-
-        dict["prevday_disabled"] = prevday_disabled;
-        dict["nextday_disabled"] = nextday_disabled;
-
-        dict["within_range"] = within_range;
-
+        dict["curHoursAmpm"] = (dict["isampm"]) ? (curHours < 12) ? curHours : curHours - 12 : 0
+        dict["prevday_disabled"] = (curOffset != null && curDayOffset <= minDayOffset);
+        dict["nextday_disabled"] = (curOffset != null && curDayOffset >= maxDayOffset);
+        dict["within_range"] = ((curOffset == null) || (curOffset >= minOffset && curOffset <= maxOffset));
     }  // CalcMinMax
 
 //========= HideSaveButtonOnQuicksave  ====================================

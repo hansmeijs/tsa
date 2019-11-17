@@ -173,9 +173,6 @@ SHIFT_CAT_4096_TEMPLATE = 4096
 # SHIFT_CAT_16384_AVAILABLE = 16384
 
 
-
-
-
 # 0 = normal, 10 = replacement
 TEAMMEMBER_CAT_00_NORMAL = 0
 TEAMMEMBER_CAT_10_REPLACEMENT = 10
@@ -225,11 +222,13 @@ ABSENCE_CATEGORY = {LANG_EN: (
                         ('5', 'Ongeoorloofd', 'Ongeoorloofd verzuim', '0'))
                     }
 
-KEY_COMP_ROSTERDATE_CURRENT = 'rstdte_current'
-KEY_COMP_REPLACEMENT_PERIOD = 'repl_period'
+
+KEY_COMP_REPLACEMENT_PERIOD = 'repl_period' # # this period is rosterdate_min till rosterdate_min + REPLACEMENT_PERIOD_DEFAULT (days)
+KEY_COMP_ALIAS = 'alias'
 
 KEY_USER_QUICKSAVE = 'quicksave'
 KEY_USER_EMPLHOUR_PERIOD = 'emplhour_period'
+KEY_USER_ROSTER_PERIOD = 'roster_period'  # used to saved period in page 'roster' PR2019-11-15
 KEY_USER_SETTINGS = ('selected_pk', 'page_employee', 'page_customer', 'planning_period', 'quicksave')
 # code, cycle, excludeweekend, excludepublicholiday PR2019-08-24
 SCHEME_24H_DEFAULT = {LANG_EN: ('24 hours 16 days', 16, False, False),
@@ -315,11 +314,11 @@ CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
 
 FIELDS_COMPANY = ('id', 'code', 'name')
 
-FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier',
+FIELDS_CUSTOMER = ('id', 'company', 'cat', 'isabsence', 'code', 'name', 'identifier',
                     'contactname', 'address', 'zipcode', 'city', 'country',
                    'email', 'telephone', 'interval', 'inactive')
 
-FIELDS_ORDER = ('id', 'customer', 'cat', 'billable', 'code', 'name', 'datefirst', 'datelast',
+FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'billable', 'code', 'name', 'datefirst', 'datelast',
                 'contactname', 'address', 'zipcode', 'city', 'country',
                 'sequence', 'identifier', 'billable', 'priceratejson', 'invoicedates', 'taxcode', 'locked', 'inactive')
 
@@ -328,7 +327,7 @@ FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
                     'isbillable', 'isrestshift', 'shift', 'duration', 'status',
                     'pricerate', 'additionrate', 'taxrate', 'amount', 'tax', 'locked')
 
-FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat',
+FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence',
                    'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
                    'isrestshift', 'shift',
                    'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',
@@ -362,7 +361,7 @@ LEAVEDAYS_DEFAULT = 21600  # leavedays per year, = 15 days * 1440 = 21.600 minut
 
 # workhours_per_day_minutes = workhours_minutes / workdays_minutes * 1440
 
-FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast',
+FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'isabsence', 'employee', 'datefirst', 'datelast',
                      'workhoursperday', 'wagerate', 'wagefactor',
                      'offsetstart', 'offsetend',
                      'priceratejson', 'additionjson', 'override', 'jsonsetting')

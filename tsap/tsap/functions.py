@@ -2,8 +2,10 @@
 from datetime import date, time, datetime, timedelta
 from django.utils.translation import ugettext_lazy as _
 
+from tsap.settings import TIME_ZONE
 from tsap import constants as c
 from companies import models as m
+
 
 import math
 import re
@@ -24,7 +26,6 @@ logger = logging.getLogger(__name__)
 # >>>>>> This is the right way, I think >>>>>>>>>>>>>
 
 def get_dateobj_from_ISOstring(date_ISOstring):  # PR2019-10-25
-
     dte = None
     if date_ISOstring:
         arr = get_datetimearray_from_ISOstring(date_ISOstring)
@@ -39,6 +40,7 @@ def get_datetime_naive_from_ISOstring(date_ISOstring):  # PR2019-10-25
         if date_obj:
             datetime_naive = get_datetime_naive_from_dateobject(date_obj)
     return datetime_naive
+
 
 # Finally solved some headache:
 # convert date object to datetime object
@@ -93,11 +95,25 @@ def get_datetime_naive_from_offset(rosterdate, offset_int):
     return datetime_naive
 
 
+def get_date_from_arr(arr_int):  # PR2019-11-17
+    date_obj = None
+    if arr_int:
+        date_obj = date(arr_int[0], arr_int[1], arr_int[2])
+    return date_obj
+
+def get_datetime_from_arr(arr_int):  # PR2019-11-17
+    datetime_obj = None
+    if arr_int:
+        datetime_obj = datetime(arr_int[0], arr_int[1], arr_int[2], arr_int[3], arr_int[4], 0)
+    return datetime_obj
+
+
 def get_datetimelocal_from_offset(rosterdate, offset_int, comp_timezone):
-    # logger.debug(' ++++++')
     # logger.debug(' +++ get_datetimelocal_from_offset +++')
     # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+        # rosterdate: 2019-11-21 <class 'datetime.date'>
     # logger.debug('offset_int: ' + str(offset_int))
+        # offset_int: 2160
 
     dt_local = None
     if rosterdate and offset_int is not None:
@@ -107,14 +123,17 @@ def get_datetimelocal_from_offset(rosterdate, offset_int, comp_timezone):
     # a. create new naive datetime object with hour and minute offset
         dt = get_datetime_naive_from_offset(rosterdate, offset_int)
         # logger.debug('dt with offset: ' + str(dt) + ' ' + str(type(dt)))
+            # dt with offset: 2019-11-22 12:00:00 <class 'datetime.datetime'>
         # logger.debug('dt.tzinfo: ' + str(dt.tzinfo) + ' ' + str(type(dt.tzinfo)))
+            # dt.tzinfo: None <class 'NoneType'>
 
     # b. add timezone to naive datetime object
         timezone = pytz.timezone(comp_timezone)
         dt_local = timezone.localize(dt)  # dt_local.tzinfo: Europe/Amsterdam <class 'pytz.tzfile.Europe/Amsterdam'>
         # logger.debug('dt_local: ' + str(dt_local) + ' ' + str(type(dt_local)))
+            # dt_local: 2019-11-22 12:00:00+01:00 <class 'datetime.datetime'>
         # logger.debug('dt_local.tzinfo: ' + str(dt_local.tzinfo) + ' ' + str(type(dt_local.tzinfo)))
-
+            # dt_local.tzinfo: Europe/Amsterdam <class
     return dt_local
 
 
@@ -162,7 +181,7 @@ def get_offset_from_datetimelocal(rosterdate, dt_local):  # PR2019-09-17
 # ########################################################################<
 
 
-# NIU yet
+
 def get_datetimeUTC_from_datetime(datetime_obj):
     # https://stackoverflow.com/questions/5802108/how-to-check-if-a-datetime-object-is-localized-with-pytz
     # datetime.replace makes datetime_obj aware. The good thing: it works both with naive and aware datetime_obj
@@ -363,6 +382,60 @@ def get_datetimelocal_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-0
 
     return datetime_local
 
+
+def XXXXget_today_local_iso(request):  # PR2019-07-14
+    # logger.debug(' ============= get_today_local_iso ============= ')
+     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
+    #PR2019-11-15 used in roster form selectperiod,
+    today_local_iso = None
+    period_dict = {}
+    if request.user is not None and request.user.company is not None:
+
+# get comp_timezone
+        comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+
+# get now without timezone
+        now_utc_naive = datetime.utcnow()
+        # now_utc_naive: 2019-07-10 14:48:15.742546 <class 'datetime.datetime'>
+
+# convert now to timezone utc
+        now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
+        # now_utc: 2019-07-10 14:48:15.742546+00:00 <class 'datetime.datetime'>
+
+# convert now_utc to now_local ( = company timezone)
+        # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
+        timezone = pytz.timezone(comp_timezone)
+        now_local = now_utc.astimezone(timezone)
+        # now_local: 2019-07-10 16:48:15.742546 +02:00 <class 'datetime.datetime'>
+
+        today_local = date.today()
+        tomorrow_local = today_local + timedelta(days=1)
+        yesterday_local = today_local + timedelta(days=-1)
+        thisweek_monday = today_local + timedelta(days= (1 - today_local.isoweekday()))
+        thisweek_sunday = today_local + timedelta(days= (7 - today_local.isoweekday()))
+        firstof_month = today_local + timedelta(days= (1 - today_local.day))
+
+    # get first of next month, then subtract one day
+        year = firstof_month.year
+        nextmonth = firstof_month.month + 1
+        if nextmonth > 12:
+            nextmonth -= 12
+            year += 1
+        firstof_nextmonth = date(year, nextmonth, 1)
+        lastof_thismonth = firstof_nextmonth + timedelta(days=-1)
+
+        period_dict = {
+            'now_local': now_local,
+            'today': today_local.isoformat(),
+            'tomorrow': tomorrow_local.isoformat(),
+            'yesterday': yesterday_local.isoformat(),
+            'thisweek_monday': thisweek_monday.isoformat(),
+            'thisweek_sunday': thisweek_sunday.isoformat(),
+            'firstof_month': firstof_month.isoformat(),
+            'lastof_month': lastof_thismonth.isoformat()}
+
+        # logger.debug('period_dict: ' + str(period_dict))
+    return period_dict
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -959,6 +1032,23 @@ def get_float_from_string(value_str):  # PR2019-09-01
     return number, msg_err
 
 
+def get_status_value(status_sum, index):
+    # PR2019-11-14 functions checks if index is in binary status_sum
+    has_status_value = False
+    if status_sum:
+        # bin(512) = 0b1000000000
+        # str(bin(512))[2:] = '1000000000'
+        # ''.join(reversed(str(bin(512))[2:])) = '0000000001'
+        try:
+            binary_str = ''.join(reversed(str(bin(status_sum))[2:]))
+            value_str = binary_str[index]
+            has_status_value = (value_str == '1')
+        except:
+            pass
+    return has_status_value
+
+
+
 def get_cat_value(cat_sum, cat_index):
     has_cat_value = False
     if cat_sum:
@@ -984,6 +1074,23 @@ def get_absence(cat_sum):
     return is_absence
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def check_offset_overlap(a, b, x, y):  # PR2019-11-11
+    logger.debug(' --- check_offset_overlap --- ')
+
+    has_overlap = False
+# 1. validate if timeend before timestart
+    if b < a or y < x:
+        has_overlap = True
+        logger.debug('ERROR: timeend before timestart ')
+    else:
+# 2. check overlap
+        # has overlap                x|______________|y
+        #                       a|_______|b    a|________|b
+        #                          b > x   and    a < y
+        if b > x and a < y:
+            has_overlap = True
+    return has_overlap
 
 def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
     logger.debug(' --- check_shift_overlap --- ')
@@ -1801,3 +1908,13 @@ def dictfetchall(cursor):
         dict(zip(columns, row))
         for row in cursor.fetchall()
     ]
+
+def update_is_absence():
+    from django.db import connection
+    with connection.cursor() as cursor:
+        cursor.execute('UPDATE companies_customer SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+        cursor.execute('UPDATE companies_order SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+        cursor.execute('UPDATE companies_scheme SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+        cursor.execute('UPDATE companies_team SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+        cursor.execute('UPDATE companies_teammember SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+        cursor.execute('UPDATE companies_emplhour SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')

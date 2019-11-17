@@ -164,7 +164,7 @@ class Customer(TsaBaseModel):
     company = ForeignKey(Company, related_name='customers', on_delete=PROTECT)
     # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
     cat = PositiveSmallIntegerField(default=0)
-
+    isabsence = BooleanField(default=False)
 
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
@@ -198,6 +198,7 @@ class Order(TsaBaseModel):
     customer = ForeignKey(Customer, related_name='orders', on_delete=PROTECT)
     # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
     cat = PositiveSmallIntegerField(default=0)
+    isabsence = BooleanField(default=False)
     sequence = PositiveSmallIntegerField(default=0)  # sequence of abscat,
 
     contactname = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
@@ -260,28 +261,6 @@ class OrderObject(TsaBaseModel): # PR2019-06-23 added
     inactive = None
 
 
-class Timecode(TsaBaseModel):
-    objects = TsaManager()
-    company = ForeignKey(Company, related_name='timecodes', on_delete=PROTECT)
-
-    rosterdate = DateField(db_index=True)
-
-    cat = PositiveSmallIntegerField(default=0)
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    name = None
-    datefirst = None
-    datelast = None
-    inactive = None
-    locked = None
-
-    class Meta:
-        ordering = [Lower('code')]
-
-    def __str__(self):
-        return self.code
-
-
 class Wagecode(TsaBaseModel):
     objects = TsaManager()
     company = ForeignKey(Company, related_name='wagecodes', on_delete=PROTECT)
@@ -318,10 +297,70 @@ class Wagefactor(TsaBaseModel):
         return self.code
 
 
+class Timecode(TsaBaseModel): # Workingday, Saturday, SUnday, Public Holiday, general holiday, + wagefactor
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='timecodes', on_delete=PROTECT)
+    wagefactor = ForeignKey(Wagefactor, related_name='timecodes', on_delete=SET_NULL, null=True, blank=True)
+
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    datefirst = None
+    datelast = None
+    locked = None
+
+    sequence = PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['sequence']
+
+    def __str__(self):
+        return self.code
+
+
+class Calendar(TsaBaseModel):
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='calendars', on_delete=CASCADE)
+
+    rosterdate = DateField(db_index=True)
+
+    cat = PositiveSmallIntegerField(default=0)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    datefirst = None
+    datelast = None
+    inactive = None
+    locked = None
+
+    class Meta:
+        ordering = [Lower('code')]
+
+    def __str__(self):
+        return self.code
+
+
+class CalendarTimecode(TsaBaseModel): # List of dates with timecodes, to be generated each year
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='CalendarTimecodes', on_delete=CASCADE)
+    timecode = ForeignKey(Timecode, related_name='CalendarTimecodes', on_delete=CASCADE)
+
+    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    name = None
+    locked = None
+
+    class Meta:
+        ordering = ['datefirst']
+
+    def __str__(self):
+        return self.code
+
+
 class Scheme(TsaBaseModel):
     objects = TsaManager()
     order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
     cat = PositiveSmallIntegerField(default=0)  # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
+    isabsence = BooleanField(default=False)
 
     cycle = PositiveSmallIntegerField(default=7)
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
@@ -333,8 +372,6 @@ class Scheme(TsaBaseModel):
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
-
-
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     locked = None
@@ -391,6 +428,7 @@ class Team(TsaBaseModel):
     locked = None
 
     cat = PositiveSmallIntegerField(default=0)
+    isabsence = BooleanField(default=False)
 
     class Meta:
         ordering = [Lower('code')]
@@ -448,6 +486,7 @@ class Teammember(TsaBaseModel):
 
     team = ForeignKey(Team, related_name='teammembers', on_delete=CASCADE)
     employee = ForeignKey(Employee, related_name='teammembers', on_delete=SET_NULL, null=True, blank=True)
+    replaces = ForeignKey(Employee, related_name='replacements', on_delete=CASCADE, null=True, blank=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
@@ -456,8 +495,13 @@ class Teammember(TsaBaseModel):
     locked = None
 
     cat = PositiveSmallIntegerField(default=0)  # teammember cat: 0 = normal, 1 = replacement, 512 = absent
+    isabsence = BooleanField(default=False)
 
     workhoursperday = IntegerField(default=0)  # / working hours per day, unit is minute
+
+    # teammember offset is only used for absence, in that case there is no schemeitem
+    # field jsonsetting contains simple shifts: { 0: [480, 990, 30] 1:[...] exwk: true, exph: true }
+    #  1: Monday [offsetstart, offsetend, breakduration] exwk: excludeweekend, exph: excludepublicholiday
 
     offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
     offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
@@ -470,7 +514,7 @@ class Teammember(TsaBaseModel):
     additionjson = JSONField(null=True)  # /10000 unitless additionrate 2500 = 25%
     override = BooleanField(default=True)
 
-    jsonsetting = JSONField(null=True)  # stores invoice dates for this customer
+    jsonsetting = JSONField(null=True)  # stores simple scheme for this employee_order
 
     @classmethod
     def get_first_teammember_on_rosterdate(cls, team, rosterdate_dte):
@@ -545,9 +589,6 @@ class Schemeitem(TsaBaseModel):
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
 
-
-
-
     class Meta:
         ordering = ['rosterdate', 'timestart']
 
@@ -604,8 +645,9 @@ class Orderhour(TsaBaseModel):
     order = ForeignKey(Order, related_name='orderhours', on_delete=PROTECT)
     schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
-    rosterdate = DateField(db_index=True, null=True, blank=True)
+    rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
+    isabsence = BooleanField(default=False)
 
     yearindex = PositiveSmallIntegerField(default=0)
     monthindex = PositiveSmallIntegerField(default=0)
@@ -647,8 +689,9 @@ class Emplhour(TsaBaseModel):
     # deprecated, use teammemberid instead
     teammember = ForeignKey(Teammember, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
-    rosterdate = DateField(db_index=True, null=True, blank=True)
+    rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
+    isabsence = BooleanField(default=False)
 
     yearindex = PositiveSmallIntegerField(default=0)
     monthindex = PositiveSmallIntegerField(default=0)
@@ -677,10 +720,6 @@ class Emplhour(TsaBaseModel):
     # combination rosterdate + schemeitemid + teammemberid is used to identify schemeitem / teammember that is used to create this emplhour
     schemeitemid = IntegerField(null=True)
     teammemberid = IntegerField(null=True)
-
-
-
-
 
     class Meta:
         ordering = ['rosterdate', 'timestart']
@@ -767,6 +806,37 @@ class Companysetting(Model):  # PR2019-03-09
     jsonsetting = JSONField(null=True)  # stores invoice dates for this customer
 
 #===========  Classmethod
+    @classmethod
+    def get_jsonsetting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17
+        # function returns value of jsonsetting row that match the filter
+        # logger.debug('---  get jsonsetting  ------- ')
+        setting = None
+        if company and key_str:
+            row = cls.objects.get_or_none(company=company, key=key_str)
+            if row:
+                if row.jsonsetting:
+                    setting = row.jsonsetting
+        if setting is None:
+            if default_setting:
+                setting = default_setting
+        return setting
+
+    @classmethod
+    def set_jsonsetting(cls, key_str, jsonsetting, company): #PR2019-03-09
+        # logger.debug('---  set_jsonsettingg  ------- ')
+        # logger.debug('key_str: ' + str(key_str) + ' jsonsetting: ' + str(jsonsetting))
+        # get
+        if company and key_str:
+            # don't use get_or_none, gives none when multiple settings exists and will create extra setting.
+            row = cls.objects.filter(company=company, key=key_str).first()
+            if row:
+                row.jsonsetting = jsonsetting
+            else:
+                if jsonsetting:
+                    row = cls(company=company, key=key_str, jsonsetting=jsonsetting)
+            row.save()
+        # logger.debug('row.jsonsetting: ' + str(row.jsonsetting))
+
     @classmethod
     def get_setting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17
         # function returns value of setting row that match the filter
