@@ -93,38 +93,42 @@ def remove_status_from_statussum(status, old_status_sum):
 
 def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
     logger.debug(' --- get_rosterdate_check --- ')
-    # function gets last rosterdate from orderhour and adds one day to it.
+    # function gets rosterdate from upload_dict. If None: lookup last roserdate in orderhour and add one day to it.
     # Generates a "SELECT MAX..." query, return value is a dict
     # # upload_dict: (input) {rosterdate: "2019-11-14"} or (create) {next: True} or (delete) {last: True}
     # 'rosterdate_check': {'mode': 'delete', 'rosterdate': '2019-12-14'}} <class 'dict'>
-    rosterdate = None
-    rosterdate_iso = None
-    rosterdate_dict = {}
+
+    # default value for rosterdate is today
+    rosterdate = date.today()
+    rosterdate_iso = rosterdate.isoformat()
 
     mode = upload_dict.get('mode')
     rosterdate_dict = {'mode': mode}
     logger.debug('mode: ' + str(mode))
 
-# if rosterdate in dict: check rosterdate, otherwise check last or next
+# if rosterdate in dict: check this rosterdate, otherwise check last rosterdate or next
     if 'rosterdate' in upload_dict:
         rosterdate_iso = upload_dict.get('rosterdate')
         rosterdate = f.get_dateobj_from_ISOstring(rosterdate_iso)
     else:
 
-# get last rosterdate of Emplhour
+# get last rosterdate of Orderhour
         max_rosterdate_dict = m.Orderhour.objects.\
             filter(order__customer__company=request.user.company).\
             aggregate(Max('rosterdate'))
         # last_rosterdate_dict: {'rosterdate__max': datetime.date(2019, 12, 19)} <class 'dict'>
         if max_rosterdate_dict:
             rosterdate = max_rosterdate_dict['rosterdate__max'] # datetime.date(2019, 10, 28)
-            rosterdate_iso = rosterdate.isoformat()
+            if rosterdate:
+                rosterdate_iso = rosterdate.isoformat()
 
 # in create mode: get next rosterdate
             if rosterdate and mode == 'create':
                 # add one day to change rosterdate
                 rosterdate = rosterdate + timedelta(days=1)
                 rosterdate_iso = rosterdate.isoformat()
+    if rosterdate is None:
+        rosterdate = date.today()
 
     if 'rosterdate':
         rosterdate_count, rosterdate_confirmed = check_rosterdate_confirmed(rosterdate, request.user.company)
@@ -1057,28 +1061,23 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
 
     return update_dict
 
-def create_emplhour_list(rosterdatefirst, rosterdatelast, periodtimestart, periodtimeend, company, comp_timezone): # PR2019-11-16
+def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
     logger.debug(' ============= create_emplhour_list ============= ')
 
-    logger.debug('rosterdatefirst: ' + str(rosterdatefirst) + ' ' + str(type(rosterdatefirst)))
-    logger.debug('rosterdatelast: ' + str(rosterdatelast) + ' ' + str(type(rosterdatelast)))
-    logger.debug('periodtimestart: ' + str(periodtimestart) + ' ' + str(type(periodtimestart)))
-    logger.debug('periodtimeend: ' + str(periodtimeend) + ' ' + str(type(periodtimeend)))
+    periodstart_datetimelocal = period_dict.get('periodstart')
+    periodend_datetimelocal = period_dict.get('periodend')
+    rosterdatefirst = period_dict.get('rosterdatefirst')
+    rosterdatelast = period_dict.get('rosterdatelast')
+    rosterdatefirst_minus1 = period_dict.get('rosterdatefirst_minus1')
+    rosterdatelast_plus1 = period_dict.get('rosterdatelast_plus1')
 
 
-    # TODO filter also on min max rosterdate, in case timestart / end is null
 
     starttime = timer()
 
-    # convert period_timestart_iso into period_timestart_local
-    # logger.debug('time_min: ' + str(time_min) + ' ' + str(type(time_min)))
-    # logger.debug('time_max: ' + str(time_max)+ ' ' + str(type(time_max)))
-    # logger.debug('range_start_iso: ' + str(range_start_iso)+ ' ' + str(type(range_start_iso)))
-    # logger.debug('range_end_iso: ' + str(range_end_iso)+ ' ' + str(type(range_end_iso)))
-    # logger.debug('show_all: ' + str(show_all)+ ' ' + str(type(show_all)))
+
 
     # Exclude template.
-    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
@@ -1087,10 +1086,29 @@ def create_emplhour_list(rosterdatefirst, rosterdatelast, periodtimestart, perio
     order_id = None
     employee_id = None
 
+# show emplhour records with :
+    # LEFT JOIN employee (also records without employee are shown)
+    # - this company
+    # - this customer if not blank
+    # - this order if not blank
+    # - this employee if not blank
+    # - this rosterdate
+    # - within time range
+    #   NOTE: don't forget to add also: emplhourtimestart/end IS NULL OR periodtimestart/end IS NULL
+
+    # Note: filter also on min max rosterdate, in case timestart / end is null
+
+    # Note: when emplhourtimestart is blank filter on rosterdatefirst instead of rosterdatefirst_minus1
+    # AND (eh.rosterdate >= %(rdfm1)s)  AND (eh.rosterdate <= %(rdlp1)s)
+    # instead:
+    # AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
+    # AND CASE WHEN eh.timeend IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
+
     newcursor = connection.cursor()
     newcursor.execute("""
         SELECT eh.id AS eh_id, oh.id AS oh_id, o.id AS o_id, eh.rosterdate AS eh_rd, eh.shift AS eh_sh, 
         eh.timestart AS eh_ts, eh.timeend AS eh_te, eh.status AS eh_st, eh.overlap AS eh_ov,
+        eh.breakduration AS eh_bd, eh.timeduration AS eh_td, eh.plannedduration AS eh_pd, 
         c.code AS c_code, o.code AS o_code, 
         e.id AS e_id, e.code AS e_code
         FROM companies_emplhour AS eh 
@@ -1099,12 +1117,13 @@ def create_emplhour_list(rosterdatefirst, rosterdatelast, periodtimestart, perio
         INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
         INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
         WHERE (c.company_id = %(cid)s) 
-        AND (c.id = %(cust_id)s OR %(cust_id)s IS NULL) 
-        AND (o.id = %(ord_id)s OR %(ord_id)s IS NULL) 
-        AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL) 
-        AND (eh.rosterdate >= %(rdf)s)  AND (eh.rosterdate <= %(rdl)s) 
-        AND (eh.timestart < %(pte)s OR %(pte)s IS NULL)  
-        AND (eh.timeend > %(pts)s OR  %(pts)s IS NULL) 
+        AND (c.id = %(cust_id)s OR %(cust_id)s IS NULL)
+        AND (o.id = %(ord_id)s OR %(ord_id)s IS NULL)
+        AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
+        AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
+        AND CASE WHEN eh.timeend IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END 
+        AND (eh.timestart < %(pte)s OR eh.timestart IS NULL OR %(pte)s IS NULL)
+        AND (eh.timeend > %(pts)s OR eh.timeend IS NULL OR %(pts)s IS NULL)
         ORDER BY eh.rosterdate ASC, eh.timestart ASC, LOWER(c.code) ASC, LOWER(o.code) ASC
             """, {
                 'cid': company_id,
@@ -1113,14 +1132,16 @@ def create_emplhour_list(rosterdatefirst, rosterdatelast, periodtimestart, perio
                 'empl_id': employee_id,
                 'rdf': rosterdatefirst,
                 'rdl': rosterdatelast,
-                'pts': periodtimestart,
-                'pte': periodtimeend
+                'rdfm1': rosterdatefirst_minus1,
+                'rdlp1': rosterdatelast_plus1,
+                'pts': periodstart_datetimelocal,
+                'pte': periodend_datetimelocal
                 })
 
     # logger.debug("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVV")
     emplhours_rows = f.dictfetchall(newcursor)
     # dictfetchall returns a list with dicts for each emplhour row
-    # logger.debug(str(emplhours_rows))
+    logger.debug(str(emplhours_rows))
     # emplhours_rows:  [ {'eh_id': 4504, 'eh_rd': datetime.date(2019, 11, 14), 'c_code': 'MCB', 'o_code': 'Punda', 'e_code': 'Bernardus-Cornelis, Yaha'},
 
     # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
@@ -1216,6 +1237,15 @@ def create_emplhour_list(rosterdatefirst, rosterdatelast, periodtimestart, perio
                 if eh_sh:
                     field_dict['value'] = eh_sh
 
+            elif field == 'breakduration':
+                eh_bd = row.get('eh_bd')
+                if eh_bd:
+                    field_dict['value'] = eh_bd
+
+            elif field == 'timeduration':
+                eh_td = row.get('eh_td')
+                if eh_td:
+                    field_dict['value'] = eh_td
             #else:
                # value = getattr(instance, field)
               #  if value:

@@ -61,6 +61,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                 dict = {}
                 if mode == 'create':
                     logfile = []
+# FillRosterdate
                     FillRosterdate(rosterdate_dte, update_list, comp_timezone, user_lang, logfile, request)
                     dict['mode'] = 'create'
                     dict['rosterdate'] = get_rosterdatefill_dict(rosterdate_dte, request.user.company)
@@ -68,6 +69,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 
                 elif mode == 'delete':
                     dict['mode'] = 'delete'
+# RemoveRosterdate
                     RemoveRosterdate(rosterdate_iso, request, comp_timezone)
 
                 if dict:
@@ -125,9 +127,13 @@ def FillRosterdate(new_rosterdate_dte, update_list, comp_timezone, user_lang, lo
         for schemeitem in schemeitems:
             update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone)
 
+# 2 delete existing emplhour and orderhour records of this rosterdate if they are not confirmed or locked
+        # deleted_count, deleted_count_oh = delete_emplhours_orderhours(new_rosterdate_dte, request)
+
         entries_count = 0
         entry_balance = m.get_entry_balance(request, comp_timezone)
         entries_employee_list = []
+
 
         logger.debug('entry_balance: ' + str(entry_balance))
         dte_formatted = f.format_WDMY_from_dte(new_rosterdate_dte, user_lang)
@@ -139,69 +145,20 @@ def FillRosterdate(new_rosterdate_dte, update_list, comp_timezone, user_lang, lo
 
         # first add absence records, so shifts can be skipped when absence exist
 
-# 2 create list of employees who are absent on new rosterdate
-    # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
-        #  LOWER(e.code) must be in SELECT
-        newcursor = connection.cursor()
-        newcursor.execute("""SELECT tm.id, o.id, tm.employee_id, e.code, o.code, tm.datefirst, tm.datelast, LOWER(e.code) 
-        FROM companies_teammember AS tm 
-        INNER JOIN companies_employee AS e ON (tm.employee_id = e.id)
-        INNER JOIN companies_team AS t ON (tm.team_id = t.id)
-        INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
-        INNER JOIN companies_order AS o ON (s.order_id = o.id) 
-        INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-        WHERE (c.company_id = %(cid)s) AND (o.cat = %(cat)s) 
-        AND (tm.datefirst <= %(rd)s OR tm.datefirst IS NULL)
-        AND (tm.datelast >= %(rd)s OR tm.datelast IS NULL)
-        AND (e.datefirst <= %(rd)s OR e.datefirst IS NULL)
-        AND (e.datelast >= %(rd)s OR e.datelast IS NULL)
-        ORDER BY LOWER(e.code) ASC""", {
-            'cid': request.user.company_id,
-            'cat': c.SHIFT_CAT_0512_ABSENCE,
-            'rd': new_rosterdate_dte})
-        absence_rows = newcursor.fetchall()
-        logger.debug('++++++++++ absence_rows >' + str(absence_rows))
-        # (446, 'Agata G M', 'Buitengewoon', 'agata g m'),
-        # (446, 'Agata G M', 'Vakantie', 'agata g m'),
-
         logfile.append('================================ ')
         logfile.append('   Absence')
         logfile.append('================================ ')
-        if absence_rows:
-            empl_id = 0
-            for item in absence_rows:
-                logger.debug( str(item))
-                # (0: tm_id, 1: order_id, 2: employee_id, 3: 'Agata G M', 4: 'Buitengewoon', 5: datefirst, 6: datelast 7: 'agata g m'),
-                if empl_id == item[2]:
-                    logfile.append("            " + item[3] + " is already absent. Absence '" + item[4] + "' skipped.")
-                else:
-                    empl_id = item[2]
-                    # add item to absence_dict. Key is Empoloyee_id, value is category (for logging only)
-                    absence_dict[item[2]] = item[4]
-                    is_added = False
-                    # teammember is needed to get absence hours
-                    teammember = m.Teammember.objects.get_or_none(
-                        team__scheme__order__customer__company=request.user.company,
-                        team__scheme__order__cat=c.SHIFT_CAT_0512_ABSENCE,
-                        pk=item[0]
-                    )
-                    if teammember:
-                        order = teammember.team.scheme.order
-                        is_added = add_absence_orderhour_emplhour(
-                            order, teammember, new_rosterdate_dte, request, c.SHIFT_CAT_0512_ABSENCE)
-                    if is_added:
-                        range = get_range_text(item[5], item[6], True)  # True: with parentheses
-                        logfile.append("       " + item[3] + " has absence '" + item[4] + "' " + range + ".")
-                    else:
-                        logfile.append("       Error adding absence '" + item[4] + "' of " + item[3] + " on " + str(new_rosterdate_dte.isoformat()) + ".")
 
-        else:
-            logfile.append('   no absent employees on ' + str(new_rosterdate_dte.isoformat()) + '.')
+# 2 create list of employees who are absent on new rosterdate
+        create_absent_emplhours(new_rosterdate_dte, absence_dict, logfile, request)
 
+
+
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 # 4. create shifts
         # loop through all customers of this company, except for absence and template
         # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
-        customers = m.Customer.objects.filter(company=request.user.company, cat__lt=c.SHIFT_CAT_0512_ABSENCE)
+        customers = m.Customer.objects.filter(company=request.user.company, isabsence=False)
         if not customers:
             logfile.append('================================ ')
             logfile.append('Customer: No customers found.')
@@ -234,6 +191,7 @@ def FillRosterdate(new_rosterdate_dte, update_list, comp_timezone, user_lang, lo
                                 range = get_range_text(order.datefirst, order.datelast, True)  # True: with parentheses
                                 logfile.append("      rosterdate outside order period " + range)
                             else:
+                                # TODO allow teammembers without scheme
                                 schemes = m.Scheme.objects.filter(order=order)
                                 if not schemes:
                                     logfile.append("      order has no schemes.")
@@ -251,6 +209,7 @@ def FillRosterdate(new_rosterdate_dte, update_list, comp_timezone, user_lang, lo
                                         elif not f.date_within_range(scheme.datefirst, scheme.datelast, new_rosterdate_dte):
                                             logfile.append("     scheme skipped. Rosterdate outside scheme period." )
                                         else:
+                                            # TODO subquery schemeitems
                                             schemeitems = m.Schemeitem.objects.filter(scheme=scheme)
                                             if not schemeitems:
                                                 logfile.append("     scheme ' has no shifts.")
@@ -372,7 +331,7 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
     # with restshift: amount = 0, pricerate = 0, additionrate  = 0, billable = false
     if shift_isrestshift:
         pricerate = 0
-        additionrate  = 0
+        additionrate = 0
         is_billable = False
 
     amount = (timeduration / 60) * (pricerate) * (1 + additionrate / 10000)
@@ -388,9 +347,10 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
     # (happens when FillRosterdate for this rosterdate is previously used)
 
         # emplhour is linked with schemeitem by rosterdate / schemeitemid / teammmeberid, not by Foreignkey
-        # emplhour can be made absent, which changes the parent of emplhour. Keep the connection with the schemeitem
         # when creating roster only one emplhour is created per orderhour. It contains status STATUS_01_CREATED = True.
         # split emplhour records or absence emplhour records have STATUS_01_CREATED = False.
+        # NOT TRUE: emplhour can be made absent, which changes the parent of emplhour. Keep the connection with the schemeitem
+        #       must be: employee made absent gets new emplhour record, existing gets new employee
 
         orderhour = None
 
@@ -403,6 +363,7 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
 # b. make list of orderhour_id of records to be deleted or skipped
             locked_orderhourid_list = []
             tobedeleted_orderhourid_list = []
+            linked_emplhour = None
             for linked_emplhour in linked_emplhours:
 # c. check if status is STATUS_02_START_CONFIRMED or higher
                 # skip update this orderhour when it is locked or has status STATUS_02_START_CONFIRMED or higher
@@ -419,6 +380,9 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
                         schemeitem.rosterdate) + " already exist and will be overwritten.")
 # e. if status is STATUS_00_NONE
                 else:
+                    pass
+                    # Nor correct, because records made by FillRosterdate always have STATUS_01_CREATED
+                    # and added records have no reammemberid therefore are not in this queryset
                     # this record is added later nad not confirmed / locked: delete this record
                     logfile.append("       Shift '" + str(shift_code) + "' of " + str(
                         schemeitem.rosterdate) + " is not planned and will be deleted.")
@@ -433,7 +397,7 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
             # TODO check and correct (linked_emplhour not right, I think)
             if tobedeleted_orderhourid_list:
                 for oh_pk in tobedeleted_orderhourid_list:
-            # skip delete when orderhour contains emplhour that are not deleted
+            # skip delete when orderhour contains emplhours that are not deleted
                     if oh_pk not in locked_orderhourid_list:
             # delete orderhour records of deleted emplhour records,
                         deleted_ok = m.delete_instance(linked_emplhour, {}, request)
@@ -643,8 +607,10 @@ def get_teammember_on_rosterdate_with_logfile(teammember, schemeitem, rosterdate
 
 # 33333333333333333333333333333333333333333333333333
 
-
-def add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, request, abscat):  # PR2019-09-01
+def add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, request):  # PR2019-09-01
+    logger.debug(' XXXXXXXXXXXXXX============= add_absence_orderhour_emplhour ============= ')
+    logger.debug('order: ' + str(order))
+    logger.debug('teammember: ' + str(teammember))
     is_added = False
     if order and teammember:
         yearindex = new_rosterdate_dte.year
@@ -658,7 +624,7 @@ def add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, reques
             monthindex=monthindex,
             weekindex=weekindex,
             payperiodindex=0,
-            cat=abscat,
+            isabsence=True,
             status=c.STATUS_01_CREATED)  # gets status created when time filled in by schemeitem
         orderhour.save(request=request)
 
@@ -683,11 +649,136 @@ def add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, reques
                 employee=teammember.employee,
                 teammember=teammember,
                 timeduration=workhoursperday,
-                cat=abscat,
+                isabsence=True,
                 status=c.STATUS_01_CREATED) # gets status created when time filled in by schemeitem
             new_emplhour.save(request=request)
             is_added = True
+
     return is_added
+
+
+def create_absent_emplhours(new_rosterdate_dte, absence_dict, logfile, request):  # PR2019-11-18
+    # 2 create create_absent_emplhours of employees who are absent on new rosterdate
+    # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
+    #  LOWER(e.code) must be in SELECT
+    newcursor = connection.cursor()
+    newcursor.execute("""
+                SELECT tm.id, o.id, tm.employee_id, e.code, o.code, tm.datefirst, tm.datelast, LOWER(e.code) 
+                FROM companies_teammember AS tm 
+                INNER JOIN companies_employee AS e ON (tm.employee_id = e.id)
+                INNER JOIN companies_team AS t ON (tm.team_id = t.id)
+                INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
+                INNER JOIN companies_order AS o ON (s.order_id = o.id) 
+                INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
+                WHERE (c.company_id = %(cid)s) AND (o.isabsence = TRUE) 
+                AND (tm.datefirst <= %(rd)s OR tm.datefirst IS NULL)
+                AND (tm.datelast >= %(rd)s OR tm.datelast IS NULL)
+                AND (e.datefirst <= %(rd)s OR e.datefirst IS NULL)
+                AND (e.datelast >= %(rd)s OR e.datelast IS NULL)
+                ORDER BY LOWER(e.code) ASC
+            """, {
+        'cid': request.user.company_id,
+        'rd': new_rosterdate_dte})
+    absence_rows = newcursor.fetchall()
+    logger.debug('++++++++++ absence_rows >' + str(absence_rows))
+    # (446, 'Agata G M', 'Buitengewoon', 'agata g m'),
+    # (446, 'Agata G M', 'Vakantie', 'agata g m'),
+
+    logfile.append('================================ ')
+    logfile.append('   Absence')
+    logfile.append('================================ ')
+    if absence_rows:
+        empl_id = 0
+        for item in absence_rows:
+            logger.debug(str(item))
+            # (0: tm_id, 1: order_id, 2: employee_id, 3: 'Agata G M', 4: 'Buitengewoon', 5: datefirst, 6: datelast 7: 'agata g m'),
+            if empl_id == item[2]:
+                logfile.append("            " + item[3] + " is already absent. Absence '" + item[4] + "' skipped.")
+            else:
+                empl_id = item[2]
+                # add item to absence_dict. Key is Empoloyee_id, value is category (for logging only)
+                absence_dict[item[2]] = item[4]
+                is_added = False
+                # teammember is needed to get absence hours
+                teammember = m.Teammember.objects.get_or_none(
+                    team__scheme__order__customer__company=request.user.company,
+                    team__scheme__order__isabsence=True,
+                    pk=item[0]
+                )
+                if teammember:
+                    order = teammember.team.scheme.order
+
+# add_absence_orderhour_emplhour
+                    is_added = add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, request)
+
+                if is_added:
+                    range = get_range_text(item[5], item[6], True)  # True: with parentheses
+                    logfile.append("       " + item[3] + " has absence '" + item[4] + "' " + range + ".")
+                else:
+                    logfile.append("       Error adding absence '" + item[4] + "' of " + item[3] + " on " + str(
+                        new_rosterdate_dte.isoformat()) + ".")
+
+    else:
+        logfile.append('   no absent employees on ' + str(new_rosterdate_dte.isoformat()) + '.')
+
+
+def delete_emplhours_orderhours(new_rosterdate_dte, request): # PR2019-11-18
+    # delete existing shifts of this rosterdate if they are not confirmed or locked
+    newcursor = connection.cursor()
+
+# a delete emplhour records
+    # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
+
+    #  - this company
+    #  - this rosterdate
+    #  - eh_status less than confirmed_start
+    #  - oh_status less than locked
+    newcursor.execute(""" 
+                DELETE FROM companies_emplhour AS eh
+                WHERE (eh.rosterdate = %(rd)s) 
+                AND (eh.status < %(eh_status)s) 
+                AND orderhour_id IN (
+                    SELECT oh.id AS oh_id FROM companies_orderhour AS oh
+                    INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
+                    INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
+                    WHERE (c.company_id = %(cid)s) 
+                    AND (oh.status < %(oh_status)s) 
+                    AND (oh.rosterdate = %(rd)s)
+                )
+                """, {
+        'cid': request.user.company_id,
+        'eh_status': c.STATUS_02_START_CONFIRMED,
+        'oh_status': c.STATUS_08_LOCKED,
+        'rd': new_rosterdate_dte})
+    deleted_count = newcursor.rowcount
+
+# b delete 'childless' orderhour records (i.e. without emplhour records)
+    #  - this company
+    #  - this rosterdate
+    #  - oh_status less than locked
+    #  - without emplhour records
+
+    newcursor.execute(""" 
+            DELETE FROM companies_orderhour AS oh
+            WHERE order_id IN (
+                SELECT o.id AS o_id FROM companies_order AS o
+                INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
+                WHERE (c.company_id = %(cid)s) 
+            )
+            AND id NOT IN (
+                SELECT orderhour_id FROM companies_emplhour
+            )
+            AND (oh.rosterdate = %(rd)s) 
+            AND (oh.status < %(oh_status)s) 
+            """, {
+        'cid': request.user.company_id,
+        'oh_status': c.STATUS_08_LOCKED,
+        'rd': new_rosterdate_dte})
+    deleted_count_oh = newcursor.rowcount
+
+    return deleted_count, deleted_count_oh
+
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 def update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone):  # PR2019-07-31
@@ -1517,6 +1608,22 @@ def get_teammember_rows_per_date_per_employee(rosterdate, employee_id, refdate, 
     # reuse calculated fields in query only possible if you make subquery
     # from https://stackoverflow.com/questions/8840228/postgresql-using-a-calculated-column-in-the-same-query/36530228
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
+
+    # get teams of this rosterdate with:
+    #  - filter this company
+    #  - no template
+    #  - rosterdate within range of order
+    #  - scheme and order not inactive
+    # LEFT JOIN schemeitem with: (also teams without schemeitem are given)
+    #  - has correct cycleday
+    #  - rosterdate within range of scheme
+    # INNER JOIN teammembers with:
+    #  - INNER JOINN employees (only teammembers with employee are given
+    #  - filter this employee company
+    #  - no template
+    #  - rosterdate within range of employee
+    #  - rosterdate within range of teammember
+    #  - employee not inactive
     newcursor = connection.cursor()
     newcursor.execute("""
         SELECT
@@ -1525,7 +1632,10 @@ def get_teammember_rows_per_date_per_employee(rosterdate, employee_id, refdate, 
             sq.offsetstart + 1440 * sq.ddif AS osdif,            
             sq.offsetend + 1440 * sq.ddif AS oedif, 
             sq.sh_os, sq.sh_oe, sq.sh_br, sq.sh_code, sq.sh_rest, 
-            sq.e_id, sq.e_code, sq.e_nl, sq.e_nf, sq.o_id, sq.o_code, sq.c_id, sq.comp_id, sq.c_code
+            sq.e_id, sq.e_code, sq.e_nl, sq.e_nf, 
+            sq.s_id, sq.s_code, 
+            sq.o_id, sq.o_code, sq.o_abs, 
+            sq.c_id, sq.c_code, sq.comp_id 
         FROM (
             WITH tm_sub AS (
                     SELECT tm.id AS tm_id, tm.team_id AS t_id,e.id AS e_id, e.code AS e_code, e.namelast AS e_nl, e.namefirst AS e_nf, 
@@ -1543,8 +1653,7 @@ def get_teammember_rows_per_date_per_employee(rosterdate, employee_id, refdate, 
                 ), 
                 si_sub AS (SELECT si.id AS si_id, si.team_id AS t_id,  
                     sh.code AS sh_code, sh.isrestshift AS sh_rest, 
-                    sh.offsetstart AS sh_os, sh.offsetend AS sh_oe, sh.breakduration AS sh_br,
-                    s.cycle AS s_c, s.datefirst AS s_df, s.datelast AS s_dl  
+                    sh.offsetstart AS sh_os, sh.offsetend AS sh_oe, sh.breakduration AS sh_br 
                     FROM companies_schemeitem AS si 
                     LEFT JOIN companies_shift AS sh ON (si.shift_id = sh.id) 
                     INNER JOIN companies_scheme AS s ON (si.scheme_id = s.id) 
@@ -1553,10 +1662,11 @@ def get_teammember_rows_per_date_per_employee(rosterdate, employee_id, refdate, 
                     AND (s.datelast >= %(rd)s OR s.datelast IS NULL)
                 ) 
             SELECT t.id AS t_id, 
-            o.id AS o_id, o.code AS o_code, o.cat AS o_cat, o.sequence AS o_seq, 
+            s.id AS s_id, s.code AS s_code, s.cycle AS s_c, s.datefirst AS s_df, s.datelast AS s_dl,   
+            o.id AS o_id, o.code AS o_code, o.cat AS o_cat, o.sequence AS o_seq, o.isabsence AS o_abs, 
             o.datefirst AS o_df, o.datelast AS o_dl, c.id AS c_id, c.code AS c_code, c.company_id AS comp_id, 
             tm_sub.tm_id, tm_sub.e_id, tm_sub.e_code, tm_sub.e_nl, tm_sub.e_nf, tm_sub.e_df, tm_sub.e_dl, tm_sub.tm_df, tm_sub.tm_dl, tm_sub.tm_os, tm_sub.tm_oe,
-            si_sub.si_id, si_sub.sh_code, si_sub.sh_rest, si_sub.sh_os, si_sub.sh_oe, si_sub.sh_br, si_sub.s_c, si_sub.s_df, si_sub.s_dl, 
+            si_sub.si_id, si_sub.sh_code, si_sub.sh_rest, si_sub.sh_os, si_sub.sh_oe, si_sub.sh_br, 
             (CAST(%(rd)s AS date) - CAST(%(ref)s AS date)) AS ddif,  
             CASE WHEN si_sub.sh_os IS NULL THEN CASE WHEN tm_sub.tm_os IS NULL THEN 0 ELSE tm_sub.tm_os END ELSE si_sub.sh_os END AS offsetstart, 
             CASE WHEN si_sub.sh_oe IS NULL THEN CASE WHEN tm_sub.tm_oe IS NULL THEN 1440 ELSE tm_sub.tm_oe END ELSE si_sub.sh_oe END AS offsetend 
@@ -1599,9 +1709,11 @@ def add_to_compare_dict(fid, row, tm_dicts):
 
 # create tm_row
         # tm_row = [osdif, oedif, cat, seq],
-        if f.get_absence(row['o_cat']):
+        is_absence = row.get('o_abs', False)
+        is_restshift = row.get('sh_rest', False)
+        if is_absence:  # was: f.get_absence(row['o_cat']):
             cat = 'a'
-        elif row['sh_rest']:
+        elif is_restshift:  # was:  row['sh_rest']:
             cat = 'r'
         else:
             cat = 's'
@@ -1645,9 +1757,11 @@ def compare_rows(fid, row, compare_dict):
     ddiff = row['ddif']
     ext_tm_list = compare_dict.get(ddiff)
     if ext_tm_list:
-        if f.get_absence(row['o_cat']):
+        is_absence = row.get('o_abs', False)
+        is_restshift = row.get('sh_rest', False)
+        if is_absence: # was  f.get_absence(row['o_cat']):
             cat = 'a'
-        elif row['sh_rest']:
+        elif is_restshift: # was row['sh_rest']:
             cat = 'r'
         else:
             cat = 's'
@@ -1730,7 +1844,7 @@ def create_employee_planning_dict(fid, row, datefirst_dte, datelast_dte, comp_ti
     planning_dict = {}
     if row:
         rosterdate = row['rosterdate']
-        is_absence = f.get_absence(row['o_cat'])
+        is_absence = row.get('o_abs', False)
         is_restshift = row.get('sh_rest', False)
 
     # skip teammemebers of schemes that are not assigned to schemeitem
@@ -1775,7 +1889,14 @@ def create_employee_planning_dict(fid, row, datefirst_dte, datelast_dte, comp_ti
                 planning_dict['order'] = {
                     'pk': row['o_id'],
                     'ppk': row['c_id'],
-                    'value': row.get('o_code','')
+                    'value': row.get('o_code',''),
+                    'isabsence': is_absence
+                }
+
+                planning_dict['scheme'] = {
+                    'pk': row['s_id'],
+                    'ppk': row['o_id'],
+                    'value': row.get('s_code','')
                 }
 
                 planning_dict['customer'] = {
@@ -1785,7 +1906,7 @@ def create_employee_planning_dict(fid, row, datefirst_dte, datelast_dte, comp_ti
                 }
 
                 planning_dict['rosterdate'] = {'value': rosterdate}
-                planning_dict['shift'] = {'value': row['sh_code']}
+                planning_dict['shift'] = {'value': row['sh_code'], 'isrestshift': is_restshift}
 
                 planning_dict['timestart'] = {'field': "timestart", 'datetime': timestart, 'offset': offset_start}
                 planning_dict['timeend'] = {'field': "timeend", 'datetime': timeend, 'offset': offset_end}

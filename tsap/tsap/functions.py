@@ -6,7 +6,6 @@ from tsap.settings import TIME_ZONE
 from tsap import constants as c
 from companies import models as m
 
-
 import math
 import re
 import json
@@ -1061,7 +1060,7 @@ def get_cat_value(cat_sum, cat_index):
     return has_cat_value
 
 
-def get_absence(cat_sum):
+def XXXget_absence(cat_sum):
     is_absence = False
     if cat_sum:
         if cat_sum >= c.SHIFT_CAT_0512_ABSENCE:
@@ -1076,7 +1075,7 @@ def get_absence(cat_sum):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def check_offset_overlap(a, b, x, y):  # PR2019-11-11
-    logger.debug(' --- check_offset_overlap --- ')
+    # logger.debug(' --- check_offset_overlap --- ')
 
     has_overlap = False
 # 1. validate if timeend before timestart
@@ -1093,7 +1092,7 @@ def check_offset_overlap(a, b, x, y):  # PR2019-11-11
     return has_overlap
 
 def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
-    logger.debug(' --- check_shift_overlap --- ')
+    # logger.debug(' --- check_shift_overlap --- ')
     # has_overlap = True when overlap and lower priority. With same priority: lower fid gets 'has_overlap = True'
 
     # # ext_row: [['568-0', 'a', 0, 1440, 4], ['568-1', 'a', 1440, 2880, 4]],
@@ -1108,9 +1107,9 @@ def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
 
     delete_this_row = False
     if cur_row and ext_row:
-        logger.debug('----')
-        logger.debug('cur_row:  ' + str(cur_row))
-        logger.debug('ext_row:  ' + str(ext_row))
+        # logger.debug('----')
+        # logger.debug('cur_row:  ' + str(cur_row))
+        # logger.debug('ext_row:  ' + str(ext_row))
 
         x = ext_row[2] # osdif
         y = ext_row[3] # oedif

@@ -23,16 +23,8 @@
                 autocomplete="off"
                 placeholder="{% trans 'Period' %}":
                 readonly>
-<!--
-            <h6 class="td_width_200 line_height_normal mt-2 px-2">{% trans 'Select order' %}:</h6>
-            <input id="id_flt_order"
-                type="text"
-                class="td_width_200 border_none pointer_show px-2"
-                autocomplete="off"
-                placeholder="{% trans 'Period' %}":
-                readonly>
+
         </div>
--->
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
@@ -126,7 +118,7 @@
                 </div>
 
                 <div  id="id_mod_period_body" class="modal-body">
-                    <h6 class="mx-2 my-1">{% trans 'Select an option' %}:</h6>
+                    <h6 class="mx-2 my-1">{% trans 'Select an option or set the start- and end date' %}:</h6>
                     <div class="modal_container">
 <!-- this div contains range select table -->
                         <div class="modal_body_left">
@@ -168,7 +160,7 @@
         </div>
     </div>
 
-<!-- =================== MODAL ORDER  ===================
+<!-- =================== MODAL ORDER  =================== -->
     <div class="modal fade" id="id_mod_order" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">
             <div class="modal-content">
@@ -182,7 +174,7 @@
 
                 <div  id="id_mod_order_body" class="modal-body">
                     <div class="modal_container">
-
+<!-- this div contains range select table -->
                         <div class="modal_body_left">
                         <h6 class="mx-2 my-1">{% trans 'Select customer' %}:</h6>
                             <div class="content_subheader_left mx-2 my-1">
@@ -234,7 +226,7 @@
             </div>
         </div>
     </div>
--->
+
 
 
 <!-- =================== MODAL EMPLOYEE  =================== -->
@@ -405,7 +397,7 @@
 <!-- =================== DATA TABLE  =================== -->
                     <table class="table table-condensed tsa-tbl mx-4 my-1">
 
-                        <thead id="id_thead_items" class="thead-inverse">
+                        <thead id="id_thead_roster" class="thead-inverse">
                             <th class="text_align_left">{% trans 'Date' %}</th>
                             <th class="text_align_left">{% trans 'Order' %}</th>
                             <th class="text_align_left">{% trans 'Shift' %}</th>
@@ -423,8 +415,8 @@
                                 </a>
                             </th>
 
-                            <th>{% trans 'Break' %}</th>
-                            <th>{% trans 'Hours' %}</th>
+                            <th class="text_align_right">{% trans 'Break' %}</th>
+                            <th class="text_align_right">{% trans 'Hours' %}</th>
                             <th>
                                 <a id="id_filter_status" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
                                     <img id="id_img_filter_status" src="{% static 'img/stat04.png' %}" height="18" width="18">
@@ -432,7 +424,7 @@
                             </th>
                         </thead>
 
-                        <tbody id="id_tbody_items">
+                        <tbody id="id_tbody_roster">
                         </tbody>
                     </table>
   <!-- =================== END DATA TABLE  =================== -->

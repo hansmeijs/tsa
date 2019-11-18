@@ -171,33 +171,19 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             datalists[table] = d.get_rosterdate_check(table_dict, request)
 
                         elif table == 'period':
-                            logger.debug('downloaded period_dict: ' + str(table_dict))
+            # save new period and retrieve saved period
                             period_dict = d.period_get_and_save(table_dict, request, comp_timezone)
-                            logger.debug('period_dict: ' + str(period_dict))
                             datalists['period'] = period_dict
-
-                            periodstart_datetimelocal = period_dict.get('periodstart')
-                            periodend_datetimelocal = period_dict.get('periodend')
-                            rosterdatefirst_minus1 = period_dict.get('rosterdatefirst_minus1')
-                            rosterdatelast_plus1 = period_dict.get('rosterdatelast_plus1')
-
-                            #period_timestart_utc = f.get_datetime_UTC_from_ISOstring(period_timestart_iso)
-                            #period_timeend_utc = f.get_datetime_UTC_from_ISOstring(period_timeend_iso)
 
                             # d.check_overlapping_shifts(range_start_iso, range_end_iso, request)  # PR2019-09-18
                             # don't use the variable 'list', because table = 'period' and will create dict 'period_list'
-
-                            emplhour_list = d.create_emplhour_list(rosterdatefirst=rosterdatefirst_minus1,
-                                                                   rosterdatelast=rosterdatelast_plus1,
-                                                                   periodtimestart=periodstart_datetimelocal,
-                                                                   periodtimeend=periodend_datetimelocal,
+# create_emplhour_list
+                            emplhour_list = d.create_emplhour_list(period_dict=period_dict,
                                                                    company=request.user.company,
                                                                    comp_timezone=comp_timezone)
 
-
-
-                            if emplhour_list:
-                                datalists['emplhour_list'] = emplhour_list
+                            # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be retruned
+                            datalists['emplhour_list'] = emplhour_list
 
                         elif table == 'review':
                             # TODO period
