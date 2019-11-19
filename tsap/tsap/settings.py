@@ -42,9 +42,10 @@ INSTALLED_APPS = [
 # PR2019-02-28
     'accounts',
     'companies',
-    'employees',
     'customers',
+    'employees',
     'planning',
+    'tsap',
 
     'session_security',  # PR2019-02-28
     'anymail',  # PR2019-02-28
@@ -149,6 +150,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # PR2019-11-17 from https://docs.djangoproject.com/en/2.2/ref/contrib/staticfiles/#manifeststaticfilesstorage
 # and https://blog.xoxzo.com/en/2018/08/22/cache-busting-in-django/
 # STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+
+STATICFILES_STORAGE = config('STATICFILES_STORAGE', default='django.contrib.staticfiles.storage.StaticFilesStorage')
 
 # PR 2018-03-27
 LOGIN_URL = 'login'

@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // const for report
         const label_list = [get_attr_from_el_str(el_data,"data-txt_company"),
-                    get_attr_from_el_str(el_data,"data-txt_employee"),
+                    get_attr_from_el_str(el_data,"data-txt_customer"),
                     get_attr_from_el_str(el_data,"data-txt_planning") + " " + get_attr_from_el_str(el_data,"data-txt_of"),
                     get_attr_from_el_str(el_data,"data-txt_printdate")];
         const pos_x_list = [6, 65, 105, 130, 155, 185];
@@ -126,8 +126,16 @@ document.addEventListener('DOMContentLoaded', function() {
         let tblBody_items = document.getElementById("id_tbody_items");
         let tblBody_select = document.getElementById("id_tbody_select");
 
+        console.log("tblBody_items: ", tblBody_items);
+
         let el_loader = document.getElementById("id_loader");
         let el_msg = document.getElementById("id_msgbox");
+
+
+// === reset filter when ckicked on Escape button ===
+        document.addEventListener("keydown", function (event) {
+             if (event.key === "Escape") {ResetFilterRows()}
+        });
 
 // ---  add 'keyup' event handler to filter orders and customers
         let el_filter_select = document.getElementById("id_flt_select")
@@ -170,6 +178,8 @@ document.addEventListener('DOMContentLoaded', function() {
             el_form_btn_delete.addEventListener("click", function(){ModConfirmOpen("delete", el_form_btn_delete)});
         document.getElementById("id_form_btn_add").addEventListener("click", function(){HandleCustomerAdd()});
 
+
+
 // === close windows ===
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
         document.addEventListener('click', function (event) {
@@ -210,8 +220,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         "selected_pk": {"mode": "get"},
                         "planning_period": {"mode": "get"}},
             "company": {value: true},
-            "customer": {cat_lt: 512},
-            "order": {cat_lt: 512, "inactive": true},
+            "customer": {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            "order": {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
             "order_pricerate": {value: true}};
         DatalistDownload(datalist_request);
 
@@ -244,14 +254,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     get_datamap(response["customer_list"], customer_map)
 
                     const tblName = "customer";
-                    FillSelectTable(tblBody_select, el_data, customer_map, tblName, HandleSelectTable, HandleBtnInactiveClicked);
-
+                    FillSelectTable(tblBody_select, el_data, customer_map, tblName, HandleSelectRow, HandleBtnInactiveClicked);
                     FilterSelectRows();
+
                     FillTableRows(tblName);
                     FilterTableRows(document.getElementById("id_tbody_customer"));
                 }
                 if ("order_list" in response) {
                     get_datamap(response["order_list"], order_map)
+                    console.log("order_map: ", order_map)
                     FillTableRows("order");
                 }
                 if ("order_pricerate_list" in response) {
@@ -408,9 +419,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // HandleBtnSelect
 
-//=========  HandleSelectTable ================ PR2019-08-28
-    function HandleSelectTable(sel_tr_clicked) {
-        console.log( "===== HandleSelectTable  ========= ");
+//=========  HandleSelectRow ================ PR2019-08-28
+    function HandleSelectRow(sel_tr_clicked) {
+        console.log( "===== HandleSelectRow  ========= ");
 
         if(!!sel_tr_clicked) {
             const tblName = get_attr_from_el_str(sel_tr_clicked, "data-table");
@@ -419,8 +430,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  update selected_customer_pk
             // function 'get_mapdict_from_.....' returns empty dict if tblName or pk_str are not defined or key not exists.
-            const map_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, tblName, pk_str);
-            selected_customer_pk = get_subdict_value_by_key(map_dict, "id", "pk", 0);
+            const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, tblName, pk_str);
+            selected_customer_pk = get_subdict_value_by_key(customer_dict, "id", "pk", 0);
 
  // ---  highlight clicked row in select table
             DeselectHighlightedRows(sel_tr_clicked, cls_bc_yellow, cls_bc_lightlightgrey);
@@ -454,13 +465,35 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
     // Filter Table Rows
                     FilterTableRows(tblBody)
+
+                    // create addnew_row if lastRow is not an addnewRow
+                    const row_count = tblBody.rows.length;
+                    if(!!row_count){
+                        let lastRow = tblBody.rows[row_count - 1];
+                        if(!!lastRow){
+                            //console.log("lastRow", lastRow)
+                            const pk_str = get_attr_from_el(lastRow, "id");
+                            // if pk is not a number it is an 'addnew' row
+                            if(!parseInt(pk_str)){
+                                let el_input = lastRow.cells[0].children[0];
+                                if(!!el_input){
+                                    el_input.setAttribute("data-pk", selected_customer_pk)
+                                    el_input.setAttribute("data-ppk", get_dict_value_by_key(customer_dict, "ppk"))
+                                    const customer_code = get_subdict_value_by_key(customer_dict, "code", "value");
+                                    el_input.setAttribute("data-value", customer_code)
+                                    el_input.value = customer_code
+                                }
+                            }
+                        }
+                    }  // if(!!row_count)
                 }  // if(!!tblBody)
             };  // if(selected_mode === "customer_form")
         }  // if(!!sel_tr_clicked)
 
+
 // ---  enable add button, also when no customer selected
         document.getElementById("id_form_btn_add").disabled = false;
-    }  // HandleSelectTable
+    }  // HandleSelectRow
 
 //========= HandleBillableClicked  ============= PR2019-09-27
     function HandleBillableClicked(el_changed) {
@@ -780,7 +813,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };  //function CreateTblFilter
 
 //=========  CreateTblRow  ================ PR2019-09-04
-    function CreateTblRow(tblName, pk_str, ppk_str, customer_pk ) {
+    function CreateTblRow(tblName, pk_str, ppk_str, data_customer_pk ) {
         // console.log("=========  CreateTblRow =========", tblName);
 
         const map_id = get_map_id( tblName, pk_str)
@@ -796,7 +829,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tblRow.setAttribute("id", map_id);
         tblRow.setAttribute("data-pk", pk_str);
         tblRow.setAttribute("data-ppk", ppk_str);
-        if(!!customer_pk){tblRow.setAttribute("data-customer_pk", customer_pk)};
+        tblRow.setAttribute("data-customer_pk", data_customer_pk);
 
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow, tblName, "list");}, false )
@@ -909,35 +942,72 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- function adds row 'add new' in list
         id_new += 1;
         const pk_new = "new" + id_new.toString()
+
         let ppk_int = null;
         let dict = {"id": {"pk": pk_new, "temp_pk": pk_new}};
+
+        let tblBody = document.getElementById("id_tbody_" + tblName);
 
 // --- create addnew row when tblName is 'customer'
         if(tblName === "customer"){
             // company is parent of customer
             // get ppk_int from company_dict ( ppk_int = company_pk)
-            dict["id"]["ppk"] = get_subdict_value_by_key (company_dict, "id", "pk", 0);
+            const ppk_int = parseInt(get_subdict_value_by_key (company_dict, "id", "pk", 0))
+
+            let dict = {"id": {"pk": pk_new, "ppk": ppk_int, "temp_pk": pk_new}};
+
+            let newRow = CreateTblRow(tblName, pk_new, ppk_int, selected_customer_pk)
+            UpdateTableRow(newRow, dict)
 
 // --- create addnew row when tblName is 'order'
         } else if (tblName === "order") {
+
+// get info from selected customer, store in dict
+            let customer_ppk = 0;
+
+            let dict = {}
+
             ppk_int = selected_customer_pk;
 
             // get info from selected customer, store in dict
             if (!!selected_customer_pk ){
-                const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk )
-                dict["id"]["ppk"] = selected_customer_pk;
-                dict["customer"] = customer_dict;
+                const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk);
+                customer_ppk = get_subdict_value_by_key(customer_dict, "id", "ppk");
+                const code_value = get_subdict_value_by_key(customer_dict, "code", "value")
+                //dict["id"]["ppk"] = selected_customer_pk;
+                dict["customer"] = {"pk": selected_customer_pk, "ppk": customer_ppk, "value": code_value, "field": "customer", "locked": true}
             } else {
                 // needed to put 'Select customer' in field
-                dict["id"]["ppk"] = null;
+                //dict["id"]["ppk"] = null;
                 dict["customer"] = {"pk": null, "ppk": null, "value": null, "field": "customer", "locked": false}
             }
-        }  // if(tblName === "customer")
 
-        console.log("CreateAddnewRow >>>>>>>>>>>> dict", dict)
+// create addnew_row if lastRow is not an addnewRow
+            let lastRow_isnot_addnewRow = true;
+            let lastRow, pk_str;
+            const row_count = tblBody.rows.length;
+            if(!!row_count){
+                lastRow = tblBody.rows[row_count - 1];
+                pk_str = get_attr_from_el(lastRow, "data-pk");
+                // if pk is number it is not an 'addnew' row
+                lastRow_isnot_addnewRow = (!!parseInt(pk_str));
+            }
+            //console.log("lastRow_isnot_addnewRow", lastRow_isnot_addnewRow, "lastRow pk_str", pk_str);
 
-        let newRow = CreateTblRow(tblName, pk_new, ppk_int, selected_customer_pk)
-        UpdateTableRow(newRow, dict)
+// if lastRow is not an addnewRow: create an 'addnew' row
+            if (lastRow_isnot_addnewRow){
+                dict["id"] = {"pk": pk_new, "ppk": selected_customer_pk, "temp_pk": pk_new, "table": "order"};
+                lastRow = CreateTblRow(tblName, pk_new, selected_customer_pk, selected_customer_pk)
+                //dict["id"]["created"] = true;
+
+// if lastRow is an 'addnew' row: update with employee name
+            } else {
+                dict["id"] = {"pk": pk_str, "ppk": customer_pk, "table": "order"};
+            }
+
+            UpdateTableRow(lastRow, dict)
+
+        }  // else if (tblName === "order")
     }  // function CreateAddnewRow
 
 //=========  CreateBtnInactiveDelete  ================ PR2019-10-23
@@ -965,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // CreateBtnInactiveDelete
 
 //========= FillSelectTable  ============= PR2019-09-05
-    function FillSelectTable(tblBody_select, el_data, data_map, tblName, HandleSelectTable, HandleBtnInactiveDeleteClicked) {
+    function FillSelectTable(tblBody_select, el_data, data_map, tblName, HandleSelectRow, HandleBtnInactiveClicked) {
         console.log("FillSelectTable");
 
         tblBody_select.innerText = null;
@@ -973,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', function() {
         for (const [map_id, item_dict] of data_map.entries()) {
             const row_index = null // add at end when no rowindex
             let selectRow = CreateSelectRow(tblBody_select, el_data, tblName, row_index, item_dict,
-                                        HandleSelectTable, HandleBtnInactiveDeleteClicked,
+                                        HandleSelectRow, HandleBtnInactiveClicked,
                                         imgsrc_inactive_grey );
 
 // update values in SelectRow
@@ -1056,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let selectRow;
             if(is_created){
                 const row_index = GetNewSelectRowIndex(tblBody_select, 0, update_dict, user_lang);
-                selectRow = CreateSelectRow(tblBody_select, el_data, tblName, row_index, update_dict,  HandleSelectTable, HandleBtnInactiveDeleteClicked);
+                selectRow = CreateSelectRow(tblBody_select, el_data, tblName, row_index, update_dict, HandleSelectRow, HandleBtnInactiveDeleteClicked);
 
                 HighlightSelectRow(selectRow, cls_bc_yellow, cls_bc_lightlightgrey);
             } else{
@@ -1907,16 +1977,16 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "===== ResetFilterRows  ========= ");
 
         filter_select = "";
-        filter_mod_employee = "";
         filter_show_inactive = false;
         filter_dict = {};
 
-        selected_employee_pk = 0;
+        selected_customer_pk = 0;
         const mode = selected_mode
 
         let tblBody = document.getElementById("id_tbody_" + mode)
         if(!!tblBody){
             FilterTableRows(tblBody);
+            CreateAddnewRow(mode);
         }
 
         let tblHead = document.getElementById("id_thead_" + mode)
@@ -1980,18 +2050,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= FilterTableRows  ====================================
     function FilterTableRows(tblBody) {  // PR2019-06-24
-        console.log( "===== FilterTableRows  ========= ");
+        //console.log( "===== FilterTableRows  ========= ");
         let tblRows = tblBody.rows
         const len = tblBody.rows.length;
-        console.log( "tblBody.rows.length", len);
+        //console.log( "tblBody.rows.length", len);
 
         if (!!len){
             for (let i = 0, tblRow, show_row; i < len; i++) {
                 tblRow = tblBody.rows[i]
-        console.log( "tblRow", tblRow);
+        //console.log( "tblRow", tblRow);
 
                 show_row = ShowTableRow_dict(tblRow)
-        console.log( "show_row", show_row);
+        //console.log( "show_row", show_row);
 
                 if (show_row) {
                     tblRow.classList.remove(cls_hide)
@@ -2004,8 +2074,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= ShowTableRow_dict  ====================================
     function ShowTableRow_dict(tblRow) {  // PR2019-09-15
-        console.log( "===== ShowTableRow_dict  ========= ");
-        console.log( "tblRow: ", tblRow);
+        //console.log( "===== ShowTableRow_dict  ========= ");
+        //console.log( "tblRow: ", tblRow);
 
         // function filters by inactive and substring of fields
         // also filters selected customer pk in table order
@@ -2028,22 +2098,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 2. hide other customers when selected_customer_pk has value
             // only in table order, planning
-            const tblName = get_attr_from_el(tblRow, "data-table");
+                const tblName = get_attr_from_el(tblRow, "data-table");
 
-            console.log( "tblName: ", tblName);
-            if (!!selected_customer_pk) {
-                if (["order", "planning"].indexOf(tblName) > -1) {
-                    const row_customer_pk = get_attr_from_el(tblRow, "data-customer_pk");
-                    console.log( "row_customer_pk", row_customer_pk, typeof row_customer_pk);
-                    console.log( "selected_customer_pk", selected_customer_pk, typeof selected_customer_pk);
-                    hide_row = (row_customer_pk !== selected_customer_pk.toString())
+                //console.log( "tblName: ", tblName);
+                if (!hide_row && !!selected_customer_pk) {
+                    if (["order", "planning"].indexOf(tblName) > -1) {
+                        const row_customer_pk_str = get_attr_from_el(tblRow, "data-ppk");
+                        //console.log( "row_customer_pk_str", row_customer_pk_str, typeof row_customer_pk_str);
+                        //console.log( "selected_customer_pk", selected_customer_pk, typeof selected_customer_pk);
+                        hide_row = (row_customer_pk_str !== selected_customer_pk.toString())
+                        //console.log( "hide_row", hide_row, typeof hide_row);
+                    }
                 }
-            }
-            // hide inactive rows if filter_show_inactive
-                if(!filter_show_inactive){
+
+                // hide inactive rows if filter_show_inactive
+                if(!hide_row && !filter_show_inactive){
                     const inactive_str = get_attr_from_el(tblRow, "data-inactive")
-                    if (!!inactive_str) {
-                        hide_row = (inactive_str.toLowerCase() === "true")
+                    if (!!inactive_str && (inactive_str.toLowerCase() === "true")) {
+                        hide_row = true;
                     }
                 }
 
@@ -2054,47 +2126,43 @@ document.addEventListener('DOMContentLoaded', function() {
                         const filter_text = filter_dict[key];
                         const filter_blank = (filter_text ==="#")
                         let tbl_cell = tblRow.cells[key];
-                        //console.log( "tbl_cell", tbl_cell);
-                        if(!hide_row){
-                            if (!!tbl_cell){
-                                let el = tbl_cell.children[0];
-                                if (!!el) {
-                            // skip if no filter on this colums
-                                    if(!!filter_text){
-                            // get value from el.value, innerText or data-value
-                                        const el_tagName = el.tagName.toLowerCase()
-                                        let el_value = null;
-                                        if (el_tagName === "select"){
-                                            //el_value = el.options[el.selectedIndex].text;
-                                            el_value = get_attr_from_el(el, "data-value")
-                                        } else if (el_tagName === "input"){
-                                            el_value = el.value;
-                                        } else if (el_tagName === "a"){
-                                            // skip
-                                        } else {
-                                            el_value = el.innerText;
-                                        }
-                                        if (!el_value){el_value = get_attr_from_el(el, "data-value")}
+                        if (!!tbl_cell){
+                            let el = tbl_cell.children[0];
+                            if (!!el) {
+                        // skip if no filter on this colums
+                                if(!!filter_text){
+                        // get value from el.value, innerText or data-value
+                                    const el_tagName = el.tagName.toLowerCase()
+                                    let el_value = null;
+                                    if (el_tagName === "select"){
+                                        el_value = el.options[el.selectedIndex].text;
+                                    } else if (el_tagName === "input"){
+                                        el_value = el.value;
+                                    } else if (el_tagName === "a"){
+                                        // skip
+                                    } else {
+                                        el_value = el.innerText;
+                                    }
+                                    if (!el_value){el_value = get_attr_from_el(el, "data-value")}
 
-                                        if (!!el_value){
-                                            if (filter_blank){
-                                                hide_row = true
-                                            } else {
-                                                el_value = el_value.toLowerCase();
-                                                // hide row if filter_text not found
-                                                if (el_value.indexOf(filter_text) === -1) {
-                                                    hide_row = true
-                                                }
-                                            }
+                                    if (!!el_value){
+                                        if (filter_blank){
+                                            hide_row = true
                                         } else {
-                                            if (!filter_blank){
+                                            el_value = el_value.toLowerCase();
+                                            // hide row if filter_text not found
+                                            if (el_value.indexOf(filter_text) === -1) {
                                                 hide_row = true
-                                            } // iif (filter_blank){
-                                        }   // if (!!el_value)
-                                    }  //  if(!!filter_text)
-                                }  // if (!!el) {
-                            }  //  if (!!tbl_cell){
-                        }  // if(!hide_row){
+                                            }
+                                        }
+                                    } else {
+                                        if (!filter_blank){
+                                            hide_row = true
+                                        } // iif (filter_blank){
+                                    }   // if (!!el_value)
+                                }  //  if(!!filter_text)
+                            }  // if (!!el) {
+                        }  //  if (!!tbl_cell){
                     });  // Object.keys(filter_dict).forEach(function(key) {
                 }  // if (!hide_row)
             } //  if(!is_new_row){

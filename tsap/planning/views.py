@@ -50,8 +50,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
             if request.user.company is not None:
                 if request.POST['download']:
 
-# TODO update_is_absence is one time only, to be removed after update
-                    f.update_is_absence()
+# TODO update_isabsence_istemplate is one time only, to be removed after update
+                    f.update_isabsence_istemplate()
 # - get user_lang
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                     activate(user_lang)
@@ -89,9 +89,12 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         # logger.debug('table_dict: ' + str(table_dict))
 
 # - get include_inactive from table_dict
-                        include_inactive = False
+                        is_absence = table_dict.get('isabsence', False)
+                        is_template = table_dict.get('istemplate', False)
+                        # include_inactive = True: show inactive only, False: active only , None: show all
+                        inactive = None
                         if 'inactive' in table_dict:
-                            include_inactive = table_dict['inactive']
+                            inactive = table_dict.get('inactive')
                         # logger.debug('datalist table: ' + str(table))
 
                         dict_list = []
@@ -112,41 +115,38 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 datalists['company_dict'] = company_dict
 
                         elif table == 'customer':
-                            # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
-                            cat = table_dict.get('cat')  # None = all
-                            cat_lt = table_dict.get('cat_lt')  # None = all
-                            inactive = table_dict.get('inactive') # True: show inactive only, False: active only , None: show all
-                            isabsence = table_dict.get('isabsence') # True: show absence only, False: no absence , None: show all
                             dict_list = cust_dicts.create_customer_list(
-                                                        company=request.user.company,
-                                                        inactive=inactive,
-                                                        isabsence=isabsence,
-                                                        cat=cat,
-                                                        cat_lt=cat_lt)
+                                company=request.user.company,
+                                is_absence=is_absence,
+                                is_template=is_template,
+                                inactive=inactive
+                            )
 
                         elif table == 'order':
-                            # default: show orders with cat normal, internal, hide absence and template
-                            cat = table_dict.get('cat')  # None = all
-                            cat_lt = table_dict.get('cat_lt')  # None = all
-                            inactive = table_dict.get('inactive') # True: show inactive only, False: active only , None: show all
-                            isabsence = table_dict.get('isabsence') # True: show absence only, False: no absence , None: show all
                             dict_list = cust_dicts.create_order_list(
                                 company=request.user.company,
                                 user_lang=user_lang,
-                                inactive=inactive,
-                                isabsence=isabsence,
-                                cat=cat,
-                                cat_lt=cat_lt)
+                                is_absence=is_absence,
+                                is_template=is_template,
+                                inactive=inactive)
 
                         elif table == 'order_pricerate':
-                            dict_list = cust_dicts.create_order_pricerate_list(company=request.user.company, user_lang=user_lang)
+                            dict_list = cust_dicts.create_order_pricerate_list(
+                                company=request.user.company,
+                                user_lang=user_lang
+                            )
 
                         elif table == 'employee_pricerate':
                             dict_list = e.create_employee_pricerate_list(company=request.user.company, user_lang=user_lang)
 
                         elif table == 'order_template':
                             # inactive = None: include active and inactive, False: only active
-                            dict_list = cust_dicts.create_order_list(company=request.user.company, user_lang=user_lang, cat=c.SHIFT_CAT_4096_TEMPLATE)
+                            dict_list = cust_dicts.create_order_list(
+                                company=request.user.company,
+                                user_lang=user_lang,
+                                is_absence=False,
+                                is_template=True
+                            )
 
                         elif table == 'scheme_template':
                             dict_list = d.create_scheme_template_list(request, user_lang)
@@ -495,10 +495,13 @@ class SchemeUploadView(UpdateView):  # PR2019-07-21
                         update_wrap['update_dict'] = item_update
 
 # 8. update scheme_list when changes are made
-                    scheme_list = d.create_scheme_list(request=request,
-                                                       user_lang=user_lang,
-                                                       customer=parent.customer,
-                                                       include_inactive=False)
+                    scheme_list = d.create_scheme_list(
+                        request=request,
+                        user_lang=user_lang,
+                        customer=parent.customer,
+                        is_template=False,
+                        include_inactive=False
+                    )
                     if scheme_list:
                         update_wrap['scheme_list'] = scheme_list
 
@@ -521,14 +524,14 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
 
             upload_dict = {}
             if 'createdefaulttemplate' in request.POST:
-                upload_json = request.POST.get('createdefaulttemplate', None)
+                upload_json = request.POST.get('createdefaulttemplate')
                 if upload_json:
                     upload_dict = json.loads(upload_json)
                     if upload_dict:
                         create_deafult_templates(request, user_lang)
 
             elif 'copyfromtemplate' in request.POST:
-                upload_json = request.POST.get('copyfromtemplate', None)
+                upload_json = request.POST.get('copyfromtemplate')
                 if upload_json:
                     upload_dict = json.loads(upload_json)
                     if upload_dict:
@@ -537,7 +540,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
             elif 'copytotemplate' in request.POST:
 # - get upload_dict from request.POST
                 upload_dict = {}
-                upload_json = request.POST.get('copytotemplate', None)
+                upload_json = request.POST.get('copytotemplate')
                 if upload_json:
                     upload_dict = json.loads(upload_json)
                     if upload_dict:
@@ -556,8 +559,8 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
     id_dict = upload_dict.get('id')
 
     template_code = None
-    if 'code' in upload_dict:
-        code_dict = upload_dict['code']
+    code_dict = upload_dict.get('code')
+    if code_dict:
         if 'value' in code_dict:
             template_code = code_dict['value']
 
@@ -580,15 +583,15 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
         logger.debug('instance: ' + str(instance))
 
 # - check if template_order exists, create if not exists
-        template_order = cust_dicts.get_or_create_special_order(c.SHIFT_CAT_4096_TEMPLATE, request)
+        template_order = cust_dicts.get_or_create_special_order('template', request)
         logger.debug("template_order: " + str(template_order.pk) + ' ' + str(template_order.code))
 
 # - copy scheme to template  (don't copy datefirst, datelast)
         template_scheme = m.Scheme(
             order=template_order,
-            cat=c.SHIFT_CAT_4096_TEMPLATE,
             code=template_code,
             cycle=instance.cycle,
+            istemplate=True,
             excludeweekend=instance.excludeweekend,
             excludepublicholiday=instance.excludepublicholiday)
         template_scheme.save(request=request)
@@ -599,7 +602,7 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
         for shift in shifts:
             template_shift = m.Shift(
                 scheme=template_scheme,
-                cat=shift.cat,
+                istemplate=True,
                 code=shift.code,
                 offsetstart=shift.offsetstart,
                 offsetend=shift.offsetend,
@@ -623,7 +626,8 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
             template_team = m.Team(
                 scheme=template_scheme,
                 code=this_text,
-                cat=c.SHIFT_CAT_4096_TEMPLATE)
+                istemplate=True
+            )
             template_team.save(request=request)
             # make dict with mapping of old and new team_id
             mapping_teams[team.pk] = template_team.pk
@@ -640,6 +644,7 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
                 scheme=template_scheme,
                 shift=schemeitem.shift,
                 rosterdate=schemeitem.rosterdate,
+                istemplate=True,
                 iscyclestart=is_cyclestart,
                 timestart=schemeitem.timestart,
                 timeend=schemeitem.timeend,
@@ -679,27 +684,26 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
     id_dict = upload_dict.get('id')
     # "id":{"pk":44,"ppk":2,"table":"scheme"}
 
-# - get order_pk of  new scheme
+# - get order_pk of new scheme
     order_pk = None
-    if 'order' in upload_dict:
-        order_dict = upload_dict['order']
-        if 'pk' in order_dict:
-            order_pk = order_dict['pk']
+    order_dict = upload_dict.get('order')
+    if order_dict:
+        order_pk = order_dict.get('pk')
     # logger.debug('order_pk: ' + str(order_pk) + ' ' + str(type(order_pk)))
 
 # - get new scheme_code
     scheme_code = None
-    if 'code' in upload_dict:
-        code_dict = upload_dict['code']
-        if 'value' in code_dict:
-            scheme_code = code_dict['value']
+    code_dict = upload_dict.get('code')
+    if code_dict:
+        scheme_code = code_dict.get('value')
 
     if id_dict and order_pk and scheme_code:
     # get template scheme
         table = 'scheme'
-        template_pk_int = int(id_dict.get('pk', 0))
-        template_ppk_int = int(id_dict.get('ppk', 0))
+        template_pk_int = id_dict.get('pk', 0)  # int not necessary?? Was: int(id_dict.get('pk', 0))
+        template_ppk_int = id_dict.get('ppk', 0) # int not necessary?? Was: int(id_dict.get('ppk', 0))
         # logger.debug('template_pk_int: ' + str(template_pk_int) + ' template_ppk_int: ' + str(template_ppk_int))
+
 
     # - check if scheme parent exists (order is parent of scheme)
         # TODO update_dict
@@ -716,10 +720,10 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
         # logger.debug('scheme_parent: ' + str(scheme_parent))
 
         if template_scheme and scheme_parent:
-# - copy template to scheme   (don't copy datefirst, datelast)
+# - copy template to scheme (don't copy datefirst, datelast)
             new_scheme = m.Scheme(
                 order=scheme_parent,
-                cat=c.SHIFT_CAT_0000_NORMAL,
+                istemplate=False,
                 code=scheme_code,
                 cycle=template_scheme.cycle,
                 excludeweekend=template_scheme.excludeweekend,
@@ -734,7 +738,9 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                 for team in template_teams:
                     new_team = m.Team(
                         scheme=new_scheme,
-                        code=team.code)
+                        code=team.code,
+                        istemplate=False
+                    )
                     new_team.save(request=request)
                     # make dict with mapping of old and new team_id
                     mapping[team.pk] = new_team.pk
@@ -748,6 +754,7 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                         scheme=new_scheme,
                         rosterdate=schemeitem.rosterdate,
                         cyclestart=schemeitem.cyclestart,
+                        istemplate=False,
                         shift=schemeitem.shift,
                         timestart=schemeitem.timestart,
                         offsetstart=schemeitem.offsetstart,
@@ -773,17 +780,18 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
     scheme_locale = c.SCHEME_24H_DEFAULT[lang] # (code, cycle, excludeweekend, excludepublicholiday) PR2019-08-24
 
 # - check if template_order exists, create if not exists
-    template_order = cust_dicts.get_or_create_special_order(c.SHIFT_CAT_4096_TEMPLATE, request)
+    template_order = cust_dicts.get_or_create_special_order('template', request)
     logger.debug("template_order: " + str(template_order.pk) + ' ' + str(template_order.code))
 
 # - add scheme to template  (don't add datefirst, datelast)
     template_scheme = m.Scheme(
         order=template_order,
-        cat=c.SHIFT_CAT_4096_TEMPLATE,
+        istemplate=True,
         code=scheme_locale[0],
         cycle=scheme_locale[1],
         excludeweekend=scheme_locale[2],
-        excludepublicholiday=scheme_locale[3])
+        excludepublicholiday=scheme_locale[3]
+    )
     template_scheme.save(request=request)
 
 # - add shifts to template
@@ -792,8 +800,9 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
     for index, shift in enumerate(shifts_locale):
         template_shift = m.Shift(
             scheme=template_scheme,
-            cat=c.SHIFT_CAT_4096_TEMPLATE,
-            code=shift[0])
+            istemplate=True,
+            code=shift[0]
+        )
         if shift[1]:
             template_shift.offsetstart=shift[1]
         if shift[2]:
@@ -812,8 +821,9 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
 # - add teams to template
         template_team = m.Team(
             scheme=template_scheme,
-            cat=c.SHIFT_CAT_4096_TEMPLATE,
-            code=team_code)
+            istemplate=True,
+            code=team_code
+        )
         template_team.save(request=request)
         # make dict with mapping of index in shifts_locale and new shift_id
         mapping_team[index] = template_team.pk
@@ -848,6 +858,7 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
             scheme=template_scheme,
             rosterdate=rosterdate,
             iscyclestart=is_cyclestart,
+            istemplate=True,
         )
         if team:
             template_schemeitem.team = team
@@ -952,10 +963,13 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
                 update_wrap['scheme_update'] = update_dict
 
 # 8. update scheme_list when changes are made
-                scheme_list = d.create_scheme_list(request=request,
-                                                   user_lang=user_lang,
-                                                   customer=parent.customer,
-                                                   include_inactive=False)
+                scheme_list = d.create_scheme_list(
+                    request=request,
+                    user_lang=user_lang,
+                    customer=parent.customer,
+                    is_template=False,
+                    include_inactive=False
+                )
                 if scheme_list:
                     update_wrap['scheme_list'] = scheme_list
 
@@ -2540,8 +2554,8 @@ def make_absent_or_split_shift(mode, emplhour, upload_dict, comp_timezone, reque
 
     update_dict = {}
     new_employee = None
-# - get parent (orderhour) of emplhour
-    parent = emplhour.orderhour
+# - get parent_orderhour (orderhour) of emplhour
+    parent_orderhour = emplhour.orderhour
     new_orderhour = None
 
     new_timestart = emplhour.timestart
@@ -2549,7 +2563,7 @@ def make_absent_or_split_shift(mode, emplhour, upload_dict, comp_timezone, reque
 
     if mode == 'split':
         # when split: orderhour stays the same
-        new_orderhour = parent
+        new_orderhour = parent_orderhour
 
         # first create split record with upload_dict.employee, if blank: with current employee
         # current employee stays the same in update_emplhour_orderhour > remove from upload_dict
@@ -2604,7 +2618,11 @@ def make_absent_or_split_shift(mode, emplhour, upload_dict, comp_timezone, reque
                 abscat_cust = cust_dicts.get_or_create_absence_customer(request)
                 if abscat_cust:
 # set default abscat if category not entered (default abscat has pricerate=1)
-                    abscat_order = m.Order.objects.filter(customer= abscat_cust, pricerate=1, cat=c.SHIFT_CAT_0512_ABSENCE).first()
+                    abscat_order = m.Order.objects.filter(
+                        customer= abscat_cust,
+                        pricerate=1,
+                        isabsence=True
+                    ).first()
 
     # FIELDS_ORDERHOUR = ('pk', 'id', 'order', 'schemeitem', 'rosterdate', 'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
     #                    'cat', 'billable', 'shift', 'duration', 'status', 'pricerate', 'amount', 'tax', 'locked')
@@ -2614,15 +2632,16 @@ def make_absent_or_split_shift(mode, emplhour, upload_dict, comp_timezone, reque
     # create new abscat_orderhour
                 new_orderhour = m.Orderhour(
                     order=abscat_order,
-                    schemeitem=parent.schemeitem,
-                    rosterdate=parent.rosterdate,
-                    yearindex=parent.yearindex,
-                    monthindex=parent.monthindex,
-                    weekindex=parent.weekindex,
-                    payperiodindex=parent.payperiodindex,
+                    schemeitem=parent_orderhour.schemeitem,
+                    rosterdate=parent_orderhour.rosterdate,
+                    yearindex=parent_orderhour.yearindex,
+                    monthindex=parent_orderhour.monthindex,
+                    weekindex=parent_orderhour.weekindex,
+                    payperiodindex=parent_orderhour.payperiodindex,
                     isabsence=True,
-                    shift=parent.shift,
-                    duration=parent.duration
+                    shift=parent_orderhour.shift,
+                    duration=parent_orderhour.duration,
+                    status=c.STATUS_00_NONE
                 )
                 new_orderhour.save(request=request)
                 logger.debug('abscat_orderhour: ' + str(new_orderhour))
@@ -2645,7 +2664,8 @@ def make_absent_or_split_shift(mode, emplhour, upload_dict, comp_timezone, reque
             breakduration=emplhour.breakduration,
             wagerate=emplhour.wagerate,
             wage=emplhour.wage,
-            status=c.STATUS_00_NONE)
+            status=c.STATUS_00_NONE
+        )
         new_emplhour.save(request=request)
         logger.debug('new_emplhour: ' + str(new_emplhour))
         if new_emplhour:

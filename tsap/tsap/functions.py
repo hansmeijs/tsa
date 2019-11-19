@@ -13,6 +13,26 @@ import pytz
 import logging
 logger = logging.getLogger(__name__)
 
+# PR2019-11-18 from https://timonweb.com/tutorials/make-djangos-collectstatic-command-forgiving/
+from django.contrib.staticfiles.storage import ManifestStaticFilesStorage
+
+
+class SubManifestStaticFilesStorage(ManifestStaticFilesStorage):
+    manifest_strict=False
+
+class ForgivingManifestStaticFilesStorage(ManifestStaticFilesStorage):
+
+    def hashed_name(self, name, content=None, filename=None):
+        logger.debug('hashed_name: ' + str(name))
+        try:
+            result = super().hashed_name(name, content, filename)
+        except ValueError:
+            # When the file is missing, let's forgive and ignore that.
+            result = name
+        logger.debug('result: ' + str(result))
+        return result
+
+
 # find better way to convert time in ISO format to datetime object.
 # This is not the right way:
     # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
@@ -1060,20 +1080,7 @@ def get_cat_value(cat_sum, cat_index):
     return has_cat_value
 
 
-def XXXget_absence(cat_sum):
-    is_absence = False
-    if cat_sum:
-        if cat_sum >= c.SHIFT_CAT_0512_ABSENCE:
-            # bin(512) = 0b1000000000
-            # str(bin(512))[2:] = '1000000000'
-            # ''.join(reversed(str(bin(512))[2:])) = '0000000001'
-            binary_str = ''.join(reversed(str(bin(cat_sum))[2:]))
-            value_str = binary_str[9]  # 9 is index of absence
-            is_absence = (value_str == '1')
-    return is_absence
-
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 def check_offset_overlap(a, b, x, y):  # PR2019-11-11
     # logger.debug(' --- check_offset_overlap --- ')
 
@@ -1908,7 +1915,7 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
-def update_is_absence():
+def update_isabsence_istemplate():
     from django.db import connection
     with connection.cursor() as cursor:
         cursor.execute('UPDATE companies_customer SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
@@ -1917,3 +1924,11 @@ def update_is_absence():
         cursor.execute('UPDATE companies_team SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
         cursor.execute('UPDATE companies_teammember SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
         cursor.execute('UPDATE companies_emplhour SET isabsence = TRUE WHERE isabsence = FALSE AND cat = 512')
+
+        cursor.execute('UPDATE companies_customer SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+        cursor.execute('UPDATE companies_order SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+        cursor.execute('UPDATE companies_scheme SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+        cursor.execute('UPDATE companies_shift SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+        cursor.execute('UPDATE companies_team SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+        cursor.execute('UPDATE companies_teammember SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+        cursor.execute('UPDATE companies_schemeitem SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')

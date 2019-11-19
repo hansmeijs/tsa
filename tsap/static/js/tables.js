@@ -11,7 +11,7 @@
     function CreateSelectRow(tblBody_select, el_data, tblName, row_index, item_dict,
                                 HandleSelectTable, HandleBtnClicked,
                                 imgsrc_default, imgsrc_hover ) {
-        console.log("CreateSelectRow");
+        //console.log("CreateSelectRow");
         // add row at end when row_index is blank
         if(row_index == null){row_index = -1}
 

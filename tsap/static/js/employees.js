@@ -34,9 +34,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const month_list = get_attr_from_el_dict(el_data, "data-months");
         const today_dict = get_attr_from_el_dict(el_data, "data-today");
 
+
         const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
-        const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
-        const imgsrc_active_lightgrey = get_attr_from_el(el_data, "data-imgsrc_active_lightgrey");
+        const imgsrc_inactive_grey = get_attr_from_el(el_data, "data-imgsrc_inactive_grey");
+        const imgsrc_inactive_lightgrey = get_attr_from_el(el_data, "data-imgsrc_inactive_lightgrey");
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
         const imgsrc_deletered = get_attr_from_el(el_data, "data-imgsrc_deletered");
         const imgsrc_billable_cross_red = get_attr_from_el(el_data, "data-imgsrc_cross_red")
@@ -123,6 +124,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // === EVENT HANDLERS ===
 
+// === reset filter when ckicked on Escape button ===
+        document.addEventListener("keydown", function (event) {
+             if (event.key === "Escape") {ResetFilterRows()}
+        });
+
 // ---  add 'keyup' event handler to filter input
         let el_filter_select = document.getElementById("id_flt_select");
             el_filter_select.addEventListener("keyup", function() {
@@ -176,10 +182,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_form_btn_delete").addEventListener("click", function(){ModConfirmOpen("delete")});
         document.getElementById("id_form_btn_add").addEventListener("click", function(){HandleEmployeeAdd()});
 
-// === reset filter when ckicked on Escape button ===
-        document.addEventListener("keydown", function (event) {
-             if (event.key === "Escape") {ResetFilterRows()}
-        });
 
 // === close windows ===
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
@@ -265,7 +267,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("employee_list" in response) {
                     get_datamap(response["employee_list"], employee_map)
 
-                    FillSelectTable()
+                    const tblName = "employee";
+                    FillSelectTable(tblBody_select, el_data, employee_map, tblName, HandleSelectRow, HandleBtnInactiveClicked);
                     FilterSelectRows();
 
                     FillTableRows("employee");
@@ -372,7 +375,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleSelectRow ================ PR2019-08-28
     function HandleSelectRow(sel_tr_clicked) {
-        console.log( "===== HandleSelectRow  ========= ");
+        //console.log( "===== HandleSelectRow  ========= ");
+        //console.log( sel_tr_clicked);
 
         if(!!sel_tr_clicked) {
             const tblName = get_attr_from_el_str(sel_tr_clicked, "data-table");
@@ -380,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const map_id = get_map_id(tblName, pk_str);
 
 // ---  update selected_employee_pk
-        // function 'get_mapdict_from_.....' returns empty dict if tblName or pk_str are not defined or key not exists.
+            // function 'get_mapdict_from_.....' returns empty dict if tblName or pk_str are not defined or key not exists.
             const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, tblName, pk_str);
             selected_employee_pk = get_subdict_value_by_key(employee_dict, "id", "pk", 0);
 
@@ -415,14 +419,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     //mode_list.forEach(function (mode, index) {
                     //    FilterTableRows(document.getElementById("id_tbody_" + mode));
                     //});
+
                     FilterTableRows(tblBody);
 
-    // put name of empoyee in addneww row of tableteam and absence
-
-
 // create addnew_row if lastRow is not an addnewRow
+
+// --- put name of employee in addneww row of table team and absence, NOT in employee table
                     const row_count = tblBody.rows.length;
-                    if(!!row_count){
+                    if(selected_mode !== "employee" && !!row_count){
                         let lastRow = tblBody.rows[row_count - 1];
                         if(!!lastRow){
                             //console.log("lastRow", lastRow)
@@ -439,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             }
                         }
-                    }
+                    }  // if(!!row_count)
                 } //  if(!!tblBody){
             }  // if(selected_mode === "employee_form"){
         }  // if(!!sel_tr_clicked)
@@ -507,10 +511,18 @@ document.addEventListener('DOMContentLoaded', function() {
         el.focus();
     } // HandleEmployeeAdd
 
+
+    function HandleBtnInactiveClicked(el_input) {
+        HandleBtnInactiveDeleteClicked("inactive", el_input);
+    }
+    function HandleBtnDeleteClicked(el_input) {
+        HandleBtnInactiveDeleteClicked("delete", el_input);
+    }
+
 //========= HandleBtnInactiveDeleteClicked  ============= PR2019-09-23
     function HandleBtnInactiveDeleteClicked(mode, el_input) {
         console.log( " ==== HandleBtnInactiveDeleteClicked ====");
-        //console.log(el_input);
+        console.log(el_input);
 
         let tblRow = get_tablerow_selected(el_input)
         if(!!tblRow){
@@ -518,16 +530,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const pk_str = get_attr_from_el_str(tblRow, "data-pk");
             const map_id = get_map_id(tblName, pk_str);
             let map_dict;
-            if (tblName === "customer"){ map_dict = customer_map.get(map_id)} else
+            if (tblName === "employee"){ map_dict = employee_map.get(map_id)} else
             if (tblName === "order") { map_dict = order_map.get(map_id)} else
             if (tblName === "roster"){ map_dict = roster_map.get(map_id)};
 
+        console.log("tblName", tblName);
+        console.log("pk_str", pk_str);
+        console.log("map_id", map_id);
+        console.log("map_dict", map_dict);
+        console.log("employee_map", employee_map);
     // ---  create upload_dict with id_dict
             let upload_dict = {"id": map_dict["id"]};
             if (mode === "delete"){
                 mod_upload_dict = {"id": map_dict["id"]};
                 mod_upload_dict["id"]["delete"] = true;
-                ModConfirmOpen("delete", el_input);
+                ModConfirmOpen("delete", tblRow);
                 return false;
 
             } else if (mode === "inactive"){
@@ -537,11 +554,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const new_inactive = (!inactive);
                 upload_dict["inactive"] = {"value": new_inactive, "update": true};
         // change inactive icon, before uploading
-                format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive_black, imgsrc_active_lightgrey)
+                format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
         // ---  show modal, only when made inactive
                 if(!!new_inactive){
                     mod_upload_dict = {"id": map_dict["id"], "inactive": {"value": new_inactive, "update": true}};
-                    ModConfirmOpen("inactive", el_input);
+                    ModConfirmOpen("inactive", tblRow);
                     return false;
                 }
             }
@@ -578,20 +595,25 @@ document.addEventListener('DOMContentLoaded', function() {
     };//function CreateSubmenu
 
 //========= FillSelectTable  ============= PR2019-05-25
-    function FillSelectTable() {
+    function FillSelectTable(tblBody_select, el_data, data_map, tblName, HandleSelectRow, HandleBtnInactiveClicked) {
         console.log( "=== FillSelectTable");
 
         tblBody_select.innerText = null;
 //--- loop through employee_map
         for (const [map_id, item_dict] of employee_map.entries()) {
-            let selectRow = CreateSelectRow(item_dict)
+            const row_index = null // add at end when no rowindex
+
+            let selectRow = CreateSelectRow(tblBody_select, el_data, tblName, row_index, item_dict,
+                    HandleSelectRow, HandleBtnInactiveClicked,
+                    imgsrc_inactive_grey);
+
 // update values in SelectRow
             UpdateSelectRow(selectRow, item_dict)
         }  // for (let cust_key in customer_map) {
     } // FillSelectTable
 
 //========= CreateSelectRow  ============= PR2019-10-27
-    function CreateSelectRow(item_dict, row_index) {
+    function CreateSelectRowXXX(item_dict, row_index) {
         //console.log("CreateSelectRow");
         //console.log("item_dict", item_dict);
 
@@ -653,7 +675,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_a.setAttribute("data-field", "inactive");
                 el_a.setAttribute("data-value", inactive_value);
 
-                const imgsrc = (inactive_value) ? imgsrc_inactive_black : imgsrc_active_lightgrey;
+                const imgsrc = (inactive_value) ? imgsrc_inactive_black : imgsrc_inactive_lightgrey;
                 AppendChildIcon(el_a, imgsrc);
                 td.appendChild(el_a);
             td.classList.add("td_width_032")
@@ -997,9 +1019,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // get ppk_int from company_dict ( ppk_int = company_pk)
             const ppk_int = parseInt(get_subdict_value_by_key (company_dict, "id", "pk", 0))
 
+                // needed to put 'Select employee' in field
             let dict = {"id": {"pk": pk_new, "ppk": ppk_int, "temp_pk": pk_new}};
-            // in  "teammember" and "absence" selected_employee_pk has always value
-            let newRow = CreateTblRow(mode, pk_new, ppk_int, selected_employee_pk)
+            //dict["employee"] = {"pk": null, "ppk": null, "value": null, "field": "employee", "locked": false}
+            // in employee table: don't put name selected employee but pu placeholder
+            let newRow = CreateTblRow(mode, pk_new, ppk_int, null)
             UpdateTableRow(newRow, dict)
 
 // --- create addnew row when mode is 'absence' or 'team'
@@ -1016,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', function() {
             //console.log("selected_employee_pk", selected_employee_pk)
 
             if (!!selected_employee_pk ){
-                const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk )
+                const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk);
                 employee_ppk = get_subdict_value_by_key(employee_dict, "id", "ppk");
                 const code_value = get_subdict_value_by_key(employee_dict, "code", "value")
                 dict["employee"] = {"pk": selected_employee_pk, "ppk": employee_ppk, "value": code_value, "field": "employee", "locked": true}
@@ -1050,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', function() {
             //console.log(">>>>>>>>>>>>>>>>>>>dict", dict)
             //console.log("lastRow", lastRow)
             UpdateTableRow(lastRow, dict)
-        }
+        }  // else if (["absence", "team"]
     }  // function CreateAddnewRow
 
 //=========  CreateBtnDeleteInactive  ================ PR2019-10-23
@@ -1075,7 +1099,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         el_input.classList.add("ml-4")
-        const img_src = (mode ==="delete") ? imgsrc_delete : imgsrc_active_lightgrey;
+        const img_src = (mode ==="delete") ? imgsrc_delete : imgsrc_inactive_lightgrey;
         AppendChildIcon(el_input, img_src)
     }  // CreateBtnDeleteInactive
 
@@ -1206,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     selectRow.setAttribute("data-inactive", inactive_value);
 
                     let el_input = selectRow.cells[1].children[0]
-                    format_inactive_element (el_input, inactive_dict, imgsrc_inactive_black, imgsrc_active_lightgrey)
+                    format_inactive_element (el_input, inactive_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
 
 // make el_input green for 2 seconds
                     if("updated" in inactive_dict){
@@ -1365,7 +1389,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isEmpty(item_dict)){
             if (fieldname === "inactive") {
                 const field_dict = {value: false}
-                format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_active)
+                format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
             } else {
                 el_input.value = null
                 el_input.removeAttribute("data-value");
@@ -1474,7 +1498,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 } else if (fieldname === "inactive") {
                    if(isEmpty(field_dict)){field_dict = {value: false}}
-                   format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_active)
+                   format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
 
                 } else {
                     el_input.value = value
@@ -1653,7 +1677,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const new_inactive = (!inactive);
                     upload_dict["inactive"] = {"value": new_inactive, "update": true};
             // change inactive icon, before uploading
-                    format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive_black, imgsrc_active_lightgrey)
+                    format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
             // ---  show modal, only when made inactive
                     if(!!new_inactive){
                         mod_upload_dict["inactive"] = {"value": new_inactive, "update": true};
@@ -1912,7 +1936,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if ("employee_list" in response) {
                         get_datamap(response["employee_list"], employee_map)
 
-                        FillSelectTable()
+                        const tblName = "employee";
+                        FillSelectTable(tblBody_select, el_data, employee_map, tblName, HandleSelectRow, HandleBtnInactiveClicked);
                         FilterSelectRows();
 
                         FillTableRows("employee");
@@ -2142,7 +2167,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function ModConfirmOpen(mode, tblRow) {
         console.log("tblRow", tblRow)
         console.log(" -----  ModConfirmOpen   ----", mode)
-        // when clicked on delete btn in form there is no tblRow, use selected_employee_pk instead
+        // when clicked on delete btn in menu or form there is no tblRow, use selected_employee_pk instead
 // ---  create id_dict
         let map_id, tblName;
         if(!!tblRow){
@@ -2151,7 +2176,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // lookup tablerow
             // when clicked on delete button in data form there is no tblRow, use selected_employee_pk instead
             tblName = "employee";
-            const id_str = tblName + selected_employee_pk.toString();
+            const id_str = get_map_id(tblName, selected_employee_pk);
             tblRow = document.getElementById(id_str);
         }
 
@@ -2694,11 +2719,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleFilterInactive  ================ PR2019-07-18
     function HandleFilterInactive(el) {
-        console.log(" --- HandleFilterInactive --- ");;
+        console.log(" --- HandleFilterInactive --- ", selected_mode);
 // toggle value
         filter_show_inactive = !filter_show_inactive
 // toggle icon
-        const img_src = (filter_show_inactive) ? imgsrc_inactive_black : imgsrc_active;
+        const img_src = (filter_show_inactive) ? imgsrc_inactive_black : imgsrc_inactive_lightgrey;
         // debug: dont use el.firstChild, it  also returns text and comment nodes, can give error
         el.children[0].setAttribute("src", img_src);
 // Filter TableRows
@@ -2722,7 +2747,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let tblBody = document.getElementById("id_tbody_" + mode)
         if(!!tblBody){
             FilterTableRows(tblBody);
-            CreateAddnewRow(mode)
+            CreateAddnewRow(mode);
         }
 
         let tblHead = document.getElementById("id_thead_" + mode)
@@ -2741,7 +2766,7 @@ document.addEventListener('DOMContentLoaded', function() {
         el_filter_select.value = null
         // reset icon of filter select table
         // debug: dont use el.firstChild, it also returns text and comment nodes, can give error
-        el_sel_inactive.children[0].setAttribute("src", imgsrc_active);
+        el_sel_inactive.children[0].setAttribute("src", imgsrc_inactive_lightgrey);
 
         FilterSelectRows()
         UpdateHeaderText();
@@ -2789,18 +2814,20 @@ document.addEventListener('DOMContentLoaded', function() {
     function FilterTableRows(tblBody) {  // PR2019-06-09
         //console.log( "===== FilterTableRows  ========= ");
         //console.log( "tblBody", tblBody);
-        const len = tblBody.rows.length;
-        if (!!len){
-            for (let i = 0, tblRow, show_row; i < len; i++) {
-                tblRow = tblBody.rows[i]
-                show_row = ShowTableRow_dict(tblRow)
-                if (show_row) {
-                    tblRow.classList.remove(cls_hide)
-                } else {
-                    tblRow.classList.add(cls_hide)
-                };
-            }
-        };
+        if (!!tblBody){
+            const len = tblBody.rows.length;
+            if (!!len){
+                for (let i = 0, tblRow, show_row; i < len; i++) {
+                    tblRow = tblBody.rows[i]
+                    show_row = ShowTableRow_dict(tblRow)
+                    if (show_row) {
+                        tblRow.classList.remove(cls_hide)
+                    } else {
+                        tblRow.classList.add(cls_hide)
+                    };
+                }
+            };
+        }
     }; // function FilterTableRows
 
 //========= ShowTableRow_dict  ====================================

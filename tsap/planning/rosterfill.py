@@ -235,7 +235,7 @@ def FillRosterdate(new_rosterdate_dte, update_list, comp_timezone, user_lang, lo
                                                             logfile.append(shift_code + "' is blank.")
                                                         elif schemeitem.inactive:
                                                             logfile.append(shift_code + "' is inactive on this date.")
-                                                        elif schemeitem.shift.cat == c.SHIFT_CAT_1024_RESTSHIFT:
+                                                        elif schemeitem.shift.isrestshift:
                                 # skip rest shift
                                                             count_skipped_restshift += 1
                                                         else:
@@ -607,8 +607,8 @@ def get_teammember_on_rosterdate_with_logfile(teammember, schemeitem, rosterdate
 
 # 33333333333333333333333333333333333333333333333333
 
-def add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, request):  # PR2019-09-01
-    logger.debug(' XXXXXXXXXXXXXX============= add_absence_orderhour_emplhour ============= ')
+def add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, is_absence, is_restshift, request):  # PR2019-09-01
+    logger.debug(' ============= add_absence_orderhour_emplhour ============= ')
     logger.debug('order: ' + str(order))
     logger.debug('teammember: ' + str(teammember))
     is_added = False
@@ -624,7 +624,8 @@ def add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, reques
             monthindex=monthindex,
             weekindex=weekindex,
             payperiodindex=0,
-            isabsence=True,
+            isabsence=is_absence,
+            isrestshift=is_restshift,
             status=c.STATUS_01_CREATED)  # gets status created when time filled in by schemeitem
         orderhour.save(request=request)
 
@@ -649,7 +650,8 @@ def add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, reques
                 employee=teammember.employee,
                 teammember=teammember,
                 timeduration=workhoursperday,
-                isabsence=True,
+                isabsence=is_absence,
+                isrestshift=is_restshift,
                 status=c.STATUS_01_CREATED) # gets status created when time filled in by schemeitem
             new_emplhour.save(request=request)
             is_added = True
@@ -709,7 +711,14 @@ def create_absent_emplhours(new_rosterdate_dte, absence_dict, logfile, request):
                     order = teammember.team.scheme.order
 
 # add_absence_orderhour_emplhour
-                    is_added = add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, request)
+                    is_added = add_absence_orderhour_emplhour(
+                        order=order,
+                        teammember=teammember,
+                        new_rosterdate_dte=new_rosterdate_dte,
+                        is_absence=True,
+                        is_restshift=False,
+                        request=request)
+
 
                 if is_added:
                     range = get_range_text(item[5], item[6], True)  # True: with parentheses
@@ -1082,8 +1091,10 @@ def create_rest_shifts(new_rosterdate_dte, absence_dict, rest_dict, logfile, req
                         order=order,
                         teammember=teammember,
                         new_rosterdate_dte=new_rosterdate_dte,
-                        request=request,
-                        abscat=c.SHIFT_CAT_1024_RESTSHIFT)
+                        is_absence=False,
+                        is_restshift=True,
+                        request=request
+                    )
 
                 if is_added:
                     logfile.append("       " + item[1] + " has rest from '" + item[3] + " - " + item[4] + "' on " + str(
@@ -1189,7 +1200,7 @@ def create_customer_id_list(datefirst, datelast, customer_list, company_id):
                Q(team__scheme__order__customer__inactive=False) & \
                Q(team__scheme__order__inactive=False) & \
                Q(team__scheme__inactive=False) & \
-               Q(team__scheme__order__customer__cat__lt=c.SHIFT_CAT_4096_TEMPLATE) & \
+               Q(team__scheme__order__customer__istemplate=False) & \
                (Q(team__scheme__order__datefirst__lte=datelast) | Q(team__scheme__order__datefirst__isnull=True)) & \
                (Q(team__scheme__order__datelast__gte=datefirst) | Q(team__scheme__order__datelast__isnull=True)) & \
                (Q(team__scheme__datefirst__lte=datelast) | Q(team__scheme__datefirst__isnull=True)) & \
@@ -1570,7 +1581,7 @@ def create_employee_id_list(datefirst, datelast, employee_list, company_id):
                Q(team__scheme__order__customer__inactive=False) & \
                Q(team__scheme__order__inactive=False) & \
                Q(team__scheme__inactive=False) & \
-               Q(team__scheme__order__customer__cat__lt=c.SHIFT_CAT_4096_TEMPLATE) & \
+               Q(team__scheme__order__customer__istemplate=False) & \
                (Q(employee__datefirst__lte=datelast) | Q(employee__datefirst__isnull=True)) & \
                (Q(employee__datelast__gte=datefirst) | Q(employee__datelast__isnull=True)) & \
                (Q(team__scheme__order__datefirst__lte=datelast) | Q(team__scheme__order__datefirst__isnull=True)) & \
@@ -1643,7 +1654,7 @@ def get_teammember_rows_per_date_per_employee(rosterdate, employee_id, refdate, 
                     tm.offsetstart AS tm_os, tm.offsetend AS tm_oe 
                     FROM companies_teammember AS tm 
                     INNER JOIN companies_employee AS e ON (tm.employee_id = e.id) 
-                    WHERE (e.company_id = %(cid)s) AND (tm.cat < %(cat_lt)s) 
+                    WHERE (e.company_id = %(cid)s) AND (tm.istemplate = FALSE) 
                     AND (tm.datefirst <= %(rd)s OR tm.datefirst IS NULL)
                     AND (tm.datelast >= %(rd)s OR tm.datelast IS NULL)
                     AND (e.datefirst <= %(rd)s OR e.datefirst IS NULL)
@@ -1676,14 +1687,13 @@ def get_teammember_rows_per_date_per_employee(rosterdate, employee_id, refdate, 
             INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
             INNER JOIN companies_order AS o ON (s.order_id = o.id) 
             INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-            WHERE (c.company_id = %(cid)s) AND (o.cat < %(cat_lt)s) 
+            WHERE (c.company_id = %(cid)s) AND (o.istemplate = FALSE) 
             AND (o.datefirst <= %(rd)s OR o.datefirst IS NULL)
             AND (o.datelast >= %(rd)s OR o.datelast IS NULL)
             AND (s.inactive = false) AND (o.inactive = false)  
         ) AS sq  
             """, {
                 'cid': company_id,
-                'cat_lt': c.SHIFT_CAT_4096_TEMPLATE,
                 'eid': employee_id,
                 'rd': rosterdate,
                 'ref': refdate

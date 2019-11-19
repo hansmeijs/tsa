@@ -165,6 +165,7 @@ class Customer(TsaBaseModel):
     # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
+    istemplate = BooleanField(default=False)
 
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
@@ -199,6 +200,7 @@ class Order(TsaBaseModel):
     # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
+    istemplate = BooleanField(default=False)
     sequence = PositiveSmallIntegerField(default=0)  # sequence of abscat,
 
     contactname = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
@@ -361,6 +363,7 @@ class Scheme(TsaBaseModel):
     order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
     cat = PositiveSmallIntegerField(default=0)  # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
     isabsence = BooleanField(default=False)
+    istemplate = BooleanField(default=False)
 
     cycle = PositiveSmallIntegerField(default=7)
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
@@ -397,6 +400,7 @@ class Shift(TsaBaseModel):
 
     cat = PositiveSmallIntegerField(default=0)
     isrestshift = BooleanField(default=False)
+    istemplate = BooleanField(default=False)
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
 
     offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
@@ -429,6 +433,7 @@ class Team(TsaBaseModel):
 
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
+    istemplate = BooleanField(default=False)
 
     class Meta:
         ordering = [Lower('code')]
@@ -496,6 +501,7 @@ class Teammember(TsaBaseModel):
 
     cat = PositiveSmallIntegerField(default=0)  # teammember cat: 0 = normal, 1 = replacement, 512 = absent
     isabsence = BooleanField(default=False)
+    istemplate = BooleanField(default=False)
 
     workhoursperday = IntegerField(default=0)  # / working hours per day, unit is minute
 
@@ -577,6 +583,7 @@ class Schemeitem(TsaBaseModel):
     locked = None
 
     cat = PositiveSmallIntegerField(default=0)
+    istemplate = BooleanField(default=False)
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
     rosterdate = DateField(db_index=True)
     iscyclestart = BooleanField(default=False)

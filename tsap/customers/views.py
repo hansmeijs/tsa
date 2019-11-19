@@ -341,7 +341,15 @@ class OrderUploadView(UpdateView):# PR2019-03-04
 
     # 8. update order_list when changes are made
                     # inactive = None: include active and inactive
-                    order_list = d.create_order_list(company=request.user.company, user_lang=user_lang)  #  cat=SHIFT_CAT_0000_NORMAL,
+                    # Order of absence and template are made by system and cannot be updated
+                    # TODO: make it possible to rename them as company setting
+                    order_list = d.create_order_list(
+                        company=request.user.company,
+                        user_lang=user_lang,
+                        is_absence=False,
+                        is_template=False
+                    )
+
                     if order_list:
                         update_wrap['order_list'] = order_list
 # 9. return update_wrap

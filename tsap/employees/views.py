@@ -1135,31 +1135,22 @@ def get_initials(firstnames, with_space):
 
 
 def delete_employee_from_teammember(employee, request):
-    logger.debug(' --- delete_employee_from_teammember ---')
+    #logger.debug(' --- delete_employee_from_teammember ---')
     # delete employee from teammember records, update team.code if necessary PR2019-09-15
     # if teammember is absence: teammember will be deleted.
     # else: employee will be removed from teammember
-    # TODO also delete teammember when it is not part of a scheme
+    # Note: don't delete teammember when it is not part of a scheme, is order and stays
     if employee:
-        logger.debug(' --- employee <' + str() + '> has the following teammembers:')
+        #logger.debug(' --- employee <' + str() + '> has the following teammembers:')
         for teammember in m.Teammember.objects.filter(employee=employee):
-            logger.debug(' --- teammember ' + str(teammember.id) + ' <' + str(teammember.team.code) + '> cat ' + str(teammember.team.catcode))
-        logger.debug(' --- loop teammembers:')
-
-        for teammember in m.Teammember.objects.filter(employee=employee):
-
 # delete teammember if is_absence
             is_absence = teammember.isabsence
-            logger.debug(' --- teammember ' + str(teammember.id) + ' is_absence ' + str(is_absence))
+            #logger.debug(' --- teammember ' + str(teammember.id) + ' is_absence ' + str(is_absence))
             if is_absence:
                 teammember.delete(request=request)
-                logger.debug(' --- delete_employee_from_ ABSENCE')
+                #logger.debug(' --- delete_employee_from_ ABSENCE')
             else:
 # if not absence: remove employee from teammember
                 teammember.employee = None
                 teammember.save(request=request)
-                logger.debug(' --- remove employee from teammember')
-
-
-
-
+                #logger.debug(' --- remove employee from teammember')

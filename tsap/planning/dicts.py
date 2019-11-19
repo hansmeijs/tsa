@@ -499,24 +499,27 @@ def create_scheme_template_list(request, user_lang):
     # logger.debug("========== create_scheme_template_list ==== ")
 
     scheme_list = []
-    order = m.Order.objects.get_or_none(cat=c.SHIFT_CAT_4096_TEMPLATE, customer__company=request.user.company)
+    order = m.Order.objects.get_or_none(
+        customer__company=request.user.company,
+        istemplate=True
+    )
 
     if order:
-        scheme_list = create_scheme_list(request=request, user_lang=user_lang,
-                                         customer=order.customer,
-                                         cat=c.SHIFT_CAT_4096_TEMPLATE)
+        scheme_list = create_scheme_list(
+            request=request,
+            user_lang=user_lang,
+            customer=order.customer,
+            is_template=True
+        )
 
     return scheme_list
 
 
-def create_scheme_list(request, user_lang, customer=None, include_inactive=False, cat=None):
+def create_scheme_list(request, user_lang, customer, is_template,  include_inactive=False, cat=None):
     # logger.debug(' --- create_scheme_list --- ')
 
 # --- create list of schemes of this customer PR2019-09-28
-    crit = Q(order__customer__company=request.user.company)
-    if customer:
-        crit.add(Q(order__customer=customer), crit.connector)
-
+    crit = (Q(order__customer__company=request.user.company) & Q(order__customer=customer) & Q(istemplate=is_template))
     if cat is not None:
         crit.add(Q(cat=cat), crit.connector)
 
@@ -617,7 +620,10 @@ def create_schemeitem_template_list(request, comp_timezone, user_lang):
     # logger.debug("========== create_schemeitem_template_list ==== ")
 
     schemeitem_list = []
-    order = m.Order.objects.get_or_none(cat=c.SHIFT_CAT_4096_TEMPLATE, customer__company=request.user.company)
+    order = m.Order.objects.get_or_none(
+        customer__company=request.user.company,
+        istemplate=True
+    )
     #logger.debug("order: " + str(order))
     if order:
         schemeitem_list = create_schemeitem_list(
@@ -700,7 +706,7 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
                     field_dict['pk'] = shift.id
                     field_dict['value'] = shift.code
 
-                    if shift.cat == c.SHIFT_CAT_1024_RESTSHIFT:
+                    if shift.isrestshift:
                         field_dict['value_R'] = shift.code + ' (R)'
                     breakduration = getattr(shift, 'breakduration', 0)
                     if breakduration:
@@ -1071,11 +1077,7 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
     rosterdatefirst_minus1 = period_dict.get('rosterdatefirst_minus1')
     rosterdatelast_plus1 = period_dict.get('rosterdatelast_plus1')
 
-
-
     starttime = timer()
-
-
 
     # Exclude template.
 
@@ -1141,7 +1143,7 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
     # logger.debug("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVV")
     emplhours_rows = f.dictfetchall(newcursor)
     # dictfetchall returns a list with dicts for each emplhour row
-    logger.debug(str(emplhours_rows))
+    # logger.debug(str(emplhours_rows))
     # emplhours_rows:  [ {'eh_id': 4504, 'eh_rd': datetime.date(2019, 11, 14), 'c_code': 'MCB', 'o_code': 'Punda', 'e_code': 'Bernardus-Cornelis, Yaha'},
 
     # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
@@ -1246,6 +1248,9 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
                 eh_td = row.get('eh_td')
                 if eh_td:
                     field_dict['value'] = eh_td
+
+            elif field == 'status':
+                field_dict['value'] = status_sum
             #else:
                # value = getattr(instance, field)
               #  if value:

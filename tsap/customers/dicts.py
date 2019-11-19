@@ -33,22 +33,14 @@ def create_company_list(company):
 
     return item_dict
 
-def create_customer_list(company, inactive=None, isabsence=None, cat=None, cat_lt=None):
+def create_customer_list(company, is_absence, is_template, inactive=None):
     # logger.debug(' --- create_customer_list --- ')
 
 # --- create list of customers of this company PR2019-09-03
     # .order_by(Lower('code')) is in model
-    crit = Q(company=company)
-    if cat is not None:
-        crit.add(Q(cat=cat), crit.connector)
-    elif cat_lt is not None:
-        crit.add(Q(cat__lt=cat_lt), crit.connector)
-
+    crit = (Q(company=company) & Q(isabsence=is_absence) & Q(istemplate=is_template))
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
-
-    if isabsence is not None:
-        crit.add(Q(isabsence=isabsence), crit.connector)
 
     # logger.debug('cat: ' + str(cat) + ' cat_lt: ' + str(cat_lt) + ' inactive: ' + str(inactive))
     customers = m.Customer.objects.filter(crit)
@@ -98,23 +90,17 @@ def create_customer_dict(customer, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_order_list(company, user_lang, inactive=None, isabsence=None, cat=None, cat_lt=None):
+def create_order_list(company, user_lang, is_absence, is_template, inactive):
     # logger.debug(' --- create_order_list --- ')
+    # Order of absence and template are made by system and cannot be updated
+    # TODO: make it possible to rename them as company setting
 
 # --- create list of orders of this company PR2019-06-16
-    crit = Q(customer__company=company)
-    if cat is not None:
-        crit.add(Q(customer__cat=cat), crit.connector)
-    elif cat_lt is not None:
-        crit.add(Q(customer__cat__lt=cat_lt), crit.connector)
-
+    crit = (Q(customer__company=company) & Q(isabsence=is_absence)& Q(istemplate=is_template))
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
 
-    if isabsence is not None:
-        crit.add(Q(isabsence=isabsence), crit.connector)
-
-    if isabsence:
+    if is_absence:
         orders = m.Order.objects.filter(crit).order_by('sequence')
     else:
         orders = m.Order.objects.filter(crit).order_by('customer__code', 'code')
@@ -295,7 +281,10 @@ def get_or_create_absence_customer(request):
 
 # 2. check if 'absence' customer exists for this company - only one 'absence' customer allowed
     # don't use get_or_none, it wil return None when multiple absence customers exist, therefore adding another record
-    abs_cust = m.Customer.objects.filter(company=request.user.company, cat=c.SHIFT_CAT_0512_ABSENCE).first()
+    abs_cust = m.Customer.objects.filter(
+        company=request.user.company,
+        isabsence=True
+    ).first()
     if abs_cust is None:
 
 # 3. create 'absence' customer if not exists
@@ -378,30 +367,35 @@ def get_or_create_special_order(category, request):
     # logger.debug(" --- get_or_create_special_order ---")
 
     order = None
-
     # get user_lang
     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
 
+    is_restshift = (category == 'restshift')
+    is_template = (category == 'template')
+
     # get locale text
     template_locale = None
-    if category == c.SHIFT_CAT_1024_RESTSHIFT:
+    if is_restshift:
         lang = user_lang if user_lang in c.REST_TEXT else c.LANG_DEFAULT
         template_locale = c.REST_TEXT[lang]
-    elif category == c.SHIFT_CAT_4096_TEMPLATE:
+    elif is_template:
         lang = user_lang if user_lang in c.TEMPLATE_TEXT else c.LANG_DEFAULT
         template_locale = c.TEMPLATE_TEXT[lang]
 
-    # 1. check if 'template' customer exists for this company - only one 'template' customer allowed
+# 1. check if 'template' customer exists for this company - only one 'template' customer allowed
     # don't use get_or_none, it wil return None when multiple customers exist, and create even more instances
     customer = m.Customer.objects.filter(cat=category, company=request.user.company).first()
     if customer is None:
         if template_locale:
 
             # 2. create 'template' customer if not exists
-            customer = m.Customer(company=request.user.company,
-                                code=template_locale,
-                                name=template_locale,
-                                cat=category)
+            customer = m.Customer(
+                company=request.user.company,
+                code=template_locale,
+                name=template_locale,
+                isrestshift=is_restshift,
+                istemplate=is_template
+            )
             customer.save(request=request)
 
 # 3. check if 'template' customer has order - only one 'template' order allowed
@@ -411,10 +405,13 @@ def get_or_create_special_order(category, request):
         order = m.Order.objects.filter(customer=customer).first()
         if order is None:
             # 4. create 'template' order if not exists
-            order = m.Order(customer=customer,
-                          code=template_locale,
-                          name=template_locale,
-                          cat=category)
+            order = m.Order(
+                customer=customer,
+                code=template_locale,
+                name=template_locale,
+                isrestshift=is_restshift,
+                istemplate=is_template
+            )
             order.save(request=request)
             # logger.debug("order.save: " + str(order.pk) + ' ' + str(order.code))
     # logger.debug('order: ' + str(order))
@@ -429,7 +426,12 @@ def create_order_pricerate_list(company, user_lang):
     pricerate_list = []
 
     # --- create list of active orders of this customer
-    orders = m.Order.objects.filter(customer__company=company, customer__cat__lt=c.SHIFT_CAT_0512_ABSENCE, inactive=False )
+    orders = m.Order.objects.filter(
+        customer__company=company,
+        isabsence=False,
+        istemplate=False,
+        inactive=False
+    )
     for order in orders:
         customer = order.customer
 

@@ -141,8 +141,8 @@ class CompanyAddView(CreateView):
 
             # create special customers and orders
             get_or_create_absence_customer(request)
-            get_or_create_special_order(c.SHIFT_CAT_1024_RESTSHIFT, request)
-            get_or_create_special_order(c.SHIFT_CAT_4096_TEMPLATE, request)
+            get_or_create_special_order('restshift', request)
+            get_or_create_special_order('template', request)
 
             return redirect('company_list_url')
         else:

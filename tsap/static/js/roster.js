@@ -533,7 +533,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- create element with tag from field_tags
            let el = document.createElement(field_tags[j]);
 
-
 // add fieldname
             el.setAttribute("data-field", data_fields[j]);
 
@@ -2062,7 +2061,6 @@ console.log("===  function HandlePopupWdySave =========");
         const data_ppk = get_attr_from_el(el_body, "data-ppk")
         const data_field = get_attr_from_el(el_body, "data-field")
 
-
         const data_pk = get_attr_from_el(el_body, "data-pk")
         let tr_changed = document.getElementById(data_pk)
 
@@ -2087,9 +2085,8 @@ console.log("===  function HandlePopupWdySave =========");
         $("#id_mod_status").modal("hide");
 
         if(!!upload_dict) {
-             console.log( "upload_dict", upload_dict);
-
-            let parameters = {"upload": JSON.stringify (upload_dict)};
+            console.log( "upload_dict", upload_dict);
+            let parameters = {"upload": JSON.stringify(upload_dict)};
 
             let response = "";
             $.ajax({
