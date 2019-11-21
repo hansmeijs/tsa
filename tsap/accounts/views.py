@@ -573,17 +573,17 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                         # new_dict = upload_dict.get(field)
                         # saved_dict = Usersetting.get_jsonsetting(key, settings_dict, request.user)
                         # logger.debug('settings_dict ' + str(settings_dict))
-                        # settings_dict {'page_employee': {'selected_mode': 'absence'}}
+                        # settings_dict {'page_employee': {'selected_btn': 'absence'}}
                         # if settings_dict:
                             # key = c.KEY_USER_PAGE_SETTINGS
                             # page = 'pagexx'
                             # new_setting_dict = {}
-                            # selected_mode = settings_dict.get('selected_mode')
-                            # logger.debug('selected_mode ' + str(selected_mode))
+                            # selected_btn = settings_dict.get('selected_btn')
+                            # logger.debug('selected_btn ' + str(selected_btn))
 
                             # TODO: multiple settings, get saves settingsfirst, then update new setting
                             # new_page_dict = {}
-                            #  new_page_dict[page] = {'selected_mode': selected_mode}
+                            #  new_page_dict[page] = {'selected_btn': selected_btn}
                             # logger.debug('new_page_dict ' + str(new_page_dict))
 
         # c. add update_dict to update_wrap

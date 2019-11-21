@@ -249,7 +249,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                             request=request,
                                             user_lang=user_lang,
                                             customer=customer,
-                                            is_template=is_template,
+                                            is_template=False,  # scheme_template has own function create_scheme_template_list
                                             inactive=inactive)
                                     elif table == 'schemeitem':
                                         dict_list = d.create_schemeitem_list(

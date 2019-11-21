@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let filter_show_inactive = false;
         let filter_dict = {};
 
-        let selected_mode = "";
+        let selected_btn = "";
         const id_sel_prefix = "sel_"
         let mod_upload_dict = {};
         let company_dict = {};
@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("setting_list" in response) {
                     UpdateSettings(response["setting_list"])
                 }
-                HandleBtnSelect(selected_mode);
+                HandleBtnSelect(selected_btn);
 
         // --- hide loader
                el_loader.classList.add(cls_visible_hide)
@@ -322,11 +322,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function HandleBtnSelect(mode) {
         //console.log( "==== HandleBtnSelect ========= ", mode );
 
-        selected_mode = mode
-        if(!selected_mode){selected_mode = "employee"}
+        selected_btn = mode
+        if(!selected_btn){selected_btn = "employee"}
 
-// ---  upload new selected_mode
-        const upload_dict = {"page_employee": {"mode": selected_mode}};
+// ---  upload new selected_btn
+        const upload_dict = {"page_employee": {"mode": selected_btn}};
         UploadSettings (upload_dict, url_settings_upload);
 
 // ---  highlight selected button
@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0, btn, len = btns.length; i < len; i++) {
             btn = btns[i]
             const data_mode = get_attr_from_el(btn, "data-mode")
-            if (data_mode === selected_mode){
+            if (data_mode === selected_btn){
                 btn.classList.add("tsa_btn_selected")
             } else {
                 btn.classList.remove("tsa_btn_selected")
@@ -347,22 +347,22 @@ document.addEventListener('DOMContentLoaded', function() {
             tbl_mode = mode_list[i];
             let div_tbl = document.getElementById("id_div_tbl_" + tbl_mode);
             if(!!div_tbl){
-                if (tbl_mode === selected_mode){
+                if (tbl_mode === selected_btn){
                     div_tbl.classList.remove(cls_hide);
                 } else {
                     div_tbl.classList.add(cls_hide);
-                }  // if (tbl_mode === selected_mode)
+                }  // if (tbl_mode === selected_btn)
             }  // if(!!div_tbl){
         }
 
-        if (selected_mode === "employee_form"){
+        if (selected_btn === "employee_form"){
             document.getElementById("id_div_data_form").classList.remove(cls_hide);
         } else {
             document.getElementById("id_div_data_form").classList.add(cls_hide);
         };
 
 // ---  highlight row in list table
-            let tblBody = document.getElementById("id_tbody_" + selected_mode);
+            let tblBody = document.getElementById("id_tbody_" + selected_btn);
             if(!!tblBody){
                 FilterTableRows(tblBody)
             }
@@ -401,17 +401,17 @@ document.addEventListener('DOMContentLoaded', function() {
             UpdateHeaderText();
 
 // ---  update employee form
-            if(selected_mode === "employee_form"){
+            if(selected_btn === "employee_form"){
                 UpdateForm();
 // ---  enable delete button
                 document.getElementById("id_form_btn_delete").disabled = (!selected_employee_pk)
             } else {
-                let tblBody = document.getElementById("id_tbody_" + selected_mode);
+                let tblBody = document.getElementById("id_tbody_" + selected_btn);
                 if(!!tblBody){
     // ---  highlight row in tblBody
                     let tblRow = HighlightSelectedTblRowByPk(tblBody, selected_employee_pk)
     // ---  scrollIntoView, only in tblBody employee
-                    if (selected_mode === "employee" && !!tblRow){
+                    if (selected_btn === "employee" && !!tblRow){
                         tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
                     };
 
@@ -426,7 +426,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- put name of employee in addneww row of table team and absence, NOT in employee table
                     const row_count = tblBody.rows.length;
-                    if(selected_mode !== "employee" && !!row_count){
+                    if(selected_btn !== "employee" && !!row_count){
                         let lastRow = tblBody.rows[row_count - 1];
                         if(!!lastRow){
                             //console.log("lastRow", lastRow)
@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }  // if(!!row_count)
                 } //  if(!!tblBody){
-            }  // if(selected_mode === "employee_form"){
+            }  // if(selected_btn === "employee_form"){
         }  // if(!!sel_tr_clicked)
 
 // ---  enable add button, also when no employee selected
@@ -748,7 +748,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let show_new_row = false;
             if (tblName === "employee") {
                 show_new_row = true;
-            } else if (tblName === "teammember" && selected_mode === "absence" && !!selected_employee_pk) {
+            } else if (tblName === "teammember" && selected_btn === "absence" && !!selected_employee_pk) {
                 show_new_row = true;
             }
             if (show_new_row) {
@@ -894,7 +894,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- add grey color to row 'employee' in list pricerate.
 // TODO fix
-       // if (selected_mode === "pricerate"){
+       // if (selected_btn === "pricerate"){
         //    if (tblName === "employee"){
        //         tblRow.classList.add("tsa_bc_lightlightgrey")
         //    } else if (tblName === "teammember"){
@@ -1121,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const is_created = ("created" in id_dict);
             const is_deleted = ("deleted" in id_dict);
 
-        if(selected_mode === "employee_form"){
+        if(selected_btn === "employee_form"){
             UpdateForm()
         } else {
 
@@ -1143,16 +1143,16 @@ document.addEventListener('DOMContentLoaded', function() {
 // add new empty row if tblRow is_created
                     if (is_created){
     // ---  scrollIntoView, only in tblBody employee
-                        if (selected_mode === "employee"){
+                        if (selected_btn === "employee"){
                             tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
                         };
-                        if (["absence", "team"].indexOf( selected_mode ) > -1){
-                            CreateAddnewRow(selected_mode)
+                        if (["absence", "team"].indexOf( selected_btn ) > -1){
+                            CreateAddnewRow(selected_btn)
                         }
                     }  // if (is_created)
                 }  // if(is_deleted)
             }  // if(!!tblRow){
-        }  // if(selected_mode === "employee_form")
+        }  // if(selected_btn === "employee_form")
 
 //--- update or delete Select Row, before remove_err_del_cre_updated__from_itemdict
         // TODO not when updating teammember pricerate ??
@@ -1402,7 +1402,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const field_dict = get_dict_value_by_key (item_dict, fieldname);
                 const value = get_dict_value_by_key (field_dict, "value");
                 const updated = get_dict_value_by_key (field_dict, "updated");
-                const msg_offset = (selected_mode === "employee_form") ? [-260, 210] : [-240, 210];
+                const msg_offset = (selected_btn === "employee_form") ? [-260, 210] : [-240, 210];
 
                 if(updated){
                     el_input.classList.add("border_valid");
@@ -1578,11 +1578,11 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  UpdateHeaderText ================ PR2019-10-06
     function UpdateHeaderText(is_addnew_mode) {
         //console.log( "===== UpdateHeaderText  ========= ");
-        //console.log( "selected_mode", selected_mode);
+        //console.log( "selected_btn", selected_btn);
         //console.log( "selected_employee_pk", selected_employee_pk);
 
         let header_text = null;
-        if (selected_mode === "employee") { //show 'Employee list' in header when List button selected
+        if (selected_btn === "employee") { //show 'Employee list' in header when List button selected
             header_text = get_attr_from_el_str(el_data, "data-txt_employee_list")
         } else if (!!selected_employee_pk) {
             const dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk)
@@ -1627,7 +1627,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (key === "page_employee"){
                     const page_dict = setting_dict[key]; // {mode: "team"}
                     if ("mode" in page_dict){
-                        selected_mode = page_dict["mode"];
+                        selected_btn = page_dict["mode"];
                     }
                 }
                 if (key === "planning_period"){
@@ -1743,7 +1743,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log("is_create: ", is_create, "fieldname: ", fieldname,  "is_delete: ", is_delete);
 
     // ---  when absence: is_absence = true
-                const is_absence = (selected_mode === "absence");
+                const is_absence = (selected_btn === "absence");
                 upload_dict["isabsence"] = {"value": is_absence};
 
     // if delete: add 'delete' to id_dict and make tblRow red
@@ -1976,7 +1976,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //--- get pk etc from el_input, pk from selected_employee_pk when formmode
         let pk_str, tblName, map_id;
-        if (selected_mode === "employee_form"){
+        if (selected_btn === "employee_form"){
             pk_str = selected_employee_pk.toString();
             tblName = "employee";
             map_id = tblName + pk_str;
@@ -2079,11 +2079,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 let url_str, parameters;
-                if (selected_mode === "absence") {
+                if (selected_btn === "absence") {
                     url_str = url_teammember_upload
-                } else if (selected_mode === "teammember") {
+                } else if (selected_btn === "teammember") {
                     url_str = url_teammember_upload
-                } else if (["employee", "employee_form"].indexOf(selected_mode) > -1)  {
+                } else if (["employee", "employee_form"].indexOf(selected_btn) > -1)  {
                     url_str = url_employee_upload;
                 }
                 parameters = {"upload": JSON.stringify (upload_dict)}
@@ -2151,7 +2151,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const datefirst = document.getElementById("id_mod_period_datefirst").value
         const datelast = document.getElementById("id_mod_period_datelast").value
 
-// ---  upload new selected_mode
+// ---  upload new selected_btn
         selected_period = {"datefirst": datefirst, "datelast": datelast};
         const upload_dict = {"planning_period": selected_period};
         UploadSettings (upload_dict, url_settings_upload);
@@ -2426,7 +2426,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function ModEmployeeSave(option) {
         //console.log("========= ModEmployeeSave ===" );
 
-        if (selected_mode ==="absence"){
+        if (selected_btn ==="absence"){
             const row_id_str = get_dict_value_by_key(mod_upload_dict, "row_id")
             let tblRow = document.getElementById(row_id_str)
             if(!!tblRow){
@@ -2719,7 +2719,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleFilterInactive  ================ PR2019-07-18
     function HandleFilterInactive(el) {
-        console.log(" --- HandleFilterInactive --- ", selected_mode);
+        console.log(" --- HandleFilterInactive --- ", selected_btn);
 // toggle value
         filter_show_inactive = !filter_show_inactive
 // toggle icon
@@ -2728,7 +2728,7 @@ document.addEventListener('DOMContentLoaded', function() {
         el.children[0].setAttribute("src", img_src);
 // Filter TableRows
         FilterSelectRows();
-        let tblBody = document.getElementById("id_tbody_" + selected_mode);
+        let tblBody = document.getElementById("id_tbody_" + selected_btn);
         FilterTableRows(tblBody)
     }  // function HandleFilterInactive
 
@@ -2742,7 +2742,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filter_dict = {};
 
         selected_employee_pk = 0;
-        const mode = selected_mode
+        const mode = selected_btn
 
         let tblBody = document.getElementById("id_tbody_" + mode)
         if(!!tblBody){

@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let selected_customer_pk = 0;
         let selected_order_pk = 0;
 
-        let selected_mode = "customer"
+        let selected_btn = "customer"
         let mod_upload_dict = {};
         let company_dict = {};
         let selected_period = {};
@@ -112,12 +112,12 @@ document.addEventListener('DOMContentLoaded', function() {
             "pricerate": ["input", "input", "a", "input"]}
         const field_width = {
             "customer": ["180", "220", "032"],
-            "order": ["180", "180","180", "120", "120", "032", "032"],
+            "order": ["180", "180", "180", "120", "120", "032", "032"],
             "planning": ["120", "120", "180", "120", "090", "090", "090"],
             "pricerate": ["220", "150", "120", "150"]}
         const field_align = {
             "customer": ["left", "left", "right"],
-            "order": ["left", "left","left", "left", "left", "right",  "right"],
+            "order": ["left", "left","left", "left", "left", "right", "right"],
             "planning": ["left", "left", "left", "left", "left", "right", "right"],
             "pricerate": ["left", "right", "center", "left"]}
 
@@ -367,11 +367,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function HandleBtnSelect(mode, btn_selected) {
         //console.log( "===== HandleBtnSelect ========= ", mode);
 
-        selected_mode = mode
-        if(!selected_mode){selected_mode = "customer"}
+        selected_btn = mode
+        if(!selected_btn){selected_btn = "customer"}
 
-// ---  upload new selected_mode
-        const upload_dict = {"page_customer": {"mode": selected_mode}};
+// ---  upload new selected_btn
+        const upload_dict = {"page_customer": {"mode": selected_btn}};
         UploadSettings (upload_dict, url_settings_upload);
 
 // ---  highlight selected button
@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0, btn, len = btns.length; i < len; i++) {
             btn = btns[i]
             const data_mode = get_attr_from_el(btn, "data-mode")
-            if (data_mode === selected_mode){
+            if (data_mode === selected_btn){
                 btn.classList.add("tsa_btn_selected")
             } else {
                 btn.classList.remove("tsa_btn_selected")
@@ -392,23 +392,23 @@ document.addEventListener('DOMContentLoaded', function() {
             tbl_mode = mode_list[i];
             let div_tbl = document.getElementById("id_div_tbl_" + tbl_mode);
             if(!!div_tbl){
-                if (tbl_mode === selected_mode){
+                if (tbl_mode === selected_btn){
 // add addnew row to end of table, if not exists
                     div_tbl.classList.remove(cls_hide);
                 } else {
                     div_tbl.classList.add(cls_hide);
-                }  // if (tbl_mode === selected_mode)
+                }  // if (tbl_mode === selected_btn)
             }  // if(!!div_tbl){
         }
 
-        if (selected_mode === "customer_form"){
+        if (selected_btn === "customer_form"){
             document.getElementById("id_div_data_form").classList.remove(cls_hide);
         } else {
             document.getElementById("id_div_data_form").classList.add(cls_hide);
         };
 
 // ---  highlight row in list table
-            let tblBody = document.getElementById("id_tbody_" + selected_mode);
+            let tblBody = document.getElementById("id_tbody_" + selected_btn);
             if(!!tblBody){
                 FilterTableRows(tblBody)
             }
@@ -450,17 +450,17 @@ document.addEventListener('DOMContentLoaded', function() {
             UpdateHeaderText()
 
 // ---  update customer form
-            if(selected_mode === "customer_form"){
+            if(selected_btn === "customer_form"){
                 UpdateForm()
 // ---  enable delete button
                 document.getElementById("id_form_btn_delete").disabled = (!selected_customer_pk)
             } else {
-                let tblBody = document.getElementById("id_tbody_" + selected_mode);
+                let tblBody = document.getElementById("id_tbody_" + selected_btn);
                 if(!!tblBody){
     // ---  highlight row in tblBody
                    let tblRow = HighlightSelectedTblRowByPk(tblBody, selected_customer_pk)
     // ---  scrollIntoView, only in tblBody customer
-                    if (selected_mode === "customer" && !!tblRow){
+                    if (selected_btn === "customer" && !!tblRow){
                         tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
                     };
     // Filter Table Rows
@@ -487,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }  // if(!!row_count)
                 }  // if(!!tblBody)
-            };  // if(selected_mode === "customer_form")
+            };  // if(selected_btn === "customer_form")
         }  // if(!!sel_tr_clicked)
 
 
@@ -636,23 +636,23 @@ document.addEventListener('DOMContentLoaded', function() {
     function FillTableRows(tblName) {
         console.log( "===== FillTableRows  ========= ", tblName);
 
-        if (selected_mode === "customer_form") { tblName = "customer"};
+        if (selected_btn === "customer_form") { tblName = "customer"};
         console.log( "tblName: ", tblName);
 
 // --- reset tblBody
         let tblBody = document.getElementById("id_tbody_" + tblName);
         tblBody.innerText = null;
-
+// selected_btn: customer, order, planning, customer_form
 // --- get  data_map
-        const form_mode = (selected_mode === "customer_form");
+        const form_mode = (selected_btn === "customer_form");
         const data_map = (tblName === "customer") ? customer_map :
                          (tblName === "order") ? order_map :
-                         (selected_mode === "planning") ? planning_map :
+                         (selected_btn === "planning") ? planning_map :
                          null;
 
         console.log( "data_map: ", data_map);
-        const selected_pk = (selected_mode === "customer") ? selected_customer_pk :
-                            (selected_mode === "order") ? selected_order_pk : 0;
+        const selected_pk = (selected_btn === "customer") ? selected_customer_pk :
+                            (selected_btn === "order") ? selected_order_pk : 0;
 
         if (form_mode){
             UpdateForm()
@@ -669,7 +669,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // in mode order or pricerate: show only rows of selected_customer_pk
                     let add_Row = false;
                     let row_customer_pk = null;
-                    if (["order", "pricerate"].indexOf( selected_mode ) > -1){
+                    if (["order", "pricerate"].indexOf( selected_btn ) > -1){
                         row_customer_pk = get_subdict_value_by_key(item_dict, "customer", "pk")
                         add_Row = (!!row_customer_pk && row_customer_pk === selected_customer_pk);
                     } else {
@@ -690,12 +690,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // === add row 'add new'
             let show_new_row = false
-            if (selected_mode === "order" && !!selected_customer_pk) {
+            if (selected_btn === "order" && !!selected_customer_pk) {
                 show_new_row = true;
-            } else if (selected_mode === "customer") {
+            } else if (selected_btn === "customer") {
                 show_new_row = true;
             }
-            //console.log("sel_mode", selected_mode, "sel_custr_pk", selected_customer_pk, "show_new_row", show_new_row)
+            //console.log("sel_mode", selected_btn, "sel_custr_pk", selected_customer_pk, "show_new_row", show_new_row)
             if (show_new_row) {
                 CreateAddnewRow(tblName)
             }
@@ -707,17 +707,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function CreateTblHeaders() {
         //console.log("===  CreateTblHeaders == ");
 
-        const mode_list = ["customer", "order", "planning"]
-        mode_list.forEach(function (mode, index) {
+        const tblName_list = ["customer", "order", "planning"]
+        tblName_list.forEach(function (tblName, index) {
 
-            const tblHead_id = "id_thead_" + mode;
+            const tblHead_id = "id_thead_" + tblName;
             let tblHead = document.getElementById(tblHead_id);
             tblHead.innerText = null
 
             let tblRow = tblHead.insertRow (-1); // index -1: insert new cell at last position.
 
     //--- insert th's to tblHead
-            const column_count = tbl_col_count[mode];
+            const column_count = tbl_col_count[tblName];
 
             for (let j = 0; j < column_count; j++) {
     // --- add th to tblRow.
@@ -737,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 //} else {
 
     // --- add innerText to th
-                    const data_key = "data-" + thead_text[mode][j];
+                    const data_key = "data-" + thead_text[tblName][j];
                     const data_text = get_attr_from_el(el_data, data_key);
                     el.innerText = data_text;
                     el.setAttribute("overflow-wrap", "break-word");
@@ -746,17 +746,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- add margin to first column
                 if (j === 0 ){el.classList.add("ml-2")}
     // --- add width to el
-                el.classList.add("td_width_" + field_width[mode][j])
+                el.classList.add("td_width_" + field_width[tblName][j])
     // --- add text_align
-                el.classList.add("text_align_" + field_align[mode][j])
+                el.classList.add("text_align_" + field_align[tblName][j])
             }  // for (let j = 0; j < column_count; j++)
 
-            CreateTblFilter(tblHead, mode)
-        });  //  mode_list.forEach
+            CreateTblFilter(tblHead, tblName)
+        });  //  tblName_list.forEach
     };  //function CreateTblHeaders
 
 //=========  CreateTblFilter  ================ PR2019-11-09
-    function CreateTblFilter(tblHead, mode) {
+    function CreateTblFilter(tblHead, tblName) {
         //console.log("=========  function CreateTblFilter =========");
 
 //+++ insert tblRow ino tblHead
@@ -764,7 +764,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tblRow.classList.add("tsa_bc_lightlightgrey");
 
 //+++ iterate through columns
-        const column_count = tbl_col_count[mode];
+        const column_count = tbl_col_count[tblName];
         for (let j = 0, td, el; j < column_count; j++) {
 
 // insert td into tblRow
@@ -773,16 +773,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // create element with tag from field_tags
                 // NIU replace select tag with input tag
-                const field_tag = field_tags[mode][j];
+                const field_tag = field_tags[tblName][j];
                 // NIU const filter_tag = (field_tag === "select") ? "input" : field_tag
                 let el = document.createElement(field_tag);
 
 // --- add data-field Attribute.
-               el.setAttribute("data-field", field_names[mode][j]);
-               el.setAttribute("data-mode", mode);
+               el.setAttribute("data-field", field_names[tblName][j]);
+               el.setAttribute("data-mode", tblName);
 
 // --- add attributes to td
-                if ((mode === "customer" && j === 2) || (mode === "order" && j === 5)) {
+                if ((tblName === "customer" && j === 2) || (tblName === "order" && j === 5) || (tblName === "order" && j === 6)) {
                     // skip delete column
                 } else {
                     el.setAttribute("type", "text")
@@ -802,9 +802,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add margin to first column
             if (j === 0 ){el.classList.add("ml-2")}
 // --- add width to el
-            el.classList.add("td_width_" + field_width[mode][j])
+            el.classList.add("td_width_" + field_width[tblName][j])
 // --- add text_align
-            el.classList.add("text_align_" + field_align[mode][j])
+            el.classList.add("text_align_" + field_align[tblName][j])
 
             td.appendChild(el);
 
@@ -835,7 +835,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow, tblName, "list");}, false )
 
 // --- add grey color to row 'order' and 'scheme' in list pricerate.
-       // if (selected_mode === "pricerate"){
+       // if (selected_btn === "pricerate"){
        //     if (tblName === "order"){
        //         tblRow.classList.add("tsa_bc_lightgrey")
        //     } else if (tblName === "scheme"){
@@ -856,24 +856,24 @@ document.addEventListener('DOMContentLoaded', function() {
             el.setAttribute("data-field", field_names[tblName][j]);
 
 // --- add img delete to col_delete, not in addnew row
-            if ((tblName === "customer" && j === 2 ) || (tblName === "order" && j === 5)) {
+            if ((tblName === "customer" && j === 2 ) || (tblName === "order" && j === 6)) {
                 if (!is_new_row){
                     CreateBtnInactiveDelete("delete", tblRow, el)
                 }
-            } else if (selected_mode === "order" && j === 4 ) {
+            } else if (tblName === "order" && j === 5 ) {
 // --- column inactive, , not in addnew row
                 if (!is_new_row){
                     CreateBtnInactiveDelete("inactive", tblRow, el)
                 }
 // --- column billable
-            // } else if (selected_mode === "pricerate" && j === 2 ) {
+            // } else if (selected_btn === "pricerate" && j === 2 ) {
             //     if(!is_new_row) {
             //         el.setAttribute("href", "#");
             //         el.addEventListener("click", function(){
             //             HandleBillableClicked(el)
             //             }, false )
             //         AppendChildIcon(el, imgsrc_stat00)
-            //         el.setAttribute("data-field", field_names[selected_mode][j]);
+            //         el.setAttribute("data-field", field_names[selected_btn][j]);
             //         el.classList.add("ml-4")
             //         //td.appendChild(el);
             //     };
@@ -884,7 +884,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 el.classList.add("input_text");
 
 // --- add EventListener to td
-                // if (selected_mode === "pricerate"){
+                // if (selected_btn === "pricerate"){
                 //     if ([1].indexOf( j ) > -1){
                 //         el.addEventListener("change", function() {UploadElChanges(el);}, false)
                 //     };
@@ -894,15 +894,15 @@ document.addEventListener('DOMContentLoaded', function() {
                             el.addEventListener("change", function() {UploadElChanges(el)}, false )
                         }
                     } else if (tblName === "order"){
-                        if ([0, 1, 4].indexOf( j ) > -1){
+                        if ([0, 1, 2].indexOf( j ) > -1){
                             el.addEventListener("change", function() {UploadElChanges(el);}, false)
-                        } else if ([2, 3].indexOf( j ) > -1){
+                        } else if ([3, 4].indexOf( j ) > -1){
                             el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false);
                             // class input_popup_date is necessary to skip closing popup
                             el.classList.add("input_popup_date")
                         };
                     }
-                // }  //  if (selected_mode === "pricerate"){
+                // }  //  if (selected_btn === "pricerate"){
 
             }  // if ((tblName === "order" && j === 7) || (tblName === "customer" && j === 2 ))
 
@@ -916,9 +916,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add margin to first column
             if (j === 0 ){el.classList.add("ml-2")}
 // --- add width to el
-            el.classList.add("td_width_" + field_width[selected_mode][j])
+            el.classList.add("td_width_" + field_width[tblName][j])
 // --- add text_align
-            el.classList.add("text_align_" + field_align[selected_mode][j])
+            el.classList.add("text_align_" + field_align[tblName][j])
 
 // --- add other classes to td - Necessary to skip closing popup
             el.classList.add("border_none");
@@ -1072,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const is_created = ("created" in id_dict);
             const is_deleted = ("deleted" in id_dict);
 
-        if(selected_mode === "customer_form"){
+        if(selected_btn === "customer_form"){
             UpdateForm()
         } else {
 
@@ -1096,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // add new empty row
             if (is_created){
         // ---  scrollIntoView, only in tblBody customer
-                if (selected_mode === "customer"){
+                if (selected_btn === "customer"){
                     tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
                 };
 
@@ -1106,7 +1106,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 CreateAddnewRow(tblName)
             }  // if (is_created)
-        }  // if(selected_mode === "customer_form")
+        }  // if(selected_btn === "customer_form")
 
 //--- save pk in settings when created, set selected_customer_pk
         if(is_created){
@@ -1316,7 +1316,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const field_dict = get_dict_value_by_key (update_dict, fieldname);
                 const value = get_dict_value_by_key (field_dict, "value");
                 const updated = get_dict_value_by_key (field_dict, "updated");
-                const msg_offset = (selected_mode === "customer_form") ? [-260, 210] : [-240, 210];
+                const msg_offset = (selected_btn === "customer_form") ? [-260, 210] : [-240, 210];
 
                 if(updated){
                     el_input.classList.add("border_valid");
@@ -1387,7 +1387,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "===== UpdateHeaderText  ========= ");
 
         let header_text = null;
-        if (selected_mode === "customer") { //show 'Customer list' in header when List button selected
+        if (selected_btn === "customer") { //show 'Customer list' in header when List button selected
             header_text = get_attr_from_el_str(el_data, "data-txt_customer_list")
         } else if (!!selected_customer_pk) {
             const dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk)
@@ -1463,8 +1463,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const page_dict = setting_dict[key];
                     //console.log("page_dict", page_dict)
                     if ("mode" in page_dict ){
-                        selected_mode = page_dict["mode"];
-                        HandleBtnSelect(selected_mode);
+                        selected_btn = page_dict["mode"];
+                        HandleBtnSelect(selected_btn);
 
 // ---  highlight row in order table lets HighlightSelectedTblRowByPk in customer table not work
                         //HighlightSelectedTblRowByPk(tblBody_items, selected_order_pk)
@@ -1517,7 +1517,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // get new temp_pk
                 id_new = id_new + 1
                 const temp_pk_str = "new" + id_new.toString()
-                id_dict = {temp_pk: temp_pk_str, "create": true, "table": "customer", "mode": selected_mode}
+                id_dict = {temp_pk: temp_pk_str, "create": true, "table": "customer", "mode": selected_btn}
             } else {
                 // update existing record
                 // TODO check if this works
@@ -1799,7 +1799,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const datefirst = document.getElementById("id_mod_period_datefirst").value
         const datelast = document.getElementById("id_mod_period_datelast").value
 
-// ---  upload new selected_mode
+// ---  upload new selected_btn
         selected_period = {"datefirst": datefirst, "datelast": datelast};
         const upload_dict = {"planning_period": selected_period};
         UploadSettings (upload_dict, url_settings_upload);
@@ -1966,8 +1966,8 @@ document.addEventListener('DOMContentLoaded', function() {
         el.children[0].setAttribute("src", img_src);
 // Filter TableRows
         FilterSelectRows();
-        let tblBody = document.getElementById("id_tbody_" + selected_mode);
-        console.log("selected_mode", selected_mode);
+        let tblBody = document.getElementById("id_tbody_" + selected_btn);
+        console.log("selected_btn", selected_btn);
         console.log("tblBody", tblBody);
         FilterTableRows(tblBody);
     }  // function HandleFilterInactive
@@ -1981,7 +1981,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filter_dict = {};
 
         selected_customer_pk = 0;
-        const mode = selected_mode
+        const mode = selected_btn
 
         let tblBody = document.getElementById("id_tbody_" + mode)
         if(!!tblBody){

@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if ("period" in response) {
                     period_dict= response["period"];
-                    console.log("period_dict", period_dict)
+                    //console.log("period_dict", period_dict)
                     document.getElementById("id_flt_period").value = get_period_text(period_dict);
 
                     CreateTablePeriod();

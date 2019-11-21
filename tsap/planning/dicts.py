@@ -516,7 +516,9 @@ def create_scheme_template_list(request, user_lang):
 
 
 def create_scheme_list(request, user_lang, customer, is_template, inactive=None):
-    # logger.debug(' --- create_scheme_list --- ')
+    logger.debug(' --- create_scheme_list --- ')
+    logger.debug('is_template: ' + str(is_template) + str(type(is_template)))
+    logger.debug('inactive: ' + str(inactive) + str(type(inactive)))
 
 # --- create list of schemes of this customer PR2019-09-28
     crit = (Q(order__customer__company=request.user.company) & Q(order__customer=customer) & Q(istemplate=is_template))
@@ -526,6 +528,8 @@ def create_scheme_list(request, user_lang, customer, is_template, inactive=None)
 
     scheme_list = []
     for scheme in schemes:
+
+        logger.debug('scheme: ' + str(scheme.code))
         item_dict = {}
         create_scheme_dict(scheme, item_dict, user_lang)
 
@@ -576,9 +580,11 @@ def create_scheme_dict(scheme, item_dict, user_lang):
                 item_dict['billable']['override'] = is_override
                 item_dict['billable']['billable'] = is_billable
 
-
             elif field in ['cycle']:
                 field_dict['value'] = getattr(scheme, field, 0)
+
+            elif field in ['isabsence', 'istemplate']:
+                field_dict['value'] = getattr(scheme, field, False)
 
             # also add date when empty, to add min max date
             elif field == 'datefirst':
@@ -1814,10 +1820,6 @@ def create_review_list(period_dict, company, comp_timezone):  # PR2019-08-20
         rosterdatefirst = period_dict.get('rosterdatefirst')
         rosterdatelast = period_dict.get('rosterdatelast')
 
-
-
-
-
         # logger.debug(emplhours.query)
         # from django.db import connection
         # logger.debug(connection.queries)
@@ -1845,7 +1847,7 @@ def create_review_list(period_dict, company, comp_timezone):  # PR2019-08-20
         cursor.execute("""WITH eh_sub AS (SELECT eh.orderhour_id AS oh_id, 
                                                 ARRAY_AGG(eh.id) AS eh_id,
                                                 ARRAY_AGG(eh.employee_id) AS e_id,
-                                                COALESCE(STRING_AGG(DISTINCT e.code, ', '),'-') AS e_code,
+                                                COALESCE(STRING_AGG(DISTINCT e.code, '; '),'-') AS e_code,
                                                 ARRAY_AGG(eh.timeduration) AS e_dur,
                                                 ARRAY_AGG(eh.wage) AS e_wage,
                                                 ARRAY_AGG(eh.wagerate) AS e_wr,

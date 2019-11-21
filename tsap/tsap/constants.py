@@ -336,7 +336,7 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsenc
                    'wagerate', 'wagefactor', 'wage', 'pricerate', 'pricerate',
                    'status', 'overlap', 'locked')
 
-FIELDS_SCHEME = ('id', 'order', 'cat', 'code', 'datefirst', 'datelast',
+FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'istemplate', 'code', 'datefirst', 'datelast',
                  'cycle', 'billable', 'excludeweekend', 'excludepublicholiday',
                  'priceratejson', 'additionjson', 'inactive')
 

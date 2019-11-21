@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-20 17:57-0400\n"
+"POT-Creation-Date: 2019-11-21 07:37-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -188,7 +188,7 @@ msgstr "Opmerking"
 msgid "%(tbl)s could not be deleted."
 msgstr "%(tbl)s kon niet worden gewist."
 
-#: .\companies\models.py:1073 .\planning\views.py:1721
+#: .\companies\models.py:1073 .\planning\views.py:1720
 msgid "This item could not be deleted."
 msgstr "Dit item kon niet worden gewist."
 
@@ -202,7 +202,7 @@ msgstr "Klant '%(tbl)s'"
 msgid "Order '%(tbl)s'"
 msgstr "Locatie '%(tbl)s'"
 
-#: .\customers\views.py:377 .\planning\views.py:2508 .\planning\views.py:2532
+#: .\customers\views.py:377 .\planning\views.py:2507 .\planning\views.py:2531
 msgid "This item could not be created."
 msgstr "Dit item kon niet worden aangemaakt."
 
@@ -218,7 +218,7 @@ msgstr "Deze klant kon niet worden bijgewerkt."
 msgid "This order could not be updated."
 msgstr "Deze locatie kon niet worden bijgewerkt."
 
-#: .\customers\views.py:531 .\planning\views.py:2862 .\planning\views.py:3217
+#: .\customers\views.py:531 .\planning\views.py:2861 .\planning\views.py:3216
 msgid "This item could not be updated."
 msgstr "Dit item kon niet worden bijgewerkt."
 
@@ -226,7 +226,7 @@ msgstr "Dit item kon niet worden bijgewerkt."
 msgid "This order could not be created."
 msgstr "Deze locatie kon niet worden aangemaakt."
 
-#: .\customers\views.py:688 .\planning\views.py:3161 .\planning\views.py:3186
+#: .\customers\views.py:688 .\planning\views.py:3160 .\planning\views.py:3185
 msgid "This field could not be updated."
 msgstr "Dit veld kon niet worden bijgewerkt."
 
@@ -293,69 +293,69 @@ msgstr ""
 "Deze datum heeft %(count)s diensten die bevestigd zijn. Ze kunnen niet "
 "worden gewist."
 
-#: .\planning\rosterfill.py:1417
+#: .\planning\rosterfill.py:1418
 msgid "(absent)"
 msgstr "(afwezig)"
 
-#: .\planning\views.py:465 .\planning\views.py:943
+#: .\planning\views.py:465 .\planning\views.py:942
 #, python-format
 msgid "Scheme '%(tbl)s'"
 msgstr "Schema '%(tbl)s'"
 
-#: .\planning\views.py:623
+#: .\planning\views.py:622
 #, python-format
 msgid "Employee %(tbl)s"
 msgstr "Medewerker %(tbl)s"
 
-#: .\planning\views.py:1022
+#: .\planning\views.py:1021
 #, python-format
 msgid "Shift '%(tbl)s'"
 msgstr "Dienst '%(tbl)s'"
 
-#: .\planning\views.py:1024 .\planning\views.py:1567 .\planning\views.py:2388
+#: .\planning\views.py:1023 .\planning\views.py:1566 .\planning\views.py:2387
 #: .\templates\planning\schemes.html:456
 msgid "This shift"
 msgstr "Deze dienst"
 
-#: .\planning\views.py:1091
+#: .\planning\views.py:1090
 #, python-format
 msgid "Team '%(tbl)s'"
 msgstr "PLoeg '%(tbl)s'"
 
-#: .\planning\views.py:1165 .\templates\employees\employees.html:338
+#: .\planning\views.py:1164 .\templates\employees\employees.html:338
 #: .\templates\planning\schemes.html:282 .\templates\planning\schemes.html:420
 msgid "Team"
 msgstr "Ploeg"
 
-#: .\planning\views.py:1259
+#: .\planning\views.py:1258
 msgid "This team could not be updated."
 msgstr "Deze ploeg kon niet worden bijgewerkt."
 
-#: .\planning\views.py:3031
+#: .\planning\views.py:3030
 msgid "Cycle cannot be blank"
 msgstr "Cyclus moet ingevuld zijn."
 
-#: .\planning\views.py:3072
+#: .\planning\views.py:3071
 msgid "This scheme could not be updated."
 msgstr "Dit schema kon niet worden bijgewerkt."
 
-#: .\planning\views.py:3365
+#: .\planning\views.py:3364
 msgid "Shift is blank. Time cannot be calculated."
 msgstr "De dienst is niet ingevuld. De tijd kan niet worden berekend."
 
-#: .\planning\views.py:3476 .\planning\views.py:3770
+#: .\planning\views.py:3475 .\planning\views.py:3769
 msgid "This shift could not be created."
 msgstr "Deze dienst kon niet worden aangemaakt."
 
-#: .\planning\views.py:3632
+#: .\planning\views.py:3631
 msgid "This shift could not be updated."
 msgstr "Deze dienst kon niet worden bijgewerkt."
 
-#: .\planning\views.py:3690
+#: .\planning\views.py:3689
 msgid "This team could not be created."
 msgstr "Deze ploeg kon niet worden aangemaakt."
 
-#: .\planning\views.py:3728
+#: .\planning\views.py:3727
 msgid "This scheme could not be created."
 msgstr "Dit schema kon niet worden aangemaakt."
 
@@ -1745,8 +1745,8 @@ msgid "No orders"
 msgstr "Geen locaties"
 
 #: .\templates\planning\roster.html:431 .\templates\planning\rosterOLD.html:464
-#: .\templates\planning\schemes.html:85 .\templates\planning\schemes.html:235
-#: .\templates\planning\schemes.html:256 .\templates\planning\schemes.html:401
+#: .\templates\planning\schemes.html:85 .\templates\planning\schemes.html:256
+#: .\templates\planning\schemes.html:401
 msgid "Scheme"
 msgstr "Schema"
 
@@ -2454,4 +2454,3 @@ msgstr "Dit e-mail adres komt al voor."
 #, python-format
 msgid "Employee '%(tbl)s' has shifts and cannot be deleted."
 msgstr "Medewerker '%(tbl)s' heeft diensten en kan niet worden gewist."
-

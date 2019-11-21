@@ -1269,7 +1269,8 @@ def get_teammember_rows_per_date_per_customer(rosterdate, customer_id, refdate, 
     newcursor.execute("""
         SELECT
             %(rd)s AS rosterdate, sq.tm_id, sq.si_id, 
-            sq.ddif, sq.offsetstart + 1440 * sq.ddif AS osdif,            
+            sq.ddif, 
+            sq.offsetstart + 1440 * sq.ddif AS osdif,            
             sq.offsetend + 1440 * sq.ddif AS oedif, 
             sq.sh_os, sq.sh_oe, sq.sh_br, sq.sh_code,  
             sq.e_id, sq.e_code, sq.e_nl, sq.e_nf, sq.abs_os, sq.abs_oe, 
@@ -1286,7 +1287,7 @@ def get_teammember_rows_per_date_per_customer(rosterdate, customer_id, refdate, 
                         (CAST(%(rd)s AS date) - CAST(%(ref)s AS date)) * 1440 + COALESCE(tm.offsetstart, 0) AS ref_os, 
                         (CAST(%(rd)s AS date) - CAST(%(ref)s AS date)) * 1440 + COALESCE(tm.offsetend, 1440) AS ref_oe 
                         FROM companies_teammember AS tm 
-                        WHERE (tm.cat = %(abs_cat)s)  
+                        WHERE (tm.cat = %(abs_cat_lt)s)  
                         AND (tm.datefirst <= %(rd)s OR tm.datefirst IS NULL)  
                         AND (tm.datelast >= %(rd)s OR tm.datelast IS NULL) 
                     )
@@ -1328,7 +1329,7 @@ def get_teammember_rows_per_date_per_customer(rosterdate, customer_id, refdate, 
             INNER JOIN companies_order AS o ON (s.order_id = o.id) 
             INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
             WHERE (c.company_id = %(cid)s) AND (c.id = %(cust_id)s) 
-            AND (tm.cat < %(abs_cat)s) 
+            AND (tm.cat < %(abs_cat_lt)s) 
             AND (o.datefirst <= %(rd)s OR o.datefirst IS NULL)
             AND (o.datelast >= %(rd)s OR o.datelast IS NULL)
             AND (s.inactive = false) AND (o.inactive = false)  
@@ -1336,7 +1337,7 @@ def get_teammember_rows_per_date_per_customer(rosterdate, customer_id, refdate, 
         ORDER BY sq.c_code ASC, sq.o_code ASC, rosterdate ASC, osdif ASC
             """, {
                 'cid': company_id,
-                'abs_cat': c.SHIFT_CAT_0512_ABSENCE,
+                'abs_cat_lt': c.SHIFT_CAT_0512_ABSENCE,
                 'cust_id': customer_id,
                 'rd': rosterdate,
                 'ref': refdate
@@ -1456,7 +1457,6 @@ def create_customer_planning_dict(fid, row, datefirst_dte, datelast_dte, comp_ti
                 duration = offset_end - offset_start - breakduration
             planning_dict['duration'] = {'field': "duration", 'value': duration}
 
-
             # monthindex: {value: 4}
             # weekindex: {value: 15}
             # yearindex: {value: 2019}
@@ -1467,7 +1467,7 @@ def create_customer_planning_dict(fid, row, datefirst_dte, datelast_dte, comp_ti
 #######################################################
 
 def create_employee_planning(datefirst, datelast, employee_list, comp_timezone, request):
-    # logger.debug(' ============= create_employee_planning ============= ')
+    logger.debug(' ============= create_employee_planning ============= ')
 # this function creates a list with planned roster, without saving emplhour records  # PR2019-10-24
 
     # logger.debug('datefirst: ' + str(datefirst) + ' ' + str(type(datefirst)))
@@ -1476,7 +1476,7 @@ def create_employee_planning(datefirst, datelast, employee_list, comp_timezone, 
     employee_planning_dictlist = []
     if datefirst and datelast:
     # this function calcuates the planning per employee per day.
-    # TODO make SQL that generates rows for al dates at once, maybe also for all employees  dates at once
+    # TODO make SQL that generates rows for al dates at once, maybe also for all employees
 
 # A. First create a list of employee_id's, that meet the given criteria
 
@@ -1561,7 +1561,7 @@ def create_employee_planning(datefirst, datelast, employee_list, comp_timezone, 
 
 
 def create_employee_id_list(datefirst, datelast, employee_list, company_id):
-    # logger.debug(' ============= create_employee_id_list ============= ')
+    logger.debug(' ============= create_employee_id_list ============= ')
     # this function creates a list employee_id's, that meet the given criteria PR2019-10-28
 
     employee_id_dictlist = {}
@@ -1602,11 +1602,13 @@ def create_employee_id_list(datefirst, datelast, employee_list, company_id):
             .filter(crit).values_list('employee__id', flat=True).distinct().order_by(Lower('employee__code'))
         for employee_id in employee_id_list:
             employee_id_dictlist[employee_id] = {}
+
+    logger.debug('employee_id_dictlist: ' + str(employee_id_dictlist))
     return employee_id_dictlist
 
-
 def get_teammember_rows_per_date_per_employee(rosterdate, employee_id, refdate, company_id):
-    # 1 create list of teammembers of this employee on this rosterdate
+    logger.debug(' ============= get_teammember_rows_per_date_per_employee ============= ' + str(employee_id))
+    # create list of teammembers of this employee on this rosterdate
 
 # 1 create list of teams with LEFT JOIN schemeitem and INNNER JOIN teammember
     # range from prev_rosterdate thru next_rosterdate
@@ -1739,7 +1741,7 @@ def add_to_compare_dict(fid, row, tm_dicts):
 
 
 def compare_rows(fid, row, compare_dict):
-    logger.debug(" --- compare_rows ---")
+    # logger.debug(" --- compare_rows ---")
     # This function checks for overlap
 
     # compare_dict: {
