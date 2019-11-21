@@ -81,17 +81,15 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             # 'order': {'cat_lt': 512},
                             # 'order_pricerate': {'value': True}}
 
-
-
                     for table in datalist_dict:
                         table_dict = datalist_dict[table]
                         # logger.debug('table: ' + str(table))
                         # logger.debug('table_dict: ' + str(table_dict))
 
-# - get include_inactive from table_dict
+# - get is_absence, is_template, inactive from table_dict
                         is_absence = table_dict.get('isabsence', False)
                         is_template = table_dict.get('istemplate', False)
-                        # include_inactive = True: show inactive only, False: active only , None: show all
+                        # inactive = True: show inactive only, False: active only , None: show all
                         inactive = None
                         if 'inactive' in table_dict:
                             inactive = table_dict.get('inactive')
@@ -145,9 +143,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 company=request.user.company,
                                 user_lang=user_lang,
                                 is_absence=False,
-                                is_template=True
-                            )
-
+                                is_template=True,
+                                inactive=inactive)
                         elif table == 'scheme_template':
                             dict_list = d.create_scheme_template_list(request, user_lang)
 
@@ -177,6 +174,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                             # d.check_overlapping_shifts(range_start_iso, range_end_iso, request)  # PR2019-09-18
                             # don't use the variable 'list', because table = 'period' and will create dict 'period_list'
+
 # create_emplhour_list
                             emplhour_list = d.create_emplhour_list(period_dict=period_dict,
                                                                    company=request.user.company,
@@ -186,11 +184,13 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             datalists['emplhour_list'] = emplhour_list
 
                         elif table == 'review':
-                            # TODO period
-                            datefirst = None
-                            datelast = None
+                            # save new period and retrieve saved period
+                            period_dict = d.period_get_and_save(table_dict, request, comp_timezone)
+                            datalists['period'] = period_dict
 
-                            datalists[table] = d.create_review_list(datefirst, datelast, request)
+                            datalists[table] = d.create_review_list(period_dict=period_dict,
+                                                                   company=request.user.company,
+                                                                   comp_timezone=comp_timezone)
 
                         elif table == 'employee_planning':
                             datefirst = table_dict['datefirst'] if 'datefirst' in table_dict else None
@@ -249,7 +249,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                             request=request,
                                             user_lang=user_lang,
                                             customer=customer,
-                                            include_inactive=include_inactive)
+                                            is_template=is_template,
+                                            inactive=inactive)
                                     elif table == 'schemeitem':
                                         dict_list = d.create_schemeitem_list(
                                             request=request,
@@ -265,7 +266,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                         dict_list = d.create_team_list(
                                             request=request,
                                             customer=customer)
-
                         if dict_list:
                             datalists[table + '_list'] = dict_list
 
@@ -500,7 +500,7 @@ class SchemeUploadView(UpdateView):  # PR2019-07-21
                         user_lang=user_lang,
                         customer=parent.customer,
                         is_template=False,
-                        include_inactive=False
+                        inactive=None
                     )
                     if scheme_list:
                         update_wrap['scheme_list'] = scheme_list
@@ -583,8 +583,7 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
         logger.debug('instance: ' + str(instance))
 
 # - check if template_order exists, create if not exists
-        template_order = cust_dicts.get_or_create_special_order('template', request)
-        logger.debug("template_order: " + str(template_order.pk) + ' ' + str(template_order.code))
+        template_order = cust_dicts.get_or_create_template_order(request)
 
 # - copy scheme to template  (don't copy datefirst, datelast)
         template_scheme = m.Scheme(
@@ -780,7 +779,7 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
     scheme_locale = c.SCHEME_24H_DEFAULT[lang] # (code, cycle, excludeweekend, excludepublicholiday) PR2019-08-24
 
 # - check if template_order exists, create if not exists
-    template_order = cust_dicts.get_or_create_special_order('template', request)
+    template_order = cust_dicts.get_or_create_template_order(request)
     logger.debug("template_order: " + str(template_order.pk) + ' ' + str(template_order.code))
 
 # - add scheme to template  (don't add datefirst, datelast)
@@ -968,7 +967,7 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
                     user_lang=user_lang,
                     customer=parent.customer,
                     is_template=False,
-                    include_inactive=False
+                    inactive=None
                 )
                 if scheme_list:
                     update_wrap['scheme_list'] = scheme_list
@@ -2069,7 +2068,7 @@ def upload_period(interval_upload, request):  # PR2019-07-10
                 period_dict_json = json.dumps(period_dict)  # dumps takes an object and produces a string:
                 # logger.debug('period_dict_json: ' + str(period_dict_json))
 
-                Usersetting.set_setting(c.KEY_USER_EMPLHOUR_PERIOD, period_dict_json, request.user)
+                Usersetting.set_setting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json, request.user)
                 update_emplhour_list = True
 
 # calculate  updated period_dict
@@ -2306,7 +2305,7 @@ class PeriodUploadView(UpdateView):  # PR2019-07-12
                 period_dict_json = json.dumps(new_period_dict)  # dumps takes an object and produces a string:
                 # logger.debug('new_period_dict: ' + str(new_period_dict))
 
-                Usersetting.set_setting(c.KEY_USER_EMPLHOUR_PERIOD, period_dict_json, request.user)
+                Usersetting.set_setting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json, request.user)
 
                 item_update_dict['period'] = new_period_dict
 

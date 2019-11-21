@@ -225,7 +225,7 @@ def get_period_dict_and_save(request, get_current):  # PR2019-07-13
         new_period_dict['today'] = today
 
         period_dict_json = json.dumps(new_period_dict)  # dumps takes an object and produces a string:
-        Usersetting.set_setting(c.KEY_USER_EMPLHOUR_PERIOD, period_dict_json, request.user)
+        Usersetting.set_setting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json, request.user)
 
     # logger.debug('new_period_dict: ' + str(new_period_dict))
     return new_period_dict
@@ -447,13 +447,13 @@ def get_period_from_settings(request):  # PR2019-07-09
 
 # get period from Usersetting
         saved_period_dict = {}
-        dict_json = Usersetting.get_setting(c.KEY_USER_EMPLHOUR_PERIOD, request.user)
+        dict_json = Usersetting.get_setting(c.KEY_USER_PERIOD_EMPLHOUR, request.user)
         if dict_json:
             saved_period_dict = json.loads(dict_json)
 
 # if not found: get period from Companysetting
         else:
-            dict_json = m.Companysetting.get_setting(c.KEY_USER_EMPLHOUR_PERIOD, request.user.company)
+            dict_json = m.Companysetting.get_setting(c.KEY_USER_PERIOD_EMPLHOUR, request.user.company)
             if dict_json:
                 saved_period_dict = json.loads(dict_json)
 
@@ -515,16 +515,13 @@ def create_scheme_template_list(request, user_lang):
     return scheme_list
 
 
-def create_scheme_list(request, user_lang, customer, is_template,  include_inactive=False, cat=None):
+def create_scheme_list(request, user_lang, customer, is_template, inactive=None):
     # logger.debug(' --- create_scheme_list --- ')
 
 # --- create list of schemes of this customer PR2019-09-28
     crit = (Q(order__customer__company=request.user.company) & Q(order__customer=customer) & Q(istemplate=is_template))
-    if cat is not None:
-        crit.add(Q(cat=cat), crit.connector)
-
-    if not include_inactive:
-        crit.add(Q(inactive=False), crit.connector)
+    if inactive is not None:
+        crit.add(Q(inactive=inactive), crit.connector)
     schemes = m.Scheme.objects.filter(crit)
 
     scheme_list = []
@@ -949,114 +946,150 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
     # period_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
 
     update_dict = {}
+
     if period_dict:
-        now_usercomp_dtm = None
-        today_iso = ''
-        today_dte = None
-
-        now_arr = period_dict.get('now',[])
-        if now_arr:
-            # now is the time of the computer of the current user. May be different from company local
-            year_str = str(now_arr[0])
-            month_str = str(now_arr[1])
-            date_str = str(now_arr[2])
-            today_iso = '-'.join([year_str, month_str, date_str])
-            logger.debug(' today_iso: ' + str(today_iso) + ' ' + str(type(today_iso)))
-            # today_iso: 2019-11-17 <class 'str'>
-            now_usercomp_dtm = f.get_datetime_from_arr(now_arr)
-            logger.debug(' now_usercomp_dtm: ' + str(now_usercomp_dtm) + ' ' + str(type(now_usercomp_dtm)))
-            # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
-            today_dte = f.get_date_from_arr(now_arr)
-            logger.debug(' today_dte: ' + str(today_dte) + ' ' + str(type(today_dte)))
-            # today_dte: 2019-11-17 <class 'datetime.date'>
-
+# 1. check if values must be retrieved from Usersetting
         get_saved = period_dict.get('get', False)
-        if get_saved:
-            update_dict = Usersetting.get_jsonsetting(c.KEY_USER_ROSTER_PERIOD, request.user)
-            logger.debug('old update_dict: ' + str(update_dict))
-        else:
-            Usersetting.set_jsonsetting(c.KEY_USER_ROSTER_PERIOD, period_dict, request.user)
-            update_dict = period_dict
-            logger.debug('new update_dict: ' + str(update_dict))
-            # new update_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
 
-        if update_dict:
-            period_index = update_dict.get('period_index', 0)
-            offset = update_dict.get('extend_offset', 0)
+# 2. get now from period_dict, if not in period_dict: create 'now' (should not be possible)
+        now_arr = period_dict.get('now')
+    # b. if 'now' is not in period_dict: create 'now' (should not be possible)
+        if now_arr is None:
+            now = datetime.now()
+            now_arr = [now.year, now.month, now.day, now.hour, now.minute]
+    # c. get today_iso, today_dte and now_usercomp_dtm from now_arr
+        # now is the time of the computer of the current user. May be different from company local
+        year_str = str(now_arr[0])
+        month_str = str(now_arr[1])
+        date_str = str(now_arr[2])
+        today_iso = '-'.join([year_str, month_str, date_str])
+        # today_iso: 2019-11-17 <class 'str'>
+        today_dte = f.get_date_from_arr(now_arr)
+        # today_dte: 2019-11-17 <class 'datetime.date'>
+        now_usercomp_dtm = f.get_datetime_from_arr(now_arr)
+        # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
+        logger.debug('now_arr: ' + str(now_arr))
+        logger.debug('today_dte: ' + str(today_dte))
 
-            # default is today
-            rosterdatefirst_dte = today_dte
-            rosterdatelast_dte = today_dte
-            # default offest start is 0 - offset, (midnight - offset)
-            # default offest start is 1440 + offset (24 h after midnight + offset)
-            # value for morning, evening, night and day are different
-            offset_firstdate = 0 - offset
-            offset_lastdate = 1440 + offset
+# 3. get saved period_dict if get_saved = True
+        key = None
+        page = period_dict.get('page')
+        if page == 'roster':
+            key = c.KEY_USER_PERIOD_ROSTER
+        elif page == 'review':
+            key = c.KEY_USER_PERIOD_REVIEW
+        elif page == 'emplhour':
+            key = c.KEY_USER_PERIOD_EMPLHOUR
+        if get_saved and key:
+            period_dict = Usersetting.get_jsonsetting(key, request.user)
 
-            # use set dates when they have value
-            if period_index == 0:  # 60: 'Now'
-                periodstart_datetimelocal = now_usercomp_dtm - timedelta(minutes=offset)
-                periodend_datetimelocal = now_usercomp_dtm + timedelta(minutes=offset)
-            else:
-                if period_index == 1:  # 1: 'This night', offset_firstdate is default:  0 - offset
-                    offset_lastdate = 360 + offset
-                elif period_index == 2:  #  2: 'This morning'
-                    offset_firstdate = 360 - offset
-                    offset_lastdate = 720 + offset
-                elif period_index == 3:  # 3: 'This afternoon'
-                    offset_firstdate = 720 - offset
-                    offset_lastdate = 1080 + offset
-                elif period_index == 4:  # 4: 'This evening', , offset_lastdate is default: 1440 + offset
-                    offset_firstdate = 1080 - offset
-                elif period_index == 5:  # 5: 'Today'
-                    pass
-                elif period_index == 6:  # 6: 'Tomorrow'
-                    rosterdatefirst_dte = today_dte + timedelta(days=1)
-                    rosterdatelast_dte = today_dte + timedelta(days=1)
-                elif period_index == 7:  # 7: 'Yesterday'
-                    rosterdatefirst_dte = today_dte + timedelta(days=-1)
-                    rosterdatelast_dte = today_dte + timedelta(days=-1)
-                elif period_index == 8:  # 8: 'This week'
-                    rosterdatefirst_dte = today_dte + timedelta(days=(1 - today_dte.isoweekday()))
-                    rosterdatelast_dte = today_dte + timedelta(days=(7 - today_dte.isoweekday()))
-                elif period_index == 9:  # 9: 'This month'
-                    rosterdatefirst_dte = today_dte + timedelta(days=(1 - today_dte.day))
-                    # get first of next month, then subtract one day
-                    year = rosterdatefirst_dte.year
-                    nextmonth = rosterdatefirst_dte.month + 1
-                    if nextmonth > 12:
-                        nextmonth -= 12
-                        year += 1
-                    firstof_nextmonth_dte = date(year, nextmonth, 1)
-                    rosterdatelast_dte = firstof_nextmonth_dte + timedelta(days=-1)
-                elif period_index == 10:  # 10: 'Custom period'
-                    periodstart = update_dict.get('periodstart')
-                    periodend = update_dict.get('periodend')
-                    # if one date blank: use other date, if both blank: use today
-                    if periodstart is None:
-                        if periodend is None:
-                            periodstart = today_iso
-                            periodend = today_iso
-                        else:
-                            periodstart = periodend
+# 4. create update_dict
+        update_dict = {'page': key, 'now': now_arr}
+        # period_dict comes either from argument or from Usersetting
+        period_tag = 'today'
+        extend_offset = 0
+        periodstart = None
+        periodend = None
+        if period_dict:
+            period_tag = period_dict.get('period_tag', 'today')
+            extend_offset = period_dict.get('extend_offset', 0)
+            periodstart = period_dict.get('periodstart')
+            periodend = period_dict.get('periodend')
+
+        update_dict['period_tag'] = period_tag
+        update_dict['extend_offset'] = extend_offset
+        if periodstart is not None:
+            update_dict['periodstart'] = periodstart
+        if periodend is not None:
+            update_dict['periodend'] = periodend
+
+ # 5. save update_dict
+        Usersetting.set_jsonsetting(key, update_dict, request.user)
+        # new update_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
+
+        # default tag is 'today'
+        rosterdatefirst_dte = today_dte
+        rosterdatelast_dte = today_dte
+        # default offest start is 0 - offset, (midnight - offset)
+        # default offest start is 1440 + offset (24 h after midnight + offset)
+        # value for morning, evening, night and day are different
+        offset_firstdate = 0 - extend_offset
+        offset_lastdate = 1440 + extend_offset
+
+
+        if period_tag != 'now':  # 60: 'Now'
+            if period_tag == 'tnight':  # 1: 'This night', offset_firstdate is default:  0 - offset
+                offset_lastdate = 360 + extend_offset
+            elif period_tag == 'tmorning':  #  2: 'This morning'
+                offset_firstdate = 360 - extend_offset
+                offset_lastdate = 720 + extend_offset
+            elif period_tag == 'tafternoon':  # 3: 'This afternoon'
+                offset_firstdate = 720 - extend_offset
+                offset_lastdate = 1080 + extend_offset
+            elif period_tag == 'tevening':  # 4: 'This evening', , offset_lastdate is default: 1440 + offset
+                offset_firstdate = 1080 - extend_offset
+            elif period_tag == 'Today':  # 5: 'Today'
+                pass
+            elif period_tag == 'tomorrow':  # 6: 'Tomorrow'
+                rosterdatefirst_dte = f.add_days_to_date(today_dte, 1)
+                rosterdatelast_dte = rosterdatefirst_dte
+            elif period_tag == 'yesterday':  # 7: 'Yesterday'
+                rosterdatefirst_dte = f.add_days_to_date(today_dte, -1)
+                rosterdatelast_dte = rosterdatefirst_dte
+            elif period_tag == 'tweek':  # 8: 'This week'
+                rosterdatefirst_dte = f.get_firstof_week(today_dte, 0)
+                rosterdatelast_dte = f.get_lastof_week(today_dte, 0)
+            elif period_tag == 'lweek':  # 8: 'Last week'
+                rosterdatefirst_dte = f.get_firstof_week(today_dte, -1)
+                rosterdatelast_dte = f.get_lastof_week(today_dte, -1)
+            elif period_tag == 'nweek':  # 8: 'Next week'
+                rosterdatefirst_dte = f.get_firstof_week(today_dte, 1)
+                rosterdatelast_dte = f.get_lastof_week(today_dte, 1)
+            elif period_tag == 'tmonth':  # 9: 'This month'
+                rosterdatefirst_dte = f.get_firstof_month(today_dte)
+                rosterdatelast_dte = f.get_lastof_month(today_dte)
+            elif period_tag == 'lmonth':  # 9: 'This month'
+                firstof_thismonth_dte = f.get_firstof_month(today_dte)
+                firstof_lastmonth_dte = f.add_month_to_firstof_month(firstof_thismonth_dte, -1)
+                lastof_lastmonth_dte = f.get_lastof_month(firstof_lastmonth_dte)
+                rosterdatefirst_dte = firstof_lastmonth_dte
+                rosterdatelast_dte = lastof_lastmonth_dte
+            elif period_tag == 'nmonth':  # 9: 'Next month'
+                firstof_thismonth_dte = f.get_firstof_month(today_dte)
+                firstof_nextmonth_dte = f.add_month_to_firstof_month(firstof_thismonth_dte, 1)
+                lastof_nextmonth_dte = f.get_lastof_month(firstof_nextmonth_dte)
+                rosterdatefirst_dte = firstof_nextmonth_dte
+                rosterdatelast_dte = lastof_nextmonth_dte
+            elif period_tag == 'other':  # 10: 'Custom period'
+                # if one date blank: use other date, if both blank: use today
+                if periodstart is None:
+                    if periodend is None:
+                        periodstart = today_iso
+                        periodend = today_iso
                     else:
-                        if periodend is None:
-                            periodend = periodstart
-                    rosterdatefirst_dte = f.get_dateobj_from_ISOstring(periodstart)
-                    rosterdatelast_dte = f.get_dateobj_from_ISOstring(periodend)
+                        periodstart = periodend
+                else:
+                    if periodend is None:
+                        periodend = periodstart
+                rosterdatefirst_dte = f.get_dateobj_from_ISOstring(periodstart)
+                rosterdatelast_dte = f.get_dateobj_from_ISOstring(periodend)
 
-                periodstart_datetimelocal = f.get_datetimelocal_from_offset(rosterdatefirst_dte, offset_firstdate, comp_timezone)
-                periodend_datetimelocal = f.get_datetimelocal_from_offset(rosterdatelast_dte, offset_lastdate, comp_timezone)
+            periodstart_datetimelocal = f.get_datetimelocal_from_offset(rosterdatefirst_dte, offset_firstdate, comp_timezone)
+            periodend_datetimelocal = f.get_datetimelocal_from_offset(rosterdatelast_dte, offset_lastdate, comp_timezone)
 
-            rosterdatefirst_minus1 = rosterdatefirst_dte - timedelta(days=1)
-            rosterdatelast_plus1 = rosterdatelast_dte + timedelta(days=1)
+        else:
+            periodstart_datetimelocal = now_usercomp_dtm - timedelta(minutes=extend_offset)
+            periodend_datetimelocal = now_usercomp_dtm + timedelta(minutes=extend_offset)
 
-            update_dict['periodstart'] = periodstart_datetimelocal
-            update_dict['periodend'] = periodend_datetimelocal
-            update_dict['rosterdatefirst'] = rosterdatefirst_dte.isoformat()
-            update_dict['rosterdatelast'] = rosterdatelast_dte.isoformat()
-            update_dict['rosterdatefirst_minus1'] = rosterdatefirst_minus1.isoformat()
-            update_dict['rosterdatelast_plus1'] = rosterdatelast_plus1.isoformat()
+        rosterdatefirst_minus1 = rosterdatefirst_dte - timedelta(days=1)
+        rosterdatelast_plus1 = rosterdatelast_dte + timedelta(days=1)
+
+        update_dict['periodstart'] = periodstart_datetimelocal
+        update_dict['periodend'] = periodend_datetimelocal
+        update_dict['rosterdatefirst'] = rosterdatefirst_dte.isoformat()
+        update_dict['rosterdatelast'] = rosterdatelast_dte.isoformat()
+        update_dict['rosterdatefirst_minus1'] = rosterdatefirst_minus1.isoformat()
+        update_dict['rosterdatelast_plus1'] = rosterdatelast_plus1.isoformat()
 
     logger.debug('update_dict: ' + str(update_dict))
     #  update_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360,
@@ -1140,10 +1173,15 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
                 'pte': periodend_datetimelocal
                 })
 
-    # logger.debug("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVV")
+    logger.debug("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVV")
+
+    logger.debug("rosterdatefirst_minus1: " + str(rosterdatefirst_minus1))
+    logger.debug("rosterdatelast_plus1: " + str(rosterdatelast_plus1))
+    logger.debug("periodstart_datetimelocal: " + str(periodstart_datetimelocal))
+    logger.debug("periodend_datetimelocal: " + str(periodend_datetimelocal))
+
     emplhours_rows = f.dictfetchall(newcursor)
     # dictfetchall returns a list with dicts for each emplhour row
-    # logger.debug(str(emplhours_rows))
     # emplhours_rows:  [ {'eh_id': 4504, 'eh_rd': datetime.date(2019, 11, 14), 'c_code': 'MCB', 'o_code': 'Punda', 'e_code': 'Bernardus-Cornelis, Yaha'},
 
     # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
@@ -1153,7 +1191,7 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
 
     emplhour_list = []
     for row in emplhours_rows:
-        # logger.debug("row: "  + str(row))
+        logger.debug("row: " + str(row))
         item_dict = {}
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # --- start of create_emplhour_itemdict
@@ -1763,20 +1801,30 @@ def create_replacementshift_list(dict, company):
     return return_dict
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def create_review_list(datefirst, datelast, request):  # PR2019-08-20
+def create_review_list(period_dict, company, comp_timezone):  # PR2019-08-20
     # create list of shifts of this order PR2019-08-08
     # logger.debug(' --- create_review_list --- ')
     # logger.debug('datefirst:  ' + str(datefirst) + ' datelast:  ' + str(datelast))
+
+
     review_list = []
-    if request.user.company_id:
+    if company:
+        logger.debug(' ============= create_emplhour_list ============= ')
+
+        rosterdatefirst = period_dict.get('rosterdatefirst')
+        rosterdatelast = period_dict.get('rosterdatelast')
+
+
+
+
 
         # logger.debug(emplhours.query)
         # from django.db import connection
         # logger.debug(connection.queries)
-        if datefirst is None:
-            datefirst = '1000-01-01'
-        if datelast is None:
-            datelast = '3000-01-01'
+        if rosterdatefirst is None:
+            rosterdatefirst = '1900-01-01'
+        if rosterdatelast is None:
+            rosterdatelast = '2500-01-01'
         cursor = connection.cursor()
         # fields in review_list:
         #  0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json, 4: yearindex, 5: monthindex 6: weekindex, 7: payperiodindex,
@@ -1787,6 +1835,10 @@ def create_review_list(datefirst, datelast, request):  # PR2019-08-20
         #  23: eh_wage_arr, 24: eh_wagerate_arr, 25: eh_wagefactor_arr.  26: diff
 #  case when oh.duration>0 then oh.duration-eh_sub.e_dur else 0 end as diff
 
+        orderby_cust_code = 1  # index of ordered column
+        orderby_ord_code = 2
+        orderby_e_code_arr = 3
+        orderby_oh_rosterdate = 4
         # don't show rest shifts)
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
         show_restshifts = False
@@ -1803,12 +1855,17 @@ def create_review_list(datefirst, datelast, request):  # PR2019-08-20
                                                 FROM companies_emplhour AS eh
                                                 LEFT OUTER JOIN companies_employee AS e ON (eh.employee_id=e.id) 
                                                 GROUP BY oh_id) 
-                                       SELECT oh.id, o.id, c.id, to_json(oh.rosterdate), 
-                                       oh.yearindex AS y, oh.monthindex AS m, oh.weekindex AS w, oh.payperiodindex AS p,    
-                                       COALESCE(c.code,'-') AS c_code, COALESCE(o.code,'-') AS o_code, o.cat, COALESCE(oh.shift,'-'), 
-                                       oh.duration, oh.isbillable, oh.pricerate, oh.amount, oh.tax, eh_sub.eh_id, eh_sub.eh_dur, eh_sub.eh_wage, 
-                                       eh_sub.e_id, eh_sub.e_code, eh_sub.e_dur, eh_sub.e_wage, eh_sub.e_wr, eh_sub.e_wf, 
-                                       case when o.cat < %(cat)s then oh.duration-eh_sub.eh_dur else 0 end as diff  
+                                       SELECT COALESCE(c.code,'-') AS cust_code,  COALESCE(o.code,'-') AS ord_code,
+                                       eh_sub.e_code AS e_code_arr, oh.rosterdate AS oh_rd, to_json(oh.rosterdate) AS rosterdate, 
+                                       oh.id AS oh_id, o.id AS ord_id, c.id AS cust_id, 
+                                       oh.yearindex AS yi, oh.monthindex AS mi, oh.weekindex AS wi, oh.payperiodindex AS pi,              
+                                       o.isabsence as o_isabs, COALESCE(oh.shift,'-') AS oh_shift, 
+                                       oh.duration AS oh_dur, oh.isbillable AS oh_bill, oh.pricerate AS oh_prrate, 
+                                       oh.amount AS oh_amount, oh.tax AS oh_tax, 
+                                       eh_sub.eh_id AS eh_id_arr, eh_sub.eh_dur AS eh_dur, eh_sub.eh_wage AS eh_wage, 
+                                       eh_sub.e_id AS e_id, eh_sub.e_dur AS e_dur, 
+                                       eh_sub.e_wage AS e_wage, eh_sub.e_wr AS e_wr, eh_sub.e_wf AS e_wf, 
+                                       case when o.isabsence = FALSE then oh.duration-eh_sub.eh_dur else 0 end as dur_diff  
                                        FROM companies_orderhour AS oh
                                        INNER JOIN eh_sub ON (eh_sub.oh_id=oh.id)
                                        INNER JOIN companies_order AS o ON (oh.order_id=o.id)
@@ -1817,15 +1874,18 @@ def create_review_list(datefirst, datelast, request):  # PR2019-08-20
                                        AND (oh.rosterdate IS NOT NULL) 
                                        AND (oh.rosterdate >= %(df)s)
                                        AND (oh.rosterdate <= %(dl)s)
-                                       AND (oh.isrestshift = %(rs)s OR oh.isrestshift = FALSE) 
-                                       ORDER BY c_code ASC, o_code ASC, oh.rosterdate ASC""",
+                                       AND (oh.isrestshift = FALSE) 
+                                        ORDER BY %(order1)s ASC, %(order2)s ASC, %(order3)s ASC, %(order4)s ASC""",
                                        {'cat': c.SHIFT_CAT_0512_ABSENCE,
-                                        'cid': request.user.company_id,
-                                        'df': datefirst,
-                                        'dl': datelast,
-                                        'rs': show_restshifts})
-
-
+                                        'cid': company.id,
+                                        'df': rosterdatefirst,
+                                        'dl': rosterdatelast,
+                                        'order1': orderby_cust_code,
+                                        'order2': orderby_ord_code,
+                                        'order3': orderby_oh_rosterdate,
+                                        'order4': orderby_e_code_arr
+                                        })
+#                                        ORDER BY c_code ASC, o_code ASC, oh.rosterdate ASC""",
 #                                          WHERE (c.company_id = %s)
         #                                        AND (oh.rosterdate IS NOT NULL)
         #                                        AND (oh.rosterdate >= %s)
@@ -1838,10 +1898,8 @@ def create_review_list(datefirst, datelast, request):  # PR2019-08-20
         #                   GROUP BY t1_id
         # )
 
-        # rows = cursor.fetchall()
-        # rows = cursor.dictfetchall()
-        review_list = cursor.fetchall()
-        logger.debug('------- >' + str(review_list))
+        review_list = f.dictfetchall(cursor)
+        # dictfetchall returns a list with dicts for each emplhour row
 
     return review_list
 

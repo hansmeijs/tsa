@@ -352,7 +352,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 // hide loader
                 el_loader.classList.add(cls_hide)
 
-
                 if ("locale_dict" in response) {
                     loc = response["locale_dict"];
                     // --- create Submenu after downloading locale
@@ -424,13 +423,9 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  CreateSubmenu  === PR2019-07-08
     function CreateSubmenu() {
         //console.log("===  CreateSubmenu == ");
-        // console.log("pk", pk, "ppk", parent_pk);
 
         let el_submenu = document.getElementById("id_submenu")
         let el_div = document.createElement("div");
-
-    // --- first add <a> element with EventListener to td
-
 
         CreateSubmenuButton(el_div, null, loc.menubtn_add_scheme, null, ModSchemeOpen);
         CreateSubmenuButton(el_div, null, loc.menubtn_copy_from_template, "mx-2", ModalCopyfromTemplateOpen);
@@ -441,8 +436,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         el_submenu.appendChild(el_div);
         el_submenu.classList.remove(cls_hide);
-
-
     };//function CreateSubmenu
 
 //=========  TemplateShow  ================ PR2019-09-15

@@ -347,7 +347,8 @@ class OrderUploadView(UpdateView):# PR2019-03-04
                         company=request.user.company,
                         user_lang=user_lang,
                         is_absence=False,
-                        is_template=False
+                        is_template=False,
+                        inactive=None
                     )
 
                     if order_list:

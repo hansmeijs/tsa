@@ -96,9 +96,11 @@ def create_order_list(company, user_lang, is_absence, is_template, inactive):
     # TODO: make it possible to rename them as company setting
 
 # --- create list of orders of this company PR2019-06-16
-    crit = (Q(customer__company=company) & Q(isabsence=is_absence)& Q(istemplate=is_template))
+    crit = (Q(customer__company=company) & Q(isabsence=is_absence))
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
+    if is_template is not None:
+        crit.add(Q(istemplate=is_template), crit.connector)
 
     if is_absence:
         orders = m.Order.objects.filter(crit).order_by('sequence')
@@ -363,38 +365,31 @@ def create_absence_team(scheme, code, request):
 
 
 # === Create new 'template' customer and order
-def get_or_create_special_order(category, request):
-    # logger.debug(" --- get_or_create_special_order ---")
+def get_or_create_template_order(request):
+    # logger.debug(" --- get_or_create_template_order ---")
 
     order = None
     # get user_lang
     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
 
-    is_restshift = (category == 'restshift')
-    is_template = (category == 'template')
-
     # get locale text
-    template_locale = None
-    if is_restshift:
-        lang = user_lang if user_lang in c.REST_TEXT else c.LANG_DEFAULT
-        template_locale = c.REST_TEXT[lang]
-    elif is_template:
-        lang = user_lang if user_lang in c.TEMPLATE_TEXT else c.LANG_DEFAULT
-        template_locale = c.TEMPLATE_TEXT[lang]
+
+    lang = user_lang if user_lang in c.TEMPLATE_TEXT else c.LANG_DEFAULT
+    template_locale = c.TEMPLATE_TEXT[lang]
 
 # 1. check if 'template' customer exists for this company - only one 'template' customer allowed
     # don't use get_or_none, it wil return None when multiple customers exist, and create even more instances
-    customer = m.Customer.objects.filter(cat=category, company=request.user.company).first()
+    customer = m.Customer.objects.filter(
+        company=request.user.company,
+        istemplate=True).first()
     if customer is None:
         if template_locale:
-
-            # 2. create 'template' customer if not exists
+# 2. create 'template' customer if not exists
             customer = m.Customer(
                 company=request.user.company,
                 code=template_locale,
                 name=template_locale,
-                isrestshift=is_restshift,
-                istemplate=is_template
+                istemplate=True
             )
             customer.save(request=request)
 
@@ -402,15 +397,16 @@ def get_or_create_special_order(category, request):
     # logger.debug('customer: ' + str(customer))
     if customer:
          # don't use get_or_none, it wil return None when multiple customers exist
-        order = m.Order.objects.filter(customer=customer).first()
+        order = m.Order.objects.filter(
+            customer=customer
+        ).first()
         if order is None:
-            # 4. create 'template' order if not exists
+# 4. create 'template' order if not exists
             order = m.Order(
                 customer=customer,
                 code=template_locale,
                 name=template_locale,
-                isrestshift=is_restshift,
-                istemplate=is_template
+                istemplate=True
             )
             order.save(request=request)
             # logger.debug("order.save: " + str(order.pk) + ' ' + str(order.code))

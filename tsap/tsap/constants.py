@@ -227,8 +227,10 @@ KEY_COMP_REPLACEMENT_PERIOD = 'repl_period' # # this period is rosterdate_min ti
 KEY_COMP_ALIAS = 'alias'
 
 KEY_USER_QUICKSAVE = 'quicksave'
-KEY_USER_EMPLHOUR_PERIOD = 'emplhour_period'
-KEY_USER_ROSTER_PERIOD = 'roster_period'  # used to saved period in page 'roster' PR2019-11-15
+# used to saved period setting of each page sepeartely PR2019-11-15
+KEY_USER_PERIOD_EMPLHOUR = 'period_emplhour'
+KEY_USER_PERIOD_ROSTER = 'period_roster'
+KEY_USER_PERIOD_REVIEW = 'period_review'
 KEY_USER_SETTINGS = ('selected_pk', 'page_employee', 'page_customer', 'planning_period', 'quicksave')
 # code, cycle, excludeweekend, excludepublicholiday PR2019-08-24
 SCHEME_24H_DEFAULT = {LANG_EN: ('24 hours 16 days', 16, False, False),

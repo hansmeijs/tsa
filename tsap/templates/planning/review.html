@@ -5,6 +5,7 @@
 {% block title %}{% trans 'Review' %}{% endblock %}
 
 {% block script %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.1/xlsx.full.min.js"></script>
     <script src="{% static 'js/review.js' %}"></script>
 {% endblock %}
 
@@ -14,17 +15,30 @@
         <div class="sidebar_header">
             <h3>{% trans 'Review' %}</h3>
         </div>
+        <div class="td_width_200 mx-2 mt-2 mb-5">
+            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select period' %}:</h6>
+            <input id="id_flt_period"
+                type="text"
+                class="td_width_200 border_none pointer_show px-2"
+                autocomplete="off"
+                placeholder="{% trans 'Period' %}":
+                readonly>
+        </div>
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
 
 <!-- MODAL -->
 {% block modal %}
+
 {% endblock %}
 <!-- END MODAL -->
 
 {% block content %}
     {% if user.is_authenticated %}
+
+<!-- =================== MODAL PERIOD  =================== -->
+        {% include 'includes/modperiod.html' %}
 
         <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
@@ -35,18 +49,7 @@
         <img id="id_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="cls_visible_hide" >
     </div>
 
-    <div>
 
-
-        <div class="content_header">
-            <div class="content_subheader_left mx-4 my-1">
-                <input id="id_filter_name"
-                type="text"
-                class="fieldname pt-0 pb-0"
-                autocomplete="off"
-                placeholder="{% trans 'filter...' %}">
-            </div>
-        </div>
 
         <div class="content_body mx-2">
             <div class="popup-container">
@@ -60,7 +63,7 @@
             </div>
 
         </div>
-    </div>
+
 
         <datalist id="id_datalist_orders"></datalist>
         <datalist id="id_datalist_shifts"></datalist>

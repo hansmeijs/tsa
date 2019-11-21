@@ -112,6 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
         el_flt_period.addEventListener("click", function() {ModPeriodOpen()}, false );
         el_flt_period.addEventListener("mouseenter", function(){el_flt_period.classList.add(cls_hover)});
         el_flt_period.addEventListener("mouseleave", function(){el_flt_period.classList.remove(cls_hover)});
+
 // ---  side bar - select order
         // under construction
         //let el_flt_order = document.getElementById("id_flt_order");
@@ -220,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         DatalistDownload({"setting": {"page_roster": {"mode": "get"}},
                           "locale": {page: "roster"},
-                          "period": {get: true, "now": now_arr }});
+                          "period": {get: true, page: "roster", "now": now_arr }});
 
         DatalistDownload({
             "setting": {"page_roster": {"mode": "get"}},
@@ -398,7 +399,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let tBody = document.getElementById("id_mod_period_tblbody");
 //+++ insert td's ino tblRow
         const len = loc.period_select_list.length
-        for (let j = 0, tblRow, td; j < len; j++) {
+        for (let j = 0, tblRow, td, tuple; j < len; j++) {
+            tuple = loc.period_select_list[j];
 //+++ insert tblRow ino tBody
             tblRow = tBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
     // --- add EventListener to tblRow.
@@ -407,7 +409,9 @@ document.addEventListener('DOMContentLoaded', function() {
             tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
             tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
             td = tblRow.insertCell(-1);
-            td.innerText = loc.period_select_list[j];
+            td.innerText = tuple[1];
+    //- add data-tag to tblRow
+            tblRow.setAttribute("data-tag", tuple[0]);
         }
 
         let el_select = document.getElementById("id_mod_period_extend");
@@ -2152,58 +2156,77 @@ console.log("===  function HandlePopupWdySave =========");
     function ModPeriodOpen () {
         console.log("===  ModPeriodOpen  =====") ;
         console.log("period_dict", period_dict) ;
-        // period_dict = {extend_index: 2, extend_offset: 120, period_index: null, periodend: null,
-        //                periodstart: null, rosterdatefirst: "2019-11-15", rosterdatelast: "2019-11-17"
+
+        // period_dict = {page: "period_roster", period_tag: "tweek", extend_offset: 0,
+        // now: (5) [2019, 11, 20, 7, 29],
+        // periodend: "2019-11-25T00:00:00+01:00", periodstart: "2019-11-18T00:00:00+01:00",
+        // rosterdatefirst: "2019-11-18", rosterdatefirst_minus1: "2019-11-17",
+        // rosterdatelast: "2019-11-24", rosterdatelast_plus1: "2019-11-25"}
 
         mod_upload_dict = period_dict;
 
-    // highligh selected period in table, put value in data-value of tBody
+    // highligh selected period in table, put period_tag in data-tag of tblRow
         let tBody = document.getElementById("id_mod_period_tblbody");
-        const period_index = get_dict_value_by_key(period_dict, "period_index", 0)
-        for (let i = 0, tblRow; tblRow = tBody.rows[i]; i++) {
-            if (period_index === i){
+        const period_tag = get_dict_value_by_key(period_dict, "period_tag")
+        for (let i = 0, tblRow, row_tag; tblRow = tBody.rows[i]; i++) {
+            row_tag = get_attr_from_el(tblRow, "data-tag")
+            if (period_tag === row_tag){
                 tblRow.classList.add(cls_selected)
             } else {
                 tblRow.classList.remove(cls_selected)
             }
         };
 
-        // set value of extend select box
-        const extend_index = get_dict_value_by_key(period_dict, "extend_index", 0)
-        document.getElementById("id_mod_period_extend").selectedIndex = extend_index
+    // set value of extend select box
+        const extend_offset = get_dict_value_by_key(period_dict, "extend_offset", 0)
+        let el_extend = document.getElementById("id_mod_period_extend")
+        for (let i = 0, option, value; i < el_extend.options.length; i++) {
+            value = Number(el_extend.options[i].value);
+            if (value === extend_offset) {
+                el_extend.options[i].selected = true;
+                break;
+            }
+        }
 
-        // set value of date imput elements
-        const is_custom_period = (period_index === 10)
+    // set value of date imput elements
+        const is_custom_period = (period_tag === "other")
         let el_datefirst = document.getElementById("id_mod_period_datefirst")
         let el_datelast = document.getElementById("id_mod_period_datelast")
         el_datefirst.value = get_dict_value_by_key(period_dict, "rosterdatefirst")
         el_datelast.value = get_dict_value_by_key(period_dict, "rosterdatelast")
 
+    // set min max of input fields
+        ModPeriodEdit("datefirst");
+        ModPeriodEdit("datelast");
+
         el_datefirst.disabled = !is_custom_period
         el_datelast.disabled = !is_custom_period
 
+    // show extend period input box
+        document.getElementById("id_mod_period_div_extend").classList.remove(cls_hide)
+
     // ---  show modal
-         $("#id_mod_period").modal({backdrop: true});
+        $("#id_mod_period").modal({backdrop: true});
 
 }; // function ModPeriodOpen
 
 //=========  ModPeriodSelect  ================ PR2019-07-14
     function ModPeriodSelect(tr_clicked, selected_index) {
-        console.log( "===== ModPeriodSelect ========= ", selected_index);
+        //console.log( "===== ModPeriodSelect ========= ", selected_index);
         if(!!tr_clicked) {
-            // ---  deselect all highlighted rows, highlight selected row
+    // ---  deselect all highlighted rows, highlight selected row
             DeselectHighlightedRows(tr_clicked, cls_selected);
             tr_clicked.classList.add(cls_selected)
 
-    // add selected_index to mod_upload_dict
-            mod_upload_dict["period_index"] = selected_index;
+    // add period_tag to mod_upload_dict
+            const period_tag = get_attr_from_el(tr_clicked, "data-tag")
+            mod_upload_dict["period_tag"] = period_tag;
 
-            if (selected_index === 10) {
-
-        // enable date input elements, gve focus to start
+    // enable date input elements, give focus to start
+            if (period_tag === "other") {
                 let el_datefirst = document.getElementById("id_mod_period_datefirst");
                 let el_datelast = document.getElementById("id_mod_period_datelast");
-                el_datefirst.disabled =false;
+                el_datefirst.disabled = false;
                 el_datelast.disabled = false;
                 el_datefirst.focus();
             } else{
@@ -2214,8 +2237,6 @@ console.log("===  function HandlePopupWdySave =========");
 
 //=========  ModPeriodEdit  ================ PR2019-07-14
     function ModPeriodEdit(fldName) {
-        //console.log( "===== ModPeriodEdit ========= ");
-
     // set min max of other input field
         let attr_key = (fldName === "datefirst") ? "min" : "max";
         let fldName_other = (fldName === "datefirst") ? "datelast" : "datefirst";
@@ -2228,10 +2249,10 @@ console.log("===  function HandlePopupWdySave =========");
 //=========  ModPeriodSave  ================ PR2019-07-11
     function ModPeriodSave() {
         console.log("===  ModPeriodSave =========");
-        console.log("mod_upload_dict:", mod_upload_dict);
 
-        const period_index = get_dict_value_by_key(mod_upload_dict, "period_index", 0)
+        const period_tag = get_dict_value_by_key(mod_upload_dict, "period_tag", "today")
         const extend_index = document.getElementById("id_mod_period_extend").selectedIndex
+        if(extend_index < 0 ){extend_index = 0}
         // extend_index 0='None ,1='1 hour', 2='2 hours', 3='3 hours', 4='6 hours', 5='12 hours', 6='24 hours'
         let extend_offset = (extend_index=== 1) ? 60 :
                        (extend_index=== 2) ? 120 :
@@ -2240,15 +2261,11 @@ console.log("===  function HandlePopupWdySave =========");
                        (extend_index=== 5) ? 720 :
                        (extend_index=== 6) ? 1440 : 0;
 
-        mod_upload_dict = {"period_index": period_index, "extend_index": extend_index, "extend_offset": extend_offset};
+        mod_upload_dict = {"page": "roster", "period_tag": period_tag, "extend_index": extend_index, "extend_offset": extend_offset};
+        //console.log("new mod_upload_dict:", mod_upload_dict);
 
-        console.log("period_index:", period_index);
-        console.log("extend_index:", extend_index);
-        console.log("new mod_upload_dict:", mod_upload_dict);
-
-
-        // only save dates when index  =10
-        if(period_index == 10){
+        // only save dates when tag = "other"
+        if(period_tag == "other"){
             const datefirst = document.getElementById("id_mod_period_datefirst").value
             const datelast = document.getElementById("id_mod_period_datelast").value
             if (!!datefirst) {mod_upload_dict["periodstart"] = datefirst};
@@ -2269,30 +2286,37 @@ console.log("===  function HandlePopupWdySave =========");
 
 //========= DisplayPeriod  ====================================
     function DisplayPeriod(period_dict) {
-        //console.log( "===== DisplayPeriod  ========= ");
-        //console.log ("period_dict", period_dict, typeof period_dict)
-        //console.log ("loc.period_select_list", loc.period_select_list)
-        //console.log ("loc.period_extension", loc.period_extension)
-        // period_dict = {extend: 0, period_index: 0,
-        //                  periodend: "2019-11-16T19:36:44.717+01:00", periodstart: "2019-11-16T19:36:44.717+01:00"
-        //                  rosterdatefirst: "2019-11-15", rosterdatelast: "2019-11-17}
-
+        console.log( "===== DisplayPeriod  ========= ");
 
         if (!isEmpty(period_dict)){
-            const period_index = get_dict_value_by_key(period_dict, "period_index", 0);
-            const extend_index = get_dict_value_by_key(period_dict, "extend_index", 0);
-            //console.log ("period_index", period_index, typeof period_index)
-            //console.log ("extend_index", extend_index, typeof extend_index)
-            let period_text = null
-            let extend_text = loc.period_extension[extend_index];
-            //console.log ("extend_text", extend_text, typeof extend_text)
-            if(period_index === 10){
+            const period_tag = get_dict_value_by_key(period_dict, "period_tag");
+            const extend_offset = get_dict_value_by_key(period_dict, "extend_offset", 0);
+
+            let period_text = null, default_text = null
+            for(let i = 0, item, len = loc.period_select_list.length; i < len; i++){
+                item = loc.period_select_list[i];
+                if (item[0] === period_tag){ period_text = item[1] }
+                if (item[0] === 'today'){ default_text = item[1] }
+            }
+            if(!period_text){period_text = default_text}
+
+            console.log( "loc.period_extension", loc.period_extension);
+            let extend_text = null, extend_default_text = null
+            for(let i = 0, item, len = loc.period_extension.length; i < len; i++){
+                item = loc.period_extension[i];
+                if (item[0] === extend_offset){ extend_text = item[1] }
+                if (item[0] === 0){ extend_default_text = item[1] }
+            }
+            if(!extend_text){extend_text = extend_default_text}
+
+
+            if(period_tag === "other"){
                 const rosterdatefirst = get_dict_value_by_key(period_dict, "rosterdatefirst");
                 const rosterdatelast = get_dict_value_by_key(period_dict, "rosterdatelast");
                 if(rosterdatefirst === rosterdatelast) {
-                    period_text =  format_date_iso (rosterdatefirst, month_list, weekday_list, false, true, user_lang);
+                    period_text =  format_date_iso (rosterdatefirst, month_list, weekday_list, false, false, user_lang);
                 } else {
-                    const datelast_formatted = format_date_iso (rosterdatelast, month_list, weekday_list, true, true, user_lang)
+                    const datelast_formatted = format_date_iso (rosterdatelast, month_list, weekday_list, true, false, user_lang)
                     if (rosterdatefirst.slice(0,8) === rosterdatelast.slice(0,8)) { //  slice(0,8) = 2019-11-17'
                         // same month: show '13 - 14 nov
                         const day_first = Number(rosterdatefirst.slice(8)).toString()
@@ -2302,33 +2326,13 @@ console.log("===  function HandlePopupWdySave =========");
                         period_text = datefirst_formatted + " - " + datelast_formatted
                     }
                 }
-            } else {
-                period_text = loc.period_select_list[period_index];
             }
-            if(!!extend_index){
-                period_text += " +- " + loc.period_extension[extend_index];
+            if(!!extend_offset){
+                period_text += " +- " + extend_text;
             }
-
             document.getElementById("id_flt_period").value = period_text
-            //console.log ("periodstart", periodstart, typeof periodstart)
-            //console.log ("periodend", periodend, typeof periodend)
 
-            //if(!!periodstart && !!periodend){
-                //const periodstart_local = moment.tz(periodstart, comp_timezone);
-                //const periodend_local = moment.tz(periodend, comp_timezone);
-
-                //display_text = display_text + ": " + format_period_from_datetimelocal(periodstart_local, periodend_local, month_list, weekday_list, timeformat)
-            //}
         }  // if (!isEmpty(period_dict))
-
-
-        // from https://www.fileformat.info/info/unicode/char/25cb/index.htm
-        //el_a.innerText = " \u29BF "  /// circeled bullet: \u29BF,  bullet: \u2022 "  // "\uD83D\uDE00" "gear (settings) : \u2699" //
-        //el_a.innerText = " \u25CB "  /// 'white circle' : \u25CB  /// black circle U+25CF
-
-        //let bullet = ""
-        //if(mode === "current"){bullet = " \u29BF "} else {bullet = " \u25CB "}
-        //document.getElementById("id_period_current").innerText = bullet;
 
     }; // function DisplayPeriod
 

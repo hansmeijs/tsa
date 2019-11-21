@@ -127,6 +127,7 @@ def get_datetime_from_arr(arr_int):  # PR2019-11-17
     return datetime_obj
 
 
+
 def get_datetimelocal_from_offset(rosterdate, offset_int, comp_timezone):
     # logger.debug(' +++ get_datetimelocal_from_offset +++')
     # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
@@ -455,6 +456,63 @@ def XXXXget_today_local_iso(request):  # PR2019-07-14
 
         # logger.debug('period_dict: ' + str(period_dict))
     return period_dict
+
+
+def get_firstof_week(date_obj, week_add_int):
+    new_date = None
+    if(date_obj):
+        new_date = date_obj + timedelta(days=(1 + 7 * week_add_int - date_obj.isoweekday()))
+    return new_date
+
+
+def get_lastof_week(date_obj, week_add_int):
+    new_date = None
+    if(date_obj):
+        new_date = date_obj + timedelta(days=(7 + 7 * week_add_int - date_obj.isoweekday()))
+    return new_date
+
+
+def get_firstof_month(date_obj):
+    firstof_thismonth_dte = None
+    if(date_obj):
+        firstof_thismonth_dte = date_obj + timedelta(days=(1 - date_obj.day))
+    return firstof_thismonth_dte
+
+
+def get_lastof_month(date_obj):
+    lastof_thismonth_dte = None
+    if(date_obj):
+        firstof_thismonth_dte = get_firstof_month(date_obj)
+        firstof_nextmonth_dte = add_month_to_firstof_month(firstof_thismonth_dte, 1)
+        lastof_thismonth_dte = firstof_nextmonth_dte - timedelta(days=1)
+    return lastof_thismonth_dte
+
+
+def add_days_to_date(date_obj, days_add_int):
+    new_date = None
+    if(date_obj):
+        new_date = date_obj + timedelta(days=days_add_int)
+    return new_date
+
+
+def add_month_to_firstof_month(date_obj, month_add_int):
+    # Note: this doesn't work with dates over 28 of the month, only use with first of the month PR2019-11-19
+    # also not working when month_add_int > 12
+    new_date = None
+    if(date_obj):
+        if month_add_int:
+            year = date_obj.year
+            new_month = date_obj.month + month_add_int
+            if new_month < 1:
+                new_month += 12
+                year -= 1
+            elif new_month > 12:
+                new_month -= 12
+                year += 1
+            new_date = date(year, new_month, 1)
+        else:
+            new_date = date_obj
+    return new_date
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

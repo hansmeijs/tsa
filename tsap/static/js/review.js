@@ -4,27 +4,11 @@ document.addEventListener('DOMContentLoaded', function() {
     "use strict";
     console.log("Review document.ready");
 
-    // fields in review_list:
-    // 0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json, 4: yearindex, 5: monthindex 6: weekindex, 7: payperiodindex,
-    // 8: cust_code, 9: order_code, 10: order_cat, 11: shift
-    //  12: oh_duration, 13: oh.pricerate, 14: oh.amount, 15: oh.tax,
-    //  16: eh_id_arr, 17: eh_dur_sum, 18: eh_wage_sum,
-    // 19: e_id_arr, 20: e_code_arr, 21: eh_duration_arr,
-    // 22: eh_wage_arr, 23: eh_wagerate_arr, 24: eh_wagefactor_arr
-    // 25: diff
-
-    const idx_oh_pk = 0, idx_ord_pk = 1, idx_cust_pk = 2, idx_date = 3;
-    const idx_cust_code = 8, idx_ord_code = 9, idx_ord_cat = 10, idx_shift = 11;
-    const idx_oh_dur = 12, idx_oh_billable = 13, idx_oh_pricerate = 14, idx_oh_amount = 15, idx_oh_tax = 16;
-    const idx_eh_id_arr = 17, idx_eh_dur = 18, idx_eh_wage = 19;
-    const idx_empl_id_arr = 20, idx_empl_code_arr = 21,  idx_dur_diff = 26;
-
     const cls_selected = "tsa_tr_selected";
     const cls_active = "active";
     const cls_hover = "tr_hover";
     const cls_highl = "tr_highlighted";
     const cls_hide = "display_hide";
-    const cls_display_none = "display_none";
     const cls_visible_hide = "visibility_hide";
     const cls_visible_show = "visibility_show";
 
@@ -39,6 +23,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let filter_text = "";
     let review_list = [];
+
+    let loc = {};  // locale_dict
+    let period_dict = {};
+    let mod_upload_dict = {};
 
     let tblBody_items = document.getElementById("id_tbody_items");
     let tblHead_items = document.getElementById("id_thead_items");
@@ -66,17 +54,33 @@ document.addEventListener('DOMContentLoaded', function() {
     const month_list = get_attr_from_el_dict(el_data, "data-months");
 
     const tbl_col_count = {"review": 11};
-    const thead_text = {"review": ["txt_date", "txt_orderemployee", "txt_shift",
-                                    "txt_workedhours", "", "txt_billedhours", "txt_difference", "",
-                                    "txt_rate", "txt_amount", ""]}
-    const field_width = {"review": ["090", "220", "090", "060", "016", "060", "060", "032", "090", "120", "032"]}
+    const field_width = {"review": ["090", "220", "090", "090", "016", "120", "090", "032", "060", "120", "032"]}
     const field_align = {"review": ["left", "left", "left", "right","center", "right",  "right", "center",  "right",  "right", "center"]};
 
-// --- create Submenu
-    CreateSubmenu();
+// === EVENT HANDLERS ===
+
+// ---  side bar - select period
+    let el_flt_period = document.getElementById("id_flt_period");
+    el_flt_period.addEventListener("click", function() {ModPeriodOpen()}, false );
+    el_flt_period.addEventListener("mouseenter", function(){el_flt_period.classList.add(cls_hover)});
+    el_flt_period.addEventListener("mouseleave", function(){el_flt_period.classList.remove(cls_hover)});
+
+// buttons in  modal period
+    document.getElementById("id_mod_period_datefirst").addEventListener("change", function() {ModPeriodEdit("datefirst")}, false )
+    document.getElementById("id_mod_period_datelast").addEventListener("change", function() {ModPeriodEdit("datelast")}, false )
+    document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false )
+
+
+    // send 'now' as array to server, so 'now' of local computer will be used
+    const now = new Date();
+    const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()]
 
     // period also returns emplhour_list
-    const datalist_request = {"review": {get: true}};
+    const datalist_request = {
+            "locale": {page: "review"},
+            "review": {get: true, page: "review", now: now_arr}
+        };
+
     DatalistDownload(datalist_request);
 
 //  #############################################################################################################
@@ -84,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request) {
         console.log( "=== DatalistDownload ")
-        // console.log("request: ", datalist_request)
+        console.log("request: ", datalist_request)
         // datalist_request: {"schemeitems": {"ppk": pk}, "teams": {"ppk": pk}, "shifts": {"ppk": pk}
 
 // reset requested lists
@@ -108,14 +112,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 // hide loader
                 document.getElementById("id_loader").classList.add(cls_visible_hide)
                 let fill_table = false, check_status = false;
+
+                if ("locale_dict" in response) {
+                    loc = response["locale_dict"];
+                    // --- create Submenu after downloading locale
+                    CreateSubmenu()
+                }
+
                 if ("review" in response) {
                     review_list= response["review"];
                     fill_table = true;
                 }
                 if ("period" in response) {
                     period_dict= response["period"];
-                    DisplayPeriod(period_dict);
+                    console.log("period_dict", period_dict)
+                    document.getElementById("id_flt_period").value = get_period_text(period_dict);
+
+                    CreateTablePeriod();
                 }
+
                 if (fill_table) {FillTableRows()}
             },
             error: function (xhr, msg) {
@@ -129,48 +144,50 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateSubmenu  === PR2019-08-27
     function CreateSubmenu() {
-        console.log("===  CreateSubmenu == ");
-
+        //console.log("===  CreateSubmenu == ");
         let el_submenu = document.getElementById("id_submenu")
-        console.log("el_submenu ", el_submenu);
-        let el_div = document.createElement("div");
-        el_submenu.appendChild(el_div);
-        console.log("el_div", el_div);
-
-        const url_employee_import = get_attr_from_el(el_data, "data-employee_import_url");
-
-    // --- first add <a> element with EventListener to td
-        let el_a = document.createElement("a");
-        el_a.setAttribute("href", "#");
-        el_a.innerText = "Button 1"
-        el_div.appendChild(el_a);
-        console.log("el_a", el_a);
-
-    // --- first add <a> element with EventListener to td
-        el_a = document.createElement("a");
-        el_a.setAttribute("id", "id_submenu_employee_add");
-        el_a.setAttribute("href", "#");
-        el_a.classList.add("mx-2")
-        el_a.innerText = "Button 2"  //  get_attr_from_el_str(el_data, "data-txt_employee_add");
-        el_a.addEventListener("click", function() {ModalEmployeeAddOpen()}, false )
-        el_div.appendChild(el_a);
-
-    // --- first add <a> element with EventListener to td
-        el_a = document.createElement("a");
-        el_a.setAttribute("id", "id_submenu_employee_delete");
-        el_a.setAttribute("href", "#");
-        el_a.classList.add("mx-2")
-        el_a.innerText = "Print"
-        el_a.addEventListener("click", function() {printPDF()}, false )
-        el_div.appendChild(el_a);
-
-        el_submenu.classList.remove("display_hide");
-
+            CreateSubmenuButton(el_submenu, null, loc.menubtn_expand_all, null, HandleExpandAll);
+            CreateSubmenuButton(el_submenu, null, loc.menubtn_collaps_all, "mx-2", HandleCollapsAll);
+            CreateSubmenuButton(el_submenu, null, loc.menubtn_print_pdf, "mx-2", printPDF);
+            CreateSubmenuButton(el_submenu, null, loc.menubtn_export_excel, "mx-2", ExportToExcel);
+        el_submenu.classList.remove(cls_hide);
     };//function CreateSubmenu
+
+
+//=========  CreateTablePeriod  ================ PR2019-11-16
+    function CreateTablePeriod() {
+        //console.log("===  CreateTablePeriod == ");
+        //console.log(period_dict);
+        let tBody = document.getElementById("id_mod_period_tblbody");
+        tBody.innerText = null;
+//+++ insert td's ino tblRow
+        const len = loc.period_select_list.length
+        //console.log("loc.period_select_list", loc.period_select_list);
+        // period_select_list = [["today", "Vandaag"], ["tom", "Morgen"], ... ["lm", "Last month"], ["other", "Andere periode..."]]
+        for (let j = 0, tblRow, td, tuple; j < len; j++) {
+            tuple = loc.period_select_list[j];
+//+++ insert tblRow ino tBody
+            tblRow = tBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+    // --- add EventListener to tblRow.
+            tblRow.addEventListener("click", function() {ModPeriodSelect(tblRow, j);}, false )
+    //- add hover to tableBody row
+            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
+            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+            td = tblRow.insertCell(-1);
+            td.innerText = tuple[1];
+    //- add data-tag  to tblRow
+            tblRow.setAttribute("data-tag", tuple[0]);
+        }
+
+        //let el_select = document.getElementById("id_mod_period_extend");
+        //FillOptionsPeriodExtension(el_select, loc.period_extension)
+
+    } // CreateTablePeriod
+
 
 //========= FillTableRows  ====================================
     function FillTableRows() {
-        console.log( "     FillTableRows");
+        //console.log( "     FillTableRows");
         // loop through rows in reverse order, put rows at beginning of table.
         // In that way totals will be counted and put on top of detail items
 
@@ -181,6 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- get  item_list
         let tblRow;
+        let oh_id_curr = 0; // not in use yet, for clicking on detail row en open modal with details
         let cust_id_prev = 0, cust_id_curr = 0, cust_code_prev, cust_code_curr;
         let ord_id_prev = 0, ord_id_curr = 0, ord_code_prev, ord_code_curr;
         let dte_id_prev, dte_id_curr, dte_prev, dte_curr, dte_flt_prev, dte_flt_curr;
@@ -197,9 +215,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // create END ROW
         // display_list:  0 = date, 1 = cust /order/employee, 2 = shift,  3 = eh_dur, 4 = billable, 5 = oh_dur, 6 = diff, 7 = show warning, 8=status
-        let display_list =["" , "", "", "",  "", "", "", "", "", "", ""]
+        let display_list =["", "", "", "",  "", "", "", "", "", "", ""]
         tblRow =  CreateTableRow()
-        UpdateTableRow(tblRow, 0, 0, 0, display_list,  "grnd")
+        UpdateTableRow(tblRow, 0, 0, 0, 0, display_list,  "grnd")
 
 // --- loop through review_list
         let len = review_list.length;
@@ -207,13 +225,15 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let i = len - 1; i >= 0; i--) {  //  for (let i = 0; i < len; i++) {
                 let row_list = review_list[i];
 
-                cust_id_curr = row_list[idx_cust_pk];
-                cust_code_curr = row_list[idx_cust_code];
+                oh_id_curr = row_list.oh_id;
 
-                ord_id_curr = row_list[idx_ord_pk];
-                ord_code_curr = row_list[idx_ord_code];
+                cust_id_curr = row_list.cust_id;
+                cust_code_curr = row_list.cust_code;
 
-                dte_id_curr = row_list[idx_date];
+                ord_id_curr = row_list.ord_id;
+                ord_code_curr = row_list.ord_code;
+
+                dte_id_curr = row_list.rosterdate;
                 dte_flt_curr = dte_id_curr + "_" + ord_id_curr;
                 dte_curr = format_date_iso (dte_id_curr, month_list, weekday_list, false, true, user_lang);
 
@@ -233,7 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, dte_pricerate_format, dte_amount_format]
 
                     tblRow =  CreateTableRow()
-                    UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "dte")
+                    UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "date")
 
                     dte_count = 0;
                     dte_oh_dur = 0;
@@ -244,7 +264,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     dte_dur_diff = 0;
                     dte_bill_count = 0;
                 }
-
 
 // create ORDER subsubtotal row when ord_id changes, then reset subotal
                 // use prev variables for subtotals, prev variables are updated after comparison with current value
@@ -262,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, ord_pricerate_format, ord_amount_format]
 
                     tblRow =  CreateTableRow()
-                    UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "ord")
+                    UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "ordr")
 
                     ord_id_prev = ord_id_curr
                     ord_count = 0;
@@ -274,7 +293,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     ord_dur_diff = 0;
                     ord_bill_count = 0;
                 }
-
 
 // create CUSTOMER subtotal row when id changes, then reset subotal
                 if(!!cust_id_prev && cust_id_curr !== cust_id_prev){
@@ -291,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                      eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, cust_pricerate_format, cust_amount_format]
 
                     tblRow =  CreateTableRow()
-                    UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "cust")
+                    UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "cust")
 
                 // reset subtotals
                     cust_id_prev = 0;
@@ -305,59 +323,58 @@ document.addEventListener('DOMContentLoaded', function() {
                     cust_bill_count = 0;
                 }
 
-
 // add to totals
                 tot_count += 1;
-                tot_oh_dur += row_list[idx_oh_dur];
-                tot_oh_amount += row_list[idx_oh_amount];
-                tot_oh_tax += row_list[idx_oh_tax];
-                tot_eh_dur += row_list[idx_eh_dur];
-                tot_eh_wage += row_list[idx_eh_wage];
-                tot_dur_diff += row_list[idx_dur_diff];
-                if (!!row_list[idx_oh_billable]){tot_bill_count += 1};
+                tot_oh_dur += row_list.oh_dur;
+                tot_oh_amount += row_list.oh_amount;
+                tot_oh_tax += row_list.oh_tax;
+                tot_eh_dur += row_list.eh_dur;
+                tot_eh_wage += row_list.eh_wage;
+                tot_dur_diff += row_list.dur_diff;
+                if (!!row_list.oh_bill){tot_bill_count += 1};
 
                 cust_count += 1;
-                cust_oh_dur += row_list[idx_oh_dur];
-                cust_oh_amount += row_list[idx_oh_amount];
-                cust_oh_tax += row_list[idx_oh_tax];
-                cust_eh_dur += row_list[idx_eh_dur];
-                cust_eh_wage += row_list[idx_eh_wage];
-                cust_dur_diff += row_list[idx_dur_diff];
-                if (!!row_list[idx_oh_billable]){cust_bill_count += 1};
+                cust_oh_dur += row_list.oh_dur;
+                cust_oh_amount += row_list.oh_amount;
+                cust_oh_tax += row_list.oh_tax;
+                cust_eh_dur += row_list.eh_dur;
+                cust_eh_wage += row_list.eh_wage;
+                cust_dur_diff += row_list.dur_diff;
+                if (!!row_list.oh_bill){cust_bill_count += 1};
 
                 ord_count += 1;
-                ord_oh_dur += row_list[idx_oh_dur];
-                ord_oh_amount += row_list[idx_oh_amount];
-                ord_oh_tax += row_list[idx_oh_tax];
-                ord_eh_dur += row_list[idx_eh_dur];
-                ord_eh_wage += row_list[idx_eh_wage];
-                ord_dur_diff += row_list[idx_dur_diff];
-                if (!!row_list[idx_oh_billable]){ord_bill_count += 1};
+                ord_oh_dur += row_list.oh_dur;
+                ord_oh_amount += row_list.oh_amount;
+                ord_oh_tax += row_list.oh_tax;
+                ord_eh_dur += row_list.eh_dur;
+                ord_eh_wage += row_list.eh_wage;
+                ord_dur_diff += row_list.dur_diff;
+                if (!!row_list.oh_bill){ord_bill_count += 1};
 
                 dte_count += 1;
-                dte_oh_dur += row_list[idx_oh_dur];
-                dte_oh_amount += row_list[idx_oh_amount];
-                dte_oh_tax += row_list[idx_oh_tax];
-                dte_eh_dur += row_list[idx_eh_dur];
-                dte_eh_wage += row_list[idx_eh_wage];
-                dte_dur_diff += row_list[idx_dur_diff];
-                if (!!row_list[idx_oh_billable]){dte_bill_count += 1};
+                dte_oh_dur += row_list.oh_dur;
+                dte_oh_amount += row_list.oh_amount;
+                dte_oh_tax += row_list.oh_tax;
+                dte_eh_dur += row_list.eh_dur;
+                dte_eh_wage += row_list.eh_wage;
+                dte_dur_diff += row_list.dur_diff;
+                if (!!row_list.oh_bill){dte_bill_count += 1};
 
 // --- create DETAIL row
-                const eh_dur_format = format_total_duration (row_list[idx_eh_dur], user_lang)
-                const oh_dur_format = format_total_duration (row_list[idx_oh_dur], user_lang)
-                const diff_format = format_total_duration (row_list[idx_dur_diff], user_lang)
-                const show_warning = (row_list[idx_dur_diff] < 0);
+                const eh_dur_format = format_total_duration (row_list.eh_dur, user_lang)
+                const oh_dur_format = format_total_duration (row_list.oh_dur, user_lang)
+                const diff_format = format_total_duration (row_list.dur_diff, user_lang)
+                const show_warning = (row_list.dur_diff < 0);
 
-                const oh_pricerate_format = format_amount (row_list[idx_oh_pricerate], user_lang)
-                const oh_amount_format = format_amount (row_list[idx_oh_amount], user_lang)
-                const billable_format = (!!row_list[idx_oh_billable]) ? ">" : "";
+                const oh_pricerate_format = format_amount (row_list.oh_prrate, user_lang)
+                const oh_amount_format = format_amount (row_list.oh_amount, user_lang)
+                const billable_format = (!!row_list.oh_bill) ? ">" : "";
 
-                display_list = [dte_curr, row_list[idx_empl_code_arr], row_list[idx_shift],
+                display_list = [dte_curr, row_list.e_code_arr, row_list.oh_shift,
                                 eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, oh_pricerate_format, oh_amount_format ]
 
                 tblRow =  CreateTableRow()
-                UpdateTableRow(tblRow, row_list[idx_cust_pk], row_list[idx_ord_pk], row_list[idx_date], display_list)
+                UpdateTableRow(tblRow, row_list.oh_id, row_list.cust_id, row_list.ord_id, row_list.rosterdate, display_list)
 
 // --- update prev variables
                 // set prev_id = curr_id
@@ -367,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ord_id_prev = ord_id_curr
                 ord_code_prev = ord_code_curr;
                 cust_id_prev = cust_id_curr
-                cust_code_prev = row_list[idx_cust_code];
+                cust_code_prev = row_list.cust_code;
 
             }  // for (let i = len - 1; i >= 0; i--)
         }  // if (!!len)
@@ -387,7 +404,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, dte_pricerate_format, dte_amount_format]
 
             tblRow =  CreateTableRow()
-            UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "dte")
+            UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "date")
 
         }
 
@@ -407,7 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
                              eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, ord_pricerate_format, ord_amount_format]
 
             tblRow =  CreateTableRow()
-            UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "ord")
+            UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "ordr")
         }
 
 // create last CUSTOMER subtotal row
@@ -425,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, cust_pricerate_format, cust_amount_format]
 
             tblRow =  CreateTableRow()
-            UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "cust")
+            UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "cust")
         }
 
 // create GRAND TOTAL first row
@@ -442,13 +459,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, tot_pricerate_format, tot_amount_format]
 
         tblRow =  CreateTableRow()
-        UpdateTableRow(tblRow, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "grnd")
+        UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "grnd")
 
     }  // FillTableRows
 
 //=========  CreateTableHeader  === PR2019-05-27
     function CreateTableHeader() {
         //console.log("===  CreateTableHeader == ");
+        //console.log("loc", loc);
 
         tblHead_items.innerText = null
 
@@ -465,26 +483,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- add div to th, margin not workign with th
             let el = document.createElement("div");
-            th.appendChild(el)
 
             if (tblName === "review" && j === 7)  {
                 AppendChildIcon(el, imgsrc_warning)
             } else if (tblName === "review" && j === 10)  {
                 AppendChildIcon(el, imgsrc_stat04)
             } else {
-                el.innerText = get_attr_from_el(el_data, "data-" + thead_text[tblName][j])
+                el.innerText = loc.col_headers[j]
             }
 
 // --- add margin to first column
             if (j === 0 ){el.classList.add("ml-2")}
 
 // --- add width to el
-                el.classList.add("td_width_" + field_width[tblName][j])
+            el.classList.add("td_width_" + field_width[tblName][j])
 // --- add text_align
-                el.classList.add("text_align_" + field_align[tblName][j])
+            el.classList.add("text_align_" + field_align[tblName][j])
 
+            th.appendChild(el)
 
         }  // for (let j = 0; j < column_count; j++)
+
+
     };  //function CreateTableHeader
 //=========  CreateTableRow  ================ PR2019-04-27
     function CreateTableRow() {
@@ -508,12 +528,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- add width to td
             td.classList.add("td_width_" + field_width[tblName][j])// --- add text_align
+
 // --- add text_align
             td.classList.add("text_align_" + field_align[tblName][j])
 
 // --- add img to first and last td, first column not in new_item, first column not in teammembers
             if ([7, 10].indexOf( j ) > -1){
-
                 let img_src;
                 if (j === 7){img_src = imgsrc_stat00} else
                 if (j === 10){img_src = imgsrc_stat00}
@@ -531,63 +551,71 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 //========= UpdateTableRow  =============
-    function UpdateTableRow(tblRow, cust_pk, ord_pk, date, display_list, totalrow){
+    function UpdateTableRow(tblRow, oh_id_int, cust_id_int, ord_id_int, date, display_list, tot_name){
         //console.log(" ---- UpdateTableRow ---- ");
+        //console.log("cust_id_int", cust_id_int, typeof cust_id_int);
+
+        // each total row has link with its childrows one level lower, to hide show
+        // these classes are added:
+        // when tot_name: 'tot_name'
+        // when it is a tot_name: 'tot_cust' and "tot_" + cust_id)};
+        // when it is a subrow: "sub_" + cust_id);
+        // "data-subrows_hidden" on tot_name indicates if the subrows are collapsed
 
         if (!!tblRow){
-            const cust_id = "cust-" + cust_pk;
-            const ord_id = "ord-" + ord_pk;
-            const dte_id = "dte-" + date;
+            const cust_id_str = "cust" + cust_id_int.toString();
+            const ord_id_str = "ordr" + ord_id_int.toString();
+            const dte_id_str = "date" + date;
 
-            //console.log("cust_id: ", cust_id, "ord_id: ", ord_id, "dte_id: ", dte_id);
-
-            if(totalrow === "grnd"){
-                tblRow.classList.add("tsa_bc_darkgrey");
-                tblRow.classList.add("tsa_color_white");
-                tblRow.classList.add("tot_grnd");
-
-            } else if(totalrow === "cust"){
-                tblRow.setAttribute("data-hidden", true)
-
-                if(!!cust_id){tblRow.classList.add("tot_" + cust_id)};
-                tblRow.classList.add("sub_grnd");
-
-                tblRow.classList.add("tsa_bc_mediumgrey");
-                tblRow.classList.add("tsa_color_white");
-
-            } else if(totalrow === "ord"){
-                 tblRow.classList.add(cls_display_none);
-                tblRow.setAttribute("data-hidden", true)
-
-                if(!!ord_id){tblRow.classList.add("tot_" + ord_id)};
-                if(!!cust_id){
-                    tblRow.classList.add("sub_" + cust_id);
-                    tblRow.classList.add(cust_id)
-                };
-                tblRow.classList.add("tsa_bc_lightgrey");
-
-            } else if(totalrow === "dte"){
-                tblRow.classList.add(cls_display_none);
-                tblRow.setAttribute("data-hidden", true)
-
-                if(!!dte_id){tblRow.classList.add("tot_" + dte_id)};
-                if(!!ord_id){
-                    tblRow.classList.add("sub_" + ord_id);
-                    tblRow.classList.add(ord_id)
-                };
-                if(!!cust_id){tblRow.classList.add(cust_id)};
-
-                tblRow.classList.add("tsa_bc_lightlightgrey");
-
+            if(!!tot_name){
+                tblRow.classList.add("totalrow")
+                tblRow.classList.add("tot_" + tot_name);
             } else {
-                tblRow.classList.add(cls_display_none);
-
-                if(!!dte_id){tblRow.classList.add(dte_id)};
-                if(!!ord_id){tblRow.classList.add(ord_id)};
-                if(!!cust_id){tblRow.classList.add(cust_id)};
-
+            // add oh_id_int, only on detail rows  // not in use yet, for clicking on detail row en open modal with details
+                tblRow.setAttribute("data-pk", oh_id_int.toString())
+                tblRow.classList.add("detailrow")
             }
 
+            if(tot_name === "grnd"){
+                // pass
+            } else if(tot_name === "cust"){
+                tblRow.classList.add(cust_id_str);
+            } else if(tot_name === "ordr"){
+                tblRow.classList.add("sub_cust");
+                tblRow.classList.add("sub_" + cust_id_str);
+                tblRow.classList.add(ord_id_str + "_" + cust_id_str);
+            } else if(tot_name === "date"){
+                tblRow.classList.add(dte_id_str + "_" + ord_id_str);
+                tblRow.classList.add("sub_" + ord_id_str + "_" + cust_id_str);
+                tblRow.classList.add("subsub_" + cust_id_str);
+            } else {
+                // tblRow is detail row when tot_name is blank
+                tblRow.classList.add("sub_" + dte_id_str + "_" + ord_id_str);
+                tblRow.classList.add("subsub_" + ord_id_str + "_" + cust_id_str);
+                tblRow.classList.add("subsub_" + cust_id_str);
+            }
+
+// set color of total rows
+            if(tot_name === "grnd"){
+                tblRow.classList.add("tsa_bc_darkgrey");
+                tblRow.classList.add("tsa_color_white");
+            } else if(tot_name === "cust"){
+                tblRow.classList.add("tsa_bc_mediumgrey");
+                tblRow.classList.add("tsa_color_white");
+            } else if(tot_name === "ordr"){
+                tblRow.classList.add("tsa_bc_lightgrey");
+            } else if(tot_name === "date"){
+                tblRow.classList.add("tsa_bc_lightlightgrey");
+            }
+
+// when creating table: collapse all totals except Grand Total
+            if (["cust", "ordr", "date"].indexOf( tot_name ) > -1){
+                tblRow.classList.add("subrows_hidden");
+            }
+// when creating table: hide rows except Grand Total and customer total
+            if (["grnd", "cust"].indexOf( tot_name ) === -1){
+                tblRow.classList.add(cls_hide);
+            }
 // --- loop through cells of tablerow
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 let el = tblRow.cells[i].children[0];
@@ -595,7 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (i === 2) {
                         el.innerText = display_list[i]
                         el.classList.add("tsa_ellipsis");
-                        el.classList.add("td_width_090");
+                        //el.classList.add("td_width_090");
                     } else if (i === 7) {
                         if (display_list[i]){
                             IconChange(el, imgsrc_warning)
@@ -609,101 +637,104 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 };  // if(!!el)
             }  //  for (let j = 0; j < 8; j++)
-
         } // if (!!tblRow)
-
     }  // function UpdateTableRow
 
 
 // ++++ TABLE ROWS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  HandleTableRowClicked  ================ PR2019-03-30
-    function HandleTableRowClicked(tr_clicked) {
+    function HandleTableRowClicked(tblRow) {
         console.log("=== HandleTableRowClicked");
-        //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
+        //console.log( "tblRow: ", tblRow, typeof tblRow);
 
 // ---  deselect all highlighted rows
-        // not necessary: : DeselectHighlightedRows(tr_clicked, cls_selected)
+        // not necessary: : DeselectHighlightedRows(tblRow, cls_selected)
 
 // ---  get clicked tablerow
-        if(!!tr_clicked) {
-            //const tblName = get_attr_from_el_str(tr_clicked, "data-table")
-            //const pk_int = get_attr_from_el_int(tr_clicked, "data-pk")
-            //const ord_pk = get_attr_from_el_int(tr_clicked, "data-ord_pk")
-            //const cust_pk = get_attr_from_el_int(tr_clicked, "data-cust_pk")
-            //const dte_pk = get_attr_from_el_str(tr_clicked, "data-dte_pk")
-            //const empl_pk_arr_str = get_attr_from_el(tr_clicked, "data-empl_pk_arr")
-
-            const subrows_hidden = (get_attr_from_el(tr_clicked, "data-hidden") === "true")
+        if(!!tblRow) {
+// check if this is a totalrow
+            const is_totalrow = tblRow.classList.contains("totalrow");
+            let subrows_hidden =  tblRow.classList.contains("subrows_hidden");
 
 // ---  highlight clicked row
-            selected_item_pk = get_datapk_from_element(tr_clicked)
-            // Dont highlight: tr_clicked.classList.add(cls_selected)
+            // Dont highlight: tblRow.classList.add(cls_selected)
 
-            // get class_name from tr
-            let tot_name, tot_class, sub_class;
-            for (let i = 0, len = tr_clicked.classList.length; i < len; i++) {
-                let classitem = tr_clicked.classList.item(i);
-                const arr = classitem.split("_")
-                if (arr[0] === "tot"){
-                // tot_class is part after "tot_": "ord-1093"
-                    tot_class = arr[1]
-                    const arr2 = tot_class.split("-")
-                    if ( ["grnd", "cust","ord", "dte"].indexOf( arr2[0] ) > -1 ){
-                        // tot_name: "ord"
-                        tot_name = arr2[0]
-                    }
-                } else if (arr[0] === "sub"){
-                    // class is part after "sub_"
-                    sub_class = arr[1]
-                }
-            }  //  for (let i = 0,
-            console.log( "tot_name: ", tot_name);
+// ---  get selected_item_pk, only in detail rows
+            selected_item_pk = (!is_totalrow) ? get_datapk_from_element(tblRow) : 0
 
-            if (tot_name === "cust") {
+// if is_totalrow
+            if (is_totalrow){
+// check which totalrow level: cust, ord, dte
+                let is_tot_cust = false, is_tot_ord = false, is_tot_dte = false;
+                is_tot_cust = tblRow.classList.contains("tot_cust");
+                if(!is_tot_cust) {is_tot_ord = tblRow.classList.contains("tot_ordr")};
+                if(!is_tot_ord) {is_tot_dte = tblRow.classList.contains("tot_date")};
+
+// get id of cust, ord, dte 'cust_477'
+                const prefix = (is_tot_cust) ? "cust" :
+                                (is_tot_ord) ? "ordr" :
+                                (is_tot_dte) ? "date" : null;
+                let tot_id_str = null;
+                if(!!prefix){
+                    for (let i = 0, len = tblRow.classList.length; i < len; i++) {
+                        let classitem = tblRow.classList.item(i);
+                        if(classitem.slice(0,4) === prefix) {
+                            tot_id_str = classitem;
+                            break;
+                        }}};
+                console.log( "tot_id_str: ", tot_id_str, typeof tot_id_str);
+
+// toggle data-subrows_hidden
+                subrows_hidden = !subrows_hidden
+                if(subrows_hidden){
+                    tblRow.classList.add("subrows_hidden")
+                } else {
+                    tblRow.classList.remove("subrows_hidden")
+                };
+
+// also set sub total rows 'subrows_hidden'
+                if(subrows_hidden){
+                    toggle_class("subrows_hidden", subrows_hidden, "sub_" + tot_id_str);
+                }
+
+                //show sub_ord only, adding sub_cust takes care of that
+                toggle_class(cls_hide, subrows_hidden, "sub_" + tot_id_str);
+
                 // if hide: hide sub_ord, sub_dte and detail rows, if show: show sub_ord only
                 if(subrows_hidden){
-                    // show tot_ord rows only with class sub_cust-
-                    remove_class("sub_" + tot_class)
-                    tr_clicked.removeAttribute("data-hidden")
-                } else {
-                    // hide all subrows of this cust
-                    add_class(tot_class)
-                    tr_clicked.setAttribute("data-hidden", true)
+                    toggle_class(cls_hide, subrows_hidden, "subsub_" + tot_id_str);
                 }
-            } else if (tot_name === "ord") {
-                // if hide: hide sub_ord, sub_dte and detail rows, if show: show sub_ord only
-                console.log( "subrows_hidden: ", subrows_hidden);
-                if(subrows_hidden){
-                    // show tot_ord rows only with class sub_cust-
-                    remove_class("sub_" + tot_class)
-                    tr_clicked.removeAttribute("data-hidden")
+
+            }  //  if (is_totalrow)
+        }  //  if(!!tblRow) {
+    }  // function HandleTableRowClicked
+
+
+//========= function toggle_class  ====================================
+    function toggle_class(classname, is_add, filter_class){
+        // add or remove selected cls_hide from all elements with class 'filter_class
+        console.log("toggle_class", is_add, filter_class)
+        // from https://stackoverflow.com/questions/34001917/queryselectorall-with-multiple-conditions
+        // document.querySelectorAll("form, p, legend") means filter: class = (form OR p OR legend)
+        // document.querySelectorAll("form.p.legend") means filter: class = (form AND p AND legend)
+
+         // multipe filter: document.querySelectorAll(".filter1.filter2")
+        //let elements =  document.querySelectorAll("." + filter_class)
+        let elements =  tblBody_items.querySelectorAll("." + filter_class)
+        for (let i = 0, el, len = elements.length; i < len; i++) {
+            el =  elements[i];
+            if(!!el){
+                if (is_add){
+                    el.classList.add(classname);
                 } else {
-                    // hide all subrows of this cust
-                    add_class(tot_class)
-                    tr_clicked.setAttribute("data-hidden", true)
-                }
-            } else if (tot_name === "dte") {
-                // if hide: hide detail rows, if show: show detail rows
-                // if hide: hide sub_ord, sub_dte and detail rows, if show: show sub_ord only
-                // multipe filter: document.querySelectorAll(".filter1.filter2")
-                const filter = tot_class + "." + sub_class
-                if(subrows_hidden){
-                    // show tot_ord rows only with class sub_cust-
-                    remove_class(filter)
-                    tr_clicked.removeAttribute("data-hidden")
-                } else {
-                    // hide all subrows of this cust
-                    add_class(filter)
-                    tr_clicked.setAttribute("data-hidden", true)
-                }
-            }
-        }
+                    el.classList.remove(classname);
+                }}};
     }
 
-//========= function add_class  ====================================
-    function remove_class(filter_class){
+//========= function remove_class_hide  ====================================
+    function remove_class_hide(filter_class){
         // remove selected class_name from all elements with class 'filter_class
-        console.log("remove_class", filter_class)
+        console.log("remove_class_hide", filter_class)
 
          // multipe filter: document.querySelectorAll(".filter1.filter2")
         //let elements =  document.querySelectorAll("." + filter_class)
@@ -712,14 +743,15 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0, el, len = elements.length; i < len; i++) {
             el =  elements[i];
             if(!!el){
-                el.classList.remove(cls_display_none);
+                el.classList.remove(cls_hide);
+        console.log("remove cls_hide")
             }
         }
     }
-//========= function add_class  ====================================
-    function add_class(filter_class){
+//========= function add_class_hide  ====================================
+    function add_class_hide(filter_class){
         // add selected class_name to all elements with class 'filter_class'
-        console.log("add_class", filter_class)
+        console.log("add_class_hide", filter_class)
 
         // multipe filter: document.querySelectorAll(".filter1.filter2")
         //let elements =  document.querySelectorAll("." + filter_class)
@@ -727,7 +759,8 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0, el, len = elements.length; i < len; i++) {
             el =  elements[i];
             if(!!el){
-                el.classList.add(cls_display_none)
+                el.classList.add(cls_hide)
+        console.log("add cls_hide")
             }
         }
     }
@@ -787,7 +820,213 @@ function printPDF() {
       //  doc.save("file.pdf")
 
     }
+// +++++++++++++++++ MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
+//========= ModPeriodOpen====================================
+    function ModPeriodOpen () {
+        //console.log("===  ModPeriodOpen  =====") ;
+        //console.log("period_dict", period_dict) ;
 
+        // period_dict = {page: "period_review", period_tag: "tweek", extend_offset: 0,
+        // now: (5) [2019, 11, 20, 7, 29],
+        // periodend: "2019-11-25T00:00:00+01:00", periodstart: "2019-11-18T00:00:00+01:00",
+        // rosterdatefirst: "2019-11-18", rosterdatefirst_minus1: "2019-11-17",
+        // rosterdatelast: "2019-11-24", rosterdatelast_plus1: "2019-11-25"}
+
+        mod_upload_dict = period_dict;
+
+    // highligh selected period in table, put period_tag in data-tag of tblRow
+        let tBody = document.getElementById("id_mod_period_tblbody");
+        const period_tag = get_dict_value_by_key(period_dict, "period_tag")
+        for (let i = 0, tblRow, row_tag; tblRow = tBody.rows[i]; i++) {
+            row_tag = get_attr_from_el(tblRow, "data-tag")
+            if (period_tag === row_tag){
+                tblRow.classList.add(cls_selected)
+            } else {
+                tblRow.classList.remove(cls_selected)
+            }
+        };
+
+    // set value of extend select box
+        const extend_index = get_dict_value_by_key(period_dict, "extend_index", 0)
+        document.getElementById("id_mod_period_extend").selectedIndex = extend_index
+
+    // set value of date imput elements
+        const is_custom_period = (period_tag === "other")
+        let el_datefirst = document.getElementById("id_mod_period_datefirst")
+        let el_datelast = document.getElementById("id_mod_period_datelast")
+        el_datefirst.value = get_dict_value_by_key(period_dict, "rosterdatefirst")
+        el_datelast.value = get_dict_value_by_key(period_dict, "rosterdatelast")
+
+    // set min max of input fields
+        ModPeriodEdit("datefirst");
+        ModPeriodEdit("datelast");
+
+        el_datefirst.disabled = !is_custom_period
+        el_datelast.disabled = !is_custom_period
+
+    // ---  show modal
+         $("#id_mod_period").modal({backdrop: true});
+
+}; // function ModPeriodOpen
+
+//=========  ModPeriodSelect  ================ PR2019-07-14
+    function ModPeriodSelect(tr_clicked, selected_index) {
+        //console.log( "===== ModPeriodSelect ========= ", selected_index);
+        if(!!tr_clicked) {
+    // ---  deselect all highlighted rows, highlight selected row
+            DeselectHighlightedRows(tr_clicked, cls_selected);
+            tr_clicked.classList.add(cls_selected)
+
+    // add period_tag to mod_upload_dict
+            const period_tag = get_attr_from_el(tr_clicked, "data-tag")
+            mod_upload_dict["period_tag"] = period_tag;
+
+    // enable date input elements, gve focus to start
+            if (period_tag === "other") {
+                let el_datefirst = document.getElementById("id_mod_period_datefirst");
+                let el_datelast = document.getElementById("id_mod_period_datelast");
+                el_datefirst.disabled = false;
+                el_datelast.disabled = false;
+                el_datefirst.focus();
+            } else{
+                ModPeriodSave();
+            }
+        }
+    }  // ModPeriodSelect
+
+//=========  ModPeriodEdit  ================ PR2019-07-14
+    function ModPeriodEdit(fldName) {
+    // set min max of other input field
+        let attr_key = (fldName === "datefirst") ? "min" : "max";
+        let fldName_other = (fldName === "datefirst") ? "datelast" : "datefirst";
+        let el_this = document.getElementById("id_mod_period_" + fldName)
+        let el_other = document.getElementById("id_mod_period_" + fldName_other)
+        if (!!el_this.value){ el_other.setAttribute(attr_key, el_this.value)
+        } else { el_other.removeAttribute(attr_key) };
+    }  // ModPeriodEdit
+
+//=========  ModPeriodSave  ================ PR2019-07-11
+    function ModPeriodSave() {
+        //console.log("===  ModPeriodSave =========");
+
+        const period_tag = get_dict_value_by_key(mod_upload_dict, "period_tag", "today")
+        let extend_index = document.getElementById("id_mod_period_extend").selectedIndex
+        if(extend_index < 0 ){extend_index = 0}
+        // extend_index 0='None ,1='1 hour', 2='2 hours', 3='3 hours', 4='6 hours', 5='12 hours', 6='24 hours'
+        let extend_offset = (extend_index=== 1) ? 60 :
+                       (extend_index=== 2) ? 120 :
+                       (extend_index=== 3) ? 180 :
+                       (extend_index=== 4) ? 360 :
+                       (extend_index=== 5) ? 720 :
+                       (extend_index=== 6) ? 1440 : 0;
+
+        mod_upload_dict = {"page": "review", "period_tag": period_tag, "extend_index": extend_index, "extend_offset": extend_offset};
+        //console.log("new mod_upload_dict:", mod_upload_dict);
+
+        // only save dates when tag = "other"
+        if(period_tag == "other"){
+            const datefirst = document.getElementById("id_mod_period_datefirst").value
+            const datelast = document.getElementById("id_mod_period_datelast").value
+            if (!!datefirst) {mod_upload_dict["periodstart"] = datefirst};
+            if (!!datelast) {mod_upload_dict["periodend"] = datelast};
+        }
+
+        // send 'now' as array to server, so 'now' of local computer will be used
+        const now = new Date();
+        const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()]
+        mod_upload_dict["now"] = now_arr;
+
+// hide modal
+        $("#id_mod_period").modal("hide");
+
+        DatalistDownload({"review": mod_upload_dict});
+
+    }  // ModPeriodSave
+
+//========= get_period_text  ====================================
+    function get_period_text(period_dict) {
+        //console.log( "===== get_period_text  ========= ");
+        let period_text = null
+        if (!isEmpty(period_dict)){
+            const period_tag = get_dict_value_by_key(period_dict, "period_tag");
+
+            let default_text = null
+            for(let i = 0, item, len = loc.period_select_list.length; i < len; i++){
+                item = loc.period_select_list[i];
+                if (item[0] === period_tag){ period_text = item[1] }
+                if (item[0] === 'today'){ default_text = item[1] }
+            }
+            if(!period_text){period_text = default_text}
+
+            let extend_text = get_dict_value_by_key(loc.period_extension, "extend_index");
+
+            if(period_tag === "other"){
+                const rosterdatefirst = get_dict_value_by_key(period_dict, "rosterdatefirst");
+                const rosterdatelast = get_dict_value_by_key(period_dict, "rosterdatelast");
+                if(rosterdatefirst === rosterdatelast) {
+                    period_text =  format_date_iso (rosterdatefirst, month_list, weekday_list, false, false, user_lang);
+                } else {
+                    const datelast_formatted = format_date_iso (rosterdatelast, month_list, weekday_list, true, false, user_lang)
+                    if (rosterdatefirst.slice(0,8) === rosterdatelast.slice(0,8)) { //  slice(0,8) = 2019-11-17'
+                        // same month: show '13 - 14 nov
+                        const day_first = Number(rosterdatefirst.slice(8)).toString()
+                        period_text = day_first + " - " + datelast_formatted
+                    } else {
+                        const datefirst_formatted = format_date_iso (rosterdatefirst, month_list, weekday_list, true, true, user_lang)
+                        period_text = datefirst_formatted + " - " + datelast_formatted
+                    }
+                }
+            }
+        // from https://www.fileformat.info/info/unicode/char/25cb/index.htm
+        //el_a.innerText = " \u29BF "  /// circeled bullet: \u29BF,  bullet: \u2022 "  // "\uD83D\uDE00" "gear (settings) : \u2699" //
+        //el_a.innerText = " \u25CB "  /// 'white circle' : \u25CB  /// black circle U+25CF
+
+        //let bullet = ""
+        //if(mode === "current"){bullet = " \u29BF "} else {bullet = " \u25CB "}
+        //document.getElementById("id_period_current").innerText = bullet;
+
+        }  // if (!isEmpty(period_dict))
+
+        return period_text;
+
+
+    }; // function get_period_text
+
+// +++++++++++++++++ END MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
+
+
+function HandleExpandAll(){
+    HandleExpand("expand_all")
+}
+
+function HandleCollapsAll(){
+    HandleExpand("collaps_all")
+}
+
+function HandleExpand(mode){
+    console.log(" === HandleExpandAll ===", mode)
+
+// --- expand all rows in list
+    const len = tblBody_items.rows.length;
+    if (len > 0){
+
+    // for (let i = len - 1; i >= 0; i--) {  //  for (let i = 0; i < len; i++) {
+        for (let i = 0, tblRow; i < len; i++) {
+            tblRow = tblBody_items.rows[i];
+            if (mode === "expand_all"){
+                tblRow.removeAttribute("data-subrows_hidden")
+                tblRow.classList.remove(cls_hide);
+            } else  if (mode === "collaps_all"){
+                if(tblRow.classList.contains("tot_grnd") || tblRow.classList.contains("tot_cust")){
+                    tblRow.classList.remove(cls_hide);
+                    tblRow.setAttribute("data-subrows_hidden", true)
+                } else {
+                    tblRow.classList.add(cls_hide);
+                }
+            }
+        }
+    }
+}
 
     // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
@@ -838,7 +1077,7 @@ function printPDF() {
                 for (let i = 0, tblRow; i < len; i++) {
                     tblRow = tblBody_items.rows[i];
 
-                    if (!tblRow.classList.contains("display_none")) {
+                    if (!tblRow.classList.contains(cls_hide)) {
                         if(i <= noOnFirstPage){
                             startHeight = startHeight + line_height;
                             printData(tblRow, pos_x, startHeight, doc, img_warning);
@@ -856,7 +1095,7 @@ function printPDF() {
                             }
                         }
 
-                    }  //  if (!tblRow.classList.contains("display_none")) {
+                    }  //  if (!tblRow.classList.contains(cls_hide)) {
                 }
                 //To View
                 //doc.output('datauri');
@@ -866,5 +1105,100 @@ function printPDF() {
 			}  // if (len > 0){
     }  // printPDF
 
+    function ExportToExcel(){
+        console.log(" === ExportToExcel ===")
+            let createXLSLFormatObj = [];
+
+            /* XLS Head Columns */
+            //var xlsHeader = loc.col_headers;
+
+            /* XLS Rows Data */
+            var xlsRows = review_list;
+
+            //createXLSLFormatObj.push(xlsHeader);
+            $.each(xlsRows, function(index, value) {
+            //console.log("value", value)
+                var innerRowData = [];
+
+                $.each(value, function(ind, val) {
+
+                    //innerRowData.push(val);
+                });
+                //createXLSLFormatObj.push(innerRowData);
+            });
+            createXLSLFormatObj = FillExcelRows();
+
+        console.log("createXLSLFormatObj", createXLSLFormatObj)
+
+            /* File Name */
+            let filename = "Review.xlsx";
+
+            /* Sheet Name */
+            let ws_name = "Review";
+
+            let wb = XLSX.utils.book_new()
+            let ws = XLSX.utils.aoa_to_sheet(createXLSLFormatObj);
+
+            /* Add worksheet to workbook */
+            XLSX.utils.book_append_sheet(wb, ws, ws_name);
+
+            /* Write workbook and Download */
+            XLSX.writeFile(wb, filename);
+
+
+    }
+
+
+//========= FillExcelRows  ====================================
+    function FillExcelRows() {
+        console.log("=== FillExcelRows  =====")
+        let rows = []
+// header row
+
+        const rosterdatefirst = format_date_iso (period_dict["rosterdatefirst"], month_list, weekday_list, false, false, user_lang);
+        const rosterdatelast = format_date_iso (period_dict["rosterdatelast"], month_list, weekday_list, false, false, user_lang);
+
+        let titlerow = [loc.Periode + ": " + rosterdatefirst + " - " + rosterdatelast]
+
+        rows.push(titlerow)
+        rows.push([])
+        let headerrow = [loc.Date, loc.Customer, loc.Order,  loc.Employee, loc.Shift,
+                                loc.Worked_hours, loc.Billable, loc.Billed_hours, loc.Difference,
+                                loc.Rate, loc.Amount]
+
+        rows.push(headerrow)
+
+// --- loop through review_list
+        let len = review_list.length;
+        if (len > 0){
+            for (let i = len - 1, row; i >= 0; i--) {  //  for (let i = 0; i < len; i++) {
+                let row_list = review_list[i];
+
+// --- create DETAIL row
+
+                const dte_curr = format_date_iso (row_list.rosterdate, month_list, weekday_list, false, false, user_lang);
+
+                const cust_code_curr = row_list.cust_code;
+                const ord_code_curr = row_list.ord_code;
+                const e_code_arr = row_list.e_code_arr;
+                const oh_shift = row_list.oh_shift;
+
+                const eh_dur_format = (!!row_list.eh_dur) ? row_list.eh_dur / 60 : null;
+                const oh_dur_format = (!!row_list.oh_dur) ? row_list.eh_dur / 60 : null;
+                const diff_format = (!!row_list.dur_diff) ? row_list.eh_dur / 60 : null;
+
+                const oh_pricerate_format =  (!!row_list.oh_prrate) ? row_list.eh_dur / 60 : null;
+                const oh_amount_format = (!!row_list.oh_amount) ? row_list.eh_dur / 60 : null;
+                const billable_format = (!!row_list.oh_bill) ? ">" : "";
+
+                row = [dte_curr, cust_code_curr,ord_code_curr,  e_code_arr, oh_shift,
+                                eh_dur_format, billable_format, oh_dur_format, diff_format,
+                                oh_pricerate_format, oh_amount_format]
+
+                rows.push(row);
+            }  // for (let i = len - 1; i >= 0; i--)
+        }  // if (!!len)
+        return rows;
+    }  // FillExcelRows
     // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 }); // document.addEventListener('DOMContentLoaded', function()

@@ -1236,10 +1236,12 @@
 // ---  fill options of select box
         let option_text = null;
         el_select.innerText = null
-        for (let i = 0, len = option_list.length; i < len; i++) {
-            option_text += "<option value=\"" + i +  "\"";
+        for (let i = 0, tuple, len = option_list.length; i < len; i++) {
+            tuple = option_list[i];
+
+            option_text += "<option value=\"" + tuple[0] +  "\"";
             // NIU if (i === curOption) {option_text += " selected=true" };
-            option_text +=  ">" + option_list[i] + "</option>";
+            option_text +=  ">" + tuple[1] + "</option>";
         }
         el_select.innerHTML = option_text;
     }  // function FillOptionsPeriodExtension

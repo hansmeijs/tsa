@@ -23,7 +23,6 @@
                 autocomplete="off"
                 placeholder="{% trans 'Period' %}":
                 readonly>
-
         </div>
     </nav>
 {% endblock %}
@@ -106,60 +105,7 @@
     </div>
 
 <!-- =================== MODAL PERIOD  =================== -->
-    <div class="modal fade" id="id_mod_period" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-md " role="document">
-            <div class="modal-content">
-
-                <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_mod_period_header" class="modal-title mx-2" >{% trans 'Select period' %}</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-
-                <div  id="id_mod_period_body" class="modal-body">
-                    <h6 class="mx-2 my-1">{% trans 'Select an option or set the start- and end date' %}:</h6>
-                    <div class="modal_container">
-<!-- this div contains range select table -->
-                        <div class="modal_body_left">
-                            <div class="content_subheader_left mx-2 my-1">
-                               <table class="table table-condensed tsa-tbl mx-1 my-1">
-                                    <tbody id="id_mod_period_tblbody">
-                                    </tbody>
-                                </table>
-
-                            </div>
-                        </div>
-                        <div class="modal_body_left">
-                             <div class="form-group">
-                                <label for="id_mod_period_datefirst" class="mx-2 my-1">{% trans 'Period start date' %}:</label>
-                                <input id="id_mod_period_datefirst" type="date" class="form-control mx-2 my-1">
-                                <label for="id_mod_period_datelast" class="mx-2 my-1">{% trans 'Period end date' %}:</label>
-                                <input id="id_mod_period_datelast" type="date" class="form-control mx-2 my-1">
-                             </div>
-                        </div>
-                    </div>
-
-                        <h6 class="mx-2 my-1">{% trans 'Extend period with' %}:</h6>
-                        <select id="id_mod_period_extend"
-                               autocomplete="off"
-                               ondragstart="return false;"
-                               ondrop="return false;"
-                               class="form-control">
-                        </select>
-                        <small class="mx-2 my-1">{% trans 'You can add up to 24 hours to the beginning and end of the period.' %}:</small>
-
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                    <button id="id_mod_period_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
+        {% include 'includes/modperiod.html' %}
 <!-- =================== MODAL ORDER  =================== -->
     <div class="modal fade" id="id_mod_order" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">

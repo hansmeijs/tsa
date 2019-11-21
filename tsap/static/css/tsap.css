@@ -172,9 +172,6 @@ h4 h5 {
   display: none;
 }
 
-.display_none {
-   display: none;
-}
 .visibility_show {
   visibility: visible; /* visibility: collapse fr table elements */
 }
