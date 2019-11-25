@@ -1474,7 +1474,7 @@ def get_iddict_variables(id_dict):
 
     mode, table, temp_pk_str = '', '', ''
     pk_int, ppk_int = 0, 0
-    is_create, is_delete = False, False
+    is_create, is_delete, is_absence, is_template = False, False,  False, False
 
     if id_dict:
         mode = id_dict.get('mode', '')

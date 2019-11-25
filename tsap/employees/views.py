@@ -69,6 +69,11 @@ class EmployeeListView(View):
     # get user_lang
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
 
+    # ---  get interval
+            interval = 1
+            if request.user.company.interval:
+                interval = request.user.company.interval
+
      # get weekdays translated
             lang = user_lang if user_lang in c.WEEKDAYS_ABBREV else c.LANG_DEFAULT
             weekdays_json = json.dumps(c.WEEKDAYS_ABBREV[lang])
@@ -80,6 +85,7 @@ class EmployeeListView(View):
             param = get_headerbar_param(request, {
                 'lang': user_lang,
                 'timezone': comp_timezone,
+                'interval': interval,
                 'weekdays': weekdays_json,
                 'months': months_json,
             })
@@ -181,7 +187,7 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
             if upload_json:
                 upload_dict = json.loads(upload_json)
 
-    # c. get_iddict_variables
+    # c. get iddict variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
                     pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode = f.get_iddict_variables(id_dict)
@@ -270,7 +276,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
 
                 # upload_dict: {'id': {'pk': 471, 'ppk': 1517, 'table': 'teammember', 'delete': True}}
 
-    # c. get_iddict_variables
+    # c. get iddict variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
                     pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode = f.get_iddict_variables(id_dict)
@@ -357,7 +363,7 @@ def create_teammember(upload_dict, update_dict, request):
     # 'workhoursperday': {'value': 0, 'update': True}}
     instance = None
 
-# 1. get_iddict_variables
+# 1. get iddict variables
     id_dict = upload_dict.get('id')
     if id_dict:
         table = id_dict.get('table')
@@ -407,13 +413,13 @@ def create_teammember(upload_dict, update_dict, request):
 def update_teammember(instance, upload_dict, update_dict, request):
     # --- update existing and new teammmber PR2-019-06-01
     # add new values to update_dict (don't reset update_dict, it has values)
-    # logger.debug(' --- update_teammmber ---')
-    # logger.debug('upload_dict' + str(upload_dict))
+    logger.debug(' --- update_teammmber ---')
+    logger.debug('upload_dict' + str(upload_dict))
 
     has_error = False
     if instance:
 
-# 1. get_iddict_variables
+# 1. get iddict variables
         save_changes = False
         for field in c.FIELDS_TEAMMEMBER:
 
@@ -518,6 +524,16 @@ def update_teammember(instance, upload_dict, update_dict, request):
                         if new_value != saved_value:
                             setattr(instance, field, new_value)
                             is_updated = True
+
+                    elif field == 'shiftjson':
+                        # shiftjson new_value: {'2019-11-24': {'1': [None, None, None, 0],
+                        #                                      '2': [None, None, None, 0], ....
+                        #                                      '7': [None, None, None, 0]}}
+                        # TODO multiple asof dates
+                        logger.debug('shiftjson new_value: ' + str(new_value))
+                        setattr(instance, field, new_value)
+                        is_updated = True
+
         # 5. add 'updated' to field_dict'
                     if is_updated:
                         update_dict[field]['updated'] = True
@@ -626,7 +642,7 @@ class EmployeeImportView(View):
             #param = get_headerbar_param(request, {'stored_columns': coldef_list, 'captions': captions})
             param = get_headerbar_param(request, {'captions': captions, 'setting': coldefs_json})
 
-            #logger.debug('param: ' + str(param))
+            logger.debug('param: ' + str(param))
 
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'employee_import.html', param)
@@ -874,7 +890,7 @@ def create_employee(upload_dict, update_dict, request):
 
     instance = None
 
-# 1. get_iddict_variables
+# 1. get iddict variables
     id_dict = upload_dict.get('id')
     if id_dict:
         table = id_dict.get('table')
@@ -924,7 +940,7 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
 
     has_error = False
     if instance:
-# 1. get_iddict_variables
+# 1. get iddict variables
         #  FIELDS_EMPLOYEE = ('id', 'code', 'namelast', 'namefirst',
         #           'email', 'telephone', 'identifier', 'payrollcode',
         #           'address', 'zipcode', 'city', 'country',

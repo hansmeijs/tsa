@@ -371,7 +371,7 @@ class Scheme(TsaBaseModel):
     excludeweekend = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
 
-    # pricerate is deprecated
+    # pricerate wil be deprecated
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
@@ -520,7 +520,7 @@ class Teammember(TsaBaseModel):
     additionjson = JSONField(null=True)  # /10000 unitless additionrate 2500 = 25%
     override = BooleanField(default=True)
 
-    jsonsetting = JSONField(null=True)  # stores simple scheme for this employee_order
+    shiftjson = JSONField(null=True)  # stores simple scheme for this employee_order
 
     @classmethod
     def get_first_teammember_on_rosterdate(cls, team, rosterdate_dte):

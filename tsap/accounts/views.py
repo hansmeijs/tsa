@@ -566,7 +566,7 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                             # logger.debug('key settings_dict: ' + str(key) + str(settings_dict))
                             Usersetting.set_jsonsetting(key, settings_dict, request.user)
 
-# 2. get_iddict_variables
+# 2. get iddict variables
                 # KEY_USER_SETTINGS = ('selected_pk', 'page_settings')
                 # for field in c.KEY_USER_SETTINGS:
                     # if field in upload_dict:

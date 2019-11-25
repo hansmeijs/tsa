@@ -177,6 +177,12 @@
   justify-content: center;
 }
 
+.td_height_240 {
+    height: 240px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
 .td_width_360 {
     width: 360px;
 }
@@ -201,7 +207,7 @@
 .td_width_120 {
     width: 120px;
 }
-.td_width_110 {
+.td_width_100 {
     width: 100px;
 }
 .td_width_090 {
@@ -211,6 +217,9 @@
     padding: 2px;
     width: 60px;
     }
+.td_width_070 {
+    width: 70px;
+}
 .td_width_060 {
     width: 60px;
 }

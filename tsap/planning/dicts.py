@@ -494,42 +494,20 @@ def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, ove
     return period_endtime_utc
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def create_scheme_template_list(request, user_lang):
-    # --- create list of all template schemes of this company PR2019-07-24
-    # logger.debug("========== create_scheme_template_list ==== ")
 
-    scheme_list = []
-    order = m.Order.objects.get_or_none(
-        customer__company=request.user.company,
-        istemplate=True
-    )
-
-    if order:
-        scheme_list = create_scheme_list(
-            request=request,
-            user_lang=user_lang,
-            customer=order.customer,
-            is_template=True
-        )
-
-    return scheme_list
-
-
-def create_scheme_list(request, user_lang, customer, is_template, inactive=None):
+def create_scheme_list(request, is_template, inactive, user_lang):
     logger.debug(' --- create_scheme_list --- ')
-    logger.debug('is_template: ' + str(is_template) + str(type(is_template)))
-    logger.debug('inactive: ' + str(inactive) + str(type(inactive)))
 
-# --- create list of schemes of this customer PR2019-09-28
-    crit = (Q(order__customer__company=request.user.company) & Q(order__customer=customer) & Q(istemplate=is_template))
+# --- create list of schemes of this company, absence=false PR2019-11-22
+    crit = (Q(order__customer__company=request.user.company) & Q(isabsence=False))
+    if is_template is not None:
+        crit.add(Q(istemplate=is_template), crit.connector)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
     schemes = m.Scheme.objects.filter(crit)
 
     scheme_list = []
     for scheme in schemes:
-
-        logger.debug('scheme: ' + str(scheme.code))
         item_dict = {}
         create_scheme_dict(scheme, item_dict, user_lang)
 
@@ -565,6 +543,11 @@ def create_scheme_dict(scheme, item_dict, user_lang):
                 field_dict['pk'] = scheme.pk
                 field_dict['ppk'] = scheme.order.pk
                 field_dict['table'] = table
+                if scheme.isabsence:
+                    field_dict['isabsence'] = True
+                if scheme.istemplate:
+                    field_dict['istemplate'] = True
+
                 item_dict['pk'] = scheme.pk
 
             elif field in ['order']:
@@ -582,9 +565,6 @@ def create_scheme_dict(scheme, item_dict, user_lang):
 
             elif field in ['cycle']:
                 field_dict['value'] = getattr(scheme, field, 0)
-
-            elif field in ['isabsence', 'istemplate']:
-                field_dict['value'] = getattr(scheme, field, False)
 
             # also add date when empty, to add min max date
             elif field == 'datefirst':
@@ -606,6 +586,9 @@ def create_scheme_dict(scheme, item_dict, user_lang):
                     instance=scheme,
                     field_dict=field_dict,
                     user_lang=user_lang)
+
+            elif field in ['isabsence', 'istemplate']:
+                pass
 
             else:
                 value = getattr(scheme, field)
@@ -679,6 +662,9 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
                 field_dict['pk'] = schemeitem.pk
                 field_dict['ppk'] = schemeitem.scheme.pk
                 field_dict['table'] = 'schemeitem'
+                if schemeitem.istemplate:
+                    field_dict['istemplate'] = True
+
                 item_dict['pk'] = schemeitem.pk
 
             elif field == 'scheme':
@@ -686,6 +672,9 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
                 if scheme:
                     field_dict['pk'] = scheme.id
                     field_dict['value'] = scheme.code
+
+            elif field in ('iscyclestart', 'inactive'):
+                field_dict['value'] = getattr(schemeitem, field, False)
 
             elif field == 'cat':
                 cat_sum = getattr(schemeitem, field, 0)
@@ -740,7 +729,6 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
             elif field == 'timeduration':
                 field_dict['value'] = getattr(schemeitem, field, 0)
 
-
             elif field in ['priceratejson']:
                 f.get_fielddict_pricerate(
                     table='schemeitem',
@@ -748,9 +736,6 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
                     field_dict=field_dict,
                     user_lang=user_lang)
 
-
-            elif field in ('iscyclestart', 'inactive'):
-                field_dict['value'] = getattr(schemeitem, field)
 
             if field_dict:
                 item_dict[field] = field_dict
@@ -914,6 +899,11 @@ def create_team_dict(team, item_dict):
                 field_dict['pk'] = team.pk
                 field_dict['ppk'] = team.scheme.pk
                 field_dict['table'] = 'team'
+                if team.isabsence:
+                    field_dict['isabsence'] = True
+                if team.istemplate:
+                    field_dict['istemplate'] = True
+
                 item_dict['pk'] = team.pk
 
         # scheme is parent of team
@@ -1319,30 +1309,30 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-def create_emplhour_itemdict(instance, item_dict, comp_timezone):  # PR2019-09-21
+def create_emplhour_itemdict(emplhour, item_dict, comp_timezone):  # PR2019-09-21
     # --- create dict of this emplhour PR2019-10-11
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     # logger.debug(' ============= create_emplhour_dict ============= ')
     # logger.debug(str(update_dict))
 
-    if instance:
+    if emplhour:
         #  FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
         #                'timestart', 'timeend', 'timeduration', 'breakduration',
         #                'wagerate', 'wagefactor', 'wage', 'status', 'overlap')
 
 
 # get pk and ppk
-        pk_int = instance.pk
-        ppk_int = instance.orderhour.pk
+        pk_int = emplhour.pk
+        ppk_int = emplhour.orderhour.pk
 
-        rosterdate = instance.rosterdate
-        timestart = instance.timestart
-        timeend = instance.timeend
-        overlap = instance.overlap if instance.overlap else 0
+        rosterdate = emplhour.rosterdate
+        timestart = emplhour.timestart
+        timeend = emplhour.timeend
+        overlap = emplhour.overlap if emplhour.overlap else 0
 
 # lock field when status = locked or higher
-        status_value = getattr(instance, 'status', 0)
+        status_value = getattr(emplhour, 'status', 0)
         locked = (status_value >= c.STATUS_08_LOCKED)
 
         for field in c.FIELDS_EMPLHOUR:
@@ -1362,11 +1352,14 @@ def create_emplhour_itemdict(instance, item_dict, comp_timezone):  # PR2019-09-2
                 field_dict['pk'] = pk_int
                 field_dict['ppk'] = ppk_int
                 field_dict['table'] = 'emplhour'
+                if emplhour.isabsence:
+                    field_dict['isabsence'] = True
+
                 item_dict['pk'] = pk_int
 
             # orderhour is parent of emplhour
             elif field == 'orderhour':
-                orderhour = instance.orderhour
+                orderhour = emplhour.orderhour
                 if orderhour:
                     field_dict['pk'] = ppk_int
                     field_dict['ppk'] = orderhour.order.pk
@@ -1382,7 +1375,7 @@ def create_emplhour_itemdict(instance, item_dict, comp_timezone):  # PR2019-09-2
                     field_dict['value'] = ' - '.join([cust_code, order_code])
 
             elif field == 'employee':
-                employee = instance.employee
+                employee = emplhour.employee
                 if employee:
 
                     # if employee_id does not exist in row, it returns 'None'. Therefore default value 0 does not work
@@ -1418,7 +1411,7 @@ def create_emplhour_itemdict(instance, item_dict, comp_timezone):  # PR2019-09-2
                 pass
 
             else:
-                value = getattr(instance, field)
+                value = getattr(emplhour, field)
                 if value:
                     field_dict['value'] = value
 

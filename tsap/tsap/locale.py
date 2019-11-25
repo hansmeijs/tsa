@@ -13,6 +13,36 @@ def get_locale_dict(table_dict, user_lang):
     dict = {}
     page = table_dict.get('page')
 
+# ====== PAGE EMPLOYEE =========================
+    if page == 'employee':
+        # dict['Select_employee'] = _('Select employee')
+        # dict['No_employees'] = _('No employees')
+        dict['Order'] = TXT_Order
+        dict['Select_order'] = TXT_Select_order
+        dict['No_orders'] = TXT_No_orders
+
+        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
+        dict['weekdays_long'] = TXT_weekdays_long
+        dict['months_abbrev'] = TXT_months_abbrev
+        dict['months_long'] = TXT_months_long
+
+        dict['Weekdays'] = TXT_Weekdays
+        dict['Start_time'] = TXT_Start_time
+        dict['End_time'] = TXT_End_time
+        dict['Break'] = TXT_Break
+        dict['Working_hours'] = TXT_Working_hours
+        dict['As_of'] = TXT_As_of
+
+        dict['Current_day'] = TXT_Current_day
+        dict['Previous_day'] = TXT_Previous_day
+        dict['Next_day'] = TXT_Next_day
+        dict['Previous_day_title'] = TXT_Previous_day_title
+        dict['Next_day_title'] = TXT_Next_day_title
+
+        dict['btn_save'] = TXT_btn_save
+        dict['Quick_save'] = TXT_Quick_save
+        dict['Exit_Quicksave'] = TXT_Exit_Quicksave
+
 # ====== PAGE SCHEME =========================
     if page == 'scheme':
         dict['weekdays_long'] = c.WEEKDAYS_LONG[user_lang]
@@ -82,6 +112,40 @@ def get_locale_dict(table_dict, user_lang):
         dict['btn_cancel'] = TXT_btn_cancel  # 'Cancel'
         dict['btn_create'] = TXT_btn_create  # 'Create'
         dict['btn_delete'] = TXT_btn_delete  # 'Delete'
+
+        dict['Customer'] = TXT_Customer
+        dict['Select_customer'] = TXT_Select_customer
+        dict['No_customers'] = TXT_No_customers
+        dict['Order'] = TXT_Order
+        dict['Select_order'] = TXT_Select_order
+        dict['No_orders'] = TXT_No_orders
+
+        dict['Scheme'] = _('Scheme')
+        dict['Add_scheme'] = _('Add scheme')
+        dict['Select_scheme'] = _('Select scheme')
+        dict['No_schemes'] = _('No schemes')
+        dict['Select_template'] = _('Select template')
+        dict['No_templates'] = _('No templates')
+        dict['Template'] = _('Template')
+
+        dict['Shift'] = TXT_Shift
+        dict['Shifts'] = TXT_Shifts
+        dict['Rest_shift'] = TXT_Rest_shift
+
+        dict['Team'] = TXT_Team
+        dict['Teams'] = TXT_Teams
+
+        dict['err_msg_error'] = TXT_err_msg_error
+        dict['err_msg_order'] = TXT_err_msg_order
+        dict['err_msg_customer'] = TXT_err_msg_customer
+        dict['err_msg_template_select'] = _('Please select a template.')
+        dict['err_msg_name_exists'] = TXT_err_msg_name_exists
+        dict['err_msg_name_blank'] = TXT_err_msg_name_blank
+        dict['err_msg_code'] = _('Please enter the name of the scheme.')
+        dict['err_msg_cycle'] = _('Please enter the number of cycle days.')
+        dict['err_msg_template_blank'] = _('Please enter a template name.')
+
+
 
 # ====== PAGE ROSTER =========================
     elif page == 'roster':
@@ -164,6 +228,12 @@ def get_locale_dict(table_dict, user_lang):
 TXT_btn_close = _('Close')
 TXT_btn_cancel = _('Cancel')
 
+TXT_btn_save = _('Save')
+TXT_Quick_save = _('Quick save')
+TXT_Exit_Quicksave = _('Exit Quick save')
+
+
+
 TXT_btn_create = _('Create')
 TXT_btn_delete = _('Delete')
 
@@ -179,12 +249,25 @@ TXT_Amount = _('Amount')
 
 TXT_Date = _('Date')
 TXT_Customer = _('Customer')
+TXT_Select_customer = _('Select customer')
+TXT_No_customers = _('No customers')
+
 TXT_Order = _('Order')
+TXT_Select_order = _('Select order')
+TXT_No_orders = _('No orders')
+
 TXT_Shift = _('Shift')
-TXT_shifts = _('shifts')
+TXT_Shifts = _('Shifts')
 TXT_shift = _('shift')
+TXT_shifts = _('shifts')
+
+TXT_Rest_shift = _('Rest shift')
+
+TXT_Team = _('Team')
+TXT_Teams = _('Teams')
+
 TXT_Employee = _('Employee')
-_('Order / Employee')
+# _('Order / Employee')
 
 
 TXT_one = _('one')
@@ -213,3 +296,32 @@ TXT_lastweek = _('Last week')
 TXT_thismonth = _('This month')
 TXT_lastmonth = _('Last month')
 TXT_customperiod = _('Custom period...')
+
+TXT_err_msg_error = _('An error occurred.')
+TXT_err_msg_order = _('Please select an order.')
+TXT_err_msg_customer = _('Please select a customer.')
+TXT_err_msg_template_select = _('Please select a template.')
+TXT_err_msg_name_exists = _('This name already exists. Please enter a different name.')
+TXT_err_msg_name_blank = _('Name cannot be blank. Please enter a name.')
+
+# get weekdays translated
+TXT_weekdays_abbrev = ('', _('Mon'), _('Tue'), _('Wed'), _('Thu'), _('Fri'), _('Sat'), _('Sun'))
+TXT_weekdays_long= ('', _('Monday'), _('Tuesday'), _('Wednesday'),
+                       _('Thursday'), _('Friday'), _('Saturday'), _('Sunday'))
+TXT_months_abbrev = ('', _('Jan'), _('Feb'), _('Mar'), _('Apr'), _('May'), _( 'Jun'),
+                           _('Jul'), _('Aug'), _('Sep'), _('Oct'), _('Nov'), _('Dec'))
+TXT_months_long = ('', _('January'), _( 'February'), _( 'March'), _('April'), _('May'), _('June'), _(
+                         'July'), _('August'), _('September'), _('October'), _('November'), _('December'))
+
+TXT_Weekdays = _('Weekdays')
+TXT_Start_time = _('Start time')
+TXT_End_time = _('End time')
+TXT_Break = _('Break')
+TXT_Working_hours = _('Working hours')
+
+TXT_Current_day = _('Current day')
+TXT_Previous_day = _('Previous day')
+TXT_Next_day = _('Next day')
+TXT_Previous_day_title = _('Shift starts on the previous day')
+TXT_Next_day_title = _('Shift ends on the next day')
+TXT_As_of = _('As of')

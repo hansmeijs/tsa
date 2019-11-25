@@ -1,0 +1,127 @@
+{% load i18n %}
+{% load l10n %}
+{% load static %}
+
+
+<!-- =================== MODAL EMPLOYEE SHIFT  =================== -->
+    <div class="modal fade" id="id_mod_employeeshift" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content" style="overflow:hidden;">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_mod_employeeshift_header" class="modal-title mx-2" >{% trans 'Employee' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div id="id_mod_employeeshift_body" class="modal-body">
+
+                    <div class="modal_container">
+
+<!-- modal_body_left contains employee select table -->
+                        <div id="id_mod_employeeshift_select_order" class="modal_body_left">
+                            <div class="content_subheader_left m-2">
+                                <div>
+                                    <h5>{% trans 'Select order' %}:</h5>
+                                </div>
+
+                                <div >
+                                    <input id="id_mod_employeeshift_filter_order"
+                                        type="text"
+                                        class="td_width_150 tsa_bc_transparent border_none px-2"
+                                        autocomplete="off"
+                                        placeholder="{% trans 'filter ...' %}">
+
+                                </div>
+                                <div style="overflow-x:hidden;overflow-y:auto;height:320px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                    <table class="table table-condensed tsa-tbl mx-1 my-1">
+                                        <tbody id="id_mod_employeeshift_tblbody_order" ></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="id_mod_employeeshift_body_right"  class="modal_body_flex3 m-2">
+                            <div>
+                                <h5 id="id_mod_employeeshift_order" class="mx-2" ></h5>
+                            </div>
+                                <!-- BUTTON GROUP -->
+                            <div class="btn-group btn-block mx-2 my-2 pr-4" role="group" aria-label="Choose option" >
+                                <button id="id_btn_list" type="button" data-mode="single_shift" class="btn btn-secondary ">{% trans 'Single shift' %}</button>
+                                <button id="id_btn_data" type="button"  data-mode="scheme_shift" class="btn btn-secondary ">{% trans 'Scheme shift' %}</button>
+                            </div>
+                <!-- end BUTTON GROUP -->
+                            <div class="mx-2 my-1" >
+                                <h6 id="id_mod_employeeshift_period" class="mx-2 my-1" >{% trans 'Period' %}:</h6>
+                            </div>
+
+                                <!-- CALENDAR -->
+
+                            <div id="id_div_mod_calendar" class="mod_flex my-1">
+                                <div style="overflow-x:hidden;overflow-y:auto;height:240px;width:540px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                    <table class="table table-condensed tsa-tbl my-1">
+                                        <tbody id="id_mod_employeeshift_tblhead_calendar" ></tbody>
+                                        <tbody id="id_mod_employeeshift_tblbody_calendar"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="mx-2 my-0">
+                            <span>
+                                <input id="id_mod_employeeshift_public_holidays" type="checkbox" class="td_width_032 mx-2">
+                                <label for="id_mod_employeeshift_public_holidays" class="mx-2 my-1">{% trans 'Not on public holidays' %}</label>
+                            </span>
+                         </div>
+                            <div class="mx-2 my-0">
+                            <span>
+                                <input id="id_mod_employeeshift_company_holidays" type="checkbox" class="td_width_032 mx-2">
+                                <label for="id_mod_employeeshift_company_holidays" class="mx-2 my-1">{% trans 'Not on company holidays' %}</label>
+                            </span>
+                         </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer pr-4">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+
+                        <button id="id_mod_employeeshift_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save' %}</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL EMPLOYEE SHIFT  =================== -->
+
+<!-- =================== MODAL TIMEPICKER  =================== -->
+<div class="modal" id="id_mod_timepicker" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm " role="document">
+        <div class="modal-content tsa_bc_lightlightgrey">
+
+            <div id="id_mod_confirm_body"  class="modal-body tsa_bc_lightlightgrey">
+
+                <div id="id_timepicker_header" class="popup_header">
+
+                </div>
+
+                <div class="content_header">
+                    <div class="content_subheader_left m-1 ">
+                        <a>{% trans "Hours" %}</a>
+                        <table class="pop_tbl tbl_border">
+                            <tbody id="id_timepicker_tbody_hour" class="timepicker_tbody_hour"></tbody>
+                        </table>
+                    </div>
+                    <div id="id_timepicker_cont_minute" class="content_subheader_left m-1">
+                        <a>{% trans "Minutes" %}</a>
+                        <table class="pop_tbl tbl_border">
+                            <tbody id="id_timepicker_tbody_minute" class="timepicker_tbody_minute"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div id="id_timepicker_footer" class="content_header tsa_bc_lightlightgrey m-2">
+            </div>
+        </div>
+    </div>
+</div>
+<!-- =================== END MODAL CONFIRM  =================== -->

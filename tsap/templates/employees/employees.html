@@ -3,7 +3,10 @@
 {% load static %}
 
 {% block title %}{% trans 'Employees' %}{% endblock %}
-{% block script %}<script src="{% static 'js/employees.js' %}"></script>{% endblock %}
+{% block script %}
+    <script src="{% static 'js/employees.js' %}"></script>
+    <script src="{% static 'js/modtimepicker.js' %}"></script>
+{% endblock %}
 
 <!-- SIDE BAR -->
 {% block sidebar %}
@@ -19,12 +22,12 @@
                 <thead id="id_thead_select"class="mx-1 my-1 ">
                     <tr>
                         <td>
-                        <input id="id_flt_select"
-                            type="text"
-                            class="td_width_150 tsa_bc_transparent border_none px-2"
-                            autocomplete="off"
-                            placeholder="{% trans 'filter ...' %}">
-                            </td>
+                            <input id="id_flt_select"
+                                type="text"
+                                class="td_width_150 tsa_bc_transparent border_none px-2"
+                                autocomplete="off"
+                                placeholder="{% trans 'filter ...' %}">
+                        </td>
                         <td>
                             <a id="id_sel_inactive" href="#">
                                 <img id="id_sel_img_inactive"  src="{% static 'img/inactive_lightgrey.png' %}" height="24" width="24">
@@ -82,6 +85,8 @@
         {% include 'includes/modperiod.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
         {% include 'includes/selectemployee.html' %}
+<!-- =================== MODAL EMPLOYEE SHIFT  ===================-->
+        {% include 'includes/modemployeeshift.html' %}
 <!-- =================== CONTAINER =================== -->
         <div class="container ">
 
@@ -110,7 +115,7 @@
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                     <button id="id_btn_list" type="button" data-mode="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
                     <button id="id_btn_absence" type="button"  data-mode="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
-                    <button id="id_btn_team" type="button"  data-mode="team" class="btn btn-secondary ">{% trans 'Teams' %}</button>
+                    <button id="id_btn_team" type="button"  data-mode="shifts" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
                     <button id="id_btn_planning" type="button"  data-mode="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
                     <!-- <button id="id_btn_roster" type="button"  data-mode="roster" class="btn btn-secondary ">{% trans 'Roster' %}</button>
                     <button id="id_btn_pricerate" type="button"  data-mode="pricerate" class="btn btn-secondary ">{% trans 'Hourly rates' %}</button> -->
@@ -252,6 +257,7 @@
                         <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger">{% trans 'Delete employee' %}</button>
                     </div>
                 </div>
+
     <!-- =================== DATA TABLE  =================== -->
                 <div id="id_div_tbl_employee" class="display_hide">
                      <table class="table tsa-tbl ">
@@ -265,10 +271,10 @@
                         <tbody id="id_tbody_absence"></tbody>
                     </table>
                 </div>
-                <div id="id_div_tbl_team" class="display_hide">
+                <div id="id_div_tbl_shifts" class="display_hide">
                      <table  class="table tsa-tbl ">
-                        <thead id="id_thead_team"></thead>
-                        <tbody id="id_tbody_team"></tbody>
+                        <thead id="id_thead_shifts"></thead>
+                        <tbody id="id_tbody_shifts"></tbody>
                     </table>
                 </div>
                 <div id="id_div_tbl_planning" class="display_hide">
@@ -329,11 +335,14 @@
             data-txt_employee_import= "{% trans 'Upload employees' %}"
             data-txt_employee_delete= "{% trans 'Delete employee' %}"
             data-txt_employee_add= "{% trans 'Add new employee' %}"
+
+            data-txt_shift_add= "{% trans 'Add shift' %}"
             data-txt_planning_download = "{% trans 'Download planning' %}"
             data-txt_planning_preview = "{% trans 'Preview planning' %}"
 
             data-txt_customer = "{% trans 'Customer' %}"
             data-txt_order= "{% trans 'Order' %}"
+            data-txt_order_select= "{% trans 'Select order' %}"
             data-txt_shift= "{% trans 'Shift' %}"
             data-txt_team= "{% trans 'Team' %}"
             data-txt_of= "{% trans 'of' %}"

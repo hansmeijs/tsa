@@ -103,12 +103,12 @@
             <tbody id="id_tbody" class="c_tbody"></tbody>
             <tfoot id="id_tfoot" class="c_tfoot"></tfoot>
         </table>
-
+<!-- DIV ID DATA -->
         <div id="id_data"
             data-employee_uploadsetting_url= "{% url 'employee_uploadsetting_url' %}"
             data-employee_uploaddata_url= "{% url 'employee_uploaddata_url' %}"
             data-captions = "{{ captions }}"
-            data-settings = "{{ settings }}"
+            data-settings = "{{ setting }}"
 
             data-txt_no_worksheets= "{% trans 'There are no worksheets.' %}"
             data-txt_no_worksheets_with_data= "{% trans 'There are no worksheets with data.' %}"

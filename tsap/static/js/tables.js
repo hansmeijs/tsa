@@ -88,6 +88,10 @@
     function UpdateSelectRow(selectRow, update_dict, el_data, filter_show_inactive) {
         //console.log("UpdateSelectRow");
         //console.log("update_dict", update_dict);
+
+        // update_dict = { id: {pk: 489, ppk: 2, table: "customer"}, cat: {value: 0}, inactive: {},
+        //                 code: {value: "mc"} , name: {value: "mc"}, interval: {value: 0}
+
         const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
         //const imgsrc_inactive_grey = get_attr_from_el(el_data, "data-imgsrc_inactive_grey");
         const imgsrc_inactive_lightgrey = get_attr_from_el(el_data, "data-imgsrc_inactive_lightgrey");
@@ -327,19 +331,18 @@
 //========= remove_err_del_cre_updated__from_itemdict  ======== PR2019-10-11
     function remove_err_del_cre_updated__from_itemdict(item_dict) {
         console.log("remove_err_del_cre_updated__from_itemdict")
+        if(!isEmpty(item_dict)){
 //--- remove 'updated, deleted created and msg_err from item_dict
-        Object.keys(item_dict).forEach(function(key) {
-            const field_dict = item_dict[key];
-            if (!isEmpty(field_dict)){
-                if ("updated" in field_dict){delete field_dict["updated"]};
-                if ("msg_err" in field_dict){delete field_dict["msg_err"]};
-                if(key === "id"){
-                    if ("created" in field_dict){delete field_dict["created"]};
-                    if ("temp_pk" in field_dict){delete field_dict["temp_pk"]};
-                    if ("deleted" in field_dict){delete field_dict["deleted"]};
-                }  //  if(key === "id"){
-            }
-        });
+            Object.keys(item_dict).forEach(function(key) {
+                const field_dict = item_dict[key];
+                if (!isEmpty(field_dict)){
+                    if ("updated" in field_dict){delete field_dict["updated"]};
+                    if ("msg_err" in field_dict){delete field_dict["msg_err"]};
+                    if(key === "id"){
+                        if ("created" in field_dict){delete field_dict["created"]};
+                        if ("temp_pk" in field_dict){delete field_dict["temp_pk"]};
+                        if ("deleted" in field_dict){delete field_dict["deleted"]};
+                    }}})};
     };  // remove_err_del_cre_updated__from_itemdict
 
 //========= lookup_itemdict_from_datadict  ======== PR2019-09-24
@@ -372,6 +375,9 @@
 
 //========= function get_iddict_from_element  ======== PR2019-06-01
     function get_iddict_from_element (el) {
+        console.log( "--- get_iddict_from_element ---");
+        console.log( el);
+
         // function gets 'data-pk', 'data-ppk', 'data-table', 'data-mode', 'data-cat' from element
         // and puts it as 'pk', 'ppk', 'temp_pk' and 'create', mode, cat in id_dict
         // id_dict = {'temp_pk': 'new_4', 'create': True, 'ppk': 120}
@@ -379,16 +385,21 @@
         if(!!el) {
 // ---  get pk from data-pk in el
             const pk_str = get_attr_from_el(el, "data-pk"); // or: const pk_str = el.id
+            const id_str = get_attr_from_el(el, "id");
             //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
             let pk_int = parseInt(pk_str);
             // if pk_int is not numeric, then row is a new row with pk 'new_1' and 'create'=true
+
             if (!pk_int){
                 if (!!pk_str){
-                    id_dict["temp_pk"] = pk_str;
                     id_dict["create"] = true}
             } else {
                 id_dict["pk"] = pk_int};
 
+            // don't use Number, id can also be "543-02" in planning, that retruns false with Number
+            if(!parseInt(id_str)) {
+                id_dict["temp_pk"] = id_str;
+            }
 // get parent_pk from data-ppk in el
             const parent_pk_int = get_datappk_from_element(el);
             if (!!parent_pk_int){id_dict["ppk"] = parent_pk_int}
@@ -405,6 +416,8 @@
             const cat = get_attr_from_el_int(el, "data-cat");
             if (!!cat){id_dict["cat"] = cat}
         }
+
+        console.log("id_dict", id_dict);
         return id_dict
     }  // function get_iddict_from_element
 

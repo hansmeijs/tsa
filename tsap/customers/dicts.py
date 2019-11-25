@@ -33,16 +33,17 @@ def create_company_list(company):
 
     return item_dict
 
-def create_customer_list(company, is_absence, is_template, inactive=None):
+def create_customer_list(company, is_absence, is_template=None, inactive=None):
     # logger.debug(' --- create_customer_list --- ')
+    # logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
 
 # --- create list of customers of this company PR2019-09-03
     # .order_by(Lower('code')) is in model
-    crit = (Q(company=company) & Q(isabsence=is_absence) & Q(istemplate=is_template))
+    crit = (Q(company=company) & Q(isabsence=is_absence))
+    if is_template is not None:
+        crit.add(Q(istemplate=is_template), crit.connector)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
-
-    # logger.debug('cat: ' + str(cat) + ' cat_lt: ' + str(cat_lt) + ' inactive: ' + str(inactive))
     customers = m.Customer.objects.filter(crit)
     # logger.debug(str(customers.query))
 
@@ -73,6 +74,10 @@ def create_customer_dict(customer, item_dict):
                 field_dict['ppk'] = customer.company.pk
                 field_dict['table'] = 'customer'
                 item_dict['pk'] = customer.pk
+                if customer.isabsence:
+                    field_dict['isabsence'] = True
+                if customer.istemplate:
+                    field_dict['istemplate'] = True
 
             elif field in ['company']:
                 pass
@@ -90,17 +95,17 @@ def create_customer_dict(customer, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_order_list(company, user_lang, is_absence, is_template, inactive):
+def create_order_list(company, user_lang, is_absence, is_template=None, inactive=None):
     # logger.debug(' --- create_order_list --- ')
     # Order of absence and template are made by system and cannot be updated
     # TODO: make it possible to rename them as company setting
 
 # --- create list of orders of this company PR2019-06-16
     crit = (Q(customer__company=company) & Q(isabsence=is_absence))
-    if inactive is not None:
-        crit.add(Q(inactive=inactive), crit.connector)
     if is_template is not None:
         crit.add(Q(istemplate=is_template), crit.connector)
+    if inactive is not None:
+        crit.add(Q(inactive=inactive), crit.connector)
 
     if is_absence:
         orders = m.Order.objects.filter(crit).order_by('sequence')
@@ -141,6 +146,11 @@ def create_order_dict(order, item_dict, user_lang):
                 field_dict['pk'] = order.pk
                 field_dict['ppk'] = order.customer.pk
                 field_dict['table'] = 'order'
+                if order.isabsence:
+                    field_dict['isabsence'] = True
+                if order.istemplate:
+                    field_dict['istemplate'] = True
+
                 item_dict['pk'] = order.pk
 
             elif field == 'customer':

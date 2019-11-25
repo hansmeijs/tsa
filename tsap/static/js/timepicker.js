@@ -2,6 +2,22 @@
 // ++++++++++++  TIMEPICKER +++++++++++++++++++++++++++++++++++++++
     "use strict";
 
+
+// close el_timepicker
+// add EventListener to document to close popup windows
+        document.addEventListener('click', function (event) {
+            let close_popup = true
+            let el_timepicker = document.getElementById("id_timepicker")
+            // event.target identifies the element on which the event occurred, i.e: on which is clicked
+            if (event.target.classList.contains("input_timepicker")) {close_popup = false} else
+            if (el_timepicker.contains(event.target) && !event.target.classList.contains("timepicker_close")) {close_popup = false}
+            if (close_popup) {
+                popupbox_removebackground("input_timepicker");
+                el_timepicker.classList.add(cls_hide)
+                };
+        }, false);
+
+
 //========= OpenTimepicker  ====================================
     function OpenTimepicker(el_input, UploadTimepickerChanged, tp_dict, st_dict) {
         console.log("===  OpenTimepicker  =====");
@@ -398,12 +414,10 @@
 
 //=========  HandleTimepickerSave  ================ PR2019-06-27
     function HandleTimepickerSave(tp_dict, st_dict, UploadTimepickerChanged, mode) {
-        console.log("===  function HandleTimepickerSave =========", mode);
-        console.log(tp_dict);
-            console.log("==== JSON.stringify: ", JSON.stringify(tp_dict));
+        //console.log("===  function HandleTimepickerSave =========", mode);
+        //console.log(tp_dict);
+
 // ---  change quicksave when clicked on button 'Quicksave'
-
-
 
 // ---  btn_save  >       send new_offset      > close timepicker
 //      btn_quick > on  > send new_offset + qs > close timepicker (next time do.t show btn_save)
@@ -772,9 +786,9 @@ function CalcMinMax(dict) {
                 td.classList.remove("tr_hover")}}
     }
 //========= function pop_background_remove  ====================================
-    function popupbox_removebackground(class_name){
+    function popupbox_removebackground(filterby_classname, remove_classname){
         // remove selected color from all input popups
-        let elements = document.getElementsByClassName(class_name);
+        let elements = document.getElementsByClassName(filterby_classname);
         for (let i = 0, len = elements.length; i < len; i++) {
             elements[i].classList.remove("pop_background");
         }

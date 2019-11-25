@@ -10,6 +10,7 @@ from tsap import constants as c
 from companies import models as m
 
 import logging
+import json
 logger = logging.getLogger(__name__)
 
 def create_employee_list(company, user_lang, inactive=None, rangemin=None, rangemax=None):
@@ -216,6 +217,8 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                 field_dict['pk'] = teammember.pk
                 field_dict['ppk'] = teammember.team.pk
                 field_dict['table'] = 'teammember'
+                if teammember.isabsence:
+                    field_dict['isabsence'] = True
                 item_dict['pk'] = teammember.pk
 
             elif field == 'cat':
@@ -309,6 +312,12 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                         if workhours and workdays:
                             workhoursperday = workhours / workdays * 1440
                 field_dict['value'] = workhoursperday
+
+            elif field == 'offsetstart':
+                field_dict['value'] = getattr(teammember, field, 0)
+
+            elif field == 'offsetend':
+                field_dict['value'] = getattr(teammember, field, 1440)
 
             else:
                 value = getattr(teammember, field)

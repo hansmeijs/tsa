@@ -347,7 +347,7 @@ FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'billable',
 
 FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team', 'cat', 'billable',
                      'rosterdate', 'iscyclestart', 'timestart', 'timeend', 'timeduration',
-                     'priceratejson', 'additionjson', 'inactive')
+                     'priceratejson', 'additionjson', 'istemplate', 'inactive')
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
 FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
@@ -366,6 +366,6 @@ LEAVEDAYS_DEFAULT = 21600  # leavedays per year, = 15 days * 1440 = 21.600 minut
 FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'isabsence', 'employee', 'datefirst', 'datelast',
                      'workhoursperday', 'wagerate', 'wagefactor',
                      'offsetstart', 'offsetend',
-                     'priceratejson', 'additionjson', 'override', 'jsonsetting')
+                     'priceratejson', 'additionjson', 'override', 'shiftjson')
 # teammember wagerate not in use
 # teammember pricerate not in use

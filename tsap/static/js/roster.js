@@ -158,6 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_popup_wdy.classList.add(cls_hide)};
 
 // close el_timepicker
+/*
             close_popup = true
             // event.target identifies the element on which the event occurred, i.e: on which is clicked
             if (event.target.classList.contains("input_timepicker")) {close_popup = false} else
@@ -166,6 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 popupbox_removebackground("input_timepicker");
                 el_timepicker.classList.add(cls_hide)
                 };
+*/
         }, false);
 
 // buttons in  modal period
@@ -457,9 +459,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // for (let cust_key in data_map) {
     } // FillSelectTable
 
-
-
-
     function HandleSelectTable() {
 
     }
@@ -585,8 +584,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // for (let j = 0; j < 8; j++)
         return tblRow
     };  //function CreateTableHeaderFilter
-
-
 
 //=========  CreateTableRow  ================ PR2019-04-27
     function CreateTableRow(pk_int, ppk_int, row_index, is_new_item) {
@@ -3267,7 +3264,6 @@ console.log("===  function HandlePopupWdySave =========");
             let tp_dict = {"id": id_dict, "field": fieldname, "rosterdate": field_dict["rosterdate"],
                 "offset": offset, "minoffset": minoffset, "maxoffset": maxoffset,
                 "isampm": (timeformat === 'AmPm'), "quicksave": {"value": quicksave}}
-
 
             const show_btn_delete = true;
             let st_dict = { "interval": interval, "comp_timezone": comp_timezone, "user_lang": user_lang,

@@ -281,7 +281,7 @@ var PopupCalendar = {
         return false;
     },
     hideCalendar: function() {
-        // Hide the calender pop up
+        // Hide the calendar pop up
         // This function does not start with _, that indicates that it can be used from outside.
         //     like dp.hideCalendar(); in this sample where dp is an instance of PopupCalendar
         var dc = document.getElementById('dpContainer');

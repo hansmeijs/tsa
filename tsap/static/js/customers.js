@@ -178,8 +178,6 @@ document.addEventListener('DOMContentLoaded', function() {
             el_form_btn_delete.addEventListener("click", function(){ModConfirmOpen("delete", el_form_btn_delete)});
         document.getElementById("id_form_btn_add").addEventListener("click", function(){HandleCustomerAdd()});
 
-
-
 // === close windows ===
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
         document.addEventListener('click', function (event) {
@@ -250,20 +248,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("company_dict" in response) {
                     company_dict = response["company_dict"];
                 }
+
+                if ("order_list" in response) {
+                    get_datamap(response["order_list"], order_map)
+                    FillTableRows("order");
+                }
+
                 if ("customer_list" in response) {
                     get_datamap(response["customer_list"], customer_map)
 
                     const tblName = "customer";
-                    FillSelectTable(tblBody_select, el_data, customer_map, tblName, HandleSelectRow, HandleBtnInactiveClicked);
+                    FillSelectTable();
                     FilterSelectRows();
 
                     FillTableRows(tblName);
-                    FilterTableRows(document.getElementById("id_tbody_customer"));
-                }
-                if ("order_list" in response) {
-                    get_datamap(response["order_list"], order_map)
-                    console.log("order_map: ", order_map)
-                    FillTableRows("order");
+                    let el_tbody_customer = document.getElementById("id_tbody_customer");
+                    FilterTableRows(el_tbody_customer);
                 }
                 if ("order_pricerate_list" in response) {
                     get_datamap(response["order_pricerate_list"], pricerate_map)
@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     div_tbl.classList.remove(cls_hide);
                 } else {
                     div_tbl.classList.add(cls_hide);
-                }  // if (tbl_mode === selected_btn)
+                } // if (tbl_mode === selected_btn)
             }  // if(!!div_tbl){
         }
 
@@ -422,6 +422,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  HandleSelectRow ================ PR2019-08-28
     function HandleSelectRow(sel_tr_clicked) {
         console.log( "===== HandleSelectRow  ========= ");
+        // selectRow contains customers
 
         if(!!sel_tr_clicked) {
             const tblName = get_attr_from_el_str(sel_tr_clicked, "data-table");
@@ -432,6 +433,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // function 'get_mapdict_from_.....' returns empty dict if tblName or pk_str are not defined or key not exists.
             const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, tblName, pk_str);
             selected_customer_pk = get_subdict_value_by_key(customer_dict, "id", "pk", 0);
+            const selected_customer_ppk = get_subdict_value_by_key(customer_dict, "id", "ppk", 0);
+            const selected_customer_code = get_subdict_value_by_key(customer_dict, "code", "value", "");
 
  // ---  highlight clicked row in select table
             DeselectHighlightedRows(sel_tr_clicked, cls_bc_yellow, cls_bc_lightlightgrey);
@@ -450,6 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
             UpdateHeaderText()
 
 // ---  update customer form
+            // btns are: 'customer', 'order', 'planning', 'customer_form'
             if(selected_btn === "customer_form"){
                 UpdateForm()
 // ---  enable delete button
@@ -458,34 +462,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 let tblBody = document.getElementById("id_tbody_" + selected_btn);
                 if(!!tblBody){
     // ---  highlight row in tblBody
-                   let tblRow = HighlightSelectedTblRowByPk(tblBody, selected_customer_pk)
-    // ---  scrollIntoView, only in tblBody customer
-                    if (selected_btn === "customer" && !!tblRow){
-                        tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
-                    };
-    // Filter Table Rows
-                    FilterTableRows(tblBody)
-
-                    // create addnew_row if lastRow is not an addnewRow
-                    const row_count = tblBody.rows.length;
-                    if(!!row_count){
-                        let lastRow = tblBody.rows[row_count - 1];
-                        if(!!lastRow){
-                            //console.log("lastRow", lastRow)
-                            const pk_str = get_attr_from_el(lastRow, "id");
-                            // if pk is not a number it is an 'addnew' row
-                            if(!parseInt(pk_str)){
-                                let el_input = lastRow.cells[0].children[0];
-                                if(!!el_input){
-                                    el_input.setAttribute("data-pk", selected_customer_pk)
-                                    el_input.setAttribute("data-ppk", get_dict_value_by_key(customer_dict, "ppk"))
-                                    const customer_code = get_subdict_value_by_key(customer_dict, "code", "value");
-                                    el_input.setAttribute("data-value", customer_code)
-                                    el_input.value = customer_code
+                   if(selected_btn === "customer"){
+                       let tblRow = HighlightSelectedTblRowByPk(tblBody, selected_customer_pk)
+        // ---  scrollIntoView, only in tblBody customer
+                        if (!!tblRow){
+                            tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
+                        };
+                    } else if(selected_btn === "order"){
+    // Filter Table Rows in table 'order', 'planning',
+                         FilterTableRows(tblBody)
+        // create addnew_row if lastRow is not an addnewRow
+                        const row_count = tblBody.rows.length;
+                        if(!!row_count){
+                            let lastRow = tblBody.rows[row_count - 1];
+                            if(!!lastRow){
+                                console.log("lastRow", lastRow)
+                                const pk_str = get_attr_from_el(lastRow, "id");
+                                // if pk is not a number it is an 'addnew' row pk = 'order_new1'
+                                const is_addnew_row = (!parseInt(pk_str));
+                                if(is_addnew_row){
+                                    // put order pk and ppk also in tblRow
+                                    const row_pk = selected_order_pk;
+                                    const row_ppk =  selected_customer_pk;
+                                    lastRow.setAttribute("data-pk", row_pk)
+                                    lastRow.setAttribute("data-ppk", row_ppk)
+                                    // first column is 'customer'
+                                    let el_input = lastRow.cells[0].children[0];
+                                    if(!!el_input){
+                                        el_input.setAttribute("data-pk", selected_customer_pk)
+                                        el_input.setAttribute("data-ppk", selected_customer_ppk)
+                                        el_input.setAttribute("data-value", selected_customer_code)
+                                        el_input.value = selected_customer_code
+                                        el_input.disabled = true;
+                                    }
                                 }
                             }
-                        }
-                    }  // if(!!row_count)
+                        }  // if(!!row_count)
+
+                    }  // if(selected_btn === "customer")
                 }  // if(!!tblBody)
             };  // if(selected_btn === "customer_form")
         }  // if(!!sel_tr_clicked)
@@ -650,7 +664,6 @@ document.addEventListener('DOMContentLoaded', function() {
                          (selected_btn === "planning") ? planning_map :
                          null;
 
-        console.log( "data_map: ", data_map);
         const selected_pk = (selected_btn === "customer") ? selected_customer_pk :
                             (selected_btn === "order") ? selected_order_pk : 0;
 
@@ -1000,12 +1013,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 lastRow = CreateTblRow(tblName, pk_new, selected_customer_pk, selected_customer_pk)
                 //dict["id"]["created"] = true;
 
-// if lastRow is an 'addnew' row: update with employee name
+// if lastRow is an 'addnew' row: update with selected_customer_pk
             } else {
-                dict["id"] = {"pk": pk_str, "ppk": customer_pk, "table": "order"};
+                const ord_pk = (!!selected_order_pk) ? selected_customer_pk : 0;
+                const cust_pk = (!!selected_order_pk) ? selected_customer_pk : 0;
+                dict["id"] = {"pk": selected_order_pk, "ppk": cust_pk, "table": "order"};
             }
 
             UpdateTableRow(lastRow, dict)
+
+
 
         }  // else if (tblName === "order")
     }  // function CreateAddnewRow
@@ -1035,16 +1052,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // CreateBtnInactiveDelete
 
 //========= FillSelectTable  ============= PR2019-09-05
-    function FillSelectTable(tblBody_select, el_data, data_map, tblName, HandleSelectRow, HandleBtnInactiveClicked) {
+    function FillSelectTable() {
         console.log("FillSelectTable");
 
         tblBody_select.innerText = null;
 //--- loop through data_map
-        for (const [map_id, item_dict] of data_map.entries()) {
+        for (const [map_id, item_dict] of customer_map.entries()) {
             const row_index = null // add at end when no rowindex
-            let selectRow = CreateSelectRow(tblBody_select, el_data, tblName, row_index, item_dict,
+            let selectRow = CreateSelectRow(tblBody_select, el_data, "customer", row_index, item_dict,
                                         HandleSelectRow, HandleBtnInactiveClicked,
-                                        imgsrc_inactive_grey );
+                                        imgsrc_inactive_grey);
 
 // update values in SelectRow
              UpdateSelectRow(selectRow, item_dict, el_data, filter_show_inactive);
@@ -1071,6 +1088,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const map_id = get_map_id(tblName, pk_int);
             const is_created = ("created" in id_dict);
             const is_deleted = ("deleted" in id_dict);
+        console.log("temp_pk_str", temp_pk_str);
 
         if(selected_btn === "customer_form"){
             UpdateForm()
@@ -1087,8 +1105,22 @@ document.addEventListener('DOMContentLoaded', function() {
 //--- lookup table row of updated item
             // created row has id 'customernew_1', existing has id 'customer379'
             // 'is_created' is false when creating failed, use instead: (!is_created && !map_id)
-            const row_id_str = ((is_created) || (!is_created && !map_id)) ? tblName + "_" + temp_pk_str : map_id;
+            // order_new1
+            let row_id_str = null;
+            if (is_created){
+                // id of addnew row is 'order_new1'
+                row_id_str =  temp_pk_str ;
+            } else {
+                if (!!map_id){
+                    row_id_str = map_id;
+                } else {
+                    row_id_str = temp_pk_str;
+                }
+            }
+
+            console.log("row_id_str", row_id_str);
             let tblRow = document.getElementById(row_id_str);
+            console.log("tblRow", tblRow);
 
 //--- update Table Row
             UpdateTableRow(tblRow, update_dict)
@@ -1140,7 +1172,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // if( tblName === "customer")
 
 //--- remove 'updated, deleted created and msg_err from update_dict
-        remove_err_del_cre_updated__from_itemdict(update_dict)
+        //remove_err_del_cre_updated__from_itemdict(update_dict)
 
 //--- replace updated item in map or remove deleted item from map
         let data_map = (tblName === "customer") ? customer_map :
@@ -1542,7 +1574,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UploadElChanges  ============= PR2019-09-23
     function UploadElChanges(el_input) {
-        // console.log( " ==== UploadElChanges ====");
+        console.log( " ==== UploadElChanges ====");
         // console.log(el_input);
 
         let tblRow = get_tablerow_selected(el_input)
@@ -1553,6 +1585,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // id_dict = {'temp_pk': 'new_4', 'create': True, 'ppk': 120}
             let id_dict = get_iddict_from_element(tblRow);
             const tblName = get_dict_value_by_key(id_dict, "table")
+            console.log( "id_dict", id_dict);
 
             let upload_dict = {"id": id_dict};
 
@@ -1981,34 +2014,40 @@ document.addEventListener('DOMContentLoaded', function() {
         filter_dict = {};
 
         selected_customer_pk = 0;
-        const mode = selected_btn
+        selected_order_pk = 0;
 
-        let tblBody = document.getElementById("id_tbody_" + mode)
-        if(!!tblBody){
-            FilterTableRows(tblBody);
-            CreateAddnewRow(mode);
-        }
+        const tblName = (selected_btn === "customer") ? "customer" :
+                        (selected_btn === "order") ? "order" : null;
+        if (!!tblName){
+            let tblBody = document.getElementById("id_tbody_" + tblName)
+            if(!!tblBody){
+                FilterTableRows(tblBody);
+                CreateAddnewRow(tblName);
+            }
 
-        let tblHead = document.getElementById("id_thead_" + mode)
-        if(!!tblHead){
-            let filterRow = tblHead.rows[1];
-            if(!!filterRow){
-                const column_count = tbl_col_count[mode];
-                for (let j = 0, el; j < column_count; j++) {
-                    el = filterRow.cells[j].children[0]
-                    if(!!el){el.value = null}
+            let tblHead = document.getElementById("id_thead_" + tblName)
+            if(!!tblHead){
+                let filterRow = tblHead.rows[1];
+                if(!!filterRow){
+                    const column_count = tbl_col_count[tblName];
+                    for (let j = 0, el; j < column_count; j++) {
+                        el = filterRow.cells[j].children[0]
+                        if(!!el){el.value = null}
+                    }
                 }
             }
-        }
 
-        //--- reset filter of select table
-        el_filter_select.value = null
-        // reset icon of filter select table
-        // debug: dont use el.firstChild, it also returns text and comment nodes, can give error
-        el_sel_inactive.children[0].setAttribute("src", imgsrc_inactive_grey);
+            //--- reset filter of select table
+            el_filter_select.value = null
+            // reset icon of filter select table
+            // debug: dont use el.firstChild, it also returns text and comment nodes, can give error
+            el_sel_inactive.children[0].setAttribute("src", imgsrc_inactive_grey);
 
-        FilterSelectRows()
-        UpdateHeaderText();
+            FilterSelectRows()
+            UpdateHeaderText();
+
+        }  //  if (!!tblName){
+
     }  // function ResetFilterRows
 
 //========= FilterSelectRows  ==================================== PR2019-08-28

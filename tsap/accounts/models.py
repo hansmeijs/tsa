@@ -370,36 +370,31 @@ class Usersetting(Model):
 
     @classmethod
     def get_jsonsetting(cls, key_str, user):  # PR2019-07-02
-        # new_setting is in json format, no need for json.loads and json.dumps
-        # new_setting = json.loads(request.POST['setting'])
-        # new_setting_json = json.dumps(new_setting)
-
         setting_dict = {}
         if user and key_str:
             row = cls.objects.filter(user=user, key=key_str).first()
             if row:
                 if row.jsonsetting:
-                    setting_dict = json.loads(row.jsonsetting)
+                     # no need to use json.loads: Was: setting_dict = json.loads(row.jsonsetting)
+                    setting_dict = row.jsonsetting
 
         return setting_dict
 
     @classmethod
     def set_jsonsetting(cls, key_str, setting_dict, user):  # PR2019-07-02
-        # logger.debug('set_jsonsetting key' + str(key_str))
-        # logger.debug('setting_dict key' + str(setting_dict))
-        # new_setting is in json format, no need for json.loads and json.dumps
-        # new_setting = json.loads(request.POST['setting'])
-        # new_setting_json = json.dumps(new_setting)
-
-        new_setting_json = json.dumps(setting_dict)
+        # No need to use json.dumps. Was: new_setting_json = json.dumps(setting_dict)
         if user and key_str:
             try:
                 row = cls.objects.filter(user=user, key=key_str).first()
                 if row:
-                    row.jsonsetting = new_setting_json
+                    row.jsonsetting = setting_dict
                 else:
-                    if new_setting_json:
-                        row = cls(user=user, key=key_str, jsonsetting=new_setting_json)
+                    if setting_dict:
+                        row = cls(
+                            user=user,
+                            key=key_str,
+                            jsonsetting=setting_dict
+                        )
                 row.save()
                 # logger.debug('new_setting_json' + str(new_setting_json))
             except:

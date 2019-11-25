@@ -1,4 +1,5 @@
 
+// NOT IN USE, I think PR2019-11-24
 // ++++++++++++  OFFSET PICKER +++++++++++++++++++++++++++++++++++++++
     "use strict";
 
@@ -284,7 +285,6 @@
                 const cur_datetime_iso = get_attr_from_el(el_timepicker, "data-datetime");
                 const min_datetime_iso = get_attr_from_el(el_timepicker, "data-mindatetime");
                 const max_datetime_iso = get_attr_from_el(el_timepicker, "data-maxdatetime");
-
 
                 const is_offset = false, cur_offset = "";
                 let dict = {} // TODO

@@ -17,15 +17,20 @@
         </div>
 
         <div class="td_width_200 mx-2 my-2">
-             <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select customer' %}</h6>
-             <h6>
-                <select id="id_select_customer"class="td_width_200 px-2" ></select>
-                <option value="" disabled selected hidden>{% trans 'Select customer' %}...</option>
-            </h6>
-             <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select order' %}</h6>
-            <h6>
-                <select id="id_select_order" class="td_width_200 px-2"></select>
-            </h6>
+            <div id="id_select_customerorder_div" >
+                 <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select customer' %}</h6>
+                 <h6>
+                    <select id="id_select_customer" class="td_width_200 px-2" ></select>
+                    <option value="" disabled selected hidden>{% trans 'Select customer' %}...</option>
+                </h6>
+                <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select order' %}</h6>
+                <h6>
+                    <select id="id_select_order" class="td_width_200 px-2"></select>
+                </h6>
+            </div>
+            <div id="id_select_template_div" class="display_hide mx-2 my-2">
+                <h4 class="mx-2 my-2">{% trans 'Templates' %}</h4>
+            </div>
 
             <table id="id_select_table_scheme" class="display_hide mt-4">
                 <thead id="id_select_thead_scheme" class="tsa_color_white m-1"></thead>
@@ -117,7 +122,7 @@
 <!-- =================== END MODAL SCHEME =================== -->
 <!-- =================== MODAL COPYFROM TEMPLATE  =================== -->
     <div class="modal fade" id="id_mod_copyfrom" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-dialog modal-dialog-centered modal-md" role="document">
             <div class="modal-content">
                 <div class="modal-header tsa_bc_lightlightgrey">
                     <h4 id="id_mod_copyfrom_header" class="modal-title mx-2" >{% trans 'Copy from template' %}</h4>
@@ -130,16 +135,29 @@
                     <div class="modal_container">
 
 <!-- modal_body_left contains template select table -->
-                        <div class="modal_body_left mx-2 my-2">
-                            <h5 class="mx-2" >{% trans 'Copy from template' %}:</h5>
-                            <div>
-                                <label for="id_mod_copyfrom_template" class="mx-2 my-2">{% trans 'Template' %}:</label>
-                                <select id="id_mod_copyfrom_template" class="form-control"></select>
-                                <small id="id_mod_copyfrom_template_err" class="color_invalid mx-2 display_hide"></small>
-                            </div>
+                        <div class="modal_body_left m-2">
+                                <div>
+                                    <h5>{% trans 'Select template' %}:</h5>
+                                </div>
+<!--
+                                <div >
+                                    <input id="id_mod_copyfrom_filter_template" type="text"
+                                    class="fieldname pt-0 pb-0" colspan=2 autocomplete="off"
+                                    placeholder="{% trans 'filter name...' %}"
+                                    >
+                                </div>
+                                -->
+                                <div  class="td_width_200 td_height_240"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                    <table class="table table-condensed tsa-tbl my-1">
+                                        <tbody id="id_mod_copyfrom_tblbody" data-table="scheme">
+                                        </tbody>
+                                    </table>
+                                </div>
+
                         </div>
-                        <div class="modal_body_left  mx-2 my-2">
-                            <h5 class="mx-2" >{% trans 'To scheme' %}:</h5>
+
+                        <div class="modal_body_left m-2">
+                            <h5 class="mx-2" >{% trans 'Copy to scheme' %}:</h5>
                                 <div>
                                     <label for="id_mod_copyfrom_customer" class="mx-2 my-2">{% trans 'Customer' %}:</label>
                                     <select id="id_mod_copyfrom_customer" class="form-control"></select>
@@ -373,33 +391,27 @@
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
             data-today ="{{ today }}"
+            data-locale ="{{ locale }}"
 
-            data-err_msg01= "{% trans 'An error occurred.' %}"
-            data-err_msg_order="{% trans 'Please select an order.' %}"
-            data-err_msg_customer="{% trans 'Please select a customer.' %}"
-            data-err_msg_template_select="{% trans 'Please select a template.' %}"
-            data-err_msg_name_exists= "{% trans 'This name already exists. Please enter a different name.' %}"
-            data-err_msg_name_blank= "{% trans 'Name cannot be blank. Please enter a name.' %}"
-            data-err_msg_code= "{% trans 'Please enter the name of the scheme.' %}"
-            data-err_msg_cycle= "{% trans 'Please enter the number of cycle days.' %}"
-            data-err_msg_template_blank = "{% trans 'Please enter a template name.' %}"
+
 
             data-txt_save = "{% trans 'Save' %}"
             data-txt_quicksave = "{% trans 'Quick save' %}"
             data-txt_quicksave_remove = "{% trans 'Exit Quick save' %}"
 
-            data-txt_customer = "{% trans 'Customer' %}"
             data-txt_select_customer= "{% trans 'Select customer' %}"
             data-txt_select_customer_none= "{% trans 'No customers' %}"
-            data-txt_order= "{% trans 'Order' %}"
             data-txt_select_order= "{% trans 'Select order' %}"
             data-txt_select_order_none= "{% trans 'No orders' %}"
-            data-txt_select_scheme= "{% trans 'Select scheme' %}"
-            data-txt_select_scheme_none= "{% trans 'No schemes' %}"
 
-            data-txt_date= "{% trans 'Date' %}"
             data-txt_scheme= "{% trans 'Scheme' %}"
             data-txt_scheme_add= "{% trans 'Add scheme' %}"
+            data-txt_select_scheme= "{% trans 'Select scheme' %}"
+            data-txt_select_scheme_none= "{% trans 'No schemes' %}"
+            data-txt_select_shift = "{% trans 'Select shift' %}"
+            data-txt_select_team= "{% trans 'Select team' %}"
+
+            data-txt_date= "{% trans 'Date' %}"
 
             data-txt_copyfrom_select_template= "{% trans 'Select template' %}"
             data-txt_copyfrom_select_none= "{% trans 'No templates' %}"

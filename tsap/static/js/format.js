@@ -668,20 +668,25 @@
     function format_offset_element (el_input, el_msg, fieldname, field_dict, offset, timeformat, user_lang, title_prev, title_next, blank_when_zero) {
         //console.log("------ format_offset_element --------------", fieldname)
        // offsetstart: {offset: 0, minoffset: -720, maxoffset: 1440}
-
+       const tagName = el_input.tagName
+        //console.log("field_dict", field_dict)
+        //console.log("tagName", tagName)
         if(!!el_input){
             let offset = null, display_text, title;
+
             if(!!field_dict){
 
                 // offset:  "270" = 04:30, value can be null
                 const fld = (fieldname === "breakduration") ? "value" : "offset";
                 offset = get_dict_value_by_key(field_dict, fld);
+            //console.log("offset", offset)
 
                 const updated = get_dict_value_by_key (field_dict, "updated");
                 const msg_err = get_dict_value_by_key (field_dict, "error");
                 // (variable == null) will catch null and undefined simultaneously. Equal to (variable === undefined || variable === null)
                 let hide_value = (offset == null) || (blank_when_zero && offset === 0);
 
+            //console.log("hide_value", hide_value)
                 if (!hide_value){
                     let days_offset = Math.floor(offset/1440)  // - 90 (1.5 h)
                     const remainder = offset - days_offset * 1440
@@ -711,9 +716,17 @@
             }  //  if(!!field_dict)
 
             if(!!display_text){
-                el_input.value = display_text;
+                if(el_input.tagName === "INPUT"){
+                    el_input.value = display_text;
+                } else {
+                    el_input.innerText = display_text;
+                }
             } else {
-                el_input.value = null;
+                if(el_input.tagName === "INPUT"){
+                    el_input.value = null;
+                } else {
+                    el_input.innerText = null;
+                }
             }
             if(!!title){
                 el_input.title = title;
