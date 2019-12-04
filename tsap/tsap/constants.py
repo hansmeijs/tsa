@@ -336,7 +336,8 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsenc
                    'wagerate', 'wagefactor', 'wage', 'pricerate', 'pricerate',
                    'status', 'overlap', 'locked')
 
-FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'istemplate', 'code', 'datefirst', 'datelast',
+FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'istemplate', 'code',
+                 'datefirst', 'datelast',
                  'cycle', 'billable', 'excludeweekend', 'excludepublicholiday',
                  'priceratejson', 'additionjson', 'inactive')
 
@@ -347,6 +348,7 @@ FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'billable',
 
 FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team', 'cat', 'billable',
                      'rosterdate', 'iscyclestart', 'timestart', 'timeend', 'timeduration',
+                     'offsetstart', 'offsetend',
                      'priceratejson', 'additionjson', 'istemplate', 'inactive')
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
@@ -356,16 +358,15 @@ FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
                    'payrollcode', 'wagerate', 'wagecode', 'workhours', 'workdays', 'leavedays',
                    'priceratejson', 'additionjson', 'inactive', 'locked')
 
+FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'isabsence', 'employee', 'datefirst', 'datelast',
+                     'workhoursperday', 'wagerate', 'wagefactor',
+                     'offsetstart', 'offsetend',
+                     'priceratejson', 'additionjson', 'override')
+# teammember wagerate not in use
+# teammember pricerate not in use
 
 WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, default is 40 hours per week = 2.400 minutes
 WORKDAYS_DEFAULT = 7200  # workdays per week * 1440, unit is minute (one day has 1440 minutes) , default is 5 days per week = 7200 minutes
 LEAVEDAYS_DEFAULT = 21600  # leavedays per year, = 15 days * 1440 = 21.600 minutes
 
 # workhours_per_day_minutes = workhours_minutes / workdays_minutes * 1440
-
-FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'isabsence', 'employee', 'datefirst', 'datelast',
-                     'workhoursperday', 'wagerate', 'wagefactor',
-                     'offsetstart', 'offsetend',
-                     'priceratejson', 'additionjson', 'override', 'shiftjson')
-# teammember wagerate not in use
-# teammember pricerate not in use

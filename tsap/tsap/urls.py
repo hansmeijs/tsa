@@ -93,7 +93,6 @@ urlpatterns = [
     url(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
         account_views.UserActivateView.as_view(), name='activate_url'),
 
-
     url(r'^users/(?P<pk>\d+)/activated$', account_views.UserActivatedSuccess.as_view(),
         name='account_activation_success_url'),
 
@@ -137,8 +136,6 @@ urlpatterns = [
         path('customers/', customer_views.CustomerListView.as_view(), name='customer_list_url'),
         path('customer_upload/', customer_views.CustomerUploadView.as_view(), name='customer_upload_url'),
         path('pricerate_upload/', customer_views.PricerateUploadView.as_view(), name='pricerate_upload_url'),
-        path('orders/', customer_views.OrderListView.as_view(), name='order_list_url'),
-        # path('order_upload/', customer_views.OrderUploadView.as_view(), name='order_upload_url'),
     ])),
 
     path('employee/', include([
@@ -161,7 +158,7 @@ urlpatterns = [
 
     path('planning/', include([
         path('schemes', planning_views.SchemesView.as_view(), name='schemes_url'),
-        path('scheme_upload', planning_views.SchemeUploadView.as_view(), name='scheme_upload_url'),
+        # path('scheme_upload', planning_views.SchemeUploadView.as_view(), name='scheme_upload_url'),
         path('schemeitem_download', planning_views.SchemeitemDownloadView.as_view(), name='schemeitems_download_url'),
         path('schemeitem_upload', planning_views.SchemeItemUploadView.as_view(), name='schemeitem_upload_url'),
         path('schemeitem_fill', planning_views.SchemeitemFillView.as_view(), name='schemeitem_fill_url'),

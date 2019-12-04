@@ -172,10 +172,11 @@
 
         return time_formatted
     }  // format_offset_time
+
 //========= format_text_element  ======== PR2019-06-09
-    function format_text_element (el_input, el_msg, field_dict, msg_offset, title_overlap) {
-        // console.log("--- format_text_element ---")
-        // console.log("field_dict: ", field_dict)
+    function format_text_element (el_input, el_msg, field_dict, skip_ok, msg_offset, title_overlap) {
+        //console.log("--- format_text_element ---")
+        //console.log("skip_ok: ", skip_ok)
 
         if(!!el_input && !isEmpty(field_dict)){
             const pk = get_dict_value_by_key (field_dict, "pk");
@@ -201,12 +202,13 @@
             }
             if(!!msg_err){
                 if(!value) { value = null} // otherwise 'undefined will show in tetbox
-                ShowMsgError(el_input, el_msg, msg_err, msg_offset, true, value)
+                //ShowMsgError(el_input, el_msg, msg_err, msg_offset, true, value)
+                ShowMsgError(el_input, el_msg, msg_err, [0,0], true, value)
             } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){
-                    el_input.classList.remove("border_valid");
-                    }, 2000);
+                // dont make el green when addnew row is cleared
+                if(!skip_ok){
+                    ShowOkElement(el_input);
+                }
             }
             if (!!value){
                 el_input.value = value;
@@ -224,6 +226,27 @@
         }
     }  // format_text_element
 
+//========= format_select_element  ======== PR2019-12-03
+    function format_select_element (el_input, field_dict) {
+        //console.log("--- format_select_element ---")
+
+        if(!!el_input && !isEmpty(field_dict)){
+            let pk_int = parseInt(get_dict_value_by_key (field_dict, "pk"))
+            if(!pk_int){pk_int = 0}
+            const value = get_dict_value_by_key (field_dict, "value");
+            const updated = get_dict_value_by_key (field_dict, "updated");
+
+            // lock element when locked
+            const locked = get_dict_value_by_key (field_dict, "locked");
+            el_input.disabled = locked
+
+            el_input.value = pk_int
+            el_input.setAttribute("data-value", value);
+            el_input.setAttribute("data-pk", pk_int);
+
+            if(updated){ShowOkElement(el_input)}
+        }
+    }  // format_select_element
 
 //========= format_amount  ======== PR2019-10-10
     function format_amount (value, user_lang) {
@@ -273,8 +296,7 @@
                 if(!value) {value = null} // otherwise 'undefined will show in textbox
                 ShowMsgError(el_input, el_msg, msg_err, msg_offset, true, display_value, value)
             } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){el_input.classList.remove("border_valid");}, 2000);
+                ShowOkElement(el_input);
             }
 
             el_input.value = (!!display_value) ? display_value : null
@@ -365,10 +387,7 @@
             if(!!msg_err){
                ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, display_value, data_value, display_title)
             } else if(updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){
-                    el_input.classList.remove("border_valid");
-                    }, 2000);
+                ShowOkElement(el_input);
             }
 
             if(!!display_value){el_input.value = display_value} else {el_input.value = null}
@@ -635,12 +654,9 @@
 
 // show msg_err or border_valid
                 if(!!msg_err){
-                   ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, value)
+                    ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, value)
                 } else if(updated){
-                    el_input.classList.add("border_valid");
-                    setTimeout(function (){
-                        el_input.classList.remove("border_valid");
-                        }, 2000);
+                    ShowOkElement(el_input);
                 }
             }  // if (!!datetime_iso)
 
@@ -708,10 +724,7 @@
                 if(!!msg_err){
                    ShowMsgError(el_input, el_msg, msg_err, offset, true, offset)
                 } else if(updated){
-                    el_input.classList.add("border_valid");
-                    setTimeout(function (){
-                        el_input.classList.remove("border_valid");
-                        }, 2000);
+                    ShowOkElement(el_input);
                 }
             }  //  if(!!field_dict)
 
@@ -820,10 +833,7 @@
                     //console.log("+++++++++ ShowMsgError")
                    ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, display_value,  value_int)
                 } else if(updated){
-                    el_input.classList.add("border_valid");
-                    setTimeout(function (){
-                        el_input.classList.remove("border_valid");
-                        }, 2000);
+                    ShowOkElement(el_input);
                 }
 
             }  // if(!!field_dict)
@@ -938,8 +948,7 @@
             }
             const is_updated = get_dict_value_by_key(field_dict, "updated", false);
             if(is_updated){
-                el_input.classList.add("border_valid");
-                setTimeout(function (){el_input.classList.remove("border_valid")}, 2000);
+                ShowOkElement(el_input);
             }
         }  // if(!!el_input)
     }  // format_restshift_element
@@ -984,10 +993,7 @@
                 }
 
                 if(get_dict_value_by_key (field_dict, "updated")){
-                    el_input.classList.add("border_valid");
-                    setTimeout(function (){
-                        el_input.classList.remove("border_valid");
-                        }, 2000);
+                    ShowOkElement(el_input);
                 }
             }  // if(isEmpty(field_dict)){
         }  // if(!!el_input)
@@ -1019,7 +1025,7 @@
                 }
             }
             // make el_input green for 2 seconds
-            if("updated" in field_dict){ShowOkClass(el_input)}
+            if("updated" in field_dict){ShowOkElement(el_input)}
         }
     }  // format_inactive_element
 
@@ -1140,3 +1146,20 @@
         }
     }  // function format_status_element
 
+//=========  ShowOkRow  ================ PR2019-05-31
+    function ShowOkRow(tblRow ) {
+        // make row green, / --- remove class 'ok' after 2 seconds
+        tblRow.classList.add("tsa_tr_ok");
+        setTimeout(function (){
+            tblRow.classList.remove("tsa_tr_ok");
+        }, 2000);
+    }
+
+//=========  ShowOkElement  ================ PR2019-11-27
+    function ShowOkElement(el_input) {
+        // make element green, green border / --- remove class 'ok' after 2 seconds
+        el_input.classList.add("border_valid");
+        setTimeout(function (){
+            el_input.classList.remove("border_valid");
+        }, 2000);
+    }

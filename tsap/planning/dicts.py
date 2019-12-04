@@ -688,9 +688,30 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
 
             elif field == 'rosterdate':
                 rosterdate = getattr(schemeitem, field)
+                cycle_startdate = None
+                cycle_enddate = None
+                schemeitem_cyclestart = m.Schemeitem.objects.filter(
+                    scheme=schemeitem.scheme,
+                    iscyclestart=True
+                ).first()
+                if schemeitem_cyclestart is None:
+                     # lookup lowest rosterdate if iscyclestart is not set
+                    schemeitem_cyclestart = m.Schemeitem.objects.filter(
+                        scheme=schemeitem.scheme
+                    ).order_by('rosterdate').first()
+                if schemeitem_cyclestart:
+                    cycle_startdate = schemeitem_cyclestart.rosterdate
+                    days = (schemeitem.scheme.cycle - 1)
+                    logger.debug('days: ' + str(days) + ' ' + str(type(days)))
+                    cycle_enddate = cycle_startdate + timedelta(days=days)
+                    logger.debug('cycle_startdate: ' + str(cycle_startdate) + ' ' + str(type(cycle_startdate)))
+                    logger.debug('cycle_enddate: ' + str(cycle_enddate) + ' ' + str(type(cycle_enddate)))
+
                 f.set_fielddict_date(
                     field_dict=field_dict,
-                    date_value=rosterdate)
+                    date_value=rosterdate,
+                    mindate=cycle_startdate,
+                    maxdate=cycle_enddate)
 
             elif field == 'shift':
                 shift = getattr(schemeitem, field)
@@ -791,13 +812,15 @@ def create_shift_dict(shift, update_dict, user_lang):
                 field_dict['pk'] = shift.pk
                 field_dict['ppk'] = shift.scheme.pk
                 field_dict['table'] = 'shift'
+                if shift.istemplate:
+                    field_dict['istemplate'] = True
                 update_dict['pk'] = shift.pk
 
             elif field == 'cat':
                 cat_sum = getattr(shift, field, 0)
                 field_dict['value'] = cat_sum
 
-            elif field == 'isrestshift':
+            elif field in ['isrestshift', 'istemplate']:
                 value = getattr(shift, field, False)
                 field_dict['value'] = value
 

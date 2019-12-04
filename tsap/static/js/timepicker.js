@@ -20,9 +20,9 @@
 
 //========= OpenTimepicker  ====================================
     function OpenTimepicker(el_input, UploadTimepickerChanged, tp_dict, st_dict) {
-        console.log("===  OpenTimepicker  =====");
-        console.log( "tp_dict: ", tp_dict);
-        console.log( "st_dict: ", st_dict);
+        //console.log("===  OpenTimepicker  =====");
+        //console.log( "tp_dict: ", tp_dict);
+        //console.log( "st_dict: ", st_dict);
 
         CalcMinMax(tp_dict)
 
@@ -98,8 +98,8 @@
 
 //========= CreateFooter  ====================================
     function CreateFooter(tp_dict, st_dict, UploadTimepickerChanged) {
-        console.log( "--- CreateFooter  ");
-        console.log("tp_dict", tp_dict);
+        //console.log( "--- CreateFooter  ");
+        //console.log("tp_dict", tp_dict);
 
         // btn_quicksave.innerText is set in HideSaveButtonOnQuicksave
 
@@ -335,7 +335,7 @@
         //console.log("==== SetAmPm  =====");
 
     // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
+        const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
         if (!disabled){
             const comp_timezone = get_attr_from_el(el_timepicker, "data-timezone");
         // get new ampm from td data-ampm of td
@@ -368,11 +368,11 @@
 
 //========= SetHour  ====================================
     function SetHour(tbody, td, UploadTimepickerChanged, tp_dict, st_dict) {
-       console.log("==== SetHour  =====");
-        console.log("tp_dict", tp_dict);
+       //console.log("==== SetHour  =====");
+        //console.log("tp_dict", tp_dict);
 
     // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
+        const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
         //console.log("disabled", disabled);
 
         if (!disabled){
@@ -399,7 +399,7 @@
         //console.log("==== SetMinute  =====");
 
     // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
+        const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
         if (!disabled){
 
     // get new minutes from data-minute of td
@@ -425,7 +425,7 @@
 
         let quicksave = tp_dict["quicksave"]
 
-        console.log("quicksave", quicksave);
+        //console.log("quicksave", quicksave);
         let save_changes = false;
     // close timepicker, except when clicked on quicksave off
         if (mode === "btn_save") {
@@ -455,23 +455,23 @@
         } else if (mode === "btn_delete") {
             tp_dict["offset"] = null;
 
-        console.log("HandleTimepickerSave --- CalcMinMax ---")
+        //console.log("HandleTimepickerSave --- CalcMinMax ---")
             CalcMinMax(tp_dict)
             save_changes = true;
         }
 
         if(save_changes){
-            console.log( ">>>>=== save_changes  ");
+            //console.log( ">>>>=== save_changes  ");
             popupbox_removebackground("input_timepicker");
 
             let el_timepicker = document.getElementById("id_timepicker")
             el_timepicker.classList.add("display_hide");
             // save only when offset is within range or null (when changing date hour/minumtes can go outside min/max range)
-            console.log( ">>>> tp_dict: ", tp_dict);
-            console.log("JSON.stringify: ", JSON.stringify(tp_dict));
+            //console.log( ">>>> tp_dict: ", tp_dict);
+            //console.log("JSON.stringify: ", JSON.stringify(tp_dict));
 
             const within_range = tp_dict["within_range"];
-            console.log( ">>>>=== within_range", within_range, typeof within_range);
+            //console.log( ">>>>=== within_range", within_range, typeof within_range);
             if(tp_dict["within_range"]){
                 tp_dict["save_changes"] = true;
                 UploadTimepickerChanged(tp_dict);
@@ -484,26 +484,24 @@
     function HighlightAndDisableAmpm(UploadTimepickerChanged, tp_dict, st_dict) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
         //console.log( ">>>>=== HighlightAndDisableAmpm  ");
+        //TODO check and fix
+        //const curDate_is_rosterdate = dict["curDate_is_rosterdate"];
+        //const prevday_disabled = dict["prevday_disabled"];
+        // const nextday_disabled = dict["nextday_disabled"];
 
-        const curDate_is_rosterdate = dict["curDate_is_rosterdate"];
-        const prevday_disabled = dict["prevday_disabled"];
-        const nextday_disabled = dict["nextday_disabled"];
+        const curDate = tp_dict["curDate"]
+        //const curDateMidnight  = curDate.clone()
+        //const curDateMidday = curDate.clone().hour(12);
+        //const curDateEndOfDay = curDate.clone().add(1, 'days');
 
-        const comp_timezone = get_attr_from_el(el_timepicker, "data-timezone");
+        //const range_min = tp_dict["min_datetime_local"];
+        //const range_max = tp_dict["max_datetime_local"];
 
-        const curDate = dict["curDate"]
-        const curDateMidnight = curDate.clone()
-        const curDateMidday = curDate.clone().hour(12);
-        const curDateEndOfDay = curDate.clone().add(1, 'days');
-
-        const range_min = dict["min_datetime_local"];
-        const range_max = dict["max_datetime_local"];
-
-        let curAmPm = dict["curAmpm"];
-        let curHoursAmpm = dict["curHoursAmpm"];
+        let curAmPm = tp_dict["curAmpm"];
+        let curHoursAmpm = tp_dict["curHoursAmpm"];
         //console.log("curAmPm", curAmPm, "curHoursAmpm", curHoursAmpm);
 
-        if (dict["isampm"]) {
+        if (tp_dict["isampm"]) {
             const tbody = document.getElementById("id_timepicker_tbody_hour");
             let tds = tbody.getElementsByClassName("timepicker_ampm")
             for (let i=0, td, cell_value, highlighted, period_within_range, disabled; td = tds[i]; i++) {
@@ -513,13 +511,13 @@
 
                 let period_min, period_max // am: period is from 00.00u till 12.00 u  pm: period is from 12.00u till 24.00 u
                 if (cell_value === 0){
-                    period_min =  curDateMidnight;
-                    period_max =  curDateMidday;
+                    //period_min =  curDateMidnight;
+                    //period_max =  curDateMidday;
                  } else {
-                    period_min =  curDateMidday;
-                    period_max =  curDateEndOfDay;
+                    //period_min =  curDateMidday;
+                    //period_max =  curDateEndOfDay;
                 }
-                period_within_range = PeriodWithinRange(period_min, period_max, range_min, range_max)
+                //period_within_range = PeriodWithinRange(period_min, period_max, range_min, range_max)
                 //console.log("period_min", period_min.format(), "period_max", period_max.format())
                 //console.log("range_min", range_min.format(), "range_max", range_max.format())
                 //console.log("period_within_range", period_within_range)
@@ -534,13 +532,13 @@
 //========= HighlightAndDisableHours  ====================================
     function HighlightAndDisableHours(tp_dict) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        console.log( "-VVVVVVVVVVVV-------- HighlightAndDisableHours  ");
+        //console.log( "--------- HighlightAndDisableHours  ");
         CalcMinMax(tp_dict)
 
         const curHours = tp_dict["curHours"]
         const minHours = tp_dict["minHours"]
         const maxHours = tp_dict["maxHours"]
-        console.log( "curHours", curHours,  "minHours", minHours,  "maxHours", maxHours);
+        //console.log( "curHours", curHours,  "minHours", minHours,  "maxHours", maxHours);
 
         let curHourDisabled = false;
         let tbody = document.getElementById("id_timepicker_tbody_hour");
@@ -581,7 +579,7 @@
         //console.log(td, "disabled: ", disabled, "highlighted: ", highlighted)
         td.classList.remove("tr_highlighted")
         if (!!disabled){
-            td.classList.add("tr_disabled");
+            td.classList.add("tr_color_disabled");
             td.classList.remove("tr_highlighted")
             if (!!highlighted){
                 td.classList.add("tsa_color_notallowed")
@@ -589,7 +587,7 @@
                 td.classList.remove("tsa_color_notallowed")
             }
         } else {
-            td.classList.remove("tr_disabled")
+            td.classList.remove("tr_color_disabled")
             td.classList.remove("tsa_color_notallowed")
             if (!!highlighted){
                 td.classList.add("tr_highlighted")
@@ -629,7 +627,7 @@ function CalcMinMax_with_newValues(tp_dict, newDayOffset, newHours, newMinutes) 
 
 //========= CalcMinMax  ==================================== PR2018-08-02
 function CalcMinMax(dict) {
-        console.log(" --- CalcMinMax ---")
+        //console.log(" --- CalcMinMax ---")
 
         const curOffset = dict["offset"];
         const minOffset = dict["minoffset"];
@@ -779,7 +777,7 @@ function CalcMinMax(dict) {
 //========= ShowHover  ====================================
     function ShowHover(td, event) {
         if(!!td){
-            const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
+            const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
             if (event.type === "mouseenter" && !disabled){
                 td.classList.add("tr_hover")
             } else {

@@ -104,26 +104,26 @@
         {% block sidebar %}{% endblock %}
     <!-- END SIDE BAR -->
 
-        <!-- PAGE CONTENT -->
-            <div id="id_content">
-                {% block modal %}
-                {% endblock %}
+    <!-- PAGE CONTENT -->
+        <div id="id_content">
+            {% block modal %}
+            {% endblock %}
 
-                <header>
-                    {% include 'includes/header.html' %}
-                </header>
+            <header>
+                {% include 'includes/header.html' %}
+            </header>
 
-                {% block body %}
-                   <!--  <div class="container"> -->
-                    {% block breadcrumb %}{% endblock %}
-                    {% include 'includes/messages.html' %}
-                    {% block content %}{% endblock %}
-                   <!--  </div> -->
-                {% endblock body %}
+            {% block body %}
+               <!--  <div class="container"> -->
+                {% block breadcrumb %}{% endblock %}
+                {% include 'includes/messages.html' %}
+                {% block content %}{% endblock %}
+               <!--  </div> -->
+            {% endblock body %}
 
-                {% include 'session_security/all.html' %}
-            </div>
-        <!-- END PAGE CONTENT -->
+            {% include 'session_security/all.html' %}
+        </div>
+    <!-- END PAGE CONTENT -->
   </div>
   </body>
 <!-- end class wrapper -->

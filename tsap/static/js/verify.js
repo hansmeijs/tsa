@@ -76,12 +76,12 @@ console.log("=========  function AddTableRow =========");
 
 //--------- increase id_new
             id_new = id_new + 1
-            let id_str =  id_new.toString()
+            let pk_new =  id_new.toString()
 
             let tblBody = document.getElementById('id_tbody');
 //--------- insert tblBody row
             let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-            tblRow.setAttribute('id', 'new_' + id_str);
+            tblRow.setAttribute('id', 'new_' + pk_new);
             for (let j = 0 ; j < 11; j++) {
                 //let td = document.createElement('td');          // TABLE DEFINITION.
                 //td = tr.insertCell(tblRow);

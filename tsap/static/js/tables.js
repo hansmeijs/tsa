@@ -4,6 +4,8 @@
     const cls_hide = "display_hide";
     const cls_hover = "tr_hover";
     const cls_bc_lightlightgrey = "tsa_bc_lightlightgrey";
+    const cls_bc_yellow = "tsa_bc_yellow";
+
 
 // ++++++++++++  SELECT TABLE +++++++++++++++++++++++++++++++++++++++
 
@@ -37,7 +39,8 @@
             tblRow.setAttribute("data-table", tblName);
             tblRow.setAttribute("data-inactive", inactive_value);
 
-            tblRow.classList.add(cls_bc_lightlightgrey);
+            //tblRow.classList.add(cls_bc_lightlightgrey);
+            tblRow.classList.add(cls_bc_yellow);
 
     //- add hover to select row
             tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover)});
@@ -92,11 +95,12 @@
         // update_dict = { id: {pk: 489, ppk: 2, table: "customer"}, cat: {value: 0}, inactive: {},
         //                 code: {value: "mc"} , name: {value: "mc"}, interval: {value: 0}
 
-        const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
-        //const imgsrc_inactive_grey = get_attr_from_el(el_data, "data-imgsrc_inactive_grey");
-        const imgsrc_inactive_lightgrey = get_attr_from_el(el_data, "data-imgsrc_inactive_lightgrey");
 
-        if(!!selectRow && !!update_dict){
+        // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
+        const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
+        const imgsrc_inactive_grey = get_attr_from_el(el_data, "data-imgsrc_inactive_grey");
+
+        if(!isEmpty(update_dict) && !!selectRow){
             //const id_dict = get_dict_value_by_key (update_dict, "id");
             //const is_deleted = ("deleted" in id_dict);
             const is_deleted = (!!get_subdict_value_by_key (update_dict, "id", "deleted"));
@@ -119,7 +123,7 @@
                     selectRow.setAttribute("data-inactive", inactive_value);
 
                     let el_input = selectRow.cells[1].children[0]
-                    format_inactive_element (el_input, inactive_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
+                    format_inactive_element (el_input, inactive_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
 
 // make el_input green for 2 seconds
                     if("updated" in inactive_dict){
@@ -336,12 +340,14 @@
             Object.keys(item_dict).forEach(function(key) {
                 const field_dict = item_dict[key];
                 if (!isEmpty(field_dict)){
-                    if ("updated" in field_dict){delete field_dict["updated"]};
-                    if ("msg_err" in field_dict){delete field_dict["msg_err"]};
+
+                // TODO put back deletes
+                    //if ("updated" in field_dict){delete field_dict["updated"]};
+                    //if ("msg_err" in field_dict){delete field_dict["msg_err"]};
                     if(key === "id"){
-                        if ("created" in field_dict){delete field_dict["created"]};
-                        if ("temp_pk" in field_dict){delete field_dict["temp_pk"]};
-                        if ("deleted" in field_dict){delete field_dict["deleted"]};
+                        //if ("created" in field_dict){delete field_dict["created"]};
+                        //if ("temp_pk" in field_dict){delete field_dict["temp_pk"]};
+                        //if ("deleted" in field_dict){delete field_dict["deleted"]};
                     }}})};
     };  // remove_err_del_cre_updated__from_itemdict
 
@@ -375,21 +381,23 @@
 
 //========= function get_iddict_from_element  ======== PR2019-06-01
     function get_iddict_from_element (el) {
-        console.log( "--- get_iddict_from_element ---");
-        console.log( el);
+        //console.log( "--- get_iddict_from_element ---");
+        //console.log( el);
 
         // function gets 'data-pk', 'data-ppk', 'data-table', 'data-mode', 'data-cat' from element
         // and puts it as 'pk', 'ppk', 'temp_pk' and 'create', mode, cat in id_dict
         // id_dict = {'temp_pk': 'new_4', 'create': True, 'ppk': 120}
         let id_dict = {};
         if(!!el) {
-// ---  get pk from data-pk in el
-            const pk_str = get_attr_from_el(el, "data-pk"); // or: const pk_str = el.id
-            const id_str = get_attr_from_el(el, "id");
-            //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
-            let pk_int = parseInt(pk_str);
-            // if pk_int is not numeric, then row is a new row with pk 'new_1' and 'create'=true
 
+// ---  get pk from data-pk in el
+            const id_str = get_attr_from_el(el, "id");  // "employee_542" or "employee_new2"
+            const pk_str = get_attr_from_el(el, "data-pk"); // "542" or "new2"
+            //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
+            // don't use Number, id can also be "543-02" in planning, that returns false with Number
+            let pk_int = parseInt(pk_str);
+
+            // if pk_int is not numeric, then row is a new row with pk 'new_1' and 'create'=true
             if (!pk_int){
                 if (!!pk_str){
                     id_dict["create"] = true}
@@ -400,8 +408,9 @@
             if(!parseInt(id_str)) {
                 id_dict["temp_pk"] = id_str;
             }
+
 // get parent_pk from data-ppk in el
-            const parent_pk_int = get_datappk_from_element(el);
+            const parent_pk_int = get_attr_from_el_int(el, "data-ppk");
             if (!!parent_pk_int){id_dict["ppk"] = parent_pk_int}
 
 // get table_name from data-table in el
@@ -409,15 +418,15 @@
             if (!!tblName){id_dict["table"] = tblName}
 
 // get mode from data-table in el (mode is used in employees.js)
-            const btnName = get_attr_from_el(el, "data-mode");
-            if (!!btnName){id_dict["mode"] = btnName}
+            // NOT IN USE ?? TODO
+            //const btnName = get_attr_from_el(el, "data-mode");
+            //if (!!btnName){id_dict["mode"] = btnName}
 
 // get cat from data-table in el
-            const cat = get_attr_from_el_int(el, "data-cat");
-            if (!!cat){id_dict["cat"] = cat}
+            // NOT IN USE ?? TODO
+            //const cat = get_attr_from_el_int(el, "data-cat");
+            //if (!!cat){id_dict["cat"] = cat}
         }
-
-        console.log("id_dict", id_dict);
         return id_dict
     }  // function get_iddict_from_element
 
@@ -720,8 +729,8 @@
 //=========  ShowMsgError  ================ PR2019-06-01
     function ShowMsgError(el_input, el_msg, msg_err, offset, set_value, display_value, data_value, display_title) {
         // show MsgBox with msg_err , offset[0] shifts horizontal position, offset[1] VERTICAL
-        //console.log("ShowMsgError")
-        // console.log("el_msg", el_msg )
+        console.log("ShowMsgError")
+        console.log("el_msg", el_msg )
         // console.log("msg_err", msg_err, typeof msg_err )
         // console.log("set_value", set_value, typeof set_value )
         // console.log("display_value", display_value, typeof display_value )
@@ -732,21 +741,25 @@
             el_input.classList.add("border_bg_invalid");
                 // el_input.parentNode.classList.add("tsa_tr_error");
 
-    //var viewportWidth = document.documentElement.clientWidth;
-    //var viewportHeight = document.documentElement.clientHeight;
-    //console.log("viewportWidth: " + viewportWidth + " viewportHeight: " + viewportHeight  )
+        // The viewport is the user's visible area of a web page.
+        // const viewportWidth = document.documentElement.clientWidth;
+        // const viewportHeight = document.documentElement.clientHeight;
+        // console.log("viewportWidth: " + viewportWidth + " viewportHeight: " + viewportHeight  )
 
-    //var docWidth = document.body.clientWidth;
-    //var docHeight = document.body.clientHeight;
-    //console.log("docWidth: " + docWidth + " docHeight: " + docHeight  )
+        // const docWidth = document.body.clientWidth;
+        // const docHeight = document.body.clientHeight;
+        // console.log("docWidth: " + docWidth + " docHeight: " + docHeight  )
 
-
+        // put  msgbox in HTML right below {% if user.is_authenticated %}
+        // el_msg [0,0] pposotions msgbox on left top position of <div id="id_content">
+        // TODO remove offset if not necessary ( turned off for noew)
             el_msg.innerHTML = msg_err;
             el_msg.classList.add("show");
                 const elemRect = el_input.getBoundingClientRect();
                 const msgRect = el_msg.getBoundingClientRect();
-                const topPos = elemRect.top - (msgRect.height + offset[1]);
-                const leftPos = elemRect.left + offset[0];
+                const topPos = elemRect.top - (msgRect.height) - 52  + offset[1]; // - 48 because of title/ menu / submenu, -4 because of arrow onder msgbox
+                const leftPos = elemRect.left - 220  + offset[0]; // -220 because of width sidebar
+
                 const msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
             el_msg.setAttribute("style", msgAttr)
 
@@ -769,14 +782,7 @@
         } // if(!!el_input && msg_err)
     }
 
-//=========  ShowOkClass  ================ PR2019-05-31
-    function ShowOkClass(tblRow ) {
-    // make row green, / --- remove class 'ok' after 2 seconds
-        tblRow.classList.add("tsa_tr_ok");
-        setTimeout(function (){
-            tblRow.classList.remove("tsa_tr_ok");
-        }, 2000);
-    }
+
 
 //=========  AppendIcon  ================ PR2019-05-31
     function AppendChildIcon(el, img_src, height ) {
@@ -799,29 +805,30 @@
 
 //========= GetNewSelectRowIndex  ============= PR2019-10-20
     function GetNewSelectRowIndex(tblBody, code_colindex, item_dict, user_lang) {
-        console.log(" --- GetNewSelectRowIndex --- ")
+        //console.log(" --- GetNewSelectRowIndex --- ")
+        // funtion gets code from item_dict and searches sorted position of this code in selecttable, returns index
         let row_index = -1
-        if (!!item_dict){
+        if (!!tblBody && !!item_dict){
             const new_code = get_subdict_value_by_key(item_dict, "code", "value", "").toLowerCase()
-            const len = tblBody.rows.length;
+             const len = tblBody.rows.length;
             if (!!len){
-                for (let i = 0, tblRow; i < len; i++) {
-                    tblRow = tblBody.rows[i]
-                    const el_code = tblRow.cells[code_colindex].children[0]
-                    const row_code = get_attr_from_el_str(el_code,"data-value").toLowerCase()
+                for (let i = 0, tblRow, td, el; i < len; i++) {
+                    tblRow = tblBody.rows[i];
+                    td = tblRow.cells[code_colindex];
+                    if(!!td){
+                        el = td.children[0];
+                        if(!!el){
+                            const row_code = get_attr_from_el_str(el,"data-value").toLowerCase()
 
-                    // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
-                    // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
-                    // row_code 'acu' new_code 'giro' compare = -1
-                    // row_code 'mcb' new_code 'giro' compare =  1
-                    let compare = row_code.localeCompare(new_code, user_lang, { sensitivity: 'base' });
-                    if (compare > 0) {
-                        row_index = tblRow.rowIndex -1;  // -1 because first row is filter row (??)
-                        break;
-                    }
-                }
-            }
-        };
+                            // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
+                            // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
+                            // row_code 'acu' new_code 'giro' compare = -1
+                            // row_code 'mcb' new_code 'giro' compare =  1
+                            let compare = row_code.localeCompare(new_code, user_lang, { sensitivity: 'base' });
+                            if (compare > 0) {
+                                row_index = tblRow.rowIndex -1;  // -1 because first row is filter row (??)
+                                break;
+                            }}}}}};
         return row_index;
     }  // GetNewSelectRowIndex
 
@@ -919,23 +926,49 @@
         }
     }  // DeselectHighlightedTblbody
 
-//=========  ChangeBackgroundRows  ================ PR2019-08-11
-    function ChangeBackgroundRows(tableBody, old_cls_background, new_cls_background, skip_cls_background) {
-
+//=========  ChangeBackgroundRows  ================ PR2019-12-01
+    function ChangeBackgroundRows(tableBody, new_background, keep_old_hightlighted, tr_selected, sel_background) {
+        //console.log("=========  ChangeBackgroundRows =========");
         if(!!tableBody){
             let tblrows = tableBody.children;
             for (let i = 0, row, skip = false, len = tblrows.length; i < len; i++) {
                 row = tblrows[i];
                 if(!!row) {
-                    if (!!skip_cls_background){skip = row.classList.contains(skip_cls_background)}
-                    if(!skip){
-                        row.classList.remove(old_cls_background)
-                        if (!!new_cls_background){row.classList.add(new_cls_background)};
-                    }
-                }
+                    let skip_add_new_background = false;
+                // remove old backgrounds
+                    row.classList.remove("tsa_bc_lightlightgrey");
+                    row.classList.remove("tsa_bc_yellow_lightlight");
+                    if(row.classList.contains("tsa_bc_yellow")){
+                       // don't erase highlighted (keeps selected scheme highlighted when shift or team are selected)
+                       skip_add_new_background = keep_old_hightlighted
+                       if(!keep_old_hightlighted){
+                            row.classList.remove("tsa_bc_yellow");
+                        }};
+                // add new background
+                    if(!skip_add_new_background){
+                        if(!!tr_selected && sel_background && row.id === tr_selected.id ) {
+                             row.classList.add(sel_background);
+                        } else {
+                            row.classList.add(new_background);
+                        }}}}};
+    }  // ChangeBackgroundRows
+
+
+//========= HighlightSelectRow  ============= PR2019-12-03
+    function HighlightBtnSelect(btn_container, selected_btn){
+    // ---  highlight selected button
+        let btns = btn_container.children;
+        for (let i = 0, btn, len = btns.length; i < len; i++) {
+            btn = btns[i]
+            const data_mode = get_attr_from_el(btn, "data-mode")
+            if (data_mode === selected_btn){
+                btn.classList.add("tsa_btn_selected")
+            } else {
+                btn.classList.remove("tsa_btn_selected")
             }
         }
-    }
+    }  //  HighlightSelectRow
+
 
 //========= function found_in_list_str  ======== PR2019-01-22
     function found_in_list_str(value, list_str ){
@@ -1308,8 +1341,8 @@
         }
     }  // function FillOptionsAbscat
 
-//========= CreateTableRows  ====================================
-    function CreateTableRows(tableBase, stored_items, excel_items,
+//========= CreateTblRows  ====================================
+    function CreateTblRows(tableBase, stored_items, excel_items,
                     JustLinkedAwpId, JustUnlinkedAwpId, JustUnlinkedExcId) {
 
     //console.log("==== CreateMapTableRows  =========>> ", tableBase);
@@ -1396,7 +1429,7 @@
                     $(XidExcRow).addClass(cae_hv);
                     setTimeout(function () {$(XidExcRow).removeClass(cae_hv);}, 1000);
         }}};
-     }; //function CreateTableRows()
+     }; // CreateTblRows()
 
 //=========   handle_table_row_clicked   ======================
     function handle_table_row_clicked(e) {  //// EAL: Excel Awp Linked table

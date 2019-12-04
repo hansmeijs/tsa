@@ -7,7 +7,7 @@
     const cls_visible_show = "visibility_show";
     const cls_highlighted = "tr_highlighted";
     const cls_notallowed = "tsa_color_notallowed";
-    const cls_disabled = "tr_disabled";
+    const cls_disabled = "tr_color_disabled";
     const cls_hover = "tr_hover";
 
 //========= CreateTimepickerDate  ====================================
@@ -251,7 +251,7 @@
         console.log("==== SetAmPm  =====");
 
     // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
+        const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
         if (!disabled){
             const comp_timezone = get_attr_from_el(el_timepicker, "data-timezone");
             const timeformat = get_attr_from_el(el_timepicker, "data-timeformat");

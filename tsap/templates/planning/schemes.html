@@ -243,70 +243,42 @@
     <!-- =================== CONTAINER =================== -->
         <div class="container">
 
+        <!-- box with scheme input elements -->
+        <div class="mx-4 my-1">
             <!-- CONTENT HEADER - LOADER -->
             <div class="mt-5">
-
-                <!-- class content_header -->
                 <div class="content_header">
-
-                    <div class="content_subheader_left mx-2">
+                    <div class="content_subheader_left tsa_flex_4 mx-2">
                         <h5 id="id_hdr_text"></h5>
                     </div>
-
-                    <!-- loader -->
-                    <div class="content_header_middle mx-4">
-                        <div id="id_loader" class="image_container XXXvisibility_hide">
+                    <div class="content_header_middle mx-4 p-2 ">
+                        <div id="id_loader" class="image_container">
                             <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
                         </div>
                     </div>
-                    <!-- loader -->
+                    <div class="content_subheader_right tsa_flex_4 mx-2">
+                        <h5 id="id_hdr_right_text"></h5>
+                    </div>
                 </div>
-                <!-- end class content_header -->
-
-
             </div>
             <!-- end CONTENT HEADER - LOADER -->
 
-        <!-- box with scheme input elements -->
-        <div class="mx-4 my-1">
-             <div id="id_scheme_box"  class="content_header border_scheme">
-                <div class="content_subheader_left mx-2">
-                    <div>{% trans 'Scheme' %}*</div>
-                    <input id="id_scheme_code" type="text" data-table="scheme" data-field="code"
-                    class="td_width_120 my-1 pt-0 pb-0" autocomplete="off" readonly>
-                </div>
-                <div class="content_subheader_left mx-2">
-                    <div>{% trans 'Cycle length' %}*</div>
-                    <input id="id_scheme_cycle" type="number" data-table="scheme" data-field="cycle"
-                    class="td_width_120 my-1 pt-0 pb-0" autocomplete="off" readonly>
-                </div>
-                <div class="content_subheader_left mx-2">
-                    <div>{% trans 'Start date' %}</div>
-                    <input id="id_scheme_datefirst" type="text" data-table="scheme" data-field="datefirst"
-                    class="input_popup_date td_width_120 my-1 pt-0 pb-0" autocomplete="off" readonly>
-                </div>
-                <div class="content_subheader_left mx-2">
-                    <div>{% trans 'End date' %}</div>
-                    <input id="id_scheme_datelast" type="text" data-table="scheme" data-field="datelast"
-                    class="input_popup_date td_width_120 my-1 pt-0 pb-0" autocomplete="off" readonly>
-                </div>
+
+                <!-- BUTTON GROUP -->
+            <div id="id_btn_container" class="btn-group btn-block" role="group" aria-label="Choose option" >
+                <button type="button" data-mode="btn_schemeitem" class="btn btn-secondary">{% trans 'Planned shifts' %}</button>
+                <button type="button" data-mode="btn_shift" class="btn btn-secondary">{% trans 'Shifts' %}</button>
+                <button type="button"  data-mode="btn_team" class="btn btn-secondary ">{% trans 'Teams' %}</button>
+                <button type="button" data-mode="btn_scheme" class="btn btn-secondary">{% trans 'Scheme' %}</button>
             </div>
+    <!-- end BUTTON GROUP -->
+
         </div>
         <!-- END box with scheme input elements -->
-        <!-- box with team_code input element -->
-        <div class="mx-4 mt-4 mb-1">
-             <div id="id_team_box" class="border_none display_hide">
-                <div class="content_subheader_left mx-2">
-                    <h6>{% trans 'Team' %}:</h6>
-                    <input id="id_team_code" type="text" data-table="team" data-field="code"
-                    class="td_width_220 my-1 pt-0 pb-0 " autocomplete="off">
-                </div>
-             </div>
-        </div>
+
         <!-- end class content_subheader mt-5 -->
         <!-- class content body mx-2 -->
         <div class="content_body mx-2">
-            <div class="popup-container">
 <!-- =================== POPUP DATE  =================== -->
                  <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
                      <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
@@ -336,24 +308,82 @@
 
 <!-- =================== TIMEPICKER  =================== -->
                 {% include 'includes/timepicker.html' %}
+
 <!-- =================== DATA TABLE  =================== -->
-                <table id="id_table_schemeitems" class="table table-condensed tsa-tbl mx-2 my-2">
-                    <thead id="id_thead_items" class="thead-inverse"></thead>
-                    <tbody id="id_tbody_items"></tbody>
+
+            <div id="id_div_tbl_schemeitem" data-mode="btn_schemeitem" class="display_hide">
+                <div class="content_header mx-2 my-4">
+                    <div id="id_btns_schemeitem" class="content_subheader_left">
+                        <button id="id_btn_cycleprev" data-mode="prev" title="{% trans 'Show previous cycle. This does not affect the shifts.' %}" class="btn btn-add ml-2">&larr;</button>
+                        <button id="id_btn_cyclenext" data-mode="next" title="{% trans 'Show next cycle. This does not affect the shifts.' %}" class="btn btn-add">&rarr;</button>
+                        <button id="id_btn_dayup" data-mode="dayup" title="{% trans 'Set all rosterdates one day earlier.' %}" class="btn btn-add"> &uarr; </button>
+                        <button id="id_btn_daydown" data-mode="daydown" title="{% trans 'Set all rosterdates one day later.' %}" class="btn btn-add"> &darr; </button>
+                        <button id="id_btn_autofill" data-mode="autofill" title="{% trans 'Copy the entered shifts to the rest of the cycle dates.' %}" class="btn btn-add">{% trans 'Fill scheme' %}</button>
+                        <button id="id_btn_schemeitems_delete" data-mode="delete" class="btn btn-add">{% trans 'Delete all shifts from this scheme' %}</button>
+                    </div>
+                </div>
+
+                <table id="id_table_schemeitem" class="table tsa-tbl mx-2 my-2">
+                    <thead id="id_thead_schemeitem"></thead>
+                    <tbody id="id_tbody_schemeitem"></tbody>
+                    <tfoot id="id_tfoot_schemeitem"></tfoot>
+                </table>
+
+            </div>
+            <div id="id_div_tbl_shift" data-mode="btn_shift" class="display_hide">
+                <div class="content_header mx-2 my-4">
+                </div>
+                <table id="id_table_shift" class="table tsa-tbl mx-2 my-2">
+                    <thead id="id_thead_shift"></thead>
+                    <tbody id="id_tbody_shift"></tbody>
+                    <tfoot id="id_tfoot_shift"></tfoot>
                 </table>
             </div>
+            <div id="id_div_tbl_teammember" data-mode="btn_team" class="display_hide">
+                <!-- box with team_code input element -->
+                <!-- <div class="mx-4 mt-4 mb-1"> -->
 
-
-        <div class="content_header">
-            <div class="content_subheader_left">
-                <button id="id_btn_dayup" title="{% trans 'Set all rosterdates one day earlier' %}" class="btn btn-add ml-2"> &uarr; </button>
-                <button id="id_btn_daydown" title="{% trans 'Set all rosterdates one day later' %}" class="btn btn-add"> &darr; </button>
-                <button id="id_btn_autofill" class="btn btn-add">{% trans 'Fill scheme' %}</button>
-                <button id="id_btn_schemeitems_delete" class="btn btn-add">{% trans 'Delete all shifts from this scheme' %}</button>
+                <div class="content_header mx-4 my-4">
+                    <div class="content_subheader_left mx-2">
+                        <h6>{% trans 'Team' %}:</h6>
+                        <input id="id_team_code" type="text" data-table="team" data-field="code"
+                        class="td_width_220 my-1 pt-0 pb-0 " autocomplete="off">
+                    </div>
+                </div>
+                <table id="id_table_teammember" class="table tsa-tbl mx-2 my-2">
+                    <thead id="id_thead_teammember"></thead>
+                    <tbody id="id_tbody_teammember"></tbody>
+                    <tfoot id="id_tfoot_teammember"></tfoot>
+                </table>
             </div>
-        </div>
+<!-- =================== DATA FORM  =================== -->
+            <div id="id_div_data_form" data-mode="btn_scheme"  class=" content_header tsa_bc_lightlightgrey display_hide m-4 p-4">
+                <div class="content_subheader_left">
+                    <label for="id_scheme_code" class="tsa_margin_form_label">{% trans 'Scheme name' %}:</label>
+                    <input id="id_scheme_code" type="text" data-table="scheme" data-field="code"
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                           class="form-control px-2">
+                     <label for="id_scheme_cycle" class="tsa_margin_form_label">{% trans 'Cycle length' %}:</label>
+                    <input id="id_scheme_cycle" type="number" data-table="scheme" data-field="cycle"
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                           class="form-control px-2">
+                    <label for="id_scheme_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
+                    <input id="id_scheme_datefirst" type="text" data-table="scheme" data-field="datefirst"
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                           class="form-control input_popup_date px-2">
+                    <label for="id_scheme_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
+                    <input id="id_scheme_datelast" type="text" data-table="scheme" data-field="datelast"
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                           class="form-control input_popup_date px-2">
 
-        </div>
+                            <button id="id_form_btn_add" type="button" class="btn btn-outline-primary mt-4">{% trans 'Add scheme' %}</button>
+                            <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger mt-4">{% trans 'Delete scheme' %}</button>
+                </div>
+
+                <div class="tsa_flex_2 pt-4">
+                </div>
+            </div>
+
     </div>
 <!--</div> flex_container -->
 
@@ -364,7 +394,6 @@
             data-schemeitem_upload_url= "{% url 'schemeitem_upload_url' %}"
             data-schemeitem_fill_url= "{% url 'schemeitem_fill_url' %}"
             data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
-            data-scheme_upload_url="{% url 'scheme_upload_url' %}"
             data-schemeorshiftorteam_upload_url="{% url 'schemeorshiftorteam_upload_url' %}"
             data-teammember_upload_url="{% url 'teammember_upload_url' %}"
             data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
@@ -412,10 +441,11 @@
             data-txt_select_team= "{% trans 'Select team' %}"
 
             data-txt_date= "{% trans 'Date' %}"
-
+            data-txt_template = "{% trans 'Template' %}"
             data-txt_copyfrom_select_template= "{% trans 'Select template' %}"
             data-txt_copyfrom_select_none= "{% trans 'No templates' %}"
 
+            data-txt_days_cycle= "{% trans 'days cycle' %}"
             data-txt_cycle_once= "{% trans 'Once only' %}"
             data-txt_roster_create= "{% trans 'Create roster' %}"
             data-txt_rosterdate= "{% trans 'Rosterdate' %}"

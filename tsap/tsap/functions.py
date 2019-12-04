@@ -120,12 +120,12 @@ def get_date_from_arr(arr_int):  # PR2019-11-17
         date_obj = date(arr_int[0], arr_int[1], arr_int[2])
     return date_obj
 
+
 def get_datetime_from_arr(arr_int):  # PR2019-11-17
     datetime_obj = None
     if arr_int:
         datetime_obj = datetime(arr_int[0], arr_int[1], arr_int[2], arr_int[3], arr_int[4], 0)
     return datetime_obj
-
 
 
 def get_datetimelocal_from_offset(rosterdate, offset_int, comp_timezone):
@@ -803,8 +803,13 @@ def get_date_DM_from_dte(dte, lang):  # PR2019-06-17
 
 
 # ################### FORMAT FUNCTIONS ###################
+
+
+
 def formatWHM_from_datetime(dte, timezone, lang):
     # returns 'zo 16.30 u' PR2019-06-16
+    # or Sun 16:30
+    # or Sun 4:30 pm
     date_WHM = ''
     if dte:
         date_HM = format_HM_from_dtetime(dte, timezone, lang)
@@ -862,14 +867,16 @@ def format_HM_from_dtetime(date_time, comp_timezone, lang):
 
         # Convert time zone
         timezone = pytz.timezone(comp_timezone)
-        datetime_aware = date_time.astimezone(timezone)
+        datetime_local = date_time.astimezone(timezone)
         # logger.debug('datetime_aware: ' + str(datetime_aware))
 
 
         # .strftime("%H") returns zero-padded 24 hour based string '03' or '22'
-        hour_str = datetime_aware.strftime("%H")
+        hours_int = datetime_local.hour
+        minutes_int = datetime_local.minute
+        hour_str = datetime_local.strftime("%H")
         hour_int = int(hour_str)
-        minutes_str = datetime_aware.strftime("%M") # %m is zero-padded
+        minutes_str = datetime_local.strftime("%M") # %m is zero-padded
 
         if lang == 'nl':
             separator = '.'
@@ -1143,17 +1150,18 @@ def check_offset_overlap(a, b, x, y):  # PR2019-11-11
     # logger.debug(' --- check_offset_overlap --- ')
 
     has_overlap = False
+    if a and b and x and y:
 # 1. validate if timeend before timestart
-    if b < a or y < x:
-        has_overlap = True
-        logger.debug('ERROR: timeend before timestart ')
-    else:
-# 2. check overlap
-        # has overlap                x|______________|y
-        #                       a|_______|b    a|________|b
-        #                          b > x   and    a < y
-        if b > x and a < y:
+        if b < a or y < x:
             has_overlap = True
+            logger.debug('ERROR: timeend before timestart ')
+        else:
+    # 2. check overlap
+            # has overlap                x|______________|y
+            #                       a|_______|b    a|________|b
+            #                          b > x   and    a < y
+            if b > x and a < y:
+                has_overlap = True
     return has_overlap
 
 def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
@@ -1456,14 +1464,21 @@ def slice_firstlast_delim(list_str):  # PR2018-11-22
     return list_str
 
 
-def create_update_dict(field_list, id_dict):
+def create_update_dict(field_list, table, pk, ppk, temp_pk):
 # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
     update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
     for field in field_list:
         update_dict[field] = {}
         if field == 'id':
-            if id_dict:
-                update_dict[field] = id_dict
+
+#  add id_dict to update_dict
+            update_dict['id']['table'] = table
+            if pk:
+                update_dict['id']['pk'] = pk
+            if ppk:
+                update_dict['id']['ppk'] = ppk
+            if temp_pk:
+                update_dict['id']['temp_pk'] = temp_pk
 
     return update_dict
 
@@ -1766,6 +1781,11 @@ def remove_empty_attr_from_dict(dict):
             if not dict[field]:
                 del dict[field]
                 # logger.debug('deleted: ' + str(field))
+# remove 'create' from id_dict
+            elif field == 'id':
+                if 'create' in dict['id']:
+                    del dict['id']['create']
+
     # logger.debug('dict: ' + str(dict))
 
 
@@ -1990,3 +2010,134 @@ def update_isabsence_istemplate():
         cursor.execute('UPDATE companies_team SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
         cursor.execute('UPDATE companies_teammember SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
         cursor.execute('UPDATE companies_schemeitem SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
+# ###############################################################
+# FORMAT ELEMENTS
+def format_date_element(rosterdate_dte, user_lang,
+                        show_weekday=True, show_wd_long=False, show_day=True,
+                        show_month=True, show_month_long=False, show_year=True):
+    # PR2019-11-30
+    display_txt, weekday_txt, day_txt, month_txt, year_txt = '', '', '', '', ''
+    # get weekday text
+    if rosterdate_dte:
+        if show_weekday:
+            if show_wd_long:
+                weekday_txt = c.WEEKDAYS_LONG[user_lang][rosterdate_dte.isoweekday()]
+
+            else:
+                weekday_txt = c.WEEKDAYS_ABBREV[user_lang][rosterdate_dte.isoweekday()]
+            weekday_txt += ', ' if user_lang == 'en' else ' '
+
+        if show_day:
+            day_txt = str(rosterdate_dte.day)
+            if user_lang == 'en':
+                if show_year:
+                    day_txt += ', '
+            else:
+                if show_month:
+                    day_txt += ' '
+
+        if show_month:
+            if show_month_long:
+                month_txt = c.MONTHS_LONG[user_lang][rosterdate_dte.month]
+            else:
+                month_txt = c.MONTHS_ABBREV[user_lang][rosterdate_dte.month]
+            if user_lang == 'en' or year_txt:
+                month_txt += ' '
+        if show_year:
+            year_txt = str(rosterdate_dte.year)
+        if user_lang == 'en':
+            display_txt = ''.join([weekday_txt, month_txt, day_txt, year_txt])
+        else:
+            display_txt = ''.join([weekday_txt, day_txt, month_txt, year_txt])
+    return display_txt
+
+
+def format_time_element(rosterdate_dte, offset, timeformat, user_lang,
+                          show_weekday=True, blank_when_zero=True, skip_prefix_suffix=False):
+
+    display_txt, title, weekday_txt, hour_txt, minutes_txt = '', '', '', '', ''
+
+    hide_value = (offset is None) or (blank_when_zero and offset == 0)
+    if not hide_value:
+        # // floor division: Returns the integral part of the quotient.
+        days_offset = offset // 1440 # - 90 (1.5 h)
+        remainder = offset - days_offset * 1440
+        curHours = remainder // 60
+        curMinutes = remainder - curHours * 60
+
+        isAmPm = (timeformat == 'AmPm')
+        isEN = (user_lang == 'en')
+        ampm_list = [' am', ' pm']
+        curAmPm = 1 if (curHours >= 12) else 0
+
+        # check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
+        if isAmPm:
+            if curHours >= 12:
+                curHours -= 12
+        else:
+            if days_offset == 1 and curHours == 0 and curMinutes == 0:
+                days_offset = 0
+                curHours = 24
+
+        hour_str = '00' + str(curHours)
+        hour_text = hour_str[-2:]
+        minute_str = '00' + str(curMinutes)
+        minute_text = minute_str[-2:]
+
+        if rosterdate_dte is not None:
+            skip_prefix_suffix = True
+        delim = ':' if isEN else '.'
+        prefix = '<- ' if (not skip_prefix_suffix and days_offset < 0) else ''
+        suffix = ' u' if (not isEN) else ''
+        if isAmPm:
+            suffix += ampm_list[curAmPm]
+        if (not skip_prefix_suffix and days_offset > 0):
+            suffix += ' ->'
+
+# 3 get weekday
+        if show_weekday and rosterdate_dte:
+            offset_dte = rosterdate_dte + timedelta(days=days_offset)
+            offset_weekday = offset_dte.isoweekday()
+            if show_weekday:
+                prefix = c.WEEKDAYS_ABBREV[user_lang][offset_weekday] + ' '
+
+        display_txt = ''.join([prefix, hour_text, delim, minute_text, suffix])
+
+    return display_txt
+
+def display_offset_time (offset, timeformat, user_lang, blank_when_zero, skip_prefix_suffix, is_offsetend):
+
+    days_offset = offset // 1440  # - 90 (1.5 h)
+    remainder = offset - days_offset * 1440
+    curHours = remainder // 60
+    curMinutes = remainder - curHours * 60
+
+    isAmPm = (timeformat == 'AmPm')
+    isEN = (user_lang == 'en')
+    ampm_list = [' am', ' pm']
+    curAmPm = 1 if (curHours >= 12) else  0
+
+    # check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
+    if isAmPm and is_offsetend:
+        if curHours >= 12 :
+            curHours -= 12
+    else:
+        if days_offset == 1 and curHours == 0 and curMinutes == 0:
+            days_offset = 0
+            curHours = 24
+
+    hour_str = '00' + str(curHours)
+    hour_text = hour_str[-2:]
+    minute_str = '00' + str(curMinutes)
+    minute_text = minute_str[-2:]
+
+    delim = ':' if isEN else '.'
+    prefix = '<- ' if (not skip_prefix_suffix and days_offset < 0) else ''
+    suffix = ' u' if (not skip_prefix_suffix and not isEN) else ''
+    if isAmPm:
+        suffix += ampm_list[curAmPm]
+    if (days_offset > 0):
+        suffix += ' ->'
+
+    return prefix + hour_text + delim + minute_text + suffix
+

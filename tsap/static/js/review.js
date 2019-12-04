@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     //console.log("period_dict", period_dict)
                     document.getElementById("id_flt_period").value = get_period_text(period_dict);
 
-                    CreateTablePeriod();
+                    CreateTblPeriod();
                 }
 
                 if (fill_table) {FillTableRows()}
@@ -154,9 +154,9 @@ document.addEventListener('DOMContentLoaded', function() {
     };//function CreateSubmenu
 
 
-//=========  CreateTablePeriod  ================ PR2019-11-16
-    function CreateTablePeriod() {
-        //console.log("===  CreateTablePeriod == ");
+//=========  CreateTblPeriod  ================ PR2019-11-16
+    function CreateTblPeriod() {
+        //console.log("===  CreateTblPeriod == ");
         //console.log(period_dict);
         let tBody = document.getElementById("id_mod_period_tblbody");
         tBody.innerText = null;
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //let el_select = document.getElementById("id_mod_period_extend");
         //FillOptionsPeriodExtension(el_select, loc.period_extension)
 
-    } // CreateTablePeriod
+    } // CreateTblPeriod
 
 
 //========= FillTableRows  ====================================
@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // loop through rows in reverse order, put rows at beginning of table.
         // In that way totals will be counted and put on top of detail items
 
-        CreateTableHeader();
+        CreateTblHeader();
 
 // --- reset tblBody_items
         tblBody_items.innerText = null;
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // create END ROW
         // display_list:  0 = date, 1 = cust /order/employee, 2 = shift,  3 = eh_dur, 4 = billable, 5 = oh_dur, 6 = diff, 7 = show warning, 8=status
         let display_list =["", "", "", "",  "", "", "", "", "", "", ""]
-        tblRow =  CreateTableRow()
+        tblRow =  CreateTblRow()
         UpdateTableRow(tblRow, 0, 0, 0, 0, display_list,  "grnd")
 
 // --- loop through review_list
@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     display_list =["TOTAL " + dte_prev, "", dte_count.toString() + " shifts",
                                     eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, dte_pricerate_format, dte_amount_format]
 
-                    tblRow =  CreateTableRow()
+                    tblRow =  CreateTblRow()
                     UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "date")
 
                     dte_count = 0;
@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     display_list =["TOTAL " + ord_code_prev, "",  ord_count.toString() + " shifts",
                                     eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, ord_pricerate_format, ord_amount_format]
 
-                    tblRow =  CreateTableRow()
+                    tblRow =  CreateTblRow()
                     UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "ordr")
 
                     ord_id_prev = ord_id_curr
@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function() {
                      display_list = ["TOTAL " + cust_code_prev, "",  cust_count.toString() + " shifts",
                                      eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, cust_pricerate_format, cust_amount_format]
 
-                    tblRow =  CreateTableRow()
+                    tblRow =  CreateTblRow()
                     UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "cust")
 
                 // reset subtotals
@@ -373,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 display_list = [dte_curr, row_list.e_code_arr, row_list.oh_shift,
                                 eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, oh_pricerate_format, oh_amount_format ]
 
-                tblRow =  CreateTableRow()
+                tblRow =  CreateTblRow()
                 UpdateTableRow(tblRow, row_list.oh_id, row_list.cust_id, row_list.ord_id, row_list.rosterdate, display_list)
 
 // --- update prev variables
@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
             display_list =["TOTAL " + dte_prev, "", dte_count.toString() + " shifts",
                             eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, dte_pricerate_format, dte_amount_format]
 
-            tblRow =  CreateTableRow()
+            tblRow =  CreateTblRow()
             UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "date")
 
         }
@@ -423,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
             display_list =["TOTAL " + ord_code_prev, "",  ord_count.toString() + " shifts",
                              eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, ord_pricerate_format, ord_amount_format]
 
-            tblRow =  CreateTableRow()
+            tblRow =  CreateTblRow()
             UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "ordr")
         }
 
@@ -441,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
             display_list = ["TOTAL " + cust_code_prev, "",  cust_count.toString() + " shifts",
                             eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, cust_pricerate_format, cust_amount_format]
 
-            tblRow =  CreateTableRow()
+            tblRow =  CreateTblRow()
             UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "cust")
         }
 
@@ -458,14 +458,14 @@ document.addEventListener('DOMContentLoaded', function() {
         display_list = ["GRAND TOTAL",  "", tot_count.toString() + " shifts",
                         eh_dur_format, billable_format, oh_dur_format, diff_format, show_warning, tot_pricerate_format, tot_amount_format]
 
-        tblRow =  CreateTableRow()
+        tblRow =  CreateTblRow()
         UpdateTableRow(tblRow, oh_id_curr, cust_id_prev, ord_id_prev, dte_id_prev, display_list,  "grnd")
 
     }  // FillTableRows
 
-//=========  CreateTableHeader  === PR2019-05-27
-    function CreateTableHeader() {
-        //console.log("===  CreateTableHeader == ");
+//=========  CreateTblHeader  === PR2019-05-27
+    function CreateTblHeader() {
+        //console.log("===  CreateTblHeader == ");
         //console.log("loc", loc);
 
         tblHead_items.innerText = null
@@ -505,10 +505,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // for (let j = 0; j < column_count; j++)
 
 
-    };  //function CreateTableHeader
-//=========  CreateTableRow  ================ PR2019-04-27
-    function CreateTableRow() {
-        //console.log("=========  function CreateTableRow =========");
+    };  //function CreateTblHeader
+//=========  CreateTblRow  ================ PR2019-04-27
+    function CreateTblRow() {
+        //console.log("=========  CreateTblRow =========");
         //console.log(row_list);
         const tblName = "review";
         const column_count = tbl_col_count[tblName];
@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // for (let j = 0; j < 8; j++)
 
         return tblRow
-    };//function CreateTableRow
+    };// CreateTblRow
 
 
 //========= UpdateTableRow  =============

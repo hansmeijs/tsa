@@ -299,12 +299,12 @@ console.log("=========  function HandleCreateRecord =========");
 
 //--------- increase id_new
         id_new = id_new + 1
-        let id_str =  id_new.toString()
+        let pk_new =  id_new.toString()
 
 //--------- insert tblBody row
         let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
-        id_row_selected = "new" + id_str;
+        id_row_selected = "new" + pk_new;
         tblRow.setAttribute("id", id_row_selected);
         tblRow.classList.add("tsa_tr_selected")
 

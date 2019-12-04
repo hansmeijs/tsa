@@ -297,11 +297,11 @@ h4 h5 {
     color: #808080; /* Dark grey; 128 128 128 */
 }
 .tsa_color_mediumgrey {
-    color: #a5a5a5; /* medium grey; 165 165 165 */
+    color: #a5a5a5 !important; /* medium grey; 165 165 165 */
 }
 .tsa_color_white {
     /* color: #f3f3f3; / offwhite */
-    color: #fff; / white */
+    color: #fff !important; / white */
 
      /*font-weight: bold;*/
 }

@@ -2,7 +2,6 @@
 // ++++++++++++  MOD TIMEPICKER +++++++++++++++++++++++++++++++++++++++
     "use strict";
 
-
 //========= ModTimepickerOpen  ====================================
     function ModTimepickerOpen(el_input, ModTimepickerChanged, tp_dict, st_dict) {
         console.log("=== MODAL  ModTimepickerOpen  =====");
@@ -10,6 +9,11 @@
         console.log( "st_dict: ", st_dict);
 
         CalcMinMax(tp_dict)
+
+        console.log( "offset: ", tp_dict["offset"]);
+        console.log( "minoffset: ", tp_dict["minoffset"]);
+        console.log( "maxoffset: ", tp_dict["maxoffset"]);
+        console.log( "quicksave: ", tp_dict["quicksave"]["value"]);
 
 // display cur_datetime_local in header
         CreateHeader(tp_dict, st_dict);
@@ -60,7 +64,7 @@
 //========= CreateFooter  ====================================
     function CreateFooter(tp_dict, st_dict, ModTimepickerChanged) {
         console.log( "--- CreateFooter  ");
-        const quicksave = tp_dict.quicksave
+        const is_quicksave = get_subdict_value_by_key(tp_dict, "quicksave", "value");
         // btn_quicksave.innerText is set in HideSaveButtonOnQuicksave
 
         let el_footer = document.getElementById("id_timepicker_footer")
@@ -78,7 +82,7 @@
                 btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add("tr_hover")});
                 btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove("tr_hover")});
 
-                if(tp_dict.quicksave) {
+                if(is_quicksave) {
                    btn_quicksave.setAttribute("data-toggle", "modal");
                    btn_quicksave.setAttribute("href", "#id_mod_timepicker");
                 }
@@ -240,6 +244,7 @@
 //========= CreateTimepickerCell  ====================================
     function CreateTimepickerCell(tbody, td, ModTimepickerChanged, tp_dict, st_dict,
                                   data_name, value, value_text) {
+        const is_quicksave = get_subdict_value_by_key(tp_dict, "quicksave", "value");
 
         if (value !== -1){td.setAttribute("data-" + data_name, value)}
         td.classList.add("timepicker_" + data_name);
@@ -249,7 +254,7 @@
                 SetHour(tbody, td, ModTimepickerChanged, tp_dict, st_dict)
             }, false)
 
-            if(tp_dict.quicksave) {
+            if(is_quicksave) {
                td.setAttribute("data-toggle", "modal");
                td.setAttribute("href", "#id_mod_timepicker");
             }
@@ -312,7 +317,7 @@
         //console.log("==== SetAmPm  =====");
 
     // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
+        const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
         if (!disabled){
 
         // get new ampm from td data-ampm of td
@@ -347,9 +352,9 @@
     function SetHour(tbody, td, ModTimepickerChanged, tp_dict, st_dict) {
        console.log("==== SetHour  =====");
         console.log("tp_dict", tp_dict);
-
+        const is_quicksave = get_subdict_value_by_key(tp_dict, "quicksave", "value");
     // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
+        const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
         //console.log("disabled", disabled);
 
         if (!disabled){
@@ -359,7 +364,7 @@
             CalcMinMax_with_newValues(tp_dict, null, newHours, null);
 
     // save when in quicksave mode
-            if (tp_dict["quicksave"]){
+            if (is_quicksave){
                 ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, "btn_hour")
             }
 
@@ -376,7 +381,7 @@
         //console.log("==== SetMinute  =====");
 
     // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
+        const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
         if (!disabled){
 
     // get new minutes from data-minute of td
@@ -395,8 +400,8 @@
         // close timepicker, except when clicked on quicksave off
 
 // ---  change quicksave when clicked on button 'Quicksave'
-        let quicksave = tp_dict["quicksave"]
-        console.log("old quicksave", quicksave);
+        let is_quicksave =  get_subdict_value_by_key(tp_dict, "quicksave", "value");
+        console.log("old quicksave", is_quicksave);
 
         let save_changes = false;
         if (mode === "btn_save") {
@@ -405,11 +410,11 @@
 // ---  toggle quicksave
             // if old quicksave = true: set quicksave = false, show btn_save, don't exit
             // if old quicksave = false: set quicksave = true, save changes
-            quicksave = !quicksave
-            tp_dict["quicksave"] = quicksave
-            console.log("new  quicksave", quicksave);
+            is_quicksave = !is_quicksave
+            tp_dict["quicksave"]["value"] = is_quicksave
+            console.log("new  quicksave", is_quicksave);
 
-            if(quicksave){
+            if(is_quicksave){
                 save_changes = true;
             } else {
                 HideSaveButtonOnQuicksave(tp_dict, st_dict);
@@ -418,11 +423,11 @@
 
 // --- upload new quicksave (true and false) in Usersettings
             const url_settings_upload = get_dict_value_by_key(st_dict, "url_settings_upload")
-            const setting_dict = {"quicksave": quicksave};
+            const setting_dict = {"quicksave": is_quicksave};
             UploadSettings (setting_dict, url_settings_upload);
 
         } else if (mode === "btn_hour") {
-            if(quicksave){
+            if(is_quicksave){
                 save_changes = true
             };
         } else if (mode === "btn_delete") {
@@ -549,7 +554,7 @@
         //console.log(td, "disabled: ", disabled, "highlighted: ", highlighted)
         td.classList.remove("tr_highlighted")
         if (!!disabled){
-            td.classList.add("tr_disabled");
+            td.classList.add("tr_color_disabled");
             td.classList.remove("tr_highlighted")
             if (!!highlighted){
                 td.classList.add("tsa_color_notallowed")
@@ -557,7 +562,7 @@
                 td.classList.remove("tsa_color_notallowed")
             }
         } else {
-            td.classList.remove("tr_disabled")
+            td.classList.remove("tr_color_disabled")
             td.classList.remove("tsa_color_notallowed")
             if (!!highlighted){
                 td.classList.add("tr_highlighted")
@@ -692,13 +697,13 @@ function CalcMinMax(dict) {
         //console.log( "--- HideSaveButtonOnQuicksave  ");
         // hide save button on quicksave
 
-        const quicksave = tp_dict["quicksave"]
+        const is_quicksave = get_subdict_value_by_key(tp_dict, "quicksave", "value")
 
-        let qs_txt = (quicksave) ? st_dict["txt_quicksave_remove"] : st_dict["txt_quicksave"];
+        let qs_txt = (is_quicksave) ? st_dict["txt_quicksave_remove"] : st_dict["txt_quicksave"];
         document.getElementById("id_timepicker_quicksave").innerText = qs_txt
 
         let btn_save = document.getElementById("id_timepicker_save")
-        if (quicksave){
+        if (is_quicksave){
             btn_save.classList.add("display_hide");
         } else {
             btn_save.classList.remove("display_hide");
@@ -755,7 +760,7 @@ function CalcMinMax(dict) {
 //========= ShowHover  ====================================
     function ShowHover(td, event) {
         if(!!td){
-            const disabled = (td.classList.contains("tr_disabled") || td.classList.contains("tsa_color_notallowed"))
+            const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
             if (event.type === "mouseenter" && !disabled){
                 td.classList.add("tr_hover")
             } else {

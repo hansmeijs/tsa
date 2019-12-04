@@ -42,6 +42,10 @@
 
 {% block content %}
     {% if user.is_authenticated %}
+<!-- =================== id_msgbox  =================== -->
+            <div class="popup display_hide">
+                <span class="popuptext" id="id_msgbox"></span>
+            </div>
 <!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL PERIOD  =================== -->
@@ -88,10 +92,7 @@
 
 <!-- CONTENT BODY -->
             <div class="content_body mx-2">
-<!-- =================== id_msgbox  =================== -->
-            <div class="popup display_hide">
-                <span class="popuptext" id="id_msgbox"></span>
-            </div>
+
 <!-- =================== POPUP DATE  =================== -->
                  <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
                      <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
@@ -113,21 +114,24 @@
                 </div>
     <!-- =================== DATA TABLE  =================== -->
                 <div id="id_div_tbl_customer" class="display_hide">
-                     <table  class="table tsa-tbl ">
+                     <table  class="table tsa-tbl">
                         <thead id="id_thead_customer"></thead>
                         <tbody id="id_tbody_customer"></tbody>
+                        <tfoot id="id_tfoot_customer"></tfoot>
                     </table>
                 </div>
                 <div id="id_div_tbl_order" class="display_hide">
-                     <table  class="table tsa-tbl ">
+                     <table  class="table tsa-tbl">
                         <thead id="id_thead_order"></thead>
                         <tbody id="id_tbody_order"></tbody>
+                        <tfoot id="id_tfoot_order"></tfoot>
                     </table>
                 </div>
                 <div id="id_div_tbl_planning" class="display_hide">
                      <table  class="table tsa-tbl">
                         <thead id="id_thead_planning"></thead>
                         <tbody id="id_tbody_planning"></tbody>
+                        <tfoot id="id_tfoot_planning"></tfoot>
                     </table>
                 </div>
     <!-- =================== END DATA TABLE  =================== -->
@@ -184,6 +188,7 @@
             data-txt_planning_download = "{% trans 'Download planning' %}"
 
             data-txt_order = "{% trans 'Order' %}"
+            data-txt_order_code = "{% trans 'Order code' %}"
             data-txt_order_name = "{% trans 'Order name' %}"
             data-txt_order_add = "{% trans 'Add new order' %}"
             data-txt_order_delete = "{% trans 'Delete order' %}"

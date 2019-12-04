@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const field_tags = ["input", "input", "input", "input", "input",
                              "a", "input", "a", "input", "input", "a"];
 
-// --- data_fields used in CreateTableRow and CreateTableHeaderFilter
+// --- data_fields used in CreateTblRow and CreateTblHeaderFilter
         const data_fields = ["rosterdate", "orderhour", "shift", "employee", "timestart", "confirmstart",
                              "timeend", "confirmend", "breakduration", "timeduration", "status"];
 
@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
         SetMenubuttonActive(document.getElementById("id_hdr_rost"));
 
 // --- create header filter
-        CreateTableHeaderFilter()
+        CreateTblHeaderFilter()
 
 // --- first get locale, to make it faster
         // send 'now' as array to server, so 'now' of local computer will be used
@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     loc = response["locale_dict"];
                     // --- create Submenu after downloading locale
                     // CreateSubmenu()
-                    CreateTablePeriod();
+                    CreateTblPeriod();
                 }
                 if ("period" in response) {
                     period_dict= response["period"];
@@ -394,9 +394,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     };//function CreateSubmenu
 
-//=========  CreateTablePeriod  ================ PR2019-11-16
-    function CreateTablePeriod() {
-        // console.log("===  CreateTablePeriod == ");
+//=========  CreateTblPeriod  ================ PR2019-11-16
+    function CreateTblPeriod() {
+        // console.log("===  CreateTblPeriod == ");
         // console.log(period_dict);
         let tBody = document.getElementById("id_mod_period_tblbody");
 //+++ insert td's ino tblRow
@@ -419,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_select = document.getElementById("id_mod_period_extend");
         FillOptionsPeriodExtension(el_select, loc.period_extension)
 
-    } // CreateTablePeriod
+    } // CreateTblPeriod
 
 //=========  CreateSelectTableCustomers  ================ PR2019-11-16
     function CreateSelectTableCustomers() {
@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // get rosterdate to be used in addnew row
                 previous_rosterdate_dict = get_dict_value_by_key(item_dict, 'rosterdate')
                 // row_index = -1 (add to end),  is_new_item = false
-                tblRow = CreateTableRow(pk_int, ppk_int, -1, false)
+                tblRow = CreateTblRow(pk_int, ppk_int, -1, false)
                 UpdateTableRow("emplhour", tblRow, item_dict)
 
 // --- highlight selected row
@@ -508,14 +508,14 @@ document.addEventListener('DOMContentLoaded', function() {
         dict["rosterdate"] = previous_rosterdate_dict;
 
 // console.log("FillTableRows 'add new' --> dict:", dict), row_index = -1 (add to end),  is_new_item = true
-        tblRow = CreateTableRow(pk_new, 0, -1, true)
+        tblRow = CreateTblRow(pk_new, 0, -1, true)
         UpdateTableRow("emplhour", tblRow, dict)
     }  // FillTableRows
 
 
-//=========  CreateTableHeaderFilter  ================ PR2019-09-15
-    function CreateTableHeaderFilter() {
-        console.log("=========  function CreateTableHeaderFilter =========");
+//=========  CreateTblHeaderFilter  ================ PR2019-09-15
+    function CreateTblHeaderFilter() {
+        console.log("=========  function CreateTblHeaderFilter =========");
 
         let thead_roster = document.getElementById("id_thead_roster");
 
@@ -583,24 +583,22 @@ document.addEventListener('DOMContentLoaded', function() {
             td.appendChild(el);
         }  // for (let j = 0; j < 8; j++)
         return tblRow
-    };  //function CreateTableHeaderFilter
+    };  //function CreateTblHeaderFilter
 
-//=========  CreateTableRow  ================ PR2019-04-27
-    function CreateTableRow(pk_int, ppk_int, row_index, is_new_item) {
-        //console.log("=========  function CreateTableRow =========");
+//=========  CreateTblRow  ================ PR2019-04-27
+    function CreateTblRow(pk_int, ppk_int, row_index, is_new_item) {
+        //console.log("=========  CreateTblRow =========");
         //console.log("pk_int", pk_int, "ppk_int", ppk_int, "is_new_item", is_new_item);
 
         const tblName =  "emplhour"
-        const map_id = get_map_id(tblName, pk_int);
-        //console.log("map_id", map_id);
 
 // check if row is addnew row - when pk is NaN, or when absence / split record is made
         if(!parseInt(pk_int)){is_new_item = true};
-        ("is_new_item", is_new_item);
 
 //+++ insert tblRow ino tblBody_roster
         let tblRow = tblBody_roster.insertRow(row_index); //index -1 results in that the new row will be inserted at the last position.
 
+        const map_id = get_map_id(tblName, pk_int);
         tblRow.setAttribute("id", map_id);
         tblRow.setAttribute("data-map_id", map_id );
         tblRow.setAttribute("data-pk", pk_int);
@@ -715,7 +713,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // for (let j = 0; j < 8; j++)
 
         return tblRow
-    };//function CreateTableRow
+    };// CreateTblRow
 
 
 //========= UpdateTableRow  =============
@@ -768,7 +766,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     tblRow.setAttribute("data-map_id", map_id)
 
             // make row green, / --- remove class 'ok' after 2 seconds
-                    ShowOkClass(tblRow )
+                    ShowOkRow(tblRow )
                 }
             } else if (!!msg_err){
             // make row red, / --- show error message
@@ -823,7 +821,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (fieldname === "orderhour") {
                                     field_dict["locked"] = true
                                 }
-                                format_text_element (el_input, el_msg, field_dict, [-220, 60], title_overlap);
+                                format_text_element (el_input, el_msg, field_dict, false, [-220, 60], title_overlap);
 
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
                                 format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)
@@ -2130,7 +2128,7 @@ console.log("===  function HandlePopupWdySave =========");
                                 new_dict["team"] = {"pk": parent_pk, "value": team_code}
                             }
                             // row_index = -1 (add to end), is_new_item = true
-                            let tblRow = CreateTableRow(pk_new, parent_pk, -1, true)
+                            let tblRow = CreateTblRow(pk_new, parent_pk, -1, true)
 
                         console.log("<<< UpdateTableRow <<<");
                             UpdateTableRow("emplhour", tblRow, new_dict)
@@ -3188,7 +3186,7 @@ console.log("===  function HandlePopupWdySave =========");
 
              // add new tablerow if it does not exist
                             // row_index = -1 (add after existing row), is_new_item = true
-                            emplhour_tblRow = CreateTableRow(pk_int, ppk_int, row_index, true)
+                            emplhour_tblRow = CreateTblRow(pk_int, ppk_int, row_index, true)
                         }
             // update tablerow
                         UpdateTableRow(tblName, emplhour_tblRow, update_dict)
@@ -3216,7 +3214,7 @@ console.log("===  function HandlePopupWdySave =========");
 
                 let new_dict = {"id": {"pk": pk_new, "ppk": ppk}}
                 // row_index = -1 (add to end),  is_new_item = true
-                let new_row = CreateTableRow(pk_new, ppk, -1, true)
+                let new_row = CreateTblRow(pk_new, ppk, -1, true)
 
                 UpdateTableRow(tblName, new_row, new_dict)
             }

@@ -363,6 +363,7 @@ class Scheme(TsaBaseModel):
     order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
     cat = PositiveSmallIntegerField(default=0)  # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
     isabsence = BooleanField(default=False)
+    issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
     cycle = PositiveSmallIntegerField(default=7)
@@ -501,6 +502,7 @@ class Teammember(TsaBaseModel):
 
     cat = PositiveSmallIntegerField(default=0)  # teammember cat: 0 = normal, 1 = replacement, 512 = absent
     isabsence = BooleanField(default=False)
+    issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
     workhoursperday = IntegerField(default=0)  # / working hours per day, unit is minute
@@ -509,8 +511,9 @@ class Teammember(TsaBaseModel):
     # field jsonsetting contains simple shifts: { 0: [480, 990, 30] 1:[...] exwk: true, exph: true }
     #  1: Monday [offsetstart, offsetend, breakduration] exwk: excludeweekend, exph: excludepublicholiday
 
-    offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
-    offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
+    offsetstart = SmallIntegerField(null=True)  # only for absence
+    offsetend = SmallIntegerField(null=True)  # only for absence
+
     # teammember wagerate not in use
     wagerate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     wagefactor = IntegerField(default=0) # /10000 unitless, 0 = factor 100%  = 10.000)
@@ -519,8 +522,6 @@ class Teammember(TsaBaseModel):
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless additionrate 2500 = 25%
     override = BooleanField(default=True)
-
-    shiftjson = JSONField(null=True)  # stores simple scheme for this employee_order
 
     @classmethod
     def get_first_teammember_on_rosterdate(cls, team, rosterdate_dte):
@@ -587,6 +588,10 @@ class Schemeitem(TsaBaseModel):
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
     rosterdate = DateField(db_index=True)
     iscyclestart = BooleanField(default=False)
+
+    issingleshift = BooleanField(default=False)
+    offsetstart = SmallIntegerField(null=True)  # only for simpleshifts
+    offsetend = SmallIntegerField(null=True)  # only for simpleshifts
 
     timestart = DateTimeField(db_index=True, null=True, blank=True)
     timeend = DateTimeField(db_index=True, null=True, blank=True)
@@ -1061,9 +1066,6 @@ def delete_instance(instance, update_dict, request, this_text=None):
     # function deletes instance of table,  PR2019-08-25
     delete_ok = False
     if instance:
-        # id_dict is added in create_update_dict
-        if 'delete' in update_dict['id']:
-            del update_dict['id']['delete']
         try:
             instance.delete(request=request)
         except:

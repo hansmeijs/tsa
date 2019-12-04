@@ -177,69 +177,73 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
 
-    # a. Reset language
+# 1. Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 
-    # b. get upload_dict from request.POST
+# 2. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
 
-    # c. get iddict variables
+# 3. get iddict variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
                     pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode = f.get_iddict_variables(id_dict)
-
-    # d. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
-
-                    # FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
-                    #                    'namelast', 'namefirst', 'email', 'telephone', 'identifier',
-                    #                    'address', 'zipcode', 'city', 'country',
-                    #                    'payrollcode', 'wagerate', 'wagecode', 'workhours', 'workdays', 'leavedays',
-                    #                    'priceratejson', 'additionjson', 'inactive', 'locked')
-                    update_dict = f.create_update_dict(c.FIELDS_EMPLOYEE, id_dict)
-
-    # e. check if parent exists (company is parent of employee)
-                    # get_parent adds 'ppk' and 'table' to update_dict
-                    parent = m.get_parent(table, ppk_int, update_dict, request)
+                    update_dict = {}
+# A. check if parent exists  (company is parent of employee)
+                    parent = request.user.company
                     if parent:
-# D. Delete instance
+
+# B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
+                        update_dict = f.create_update_dict(
+                            c.FIELDS_EMPLOYEE,
+                            table=table,
+                            pk=pk_int,
+                            ppk=parent.pk,
+                            temp_pk=temp_pk_str)
+
+# C. Delete employee
                         if is_delete:
                             instance = m.Employee.objects.get_or_none(id=pk_int, company=parent)
                             if instance:
                                 this_text = _("Employee '%(tbl)s'") % {'tbl': instance.code}
-     # a. check if employee has emplhours
+                        # a. check if employee has emplhours, put msg_err in update_dict when error
                                 has_emplhours = validate_employee_has_emplhours(instance, update_dict)
                                 if not has_emplhours:
-    # b. check if there are teammembers with this employee
+                        # b. check if there are teammembers with this employee: absence teammembers, remove employee from shift teammembers
                                     delete_employee_from_teammember(instance, request)
-     # c. delete employee
+                        # c. delete employee
                                     deleted_ok = m.delete_instance(instance, update_dict, request, this_text)
                                     if deleted_ok:
                                         instance = None
                         else:
-# B. Create new employee
+# D. Create new employee
                             if is_create:
                                 instance = create_employee(upload_dict, update_dict, request)
-    # C. Get existing employee
+# E. Get existing employee
                             else:
                                 instance = m.Employee.objects.get_or_none(id=pk_int, company=parent)
 
-# E. Update employee, also when it is created
+# F. Update employee, also when it is created
                             if instance:
                                 update_employee(instance, parent, upload_dict, update_dict, user_lang, request)
 
-    # b. remove empty attributes from update_dict
+# G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
+                        if instance:
+                            d.create_employee_dict(instance, update_dict, user_lang)
+
+# H. remove empty attributes from update_dict
                     f.remove_empty_attr_from_dict(update_dict)
-    # c. add update_dict to update_wrap
+
+# I. add update_dict to update_wrap
                     if update_dict:
                         update_list = []
                         update_list.append(update_dict)
                         update_wrap['update_list'] = update_list
 
-# F. return update_wrap
+# J. return update_wrap
             return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -250,7 +254,7 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
 class TeammemberUploadView(UpdateView):  # PR2019-07-28
 
     def post(self, request, *args, **kwargs):
-        # logger.debug('============= TeammemberUploadView ============= ')
+        logger.debug('============= TeammemberUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -267,7 +271,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                # logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: {id: {temp_pk: "new_1", create: true, table: "teammember"}
                 #               cat: {value: 512}
                 #               employee: {pk: 0, code: null, workhoursperday: 0}
@@ -289,17 +293,24 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
 
                     # # teammember wagerate not in use
                     # # teammember pricerate not in use
-                    update_dict = f.create_update_dict(c.FIELDS_TEAMMEMBER, id_dict)
+                    update_dict = f.create_update_dict(
+                        c.FIELDS_TEAMMEMBER,
+                        table=table,
+                        pk=pk_int,
+                        ppk=ppk_int,
+                        temp_pk=temp_pk_str)
+
 
 # A. new absence has no parent, get ppk_int from team_dict and put it back in upload_dict
                     is_absence = f.get_fielddict_variable(upload_dict, 'isabsence', 'value')
+                    logger.debug('is_absence: ' + str(is_absence))
                     if is_create and is_absence:
                         team_dict = upload_dict.get('team')
-                        # logger.debug('team_dict: ' + str(team_dict))
+                        logger.debug('team_dict: ' + str(team_dict))
                         if team_dict:
                             ppk_int = int(team_dict.get('pk', 0))
                             upload_dict['id']['ppk'] = ppk_int
-                            # logger.debug('team_dict ppk_int ' + str(ppk_int))
+                            logger.debug('team_dict ppk_int ' + str(ppk_int))
 
     # 2. check if parent exists (team is parent of teammember)
                     parent = m.Team.objects.get_or_none(id=ppk_int, scheme__order__customer__company=request.user.company)
@@ -307,7 +318,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
 # B. Delete instance
                         if is_delete:
                             instance = m.Teammember.objects.get_or_none(id=pk_int, team__scheme__order__customer__company=request.user.company)
-                            # logger.debug('instance: ' + str(instance))
+                            logger.debug('instance: ' + str(instance))
                             if instance:
                                 deleted_ok = m.delete_instance(instance, update_dict, request)
                                 if deleted_ok:
@@ -339,13 +350,11 @@ class TeammemberUploadView(UpdateView):  # PR2019-07-28
 
  # h. remove empty attributes from update_dict
                     f.remove_empty_attr_from_dict(update_dict)
-                    # logger.debug('update_dict: ' + str(update_dict))
+                    logger.debug('update_dict: ' + str(update_dict))
 
 # I. add update_dict to update_wrap
                     if update_dict:
-                        update_list = []
-                        update_list.append(update_dict)
-                        update_wrap['update_list'] = update_list
+                        update_wrap['teammember_update'] = update_dict
 
 # J. return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
@@ -378,8 +387,7 @@ def create_teammember(upload_dict, update_dict, request):
             parent = m.get_parent(table, ppk_int, update_dict, request)
             if parent:
 
-
-                # logger.debug(' parent: ' + str(parent.code))
+                logger.debug(' parent: ' + str(parent.code))
 # 3. get employee
                 # employee: {value: "Chester", pk: 75, update: true}
                 field_dict = upload_dict.get('employee')
@@ -388,7 +396,7 @@ def create_teammember(upload_dict, update_dict, request):
                     employee_pk = field_dict.get('pk')
                     if employee_pk:
                         employee = m.Employee.objects.get_or_none(id=employee_pk, company=request.user.company)
-                        # logger.debug(' employee: ' + str(employee))
+                        logger.debug(' employee: ' + str(employee))
                     # 3. return msg_err when employee is None
                         if employee is None:
                             update_dict['id']['error'] = _('Employee cannot be blank.')
@@ -408,6 +416,8 @@ def create_teammember(upload_dict, update_dict, request):
                                 update_dict['id']['pk'] = instance.pk
                                 update_dict['id']['created'] = True
 
+    logger.debug(' instance: ' + str(instance))
+    logger.debug(' update_dict: ' + str(update_dict))
     return instance
 
 def update_teammember(instance, upload_dict, update_dict, request):
@@ -524,15 +534,6 @@ def update_teammember(instance, upload_dict, update_dict, request):
                         if new_value != saved_value:
                             setattr(instance, field, new_value)
                             is_updated = True
-
-                    elif field == 'shiftjson':
-                        # shiftjson new_value: {'2019-11-24': {'1': [None, None, None, 0],
-                        #                                      '2': [None, None, None, 0], ....
-                        #                                      '7': [None, None, None, 0]}}
-                        # TODO multiple asof dates
-                        logger.debug('shiftjson new_value: ' + str(new_value))
-                        setattr(instance, field, new_value)
-                        is_updated = True
 
         # 5. add 'updated' to field_dict'
                     if is_updated:
@@ -1160,9 +1161,8 @@ def delete_employee_from_teammember(employee, request):
         #logger.debug(' --- employee <' + str() + '> has the following teammembers:')
         for teammember in m.Teammember.objects.filter(employee=employee):
 # delete teammember if is_absence
-            is_absence = teammember.isabsence
             #logger.debug(' --- teammember ' + str(teammember.id) + ' is_absence ' + str(is_absence))
-            if is_absence:
+            if teammember.isabsence:
                 teammember.delete(request=request)
                 #logger.debug(' --- delete_employee_from_ ABSENCE')
             else:

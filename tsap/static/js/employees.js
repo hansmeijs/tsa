@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  id of selected employee
         let selected_employee_pk = 0;
         let selected_teammember_pk = 0;
+        let selected_btn = "";
 
         let company_dict = {};
         let employee_map = new Map();
@@ -74,7 +75,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let filter_show_inactive = false;
         let filter_dict = {};
 
-        let selected_btn = "";
         const id_sel_prefix = "sel_"
 
         let loc = {};  // locale_dict with translated text
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
             "employee": ["180", "090", "090", "120", "120", "120", "090", "032"],
             "absence": ["180", "220", "120", "120","090", "090","120", "032"],
             "shifts": ["180", "180", "180", "120", "090", "090", "090", "060"],
-            "planning": ["180", "120", "120", "120", "090", "090", "090"],
+            "planning": ["180", "120", "120", "90", "090", "110", "110"],
             "pricerate": ["180", "220", "120", "032"]}
 
         const field_align = {
@@ -551,7 +551,6 @@ document.addEventListener('DOMContentLoaded', function() {
         el.focus();
     } // HandleEmployeeAdd
 
-
     function HandleBtnInactiveClicked(el_input) {
         HandleBtnInactiveDeleteClicked("inactive", el_input);
     }
@@ -909,20 +908,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         (["absence", "shifts"].indexOf( mode ) > -1) ? "teammember":
                         (mode === "pricerate") ? "pricerate" :
                         (mode === "planning") ? "planning" : null;
-        const map_id = get_map_id( tblName, pk_str)
 
-// --- check if row is addnew row - when pk is NaN
-        const is_new_row = !parseInt(pk_str); // don't use Number, "545-03" wil give NaN
 
 // --- insert tblRow into tblBody
         let tblBody = document.getElementById("id_tbody_" + mode);
         let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
-        tblRow.setAttribute("data-table", tblName);
+        const map_id = get_map_id(tblName, pk_str)
         tblRow.setAttribute("id", map_id);
         tblRow.setAttribute("data-pk", pk_str);
         tblRow.setAttribute("data-ppk", ppk_str);
+        tblRow.setAttribute("data-table", tblName);
         if(!!employee_pk){tblRow.setAttribute("data-employee_pk", employee_pk)};
+
+// --- check if row is addnew row - when pk is NaN
+        const is_new_row = !parseInt(pk_str); // don't use Number, "545-03" wil give NaN
 
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow)}, false);
@@ -1047,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // for (let j = 0; j < 8; j++)
 
         return tblRow
-    };  //function CreateTblRow
+    };  // CreateTblRow
 
 //=========  CreateAddnewRow  ================ PR2019-10-27
     function CreateAddnewRow(mode) {
@@ -1153,7 +1153,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  UpdateFromResponse  ================ PR2019-10-06
     function UpdateFromResponse(update_dict) {
         console.log(" --- UpdateFromResponse  ---");
-        //console.log("update_dict", update_dict);
+        console.log("update_dict", update_dict);
 
 //--- get id_dict of updated item
         const id_dict = get_dict_value_by_key (update_dict, "id");
@@ -1164,6 +1164,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const map_id = get_map_id(tblName, pk_int);
             const is_created = ("created" in id_dict);
             const is_deleted = ("deleted" in id_dict);
+        console.log("temp_pk_str", temp_pk_str);
+        console.log("is_created", is_created);
 
         if(selected_btn === "employee_form"){
             UpdateForm()
@@ -1173,8 +1175,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // created row has id 'teammemnber_new1', existing has id 'teammemnber_379'
             // 'is_created' is false when creating failed, use instead: (!is_created && !map_id)
             const row_id_str = ((is_created) || (!is_created && !map_id)) ? tblName + "_" + temp_pk_str : map_id;
+            console.log("row_id_str", row_id_str);
+
             let tblRow = document.getElementById(row_id_str);
             if(!!tblRow){
+                console.log("tblRow", tblRow);
 
 //--- reset selected_employee when deleted
                 if(is_deleted){
@@ -1249,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log("update_dict", update_dict);
         //console.log(selectRow);
 
-        if(!!selectRow && !!update_dict){
+        if(!isEmpty(update_dict) && !!selectRow){
         // get temp_pk_str and id_pk from update_dict["id"]
             //const id_dict = get_dict_value_by_key (update_dict, "id");
             //const is_deleted = ("deleted" in id_dict);
@@ -1382,7 +1387,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 tblBody.insertBefore(tblRow, tblBody.childNodes[row_index - 1]);
 
 // make row green, / --- remove class 'ok' after 2 seconds
-                ShowOkClass(tblRow)
+                ShowOkRow(tblRow)
 
 // insert new row in alfabetic order
 
@@ -1426,7 +1431,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateField  ============= PR2019-10-05
     function UpdateField(el_input, item_dict){
-       // console.log("========= UpdateField  =========");
+       //console.log("========= UpdateField  =========");
        // console.log("item_dict", item_dict);
 
        const fieldname = get_attr_from_el(el_input, "data-field");
@@ -1458,7 +1463,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 if (["code", "name", "namelast", "namefirst", "order", "schemeteam", "identifier"].indexOf( fieldname ) > -1){
-                   format_text_element (el_input, el_msg, field_dict, msg_offset)
+                   format_text_element (el_input, el_msg, field_dict, false, msg_offset)
                 } else if (["pricerate"].indexOf( fieldname ) > -1){
                    format_price_element (el_input, el_msg, field_dict, msg_offset, user_lang)
                 } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
@@ -1467,20 +1472,27 @@ document.addEventListener('DOMContentLoaded', function() {
                                 user_lang, comp_timezone, hide_weekday, hide_year)
 
                 } else if (fieldname === "rosterdate"){
-                    const hide_weekday = (tblName === "planning") ? false : true;
-                    const hide_year = (tblName === "planning") ?  true : false;
-                    format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
-                                        user_lang, comp_timezone, hide_weekday, hide_year)
-
+                    if (tblName === "planning"){
+                        el_input.value = field_dict["display"]
+                    } else {
+                        const hide_weekday = (tblName === "planning") ? false : true;
+                        const hide_year = (tblName === "planning") ?  true : false;
+                        format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
+                                            user_lang, comp_timezone, hide_weekday, hide_year)
+                    }
                 } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
+
+                    if (tblName === "planning"){
+                        el_input.value = field_dict["display"]
+                    } else {
                     const title_overlap = null
                     format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)
-
-                } else if (fieldname ===  "shifts"){
+                    }
+                } else if (fieldname ===  "team"){
                     if (tblName === "shifts"){
-                        format_text_element (el_input, el_msg, field_dict, msg_offset)
+                        format_text_element (el_input, el_msg, field_dict, false, msg_offset)
                     } else {
-                        // fieldname "shifts") is used for absence categorie in mode absence, teammember table
+                        // fieldname "team") is used for absence categorie in mode absence, teammember table
                         //console.log("fieldname", fieldname);
                         //console.log("field_dict", field_dict);
 
@@ -1520,13 +1532,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         el_input.removeAttribute("placeholder")
                     }
 
-
                     // lock element when locked
                     const locked = get_dict_value_by_key (field_dict, "locked");
                     el_input.disabled = locked
 
                 } else if (tblName === "teammember" && fieldname === "breakduration"){
-                    format_text_element (el_input, el_msg, field_dict, msg_offset)
+                    format_text_element (el_input, el_msg, field_dict, false, msg_offset)
 
                 } else if (fieldname === "workhoursperday") {
                     format_duration_element (el_input, el_msg, field_dict, user_lang)
@@ -1745,8 +1756,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!selected_employee_pk){
                 // get new temp_pk
                 id_new = id_new + 1
-                const temp_pk_str = "new" + id_new.toString()
-                id_dict = {temp_pk: temp_pk_str, "create": true, "table": "employee"}
+                const pk_new = "new" + id_new.toString()
+                id_dict = {temp_pk: pk_new, "create": true, "table": "employee"}
             } else {
                 // get id from existing record
                 const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", pk_str);
@@ -1783,9 +1794,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(is_create){el_input.classList.remove("tsa_color_darkgrey")}
 
     // ---  get fieldname from 'el_input.data-field'
-                const fieldname = get_attr_from_el(el_input, "data-field");
-                const is_delete = (fieldname === "delete_row");
-                console.log("is_create: ", is_create, "fieldname: ", fieldname,  "is_delete: ", is_delete);
+                const fldName = get_attr_from_el(el_input, "data-field");
+                const is_delete = (fldName === "delete");
+                console.log("is_create: ", is_create, "fldName: ", fldName,  "is_delete: ", is_delete);
 
     // ---  when absence: is_absence = true
                 const is_absence = (selected_btn === "absence");
@@ -1811,8 +1822,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- add absence, skip when is_delete
                 if(!is_delete){
-                    if (["order", "shifts"].indexOf( fieldname ) > -1){
+                    if (["order", "team"].indexOf( fldName ) > -1){
+                        // option value = team_pk_int
                         const pk_int = parseInt(el_input.value);
+                        console.log(">>>>>>>add absence fldName", fldName);
+                        console.log(">>>>>>>add absence pk_int", pk_int);
+                        console.log(el_input);
                         if(!!pk_int){
                             field_dict["pk"] = pk_int
                             if (el_input.selectedIndex > -1) {
@@ -1822,23 +1837,24 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if(!!code){field_dict["value"] = code};
                                 if(!!ppk_int){field_dict["ppk"] = ppk_int};
                                 field_dict["is_absence"] = is_absence;
+                        console.log("add absence code", code);
                             }
                         }
                         field_dict["update"] = true;
-                        upload_dict[fieldname] = field_dict;
+                        upload_dict[fldName] = field_dict;
                         //set default value to workhours
-                        if(fieldname === "team" && is_create){
+                        if(fldName === "team" && is_create){
                             // convert to hours, because input is in hours
                             // TODO add popup hours window
                             const hours = workhoursperday / 60
                             upload_dict["workhoursperday"] = {"value": hours, "update": true }
                         }
-                    } else if (["workhoursperday", "workdays", "leavedays",].indexOf( fieldname ) > -1){
+                    } else if (["workhoursperday", "workdays", "leavedays",].indexOf( fldName ) > -1){
                         let value = el_input.value;
                         if(!value){value = 0}
                         field_dict["value"] = value;
                         field_dict["update"] = true;
-                        upload_dict[fieldname] = field_dict;
+                        upload_dict[fldName] = field_dict;
                     }
                 } // if(!is_delete)
 
@@ -1851,75 +1867,78 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= UploadEmployeeChanges  ============= PR2019-10-08
     function UploadEmployeeChanges(el_input) {
         console.log("--- UploadEmployeeChanges  --------------");
-        //console.log("el_input", el_input);
+        // function only called when btn (and table) = 'employee', by elements of table, not by date fields
 
         let tr_changed = get_tablerow_selected(el_input)
         if (!!tr_changed){
-
+            const tblName = "employee";
     // ---  create id_dict
             let id_dict = get_iddict_from_element(tr_changed);
             if (!isEmpty(id_dict)){
-                console.log("id_dict: ", id_dict);
-                let upload_dict = {}, field_dict = {};
 
-                const is_create = (get_dict_value_by_key(id_dict, "create") === "true")
-                if(is_create){el_input.classList.remove("tsa_color_darkgrey")}
+    // add id_dict to upload_dict
+                let upload_dict = {"id": id_dict};
+
+                const is_create = ("create" in id_dict);
 
                 // get employee info
-                const pk_str = get_attr_from_el(tr_changed,"data-pk")
+                const pk_int = get_dict_value_by_key(id_dict, "pk")
                 const tblName = get_dict_value_by_key(id_dict, "table")
-                console.log("pk_str: ", pk_str);
-                console.log("tblName: ", tblName);
-                if (!!pk_str && tblName === "employee"){
-                    const map_id = get_map_id(tblName, pk_str);
-                    const employee_dict = get_mapdict_from_datamap_by_id(employee_map, map_id)
-                    const employee_pk = get_pk_from_dict(employee_dict);
+                const map_id = get_map_id(tblName, pk_int);
+                const employee_dict = get_mapdict_from_datamap_by_id(employee_map, map_id)
+
+                if (!isEmpty(employee_dict)){
                     const employee_code = get_subdict_value_by_key(employee_dict, "code", "value")
                     const workhoursperday = get_subdict_value_by_key(employee_dict, "workhoursperday", "value")
+                }
 
-                    console.log("employee_pk: ", employee_pk);
-                    console.log("employee_code: ", employee_code);
+    // ---  get fieldname from 'el_input.data-field'
+                const fieldname = get_attr_from_el(el_input, "data-field");
+                const is_delete = (fieldname === "delete");
+                console.log("fieldname: ", fieldname,  "is_delete: ", is_delete,  "is_create: ", is_create);
 
-        // ---  get fieldname from 'el_input.data-field'
-                    const fieldname = get_attr_from_el(el_input, "data-field");
-                    const is_delete = (fieldname === "delete_row");
-                    console.log("is_create: ", is_create, "fieldname: ", fieldname,  "is_delete: ", is_delete);
+    // ---  remove back color selected, otherwise green or red won't show;
+                if(is_create ||is_delete ){tr_changed.classList.remove(cls_selected)}
 
-        // if delete: add 'delete' to id_dict and make tblRow red
-                    if(is_delete){
-                        id_dict["delete"] = true
-                        tr_changed.classList.add(cls_error);
-                    }
-        // add id_dict to upload_dict
-                    upload_dict["id"] = id_dict;
+    // if delete: add 'delete' to id_dict and make tblRow red
+                if(is_delete){
+                    id_dict["delete"] = true
 
-        // --- dont add fielddict when is_delete
-                    if(!is_delete){
-/*
-                        if (["order", "team"].indexOf( fieldname ) > -1){
-                            const pk_int = parseInt(el_input.value);
-                            if(!!pk_int){
-                                field_dict["pk"] = pk_int
-                                if (el_input.selectedIndex > -1) {
-                                    const option = el_input.options[el_input.selectedIndex]
-                                    const code = option.text;
-                                    const ppk_int = get_attr_from_el_int(option, "data-ppk")
-                                    if(!!code){field_dict["value"] = code};
-                                    if(!!ppk_int){field_dict["ppk"] = ppk_int};
-                                }
+    // if delete: make tblRow red for 3 seconds
+                    tr_changed.classList.add(cls_error);
+                    setTimeout(function (){
+                        tr_changed.classList.remove(cls_error);
+                    }, 3000);
+
+                } else {
+    // --- skip  fielddict when is_delete
+                    let field_dict = {};
+                    // fields of employee are: "code", "datefirst", "datelast",
+                    // "hoursperday", "daysperweek", "leavedays", "pricerate", "delete"],
+
+                    // TODO not in use
+                    if (["order", "team"].indexOf( fieldname ) > -1){
+                        const pk_int = parseInt(el_input.value);
+                        if(!!pk_int){
+                            field_dict["pk"] = pk_int
+                            if (el_input.selectedIndex > -1) {
+                                const option = el_input.options[el_input.selectedIndex]
+                                const code = option.text;
+                                const ppk_int = get_attr_from_el_int(option, "data-ppk")
+                                if(!!code){field_dict["value"] = code};
+                                if(!!ppk_int){field_dict["ppk"] = ppk_int};
                             }
-                            field_dict["update"] = true;
-                            upload_dict[fieldname] = field_dict;
-                            //set default value to workhours
-                            if(fieldname === "team" && is_create){
-                                // convert to hours, because input is in hours
-                                // TODO add popup hours window
-                                const hours = workhoursperday / 60
-                                upload_dict["workhoursperday"] = {"value": hours, "update": true }
-                            }
-                        } else
-                        */
-
+                        }
+                        field_dict["update"] = true;
+                        upload_dict[fieldname] = field_dict;
+                        //set default value to workhours
+                        if(fieldname === "team" && is_create){
+                            // convert to hours, because input is in hours
+                            // TODO add popup hours window
+                            const hours = workhoursperday / 60
+                            upload_dict["workhoursperday"] = {"value": hours, "update": true }
+                        }
+                    } else {
                         let new_value = el_input.value;
                         if (["workhoursperday", "workdays", "leavedays",].indexOf( fieldname ) > -1){
                             if(!value){value = 0}
@@ -1927,12 +1946,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         field_dict["value"] = new_value;
                         field_dict["update"] = true;
                         upload_dict[fieldname] = field_dict;
+                    }
 
-                    } // if(!is_delete)
+                } // if(!is_delete)
 
-                    UploadChanges(upload_dict, url_employee_upload);
+                UploadChanges(upload_dict, url_employee_upload);
 
-                }  //  if (!!pk_str && tblName === "employee")
             }  // if (!isEmpty(id_dict))
         }  //  if (!! tr_changed)
     } // UploadEmployeeChanges(el_input)
@@ -1999,27 +2018,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // Attributes are in the HTML itself, rather than in the DOM. It shows the default value even if the value has changed. An attribute is only ever a string, no other type
     function UploadChanges(upload_dict, url_str) {
         console.log("=== UploadChanges");
+        console.log("url_str: ", url_str);
         console.log("upload_dict: ", upload_dict);
 
-        if(!!upload_dict) {
+        if(!isEmpty(upload_dict)) {
             const parameters = {"upload": JSON.stringify (upload_dict)}
-
-// if delete: make tblRow red
-            const is_delete = (!!get_subdict_value_by_key(upload_dict, "id", "delete"))
-            if(is_delete){
-                const map_id = get_mapid_from_dict (upload_dict);
-                let tr_changed = document.getElementById(map_id);
-
-                if(!!tr_changed){
-                    tr_changed.classList.add(cls_error);
-                    setTimeout(function (){
-                        tr_changed.classList.remove(cls_error);
-                    }, 2000);
-                }
-            }  // if(is_delete){
-
-            console.log("url_str: ", url_str );
-            console.log("upload: ", upload_dict);
 
             let response = "";
             $.ajax({
@@ -2217,8 +2220,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // if(!!pk_str && !! parent_pk)
     }  // HandlePopupDateSave
 
-
-
 //=========  HandleTimepickerOpen  ================ PR2019-10-12
     function HandleTimepickerOpen(el_input, mode, weekday) {
         console.log("=== HandleTimepickerOpen");
@@ -2266,12 +2267,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }  //  if(!isEmpty(teammember_dict))
     };
 
-
 //###########################################################################
 // +++++++++++++++++ MODAL ++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-
 // +++++++++++++++++ MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
 //=========  ModPeriodOpen  ================ PR2019-10-28
     function ModPeriodOpen() {
@@ -2911,6 +2908,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const fld = (fldName === "breakduration") ? "value" : "offset";
                         let field_dict = {};
                         field_dict[fld] = offset
+
                         if (["offsetstart", "offsetend", "breakduration"].indexOf( fldName ) > -1){
                             const title_prev = loc.Previous_day_title, title_next = loc.Next_day_title;
                             const blank_when_zero = (fldName === "breakduration") ? true : false;
@@ -3312,14 +3310,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         hide_row = (inactive_str.toLowerCase() === "true")
                     }
                 }
-
         // show all rows if filter_str = ""
                 if (!hide_row && !!filter_str){
                     let found = false
                     if (!!tblRow.cells[0]) {
                         let el_value = tblRow.cells[0].innerText;
-
-        console.log( "el_value", el_value);
                         if (!!el_value){
                             el_value = el_value.toLowerCase();
                             found = (el_value.indexOf(filter_str) !== -1)
@@ -3327,8 +3322,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     hide_row = (!found)
                 }  // if (!!filter_str)
-
-
                 if (hide_row) {
                     tblRow.classList.add(cls_hide)
                 } else {

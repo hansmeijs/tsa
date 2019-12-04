@@ -22,8 +22,8 @@
 }
 .input_popup_date {
     text-align: left;
-    /*background: transparent;*/
-    /*border: none;*/
+    /*background: transparent; not because of popup_date in scheme box (to be changed)
+    border: none;*/
     margin: 0;
 	padding: 0;
 }
@@ -210,6 +210,9 @@
 .td_width_100 {
     width: 100px;
 }
+.td_width_110 {
+    width: 110px;
+}
 .td_width_090 {
     width: 90px;
     }
@@ -303,7 +306,7 @@
                transition: background 0.25s ease-in-out;
 }
 
-.tr_disabled {
+.tr_color_disabled {
     color: grey; /* #e0e0e0; /* default light grey */
 }
 
@@ -338,7 +341,12 @@
 .tsa_flex_1 {
     flex: 1;
 }
+
 .tsa_flex_2 {
     flex: 2;
+}
+
+.tsa_flex_4 {
+    flex: 4;
 }
 
