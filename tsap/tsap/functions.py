@@ -44,18 +44,29 @@ class ForgivingManifestStaticFilesStorage(ManifestStaticFilesStorage):
 
 # >>>>>> This is the right way, I think >>>>>>>>>>>>>
 
-def get_dateobj_from_ISOstring(date_ISOstring):  # PR2019-10-25
+def get_dateobj_from_dateISO(date_ISOstring):  # PR2019-10-25
     dte = None
     if date_ISOstring:
-        arr = get_datetimearray_from_ISOstring(date_ISOstring)
+        arr = get_datetimearray_from_dateISO(date_ISOstring)
         dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
     return dte
+
+
+def get_dateISO_from_dateOBJ(date_obj):  # PR2019-12-05
+    date_iso = None
+    if date_obj:
+        year_str = str(date_obj.year)
+        month_str = ('00' + str(date_obj.month))[:-2]
+        date_str = ('00' + str(date_obj.month))[:-2]
+        date_iso = '-'.join([year_str, month_str, date_str])
+        # today_iso: 2019-11-17 <class 'str'>
+    return date_iso
 
 
 def get_datetime_naive_from_ISOstring(date_ISOstring):  # PR2019-10-25
     datetime_naive = None
     if date_ISOstring:
-        date_obj = get_dateobj_from_ISOstring(date_ISOstring)
+        date_obj = get_dateobj_from_dateISO(date_ISOstring)
         if date_obj:
             datetime_naive = get_datetime_naive_from_dateobject(date_obj)
     return datetime_naive
@@ -197,6 +208,31 @@ def get_offset_from_datetimelocal(rosterdate, dt_local):  # PR2019-09-17
     return offset_int
 
 
+def get_today_iso():
+    # function gets today in '2019-12-05' format
+    now = datetime.now()
+    now_arr = [now.year, now.month, now.day, now.hour, now.minute]
+
+    # now is the time of the computer of the current user. May be different from company local
+    year_str = str(now_arr[0])
+    month_str = str(now_arr[1])
+    date_str = str(now_arr[2])
+    today_iso = '-'.join([year_str, month_str, date_str])
+    # today_iso: 2019-11-17 <class 'str'>
+    return today_iso
+
+def get_today_dateobj():
+    # function gets today in '2019-12-05' format
+    now = datetime.now()
+    now_arr = [now.year, now.month, now.day, now.hour, now.minute]
+    # today_iso: 2019-11-17 <class 'str'>
+    today_dte = get_date_from_arr(now_arr)
+    # today_dte: 2019-11-17 <class 'datetime.date'>
+    now_usercomp_dtm = get_datetime_from_arr(now_arr)
+    # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
+
+    return now_usercomp_dtm
+
 # <<<<<<<<<< SO FAR checked and approved PR2019-09-17 <<<<<<<<<<<<<<<<<<<
 # ########################################################################<
 
@@ -247,8 +283,8 @@ def get_datetimenaive_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
     #  regex \d+ - matches one or more numeric digits
     dte_time = None
 
-    # get_datetimearray_from_ISOstring sets arr[i] to 0 if not present
-    arr = get_datetimearray_from_ISOstring(datetime_ISOstring)
+    # get_datetimearray_from_dateISO sets arr[i] to 0 if not present
+    arr = get_datetimearray_from_dateISO(datetime_ISOstring)
 
     try:
         dte_time = datetime(int(arr[0]), int(arr[1]), int(arr[2]), int(arr[3]), int(arr[4]))
@@ -257,11 +293,11 @@ def get_datetimenaive_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
     return dte_time
 
 
-def get_datetimearray_from_ISOstring(datetime_ISOstring):  # PR2019-07-10
+def get_datetimearray_from_dateISO(datetime_ISOstring):  # PR2019-07-10
     #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
     #  split string into array  ["2019", "03", "30", "19", "05", "00"]
     #  regex \d+ - matches one or more numeric digits
-    # logger.debug('............. get_datetimearray_from_ISOstring: ' + str(datetime_ISOstring))
+    # logger.debug('............. get_datetimearray_from_dateISO: ' + str(datetime_ISOstring))
     # logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' ' + str(type(datetime_ISOstring)))
 
     regex = re.compile('\D+')
@@ -349,7 +385,7 @@ def get_date_from_ISOstring(datetime_ISOstring, blank_not_allowed=False, format=
         if blank_not_allowed:
             msg_err = _("Date cannot be blank.")
     else:
-        arr = get_datetimearray_from_ISOstring(datetime_ISOstring)
+        arr = get_datetimearray_from_dateISO(datetime_ISOstring)
         try:
             day_int = 0
             month_int = 0
@@ -566,13 +602,12 @@ def get_minutes_from_offset(offset_str):  #PR2019-06-13
 
 # ################### DATE STRING  FUNCTIONS ###################
 
-# NIU yet, simple conversion
+
 def get_date_from_ISO(date_string):  # PR2019-09-18
     dte = None
     if date_string:
         arr = date_string.split('-')
         dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
-
     return dte
 
 
@@ -651,7 +686,7 @@ def detect_dateformat(dict, field):
 
             date_string = item.get(field)
             if date_string:
-                arr = get_datetimearray_from_ISOstring(date_string)
+                arr = get_datetimearray_from_dateISO(date_string)
 
                 isok = False
                 if len(arr) > 2:

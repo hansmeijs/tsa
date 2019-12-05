@@ -96,9 +96,9 @@ document.addEventListener('DOMContentLoaded', function() {
             "shift": ["180", "060", "120", "120", "120"],
             "teammember": ["220", "120", "120", "032"]}
         const field_align = {
-                "schemeitem": ["left", "left", "left", "right", "right", "right", "left", "left"],
-                "shift": ["left", "left", "right", "right", "right"],
-                "teammember": ["left", "left", "left", "right"]}
+            "schemeitem": ["left", "left", "left", "right", "right", "right", "left", "left"],
+            "shift": ["left", "left", "right", "right", "right"],
+            "teammember": ["left", "left", "left", "right"]}
 
         const field_right_align = {"schemeitem": [3,4,5,6], "shift": [2,3,5], "teammember": [4]}
         const field_center_align = {"schemeitem": [], "shift": [], "teammember": []}
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const mode = get_attr_from_el(btn,"data-mode")
             btn.addEventListener("click", function() {HandleBtnSelect(mode)}, false )
         }
-// ---  create EventListener for buttons under table schemeitems
+// ---  create EventListener for buttons above table schemeitems
         btns = document.getElementById("id_btns_schemeitem").children;
         for (let i = 0, btn; i < btns.length; i++) {
             btn = btns[i];
@@ -236,7 +236,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let el_scheme_btn_delete = document.getElementById("id_form_btn_delete");
             el_scheme_btn_delete.addEventListener("click", function() {UploadDeleteSchemeFromForm()}, false);
-
 
 
 // ---  Input elements in teamcode box
@@ -828,7 +827,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // hide or show tables
         // don't change selected_btn when other scheme is selected
-        const selected_btn = (sel_tblName === "shift") ? "btn_shift" :
+        const selected_btn = (sel_tblName === "scheme") ? "btn_schemeitem" :
+                             (sel_tblName === "shift") ? "btn_shift" :
                              (sel_tblName === "team") ? "btn_team" : null;
         if(!!selected_btn) {HandleBtnSelect(selected_btn)}
         /*
@@ -1975,12 +1975,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateTblRow  ================ PR2019-04-27
     function CreateTblRow(prefix, tblName, pk_int, ppk_int, is_addnew_row, row_count, row_index) {
-        console.log("=========  CreateTblRow =========");
-        console.log("tblName", tblName, typeof tblName);
-        console.log("pk_int", pk_int, typeof pk_int);
-        console.log("ppk_int", ppk_int, typeof ppk_int);
-        console.log("is_addnew_row", is_addnew_row, typeof is_addnew_row);
-        console.log("template_mode", template_mode, typeof template_mode);
+        //console.log("=========  CreateTblRow =========");
+        //console.log("tblName", tblName, typeof tblName);
+        //console.log("pk_int", pk_int, typeof pk_int);
+        //console.log("ppk_int", ppk_int, typeof ppk_int);
+        //console.log("is_addnew_row", is_addnew_row, typeof is_addnew_row);
+        //console.log("template_mode", template_mode, typeof template_mode);
 
 // --- insert tblRow ino tblBody or tFoot
         let tblBody_or_tFoot = document.getElementById("id_" + prefix + "_" + tblName);
@@ -3151,7 +3151,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //--- remove 'updated', deleted created and msg_err from update_dict
         // NOTE: first update tblRow, then remove these keys from update_dict, then replace update_dict in map
-        // TODO >>>>>>>>>>>remove_err_del_cre_updated__from_itemdict(update_dict)
+        remove_err_del_cre_updated__from_itemdict(update_dict)
 
 //--- replace updated item in map or remove deleted item from map
         if(is_deleted){
@@ -3217,9 +3217,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, update_dict){
-        console.log("--- UpdateTableRow  --------------");
-        console.log("update_dict", update_dict);
-        console.log("tblRow", tblRow);
+        //console.log("--- UpdateTableRow  --------------");
+        //console.log("update_dict", update_dict);
+        //console.log("tblRow", tblRow);
 
         if (!isEmpty(update_dict) && !!tblRow) {
 //--- get info from update_dict["id"]
@@ -3264,8 +3264,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const row_index = GetNewSelectRowIndex(tblBody, 0, update_dict, user_lang);
                 //tblBody.insertBefore(tblRow, tblBody.childNodes[row_index]);
 
-        console.log("is_created", is_created);
-        console.log("tblRow", tblRow);
 // make row green, / --- remove class 'ok' after 2 seconds
                 //if(!is_addnew_row){
                     ShowOkRow(tblRow)
@@ -3321,7 +3319,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!ppk_int){ppk_int = 0}
 
                 if (fieldname === "rosterdate"){
-
                     //const hide_weekday = false, hide_year = true;
                     format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
                                         user_lang, comp_timezone, false, true)

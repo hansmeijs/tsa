@@ -1,5 +1,5 @@
 // PR2019-02-07 deprecated: $(document).ready(function() {
-// PR2019-10-12
+// PR2019-11-09
 // with pure vanilla Javascript. Was jQuery: $(function() {
 document.addEventListener('DOMContentLoaded', function() {
         "use strict";
@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let abscat_map = new Map();
         let pricerate_map = new Map();
         let planning_map = new Map();
+        let calendar_map = new Map();
 
         let filter_select = "";
         let filter_mod_employee = "";
@@ -79,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let loc = {};  // locale_dict with translated text
         let period_dict = {};
+        let calendar_dict = {};
         let mod_upload_dict = {};
 
         let quicksave = false
@@ -87,13 +89,13 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  id_new assigns fake id to new records
         let id_new = 0;
 
-        const tbl_col_count = { "employee": 8, "absence": 8, "shifts": 5, "planning": 7, "pricerate": 4};
+        const tbl_col_count = { "employee": 8, "absence": 8, "shifts": 5, "planning": 8, "pricerate": 4};
 
         const thead_text = {
             "employee": ["txt_employee", "txt_datefirst", "txt_datelast", "txt_hoursperday", "txt_daysperweek", "txt_vacation", "txt_pricerate"],
             "absence": ["txt_employee", "txt_abscat", "txt_datefirst", "txt_datelast", "txt_timestart", "txt_timeend", "txt_hoursperday"],
             "shifts": ["txt_employee", "txt_order", "txt_team", "txt_datefirst", "txt_datelast"],
-            "planning": ["txt_employee", "txt_customer", "txt_order", "txt_rosterdate", "txt_shift", "txt_timestart", "txt_timeend"],
+            "planning": ["txt_hour", "txt_day01", "txt_day02", "txt_day03", "txt_day04", "txt_day05", "txt_day06", "txt_day07"],
             "pricerate": ["txt_employee", "txt_order", "txt_pricerate", ""]}
 
         const field_names = {
@@ -101,28 +103,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         "pricerate", "delete"],
             "absence": ["employee", "team", "datefirst", "datelast", "offsetstart", "offsetend", "workhoursperday", "delete"],
             "shifts": ["employee", "order", "schemeteam", "datefirst", "datelast", "delete"],
-            "planning": ["employee", "customer", "order", "rosterdate", "shift", "timestart", "timeend"],
+            "planning": ["hour", "day01", "day02", "day03", "day04", "day05", "day06", "day07"],
             "pricerate": ["employee", "order", "pricerate", "override"]}
 
         const field_tags = {
             "employee": ["input", "input", "input", "input", "input", "input", "input", "a"],
             "absence": ["input", "select", "input", "input", "input", "input", "input", "a"],
             "shifts": ["input", "input", "input", "input", "input", "input", "a", "a"],
-            "planning": ["input", "input", "input", "input", "input", "input", "input"],
+            "planning": ["input", "input", "input", "input", "input", "input", "input", "input"],
             "pricerate": ["input", "input", "input", "a"]}
 
         const field_width = {
             "employee": ["180", "090", "090", "120", "120", "120", "090", "032"],
             "absence": ["180", "220", "120", "120","090", "090","120", "032"],
             "shifts": ["180", "180", "180", "120", "090", "090", "090", "060"],
-            "planning": ["180", "120", "120", "90", "090", "110", "110"],
+            "planning": ["90", "120", "120", "120", "120", "120", "120", "120"],
             "pricerate": ["180", "220", "120", "032"]}
 
         const field_align = {
             "employee": ["left", "right", "right", "right", "right", "right", "right", "left"],
             "absence": ["left", "left", "right", "right", "right", "right", "right", "left"],
             "shifts": ["left", "left", "left", "left", "right", "right", "left", "left"],
-            "planning": ["left", "left","left", "left", "left", "right", "right"],
+            "planning": ["center", "center","center", "center", "center", "center", "center", "center"],
             "pricerate": ["left", "left", "right", "left"]}
 
         let tblBody_select = document.getElementById("id_tbody_select")
@@ -152,6 +154,15 @@ document.addEventListener('DOMContentLoaded', function() {
             let btn = btns[i];
             const mode = get_attr_from_el(btn,"data-mode")
             btn.addEventListener("click", function() {HandleBtnSelect(mode)}, false )
+        }
+
+
+// ---  create EventListener for buttons above table planning
+        btns = document.getElementById("id_btns_planning").children;
+        for (let i = 0, btn; i < btns.length; i++) {
+            btn = btns[i];
+            const mode = get_attr_from_el(btn,"data-mode")
+            btn.addEventListener("click", function() {HandleBtnCalendar(mode)}, false )
         }
 
 // === event handlers for MODAL ===
@@ -235,15 +246,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- create Submenu
         CreateSubmenu()
 
-// --- create header row
-        CreateTblHeaders();
 
 // ---  set selected menu button active
         SetMenubuttonActive(document.getElementById("id_hdr_empl"));
 
         let datalist_request = {
             "setting": {"page_employee": {"mode": "get"},
-                        "planning_period": {"mode": "get"}},
+                        "planning_period": {"mode": "get"},
+                        "calendar": {"mode": "get"}},
             "locale": {page: "employee"},
             "company": {value: true},
             "employee": {inactive: false},
@@ -270,6 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let param = {"download": JSON.stringify (datalist_request)};
         console.log("datalist_request: ", datalist_request)
 
+        console.log(">>>>>>>>>>>>>>>>>url_str: ", url_datalist_download);
         let response = "";
         $.ajax({
             type: "POST",
@@ -282,6 +293,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if ("locale_dict" in response) {
                     loc = response["locale_dict"];
+
+// --- create table Headers
+                    CreateTblHeaders();
                 }
                 if ("company_dict" in response) {
                     company_dict = response["company_dict"];
@@ -323,6 +337,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log( "planning_map", planning_map)
                     FillTableRows("planning");
                 }
+                if ("employee_calendar_list" in response) {
+                    get_datamap(response["employee_calendar_list"], calendar_map)
+                    console.log( "calendar_map", calendar_map)
+                    CreateCalendar();
+                }
+
                 if ("setting_list" in response) {
                     UpdateSettings(response["setting_list"])
                 }
@@ -400,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleSelectRow ================ PR2019-08-28
     function HandleSelectRow(sel_tr_clicked) {
-        //console.log( "===== HandleSelectRow  ========= ");
+        console.log( "===== HandleSelectRow  ========= ");
         //console.log( sel_tr_clicked);
 
         if(!!sel_tr_clicked) {
@@ -431,6 +451,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 UpdateForm();
 // ---  enable delete button
                 document.getElementById("id_form_btn_delete").disabled = (!selected_employee_pk)
+            } else  if(selected_btn === "planning"){
+                DatalistDownload({"employee_calendar":
+                                    {"datefirst": calendar_dict["datefirst"],
+                                    "datelast": calendar_dict["datelast"],
+                                    "employee_id": selected_employee_pk}});
             } else {
                 let tblBody = document.getElementById("id_tbody_" + selected_btn);
                 if(!!tblBody){
@@ -485,7 +510,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tblName = get_attr_from_el_str(tr_clicked, "data-table")
 
-
 // ---  deselect all highlighted rows, highlight selected row
         DeselectHighlightedRows(tr_clicked, cls_selected);
         tr_clicked.classList.add(cls_selected)
@@ -526,6 +550,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // yelllow won/t show if you dont first remove background color
                 sel_tablerow.classList.remove(cls_bc_lightlightgrey)
                 sel_tablerow.classList.add(cls_bc_yellow)
+
+        console.log( "===== HandleTableRowClicked  cls_bc_yellow ");
             }
         }  // if(tblName === "employee"){
     }  // HandleTableRowClicked
@@ -607,6 +633,68 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // if(!!tblRow)
     }  // HandleBtnInactiveDeleteClicked
 
+//========= HandleCalendarClicked  ============= PR2019-120-4
+    function HandleCalendarClicked(el_input) {
+        console.log( " ==== HandleCalendarClicked ====");
+
+        alert("Clock")
+    }  // HandleCalendarClicked
+
+//========= HandleBtnCalendar  ============= PR2019-12-04
+    function HandleBtnCalendar(mode) {
+        console.log( " ==== HandleBtnCalendar ====", mode);
+
+        const datefirst_iso = get_dict_value_by_key(calendar_dict, "datefirst")
+        console.log( "datefirst_iso", datefirst_iso, typeof datefirst_iso);
+
+        let calendar_datefirst_JS = get_dateJS_from_dateISO_vanilla(datefirst_iso);
+        if(!calendar_datefirst_JS) {calendar_datefirst_JS = new Date()};
+
+        let days_add = 0;
+        if (["prevday", "nextday"].indexOf( mode ) > -1){
+            days_add = (mode === "prevday") ? -1 : 1;
+            change_dayJS_with_daysadd_vanilla(calendar_datefirst_JS, days_add)
+
+        } else if (["prevweek", "nextweek"].indexOf( mode ) > -1){
+            let datefirst_weekday = calendar_datefirst_JS.getDay();
+            if (!datefirst_weekday) {datefirst_weekday = 7}  // JS sunday = 0, iso sunday = 7
+
+            if(datefirst_weekday === 1){
+                // calendar_datefirst_JS is Monday : add / aubtract one week
+                days_add = (mode === "prevweek") ? -7 : 7;
+                change_dayJS_with_daysadd_vanilla(calendar_datefirst_JS, days_add)
+            } else {
+                // calendar_datefirst_JS is not a Monday : goto this Monday
+                calendar_datefirst_JS = get_monday_JS_from_DateJS_vanilla(calendar_datefirst_JS)
+                // if nextweek: goto net monday
+                if (mode === "nextweek"){ change_dayJS_with_daysadd_vanilla(calendar_datefirst_JS, 7)}
+            }
+        } else if (mode === "thisweek") {
+            calendar_datefirst_JS = get_thisweek_monday_sunday_dateobj()[0];
+        }
+
+        let calendar_datelast_JS = addDaysJS(calendar_datefirst_JS, 6)
+        const calendar_datefirst_iso = get_dateISO_from_dateJS_vanilla(calendar_datefirst_JS);
+        const calendar_datelast_iso = get_dateISO_from_dateJS_vanilla(calendar_datelast_JS);
+
+// ---  upload new selected_btn
+        calendar_dict = {"datefirst": calendar_datefirst_iso,
+                        "datelast": calendar_datelast_iso}
+
+        const upload_dict = {"calendar": calendar_dict};
+        UploadSettings (upload_dict, url_settings_upload);
+
+        let datalist_request = {"employee_calendar":
+                    {"datefirst": calendar_datefirst_iso,
+                     "datelast": calendar_datelast_iso,
+                     "employee_id": selected_employee_pk}};
+
+        console.log( "datalist_request", datalist_request);
+        DatalistDownload(datalist_request);
+
+    }  // HandleBtnCalendar
+
+
 //###########################################################################
 // +++++++++++++++++ CREATE +++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  CreateSubmenu  === PR2019-07-30
@@ -643,85 +731,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const row_index = null // add at end when no rowindex
 
             let selectRow = CreateSelectRow(tblBody_select, el_data, tblName, row_index, item_dict,
-                    HandleSelectRow, HandleBtnInactiveClicked,
-                    imgsrc_inactive_grey);
-
+                                            HandleSelectRow, HandleBtnInactiveClicked, imgsrc_inactive_grey);
 // update values in SelectRow
             UpdateSelectRow(selectRow, item_dict)
         }  // for (let cust_key in customer_map) {
     } // FillSelectTable
-
-//========= CreateSelectRow  ============= PR2019-10-27
-    function CreateSelectRowXXX(item_dict, row_index) {
-        //console.log("CreateSelectRow");
-        //console.log("item_dict", item_dict);
-
-        const tablename = "employee";
-        if(row_index == null){row_index = -1}
-
-        let tblRow;
-        if (!isEmpty(item_dict)) {
-//--- get info from item_dict
-            const id_dict = get_dict_value_by_key (item_dict, "id");
-                const tblName = get_dict_value_by_key(id_dict, "table");
-                const pk_int = get_dict_value_by_key(id_dict, "pk");
-                const ppk_int = get_dict_value_by_key(id_dict, "ppk");
-                const temp_pk_str = get_dict_value_by_key(id_dict, "temp_pk");
-                const map_id = get_map_id(tblName, pk_int);
-                const is_created = ("created" in id_dict);
-                const is_deleted = ("deleted" in id_dict);
-                const msg_err = get_dict_value_by_key(id_dict, "error");
-
-            const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
-            const inactive_value = get_subdict_value_by_key(item_dict, "inactive", "value", false);
-
-//--------- insert tblBody_select row
-            const row_id = id_sel_prefix + map_id
-            tblRow = tblBody_select.insertRow(row_index);
-
-            tblRow.setAttribute("id", row_id);
-            tblRow.setAttribute("data-pk", pk_int);
-            tblRow.setAttribute("data-table", tablename);
-            tblRow.setAttribute("data-inactive", inactive_value);
-
-            tblRow.classList.add(cls_bc_lightlightgrey);
-
-//- add hover to select row
-            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover)});
-            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover)});
-
-// --- add first td to tblRow.
-            // index -1 results in that the new cell will be inserted at the last position.
-            let td = tblRow.insertCell(-1);
-            // el_a.innerText and el_a.setAttribute("data-value") are added in UpdateSelectRow
-            let el_a = document.createElement("div");
-                el_a.setAttribute("data-field", "code");
-                td.appendChild(el_a);
-            td.classList.add("px-2")
-
-            td.addEventListener("click", function() {
-                HandleSelectRow(tblRow);
-            }, false)
-
-// --- add active img to second td in table
-            td = tblRow.insertCell(-1);
-                el_a = document.createElement("a");
-                el_a.addEventListener("click", function(){
-                    HandleSelectRow(tblRow);
-                    ModConfirmOpen("inactive", tblRow)
-                    }, false )
-                el_a.setAttribute("href", "#");
-                el_a.setAttribute("data-field", "inactive");
-                el_a.setAttribute("data-value", inactive_value);
-
-                const imgsrc = (inactive_value) ? imgsrc_inactive_black : imgsrc_inactive_lightgrey;
-                AppendChildIcon(el_a, imgsrc);
-                td.appendChild(el_a);
-            td.classList.add("td_width_032")
-
-        }  //  if (!isEmpty(item_dict))
-        return tblRow;
-    } // CreateSelectRow
 
 //========= FillTableRows  ====================================
     function FillTableRows(tblName, workhoursperday) {
@@ -794,49 +808,55 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateTblHeaders  === PR2019-10-25
     function CreateTblHeaders() {
-        //console.log("===  CreateTblHeaders == ");
+        console.log("===  CreateTblHeaders == ");
 
         const mode_list = ["employee", "absence", "shifts", "planning"]
         mode_list.forEach(function (mode, index) {
-
             const tblHead_id = "id_thead_" + mode;
             let tblHead = document.getElementById(tblHead_id);
             tblHead.innerText = null
 
+//--- insert tblRow
             let tblRow = tblHead.insertRow (-1);
 
-    //--- insert th's to tblHead
+//--- insert th's to tblHead
             const column_count = tbl_col_count[mode];
-
             for (let j = 0; j < column_count; j++) {
-    // --- add th to tblRow.
+// --- add th to tblRow.
                 let th = document.createElement("th");
-                tblRow.appendChild(th);
+// --- add vertical line between columns in planning
+                if (mode === "planning"){th.classList.add("border_right")};
 
     // --- add div to th, margin not workign with th
-                let el = document.createElement("div");
-                th.appendChild(el)
+                let el_div = document.createElement("div");
 
-    // --- add img to last th
-                //if ((mode === "pricerate" && j === 3)) {
-                //    AppendChildIcon(th, imgsrc_billable_cross_grey);
-                //} else {
+    // --- add innerText to el_div
+                let data_key = null, hdr_txt = "";
+                if (mode === "planning"){
+                    //hdr_txt = (j === 0) ? "" : loc.weekdays_long[j];
+                } else {
+                    data_key = "data-" + thead_text[mode][j];
+                    hdr_txt = get_attr_from_el(el_data, data_key);
+                }
+                el_div.innerText = hdr_txt
+                el_div.setAttribute("overflow-wrap", "break-word");
 
-    // --- add innerText to th
-                    const data_key = "data-" + thead_text[mode][j];
-                    el.innerText = get_attr_from_el(el_data, data_key);
-                    el.setAttribute("overflow-wrap", "break-word");
-                //};
-
-    // --- add margin to first column
-                if (j === 0 ){el.classList.add("ml-2")}
+// --- add left margin to first column
+                if (j === 0 ){el_div.classList.add("ml-2")};
     // --- add width to el
-                el.classList.add("td_width_" + field_width[mode][j])
+                el_div.classList.add("td_width_" + field_width[mode][j])
     // --- add text_align
-                el.classList.add("text_align_" + field_align[mode][j])
+                el_div.classList.add("text_align_" + field_align[mode][j])
+
+                th.appendChild(el_div)
+
+                tblRow.appendChild(th);
+
             }  // for (let j = 0; j < column_count; j++)
 
-            CreateTblFilter(tblHead, mode)
+
+            CreateTblFilter(tblHead, mode);
+
         });  //  mode_list.forEach
 
     };  //function CreateTblHeaders
@@ -857,10 +877,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // index -1 results in that the new cell will be inserted at the last position.
             td = tblRow.insertCell(-1);
 
+// --- add vertical line between columns in planning
+             if (mode === "planning"){td.classList.add("border_right")};
+
 // create element with tag from field_tags
                 // replace select tag with input tag
                 const field_tag = field_tags[mode][j];
-                const filter_tag = (field_tag === "select") ? "input" : field_tag
+                const filter_tag = (mode === "planning") ? "div" : (field_tag === "select") ? "input" : field_tag
                 let el = document.createElement(filter_tag);
 
 // --- add data-field Attribute.
@@ -874,7 +897,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     el.setAttribute("type", "text")
                     el.classList.add("input_text");
 
-                    el.classList.add("tsa_color_darkgrey")
+// --- make text grey, not i ncalendar
+                    if (mode !== "planning") {el.classList.add("tsa_color_darkgrey")}
+
                     el.classList.add("tsa_transparent")
     // --- add other attributes to td
                     el.setAttribute("autocomplete", "off");
@@ -883,10 +908,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }  //if (j === 0)
 
 // --- add EventListener to td
-            el.addEventListener("keyup", function(event){HandleFilterName(el, j, event.which)});
-
-// --- add margin to first column
-            if (j === 0 ){el.classList.add("ml-2")}
+            if (mode === "planning"){
+                el.setAttribute("overflow-wrap", "break-word");
+            } else {
+                el.addEventListener("keyup", function(event){HandleFilterName(el, j, event.which)});
+            }
+// --- add left margin to first column
+            if (j === 0 ){el.classList.add("ml-2")};
 // --- add width to el
             el.classList.add("td_width_" + field_width[mode][j])
 // --- add text_align
@@ -1021,8 +1049,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }  //  if (mode === "employee"){
 
-// --- add margin to first column
-            if (j === 0 ){el.classList.add("ml-2")}
+// --- add left margin to first column,
+            if (j === 0 ){el.classList.add("ml-2");}
+
 // --- add width to el
             el.classList.add("td_width_" + field_width[mode][j])
 // --- add text_align
@@ -1147,6 +1176,103 @@ document.addEventListener('DOMContentLoaded', function() {
         AppendChildIcon(el_input, img_src)
     }  // CreateBtnDeleteInactive
 
+//=========  CreateCalendar  ================ PR2019-08-29
+    function CreateCalendar() {
+        //console.log("=========  CreateCalendar =========", mode);
+        //console.log("pk_str", pk_str , typeof pk_str);
+        //console.log("ppk_str", ppk_str , typeof ppk_str);
+        const mode = "planning";
+
+//................................................
+//   Create Header row
+        let tblHead = document.getElementById("id_thead_planning");
+        tblHead.innerText = null
+        const column_count = tbl_col_count[mode];
+//--- insert tblRow
+        let tblRow = tblHead.insertRow (-1);
+//--- insert th's to tblHead
+        for (let col_index = 0; col_index < column_count; col_index++) {
+            let th = document.createElement("th");
+// --- add vertical line between columns in planning
+            th.classList.add("border_right");
+// --- add div to th, margin not working with th
+            let el_div = document.createElement("div");
+// --- add left margin to first column
+            if (col_index === 0 ){el_div.classList.add("ml-2")};
+// --- add width to el
+            el_div.classList.add("td_width_" + field_width[mode][col_index])
+// --- add text_align
+            el_div.classList.add("text_align_" + field_align[mode][col_index])
+            th.appendChild(el_div)
+            tblRow.appendChild(th);
+        }  // for (let col_index = 0; col_index < column_count; col_index++)
+//................................................
+//   Create second Header row
+        tblRow = tblHead.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+        tblRow.classList.add("tsa_bc_lightlightgrey");
+// --- iterate through columns
+        for (let col_index = 0, td, el; col_index < column_count; col_index++) {
+            td = tblRow.insertCell(-1);
+// --- add vertical line between columns in planning
+            td.classList.add("border_right");
+// create element with tag from field_tags
+            let el = document.createElement("div");
+            el.classList.add("tsa_transparent")
+// --- add left margin to first column
+            if (col_index === 0 ){el.classList.add("ml-2")};
+// --- add width to el
+            el.classList.add("td_width_" + field_width[mode][col_index])
+// --- add text_align
+            el.classList.add("text_align_" + field_align[mode][col_index])
+            td.appendChild(el);
+        }  // for (let col_index = 0; col_index < 8; col_index++)
+//................................................
+// --- insert tblRows into tblBody
+        let tblBody = document.getElementById("id_tbody_planning");
+        tblBody.innerText = null
+// create 24 rows, one for each houw
+        for (let i = 0, td, el; i < 24; i++) {
+            let tblRow = tblBody.insertRow(-1);
+            const row_id = "id_planning_" + i.toString();
+            tblRow.setAttribute("id", row_id);
+    //+++ insert td's into tblRow
+            const column_count = tbl_col_count[mode];
+            for (let col_index = 0; col_index < column_count; col_index++) {
+                // index -1 results in that the new cell will be inserted at the last position.
+                let td = tblRow.insertCell(-1);
+    // --- add vertical line
+                td.classList.add("border_right");
+    // --- create element with tag from field_tags
+                let el = document.createElement("a");
+                el.setAttribute("data-field", field_names[mode][col_index]);
+                if (col_index === 0 ){
+                    const offset = i  * 60;
+                    display_offset_time (offset, timeformat, user_lang)
+                    el.innerText = display_offset_time (offset, timeformat, user_lang)
+                }
+    // --- add EventListeners
+                if (col_index > 0){
+                    td.addEventListener("click", function() {HandleCalendarClicked(el)}, false)
+                }
+    // --- add left margin and right margin to first column
+            if (col_index === 0 ){el.classList.add("mx-2") }
+    // --- add width to el
+                el.classList.add("td_width_" + field_width[mode][col_index])
+    // --- add text_align
+                el.classList.add("text_align_" + field_align[mode][col_index])
+    // --- add other attributes to td
+                el.setAttribute("autocomplete", "off");
+                el.setAttribute("ondragstart", "return false;");
+                el.setAttribute("ondrop", "return false;");
+
+                td.appendChild(el);
+            }  // for (let col_index = 0; col_index < 8; col_index++)
+        }  //  for (let i = 0, td, el; i < 12; i++) {
+
+        UpdateCalendar();
+
+    };  // CreateCalendar
+
 //###########################################################################
 // +++++++++++++++++ UPDATE ++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1211,6 +1337,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const row_index = GetNewSelectRowIndex(tblBody_select, 0, update_dict, user_lang);
             selectRow = CreateSelectRow(update_dict, row_index)
             HighlightSelectRow(selectRow, cls_bc_yellow, cls_bc_lightlightgrey);
+
+        console.log( "is_created HighlightSelectRow  cls_bc_yellow ");
         } else {
     //--- get existing  selectRow
             const rowid_str = id_sel_prefix + map_id
@@ -1247,57 +1375,6 @@ document.addEventListener('DOMContentLoaded', function() {
             UpdateHeaderText();
         //}
     }  // UpdateFromResponse(update_list)
-
-//=========  UpdateSelectRow ================ PR2019-10-08
-    function UpdateSelectRow(selectRow, update_dict) {
-        //console.log( "=== UpdateSelectRow");
-        //console.log("update_dict", update_dict);
-        //console.log(selectRow);
-
-        if(!isEmpty(update_dict) && !!selectRow){
-        // get temp_pk_str and id_pk from update_dict["id"]
-            //const id_dict = get_dict_value_by_key (update_dict, "id");
-            //const is_deleted = ("deleted" in id_dict);
-            const is_deleted = (!!get_subdict_value_by_key (update_dict, "id", "deleted"));
-            //console.log( "is_deleted", is_deleted);
-
-// --- if deleted record: remove row
-            if (is_deleted){
-                selectRow.parentNode.removeChild(selectRow);
-            } else {
-
-// --- get first td from selectRow.
-                const code_value = get_subdict_value_by_key(update_dict, "code", "value", "")
-                let el_input = selectRow.cells[0].children[0]
-
-// --- put value of selecet row in tblRow and el_input
-                el_input.innerText = code_value;
-                el_input.setAttribute("data-value", code_value);
-
-// --- add active img to second td in table
-                const inactive_dict = get_dict_value_by_key(update_dict, "inactive")
-                if(!isEmpty(inactive_dict)){
-                    const inactive_value = get_dict_value_by_key(inactive_dict, "value", false);
-                    selectRow.setAttribute("data-inactive", inactive_value);
-
-                    let el_input = selectRow.cells[1].children[0]
-                    format_inactive_element (el_input, inactive_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
-
-// make el_input green for 2 seconds
-                    if("updated" in inactive_dict){
-                        el_input.classList.add("border_valid");
-                        setTimeout(function (){
-                            el_input.classList.remove("border_valid");
-                            // let row disappear when inactive and nt filter_show_inactive
-                            if(!filter_show_inactive && inactive_value){
-                                selectRow.classList.add(cls_hide)
-                            }
-                        }, 2000);
-                    }  //  if(!isEmpty(inactive_dict))
-                }  //  if(!isEmpty(inactive_dict))
-            }
-        }  //  if(!!selectRow){}
-    } // UpdateSelectRow
 
 //========= UpdateForm  ============= PR2019-10-05
     function UpdateForm(){
@@ -1632,6 +1709,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }  // function UpdateAddnewRow
 
+
+
+//========= UpdateSettings  ====================================
+    function UpdateSettings(setting_list){
+        console.log(" --- UpdateSettings ---")
+        console.log("setting_list", setting_list)
+
+        for (let i = 0, len = setting_list.length; i < len; i++) {
+            const setting_dict = setting_list[i];  // page_employee: {mode: "shifts"}
+            //console.log("setting_dict", setting_dict)
+            Object.keys(setting_dict).forEach(function(key) {
+                if (key === "page_employee"){
+                    const page_dict = setting_dict[key]; // {mode: "shifts"}
+                    if ("mode" in page_dict){
+                        selected_btn = page_dict["mode"];
+                    }
+                }
+                if (key === "planning_period"){
+                    period_dict = setting_dict[key];
+                    UpdateHeaderPeriod();
+                }
+                if (key === "calendar"){
+                    calendar_dict = setting_dict[key];
+                    CreateCalendar();
+
+                }
+            });
+            //console.log("period_dict", period_dict)
+        }
+    }  // UpdateSettings
+
+
 //=========  UpdateHeaderText ================ PR2019-10-06
     function UpdateHeaderText(is_addnew_mode) {
         //console.log( "===== UpdateHeaderText  ========= ");
@@ -1672,29 +1781,151 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_hdr_period").innerText = header_text
     }  // UpdateHeaderPeriod
 
-//========= UpdateSettings  ====================================
-    function UpdateSettings(setting_list){
-        //console.log(" --- UpdateSettings ---")
-        //console.log("setting_list", setting_list)
 
-        for (let i = 0, len = setting_list.length; i < len; i++) {
-            const setting_dict = setting_list[i];  // page_employee: {mode: "shifts"}
-            //console.log("setting_dict", setting_dict)
-            Object.keys(setting_dict).forEach(function(key) {
-                if (key === "page_employee"){
-                    const page_dict = setting_dict[key]; // {mode: "shifts"}
-                    if ("mode" in page_dict){
-                        selected_btn = page_dict["mode"];
-                    }
-                }
-                if (key === "planning_period"){
-                    period_dict = setting_dict[key];
-                    UpdateHeaderPeriod();
-                }
-            });
-            //console.log("period_dict", period_dict)
+//=========  UpdateCalendar ================ PR2019-12-04
+    function UpdateCalendar() {
+        console.log( "===== UpdateCalendar  ========= ");
+
+        //console.log( "calendar_dict", calendar_dict, typeof calendar_dict);
+
+        const column_count = tbl_col_count["planning"];
+
+// --- get first and last date from calendar_dict, set today if no date in dict
+        const datefirst_iso = get_dict_value_by_key(calendar_dict, "datefirst")
+        let calendar_datefirst_JS = get_dateJS_from_dateISO_vanilla(datefirst_iso);
+        if(!calendar_datefirst_JS) {calendar_datefirst_JS = new Date();}
+        //console.log( "calendar_datefirst_JS", calendar_datefirst_JS, typeof calendar_datefirst_JS);
+
+        let weekday_of_first_column = calendar_datefirst_JS.getDay();
+        if(weekday_of_first_column === 0){weekday_of_first_column = 7} // in ISO, weekday of Sunday is 7, not 0
+
+
+// --- spanned_rows keeps track of how many spanned rows each row has, to prevent cells added to the right of table.
+        let spanned_rows = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+
+// --- create calendar_map. This is a list of lists with dicts, 1 for each column. Column 0 (hour) not in use
+        //loop through calendar_map, put entries in list, sorted by column
+        // Note: first column can be different from Monday
+        let map_list_per_column = [[],[],[],[],[],[],[],[]];
+        if(!!calendar_map.size){
+            for (const [map_id, item_dict] of calendar_map.entries()) {
+                const weekday = get_subdict_value_by_key(item_dict, "rosterdate", "weekday", 0);
+
+                console.log("weekday", weekday, typeof weekday)
+                let columnindex = weekday - (weekday_of_first_column - 1);
+                if(columnindex < 1) {columnindex += 7 };
+                console.log("columnindex", columnindex, typeof columnindex);
+
+                let col_list = map_list_per_column[columnindex];
+                console.log("col_list", col_list, typeof col_list);
+                col_list.push(item_dict);
+            }
         }
-    }  // UpdateSettings
+        console.log("map_list_per_column", map_list_per_column)
+// --- get tblHead and tblBody
+        let tblHead = document.getElementById("id_thead_planning")
+        let tblBody = document.getElementById("id_tbody_planning")
+
+//--- put weekday and short date in row 1 and 2 of tblHead
+        let firstRow = tblHead.rows[0];
+        let secondRow = tblHead.rows[1];
+        let this_date = calendar_datefirst_JS;
+        for (let col_index = 1; col_index < column_count; col_index++) {
+            //let date_JS = calendar_datefirst_JS.getDate()
+            //console.log( "date_JS: ", date_JS , typeof date_JS);
+            const display_arr = format_date_from_dateJS_vanilla(this_date, loc.weekdays_long, loc.months_abbrev, user_lang, true, true)
+            if(!!firstRow){
+                let th_div = firstRow.cells[col_index].children[0];
+                if(!!th_div){ th_div.innerText = display_arr[0]};
+            }
+            if(!!secondRow){
+                let th_div = secondRow.cells[col_index].children[0];
+                if(!!th_div){ th_div.innerText = display_arr[1]};
+            }
+
+//--- add 1 day to this_date
+            change_dayJS_with_daysadd_vanilla(this_date, 1)
+
+//............................................................
+// Put shift info from weekday list in tablerows
+            if (!!map_list_per_column[col_index].length){
+                let dict_list = map_list_per_column[col_index]
+                console.log("dict_list", col_index, dict_list)
+                if(!!dict_list.length){
+                    for (let x = 0, len = dict_list.length; x < len; x++) {
+                        let dict = dict_list[x]
+                console.log( "dict", dict, typeof dict);
+                        if(!isEmpty(dict)){
+                            let order_value = get_subdict_value_by_key(dict, "order", "value", "")
+                            let shift_value = get_subdict_value_by_key(dict, "shift", "value", "")
+                            let customer_value = get_subdict_value_by_key(dict, "customer", "value", "")
+                            let rosterdate_display = get_subdict_value_by_key(dict, "rosterdate", "display", "")
+
+                            let is_restshift = get_subdict_value_by_key(dict, "shift", "isrestshift", false)
+                            let is_absence = get_subdict_value_by_key(dict, "order", "isabsence", false)
+                            let row_index_start, row_index_end, display_time = ""
+
+                            const cls_color = (is_absence || is_restshift) ? cls_bc_lightlightgrey :  cls_selected
+                            let offset_start = get_subdict_value_by_key(dict, "timestart", "offset")
+                            let offset_end = get_subdict_value_by_key(dict, "timeend", "offset")
+
+                            if(offset_start == null || offset_end == null){
+                                row_index_start = 0;
+                                row_index_end = 23;
+                            } else {
+                // calculate row_index_start
+                                let hour_start = Math.floor(offset_start/60);
+                                if (hour_start < 0) {hour_start = 0}
+                                if (hour_start > 23) {hour_start = 23}
+                                row_index_start = hour_start;
+                // calculate row_index_end
+                                let hour_end = Math.floor(offset_end/60);
+                                if (hour_end < 0) {hour_end = 0}
+                                if (hour_end > 23) {hour_end = 23}
+                                row_index_end = hour_end;
+                                display_time = display_offset_timerange (offset_start, offset_end, timeformat, user_lang)
+                            }
+
+                        // deduct number of spanned_rows from col_index
+                            let modified_colindex = col_index - spanned_rows[row_index_start]
+                            let row_span = row_index_end - row_index_start;
+
+                            let tblRow = tblBody.rows[row_index_start];
+                            let tblCell = tblRow.cells[modified_colindex];
+
+                            let el = tblCell.children[0];
+                            tblCell.classList.add(cls_color);
+                            tblCell.setAttribute("rowspan", row_span.toString());
+                        //add 1 to spanned_rows aray for second and further spanned rows,
+                        // so the end cells that are pushed outside table can be deleted
+                            for (let y = row_index_start + 1 ; y < row_index_end; y++) {
+                                ++spanned_rows[y];
+                            }
+
+                            let display_text = rosterdate_display + "\n"
+                             display_text += shift_value + "\n" + order_value + " - " + customer_value
+                            if(!!display_time) {display_text += "\n" + display_time }
+                            el.innerText = display_text;
+                        }  // if(!isEmpty(dict)){
+                    }  // for (let x = 1, len = dict_list.length; x < len; x++)
+//............................................................
+                }
+            }
+        } // for (let col_index = 1; col_index < column_count; col_index++) {
+
+        //delete cells that are pushed outside table because of rowspan
+        for (let row_index = 0; row_index < 24; row_index++) {
+            const numbertobedeleted = spanned_rows[row_index]
+            if (!!numbertobedeleted){
+                let tblRow = tblBody.rows[row_index];
+                for (let x = 0; x < numbertobedeleted; x++) {
+                    tblRow.deleteCell(-1);
+                }
+            }
+        }
+
+    }  // UpdateCalendar
+
 
 //###########################################################################
 // +++++++++++++++++ UPLOAD ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1985,6 +2216,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 let parameters = {"upload": JSON.stringify (upload_dict)}
                 const url_str = url_teammember_upload;
+        console.log(">>>>>>>>>>>>>>>>>url_str: ", url_str);
                 let response;
                 $.ajax({
                     type: "POST",
@@ -2018,7 +2250,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Attributes are in the HTML itself, rather than in the DOM. It shows the default value even if the value has changed. An attribute is only ever a string, no other type
     function UploadChanges(upload_dict, url_str) {
         console.log("=== UploadChanges");
-        console.log("url_str: ", url_str);
+        console.log(">>>>>>>>>>>>>>>>>url_str: ", url_str);
         console.log("upload_dict: ", upload_dict);
 
         if(!isEmpty(upload_dict)) {
@@ -2190,6 +2422,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 parameters = {"upload": JSON.stringify (upload_dict)}
                 console.log ("upload", upload_dict);
 
+        console.log(">>>>>>>>>>>>>>>>>url_str: ", url_str);
                 let response;
                 $.ajax({
                     type: "POST",
@@ -3459,3 +3692,5 @@ document.addEventListener('DOMContentLoaded', function() {
 //##################################################################################
 
 }); //$(document).ready(function()
+// with pure vanilla Javascript. Was jQuery: $(function() {
+document.addEventListener

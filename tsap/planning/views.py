@@ -199,11 +199,40 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                                                    company=request.user.company,
                                                                    comp_timezone=comp_timezone)
 
+                        elif table == 'employee_calendar':
+                            datefirst = table_dict.get('datefirst')
+                            datelast = table_dict.get('datelast')
+
+                            if datefirst is not None and datelast is not None:
+                                # save datefirst and datelast in Usersetting, when they are in upload_dict
+                                Usersetting.set_jsonsetting('calendar', table_dict, request.user)
+                            else:
+                                # get dates from usersetting
+                                settings_dict = Usersetting.get_jsonsetting('calendar', request.user)
+                                datefirst = settings_dict.get('datefirst')
+                                datelast = settings_dict.get('datefirst')
+
+                                if datefirst is None or datelast is None:
+                                    # get today
+                                    today = date.today()
+                                    datefirst = f.get_dateISO_from_dateOBJ(today)
+                                    endofweek = today + timedelta(days=6)
+                                    datelast = f.get_dateISO_from_dateOBJ(endofweek)
+
+                            customer_id, order_id = None, None
+                            employee_id = table_dict['employee_id'] if 'employee_id' in table_dict else None
+
+                            dict_list = r.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_id, comp_timezone, timeformat, user_lang, request)
+
                         elif table == 'employee_planning':
                             datefirst = table_dict['datefirst'] if 'datefirst' in table_dict else None
                             datelast = table_dict['datelast'] if 'datelast' in table_dict else None
 
-                            dict_list = r.create_employee_planning(datefirst, datelast, comp_timezone, timeformat, user_lang, request)
+                            customer_id = table_dict['customer_id'] if 'customer_id' in table_dict else None
+                            order_id = table_dict['order_id'] if 'order_id' in table_dict else None
+                            employee_id = table_dict['employee_id'] if 'employee_id' in table_dict else None
+
+                            dict_list = r.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_id, comp_timezone, timeformat, user_lang, request)
 
                         elif table == 'customer_planning':
                             datefirst = table_dict['datefirst'] if 'datefirst' in table_dict else None

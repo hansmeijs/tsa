@@ -111,7 +111,15 @@
         <!-- end loader -->
                 </div>
     <!-- end class content_header -->
-    <!-- BUTTON GROUP -->
+
+            </div>
+<!-- end CONTENT HEADER - LOADER -->
+
+<!-- CONTENT BODY -->
+            <div class="content_body mx-2">
+
+
+                 <!-- BUTTON GROUP -->
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                     <button id="id_btn_list" type="button" data-mode="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
                     <button id="id_btn_absence" type="button"  data-mode="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
@@ -122,11 +130,8 @@
                     <button id="id_btn_data" type="button"  data-mode="employee_form" class="btn btn-secondary ">{% trans 'Data' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
-            </div>
-<!-- end CONTENT HEADER - LOADER -->
 
-<!-- CONTENT BODY -->
-            <div class="content_body mx-2">
+
 <!-- =================== id_msgbox  =================== -->
                 <div class="popup display_hide" >
                     <span class="popuptext" id="id_msgbox"></span>
@@ -278,6 +283,16 @@
                     </table>
                 </div>
                 <div id="id_div_tbl_planning" class="display_hide">
+                    <div class="content_header mx-2 mb-2">
+                    <div id="id_btns_planning" class="content_subheader_left">
+                        <button id="id_btn_prevweek" data-mode="prevweek" title="{% trans 'Show previous week.' %}" class="btn btn-add ml-2">&Larr;</button>
+                        <button id="id_btn_prevday" data-mode="prevday" title="{% trans 'Go one day back.' %}" class="btn btn-add">&larr;</button>
+                        <button id="id_btn_select date" data-mode="thisweek" class="btn btn-add">{% trans 'This week' %}</button>
+                        <button id="id_btn_nextday" data-mode="nextday" title="{% trans 'Go one day forward.' %}" class="btn btn-add"> &rarr;</button>
+                        <button id="id_btn_nextweek" data-mode="nextweek" title="{% trans 'Show next week.' %}" class="btn btn-add"> &Rarr;</button>
+                    </div>
+                </div>
+
                      <table  class="table tsa-tbl">
                         <thead id="id_thead_planning"></thead>
                         <tbody id="id_tbody_planning"></tbody>

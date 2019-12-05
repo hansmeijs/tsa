@@ -376,14 +376,17 @@
             //const timeend_formatted = format_time(timeend_mnt, timeformat, true )
             //let display_time = timestart_formatted + " - " + timeend_formatted
 
-            let display_time = null;
+            //let display_time = null;
             const offset_start = get_subdict_value_by_key(item_dict, "timestart", "offset");
             const offset_end = get_subdict_value_by_key(item_dict, "timeend", "offset");
-            if(!!offset_start || offset_end){
-                const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, true); // true = skip_prefix_suffix
-                const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, true); // true = skip_prefix_suffix
-                display_time = offsetstart_formatted + " - " + offsetend_formatted
-            }
+            //if(!!offset_start || offset_end){
+            //    const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, true); // true = skip_prefix_suffix
+            //    const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, true); // true = skip_prefix_suffix
+            //    display_time = offsetstart_formatted + " - " + offsetend_formatted
+            //}
+
+            const display_time = display_offset_timerange (offset_start, offset_end, timeformat, user_lang)
+
             const duration = get_subdict_value_by_key(item_dict, "duration", "value");
             if(!!duration) {this_duration_sum += duration};
 

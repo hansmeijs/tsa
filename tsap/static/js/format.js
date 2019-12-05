@@ -473,6 +473,7 @@
     }  // function format_date_iso
 
 
+
 //========= format_datetime_element without moment.js  ======== PR2019-10-12
     function format_date_vanillaJS (date_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year) {
         //console.log(" ----- format_date_vanillaJS", date_JS);
@@ -765,44 +766,63 @@
     }  // function format_offset_element
 
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    //========= display_offset_timerange  ======== PR2019-12-04
+    function display_offset_timerange (offset_start, offset_end, timeformat, user_lang) {
+        //console.log("------ display_offset_timerange --------------", fieldname)
+        let display_time = "";
+        if(offset_start != null || offset_end != null){
+            const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, true); // true = skip_prefix_suffix
+            const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, true); // true = skip_prefix_suffix
+            display_time = offsetstart_formatted + " - " + offsetend_formatted
+        }
+        return display_time;
+    }  // function display_offset_timerange
+
+
     //========= display_offset_time  ======== PR2019-10-22
     function display_offset_time (offset, timeformat, user_lang, skip_prefix_suffix) {
         //console.log("------ display_offset_time --------------", fieldname)
 
-        let days_offset = Math.floor(offset/1440)  // - 90 (1.5 h)
-        const remainder = offset - days_offset * 1440
-        let curHours = Math.floor(remainder/60)
-        const curMinutes = remainder - curHours * 60
+        let display_time = "";
+        if(offset != null){
 
-        const isAmPm = (timeformat === "AmPm");
-        const isEN = (user_lang === "en")
-        const ampm_list = [" am", " pm"]
-        let curAmPm = (curHours >= 12) ? 1 : 0
+            let days_offset = Math.floor(offset/1440)  // - 90 (1.5 h)
+            const remainder = offset - days_offset * 1440
+            let curHours = Math.floor(remainder/60)
+            const curMinutes = remainder - curHours * 60
 
-        //check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
-        if(!!isAmPm) {  // } && fieldname === "offsetend"){
-            if (curHours >= 12){
-                curHours -= 12;
+            const isAmPm = (timeformat === "AmPm");
+            const isEN = (user_lang === "en")
+            const ampm_list = [" am", " pm"]
+            let curAmPm = (curHours >= 12) ? 1 : 0
+
+            //check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
+            if(!!isAmPm) {  // } && fieldname === "offsetend"){
+                if (curHours >= 12){
+                    curHours -= 12;
+                }
+            } else {
+                if (days_offset === 1 && curHours === 0 && curMinutes === 0){
+                    days_offset = 0
+                    curHours = 24;
+                }
             }
-        } else {
-            if (days_offset === 1 && curHours === 0 && curMinutes === 0){
-                days_offset = 0
-                curHours = 24;
-            }
+
+            const hour_str = "00" + curHours.toString()
+            let hour_text = hour_str.slice(-2);
+            const minute_str = "00" + curMinutes.toString()
+            let minute_text = minute_str.slice(-2);
+
+            const delim = (isEN) ? ":" : ".";
+            const prefix = (!skip_prefix_suffix && days_offset < 0) ? "<- " : "";
+            let suffix = (!skip_prefix_suffix && !isEN) ? " u" : "";
+            if(!!isAmPm) {suffix += ampm_list[curAmPm]};
+            if (days_offset > 0) { suffix += " ->"};
+
+            display_time =  prefix + hour_text + delim + minute_text + suffix;
         }
-
-        const hour_str = "00" + curHours.toString()
-        let hour_text = hour_str.slice(-2);
-        const minute_str = "00" + curMinutes.toString()
-        let minute_text = minute_str.slice(-2);
-
-        const delim = (isEN) ? ":" : ".";
-        const prefix = (!skip_prefix_suffix && days_offset < 0) ? "<- " : "";
-        let suffix = (!skip_prefix_suffix && !isEN) ? " u" : "";
-        if(!!isAmPm) {suffix += ampm_list[curAmPm]};
-        if (days_offset > 0) { suffix += " ->"};
-
-        return prefix + hour_text + delim + minute_text + suffix;
+        return display_time;
     }  // function display_offset_time
 
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>

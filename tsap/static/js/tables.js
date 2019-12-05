@@ -39,8 +39,7 @@
             tblRow.setAttribute("data-table", tblName);
             tblRow.setAttribute("data-inactive", inactive_value);
 
-            //tblRow.classList.add(cls_bc_lightlightgrey);
-            tblRow.classList.add(cls_bc_yellow);
+            tblRow.classList.add(cls_bc_lightlightgrey);
 
     //- add hover to select row
             tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover)});
@@ -89,12 +88,11 @@
 
 //========= UpdateSelectRow  ============= PR2019-10-20
     function UpdateSelectRow(selectRow, update_dict, el_data, filter_show_inactive) {
-        //console.log("UpdateSelectRow");
+        //console.log("UpdateSelectRow in tables.js");
         //console.log("update_dict", update_dict);
 
         // update_dict = { id: {pk: 489, ppk: 2, table: "customer"}, cat: {value: 0}, inactive: {},
         //                 code: {value: "mc"} , name: {value: "mc"}, interval: {value: 0}
-
 
         // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
         const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
@@ -105,7 +103,7 @@
             //const is_deleted = ("deleted" in id_dict);
             const is_deleted = (!!get_subdict_value_by_key (update_dict, "id", "deleted"));
 
-// --- deleted record
+// --- if deleted record: remove row
             if(!!is_deleted) {
                 selectRow.parentNode.removeChild(selectRow)
             } else {
@@ -113,6 +111,8 @@
 // --- get first td from selectRow.
                 const code_value = get_subdict_value_by_key(update_dict, "code", "value", "")
                 let el_input = selectRow.cells[0].children[0]
+
+// --- put value of selecet row in tblRow and el_input
                 el_input.innerText = code_value;
                 el_input.setAttribute("data-value", code_value);
 
@@ -127,7 +127,6 @@
 
 // make el_input green for 2 seconds
                     if("updated" in inactive_dict){
-                        // make el_input green for 2 seconds
                         el_input.classList.add("border_valid");
                         setTimeout(function (){
                             el_input.classList.remove("border_valid");
@@ -136,11 +135,9 @@
                                 selectRow.classList.add(cls_hide)
                             }
                         }, 2000);
-                    }  //  if("updated" in inactive_dict){
-                }  //  if(!isEmpty(inactive_dict))
-
+                    }  //  if("updated" in inactive_dict)
+                }  // if(!isEmpty(inactive_dict))
             }  //  if(!!is_deleted)
-
         }  //  if(!!selectRow && !!update_dict){
     } // UpdateSelectRow
 
@@ -577,93 +574,6 @@
         return offset_dict;
     }
 
-//========= get_date_moment_from_datetimeISO  ====================================
-//moved from timepicker
-    function get_date_moment_from_datetimeISO(data_rosterdate, comp_timezone) {
-        // PR2019-07-07
-        // function gets rosterdate from data_rosterdate: "2019-06-23 T 00:00:00Z"
-        // converts it to moment object and set time to midnight
-        let rosterdate_date_local;
-        if (!!data_rosterdate  && !!comp_timezone){
-            const rosterdate_datetime_local = moment.tz(data_rosterdate, comp_timezone)
-            // cur_rosterdate_local:  2019-06-23 T 02:00:00 +02:00
-            rosterdate_date_local = rosterdate_datetime_local.clone().startOf("day");
-            // curRosterdate:  2019-06-23 T 00:00:00 +02:00
-        };
-        return rosterdate_date_local;
-    }  // get_date_moment_from_datetimeISO
-
-//###########################################################
-
-//========= format_period  ========== PR2019-07-09
-    function format_period(datefirst_ISO, datelast_ISO, month_list, weekday_list, user_lang) {
-        const hide_weekday = true, hide_year = false;
-        const datefirst_JS = get_dateJS_from_dateISO (datefirst_ISO);
-        const datefirst_formatted = format_date_vanillaJS (datefirst_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year);
-
-        const datelast_JS = get_dateJS_from_dateISO (datelast_ISO);
-        const datelast_formatted = format_date_vanillaJS (datelast_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year);
-
-        let formatted_period = "";
-        if (!!datefirst_formatted || !!datelast_formatted ) {
-            formatted_period = datefirst_formatted + " - " + datelast_formatted;
-        }
-        return formatted_period
-    }  // format_period
-
-//========= get_dateJS_from_dateISO  ======== PR2019-10-28
-    function get_dateJS_from_dateISO (date_ISO) {
-        let date_JS = null;
-        if (!!date_ISO){
-            let arr = date_ISO.split("-");
-            if (arr.length > 2) {
-                date_JS = new Date(parseInt(arr[0]), parseInt(arr[1]) - 1, parseInt(arr[2]))
-            }
-        }
-        return date_JS
-    }  //  get_dateJS_from_dateISO
-
-//========= addDaysJS  ======== PR2019-11-03
-    // from https://codewithhugo.com/add-date-days-js/
-    function addDaysJS(date, days) {
-      const copy = new Date(Number(date))
-      copy.setDate(date.getDate() + days)
-      return copy
-    }
-
-//========= getWeek  ======== PR2019-11-03
-    // from https://weeknumber.net/how-to/javascript
-    // Returns the ISO week of the date.
-    Date.prototype.getWeek = function() {
-      var date = new Date(this.getTime());
-      date.setHours(0, 0, 0, 0);
-      // Thursday in current week decides the year.
-      date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-      // January 4 is always in week 1.
-      var week1 = new Date(date.getFullYear(), 0, 4);
-      // Adjust to Thursday in week 1 and count number of weeks from date to week1.
-      return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000
-                            - 3 + (week1.getDay() + 6) % 7) / 7);
-    }
-
-    // Returns the four-digit year corresponding to the ISO week of the date.
-    Date.prototype.getWeekYear = function() {
-      var date = new Date(this.getTime());
-      date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-      return date.getFullYear();
-    }
-
-
-    Date.prototype.getWeekIndex = function() {
-         // PR2019-11-03
-        // weekindex = "201944'
-        // use weekindex to print multiple years "201944" - "202001"
-        let weekIndex = 0
-        if (!!this){
-            weekIndex = this.getWeekYear() * 100 + this.getWeek();
-        }
-        return weekIndex;
-    }
 
 
 //========= lookup_status_in_statussum  ===== PR2018-07-17
