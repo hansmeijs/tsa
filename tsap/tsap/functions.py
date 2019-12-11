@@ -44,7 +44,7 @@ class ForgivingManifestStaticFilesStorage(ManifestStaticFilesStorage):
 
 # >>>>>> This is the right way, I think >>>>>>>>>>>>>
 
-def get_dateobj_from_dateISO(date_ISOstring):  # PR2019-10-25
+def get_dateobj_from_dateISOstring(date_ISOstring):  # PR2019-10-25
     dte = None
     if date_ISOstring:
         arr = get_datetimearray_from_dateISO(date_ISOstring)
@@ -66,7 +66,7 @@ def get_dateISO_from_dateOBJ(date_obj):  # PR2019-12-05
 def get_datetime_naive_from_ISOstring(date_ISOstring):  # PR2019-10-25
     datetime_naive = None
     if date_ISOstring:
-        date_obj = get_dateobj_from_dateISO(date_ISOstring)
+        date_obj = get_dateobj_from_dateISOstring(date_ISOstring)
         if date_obj:
             datetime_naive = get_datetime_naive_from_dateobject(date_obj)
     return datetime_naive
@@ -602,8 +602,9 @@ def get_minutes_from_offset(offset_str):  #PR2019-06-13
 
 # ################### DATE STRING  FUNCTIONS ###################
 
-
 def get_date_from_ISO(date_string):  # PR2019-09-18
+    # logger.debug('... get_date_from_ISO ...')
+    # logger.debug('date_string: ' + str(date_string))
     dte = None
     if date_string:
         arr = date_string.split('-')
@@ -2176,3 +2177,49 @@ def display_offset_time (offset, timeformat, user_lang, blank_when_zero, skip_pr
 
     return prefix + hour_text + delim + minute_text + suffix
 
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# <<<<<<<<<< calc_timestart_time_end_from_offset >>>>>>>>>>>>>>>>>>> PR2019-12-10
+def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, breakduration, is_restshift, comp_timezone):
+    # logger.debug('------------------ calc_schemeitem_timeduration --------------------------')
+    # called by SchemeitemFillView, update_schemeitem and update_shift > recalc_schemeitems
+
+    starttime_local = None
+    endtime_local = None
+    timeduration = 0
+    if not breakduration:
+        breakduration = 0
+
+    # calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
+    if rosterdate_dte:
+        # a. convert stored date_obj 'rosterdate' '2019-08-09' to datetime object 'rosterdatetime_naive'
+        rosterdatetime_naive = get_datetime_naive_from_dateobject(rosterdate_dte)
+        # logger.debug(' schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
+        # schemeitem.rosterdate: 2019-11-21 <class 'datetime.date'>
+        # logger.debug(' rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
+        # rosterdatetime_naive: 2019-11-21 00:00:00 <class 'datetime.datetime'>
+
+        # b. get starttime from rosterdate and offsetstart
+        starttime_local = get_datetimelocal_from_offset(
+            rosterdate=rosterdatetime_naive,
+            offset_int=offsetstart,
+            comp_timezone=comp_timezone)
+        # c. get endtime from rosterdate and offsetstart
+        # logger.debug('c. get endtime from rosterdate and offsetstart ')
+        endtime_local = get_datetimelocal_from_offset(
+            rosterdate=rosterdatetime_naive,
+            offset_int=offsetend,
+            comp_timezone=comp_timezone)
+        # logger.debug(' new_endtime: ' + str(new_endtime) + ' ' + str(type(new_endtime)))
+
+        # e. recalculate timeduration
+        fieldname = 'timeduration'
+        if starttime_local and endtime_local:
+            datediff = endtime_local - starttime_local
+            datediff_minutes = int((datediff.total_seconds() / 60))
+            timeduration = int(datediff_minutes - breakduration)
+
+            # when rest shift : timeduration = 0     # cst = 0 = normal, 1 = rest
+            if is_restshift:
+                timeduration = 0
+    return starttime_local, endtime_local, timeduration

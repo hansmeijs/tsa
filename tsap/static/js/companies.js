@@ -35,7 +35,7 @@ $(function() {
         const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
 
         const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
-        const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
+        const imgsrc_inactive = get_attr_from_el(el_data, "data-imgsrc_inactive");
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
 
         const title_inactive = get_attr_from_el(el_data, "data-txt_make_inactive");

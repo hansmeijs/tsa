@@ -96,14 +96,16 @@
          <!-- header_text -->
                 <div class="content_header">
                     <div class="content_subheader_left mx-2">
-                        <h5 id="id_hdr_text"></h5>
+                        <h5 id="id_hdr_texXXt"></h5>
                     </div>
-        <!-- loader -->
-                    <div class="content_header_middle mx-4">
-                        <div id="id_loader" class="image_container visibility_hide">
-                            <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
+
+                    <!-- loader -->
+                        <div class="content_header_middle mx-4">
+                            <div id="id_loader" class="image_container visibility_hide">
+                                <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
+                            </div>
                         </div>
-                    </div>
+
         <!-- period -->
                     <div id="id_div_hdr_period" class="content_subheader_right pointer_show mx-2">
                         <h5 id="id_hdr_period"></h5>
@@ -118,7 +120,6 @@
 <!-- CONTENT BODY -->
             <div class="content_body mx-2">
 
-
                  <!-- BUTTON GROUP -->
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                     <button id="id_btn_list" type="button" data-mode="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
@@ -130,7 +131,6 @@
                     <button id="id_btn_data" type="button"  data-mode="employee_form" class="btn btn-secondary ">{% trans 'Data' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
-
 
 <!-- =================== id_msgbox  =================== -->
                 <div class="popup display_hide" >
@@ -283,21 +283,27 @@
                     </table>
                 </div>
                 <div id="id_div_tbl_planning" class="display_hide">
+
                     <div class="content_header mx-2 mb-2">
-                    <div id="id_btns_planning" class="content_subheader_left">
-                        <button id="id_btn_prevweek" data-mode="prevweek" title="{% trans 'Show previous week.' %}" class="btn btn-add ml-2">&Larr;</button>
-                        <button id="id_btn_prevday" data-mode="prevday" title="{% trans 'Go one day back.' %}" class="btn btn-add">&larr;</button>
-                        <button id="id_btn_select date" data-mode="thisweek" class="btn btn-add">{% trans 'This week' %}</button>
-                        <button id="id_btn_nextday" data-mode="nextday" title="{% trans 'Go one day forward.' %}" class="btn btn-add"> &rarr;</button>
-                        <button id="id_btn_nextweek" data-mode="nextweek" title="{% trans 'Show next week.' %}" class="btn btn-add"> &Rarr;</button>
+                        <div class="content_subheader_left mx-2">
+                            <h5 id="id_hdr_text"></h5>
+                        </div>
+
+                        <div id="id_btns_planning" class="content_subheader_right">
+                            <button id="id_btn_prevweek" data-mode="prevweek" title="{% trans 'Show previous week.' %}" class="btn btn-add ml-2">&Larr;</button>
+                            <button id="id_btn_prevday" data-mode="prevday" title="{% trans 'Go one day back.' %}" class="btn btn-add">&larr;</button>
+                            <button id="id_btn_select date" data-mode="thisweek" class="btn btn-add">{% trans 'This week' %}</button>
+                            <button id="id_btn_nextday" data-mode="nextday" title="{% trans 'Go one day forward.' %}" class="btn btn-add"> &rarr;</button>
+                            <button id="id_btn_nextweek" data-mode="nextweek" title="{% trans 'Show next week.' %}" class="btn btn-add"> &Rarr;</button>
+                        </div>
                     </div>
-                </div>
 
                      <table  class="table tsa-tbl">
                         <thead id="id_thead_planning"></thead>
                         <tbody id="id_tbody_planning"></tbody>
                     </table>
                 </div>
+
                 <div id="id_div_tbl_pricerate" class="display_hide">
                      <table  class="table tsa-tbl">
                         <thead id="id_thead_pricerate"></thead>

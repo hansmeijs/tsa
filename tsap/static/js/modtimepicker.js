@@ -10,10 +10,10 @@
 
         CalcMinMax(tp_dict)
 
-        console.log( "offset: ", tp_dict["offset"]);
-        console.log( "minoffset: ", tp_dict["minoffset"]);
-        console.log( "maxoffset: ", tp_dict["maxoffset"]);
-        console.log( "quicksave: ", tp_dict["quicksave"]["value"]);
+        //console.log( "offset: ", tp_dict["offset"]);
+        //console.log( "minoffset: ", tp_dict["minoffset"]);
+       // console.log( "maxoffset: ", tp_dict["maxoffset"]);
+        //console.log( "quicksave: ", tp_dict["quicksave"]["value"]);
 
 // display cur_datetime_local in header
         CreateHeader(tp_dict, st_dict);
@@ -63,9 +63,10 @@
 
 //========= CreateFooter  ====================================
     function CreateFooter(tp_dict, st_dict, ModTimepickerChanged) {
-        console.log( "--- CreateFooter  ");
-        const is_quicksave = get_subdict_value_by_key(tp_dict, "quicksave", "value");
+        //console.log( "--- CreateFooter  ");
+
         // btn_quicksave.innerText is set in HideSaveButtonOnQuicksave
+        const is_quicksave = tp_dict.quicksave;
 
         let el_footer = document.getElementById("id_timepicker_footer")
         el_footer.innerText = null
@@ -82,7 +83,7 @@
                 btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add("tr_hover")});
                 btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove("tr_hover")});
 
-                if(is_quicksave) {
+                if(!is_quicksave) {
                    btn_quicksave.setAttribute("data-toggle", "modal");
                    btn_quicksave.setAttribute("href", "#id_mod_timepicker");
                 }
@@ -107,7 +108,6 @@
 
             btn_save.setAttribute("data-toggle", "modal");
             // todo cretae argument
-           //btn_save.setAttribute("href", "#id_mod_employeeshift");
            btn_save.setAttribute("href", "#id_mod_timepicker");
 
             btn_save.addEventListener("click", function() {
@@ -244,7 +244,7 @@
 //========= CreateTimepickerCell  ====================================
     function CreateTimepickerCell(tbody, td, ModTimepickerChanged, tp_dict, st_dict,
                                   data_name, value, value_text) {
-        const is_quicksave = get_subdict_value_by_key(tp_dict, "quicksave", "value");
+        const is_quicksave = tp_dict.quicksave;
 
         if (value !== -1){td.setAttribute("data-" + data_name, value)}
         td.classList.add("timepicker_" + data_name);
@@ -352,14 +352,15 @@
     function SetHour(tbody, td, ModTimepickerChanged, tp_dict, st_dict) {
        console.log("==== SetHour  =====");
         console.log("tp_dict", tp_dict);
-        const is_quicksave = get_subdict_value_by_key(tp_dict, "quicksave", "value");
+        const is_quicksave = tp_dict.quicksave;
     // check if cell is disabeld
         const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
-        //console.log("disabled", disabled);
+        console.log("disabled", disabled);
 
         if (!disabled){
         // get new hour from data-hour of td
             const newHours = get_attr_from_el_int(td, "data-hour");
+        console.log("newHours", newHours);
     // recalculate values of tp_dict
             CalcMinMax_with_newValues(tp_dict, null, newHours, null);
 
@@ -400,10 +401,10 @@
         // close timepicker, except when clicked on quicksave off
 
 // ---  change quicksave when clicked on button 'Quicksave'
-        let is_quicksave =  get_subdict_value_by_key(tp_dict, "quicksave", "value");
-        console.log("old quicksave", is_quicksave);
+        let is_quicksave = tp_dict.quicksave;
 
-        let save_changes = false;
+        let save_changes = false, dont_return = false;
+// close timepicker, except when clicked on quicksave off
         if (mode === "btn_save") {
             save_changes = true;
         } else if (mode === "btn_qs") {
@@ -411,20 +412,21 @@
             // if old quicksave = true: set quicksave = false, show btn_save, don't exit
             // if old quicksave = false: set quicksave = true, save changes
             is_quicksave = !is_quicksave
-            tp_dict["quicksave"]["value"] = is_quicksave
-            console.log("new  quicksave", is_quicksave);
+            tp_dict["quicksave"] = is_quicksave;
 
             if(is_quicksave){
                 save_changes = true;
             } else {
                 HideSaveButtonOnQuicksave(tp_dict, st_dict);
-                return false;
+                dont_return = true;
             }
 
-// --- upload new quicksave (true and false) in Usersettings
+// ---  upload quicksave in Usersettings
             const url_settings_upload = get_dict_value_by_key(st_dict, "url_settings_upload")
-            const setting_dict = {"quicksave": is_quicksave};
+            const setting_dict = {"quicksave": {"value": is_quicksave}};
             UploadSettings (setting_dict, url_settings_upload);
+
+            // go back without 'save_changes'
 
         } else if (mode === "btn_hour") {
             if(is_quicksave){
@@ -450,6 +452,7 @@
                 ModTimepickerChanged(tp_dict);
             }
         }
+        if(!dont_return) { ModTimepickerChanged(tp_dict)}
     }  // ModTimepickerSave
 
 
@@ -575,23 +578,26 @@
 
 //========= CalcMinMax  ==================================== PR2018-11-08
 function CalcMinMax_with_newValues(tp_dict, newDayOffset, newHours, newMinutes) {
-
+        console.log(" --- CalcMinMax_with_newValues ---")
 // get curHours and curMinutes from curOffset in tp_dict
         const curOffset = tp_dict["offset"];
-        const minOffset = tp_dict["minoffset"];
-        const maxOffset = tp_dict["maxoffset"];
 
-        const curDayOffset = Math.floor(curOffset/1440)  // - 90 (1.5 h)
-        const remainder = curOffset - curDayOffset * 1440
-        const curHours = Math.floor(remainder/60)
-        const curMinutes = remainder - curHours * 60
+        let curDayOffset = null, curHours = null, curMinutes = null;
+        if(curOffset != null){
+            curDayOffset = Math.floor(curOffset/1440)  // - 90 (1.5 h)
+            const remainder = curOffset - curDayOffset * 1440
+            curHours = Math.floor(remainder/60)
+            curMinutes = remainder - curHours * 60
+        }
 
-        if(newDayOffset == null){newDayOffset = curDayOffset};
-        if(newHours == null){newHours = curHours};
-        if(newMinutes == null){newMinutes = curMinutes};
+        if(newDayOffset == null){newDayOffset = (curDayOffset != null) ? curDayOffset : 0};
+        if(newHours == null){newHours = (curHours != null) ? curHours : 0};
+        if(newMinutes == null){newMinutes = (curMinutes != null) ? curMinutes : 0};
 
-        const newOffset = newDayOffset * 1440 + newHours * 60 + newMinutes
-        //console.log("newOffset ", newOffset, typeof newOffset);
+        let newOffset = null
+        if(newDayOffset != null && newDayOffset != null && newDayOffset != null){
+            newOffset = newDayOffset * 1440 + newHours * 60 + newMinutes
+        }
 
 // put new offset back in dict
         tp_dict["offset"] = newOffset
@@ -603,10 +609,11 @@ function CalcMinMax_with_newValues(tp_dict, newDayOffset, newHours, newMinutes) 
 //========= CalcMinMax  ==================================== PR2018-08-02
 function CalcMinMax(dict) {
         console.log(" --- CalcMinMax ---")
+        console.log("dict: ", dict)
 
         const curOffset = dict["offset"];
-        const minOffset = dict["minoffset"];
-        const maxOffset = dict["maxoffset"];
+        let minOffset = dict["minoffset"];
+        let maxOffset = dict["maxoffset"];
 
         if(minOffset == null){minOffset = 0};
         if(maxOffset == null){maxOffset = 1440};
@@ -695,9 +702,8 @@ function CalcMinMax(dict) {
 //========= HideSaveButtonOnQuicksave  ====================================
     function HideSaveButtonOnQuicksave(tp_dict, st_dict) {
         //console.log( "--- HideSaveButtonOnQuicksave  ");
-        // hide save button on quicksave
 
-        const is_quicksave = get_subdict_value_by_key(tp_dict, "quicksave", "value")
+        const is_quicksave = tp_dict["quicksave"]
 
         let qs_txt = (is_quicksave) ? st_dict["txt_quicksave_remove"] : st_dict["txt_quicksave"];
         document.getElementById("id_timepicker_quicksave").innerText = qs_txt

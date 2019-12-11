@@ -29,35 +29,48 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-idx_e_id = 0
-idx_e_code = 1
-idx_e_nl = 2
-idx_e_nf = 3
-idx_si_id = 4
-idx_sh_code = 5
-idx_sh_rest = 6
-idx_sh_abs_os = 7
-idx_sh_abs_oe = 8
-idx_sh_bd = 9
-idx_t_id = 10
-idx_t_code = 11
-idx_s_id = 12
-idx_s_code = 13
-idx_o_id = 14
-idx_o_code = 15
-idx_o_abs = 16
-idx_c_id = 17
-idx_c_code = 18
-idx_comp_id = 19
-idx_rosterdate = 20
-idx_ddif = 21
-idx_tm_id = 22
-idx_ddiff_arr = 23
-idx_ref_os_arr = 24
-idx_ref_oe_arr = 25
-idx_tm_id_arr = 26
-idx_si_id_arr = 27
-idx_o_seq_arr = 28
+idx_tm_id = 0
+idx_t_id = 1
+idx_t_code = 2
+idx_s_id = 3
+idx_s_code = 4
+idx_o_id = 5
+idx_o_code = 6
+idx_o_abs = 7
+idx_c_id = 8
+idx_c_code = 9
+idx_comp_id = 10
+
+idx_e_id = 11
+idx_e_code = 12
+idx_e_nl = 13
+idx_e_nf = 14
+
+idx_si_id = 15
+idx_sh_code = 16
+idx_sh_rest = 17
+
+idx_tm_si_sh_os = 18
+idx_tm_si_sh_oe = 19
+idx_sh_bd = 20
+idx_sh_td = 21
+
+idx_tm_df = 22
+idx_tm_dl = 23
+idx_s_df = 24
+idx_s_dl = 25
+idx_s_sng = 26
+
+idx_rosterdate = 27
+idx_ddif = 28
+idx_ddiff_arr = 29
+idx_ref_os_arr = 30
+idx_ref_oe_arr = 31
+idx_tm_id_arr = 32
+idx_si_id_arr = 33
+idx_o_abs_arr = 34
+idx_sh_rest_arr = 35
+idx_o_seq_arr = 36
 
 # CASE WHEN si_sub.sh_os IS NULL THEN CASE WHEN tm_sub.tm_os IS NULL THEN 0 ELSE tm_sub.tm_os END ELSE si_sub.sh_os END AS offsetstart,
 #        COALESCE(tm_sub.tm_offsetstart, 0) + 1440 * dte_sub.ddiff AS osref,
@@ -71,6 +84,8 @@ sql_absence_offset = """
         CASE WHEN tm_sub.tm_offsetend IS NULL THEN NULL ELSE tm_sub.tm_offsetend + 1440 * dte_sub.ddiff END AS oeref,      
         tm_sub.tm_id,
         NULL AS si_id, 
+        tm_sub.o_abs AS o_abs,
+        FALSE AS sh_rs,  
         tm_sub.o_seq
     FROM (
         SELECT tm.employee_id AS tm_eid, 
@@ -104,8 +119,11 @@ sql_absence_offset = """
 #         COALESCE(tm_sub.sh_os, 0) + 1440 * dte_sub.ddiff AS osref,
 #         COALESCE(tm_sub.sh_oe, 1440) + 1440 * dte_sub.ddiff AS oeref,
 
+
+#-------------------------------------------------------------------
+
 # PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
-sql_restshift_offset = """
+sql_restshift_offsetORIGINAL = """
     SELECT tm_sub.tm_eid,
         dte_sub.ddiff, 
         CASE WHEN tm_sub.sh_os IS NULL THEN NULL ELSE tm_sub.sh_os + 1440 * dte_sub.ddiff END AS osref,
@@ -149,6 +167,59 @@ sql_restshift_offset = """
     AND (tm_sub.o_datefirst <= dte_sub.r_dte OR tm_sub.o_datefirst IS NULL) 
     AND (tm_sub.o_datelast >= dte_sub.r_dte OR tm_sub.o_datelast IS NULL)     
     """
+
+#-------------------------------------------------------------------
+
+
+# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
+sql_restshift_offset = """
+    SELECT tm_sub.tm_eid,
+        dte_sub.ddiff, 
+        CASE WHEN tm_sub.sh_os IS NULL THEN NULL ELSE tm_sub.sh_os + 1440 * dte_sub.ddiff END AS osref,
+        CASE WHEN tm_sub.sh_oe IS NULL THEN NULL ELSE tm_sub.sh_oe + 1440 * dte_sub.ddiff END AS oeref, 
+        tm_sub.tm_id, 
+        tm_sub.si_id, 
+        FALSE AS o_abs,
+        tm_sub.sh_rs AS sh_rs,  
+        -1 AS o_seq       
+    FROM 
+    (
+        SELECT tm.employee_id AS tm_eid, tm.id AS tm_id,
+        tm.datefirst AS tm_datefirst, tm.datelast AS tm_datelast,
+        sh.offsetstart AS sh_os, sh.offsetend AS sh_oe,
+        sh.isrestshift as sh_rs,
+        s.datefirst AS s_datefirst,  s.datelast AS s_datelast,
+        o.datefirst AS o_datefirst,  o.datelast AS o_datelast, 
+        s.cycle AS s_cycle, 
+        si.id AS si_id,
+        si.rosterdate AS si_rd
+        FROM companies_teammember AS tm 
+        INNER JOIN companies_team AS t ON (t.id = tm.team_id)  
+        INNER JOIN companies_scheme AS s ON (s.id = t.scheme_id) 
+        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
+        INNER JOIN companies_schemeitem AS si ON (si.team_id = t.id)
+        INNER JOIN companies_shift AS sh ON (sh.id = si.shift_id)           
+        WHERE (c.company_id = %(cid)s) 
+        AND (tm.employee_id IS NOT NULL) 
+        AND (o.istemplate = FALSE)
+    ) AS tm_sub, 
+    ( 
+        SELECT CAST(%(rd)s AS date) AS r_dte, (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) ) AS ddiff
+        UNION
+        SELECT CAST(%(rd)s AS date) - 1 AS r_dte, (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) -1) AS ddiff
+        UNION
+        SELECT CAST(%(rd)s AS date) + 1  AS r_dte , (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) + 1) AS ddiff
+    ) AS dte_sub
+    WHERE MOD((tm_sub.si_rd - dte_sub.r_dte), tm_sub.s_cycle) = 0 
+    AND (tm_sub.tm_datefirst <= dte_sub.r_dte OR tm_sub.tm_datefirst IS NULL) 
+    AND (tm_sub.tm_datelast >= dte_sub.r_dte OR tm_sub.tm_datelast IS NULL)
+    AND (tm_sub.s_datefirst <= dte_sub.r_dte OR tm_sub.s_datefirst IS NULL) 
+    AND (tm_sub.s_datelast >= dte_sub.r_dte OR tm_sub.s_datelast IS NULL) 
+    AND (tm_sub.o_datefirst <= dte_sub.r_dte OR tm_sub.o_datefirst IS NULL) 
+    AND (tm_sub.o_datelast >= dte_sub.r_dte OR tm_sub.o_datelast IS NULL)     
+    """
+
 # PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
 sql_employee_absence_restshift_union = """
     SELECT sq.tm_eid, 
@@ -157,6 +228,8 @@ sql_employee_absence_restshift_union = """
         ARRAY_AGG(sq.oeref) AS oeref_arr, 
         ARRAY_AGG(sq.tm_id) AS tm_id_arr,  
         ARRAY_AGG(sq.si_id) AS si_id_arr,  
+        ARRAY_AGG(sq.o_abs) AS o_abs_arr, 
+        ARRAY_AGG(sq.sh_rs) AS sh_rest_arr,
         ARRAY_AGG(sq.o_seq) AS o_seq_arr 
     FROM (
     """ + sql_restshift_offset + """
@@ -178,6 +251,8 @@ sql_employees_with_absence_restshift_array = """
             tm_sub.oeref_arr,
             tm_sub.tm_id_arr,
             tm_sub.si_id_arr,
+            tm_sub.o_abs_arr, 
+            tm_sub.sh_rest_arr,
             tm_sub.o_seq_arr
         FROM companies_employee AS e
         LEFT JOIN
@@ -188,9 +263,6 @@ sql_employees_with_absence_restshift_array = """
         AND ( (e.datelast  >= (CAST(%(rd)s AS date) - 1) ) OR (e.datelast IS NULL) )
 
    """
-
-
-
 
 
 @method_decorator([login_required], name='dispatch')
@@ -361,6 +433,7 @@ def FillRosterdate(new_rosterdate_dte, update_list, comp_timezone, user_lang, lo
     # iterate through schemes
                                     for scheme in schemes:
                                         scheme_code = getattr(scheme, 'code', '-')
+                                        scheme_cycle = getattr(scheme, 'cycle', 0)
                                         range = get_range_text(scheme.datefirst, scheme.datelast, True)  # True: with parentheses
 
                                         logfile.append('. . . . . . . . . . . . . . . . . . . . . . . . .')
@@ -390,7 +463,13 @@ def FillRosterdate(new_rosterdate_dte, update_list, comp_timezone, user_lang, lo
                                                     shift_code = "       Shift '" + shift_code
 
                                  # 3. skip if schemeitem.rosterdate does not equal new_rosterdate_dte
-                                                    if new_schemeitem_rosterdate_dte != new_rosterdate_dte:
+
+                                                    # A % B % modulus Returns the decimal part (remainder) of the quotient.
+                                                    datediff_timedelta = new_schemeitem_rosterdate_dte - new_rosterdate_dte
+                                                    datediff_int = datediff_timedelta.days
+                                                    remainder = datediff_int % scheme_cycle
+
+                                                    if remainder != 0:
                                                         count_skipped_not_on_rosterdate += 1
                                                     else:
                                                         if not schemeitem.shift:
@@ -401,15 +480,15 @@ def FillRosterdate(new_rosterdate_dte, update_list, comp_timezone, user_lang, lo
                                 # skip rest shift
                                                             count_skipped_restshift += 1
                                                         else:
-                                                            range = f.formatWHM_from_datetime(
-                                                                schemeitem.timestart,
-                                                                comp_timezone,
-                                                                user_lang) + ' - ' + \
-                                                                f.formatWHM_from_datetime(
-                                                                    schemeitem.timeend,
-                                                                    comp_timezone,
-                                                                    user_lang)
-                                                            logfile.append(shift_code + "'   (" + range + ')')
+                                                            #range = f.formatWHM_from_datetime(
+                                                            #    schemeitem.timestart,
+                                                            #    comp_timezone,
+                                                            #    user_lang) + ' - ' + \
+                                                            #    f.formatWHM_from_datetime(
+                                                            #        schemeitem.timeend,
+                                                            #        comp_timezone,
+                                                            #        user_lang)
+                                                            logfile.append(shift_code) # + "'   (" + range + ')')
 
                                                             add_orderhour_emplhour(
                                                                 schemeitem=schemeitem,
@@ -460,13 +539,31 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
     shift_breakduration = 0
     shift_wagefactor = 0
     shift_isrestshift = False
-    shift = schemeitem.shift
-    if shift:
-        shift_cat = getattr(shift, 'cat', 0)
-        shift_code = getattr(shift, 'code', '-')
-        shift_breakduration = getattr(shift, 'breakduration', 0)
-        shift_wagefactor = getattr(shift, 'wagefactor', 0)
-        shift_isrestshift = getattr(shift, 'isrestshift', False)
+
+    if schemeitem:
+        shift = schemeitem.shift
+        if shift:
+            shift_cat = getattr(shift, 'cat', 0)
+            shift_code = getattr(shift, 'code', '-')
+
+            shift_offsetstart = getattr(shift, 'offsetstart')
+            shift_offsetend = getattr(shift, 'offsetend')
+            shift_breakduration = getattr(shift, 'breakduration', 0)
+            shift_wagefactor = getattr(shift, 'wagefactor', 0)
+            shift_isrestshift = getattr(shift, 'isrestshift', False)
+
+    # calculate timestart, timeend and timeduration from shift offset and rosterdtae info from shift
+
+    # new_rosterdate_dte is used to calculate timestart, timeend, not schemeitem.rosterdate.
+    # Only schemeitems with rosterdates with ,uipe of cycle are calcualted, filter in caller functiom
+            timestart, timeend, timeduration = f.calc_timestart_time_end_from_offset(
+                new_rosterdate_dte,
+                shift_offsetstart,
+                shift_offsetend,
+                shift_breakduration,
+                shift_isrestshift,
+                comp_timezone
+            )
 
 # get info from order
     tax_rate = 0
@@ -487,8 +584,6 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
 
 # get billable info from schemeitem or shift, scheme, order, company
     is_override, is_billable = f.get_billable_schemeitem(schemeitem)
-
-    timeduration = getattr(schemeitem, 'timeduration', 0)
 
     # with restshift: amount = 0, pricerate = 0, additionrate  = 0, billable = false
     if shift_isrestshift:
@@ -591,7 +686,7 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
             orderhour.isbillable = is_billable
             orderhour.isrestshift = shift_isrestshift
             orderhour.shift = shift_code
-            orderhour.duration = schemeitem.timeduration
+            orderhour.duration = timeduration
             orderhour.pricerate = pricerate
             orderhour.additionrate = additionrate
             orderhour.taxrate = tax_rate
@@ -607,9 +702,11 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
             teammember=teammember,
             shift_code=shift_code,
             shift_cat=shift_cat,
-            shift_breakduration=shift_breakduration,
             shift_wagefactor=shift_wagefactor,
             shift_isrestshift=shift_isrestshift,
+            timestart=timestart,
+            timeend=timeend,
+            breakduration=shift_breakduration,
             timeduration=timeduration,
             logfile=logfile,
             update_list=update_list,
@@ -618,13 +715,18 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
             comp_timezone=comp_timezone,
             request=request)
 
+
+
+
+
         # logger.debug("           entries_count '" + str(entries_count))
         # logger.debug("           entries_employee_list '" + str(entries_employee_list))
 
 # 33333333333333333333333333333333333333333333333333
 
 def add_emplhour(orderhour, schemeitem, teammember,
-            shift_code, shift_cat, shift_breakduration, shift_wagefactor, shift_isrestshift, timeduration,
+            shift_code, shift_cat, shift_wagefactor, shift_isrestshift,
+            timestart, timeend, breakduration, timeduration,
             logfile, update_list, entries_employee_list, entries_count, comp_timezone, request):
     logger.debug('add_emplhour: ' + str(add_emplhour))
     # create new emplhour
@@ -634,7 +736,7 @@ def add_emplhour(orderhour, schemeitem, teammember,
         payperiodindex=0
         wagerate = 0
         wage = 0
-        pricerate = None
+        #pricerate = None
         overlap = 0
 
         # TODO check if wagefactor calculation is correct
@@ -654,14 +756,14 @@ def add_emplhour(orderhour, schemeitem, teammember,
             cat=shift_cat,
             isrestshift=shift_isrestshift,
             shift=shift_code,
-            timestart=schemeitem.timestart,
-            timeend=schemeitem.timeend,
+            timestart=timestart,
+            timeend=timeend,
+            breakduration=breakduration,
             timeduration=timeduration,
-            breakduration=shift_breakduration,
             wagerate=wagerate,
             wagefactor=wagefactor,
             wage=wage,
-            pricerate=pricerate,
+            #pricerate=pricerate,
             status=c.STATUS_01_CREATED,
             overlap=overlap
         )
@@ -679,14 +781,15 @@ def add_emplhour(orderhour, schemeitem, teammember,
 
             logger.debug('with employee: ' + str(employee.code))
             # if teammember.override if override=TRue: use teammember/employee pricerate, else: use orderhour pricerate
-            if teammember.override:
-                pricerate = None
-                if teammember.pricerate:
-                    pricerate = teammember.pricerate
-                elif employee.pricerate:
-                    pricerate = employee.pricerate
-                if pricerate:
-                    new_emplhour.pricerate = pricerate
+            # if teammember.override:
+                # TODO: priceratejson
+                # pricerate = None
+                #if teammember.pricerate:
+                #    pricerate = teammember.pricerate
+                # if employee.pricerate:
+                #     pricerate = employee.pricerate
+                # if pricerate:
+                #     new_emplhour.pricerate = pricerate
         new_emplhour.save(request=request)
 
         if new_emplhour:
@@ -1346,7 +1449,7 @@ def get_teammember_rows_per_date_per_customer(rosterdate, customer_id, refdate, 
 
 # teammember offset is only used for absence, in that case there is no schemeitem
 # field jsonsetting contains simple shifts: { 0: [480, 990, 30] 1:[...] exwk: true, exph: true }
-#  1: Monday [offsetstart, offsetend, breakduration] exwk: excludeweekend, exph: excludepublicholiday
+#  1: Monday [offsetstart, offsetend, breakduration] exwk: excludecompanyholiday, exph: excludepublicholiday
 
     # the e_sub group query selects the active employees within date range,
     # returns the employee code, last and first name
@@ -1567,10 +1670,11 @@ def create_employee_planning(datefirst, datelast, customer_id, order_id, employe
     # this function calcuLates the planning per employee per day, without saving emplhour records  # PR2019-11-30
     # TODO make SQL that generates rows for al dates at once, maybe also for all employees
 
-    employee_planning_dictlist = [{}]
+    employee_planning_dictlist = []
     if datefirst and datelast:
         all_rows = []
         company_id = request.user.company.pk
+        logger.debug('datefirst: ' + str(datefirst) + ' ' + str(type(datefirst)))
 
 # 1. convert datefirst and datelast into date_objects
         datefirst_dte = f.get_date_from_ISO(datefirst)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
@@ -1593,6 +1697,7 @@ def create_employee_planning(datefirst, datelast, customer_id, order_id, employe
 
 # 5. add one day to rosterdate
             rosterdate_dte = rosterdate_dte + timedelta(days=1)
+#    end of loop
 
 # 6. sort rows
         # from https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
@@ -1607,27 +1712,24 @@ def create_employee_planning(datefirst, datelast, customer_id, order_id, employe
         for i, row in enumerate(sorted_rows):
             if row[idx_e_id] is not None:
                 is_absence = row[idx_o_abs]
-                has_schemeitem = (row[idx_si_id] is not None)
                 is_restshift = row[idx_sh_rest]
-                is_singleshift = False # TODO correct (row[idx_tm_shiftjson] is not None)
-                logger.debug('+++++++++++++ idx_rosterdate: ' + str(row[idx_rosterdate]))
-                logger.debug('is_absence: ' + str(is_absence) + ' is_restshift: ' + str(is_restshift) + ' is_singleshift: ' + str(is_singleshift))
 
-                add_row_to_dict = False
+                logger.debug('+++++++++++++ idx_rosterdate: ' + str(row[idx_rosterdate]))
+                logger.debug('is_absence: ' + str(is_absence) + ' is_restshift: ' + str(is_restshift))
+                # TODO filter overlappning rows
+                add_row_to_dict = True
     # - A. row is absence row
                 if is_absence:
                     if (row[idx_e_id] is not None):
                         # if more than one absence row: check if this must be skipped
                         add_row_to_dict = True
-                elif has_schemeitem:
+                #else:
                     # TODO not for customer planning
-                    if (row[idx_e_id] is not None):
+                    #if (row[idx_e_id] is not None):
                     # check if shift has overlap with absence or restshift
                         has_overlap, overlap_tm_id = check_schemeshiftrow_for_absence_rest(row, refdate)
-                        add_row_to_dict = not has_overlap
-                elif is_singleshift:
-                    # TODO add
-                    pass
+                        # add_row_to_dict = not has_overlap
+
     # skip if this row must be deleted
                 #if not delete_this_row:
                 #    if has_overlap:
@@ -1640,21 +1742,23 @@ def create_employee_planning(datefirst, datelast, customer_id, order_id, employe
                     if planning_dict:
                         employee_planning_dictlist.append(planning_dict)
 
-    #logger.debug('@@@@@@@@@@@@@@@@ employee_planning_dictlist' + str(employee_planning_dictlist))
+    # add empty dict when list has no items. To refresh a empty calendar
+    if len(employee_planning_dictlist) == 0:
+        employee_planning_dictlist = [{}]
 
     # logger.debug('employee_planning_dictlist' + str(employee_planning_dictlist))
     return employee_planning_dictlist
 
 
 def get_teammember_rows_with_shifts(rosterdate, refdate, customer_id, order_id, employee_id, company_id):
-    logger.debug(' =============== get_teammember_rows_with_shifts ============= ' + str(rosterdate.isoformat()))
+    #logger.debug(' =============== get_teammember_rows_with_shifts ============= ' + str(rosterdate.isoformat()))
     # PR2019-11-28 Bingo: get absence and shifts in one query
     newcursor = connection.cursor()
 
-    logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
-    logger.debug('customer_id: ' + str(customer_id) + ' ' + str(type(customer_id)))
-    logger.debug('order_id: ' + str(order_id) + ' ' + str(type(order_id)))
-    logger.debug('employee_id: ' + str(employee_id) + ' ' + str(type(employee_id)))
+    #logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+    #logger.debug('customer_id: ' + str(customer_id) + ' ' + str(type(customer_id)))
+    #logger.debug('order_id: ' + str(order_id) + ' ' + str(type(order_id)))
+    #logger.debug('employee_id: ' + str(employee_id) + ' ' + str(type(employee_id)))
     # teammembers are - absence rows : si_sub.si_id = NULL  AND isabsence=true
     #                  simple shifts: si_sub.si_id = NULL AND shiftjson NOT NULL
     #                  rest shifts:   si_sub.si_id NOT NULL   AND isrestshift=true (if isrestshift=true then si_sub.si_id has always value)
@@ -1669,19 +1773,10 @@ def get_teammember_rows_with_shifts(rosterdate, refdate, customer_id, order_id, 
     # NOTE:: in absence rows sh_os takes value from teammember.offsetstart, otherwise from shift.offsetstart
     sql_shifts = """
         SELECT 
-            tm.employee_id AS e_id, 
-            COALESCE(e_sub.e_code,'') AS e_code,
-            COALESCE(e_sub.e_nl,'') AS e_nl,
-            COALESCE(e_sub.e_nf,'') AS e_nf,
-            si_sub.si_id, 
-            COALESCE(si_sub.sh_code,'') AS sh_code,
-            COALESCE(si_sub.sh_rest, FALSE) AS sh_rest,
-            CASE WHEN o.isabsence = FALSE THEN si_sub.sh_os ELSE tm.offsetstart END AS sh_abs_os,
-            CASE WHEN o.isabsence = FALSE THEN si_sub.sh_oe ELSE tm.offsetend END AS sh_abs_oe,
-            si_sub.sh_bd, 
-            t_id AS t_id, 
+            tm.id AS tm_id, 
+            t.id AS t_id, 
             COALESCE(t.code,'') AS t_code,
-            si_sub.s_id AS s_id,
+            s.id AS s_id,
             COALESCE(s.code,'') AS s_code,
             o.id AS o_id,
             COALESCE(o.code,'') AS o_code,
@@ -1689,14 +1784,37 @@ def get_teammember_rows_with_shifts(rosterdate, refdate, customer_id, order_id, 
             c.id AS c_id, 
             COALESCE(c.code,'') AS c_code, 
             c.company_id AS comp_id, 
+
+            tm.employee_id AS e_id, 
+            COALESCE(e_sub.e_code,'') AS e_code,
+            COALESCE(e_sub.e_nl,'') AS e_nl,
+            COALESCE(e_sub.e_nf,'') AS e_nf,
+            
+            si_sub.si_id, 
+            COALESCE(si_sub.sh_code,'') AS sh_code,
+            COALESCE(si_sub.sh_rest, FALSE) AS sh_rest,
+    
+            CASE WHEN o.isabsence = FALSE THEN si_sub.si_sh_os ELSE tm.offsetstart END AS tm_si_sh_os,
+            CASE WHEN o.isabsence = FALSE THEN si_sub.si_sh_oe ELSE tm.offsetend END AS tm_si_sh_oe,
+            si_sub.bd, 
+            si_sub.td, 
+            
+            tm.datefirst AS tm_df,
+            tm.datelast AS tm_dl,
+            
+            s.datefirst AS s_df,
+            s.datelast AS s_dl,
+            s.issingleshift AS s_sng,
+            
             CAST(%(rd)s AS date) AS rosterdate, 
             (CAST(%(rd)s AS date) - CAST(%(ref)s AS date)) AS ddif, 
-            tm.id AS tm_id, 
             e_sub.ddiff_arr, 
             e_sub.osref_arr, 
             e_sub.oeref_arr, 
             e_sub.tm_id_arr, 
             e_sub.si_id_arr, 
+            e_sub.o_abs_arr, 
+            e_sub.sh_rest_arr,   
             e_sub.o_seq_arr 
         FROM companies_teammember AS tm 
         INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
@@ -1707,12 +1825,16 @@ def get_teammember_rows_with_shifts(rosterdate, refdate, customer_id, order_id, 
         ) AS e_sub ON (e_sub.e_id = tm.employee_id)
 
         LEFT JOIN 
-        (SELECT si.id AS si_id, si.team_id AS t_id, sh.code AS sh_code,  
+        (SELECT si.id AS si_id, si.team_id AS t_id, si.shift_id AS sh_id, sh.code AS sh_code,  
                 sh.isrestshift AS sh_rest, 
-                sh.offsetstart AS sh_os, sh.offsetend AS sh_oe, sh.breakduration AS sh_bd,
-                s.id AS s_id, s.code AS s_code
+                sh.offsetstart AS sh_os,
+                si.offsetstart AS si_os,
+                CASE WHEN sh.id IS NULL THEN si.offsetstart ELSE sh.offsetstart END AS si_sh_os,
+                CASE WHEN sh.id IS NULL THEN si.offsetend ELSE sh.offsetend END AS si_sh_oe,
+                CASE WHEN sh.id IS NULL THEN si.breakduration ELSE sh.breakduration END AS bd,
+                CASE WHEN sh.id IS NULL THEN si.timeduration ELSE sh.timeduration END AS td
                 FROM companies_schemeitem AS si 
-                INNER JOIN companies_shift AS sh ON (si.shift_id = sh.id) 
+                LEFT JOIN companies_shift AS sh ON (si.shift_id = sh.id) 
                 INNER JOIN companies_scheme AS s ON (si.scheme_id = s.id) 
                 WHERE MOD( ( CAST(si.rosterdate AS date) - CAST(%(rd)s AS date) ) , s.cycle ) = 0 
                 AND (s.istemplate = FALSE)
@@ -1722,19 +1844,18 @@ def get_teammember_rows_with_shifts(rosterdate, refdate, customer_id, order_id, 
         INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
         INNER JOIN companies_order AS o ON (o.id = s.order_id) 
         INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-        WHERE (c.company_id = %(cid)s) 
+        WHERE (c.company_id = %(cid)s)
         AND (o.istemplate = FALSE)
-        AND ( (tm.employee_id = %(eid)s) OR (%(eid)s IS NULL) ) 
-        AND ( (tm.datefirst <= CAST(%(rd)s AS date) ) OR (tm.datefirst IS NULL) ) 
+        AND ( (tm.employee_id = %(eid)s) OR (%(eid)s IS NULL) )
+        AND ( (tm.datefirst <= CAST(%(rd)s AS date) ) OR (tm.datefirst IS NULL) )
         AND ( (tm.datelast  >= CAST(%(rd)s AS date) ) OR (tm.datelast IS NULL) )
-        AND ( (s.datefirst <= CAST(%(rd)s AS date) ) OR (s.datefirst IS NULL) ) 
+        AND ( (s.datefirst <= CAST(%(rd)s AS date) ) OR (s.datefirst IS NULL) )
         AND ( (s.datelast  >= CAST(%(rd)s AS date) ) OR (s.datelast IS NULL) )
-        AND ( (o.datefirst <= CAST(%(rd)s AS date) ) OR (o.datefirst IS NULL) ) 
+        AND ( (o.datefirst <= CAST(%(rd)s AS date) ) OR (o.datefirst IS NULL) )
         AND ( (o.datelast  >= CAST(%(rd)s AS date) ) OR (o.datelast IS NULL) )
-        AND ( (o.id = %(orderid)s) OR (%(orderid)s IS NULL) ) 
-        AND ( (c.id = %(custid)s) OR (%(custid)s IS NULL) ) 
+        AND ( (o.id = %(orderid)s) OR (%(orderid)s IS NULL) )
+        AND ( (c.id = %(custid)s) OR (%(custid)s IS NULL) )
     """
-    #         ORDER BY e_code ASC, si_sub.sh_os ASC
 
     newcursor.execute(sql_shifts, {
         'cid': company_id,
@@ -1745,8 +1866,8 @@ def get_teammember_rows_with_shifts(rosterdate, refdate, customer_id, order_id, 
         'ref': refdate
     })
     rows = newcursor.fetchall()
-
-    logger.debug('rows' + str(rows))
+    # rows = f.dictfetchall(newcursor)
+    #logger.debug('rows' + str(rows))
 
     return rows
 
@@ -1780,8 +1901,8 @@ def add_to_compare_dict(fid, row, tm_dicts):
             tm_dicts[ddif].append(tm_row)
 
 def check_absencerow_for_doubles(row):
-    logger.debug(" --- check_absencerow_for_doubles ---")
-    logger.debug("row: " + str(row))
+    #logger.debug(" --- check_absencerow_for_doubles ---")
+    #logger.debug("row: " + str(row))
     # This function checks for multiple overlapping absence rows
     # absence is stored in arrays: offsetstart: absrest_osref,  offsetend: absrest_osref, teammember_id: tm_id_arr
     # ref means that the offset is measured againt the reference date
@@ -1796,22 +1917,15 @@ def check_absencerow_for_doubles(row):
     is_absence = row[idx_o_abs]
     if is_absence:
 
-        logger.debug("idx_tm_id: " + str(row[idx_tm_id]))
         tm_id = row[idx_tm_id]
-        logger.debug("idx_sh_abs_os: " + str(row[idx_sh_abs_os]))
-        logger.debug("idx_sh_abs_oe: " + str(row[idx_sh_abs_oe]))
-        logger.debug("idx_ddif: " + str(row[idx_ddif]))
-        logger.debug("idx_ref_os_arr: " + str(row[idx_ref_os_arr]))
-        logger.debug("idx_ref_oe_arr: " + str(row[idx_ref_oe_arr]))
-        logger.debug("idx_ddiff_arr: " + str(row[idx_ddiff_arr]))
-        logger.debug("idx_tm_id_arr: " + str(row[idx_tm_id_arr]))
+
 
         has_overlap = False
         overlap_tm_id = None
-        sh_os_ref = row[idx_ddif] * 1440 + row[idx_sh_abs_os]
-        sh_oe_ref = row[idx_ddif] * 1440 + row[idx_sh_abs_oe]
+        sh_os_ref = row[idx_ddif] * 1440 + row[idx_tm_si_sh_os]
+        sh_oe_ref = row[idx_ddif] * 1440 + row[idx_tm_si_sh_oe]
 
-        logger.debug( "sh_os_ref: " + str(sh_os_ref) + " sh_oe_ref: " + str(sh_oe_ref) + " shift: " + str(row[idx_sh_code]))
+        #logger.debug( "sh_os_ref: " + str(sh_os_ref) + " sh_oe_ref: " + str(sh_oe_ref) + " shift: " + str(row[idx_sh_code]))
 
         if row[idx_ref_os_arr] and row[idx_ref_oe_arr]:
             rosterdate = row[idx_rosterdate]
@@ -1825,40 +1939,41 @@ def check_absencerow_for_doubles(row):
                 abs_tm_id = abs_tm_id_arr[i]
                 abs_ddiff = abs_ddiff_arr[i]
                 abs_o_seq = abs_o_seq_arr[i]
-                logger.debug('--------- ')
-                logger.debug('abs_tm_id: ' + str(abs_tm_id) + ' abs_ddiff: ' + str(abs_ddiff))
-                logger.debug('abs_os: ' + str(abs_os) + ' abs_oe: ' + str(abs_oe))
+                #logger.debug('--------- ')
+                #logger.debug('abs_tm_id: ' + str(abs_tm_id) + ' abs_ddiff: ' + str(abs_ddiff))
+                #logger.debug('abs_os: ' + str(abs_os) + ' abs_oe: ' + str(abs_oe))
 
                 # skip if tm_id is same as this tm_id
                 if abs_tm_id == tm_id:
-                    logger.debug('abs_tm_id and tm_id are the same')
+                    pass
+                    #logger.debug('abs_tm_id and tm_id are the same')
                 else:
                     # if offsetstart or offset end missing: check only if date equals absence or rest date
                     if abs_os is None or abs_oe is None:
-                        logger.debug('abs_os or abs_oe is None')
+                        #logger.debug('abs_os or abs_oe is None')
                         abs_rosterdate = rosterdate + timedelta(days=abs_ddiff)
-                        logger.debug('rosterdate: ' + str(rosterdate) + ' abs_rosterdate: ' + str(abs_rosterdate))
+                        #logger.debug('rosterdate: ' + str(rosterdate) + ' abs_rosterdate: ' + str(abs_rosterdate))
                         if abs_rosterdate == rosterdate:
                             has_overlap = True
                             overlap_tm_id = row[idx_tm_id_arr][i]
-                            logger.debug('has_overlap: ' + str(has_overlap) + ' overlap_tm_id: ' + str(overlap_tm_id))
+                            #logger.debug('has_overlap: ' + str(has_overlap) + ' overlap_tm_id: ' + str(overlap_tm_id))
                             break
                     else:
-                        logger.debug('abs_os or abs_oe are not None')
+                        #logger.debug('abs_os or abs_oe are not None')
                         has_overlap = f.check_offset_overlap(sh_os_ref, sh_oe_ref, abs_os, abs_oe)
-                        logger.debug("abs_os: " + str(abs_os) + " abs_oe: " + str(abs_oe)+ " has_overlap: " + str(has_overlap))
+                        #logger.debug("abs_os: " + str(abs_os) + " abs_oe: " + str(abs_oe)+ " has_overlap: " + str(has_overlap))
                         if has_overlap:
                             overlap_tm_id = row[idx_tm_id_arr][i]
                             break
 
-    logger.debug("------ has_overlap: " + str(has_overlap) + " overlap_tm_id: " + str(overlap_tm_id))
+    #logger.debug("------ has_overlap: " + str(has_overlap) + " overlap_tm_id: " + str(overlap_tm_id))
 
     return has_overlap, overlap_tm_id
 
 
 def check_schemeshiftrow_for_absence_rest(row, refdate):
-    logger.debug(" --- check_schemeshiftrow_for_absence_rest ---")
-    logger.debug("row: " + str(row))
+    #logger.debug(" --- check_schemeshiftrow_for_absence_rest ---")
+    #logger.debug("row: " + str(row))
     # This function checks for overlap with absence
     # absence is stored in arrays: offsetstart: absrest_osref,  offsetend: absrest_osref, teammember_id: tm_id_arr
     # ref means that the offset is measured againt the reference date
@@ -1869,24 +1984,16 @@ def check_schemeshiftrow_for_absence_rest(row, refdate):
     # o_seq_arr = -1 when restshift, otherwise: order_sequence
     # when no offset in absence: only filter on rosterdate (calculate from ddif
 
-    logger.debug("idx_tm_id: " + str(row[idx_tm_id]))
     tm_id = row[idx_tm_id]
-    logger.debug("idx_sh_abs_os: " + str(row[idx_sh_abs_os]))
-    logger.debug("idx_sh_abs_oe: " + str(row[idx_sh_abs_oe]))
-    logger.debug("idx_ddif: " + str(row[idx_ddif]))
-    logger.debug("idx_ref_os_arr: " + str(row[idx_ref_os_arr]))
-    logger.debug("idx_ref_oe_arr: " + str(row[idx_ref_oe_arr]))
-    logger.debug("idx_ddiff_arr: " + str(row[idx_ddiff_arr]))
-    logger.debug("idx_tm_id_arr: " + str(row[idx_tm_id_arr]))
-    logger.debug("idx_o_seq_arr: " + str(row[idx_o_seq_arr]))
+
 
     has_overlap = False
     overlap_tm_id = None
-    if row[idx_ddif] and row[idx_sh_abs_os] and row[idx_sh_abs_oe]:
-        sh_os_ref = row[idx_ddif] * 1440 + row[idx_sh_abs_os]
-        sh_oe_ref = row[idx_ddif] * 1440 + row[idx_sh_abs_oe]
+    if row[idx_ddif] and row[idx_tm_si_sh_os] and row[idx_tm_si_sh_oe]:
+        sh_os_ref = row[idx_ddif] * 1440 + row[idx_tm_si_sh_os]
+        sh_oe_ref = row[idx_ddif] * 1440 + row[idx_tm_si_sh_oe]
 
-        logger.debug( "sh_os_ref: " + str(sh_os_ref) + " sh_oe_ref: " + str(sh_oe_ref) + " shift: " + str(row[idx_sh_code]))
+        #logger.debug( "sh_os_ref: " + str(sh_os_ref) + " sh_oe_ref: " + str(sh_oe_ref) + " shift: " + str(row[idx_sh_code]))
 
         if row[idx_ref_os_arr] and row[idx_ref_oe_arr]:
             rosterdate = row[idx_rosterdate]
@@ -1900,39 +2007,40 @@ def check_schemeshiftrow_for_absence_rest(row, refdate):
                 abs_tm_id = abs_tm_id_arr[i]
                 abs_ddiff = abs_ddiff_arr[i]
                 abs_o_seq = abs_o_seq_arr[i]
-                logger.debug('--------- ')
-                logger.debug('abs_tm_id: ' + str(abs_tm_id) + ' abs_ddiff: ' + str(abs_ddiff))
-                logger.debug('abs_os: ' + str(abs_os) + ' abs_oe: ' + str(abs_oe))
+                #logger.debug('--------- ')
+                #logger.debug('abs_tm_id: ' + str(abs_tm_id) + ' abs_ddiff: ' + str(abs_ddiff))
+                #logger.debug('abs_os: ' + str(abs_os) + ' abs_oe: ' + str(abs_oe))
 
                 # skip if tm_id is same as this tm_id
                 if abs_tm_id == tm_id:
-                    logger.debug('rows are the same')
+                    pass
+                    #logger.debug('rows are the same')
                 else:
                     # if offsetstart or offset end missing: check only if date equals absence or rest date
                     if abs_os is None or abs_oe is None:
-                        logger.debug('no offset')
+                        #logger.debug('no offset')
                         # NOTE:  abs_ddiff is offset from refdate, not from rosterdate
                         abs_rosterdate = refdate + timedelta(days=abs_ddiff)
-                        logger.debug('rosterdate: ' + str(rosterdate) + ' abs_rosterdate: ' + str(abs_rosterdate) + ' refdate: ' + str(refdate))
+                        #logger.debug('rosterdate: ' + str(rosterdate) + ' abs_rosterdate: ' + str(abs_rosterdate) + ' refdate: ' + str(refdate))
                         if abs_rosterdate == rosterdate:
                             has_overlap = True
                             overlap_tm_id = row[idx_tm_id_arr][i]
-                            logger.debug('has_overlap: ' + str(has_overlap) + ' overlap_tm_id: ' + str(overlap_tm_id))
+                            #logger.debug('has_overlap: ' + str(has_overlap) + ' overlap_tm_id: ' + str(overlap_tm_id))
                             break
                     else:
-                        logger.debug('abs_os or abs_oe are not None')
+                        #logger.debug('abs_os or abs_oe are not None')
                         has_overlap = f.check_offset_overlap(sh_os_ref, sh_oe_ref, abs_os, abs_oe)
-                        logger.debug("abs_os: " + str(abs_os) + " abs_oe: " + str(abs_oe)+ " has_overlap: " + str(has_overlap))
+                        #logger.debug("abs_os: " + str(abs_os) + " abs_oe: " + str(abs_oe)+ " has_overlap: " + str(has_overlap))
                         if has_overlap:
                             overlap_tm_id = row[idx_tm_id_arr][i]
                             break
 
-    logger.debug("------ has_overlap: " + str(has_overlap) + " overlap_tm_id: " + str(overlap_tm_id))
+    #logger.debug("------ has_overlap: " + str(has_overlap) + " overlap_tm_id: " + str(overlap_tm_id))
 
     return has_overlap, overlap_tm_id
 
 def check_overlapping_shiftrows(employee_rows, employee_dict):
-    logger.debug(" --- check_overlapping_shiftrows ---")
+    #logger.debug(" --- check_overlapping_shiftrows ---")
     # This function checks if shifts overlap absence rows, rest rows and other shift rows
 
     # employee_dict{
@@ -1973,13 +2081,13 @@ def check_overlapping_shiftrows(employee_rows, employee_dict):
                                         if has_overlap:
                                             # delete row if it has overlap
                                             popped = employee_rows.pop(cur_fid)
-                                            logger.debug("popped: " + str(popped))
+                                            #logger.debug("popped: " + str(popped))
                                             break
 
 
 def create_employee_planning_dict(row, datefirst_dte, datelast_dte, comp_timezone, timeformat, user_lang): # PR2019-10-27
-    # logger.debug(' --- create_employee_planning_dict --- ')
-    logger.debug('row: ' + str(row))
+    #logger.debug(' --- create_employee_planning_dict --- ')
+    #logger.debug('row: ' + str(row))
     # row: {'rosterdate': '2019-09-28', 'tm_id': 469, 'e_id': 1465, 'e_code': 'Andrea, Johnatan',
     # 'ddif': 0, 'o_cat': 512, 'o_seq': 1, 'osdif': 0, 'oedif': 1440}
 
@@ -1991,6 +2099,7 @@ def create_employee_planning_dict(row, datefirst_dte, datelast_dte, comp_timezon
     # 's_code': '3 daags', 't_code': 'Ploeg 1',
     # 'o_id': 1226, 'o_code': 'Punda', 'o_abs': False, 'c_id': 589, 'c_code': 'MCB', 'comp_id': 2}
 
+    #logger.debug(row)
 
     planning_dict = {}
     if row:
@@ -2009,13 +2118,14 @@ def create_employee_planning_dict(row, datefirst_dte, datelast_dte, comp_timezon
             # rosterdate was iso string: rosterdate_dte = f.get_date_from_ISO(rosterdate)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
             rosterdate_dte = row[idx_rosterdate]
 
+            logger.debug('rosterdate_dte: ' + str(rosterdate_dte))
             # a. convert rosterdate '2019-08-09' to datetime object
             # was: rosterdatetime_naive = f.get_datetime_naive_from_ISOstring(rosterdate)
             rosterdatetime_naive = f.get_datetime_naive_from_dateobject(rosterdate_dte)
             # logger.debug(' rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
 
-            offset_start = row[idx_sh_abs_os]
-            offset_end = row[idx_sh_abs_oe]
+            offset_start = row[idx_tm_si_sh_os]
+            offset_end = row[idx_tm_si_sh_oe]
 
             timestart = f.get_datetimelocal_from_offset(
                 rosterdate=rosterdatetime_naive,
@@ -2030,10 +2140,21 @@ def create_employee_planning_dict(row, datefirst_dte, datelast_dte, comp_timezon
                 offset_int=offset_end,
                 comp_timezone=comp_timezone)
             # logger.debug(' timeend: ' + str(timeend) + ' ' + str(type(timeend)))
-            # fake orderhours_pk equals fake emplhour_pk
+            # create fake id teammember_pk - schemeitem_pk - datedifference
             fid = '-'.join([str(row[idx_tm_id]), str(row[idx_si_id]), str(row[idx_ddif])])
             planning_dict = {'id': {'pk': fid, 'ppk': fid, 'table': 'planning'}, 'pk': fid}
 
+            planning_dict['teammember'] = {
+                'pk': row[idx_tm_id],
+                'ppk': row[idx_t_id],
+                'datefirst': row[idx_tm_df],
+                'datelast': row[idx_tm_dl]
+            }
+            if row[idx_si_id]:
+                planning_dict['schemeitem'] = {
+                    'pk': row[idx_si_id],
+                    'ppk': row[idx_s_id]
+                }
             planning_dict['employee'] = {
                 'pk': row[idx_e_id],
                 'ppk': row[idx_comp_id],
@@ -2050,7 +2171,10 @@ def create_employee_planning_dict(row, datefirst_dte, datelast_dte, comp_timezon
             planning_dict['scheme'] = {
                 'pk': row[idx_s_id],
                 'ppk': row[idx_o_id],
-                'value': row[idx_s_code]
+                'value': row[idx_s_code],
+                'datefirst': row[idx_s_df],
+                'datelast': row[idx_s_dl],
+                'issingleshift': row[idx_s_sng]
             }
             planning_dict['customer'] = {
                 'pk': row[idx_c_id],
@@ -2087,13 +2211,23 @@ def create_employee_planning_dict(row, datefirst_dte, datelast_dte, comp_timezon
             if breakduration:
                 planning_dict['breakduration'] = {'field': "breakduration", 'value': breakduration}
 
-            duration = 0
+            timeduration = 0
 
             if offset_start is not None and offset_end is not None:
                 if not is_absence and not is_restshift:
-                    duration = offset_end - offset_start - breakduration
-            planning_dict['duration'] = {'field': "duration", 'value': duration}
+                    timeduration = offset_end - offset_start - breakduration
+            planning_dict['timeduration'] = {'field': "timeduration", 'value': timeduration}
 
+ # add weekday_list of schemeitems of this scheme and their weekday
+
+            logger.debug('row[idx_s_id]: ' + str(row[idx_s_id]))
+            schemeitems = m.Schemeitem.objects.filter(scheme_id=row[idx_s_id])
+            weekday_list = [0,0,0,0,0,0,0,0] # listindex is weekday index, first one is not in use
+            if schemeitems:
+                for schemeitem in schemeitems:
+                    weekday = schemeitem.rosterdate.isoweekday()
+                    weekday_list[weekday] = schemeitem.pk
+            planning_dict['weekday_list'] = weekday_list
 
             # monthindex: {value: 4}
             # weekindex: {value: 15}

@@ -109,7 +109,7 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
 # if rosterdate in dict: check this rosterdate, otherwise check last rosterdate or next
     if 'rosterdate' in upload_dict:
         rosterdate_iso = upload_dict.get('rosterdate')
-        rosterdate = f.get_dateobj_from_ISOstring(rosterdate_iso)
+        rosterdate = f.get_dateobj_from_dateISOstring(rosterdate_iso)
     else:
 
 # get last rosterdate of Orderhour
@@ -522,7 +522,7 @@ def create_scheme_dict(scheme, item_dict, user_lang):
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     if scheme:
-        # FIELDS_SCHEME = ('id', 'order', 'cat', 'cycle', 'excludeweekend', 'excludepublicholiday', 'inactive')
+        # FIELDS_SCHEME = ('id', 'order', 'cat', 'cycle', 'excludecompanyholiday', 'excludepublicholiday', 'inactive')
 
 # ---  get min max date from scheme and order
         scheme_datefirst = getattr(scheme, 'datefirst')
@@ -648,12 +648,25 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
     # logger.debug ('item_dict' + str(item_dict))
 
     if schemeitem:
-        # FIELDS_SCHEMEITEM = ('id', 'scheme', 'cat', 'shift', 'team',
-        #                      'rosterdate', 'iscyclestart', 'timestart', 'timeend',
-        #                      'timeduration', 'inactive')
-        field_tuple = c.FIELDS_SCHEMEITEM
+        # FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team',
+        #                      'cat', 'istemplate', 'billable',
+        #                      'rosterdate', 'iscyclestart',
+        #                      'offsetstart', 'offsetend', 'breakduration', 'timeduration',
+        #                      'priceratejson', 'additionjson', 'inactive')
 
-        for field in field_tuple:
+        offsetstart_value = getattr(schemeitem, 'offsetstart')
+        offsetend_value = getattr(schemeitem, 'offsetend')
+        breakduration_value = getattr(schemeitem, 'breakduration')
+
+        # calculate timeduration
+        timeduration = 0
+        timeduration_minus_break = 0
+        if offsetstart_value is not None and offsetend_value is not None:
+            timeduration = offsetend_value - offsetstart_value
+            timeduration_minus_break = timeduration
+
+
+        for field in c.FIELDS_SCHEMEITEM:
 
  # --- get field_dict from  item_dict if it exists
             field_dict = item_dict[field] if field in item_dict else {}
@@ -702,16 +715,54 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
                 if schemeitem_cyclestart:
                     cycle_startdate = schemeitem_cyclestart.rosterdate
                     days = (schemeitem.scheme.cycle - 1)
-                    logger.debug('days: ' + str(days) + ' ' + str(type(days)))
                     cycle_enddate = cycle_startdate + timedelta(days=days)
-                    logger.debug('cycle_startdate: ' + str(cycle_startdate) + ' ' + str(type(cycle_startdate)))
-                    logger.debug('cycle_enddate: ' + str(cycle_enddate) + ' ' + str(type(cycle_enddate)))
 
                 f.set_fielddict_date(
                     field_dict=field_dict,
                     date_value=rosterdate,
                     mindate=cycle_startdate,
                     maxdate=cycle_enddate)
+
+            elif field == 'offsetstart':
+                # Note: value '0' is a valid value, so don't use 'if value:'
+                if offsetstart_value is not None:
+                    field_dict['value'] = offsetstart_value
+                field_dict["minoffset"] = -720
+
+                maxoffset = 1440
+                if offsetend_value is not None:
+                    maxoffset = offsetend_value - breakduration_value
+                    if maxoffset > 1440:
+                        maxoffset = 1440
+                field_dict["maxoffset"] = maxoffset
+
+            elif field == 'offsetend':
+                # Note: value '0' is a valid value, so don't use 'if value:'
+                if offsetend_value is not None:
+                    field_dict['value'] = offsetend_value
+                field_dict["maxoffset"] = 2160
+
+                minoffset = 0
+                if offsetstart_value is not None:
+                    minoffset = offsetstart_value + breakduration_value
+                    if minoffset < 0:
+                        minoffset = 0
+                field_dict["minoffset"] = minoffset
+
+            elif field == 'breakduration':
+                field_dict['value'] = breakduration_value
+                field_dict["minoffset"] = 0
+                field_dict["maxoffset"] = timeduration if timeduration < 1440 else 1440
+
+            elif field == 'timeduration':
+                field_dict['value'] = timeduration_minus_break
+
+            elif field in ['priceratejson']:
+                f.get_fielddict_pricerate(
+                    table='schemeitem',
+                    instance=schemeitem,
+                    field_dict=field_dict,
+                    user_lang=user_lang)
 
             elif field == 'shift':
                 shift = getattr(schemeitem, field)
@@ -721,41 +772,28 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
 
                     if shift.isrestshift:
                         field_dict['value_R'] = shift.code + ' (R)'
-                    breakduration = getattr(shift, 'breakduration', 0)
-                    if breakduration:
-                        item_dict['breakduration'] = {'value': breakduration}
+
+                    value = getattr(shift, 'offsetstart')
+                    if value is not None:
+                        field_dict['offsetstart'] = {'value': value}
+
+                    value = getattr(shift, 'offsetend')
+                    if value is not None:
+                        field_dict['offsetend'] = {'value': value}
+
+                    value = getattr(shift, 'breakduration')
+                    if value is not None:
+                        field_dict['breakduration'] = {'value': value}
+
+                    value = getattr(shift, 'timeduration')
+                    if value is not None:
+                        field_dict['timeduration'] = {'value': value}
 
             elif field == 'team':
                 team = getattr(schemeitem, field)
                 if team:
                     field_dict['pk'] = team.id
                     field_dict['value'] = team.code
-
-            # also add date when empty, to add min max date
-            elif field in ('timestart', 'timeend'):
-                # TODO calculate overlap
-                has_overlap = False
-                rosterdate = getattr(schemeitem, 'rosterdate')
-                timestart = getattr(schemeitem, 'timestart')
-                timeend = getattr(schemeitem, 'timeend')
-                set_fielddict_datetime(field=field,
-                                       field_dict=field_dict,
-                                       rosterdate=rosterdate,
-                                       timestart_utc=timestart,
-                                       timeend_utc=timeend,
-                                       has_overlap=has_overlap,
-                                       comp_timezone=comp_timezone)
-
-            # also zero when empty
-            elif field == 'timeduration':
-                field_dict['value'] = getattr(schemeitem, field, 0)
-
-            elif field in ['priceratejson']:
-                f.get_fielddict_pricerate(
-                    table='schemeitem',
-                    instance=schemeitem,
-                    field_dict=field_dict,
-                    user_lang=user_lang)
 
 
             if field_dict:
@@ -831,7 +869,7 @@ def create_shift_dict(shift, update_dict, user_lang):
             elif field == 'offsetstart':
                 # Note: value '0' is a valid value, so don't use 'if value:'
                 if offsetstart_value is not None:
-                    field_dict['offset'] = offsetstart_value
+                    field_dict['value'] = offsetstart_value
                 field_dict["minoffset"] = -720
 
                 maxoffset = 1440
@@ -844,7 +882,7 @@ def create_shift_dict(shift, update_dict, user_lang):
             elif field == 'offsetend':
                 # Note: value '0' is a valid value, so don't use 'if value:'
                 if offsetend_value is not None:
-                    field_dict['offset'] = offsetend_value
+                    field_dict['value'] = offsetend_value
                 field_dict["maxoffset"] = 2160
 
                 minoffset = 0
@@ -859,6 +897,11 @@ def create_shift_dict(shift, update_dict, user_lang):
                 field_dict["minoffset"] = 0
                 field_dict["maxoffset"] = timeduration if timeduration < 1440 else 1440
 
+ # calculate timeduration
+            elif field == 'timeduration':
+                field_dict['value'] = timeduration_minus_break
+
+
             elif field in ['priceratejson']:
                 f.get_fielddict_pricerate(
                     table='shift',
@@ -866,9 +909,6 @@ def create_shift_dict(shift, update_dict, user_lang):
                     field_dict=field_dict,
                     user_lang=user_lang)
 
- # calculate timeduration
-            elif field == 'timeduration':
-                field_dict['value'] = timeduration_minus_break
 
             # 5. create field_dict 'code', 'offsetstart', 'offsetend', 'breakduration'
             elif field == 'code':
@@ -1090,8 +1130,8 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
                 else:
                     if periodend is None:
                         periodend = periodstart
-                rosterdatefirst_dte = f.get_dateobj_from_ISOstring(periodstart)
-                rosterdatelast_dte = f.get_dateobj_from_ISOstring(periodend)
+                rosterdatefirst_dte = f.get_dateobj_from_dateISOstring(periodstart)
+                rosterdatelast_dte = f.get_dateobj_from_dateISOstring(periodend)
 
             periodstart_datetimelocal = f.get_datetimelocal_from_offset(rosterdatefirst_dte, offset_firstdate, comp_timezone)
             periodend_datetimelocal = f.get_datetimelocal_from_offset(rosterdatelast_dte, offset_lastdate, comp_timezone)

@@ -106,6 +106,7 @@ def create_order_list(company, user_lang, is_absence, is_template=None, inactive
         crit.add(Q(istemplate=is_template), crit.connector)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
+        crit.add(Q(customer__inactive=inactive), crit.connector)
 
     if is_absence:
         orders = m.Order.objects.filter(crit).order_by('sequence')

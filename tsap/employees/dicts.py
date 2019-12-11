@@ -342,7 +342,7 @@ def create_employee_pricerate_list(company, user_lang):
     newcursor = connection.cursor()
     newcursor.execute("""WITH tm_sub AS (SELECT tm.id AS tm_id, tm.employee_id AS e_id, tm.team_id AS team_id, 
             c.code AS c_code, o.code AS o_code, s.code AS s_code, 
-            tm.pricerate AS tm_pricerate, tm.override AS tm_override,  
+            tm.priceratejson AS tm_priceratejson, tm.override AS tm_override,  
             LOWER(c.code) AS c_lower, LOWER(o.code) AS o_lower, LOWER(s.code) AS s_lower 
             FROM companies_teammember AS tm 
             INNER JOIN companies_team AS t ON (tm.team_id = t.id)
@@ -351,7 +351,7 @@ def create_employee_pricerate_list(company, user_lang):
             INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
             WHERE (c.company_id = %(cid)s) AND (o.cat < %(cat)s) 
             ORDER BY c_lower, o_lower, s_lower ASC )  
-        SELECT e.id, e.company_id, e.code AS e_code, e.pricerate, tm_sub.tm_id, tm_sub.team_id, tm_sub.tm_pricerate, tm_sub.tm_override, 
+        SELECT e.id, e.company_id, e.code AS e_code, e.priceratejson, tm_sub.tm_id, tm_sub.team_id, tm_sub.tm_priceratejson, tm_sub.tm_override, 
         tm_sub.c_code, tm_sub.o_code, tm_sub.s_code,LOWER(e.code) AS e_lower  
         FROM companies_employee AS e 
         LEFT JOIN tm_sub ON (e.id = tm_sub.e_id)

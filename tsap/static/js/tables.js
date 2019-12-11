@@ -13,7 +13,6 @@
     function CreateSelectRow(tblBody_select, el_data, tblName, row_index, item_dict,
                                 HandleSelectTable, HandleBtnClicked,
                                 imgsrc_default, imgsrc_hover ) {
-        //console.log("CreateSelectRow");
         // add row at end when row_index is blank
         if(row_index == null){row_index = -1}
 
@@ -70,6 +69,9 @@
 
 //=========  CreateSelectButton  ================ PR2019-11-16
     function CreateSelectButton(tblRow, HandleBtnClicked, imgsrc_default, imgsrc_hover ){
+        //console.log(" === CreateSelectButton === ")
+
+
         let td = tblRow.insertCell(-1);
             let el_a = document.createElement("a");
                 el_a.setAttribute("href", "#");
@@ -87,7 +89,7 @@
     }  // CreateSelectButton
 
 //========= UpdateSelectRow  ============= PR2019-10-20
-    function UpdateSelectRow(selectRow, update_dict, el_data, filter_show_inactive) {
+    function UpdateSelectRow(selectRow, update_dict, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey) {
         //console.log("UpdateSelectRow in tables.js");
         //console.log("update_dict", update_dict);
 
@@ -95,8 +97,6 @@
         //                 code: {value: "mc"} , name: {value: "mc"}, interval: {value: 0}
 
         // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
-        const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
-        const imgsrc_inactive_grey = get_attr_from_el(el_data, "data-imgsrc_inactive_grey");
 
         if(!isEmpty(update_dict) && !!selectRow){
             //const id_dict = get_dict_value_by_key (update_dict, "id");
@@ -692,16 +692,16 @@
         } // if(!!el_input && msg_err)
     }
 
-
-
 //=========  AppendIcon  ================ PR2019-05-31
     function AppendChildIcon(el, img_src, height ) {
         if (!height) {height = "18"}
-        let img = document.createElement("img");
-            img.setAttribute("src", img_src);
-            img.setAttribute("height", height);
-            img.setAttribute("width", height);
-        el.appendChild(img);
+        if (!!img_src) {
+            let img = document.createElement("img");
+                img.setAttribute("src", img_src);
+                img.setAttribute("height", height);
+                img.setAttribute("width", height);
+            el.appendChild(img);
+        }
     }
 
 //=========  AppendIcon  ================ PR2019-08-27
@@ -711,7 +711,6 @@
             img.setAttribute("src", img_src);
         }
     }
-
 
 //========= GetNewSelectRowIndex  ============= PR2019-10-20
     function GetNewSelectRowIndex(tblBody, code_colindex, item_dict, user_lang) {

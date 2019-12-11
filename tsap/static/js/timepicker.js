@@ -20,8 +20,8 @@
 
 //========= OpenTimepicker  ====================================
     function OpenTimepicker(el_input, UploadTimepickerChanged, tp_dict, st_dict) {
-        //console.log("===  OpenTimepicker  =====");
-        //console.log( "tp_dict: ", tp_dict);
+        console.log("===  OpenTimepicker  =====");
+        console.log( "tp_dict: ", tp_dict);
         //console.log( "st_dict: ", st_dict);
 
         CalcMinMax(tp_dict)
@@ -40,7 +40,6 @@
         HighlightAndDisableMinutes(tp_dict)
 
 // ---  position popup under el_input
-
         let el_timepicker = document.getElementById("id_timepicker")
         let popRect = el_timepicker.getBoundingClientRect();
         let inpRect = el_input.getBoundingClientRect();
@@ -414,7 +413,7 @@
 
 //=========  HandleTimepickerSave  ================ PR2019-06-27
     function HandleTimepickerSave(tp_dict, st_dict, UploadTimepickerChanged, mode) {
-        //console.log("===  function HandleTimepickerSave =========", mode);
+        console.log("===  function HandleTimepickerSave =========", mode);
         //console.log(tp_dict);
 
 // ---  change quicksave when clicked on button 'Quicksave'
@@ -425,7 +424,6 @@
 
         let quicksave = tp_dict["quicksave"]
 
-        //console.log("quicksave", quicksave);
         let save_changes = false;
     // close timepicker, except when clicked on quicksave off
         if (mode === "btn_save") {
@@ -439,9 +437,9 @@
             } else {
                 HideSaveButtonOnQuicksave(tp_dict, st_dict);
             }
-// --- save quicksave in Usersettings
+// --- upload quicksave in Usersettings
             const url_settings_upload = get_dict_value_by_key(st_dict, "url_settings_upload")
-            const setting_dict = {"quicksave": quicksave};
+            const setting_dict = {"quicksave": {"value": quicksave}};
             UploadSettings (setting_dict, url_settings_upload);
 
             // without 'save_changes'
@@ -455,7 +453,6 @@
         } else if (mode === "btn_delete") {
             tp_dict["offset"] = null;
 
-        //console.log("HandleTimepickerSave --- CalcMinMax ---")
             CalcMinMax(tp_dict)
             save_changes = true;
         }
@@ -573,7 +570,6 @@
         }
     }  // HighlightAndDisableMinutes
 
-
 //========= HighlightAndDisableCell  ====================================
     function HighlightAndDisableCell(td, disabled, highlighted) {
         //console.log(td, "disabled: ", disabled, "highlighted: ", highlighted)
@@ -598,7 +594,7 @@
 
     }  // HighlightAndDisableCell
 
-//========= CalcMinMax  ==================================== PR2018-11-08
+//========= CalcMinMax_with_newValues  ==================================== PR2018-11-08
 function CalcMinMax_with_newValues(tp_dict, newDayOffset, newHours, newMinutes) {
 
 // get curHours and curMinutes from curOffset in tp_dict
@@ -720,7 +716,6 @@ function CalcMinMax(dict) {
 //========= HideSaveButtonOnQuicksave  ====================================
     function HideSaveButtonOnQuicksave(tp_dict, st_dict) {
         //console.log( "--- HideSaveButtonOnQuicksave  ");
-        // hide save button on quicksave
 
         const quicksave = tp_dict["quicksave"]
 
@@ -767,7 +762,6 @@ function CalcMinMax(dict) {
                 } else {
                     date_str = st_dict["text_curday"];
                 }
-
             };
         }  // if (tp_dict["field"] === "breakduration"){
 

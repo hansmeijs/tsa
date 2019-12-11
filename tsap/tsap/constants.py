@@ -198,11 +198,13 @@ EMPLOYEE_TEXT = {LANG_EN: 'Employee', LANG_NL: 'Medewerker'}
 # PR2019-07-20
 TEMPLATE_TEXT = {LANG_EN: 'Template', LANG_NL: 'Sjabloon'}
 REST_TEXT = {LANG_EN: 'Rest', LANG_NL: 'Rust'}
+TEAM_TEXT = {LANG_EN: 'Team', LANG_NL: 'Ploeg'}
+SCHEME_TEXT = {LANG_EN: 'Scheme', LANG_NL: 'Schema'}
 
 # PR2019-06-24
 ABSENCE = {
     LANG_EN: ('Absence', 'Absence'),
-    LANG_NL: ('Afwezig', 'Absentie')
+    LANG_NL: ('Afwezig', 'Afwezigheid')
           }
 
 # PR2019-06-24  PR2019-09-26  fields: sequence, code, name, pricerate. pricerate=1 means default category
@@ -232,7 +234,7 @@ KEY_USER_PERIOD_EMPLHOUR = 'period_emplhour'
 KEY_USER_PERIOD_ROSTER = 'period_roster'
 KEY_USER_PERIOD_REVIEW = 'period_review'
 KEY_USER_SETTINGS = ('selected_pk', 'page_employee', 'page_customer', 'planning_period', 'calendar', 'quicksave')
-# code, cycle, excludeweekend, excludepublicholiday PR2019-08-24
+# code, cycle, excludecompanyholiday, excludepublicholiday PR2019-08-24
 SCHEME_24H_DEFAULT = {LANG_EN: ('24 hours 16 days', 16, False, False),
                       LANG_NL: ('24 uur 16 daags', 16, False, False)}
 
@@ -336,21 +338,17 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsenc
                    'wagerate', 'wagefactor', 'wage', 'pricerate', 'pricerate',
                    'status', 'overlap', 'locked')
 
-FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'istemplate', 'code',
-                 'datefirst', 'datelast',
-                 'cycle', 'billable', 'excludeweekend', 'excludepublicholiday',
+FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'istemplate',
+                 'code', 'datefirst', 'datelast',
+                 'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday',
                  'priceratejson', 'additionjson', 'inactive')
 
-FIELDS_TEAM = ('id', 'scheme', 'cat', 'code')
+FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')
 
-FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'billable',
-                'offsetstart', 'offsetend', 'breakduration', 'wagefactor', 'priceratejson', 'additionjson')
+FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
+                'offsetstart', 'offsetend', 'breakduration', 'timeduration',
+                'wagefactor', 'priceratejson', 'additionjson')
 
-FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team', 'cat', 'billable',
-                     'rosterdate', 'iscyclestart', 'timestart', 'timeend', 'timeduration',
-                     'offsetstart', 'offsetend',
-                     'priceratejson', 'additionjson', 'istemplate', 'inactive')
-# inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
 FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
                    'namelast', 'namefirst', 'email', 'telephone', 'identifier',
@@ -358,12 +356,19 @@ FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
                    'payrollcode', 'wagerate', 'wagecode', 'workhours', 'workdays', 'leavedays',
                    'priceratejson', 'additionjson', 'inactive', 'locked')
 
-FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'isabsence', 'employee', 'datefirst', 'datelast',
-                     'workhoursperday', 'wagerate', 'wagefactor',
-                     'offsetstart', 'offsetend',
-                     'priceratejson', 'additionjson', 'override')
+FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'replacement', 'datefirst', 'datelast',
+                    'isabsence', 'issingleshift', 'istemplate',
+                    'offsetstart', 'offsetend',
+                     'wagefactor', 'priceratejson', 'additionjson', 'override')
 # teammember wagerate not in use
-# teammember pricerate not in use
+FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team',
+                     'cat', 'istemplate', 'billable',
+                     'rosterdate', 'iscyclestart',
+                     'offsetstart', 'offsetend', 'breakduration', 'timeduration',
+                     'priceratejson', 'additionjson', 'inactive')
+# inactive schemeitem needed to skip certain shifts (when customer provides his own people)
+
+
 
 WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, default is 40 hours per week = 2.400 minutes
 WORKDAYS_DEFAULT = 7200  # workdays per week * 1440, unit is minute (one day has 1440 minutes) , default is 5 days per week = 7200 minutes

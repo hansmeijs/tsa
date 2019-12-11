@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const today_dict = get_attr_from_el_dict(el_data, "data-today");
 
         const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
-        const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
+        const imgsrc_inactive = get_attr_from_el(el_data, "data-imgsrc_inactive");
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
         const imgsrc_warning = get_attr_from_el(el_data, "data-imgsrc_warning");
         const imgsrc_questionmark = get_attr_from_el(el_data, "data-imgsrc_questionmark");
@@ -231,7 +231,8 @@ document.addEventListener('DOMContentLoaded', function() {
             "order": {inactive: false, cat_lte: 1, isabsence: false},
             "abscat": {inactive: false},
             "employee": {inactive: false},
-            "quicksave": {get: true}});
+            "quicksave": {"mode": "get"}
+            });
 
         // TODO employee list can be big. Get separate after downloading emplhour
 

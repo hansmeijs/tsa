@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
             "shift": ["txt_shift", , "txt_timestart", "txt_timeend", "txt_break"],
             "teammember": ["txt_employee", "txt_datefirst", "txt_datelast", ]}
         const field_names = {
-            "schemeitem": ["rosterdate", "shift", "team", "timestart", "timeend", "breakduration", "inactive", "delete"],
+            "schemeitem": ["rosterdate", "shift", "team", "offsetstart", "offsetend", "breakduration", "inactive", "delete"],
             "shift": ["code", "isrestshift", "offsetstart", "offsetend", "breakduration"],
             "teammember": ["employee", "datefirst", "datelast", "delete"]}
         const field_tags = {
@@ -123,8 +123,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const timeformat = get_attr_from_el(el_data, "data-timeformat");
 
         const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
-        const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
-        const imgsrc_active_lightgrey = get_attr_from_el(el_data, "data-imgsrc_active_lightgrey");
+        const imgsrc_inactive_grey = get_attr_from_el(el_data, "data-imgsrc_inactive_grey");
+        const imgsrc_inactive_lightgrey = get_attr_from_el(el_data, "data-imgsrc_inactive_lightgrey");
 
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
         const imgsrc_deletered = get_attr_from_el(el_data, "data-imgsrc_deletered");
@@ -307,8 +307,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- first get locale, to make it faster
         DatalistDownload({"setting": {"page_scheme": {"mode": "get"},
                                       "selected_pk": {"mode": "get"},
-                                      "quicksave": {"mode": "get"},
                                       },
+                           "quicksave": {"mode": "get"},
                            "locale": {page: "scheme"}
                            });
         const cat_lt = 512  // less then 512 = absence // 4096 template
@@ -375,7 +375,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
 
                 if ("quicksave" in response) {
-                    quicksave =  get_subdict_value_by_key(response, "quicksave", "value", false)
+                    quicksave = get_subdict_value_by_key(response, "quicksave", "value", false)
+                    console.log( "quicksave", quicksave, typeof quicksave)
+
                 }
 
     // after select customer the following lists will be downloaded, filtered by selected_cust_pk:
@@ -932,7 +934,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // update icon
         let imgsrc;
-        if (is_inactive) {imgsrc = imgsrc_inactive_black} else {imgsrc = imgsrc_active}
+        if (is_inactive) {imgsrc = imgsrc_inactive_black} else {imgsrc = imgsrc_inactive_grey}
         el_changed.children[0].setAttribute("src", imgsrc);
 
         UploadElChanged(el_changed)
@@ -1085,7 +1087,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // toggle icon
         let img_src;
-        if(filter_hide_inactive) {img_src = imgsrc_active} else {img_src = imgsrc_inactive_black}
+        if(filter_hide_inactive) {img_src = imgsrc_inactive_grey} else {img_src = imgsrc_inactive_black}
         el.firstChild.setAttribute("src", img_src);
 
         FilterTableRows(tblBody_scheme_select, "", 1, filter_hide_inactive)
@@ -2217,7 +2219,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         el_input.classList.add("ml-4")
-        const img_src = (mode ==="delete") ? imgsrc_delete : imgsrc_active_lightgrey;
+        const img_src = (mode ==="delete") ? imgsrc_delete : imgsrc_inactive_lightgrey;
         AppendChildIcon(el_input, img_src)
     }  // CreateBtnDeleteInactive
 
@@ -2690,7 +2692,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("tp_dict", tp_dict);
 
         let upload_dict = {"id": tp_dict["id"]};
-        if("quicksave" in tp_dict) {quicksave = tp_dict["quicksave"]};
+        // quicksaveis saved separately by uploadusetsettings
+        //if("quicksave" in tp_dict) {quicksave = tp_dict["quicksave"]};
 
         // when clicked on 'Exit quicksave' and then 'Cancel' changes must not be saved, but quicksave does
         if("save_changes" in tp_dict) {
@@ -2789,7 +2792,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const new_inactive = (!inactive);
                     upload_dict["inactive"] = {"value": new_inactive, "update": true};
             // change inactive icon, before uploading
-                    format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive_black, imgsrc_active_lightgrey)
+                    format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
             // ---  show modal, only when made inactive
                     if(!!new_inactive){
                         mod_upload_dict["inactive"] = {"value": new_inactive, "update": true};
@@ -3138,7 +3141,9 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
 //--- update or delete selectRow, before remove_err_del_cre_updated__from_itemdict
-            UpdateSelectRow(selectRow, update_dict);
+            // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
+            const filter_show_inactive = false; // no inactive filtering on this page
+            UpdateSelectRow(selectRow, update_dict, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey);
         }  // if( tblName === "scheme"...
 
         if(tblName === "scheme"){
@@ -3294,7 +3299,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     let el_input = td.children[0];
                     if(!!el_input){
 // --- lookup field in update_dict, get data from field_dict
-                        UpdateField(el_input, update_dict)
+                        UpdateField(el_input, update_dict, tblName)
                     };  // if(!!el_input)
                 }  //  for (let j = 0; j < 8; j++)
             } // if (!!tblRow)
@@ -3302,15 +3307,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // function UpdateTableRow
 
 //========= UpdateField  =============
-    function UpdateField(el_input, update_dict){
+    function UpdateField(el_input, update_dict, tblName){
         //console.log("--- UpdateField  --------------");
+        //console.log(update_dict);
         if(!!el_input){
 // --- lookup field in update_dict, get data from field_dict
             const fieldname = get_attr_from_el(el_input, "data-field");
             //console.log("fieldname: ", fieldname);
 
             if (fieldname in update_dict){
-                const field_dict = get_dict_value_by_key (update_dict, fieldname);
+                let field_dict = get_dict_value_by_key (update_dict, fieldname);
 
                 const value = get_dict_value_by_key (field_dict, "value");
                 let pk_int = parseInt(get_dict_value_by_key (field_dict, "pk"))
@@ -3338,15 +3344,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (["shift", "team"].indexOf( fieldname ) > -1){
                     format_select_element (el_input, field_dict)
                 } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
+                    // not in use
                     format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
                 } else if (["offsetstart", "offsetend", "breakduration"].indexOf( fieldname ) > -1){
+                    // in table schemeitem : when there is a shift: offset of shift is displayed, othereise: offset of schemeitem is displayed
+                    if (tblName === "schemeitem")
+                        if ('shift' in update_dict) {field_dict = get_subdict_value_by_key(update_dict, "shift", fieldname )
+                    }
+                    console.log("tblName: ", tblName);
+                    console.log("fieldname: ", fieldname);
+                    console.log("field_dict: ", field_dict);
+                    console.log("update_dict: ", update_dict);
                     const blank_when_zero = (fieldname === "breakduration") ? true : false;
                     format_offset_element (el_input, el_msg, fieldname, field_dict, [-220, 80], timeformat, user_lang, title_prev, title_next, blank_when_zero)
                 } else if ([ "timeduration"].indexOf( fieldname ) > -1){
                     format_duration_element (el_input, el_msg, field_dict, user_lang)
                 } else if (fieldname === "inactive") {
                    if(isEmpty(field_dict)){field_dict = {value: false}}
-                   format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_active)
+                   format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
                 };
             }  else {
 
@@ -3382,31 +3397,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }  // if(!!tblFoot.rows.length)
     }  // UpdateAddnewRow
-
-//=========  UpdateSelectRow ================ PR2019-10-11
-    function UpdateSelectRow(selectRow, update_dict) {
-        //console.log( "=== UpdateSelectRow");
-        //console.log("update_dict", update_dict);
-
-        if(!isEmpty(update_dict) && !!selectRow){
-            const is_deleted = (!!get_subdict_value_by_key (update_dict, "id", "deleted"));
-            //console.log( "is_deleted", is_deleted);
-
-// --- deleted record
-            if(!!is_deleted) {
-                selectRow.parentNode.removeChild(selectRow)
-                // reset shift and team select rows when scheme is deleted
-            } else {
-
-// --- get first td from selectRow.
-                const code_value = get_subdict_value_by_key(update_dict, "code", "value", "")
-                let el_input = selectRow.cells[0].children[0]
-                el_input.innerText = code_value;
-                el_input.setAttribute("data-value", code_value);
-
-            }  //  if(!!is_deleted)
-        }  //  if(!!selectRow){}
-    } // UpdateSelectRow
 
 //========= UpdateSchemeOrTeam  =============
     function XXXUpdateSchemeOrTeam(tblName, tblRow, update_dict){
@@ -3699,7 +3689,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // TODO document.getElementById("id_confirm_msg02").innerText = msg_02_txt;
 
         data_key = (mode === "inactive") ? "data-txt_conf_btn_inactive" : "data-txt_conf_btn_delete";
-        document.getElementById("id_confirm_btn_save").innerText = get_attr_from_el(el_data, data_key);
+        let el_btn_save = document.getElementById("id_confirm_btn_save")
+        el_btn_save.innerText = get_attr_from_el(el_data, data_key);
+        setTimeout(function() {el_btn_save.focus()}, 300);
 // show modal
         $("#id_mod_confirm").modal({backdrop: true});
     };  // ModConfirmOpen
@@ -5245,17 +5237,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const id_dict = get_dict_value_by_key(shift_dict, "id")
             const field_dict = get_dict_value_by_key(shift_dict, fieldname)
 
+            const offset = get_dict_value_by_key(field_dict, "value")
             let minoffset =  -720, maxoffset =  2160;
             if(!isEmpty(field_dict)){
                 if ("minoffset" in field_dict){minoffset = field_dict["minoffset"]}
                 if ("maxoffset" in field_dict){maxoffset = field_dict["maxoffset"]}
-            }
-
-            let offset = null;
-            if(fieldname === "breakduration"){
-                if ("value" in field_dict){offset = field_dict["value"]}
-            } else {
-                if ("offset" in field_dict){offset = field_dict["offset"]}
             }
 
             let tp_dict = {"id": id_dict, "field": fieldname, "rosterdate": field_dict["rosterdate"],
@@ -5476,8 +5462,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateSettings  ====================================
     function UpdateSettings(setting_list){
-        // console.log(" --- UpdateSettings ---")
-        //console.log("setting_list", setting_list)
+        console.log(" --- UpdateSettings ---")
+        console.log("setting_list", setting_list)
 
         for (let i = 0, len = setting_list.length; i < len; i++) {
             const setting_dict = setting_list[i];

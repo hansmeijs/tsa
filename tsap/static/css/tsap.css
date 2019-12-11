@@ -159,10 +159,9 @@ h4 h5 {
     background-color: #d7f4de; /*#ade8bb;*/
 }
 
-.border_scheme {
-    border: 1px solid #808080; /* Dark grey; */
-    border-radius: .25rem;
-    background-color: #fdf7e1; /* more lighter shade of tsa yellow */
+.border_calendarshift {
+    border: 1px solid #808080 !important; /* Dark grey; */
+
 }
 
 
@@ -187,6 +186,7 @@ h4 h5 {
 .pointer_show {
     cursor: pointer;
 }
+
 
 /* from https://stackoverflow.com/questions/32459337/how-to-remove-bootstrap-modal-overlay*/
 /* remove grey background from modal  PR2019-04-12 */

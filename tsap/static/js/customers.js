@@ -1073,7 +1073,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                         imgsrc_inactive_grey);
 
 // update values in SelectRow
-             UpdateSelectRow(selectRow, item_dict, el_data, filter_show_inactive);
+            // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
+            UpdateSelectRow(selectRow, item_dict, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
         }  // for (let cust_key in data_map) {
     } // FillSelectTable
 
@@ -1082,7 +1083,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateFromResponse  ================ PR2019-10-20
     function UpdateFromResponse(update_dict) {
-        //console.log(" --- UpdateFromResponse  ---");
+        console.log(" --- UpdateFromResponse  ---");
         //console.log("update_dict", update_dict);
 
 //--- get info from update_dict["id"]
@@ -1182,9 +1183,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const rowid_str = id_sel_prefix + map_id
                 selectRow = document.getElementById(rowid_str);
             };
-
+        console.log(" --- UpdateFromResponse  UpdateSelectRow---");
     //--- update or delete selectRow, before remove_err_del_cre_updated__from_itemdict
-            UpdateSelectRow(selectRow, update_dict, el_data, filter_show_inactive);
+            UpdateSelectRow(selectRow, update_dict, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
         }  // if( tblName === "customer")
 
 //--- remove 'updated, deleted created and msg_err from update_dict

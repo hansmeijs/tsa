@@ -683,18 +683,18 @@
 
 //========= format_offset_element  ======== PR2019-09-08
     function format_offset_element (el_input, el_msg, fieldname, field_dict, offset, timeformat, user_lang, title_prev, title_next, blank_when_zero) {
-        //console.log("------ format_offset_element --------------", fieldname)
+        console.log("------ format_offset_element --------------", fieldname)
        // offsetstart: {offset: 0, minoffset: -720, maxoffset: 1440}
        const tagName = el_input.tagName
-        //console.log("field_dict", field_dict)
-        //console.log("tagName", tagName)
+        console.log("field_dict", field_dict)
+       console.log("tagName", tagName)
         if(!!el_input){
-            let offset = null, display_text, title;
+            let offset = null, display_text = "", title = "";
 
             if(!!field_dict){
 
                 // offset:  "270" = 04:30, value can be null
-                const fld = (fieldname === "breakduration") ? "value" : "offset";
+                const fld = (fieldname === "breakduration") ? "value" : "value";
                 offset = get_dict_value_by_key(field_dict, fld);
             //console.log("offset", offset)
 
@@ -729,6 +729,7 @@
                 }
             }  //  if(!!field_dict)
 
+       console.log("display_text", display_text)
             if(!!display_text){
                 if(el_input.tagName === "INPUT"){
                     el_input.value = display_text;
@@ -781,11 +782,25 @@
 
 
     //========= display_offset_time  ======== PR2019-10-22
-    function display_offset_time (offset, timeformat, user_lang, skip_prefix_suffix) {
-        //console.log("------ display_offset_time --------------", fieldname)
+    function display_offset_time (offset, timeformat, user_lang, skip_prefix_suffix, blank_when_zero) {
+        //console.log("------ display_offset_time --------------")
+
+        //let do_display = false
+        //if (offset != null) {
+        //    if (offset === 0){
+        //        if (!blank_when_zero){
+        //            do_display = true
+        //        }
+        //    } else {
+        //        do_display = true
+        //    }
+        //}
+        // or short:
+        if(!blank_when_zero){blank_when_zero = false};
+        const do_display = (offset != null) && ((offset === 0 && !blank_when_zero) || (!!offset))
 
         let display_time = "";
-        if(offset != null){
+        if(do_display){
 
             let days_offset = Math.floor(offset/1440)  // - 90 (1.5 h)
             const remainder = offset - days_offset * 1440
@@ -1021,19 +1036,18 @@
     }  // format_billable_element
 
 //========= format_inactive_element  ======== PR2019-06-09
-    function format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_active, title_inactive, title_active) {
+    function format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive, title_inactive, title_active) {
         // inactive: {value: true}
         //console.log("+++++++++ format_inactive_element")
-        //console.log(field_dict)
-        //console.log(el_input)
+
         if(!!el_input){
             let is_inactive = get_dict_value_by_key (field_dict, "value", false)
-        //console.log("is_inactive", is_inactive)
+
             el_input.setAttribute("data-value", is_inactive);
 
             let el_img = el_input.children[0];
             if (!!el_img){
-                const imgsrc = (is_inactive) ? imgsrc_inactive_black : imgsrc_active;
+                const imgsrc = (is_inactive) ? imgsrc_inactive_black : imgsrc_inactive;
                 const title = (is_inactive) ? title_inactive : title_active;
 
                 el_img.setAttribute("src", imgsrc);

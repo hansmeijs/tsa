@@ -201,7 +201,6 @@ class Order(TsaBaseModel):
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
     istemplate = BooleanField(default=False)
-    sequence = PositiveSmallIntegerField(default=0)  # sequence of abscat,
 
     contactname = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     address = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
@@ -210,10 +209,10 @@ class Order(TsaBaseModel):
     country = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
 
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
-    # in abscat order: pricerate=1 is default abscat order
+
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
 
-    pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
+    sequence = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
 
@@ -369,11 +368,9 @@ class Scheme(TsaBaseModel):
     cycle = PositiveSmallIntegerField(default=7)
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
 
-    excludeweekend = BooleanField(default=False)
+    excludecompanyholiday = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
 
-    # pricerate wil be deprecated
-    pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
 
@@ -406,11 +403,10 @@ class Shift(TsaBaseModel):
 
     offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
     offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
-
     breakduration = IntegerField(default=0) # unit is minute
+    timeduration = IntegerField(default=0)  # unit is minute
+
     wagefactor = ForeignKey(Wagefactor, related_name='shifts', on_delete=SET_NULL, null=True, blank=True)
-    # pricerate is deprecated
-    pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
 
@@ -434,6 +430,7 @@ class Team(TsaBaseModel):
 
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
+    issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
     class Meta:
@@ -469,8 +466,7 @@ class Employee(TsaBaseModel):
     workhours = IntegerField(default=0)  # working hours per week * 60, unit is minute
     workdays = IntegerField(default=0)  # workdays per week * 1440, unit is minute (one day has 1440 minutes)
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
-    # pricerate is deprecated, use priceratejson
-    pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
+
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
 
@@ -492,7 +488,7 @@ class Teammember(TsaBaseModel):
 
     team = ForeignKey(Team, related_name='teammembers', on_delete=CASCADE)
     employee = ForeignKey(Employee, related_name='teammembers', on_delete=SET_NULL, null=True, blank=True)
-    replaces = ForeignKey(Employee, related_name='replacements', on_delete=CASCADE, null=True, blank=True)
+    replacement = ForeignKey(Employee, related_name='replacements', on_delete=CASCADE, null=True, blank=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
@@ -505,20 +501,12 @@ class Teammember(TsaBaseModel):
     issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
-    workhoursperday = IntegerField(default=0)  # / working hours per day, unit is minute
-
     # teammember offset is only used for absence, in that case there is no schemeitem
-    # field jsonsetting contains simple shifts: { 0: [480, 990, 30] 1:[...] exwk: true, exph: true }
-    #  1: Monday [offsetstart, offsetend, breakduration] exwk: excludeweekend, exph: excludepublicholiday
-
     offsetstart = SmallIntegerField(null=True)  # only for absence
     offsetend = SmallIntegerField(null=True)  # only for absence
 
-    # teammember wagerate not in use
-    wagerate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     wagefactor = IntegerField(default=0) # /10000 unitless, 0 = factor 100%  = 10.000)
 
-    pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless additionrate 2500 = 25%
     override = BooleanField(default=True)
@@ -589,20 +577,16 @@ class Schemeitem(TsaBaseModel):
     rosterdate = DateField(db_index=True)
     iscyclestart = BooleanField(default=False)
 
-    issingleshift = BooleanField(default=False)
-    offsetstart = SmallIntegerField(null=True)  # only for simpleshifts
-    offsetend = SmallIntegerField(null=True)  # only for simpleshifts
-
-    timestart = DateTimeField(db_index=True, null=True, blank=True)
-    timeend = DateTimeField(db_index=True, null=True, blank=True)
+    offsetstart = SmallIntegerField(null=True)  # only for absence
+    offsetend = SmallIntegerField(null=True)  # only for absence
+    breakduration = IntegerField(default=0) # unit is minut
     timeduration = IntegerField(default=0)  # unit is minute
-    # deprecated
-    pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
+
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
 
     class Meta:
-        ordering = ['rosterdate', 'timestart']
+        ordering = ['rosterdate']
 
     def __str__(self):
         return 'schemeitem_pk_' + str(self.pk)

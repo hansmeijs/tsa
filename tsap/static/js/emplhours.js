@@ -95,7 +95,7 @@ $(function() {
         const url_emplhour_upload = get_attr_from_el(el_data, "data-url_emplhour_upload");
         const url_datalist_download = get_attr_from_el(el_data, "data-datalist_download_url");
         const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
-        const imgsrc_active = get_attr_from_el(el_data, "data-imgsrc_active");
+        const imgsrc_inactive_grey = get_attr_from_el(el_data, "data-imgsrc_inactive_grey");
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
         const imgsrc_stat00 = get_attr_from_el(el_data, "data-imgsrc_stat00");
         const imgsrc_stat01 = get_attr_from_el(el_data, "data-imgsrc_stat01");
@@ -746,7 +746,7 @@ console.log("=========  function HandleCreateRecord =========");
 // toggle icon
         let el_img_filter_inactive = document.getElementById("id_img_filter_inactive");
         if (filter_hide_inactive) {
-            el_img_filter_inactive.setAttribute("src", imgsrc_active);
+            el_img_filter_inactive.setAttribute("src", imgsrc_inactive_grey);
         } else {
             el_img_filter_inactive.setAttribute("src", imgsrc_inactive_black);
         }

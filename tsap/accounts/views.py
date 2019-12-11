@@ -538,7 +538,7 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                # logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: {'selected_pk': {'selected_customer_pk': 392, 'selected_order_pk': 0}}
                 for key in upload_dict:
                     new_setting = upload_dict[key]
@@ -556,14 +556,14 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                         else:
                             # "planning_period":{"datefirst":"2019-10-10","datelast":"2019-12-13"}}
                             settings_dict = upload_dict[key]
-                        # logger.debug('key: ' + str(key))
-                        # logger.debug('settings_dict: ' + str(settings_dict))
+                        #logger.debug('key: ' + str(key))
+                        #logger.debug('settings_dict: ' + str(settings_dict))
 
                         # new_setting is in json format, no need for json.loads and json.dumps
                         # new_setting = json.loads(request.POST['setting'])
                         # new_setting_json = json.dumps(new_setting)
                         if settings_dict:
-                            # logger.debug('key settings_dict: ' + str(key) + str(settings_dict))
+                            #logger.debug('key settings_dict: ' + str(key) + str(settings_dict))
                             Usersetting.set_jsonsetting(key, settings_dict, request.user)
 
 # 2. get iddict variables

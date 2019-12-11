@@ -247,14 +247,14 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                         elif table == 'quicksave':
                             # get quicksave from Usersetting
-                            quicksave_str = Usersetting.get_setting(c.KEY_USER_QUICKSAVE, request.user)
-                            quicksave = True if quicksave_str == '1' else False
-                            datalists[table] = {'value': quicksave}
+                            quicksave_dict = Usersetting.get_jsonsetting(c.KEY_USER_QUICKSAVE, request.user)
+                            logger.debug(' quicksave_dict: ' + str(quicksave_dict))
+                            datalists[table] = quicksave_dict
 
                         elif table == 'setting':
                             # "setting": {"page_scheme": {"mode": "get"},
                             #             "selected_pk": {"mode": "get"},
-                            #             "quicksave": {"mode": "get"}},
+                            #             "locale": {"mode": "get"}},
 
                             settings_dict = {}
                             for key in c.KEY_USER_SETTINGS: # KEY_USER_SETTINGS = ('selected_pk', 'page_settings')
@@ -662,7 +662,7 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
             code=template_code,
             cycle=instance.cycle,
             istemplate=True,
-            excludeweekend=instance.excludeweekend,
+            excludecompanyholiday=instance.excludecompanyholiday,
             excludepublicholiday=instance.excludepublicholiday)
         template_scheme.save(request=request)
 
@@ -806,7 +806,7 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                 isabsence=template_scheme.isabsence,
                 istemplate=False,
                 cycle=template_scheme.cycle,
-                excludeweekend=template_scheme.excludeweekend,
+                excludecompanyholiday=template_scheme.excludecompanyholiday,
                 excludepublicholiday=template_scheme.excludepublicholiday
                 # don't copy these fields: billable, pricerate, priceratejson, additionjson
             )
@@ -908,7 +908,7 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
         istemplate=True,
         code=scheme_locale[0],
         cycle=scheme_locale[1],
-        excludeweekend=scheme_locale[2],
+        excludecompanyholiday=scheme_locale[2],
         excludepublicholiday=scheme_locale[3]
     )
     template_scheme.save(request=request)
@@ -934,7 +934,7 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
 
 # - add teams to template
     mapping_team = {}
-    teams_locale = c.TEAM_24H_DEFAULT[lang]  # (code, cycle, excludeweekend, excludepublicholiday) PR2019-08-24
+    teams_locale = c.TEAM_24H_DEFAULT[lang]  # (code, cycle, excludecompanyholiday, excludepublicholiday) PR2019-08-24
     for index, team_code in enumerate(teams_locale):
 
 # - add teams to template
@@ -1016,10 +1016,7 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
                 logger.debug('upload_dict: ' + str(upload_dict))
 
 # 3. save quicksave
-                if 'quicksave' in upload_dict:
-                    quicksave_bool = upload_dict.get('quicksave', False)
-                    quicksave_str = '1' if quicksave_bool else '0'
-                    Usersetting.set_setting(c.KEY_USER_QUICKSAVE, quicksave_str, request.user)  # PR2019-07-02
+            # quicksave is saved via UploadUserSetting
 
 # 4. get iddict variables
                 id_dict = upload_dict.get('id')
@@ -1118,73 +1115,69 @@ def shift_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-08-0
 
     update_wrap = {}
 
-# 1. save quicksave
-    if 'quicksave' in upload_dict:
-        quicksave_bool = upload_dict.get('quicksave', False)
-        quicksave_str = '1' if quicksave_bool else '0'
-        Usersetting.set_setting(c.KEY_USER_QUICKSAVE, quicksave_str, request.user)  # PR2019-07-02
-
-# 2. get iddict variables
+# 1. get iddict variables
     id_dict = upload_dict.get('id')
-    pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode = f.get_iddict_variables(id_dict)
+    if id_dict:
+        pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode = f.get_iddict_variables(id_dict)
 
-    # 2. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
-    update_dict = f.create_update_dict(
-        c.FIELDS_SHIFT,
-        table=table,
-        pk=pk_int,
-        ppk=ppk_int,
-        temp_pk=temp_pk_str)
+# 2. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+        update_dict = f.create_update_dict(
+            c.FIELDS_SHIFT,
+            table=table,
+            pk=pk_int,
+            ppk=ppk_int,
+            temp_pk=temp_pk_str)
 
 # 3. check if parent exists (customer is parent of order)
-     # get_parent adds 'ppk' and 'table' to id_dict
-    parent = m.get_parent(table, ppk_int, update_dict, request)
-    parent = m.Scheme.objects.get_or_none( id=ppk_int, order__customer__company=request.user.company)
-    logger.debug('parent' + str(parent))
-    if parent:
+         # get_parent adds 'ppk' and 'table' to id_dict
+        parent = m.get_parent(table, ppk_int, update_dict, request)
+        parent = m.Scheme.objects.get_or_none( id=ppk_int, order__customer__company=request.user.company)
+        logger.debug('parent' + str(parent))
+        if parent:
+
 # B. Delete instance
-        if is_delete:
-            # get_instance adds 'pk'to id_dict and adds pk_dict
-            instance = m.get_instance(table, pk_int, parent, update_dict)
-            if instance.code:
-                this_text = _("Shift '%(tbl)s'") % {'tbl': instance.code}
+            if is_delete:
+                # get_instance adds 'pk'to id_dict and adds pk_dict
+                instance = m.get_instance(table, pk_int, parent, update_dict)
+                if instance.code:
+                    this_text = _("Shift '%(tbl)s'") % {'tbl': instance.code}
+                else:
+                    this_text = _('This shift')
+                # delete_instance adds 'deleted' or 'error' to id_dict
+                delete_ok = m.delete_instance(instance, update_dict, request, this_text)
+                if delete_ok:
+                    instance = None
+
+    # C. Create new shift
+            elif is_create:
+                # create_shift adds 'temp_pk', 'created' to id_dict, and 'error' to code_dict
+                instance = create_shift(upload_dict, update_dict, request)
+
+    # D. Get existing instance
             else:
-                this_text = _('This shift')
-            # delete_instance adds 'deleted' or 'error' to id_dict
-            delete_ok = m.delete_instance(instance, update_dict, request, this_text)
-            if delete_ok:
-                instance = None
+                instance = m.get_instance(table, pk_int, parent, update_dict)
 
-# C. Create new shift
-        elif is_create:
-            # create_shift adds 'temp_pk', 'created' to id_dict, and 'error' to code_dict
-            instance = create_shift(upload_dict, update_dict, request)
+    # E. update instance, also when it is created
+            if instance:
+                update_shift(instance, parent, upload_dict, update_dict, user_lang, request)
 
-# D. Get existing instance
-        else:
-            instance = m.get_instance(table, pk_int, parent, update_dict)
+    # G. remove empty attributes from update_dict
+        f.remove_empty_attr_from_dict(update_dict)
 
-# E. update instance, also when it is created
-        if instance:
-            update_shift(instance, parent, upload_dict, update_dict, user_lang, request)
+    # 7. add update_dict to update_wrap
+        if update_dict:
+            update_wrap['shift_update'] = update_dict
 
-# G. remove empty attributes from update_dict
-    f.remove_empty_attr_from_dict(update_dict)
-
-# 7. add update_dict to update_wrap
-    if update_dict:
-        update_wrap['shift_update'] = update_dict
-
-# I. update schemeitem_list when changes are made
-    # necesasry to update offset in schemeitems
-    if parent:
-        schemeitem_list = d.create_schemeitem_list(
-            request=request,
-            customer=parent.order.customer,
-            comp_timezone=comp_timezone,
-            user_lang=user_lang)
-        if schemeitem_list:
-            update_wrap['schemeitem_list'] = schemeitem_list
+    # I. update schemeitem_list when changes are made
+        # necesasry to update offset in schemeitems
+        if parent:
+            schemeitem_list = d.create_schemeitem_list(
+                request=request,
+                customer=parent.order.customer,
+                comp_timezone=comp_timezone,
+                user_lang=user_lang)
+            if schemeitem_list:
+                update_wrap['schemeitem_list'] = schemeitem_list
 
 # 10. return update_wrap
     return update_wrap
@@ -1313,10 +1306,9 @@ def create_team(upload_dict, update_dict, request):
             update_dict['pk'] = team.pk
 
  # ===== Create new teammember without employee
-            teammember = m.Teammember(
-                team_id=team_pk
-            )
-            teammember.save(request=request)
+            # don't add empty teammember, is confusing PR2019-12-07
+            #teammember = m.Teammember( team_id=team_pk )
+            #teammember.save(request=request)
 
     return team
 ######################
@@ -3321,7 +3313,38 @@ def update_schemeitem(instance, upload_dict, update_dict, request, comp_timezone
                             setattr(instance, field, new_value)
                             is_updated = True
 
-    # 4. save changes in fields 'priceratejson'
+# 3. save changes in fields 'offsetstart', 'offsetend',
+                    elif field in ('offsetstart', 'offsetend'):
+                        saved_value = getattr(instance, field)
+                        if new_value != saved_value:  # (None != 0)=True (None != None)=False
+                            # c. save field if changed and no_error
+                            setattr(instance, field, new_value)
+                            is_updated = True
+
+                            # d. set min or max in other field
+                            if field == 'offsetstart':
+                                offsetend_minvalue = 0
+                                if new_value and new_value > 0:
+                                    offsetend_minvalue = new_value
+                                update_dict['offsetend']['minvalue'] = offsetend_minvalue
+                            elif field == 'offsetend':
+                                offsetstart_maxvalue = 1440
+                                if new_value and new_value < 1440:
+                                    offsetstart_maxvalue = new_value
+                                update_dict['offsetstart']['maxvalue'] = offsetstart_maxvalue
+
+# 4. save changes in fields  'breakduration', 'wagefactor'
+                    elif field in ('breakduration', 'timeduration'):
+                        logger.debug('field: ' + str(field))
+                        new_value = field_dict.get('value', 0)
+                        logger.debug('new_value: ' + str(new_value))
+                        saved_value = getattr(instance, field, 0)
+                        logger.debug('saved_value: ' + str(saved_value))
+                        if new_value != saved_value:
+                            setattr(instance, field, new_value)
+                            is_updated = True
+
+                    # 4. save changes in fields 'priceratejson'
                     elif field in ['priceratejson']:
                         new_rate, msg_err = f.get_rate_from_value(new_value)
                         if msg_err:
@@ -3574,6 +3597,7 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
     else:
 
 # calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
+# TOD replace by calc_timestart_time_end_from_offset
 
 # a. convert stored date_obj 'rosterdate' '2019-08-09' to datetime object 'rosterdatetime_naive'
         rosterdatetime_naive = f.get_datetime_naive_from_dateobject(schemeitem.rosterdate)
@@ -3621,7 +3645,6 @@ def calc_schemeitem_timeduration(schemeitem, update_dict, comp_timezone):
                 update_dict[fieldname] = {}
             setattr(schemeitem, fieldname, new_value)
             update_dict[fieldname]['updated'] = True
-
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_shift(upload_dict, update_dict, request):
@@ -3686,15 +3709,6 @@ def update_shift(instance, parent, upload_dict, update_dict, user_lang, request)
 
     has_error = False
     if instance:
-
-# 1. save quicksave
-        field = 'quicksave'
-        if field in upload_dict:
-            field_dict = upload_dict[field]  # 'quicksave': {'value': True, 'update': True}
-            if 'update' in field_dict:
-                quicksave_bool = field_dict.get('value', False)
-                quicksave_str = '1' if quicksave_bool else '0'
-                Usersetting.set_setting(c.KEY_USER_QUICKSAVE, quicksave_str, request.user)  # PR2019-07-02
 
         # FIELDS_SHIFT = ('id', 'scheme', 'cat', 'code', 'offsetstart', 'offsetend',
         # 'breakduration', 'wagefactor', 'priceratejson')
@@ -3780,8 +3794,8 @@ def update_shift(instance, parent, upload_dict, update_dict, user_lang, request)
                                     offsetstart_maxvalue = new_value
                                 update_dict['offsetstart']['maxvalue'] = offsetstart_maxvalue
 
-# 4. save changes in fields  'breakduration', 'wagefactor'
-                    elif field in ('breakduration', 'wagefactor'):
+# 4. save changes in fields  'breakduration', 'timeduration', 'wagefactor'
+                    elif field in ('breakduration', 'timeduration', 'wagefactor'):
                         logger.debug('field: ' + str(field))
                         new_value = field_dict.get('value', 0)
                         logger.debug('new_value: ' + str(new_value))

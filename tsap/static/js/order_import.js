@@ -1071,7 +1071,7 @@ console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
 
 //========= UPLOAD SETTING COLUMNS =====================================
     function UploadSettings () {
-console.log ("==========  UPLOAD SETTINGS");
+        console.log ("==========  UPLOAD SETTINGS");
         if(!!stored_coldefs) {
             // stored_coldefs is an array and has a .length property
             if(stored_coldefs.length > 0){
