@@ -229,12 +229,13 @@
 //========= format_select_element  ======== PR2019-12-03
     function format_select_element (el_input, field_dict) {
         //console.log("--- format_select_element ---")
+        //console.log("field_dict: ", field_dict)
 
         if(!!el_input && !isEmpty(field_dict)){
             let pk_int = parseInt(get_dict_value_by_key (field_dict, "pk"))
             if(!pk_int){pk_int = 0}
             const value = get_dict_value_by_key (field_dict, "value");
-            const updated = get_dict_value_by_key (field_dict, "updated");
+            const is_updated = get_dict_value_by_key (field_dict, "updated");
 
             // lock element when locked
             const locked = get_dict_value_by_key (field_dict, "locked");
@@ -244,7 +245,7 @@
             el_input.setAttribute("data-value", value);
             el_input.setAttribute("data-pk", pk_int);
 
-            if(updated){ShowOkElement(el_input)}
+            if(is_updated){ShowOkElement(el_input)}
         }
     }  // format_select_element
 
@@ -683,27 +684,27 @@
 
 //========= format_offset_element  ======== PR2019-09-08
     function format_offset_element (el_input, el_msg, fieldname, field_dict, offset, timeformat, user_lang, title_prev, title_next, blank_when_zero) {
-        console.log("------ format_offset_element --------------", fieldname)
-       // offsetstart: {offset: 0, minoffset: -720, maxoffset: 1440}
-       const tagName = el_input.tagName
-        console.log("field_dict", field_dict)
-       console.log("tagName", tagName)
+        // console.log("------ format_offset_element --------------", fieldname)
+        // offsetstart: {offset: 0, minoffset: -720, maxoffset: 1440}
+        const tagName = el_input.tagName
+        // console.log("field_dict", field_dict)
+        // console.log("el_input", el_input)
         if(!!el_input){
             let offset = null, display_text = "", title = "";
-
             if(!!field_dict){
-
                 // offset:  "270" = 04:30, value can be null
                 const fld = (fieldname === "breakduration") ? "value" : "value";
                 offset = get_dict_value_by_key(field_dict, fld);
-            //console.log("offset", offset)
+                // console.log("offset", offset)
 
                 const updated = get_dict_value_by_key (field_dict, "updated");
                 const msg_err = get_dict_value_by_key (field_dict, "error");
                 // (variable == null) will catch null and undefined simultaneously. Equal to (variable === undefined || variable === null)
                 let hide_value = (offset == null) || (blank_when_zero && offset === 0);
+                // console.log("blank_when_zero", blank_when_zero)
+                // console.log("hide_value", hide_value)
 
-            //console.log("hide_value", hide_value)
+                // console.log("hide_value", hide_value)
                 if (!hide_value){
                     let days_offset = Math.floor(offset/1440)  // - 90 (1.5 h)
                     const remainder = offset - days_offset * 1440
@@ -729,7 +730,7 @@
                 }
             }  //  if(!!field_dict)
 
-       console.log("display_text", display_text)
+       // console.log("display_text", display_text)
             if(!!display_text){
                 if(el_input.tagName === "INPUT"){
                     el_input.value = display_text;
@@ -769,12 +770,12 @@
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     //========= display_offset_timerange  ======== PR2019-12-04
-    function display_offset_timerange (offset_start, offset_end, timeformat, user_lang) {
+    function display_offset_timerange (offset_start, offset_end, skip_prefix_suffix, timeformat, user_lang) {
         //console.log("------ display_offset_timerange --------------", fieldname)
         let display_time = "";
         if(offset_start != null || offset_end != null){
-            const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, true); // true = skip_prefix_suffix
-            const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, true); // true = skip_prefix_suffix
+            const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, skip_prefix_suffix); // true = skip_prefix_suffix
+            const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, skip_prefix_suffix); // true = skip_prefix_suffix
             display_time = offsetstart_formatted + " - " + offsetend_formatted
         }
         return display_time;

@@ -986,6 +986,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+//========= function show_hide_element_by_id  ====  PR2019-12-13
+    function show_hide_element_by_id(el_id, is_show) {
+        if(!!el_id){
+            let el = document.getElementById(el_id);
+            if(!!el){
+                if(is_show){
+                    el.classList.remove("display_hide")
+                } else{
+                    el.classList.add("display_hide")
+    }}}};
+
+//========= function show_hide_element  ====  PR2019-12-13
+    function show_hide_element(el, is_show) {
+        if(!!el){
+            if(is_show){
+                el.classList.remove("display_hide")
+            } else{
+                el.classList.add("display_hide")
+    }}};
+
+//========= function set_element_class  ====  PR2019-12-13
+    function set_element_class(el_id, is_add_class, clsName) {
+        if(!!el_id){
+            let el = document.getElementById(el_id);
+            if(!!el){
+                if(is_add_class){
+                    el.classList.add(clsName)
+                } else{
+                    el.classList.remove(clsName)
+        }}};
+    };
+
+
 
 
 

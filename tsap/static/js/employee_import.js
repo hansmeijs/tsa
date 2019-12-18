@@ -2,8 +2,9 @@
 //    xls:"application/vnd.ms-excel",
 //    xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"};
 
-$(function() {
-console.log("employee_import.js")
+// with pure vanilla Javascript. Was jQuery: $(function() {
+document.addEventListener('DOMContentLoaded', function() {
+
 // ---  set selected menu button active
     const cls_active = "active";
     const cls_hover = "tr_hover";
@@ -1163,6 +1164,14 @@ console.log ("==========  UPLOAD DATA ==========");
         if(!!stored_coldefs){colLength = stored_coldefs.length;};
         if(rowLength > 0 && colLength > 0){
 
+//  ---  loop through excel_columns to get linked tsaKeys
+        let tsaKey_list = []
+        for (let i = 0, len = excel_columns.length ; i < len; i++) {
+            let col = excel_columns[i];
+            const tsaKey = get_dict_value_by_key(col, "tsaKey")
+            if (!!tsaKey){tsaKey_list.push(tsaKey)}
+        }
+
 // ---  loop through all rows of worksheet_data
             let employees = [];
 // row <5 is for testing
@@ -1182,10 +1191,11 @@ console.log ("==========  UPLOAD DATA ==========");
                 employees.push(item);
             }  // for (let row = 0 ; row < 5; row++)
 
-console.log("employees ==>");
-console.log( employees);
-            let parameters = {"employees": JSON.stringify (employees)};
+            const request = {tsaKey_list: tsaKey_list, employees: employees}
+            const parameters = {"upload": JSON.stringify (request)};
 
+console.log("parameters ==>");
+console.log( parameters);
             $.ajax({
                 type: "POST",
                 url: url_str,

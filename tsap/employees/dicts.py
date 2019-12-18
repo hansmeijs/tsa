@@ -158,7 +158,7 @@ def create_teammember_list(table_dict, company, user_lang):
         .select_related('team__scheme__order')\
         .select_related('team__scheme__order__customer') \
         .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1)))) \
-        .filter(crit).order_by('-datelast_nonull')
+        .filter(crit).order_by('employee__code', '-datelast_nonull')  #   .filter(crit).order_by('-datelast_nonull')
 
     # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
     # logger.debug(teammembers.query)
@@ -186,6 +186,7 @@ def create_teammember_dict(teammember, item_dict, user_lang):
     if teammember:
         teammember_datefirst = getattr(teammember, 'datefirst')
         teammember_datelast = getattr(teammember, 'datelast')
+        teammember_issingleshift = teammember.issingleshift
 
 # ---  get datefirst/ datelast of scheme, order and employee
         scheme_datefirst, scheme_datelast = None, None
@@ -242,7 +243,11 @@ def create_teammember_dict(teammember, item_dict, user_lang):
 
                     if team.scheme:
                         scheme_code = getattr(team.scheme, 'code', '')
-                        schemeteam_code = ' - '.join([scheme_code, team_code])
+                        if teammember_issingleshift:
+                            schemeteam_code = team_code
+                        else:
+                            schemeteam_code = ' - '.join([scheme_code, team_code])
+                            
                         item_dict['schemeteam'] = {'value': schemeteam_code}
 
                         order = team.scheme.order

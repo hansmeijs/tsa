@@ -900,6 +900,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!isEmpty(emplh_dict)){
     // reset values in mod_employee
             el_mod_employee_input_employee.value = null
+            el_mod_employee_input_employee.removeAttribute("data-pk")
+            el_mod_employee_input_employee.removeAttribute("data-ppk")
+
             let el_mod_employee_filter_employee = document.getElementById("id_mod_employee_filter_employee")
             document.getElementById("id_mod_employee_filter_employee").value = null;
             document.getElementById("id_mod_employee_abscat").value = ""; // reset value must be empty string

@@ -410,9 +410,6 @@ class Shift(TsaBaseModel):
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
 
-    class Meta:
-        ordering = [Lower('code')]
-
     def __str__(self):
         return self.code
 
@@ -572,6 +569,7 @@ class Schemeitem(TsaBaseModel):
     locked = None
 
     cat = PositiveSmallIntegerField(default=0)
+    issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
     rosterdate = DateField(db_index=True)

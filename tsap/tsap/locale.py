@@ -31,6 +31,7 @@ def get_locale_dict(table_dict, user_lang):
         dict['End_time'] = TXT_End_time
         dict['Break'] = TXT_Break
         dict['Working_hours'] = TXT_Working_hours
+        dict['Hours'] = TXT_Hours
         dict['As_of'] = TXT_As_of
 
         dict['Current_day'] = TXT_Current_day
@@ -43,7 +44,22 @@ def get_locale_dict(table_dict, user_lang):
         dict['Quick_save'] = TXT_Quick_save
         dict['Exit_Quicksave'] = TXT_Exit_Quicksave
 
-# ====== PAGE SCHEME =========================
+        dict['Absence'] = TXT_Absence
+        dict['Abscat'] = TXT_Abscat
+        dict['Select_abscat'] = TXT_Select_abscat
+        dict['No_abscat'] = TXT_No_abscat
+
+
+        dict['period_select_list'] = (
+            ('tweek', TXT_thisweek),
+            ('tmonth', TXT_thismonth),
+            ('nmonth', TXT_nextmonth),
+            ('other', TXT_customperiod)
+        )
+
+
+
+    # ====== PAGE SCHEME =========================
     if page == 'scheme':
         dict['weekdays_long'] = c.WEEKDAYS_LONG[user_lang]
         dict['months_long'] = c.MONTHS_LONG[user_lang]
@@ -269,6 +285,11 @@ TXT_Teams = _('Teams')
 TXT_Employee = _('Employee')
 # _('Order / Employee')
 
+TXT_Absence = _('Absence')
+TXT_Abscat = _('Absence category')
+TXT_Select_abscat = _('Select absence category')
+TXT_No_abscat = _('No absence categories')
+
 
 TXT_one = _('one')
 TXT_confirmed = _('confirmed')
@@ -295,6 +316,7 @@ TXT_thisweek = _('This week')
 TXT_lastweek = _('Last week')
 TXT_thismonth = _('This month')
 TXT_lastmonth = _('Last month')
+TXT_nextmonth = _('Next month')
 TXT_customperiod = _('Custom period...')
 
 TXT_err_msg_error = _('An error occurred.')
@@ -318,6 +340,7 @@ TXT_Start_time = _('Start time')
 TXT_End_time = _('End time')
 TXT_Break = _('Break')
 TXT_Working_hours = _('Working hours')
+TXT_Hours = _('Hours')
 
 TXT_Current_day = _('Current day')
 TXT_Previous_day = _('Previous day')

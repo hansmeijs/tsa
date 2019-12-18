@@ -384,8 +384,8 @@
             //    const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, true); // true = skip_prefix_suffix
             //    display_time = offsetstart_formatted + " - " + offsetend_formatted
             //}
-
-            const display_time = display_offset_timerange (offset_start, offset_end, timeformat, user_lang)
+            const skip_prefix_suffix = true;
+            const display_time = display_offset_timerange (offset_start, offset_end, skip_prefix_suffix, timeformat, user_lang)
 
             const duration = get_subdict_value_by_key(item_dict, "duration", "value");
             if(!!duration) {this_duration_sum += duration};

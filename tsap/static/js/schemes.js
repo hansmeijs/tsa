@@ -305,17 +305,17 @@ document.addEventListener('DOMContentLoaded', function() {
         CreateTblFooters();
 
 // --- first get locale, to make it faster
-        DatalistDownload({"setting": {"page_scheme": {"mode": "get"},
-                                      "selected_pk": {"mode": "get"},
+        DatalistDownload({setting: {page_scheme: {mode: "get"},
+                                      selected_pk: {mode: "get"},
                                       },
-                           "quicksave": {"mode": "get"},
-                           "locale": {page: "scheme"}
+                           quicksave: {mode: "get"},
+                           locale: {page: "scheme"}
                            });
-        const cat_lt = 512  // less then 512 = absence // 4096 template
-        const datalist_request = {"customer": {isabsence: false, istemplate: null, inactive: false},
-                                  "order": {isabsence: false, istemplate: null, inactive: false},
-                                  "scheme": {istemplate: null, inactive: null},
-                                  "employee": {inactive: false}};
+
+        const datalist_request = {customer: {isabsence: false, istemplate: null, inactive: false},
+                                  order: {isabsence: false, istemplate: null, inactive: false},
+                                  scheme: {istemplate: null, inactive: null, issingleshift: false},
+                                  employee: {inactive: null}};
         DatalistDownload(datalist_request);
 
 //  #############################################################################################################
@@ -488,7 +488,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!!div_tbl){
                 const data_mode = get_attr_from_el(div_tbl, "data-mode")
                 //selected_btns / data_mode are: btn_schemeitem, btn_shift, btn_team, btn_scheme
-        console.log( "data_mode", data_mode );
                 if (data_mode === selected_btn){
                     div_tbl.classList.remove(cls_hide);
                 } else {
@@ -496,45 +495,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 }  // if (tbl_mode === selected_btn)
             }  // if(!!div_tbl){
         }
-
         HideTableTeammember(template_mode);
 
-/*
-        if (selected_btn === "btn_schemeitem"){
-            document.getElementById("id_div_tbl_schemeitem").classList.remove(cls_hide);
-            document.getElementById("id_div_tbl_shift").classList.add(cls_hide);
-            document.getElementById("id_div_tbl_teammember").classList.add(cls_hide);
-            document.getElementById("id_div_data_form").classList.add(cls_hide);
-        } else if (selected_btn === "btn_shift"){
-            document.getElementById("id_div_tbl_schemeitem").classList.add(cls_hide);
-            document.getElementById("id_div_tbl_shift").classList.remove(cls_hide);
-            document.getElementById("id_div_tbl_teammember").classList.add(cls_hide);
-            document.getElementById("id_div_data_form").classList.add(cls_hide);
-        } else if (selected_btn === "btn_team"){
-            document.getElementById("id_div_tbl_schemeitem").classList.add(cls_hide);
-            document.getElementById("id_div_tbl_shift").classList.add(cls_hide);
-            document.getElementById("id_div_tbl_teammember").classList.remove(cls_hide);
-            document.getElementById("id_div_data_form").classList.add(cls_hide);
-        } else if (selected_btn === "btn_scheme"){
-            document.getElementById("id_div_tbl_schemeitem").classList.add(cls_hide);
-            document.getElementById("id_div_tbl_shift").classList.add(cls_hide);
-            document.getElementById("id_div_tbl_teammember").classList.add(cls_hide);
-            document.getElementById("id_div_data_form").classList.remove(cls_hide);
-        };
 // ---  highlight row in list table
             let tblBody = document.getElementById("id_tbody_" + selected_btn);
             if(!!tblBody){
                 FilterTableRows(tblBody)
             }
-
 // --- update header text
         UpdateHeaderText();
 
-*/
     }  // HandleBtnSelect
-
-
-
 
 //=========  HandleSelectCustomer  ================ PR2019-03-23
     function HandleSelectCustomer(el, called_by) {
@@ -636,10 +607,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
 
 // download lists of this customer: schemes, schemeitems, shifts, teams
-                const datalist_request = {"schemeitem": {"customer_pk": selected_cust_pk},
-                                          "shift": {"customer_pk": selected_cust_pk},
-                                          "team": {"customer_pk": selected_cust_pk},
-                                          "teammember": {"customer_pk": selected_cust_pk}};
+                const datalist_request = {schemeitem: {customer_pk: selected_cust_pk}, // , issingleshift: false},
+                                          shift: {customer_pk: selected_cust_pk},
+                                          team: {customer_pk: selected_cust_pk},
+                                          teammember: {customer_pk: selected_cust_pk}};
                 DatalistDownload(datalist_request);
             }  //  if (!!pk_int)
         }  // if(!!el)
@@ -2706,6 +2677,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             let parameters = {"upload": JSON.stringify (upload_dict)}
             const url_str = url_scheme_shift_team_upload;
+
+            console.log("url_str", url_str);
+            console.log("upload_dict", upload_dict);
             let response;
             $.ajax({
                 type: "POST",
@@ -3073,9 +3047,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 tblBody_team_select.innerText = null;
                 selected_scheme_pk = 0
                 ResetSchemeInputElements();
-
-
             }
+
 // ++++ created ++++
         } else if (is_created){
 //----- item is created: add new row on correct index of table, reset addnew row
@@ -3351,10 +3324,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (tblName === "schemeitem")
                         if ('shift' in update_dict) {field_dict = get_subdict_value_by_key(update_dict, "shift", fieldname )
                     }
-                    console.log("tblName: ", tblName);
-                    console.log("fieldname: ", fieldname);
-                    console.log("field_dict: ", field_dict);
-                    console.log("update_dict: ", update_dict);
                     const blank_when_zero = (fieldname === "breakduration") ? true : false;
                     format_offset_element (el_input, el_msg, fieldname, field_dict, [-220, 80], timeformat, user_lang, title_prev, title_next, blank_when_zero)
                 } else if ([ "timeduration"].indexOf( fieldname ) > -1){
@@ -3989,9 +3958,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++ MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  ModEmployeeOpen  ================ PR2019-08-23
     function ModEmployeeOpen(el_input) {
-        //console.log(" -----  ModEmployeeOpen   ----")
+        console.log(" -----  ModEmployeeOpen   ----")
 
-        // only called by teammember inout employee
+        // only called by teammember input employee
 
         // add empoloyee disabled in template mode
         if(template_mode){
@@ -4018,8 +3987,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!!pk_int){
                 el_header.innerText = code_value
                 el_div_remove.classList.remove(cls_hide)
-                mod_upload_dict["cur_employee"] = cur_employee_dict;
-                //console.log("mod_upload_dict", mod_upload_dict)
+                if(!isEmpty(cur_employee_dict)) {
+                    mod_upload_dict["employee"] = cur_employee_dict;
+                }
+                console.log("mod_upload_dict cur_employee", mod_upload_dict)
             } else {
     // ---  or header "select employee'
                 el_header.innerText = get_attr_from_el(el_data, "data-txt_employee_select") + ":";
@@ -4047,7 +4018,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModEmployeeSelect  ================ PR2019-05-24
     function ModEmployeeSelect(tblRow) {
-        //console.log( "===== ModEmployeeSelect ========= ");
+        console.log( "===== ModEmployeeSelect ========= ");
 
 // ---  deselect all highlighted rows
         DeselectHighlightedRows(tblRow, cls_selected)
@@ -4060,17 +4031,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const select_pk = get_attr_from_el_int(tblRow, "data-pk")
 
             const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", select_pk.toString());
-            //console.log("employee_dict", employee_dict);
+            console.log("employee_dict", employee_dict);
             if (!isEmpty(employee_dict)){
 // get code_value from employee_dict, put it in mod_upload_dict and el_input_employee
                 const code_value = get_subdict_value_by_key(employee_dict, "code", "value")
                 mod_upload_dict["employee"] = employee_dict;
-                //console.log("mod_upload_dict", mod_upload_dict);
 // put code_value in el_input_employee
                 document.getElementById("id_mod_employee_input_employee").value = code_value
 
 // save selected employee
-                ModEmployeeSave()
+                // ModEmployeeSave()
             }  // if (!isEmpty(employee_dict)){
         }  // if(!!tblRow) {
     }  // ModEmployeeSelect
@@ -4156,8 +4126,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const code_value = get_dict_value_by_key(code_dict, "value")
 // put value of selected employee in employee_dict of mod_upload_dict
                 const employee_dict = {"id": id_dict, "code": code_dict} ;
-                mod_upload_dict["employee"] = employee_dict;
-                mod_upload_dict["code"] = code_dict;
+                if(!isEmpty(employee_dict)){mod_upload_dict["employee"] = employee_dict};
+                if(!isEmpty(code_dict)){mod_upload_dict["code"] = code_dict};
                 //console.log("mod_upload_dict", mod_upload_dict);
 
 // put code_value of selected employee in el_input
@@ -4170,14 +4140,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModEmployeeSave  ================ PR2019-10-31
     function ModEmployeeSave(mode) {
-        //console.log("========= ModEmployeeSave ===" );
+        console.log("========= ModEmployeeSave ===" );
+        console.log("mod_upload_dict: " );
+        console.log(mod_upload_dict );
         let upload_dict = {"id": mod_upload_dict["id"]};
-        if (mode ==="delete"){
+        if (mode ==="remove"){
 // remove current employee from teammemember, is removed when {employee: {update: true} without pk
             upload_dict["employee"] = {"update": true}
         } else {
             const employee_dict = mod_upload_dict["employee"]
-            //console.log("employee_dict: ", employee_dict );
+            console.log("employee_dict: ", employee_dict );
             upload_dict["employee"] = {"pk": employee_dict["id"]["pk"], "ppk": employee_dict["id"]["ppk"], "update": true}
         }
 // ---  hide modal
@@ -4187,7 +4159,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= ModEmployeeFillSelectTableEmployee  ============= PR2019-08-18
     function ModEmployeeFillSelectTableEmployee(selected_employee_pk) {
-        //console.log( "=== ModEmployeeFillSelectTableEmployee ");
+        console.log( "=== ModEmployeeFillSelectTableEmployee ");
 
         const caption_one = get_attr_from_el(el_data, "data-txt_employee_select") + ":";
         const caption_none = get_attr_from_el(el_data, "data-txt_employee_select_none") + ":";
@@ -4195,7 +4167,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let tableBody = document.getElementById("id_mod_employee_tblbody");
         tableBody.innerText = null;
 
-//--- when no items found: show 'select_customer_none'
+//--- when no items found: show 'select_employee_none'
         if (employee_map.size === 0){
             let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
             let td = tblRow.insertCell(-1);
@@ -4207,9 +4179,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const pk_int = get_pk_from_dict(item_dict);
                 const ppk_int = get_ppk_from_dict(item_dict);
                 const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
+                const is_inactive = (!!get_subdict_value_by_key(item_dict, "inactive", "value", false))
 
+            console.log( "item_dict: ", item_dict);
+            console.log( "is_inactive: ", is_inactive);
 //- skip selected employee
-                if (pk_int !== selected_employee_pk){
+// PR20019-12-17 debug: also filter inactive, but keep inaclive in employee_map, to show them in teammember
+                if (pk_int !== selected_employee_pk && !is_inactive){
 
 //- insert tableBody row
                     let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
@@ -4393,37 +4369,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // disable btn when templates are shown
         if(!template_mode) {
-            mod_upload_dict = {"copyto_order_pk": selected_order_pk, "copyto_order_ppk": selected_cust_pk};
-        // reset input elements
-            //el_mod_copyfrom_template_select.value = null
-            //let el_err = document.getElementById("id_mod_copyfrom_template_select_err");
-            //formcontrol_err_msg(el_mod_copyfrom_template_select, el_err)
+            if(!!selected_order_pk && selected_cust_pk) {
+                mod_upload_dict = {"copyto_order_pk": selected_order_pk, "copyto_order_ppk": selected_cust_pk};
+            // reset input elements
+                //el_mod_copyfrom_template_select.value = null
+                //let el_err = document.getElementById("id_mod_copyfrom_template_select_err");
+                //formcontrol_err_msg(el_mod_copyfrom_template_select, el_err)
 
-            //let el_err = document.getElementById("id_mod_copyfrom_customer_err");
-            //formcontrol_err_msg(el_mod_copyfrom_cust, el_err)
+                //let el_err = document.getElementById("id_mod_copyfrom_customer_err");
+                //formcontrol_err_msg(el_mod_copyfrom_cust, el_err)
 
-            //el_err = document.getElementById("id_mod_copyfrom_order_err");
-            //formcontrol_err_msg(el_mod_copyfrom_order, el_err)
+                //el_err = document.getElementById("id_mod_copyfrom_order_err");
+                //formcontrol_err_msg(el_mod_copyfrom_order, el_err)
 
-            el_mod_copyfrom_code.value = null
-            //el_err = document.getElementById("id_mod_copyfrom_code_err");
-            //formcontrol_err_msg(el_mod_copyfrom_code, el_err)
+                el_mod_copyfrom_code.value = null
+                //el_err = document.getElementById("id_mod_copyfrom_code_err");
+                //formcontrol_err_msg(el_mod_copyfrom_code, el_err)
 
-            //el_mod_copyfrom_datestart.value = null
-            //el_err = document.getElementById("id_mod_copyfrom_datestart_err");
-            //formcontrol_err_msg(el_mod_copyfrom_datestart, el_err)
+                //el_mod_copyfrom_datestart.value = null
+                //el_err = document.getElementById("id_mod_copyfrom_datestart_err");
+                //formcontrol_err_msg(el_mod_copyfrom_datestart, el_err)
 
-        // get ppk from scheme template ( = order 'Sjabloon')
-            let template_scheme_ppk = null;
+            // get ppk from scheme template ( = order 'Sjabloon')
+                let template_scheme_ppk = null;
 
-            FillSelectTable("template", "ModCopyfromTemplateOpen", 0, false)
+                FillSelectTable("template", "ModCopyfromTemplateOpen", 0, false)
 
-              // selected_order_pk is the order to which de template scheme will be copied.
-        // cannot copy if selected_order_pk is blank
-            document.getElementById("id_mod_copyfrom_btn_save").readOnly = (!selected_order_pk)
+                  // selected_order_pk is the order to which de template scheme will be copied.
+            // cannot copy if selected_order_pk is blank
+                document.getElementById("id_mod_copyfrom_btn_save").readOnly = (!selected_order_pk)
 
-        // ---  show modal
-            $("#id_mod_copyfrom").modal({backdrop: true});
+            // ---  show modal
+                $("#id_mod_copyfrom").modal({backdrop: true});
+
+            }  //  if(!!selected_order_pk && selected_cust_pk) {
         }
 }; // function ModCopyfromTemplateOpen
 
@@ -4445,7 +4424,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const code = get_subdict_value_by_key(item_dict, "code", "value")
             console.log( "item_dict", item_dict);
 
-            document.getElementById("id_mod_copyfrom_code").value = code
+            const template_txt = " " + loc.Template.toLowerCase();
+            let code_txt = code.replace(template_txt,"");
+            document.getElementById("id_mod_copyfrom_code").value = code_txt
 
             mod_upload_dict["template_pk"] = pk_int;
             mod_upload_dict["template_ppk"] = ppk_int;
@@ -4767,7 +4748,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const map_id = get_map_id("scheme", selected_scheme_pk);
                 let item_dict = get_mapdict_from_datamap_by_id(scheme_map, map_id)
-                el_input.value = get_subdict_value_by_key (item_dict, "code", "value")
+                let code_txt = get_subdict_value_by_key (item_dict, "code", "value") + " " + loc.Template.toLowerCase()
+                el_input.value = code_txt
 
                 ModCopytoTemplateEdit();
 

@@ -81,8 +81,10 @@
     {% if user.is_authenticated %}
 <!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
-<!-- =================== MODAL PERIOD  =================== -->
+
+<!-- =================== MODAL PLANNING PERIOD  =================== -->
         {% include 'includes/modperiod.html' %}
+
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
         {% include 'includes/selectemployee.html' %}
 <!-- =================== MODAL EMPLOYEE SHIFT  ===================-->
@@ -108,7 +110,7 @@
 
         <!-- period -->
                     <div id="id_div_hdr_period" class="content_subheader_right pointer_show mx-2">
-                        <h5 id="id_hdr_period"></h5>
+                      <!--   <h5 id="id_hdr_period"></h5>  -->
                     </div>
         <!-- end loader -->
                 </div>

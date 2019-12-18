@@ -30,6 +30,7 @@ from accounts.models import Usersetting
 from companies import models as m
 from employees.forms import EmployeeAddForm, EmployeeEditForm
 from employees import dicts as d
+from customers import dicts as cd
 from planning import dicts as pld
 from planning import views as plvw
 from planning import rosterfill as prf
@@ -289,12 +290,47 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                 id_dict = upload_dict.get('id')
                 if id_dict:
                     table = id_dict.get('table', '')
-
-                    #logger.debug('table: ' + str(table))
-                    if table == 'teammember':
-                        update_wrap = teammember_upload(request, upload_dict, comp_timezone, user_lang)
-                    if table == 'calendar':
+                    shift_mode = id_dict.get('mode')
+                    if shift_mode == 'absenceshift':
+                        update_wrap = absence_upload(request, upload_dict, comp_timezone, user_lang)
+                    elif shift_mode == 'singleshift':
                         update_wrap = calendar_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
+                    elif shift_mode == 'schemeshift':
+                        update_wrap = teammember_upload(request, upload_dict, comp_timezone, user_lang)
+                    else:
+                        #logger.debug('table: ' + str(table))
+                        if table == 'teammember':
+                            is_absence = upload_dict.get('isabsence', False)
+                            if is_absence:
+                                update_wrap = absence_upload(request, upload_dict, comp_timezone, user_lang)
+                            else:
+                                update_wrap = teammember_upload(request, upload_dict, comp_timezone, user_lang)
+                        elif table == 'calendar':
+                            update_wrap = calendar_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
+
+                    if shift_mode in ('absenceshift', 'singleshift', 'schemeshift'):
+                   # J create updated employee_calendar_list
+                        datefirst = upload_dict.get('calendar_datefirst')
+                        datelast = upload_dict.get('calendar_datelast')
+
+                    # 3. get employee
+                        employee_pk = None
+                        employee_dict = upload_dict.get('employee')
+                        if employee_dict:
+                            id_dict = employee_dict.get('id')
+                            if id_dict:
+                                employee_pk = id_dict.get('pk')
+
+                        if employee_pk is not None and datefirst is not None and datelast is not None:
+                            customer_id, order_id = None, None
+                            employee_calendar_list = prf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
+                                                                                  comp_timezone, timeformat, user_lang, request)
+
+                            # logger.debug('employee_calendar_list: ' + str(employee_calendar_list))
+                            if employee_calendar_list:
+                                update_wrap['employee_calendar_list'] = employee_calendar_list
+
+
 
 
 # 9. return update_wrap
@@ -308,7 +344,9 @@ def calendar_upload(request, upload_dict, comp_timezone, timeformat, user_lang):
     logger.debug('upload_dict: ' + str(upload_dict))
 
 # upload_dict: {'id': {'table': 'calendar', 'create': True, 'fid': '716-1046-1'},
-    # 'rosterdate': '2019-12-03', 'weekday_index': 2,
+    # 'rosterdate': '2019-12-03',
+    # 'weekday_index': 2,
+    # weekday_list: [0, 'delete_1106', 'delete_1107', 'update_1091', 'update_1094', 0, 0, 0]
     # 'scheme': {'cycle': 7, 'issingleshift': True},
     # 'team': {'issingleshift': True},
     # 'teammember': {'issingleshift': True, 'pk': 716, 'ppk': 1767, 'datefirst': '2019-12-03'},
@@ -332,7 +370,6 @@ def calendar_upload(request, upload_dict, comp_timezone, timeformat, user_lang):
     if id_dict:
         # table = 'calendar'
         is_create = ('create' in id_dict)
-        is_delete = ('delete' in id_dict)
     logger.debug('is_create: ' + str(is_create))
 
 # 2. get rosterdate and weekday_index. This is the date and weekday of the calendercolumn that is clcked on
@@ -418,6 +455,7 @@ def calendar_upload(request, upload_dict, comp_timezone, timeformat, user_lang):
         scheme = None
         team = None
         teammember = None
+
 # A. Create new teammember with one schemeitem for each weekday in weekday_list
         if is_create:
             logger.debug('Create new teammember ')
@@ -479,7 +517,7 @@ def calendar_upload(request, upload_dict, comp_timezone, timeformat, user_lang):
                             team = teammember.team
                             if team:
                                 scheme = team.scheme
-# update fields in scheme when update (in create mode fields got already value when certaign scheme)
+# update fields in scheme when update (in create mode fields got already value when creating scheme)
                                 if scheme :
                                     scheme.datefirst=scheme_datefirst_dte
                                     scheme.datelast=scheme_datelast_dte
@@ -489,38 +527,40 @@ def calendar_upload(request, upload_dict, comp_timezone, timeformat, user_lang):
 
 # create and update schemeitems (for existing and created teammember)
         if teammember:
-# create new schemeitems
-            #  weekdays: (8) [0, 0, 1057, 0, 1059, 0, "create", 0]
+            # weekday_list: [0, 'delete_1106', 'delete_1107', 'update_1091', 'update_1094', 0, "create" 0]
             weekday_list = upload_dict.get('weekday_list')
+            logger.debug('weekday_list: ' + str(weekday_list) + ' ' + str(type(weekday_list)))
             if clicked_rosterdate_dte and weekday_list:
-                for weekday_index, schemeitem_pk in enumerate(weekday_list):
-                    logger.debug('weekday_index: ' + str(weekday_index))
-                    logger.debug('schemeitem_pk: ' + str(schemeitem_pk))
-                    # skip when weekday_index = 0 and when schemeitem_pk = 0
-                    if weekday_index and schemeitem_pk:
-                        schemeitem = None
-                        if schemeitem_pk == 'create':
-                            days_add = weekday_index - clicked_rosterdate_dte.isoweekday()
-                            rosterdate_dte = clicked_rosterdate_dte + timedelta(days=days_add)
-                            logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+                for weekday_index, weekdaylist_value in enumerate(weekday_list):
+                    mode = weekdaylist_value[:6]
+                    logger.debug('mode: ' + str(mode))
+                    schemeitem = None
+                    if mode == 'create':
+                        days_add = weekday_index - clicked_rosterdate_dte.isoweekday()
+                        rosterdate_dte = clicked_rosterdate_dte + timedelta(days=days_add)
+                        logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
 
-                            is_cyclestart = (weekday_index == 1)
-                            schemeitem = m.Schemeitem(
-                                scheme=scheme,
-                                team=team,
-                                rosterdate=rosterdate_dte,
-                                iscyclestart=is_cyclestart,
+                        is_cyclestart = (weekday_index == 1)
+                        schemeitem = m.Schemeitem(
+                            scheme=scheme,
+                            team=team,
+                            rosterdate=rosterdate_dte,
+                            iscyclestart=is_cyclestart,
+                            issingleshift = True
+                        )
+                    elif mode in ('update', 'delete'):
+                        schemeitem_pk = int(weekdaylist_value[6:])
+                        logger.debug('schemeitem_pk: ' + str(schemeitem_pk))
+                        if schemeitem_pk:
+                            schemeitem = m.Schemeitem.objects.get_or_none(
+                                id=schemeitem_pk,
+                                scheme__order__customer__company=request.user.company
                             )
-
+                            logger.debug('schemeitem: ' + str(schemeitem))
+                    if schemeitem:
+                        if mode == 'delete':
+                            schemeitem.delete(request=request)
                         else:
-                            if schemeitem_pk:
-                                schemeitem = m.Schemeitem.objects.get_or_none(
-                                    id=schemeitem_pk,
-                                    scheme__order__customer__company=request.user.company
-                                )
-                                logger.debug('schemeitem: ' + str(schemeitem))
-
-                        if schemeitem:
                             schemeitem.offsetstart = offset_start
                             schemeitem.offsetend = offset_end
                             schemeitem.breakduration = break_duration
@@ -528,7 +568,20 @@ def calendar_upload(request, upload_dict, comp_timezone, timeformat, user_lang):
                             schemeitem.priceratejson = pricerate_json
                             schemeitem.additionjson = addition_json
                             schemeitem.save(request=request)
-
+                    if mode == 'delete':
+                        # also delete teammember, tem and scheme when there are no schemeitems left in this scheme
+                        if scheme:
+                            count = m.Schemeitem.objects.filter(scheme=scheme).count()
+                            if count == 0:
+                                # delete teammember
+                                teammember.delete(request=request)
+                                # delete team
+                                team.delete(request=request)
+                                # check if there are any shifts (should not be possible
+                                if m.Shift.objects.filter(scheme=scheme).count():
+                                    m.Shift.objects.filter(scheme=scheme).delete()
+                                # delete scheme
+                                scheme.delete(request=request)
 
 # J create updated employee_calendar_list
     datefirst = upload_dict.get('calendar_datefirst')
@@ -550,8 +603,126 @@ def calendar_upload(request, upload_dict, comp_timezone, timeformat, user_lang):
 
 #######################################
 
-def teammember_upload(request, upload_dict, comp_timezone, user_lang): # PR2019-07-28
+def absence_upload(request, upload_dict, comp_timezone, user_lang): # PR2019-12-13
+    logger.debug(' --- absence_upload ---')
+    logger.debug('upload_dict: ' + str(upload_dict))
+# upload_dict: {
+    # 'isabsence': {'value': True},
+    # 'id': {'create': True, 'temp_pk': 'teammember_new2', 'table': 'teammember'},
+    # 'employee': {'pk': 2324, 'code': 'Bryce, Sandrea', 'workhoursperday': 0},
+    # 'order': {'pk': 1800, 'value': 'Buitengewoon', 'ppk': 1454, 'is_absence': True, 'update': True}}
 
+    # upload_dict{
+    # 'isabsence': {'value': True},
+    # 'id': {'pk': 756, 'temp_pk': 'teammember_756', 'ppk': 1799, 'table': 'teammember'},
+    # 'employee': {'pk': 2410, 'code': 'Apostel, Marie-Ymaquila', 'workhoursperday': 0},
+    # 'order': {'pk': 1251, 'value': 'Buitengewoon', 'ppk': 607, 'is_absence': True, 'update': True}}
+
+    # from caledar page:
+    # upload_dict:
+    # {'id': {'table': 'teammember', 'mode': 'absenceshift'},
+    # 'rosterdate': '2019-12-09',
+    # 'calendar_datefirst': '2019-12-09', 'calendar_datelast': '2019-12-15',
+    # 'weekday_index': 1, 'weekday_list': ['-', 'update1172', '-', '-', '-', '-', '-', '-'],
+    # 'team': {'issingleshift': True, 'pk': '1802', 'update': True},
+    # 'employee': {'id': {'table': 'employee', 'pk': 2319, 'ppk': 3}},
+    # 'order': {'id': {'table': 'order', 'pk': 1251, 'ppk': 607}},
+    # 'scheme': {'id': {'table': 'scheme', 'issingleshift': True}, 'cycle': {'value': 7, 'update': True}, 'datefirst': {'update': True}, 'datelast': {'update': True}, 'excludepublicholiday': {'value': False, 'update': True}, 'excludecompanyholiday': {'value': False, 'update': True}},
+    # 'teammember': {'id': {'table': 'teammember', 'issingleshift': True, 'pk': 749, 'ppk': 1800}},
+    # 'schemeitem': {'id': {'pk': 1172, 'ppk': 1454, 'table': 'schemeitem'}}}
+
+    update_wrap = {}
+
+# 1. get iddict variables
+    id_dict = upload_dict.get('id')
+    if id_dict:
+        pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode = f.get_iddict_variables(id_dict)
+
+# 2. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
+        # teammember wagerate not in use
+        # teammember pricerate not in use
+        update_dict = f.create_update_dict(
+            c.FIELDS_TEAMMEMBER,
+            table=table,
+            pk=pk_int,
+            ppk=ppk_int,
+            temp_pk=temp_pk_str)
+
+# A. if abscat has changed or when new absence: get absence order, scheme and team put team back in upload_dict
+        new_team_pk_int, new_team_ppk_int = 0, 0
+        team_dict = upload_dict.get('team')
+        is_team_update = team_dict.get('update', False)
+        logger.debug('team_dict: ' + str(team_dict))
+        if is_create or is_team_update:
+            team_pk_int = int(team_dict.get('pk', 0))
+            if team_pk_int:
+                team = m.Team.objects.get_or_none(id=team_pk_int, scheme__order__customer__company=request.user.company)
+                if team is not None:
+                    new_team_pk_int = team.pk
+                    new_team_ppk_int = team.scheme.pk
+                # add new team to upload_dict. It will be updated in update_teammember
+        logger.debug('new_team_pk_int ' + str(new_team_pk_int))
+
+        if new_team_pk_int and new_team_pk_int != ppk_int:
+            ppk_int = new_team_pk_int
+            upload_dict['id']['ppk'] = ppk_int
+            update_dict['id']['ppk'] = ppk_int
+            update_dict['ppk'] = ppk_int
+            upload_dict['team'] = {'pk': new_team_pk_int, 'ppk': new_team_ppk_int, 'update': True}
+
+        logger.debug('upload_dict: ' + str(upload_dict))
+
+# A. If existing teammmeber: when abscat has changed: the parent 'team' has changed. Lookup new scheme and team put team back in upload_dict
+        parent = m.Team.objects.get_or_none(id=ppk_int, scheme__order__customer__company=request.user.company)
+        logger.debug('parent: ' + str(parent))
+        # 2. check if parent exists (team is parent of teammember)
+        if parent:
+# B. Delete instance
+            if is_delete:
+                instance = m.Teammember.objects.get_or_none(id=pk_int, team__scheme__order__customer__company=request.user.company)
+                logger.debug('instance: ' + str(instance))
+                if instance:
+                    deleted_ok = m.delete_instance(instance, update_dict, request)
+                    if deleted_ok:
+                        instance = None
+            else:
+# C. Create new teammember
+                if is_create:
+                    instance = create_teammember(upload_dict, update_dict, request)
+# D. get existing instance
+                else:
+                    instance = m.Teammember.objects.get_or_none(id=pk_int, team__scheme__order__customer__company=request.user.company)
+# E. update instance, also when it is created
+                logger.debug('Teammember pk_int: ' + str(pk_int))
+                logger.debug('Teammember instance: ' + str(instance))
+                if instance:
+                    update_teammember(instance, upload_dict, update_dict, request)
+# f. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
+            if instance:
+                d.create_teammember_dict(instance, update_dict, user_lang)
+# g. update schemeitem_list when changes are made
+            schemeitem_list = pld.create_schemeitem_list(
+                request=request,
+                customer=parent.scheme.order.customer,
+                is_singleshift=None,
+                comp_timezone=comp_timezone,
+                user_lang=user_lang)
+            if schemeitem_list:
+                update_wrap['schemeitem_list'] = schemeitem_list
+
+# h. remove empty attributes from update_dict
+        f.remove_empty_attr_from_dict(update_dict)
+        logger.debug('update_dict: ' + str(update_dict))
+
+# I. add update_dict to update_wrap
+        if update_dict:
+            update_wrap['teammember_update'] = update_dict
+
+# J. return update_wrap
+    return update_wrap
+
+
+def teammember_upload(request, upload_dict, comp_timezone, user_lang): # PR2019-07-28
     logger.debug('============= TeammemberUploadView ============= ')
 
     update_wrap = {}
@@ -610,6 +781,7 @@ def teammember_upload(request, upload_dict, comp_timezone, user_lang): # PR2019-
             schemeitem_list = pld.create_schemeitem_list(
                 request=request,
                 customer=parent.scheme.order.customer,
+                is_singleshift=None,
                 comp_timezone=comp_timezone,
                 user_lang=user_lang)
             if schemeitem_list:
@@ -626,12 +798,12 @@ def teammember_upload(request, upload_dict, comp_timezone, user_lang): # PR2019-
 # J. return update_wrap
     return update_wrap
 
-
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_teammember(upload_dict, update_dict, request):
     # --- create teammember # PR2019-07-26
     # Note: all keys in update_dict must exist by running create_update_dict first
-    # logger.debug(' --- create_teammember')
+    logger.debug(' --- create_teammember')
+    logger.debug(' upload_dict: ' + str(upload_dict))
 
     # upload_dict:
     # 'id': {'temp_pk': 'new_1', 'create': True, 'table': 'teammember', 'ppk': 1396},
@@ -639,6 +811,13 @@ def create_teammember(upload_dict, update_dict, request):
     # 'employee': {'pk': 2104, 'code': 'aa', 'workhoursperday': 0},
     # 'team': {'pk': 1396, 'value': 'Vakantie', 'ppk': 1136, 'cat': 512, 'update': True},
     # 'workhoursperday': {'value': 0, 'update': True}}
+
+    # upload_dict: {
+    # 'isabsence': {'value': True},
+    # 'id': {'create': True, 'temp_pk': 'teammember_new2', 'table': 'teammember'},
+    # 'employee': {'pk': 2361, 'code': 'Buijze, Yinetd', 'workhoursperday': 0},
+    # 'order': {'pk': 1251, 'value': 'Buitengewoon', 'ppk': 607, 'is_absence': True, 'update': True}}
+
     instance = None
 
 # 1. get iddict variables
@@ -706,6 +885,10 @@ def update_teammember(instance, upload_dict, update_dict, request):
             field_dict = upload_dict[field] if field in upload_dict else {}
             if field_dict:
                 if 'update' in field_dict:
+
+                    logger.debug('field: ' + str(field))
+                    logger.debug('field_dict: ' + str(field_dict))
+
                     is_updated = False
 # a. get new_value
                     new_value = field_dict.get('value')
@@ -713,22 +896,26 @@ def update_teammember(instance, upload_dict, update_dict, request):
 # 2. save changes in field 'team' (in absence mode parent 'team'' can be changed)
                     if field == 'team':
                         pk = field_dict.get('pk', 0)
+                        logger.debug('team pk' + str(pk))
                         team = None
                         if pk:
                             team = m.Team.objects.get_or_none(
                                 id=pk,
                                 scheme__order__customer__company=request.user.company)
-                        # logger.debug('team]: ' + str(team) + ' ' + str(type(team)))
+                        logger.debug('team]: ' + str(team) + ' ' + str(type(team)))
 
                         if team is None:
                             update_dict[field]['error'] = _('This field cannot be blank.')
                             has_error = True
                         else:
-                            setattr(instance, field, team)
+                            instance.team = team
                             is_updated = True
+                            # also put updted in 'order', to show absnece field green after update
+                        logger.debug('is_updated]: ' + str(is_updated))
 
 # 2. save changes in field 'employee'
-            # 'employee': {'update': True, 'value': 'Camila', 'pk': 243}}
+                    # 'employee': {'update': True, 'value': 'Camila', 'pk': 243}}
+                    # remove employee: employee: {update: true}
                     elif field == 'employee':
                         pk = field_dict.get('pk')
                         employee = None
@@ -736,19 +923,7 @@ def update_teammember(instance, upload_dict, update_dict, request):
                             employee = m.Employee.objects.get_or_none(
                                 id=pk,
                                 company=request.user.company)
-                        # logger.debug('employee]: ' + str(employee) + ' ' + str(type(employee)))
-
-                        # don't skip blank: teammember ccan be blank
-                        #if employee is None:
-                        #    update_dict[field]['error'] = _('This field cannot be blank.')
-                        #    has_error = True
-                        #else:
-                            # don't skip double: employee can be multiple times in team, at different dates
-                            # msg_err = e.validate_employee_exists_in_teammembers(employee, instance.team, instance.pk)
-                            #if msg_err:
-                            #    update_dict[field]['error'] = msg_err
-                            #    has_error = True
-                            #else:
+                # also update when employee = None: employee will be removed
                         setattr(instance, field, employee)
                         is_updated = True
 
@@ -808,6 +983,7 @@ def update_teammember(instance, upload_dict, update_dict, request):
                     if is_updated:
                         update_dict[field]['updated'] = True
                         save_changes = True
+
 # 5. save changes
         if save_changes:
             try:
@@ -951,206 +1127,366 @@ class EmployeeImportUploadData(View):  # PR2018-12-04 PR2019-08-05
     def post(self, request, *args, **kwargs):
         logger.debug(' ============= EmployeeImportUploadData ============= ')
 
-        params = []
+# 1. Reset language
+        # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+        user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+        activate(user_lang)
+
+# 2. get stored setting from Companysetting
+        stored_setting_json = m.Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company)
+        codecalc = 'linked'
+        tsaKey_list = []
+        if stored_setting_json:
+            stored_setting = json.loads(stored_setting_json)
+            if stored_setting:
+                codecalc = stored_setting.get('codecalc', 'linked')
+                logger.debug('codecalc: ' + str(codecalc))
+
+                stored_coldefs = stored_setting.get('coldefs')
+                logger.debug('stored_coldefs: ' + str(stored_coldefs))
+                # stored_coldefs: {'namelast': 'ANAAM', 'namefirst': 'Voor_namen', 'identifier': 'ID', ...}
+                if stored_coldefs:
+                    tsaKey_list = list(stored_coldefs.keys())
+
+        params = {}
+        logfile = []
+
+# 2. get upload_dict from request.POST
+        employee_list = []
         if request.user is not None:
             if request.user.company is not None:
-                tablename = 'employee'
+                upload_json = request.POST.get('upload', None)
+                if upload_json:
+                    upload_dict = json.loads(upload_json)
+                    if upload_dict:
+                        employee_list = upload_dict.get('employees')
 
-# get stored setting from Companysetting
-                stored_setting_json = m.Companysetting.get_setting(c.KEY_EMPLOYEE_COLDEFS, request.user.company)
-                codecalc  = 'linked'
-                if stored_setting_json:
-                    stored_setting = json.loads(stored_setting_json)
-                    if stored_setting:
-                        codecalc = stored_setting.get('codecalc', 'linked')
-                # logger.debug('codecalc: ' + str(codecalc))
+        if employee_list:
+            today_dte = f.get_today_dateobj()
+            today_formatted = f.format_WDMY_from_dte(today_dte, user_lang)
 
-                if 'employees' in request.POST:
-                    employees = json.loads(request.POST['employees'])
+            logfile.append(
+                '===================================================================================== ')
+            logfile.append(
+                '  ' + str(request.user.company.code) + '  -  Import employees : ' + str(today_formatted))
+            logfile.append(
+                '===================================================================================== ')
 
             # detect dateformat of field 'datefirst'
-                    format_str = f.detect_dateformat(employees, 'datefirst')
-                    logger.debug("detect_dateformat format_str: " + str(format_str))
+            format_str = f.detect_dateformat(employee_list, 'datefirst')
+            logger.debug("detect_dateformat format_str: " + str(format_str))
 
-                    for employee in employees:
-                        logger.debug('--------- import employee   ------------')
-                        logger.debug(str(employee))
-                        # 'code', 'namelast', 'namefirst',  'prefix', 'email', 'tel', 'datefirst',
-                        employee_dict = {}
+            update_list = []
+            for empl_dict in employee_list:
+                # logger.debug('--------- import employee   ------------')
+                # logger.debug(str(empl_dict))
+                # 'code', 'namelast', 'namefirst',  'prefix', 'email', 'tel', 'datefirst',
 
-                        #field_list = ('id', 'code', 'namefirst', 'namelast', 'email', 'telephone', 'identifier',
-                        #             'datefirst', 'datelast', 'wagecode', 'workhours', 'inactive')
+                update_dict = {}
+                is_update = False
 
-                        namelast = None
-                        namelast_str = employee.get('namelast', '')[0:c.NAME_MAX_LENGTH]
-                        if namelast_str:
-                            namelast = namelast_str
+                new_payrollcode = empl_dict.get('payrollcode')
+                new_identifier = empl_dict.get('identifier')
 
-                        namefirst = None
-                        namefirst_str = employee.get('namefirst', '')[0:c.NAME_MAX_LENGTH]
-                        if namefirst_str:
-                            namefirst = namefirst_str
-                        logger.debug('namelast: ' + str(namelast) + ' namefirst: ' + str(namefirst))
+                namelast_str = empl_dict.get('namelast', '')[0:c.NAME_MAX_LENGTH]
+                new_namelast = namelast_str if namelast_str else None
 
-                        # truncate input if necessary
-# get code or calculate code, depending on value of 'codecalcc
-                        code = None
-                        if codecalc == 'firstname':
-                            code_str = get_lastname_firstfirstname(namelast_str, namefirst_str)
-                        elif codecalc == 'initials':
-                            code_str = get_lastname_initials(namelast_str, namefirst_str, True) # PR2019-08-05
-                        elif codecalc == 'nospace':
-                            code_str = get_lastname_initials(namelast_str, namefirst_str, False)  # PR2019-08-05
-                        else:  #  codecalc == 'linked'
-                            code_str = employee.get('code', '')
-                        if code_str:
-                            code = code_str[0:c.CODE_MAX_LENGTH]
+                namefirst_str = empl_dict.get('namefirst', '')[0:c.NAME_MAX_LENGTH]
+                new_namefirst = namefirst_str if namefirst_str else None
 
-                        identifier = None
-                        identifier_str = employee.get('identifier', '')[0:c.CODE_MAX_LENGTH]
-                        if identifier_str:
-                            identifier = identifier_str
+                # get code or calculate code, depending on value of 'codecalc
+                new_code = None
+                if codecalc == 'firstname':
+                    code_str = get_lastname_firstfirstname(new_namelast, new_namefirst)
+                elif codecalc == 'initials':
+                    code_str = get_lastname_initials(new_namelast, new_namefirst, True)  # PR2019-08-05
+                elif codecalc == 'nospace':
+                    code_str = get_lastname_initials(new_namelast, new_namefirst, False)  # PR2019-08-05
+                else:  # codecalc == 'linked'
+                    code_str = empl_dict.get('code')
+                if code_str:
+                    new_code = code_str[0:c.CODE_MAX_LENGTH]
+                code_text = (" " * 5 + code_str + " " * 30)[:35]
 
-             # check if employee code already exists
-                        has_error = validate_code_name_identifier(tablename, 'code', code, request.user.company, employee_dict)
-                        if has_error:
-                            logger.debug('code <' + str(code) + '> has error: ' + str(employee_dict))
-                        else:
-                            logger.debug('code <' + str(code) + '> has no error ')
+# lookup employee
+                # multiple_found and value_too_long return the lookup_value of the error field
+                employee, no_value, multiple_found, value_too_long = lookup_employee(new_payrollcode, new_identifier, request)
+                if no_value:
+                    logfile.append(code_text + 'is skipped. No_value given for identifier and payrollcode.')
+                elif value_too_long:
+                    logfile.append(code_text + "is skipped. Value '" + value_too_long + "' is too long. Max " + c.CODE_MAX_LENGTH + " characters.")
+                elif multiple_found:
+                    logfile.append(code_text + "is skipped. Value '" + multiple_found + "' is found multiple times.")
+                else:
 
-            # check if employee identifier already exists
-                            has_error = validate_code_name_identifier(tablename, 'identifier', code, request.user.company, employee_dict)
-                            if has_error:
-                                logger.debug('identifier <' + str(identifier) + '> has error: ' + str(employee_dict))
-                            else:
-                                logger.debug('identifier <' + str(identifier) + '> has no error')
+                    if employee is None:
+                        employee = m.Employee(
+                            company=request.user.company,
+                            code=new_code,
+                            namelast=new_namelast,
+                            namefirst=new_namefirst,
+                            identifier=new_identifier,
+                            payrollcode=new_payrollcode
+                            )
+                        logfile.append(code_text + 'is created.')
+                    else:
+                        is_update = True
+                        logfile.append(code_text + 'already exists.')
 
-            # check if employee namefirst / namelast combination already exists
-                                has_error = validate_namelast_namefirst(namelast_str, namefirst_str, request.user.company, 'namelast', employee_dict)
-                                if has_error:
-                                    logger.debug('namelast, namefirst has error: ' + str(employee_dict))
-                                else:
-                                    logger.debug('namelast, namefirst has no error')
+                    if employee:
+                        if 'code' in tsaKey_list:
+                            old_code = employee.code if is_update else None
+                            if new_code != old_code:
+                                employee.code = new_code
+                                old_str = ' is updated from: ' + (old_code or '<blank>') + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'short name' + " " * 25)[:35] +
+                                               old_str +  (new_code or '<blank>'))
 
-                                    new_employee = m.Employee(
-                                        company=request.user.company,
-                                        code=code,
-                                        namelast=namelast,
-                                        namefirst=namefirst,
-                                        identifier=identifier
-                                    )
-                                    logger.debug('saved new_employee: ' + str(new_employee.code))
+                        if 'namelast' in tsaKey_list:
+                            old_value = employee.namelast if is_update else None
+                            if new_namelast != old_value:
+                                employee.namelast = new_namelast
+                                old_str = ' is updated from: ' + (old_value or '<blank>') + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'last name' + " " * 25)[:35] +
+                                               old_str + (new_namelast or '<blank>'))
 
-                                    email = employee.get('email', '')[0:c.NAME_MAX_LENGTH]
-                                    if email:
-                                        new_employee.email = email
+                        if 'namefirst' in tsaKey_list:
+                            old_value = employee.namefirst if is_update else None
+                            if new_namefirst != old_value:
+                                employee.namefirst = new_namefirst
+                                old_str = ' is updated from: ' + (old_value or '<blank>') + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'first name' + " " * 25)[:35] +
+                                               old_str + (new_namefirst or '<blank>'))
 
-                                    telephone = employee.get('tel', '')[0:c.USERNAME_SLICED_MAX_LENGTH]
-                                    if telephone:
-                                        new_employee.tel = telephone
+                        if 'identifier' in tsaKey_list:
+                            old_value = employee.identifier if is_update else None
+                            if new_identifier != old_value:
+                                employee.identifier = new_identifier
+                                old_str = ' is updated from: ' + (old_value or '<blank>') + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'identifier' + " " * 25)[:35] +
+                                               old_str + (new_identifier or '<blank>'))
 
-                                    datefirst_str = employee.get('datefirst')
-                                    datefirst_iso = ''
-                                    if datefirst_str and format_str:
-                                        datefirst_iso = f.get_dateISO_from_string(datefirst_str, format_str)
+                        if 'payrollcode' in tsaKey_list:
+                            old_value = employee.payrollcode if is_update else None
+                            if new_payrollcode != old_value:
+                                employee.payrollcode = new_payrollcode
+                                old_str = ' is updated from: ' + (old_value or '<blank>') + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'payrollcode' + " " * 25)[:35] +
+                                               old_str + (new_payrollcode or '<blank>'))
 
-                                    datelast_str = employee.get('datelast')
-                                    datelast_iso = ''
-                                    if datelast_str and format_str:
-                                        datelast_iso = f.get_dateISO_from_string(datelast_str, format_str)
+                        if 'email' in tsaKey_list:
+                            email_str = empl_dict.get('email', '')[0:c.NAME_MAX_LENGTH]
+                            new_email = email_str if email_str else None
+                            old_value = employee.email if is_update else None
+                            if new_email != old_value:
+                                employee.email = new_email
+                                old_str = ' is updated from: ' + (old_value or '<blank>') + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'email address' + " " * 25)[:35] +
+                                               old_str + (new_email or '<blank>'))
 
-                                    if datefirst_iso:
-                                        new_employee.datefirst = datefirst_iso
-                                        logger.debug('datefirst_dte:' + str(datefirst_iso) + str(type(datefirst_iso)))
-                                        logger.debug('new_employee.datefirst: ' + str(new_employee.datefirst))
-                                    if datelast_iso:
-                                        new_employee.datelast = datelast_iso
-                                        logger.debug('datelast_dte:' + str(datelast_iso) + str(type(datelast_iso)))
-                                        logger.debug('new_employee.datelast: ' + str(new_employee.datelast))
+                        if 'telephone' in tsaKey_list:
+                            telephone_str = empl_dict.get('telephone', '')[0:c.USERNAME_SLICED_MAX_LENGTH]
+                            new_telephone = telephone_str if telephone_str else None
+                            old_value = employee.telephone if is_update else None
+                            if new_telephone != old_value:
+                                employee.telephone = new_telephone
+                                old_str = ' is updated from: ' + (old_value or '<blank>') + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'telephone' + " " * 25)[:35] +
+                                               old_str + (new_telephone or '<blank>'))
 
-                                    # workhours per week * 60
-                                    workhours_per_week_minutes = 0
-                                    workhours = employee.get('workhours', 0)
-                                    if workhours:
-                                        workhours_float, msg_err = f.get_float_from_string(workhours)
-                                        workhours_per_week_minutes = int(workhours_float * 60)
-                                    new_employee.workhours = workhours_per_week_minutes
+                        if 'datefirst' in tsaKey_list:
+                            datefirst_str = empl_dict.get('datefirst')
+                            new_datefirst_dte = None
+                            old_datefirst_dte = employee.datefirst if is_update else None
+                            if datefirst_str and format_str:
+                                datefirst_iso = f.get_dateISO_from_string(datefirst_str, format_str)
+                                new_datefirst_dte = f.get_date_from_ISO(datefirst_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
+                            if new_datefirst_dte != old_datefirst_dte:
+                                employee.datefirst = new_datefirst_dte
+                                old_datefirst_str = old_datefirst_dte.isoformat() if old_datefirst_dte else '<blank>'
+                                new_datefirst_str = new_datefirst_dte.isoformat() if new_datefirst_dte else '<blank>'
+                                old_str = ' is updated from: ' + old_datefirst_str + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'first date in service' + " " * 25)[:35] +
+                                               old_str + new_datefirst_str)
 
-                                    # workdays per week * 1440 (one day has 1440 minutes)
-                                    workdays_per_week_minutes = 0
-                                    workdays = employee.get('workdays', 0)
-                                    if workdays:
-                                        workdays_float, msg_err = f.get_float_from_string(workdays)
-                                        workdays_per_week_minutes = int(workdays_float * 1440)
-                                    new_employee.workdays = workdays_per_week_minutes
+                        if 'datelast' in tsaKey_list:
+                            datelast_str = empl_dict.get('datelast')
+                            new_datelast_dte = None
+                            old_datelast_dte = employee.datelast if is_update else None
+                            if datelast_str and format_str:
+                                datelast_iso = f.get_dateISO_from_string(datelast_str, format_str)
+                                new_datelast_dte = f.get_date_from_ISO(datelast_iso)  # datelast_dte: 1900-01-01 <class 'datetime.date'>
+                            if new_datelast_dte != old_datelast_dte:
+                                employee.datelast = new_datelast_dte
+                                old_datelast_str = old_datelast_dte.isoformat() if old_datelast_dte else '<blank>'
+                                new_datelast_str = new_datelast_dte.isoformat() if new_datelast_dte else '<blank>'
+                                old_str = ' is updated from: ' + old_datelast_str + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'last date in service' + " " * 25)[:35] +
+                                               old_str + new_datelast_str)
 
-                                    # leave days per year, full time, * 1440 (one day has 1440 minutes)
-                                    leavedays_per_year_minutes = 0
-                                    leavedays = employee.get('leavedays', 0)
-                                    if leavedays:
-                                        leavedays_float, msg_err = f.get_float_from_string(leavedays)
-                                        leavedays_per_year_minutes = int(leavedays_float * 1440)
-                                    new_employee.leavedays = leavedays_per_year_minutes
+                        if 'workhours' in tsaKey_list:
+                            workhours = empl_dict.get('workhours')
+                            new_workhours_per_week_minutes = 0
+                            old_workhours = employee.workhours if is_update else None
+                            if workhours:
+                                workhours_float, msg_err = f.get_float_from_string(workhours)
+                                new_workhours_per_week_minutes = int(workhours_float * 60)
+                            if new_workhours_per_week_minutes != old_workhours:
+                                employee.workhours = new_workhours_per_week_minutes
+                                old_str = ' is updated from: ' + str(old_workhours / 60) + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'workhours per week' + " " * 25)[:35] +
+                                               old_str + str(new_workhours_per_week_minutes / 60))
 
-                                    payrollcode = employee.get('payrollcode')
-                                    if payrollcode:
-                                        new_employee.payrollcode = payrollcode
+                        if 'workdays' in tsaKey_list:
+                            # workdays per week * 1440 (one day has 1440 minutes)
+                            workdays = empl_dict.get('workdays')
+                            new_workdays_per_week_minutes = 0
+                            old_workdays = employee.workdays if is_update else None
+                            if workdays:
+                                workdays_float, msg_err = f.get_float_from_string(workdays)
+                                new_workdays_per_week_minutes = int(workdays_float * 1440)
+                            if new_workdays_per_week_minutes != old_workdays:
+                                employee.workdays = new_workdays_per_week_minutes
+                                old_str = ' is updated from: ' + str(old_workdays / 60) + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'workdays per week' + " " * 25)[:35] +
+                                               old_str + str(new_workdays_per_week_minutes / 1440))
 
-                                    # TODO: lookup wagecode in tablewagecode, create if not exists
+                        if 'leavedays' in tsaKey_list:
+                        # leave days per year, full time, * 1440 (one day has 1440 minutes)
+                            leavedays = empl_dict.get('leavedays')
+                            leavedays_per_year_minutes = 0
+                            old_leavedays = employee.leavedays if is_update else None
+                            if leavedays:
+                                leavedays_float, msg_err = f.get_float_from_string(leavedays)
+                                leavedays_per_year_minutes = int(leavedays_float * 1440)
+                            if leavedays_per_year_minutes != old_leavedays:
+                                employee.leavedays = leavedays_per_year_minutes
+                                old_str = ' is updated from: ' + str(old_leavedays / 60) + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'leave days per week' + " " * 25)[:35] +
+                                               old_str + str(leavedays_per_year_minutes / 1440))
 
-                                    try:
-                                        new_employee.save(request=request)
-                                        # logger.debug('saved new_employee: ' + str(new_employee))
-                                    except:
-                                        has_error = True
-                                        employee_dict['e_lastname'] = _('An error occurred. The employee data is not saved.')
-                                        # logger.debug('has_error: ' + str(new_employee))
+                        if 'datelast' in tsaKey_list:
+                            # set inactive True if employee more than 1 month out of service
+                            today_dte = f.get_today_dateobj()
+                            firstof_thismonth_dte = f.get_firstof_month(today_dte)
+                            lastof_thismonth_dte = f.get_lastof_month(today_dte)
+                            is_inactive = False
+                            if employee.datelast is None:
+                                if employee.datefirst is not None:
+                                    if employee.datefirst > lastof_thismonth_dte:
+                                        is_inactive = True
+                            elif employee.datelast < firstof_thismonth_dte:
+                                is_inactive = True
 
-                                    if new_employee.pk:
-                                        if new_employee.code:
-                                            employee_dict['s_code'] = new_employee.code
-                                        if new_employee.identifier:
-                                            employee_dict['s_identifier'] = new_employee.identifier
-                                        if new_employee.namelast:
-                                            employee_dict['s_namelast'] = new_employee.namelast
-                                        if new_employee.namefirst:
-                                            employee_dict['s_namefirst'] = new_employee.namefirst
-                                        if new_employee.email:
-                                            employee_dict['s_email'] = new_employee.email
-                                        if new_employee.telephone:
-                                            employee_dict['s_telephone'] = new_employee.telephone
-                                        if new_employee.datefirst:
-                                            employee_dict['s_datefirst'] = new_employee.datefirst
-                                        if new_employee.datelast:
-                                            employee_dict['s_datelast'] = new_employee.datelast
-                                        if new_employee.datelast:
-                                            employee_dict['s_datelast'] = new_employee.datelast
-                                        if new_employee.workhours:
-                                            employee_dict['s_workhours'] = new_employee.workhours/60
-                                        if new_employee.workdays:
-                                            # workdays per week * 1440 (one day has 1440 minutes)
-                                            employee_dict['s_workdays'] = new_employee.workdays/1440
-                                        if new_employee.leavedays:
-                                            # leave days per year, full time, * 1440 (one day has 1440 minutes)
-                                            employee_dict['s_leavedays'] = new_employee.leavedays/1440
-                                        if new_employee.payrollcode:
-                                            employee_dict['s_payrollcode'] = new_employee.payrollcode
+                            old_inactive = employee.inactive
+                            if is_inactive != old_inactive:
+                                employee.inactive = is_inactive
+                                old_str = ' is updated from: ' + str(old_inactive) + ' to: ' if is_update else ''
+                                logfile.append((" " * 10 + 'inactive' + " " * 25)[:35] +
+                                               old_str + str(is_inactive))
 
-                                    # logger.debug(str(new_student.id) + ': Student ' + new_student.lastname_firstname_initials + ' created ')
+
+                        # TODO: lookup wagecode in tablewagecode, create if not exists
+
+                        try:
+                            employee.save(request=request)
+                            # logger.debug('saved new_employee: ' + str(new_employee))
+                        except:
+                            has_error = True
+                            update_dict['e_lastname'] = _('An error occurred. The employee data is not saved.')
+                            # logger.debug('has_error: ' + str(new_employee))
+
+                        if employee.pk:
+
+                            if employee.code:
+                                update_dict['s_code'] = employee.code
+                            if employee.identifier:
+                                update_dict['s_identifier'] = employee.identifier
+                            if employee.namelast:
+                                update_dict['s_namelast'] = employee.namelast
+                            if employee.namefirst:
+                                update_dict['s_namefirst'] = employee.namefirst
+                            if employee.email:
+                                update_dict['s_email'] = employee.email
+                            if employee.telephone:
+                                update_dict['s_telephone'] = employee.telephone
+                            # address zipcode city country
+                            if employee.datefirst:
+                                update_dict['s_datefirst'] = employee.datefirst
+                            if employee.datelast:
+                                update_dict['s_datelast'] = employee.datelast
+                            if employee.workhours:
+                                update_dict['s_workhours'] = employee.workhours / 60
+                            if employee.workdays:
+                                # workdays per week * 1440 (one day has 1440 minutes)
+                                update_dict['s_workdays'] = employee.workdays / 1440
+                            if employee.leavedays:
+                                # leave days per year, full time, * 1440 (one day has 1440 minutes)
+                                update_dict['s_leavedays'] = employee.leavedays / 1440
+
+                            # wagerate wagecode
+                            # priceratejson additionjson
+
+                            # logger.debug(str(new_student.id) + ': Student ' + new_student.lastname_firstname_initials + ' created ')
 
                             # from https://docs.quantifiedcode.com/python-anti-patterns/readability/not_using_items_to_iterate_over_a_dictionary.html
                             # for key, val in student.items():
                             #    logger.debug( str(key) +': ' + val + '" found in "' + str(student) + '"')
 
                         # json_dumps_err_list = json.dumps(msg_list, cls=f.LazyEncoder)
-                        if any(employee_dict):  # 'Any' returns True if any element of the iterable is true.
-                            params.append(employee_dict)
-                        # params.append(new_employee)
+                        if update_dict:  # 'Any' returns True if any element of the iterable is true.
+                            update_list.append(update_dict)
+            # --- end for employee in employees
 
-                    # --- end for employee in employees
+            if update_list:  # 'Any' returns True if any element of the iterable is true.
+                params['employee_list'] = update_list
+            if logfile:  # 'Any' returns True if any element of the iterable is true.
+                params['logfile'] = logfile
+                    # params.append(new_employee)
 
          # return HttpResponse(json.dumps(params))
         return HttpResponse(json.dumps(params, cls=LazyEncoder))
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def lookup_employee(payrollcode, identifier , request):  # PR2019-12-17
+    # function searches for existing employee in the followoing order: payrollcode, identifier
+
+    employee = None
+    multiple_found = None
+    value_too_long = None
+    has_value_count = 0
+    for lookup_field in ('payrollcode', 'identifier'):
+        lookup_value = identifier if lookup_field == 'identifier' else payrollcode
+# B search employee by identifier
+        if lookup_value:
+            has_value_count += 1
+        # check if value is not too long
+            if len(lookup_value) > c.CODE_MAX_LENGTH:
+                # dont lookup other fields when lookup_value is too long
+                value_too_long = lookup_value
+                break
+            else:
+        # check if identifier__iexact already exists
+                employees = m.Employee.objects.filter(
+                    identifier__iexact=lookup_value,
+                    company=request.user.company)
+                row_count = 0
+                employee = None
+                for employee in employees:
+                    row_count += 1
+                if row_count > 1:
+                    multiple_found = lookup_value
+                    employee = None
+                    break
+    # one employee found: dont serach rest of fields
+        if employee:
+            break
+    no_value = (has_value_count == 0)
+    return employee, no_value, multiple_found, value_too_long
+
+
+
+
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_employee(upload_dict, update_dict, request):

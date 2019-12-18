@@ -282,6 +282,9 @@ h4 h5 {
 .tsa_bc_th_green {
     background-color: #e2ffd9;
 }
+.tsa_bc_medium_green {
+    background-color: #6bc350; /* used in btn weekday*/
+}
 
 .tsa_bc_bluish {
     background-color: #6083cc; /*blueish*/
@@ -310,6 +313,7 @@ h4 h5 {
      /*font-weight: bold;*/
 }
 
+
 .tsa_bc_lightlightred {
     background: #ffe8e8cc; /* 255-232-232 80% licht lichtrood; */
 }
@@ -323,6 +327,12 @@ h4 h5 {
 .tsa_bc_mediumred {
     background: #ffacac; /* 255-172-172  medium rood; */
 }
+
+.tsa_fontweight_bold {
+    font-weight: bold;
+}
+
+
 
 /*==================================================*/
 /* https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_popup */

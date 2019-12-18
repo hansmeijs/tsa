@@ -495,16 +495,21 @@ def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, ove
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def create_scheme_list(request, is_template, inactive, user_lang):
-    logger.debug(' --- create_scheme_list --- ')
+def create_scheme_list(request, is_singleshift, is_template, inactive, user_lang):
+    # logger.debug(' --- create_scheme_list --- ')
+    # logger.debug('is_singleshift: ' + str(is_singleshift))
 
 # --- create list of schemes of this company, absence=false PR2019-11-22
     crit = (Q(order__customer__company=request.user.company) & Q(isabsence=False))
+    if is_singleshift is not None:
+        crit.add(Q(issingleshift=is_singleshift), crit.connector)
     if is_template is not None:
         crit.add(Q(istemplate=is_template), crit.connector)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
+
     schemes = m.Scheme.objects.filter(crit)
+    # logger.debug('schemes SQL: ' + str(schemes.query))
 
     scheme_list = []
     for scheme in schemes:
@@ -615,6 +620,7 @@ def create_schemeitem_template_list(request, comp_timezone, user_lang):
         schemeitem_list = create_schemeitem_list(
             request=request,
             customer=order.customer,
+            is_singleshift=None,
             comp_timezone=comp_timezone,
             user_lang=user_lang)
 
@@ -622,13 +628,15 @@ def create_schemeitem_template_list(request, comp_timezone, user_lang):
     return schemeitem_list
 
 
-def create_schemeitem_list(request, customer, comp_timezone, user_lang):
+def create_schemeitem_list(request, customer, is_singleshift, comp_timezone, user_lang):
     # create list of schemeitems of this scheme PR2019-09-28
 
     crit = Q(scheme__order__customer__company=request.user.company)
     if customer:
         crit.add(Q(scheme__order__customer=customer), crit.connector)
-    schemeitems = m.Schemeitem.objects.filter(crit)
+    if is_singleshift:
+        crit.add(Q(issingleshift=is_singleshift), crit.connector)
+    schemeitems = m.Schemeitem.objects.filter(crit).order_by('rosterdate', 'shift__offsetstart')
 
     schemeitem_list = []
     for schemeitem in schemeitems:
@@ -829,9 +837,15 @@ def create_shift_dict(shift, update_dict, user_lang):
     # FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'timeduration', 'wagefactor')
 
     if shift:
-        offsetstart_value = shift.offsetstart if shift.offsetstart else None
-        offsetend_value = shift.offsetend if shift.offsetend else None
+        offsetstart_value = shift.offsetstart
+        offsetend_value = shift.offsetend
         breakduration_value = shift.breakduration if shift.breakduration else 0
+
+        # logger.debug('shiftcode: ' + str(shift.code))
+        #  logger.debug('shift.offsetstart: ' + str(shift.offsetstart))
+        # logger.debug('shift.offsetend: ' + str(shift.offsetend))
+        # logger.debug('offsetstart_value: ' + str(offsetstart_value))
+        # logger.debug('offsetend_value: ' + str(offsetend_value))
 
 # calculate timeduration
         timeduration = 0
@@ -919,19 +933,24 @@ def create_shift_dict(shift, update_dict, user_lang):
             if field_dict:
                 update_dict[field] = field_dict
 
+    # logger.debug('update_dict: ' + str(update_dict))
     # 7. remove empty attributes from update_dict
     f.remove_empty_attr_from_dict(update_dict)
 # --- end of create_shift_dict
 
 
-def create_team_list(request, customer):
+def create_team_list(request, customer, is_singleshift):
     # create list of teams of this order PR2019-09-02
     # logger.debug(' ----- create_team_list  -----  ')
     team_list = []
 
     crit = Q(scheme__order__customer__company=request.user.company)
+    if is_singleshift:
+        crit.add(Q(issingleshift=is_singleshift), crit.connector)
     if customer:
         crit.add(Q(scheme__order__customer=customer), crit.connector)
+        is_singleshift = is_singleshift,
+
     teams = m.Team.objects.select_related('scheme').filter(crit)
     # logger.debug(teammembers.query)
 
@@ -999,8 +1018,8 @@ def create_team_dict(team, item_dict):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
-    logger.debug(' ============== period_get_and_save ================ ')
-    logger.debug(' period_dict: ' + str(period_dict))
+    # logger.debug(' ============== period_get_and_save ================ ')
+    # logger.debug(' period_dict: ' + str(period_dict))
     # period_dict: {'get': True, 'now': [2019, 11, 17, 7, 9]}
     # period_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
 
@@ -1027,8 +1046,8 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
         # today_dte: 2019-11-17 <class 'datetime.date'>
         now_usercomp_dtm = f.get_datetime_from_arr(now_arr)
         # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
-        logger.debug('now_arr: ' + str(now_arr))
-        logger.debug('today_dte: ' + str(today_dte))
+        # logger.debug('now_arr: ' + str(now_arr))
+        # logger.debug('today_dte: ' + str(today_dte))
 
 # 3. get saved period_dict if get_saved = True
         key = None
@@ -1150,7 +1169,7 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
         update_dict['rosterdatefirst_minus1'] = rosterdatefirst_minus1.isoformat()
         update_dict['rosterdatelast_plus1'] = rosterdatelast_plus1.isoformat()
 
-    logger.debug('update_dict: ' + str(update_dict))
+    # logger.debug('update_dict: ' + str(update_dict))
     #  update_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360,
     #  'now': [2019, 11, 17, 7, 58],
     #  'periodstart': datetime.datetime(2019, 11, 17, 18, 0, tzinfo=<DstTzInfo 'Europe/Amsterdam' CET+1:00:00 STD>),
@@ -1160,7 +1179,7 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
     return update_dict
 
 def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
-    logger.debug(' ============= create_emplhour_list ============= ')
+    # logger.debug(' ============= create_emplhour_list ============= ')
 
     periodstart_datetimelocal = period_dict.get('periodstart')
     periodend_datetimelocal = period_dict.get('periodend')
@@ -1232,12 +1251,12 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
                 'pte': periodend_datetimelocal
                 })
 
-    logger.debug("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVV")
+    # logger.debug("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVV")
 
-    logger.debug("rosterdatefirst_minus1: " + str(rosterdatefirst_minus1))
-    logger.debug("rosterdatelast_plus1: " + str(rosterdatelast_plus1))
-    logger.debug("periodstart_datetimelocal: " + str(periodstart_datetimelocal))
-    logger.debug("periodend_datetimelocal: " + str(periodend_datetimelocal))
+    # logger.debug("rosterdatefirst_minus1: " + str(rosterdatefirst_minus1))
+    # logger.debug("rosterdatelast_plus1: " + str(rosterdatelast_plus1))
+    # logger.debug("periodstart_datetimelocal: " + str(periodstart_datetimelocal))
+    # logger.debug("periodend_datetimelocal: " + str(periodend_datetimelocal))
 
     emplhours_rows = f.dictfetchall(newcursor)
     # dictfetchall returns a list with dicts for each emplhour row
@@ -1250,7 +1269,7 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
 
     emplhour_list = []
     for row in emplhours_rows:
-        logger.debug("row: " + str(row))
+        # logger.debug("row: " + str(row))
         item_dict = {}
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # --- start of create_emplhour_itemdict

@@ -228,10 +228,10 @@ def get_today_dateobj():
     # today_iso: 2019-11-17 <class 'str'>
     today_dte = get_date_from_arr(now_arr)
     # today_dte: 2019-11-17 <class 'datetime.date'>
-    now_usercomp_dtm = get_datetime_from_arr(now_arr)
+    # NIU now_usercomp_dtm = get_datetime_from_arr(now_arr)
     # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
 
-    return now_usercomp_dtm
+    return today_dte
 
 # <<<<<<<<<< SO FAR checked and approved PR2019-09-17 <<<<<<<<<<<<<<<<<<<
 # ########################################################################<
@@ -1530,11 +1530,13 @@ def get_iddict_variables(id_dict):
     if id_dict:
         mode = id_dict.get('mode', '')
         table = id_dict.get('table', '')
-        pk_int = int(id_dict.get('pk', 0))
-        ppk_int = int(id_dict.get('ppk', 0))
+        pk_int = id_dict.get('pk')
+        ppk_int = id_dict.get('ppk')
         temp_pk_str = id_dict.get('temp_pk', '')
         is_create = ('create' in id_dict)
         is_delete = ('delete' in id_dict)
+        # is_absence = ('isabsence' in id_dict)
+        # is_template = ('istemplate' in id_dict)
 
     return pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode
 

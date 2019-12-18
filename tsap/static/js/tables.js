@@ -331,20 +331,18 @@
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= remove_err_del_cre_updated__from_itemdict  ======== PR2019-10-11
     function remove_err_del_cre_updated__from_itemdict(item_dict) {
-        console.log("remove_err_del_cre_updated__from_itemdict")
+        //console.log("remove_err_del_cre_updated__from_itemdict")
         if(!isEmpty(item_dict)){
 //--- remove 'updated, deleted created and msg_err from item_dict
             Object.keys(item_dict).forEach(function(key) {
                 const field_dict = item_dict[key];
                 if (!isEmpty(field_dict)){
-
-                // TODO put back deletes
-                    //if ("updated" in field_dict){delete field_dict["updated"]};
-                    //if ("msg_err" in field_dict){delete field_dict["msg_err"]};
+                    if ("updated" in field_dict){delete field_dict["updated"]};
+                    if ("msg_err" in field_dict){delete field_dict["msg_err"]};
                     if(key === "id"){
-                        //if ("created" in field_dict){delete field_dict["created"]};
-                        //if ("temp_pk" in field_dict){delete field_dict["temp_pk"]};
-                        //if ("deleted" in field_dict){delete field_dict["deleted"]};
+                        if ("created" in field_dict){delete field_dict["created"]};
+                        if ("temp_pk" in field_dict){delete field_dict["temp_pk"]};
+                        if ("deleted" in field_dict){delete field_dict["deleted"]};
                     }}})};
     };  // remove_err_del_cre_updated__from_itemdict
 
