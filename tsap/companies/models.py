@@ -1,7 +1,8 @@
 # PR2019-02-28
 from django.contrib.postgres.fields import JSONField
 
-from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL, Sum
+from django.db.models import Model, Manager, ForeignKey, PROTECT, CASCADE, SET_NULL, Sum, Max, Min
+
 from django.db.models import CharField, BooleanField, PositiveSmallIntegerField, SmallIntegerField, IntegerField, \
     DateField, DateTimeField, Q, Value
 from django.db.models.functions import Lower, Coalesce
@@ -324,8 +325,10 @@ class Calendar(TsaBaseModel):
     company = ForeignKey(Company, related_name='calendars', on_delete=CASCADE)
 
     rosterdate = DateField(db_index=True)
+    year = PositiveSmallIntegerField(default=0)
 
-    cat = PositiveSmallIntegerField(default=0)
+    iscompanyholiday = BooleanField(default=False)
+    ispublicholiday = BooleanField(default=False)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
@@ -335,10 +338,7 @@ class Calendar(TsaBaseModel):
     locked = None
 
     class Meta:
-        ordering = [Lower('code')]
-
-    def __str__(self):
-        return self.code
+        ordering = ['rosterdate']
 
 
 class CalendarTimecode(TsaBaseModel): # List of dates with timecodes, to be generated each year
@@ -363,6 +363,7 @@ class Scheme(TsaBaseModel):
     cat = PositiveSmallIntegerField(default=0)  # order cat = # 00 = normal, 10 = internal, 20 = rest, 30 = absence, 90 = template
     isabsence = BooleanField(default=False)
     issingleshift = BooleanField(default=False)
+    isdefaultweekshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
     cycle = PositiveSmallIntegerField(default=7)
@@ -453,6 +454,7 @@ class Employee(TsaBaseModel):
 
     address = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     zipcode = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
+
     city = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     country = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
 
@@ -497,10 +499,6 @@ class Teammember(TsaBaseModel):
     isabsence = BooleanField(default=False)
     issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
-
-    # teammember offset is only used for absence, in that case there is no schemeitem
-    offsetstart = SmallIntegerField(null=True)  # only for absence
-    offsetend = SmallIntegerField(null=True)  # only for absence
 
     wagefactor = IntegerField(default=0) # /10000 unitless, 0 = factor 100%  = 10.000)
 
@@ -569,6 +567,7 @@ class Schemeitem(TsaBaseModel):
     locked = None
 
     cat = PositiveSmallIntegerField(default=0)
+    isabsence = BooleanField(default=False)
     issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable

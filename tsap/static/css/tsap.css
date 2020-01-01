@@ -312,7 +312,11 @@ h4 h5 {
 
      /*font-weight: bold;*/
 }
-
+.tsa_color_mediumblue {
+    /* color: #a5a5a5 !important;  medium grey; 165 165 165 */
+    /*color: #2D4E77 !important;/* HeaderBackColor Default Schema Blauw donkerblauw */
+    color: #015bff !important; /*HeaderForeColor Default Schema Blauw */
+}
 
 .tsa_bc_lightlightred {
     background: #ffe8e8cc; /* 255-232-232 80% licht lichtrood; */

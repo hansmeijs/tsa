@@ -7,11 +7,57 @@ from tsap import constants as c
 
 
 # === get_locale_dict ===================================== PR2019-11-12
-def get_locale_dict(table_dict, user_lang):
+def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
     # PR2019-11-12
 
-    dict = {}
+    dict = {'user_lang': user_lang, 'comp_timezone': comp_timezone, 'timeformat': timeformat}
+
     page = table_dict.get('page')
+
+    # ====== PAGE CUSTOMER =========================
+    if page == 'customer':
+        dict['weekdays_long'] = TXT_weekdays_long
+        dict['months_abbrev'] = TXT_months_abbrev
+        dict['Hours'] = TXT_Hours
+        dict['Hour'] = TXT_Hour
+        dict['Full_day'] = TXT_Full_day
+
+        dict['Select_order'] = TXT_Select_order
+        dict['No_orders'] = TXT_No_orders
+        dict['New_scheme'] = TXT_New_scheme
+        dict['New_shift'] = TXT_New_shift
+        dict['New_team'] = TXT_New_team
+
+        dict['New_team'] = TXT_New_team
+
+        # table headers
+        dict['Employee'] = TXT_Employee
+        dict['Replacement_employee'] = TXT_Replacement_employee
+        dict['Start_date'] = TXT_Start_date
+        dict['End_date'] = TXT_End_date
+        dict['Start_time'] = TXT_Start_time
+        dict['End_time'] = TXT_End_time
+        dict['Break'] = TXT_Break
+        dict['Working_hours'] = TXT_Working_hours
+
+        # ModShift
+        dict['Add_teammember'] = TXT_Add_teammember
+        dict['Delete_teammember'] = TXT_Delete_teammember
+        dict['Select_employee'] = TXT_Select_employee
+        dict['Add_employee'] = TXT_Add_employee
+        dict['No_employees'] = TXT_No_employees
+
+        # ModTimepicker
+        dict['Break'] = TXT_Break
+        dict['Working_hours'] = TXT_Working_hours
+        dict['Current_day'] = TXT_Current_day
+        dict['Previous_day'] = TXT_Previous_day
+        dict['Next_day'] = TXT_Next_day
+        dict['Previous_day_title'] = TXT_Previous_day_title
+        dict['Next_day_title'] = TXT_Next_day_title
+        dict['btn_save'] = TXT_btn_save
+        dict['Quick_save'] = TXT_Quick_save
+        dict['Exit_Quicksave'] = TXT_Exit_Quicksave
 
 # ====== PAGE EMPLOYEE =========================
     if page == 'employee':
@@ -29,11 +75,17 @@ def get_locale_dict(table_dict, user_lang):
         dict['Weekdays'] = TXT_Weekdays
         dict['Start_time'] = TXT_Start_time
         dict['End_time'] = TXT_End_time
-        dict['Break'] = TXT_Break
-        dict['Working_hours'] = TXT_Working_hours
+
+
         dict['Hours'] = TXT_Hours
+        dict['Hour'] = TXT_Hour
+        dict['Full_day'] = TXT_Full_day
+
         dict['As_of'] = TXT_As_of
 
+        # ModTimepicker
+        dict['Break'] = TXT_Break
+        dict['Working_hours'] = TXT_Working_hours
         dict['Current_day'] = TXT_Current_day
         dict['Previous_day'] = TXT_Previous_day
         dict['Next_day'] = TXT_Next_day
@@ -272,18 +324,29 @@ TXT_Order = _('Order')
 TXT_Select_order = _('Select order')
 TXT_No_orders = _('No orders')
 
+TXT_New_scheme = _('New scheme')
+
 TXT_Shift = _('Shift')
 TXT_Shifts = _('Shifts')
 TXT_shift = _('shift')
 TXT_shifts = _('shifts')
 
+TXT_New_shift = _('New shift')
 TXT_Rest_shift = _('Rest shift')
 
 TXT_Team = _('Team')
 TXT_Teams = _('Teams')
+TXT_New_team = _('New team')
+TXT_Add_teammember = _('Add teammember')
+TXT_Delete_teammember  = _('Delete teammember')
 
 TXT_Employee = _('Employee')
-# _('Order / Employee')
+TXT_Select_employee = _('Select employee')
+TXT_Add_employee = _('Add employee')
+TXT_No_employees = _('No employees')
+TXT_Replacement_employee = _('Replacement employee')
+
+
 
 TXT_Absence = _('Absence')
 TXT_Abscat = _('Absence category')
@@ -336,11 +399,15 @@ TXT_months_long = ('', _('January'), _( 'February'), _( 'March'), _('April'), _(
                          'July'), _('August'), _('September'), _('October'), _('November'), _('December'))
 
 TXT_Weekdays = _('Weekdays')
+TXT_Start_date = _('Start date')
+TXT_End_date = _('End date')
 TXT_Start_time = _('Start time')
 TXT_End_time = _('End time')
 TXT_Break = _('Break')
 TXT_Working_hours = _('Working hours')
 TXT_Hours = _('Hours')
+TXT_Hour = _('Hour')
+TXT_Full_day = _('Full day')
 
 TXT_Current_day = _('Current day')
 TXT_Previous_day = _('Previous day')
@@ -348,3 +415,4 @@ TXT_Next_day = _('Next day')
 TXT_Previous_day_title = _('Shift starts on the previous day')
 TXT_Next_day_title = _('Shift ends on the next day')
 TXT_As_of = _('As of')
+

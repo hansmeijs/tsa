@@ -10,10 +10,10 @@
 
         CalcMinMax(tp_dict)
 
-        //console.log( "offset: ", tp_dict["offset"]);
-        //console.log( "minoffset: ", tp_dict["minoffset"]);
-       // console.log( "maxoffset: ", tp_dict["maxoffset"]);
-        //console.log( "quicksave: ", tp_dict["quicksave"]["value"]);
+        console.log( "offset: ", tp_dict["offset"]);
+        console.log( "minoffset: ", tp_dict["minoffset"]);
+        console.log( "maxoffset: ", tp_dict["maxoffset"]);
+        console.log( "quicksave: ", tp_dict["quicksave"]["value"]);
 
 // display cur_datetime_local in header
         CreateHeader(tp_dict, st_dict);
@@ -25,7 +25,7 @@
         CreateTimepickerMinutes(ModTimepickerChanged, tp_dict, st_dict);
 
         if (tp_dict["isampm"]) {HighlightAndDisableAmpm(ModTimepickerChanged, tp_dict, st_dict)}
-        HighlightAndDisableHours(tp_dict);
+        HighlightAndDisableHours(tp_dict, "ModTimepickerOpen");
         HighlightAndDisableMinutes(tp_dict)
 
 // hide save button on quicksave
@@ -94,7 +94,12 @@
         if(st_dict["show_btn_delete"] && tp_dict["offset"] != null){
             let btn_delete = document.createElement("button");
                 btn_delete.setAttribute("type", "button")
-                btn_delete.classList.add("timepicker_close")
+                // timepicker_close to close normal popup: btn_delete.classList.add("timepicker_close")
+
+                // both data-toggle and href needed for toggle popup and modal form
+                btn_delete.setAttribute("data-toggle", "modal");
+                btn_delete.setAttribute("href", "#id_mod_timepicker");
+
                 btn_delete.addEventListener("click", function() {
                     ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, "btn_delete")}, false )
                 AppendChildIcon(btn_delete, st_dict["imgsrc_delete"], "18")
@@ -107,8 +112,7 @@
             btn_save.innerText = st_dict["txt_save"];
 
             btn_save.setAttribute("data-toggle", "modal");
-            // todo cretae argument
-           btn_save.setAttribute("href", "#id_mod_timepicker");
+            btn_save.setAttribute("href", "#id_mod_timepicker");
 
             btn_save.addEventListener("click", function() {
                 ModTimepickerSave( tp_dict, st_dict, ModTimepickerChanged, "btn_save")}, false )
@@ -308,7 +312,7 @@
     // show new date, also when not in range
         document.getElementById("id_timepicker_date").innerText = get_header_date(tp_dict, st_dict)
 
-        HighlightAndDisableHours(tp_dict);
+        HighlightAndDisableHours(tp_dict, "SetPrevNextDay");
         HighlightAndDisableMinutes(tp_dict)
     }  // SetPrevNextDay
 
@@ -341,7 +345,7 @@
             if (tp_dict["isampm"]) { HighlightAndDisableAmpm(ModTimepickerChanged, tp_dict)};
             const curHours = tp_dict["curHours"], minHours = tp_dict["minHours"], maxHours = tp_dict["maxHours"];
             const curMinutes = tp_dict["curMinutes"], minMinutes = tp_dict["minMinutes"], maxMinutes = tp_dict["maxMinutes"];
-            HighlightAndDisableHours(tp_dict);
+            HighlightAndDisableHours(tp_dict, "SetAmPm");
             HighlightAndDisableMinutes(tp_dict)
 
 
@@ -350,17 +354,17 @@
 
 //========= SetHour  ====================================
     function SetHour(tbody, td, ModTimepickerChanged, tp_dict, st_dict) {
-       console.log("==== SetHour  =====");
-        console.log("tp_dict", tp_dict);
+        //console.log("==== SetHour  =====");
+        //console.log("tp_dict", tp_dict);
         const is_quicksave = tp_dict.quicksave;
     // check if cell is disabeld
         const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
-        console.log("disabled", disabled);
+        //console.log("disabled", disabled);
 
         if (!disabled){
         // get new hour from data-hour of td
             const newHours = get_attr_from_el_int(td, "data-hour");
-        console.log("newHours", newHours);
+        //console.log("newHours", newHours);
     // recalculate values of tp_dict
             CalcMinMax_with_newValues(tp_dict, null, newHours, null);
 
@@ -371,7 +375,7 @@
 
             if (tp_dict["isampm"]) { HighlightAndDisableAmpm(ModTimepickerChanged, new_dict, st_dict)};
 
-            HighlightAndDisableHours(tp_dict);
+            HighlightAndDisableHours(tp_dict, "SetHour");
             HighlightAndDisableMinutes(tp_dict);
 
         }  // if (!disabled)
@@ -397,11 +401,12 @@
 
 //=========  ModTimepickerSave  ================ PR2019-11-24
     function ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, mode) {
-        console.log("===  ModTimepickerSave =========", mode);
+        //console.log("===  ModTimepickerSave =========", mode);
         // close timepicker, except when clicked on quicksave off
 
 // ---  change quicksave when clicked on button 'Quicksave'
         let is_quicksave = tp_dict.quicksave;
+        //console.log("is_quicksave", is_quicksave);
 
         let save_changes = false, dont_return = false;
 // close timepicker, except when clicked on quicksave off
@@ -440,19 +445,22 @@
         }
 
         if(save_changes){
-            console.log( " --- save_changes ---");
+           // console.log( " --- save_changes ---");
 
             // save only when offset is within range or null (when changing date hour/minumtes can go outside min/max range)
-            console.log( "tp_dict: ", tp_dict);
+            //console.log( "tp_dict: ", tp_dict);
 
             const within_range = tp_dict["within_range"];
+            //console.log( "within_range = ", within_range);
             // console.log( "within_range: ", within_range, typeof within_range);
             if(tp_dict["within_range"]){
                 tp_dict["save_changes"] = true;
-                ModTimepickerChanged(tp_dict);
             }
         }
-        if(!dont_return) { ModTimepickerChanged(tp_dict)}
+        if(!dont_return) {
+            //console.log( " --- goto  ModTimepickerChanged ---");
+            ModTimepickerChanged(tp_dict)
+        }
     }  // ModTimepickerSave
 
 
@@ -508,15 +516,16 @@
     }  // HighlightAndDisableAmpm
 
 //========= HighlightAndDisableHours  ====================================
-    function HighlightAndDisableHours(tp_dict) {
+    function HighlightAndDisableHours(tp_dict, called_by) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
-        console.log( "--- HighlightAndDisableHours --- ");
+        //console.log( "--- HighlightAndDisableHours --- ");
+        //console.log( "called_by: ", called_by);
         CalcMinMax(tp_dict)
 
         const curHours = tp_dict["curHours"]
         const minHours = tp_dict["minHours"]
         const maxHours = tp_dict["maxHours"]
-        console.log( "curHours", curHours,  "minHours", minHours,  "maxHours", maxHours);
+        //console.log( "curHours", curHours,  "minHours", minHours,  "maxHours", maxHours);
 
         let curHourDisabled = false;
         let tbody = document.getElementById("id_timepicker_tbody_hour");
@@ -578,7 +587,7 @@
 
 //========= CalcMinMax  ==================================== PR2018-11-08
 function CalcMinMax_with_newValues(tp_dict, newDayOffset, newHours, newMinutes) {
-        console.log(" --- CalcMinMax_with_newValues ---")
+        //console.log(" --- CalcMinMax_with_newValues ---")
 // get curHours and curMinutes from curOffset in tp_dict
         const curOffset = tp_dict["offset"];
 
@@ -608,8 +617,8 @@ function CalcMinMax_with_newValues(tp_dict, newDayOffset, newHours, newMinutes) 
 
 //========= CalcMinMax  ==================================== PR2018-08-02
 function CalcMinMax(dict) {
-        console.log(" --- CalcMinMax ---")
-        console.log("dict: ", dict)
+        //console.log(" --- CalcMinMax ---")
+        //console.log("dict: ", dict)
 
         const curOffset = dict["offset"];
         let minOffset = dict["minoffset"];
@@ -759,7 +768,7 @@ function CalcMinMax(dict) {
             };
         }  // if (tp_dict["field"] === "breakduration"){
 
-        console.log( "date_text ", date_text);
+        //console.log( "date_text ", date_text);
         return date_text;
     }  // get_header_date
 

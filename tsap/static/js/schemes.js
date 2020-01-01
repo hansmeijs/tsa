@@ -79,29 +79,27 @@ document.addEventListener('DOMContentLoaded', function() {
         let teammember_map = new Map();
         let employee_map = new Map();
 
-        const tbl_col_count = {"schemeitem": 8, "shift": 5, "teammember": 4}
+        const tbl_col_count = {schemeitem: 8, shift: 5, teammember: 5}
         const thead_text = {
-            "schemeitem": ["txt_date", "txt_shift", "txt_team", "txt_timestart", "txt_timeend", "txt_break"],
-            "shift": ["txt_shift", , "txt_timestart", "txt_timeend", "txt_break"],
-            "teammember": ["txt_employee", "txt_datefirst", "txt_datelast", ]}
+            schemeitem: ["txt_date", "txt_shift", "txt_team", "txt_timestart", "txt_timeend", "txt_break"],
+            shift: ["txt_shift", , "txt_timestart", "txt_timeend", "txt_break"],
+            teammember: ["txt_employee", "txt_datefirst", "txt_datelast", "txt_replacement",]}
         const field_names = {
-            "schemeitem": ["rosterdate", "shift", "team", "offsetstart", "offsetend", "breakduration", "inactive", "delete"],
-            "shift": ["code", "isrestshift", "offsetstart", "offsetend", "breakduration"],
-            "teammember": ["employee", "datefirst", "datelast", "delete"]}
+            schemeitem: ["rosterdate", "shift", "team", "offsetstart", "offsetend", "breakduration", "inactive", "delete"],
+            shift: ["code", "isrestshift", "offsetstart", "offsetend", "breakduration"],
+            teammember: ["employee", "datefirst", "datelast", "replacement", "delete"]}
         const field_tags = {
-            "schemeitem": ["input", "select", "select", "input","input", "input", "a", "a"],
-            "shift": ["input", "a", "input", "input", "input"],
-            "teammember": ["input", "input", "input", "a"]}
-        const field_width = {"schemeitem": ["120", "120", "180", "090", "090", "090", "032", "032"],
-            "shift": ["180", "060", "120", "120", "120"],
-            "teammember": ["220", "120", "120", "032"]}
+            schemeitem: ["input", "select", "select", "input","input", "input", "a", "a"],
+            shift: ["input", "a", "input", "input", "input"],
+            teammember: ["input", "input", "input", "input", "a"]}
+        const field_width = {
+            schemeitem: ["120", "120", "180", "090", "090", "090", "032", "032"],
+            shift: ["180", "060", "120", "120", "120"],
+            teammember: ["220", "120", "120", "220", "032"]}
         const field_align = {
-            "schemeitem": ["left", "left", "left", "right", "right", "right", "left", "left"],
-            "shift": ["left", "left", "right", "right", "right"],
-            "teammember": ["left", "left", "left", "right"]}
-
-        const field_right_align = {"schemeitem": [3,4,5,6], "shift": [2,3,5], "teammember": [4]}
-        const field_center_align = {"schemeitem": [], "shift": [], "teammember": []}
+            schemeitem: ["left", "left", "left", "right", "right", "right", "left", "left"],
+            shift: ["left", "left", "right", "right", "right"],
+            teammember: ["left", "left", "left", "left", "right"]}
 
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
@@ -314,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const datalist_request = {customer: {isabsence: false, istemplate: null, inactive: false},
                                   order: {isabsence: false, istemplate: null, inactive: false},
-                                  scheme: {istemplate: null, inactive: null, issingleshift: false},
+                                  scheme: {istemplate: null, inactive: null, issingleshift: null},
                                   employee: {inactive: null}};
         DatalistDownload(datalist_request);
 
@@ -1137,81 +1135,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return tblRow;
     } // CreateSelectRow
 
-
-//========= FillScheme  ====================================
-    function FillScheme(item_dict) {
-        console.log( "===== FillScheme  ========= ");
-        //console.log("item_dict", item_dict)
-
-        el_scheme_code.value = null;
-        el_scheme_cycle.value = null;
-        el_scheme_datefirst.value = null;
-        el_scheme_datelast.value = null;
-        el_scheme_btn_delete.disabled = true
-
-// fill scheme fields
-        if (!!item_dict){
-            const tblName = "scheme"
-            const pk_int = get_pk_from_dict(item_dict);
-            const ppk = get_ppk_from_dict(item_dict);
-
-            let field, field_dict, value, wdmy
-            const field_list = ["code", "cycle", "datefirst", "datelast"];
-            for(let i = 0, el_input, fieldname, n_value, o_value, len = field_list.length; i < len; i++){
-                fieldname = field_list[i];
-
-                if (fieldname === "code"){el_input = el_scheme_code} else
-                if (fieldname === "cycle"){el_input = el_scheme_cycle} else
-                if (fieldname === "datefirst"){el_input = el_scheme_datefirst} else
-                if (fieldname === "datelast"){el_input = el_scheme_datelast};
-
-                field_dict = get_dict_value_by_key (item_dict, fieldname)
-                //console.log("field_dict", field_dict)
-                const updated = get_dict_value_by_key (field_dict, "updated");
-                const msg_err = get_dict_value_by_key (field_dict, "error");
-
-                if(!!msg_err){
-                    ShowMsgError(el_input, el_msg, msg_err, [-160, 80])
-                } else if(updated){
-                    el_input.classList.add("border_valid");
-                    setTimeout(function (){
-                        el_input.classList.remove("border_valid");
-                        }, 2000);
-                }
-
-                if (["code", "cycle"].indexOf( fieldname ) > -1){
-                   format_text_element (el_input, el_msg, field_dict, false, [-220, 60] )
-                };
-
-
-
-                //value = get_dict_value_by_key (field_dict, "value")
-                //wdmy = get_dict_value_by_key (field_dict, "wdmy");
-
-                //el.setAttribute("data-value", value)
-                //el.setAttribute("data-o_value", value)
-                //el.setAttribute("data-pk", pk_int )
-                //el.setAttribute("data-ppk", ppk)
-                //el.setAttribute("data-table", tblName)
-
-                //if (fieldname === "code" || fieldname === "cycle"){
-                //    if(!value){value = null} // otherwise you'll get  error: "undefined" is not a valid number
-                //    el.value = value
-                //} else if (fieldname === "datefirst" || fieldname === "datelast"){
-                //    if (!!wdmy){
-                //        el.value = wdmy;
-                //        el.setAttribute("data-wdmy", wdmy)
-                //    };
-                //}
-                //if (is_updated(field_dict)){ ShowOkElement(el)};
-            }  // for(let i = 0, fieldname,
-
-            el_scheme_btn_delete.disabled = false;
-
-        };  // if (!!item_dict){
-    }  //function FillScheme
-
-
 //=========  HandleSelectAddnewRow  ================ PR2019-08-08
     function HandleSelectAddnewRow(sel_tblRow) {
         console.log("========= HandleSelectAddnewRow ===" );
@@ -1377,51 +1300,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  //function FillSelectOptions
 
-   //========= FillOptionShift  ============= PR2019-08-10
-    function FillOptionShift(sel_scheme_pk, with_rest_abbrev) {
-        // console.log( "===== FillOptionShift  ========= ");
-
-// add empty option on first row
-        let option_text = "<option value=\"0\" data-ppk=\"0\">-</option>";
-
-// --- loop through shift_map
-        for (const [map_id, item_dict] of shift_map.entries()) {
-            const pk_int = get_pk_from_dict(item_dict);
-            const ppk_int = get_ppk_from_dict(item_dict);
-
-// skip if selected_scheme_pk exists and does not match ppk_int
-            if (!!sel_scheme_pk && ppk_int === sel_scheme_pk) {
-                let value = get_subdict_value_by_key(item_dict, "code", "value", "-")
-                if (with_rest_abbrev){
-                    const is_restshift = get_subdict_value_by_key(item_dict, "isrestshift", "value")
-                    if (is_restshift) { value += " (R)"}
-                }
-                option_text += "<option value=\"" + pk_int + "\" data-ppk=\"" + ppk_int + "\">" + value + "</option>";
-            }
-        }  // for (let key in item_list)
-        return option_text
-    }  // FillOptionShift
-
-   //========= FillOptionTeam  ============= PR2019-08-11
-    function FillOptionTeam(sel_scheme_pk) {
-
-// add empty option on first row
-        let option_text = "<option value=\"0\" data-ppk=\"0\">-</option>";
-// --- loop through team_map
-        for (const [map_id, item_dict] of team_map.entries()) {
-            const pk_int = get_pk_from_dict(item_dict);
-            const ppk_int = get_ppk_from_dict(item_dict);
-
-// skip if selected_scheme_pk exists and does not match ppk_int
-            if (!!sel_scheme_pk && ppk_int === sel_scheme_pk) {
-                const value = get_subdict_value_by_key(item_dict, "code", "value", "-")
-                option_text += "<option value=\"" + pk_int + "\"";
-                option_text += " data-ppk=\"" + ppk_int + "\"";
-                option_text +=  ">" + value + "</option>";
-            }
-        }
-        return option_text
-    }  // FillOptionTeam
 
 //========= FillSelectTable  ============= PR2019-09-23
     function FillSelectTable(tblName, called_by, selected_pk, is_current_table) {
@@ -1713,33 +1591,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
             let tblRow = tblHead.insertRow (-1);  // index -1: insert new cell at last position.
 
-    //--- insert td's to tblHead
+//--- insert td's to tblHead
             for (let j = 0; j < tbl_col_count[tblName]; j++) {
 
-    // --- add th to tblRow.
+// --- add th to tblRow.
                 let th = document.createElement("th");
                 tblRow.appendChild(th);
 
-    // --- add div to th, margin not workign with th
+// --- add div to th, margin not workign with th
                 let el_div = document.createElement("div");
                 th.appendChild(el_div)
 
-    // --- add innerText to el_div
+// --- add innerText to el_div
                 const data_key = "data-" + thead_text[tblName][j];
                 const data_text = get_attr_from_el(el_data, data_key);
                 el_div.innerText = data_text;
                 el_div.setAttribute("overflow-wrap", "break-word");
 
-    // --- add margin to first column
+// --- add margin to first column
                 if (j === 0 ){el_div.classList.add("ml-2")}
 
-    // --- add width to el
+// --- add width to el
                 el_div.classList.add("td_width_" + field_width[tblName][j])
 
-    // --- add textalign to el
+// --- add textalign to el
                 el_div.classList.add("text_align_" + field_align[tblName][j])
 
-    // --- add imgsrc_rest_black to shift header, inactive_black toschemeitem
+// --- add imgsrc_rest_black to shift header, inactive_black to schemeitem
                 if (tblName === "shift" && j === 1) {
                     AppendChildIcon(el_div, imgsrc_rest_black)
                     el_div.classList.add("ml-4")
@@ -1760,7 +1638,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log("===  CreateTblFooters == ");
         const tblName_list = ["schemeitem", "shift", "teammember"]
         tblName_list.forEach(function (tblName, index) {
-    // --- function adds row 'add new' in tFoot
+// --- function adds row 'add new' in tFoot
             CreateTblFooter(tblName)
         });
     };  //function CreateTblFooters
@@ -1769,7 +1647,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function CreateTblFooter(tblName) {
         //console.log("===  CreateTblFooter == ");
 // --- function adds row 'add new' in tFoot
-
         let tblFoot = document.getElementById("id_tfoot_" + tblName);
         if(!!tblFoot){
             let dict = {};
@@ -1813,8 +1690,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                         user_lang, comp_timezone, false, true)
                 }
                 if(!!selected_scheme_pk){
-                    tblRow.cells[1].children[0].innerHTML = FillOptionShift(ppk_int, true)
-                    tblRow.cells[2].children[0].innerHTML = FillOptionTeam(ppk_int)
+                    tblRow.cells[1].children[0].innerHTML = FillOptionShiftOrTeam(shift_map, ppk_int, true)
+                    tblRow.cells[2].children[0].innerHTML = FillOptionShiftOrTeam(team_map, ppk_int)
                 }
 
         // in schemeitems: disable add teammember when template
@@ -2052,8 +1929,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if ([2, 3, 4].indexOf( j ) > -1){
                     el.addEventListener("click", function() {HandleTimepickerOpen(el)}, false)};
             } else if ((tblName === "teammember") && (!template_mode) ){
-                if ( j === 0){
-                    el.addEventListener("click", function() {ModEmployeeOpen(el)}, false )} else
+                const is_replacement = (j === 3)
+                if ([0, 3].indexOf( j ) > -1){
+                    el.addEventListener("click", function() {ModEmployeeOpen(el, is_replacement)}, false )} else
                 if (([1, 2].indexOf( j ) > -1) && (!is_addnew_row)){
                     el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false)};
             }
@@ -2062,9 +1940,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // called by DatalistDownload, info not downloaded yet when rows are created
             if (tblName === "schemeitem"){
                 if (j === 1) {
-                    el.innerHTML = FillOptionShift(ppk_int, true)
+                    el.innerHTML = FillOptionShiftOrTeam(shift_map, ppk_int, true)
                 } else if (j === 2) {
-                    el.innerHTML = FillOptionTeam(ppk_int)
+                    el.innerHTML = FillOptionShiftOrTeam(team_map, ppk_int)
                 }
             } else if (tblName === "teammember"){
                // if (j === 0) {
@@ -3301,7 +3179,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     //const hide_weekday = false, hide_year = true;
                     format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
                                         user_lang, comp_timezone, false, true)
-                } else if (["code", "employee"].indexOf( fieldname ) > -1){
+                } else if (["code", "employee", "replacement"].indexOf( fieldname ) > -1){
                    format_text_element (el_input, el_msg, field_dict, false, [-240, 200])
             // put placeholder in employee field when employee is removed
                     if (fieldname === "employee" && !get_dict_value_by_key(field_dict, "pk")){
@@ -3469,9 +3347,19 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  UpdateSchemeInputElements  ================ PR2019-08-07
     function UpdateSchemeInputElements(item_dict) {
         console.log( "===== UpdateSchemeInputElements  ========= ");
-        //console.log(item_dict);
+        console.log(item_dict);
+
+        const field_list = ["code", "cycle", "datefirst", "datelast", "excludepublicholiday", "excludecompanyholiday"];
 
         //ResetSchemeInputElements()
+        for(let i = 0, el_input, fieldname, el, len = field_list.length; i < len; i++){
+            el = document.getElementById( "id_scheme_" + field_list[i])
+            if (["excludepublicholiday", "excludecompanyholiday"].indexOf( fieldname ) > -1){
+                el.checked = false
+            } else {
+                el.value = null
+            }
+        }
 
         if(!!item_dict) {
 // get temp_pk_str and id_pk from item_dict["id"]
@@ -3497,37 +3385,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if(!!pk_int){
 
-                const tblName = "scheme"
-                const field_list = ["code", "cycle", "datefirst", "datelast"];
-                for(let i = 0, el, field_dict, fieldname, value, wdmy, len = field_list.length; i < len; i++){
+                for(let i = 0, el, field_dict, fieldname, value, updated, len = field_list.length; i < len; i++){
                     fieldname = field_list[i];
-                    //console.log("fieldname", fieldname)
-                    if (fieldname === "code"){el = el_scheme_code} else
-                    if (fieldname === "cycle"){el = el_scheme_cycle} else
-                    if (fieldname === "datefirst"){el = el_scheme_datefirst} else
-                    if (fieldname === "datelast"){el = el_scheme_datelast};
-
+        console.log("fieldname", fieldname);
                     field_dict = get_dict_value_by_key (item_dict, fieldname)
-
+        console.log("field_dict", field_dict);
                     value = get_dict_value_by_key (field_dict, "value")
+                    updated = get_dict_value_by_key (field_dict, "updated");
+                    const msg_err = get_dict_value_by_key (field_dict, "error");
+        console.log("value", value);
 
-                    el.setAttribute("data-value", value)
-                    el.setAttribute("data-field", fieldname)
-                    el.setAttribute("data-pk", pk_int )
-                    el.setAttribute("data-ppk", ppk_int)
-                    el.setAttribute("data-table", tblName)
+                    el = document.getElementById( "id_scheme_" + fieldname)
+        console.log("el", el);
+                if(!!msg_err){
+                    ShowMsgError(el, el_msg, msg_err, [-160, 80])
+                } else if(updated){
+                    el.classList.add("border_valid");
+                    setTimeout(function (){
+                        el.classList.remove("border_valid");
+                        }, 2000);
+                }
+
+
+                    //el.setAttribute("data-value", value)
+                    //el.setAttribute("data-field", fieldname)
+                   // el.setAttribute("data-pk", pk_int )
+                    //el.setAttribute("data-ppk", ppk_int)
+                    //el.setAttribute("data-table", tblName)
 
                     if (["code", "cycle"].indexOf( fieldname ) > -1){
                         format_text_element (el, el_msg, field_dict, false, [-220, 60])
                         el.readOnly = false;
                     } else if (fieldname === "datefirst" || fieldname === "datelast"){
-                        let el_input = document.getElementById("id_scheme_" + fieldname)
-                        const hide_weekday = true, hide_year = false;
-                        format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
-                            user_lang, comp_timezone, hide_weekday, hide_year);
-                    // in te,template_mode datefirst and datelast are readOnly
+                        el.value = value
+                        el.min = get_dict_value_by_key (field_dict, "mindate");
+                        el.max = get_dict_value_by_key (field_dict, "maxdate");
+                    // in tetemplate_mode datefirst and datelast are readOnly
                         el.readOnly = (template_mode);
-                    }
+                    } else  if (["excludepublicholiday", "excludecompanyholiday"].indexOf( fieldname ) > -1){
+                        el.checked = (!!value);
+                        el.readOnly = false;
+
+                    };
+
 
                 }  // for(let i = 0, fieldname,
 
@@ -3660,7 +3560,18 @@ document.addEventListener('DOMContentLoaded', function() {
         data_key = (mode === "inactive") ? "data-txt_conf_btn_inactive" : "data-txt_conf_btn_delete";
         let el_btn_save = document.getElementById("id_confirm_btn_save")
         el_btn_save.innerText = get_attr_from_el(el_data, data_key);
-        setTimeout(function() {el_btn_save.focus()}, 300);
+
+        //setTimeout(function() {el_btn_save.focus()}, 300);
+
+// set focus to cancel button (when delete) or save (when inactive), delay 500ms because of modal fade
+        let id_str = (mode === "inactive") ? "id_confirm_btn_save" : "id_confirm_btn_cancel";
+        setTimeout(function (){document.getElementById(id_str).focus();}, 500);
+
+        let btn_class_add =  (mode === "delete") ? "btn-outline-danger" : "btn-primary";
+        let btn_class_remove =  (mode === "delete") ? "btn-primary" : "btn-outline-danger";
+        document.getElementById("id_confirm_btn_save").classList.remove(btn_class_remove)
+        document.getElementById("id_confirm_btn_save").classList.add(btn_class_add)
+
 // show modal
         $("#id_mod_confirm").modal({backdrop: true});
     };  // ModConfirmOpen
@@ -3957,23 +3868,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++ MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  ModEmployeeOpen  ================ PR2019-08-23
-    function ModEmployeeOpen(el_input) {
-        console.log(" -----  ModEmployeeOpen   ----")
+    function ModEmployeeOpen(el_input, is_replacement) {
+        //console.log(" -----  ModEmployeeOpen   ----")
+        // only called by table teammember: input employee and replacemenet
 
-        // only called by teammember input employee
-
-        // add empoloyee disabled in template mode
+// ---  add empoloyee disabled in template mode
         if(template_mode){
             // TODO error: el_msg not showing yet
             // ShowMsgError(el_input, el_msg, msg_err, [200,200])
         } else{
-    // reset mod_upload_dict, get id_dict from tlbRow, put id_dict in mod_upload_dict
-            // mod_upload_dict contains selected row and employee.
+
+// ---  reset mod_upload_dict, get id_dict from tlbRow, put id_dict in mod_upload_dict
             const tlbRow = get_tablerow_selected(el_input)
             const id_dict = get_iddict_from_element(tlbRow)
-            mod_upload_dict = {"id": id_dict};
+            mod_upload_dict = {id: id_dict, is_replacement: is_replacement};
 
-    // get current employee from el_input
+// ---  get current employee from el_input
             const fieldname = get_attr_from_el(el_input, "data-field")
             const pk_str = get_attr_from_el_str(el_input, "data-pk");
             const pk_int = parseInt(pk_str);
@@ -3981,7 +3891,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const cur_employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, fieldname, pk_str)
             const code_value = get_subdict_value_by_key(cur_employee_dict, "code", "value");
 
-    // ---  put employee name in header
+// ---  put employee name in header
             let el_header = document.getElementById("id_mod_employee_header")
             let el_div_remove = document.getElementById("id_mod_employee_div_remove")
             if (!!pk_int){
@@ -3992,25 +3902,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 console.log("mod_upload_dict cur_employee", mod_upload_dict)
             } else {
-    // ---  or header "select employee'
-                el_header.innerText = get_attr_from_el(el_data, "data-txt_employee_select") + ":";
+
+// ---  or header 'select employee' / 'select replacement' /
+                const data_key = (is_replacement) ? "txt_replacement_select" : "txt_employee_select"
+                el_header.innerText = get_attr_from_el(el_data, "data-" + data_key) + ":";
                 el_div_remove.classList.add(cls_hide)
             }
 
-    // remove values from el_mod_employee_input
+// remove values from el_mod_employee_input
             let el_mod_employee_input = document.getElementById("id_mod_employee_input_employee")
             el_mod_employee_input.value = null
 
-            //console.log("ModEmployeeFillSelectTableEmployee")
-            ModEmployeeFillSelectTableEmployee(pk_int)
+// ---  fill selecttable employee
+            ModEmployeeFillSelectTableEmployee(pk_int, is_replacement)
 
-    // Set focus to el_mod_employee_input
+// ---  set focus to el_mod_employee_input
             //Timeout function necessary, otherwise focus wont work because of fade(300)
-            setTimeout(function (){
-                el_mod_employee_input.focus()
-            }, 500);
+            setTimeout(function (){el_mod_employee_input.focus()}, 500);
 
-    // ---  show modal
+// ---  show modal
             $("#id_mod_employee").modal({backdrop: true});
 
         }  //  if(!template_mode)
@@ -4027,16 +3937,17 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  highlight clicked row
             tblRow.classList.add(cls_selected)
 
-// get employee_dict from employee_map
+// ---  get employee_dict from employee_map
             const select_pk = get_attr_from_el_int(tblRow, "data-pk")
 
             const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", select_pk.toString());
             console.log("employee_dict", employee_dict);
             if (!isEmpty(employee_dict)){
-// get code_value from employee_dict, put it in mod_upload_dict and el_input_employee
+
+// ---  get code_value from employee_dict, put it in mod_upload_dict and el_input_employee
                 const code_value = get_subdict_value_by_key(employee_dict, "code", "value")
                 mod_upload_dict["employee"] = employee_dict;
-// put code_value in el_input_employee
+// ---  put code_value in el_input_employee
                 document.getElementById("id_mod_employee_input_employee").value = code_value
 
 // save selected employee
@@ -4143,14 +4054,18 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("========= ModEmployeeSave ===" );
         console.log("mod_upload_dict: " );
         console.log(mod_upload_dict );
+
+        const is_replacement = get_dict_value_by_key(mod_upload_dict, "is_replacement", false)
+        const tblName = (is_replacement) ? "replacement" : "employee";
         let upload_dict = {"id": mod_upload_dict["id"]};
         if (mode ==="remove"){
 // remove current employee from teammemember, is removed when {employee: {update: true} without pk
-            upload_dict["employee"] = {"update": true}
+            upload_dict[tblName] = {"update": true}
         } else {
-            const employee_dict = mod_upload_dict["employee"]
+            // in mod_upload_dict replacement is olso stored in mod_upload_dict.employee
+            const employee_dict = mod_upload_dict.employee;
             console.log("employee_dict: ", employee_dict );
-            upload_dict["employee"] = {"pk": employee_dict["id"]["pk"], "ppk": employee_dict["id"]["ppk"], "update": true}
+            upload_dict[tblName] = {"pk": employee_dict["id"]["pk"], "ppk": employee_dict["id"]["ppk"], "update": true}
         }
 // ---  hide modal
     $("#id_mod_employee").modal("hide");
@@ -4158,10 +4073,11 @@ document.addEventListener('DOMContentLoaded', function() {
     } // ModEmployeeSave
 
 //========= ModEmployeeFillSelectTableEmployee  ============= PR2019-08-18
-    function ModEmployeeFillSelectTableEmployee(selected_employee_pk) {
+    function ModEmployeeFillSelectTableEmployee(cur_employee_pk, is_replacement) {
         console.log( "=== ModEmployeeFillSelectTableEmployee ");
 
-        const caption_one = get_attr_from_el(el_data, "data-txt_employee_select") + ":";
+        const data_key = (is_replacement) ? "txt_replacement_select" : "txt_employee_select"
+        const caption_one = get_attr_from_el(el_data, "data-" + data_key) + ":";
         const caption_none = get_attr_from_el(el_data, "data-txt_employee_select_none") + ":";
 
         let tableBody = document.getElementById("id_mod_employee_tblbody");
@@ -4181,11 +4097,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
                 const is_inactive = (!!get_subdict_value_by_key(item_dict, "inactive", "value", false))
 
-            console.log( "item_dict: ", item_dict);
-            console.log( "is_inactive: ", is_inactive);
 //- skip selected employee
+// Note: cur_employee_pk gets value from el_input, not from selected_employee_pk because it can also contain replacement
 // PR20019-12-17 debug: also filter inactive, but keep inaclive in employee_map, to show them in teammember
-                if (pk_int !== selected_employee_pk && !is_inactive){
+                if (pk_int !== cur_employee_pk && !is_inactive){
 
 //- insert tableBody row
                     let tblRow = tableBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.

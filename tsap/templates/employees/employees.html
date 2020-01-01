@@ -6,6 +6,7 @@
 {% block script %}
     <script src="{% static 'js/employees.js' %}"></script>
     <script src="{% static 'js/modtimepicker.js' %}"></script>
+    <script src="{% static 'js/calendar.js' %}"></script>
 {% endblock %}
 
 <!-- SIDE BAR -->
@@ -22,7 +23,7 @@
                 <thead id="id_thead_select"class="mx-1 my-1 ">
                     <tr>
                         <td>
-                            <input id="id_flt_select"
+                            <input id="id_filter_select_input"
                                 type="text"
                                 class="td_width_150 tsa_bc_transparent border_none px-2"
                                 autocomplete="off"
@@ -127,9 +128,8 @@
                     <button id="id_btn_list" type="button" data-mode="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
                     <button id="id_btn_absence" type="button"  data-mode="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
                     <button id="id_btn_team" type="button"  data-mode="shifts" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
+                    <button id="id_btn_calendar" type="button"  data-mode="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
                     <button id="id_btn_planning" type="button"  data-mode="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
-                    <!-- <button id="id_btn_roster" type="button"  data-mode="roster" class="btn btn-secondary ">{% trans 'Roster' %}</button>
-                    <button id="id_btn_pricerate" type="button"  data-mode="pricerate" class="btn btn-secondary ">{% trans 'Hourly rates' %}</button> -->
                     <button id="id_btn_data" type="button"  data-mode="employee_form" class="btn btn-secondary ">{% trans 'Data' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
@@ -285,13 +285,20 @@
                     </table>
                 </div>
                 <div id="id_div_tbl_planning" class="display_hide">
+                     <table  class="table tsa-tbl ">
+                        <thead id="id_thead_planning"></thead>
+                        <tbody id="id_tbody_planning"></tbody>
+                    </table>
+                </div>
+
+                <div id="id_div_tbl_calendar" class="display_hide">
 
                     <div class="content_header mx-2 mb-2">
                         <div class="content_subheader_left mx-2">
                             <h5 id="id_hdr_text"></h5>
                         </div>
 
-                        <div id="id_btns_planning" class="content_subheader_right">
+                        <div id="id_btns_calendar" class="content_subheader_right">
                             <button id="id_btn_prevweek" data-mode="prevweek" title="{% trans 'Show previous week.' %}" class="btn btn-add ml-2">&Larr;</button>
                             <button id="id_btn_prevday" data-mode="prevday" title="{% trans 'Go one day back.' %}" class="btn btn-add">&larr;</button>
                             <button id="id_btn_select date" data-mode="thisweek" class="btn btn-add">{% trans 'This week' %}</button>
@@ -301,17 +308,11 @@
                     </div>
 
                      <table  class="table tsa-tbl">
-                        <thead id="id_thead_planning"></thead>
-                        <tbody id="id_tbody_planning"></tbody>
+                        <thead id="id_thead_calendar"></thead>
+                        <tbody id="id_tbody_calendar"></tbody>
                     </table>
                 </div>
 
-                <div id="id_div_tbl_pricerate" class="display_hide">
-                     <table  class="table tsa-tbl">
-                        <thead id="id_thead_pricerate"></thead>
-                        <tbody id="id_tbody_pricerate"></tbody>
-                    </table>
-                </div>
    <!-- =================== END DATA TABLE  =================== -->
             </div>
 <!-- END CONTENT BODY -->
@@ -322,8 +323,8 @@
 
             data-lang ="{{ lang }}"
             data-timezone ="{{ timezone }}"
-            data-interval ="{{ interval }}"
             data-timeformat ="{{ timeformat }}"
+            data-interval ="{{ interval }}"
 
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"

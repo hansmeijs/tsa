@@ -922,8 +922,7 @@
     }  // function format_total_duration
 
 //========= display_duration  ======== PR2019-09-08
-    function display_duration (value_int, user_lang) {
-        // timeduration: {value: 540, hm: "9:00"}
+    function display_duration (value_int, user_lang, hour_suffix, hour_suffix_plural) {
         //console.log("+++++++++ display_duration")
         // don't use Math.floor()
         // Math.floor() returns the largest integer less than or equal to a given number. (-2.56 becomes -3)
@@ -952,11 +951,12 @@
             const minute_str = "00" + minutes.toString()
             const minute_text = minute_str.slice(-2);
 
-            if(user_lang === "en") {
-                display_value = hour_text + ":" + minute_text;
-            } else {
-                display_value = hour_text + "." + minute_text + " u";
-            }
+            const delimiter = (user_lang === "en") ? ":" : ".";
+            const suffix = (!!hour_suffix && !!hour_suffix_plural) ?
+                            (hours > 1) ? " " + hour_suffix_plural : " " + hour_suffix :
+                            (user_lang === "en") ? "" :" u";
+
+            display_value = hour_text + delimiter + minute_text + suffix.toLowerCase();
 
             if(is_negative){display_value = "-" + display_value}
         }  // if(!!value_int)

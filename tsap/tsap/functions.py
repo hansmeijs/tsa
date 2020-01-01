@@ -52,12 +52,12 @@ def get_dateobj_from_dateISOstring(date_ISOstring):  # PR2019-10-25
     return dte
 
 
-def get_dateISO_from_dateOBJ(date_obj):  # PR2019-12-05
+def get_dateISO_from_dateOBJ(date_obj):  # PR2019-12-22
     date_iso = None
     if date_obj:
         year_str = str(date_obj.year)
-        month_str = ('00' + str(date_obj.month))[:-2]
-        date_str = ('00' + str(date_obj.month))[:-2]
+        month_str = ('0' + str(date_obj.month))[-2:]
+        date_str = ('0' + str(date_obj.day))[-2:]
         date_iso = '-'.join([year_str, month_str, date_str])
         # today_iso: 2019-11-17 <class 'str'>
     return date_iso
@@ -1940,7 +1940,8 @@ def save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, upda
     is_updated = False
     new_rate, msg_err = get_rate_from_value(new_value)
     if msg_err:
-        update_dict[field]['error'] = msg_err
+        if update_dict:
+            update_dict[field]['error'] = msg_err
     else:
         # a. get saved pricerate_dict
         saved_pricerate_dict = {}
@@ -2053,6 +2054,7 @@ def update_isabsence_istemplate():
 def format_date_element(rosterdate_dte, user_lang,
                         show_weekday=True, show_wd_long=False, show_day=True,
                         show_month=True, show_month_long=False, show_year=True):
+
     # PR2019-11-30
     display_txt, weekday_txt, day_txt, month_txt, year_txt = '', '', '', '', ''
     # get weekday text
@@ -2087,6 +2089,7 @@ def format_date_element(rosterdate_dte, user_lang,
             display_txt = ''.join([weekday_txt, month_txt, day_txt, year_txt])
         else:
             display_txt = ''.join([weekday_txt, day_txt, month_txt, year_txt])
+
     return display_txt
 
 
@@ -2181,6 +2184,9 @@ def display_offset_time (offset, timeformat, user_lang, blank_when_zero, skip_pr
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+
 # <<<<<<<<<< calc_timestart_time_end_from_offset >>>>>>>>>>>>>>>>>>> PR2019-12-10
 def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, breakduration, is_restshift, comp_timezone):
     # logger.debug('------------------ calc_schemeitem_timeduration --------------------------')
@@ -2225,3 +2231,229 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
             if is_restshift:
                 timeduration = 0
     return starttime_local, endtime_local, timeduration
+
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+def check_and_fill_calendar(datefirst, datelast, request):  # PR2019-12-21
+    # functioncheck if calendar dates of the years of this range exist, if not: add calendar dates
+    # logger.debug('---  check_and_fill_calendar  ------- ')
+    if request and datefirst and datelast:
+        datefirst_year = datefirst.year
+        datelast_year = datelast.year
+
+# loop through years of period
+        # TODO choose country
+        country = 'cw'
+        year = datefirst_year
+        while year <= datelast_year:
+            if not m.Calendar.objects.filter(year=year, company=request.user.company).exists():
+                save_publicholidays(year, country, request)
+            year += 1
+
+
+def save_publicholidays(year, country, request):
+    # function saves code with public hodiday name in calendar
+    logger.debug('save_publicholiday year: ' + str(year) + ' ' + str(type(year)))
+
+    is_nl = (country == 'nl')
+    is_cw = (country == 'cw')
+
+    code = "New Year's Day"
+    code_loc = _("New Year's Day")
+    set_calendar_publicholidays(year, 1, 1, code, request)
+
+    if is_cw:
+        code = "Labour Day"
+        code_loc = _("Labour Day")
+        set_calendar_publicholidays(year, 5, 1, code, request)
+
+    if is_nl:
+        code = "Liberation Day"
+        code_loc = _("Liberation Day")
+        set_calendar_publicholidays(year, 5, 5, code, request)
+
+    if is_cw:
+        code = "Flag Day"
+        code_loc = _("Flag Day")
+        set_calendar_publicholidays(year, 7, 2, code, request)
+
+    if is_cw:
+        code = "Curaçao Day"
+        code_loc = _("Curaçao Day")
+        set_calendar_publicholidays(year, 10, 10, code, request)
+
+    code = "Christmas Day"
+    code_loc = _("Christmas Day")
+    set_calendar_publicholidays(year, 12, 25, code, request)
+
+    code = "2nd Christmas Day"
+    code_loc = _("2nd Christmas Day")
+    set_calendar_publicholidays(year, 12, 26, code, request)
+
+    date_dict = {2020: (4, 27),
+                 2021: (4, 27),
+                 2022: (4, 27),
+                 2023: (4, 27),
+                 2024: (4, 27),
+                 2025: (4, 26)}
+    tpl = date_dict.get(year)
+    if tpl:
+        code = "Kings Day"
+        code_loc = _("Kings Day")
+        set_calendar_publicholidays(year, tpl[0], tpl[1], code, request)
+
+    if is_cw:
+        date_dict = {2020: (2, 23),
+                     2021: (2, 14),
+                     2022: (2, 27),
+                     2023: (2, 19),
+                     2024: (2, 11),
+                     2025: (3, 2)}
+        tpl = date_dict.get(year)
+        if tpl:
+            code = "Carnaval"
+            code_loc = _("Carnaval")
+            set_calendar_publicholidays(year, tpl[0], tpl[1], code, request)
+
+        date_dict = {2020: (2, 24),
+                     2021: (2, 15),
+                     2022: (2, 28),
+                     2023: (2, 20),
+                     2024: (2, 12),
+                     2025: (3, 3)}
+        tpl = date_dict.get(year)
+        if tpl:
+            code = "2nd Carnaval Day"
+            code_loc = _("2nd Carnaval Day")
+            set_calendar_publicholidays(year, tpl[0], tpl[1], code, request)
+
+        date_dict = {2020: (4, 10),
+                     2021: (4, 2),
+                     2022: (4, 15),
+                     2023: (4, 7),
+                     2024: (3, 29),
+                     2025: (4, 18)}
+        tpl = date_dict.get(year)
+        if tpl:
+            code = "Good Friday"
+            code_loc = _("Good Friday")
+            set_calendar_publicholidays(year, tpl[0], tpl[1], code, request)
+
+    date_dict = {2020: (4, 12),
+                 2021: (4, 4),
+                 2022: (4, 17),
+                 2023: (4, 9),
+                 2024: (3, 31),
+                 2025: (4, 20)}
+    tpl = date_dict.get(year)
+    if tpl:
+        code = "Easter"
+        code_loc = _("Easter")
+        set_calendar_publicholidays(year, tpl[0], tpl[1], code, request)
+
+    date_dict = {2020: (4, 13),
+                 2021: (4, 5),
+                 2022: (4, 18),
+                 2023: (4, 10),
+                 2024: (4, 1),
+                 2025: (4, 21)}
+    tpl = date_dict.get(year)
+    if tpl:
+        if is_cw:
+            code = "Harvest Festival"
+            code_loc = _("Harvest Festival")
+        else:
+            code = "Easter Monday"
+            code_loc = _("Easter Monday")
+        set_calendar_publicholidays(year, tpl[0], tpl[1], code, request)
+
+
+    date_dict = {2020: (5, 21),
+                 2021: (5, 13),
+                 2022: (5, 26),
+                 2023: (5, 18),
+                 2024: (5, 9),
+                 2025: (5, 29)}
+    tpl = date_dict.get(year)
+    if tpl:
+        code = "Ascension Day"
+        code_loc = _("Ascension Day")
+        set_calendar_publicholidays(year, tpl[0], tpl[1], code, request)
+
+    date_dict = {2020: (5, 31),
+                 2021: (5, 23),
+                 2022: (6, 5),
+                 2023: (5, 28),
+                 2024: (5, 19),
+                 2025: (6, 8)}
+    tpl = date_dict.get(year)
+    if tpl:
+        code = "Pentecost"
+        code_loc = _("Pentecost")
+        set_calendar_publicholidays(year, tpl[0], tpl[1], code, request)
+
+    if is_nl:
+        date_dict = {2020: (6, 1),
+                    2021: (5, 24),
+                     2022: (6, 6),
+                     2023: (5, 29),
+                     2024: (5, 20),
+                     2025: (6, 9)}
+        tpl = date_dict.get(year)
+        if tpl:
+            code = "2nd Pentecost Day"
+            code_loc = _("2nd Pentecost Day")
+            set_calendar_publicholidays(year, tpl[0], tpl[1], code, request)
+
+
+def set_calendar_publicholidays(year, month, day, code, request):
+    # PR2019-12-23 Function creates calendar_date and saves name of public Holiday (in Eglish)
+    if year and month and day:
+        rosterdate = date(year, month, day)
+        calendar_date = m.Calendar.objects.filter(
+            rosterdate=rosterdate,
+            company=request.user.company
+        ).first()
+        if calendar_date is None:
+            calendar_date = m.Calendar(
+                company=request.user.company,
+                year=year,
+                rosterdate=rosterdate
+            )
+
+        if calendar_date:
+            calendar_date.code = code
+            calendar_date.ispublicholiday = True
+            calendar_date.save(request)
+
+
+def get_code_with_sequence(table, parent, user_lang):
+    # create new code with sequence 1 higher than existing code PR2019-12-28
+    # get scheme names of this order
+    max_index = 0
+    default_code = ''
+    instances = None
+    if table == 'scheme':
+        default_code = c.SCHEME_TEXT[user_lang]
+        instances = m.Scheme.objects.filter(order=parent, code__istartswith=default_code, istemplate=False)
+    elif table == 'team':
+        default_code = c.TEAM_TEXT[user_lang]
+        instances = m.Team.objects.filter(scheme=parent, code__istartswith=default_code, istemplate=False)
+    elif table == 'shift':
+        default_code = c.SHIFT_TEXT[user_lang]
+        instances = m.Shift.objects.filter(scheme=parent, code__istartswith=default_code, istemplate=False)
+
+    default_code_len = len(default_code)
+    if instances:
+        for item in instances:
+            index_str = item.code[default_code_len:].strip()
+            if index_str:
+                index = 0
+                try:
+                    index = int(index_str)
+                except:
+                    pass
+                if index > max_index:
+                    max_index = index
+    return default_code + ' ' + str(max_index + 1)

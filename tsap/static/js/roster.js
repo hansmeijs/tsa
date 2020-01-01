@@ -429,6 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tblName = "customer";
         let tblBody_select = document.getElementById("id_mod_order_tblbody_cust");
+        // TODO correct
         FillSelectTable(tblBody_select, el_data, customer_map, tblName, HandleSelectTable);
 
     }  // CreateSelectTableCustomers
@@ -440,6 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tblName = "order";
         let tblBody_select = document.getElementById("id_mod_order_tblbody_order");
+        // TODO correct
         FillSelectTable(tblBody_select, el_data, order_map, tblName, HandleSelectTable, HandleBtnClicked);
 
     }
@@ -451,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //--- loop through data_map
         for (const [map_id, item_dict] of data_map.entries()) {
             const row_index = null // add at end when no rowindex
-            //let selectRow = CreateSelectRow(tblBody_select, el_data, tblName, row_index, item_dict,
+            //let selectRow = CreateSelectRow(tblBody_select, tblName, row_index, item_dict,
             //                            HandleSelectTable );
 
 // update values in SelectRow

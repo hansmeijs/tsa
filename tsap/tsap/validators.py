@@ -254,9 +254,10 @@ def validate_code_name_identifier(table, field, new_value, parent, update_dict, 
             if exists:
                 msg_err = _("'%(val)s' already exists.") % {'fld': fld, 'val': new_value}
     if msg_err:
-        if table not in update_dict:
-            update_dict[field] = {}
-        update_dict[field]['error'] = msg_err
+        if update_dict:
+            if field not in update_dict:
+                update_dict[field] = {}
+            update_dict[field]['error'] = msg_err
 
     has_error = True if msg_err else False
     return has_error

@@ -619,7 +619,8 @@ def create_schemeitem_template_list(request, comp_timezone, user_lang):
     if order:
         schemeitem_list = create_schemeitem_list(
             request=request,
-            customer=order.customer,
+            customer_pk=order.customer_id,
+            is_absence=None,
             is_singleshift=None,
             comp_timezone=comp_timezone,
             user_lang=user_lang)
@@ -628,12 +629,14 @@ def create_schemeitem_template_list(request, comp_timezone, user_lang):
     return schemeitem_list
 
 
-def create_schemeitem_list(request, customer, is_singleshift, comp_timezone, user_lang):
+def create_schemeitem_list(request, customer_pk, is_absence, is_singleshift, comp_timezone, user_lang):
     # create list of schemeitems of this scheme PR2019-09-28
 
     crit = Q(scheme__order__customer__company=request.user.company)
-    if customer:
-        crit.add(Q(scheme__order__customer=customer), crit.connector)
+    if customer_pk:
+        crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
+    if is_absence:
+        crit.add(Q(isabsence=is_absence), crit.connector)
     if is_singleshift:
         crit.add(Q(issingleshift=is_singleshift), crit.connector)
     schemeitems = m.Schemeitem.objects.filter(crit).order_by('rosterdate', 'shift__offsetstart')
@@ -673,6 +676,14 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
             timeduration = offsetend_value - offsetstart_value
             timeduration_minus_break = timeduration
 
+        is_override, is_billable = f.get_billable_schemeitem(schemeitem)
+        if is_override or is_billable:
+            if 'billable' not in item_dict:
+                item_dict['billable'] = {}
+            if is_override:
+                item_dict['billable']['override'] = is_override
+            if is_billable:
+                item_dict['billable']['billable'] = is_billable
 
         for field in c.FIELDS_SCHEMEITEM:
 
@@ -686,26 +697,20 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
                 if schemeitem.istemplate:
                     field_dict['istemplate'] = True
 
-                item_dict['pk'] = schemeitem.pk
+            elif field == 'istemplate':
+                pass
 
             elif field == 'scheme':
                 scheme = getattr(schemeitem, field)
                 if scheme:
                     field_dict['pk'] = scheme.id
-                    field_dict['value'] = scheme.code
+                    field_dict['ppk'] = scheme.order_id
+                    field_dict['code'] = scheme.code
 
-            elif field in ('iscyclestart', 'inactive'):
-                field_dict['value'] = getattr(schemeitem, field, False)
-
-            elif field == 'cat':
-                cat_sum = getattr(schemeitem, field, 0)
-                field_dict['value'] = cat_sum
-
-                is_override, is_billable = f.get_billable_schemeitem(schemeitem)
-                if 'billable' not in item_dict:
-                    item_dict['billable'] = {}
-                item_dict['billable']['override'] = is_override
-                item_dict['billable']['billable'] = is_billable
+            elif field in ('iscyclestart', 'cat', 'inactive'):
+                value = getattr(schemeitem, field)
+                if value:
+                    field_dict['value'] = value
 
             elif field == 'rosterdate':
                 rosterdate = getattr(schemeitem, field)
@@ -776,33 +781,26 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
                 shift = getattr(schemeitem, field)
                 if shift:
                     field_dict['pk'] = shift.id
-                    field_dict['value'] = shift.code
+                    field_dict['code'] = shift.code
 
                     if shift.isrestshift:
-                        field_dict['value_R'] = shift.code + ' (R)'
+                        field_dict['code_R'] = shift.code + ' (R)'
 
-                    value = getattr(shift, 'offsetstart')
-                    if value is not None:
-                        field_dict['offsetstart'] = {'value': value}
+                    for fld in ('offsetstart', 'offsetend'):
+                        value = getattr(shift, fld)
+                        if value is not None:
+                            field_dict[fld] = value
 
-                    value = getattr(shift, 'offsetend')
-                    if value is not None:
-                        field_dict['offsetend'] = {'value': value}
-
-                    value = getattr(shift, 'breakduration')
-                    if value is not None:
-                        field_dict['breakduration'] = {'value': value}
-
-                    value = getattr(shift, 'timeduration')
-                    if value is not None:
-                        field_dict['timeduration'] = {'value': value}
+                    for fld in ('breakduration', 'timeduration'):
+                        value = getattr(shift, fld)
+                        if value:
+                            field_dict[fld] = value
 
             elif field == 'team':
                 team = getattr(schemeitem, field)
                 if team:
                     field_dict['pk'] = team.id
-                    field_dict['value'] = team.code
-
+                    field_dict['code'] = team.code
 
             if field_dict:
                 item_dict[field] = field_dict
@@ -810,15 +808,15 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_shift_list( customer, user_lang, request):
+def create_shift_list(customer_pk, user_lang, request):
     # create list of shifts of this order PR2019-08-08
     # logger.debug(' --- create_shift_list --- ')
     shift_list = []
 
     crit = Q(scheme__order__customer__company=request.user.company)
-    if customer:
-        crit.add(Q(scheme__order__customer=customer), crit.connector)
-    shifts = m.Shift.objects.select_related('scheme').filter(crit)
+    if customer_pk:
+        crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
+    shifts = m.Shift.objects.select_related('scheme').filter(crit).order_by('code')
 
     for shift in shifts:
         update_dict = {}
@@ -834,7 +832,9 @@ def create_shift_dict(shift, update_dict, user_lang):
     # logger.debug(' ----- create_shift_dict ----- ')
     # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
-    # FIELDS_SHIFT = ('id', 'code', 'cat', 'offsetstart', 'offsetend', 'breakduration', 'timeduration', 'wagefactor')
+    # FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
+    #                 'offsetstart', 'offsetend', 'breakduration', 'timeduration',
+    #                 'wagefactor', 'priceratejson', 'additionjson')
 
     if shift:
         offsetstart_value = shift.offsetstart
@@ -852,7 +852,7 @@ def create_shift_dict(shift, update_dict, user_lang):
         timeduration_minus_break = 0
         if offsetstart_value is not None and offsetend_value is not None:
             timeduration = offsetend_value - offsetstart_value
-            timeduration_minus_break = timeduration
+            timeduration_minus_break = timeduration - breakduration_value
 
         for field in c.FIELDS_SHIFT:
 
@@ -866,19 +866,16 @@ def create_shift_dict(shift, update_dict, user_lang):
                 field_dict['table'] = 'shift'
                 if shift.istemplate:
                     field_dict['istemplate'] = True
-                update_dict['pk'] = shift.pk
+                if shift.cat:
+                    field_dict['cat'] = shift.cat
 
-            elif field == 'cat':
-                cat_sum = getattr(shift, field, 0)
-                field_dict['value'] = cat_sum
-
-            elif field in ['isrestshift', 'istemplate']:
-                value = getattr(shift, field, False)
-                field_dict['value'] = value
-
-            elif field == 'billable':
-                # TODO
+            elif field == 'istemplate':
                 pass
+
+            elif field in ['isrestshift', 'cat', 'code', 'billable']:
+                value = getattr(shift, field)
+                if value:
+                    field_dict['value'] = value
 
             elif field == 'offsetstart':
                 # Note: value '0' is a valid value, so don't use 'if value:'
@@ -913,8 +910,8 @@ def create_shift_dict(shift, update_dict, user_lang):
 
  # calculate timeduration
             elif field == 'timeduration':
-                field_dict['value'] = timeduration_minus_break
-
+                if timeduration_minus_break:
+                    field_dict['value'] = timeduration_minus_break
 
             elif field in ['priceratejson']:
                 f.get_fielddict_pricerate(
@@ -922,13 +919,6 @@ def create_shift_dict(shift, update_dict, user_lang):
                     instance=shift,
                     field_dict=field_dict,
                     user_lang=user_lang)
-
-
-            # 5. create field_dict 'code', 'offsetstart', 'offsetend', 'breakduration'
-            elif field == 'code':
-                value = getattr(shift, field, None)
-                if value:
-                    field_dict['value'] = value
 
             if field_dict:
                 update_dict[field] = field_dict
@@ -939,7 +929,7 @@ def create_shift_dict(shift, update_dict, user_lang):
 # --- end of create_shift_dict
 
 
-def create_team_list(request, customer, is_singleshift):
+def create_team_list(request, customer_pk, is_singleshift):
     # create list of teams of this order PR2019-09-02
     # logger.debug(' ----- create_team_list  -----  ')
     team_list = []
@@ -947,8 +937,8 @@ def create_team_list(request, customer, is_singleshift):
     crit = Q(scheme__order__customer__company=request.user.company)
     if is_singleshift:
         crit.add(Q(issingleshift=is_singleshift), crit.connector)
-    if customer:
-        crit.add(Q(scheme__order__customer=customer), crit.connector)
+    if customer_pk:
+        crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
         is_singleshift = is_singleshift,
 
     teams = m.Team.objects.select_related('scheme').filter(crit)
@@ -985,8 +975,8 @@ def create_team_dict(team, item_dict):
                     field_dict['isabsence'] = True
                 if team.istemplate:
                     field_dict['istemplate'] = True
-
-                item_dict['pk'] = team.pk
+                if team.cat:
+                    field_dict['cat'] = team.cat
 
         # scheme is parent of team
             elif field == 'scheme':
@@ -994,10 +984,7 @@ def create_team_dict(team, item_dict):
                 field_dict['pk'] = scheme.pk
                 field_dict['ppk'] = scheme.order.pk
                 if scheme.code:
-                    field_dict['value'] = scheme.code
-
-            elif field == 'cat':
-                field_dict['value'] = getattr(team, field, 0)
+                    field_dict['code'] = scheme.code
 
             elif field == 'code':
                 code, suffix, title = get_team_code(team)

@@ -39,18 +39,28 @@ class CustomerListView(View):
         param = {}
 
         if request.user.company is not None:
+
 # - Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 
-            # get weekdays translated
+# b. get comp_timezone and timeformat
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
+
+# ---  get interval
+            interval = 15
+            if request.user.company.interval:
+                interval = request.user.company.interval
+
+# get weekdays translated
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             if not user_lang in c.WEEKDAYS_ABBREV:
                 user_lang = c.LANG_DEFAULT
             weekdays_json = json.dumps(c.WEEKDAYS_ABBREV[user_lang])
 
-            # get months translated
+ # get months translated
             if not user_lang in c.MONTHS_ABBREV:
                 user_lang = c.LANG_DEFAULT
             months_json = json.dumps(c.MONTHS_ABBREV[user_lang])
@@ -58,6 +68,9 @@ class CustomerListView(View):
             param = get_headerbar_param(request, {
                 'ppk': request.user.company.pk,
                 'lang': user_lang,
+                'timezone': comp_timezone,
+                'timeformat': timeformat,
+                'interval': interval,
                 'weekdays': weekdays_json,
                 'months': months_json,
             })
@@ -245,7 +258,7 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             instance = m.get_instance(table, pk_int, parent, update_dict)
                             # logger.debug('SCHEME instance: ' + str(instance))
                             if instance:
-                                update_scheme(instance, upload_dict, update_dict, user_lang, request)
+                                update_scheme(instance, upload_dict, update_dict, request)
                         f.remove_empty_attr_from_dict(update_dict)
 # =====  SHIFT  ==========
                     if table == "shift":

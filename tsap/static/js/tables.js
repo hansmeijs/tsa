@@ -7,33 +7,119 @@
     const cls_bc_yellow = "tsa_bc_yellow";
 
 
-// ++++++++++++  SELECT TABLE +++++++++++++++++++++++++++++++++++++++
+// ++++++++++++  SELECT TABLE in sidebar +++++++++++++++++++++++++++++++++++++++
+
+//========= FillSelectTable  ============= PR2019-12-21
+    function FillSelectTable(data_map, tblName, include_parent_code,
+                            HandleSelect_Filter, HandleSelectFilterButton,
+                            HandleSelect_Row, HandleSelectRowButton,
+                            imgsrc_default, imgsrc_hover,
+                            filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey) {
+        //console.log(">>>>>>>>>FillSelectTable");
+        //console.log("data_map: ", data_map);
+
+        CreateSelectHeader(tblName, HandleSelect_Filter, HandleSelectFilterButton, imgsrc_default, imgsrc_hover);
+
+        let tblBody_select = document.getElementById("id_tbody_select");
+        tblBody_select.innerText = null;
+        tblBody_select.setAttribute("data-table", tblName)
+
+        //console.log("tblBody_select: ", tblBody_select);
+//--- loop through data_map
+        for (const [map_id, item_dict] of data_map.entries()) {
+            const row_index = null // add at end when no rowindex
+            let selectRow = CreateSelectRow(tblBody_select, tblName, row_index, item_dict,
+                                        HandleSelect_Row, HandleSelectRowButton,
+                                        imgsrc_default, imgsrc_hover);
+
+// update values in SelectRow
+            // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
+            UpdateSelectRow(selectRow, item_dict, include_parent_code, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
+        }  // for (let cust_key in data_map) {
+    } // FillSelectTable
+
+//========= CreateSelectHeader  ============= PR2019-12-21
+    function CreateSelectHeader(tblName, HandleSelect_Filter, HandleSelectFilterButton, imgsrc_default, imgsrc_hover) {
+        //console.log(" === CreateSelectHeader === ")
+
+        const show_button = (!!HandleSelectFilterButton);
+
+        let tblHead = document.getElementById("id_thead_select");
+        tblHead.innerText = null;
+
+        let tblRow = tblHead.insertRow (-1);  // index -1: insert new cell at last position.
+
+// --- add filter td to tblRow.
+        let td = document.createElement("td");
+
+// --- create element with tag from field_tags
+            let el_input = document.createElement("input");
+                el_input.setAttribute("type", "text")
+                el_input.setAttribute("id", "id_filter_select_input")
+
+        // ---  add 'keyup' event handler to filter
+                el_input.addEventListener("keyup", function() {
+                    setTimeout(function() {HandleSelect_Filter()}, 50)});
+
+                // TODO width not correct const td_width = (show_button) ? "td_width_200" : "td_width_150";
+                const td_width = "td_width_150";
+                //el_input.classList.add(td_width)
+                //el_input.classList.add("tsa_bc_transparent")
+                el_input.classList.add("border_none")
+                el_input.classList.add("px-2")
+                el_input.setAttribute("autocomplete", "off")
+                el_input.setAttribute("placeholder", "filter ...")
+
+            td.appendChild(el_input);
+        tblRow.appendChild(td);
+
+// --- add filter button tblRow.
+        if (show_button){
+            CreateSelectButton(tblRow, HandleSelectFilterButton, imgsrc_default, imgsrc_hover )
+        }
+
+// --- add imgsrc_rest_black to shift header, inactive_black toschemeitem
+            //AppendChildIcon(el_div, imgsrc_rest_black)
+            //el_div.classList.add("ml-4")
+            //el_div.title = get_attr_from_el(el_data, "data-txt_shift_rest")
+
+        //    <a id="id_sel_inactive" href="#">
+        //        <img id="id_sel_img_inactive"  src="{% static 'img/inactive_lightgrey.png' %}" height="24" width="24">
+        //    </a>
+       // </td>
+
+    }  // CreateSelectHeader
 
 //========= CreateSelectRow  ============= PR2019-10-20
-    function CreateSelectRow(tblBody_select, el_data, tblName, row_index, item_dict,
-                                HandleSelectTable, HandleBtnClicked,
+    function CreateSelectRow(tblBody_select, tblName, row_index, item_dict,
+                                HandleSelect_Row, HandleSelectRowButton,
                                 imgsrc_default, imgsrc_hover ) {
+        //console.log(" === CreateSelectRow === ")
+        //console.log("tblBody_select: ", tblBody_select);
+
         // add row at end when row_index is blank
         if(row_index == null){row_index = -1}
 
         let tblRow;
         if (!isEmpty(item_dict)) {
+            //console.log("item_dict: ", item_dict);
 
 //--- get info from item_dict
             const id_dict = get_dict_value_by_key (item_dict, "id");
                 const tblName = get_dict_value_by_key(id_dict, "table");
                 const pk_int = get_dict_value_by_key(id_dict, "pk");
                 const map_id = get_map_id(tblName, pk_int);
+                //const ppk_int = ("ppk" in id_dict) ? id_dict["ppk"] : null;
 
             const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
             const inactive_value = get_subdict_value_by_key(item_dict, "inactive", "value", false);
 
 //--------- insert tblBody_select row
-            const id_sel_prefix = "sel_";
-            const row_id = id_sel_prefix + map_id
+            const row_id = "sel_" + map_id
             tblRow = tblBody_select.insertRow(row_index);
 
             tblRow.setAttribute("id", row_id);
+            //tblRow.setAttribute("data-map_id", map_id );
             tblRow.setAttribute("data-pk", pk_int);
             tblRow.setAttribute("data-table", tblName);
             tblRow.setAttribute("data-inactive", inactive_value);
@@ -50,17 +136,22 @@
             // el_a.innerText and el_a.setAttribute("data-value") are added in UpdateSelectRow
             let el_a = document.createElement("div");
                 el_a.setAttribute("data-field", "code");
+                //el_a.setAttribute("data-value", code_value);
                 td.appendChild(el_a);
             td.classList.add("px-2")
 
-            tblRow.addEventListener("click", function() {
-                HandleSelectTable(tblRow);
-            }, false)
+            tblRow.addEventListener("click", function() {HandleSelect_Row(tblRow)}, false);
 
-    // --- add active img to second td in table, only when HandleBtnInactiveDeleteClicked exists
-            const show_button = (!!HandleBtnClicked);
+//--------- add addEventListener
+            //if (["scheme", "shift", "team"].indexOf( tblName ) > -1){
+            //    td.addEventListener("click", function() {HandleSelect_Row(tblRow, "event")}, false)
+            //}
+
+
+    // --- add active img to second td in table, only when HandleSelectRowButton exists
+            const show_button = (!!HandleSelectRowButton);
             if (show_button) {
-                CreateSelectButton(tblRow, HandleBtnClicked, imgsrc_default, imgsrc_hover);
+                CreateSelectButton(tblRow, HandleSelectRowButton, imgsrc_default, imgsrc_hover);
             }  // if (show_button) {
 
         }  //  if (!isEmpty(item_dict))
@@ -68,14 +159,14 @@
     } // CreateSelectRow
 
 //=========  CreateSelectButton  ================ PR2019-11-16
-    function CreateSelectButton(tblRow, HandleBtnClicked, imgsrc_default, imgsrc_hover ){
+    function CreateSelectButton(tblRow, HandleSelectButton, imgsrc_default, imgsrc_hover ){
         //console.log(" === CreateSelectButton === ")
-
 
         let td = tblRow.insertCell(-1);
             let el_a = document.createElement("a");
+                el_a.setAttribute("id", "id_filter_select_btn")
                 el_a.setAttribute("href", "#");
-                el_a.addEventListener("click", function(){HandleBtnClicked(el_a)}, false )
+                el_a.addEventListener("click", function(){HandleSelectButton(el_a)}, false )
                 //- add hover only when imgsrc_hover exists
                 if(!!imgsrc_hover){
                     el_a.addEventListener("mouseenter", function(){el_a.children[0].setAttribute("src", imgsrc_hover)});
@@ -89,7 +180,7 @@
     }  // CreateSelectButton
 
 //========= UpdateSelectRow  ============= PR2019-10-20
-    function UpdateSelectRow(selectRow, update_dict, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey) {
+    function UpdateSelectRow(selectRow, update_dict, include_parent_code, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey) {
         //console.log("UpdateSelectRow in tables.js");
         //console.log("update_dict", update_dict);
 
@@ -109,10 +200,12 @@
             } else {
 
 // --- get first td from selectRow.
-                const code_value = get_subdict_value_by_key(update_dict, "code", "value", "")
                 let el_input = selectRow.cells[0].children[0]
 
 // --- put value of selecet row in tblRow and el_input
+
+                const code_value = get_subdict_value_by_key(update_dict, "code", "value", "")
+
                 el_input.innerText = code_value;
                 el_input.setAttribute("data-value", code_value);
 
@@ -141,11 +234,7 @@
         }  //  if(!!selectRow && !!update_dict){
     } // UpdateSelectRow
 
-
 // ++++++++++++  END SELECT TABLE +++++++++++++++++++++++++++++++++++++++
-
-
-
 
 //========= GetItemDictFromTablerow  ============= PR2019-05-11
     function GetItemDictFromTablerow(tr_changed) {
@@ -291,42 +380,6 @@
         return elt.options[elt.selectedIndex].text;
     }
 
-// ================ MAP ========================
-
-//========= get_map_id  ================== PR2019-11-01
-    function get_map_id(tblName, pk) {
-        if (!!tblName && !!pk) {
-            return tblName + "_" + pk.toString();
-        } else {
-            return null;
-        }
-    }
-
-//========= function get_mapid_from_dict  ================= PR2019-10-08
-    function get_mapid_from_dict (dict) {
-        let map_id = null;
-        if(!isEmpty(dict)){
-            const pk_str = get_subdict_value_by_key(dict, "id", "pk").toString();
-            const tblName = get_subdict_value_by_key (dict, "id", "table");
-            map_id = tblName + "_" + pk_str;
-        }
-        return map_id
-    }
-
-//========= get_datamap  ================== PR2019-10-03
-    function get_datamap(data_list, data_map) {
-        data_map.clear();
-        if (!!data_list) {
-            for (let i = 0, len = data_list.length; i < len; i++) {
-                const item_dict = data_list[i];
-                const id_dict = get_dict_value_by_key(item_dict, "id");
-                const pk_str = get_dict_value_by_key(id_dict, "pk");
-                const table = get_dict_value_by_key(id_dict, "table");
-                const map_id = get_map_id(table, pk_str);
-                data_map.set(map_id, item_dict);
-            }
-        }
-    };
 
 // +++++++++++++++++ DICTS ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= remove_err_del_cre_updated__from_itemdict  ======== PR2019-10-11
@@ -413,14 +466,9 @@
             if (!!tblName){id_dict["table"] = tblName}
 
 // get mode from data-table in el (mode is used in employees.js)
-            // NOT IN USE ?? TODO
-            //const btnName = get_attr_from_el(el, "data-mode");
-            //if (!!btnName){id_dict["mode"] = btnName}
+            const data_mode = get_attr_from_el(el, "data-mode");
+            if (!!data_mode){id_dict["mode"] = data_mode}
 
-// get cat from data-table in el
-            // NOT IN USE ?? TODO
-            //const cat = get_attr_from_el_int(el, "data-cat");
-            //if (!!cat){id_dict["cat"] = cat}
         }
         return id_dict
     }  // function get_iddict_from_element
@@ -571,8 +619,6 @@
         }
         return offset_dict;
     }
-
-
 
 //========= lookup_status_in_statussum  ===== PR2018-07-17
     function status_found_in_statussum(status, status_sum) {
@@ -877,7 +923,7 @@
     }  //  HighlightSelectRow
 
 
-//========= function found_in_list_str  ======== PR2019-01-22
+//========= found_in_list_str  ======== PR2019-01-22
     function found_in_list_str(value, list_str ){
         // PR2019-01-22 returns true if ;value; is found in list_str
         let found = false;
@@ -888,7 +934,7 @@
         return (found);
     }
 
-//========= function found_in_list_str  ======== PR2019-01-28
+//========= found_in_array  ======== PR2019-01-28
     function found_in_array(array, value ){
         // PR2019-01-28 returns true if ;value; is found in array
         let found = false;
@@ -916,13 +962,13 @@
     }
 //========= delay  ====================================
     //PR2019-01-13
-    var delay = (function(){
-      var timer = 0;
-      return function(callback, ms){
-      clearTimeout (timer);
-      timer = setTimeout(callback, ms);
-     };
-    })();
+    //var delay = (function(){
+    //  var timer = 0;
+    //  return function(callback, ms){
+    //  clearTimeout (timer);
+    //  timer = setTimeout(callback, ms);
+    // };
+    //})();
 
 
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1212,20 +1258,16 @@
 // --- loop through abscat_map
         if (!!abscat_map.size) {
             for (const [map_id, item_dict] of abscat_map.entries()) {
-                const team_pk_int = get_dict_value_by_key (item_dict, "pk", 0)
-                const scheme_pk_int = get_dict_value_by_key (item_dict, "ppk", 0)
+                const order_pk_int = get_dict_value_by_key (item_dict, "pk", 0)
+                const customer_pk_int = get_dict_value_by_key (item_dict, "ppk", 0)
                 const code = get_subdict_value_by_key(item_dict, "code", "value", "-")
 
-                // abscat_list[0] =
-                // 'pk': 1553, 'ppk': 1213, <<< this one is used to retrieve data
-                // 'id': {'pk': 1553, 'ppk': 1213, 'table': 'team'},
-                // 'code': {'value': 'Onbekend'},
-                // 'cat': {'value': 512},
-                // 'isabsence': {'value': True}},
-                // {'order': {'pk': 1185, 'ppk': 477, 'cat': 512, 'isabsence': True, 'code': 'Onbekend', 'name': 'Onbekend'},
-                // 'scheme': {'pk': 1213, 'ppk': 1185, 'cat': 512, 'isabsence': True, 'code': 'Onbekend'},
+                // abscat_list[0] = {id: {pk: 1262, ppk: 610, isabsence: true, table: "order"}
+                //                  pk: 1262, ppk: 610,
+                //                  code: {value: "Onbekend"}
+                //                  customer: {pk: 610, ppk: 3, code: "Afwezig"}
 
-                option_text += "<option value=\"" + team_pk_int + "\" data-ppk=\"" + scheme_pk_int + "\"";
+                option_text += "<option value=\"" + order_pk_int + "\" data-ppk=\"" + customer_pk_int + "\"";
                 option_text +=  ">" + code + "</option>";
                 row_count += 1
             }  // for (const [map_id, item_dict] of abscat_map.entries())
@@ -1247,6 +1289,38 @@
             el_select.selectedIndex = 0
         }
     }  // function FillOptionsAbscat
+
+//========= FillOptionShiftOrTeam  ============= PR2019-12-24
+    function FillOptionShiftOrTeam(data_map, sel_parent_pk, with_rest_abbrev, firstoption_txt) {
+         //console.log( "===== FillOptionShiftOrTeam  ========= ");
+         //console.log( "data_map: ", data_map);
+         //console.log( "sel_parent_pk: ", sel_parent_pk);
+
+// add empty option on first row, put firstoption_txt in < > (placed here to escape \< and \>
+        if(!firstoption_txt){firstoption_txt = "-"}
+        let option_text = "<option value=\"0\" data-ppk=\"0\">" + firstoption_txt + "</option>";
+
+// --- loop through shift_map
+        for (const [map_id, item_dict] of data_map.entries()) {
+            const pk_int = get_pk_from_dict(item_dict);
+            const ppk_int = get_ppk_from_dict(item_dict);
+
+// skip if selected_scheme_pk exists and does not match ppk_int
+            if (!!sel_parent_pk && ppk_int === sel_parent_pk) {
+                let value = get_subdict_value_by_key(item_dict, "code", "value", "-")
+                if (with_rest_abbrev){
+                    const is_restshift = get_subdict_value_by_key(item_dict, "isrestshift", "value")
+                    if (is_restshift) { value += " (R)"}
+                }
+                option_text += "<option value=\"" + pk_int + "\" data-ppk=\"" + ppk_int + "\">" + value + "</option>";
+            }
+        }  // for (let key in item_list)
+        return option_text
+    }  // FillOptionShiftOrTeam
+
+
+//>>>>>>>>>>> MOD SHIFT CALENDAR >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 
 //========= CreateTblRows  ====================================
     function CreateTblRows(tableBase, stored_items, excel_items,
@@ -1433,3 +1507,4 @@
                         }, 250);
        }}}
     };  // handle_EAL_row_clicked
+

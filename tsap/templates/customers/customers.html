@@ -3,7 +3,11 @@
 {% load static %}
 
 {% block title %}{% trans 'Customers' %}{% endblock %}
-{% block script %}<script src="{% static 'js/customers.js' %}"></script>{% endblock %}
+{% block script %}
+    <script src="{% static 'js/customers.js' %}"></script>
+    <script src="{% static 'js/calendar.js' %}"></script>
+    <script src="{% static 'js/modtimepicker.js' %}"></script>
+{% endblock %}
 
 <!-- SIDE BAR -->
 {% block sidebar %}
@@ -17,9 +21,10 @@
 
             <table>
                 <thead id="id_thead_select"class="mx-1 my-1 ">
+                <!--
                     <tr>
                         <td>
-                        <input id="id_flt_select"
+                        <input id="id_filter_select_input"
                             type="text"
                             class="td_width_150 tsa_bc_transparent border_none px-2"
                             autocomplete="off"
@@ -32,6 +37,7 @@
                         </td>
 
                     </tr>
+                -->
                 </thead>
                 <tbody id="id_tbody_select"></tbody>
             </table>
@@ -50,7 +56,11 @@
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL PERIOD  =================== -->
         {% include 'includes/modperiod.html' %}
-
+<!-- =================== MODAL ORDER SHIFT  ===================-->
+        {% include 'includes/modeordershift.html' %}
+<!-- =================== MODAL EMPLOYEE SHIFT  ===================-->
+        {% include 'includes/selectemployee.html' %}
+<!-- =================== CONTAINER =================== -->
     <!-- =================== CONTAINER =================== -->
         <div class="container">
 
@@ -80,10 +90,7 @@
                     <button type="button" data-mode="customer" class="btn btn-secondary">{% trans 'Customer list' %}</button>
                     <button type="button" data-mode="order" class="btn btn-secondary">{% trans 'Orders' %}</button>
                     <button type="button"  data-mode="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
-                    <!--
-                    <button id="id_btn_roster" type="button"  data-mode="roster" class="btn btn-secondary ">{% trans 'Roster' %}</button>
-                    <button id="id_btn_pricerate" type="button" data-mode="pricerate" class="btn btn-secondary">{% trans 'Hourly rates' %}</button>
-                    -->
+                    <button type="button"  data-mode="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
                     <button type="button" data-mode="customer_form" class="btn btn-secondary">{% trans 'Data' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
@@ -134,6 +141,7 @@
                         <tfoot id="id_tfoot_planning"></tfoot>
                     </table>
                 </div>
+                {% include 'includes/calendar.html' %}
     <!-- =================== END DATA TABLE  =================== -->
             </div>
 <!-- END CONTENT BODY -->
@@ -143,12 +151,15 @@
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-settings_upload_url="{% url 'settings_upload_url' %}"
             data-customer_upload_url="{% url 'customer_upload_url' %}"
+            data-teammember_upload_url="{% url 'teammember_upload_url' %}"
+
             data-pricerate_upload_url="{% url 'pricerate_upload_url' %}"
             data-err_msg01= "{% trans 'An error occurred.' %}"
 
             data-lang ="{{ lang }}"
             data-timezone ="{{ timezone }}"
             data-timeformat ="{{ timeformat }}"
+            data-interval ="{{ interval }}"
 
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"

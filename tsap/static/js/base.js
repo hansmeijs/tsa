@@ -19,6 +19,26 @@
     }
 
 
+//========= addEventListener touchstart touchmove ==================================
+// from https://stackoverflow.com/questions/46094912/added-non-passive-event-listener-to-a-scroll-blocking-touchstart-event
+// PR2019-12-21 to prevent message Added non-passive event listener to a scroll-blocking <some> event.
+//                Consider marking event handler as 'passive' to make the page more responsive.
+(function () {
+    if (typeof EventTarget !== "undefined") {
+        let func = EventTarget.prototype.addEventListener;
+        EventTarget.prototype.addEventListener = function (type, fn, capture) {
+            this.func = func;
+            if(typeof capture !== "boolean"){
+                capture = capture || {};
+                capture.passive = false;
+            }
+            this.func(type, fn, capture);
+        };
+    };
+}());
+
+
+
 //========= SetMenubuttonActive  ====================================
     function SetMenubuttonActive(btn_clicked) {
         "use strict";
@@ -204,6 +224,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return power_list
     }
 
+// ================ MAP FUNCTIONS ========================
+
 //========= get_itemdict_from_datamap_by_el  ============= PR2019-10-12
     function get_fielddict_from_datamap_by_el(el, data_map, override_fieldname) {
         let field_dict = {};
@@ -214,7 +236,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return field_dict
     }
-
 
 //========= get_itemdict_from_datamap_by_el  ============= PR2019-10-12
     function get_itemdict_from_datamap_by_el(el, data_map) {
@@ -270,6 +291,44 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!map_dict) {map_dict = {}}
         return map_dict
     }
+
+//========= get_map_id  ================== PR2019-11-01
+    function get_map_id(tblName, pk) {
+        if (!!tblName && !!pk) {
+            return tblName + "_" + pk.toString();
+        } else {
+            return null;
+        }
+    }
+
+//========= function get_mapid_from_dict  ================= PR2019-10-08
+    function get_mapid_from_dict (dict) {
+        let map_id = null;
+        if(!isEmpty(dict)){
+            const pk_str = get_subdict_value_by_key(dict, "id", "pk").toString();
+            const tblName = get_subdict_value_by_key (dict, "id", "table");
+            map_id = tblName + "_" + pk_str;
+        }
+        return map_id
+    }
+
+//========= get_datamap  ================== PR2019-10-03
+    function get_datamap(data_list, data_map) {
+        data_map.clear();
+        if (!!data_list) {
+            for (let i = 0, len = data_list.length; i < len; i++) {
+                const item_dict = data_list[i];
+                const id_dict = get_dict_value_by_key(item_dict, "id");
+                const pk_str = get_dict_value_by_key(id_dict, "pk");
+                const table = get_dict_value_by_key(id_dict, "table");
+                const map_id = get_map_id(table, pk_str);
+                data_map.set(map_id, item_dict);
+            }
+        }
+    };
+
+
+
 //========= get_attr_from_el  =============PR2019-06-07
     function get_attr_from_el(element, key, default_value){
         "use strict";
@@ -437,7 +496,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  format_date_from_dateJS_vanilla ================ PR2019-12-04
     function format_date_from_dateJS_vanilla(date_JS, weekday_list, month_list, user_lang, skip_weekday, skip_year) {
         //console.log( "===== format_date_from_dateJS_vanilla  ========= ");
-
         let display_arr = ["", ""];
 
         if(!!date_JS){
@@ -489,7 +547,6 @@ document.addEventListener('DOMContentLoaded', function() {
       return copy
     }
 
-
 //=========  get_dateJS_from_dateISO_vanilla ================ PR2019-12-04
     function get_dateJS_from_dateISO_vanilla(date_iso) {
         //console.log( "===== get_dateJS_from_dateISO_vanilla  ========= ");
@@ -510,7 +567,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return get_yyyymmdd_from_ISOstring(today_JS.toISOString())
     }
 
-
 //========= get_monday_JS_from_DateJS_vanilla new  ========== PR2019-12-04
     function get_monday_JS_from_DateJS_vanilla(date_JS) {
         let monday_JS = null;
@@ -522,7 +578,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return monday_JS;
     }  // get_thisweek_monday_sunday_iso
 
-    //========= get_sunday_JS_from_DateJS_vanilla new  ========== PR2019-12-04
+//========= get_sunday_JS_from_DateJS_vanilla new  ========== PR2019-12-04
     function get_sunday_JS_from_DateJS_vanilla(date_JS) {
         let sunday_JS = null;
         if(!!date_JS){
@@ -532,7 +588,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return sunday_JS;
     }  // get_sunday_JS_from_DateJS_vanilla
-
 
 //========= get_thisweek_monday_sunday_dateobj new  ========== PR2019-12-05
     function get_thisweek_monday_sunday_dateobj() {
@@ -569,7 +624,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const lastday_iso = get_yyyymmdd_from_ISOstring(lastday_JS.toISOString())
         return [firstday_iso, lastday_iso];
     }  // get_thisweek_monday_sunday_iso
-
 
 //========= get_tomorrow_iso new  ========== PR2019-12=04
     function get_dateISO_from_dateJS_vanilla(date_JS) {
@@ -659,7 +713,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return weekday_index
     }
 
-
 //========= function get_date_from_ISOstring  ==================================== PR2019-04-15
     function get_date_from_ISOstring(date_as_ISOstring) {
         "use strict";
@@ -708,7 +761,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }}
         return date_str;
     }
-
 
 //========= function get_datetimearrLOCAL_from_UTCiso  ========== PR2019-06-29
     function get_datetimearrLOCAL_from_UTCiso(datetimeUTCiso, companyoffset, useroffset) {
@@ -840,8 +892,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return now_utc;
     }
 
-
-
 //###########################################################
 
 //========= get_date_moment_from_datetimeISO  ====================================
@@ -886,8 +936,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return date_JS
     }  //  get_dateJS_from_dateISO
-
-
 
 //========= getWeek  ======== PR2019-11-03
     // from https://weeknumber.net/how-to/javascript
@@ -1018,33 +1066,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }}};
     };
 
-
-
-
-
-    /*
-        //document.getElementById("id_hdr_comp").addEventListener("click", function() {HandleWindowOpen("comp")}, false )
-        //document.getElementById("id_hdr_empl").addEventListener("click", function() {HandleWindowOpen("empl")}, false )
-        //document.getElementById("id_hdr_cust").addEventListener("click", function() {HandleWindowOpen("cust")}, false )
-        //document.getElementById("id_hdr_ordr").addEventListener("click", function() {HandleWindowOpen("ordr")}, false )
-        //document.getElementById("id_hdr_schm").addEventListener("click", function() {HandleWindowOpen("schm")}, false )
-        //document.getElementById("id_hdr_rost").addEventListener("click", function() {HandleWindowOpen("rost")}, false )
-        //document.getElementById("id_hdr_revi").addEventListener("click", function() {HandleWindowOpen("revi")}, false )
-
-//=========  HandleWindowOpen  === PR2019-09-07
-    //function HandleWindowOpen(mod) {
-
-        // --- get data stored in page
-        //let el_url = document.getElementById("id_header_url");
-        //let url_txt
-        //if (mod === "comp"){url_txt = get_attr_from_el(el_url, "data-company_list_url") } else
-        //if (mod === "empl"){url_txt = get_attr_from_el(el_url, "data-employee_list_url") } else
-        //if (mod === "cust"){url_txt = get_attr_from_el(el_url, "data-customer_list_url") } else
-        //if (mod === "ordr"){url_txt = get_attr_from_el(el_url, "data-order_list_url") } else
-        //if (mod === "schm"){url_txt = get_attr_from_el(el_url, "data-schemes_url") } else
-        //if (mod === "rost"){url_txt = get_attr_from_el(el_url, "data-roster_url") } else
-        //if (mod === "revi"){url_txt = get_attr_from_el(el_url, "data-review_url") } else
-        //{url_txt = get_attr_from_el(el_url, "data-home_url")}
-        //window.open(url_txt, mod);
-    //}
-    */

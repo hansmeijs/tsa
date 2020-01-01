@@ -357,31 +357,48 @@
                 </table>
             </div>
 <!-- =================== DATA FORM  =================== -->
-            <div id="id_div_data_form" data-mode="btn_scheme"  class=" content_header tsa_bc_lightlightgrey display_hide m-4 p-4">
-                <div class="content_subheader_left">
-                    <label for="id_scheme_code" class="tsa_margin_form_label">{% trans 'Scheme name' %}:</label>
-                    <input id="id_scheme_code" type="text" data-table="scheme" data-field="code"
-                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                           class="form-control px-2">
-                     <label for="id_scheme_cycle" class="tsa_margin_form_label">{% trans 'Cycle length' %}:</label>
-                    <input id="id_scheme_cycle" type="number" data-table="scheme" data-field="cycle"
-                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                           class="form-control px-2">
-                    <label for="id_scheme_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
-                    <input id="id_scheme_datefirst" type="text" data-table="scheme" data-field="datefirst"
-                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                           class="form-control input_popup_date px-2">
-                    <label for="id_scheme_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
-                    <input id="id_scheme_datelast" type="text" data-table="scheme" data-field="datelast"
-                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                           class="form-control input_popup_date px-2">
+            <div id="id_div_data_form" data-mode="btn_scheme" class=" content_header tsa_bc_lightlightgrey display_hide m-4 p-4">
+                <div class=" content_header">
+                    <div class="content_subheader_left mx-1">
+                        <label for="id_scheme_code" class="tsa_margin_form_label">{% trans 'Scheme name' %}:</label>
+                        <input id="id_scheme_code" type="text" data-table="scheme" data-field="code"
+                            autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                               class="form-control px-2">
+                    </div>
+                    <div class="content_subheader_left mx-1">
+                        <label for="id_scheme_cycle" class="tsa_margin_form_label">{% trans 'Cycle length' %}:</label>
+                        <input id="id_scheme_cycle" type="number" data-table="scheme" data-field="cycle"
+                            autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                               class="form-control px-2">
+                    </div>
+                </div>
+                <div class=" content_header">
+                    <div class="content_subheader_left mx-1">
+                        <label for="id_scheme_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
+                        <input id="id_scheme_datefirst" type="date" data-field= "code"
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                    </div>
+                    <div class="content_subheader_left mx-1">
+                        <label for="id_scheme_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
+                        <input id="id_scheme_datelast" type="date" data-field="namelast"
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                    </div>
+                </div>
+                <div class=" content_header">
+                    <div class="content_subheader_left mx-1 mt-4">
+                        <input id="id_scheme_excludepublicholiday" type="checkbox" class="td_width_032 ">
+                        <label for="id_scheme_excludepublicholiday" class="mt-1">{% trans 'Not on public holidays' %}</label>
 
-                            <button id="id_form_btn_add" type="button" class="btn btn-outline-primary mt-4">{% trans 'Add scheme' %}</button>
-                            <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger mt-4">{% trans 'Delete scheme' %}</button>
+                        <input id="id_scheme_excludecompanyholiday" type="checkbox" class="td_width_032">
+                        <label for="id_scheme_excludecompanyholiday" class="mt-1">{% trans 'Not on company holidays' %}</label>
+                    </div>
                 </div>
 
-                <div class="tsa_flex_2 pt-4">
-                </div>
+
+                <button id="id_form_btn_add" type="button" class="btn btn-outline-primary mt-4">{% trans 'Add scheme' %}</button>
+                <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger mt-4">{% trans 'Delete scheme' %}</button>
+
+
             </div>
 
     </div>
@@ -469,7 +486,8 @@
             data-txt_employee_select_none= "{% trans 'No employees' %}"
             data-txt_employee_add= "{% trans 'Add employee' %}"
             data-txt_employee_enter= "{% trans 'Enter employee' %}"
-            data-txt_replaces= "{% trans 'Replaces' %}"
+            data-txt_replacement= "{% trans 'Replacement employee' %}"
+            data-txt_replacement_select= "{% trans 'Select replacement employee' %}"
 
             data-txt_datefirst= "{% trans 'Start date' %}"
             data-txt_datelast= "{% trans 'End date' %}"

@@ -198,8 +198,9 @@ EMPLOYEE_TEXT = {LANG_EN: 'Employee', LANG_NL: 'Medewerker'}
 # PR2019-07-20
 TEMPLATE_TEXT = {LANG_EN: 'Template', LANG_NL: 'Sjabloon'}
 REST_TEXT = {LANG_EN: 'Rest', LANG_NL: 'Rust'}
-TEAM_TEXT = {LANG_EN: 'Team', LANG_NL: 'Ploeg'}
 SCHEME_TEXT = {LANG_EN: 'Scheme', LANG_NL: 'Schema'}
+TEAM_TEXT = {LANG_EN: 'Team', LANG_NL: 'Ploeg'}
+SHIFT_TEXT = {LANG_EN: 'Shift', LANG_NL: 'Dienst'}
 
 # PR2019-06-24
 ABSENCE = {
@@ -207,7 +208,7 @@ ABSENCE = {
     LANG_NL: ('Afwezig', 'Afwezigheid')
           }
 
-# PR2019-06-24  PR2019-09-26  fields: sequence, code, name, pricerate. pricerate=1 means default category
+# PR2019-06-24  PR2019-09-26  fields: sequence, code, name, default category (niu)
 ABSENCE_CATEGORY = {LANG_EN: (
                         ('0', 'Unknown', 'Unknown', '1'),
                         ('1', 'Sick', 'Sick leave', '0'),
@@ -338,7 +339,7 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsenc
                    'wagerate', 'wagefactor', 'wage', 'pricerate', 'pricerate',
                    'status', 'overlap', 'locked')
 
-FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'istemplate',
+FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
                  'code', 'datefirst', 'datelast',
                  'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday',
                  'priceratejson', 'additionjson', 'inactive')
@@ -356,10 +357,12 @@ FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
                    'payrollcode', 'wagerate', 'wagecode', 'workhours', 'workdays', 'leavedays',
                    'priceratejson', 'additionjson', 'inactive', 'locked')
 
+# PR2019-12-20 Note: 'scheme' and 'order' are not model fields, but necessary for absence update
 FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'replacement', 'datefirst', 'datelast',
+                     'scheme', 'order',
                     'isabsence', 'issingleshift', 'istemplate',
-                    'offsetstart', 'offsetend',
                      'wagefactor', 'priceratejson', 'additionjson', 'override')
+
 # teammember wagerate not in use
 FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team',
                      'cat', 'istemplate', 'billable',

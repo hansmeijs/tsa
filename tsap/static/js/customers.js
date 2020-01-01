@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const cls_bc_yellow = "tsa_bc_yellow";
 
         const cls_selected = "tsa_tr_selected";
+        const cls_btn_selected = "tsa_btn_selected";
+        const cls_error = "tsa_tr_error";
+        const cls_bc_transparent = "tsa_bc_transparent";
 
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
@@ -25,12 +28,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const url_settings_upload = get_attr_from_el(el_data, "data-settings_upload_url");
         const url_customer_upload = get_attr_from_el(el_data, "data-customer_upload_url");
         const url_pricerate_upload = get_attr_from_el(el_data, "data-pricerate_upload_url");
+        const url_teammember_upload = get_attr_from_el(el_data, "data-teammember_upload_url");
 
         const user_lang = get_attr_from_el(el_data, "data-lang");
         const comp_timezone = get_attr_from_el(el_data, "data-timezone");
+        const interval = get_attr_from_el_int(el_data, "data-interval");
         const timeformat = get_attr_from_el(el_data, "data-timeformat");
-        const weekday_list = get_attr_from_el_dict(el_data, "data-weekdays");
-        const month_list = get_attr_from_el_dict(el_data, "data-months");
+        //const weekday_list = get_attr_from_el_dict(el_data, "data-weekdays");
+        //const month_list = get_attr_from_el_dict(el_data, "data-months");
 
         const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
         const imgsrc_inactive_grey = get_attr_from_el(el_data, "data-imgsrc_inactive_grey");
@@ -72,61 +77,69 @@ document.addEventListener('DOMContentLoaded', function() {
         let selected_customer_pk = 0;
         let selected_order_pk = 0;
 
-        let selected_btn = "customer"
-        let mod_upload_dict = {};
-        let company_dict = {};
-        let selected_period = {};
+        let selected_btn = "";
 
-// ---  id_new assigns fake id to new records
-        let id_new = 0;
+        let company_dict = {};
+        let customer_map = new Map();
+        let order_map = new Map();
+
+        let scheme_map = new Map();
+        let schemeitem_map = new Map();
+
+        let shift_map = new Map();
+        let team_map = new Map();
+
+        let teammember_map = new Map();
+        let employee_map = new Map();
+
+        let planning_map = new Map();
+        let calendar_map = new Map();
+
+        let loc = {};  // locale_dict with translated text
+
+        let calendar_header_dict = {};
+        let mod_upload_dict = {};
+        let mod_employee_dict = {}; // only used for mod employee form
+        let selected_period = {};
+        let quicksave = false
 
         let filter_select = "";
         let filter_show_inactive = false;
         let filter_dict = {};
+        let filter_mod_employee = "";
 
-        let customer_map = new Map();
-        let order_map = new Map();
-        let pricerate_map = new Map();
-        let planning_map = new Map();
-        let roster_map = new Map();
+// ---  id_new assigns fake id to new records
+        let id_new = 0;
 
         const tbl_col_count = {
-            "customer": 3,
-            "order": 7,
-            "planning": 7,
-            "pricerate": 4};
+            customer: 3,
+            order: 7,
+            planning: 7};
         const thead_text = {
-            "customer": ["txt_shortname", "txt_customer_name", ""],
-            "order": ["txt_customer", "txt_order_code", "txt_order_name", "txt_datefirst", "txt_datelast", "", ""],
-            "planning": ["txt_customer", "txt_order", "txt_employee", "txt_rosterdate", "txt_shift", "txt_timestart", "txt_timeend"],
-            "pricerate": ["txt_orderschemeshift", "txt_pricerate", "txt_billable", "txt_asof"]}
+            customer: ["txt_shortname", "txt_customer_name", ""],
+            order: ["txt_customer", "txt_order_code", "txt_order_name", "Start_date", "End_date", "", ""],
+            planning: ["txt_customer", "txt_order", "Employee", "txt_rosterdate", "txt_shift", "Start_time", "End_time"]}
         const field_names = {
-            "customer": ["code", "name", "delete"],
-            "order": ["customer", "code", "name", "datefirst", "datelast", "inactive", "delete"],
-            "planning": ["customer", "order", "employee", "rosterdate", "shift", "timestart", "timeend"],
-            "pricerate": ["code", "priceratejson", "billable", "datefirst"]}
+            customer: ["code", "name", "delete"],
+            order: ["customer", "code", "name", "datefirst", "datelast", "inactive", "delete"],
+            planning: ["customer", "order", "employee", "rosterdate", "shift", "timestart", "timeend"]}
         const field_tags = {
-            "customer": ["input", "input", "a"],
-            "order": ["input", "input", "input", "input", "input", "a", "a"],
-            "planning": ["input", "input", "input", "input", "input", "input", "input"],
-            "pricerate": ["input", "input", "a", "input"]}
+            customer: ["input", "input", "a"],
+            order: ["input", "input", "input", "input", "input", "a", "a"],
+            planning: ["input", "input", "input", "input", "input", "input", "input"]}
         const field_width = {
-            "customer": ["180", "220", "032"],
-            "order": ["180", "180", "180", "120", "120", "032", "032"],
-            "planning": ["120", "120", "180", "120", "090", "090", "090"],
-            "pricerate": ["220", "150", "120", "150"]}
+            customer: ["180", "220", "032"],
+            order: ["180", "180", "180", "120", "120", "032", "032"],
+            planning: ["120", "120", "180", "120", "090", "090", "090"]}
         const field_align = {
-            "customer": ["left", "left", "right"],
-            "order": ["left", "left","left", "left", "left", "right", "right"],
-            "planning": ["left", "left", "left", "left", "left", "right", "right"],
-            "pricerate": ["left", "right", "center", "left"]}
+            customer: ["left", "left", "right"],
+            order: ["left", "left","left", "left", "left", "right", "right"],
+            planning: ["left", "left", "left", "left", "left", "right", "right"]}
 
 // get elements
         let tblHead_items = document.getElementById("id_thead_items");
         let tblBody_items = document.getElementById("id_tbody_items");
         let tblBody_select = document.getElementById("id_tbody_select");
-
-        console.log("tblBody_items: ", tblBody_items);
 
         let el_loader = document.getElementById("id_loader");
         let el_msg = document.getElementById("id_msgbox");
@@ -137,22 +150,80 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
 // ---  add 'keyup' event handler to filter orders and customers
-        let el_filter_select = document.getElementById("id_flt_select")
-            el_filter_select.addEventListener("keyup", function() {
-                setTimeout(function() {HandleFilterSelect()}, 50)});
+        //let el_filter_select = document.getElementById("id_filter_select_input")
+        //    el_filter_select.addEventListener("keyup", function() {
+        //        setTimeout(function() {HandleSelect_Filter()}, 50)});
 
-        let el_sel_inactive = document.getElementById("id_sel_inactive")
-            el_sel_inactive.addEventListener("click", function(){HandleFilterInactive(el_sel_inactive)});
+       // let el_sel_inactive = document.getElementById("id_sel_inactive")
+       //     el_sel_inactive.addEventListener("click", function(){HandleFilterInactive(el_sel_inactive)});
 
 // --- buttons in btn_container
         let btns = document.getElementById("id_btn_container").children;
         for (let i = 0; i < btns.length; i++) {
             let btn = btns[i];
-            const mode = get_attr_from_el(btn,"data-mode")
-            btn.addEventListener("click", function() {HandleBtnSelect(mode)}, false )
+            const data_mode = get_attr_from_el(btn,"data-mode")
+            btn.addEventListener("click", function() {HandleBtnSelect(data_mode)}, false )
         }
 
-// === event handlers for MODAL ===
+// ---  create EventListener for buttons in calendar
+        btns = document.getElementById("id_btns_calendar").children;
+        for (let i = 0, btn; i < btns.length; i++) {
+            btn = btns[i];
+            const mode = get_attr_from_el(btn,"data-mode")
+            btn.addEventListener("click", function() {HandleBtnCalendar(mode)}, false )
+        }
+
+// ===================== event handlers for MODAL ===================================
+
+// ---  MOD SHIFT ------------------------------------
+        let el_modshift_filter_order = document.getElementById("id_modshift_filter_order")
+            el_modshift_filter_order.addEventListener("keyup", function(event){
+                    setTimeout(function() {ModShiftFilterEmployee(el_modshift_filter_order)}, 50)});
+        let el_modshift_btn_save = document.getElementById("id_modshift_btn_save");
+            el_modshift_btn_save.addEventListener("click", function() {ModShiftSave("save")}, false );
+        let el_modshift_btn_delete = document.getElementById("id_modshift_btn_delete");
+            el_modshift_btn_delete.addEventListener("click", function() {ModShiftSave("delete")}, false );
+
+        let el_modshift_btn_shift = document.getElementById("id_modshift_btn_shift")
+            el_modshift_btn_shift.addEventListener("click", function() {MSO_BtnShiftTeamClicked("mod_shift")}, false );
+        let el_modshift_btn_employees = document.getElementById("id_modshift_btn_employees");
+            el_modshift_btn_employees.addEventListener("click", function() {MSO_BtnShiftTeamClicked("mod_team")}, false );
+
+        let el_modshift_shiftcode = document.getElementById("id_modshift_shiftcode");
+        let el_modshift_selectshift = document.getElementById("id_modshift_selectshift")
+            el_modshift_selectshift.addEventListener("change", function() {ModShiftSelectShiftChanged(el_modshift_selectshift)}, false)
+
+        let el_modshift_teamcode = document.getElementById("id_modshift_teamcode");
+        let el_modshift_selectteam = document.getElementById("id_modshift_selectteam")
+            el_modshift_selectteam.addEventListener("change", function() {ModShiftSelectTeamChanged(el_modshift_selectteam)}, false)
+
+        let el_modshift_timestart = document.getElementById("id_modshift_timestart")
+            el_modshift_timestart.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_timestart, "modshift")}, false );
+        let el_modshift_timeend = document.getElementById("id_modshift_timeend");
+            el_modshift_timeend.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_timeend, "modshift")}, false );
+        let el_modshift_breakduration = document.getElementById("id_modshift_breakduration");
+            el_modshift_breakduration.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_breakduration, "modshift")}, false );
+        let el_modshift_timeduration = document.getElementById("id_modshift_timeduration");
+            el_modshift_timeduration.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_timeduration, "modshift")}, false );
+        let el_modshift_onceonly = document.getElementById("id_modshift_onceonly");
+            el_modshift_onceonly.addEventListener("change", function() {ModShiftOnceOnly()}, false );
+
+// ---  create EventListener for buttons weekdays in modShft
+        btns = document.getElementById("id_modshift_weekdays").children;
+        for (let i = 0, btn; i < btns.length; i++) {
+            btn = btns[i];
+            btn.addEventListener("click", function() {ModShiftBtnWeekdayClicked(btn)}, false )
+        }
+
+// ---  MOD EMPLOYEE ------------------------------------
+        let el_mod_employee_body = document.getElementById("id_mod_employee_body");
+        document.getElementById("id_mod_employee_input_employee").addEventListener("keyup", function(event){
+                setTimeout(function() {
+                    ModEmployeeFilterEmployee("filter", event.key)
+                }, 50)});
+
+        document.getElementById("id_mod_employee_btn_save").addEventListener("click", function() {ModEmployeeSave("update")}, false);
+        document.getElementById("id_mod_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("delete")}, false);
 
 // ---  select period header
         document.getElementById("id_div_hdr_period").addEventListener("click", function(){ModPeriodOpen()});
@@ -182,8 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // remove highlighted row when clicked outside tabelrows
             let tr_selected = get_tablerow_selected(event.target)
             if(!tr_selected) {
-                // don't reset selected_customer_pk
-                selected_order_pk = 0;
+                // don't reset selected_customer_pk or  selected_order_pk
                 DeselectHighlightedRows(tr_selected)}
     // close el_popup_date_container
             let close_popup = true
@@ -205,19 +275,23 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- create Submenu
         CreateSubmenu()
 
-// --- create header row and footer
-        CreateTblHeaders();
-        CreateTblFooters();
-
         // skip cat: 512=absence, 4096=template, # inactive=None: show all
         const datalist_request = {
-            "setting": {"page_customer": {"mode": "get"},
-                        "selected_pk": {"mode": "get"},
-                        "planning_period": {"mode": "get"}},
-            "company": {value: true},
-            "customer": {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            "order": {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
-            "order_pricerate": {value: true}};
+            setting: {page_customer: {mode: "get"},
+                      selected_pk: {mode: "get"},
+                      planning_period: {mode: "get"}},
+            quicksave: {mode: "get"},
+            locale: {page: "customer"},
+            company: {value: true},
+            customer: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
+            order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            scheme: {istemplate: false, inactive: null, issingleshift: false},
+            schemeitem: {customer_pk: selected_customer_pk}, // , issingleshift: false},
+            shift: {istemplate: false},
+            team: {istemplate: false},
+            teammember: {datefirst: null, datelast: null, employee_nonull: false},
+            employee: {inactive: null}
+            };
         DatalistDownload(datalist_request);
 
 //###########################################################################
@@ -225,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request) {
         console.log( "=== DatalistDownload ")
-        //console.log( datalist_request)
+        console.log( datalist_request)
 
 // ---  show loader
         el_loader.classList.remove(cls_visible_hide)
@@ -240,6 +314,12 @@ document.addEventListener('DOMContentLoaded', function() {
             success: function (response) {
                 console.log("response")
                 console.log(response)
+                if ("locale_dict" in response) {
+                    loc = response["locale_dict"];
+// --- create header row and footer
+                    CreateTblHeaders();
+                    CreateTblFooters();
+                }
 
                 if ("company_dict" in response) {
                     company_dict = response["company_dict"];
@@ -248,31 +328,77 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("order_list" in response) {
                     get_datamap(response["order_list"], order_map)
                     FillTableRows("order");
-                    console.log("order_map: ", order_map)
+                    //console.log("order_map: ", order_map)
                 }
 
                 if ("customer_list" in response) {
                     get_datamap(response["customer_list"], customer_map)
-                    console.log("customer_map: ", customer_map)
+                    //console.log("customer_map: ", customer_map)
+
                     const tblName = "customer";
-                    FillSelectTable();
+                    const imgsrc_default = imgsrc_inactive_grey;
+                    const imgsrc_hover = imgsrc_inactive_black;
+                    const include_parent_code = false;
+                    FillSelectTable(customer_map, tblName, include_parent_code,
+                        HandleSelect_Filter, HandleFilterInactive,
+                        HandleSelect_Row,  HandleSelectRowButton,
+                        imgsrc_default, imgsrc_hover,
+                        filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
+
                     FilterSelectRows();
 
                     FillTableRows(tblName);
-                    let el_tbody_customer = document.getElementById("id_tbody_customer");
-                    FilterTableRows(el_tbody_customer);
+                    let tblBody = document.getElementById("id_tbody_customer");
+                    if(!!tblBody){
+                        FilterTableRows(tblBody)
+                    }
                 }
-                if ("order_pricerate_list" in response) {
-                    get_datamap(response["order_pricerate_list"], pricerate_map)
-                    //FillTableRows();
+                if ("employee_list" in response) {
+                    get_datamap(response["employee_list"], employee_map)
                 }
-                if ("customer_planning_list" in response) {
-                    get_datamap(response["customer_planning_list"], planning_map)
+                if ("scheme_list" in response) {
+                    get_datamap(response["scheme_list"], scheme_map)
+                    //console.log("scheme_map: ", scheme_map)
+                }
+                if ("shift_list" in response) {
+                    get_datamap(response["shift_list"], shift_map)
+                    //console.log("shift_map: ", shift_map)
+                }
+                if ("team_list" in response) {
+                    get_datamap(response["team_list"], team_map)
+                    //console.log("team_map: ", team_map)
+                }
+                if ("teammember_list" in response) {
+                    get_datamap(response["teammember_list"], teammember_map)
+                    console.log("teammember_map: ", teammember_map)
+                }
+                if ("schemeitem_list" in response) {
+                    get_datamap(response["schemeitem_list"], schemeitem_map)
+                    //console.log("schemeitem_map: ", schemeitem_map)
+                }
+
+                if ("order_planning_list" in response) {
+                    get_datamap(response["order_planning_list"], planning_map)
+
+                    //console.log( datalist_request)
                     FillTableRows("planning");
                 }
                 // setting_list must go after FillSelectTable() and before FillTableRows();
+                // setting_list must come after locale_dict, where weekday_list is loaded
                 if ("setting_list" in response) {
                     UpdateSettings(response["setting_list"])
+                }
+
+                // calendar_header_dict goes before order_calendar_list
+                if ("calendar_header_dict" in response) {
+                    calendar_header_dict = response["calendar_header_dict"]
+                }
+                if ("order_calendar_list" in response) {
+                    get_datamap(response["order_calendar_list"], calendar_map)
+                    CreateCalendar(calendar_header_dict, calendar_map, ModShiftOpen, loc, timeformat, user_lang);
+                };
+                if ("quicksave" in response) {
+                    quicksave = get_subdict_value_by_key(response, "quicksave", "value", false)
                 }
 
         // --- hide loader
@@ -318,7 +444,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  update selected_customer_pk
             const new_customer_pk = parseInt(get_subdict_value_by_key (map_dict, "id", "pk", 0))
             // deselect selected_order_pk when selected customer changes
-            if(new_customer_pk !== selected_customer_pk){selected_order_pk = 0}
+            if(new_customer_pk !== selected_customer_pk){
+                selected_order_pk = 0
+            }
             selected_customer_pk = new_customer_pk
 
 // ---  highlight row in select table
@@ -329,6 +457,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (tblName === "order"){
             const pk_str = get_attr_from_el(tr_clicked, "data-pk");
             selected_order_pk = parseInt(pk_str);
+            HandleTableRowClicked
         };  // if (tblName === "customer")
 
 // ---  update header text
@@ -362,11 +491,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 //=========  HandleBtnSelect  ================ PR2019-05-25
-    function HandleBtnSelect(mode, btn_selected) {
-        //console.log( "===== HandleBtnSelect ========= ", mode);
+    function HandleBtnSelect(data_mode) {
+        //console.log( "===== HandleBtnSelect ========= ");
 
-        selected_btn = mode
+        selected_btn = data_mode
         if(!selected_btn){selected_btn = "customer"}
+        //console.log( "selected_btn", selected_btn );
 
 // ---  upload new selected_btn
         const upload_dict = {"page_customer": {"mode": selected_btn}};
@@ -378,14 +508,43 @@ document.addEventListener('DOMContentLoaded', function() {
             btn = btns[i]
             const data_mode = get_attr_from_el(btn, "data-mode")
             if (data_mode === selected_btn){
-                btn.classList.add("tsa_btn_selected")
+                btn.classList.add(cls_btn_selected)
             } else {
-                btn.classList.remove("tsa_btn_selected")
+                btn.classList.remove(cls_btn_selected)
             }
         }
 
+// ---  show orderlist in selecttable when clicked on plnning, otherwise: customer_lsi
+        const tblName = (selected_btn === "calendar") ? "order" : "customer";
+            const imgsrc_default = imgsrc_inactive_grey
+            const imgsrc_hover = imgsrc_inactive_black
+
+            if (selected_btn === "calendar") {
+
+                const tblName = "order";
+                const imgsrc_default = imgsrc_inactive_grey;
+                const imgsrc_hover = imgsrc_inactive_black;
+                const include_parent_code = false;
+                FillSelectTable(order_map, tblName, include_parent_code,
+                    HandleSelect_Filter, null,
+                    HandleSelect_Row,  null,
+                    imgsrc_default, imgsrc_hover)
+
+            } else {
+
+                const tblName = "customer";
+                const imgsrc_default = imgsrc_inactive_grey;
+                const imgsrc_hover = imgsrc_inactive_black;
+                const include_parent_code = false;
+                FillSelectTable(customer_map, tblName, include_parent_code,
+                    HandleSelect_Filter, HandleFilterInactive,
+                    HandleSelect_Row, HandleSelectRowButton,
+                    imgsrc_default, imgsrc_hover,
+                    filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
+            }
+
 // ---  show / hide selected table
-        const mode_list = ["customer", "order", "planning"];
+        const mode_list = ["customer", "order", "planning", "calendar"];
         for(let i = 0, tbl_mode, len = mode_list.length; i < len; i++){
             tbl_mode = mode_list[i];
             let div_tbl = document.getElementById("id_div_tbl_" + tbl_mode);
@@ -417,10 +576,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // HandleBtnSelect
 
-//=========  HandleSelectRow ================ PR2019-08-28
-    function HandleSelectRow(sel_tr_clicked) {
-        //console.log( "===== HandleSelectRow  ========= ");
-        // selectRow contains customers
+//=========  HandleSelect_Row ================ PR2019-08-28
+    function HandleSelect_Row(sel_tr_clicked) {
+        //console.log( "===== HandleSelect_Row  ========= ");
+        // selectRow contains customers, in calendar mod it contains orders
 
         if(!!sel_tr_clicked) {
 // ---  get map_dict
@@ -429,15 +588,33 @@ document.addEventListener('DOMContentLoaded', function() {
             const map_id = get_map_id(tblName, pk_str);
             // function 'get_mapdict_from_tblRow.....' returns empty dict if map or key not exist.
             const map_dict = get_mapdict_from_tblRow(sel_tr_clicked)
+
+            //console.log( "tblName: ", tblName);
+            //console.log( "map_id: ", map_id);
+            //console.log( "map_dict: ", map_dict);
+
             if (!isEmpty(map_dict)){
 
 // ---  update selected_customer_pk
-                selected_customer_pk = get_subdict_value_by_key(map_dict, "id", "pk", 0);
-                const sel_cust_ppk = get_subdict_value_by_key(map_dict, "id", "ppk", 0);
-                const sel_cust_code = get_subdict_value_by_key(map_dict, "code", "value");
+                let sel_cust_code = "";
+                let sel_order_code = "";
+                let sel_cust_ppk = null
+                if (tblName === "customer"){
+                    selected_customer_pk = get_subdict_value_by_key(map_dict, "id", "pk", 0);
+                    sel_cust_ppk = get_subdict_value_by_key(map_dict, "id", "ppk");
+                    sel_cust_code = get_subdict_value_by_key(map_dict, "code", "value");
 
 // --- deselect selected_order_pk when selected customer changes
-                selected_order_pk = 0
+                    selected_order_pk = 0
+                } else{
+                    selected_customer_pk = get_subdict_value_by_key(map_dict, "id", "ppk", 0);
+                    selected_order_pk = get_subdict_value_by_key(map_dict, "id", "pk", 0);
+
+                    sel_cust_code = get_subdict_value_by_key(map_dict, "customer", "code");
+                    sel_order_code = get_subdict_value_by_key(map_dict, "code", "value");
+                }
+                //console.log( "sel_cust_code: ", sel_cust_code);
+                //console.log( "sel_order_code: ", sel_order_code);
 
 // --- save selected_customer_pk in Usersettings
                 const upload_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
@@ -451,7 +628,6 @@ document.addEventListener('DOMContentLoaded', function() {
                  // ChangeBackgroundRows(tableBody, new_background, keep_old_hightlighted, tr_selected, sel_background)
                 ChangeBackgroundRows(tblBody_select, cls_bc_lightlightgrey, false, sel_tr_clicked, cls_bc_yellow);
 
-
 // ---  update header text
                 UpdateHeaderText()
 
@@ -459,23 +635,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 // btns are: 'customer', 'order', 'planning', 'customer_form'
                 if(selected_btn === "customer_form"){
                     UpdateForm()
+
 // ---  enable delete button
                     document.getElementById("id_form_btn_delete").disabled = (!selected_customer_pk)
                 } else {
                     let tblBody = document.getElementById("id_tbody_" + selected_btn);
                     if(!!tblBody){
+
 // ---  highlight row in tblBody
                        if(selected_btn === "customer"){
+
                            let tblRow = HighlightSelectedTblRowByPk(tblBody, selected_customer_pk)
 // ---  scrollIntoView, only in tblBody customer
                             if (!!tblRow){
                                 tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
                             };
                         } else if(selected_btn === "order"){
-// Filter Table Rows in table 'order', 'planning',
-                             FilterTableRows(tblBody)
-// put pk and ppk of selected customer in addnew row of tbody_order
+
+// ---  filter tablerows in table 'order', 'planning',
+                            if(!!tblBody){
+                                FilterTableRows(tblBody)
+                            }
+
+
+// ---  update addnew row: put pk and ppk of selected customer in addnew row of tbody_order
                             UpdateAddnewRow(selected_customer_pk, sel_cust_ppk, sel_cust_code)
+
+// ---  get order_calendar
+                        } else  if(selected_btn === "calendar"){
+                            //console.log("selected_btn === calendar")
+                            DatalistDownload({"order_calendar":
+                                                {"datefirst": calendar_header_dict["datefirst"],
+                                                "datelast": calendar_header_dict["datelast"],
+                                                "order_id": selected_order_pk}});
                         }  // if(selected_btn === "customer")
                     }  // if(!!tblBody)
                 };  // if(selected_btn === "customer_form")
@@ -486,11 +678,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  enable add button, also when no customer selected
         document.getElementById("id_form_btn_add").disabled = false;
-    }  // HandleSelectRow
+    }  // HandleSelect_Row
 
 //========= HandleBillableClicked  ============= PR2019-09-27
     function HandleBillableClicked(el_changed) {
-        console.log("======== HandleBillableClicked  ========");
+        //console.log("======== HandleBillableClicked  ========");
         if(!!el_changed){
             const tblRow = get_tablerow_selected(el_changed);
             if(!!tblRow){
@@ -499,12 +691,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const map_id = get_map_id(tblName, pk_str);
 
                 const itemdict = get_mapdict_from_tblRow(tblRow)
-                console.log("itemdict", itemdict);
+                //console.log("itemdict", itemdict);
                 // billable: {override: false, billable: false}
 
                 let is_override = get_subdict_value_by_key(itemdict, "billable", "override");
                 let is_billable = get_subdict_value_by_key(itemdict, "billable", "billable");
-                console.log("is_override", is_override, "is_billable", is_billable);
+                //console.log("is_override", is_override, "is_billable", is_billable);
                 if (is_override){
                     if (is_billable){
                         // is override billable: make override not billable
@@ -548,7 +740,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // if(!!el_changed){
     };  // HandleBillableClicked
 
-    function HandleBtnInactiveClicked(el_input) {
+    function HandleSelectRowButton(el_input) {
         HandleBtnInactiveDeleteClicked("inactive", el_input);
     }
     function HandleBtnDeleteClicked(el_input) {
@@ -599,6 +791,61 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // if(!!tblRow)
     }  // HandleBtnInactiveDeleteClicked
 
+//========= HandleBtnCalendar  ============= PR2019-12-04
+    function HandleBtnCalendar(mode) {
+        console.log( " ==== HandleBtnCalendar ====", mode);
+
+        const datefirst_iso = get_dict_value_by_key(calendar_header_dict, "datefirst")
+        console.log( "datefirst_iso", datefirst_iso, typeof datefirst_iso);
+
+        let calendar_datefirst_JS = get_dateJS_from_dateISO_vanilla(datefirst_iso);
+        if(!calendar_datefirst_JS) {calendar_datefirst_JS = new Date()};
+
+        let days_add = 0;
+        if (["prevday", "nextday"].indexOf( mode ) > -1){
+            days_add = (mode === "prevday") ? -1 : 1;
+            change_dayJS_with_daysadd_vanilla(calendar_datefirst_JS, days_add)
+
+        } else if (["prevweek", "nextweek"].indexOf( mode ) > -1){
+            let datefirst_weekday = calendar_datefirst_JS.getDay();
+            if (!datefirst_weekday) {datefirst_weekday = 7}  // JS sunday = 0, iso sunday = 7
+
+            if(datefirst_weekday === 1){
+                // calendar_datefirst_JS is Monday : add / aubtract one week
+                days_add = (mode === "prevweek") ? -7 : 7;
+                change_dayJS_with_daysadd_vanilla(calendar_datefirst_JS, days_add)
+            } else {
+                // calendar_datefirst_JS is not a Monday : goto this Monday
+                calendar_datefirst_JS = get_monday_JS_from_DateJS_vanilla(calendar_datefirst_JS)
+                // if nextweek: goto net monday
+                if (mode === "nextweek"){ change_dayJS_with_daysadd_vanilla(calendar_datefirst_JS, 7)}
+            }
+        } else if (mode === "thisweek") {
+            calendar_datefirst_JS = get_thisweek_monday_sunday_dateobj()[0];
+        }
+
+        let calendar_datelast_JS = addDaysJS(calendar_datefirst_JS, 6)
+        const calendar_datefirst_iso = get_dateISO_from_dateJS_vanilla(calendar_datefirst_JS);
+        const calendar_datelast_iso = get_dateISO_from_dateJS_vanilla(calendar_datelast_JS);
+
+// ---  upload new selected_btn
+
+        calendar_header_dict = {"datefirst": calendar_datefirst_iso,
+                        "datelast": calendar_datelast_iso}
+        const upload_dict = {"calendar": calendar_header_dict};
+        UploadSettings (upload_dict, url_settings_upload);
+
+        let datalist_request = {"order_calendar":
+                    {"datefirst": calendar_datefirst_iso,
+                     "datelast": calendar_datelast_iso,
+                     "order_id": selected_order_pk}};
+
+        console.log( "datalist_request", datalist_request);
+        DatalistDownload(datalist_request);
+
+    }  // HandleBtnCalendar
+
+
 //###########################################################################
 // +++++++++++++++++ CREATE +++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  CreateSubmenu  === PR2019-07-30
@@ -616,24 +863,25 @@ document.addEventListener('DOMContentLoaded', function() {
         //AddSubmenuButton(el_div, el_data, "id_submenu_employee_delete", function() {ModConfirmOpen("delete")}, "data-txt_employee_delete", "mx-2")
         AddSubmenuButton(el_div, el_data, "id_submenu_customer_planning_print", function() {
             PrintCustomerPlanning("preview", selected_period, planning_map, company_dict,
-                        label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang)}, "data-txt_planning_preview", "mx-2")
+                        label_list, pos_x_list, colhdr_list, timeformat, loc.month_list, loc.weekday_list, user_lang)}, "data-txt_planning_preview", "mx-2")
         AddSubmenuButton(el_div, el_data, "id_submenu_customer_planning_print", function() {
             PrintCustomerPlanning("print", selected_period, planning_map, company_dict,
-                        label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang)}, "data-txt_planning_download", "mx-2")
+                        label_list, pos_x_list, colhdr_list, timeformat, loc.month_list, loc.weekday_list, user_lang)}, "data-txt_planning_download", "mx-2")
 
         el_submenu.classList.remove(cls_hide);
 
     };//function CreateSubmenu
 
 //========= FillTableRows  ====================================
-    function FillTableRows(tblName) {
-        //console.log( "===== FillTableRows  ========= ", tblName);
+    function FillTableRows(tblName, selected_parent_pk) {
+        console.log( "===== FillTableRows  ========= ", tblName);
 
-        // selected_btns are: customer, order, planning, customer_form
+        // selected_btns are: customer, order, planning, calendar, customer_form
         if (selected_btn === "customer_form") { tblName = "customer"};
         //console.log( "tblName: ", tblName);
 
 // --- reset tblBody
+        // id_tbody_teammember is on modeordershift.html
         let tblBody = document.getElementById("id_tbody_" + tblName);
         tblBody.innerText = null;
 
@@ -641,6 +889,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const form_mode = (selected_btn === "customer_form");
         const data_map = (tblName === "customer") ? customer_map :
                          (tblName === "order") ? order_map :
+                         (tblName === "teammember") ? teammember_map :
                          (selected_btn === "planning") ? planning_map :
                          null;
 
@@ -659,17 +908,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         const pk_int = get_dict_value_by_key(id_dict, "pk");
                         const ppk_int = get_dict_value_by_key(id_dict, "ppk");
 
-                    // in mode order or pricerate: show only rows of selected_customer_pk
+                    // in table order: show only rows of selected_customer_pk, show all if null
                     let add_Row = false;
                     let row_customer_pk = null;
-                    if (["order", "pricerate"].indexOf( selected_btn ) > -1){
-                        row_customer_pk = get_subdict_value_by_key(item_dict, "customer", "pk")
-                        add_Row = (!!row_customer_pk && row_customer_pk === selected_customer_pk);
+
+                    if (tblName === "teammember"){
+                        const row_team_pk = get_subdict_value_by_key(item_dict, "id", "ppk")
+                        add_Row = (!!row_team_pk && row_team_pk === selected_parent_pk);
                     } else {
-                        add_Row = true;
+                        if (["order", "pricerate"].indexOf( selected_btn ) > -1){
+                            row_customer_pk = get_subdict_value_by_key(item_dict, "customer", "pk")
+                            add_Row = (!!row_customer_pk && row_customer_pk === selected_customer_pk);
+                        } else {
+                            add_Row = true;
+                        }
                     }
+
                     if(add_Row) {
-                        // parameters: tblName, pk_str, ppk_str, is_addnew, customer_pk
+                        // parameters: tblName, pk_str, ppk_str, is_addnew, row_customer_pk
+                        // row_customer_pk not in use in teammember tbl
                         let tblRow = CreateTblRow("tbody", row_tblName, pk_int, ppk_int, false, row_customer_pk)
                         UpdateTableRow(tblRow, item_dict)
 // --- highlight selected row
@@ -689,16 +946,16 @@ document.addEventListener('DOMContentLoaded', function() {
     function CreateTblHeaders() {
         //console.log("===  CreateTblHeaders == ");
 
-        const tblName_list = ["customer", "order", "planning"]
-        tblName_list.forEach(function (tblName, index) {
+        const mode_list = ["customer", "order", "planning", "calendar"]
+        mode_list.forEach(function (mode, index) {
 
-            let tblHead = document.getElementById("id_thead_" + tblName);
+            let tblHead = document.getElementById("id_thead_" + mode);
             tblHead.innerText = null
 
             let tblRow = tblHead.insertRow (-1); // index -1: insert new cell at last position.
 
     //--- insert th's to tblHead
-            const column_count = tbl_col_count[tblName];
+            const column_count = tbl_col_count[mode];
 
             for (let j = 0; j < column_count; j++) {
 
@@ -710,31 +967,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 let el_div = document.createElement("div");
                 th.appendChild(el_div)
 
-    // --- add img billable and delete
-                //if ((tblName === "customer" && j === 2) || (tblName === "order" && j === 5))  {
-                //    AppendChildIcon(el_div, imgsrc_delete)
-                //    el_div.classList.add("ml-4")
-                //} else if (tblName === "order" && j === 776)  {
-               //     //AppendChildIcon(el_div, imgsrc_billable_black)
-                //} else {
-
     // --- add innerText to th
-                    const data_key = "data-" + thead_text[tblName][j];
-                    const data_text = get_attr_from_el(el_data, data_key);
-                    el_div.innerText = data_text;
+
+                    const data_text = loc[thead_text[mode][j]];
+                    if(!!data_text) el_div.innerText = data_text;
+
                     el_div.setAttribute("overflow-wrap", "break-word");
                 //}
 
     // --- add margin to first column
                 if (j === 0 ){el_div.classList.add("ml-2")}
     // --- add width to el
-                el_div.classList.add("td_width_" + field_width[tblName][j])
+                el_div.classList.add("td_width_" + field_width[mode][j])
     // --- add text_align
-                el_div.classList.add("text_align_" + field_align[tblName][j])
+                el_div.classList.add("text_align_" + field_align[mode][j])
             }  // for (let j = 0; j < column_count; j++)
 
-            CreateTblFilter(tblHead, tblName)
-        });  //  tblName_list.forEach
+            CreateTblFilter(tblHead, mode)
+        });  //  mode_list.forEach
     };  //function CreateTblHeaders
 
 //=========  CreateTblFooters  === PR2019-11-26
@@ -764,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             let dict = {"id": {"pk": pk_new, "ppk": ppk_int, "temp_pk": pk_new, "table": tblName}};
 
-    // --- add customer in first columns  when tblName is 'order'
+    // --- add customer in first columns when tblName is 'order'
             if (tblName === "order") {
 
     // get info from selected customer, store in dict
@@ -791,52 +1041,50 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ResetAddnewRow  === PR2019-11-26
     function ResetAddnewRow(tblName) {
-        //console.log("===  ResetAddnewRow == ");
+        console.log("===  ResetAddnewRow == ", tblName);
 
-    // --- lookup row 'add new' in tFoot
+// --- lookup row 'add new' in tFoot
 
         const tblFoot_id = "id_tfoot_" + tblName;
         let tblFoot = document.getElementById(tblFoot_id);
         if (!!tblFoot.rows.length){
             let tblRow = tblFoot.rows[0];
 
-        // --- update addnew row when tblName is 'customer'
+// --- update addnew row when tblName is 'customer'
             let update_dict = {}
             // format of update_dict is : { id: {table: "customer", pk: 504, ppk: 2, temp_pk: "customer_504"}
             //                              pk: 504,  code: {updated: true, value: "mmm2"},  name: {value: "mmm"},
             //                              cat: {value: 0}, interval: {value: 0}}
 
-
+            if (tblName === "customer") {
             // parent of customer is company, get ppk_int from company_dict ( ppk_int = company_pk)
-            // parent of order is selected_customer_pk
-            const ppk_int = (tblName === "customer") ? get_subdict_value_by_key (company_dict, "id", "pk", 0) :
-                                                       selected_customer_pk;
-
-            update_dict = {"id": {"pk": 0, "ppk": ppk_int},
-                            "code": {"value": null, "updated": true},
-                            "name": {"value": null, "updated": true}};
-
+                const ppk_int = get_subdict_value_by_key (company_dict, "id", "pk", 0)
+                update_dict = {"id": {"pk": 0, "ppk": ppk_int},
+                                "code": {"value": null, "updated": true},
+                                "name": {"value": null, "updated": true}};
 
         // --- update addnew row when tblName is 'order'
-            if (tblName === "order") {
-        // get info from selected customer, store in dict
-                    // if selected customer has value: create customer_dict, store value in field customer and tblRow of AddneRow
-                    if (!!ppk_int ){
-                        const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", ppk_int);
-                        const customer_ppk = get_subdict_value_by_key(customer_dict, "id", "ppk");
-                        const code_value = get_subdict_value_by_key(customer_dict, "code", "value")
-                        //dict["id"]["ppk"] = selected_customer_pk;
-                        update_dict["customer"] = {"pk": ppk_int, "ppk": customer_ppk, "value": code_value, "field": "customer", "locked": true}
-                    } else {
-                        // dict["customer"] is needed to put 'Select customer' in field 'customer'
-                        update_dict["customer"] = {"pk": null, "ppk": null, "value": null, "field": "customer", "locked": false}
-                    }
-                    update_dict["id"] = {"pk": null, "ppk": ppk_int, "temp_pk": null, "table": "order"};
-                };  // else if (tblName === "order")
+            } else if (tblName === "order") {
 
-       // console.log("@@@@@@@@@@@@@@@@@@@@ UpdateTableRow ResetAddnewRow ");
-        //console.log("tblRow  ", tblRow);
-                UpdateTableRow(tblRow, update_dict)
+            // get info from selected customer, store in dict
+                // if selected customer has value: create customer_dict, store value in field customer and tblRow of AddneRow
+
+                // parent of order is selected_customer_pk
+                const ppk_int = selected_customer_pk;
+                update_dict = {id: {pk: null, ppk: ppk_int, temp_pk: null, table: "order"}};
+                if (!!ppk_int ){
+                    const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", ppk_int);
+                    const customer_ppk = get_subdict_value_by_key(customer_dict, "id", "ppk");
+                    const code_value = get_subdict_value_by_key(customer_dict, "code", "value")
+                    update_dict["customer"] = {"pk": ppk_int, "ppk": customer_ppk, "value": code_value, "field": "customer", "locked": true}
+                } else {
+                    // dict["customer"] is needed to put 'Select customer' in field 'customer'
+                    update_dict["customer"] = {"pk": null, "ppk": null, "value": null, "field": "customer", "locked": false}
+                }
+            };  // else if (tblName === "order")
+
+            console.log("update_dict: ", update_dict);
+            UpdateTableRow(tblRow, update_dict)
 
 // --- new created record
 
@@ -910,10 +1158,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function CreateTblRow(prefix, tblName, pk_str, ppk_str, is_addnew_row, data_customer_pk) {
         //console.log("=========  CreateTblRow =========");
         //console.log("tblName", tblName);
-        //console.log("pk_str", pk_str);
-        //console.log("ppk_str", ppk_str);
-        //console.log("is_addnew_row", is_addnew_row);
-        //console.log("customer_pk", data_customer_pk);
 
 // --- insert tblRow ino tblBody or tFoot
         let tblBody_or_tFoot = document.getElementById("id_" + prefix + "_" + tblName);
@@ -935,15 +1179,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow, tblName, "list");}, false )
 
-// --- add grey color to row 'order' and 'scheme' in list pricerate.
-       // if (selected_btn === "pricerate"){
-       //     if (tblName === "order"){
-       //         tblRow.classList.add("tsa_bc_lightgrey")
-       //     } else if (tblName === "scheme"){
-       //         tblRow.classList.add("tsa_bc_lightlightgrey")
-       //     }
-       // }
-
 //+++ insert td's into tblRow
         const column_count = tbl_col_count[tblName];
         for (let j = 0; j < column_count; j++) {
@@ -957,7 +1192,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el.setAttribute("data-field", field_names[tblName][j]);
 
 // --- add img delete to col_delete, not in addnew row
-            if ((tblName === "customer" && j === 2 ) || (tblName === "order" && j === 6)) {
+            if ((tblName === "customer" && j === 2 ) || (tblName === "order" && j === 6) ) {
                 if (!is_addnew_row){
                     CreateBtnInactiveDelete("delete", tblRow, el)
                 }
@@ -966,18 +1201,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!is_addnew_row){
                     CreateBtnInactiveDelete("inactive", tblRow, el)
                 }
-// --- column billable
-            // } else if (selected_btn === "pricerate" && j === 2 ) {
-            //     if(!is_addnew_row) {
-            //         el.setAttribute("href", "#");
-            //         el.addEventListener("click", function(){
-            //             HandleBillableClicked(el)
-            //             }, false )
-            //         AppendChildIcon(el, imgsrc_stat00)
-            //         el.setAttribute("data-field", field_names[selected_btn][j]);
-            //         el.classList.add("ml-4")
-            //         //td.appendChild(el);
-            //     };
             } else {
 
 // --- add type and input_text to el.
@@ -985,26 +1208,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 el.classList.add("input_text");
 
 // --- add EventListener to td
-                // if (selected_btn === "pricerate"){
-                //     if ([1].indexOf( j ) > -1){
-                //         el.addEventListener("change", function() {UploadElChanges(el);}, false)
-                //     };
-                // } else {
-                    if (tblName === "customer"){
-                        if ([0, 1].indexOf( j ) > -1){
-                            el.addEventListener("change", function() {UploadElChanges(el)}, false )
-                        }
-                    } else if (tblName === "order"){
-                        if ([0, 1, 2].indexOf( j ) > -1){
-                            el.addEventListener("change", function() {UploadElChanges(el);}, false)
-                        } else if ([3, 4].indexOf( j ) > -1){
-                            el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false);
-                            // class input_popup_date is necessary to skip closing popup
-                            el.classList.add("input_popup_date")
-                        };
+                if (tblName === "customer"){
+                    if ([0, 1].indexOf( j ) > -1){
+                        el.addEventListener("change", function() {UploadElChanges(el)}, false )
                     }
-                // }  //  if (selected_btn === "pricerate"){
-
+                } else if (tblName === "order"){
+                    if ([0, 1, 2].indexOf( j ) > -1){
+                        el.addEventListener("change", function() {UploadElChanges(el);}, false)
+                    } else if ([3, 4].indexOf( j ) > -1){
+                        el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false);
+                        // class input_popup_date is necessary to skip closing popup
+                        el.classList.add("input_popup_date")
+                    };
+                }
             }  // if ((tblName === "order" && j === 7) || (tblName === "customer" && j === 2 ))
 
 // --- add placeholder, only when is_addnew_row.
@@ -1060,23 +1276,6 @@ document.addEventListener('DOMContentLoaded', function() {
         AppendChildIcon(el_input, img_src)
     }  // CreateBtnInactiveDelete
 
-//========= FillSelectTable  ============= PR2019-09-05
-    function FillSelectTable() {
-        //console.log("FillSelectTable");
-
-        tblBody_select.innerText = null;
-//--- loop through data_map
-        for (const [map_id, item_dict] of customer_map.entries()) {
-            const row_index = null // add at end when no rowindex
-            let selectRow = CreateSelectRow(tblBody_select, el_data, "customer", row_index, item_dict,
-                                        HandleSelectRow, HandleBtnInactiveClicked,
-                                        imgsrc_inactive_grey);
-
-// update values in SelectRow
-            // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
-            UpdateSelectRow(selectRow, item_dict, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
-        }  // for (let cust_key in data_map) {
-    } // FillSelectTable
 
 //###########################################################################
 // +++++++++++++++++ UPDATE ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1173,7 +1372,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const row_index = GetNewSelectRowIndex(tblBody_select, 0, update_dict, user_lang);
                 const imgsrc_default = imgsrc_inactive_grey, imgsrc_hover = imgsrc_inactive_black;
                 selectRow = CreateSelectRow(tblBody_select, el_data, tblName, row_index, update_dict,
-                                            HandleSelectRow, HandleBtnInactiveDeleteClicked,
+                                            HandleSelect_Row, HandleBtnInactiveDeleteClicked,
                                             imgsrc_default, imgsrc_hover )
 
         // imgsrc_inactive_lightgrey
@@ -1230,7 +1429,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const tblBody_id_str = get_attr_from_el(tblBody, "id")
             const arr = tblBody_id_str.split("_");
             const is_addnew_row = (arr.length > 1 && arr[1] === "tfoot");
-
 
 // put or remove customer_pk in tblRow.data, for filtering rows
             const customer_dict = get_dict_value_by_key (update_dict, "customer");
@@ -1292,9 +1490,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const is_inactive = get_subdict_value_by_key (update_dict, "inactive", "value", false);
                 tblRow.setAttribute("data-inactive", is_inactive)
 
-// --- loop through cells of tablerow and UpdateField
-
-
                 for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                     // el_input is first child of td, td is cell of tblRow
                     let el_input = tblRow.cells[i].children[0];
@@ -1315,12 +1510,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isEmpty(update_dict)){
             if (fldName === "inactive") {
                 const field_dict = {value: false}
-                // use
                 format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
             } else {
                 el_input.value = null
                 el_input.removeAttribute("data-value");
                 el_input.removeAttribute("data-pk");
+                el_input.removeAttribute("data-ppk");
              }
         } else {
     // --- lookup field in update_dict, get data from field_dict
@@ -1336,11 +1531,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 } else if (fldName ===  "customer"){
                     // fldName "customer") is used in mode order
+                    //console.log("fldName: ", fldName);
                     //console.log("field_dict: ", field_dict);
                     // abscat: use team_pk, but display order_code, is stored in 'value, team_code stored in 'code'
                     const customer_pk = get_dict_value_by_key (field_dict, "pk")
                     const customer_ppk = get_dict_value_by_key (field_dict, "ppk")
-                    const customer_value = get_dict_value_by_key (field_dict, "value")
+                    const customer_value = get_dict_value_by_key (field_dict, "code", "")
+                    //console.log("customer_value: ", customer_value);
                     if (!!customer_value) {
                         el_input.value = customer_value;
                         el_input.setAttribute("data-value", customer_value);
@@ -1354,24 +1551,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 } else if (["priceratejson"].indexOf( fldName ) > -1){
                    format_price_element (el_input, el_msg, field_dict, msg_offset, user_lang)
+
                 } else if (["datefirst", "datelast"].indexOf( fldName ) > -1){
                     const hide_weekday = true, hide_year = false;
-                    format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
+                    format_date_element (el_input, el_msg, field_dict, loc.month_list, loc.weekday_list,
                                 user_lang, comp_timezone, hide_weekday, hide_year)
+
                 } else if (fldName === "rosterdate"){
                     const hide_weekday = (tblName === "planning") ? false : true;
                     const hide_year = (tblName === "planning") ?  true : false;
-                    format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
+                    format_date_element (el_input, el_msg, field_dict, loc.month_list, loc.weekday_list,
                                         user_lang, comp_timezone, hide_weekday, hide_year)
 
                 } else if (["timestart", "timeend"].indexOf( fldName ) > -1){
                     const title_overlap = null
-                    format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)
+                    format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, loc.month_list, loc.weekday_list, title_overlap)
 
                 } else if (fldName === "billable"){
                     format_billable_element (el_input, field_dict,
                     imgsrc_billable_black, imgsrc_billable_cross_red, imgsrc_billable_grey, imgsrc_billable_cross_grey,
                     title_billable, title_notbillable,)
+
+                } else if (["employee", "replacement"].indexOf( fldName ) > -1){
+
+                    const pk_int = get_dict_value_by_key (field_dict, "pk")
+                    const ppk_int = get_dict_value_by_key (field_dict, "ppk")
+                    el_input.setAttribute("data-pk", pk_int);
+                    el_input.setAttribute("data-ppk", ppk_int);
+
+                    el_input.innerText = value;
+
                 } else if (fldName === "inactive") {
                    if(isEmpty(field_dict)){field_dict = {value: false}}
                    format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
@@ -1387,7 +1596,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } // if (isEmpty(update_dict))
 
    }; // UpdateField
-
 
 
 //========= UpdateAddnewRow  ==================================== PR2019-11-25
@@ -1442,6 +1650,11 @@ document.addEventListener('DOMContentLoaded', function() {
         let header_text = null;
         if (selected_btn === "customer") { //show 'Customer list' in header when List button selected
             header_text = get_attr_from_el_str(el_data, "data-txt_customer_list")
+        } else if (selected_btn === "calendar") {
+            const dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_order_pk)
+            const order_code = get_subdict_value_by_key(dict,"code", "value", "")
+            const customer_code = get_subdict_value_by_key(dict,"customer", "code", "")
+            header_text = customer_code + " - " + order_code;
         } else if (!!selected_customer_pk) {
             const dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk)
             const customer_code = get_subdict_value_by_key(dict,"code", "value")
@@ -1456,13 +1669,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         document.getElementById("id_hdr_text").innerText = header_text
 
+        document.getElementById("id_calendar_hdr_text").innerText = header_text
+
     }  // UpdateHeaderText
 
 //=========  UpdateHeaderPeriod ================ PR2019-11-09
     function UpdateHeaderPeriod() {
         // console.log( "===== UpdateHeaderPeriod  ========= ");
         let header_text = "";
-        const period_txt = get_period_formatted(selected_period, month_list, weekday_list, user_lang);
+        const period_txt = get_period_formatted(selected_period, loc.month_list, loc.weekday_list, user_lang);
         // console.log( "period_txt", period_txt);
         if (!!period_txt) {
             header_text = get_attr_from_el_str(el_data, "data-txt_period") + ": " + period_txt
@@ -1517,7 +1732,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     if ("sel_order_pk" in sel_dict ){
                         selected_order_pk = sel_dict["sel_order_pk"];
-                        //console.log("selected_order_pk", selected_order_pk, typeof selected_order_pk)
                     }
                 }  // if (key === "selected_pk"){
                 if (key === "page_customer"){
@@ -1610,9 +1824,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let tr_changed = document.getElementById(map_id);
         if(!!tr_changed){
-            tr_changed.classList.add("tsa_tr_error");
+            tr_changed.classList.add(cls_error);
             setTimeout(function (){
-                tr_changed.classList.remove("tsa_tr_error");
+                tr_changed.classList.remove(cls_error);
                 }, 2000);
         }
     }
@@ -1658,6 +1872,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let tblRow = get_tablerow_selected(el_input)
         if(!!tblRow){
+
 // ---  create id_dict
             // 'get_iddict_from_element' gets 'data-pk', 'data-ppk', 'data-table', 'data-mode', 'data-cat' from element
             // and puts it as 'pk', 'ppk', 'temp_pk', 'create', 'mode', 'cat' in id_dict
@@ -1668,7 +1883,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             let upload_dict = {"id": id_dict};
 
-    // ---  get fieldname from 'el_input.data-field'
+// ---  get fieldname from 'el_input.data-field'
             const fieldname = get_attr_from_el(el_input, "data-field");
             if (!!fieldname){
                 let n_value = null;
@@ -1690,6 +1905,62 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // if(!!el_input){
     }  // UploadElChanges
 
+
+//========= ModTimepickerChanged  ============= PR2019-10-12
+    function ModTimepickerChanged(tp_dict) {
+        console.log(" === ModTimepickerChanged ===" );
+        console.log("tp_dict", tp_dict);
+
+        const mode = get_dict_value_by_key(tp_dict, "mod")
+        console.log("mode", mode);
+
+        let upload_dict = {"id": tp_dict["id"]};
+        if("quicksave" in tp_dict) {quicksave = tp_dict["quicksave"]};
+        console.log("quicksave", quicksave);
+
+        // when clicked on 'Exit quicksave' and then 'Cancel' changes must not be saved, but quicksave does
+        if("save_changes" in tp_dict) {
+
+            // if mode = 'shifts', dont upload changes but put them in modal shifts
+            if (mode ==="modshift") {
+        // return value from ModTimepicker. Don't upload but put new value in ModShift
+                ModShiftTimepickerResponse(tp_dict);
+            } else {
+
+                upload_dict[tp_dict["field"]] = {"value": tp_dict["offset"], "update": true};
+                //console.log("upload_dict", upload_dict);
+
+                const tblName = "emplhour";
+                const map_id = get_map_id(tblName, get_subdict_value_by_key(tp_dict, "id", "pk").toString());
+                let tr_changed = document.getElementById(map_id)
+
+                let parameters = {"upload": JSON.stringify (upload_dict)}
+                const url_str = url_teammember_upload;
+                let response;
+                $.ajax({
+                    type: "POST",
+                    url: url_str,
+                    data: parameters,
+                    dataType:'json',
+                    success: function (response) {
+                        //console.log ("response", response);
+                        if ("update_list" in response) {
+                            let update_list = response["update_list"];
+                            UpdateFromResponseNEW(tblName, update_list)
+                        }
+
+                    },
+                    error: function (xhr, msg) {
+                        console.log(msg + '\n' + xhr.responseText);
+                        alert(msg + '\n' + xhr.responseText);
+                    }
+                });
+
+             }  //    if (mode ==="shifts")
+    }  // if("save_changes" in tp_dict) {
+ }  //ModTimepickerChanged
+
+
 //========= UploadChanges  ============= PR2019-03-03
 // PR2019-03-17 debug: Here you have written this script on document.ready function, that's why it returns obsolete value.
 // Put this script in some event i.e click, keypress,blur,onchange etc... So that you can get the changed value.
@@ -1702,7 +1973,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( " ==== UploadChanges ====");
         if(!!upload_dict) {
             console.log("url_str: ", url_str );
-            console.log("upload: ", upload_dict);
+            console.log("upload_dict: ", upload_dict);
 
             const parameters = {"upload": JSON.stringify (upload_dict)};
             let response = "";
@@ -1721,17 +1992,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     if ("order_list" in response) {
                         get_datamap(response["order_list"], order_map)
                     }
-                    if ("pricerate_list" in response) {
-                        get_datamap(response["pricerate_list"], pricerate_map)
-                        //FillTableRows();
-                        //FilterTableRows(tblBody_items);
+                    if ("shift_list" in response) {
+                        get_datamap(response["shift_list"], shift_map)
                     }
+
                     if ("update_list" in response) {
                         for (let i = 0, len = response["update_list"].length; i < len; i++) {
                             const update_dict = response["update_list"][i];
                             UpdateFromResponse(update_dict);
                         }
                     }
+                    // calendar_header_dict goes before order_calendar_list
+                    if ("calendar_header_dict" in response) {
+                        calendar_header_dict = response["calendar_header_dict"]
+                    }
+                    if ("order_calendar_list" in response) {
+                        get_datamap(response["order_calendar_list"], calendar_map)
+                        CreateCalendar(calendar_header_dict, calendar_map, ModShiftOpen, loc, timeformat, user_lang);
+                    };
+
                 },
                 error: function (xhr, msg) {
                     console.log(msg + '\n' + xhr.responseText);
@@ -1917,7 +2196,8 @@ document.addEventListener('DOMContentLoaded', function() {
         UploadSettings (upload_dict, url_settings_upload);
 
         UpdateHeaderPeriod();
-        let datalist_request = {"customer_planning": selected_period};
+        let datalist_request = {"order_calendar": selected_period};
+        datalist_request["order_calendar"]["order_id"] = selected_order_pk;
         DatalistDownload(datalist_request);
     }
 
@@ -1957,6 +2237,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const data_txt_btn_save = "data-txt_confirm_btn_" + mode
         document.getElementById("id_confirm_btn_save").innerText = get_attr_from_el(el_data, data_txt_btn_save);
 
+// set focus to cancel button
+        setTimeout(function (){
+            document.getElementById("id_confirm_btn_cancel").focus();
+        }, 500);
+
 // show modal
         $("#id_mod_confirm").modal({backdrop: true});
 
@@ -1974,15 +2259,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }
 
+
 //############################################################################
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//========= HandleFilterSelect  ====================================
-    function HandleFilterSelect() {
-        // console.log( "===== HandleFilterSelect  ========= ");
+//========= HandleSelect_Filter  ====================================
+    function HandleSelect_Filter() {
+        // console.log( "===== HandleSelect_Filter  ========= ");
         // skip filter if filter value has not changed, update variable filter_select
 
-        let new_filter = el_filter_select.value;
+        let new_filter = document.getElementById("id_filter_select_input").value;
 
         let skip_filter = false
         if (!new_filter){
@@ -1999,11 +2285,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         if (!skip_filter) {
-            FilterTableRows(tblBody_items)
+            let tblBody = document.getElementById("id_tbody_" + selected_btn);
+            if(!!tblBody){
+                FilterTableRows(tblBody)
+            }
+
             FilterSelectRows()
 
         } //  if (!skip_filter) {
-    }; // function HandleFilterSelect
+    }; // function HandleSelect_Filter
 
 //========= HandleFilterName  ====================================
     function HandleFilterName(el, index, el_key) {
@@ -2060,7 +2350,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (!skip_filter) {
-            FilterTableRows(tblBody);// Filter TableRows
+            if(!!tblBody){
+                FilterTableRows(tblBody)
+            }
+
             FilterSelectRows();
         } //  if (!skip_filter) {
 
@@ -2079,10 +2372,12 @@ document.addEventListener('DOMContentLoaded', function() {
         el.children[0].setAttribute("src", img_src);
 // Filter TableRows
         FilterSelectRows();
+
         let tblBody = document.getElementById("id_tbody_" + selected_btn);
-        //console.log("selected_btn", selected_btn);
-        //console.log("tblBody", tblBody);
-        FilterTableRows(tblBody);
+        if(!!tblBody){
+            FilterTableRows(tblBody)
+        }
+
     }  // function HandleFilterInactive
 
 //========= ResetFilterRows  ====================================
@@ -2117,12 +2412,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             //--- reset filter of select table
-            el_filter_select.value = null
+            let el_filter_select_input = document.getElementById("id_filter_select_input")
+            if (!!el_filter_select_input){
+                el_filter_select_input.value = null
+            }
+
             // reset icon of filter select table
             // debug: dont use el.firstChild, it also returns text and comment nodes, can give error
             // select table is in sidebar: use lightgrey instead of imgsrc_inactive_grey
-            el_sel_inactive.children[0].setAttribute("src", imgsrc_inactive_lightgrey);
 
+            let el_filter_select_btn = document.getElementById("id_filter_select_btn")
+            if (!!el_filter_select_btn){
+                el_filter_select_btn.children[0].setAttribute("src", imgsrc_inactive_lightgrey);
+            }
             FilterSelectRows()
             UpdateHeaderText();
 
@@ -2173,9 +2475,9 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= FilterTableRows  ====================================
     function FilterTableRows(tblBody) {  // PR2019-06-24
         //console.log( "===== FilterTableRows  ========= ");
+        //console.log( "tblBody", tblBody);
         let tblRows = tblBody.rows
         const len = tblBody.rows.length;
-        //console.log( "tblBody.rows.length", len);
 
         if (!!len){
             for (let i = 0, tblRow, show_row; i < len; i++) {
@@ -2292,5 +2594,1932 @@ document.addEventListener('DOMContentLoaded', function() {
     }; // function ShowTableRow_dict
 
 //##################################################################################
+// +++++++++ MODAL SHIFT ORDER ++++++++++++++++++++++++++++++++++++++++++++++++++++ PR2019-12-30
+//##################################################################################
+
+//=========  ModShiftOpen  ================ PR2019-10-28
+    function ModShiftOpen(el_input) {
+        console.log(" #############-----  ModShiftOpen   ----")
+
+        mod_upload_dict = {};
+
+        let order_pk = null, order_ppk = null, order_code = null, customer_code = null;
+        let scheme_pk = null, scheme_code = null, scheme_cycle = null;
+        let scheme_datefirst = null, scheme_datelast = null;
+        let scheme_excludepublicholiday = false, scheme_excludecompanyholiday = false;
+        let shift_pk = null, shift_code = null, team_pk = null, team_code = null;
+        let schemeitem_pk = null, schemeitem_ppk = null, teammember_pk = null, teammember_ppk = null;
+        let offset_start = null, offset_end = null, break_duration = null, time_duration = null;
+
+        let mod_shift_option = "mod_shift";
+
+        let tr_selected = get_tablerow_selected(el_input)
+
+// ---  get rosterdate and weekday from date_cell
+        let tblCell = el_input.parentNode;
+        const cell_index = tblCell.cellIndex
+        let tblHead = document.getElementById("id_thead_calendar")
+        const date_cell = tblHead.rows[1].cells[cell_index].children[0]
+        const rosterdate_iso = get_attr_from_el_str(date_cell, "data-rosterdate")
+        let cell_weekday_index = get_attr_from_el_int(date_cell, "data-weekday")
+
+// ---  get row_index from tr_selected
+        // getting weekday index from  data-weekday goes wrong, because of row span
+        // must be corrected with the number of spanned row of this tablerow
+        // number of spanned rows are stored in list spanned_rows, index is row-index
+
+        // rowindex is stored in tblRow, rowindex, used to get the hour that is clicked on
+        const row_index = get_attr_from_el_int(tr_selected, "data-rowindex")
+
+// ---  count number of spanned columns till this column   [4, 1, 1, 0, 0, 1, 1, 0] (first column contains sum)
+        const column_count = 7 // tbl_col_count["planning"];
+        const spanned_column_sum = count_spanned_columns (tr_selected, column_count, cell_weekday_index)
+        const weekday_index = cell_weekday_index + spanned_column_sum;
+
+// ---  get offset_start from map, is new shift: get from tr_selected
+        const map_id = get_attr_from_el(el_input, "data-pk");
+        //console.log("--------------map_id: ", map_id)
+        let selected_weekday_list = [], add_new_mode = false;
+        const map_dict = get_mapdict_from_datamap_by_tblName_pk(calendar_map, "planning", map_id);
+        console.log(" map_dict: ", map_dict)
+
+        if(!isEmpty(map_dict)){
+            offset_start = get_subdict_value_by_key(map_dict, "timestart", "offset");
+            offset_end = get_subdict_value_by_key(map_dict, "timeend", "offset");
+            break_duration = get_subdict_value_by_key(map_dict, "breakduration", "value");
+            time_duration = get_subdict_value_by_key(map_dict, "timeduration", "value");
+            if(!break_duration){break_duration = 0};
+            if(!time_duration){time_duration = 0};
+
+// ---  get selected_weekday_list from map_dict, select weekday buttons
+            selected_weekday_list = get_dict_value_by_key(map_dict, "weekday_list");
+        console.log("selected_weekday_list: ", selected_weekday_list)
+
+// ---  get order from shift if clicked on shift, get selected_order_pk otherwise
+            order_pk = get_subdict_value_by_key(map_dict, "order", "pk");
+            order_ppk = get_subdict_value_by_key(map_dict, "order", "ppk");
+            order_code = get_subdict_value_by_key(map_dict, "order", "code");
+            customer_code = get_subdict_value_by_key(map_dict, "customer", "code");
+
+            const scheme_dict = get_dict_value_by_key(map_dict, "scheme");
+            if (!isEmpty(scheme_dict)){
+                scheme_pk = get_dict_value_by_key(scheme_dict, "pk");
+                scheme_code = get_dict_value_by_key(scheme_dict, "code");
+                scheme_cycle = get_dict_value_by_key(scheme_dict, "cycle");
+                scheme_datefirst = get_dict_value_by_key(scheme_dict, "datefirst");
+                scheme_datelast = get_dict_value_by_key(scheme_dict, "datelast");
+                scheme_excludepublicholiday = get_dict_value_by_key(scheme_dict, "excludepublicholiday", false);
+                scheme_excludecompanyholiday = get_dict_value_by_key(scheme_dict, "excludecompanyholiday", false);
+            }
+
+            const shift_dict = get_dict_value_by_key(map_dict, "shift");
+            if (!isEmpty(shift_dict)){
+                shift_pk = get_dict_value_by_key(shift_dict, "pk");
+                shift_code = get_dict_value_by_key(shift_dict, "code");
+            }
+            offset_start = get_dict_value_by_key(map_dict, "offsetstart");
+            offset_end = get_dict_value_by_key(map_dict, "offsetend");
+            break_duration = get_dict_value_by_key(map_dict, "breakduration");
+            time_duration = get_dict_value_by_key(map_dict, "timeduration");
+
+            team_pk = get_subdict_value_by_key(map_dict, "team", "pk");
+            team_code = get_subdict_value_by_key(map_dict, "team", "code");
+            // no teammember seleceted when opening ModShift (team can have multiple teammebers
+            //teammember_pk = get_subdict_value_by_key(map_dict, "teammember", "pk");
+            //teammember_ppk = get_subdict_value_by_key(map_dict, "teammember", "ppk");
+
+            schemeitem_pk = get_subdict_value_by_key(map_dict, "schemeitem", "pk");
+            schemeitem_ppk = get_subdict_value_by_key(map_dict, "schemeitem", "ppk");
+
+        } else {
+            // clicked on empty cell
+            add_new_mode = true;
+            offset_start = 60 * row_index
+
+// ---  get selected order_pk when cliced on empty row
+            order_pk= selected_order_pk;
+            const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", order_pk);
+            if(!isEmpty(order_dict)){
+                order_pk = get_subdict_value_by_key(order_dict, "id", "pk");
+                order_ppk = get_subdict_value_by_key(order_dict, "id", "ppk");
+                order_code = get_subdict_value_by_key(order_dict, "code", "value");
+                customer_code = get_subdict_value_by_key(order_dict, "customer", "code");
+            }
+        }
+
+// ---  select mod_shift / mod_team
+        // ---  highlight selected button
+        set_element_class("id_modshift_btn_shift", (mod_shift_option === "mod_shift"), cls_btn_selected)
+        set_element_class("id_modshift_btn_employees", (mod_shift_option === "mod_team"), cls_btn_selected)
+
+        // calendar_datefirst/last is used to create a new employee_calendar_list
+        // calendar_header_dict + {datefirst: "2019-12-09", datelast: "2019-12-15", employee_id: 1456}
+        const calendar_datefirst = get_dict_value_by_key(calendar_header_dict, "datefirst");
+        const calendar_datelast = get_dict_value_by_key(calendar_header_dict, "datelast");
+
+// --- reset mod_upload_dict
+        mod_upload_dict = {map_id: map_id,
+                            calendar: {table: "calendar_order",
+                                        mode: mod_shift_option,
+                                        rosterdate: rosterdate_iso,
+                                        weekday_index: weekday_index,
+                                        weekday_list: selected_weekday_list,
+                                        calendar_datefirst: calendar_datefirst,
+                                        calendar_datelast: calendar_datelast},
+                            order:  {pk: order_pk, ppk: order_ppk, code: order_code},
+                            scheme: {pk: scheme_pk, ppk: order_pk, code: scheme_code},
+                            shift:  {pk: shift_pk, ppk: scheme_pk, code: shift_code,
+                                     offsetstart: offset_start, offsetend: offset_end,
+                                     breakduration: break_duration, timeduration: time_duration},
+                            team:   {pk: team_pk, ppk: scheme_pk, code: team_code},
+                            teammember: {pk: null, ppk: null},
+                            schemeitem: {pk: schemeitem_pk, ppk: schemeitem_ppk},
+                            shift_list: [],
+                            team_list: [],
+                            teammember_list: [],
+                            schemeitem_list: []
+                            };
+
+// fill team_list with map_dicts of teams of this scheme
+// fill teammember_list with map_dicts of teamemmebers of this scheme
+        MSO_FillShiftTeamTeammemberSchemitemList(scheme_pk);
+
+// store offset in mod_upload_dict and calculate min max
+        ModShiftSetMinMaxValues(offset_start,offset_end, break_duration, time_duration)
+
+// ---  put order name in header
+        const order_text = (!!order_code) ? customer_code + " - " + order_code : loc.Select_order + "...";
+        document.getElementById("id_modshift_header").innerText = order_text;
+
+// ---  put scheme name in sub header
+        const scheme_text = (!!scheme_code) ? scheme_code : "";
+        document.getElementById("id_modshift_header_scheme").innerText = scheme_text;
+
+// ---  fill modshift_select_order, Show select table order only in new shift
+        let el_modshift_select_order = document.getElementById("id_modshift_select_order")
+        if (!add_new_mode) {// was: if(!!order_pk || order_isabsence ){
+            el_modshift_select_order.classList.add(cls_hide);
+        } else {
+            el_modshift_select_order.classList.remove(cls_hide);
+            MOSFillSelectTableEmployee()
+        };
+
+// ---  show only the elements that are used in this mod_shift_option
+        let list = document.getElementsByClassName("mod_show");
+        for (let i=0, len = list.length; i<len; i++) {
+            let el = list[i]
+            const is_show = el.classList.contains(mod_shift_option)
+            show_hide_element(el, is_show)
+        }
+
+// ---  fill shift options, set select shift in selectbox
+        let el_select = document.getElementById("id_modshift_selectshift");
+        let new_option_txt =  "&lt;" +  loc.New_shift.toLowerCase() + "&gt;"
+        let selected_option = (!!shift_pk) ? shift_pk : 0;
+        el_select.innerHTML = FillOptionShiftOrTeam(shift_map, scheme_pk, true, new_option_txt);
+        el_select.value = selected_option;
+
+// ---  reset shiftname
+        el_modshift_shiftcode.value = null;
+// ---  create shift name
+        const cur_shift_code = el_modshift_shiftcode.value;
+        const new_shift_code = MSO_CreateShiftname(cur_shift_code, offset_start, offset_end);
+        if(!!new_shift_code){el_modshift_shiftcode.value = new_shift_code};
+
+// ---  fill team options, set select team in selectbox
+        el_select = document.getElementById("id_modshift_selectteam");
+        new_option_txt =  "&lt;" +  loc.New_team.toLowerCase() + "&gt;"
+        selected_option = (!!team_pk) ? team_pk : 0;
+        el_select.innerHTML = FillOptionShiftOrTeam(team_map, scheme_pk, false, new_option_txt);
+        el_select.value = selected_option;
+
+        el_modshift_teamcode.value = team_code;
+
+// ---  fill teammeber tblBody
+        let teammember_dict = {};
+        MSO_FillTableTeammember()
+
+// ---  display offset, selected values are shown because they are added to mod_upload_dict
+        ModShiftUpdateInputboxes()
+
+// ---  put datefirst datelast in input boxes
+        let el_modshift_datefirst = document.getElementById("id_modshift_datefirst")
+            el_modshift_datefirst.value = (!!scheme_datefirst) ? scheme_datefirst : null;
+        let el_modshift_datelast = document.getElementById("id_modshift_datelast")
+            el_modshift_datelast.value = (!!scheme_datelast) ? scheme_datelast : null;
+
+// ---  show onceonly only in new shifts, reset checkbox, enable datefirst datelast
+        document.getElementById("id_modshift_onceonly").checked = false
+        let el_onceonly_container = document.getElementById("id_modshift_onceonly_container")
+        if(isEmpty(map_dict)){
+            el_onceonly_container.classList.remove(cls_hide)
+        } else {
+            el_onceonly_container.classList.add(cls_hide)
+        }
+        document.getElementById("id_modshift_datefirst").readOnly = false;
+        document.getElementById("id_modshift_datelast").readOnly = false;
+
+// ---  reset weekdays, don't disable
+        ModShiftBtnWeekdayFormat(false);
+
+// --- set excluded checkboxen upload_dict, don't disable
+        document.getElementById("id_modshift_publicholiday").checked = scheme_excludepublicholiday;
+        document.getElementById("id_modshift_companyholiday").checked = scheme_excludecompanyholiday;
+        document.getElementById("id_modshift_publicholiday").disabled = false;
+        document.getElementById("id_modshift_companyholiday").disabled = false;
+
+// ---  enable save button
+        ModShiftBtnSaveEnable()
+
+        console.log("ModShiftOpen >> mod_upload_dict", mod_upload_dict)
+        console.log(mod_upload_dict)
+
+// ---  show modal
+        $("#id_modshift").modal({backdrop: true});
+    };  // ModShiftOpen
+
+//=========  ModShiftSave  ================ PR2019-11-23
+    function ModShiftSave(mode){
+        console.log( "===== ModShiftSave  ========= ");
+        console.log("mod_upload_dict: ", mod_upload_dict)
+
+        const shift_mode = mod_upload_dict["mode"];
+        const is_delete = (mode === "delete");
+        console.log("shift_mode: ", shift_mode)
+        console.log("is_delete: ", is_delete)
+
+// ---  get map_dict - to check if values have changed
+        const has_map = (!!mod_upload_dict.map_id);
+        const map_dict = get_mapdict_from_datamap_by_tblName_pk(calendar_map, "planning", mod_upload_dict.map_id);
+        console.log("map_dict: ", map_dict)
+
+// ---  get weekdays -  only in singleshift
+        // data-selectedoptions are: 'selected', 'delete', 'create', 'not_selected'
+        let new_weekday_list = mod_upload_dict.calendar.weekday_list;
+        btns = document.getElementById("id_modshift_weekdays").children;
+        for (let i = 0, btn, len = btns.length; i < len; i++) {
+            btn = btns[i];
+            let btn_index = i + 1;
+            const data_selected = get_attr_from_el(btn, "data-selected");
+            const schemitem_pk = new_weekday_list[btn_index];
+
+            if(data_selected === "create"){
+                new_weekday_list[btn_index] = "create"
+            } else if(data_selected === "selected"){
+                new_weekday_list[btn_index] = "update" + schemitem_pk.toString();
+            } else  if(data_selected === "delete"){
+                new_weekday_list[btn_index] = "delete" + schemitem_pk.toString();
+            } else {
+                new_weekday_list[btn_index] = "-"
+            }
+        }
+        // to prevent error: 'int' object is not subscriptable by: mode = weekdaylist_value[:6]
+        new_weekday_list[0] = "-"
+
+// ---  get changed teammembers - mod_upload_dict.teammember_list contains pk's of changed, created, deleted teammembers
+        let teammembers_tobe_updated = []
+        console.log("mod_upload_dict.teammember_list")
+        console.log(mod_upload_dict.teammember_list)
+        for (let i = 0, pk, len =  mod_upload_dict.teammember_list.length; i < len; i++) {
+            const dict = mod_upload_dict.teammember_list[i];
+            // all update, create and delete dicts have 'update' = true in the root, to prevent checking subdicts
+            if(!isEmpty(dict) && "update" in dict) {
+                teammembers_tobe_updated.push(dict);
+            }  // if(!isEmpty(dict) && "update" in dict)
+        }  //  for (let i = 0, pk, len =  mod_upload_dict.teammember_list.length; i < len; i++) {
+        console.log("teammembers_tobe_updated")
+        console.log(teammembers_tobe_updated)
+
+// =========== CREATE UPLOAD DICT =====================
+        let id_dict = {table: "schemeitem", mode: "schemeshift"}
+        if(!mod_upload_dict.map_id){
+            id_dict["create"] = true};
+        if(is_delete){
+            id_dict["delete"] = true};
+
+        let upload_dict = {id: id_dict,
+                            rosterdate: mod_upload_dict.calendar.rosterdate,
+                            calendar_datefirst: mod_upload_dict.calendar.calendar_datefirst,
+                            calendar_datelast: mod_upload_dict.calendar.calendar_datelast,
+                            weekday_index: mod_upload_dict.calendar.weekday_index,
+                            weekday_list: new_weekday_list,
+                            teammember_list: teammembers_tobe_updated
+                            };
+
+
+// =========== ORDER INFO =====================
+        // get order from mod_upload_dict
+        let order_dict = {};
+        if(!isEmpty(mod_upload_dict.order) && !!mod_upload_dict.order.pk){
+            order_dict["id"] = {pk: mod_upload_dict.order.pk, ppk: mod_upload_dict.order.ppk, table: "order"}
+        };
+        upload_dict["order"] = order_dict;
+
+// =========== SCHEME INFO =====================
+        let scheme_dict = {};
+// put scheme pk in upload_dict
+        if(!isEmpty(map_dict) && !!map_dict.scheme.pk){
+            scheme_dict["id"] = {pk: map_dict.scheme.pk, ppk: map_dict.scheme.ppk, table: "scheme", isdefaultweekshift: true}
+            scheme_dict["cycle"] = {value: map_dict.scheme.cycle}
+        } else {
+            scheme_dict["id"] = {table: "scheme", create: true, isdefaultweekshift: true}
+            scheme_dict["cycle"] = {value: 7, update: true};
+        };
+// ---  get datefirst and datelast values from input elements
+        let new_datefirst = document.getElementById("id_modshift_datefirst").value
+        let new_datelast = document.getElementById("id_modshift_datelast").value
+        const old_datefirst = (has_map && map_dict.scheme.datefirst) ? map_dict.scheme.datefirst : "";
+        const old_datelast = (has_map && map_dict.scheme.datelast) ? map_dict.scheme.datelast : "";
+        if(new_datefirst !== old_datefirst){
+            scheme_dict["datefirst"] = (!!new_datefirst) ? {value: new_datefirst, update: true} : {update: true}};
+        if(new_datelast !== old_datelast) {
+            scheme_dict["datelast"] = (!!new_datelast) ? {value: new_datelast, update: true} : {update: true}};
+// ---  get excludepublicholiday and excludecompanyholiday values from input elements
+        let excl_ph = document.getElementById("id_modshift_publicholiday").checked;
+        let excl_ch = document.getElementById("id_modshift_companyholiday").checked;
+        const old_excl_ph = (has_map && map_dict.scheme.excludepublicholiday) ? map_dict.scheme.excludepublicholiday : false;
+        const old_excl_ch = (has_map && map_dict.scheme.excludecompanyholiday) ? map_dict.scheme.excludecompanyholiday : false;
+        if(excl_ph !==old_excl_ph){
+            scheme_dict["excludepublicholiday"] = {value: excl_ph, update: true}};
+        if(excl_ch !== old_excl_ch){
+            scheme_dict["excludecompanyholiday"] = {value: excl_ch, update: true}};
+
+        upload_dict["scheme"] = scheme_dict;
+
+// =========== SHIFT INFO =====================
+        let shift_dict = {};
+// put shift pk in upload_dict
+// PR2019-12-29: cannot change exshift
+        if(!!mod_upload_dict.shift.pk){
+            shift_dict["id"] = {pk: map_dict.shift.pk, ppk: map_dict.shift.ppk, table: "shift"}
+        } else {
+            shift_dict["id"] = {table: "shift", create: true};
+            shift_dict["code"] = {value: el_modshift_shiftcode.value, update: true};
+            shift_dict["offsetstart"] = {value: mod_upload_dict.shift.offsetstart, update: true};
+            shift_dict["offsetend"] = {value: mod_upload_dict.shift.offsetend, update: true};
+            shift_dict["breakduration"] = {value: mod_upload_dict.shift.breakduration, update: true};
+            shift_dict["timeduration"] = {value: mod_upload_dict.shift.timeduration, update: true};
+
+        };
+        upload_dict["shift"] = shift_dict;
+
+
+// =========== SCHEMEITEM INFO =====================
+        let schemeitem_dict = {};
+        if(!!mod_upload_dict.schemeitem.pk){
+            schemeitem_dict["id"] = {pk: map_dict.schemeitem.pk, ppk: map_dict.schemeitem.ppk, table: "schemeitem"}
+        } else {
+            schemeitem_dict["id"] = {table: "schemeitem", create: true}
+        };
+        upload_dict["schemeitem"] = schemeitem_dict;
+
+// =========== TEAM INFO =====================
+        let team_dict = {};
+        if(!!mod_upload_dict.team.pk){
+            team_dict["id"] = {pk: map_dict.team.pk, ppk: map_dict.team.ppk, table: "team"}
+        } else {
+            team_dict["id"] = {table: "team", create: true}
+        };
+        upload_dict["team"] = team_dict;
+
+        UploadChanges(upload_dict, url_teammember_upload);
+    }  // ModShiftSave
+
+//=========  ModShiftTimepickerOpen  ================ PR2019-10-12
+    function ModShiftTimepickerOpen(el_input, calledby) {
+        console.log("=== ModShiftTimepickerOpen ===", calledby);
+
+        const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_order_pk );
+        console.log("mod_upload_dict", mod_upload_dict);
+
+// ---  create st_dict
+        const show_btn_delete = true;
+        let st_dict = { "interval": interval, "comp_timezone": comp_timezone, "user_lang": user_lang,
+                        "show_btn_delete": show_btn_delete, "weekday_list": loc.weekday_list, "month_list": loc.month_list        ,
+                    "url_settings_upload": url_settings_upload};
+        // only needed in scheme
+        if(!!loc.Current_day){st_dict["text_curday"] = loc.Current_day};
+        if(!!loc.Previous_day){st_dict["text_prevday"] = loc.Previous_day};
+        if(!!loc.Next_day){st_dict["text_nextday"] = loc.Next_day};
+        if(!!loc.Break){st_dict["txt_break"] = loc.Break};
+        if(!!loc.Working_hours){st_dict["txt_workhours"] = loc.Working_hours};
+
+        if(!!loc.btn_save){st_dict["txt_save"] = loc.btn_save};
+        if(!!loc.Quick_save){st_dict["txt_quicksave"] = loc.Quick_save};
+        if(!!loc.Exit_Quicksave){st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave};
+
+        const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
+        if(!!imgsrc_delete){st_dict["imgsrc_delete"] = imgsrc_delete};
+
+// ---  create tp_dict
+        let tp_dict = {}
+        if (calledby === "modshift"){
+            const fldName = get_attr_from_el(el_input, "data-field");
+            const id_dict = get_dict_value_by_key(order_dict, "id");
+            const rosterdate = null; // keep rosterdate = null, to show 'current day' insteaa of Dec 1
+
+            const offset = (fldName === "timestart") ? mod_upload_dict.shift.offsetstart :
+                              (fldName === "timeend") ? mod_upload_dict.shift.offsetend :
+                              (fldName === "breakduration") ? mod_upload_dict.shift.breakduration :
+                              (fldName === "timeduration") ? mod_upload_dict.shift.timeduration : 0;
+            const minoffset = (fldName === "timestart") ? mod_upload_dict.shift.offsetstart_min :
+                              (fldName === "timeend") ? mod_upload_dict.shift.offsetend_min :
+                              (fldName === "breakduration") ? mod_upload_dict.shift.breakduration_min :
+                              (fldName === "timeduration") ? mod_upload_dict.shift.timeduration_min : 0;
+            const maxoffset = (fldName === "timestart") ? mod_upload_dict.shift.offsetstart_max :
+                              (fldName === "timeend") ? mod_upload_dict.shift.offsetend_max :
+                              (fldName === "breakduration") ? mod_upload_dict.shift.breakduration_max :
+                              (fldName === "timeduration") ? mod_upload_dict.shift.timeduration_max : 1440;
+
+            tp_dict = {"id": id_dict, "field": fldName, "mod": calledby, "rosterdate": rosterdate,
+                "offset": offset, "minoffset": minoffset, "maxoffset": maxoffset,
+                "isampm": (timeformat === 'AmPm'), "quicksave": quicksave}
+            //if(!!weekday){tp_dict['weekday'] = weekday}
+
+        } else {
+            if(!isEmpty(order_dict)){
+                const fldName = get_attr_from_el(el_input, "data-field");
+
+                const offset = get_attr_from_el(el_input, "data-value");
+                const minoffset = get_attr_from_el(el_input, "data-minoffset");
+                const maxoffset = get_attr_from_el(el_input, "data-maxoffset");
+
+                const id_dict = get_dict_value_by_key(order_dict, "id");
+                const rosterdate = null;
+
+                let tp_dict = {"id": id_dict, "mode": mode, "field": fldName, "rosterdate": rosterdate,
+                    "offset": offset, "minoffset": minoffset, "maxoffset": maxoffset,
+                    "isampm": (timeformat === 'AmPm'), "quicksave": quicksave}
+                if(!!weekday){tp_dict['weekday'] = weekday}
+
+            }  //  if(!isEmpty(order_dict))
+        }  // if (calledby === "modshift"){
+
+        ModTimepickerOpen(el_input, ModTimepickerChanged, tp_dict, st_dict)
+
+    };  // ModShiftTimepickerOpen
+
+//=========  ModShiftTimepickerResponse  ================
+    function ModShiftTimepickerResponse(tp_dict){
+        console.log( " === ModShiftTimepickerResponse ");
+        // put new value from modTimepicker in ModShift PR2019-11-24
+
+        //console.log( "tp_dict: ", tp_dict);
+        const fldName = get_dict_value_by_key(tp_dict, "field")
+        const new_offset = get_dict_value_by_key(tp_dict, "offset")
+        //console.log( "fldName: ", fldName);
+        //console.log( "new_offset: ", new_offset);
+
+        let offset_start = mod_upload_dict.shift.offsetstart;
+        let offset_end = mod_upload_dict.shift.offsetend;
+        let break_duration = (mod_upload_dict.shift.breakduration != null) ?  mod_upload_dict.shift.breakduration : 0;
+        let time_duration = (mod_upload_dict.shift.timeduration != null) ? mod_upload_dict.shift.timeduration : 0;
+        let value_has_changed = false;
+
+        if (fldName === "timestart") {
+            value_has_changed = (new_offset !== offset_start)
+            offset_start = new_offset
+        } else if (fldName === "timeend") {
+            value_has_changed = (new_offset !== offset_end)
+            offset_end = new_offset
+        } else if (fldName === "breakduration") {
+            value_has_changed = (new_offset !== break_duration)
+            break_duration = new_offset
+        } else if (fldName === "timeduration") {
+            value_has_changed = (new_offset !== time_duration)
+            time_duration = new_offset
+        }
+        //console.log( "value_has_changed: ", value_has_changed);
+
+        if(fldName === "timeduration"){
+            if(!!time_duration){
+                value_has_changed = (offset_start != null || offset_end != null || !!break_duration)
+                offset_start = null;
+                offset_end = null;
+                break_duration = 0
+            }
+        } else {
+            time_duration = (offset_start != null && offset_end != null) ? offset_end - offset_start - break_duration : 0;
+        }
+
+// store offset in mod_upload_dict and calculate min max
+        ModShiftSetMinMaxValues(offset_start, offset_end, break_duration, time_duration)
+
+// ---  display offset
+        ModShiftUpdateInputboxes()
+
+// ---  create shift name
+        if (value_has_changed){
+            // check if this scheme has other shifts with the same times
+            let same_shift_pk_int = 0;
+            let same_shift_code = null;
+            let new_shift_code = null;
+            if (!!shift_map.size){
+                const scheme_pk = get_subdict_value_by_key(mod_upload_dict, "scheme", "pk");
+
+                //console.log( "current scheme_pk: ", scheme_pk);
+                //console.log( "shift_map: ", shift_map);
+                // this is the way to iterate over map entries
+                for (let shift_dict of shift_map.values()) {
+                    //console.log( "shift_dict: ", shift_dict);
+                    const ppk_int = get_subdict_value_by_key(shift_dict, "id", "ppk");
+                    //console.log( "ppk_int: ", ppk_int);
+                    if (!!ppk_int && ppk_int === scheme_pk &&
+                        offset_start === get_subdict_value_by_key(shift_dict, "offsetstart", "value") &&
+                        offset_end === get_subdict_value_by_key(shift_dict, "offsetend", "value") &&
+                        break_duration === get_subdict_value_by_key(shift_dict, "breakduration", "value") &&
+                        time_duration === get_subdict_value_by_key(shift_dict, "timeduration", "value") ) {
+                            same_shift_pk_int = get_subdict_value_by_key(shift_dict, "id", "pk");
+                            same_shift_code = get_subdict_value_by_key(shift_dict, "code", "value");
+                            //console.log( "same_shift_pk_int: ", same_shift_pk_int);
+                            //console.log( "same_shift_code: ", same_shift_code);
+                            break
+                    }
+                }
+            }
+            if (!!same_shift_pk_int) {
+               //console.log( "same_shift: ");
+                new_shift_code = same_shift_code;
+            } else {
+                const cur_shift_code = el_modshift_shiftcode.value;
+                new_shift_code = MSO_CreateShiftname(cur_shift_code, offset_start, offset_end);
+               //console.log( "new_shift_code: ", new_shift_code);
+            }
+            mod_upload_dict.shift.pk = same_shift_pk_int
+
+            el_modshift_selectshift.value = same_shift_pk_int
+            el_modshift_shiftcode.value = new_shift_code;
+        }
+
+    } // ModShiftTimepickerResponse
+
+//========= ModShiftUpdateInputboxes  ============= PR2019-12-07
+    function ModShiftUpdateInputboxes() {
+        //console.log( " === ModShiftUpdateInputboxes ");
+        //console.log( mod_upload_dict);
+        const offset_start = mod_upload_dict.shift.offsetstart;
+        const offset_end = mod_upload_dict.shift.offsetend;
+        const break_duration = mod_upload_dict.shift.breakduration;
+        const time_duration = mod_upload_dict.shift.timeduration;
+        //console.log( "offset_start: ", offset_start, "offset_end: ", offset_end, "break_duration: ", break_duration, "time_duration: ", time_duration);
+
+        //display_offset_time (offset, timeformat, user_lang, skip_prefix_suffix, blank_when_zero)
+        el_modshift_timestart.innerText = display_offset_time (offset_start, timeformat, user_lang, false, false)
+        el_modshift_timeend.innerText = display_offset_time (offset_end, timeformat, user_lang, false, false)
+        el_modshift_breakduration.innerText = display_offset_time (break_duration, timeformat, user_lang, false, true)
+        el_modshift_timeduration.innerText = display_offset_time (time_duration, timeformat, user_lang, false, true)
+
+    }  // ModShiftUpdateInputboxes
+
+//========= MSO_CreateShiftname  ============= PR2019-12-24
+    function MSO_CreateShiftname(cur_shift_code, offset_start, offset_end) {
+        //console.log( "=== ModShiftCreateShiftname ");
+        // shiftname will be replaced by calculated shiftname if cur_shift_code is empty, starts with '-' or first 2 characters are digits
+        // cur_shift_code is empty, if starts with '-' or if first 2 characters is numeric
+        const code_trimmed = cur_shift_code.trim()
+        let may_override = false;
+        let new_shift_code = null;
+        if (!code_trimmed){
+            may_override = true;
+        } else if (code_trimmed[0] === "-"){
+            may_override = true
+        } else {
+            const code_sliced = code_trimmed.slice(0, 2);
+            may_override = (!isNaN(Number(code_sliced)))
+        }
+        if (may_override){
+           //display_offset_time (offset, timeformat, user_lang, skip_prefix_suffix, blank_when_zero)
+            new_shift_code = display_offset_time (offset_start, loc.timeformat, loc.user_lang, true, false) + ' - ' +
+                             display_offset_time (offset_end, loc.timeformat, loc.user_lang, true, false)
+        }
+        return new_shift_code
+    }  // MSO_CreateShiftname
+
+//========= ModShiftFillSchemeshifts  ============= PR2019-12-14
+    function ModShiftFillSchemeshifts() {
+        //console.log( "=== ModShiftFillSchemeshifts ");
+        const caption_one = loc.Select_order + ":";
+
+        const current_item = null;
+        const tblName = "order";
+        let data_map = order_map;
+        let tblBody = document.getElementById("id_modshift_tblbody_order")
+        tblBody.innerText = null;
+
+// ---  when no items found: show 'No orders'
+        if (order_map.size === 0){
+            let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+            let td = tblRow.insertCell(-1);
+            td.innerText = loc.No_orders;
+        } else {
+
+// ---  loop through data_map
+            for (const [map_id, item_dict] of data_map.entries()) {
+                const pk_int = get_pk_from_dict(item_dict)
+                const ppk_int = get_ppk_from_dict(item_dict)
+                const order_code = get_subdict_value_by_key(item_dict, "code", "value", "")
+                const customer_code = get_subdict_value_by_key(item_dict, "customer", "code", "")
+                const display_code = customer_code + " - " + order_code;
+
+// ---  insert tblBody row
+                let tblRow = tblBody.insertRow(-1);
+                tblRow.setAttribute("data-pk", pk_int);
+                tblRow.setAttribute("data-ppk", ppk_int);
+                tblRow.setAttribute("data-table", tblName);
+                tblRow.setAttribute("data-display", display_code);
+
+// ---  add hover to tblBody row
+                tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
+                tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+
+// ---  add EventListener to row
+                tblRow.addEventListener("click", function() {ModShiftSelectOrderRowClicked(tblRow)}, false )
+
+// ---  add first td to tblRow.
+                let td = tblRow.insertCell(-1);
+
+// ---  add a element to td., necessary to get same structure as item_table, used for filtering
+                let el = document.createElement("div");
+                    el.innerText = display_code;
+                    el.classList.add("mx-1")
+                td.appendChild(el);
+            } // for (const [pk_int, item_dict] of data_map.entries())
+        }  // if (data_map.size === 0)
+    } // ModShiftFillSchemeshifts
+
+//========= MOSFillSelectTableEmployee  ============= PR2019-11-23
+    function MOSFillSelectTableEmployee() {
+        //console.log( "=== MOSFillSelectTableEmployee ");
+        const caption_one = loc.Select_order + ":";
+
+        const current_item = null;
+        const tblName = "order";
+
+        let tblBody = document.getElementById("id_modshift_tblbody_employee")
+        tblBody.innerText = null;
+
+// ---  when no items found: show 'No orders'
+        if (order_map.size === 0){
+            let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+            let td = tblRow.insertCell(-1);
+            td.innerText = loc.No_orders;
+        } else {
+
+// ---  loop through order_map
+            for (const [map_id, item_dict] of order_map.entries()) {
+                const pk_int = get_pk_from_dict(item_dict)
+                const ppk_int = get_ppk_from_dict(item_dict)
+                const order_code = get_subdict_value_by_key(item_dict, "code", "value", "")
+                const customer_code = get_subdict_value_by_key(item_dict, "customer", "code", "")
+                const display_code = customer_code + " - " + order_code;
+
+// ---  insert tblBody row
+                let tblRow = tblBody.insertRow(-1);
+                tblRow.setAttribute("data-pk", pk_int);
+                tblRow.setAttribute("data-ppk", ppk_int);
+                tblRow.setAttribute("data-table", tblName);
+                tblRow.setAttribute("data-display", display_code);
+
+// ---  add hover to tblBody row
+                tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
+                tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+
+// ---  add EventListener to row
+                tblRow.addEventListener("click", function() {ModShiftSelectOrderRowClicked(tblRow)}, false )
+
+// ---  add first td to tblRow.
+                let td = tblRow.insertCell(-1);
+
+// ---  add a element to td., necessary to get same structure as item_table, used for filtering
+                let el = document.createElement("div");
+                    el.innerText = display_code;
+                    el.classList.add("mx-1")
+                td.appendChild(el);
+            } // for (const [pk_int, item_dict] of order_map.entries())
+        }  // if (order_map.size === 0)
+    } // MOSFillSelectTableEmployee
+
+//========= ModShiftSelectOrderRowClicked  ============= PR2019-12-06
+    function ModShiftSelectOrderRowClicked(sel_tr_clicked){
+       //console.log( "=== ModShiftSelectOrderRowClicked ");
+       //-----------------------------------------------------
+        //console.log( sel_tr_clicked);
+
+        if(!!sel_tr_clicked) {
+            const tblName = get_attr_from_el_str(sel_tr_clicked, "data-table");
+            const order_pk = get_attr_from_el_int(sel_tr_clicked, "data-pk");
+            const order_ppk = get_attr_from_el_int(sel_tr_clicked, "data-ppk");
+            const display_code = get_attr_from_el_str(sel_tr_clicked, "data-display");
+
+            mod_upload_dict["order_pk"] = order_pk
+            mod_upload_dict["order_ppk"] = order_ppk
+
+ // ---  highlight clicked row in select table
+            // DeselectHighlightedRows(tr_selected, cls_selected, cls_background)
+            DeselectHighlightedRows(sel_tr_clicked, cls_selected, cls_bc_transparent);
+            // yelllow won/t show if you dont first remove background color
+            sel_tr_clicked.classList.remove(cls_bc_transparent)
+            sel_tr_clicked.classList.add(cls_selected)
+
+// ---  enable save button
+            ModShiftBtnSaveEnable()
+
+        }  // if(!!sel_tr_clicked)
+       //-----------------------------------------------
+    }
+
+//=========  ModShiftFilterEmployee  ================ PR2019-11-23
+    function ModShiftFilterEmployee(el_filter) {
+        //console.log( "===== ModShiftFilterEmployee  ========= ");
+        let tblBody =  document.getElementById("id_modshift_tblbody_employee")
+        const filter_str = el_filter.value;
+        FilterSelectRows(tblBody, filter_str);
+    }; // function ModShiftFilterEmployee
+
+//=========  ModShiftOnceOnly  ================ PR2019-12-06
+    function ModShiftOnceOnly() {
+        console.log( "===== ModShiftOnceOnly  ========= ");
+
+        let once_only = document.getElementById("id_modshift_onceonly").checked
+
+        const weekday_index =mod_upload_dict.calendar.weekday_index;
+        const selected_weekday_list = (once_only) ? [] : mod_upload_dict.calendar.weekday_list;
+        const datefirst_value = (once_only) ? mod_upload_dict.calendar.rosterdate : null;
+
+        console.log( "selected_weekday_list: ", selected_weekday_list);
+        console.log( "weekday_index: ", weekday_index);
+
+        let el_datefirst = document.getElementById("id_modshift_datefirst");
+        let el_datelast = document.getElementById("id_modshift_datelast");
+        el_datefirst.value = datefirst_value
+        el_datefirst.readOnly = once_only;
+        el_datelast.value = datefirst_value
+        el_datelast.readOnly = once_only;
+        if (once_only){
+            document.getElementById("id_modshift_publicholiday").checked = false;
+            document.getElementById("id_modshift_companyholiday").checked = false;
+        }
+        document.getElementById("id_modshift_publicholiday").disabled = once_only;
+        document.getElementById("id_modshift_companyholiday").disabled = once_only;
+
+        // reset weekdays, disable
+
+        ModShiftBtnWeekdayFormat(once_only);
+    }; // function ModShiftOnceOnly
+
+//=========  ModShiftBtnWeekdayFormat  ================ PR2019-12-06
+    function ModShiftBtnWeekdayFormat(is_disable_btns) {
+        console.log( "===== ModShiftBtnWeekdayFormat  ========= ");
+
+        // this function resets weekdays
+        // on 'onceonly' only weekday_index  has value: select this weekday_index, disable rest
+        // existing shifts have weekday_list with schemitems of selected weekdays,
+        // listindex is weekday index, first one is not in use
+        // weekday_list: (8) [[], [], [1057, 1058, 1059], ... , []]
+
+        const weekday_index = get_subdict_value_by_key(mod_upload_dict, "calendar", "weekday_index")
+        const selected_weekday_list = get_subdict_value_by_key(mod_upload_dict, "calendar", "weekday_list")
+        console.log( "mod_upload_dict: ", mod_upload_dict);
+        console.log( "selected_weekday_list: ", selected_weekday_list);
+
+        btns = document.getElementById("id_modshift_weekdays").children;
+        for (let i = 0, btn, btn_index, len = btns.length; i < len; i++) {
+            btn = btns[i];
+
+            let schemeitem_pk = 0;
+            let has_schemeitem = false;
+            const btn_weekday_index = get_attr_from_el_int(btn, "data-weekday");
+            const arr = selected_weekday_list[btn_weekday_index];
+            if (!!arr){
+                for (let j = 0, len = arr.length; j < len; j++) {
+                    has_schemeitem = (!!arr[j]);
+                    if (arr[j] === mod_upload_dict.schemeitem.pk ){
+                        schemeitem_pk = arr[j];
+                    }
+                }
+            }
+
+            btn.classList.remove("tsa_bc_darkgrey");
+            btn.classList.remove("tsa_bc_mediumred");
+            btn.classList.remove("tsa_bc_medium_green");
+            btn.classList.remove("tsa_color_white");
+            btn.classList.remove("tsa_fontweight_bold");
+
+            const data_value = (btn_weekday_index === weekday_index) ? (has_schemeitem) ? "selected" : "create" : "not_selected"
+            btn.setAttribute("data-selected", data_value);
+
+            if(has_schemeitem){
+                // existing schemeitem: can be selected > delete > unselected
+                btn.classList.add("tsa_fontweight_bold");
+                if (data_value === "selected"){
+                    btn.classList.add("tsa_bc_darkgrey");
+                    btn.classList.add("tsa_color_white");
+                }
+            } else if (btn_weekday_index === weekday_index) {
+                // new schemeitem: can be addnww or unselected
+                btn.classList.add("tsa_bc_medium_green")
+            }
+            if (data_value === "selected"){
+                btn.classList.add("tsa_bc_darkgrey");
+                btn.classList.add("tsa_color_white");
+            } else if (data_value === "create"){
+                btn.classList.add("tsa_bc_medium_green")
+            // datavalue=delete happens only in ModShiftBtnWeekdayClicked
+            //} else if (data_value === "delete"){
+            //    btn.classList.add("tsa_bc_mediumred")
+            }
+
+            btn.disabled = is_disable_btns;
+        }
+    }; // ModShiftBtnWeekdayFormat
+
+//========= ModShiftBtnWeekdayClicked  ============= PR2019-11-23
+    function ModShiftBtnWeekdayClicked(btn) {
+        console.log( "=== ModShiftBtnWeekdayClicked ");
+
+        const btn_weekday = get_attr_from_el_int(btn, "data-weekday")
+        const selected_weekday_list = get_subdict_value_by_key(mod_upload_dict, "calendar", "weekday_list")
+        const schemeitem_pk =  selected_weekday_list[btn_weekday]
+        console.log( "btn_weekday", btn_weekday);
+        console.log( "schemeitem_pk", schemeitem_pk);
+
+        let list_length = 0;
+        if (!!selected_weekday_list[btn_weekday]){list_length = selected_weekday_list[btn_weekday].length}
+
+        const current_data_value = get_attr_from_el(btn, "data-selected");
+        let new_data_value;
+        if (current_data_value === "selected"){
+            new_data_value = "delete"
+        } else if (current_data_value === "delete" || current_data_value === "create"){
+            new_data_value =  "not_selected"
+        } else { // if (current_data_value === "not_selected"){
+            new_data_value = (!!list_length) ? "selected" : "create"
+        }
+
+        btn.setAttribute("data-selected", new_data_value);
+
+        btn.classList.remove("tsa_bc_darkgrey")
+        btn.classList.remove("tsa_bc_mediumred")
+        btn.classList.remove("tsa_bc_medium_green")
+        btn.classList.remove("tsa_color_white")
+
+        if (new_data_value === "selected"){
+            btn.classList.add("tsa_bc_darkgrey")
+            btn.classList.add("tsa_color_white")
+        } else  if (new_data_value === "create"){
+            btn.classList.add("tsa_bc_medium_green")
+        } else if (new_data_value === "delete"){
+            btn.classList.add("tsa_bc_mediumred")
+        }
+
+    } // ModShiftBtnWeekdayClicked
+
+//=========  MSO_BtnShiftTeamClicked  ================ PR2019-12-06
+    function MSO_BtnShiftTeamClicked(mod) {
+        console.log( "===== MSO_BtnShiftTeamClicked  ========= ");
+
+// ---  select btn_singleshift / btn_schemeshift
+        // mod_= mod_shift or mod_team
+        mod_upload_dict["mode"] = mod
+
+// ---  highlight selected button
+        set_element_class("id_modshift_btn_shift", (mod === "mod_shift"), cls_btn_selected)
+        set_element_class("id_modshift_btn_employees", (mod === "mod_team"), cls_btn_selected)
+
+// fill table teammember when clicked on 'mod_team'
+
+        // ---  show only the elements that are used in this mod
+        let list = document.getElementsByClassName("mod_show");
+        for (let i=0, len = list.length; i<len; i++) {
+            let el = list[i]
+            const is_show = el.classList.contains(mod)
+            show_hide_element(el, is_show)
+        }
+    }; // function MSO_BtnShiftTeamClicked
+
+//=========  ModShiftSelectShiftChanged  ================ PR2019-12-24
+    function ModShiftSelectShiftChanged(el_input) {
+        console.log( "===== ModShiftSelectShiftChanged  ========= ");
+        console.log( "el_input.value: ", el_input.value, typeof el_input.value);
+
+        const pk_int = Number(el_input.value);
+        console.log( "pk_int: ", pk_int, typeof pk_int);
+        if(!!pk_int){
+            if (el_input.selectedIndex > -1) {
+                const code = el_input.options[el_input.selectedIndex].text;
+                console.log( "code: ", code, typeof code);
+            }
+            const shiftmap_dict = get_mapdict_from_datamap_by_tblName_pk(shift_map, "shift", pk_int)
+            console.log( "shiftmap_dict: ", shiftmap_dict, typeof shiftmap_dict);
+            if (!isEmpty(shiftmap_dict)){
+
+                mod_upload_dict.shift.pk = pk_int;
+                mod_upload_dict.shift.ppk = get_subdict_value_by_key(shiftmap_dict, "id", "ppk");
+                mod_upload_dict.shift.code = get_subdict_value_by_key(shiftmap_dict, "code", "value");
+
+                mod_upload_dict.shift.offsetstart = get_subdict_value_by_key(shiftmap_dict, "offsetstart", "value");
+                mod_upload_dict.shift.offsetend = get_subdict_value_by_key(shiftmap_dict, "offsetend", "value");
+                mod_upload_dict.shift.breakduration = get_subdict_value_by_key(shiftmap_dict, "breakduration", "value");
+                mod_upload_dict.shift.timeduration = get_subdict_value_by_key(shiftmap_dict, "timeduration", "value");
+
+// ---  display offset
+                ModShiftUpdateInputboxes()
+
+// ---  create shift name
+        // shiftname will be replaced by calculated shiftname if cur_shift_code is empty, starts with '-' or first 2 characters are digits
+                const cur_shift_code = el_modshift_shiftcode.value;
+                const new_shift_code = MSO_CreateShiftname(cur_shift_code,
+                                            mod_upload_dict.shift.offsetstart, mod_upload_dict.shift.offsetend);
+                if(!!new_shift_code){el_modshift_shiftcode.value = new_shift_code};
+             }
+        }
+    }; // function ModShiftSelectShiftChanged
+
+//=========  ModShiftSelectTeamChanged  ================ PR2019-12-24
+    function ModShiftSelectTeamChanged(el_input) {
+        console.log( "===== ModShiftSelectTeamChanged  ========= ");
+        //console.log( "el_input.value: ", el_input.value, typeof el_input.value);
+        const pk_int = Number(el_input.value);
+        console.log( "pk_int: ", pk_int, typeof pk_int);
+
+        if(!!pk_int){
+            if (el_input.selectedIndex > -1) {
+                const code = el_input.options[el_input.selectedIndex].text;
+                //console.log( "code: ", code, typeof code);
+            }
+            const teammap_dict = get_mapdict_from_datamap_by_tblName_pk(team_map, "team", pk_int)
+            console.log( "teammap_dict: ", teammap_dict, typeof teammap_dict);
+            if (!isEmpty(teammap_dict)){
+                mod_upload_dict.team.pk = pk_int;
+                mod_upload_dict.team.ppk = get_subdict_value_by_key(teammap_dict, "id", "ppk");
+                mod_upload_dict.team.code = get_subdict_value_by_key(teammap_dict, "code", "value");
+
+                el_modshift_teamcode.value = mod_upload_dict.team.code;
+
+                MSO_FillTableTeammember();
+             }
+            console.log( "mod_upload_dict: ", mod_upload_dict);
+        }
+    }; // function ModShiftSelectTeamChanged
+
+//=========  ModShiftBtnSaveEnable  ================ PR2019-11-23
+    function ModShiftBtnSaveEnable(){
+        //console.log( "ModShiftBtnSaveEnable");
+        //console.log( "mod_upload_dict", mod_upload_dict);
+// --- enable save button
+        const teammember_pk = mod_upload_dict.teammember.pk;
+        const employee_pk = mod_upload_dict.employee_pk;
+        const order_pk = mod_upload_dict.order.pk;
+
+        let is_enabled = false;
+        is_enabled = (!!order_pk)
+        const del_enabled = (is_enabled && !!teammember_pk);
+
+        el_modshift_btn_save.disabled = !is_enabled;
+        el_modshift_btn_delete.disabled = !del_enabled;
+    }
+
+//=========  MSO_FillShiftTeamTeammemberSchemitemList  ================ PR2019-12-31
+    function MSO_FillShiftTeamTeammemberSchemitemList(scheme_pk){
+        console.log(" --- MSO_FillShiftTeamTeammemberSchemitemList --- ")
+       // puts values of teammember_map in mod_upload_dict.teammember_list, filter thisscvheme
+
+// fill teammember_list with map_dicts of teamemmebers of this scheme
+
+// --- loop through shift_map
+        if(!!shift_map.size){
+            for (const [map_id, dict] of shift_map.entries()) {
+                // show only rows of selected_scheme_pk
+                const row_scheme_pk = get_subdict_value_by_key(dict, "id", "ppk");
+                if(!!row_scheme_pk && row_scheme_pk === scheme_pk){
+                    let dict_clone = {id: {pk: dict.id.pk, ppk: dict.id.ppk, table: "shift"}};
+                    let dict_keys = ["code", "isrestshift", "offsetstart", "offsetend", "breakduration", "timeduration"];
+                    //dict_keys.forEach(function(dict_key) {
+                     //   if(dict_key in dict){
+                    //        let field_dict = dict[dict_key];
+                     //       dict_clone[dict_key] = {};
+                     //       //if("value" in field_dict){dict_clone[dict_key]["value"] = field_dict.value};
+                     //       //if("minoffset" in field_dict){dict_clone[dict_key]["minoffset"] = field_dict.minoffset};
+                     //       //if("maxoffset" in field_dict){dict_clone[dict_key]["maxoffset"] = field_dict.maxoffset};
+//
+                     //       ["value", "minoffset", "maxoffset"].forEach(function(key) {
+                     //           if(key in field_dict){dict_clone[dict_key][key] = field_dict[key]};
+                     //       });
+                    //}});
+
+                    const keys = ["value", "minoffset", "maxoffset"];
+                    MSO_FillFieldDicts(dict_keys, keys, dict, dict_clone);
+
+                    mod_upload_dict.shift_list.push(dict_clone);
+        }}};
+// fill team_list with map_dicts of teams of this scheme
+        if(!!team_map.size){
+            for (const [map_id, dict] of team_map.entries()) {
+                const row_scheme_pk = get_subdict_value_by_key(dict, "id", "ppk");
+                if(!!row_scheme_pk && row_scheme_pk === scheme_pk){
+                    let dict_clone = {id: {pk: dict.id.pk, ppk: dict.id.ppk, table: "teamm"},
+                        scheme: {pk: dict.scheme.pk, ppk: dict.scheme.ppk, code: dict.scheme.code}
+                        };
+                    mod_upload_dict.team_list.push(dict_clone);
+        }}};
+
+// fill teammember_list with map_dicts of teamemmebers of this scheme
+// --- loop through teammember_map
+        if(!!teammember_map.size){
+            for (const [map_id, dict] of teammember_map.entries()) {
+                // show only rows of selected_scheme_pk
+                const row_scheme_pk = get_subdict_value_by_key(dict, "team", "ppk");
+                if(!!row_scheme_pk && row_scheme_pk === scheme_pk){
+                    let dict_clone = {id: {pk: dict.id.pk, ppk: dict.id.ppk, table: "teammember"},
+                        team: {pk: dict.team.pk, ppk: dict.team.ppk, code: dict.team.code},
+                        scheme: {pk: dict.scheme.pk, ppk: dict.scheme.ppk, code: dict.scheme.code}
+                        };
+                    let dict_keys = ["employee", "replacement"];
+                    dict_keys.forEach(function(dict_key) {
+                        if(dict_key in dict){
+                            let field_dict = dict[dict_key];
+                            dict_clone[dict_key] = {pk: field_dict.pk, ppk: field_dict.ppk, code: field_dict.code};
+                    }});
+                    //dict_keys = ["datefirst", "datelast"];
+                    //dict_keys.forEach(function(dict_key) {
+                    //    if(dict_key in dict){
+                    //        let field_dict = dict[dict_key];
+                    //        dict_clone[dict_key] = {};
+                    //        ["value", "mindate", "maxdate"].forEach(function(key) {
+                    //            if(key in field_dict){dict_clone[dict_key][key] = field_dict[key]};
+                    //        });
+                    //}});
+                    dict_keys = ["datefirst", "datelast"];
+                    const keys = ["value", "mindate", "maxdate"];
+                    MSO_FillFieldDicts(dict_keys, keys, dict, dict_clone);
+
+                    mod_upload_dict.teammember_list.push(dict_clone);
+        }}};
+
+// --- loop through schemeitem_map
+        if(!!schemeitem_map.size){
+            for (const [map_id, dict] of schemeitem_map.entries()) {
+                // show only rows of selected_scheme_pk
+                const row_scheme_pk = get_subdict_value_by_key(dict, "id", "ppk");
+                if(!!row_scheme_pk && row_scheme_pk === scheme_pk){
+                    let dict_clone = {id: {pk: dict.id.pk, ppk: dict.id.ppk, table: "schemeitem"},
+                        scheme: {pk: dict.scheme.pk, ppk: dict.scheme.ppk, code: dict.scheme.code},
+                        shift: {pk: dict.shift.pk, ppk: dict.shift.ppk, code: dict.shift.code},
+                        team: {pk: dict.team.pk, ppk: dict.team.ppk, code: dict.team.code}
+                        };
+                    const dict_keys = ["rosterdate", "iscyclestart", "offsetstart", "offsetend", "breakduration", "timeduration"];
+                    const keys = ["value", "mindate", "maxdate", "minoffset", "maxoffset"]
+                    MSO_FillFieldDicts(dict_keys, keys, dict, dict_clone);
+
+                    mod_upload_dict.schemeitem_list.push(dict_clone);
+        }}};
+    }  // MSO_FillShiftTeamTeammemberSchemitemList
+
+//=========  MSO_FillFieldDicts  ================ PR2019-12-31
+    function MSO_FillFieldDicts(dict_keys, keys, map_dict, dict_clone){
+        // this function adds key-value pair "breakduration: {value: 0, minoffset: 0, maxoffset: 0}" to dict_clone
+        // where 'breakduration' is in list of dict_keys and 'value' is in list of keys
+        dict_keys.forEach(function(dict_key) {
+            if(dict_key in map_dict){
+            let field_dict = map_dict[dict_key];
+            dict_clone[dict_key] = {};
+            keys.forEach(function(key) {
+                if(key in field_dict){dict_clone[dict_key][key] = field_dict[key]};
+            });
+        }});
+
+    }  // MSO_FillFieldDicts
+
+
+//=========  ModShiftSetMinMaxValues  ================ PR2019-12-27
+    function ModShiftSetMinMaxValues(offset_start,offset_end, break_duration, time_duration){
+       // calculate min max of timefields, store in mod_upload_dict
+
+        // (offset_start != null) is added to change undefined into null, 0 stays 0 (0.00 u is dfferent from null)
+        mod_upload_dict["shift"]["offsetstart"] = (offset_start != null) ? offset_start : null;
+        mod_upload_dict["shift"]["offsetend"] =(offset_end != null) ? offset_end : null;
+        mod_upload_dict["shift"]["breakduration"] =(!!break_duration) ? break_duration : 0;
+        mod_upload_dict["shift"]["timeduration"] =(!!time_duration) ? time_duration : 0;
+
+        mod_upload_dict["shift"]["offsetstart_min"] = -720;
+        mod_upload_dict["shift"]["offsetstart_max"] = (!!offset_end && offset_end <= 1440) ? offset_end - break_duration : 1440;
+
+        mod_upload_dict["shift"]["offsetend_min"] = (!!offset_start && offset_start >= 0) ? offset_start + break_duration : 0;
+        mod_upload_dict["shift"]["offsetend_max"] = 2160;
+
+        mod_upload_dict["shift"]["breakduration_min"] = 0;
+        mod_upload_dict["shift"]["breakduration_max"] = (!!offset_start && !!offset_end &&
+                                                offset_end - offset_start <= 1440) ?
+                                                offset_end - offset_start : 1440;
+
+        mod_upload_dict["shift"]["timeduration_min"] = 0;
+        mod_upload_dict["shift"]["timeduration_max"] = 1440;
+    }
+
+//========= MSO_FillTableTeammember  ====================================
+    function MSO_FillTableTeammember(){
+        console.log( "===== MSO_FillTableTeammember  ========= ");
+        // this function is called by ModShiftOpen
+
+        const fieldsettings = {tblName: "teammember", colcount: 5,
+                                caption: ["Employee", "Start_date", "End_date", "Replacement_employee"],
+                                name: ["employee", "datefirst", "datelast", "replacement", "delete"],
+                                tag: ["div", "input", "input", "div", "a"],
+                                width: ["180", "150", "150", "180", "032"],
+                                align: ["left", "left", "left", "left", "right"]}
+
+        MOSCreateTblHeader(fieldsettings)
+        MOSCreateTblFooter()
+
+// --- reset tblBody
+        // id_tbody_teammember is on modeordershift.html
+        let tblBody = document.getElementById("id_tbody_teammember");
+        tblBody.innerText = null;
+
+// --- loop through mod_upload_dict.teammember_list
+        let selected_team_pk = mod_upload_dict.team.pk
+        const len = mod_upload_dict.teammember_list.length;
+        if(!!len){
+            for (let i = 0; i < len; i++) {
+                let teammember_dict = mod_upload_dict.teammember_list[i];
+                if(!isEmpty(teammember_dict)){
+                    // show only rows of selected_team_pk, show none if null
+                    // also skip rows when 'delete' in id
+                    const row_team_pk = get_subdict_value_by_key(teammember_dict, "id", "ppk")
+                    const row_is_delete = get_subdict_value_by_key(teammember_dict, "id", "delete", false)
+                    if((!!row_team_pk && row_team_pk === selected_team_pk) && !row_is_delete) {
+                        let tblRow = MSO_CreateTblRow(fieldsettings, teammember_dict);
+                        MOSUpdateTableRow(tblRow, teammember_dict);
+                    }
+                }
+            }  //   for (let i = 0; i < len; i++)
+        } //  if(!!len)
+    }  // MSO_FillTableTeammember
+
+//=========  MOSCreateTblHeader  === PR2019-11-09
+    function MOSCreateTblHeader(fieldsettings) {
+        //console.log("===  MOSCreateTblHeader == ");
+        let tblHead = document.getElementById("id_thead_teammember");
+        tblHead.innerText = null
+        let tblRow = tblHead.insertRow (-1);
+//--- insert th's to tblHead
+        for (let j = 0; j < fieldsettings.colcount; j++) {
+// --- add th to tblRow.
+            let th = document.createElement("th");
+            tblRow.appendChild(th);
+// --- add div to th, margin not workign with th
+                let el_div = document.createElement("div");
+    // --- add innerText to th
+                const data_text =  loc[fieldsettings.caption[j]];
+                if(!!data_text) el_div.innerText = data_text;
+    // --- add margin to first column
+                if (j === 0 ){el_div.classList.add("ml-2")}
+    // --- add width to el
+                el_div.classList.add("td_width_" + fieldsettings.width[j])
+    // --- add text_align
+                el_div.classList.add("text_align_" + fieldsettings.align[j])
+            th.appendChild(el_div)
+        }  // for (let j = 0; j < column_count; j++)
+    };  //function MOSCreateTblHeader
+
+//=========  MOSCreateTblFooter  === PR2019-11-26
+    function MOSCreateTblFooter(){
+        //console.log("===  MOSCreateTblFooter == ");
+
+        let tblFoot = document.getElementById("id_tfoot_teammember");
+        tblFoot.innerText = null;
+
+        let tblRow = tblFoot.insertRow(-1);
+        const column_count = 5
+        for (let j = 0; j < column_count; j++) {
+            let td = tblRow.insertCell(-1);
+            if(j === 0){
+// --- create element with tag from field_tags
+                let el = document.createElement("p");
+                el.setAttribute("tabindex", "0")
+                el.classList.add("pointer_show")
+                el.classList.add("tsa_color_darkgrey")
+                el.classList.add("ml-2")
+
+                el.innerText = loc.Add_employee + "..."
+// --- add EventListener to td
+                el.addEventListener("click", function() {MSO_AddTeammember()}, false);
+                td.appendChild(el);
+            }
+        }
+    };  //function MOSCreateTblFooter
+
+//=========  MSOCreateTblRow  ================ PR2019-09-04
+    function MSO_CreateTblRow(fieldsettings, teammember_dict){
+
+        // console.log("=========  MSOCreateTblRow =========");
+        const tblName = "teammember";
+        const id_dict = get_dict_value_by_key(teammember_dict, "id");
+        const pk_int = get_subdict_value_by_key(teammember_dict, "id", "pk");
+        const ppk_int = get_subdict_value_by_key(teammember_dict, "id", "ppk");
+
+// --- insert tblRow ino tblBody or tFoot
+        let tblBody = document.getElementById("id_tbody_teammember");
+        let tblRow = tblBody.insertRow(-1);
+
+        const map_id = get_map_id(tblName, pk_int)
+        tblRow.setAttribute("id", map_id);
+        tblRow.setAttribute("data-pk", pk_int);
+        tblRow.setAttribute("data-ppk", ppk_int);
+        tblRow.setAttribute("data-table", tblName);
+
+//+++ insert td's into tblRow
+        const column_count = 5
+        for (let j = 0; j < column_count; j++) {
+            // index -1 results in that the new cell will be inserted at the last position.
+            let td = tblRow.insertCell(-1);
+// --- create element with tag from field_tags
+            let el = document.createElement(fieldsettings.tag[j]);
+// --- add data-field Attribute.
+            el.setAttribute("data-field", fieldsettings.name[j]);
+// --- add img delete to col_delete
+            if (j === 4) {
+                CreateBtnDelete(el, loc, imgsrc_delete, imgsrc_deletered)
+            } else {
+
+// --- add type and input_text to el.
+                el.classList.add("input_text");
+// --- add EventListener to td
+
+                if ([0, 3].indexOf( j ) > -1){
+                    el.setAttribute("type", "text")
+                    el.addEventListener("click", function() {
+                        ModEmployeeOpen(el, ModEmployeeChanged)
+                    }, false);
+                    el.setAttribute("tabindex", "0")
+                    el.classList.add("pointer_show")
+
+                } else if ([1, 2].indexOf( j ) > -1){
+                    el.setAttribute("type", "date")
+                    el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false);
+                    // class input_popup_date is necessary to skip closing popup
+                    el.classList.add("input_popup_date")
+                };
+
+// --- add margin to first column
+                if (j === 0 ){el.classList.add("ml-2")}
+            }
+
+// --- add width to el
+            el.classList.add("td_width_" + fieldsettings.width[j])
+// --- add text_align
+            el.classList.add("text_align_" + fieldsettings.align[j])
+// --- add other classes to td - Necessary to skip closing popup
+            el.classList.add("border_none");
+// --- add other attributes to td
+            el.setAttribute("autocomplete", "off");
+            el.setAttribute("ondragstart", "return false;");
+            el.setAttribute("ondrop", "return false;");
+
+            td.appendChild(el);
+        }
+        return tblRow
+
+    };// MSOCreateTblRow
+
+//=========  CreateBtnDelete  ================ PR2019-10-23
+    function CreateBtnDelete(el){
+        //console.log("--- CreateBtnDelete  --------------");
+        el.setAttribute("href", "#");
+        el.setAttribute("title", loc.Delete_teammember);
+        el.addEventListener("click", function(){MSO_BtnDeleteClicked(el)}, false )
+
+//- add hover delete img
+        el.addEventListener("mouseenter", function(){el.children[0].setAttribute("src", imgsrc_deletered)});
+        el.addEventListener("mouseleave", function(){el.children[0].setAttribute("src", imgsrc_delete)});
+
+        el.classList.add("ml-4")
+
+        AppendChildIcon(el, imgsrc_delete)
+    }  // CreateBtnDelete
+
+//========= MOSUpdateTableRow  =============
+    function MOSUpdateTableRow(tblRow, update_dict){
+        //console.log("--- MOSUpdateTableRow  --------------");
+        //console.log("update_dict", update_dict);
+
+// format of update_dict is : { id: {table: "customer", pk: 504, ppk: 2, temp_pk: "customer_504"}
+//                              pk: 504,  code: {updated: true, value: "mmm2"},  name: {value: "mmm"},
+//                              cat: {value: 0}, interval: {value: 0}}
+
+        if (!isEmpty(update_dict) && !!tblRow) {
+            let tblBody = tblRow.parentNode;
+
+// check if tblBody = tFoot, if so: is_addnew_row = true
+            const tblBody_id_str = get_attr_from_el(tblBody, "id")
+            const arr = tblBody_id_str.split("_");
+            const is_addnew_row = (arr.length > 1 && arr[1] === "tfoot");
+
+// put or remove customer_pk in tblRow.data, for filtering rows
+            const customer_dict = get_dict_value_by_key (update_dict, "customer");
+            let customer_pk = null, customer_ppk = null;
+            if(!isEmpty(customer_dict)){
+                customer_pk = get_dict_value_by_key(customer_dict, "pk", 0)
+                customer_ppk = get_dict_value_by_key(customer_dict, "ppk", 0)
+            };
+            if(!!customer_pk){tblRow.setAttribute("data-customer_pk", customer_pk)
+                } else {tblRow.removeAttribute("data-customer_pk")};
+            if(!!customer_ppk){tblRow.setAttribute("data-customer_ppk", customer_ppk)
+                } else {tblRow.removeAttribute("data-customer_ppk")};
+
+//--- get info from update_dict["id"]
+            const id_dict = get_dict_value_by_key (update_dict, "id");
+                const is_created = ("created" in id_dict);
+                const msg_err = get_dict_value_by_key(id_dict, "error");
+
+// --- deleted record
+            // in UpdateFromResponse
+
+// --- show error message of row
+            if (!!msg_err){
+                let el_input = tblRow.cells[0].children[0];
+                if(!!el_input){
+                    el_input.classList.add("border_bg_invalid");
+                    const msg_offset = [-240, 100];
+                    ShowMsgError(el_input, el_msg, msg_err, msg_offset);
+                }
+
+// --- new created record
+            } else if (is_created){
+
+// update row info
+                const tblName = get_dict_value_by_key(id_dict, "table");
+                const pk_int = get_dict_value_by_key(id_dict, "pk");
+                const ppk_int = get_dict_value_by_key(id_dict, "ppk");
+                const map_id = get_map_id(tblName, pk_int)
+    // update tablerow.id from temp_pk_str to id_pk
+                tblRow.setAttribute("id", map_id);
+                tblRow.setAttribute("data-pk", pk_int);
+                tblRow.setAttribute("data-ppk", ppk_int);
+                tblRow.setAttribute("data-table", tblName);
+
+// move the new row in alfabetic order
+                // TODO: also when name has changed
+                const row_index = GetNewSelectRowIndex(tblBody, 0, update_dict, loc.user_lang);
+                tblBody.insertBefore(tblRow, tblBody.childNodes[row_index - 1]);
+
+// make row green, / --- remove class 'ok' after 2 seconds, not in addnew row
+                if(!is_addnew_row){
+                    ShowOkRow(tblRow)
+                }
+
+            };  // if (is_created){
+
+            // tblRow may not exist any more when (is_deleted). Not any more (delete is moded from this function), but let it stay
+            if (!!tblRow){
+                const is_inactive = get_subdict_value_by_key (update_dict, "inactive", "value", false);
+                tblRow.setAttribute("data-inactive", is_inactive)
+
+                for (let i = 0, len = tblRow.cells.length; i < len; i++) {
+                    // el_input is first child of td, td is cell of tblRow
+                    let el_input = tblRow.cells[i].children[0];
+                    if(!!el_input){
+                        MOSUpdateField(el_input, update_dict);
+                    };  // if(!!el_input)
+                }  //  for (let j = 0; j < 8; j++)
+            } // if (!!tblRow)
+        };  // if (!isEmpty(update_dict) && !!tblRow)
+    }  // function MOSUpdateTableRow
+
+//========= MOSUpdateField  ============= PR2019-10-09
+    function MOSUpdateField(el_input, update_dict) {
+        const fldName = get_attr_from_el(el_input, "data-field");
+        //console.log(" --- MOSUpdateField ---");
+        //console.log("update_dict ", update_dict);
+        //console.log("fldName ", fldName);
+
+// --- reset fields when update_dict is empty
+        if (isEmpty(update_dict)){
+            el_input.value = null
+            el_input.removeAttribute("data-value");
+            el_input.removeAttribute("data-pk");
+            el_input.removeAttribute("data-ppk");
+
+        } else {
+    // --- lookup field in update_dict, get data from field_dict
+            const field_dict = get_dict_value_by_key (update_dict, fldName);
+
+            if (["datefirst", "datelast"].indexOf( fldName ) > -1){
+                const hide_weekday = true, hide_year = false;
+                const el_msg = null;
+                format_date_element (el_input, el_msg, field_dict, loc.month_list, loc.weekday_list,
+                            loc.user_lang, loc.comp_timezone, hide_weekday, hide_year)
+            } else if (["employee", "replacement"].indexOf( fldName ) > -1){
+                const value = get_dict_value_by_key (field_dict, "code", "---");
+                const pk_int = get_dict_value_by_key (field_dict, "pk")
+                const ppk_int = get_dict_value_by_key (field_dict, "ppk")
+                el_input.setAttribute("data-pk", pk_int);
+                el_input.setAttribute("data-ppk", ppk_int);
+
+                el_input.innerText = value;
+            };
+        } // if (isEmpty(update_dict))
+   }; // MOSUpdateField
+
+//========= MSO_AddTeammember  ============= PR2019-12-31
+    function MSO_AddTeammember() {
+        console.log( " ==== MSO_AddTeammember ====");
+
+// ---  get selected team_pk from mod_upload_dict
+        const selected_team_pk = mod_upload_dict.team.pk;
+        const selected_team_ppk = mod_upload_dict.team.ppk;
+        const selected_team_code = mod_upload_dict.team.code;
+// ---  create new map_id
+        // get new temp_pk
+        id_new = id_new + 1
+        const pk_str = "new" + id_new.toString()
+        const tblName = "teammember";
+        const new_map_id = get_map_id(tblName, pk_str);
+
+// ---  create new_teammember_dict
+        let new_teammember_dict = {
+                id: {pk: pk_str, ppk: selected_team_pk, create: true},
+                team: {pk: selected_team_pk, ppk: selected_team_ppk, code: selected_team_code},
+                update: true
+                };
+        //teammember_map.set(new_map_id, new_teammember_dict);
+        mod_upload_dict.teammember_list.push(new_teammember_dict)
+        console.log(mod_upload_dict.teammember_list)
+
+        MSO_FillTableTeammember()
+
+
+    }  // MSO_AddTeammember
+
+//========= MSO_BtnDeleteClicked  ============= PR2019-09-23
+    function MSO_BtnDeleteClicked(el_input) {
+        console.log( " ==== MSO_BtnDeleteClicked ====");
+        //console.log(el_input);
+
+        let tblRow = get_tablerow_selected(el_input)
+        if(!!tblRow){
+            const tblName = get_attr_from_el(tblRow, "data-table")
+            const sel_teammember_pk = get_attr_from_el(tblRow, "data-pk");
+            // if sel_teammember_pk = NaN, the row is an added row. Just remove it from the .teammember_list
+            console.log("sel_teammember_pk: ", sel_teammember_pk);
+            if(isNaN(sel_teammember_pk)){
+    // --- lookup teammember_dict in mod_upload_dict.teammember_list
+                let index = -1;
+                for (let i = 0; i < mod_upload_dict.teammember_list.length; i++) {
+                    let dict = mod_upload_dict.teammember_list[i];
+                    if(!isEmpty(dict)){
+                        const pk_str = get_subdict_value_by_key(dict, "id", "pk")
+                        if(!!pk_str && pk_str === sel_teammember_pk) {
+                            index = i;
+                            break;
+                        }  // if((!!pk_int && pk_int === sel_teammember_pk)
+                    }  // if(!isEmpty(dict)){
+                }; //   for (let i = 0; i < mod_upload_dict.teammember_list.length; i++) {
+                if (index >= 0) {
+                    mod_upload_dict.teammember_list.splice(index, 1);
+                }
+            } else {
+
+                const map_id = get_map_id(tblName, sel_teammember_pk);
+                let teammember_map_dict = get_mapdict_from_datamap_by_id(teammember_map, map_id);
+                teammember_map_dict["id"]["delete"] = true;
+                teammember_map.set(map_id, teammember_map_dict);
+
+    // --- lookup teammember_dict in mod_upload_dict.teammember_list
+                let sel_teammember_dict = {};
+                for (let i = 0; i < mod_upload_dict.teammember_list.length; i++) {
+                    let dict = mod_upload_dict.teammember_list[i];
+                    if(!isEmpty(dict)){
+                        const pk_int = get_subdict_value_by_key(dict, "id", "pk")
+                        if(!!pk_int && pk_int === sel_teammember_pk) {
+                            dict["id"]["delete"] = true;
+                            console.log("dict", dict );
+                            break;
+                        }  // if((!!pk_int && pk_int === sel_teammember_pk)
+                    }  // if(!isEmpty(dict)){
+                }; //   for (let i = 0; i < mod_upload_dict.teammember_list.length; i++) {
+
+
+            }  //  if(isNaN(sel_teammember_pk)
+
+                console.log("mod_upload_dict.teammember_list: ");
+                console.log(mod_upload_dict.teammember_list);
+            MSO_FillTableTeammember();
+
+
+        }  // if(!!tblRow)
+    }  // MSO_BtnDeleteClicked
+
+//========= ModEmployeeChanged  ============= PR2019-12-29
+    function ModEmployeeChanged(tp_dict) {
+        console.log("XXXXXXXXXXXXXXXXX === ModEmployeeChanged ===" );
+        console.log("tp_dict", tp_dict);
+
+        const mode = get_dict_value_by_key(tp_dict, "mod")
+        console.log("mode", mode);
+
+        let upload_dict = {"id": tp_dict["id"]};
+        if("quicksave" in tp_dict) {quicksave = tp_dict["quicksave"]};
+        console.log("quicksave", quicksave);
+
+        // when clicked on 'Exit quicksave' and then 'Cancel' changes must not be saved, but quicksave does
+        if("save_changes" in tp_dict) {
+
+            // if mode = 'shifts', dont upload changes but put them in modal shifts
+            if (mode ==="modshift") {
+        // return value from ModTimepicker. Don't upload but put new value in ModShift
+                ModShiftTimepickerResponse(tp_dict);
+            } else {
+
+                upload_dict[tp_dict["field"]] = {"value": tp_dict["offset"], "update": true};
+                //console.log("upload_dict", upload_dict);
+
+                const tblName = "emplhour";
+                const map_id = get_map_id(tblName, get_subdict_value_by_key(tp_dict, "id", "pk").toString());
+                let tr_changed = document.getElementById(map_id)
+
+                let parameters = {"upload": JSON.stringify (upload_dict)}
+                const url_str = url_teammember_upload;
+                let response;
+                $.ajax({
+                    type: "POST",
+                    url: url_str,
+                    data: parameters,
+                    dataType:'json',
+                    success: function (response) {
+                        //console.log ("response", response);
+                        if ("update_list" in response) {
+                            let update_list = response["update_list"];
+                            UpdateFromResponseNEW(tblName, update_list)
+                        }
+
+                    },
+                    error: function (xhr, msg) {
+                        console.log(msg + '\n' + xhr.responseText);
+                        alert(msg + '\n' + xhr.responseText);
+                    }
+                });
+
+             }  //    if (mode ==="shifts")
+    }  // if("save_changes" in tp_dict) {
+ }  // ModEmployeeChanged
+
+
+// +++++++++ MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++ PR2019-12-29
+    "use strict";
+
+    //const cls_selected = "tsa_tr_selected";
+
+//=========  ModEmployeeOpen  ================ PR2019-11-06
+    function ModEmployeeOpen(el_input, ModEmployeeChanged) {
+        console.log(" -----  ModEmployeeOpen   ----")
+
+        mod_employee_dict = {};
+
+// get teammember pk etc from tr_selected, store in mod_employee_dict
+        let tblRow = get_tablerow_selected(el_input);
+        const row_id_str = get_attr_from_el_str(tblRow, "id")
+        const data_table = get_attr_from_el(tblRow, "data-table")
+        const teammember_pk = get_attr_from_el(tblRow, "data-pk");
+        const teammember_ppk = get_attr_from_el(tblRow, "data-ppk");
+
+// get field info from el_input (employee or replacemenet)
+        const data_field = get_attr_from_el(el_input, "data-field")
+        const employee_pk = get_attr_from_el_int(el_input, "data-pk");
+        const employee_ppk = get_attr_from_el_int(el_input, "data-ppk");
+
+        console.log("employee_map: ", employee_map)
+        console.log("employee_pk: ", employee_pk)
+        const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", employee_pk)
+        const employee_code = get_subdict_value_by_key(employee_dict, "code", "value");
+
+        mod_employee_dict = {row_id: row_id_str, data_table: data_table,
+                            sel_teammember: {pk: teammember_pk, ppk: teammember_ppk},
+                            sel_employee: {field: data_field, pk: employee_pk, ppk: employee_ppk, code: employee_code}};
+
+// ---  put employee name in header
+        let el_header = document.getElementById("id_mod_employee_header")
+        let el_div_remove = document.getElementById("id_mod_employee_div_remove")
+        if (!!employee_code){
+            el_header.innerText = employee_code
+            el_div_remove.classList.remove(cls_hide)
+        } else {
+// ---  or header "select employee'
+            el_header.innerText = loc.Select_employee + ":";
+            el_div_remove.classList.add(cls_hide)
+        }
+
+// remove values from el_mod_employee_input
+        let el_mod_employee_input = document.getElementById("id_mod_employee_input_employee")
+        el_mod_employee_input.value = null
+        const employee_pk_int = Number(employee_pk);
+        ModEmployeeFillSelectTableEmployee(employee_pk_int);
+
+// Set focus to el_mod_employee_input
+        //Timeout function necessary, otherwise focus wont work because of fade(300)
+        setTimeout(function (){
+            el_mod_employee_input.focus()
+        }, 500);
+
+        console.log("mod_employee_dict")
+        console.log(mod_employee_dict)
+        // data_table: "teammember"
+        //    sel_teammember: {pk: NaN, ppk: 1893},
+        //sel_employee: {field: "employee", pk: NaN, ppk: NaN, code: null}
+
+// ---  show modal
+        $("#id_mod_employee").modal({backdrop: true});
+
+    };  // ModEmployeeOpen
+
+
+//=========  ModEmployeeSelect  ================ PR2019-05-24
+    function ModEmployeeSelect(tblRow) {
+        console.log( "===== ModEmployeeSelect ========= ");
+        // called by ModEmployeeFillSelectTableEmployee in this js
+
+        if(!!tblRow) {
+
+// get employee_dict from employee_map
+            const selected_employee_pk = get_attr_from_el_int(tblRow, "data-pk")
+            const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk);
+            if (!isEmpty(map_dict)){
+// get code_value from employee_dict, put it in mod_employee_dict and el_input_employee
+                const selected_employee_ppk = get_subdict_value_by_key(map_dict, "id", "ppk")
+                const selected_employee_code = get_subdict_value_by_key(map_dict, "code", "value")
+
+                mod_employee_dict["sel_employee"]["update"] = true;
+                mod_employee_dict["sel_employee"]["pk"] = selected_employee_pk;
+                mod_employee_dict["sel_employee"]["ppk"] = selected_employee_ppk;
+                mod_employee_dict["sel_employee"]["code"] = selected_employee_code;
+
+        console.log( "selected_employee_code", selected_employee_code);
+        console.log( "mod_employee_dict.sel_employee", mod_employee_dict.sel_employee);
+
+// put code_value in el_input_employee
+                document.getElementById("id_mod_employee_input_employee").value = selected_employee_code
+// save selected employee
+                ModEmployeeSave("update")
+            }
+        }  // if(!!tblRow) {
+    }  // ModEmployeeSelect
+
+//=========  ModEmployeeFilterEmployee  ================ PR2019-11-06
+    function ModEmployeeFilterEmployee(option, event_key) {
+        console.log( "===== ModEmployeeFilterEmployee  ========= ", option);
+
+        let el_input = document.getElementById("id_mod_employee_input_employee")
+        console.log( el_input );
+        // saving when only 1 employee found goes in 2 steps:
+        // first step is adding "data-quicksave") === "true" to el_input
+        // second step: if then ENTER is clicked the employee will be saved
+
+        if(event_key === "Enter" && get_attr_from_el_str(el_input, "data-quicksave") === "true") {
+            ModEmployeeSave("update")
+        } else {
+            el_input.removeAttribute("data-quicksave")
+        }
+
+        let new_filter = el_input.value;
+        let skip_filter = false
+ // skip filter if filter value has not changed, update variable filter_mod_employee
+        if (!new_filter){
+            if (!filter_mod_employee){
+                skip_filter = true
+            } else {
+                filter_mod_employee = "";
+            }
+        } else {
+            if (new_filter.toLowerCase() === filter_mod_employee) {
+                skip_filter = true
+            } else {
+                filter_mod_employee = new_filter.toLowerCase();
+            }
+        }
+
+        let has_selection = false, has_multiple = false;
+        let select_value, selected_employee_pk, select_parentpk;
+        let tblbody = document.getElementById("id_mod_employee_tblbody");
+        let len = tblbody.rows.length;
+        if (!skip_filter && !!len){
+            for (let row_index = 0, tblRow, show_row, el, pk_str, code_value; row_index < len; row_index++) {
+                tblRow = tblbody.rows[row_index];
+                el = tblRow.cells[0].children[0]
+                show_row = false;
+                if (!filter_mod_employee){
+// --- show all rows if filter_text = ""
+                     show_row = true;
+                } else if (!!el){
+// hide current employee -> is already filtered out in ModEmployeeFillSelectTableEmployee
+                    code_value = get_attr_from_el_str(tblRow, "data-value")
+                    if (!!code_value){
+// check if code_value contains filter_mod_employee
+                        const code_value_lower = code_value.toLowerCase();
+                        show_row = (code_value_lower.indexOf(filter_mod_employee) !== -1)
+                    }
+                }
+                if (show_row) {
+                    tblRow.classList.remove(cls_hide)
+// put values from first selected row in select_value
+                    if(!has_selection ) {
+                        selected_employee_pk = get_attr_from_el_int(tblRow, "data-pk")
+                    }
+                    if (has_selection) {has_multiple = true}
+                    has_selection = true;
+                } else {
+                    tblRow.classList.add(cls_hide)
+                };
+            }  //  for (let row_index = 0, show
+        } //  if (!skip_filter) {
+
+// if only one employee in filtered list: put value in el_input /  mod_employee_dict
+        if (has_selection && !has_multiple ) {
+
+// get employee_dict from employee_map
+            const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk);
+            if (!isEmpty(map_dict)){
+// get code_value from employee_dict, put it in mod_employee_dict and el_input_employee
+                const selected_employee_ppk = get_subdict_value_by_key(map_dict, "id", "ppk")
+                const selected_employee_code = get_subdict_value_by_key(map_dict, "code", "value")
+                mod_employee_dict["sel_employee"]["update"] = true;
+                mod_employee_dict["sel_employee"]["pk"] = selected_employee_pk;
+                mod_employee_dict["sel_employee"]["ppk"] = selected_employee_ppk;
+                mod_employee_dict["sel_employee"]["code"] = selected_employee_code;
+// put code_value in el_input_employee
+                el_input.value = selected_employee_code
+// data-quicksave = true enables saving by clicking 'Enter'
+                el_input.setAttribute("data-quicksave", "true")
+// save selected employee .. not here, but at beginning of this function when data-quicksave = true
+                //ModEmployeeSave("update")
+            }
+        }
+    }; // function ModEmployeeFilterEmployee
+
+//=========  ModEmployeeSave  ================ PR2019-12-30
+    function ModEmployeeSave(mode) {
+        console.log("========= ModEmployeeSave ===" );
+        console.log("mod_employee_dict: ", mod_employee_dict );
+        console.log("mode: ", mode ); // 'update' 'create' 'remove'
+
+        // mod_employee_dict: {data_table: "teammember"
+        // sel_teammember: {pk: 818, ppk: 1893}
+        // sel_employee: {field: "employee", pk: 2568, ppk: 3, code: "Agata, Milaniek", update: true}
+
+        let sel_employee_dict = get_dict_value_by_key(mod_employee_dict, "sel_employee")
+        const sel_employee_field = get_dict_value_by_key(sel_employee_dict, "field")
+        const sel_teammember_pk = get_subdict_value_by_key(mod_employee_dict, "sel_teammember", "pk")
+
+        console.log("sel_employee_dict", sel_employee_dict );
+        console.log("sel_employee_field", sel_employee_field );
+        console.log("sel_teammember_pk", sel_teammember_pk );
+
+        if ("update" in sel_employee_dict || mode === "delete") {
+        console.log("update or delete");
+            // put key 'update' or 'delete' in dict
+            // wwhen mode delete: replace 'update by 'delete' in employee_dict
+            if (mode === "delete"){
+                sel_employee_dict = {pk: null, ppk: null, update: true}
+            }
+
+// --- lookup teammember_dict in mod_upload_dict.teammember_list
+            let sel_teammember_dict = {};
+            for (let i = 0; i < mod_upload_dict.teammember_list.length; i++) {
+                let dict = mod_upload_dict.teammember_list[i];
+                console.log("---dict", dict );
+                if(!isEmpty(dict)){
+                    const pk_int = get_subdict_value_by_key(dict, "id", "pk")
+                console.log("--->>>>>>>>>> pk_int", pk_int , typeof pk_int );
+                console.log("--->>>>>>>>>> sel_teammember_pk", sel_teammember_pk, typeof sel_teammember_pk );
+
+                    if(!!pk_int && pk_int.toString() === sel_teammember_pk.toString()) {
+                        sel_teammember_dict = dict;
+                        console.log("---dict", dict );
+                        sel_teammember_dict[sel_employee_field] = sel_employee_dict;
+                        sel_teammember_dict["update"] = true;
+
+                        console.log("--------sel_teammember_dict", sel_teammember_dict );
+                        mod_upload_dict.teammember_list[i] = sel_teammember_dict;
+
+                        break;
+                    }  // if((!!pk_int && pk_int === sel_teammember_pk)
+                }  // if(!isEmpty(dict))
+            }; //   for (let i = 0; i < mod_upload_dict.teammember_list.length; i++) {
+
+        }  // if ("update" in sel_employee_dict) {
+
+        console.log("mod_upload_dict.teammember_list: ");
+        console.log(mod_upload_dict.teammember_list);
+
+        MSO_FillTableTeammember();
+
+
+        //UploadChanges(upload_dict, url_teammember_upload);
+
+// ---  hide modal
+    $("#id_mod_employee").modal("hide");
+    } // ModEmployeeSave
+
+//=========  ModEmployeeDeleteOpen  ================ PR2019-09-15
+    function ModXXXEmployeeDeleteOpen(tr_clicked, mode) {
+        //console.log(" -----  ModEmployeeDeleteOpen   ----")
+
+// get tblRow_id, pk and ppk from tr_clicked; put values in el_mod_employee_body
+        let el_mod_employee_body = document.getElementById("id_mod_empl_del_body")
+        el_mod_employee_body.setAttribute("data-tblrowid", tr_clicked.id);
+        el_mod_employee_body.setAttribute("data-table", get_attr_from_el(tr_clicked, "data-table"));
+        el_mod_employee_body.setAttribute("data-pk", get_attr_from_el(tr_clicked, "data-pk"));
+        el_mod_employee_body.setAttribute("data-ppk", get_attr_from_el(tr_clicked, "data-ppk"));
+
+// get employee name from el_empl_code
+        const el_empl_code = tr_clicked.cells[0].children[0];
+        const header_txt = get_attr_from_el_str(el_empl_code, "data-value");
+        document.getElementById("id_mod_empl_del_header").innerText = header_txt;
+
+// ---  show modal
+        $("#id_mod_empl_del").modal({backdrop: true});
+
+    };  // ModEmployeeDeleteOpen
+
+//=========  ModEmployeeDeleteSave  ================ PR2019-08-08
+    function ModXXXEmployeeDeleteSave() {
+        //console.log("========= ModEmployeeDeleteSave ===" );
+
+    // ---  create id_dict
+        const tblRow_id = document.getElementById("id_mod_empl_del_body").getAttribute("data-tblrowid")
+        let tr_clicked = document.getElementById(tblRow_id)
+        let id_dict = get_iddict_from_element(tr_clicked);
+
+        if (!isEmpty(id_dict)){
+            id_dict["delete"] = true
+
+//  make tblRow red
+            tr_clicked.classList.add(cls_error);
+
+// ---  hide modal
+            $('#id_mod_empl_del').modal('hide');
+
+            const upload_dict = {"id": id_dict};
+            UploadChanges(upload_dict, url_employee_upload);
+
+        }  // if (!isEmpty(id_dict))
+    } // ModEmployeeDeleteSave
+
+//========= ModEmployeeFillSelectTableEmployee  ============= PR2019-08-18
+    function ModEmployeeFillSelectTableEmployee(selected_employee_pk) {
+        //console.log( "=== ModEmployeeFillSelectTableEmployee ");
+        // called by ModEmployeeOpen in this modemployee.js
+
+        const caption_one = loc.Select_employee + ":";
+        const caption_none = loc.No_employees;
+
+        let tblBody = document.getElementById("id_mod_employee_tblbody");
+        tblBody.innerText = null;
+
+//--- when no items found: show 'select_employee_none'
+        if (employee_map.size === 0){
+            let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+            let td = tblRow.insertCell(-1);
+            td.innerText = caption_none;
+        } else {
+
+//--- loop through employee_map
+            for (const [map_id, item_dict] of employee_map.entries()) {
+                const pk_int = get_pk_from_dict(item_dict)
+                const ppk_int = get_ppk_from_dict(item_dict);
+                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
+
+//- skip selected employee
+                if (pk_int !== selected_employee_pk){
+
+//- insert tblBody row
+                    let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+                    // NOT IN USE:  tblRow.id = pk_int.toString()
+                    tblRow.setAttribute("data-pk", pk_int);
+                    tblRow.setAttribute("data-ppk", ppk_int);
+                    tblRow.setAttribute("data-value", code_value);
+
+//- add hover to tblBody row
+                    tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
+                    tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+
+//- add EventListener to Modal SelectEmployee row
+                    tblRow.addEventListener("click", function() {
+                        ModEmployeeSelect(tblRow)
+                    }, false )
+
+// - add first td to tblRow.
+                    let td = tblRow.insertCell(-1);
+
+// --- add a element to td., necessary to get same structure as item_table, used for filtering
+                    let el = document.createElement("div");
+                        el.innerText = code_value;
+                        el.classList.add("mx-1")
+                    td.appendChild(el);
+                } //  if (pk_int !== selected_employee_pk){
+            } // for (const [map_id, item_dict] of employee_map.entries())
+        }  //  if (employee_map.size === 0)
+    } // ModEmployeeFillSelectTableEmployee
+
+
 
 }); //$(document).ready(function()
