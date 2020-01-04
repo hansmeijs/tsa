@@ -3304,6 +3304,8 @@ def update_scheme(instance, upload_dict, update_dict, request):
                 if update_dict:
                     update_dict['id']['error'] = msg_err
 
+    logger.debug('scheme changes have been saved: ' + str(save_changes))
+
     return save_changes
 
 

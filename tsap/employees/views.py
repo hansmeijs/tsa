@@ -364,7 +364,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
 
 
     update_wrap = {}
-    schemes_have_changed = False
+    scheme_has_changed = False
     teammembers_have_changed = False
     shifts_have_changed = False
 
@@ -418,7 +418,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                     # cycle = 7 (default)
                 )
                 scheme.save(request=request)
-                schemes_have_changed = True
+                scheme_has_changed = True
             else:
                 scheme = m.Scheme.objects.get_or_none(id=scheme_pk, order__customer__company=request.user.company)
             logger.debug('scheme: ' + str(scheme))
@@ -426,10 +426,10 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                 if is_delete:
                     scheme.delete(request=request)
                     scheme = None
-                    schemes_have_changed = True
+                    scheme_has_changed = True
                 else:
                     update_dict = {}
-                    schemes_have_changed = plvw.update_scheme(scheme, scheme_dict, update_dict, request)
+                    scheme_has_changed = plvw.update_scheme(scheme, scheme_dict, update_dict, request)
 
 # --- TEAM ---
     team = None
@@ -663,7 +663,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
             update_wrap['calendar_header_dict'] = calendar_header_dict
 
         # 8. update scheme_list when changes are made
-    if schemes_have_changed:
+    if scheme_has_changed:
         # all schemes are loaded when scheme page loaded, including template and inactive
         scheme_list = pld.create_scheme_list(
             request=request,

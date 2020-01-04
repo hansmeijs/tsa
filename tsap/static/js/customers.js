@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
             company: {value: true},
             customer: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
             order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
-            scheme: {istemplate: false, inactive: null, issingleshift: false},
+            scheme: {istemplate: false, inactive: null, issingleshift: null},
             schemeitem: {customer_pk: selected_customer_pk}, // , issingleshift: false},
             shift: {istemplate: false},
             team: {istemplate: false},
@@ -325,91 +325,19 @@ document.addEventListener('DOMContentLoaded', function() {
             dataType: 'json',
             success: function (response) {
                 console.log("response")
-                console.log(response)
+                console.log(response);
                 if ("locale_dict" in response) {
                     loc = response["locale_dict"];
 // --- create header row and footer
                     CreateTblHeaders();
                     CreateTblFooters();
                 }
-
-                if ("company_dict" in response) {
-                    company_dict = response["company_dict"];
-                }
-
-                if ("order_list" in response) {
-                    get_datamap(response["order_list"], order_map)
-                    FillTableRows("order");
-                    //console.log("order_map: ", order_map)
-                }
-
-                if ("customer_list" in response) {
-                    get_datamap(response["customer_list"], customer_map)
-                    //console.log("customer_map: ", customer_map)
-
-                    const tblName = "customer";
-                    const imgsrc_default = imgsrc_inactive_grey;
-                    const imgsrc_hover = imgsrc_inactive_black;
-                    FillSelectTable(customer_map, tblName, selected_customer_pk, null,
-                        HandleSelect_Filter, HandleFilterInactive,
-                        HandleSelect_Row,  HandleSelectRowButton,
-                        imgsrc_default, imgsrc_hover,
-                        filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
-
-                    FilterSelectRows();
-
-                    FillTableRows(tblName);
-                    let tblBody = document.getElementById("id_tbody_customer");
-                    if(!!tblBody){
-                        FilterTableRows(tblBody)
-                    }
-                }
-                if ("employee_list" in response) {
-                    get_datamap(response["employee_list"], employee_map)
-                }
-                if ("scheme_list" in response) {
-                    get_datamap(response["scheme_list"], scheme_map)
-                    //console.log("scheme_map: ", scheme_map)
-                }
-                if ("shift_list" in response) {
-                    get_datamap(response["shift_list"], shift_map)
-                }
-                if ("team_list" in response) {
-                    get_datamap(response["team_list"], team_map)
-                    //console.log("team_map: ", team_map)
-                }
-                if ("teammember_list" in response) {
-                    get_datamap(response["teammember_list"], teammember_map)
-                    console.log("teammember_map: ", teammember_map)
-                }
-                if ("schemeitem_list" in response) {
-                    get_datamap(response["schemeitem_list"], schemeitem_map)
-                    //console.log("schemeitem_map: ", schemeitem_map)
-                }
-
-                if ("order_planning_list" in response) {
-                    get_datamap(response["order_planning_list"], planning_map)
-
-                    //console.log( datalist_request)
-                    FillTableRows("planning");
-                }
-                // setting_list must go after FillSelectTable() and before FillTableRows();
-                // setting_list must come after locale_dict, where weekday_list is loaded
-                if ("setting_list" in response) {
-                    UpdateSettings(response["setting_list"])
-                }
-
-                // calendar_header_dict goes before order_calendar_list
-                if ("calendar_header_dict" in response) {
-                    calendar_header_dict = response["calendar_header_dict"]
-                }
-                if ("order_calendar_list" in response) {
-                    get_datamap(response["order_calendar_list"], calendar_map)
-                    CreateCalendar(calendar_header_dict, calendar_map, MSO_Open, loc, timeformat, user_lang);
-                };
                 if ("quicksave" in response) {
                     quicksave = get_subdict_value_by_key(response, "quicksave", "value", false)
                 }
+
+// --- refresh maps and fill tables
+                refresh_maps(response);
 
         // --- hide loader
                 el_loader.classList.add(cls_visible_hide)
@@ -420,8 +348,65 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(msg + '\n' + xhr.responseText);
                 alert(msg + '\n' + xhr.responseText);
             }
-        });
+        });  // $.ajax({
 }
+
+//=========  refresh_maps  ================ PR2020-01-03
+    function refresh_maps(response) {
+
+        if ("company_dict" in response) {company_dict = response["company_dict"];}
+        if ("order_list" in response) {
+            get_datamap(response["order_list"], order_map)
+            FillTableRows("order");
+            //console.log("order_map: ", order_map)
+        }
+        if ("customer_list" in response) {
+            get_datamap(response["customer_list"], customer_map)
+            //console.log("customer_map: ", customer_map)
+
+            const tblName = "customer";
+            const imgsrc_default = imgsrc_inactive_grey;
+            const imgsrc_hover = imgsrc_inactive_black;
+            FillSelectTable(customer_map, tblName, selected_customer_pk, null,
+                HandleSelect_Filter, HandleFilterInactive,
+                HandleSelect_Row,  HandleSelectRowButton,
+                imgsrc_default, imgsrc_hover,
+                filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
+
+            FilterSelectRows();
+
+            FillTableRows(tblName);
+            let tblBody = document.getElementById("id_tbody_customer");
+            if(!!tblBody){
+                FilterTableRows(tblBody)
+            }
+        }
+        if ("employee_list" in response) {get_datamap(response["employee_list"], employee_map)}
+        if ("scheme_list" in response) {
+            get_datamap(response["scheme_list"], scheme_map)
+            console.log("scheme_map: ", scheme_map)
+        }
+        if ("shift_list" in response) {get_datamap(response["shift_list"], shift_map)}
+        if ("team_list" in response) {get_datamap(response["team_list"], team_map)}
+        if ("teammember_list" in response) {get_datamap(response["teammember_list"], teammember_map)}
+        if ("schemeitem_list" in response) {get_datamap(response["schemeitem_list"], schemeitem_map)}
+
+        if ("order_planning_list" in response) {
+            get_datamap(response["order_planning_list"], planning_map)
+            FillTableRows("planning");
+        }
+        // setting_list must go after FillSelectTable() and before FillTableRows();
+        // setting_list must come after locale_dict, where weekday_list is loaded
+        if ("setting_list" in response) { UpdateSettings(response["setting_list"])}
+
+        // calendar_header_dict goes before order_calendar_list
+        if ("calendar_header_dict" in response) {calendar_header_dict = response["calendar_header_dict"]}
+
+        if ("order_calendar_list" in response) {
+            get_datamap(response["order_calendar_list"], calendar_map)
+            CreateCalendar(calendar_header_dict, calendar_map, MSO_Open, loc, timeformat, user_lang);
+        };
+    }  // refresh_maps
 
 //###########################################################################
 // +++++++++++++++++ EVENT HANDLERS +++++++++++++++++++++++++++++++++++++++++
@@ -502,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleBtnSelect  ================ PR2019-05-25
     function HandleBtnSelect(data_mode, skip_update) {
-        console.log( "===== HandleBtnSelect ========= ", data_mode);
+        //console.log( "===== HandleBtnSelect ========= ", data_mode);
 
         selected_btn = data_mode
         if(!selected_btn){selected_btn = "customer"}
@@ -802,10 +787,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= HandleBtnCalendar  ============= PR2019-12-04
     function HandleBtnCalendar(mode) {
-        console.log( " ==== HandleBtnCalendar ====", mode);
+        //console.log( " ==== HandleBtnCalendar ====", mode);
 
         const datefirst_iso = get_dict_value_by_key(calendar_header_dict, "datefirst")
-        console.log( "datefirst_iso", datefirst_iso, typeof datefirst_iso);
+        //console.log( "datefirst_iso", datefirst_iso, typeof datefirst_iso);
 
         let calendar_datefirst_JS = get_dateJS_from_dateISO_vanilla(datefirst_iso);
         if(!calendar_datefirst_JS) {calendar_datefirst_JS = new Date()};
@@ -848,7 +833,7 @@ document.addEventListener('DOMContentLoaded', function() {
                      "datelast": calendar_datelast_iso,
                      "order_id": selected_order_pk}};
 
-        console.log( "datalist_request", datalist_request);
+        //console.log( "datalist_request", datalist_request);
         DatalistDownload(datalist_request);
 
     }  // HandleBtnCalendar
@@ -1040,7 +1025,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ResetAddnewRow  === PR2019-11-26
     function ResetAddnewRow(tblName) {
-        console.log("===  ResetAddnewRow == ", tblName);
+        //console.log("===  ResetAddnewRow == ", tblName);
 
 // --- lookup row 'add new' in tFoot
 
@@ -1082,7 +1067,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             };  // else if (tblName === "order")
 
-            console.log("update_dict: ", update_dict);
+            //console.log("update_dict: ", update_dict);
             UpdateTableRow(tblRow, update_dict)
 
 // --- new created record
@@ -1281,7 +1266,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateFromResponse  ================ PR2019-10-20
     function UpdateFromResponse(update_dict) {
-        console.log(" --- UpdateFromResponse  ---");
+        //console.log(" --- UpdateFromResponse  ---");
         //console.log("update_dict", update_dict);
 
 //--- get info from update_dict["id"]
@@ -1381,7 +1366,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const rowid_str = id_sel_prefix + map_id
                 selectRow = document.getElementById(rowid_str);
             };
-        console.log(" --- UpdateFromResponse  UpdateSelectRow---");
+        //console.log(" --- UpdateFromResponse  UpdateSelectRow---");
     //--- update or delete selectRow, before remove_err_del_cre_updated__from_itemdict
             UpdateSelectRow(selectRow, update_dict, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
         }  // if( tblName === "customer")
@@ -1601,7 +1586,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= UpdateAddnewRow  ==================================== PR2019-11-25
     function UpdateAddnewRow(sel_cust_pk, sel_cust_ppk, sel_cust_code ) {
         //console.log(" --- UpdateAddnewRow --- ", selected_btn)
-       // console.log("sel_cust_pk: ", sel_cust_pk, "sel_cust_ppk: ", sel_cust_ppk, "sel_cust_code: ", sel_cust_code)
+        //console.log("sel_cust_pk: ", sel_cust_pk, "sel_cust_ppk: ", sel_cust_ppk, "sel_cust_code: ", sel_cust_code)
         // function puts pk and ppk of selected customer in addnew row
         // also add name and pk of selected customer in first field '(irst column is 'customer')
         // OLNY if selected_btn = "order"
@@ -1934,31 +1919,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log( "response");
                     console.log( response);
 
-                    if ("customer_list" in response) {
-                        get_datamap(response["customer_list"], customer_map)
-                    }
-                    if ("order_list" in response) {
-                        get_datamap(response["order_list"], order_map)
-                    }
-                    if ("shift_list" in response) {
-                        get_datamap(response["shift_list"], shift_map)
-                        console.log("UploadChanges shift_map: ", shift_map)
-                    }
-
-                    if ("update_list" in response) {
-                        for (let i = 0, len = response["update_list"].length; i < len; i++) {
-                            const update_dict = response["update_list"][i];
-                            UpdateFromResponse(update_dict);
-                        }
-                    }
-                    // calendar_header_dict goes before order_calendar_list
-                    if ("calendar_header_dict" in response) {
-                        calendar_header_dict = response["calendar_header_dict"]
-                    }
-                    if ("order_calendar_list" in response) {
-                        get_datamap(response["order_calendar_list"], calendar_map)
-                        CreateCalendar(calendar_header_dict, calendar_map, MSO_Open, loc, timeformat, user_lang);
-                    };
+// --- refresh maps and fill tables
+                    refresh_maps(response);
 
                 },
                 error: function (xhr, msg) {
@@ -2648,7 +2610,7 @@ document.addEventListener('DOMContentLoaded', function() {
             offset_end = get_subdict_value_by_key(shift_dict, "offsetend", "value");
             break_duration = get_subdict_value_by_key(shift_dict, "breakduration", "value");
             time_duration = get_subdict_value_by_key(shift_dict, "timeduration", "value");
-        } else{
+        } else {
             offset_start = 60 * row_index
         }
 // ---  lookup team_map, get team info from team_map
@@ -2669,13 +2631,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- reset mod_upload_dict
         mod_upload_dict = {map_id: map_id,
-                            calendar: {table: "calendar_order",
-                                        mode: mod_shift_option,
-                                        rosterdate: rosterdate_iso,
-                                        weekday_index: weekday_index,
-                                        weekday_list: selected_weekday_list,
-                                        calendar_datefirst: calendar_datefirst,
-                                        calendar_datelast: calendar_datelast},
+                            calendar: {mode: mod_shift_option,
+                                       rosterdate: rosterdate_iso,
+                                       weekday_index: weekday_index,
+                                       weekday_list: selected_weekday_list,
+                                       calendar_datefirst: calendar_datefirst,
+                                       calendar_datelast: calendar_datelast},
                             order:  {id: {pk: order_pk, ppk: order_ppk, table: "order"},
                                      code: {value: order_code}},
                             scheme: {id: {pk: scheme_pk, ppk: order_pk, table: "scheme"},
@@ -2700,6 +2661,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             teammember_list: [],
                             schemeitem_list: []
                             };
+        if(add_new_mode){
+
+            const new_shift_code = MSO_CreateShiftname(null, offset_start, offset_end);
+            if(offset_start != null){mod_upload_dict.shift.offsetstart = {value: offset_start, update: true} };
+            if(!!new_shift_code){mod_upload_dict.shift.code = {value: new_shift_code, update: true} };
+        }
 // store offset in mod_upload_dict and calculate min max
         MSO_FillOffsetValues(offset_start,offset_end, break_duration, time_duration)
 
@@ -2836,8 +2803,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  get changed teammembers - mod_upload_dict.teammember_list contains pk's of changed, created, deleted teammembers
         let teammembers_tobe_updated = []
-        console.log("mod_upload_dict.teammember_list")
-        console.log(mod_upload_dict.teammember_list)
+        //console.log("mod_upload_dict.teammember_list")
+        //console.log(mod_upload_dict.teammember_list)
         for (let i = 0, pk, len =  mod_upload_dict.teammember_list.length; i < len; i++) {
             const dict = mod_upload_dict.teammember_list[i];
             // all update, create and delete dicts have 'update' = true in the root, to prevent checking subdicts
@@ -2845,8 +2812,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 teammembers_tobe_updated.push(dict);
             }  // if(!isEmpty(dict) && "update" in dict)
         }  //  for (let i = 0, pk, len =  mod_upload_dict.teammember_list.length; i < len; i++) {
-        console.log("teammembers_tobe_updated")
-        console.log(teammembers_tobe_updated)
+        //console.log("teammembers_tobe_updated")
+        //console.log(teammembers_tobe_updated)
 
 // =========== CREATE UPLOAD DICT =====================
         let id_dict = {mode: "schemeshift"}
@@ -2925,7 +2892,6 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log ("shift_dict", shift_dict)
         upload_dict["shift"] = shift_dict;
 
-
 // =========== SCHEMEITEM INFO =====================
         // schemeitem_dict in upload only contains info of clicked schemeitem, in case day has multiple schemitems
         let schemeitem_dict = {id: {table: "schemeitem"}};
@@ -2952,7 +2918,6 @@ document.addEventListener('DOMContentLoaded', function() {
         upload_dict["team"] = team_dict;
 
 // =========== UploadChanges =====================
-
         UploadChanges(upload_dict, url_teammember_upload);
     }  // MSO_Save
 
@@ -3155,7 +3120,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "=== ModShiftCreateShiftname ");
         // shiftname will be replaced by calculated shiftname if:
          // 1) cur_shift_code is empty 2) starts with '-' 3) starts with '<' or 4) first 2 characters are digits
-
+        if(cur_shift_code== null){cur_shift_code = ""}
         const code_trimmed = cur_shift_code.trim()
         let may_override = false;
         let new_shift_code = null;
@@ -3361,9 +3326,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function MSO_PublicholidayChanged(fldName) {
         //console.log( "===== MSO_PublicholidayChanged  ========= ");
         if (fldName === "excludepublicholiday") {
-            mod_upload_dict.scheme.excludepublicholiday = {value: el_modshift_publicholiday.value, update: true}
+            mod_upload_dict.scheme.excludepublicholiday = {value: el_modshift_publicholiday.checked, update: true}
         } else if (fldName === "excludecompanyholiday") {
-            mod_upload_dict.scheme.excludecompanyholiday = {value: el_modshift_companyholiday.value, update: true}
+            mod_upload_dict.scheme.excludecompanyholiday = {value: el_modshift_companyholiday.checked, update: true}
         }
     }; // function MSO_PublicholidayChanged
 
@@ -3699,23 +3664,20 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- loop through schemeitem_map
         if(!!schemeitem_map.size){
             for (const [map_id, dict] of schemeitem_map.entries()) {
-                //console.log("schemeitem dict", dict)
-                // show only rows of selected_scheme_pk
                 const row_scheme_pk = get_subdict_value_by_key(dict, "id", "ppk");
                 if(!!row_scheme_pk && row_scheme_pk === scheme_pk){
                     let dict_clone = {id: {pk: dict.id.pk, ppk: dict.id.ppk, table: "schemeitem"},
-                        scheme: {pk: dict.scheme.pk, ppk: dict.scheme.ppk, code: dict.scheme.code},
-                        shift: {pk: dict.shift.pk, ppk: dict.shift.ppk, code: dict.shift.code},
-                        team: {pk: dict.team.pk, ppk: dict.team.ppk, code: dict.team.code}
+                        scheme: {pk: dict.scheme.pk, ppk: dict.scheme.ppk, code: dict.scheme.code}
                         };
-                    const dict_keys = ["rosterdate", "iscyclestart", "offsetstart", "offsetend", "breakduration", "timeduration"];
-                    const keys = ["value", "mindate", "maxdate", "minoffset", "maxoffset"]
+                    const dict_keys = ["shift", "team"];
+                    const keys = ["value", "pk", "ppk", "code", "offsetstart", "offsetend", "breakduration", "timeduration"];
                     MSO_FillFieldDicts(dict_keys, keys, dict, dict_clone);
-
-                    mod_upload_dict.schemeitem_list.push(dict_clone);
+                    mod_upload_dict.team_list.push(dict_clone);
         }}};
 
+        console.log("+++++++++++++++++++ ")
         console.log("mod_upload_dict ", mod_upload_dict)
+        console.log("+++++++++++++++++++ ")
     }  // MSO_FillShiftTeamTeammemberSchemitemList
 
 //=========  MSO_FillFieldDicts  ================ PR2019-12-31
@@ -3725,10 +3687,16 @@ document.addEventListener('DOMContentLoaded', function() {
         dict_keys.forEach(function(dict_key) {
             if(dict_key in map_dict){
                 let field_dict = map_dict[dict_key];
-                if (!(dict_key in dict_clone)){dict_clone[dict_key] = {}};
-                keys.forEach(function(key) {
-                    if(key in field_dict){dict_clone[dict_key][key] = field_dict[key]};
-                });
+                if(!isEmpty(field_dict)){
+                    keys.forEach(function(key) {
+                        if(key in field_dict){
+                            if (!(dict_key in dict_clone)){
+                                dict_clone[dict_key] = {}
+                            };
+                            dict_clone[dict_key][key] = field_dict[key]
+                        };
+                    });
+                }
         }});
 
     }  // MSO_FillFieldDicts
