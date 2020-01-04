@@ -117,17 +117,17 @@ def create_employee_dict(instance, item_dict, user_lang):
 # >>>   end create_employee_dict
 
 
-def create_teammember_list(table_dict, company, user_lang):
+def create_teammember_list(filter_dict, company, user_lang):
     # --- create list of all teammembers of this order PR2019-08-29
     logger.debug(' ----- create_teammember_list  -----  ')
-    logger.debug('table_dict' + str(table_dict) )
+    logger.debug('filter_dict' + str(filter_dict) )
     # teammember: {order_pk: null datefirst: null datelast: null}
 
-    cat = table_dict.get('cat')
-    datefirst = table_dict.get('datefirst')
-    datelast = table_dict.get('datelast')
-    order = table_dict.get('order')
-    employee_nonull = table_dict.get('employee_nonull', False)
+    cat = filter_dict.get('cat')
+    datefirst = filter_dict.get('datefirst')
+    datelast = filter_dict.get('datelast')
+    order = filter_dict.get('order')
+    employee_nonull = filter_dict.get('employee_nonull', False)
 
     crit = Q(team__scheme__order__customer__company=company)
     if employee_nonull:

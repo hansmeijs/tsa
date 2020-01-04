@@ -2,7 +2,6 @@
 {% load i18n %}{% load static %}
 
 {% block stylesheet %}
-    <!-- <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css"/> -->
     <link rel="stylesheet" href="{% static 'css/table_import.css' %}">
 {% endblock %}
 
@@ -14,106 +13,137 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.9/es5-shim.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xls/0.7.4-a/xls.core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.11.8/xlsx.core.min.js"></script>
-    <!-- PR2019-01-13 removed to base.html
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"></script>
-    -->
+
     <script src="{% static 'js/employee_import.js' %}"></script>
 {% endblock %}
 
 {% block sidebar %}
     <nav id="id_sidebar" class="tsa_sidebar">
         <div class="sidebar_header">
-            <h3>{% trans 'Employees' %}</h3>
+            <h3>{% trans 'Upload employees' %}</h3>
         </div>
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
 
 {% block content %}
+
 <div class="container">
   {% if user.is_authenticated %}
-        {% if user.is_perm_plan %}
+    {% if user.is_perm_plan %}
+        <div class="text_align_left mt-5">
+            <h4 class="text_align_left mx-4 mt-4">{% trans 'Upload employees' %}</h4>
 
-            <div class="c_select_file text_align_left">
-                <h4 class="text_align_left mt-4">{% trans 'Upload employees' %}</h4>
-                <span>
-                    <img id="id_loader2" src="{% static 'img/loader.gif' %}" height="24" width="24" class="display_hide" >
-                </span>
-                <h6 class="text_align_left mt-4">{% trans 'Step' %} 1: {% trans 'Select employee file' %}</h6>
+<!-- BUTTON GROUP -->
+            <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                <button id="id_btn_mod_step1" type="button" data-mode="mod_step1" class="btn btn-secondary">{% trans 'Step' %} 1: {% trans 'Select file' %}</button>
+                <button id="id_btn_mod_step2" type="button" data-mode="mod_step2" class="btn btn-secondary">{% trans 'Step' %} 2: {% trans 'Link colums' %}</button>
+                <button id="id_btn_mod_step3" type="button" data-mode="mod_step3" class="btn btn-secondary">{% trans 'Step' %} 3: {% trans 'Calculate short name' %}</button>
+                <button id="id_btn_mod_step4" type="button"  data-mode="mod_step4" class="btn btn-secondary ">{% trans 'Step' %} 4: {% trans 'Upload data' %}</button>
+            </div>
+    <!-- end BUTTON GROUP -->
+            <div class="content_subheader_left mx-2 my-2">
+                <button id="id_btn_mod_prev" type="button" class="btn btn-secondary"> &lt;  {% trans 'Previous step' %}</button>
+                <button id="id_btn_mod_next"  type="button" class="btn btn-secondary">{% trans 'Next step' %} &gt; </button>
+            </div>
 
-                <div class="text_align_left">
-                    <input class="c_form_text" type="file" id="filedialogID" name="file" accept=".xlsx, .xls, csv">
+            <div class="text_align_left m-4 mod_show mod_step1">
+                <h5 class="text_align_left mt-4">{% trans 'Select Excel file with employees' %}:</h5>
+                <div class="content_subheader_left mx-1">
+                    <input id="id_filedialog" type="file"  name="file" accept=".xlsx, .xls, csv">
                 </div>
-                <h6 class="text_align_left mt-2">{% trans 'Step' %} 2: {% trans 'Select a worksheet' %}</h6>
-                <div class="text_align_left c_hide">
-                    <label for="id_worksheet_list">{% trans 'Worksheet' %}:</label>
-                    <select id="id_worksheet_list" class="c_form_select" ></select>
+                <h5 class="text_align_left mt-4">{% trans 'Select a worksheet' %}:</h5>
+                <div class="content_header">
+                    <div class="content_subheader_left mx-1">
+                            <select id="id_worksheet_list" type="text" data-field="team"
+                            autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                            class="form-control mb-0"></select>
+                    </div>
+                    <div class="content_subheader_left mx-1">
+                    </div>
                 </div>
+                <h5 class="text_align_left mt-4">{% trans 'Select if the worksheet has a header row' %}:</h5>
+                <div class="content_subheader_left mx-1">
+                    <span>
+                        <input id="checkBoxID" type="checkbox" value="true" class="td_width_032 mx-2">
+                        <label for="checkBoxID" class="mx-2 my-1">{% trans 'Worksheet has a header row' %}</label>
+                    </span>
+                 </div>
+            </div>
 
-                <h6 class="text_align_left mt-2">{% trans 'Step' %} 3: {% trans 'Select if the worksheet has no header row' %}</h6>
-                <div class="content_subheader_left mx-2 my-1">
-                  <input class="c_form_text text_align_left" type="checkbox" id="checkBoxID" value="false">
-                  <label class="c_form_text text_align_left" for="checkBoxID"> {% trans 'Worksheet has no header row' %}</label>
-                </div>
-                <br />
-
-                <h6 class="text_align_left mt-2">{% trans 'Step' %} 4: {% trans 'How do you want the short name to be calculated?' %}</h6>
-                <div class="text_align_left">
-                    <label for="id_select_code_calc">{% trans "Short name will be calculated as follows:" %}</label>
-                    <select id="id_select_code_calc" class="c_form_select" >
-                        <option value="linked">{% trans "Don't calculate, but link to an Excel column" %}</option>
-                        <option value="firstname">{% trans "Calculate like: Smith, John" %}</option>
-                        <option value="initials">{% trans "Calculate like: Smith J S A" %}</option>
-                        <option value="nospace">{% trans "Calculate like: Smith JSA" %}</option>
-                    </select>
-
-
-                </div>
-
-                <h6 class="text_align_left mt-2">{% trans 'Step' %} 5: {% trans 'Link colums' %}</h6>
-
-                <div id="div_infoID"></div>
-                <div class="ea_flex">
-                    <div id="id_basediv_col" class="c_link_columns"></div>
-                </div>
-
-                <br />
-
-
-                <h6 class="text_align_left mt-2">{% trans 'Step' %} 6: {% trans 'Upload employees' %}</h6>
-                <div class="ea_flex">
-                <button
-                        id="btn_import"
-                        class="submit-button"
-                        type="button"
-
-                > {% trans 'Click to upload the data' %}</button>
-
+            <div class="text_align_left m-4 mod_show mod_step2">
+                <h5 class="text_align_left mt-4">{% trans 'How do you want the short name to be calculated?' %}</h5>
+                <div class="content_header">
+                    <div class="content_subheader_left mx-1">
+                        <div><small class="tsa_Xmargin_form_label mx-4 my-0">
+                            {% trans "Instead of importing the short name, you can also let TSA calculate the short name based on the first and last name." %}
+                        </small></div>
+                        <div><small class="tsa_Xmargin_form_label mx-4 my-0">
+                            {% trans "Select how you want TSA to calculate the short name." %} {% trans "If the short name is calculated, a linked short name will be ignored." %}
+                        </small></div>
+                        <div class="content_header">
+                            <div class="content_subheader_left mx-1">
+                                <select id="id_select_code_calc" type="text" size="4"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                        class="form-control mt-2">
+                                    <option value="linked">{% trans "Don't calculate, but link to an Excel column" %}</option>
+                                    <option value="firstname">{% trans "Calculate like: Smith, John" %}</option>
+                                    <option value="initials">{% trans "Calculate like: Smith J S A" %}</option>
+                                    <option value="nospace">{% trans "Calculate like: Smith JSA" %}</option>
+                                </select>
+                            </div>
+                            <div class="content_subheader_left mx-1">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        <br />
-        <span>
-            <img id="id_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="display_hide" >
-        </span>
 
-        <table class="c_table_stud" id="id_table" width="100%" class="display_hide">
-            <thead id="id_thead" class="c_thead"></thead>
-            <tbody id="id_tbody" class="c_tbody"></tbody>
-            <tfoot id="id_tfoot" class="c_tfoot"></tfoot>
-        </table>
+            <div class="text_align_left m-4 mod_show mod_step3">
+
+                <h5 class="text_align_left mt-4"> {% trans 'Link colums' %}</h5>
+                <div>
+                    <h6 id="div_infoID" class="text_align_left mx-2 mt-2"></h6>
+                </div>
+
+                <div><small class="tsa_Xmargin_form_label mx-4 my-0">
+                    {% trans "Click corresponding names in the left and right list to link these columns." %}
+                    {% trans "Click linked names in the lower list to unlink these columns." %}
+                </small></div>
+                <div><small class="tsa_Xmargin_form_label mx-4 my-0">
+                    {% trans "One of the fields 'Payroll code' or 'Identifier' must be linked and contain unique values." %}
+                </small></div>
+                <div class="container mt-2">
+                    <div id="id_basediv_col" class="c_link_columns"></div>
+                </div>
+            </div>
+
+            <div class="text_align_left m-4 mod_show mod_step4">
+                <h5 class="text_align_left mt-4">{% trans 'Upload employees' %}</h5>
+                <div class="content_subheader_left mx-2 my-2">
+                    <button id="btn_upload" type="button" class="btn btn-secondary">{% trans 'Upload' %}</button>
+                    <span>
+                        <img id="id_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="display_hide" >
+                    </span>
+                </div>
+                <table class="c_table_stud" id="id_table" width="100%" class="display_hide">
+                    <thead id="id_thead" class="c_thead"></thead>
+                    <tbody id="id_tbody" class="c_tbody"></tbody>
+                    <tfoot id="id_tfoot" class="c_tfoot"></tfoot>
+                </table>
+            </div>
+
 <!-- DIV ID DATA -->
-        <div id="id_data"
-            data-employee_uploadsetting_url= "{% url 'employee_uploadsetting_url' %}"
-            data-employee_uploaddata_url= "{% url 'employee_uploaddata_url' %}"
-            data-captions = "{{ captions }}"
-            data-settings = "{{ setting }}"
+            <div id="id_data"
+                data-employee_uploadsetting_url= "{% url 'employee_uploadsetting_url' %}"
+                data-employee_uploaddata_url= "{% url 'employee_uploaddata_url' %}"
+                data-captions = "{{ captions }}"
+                data-settings = "{{ setting }}"
+                data-txt_no_worksheets= "{% trans 'There are no worksheets.' %}"
+                data-txt_no_worksheets_with_data= "{% trans 'There are no worksheets with data.' %}"
+            ></div>
 
-            data-txt_no_worksheets= "{% trans 'There are no worksheets.' %}"
-            data-txt_no_worksheets_with_data= "{% trans 'There are no worksheets with data.' %}"
-        ></div>
-
+        </div>
     {% else %}
       <form class="form-inline ml-auto">
         <a href="{% url 'home' %}" class="btn btn-outline-secundary">{% trans "You don't have permission to view this page." %}</a>

@@ -140,13 +140,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
 // ---  add 'keyup' event handler to filter input
-        let el_filter_select = document.getElementById("id_filter_select_input");
-            el_filter_select.addEventListener("keyup", function() {
-                HandleSelect_Filter()
-            });
+        // element and EventListener added in CreateSelectHeader
+        //let el_filter_select = document.getElementById("id_filter_select_input");
+        //    el_filter_select.addEventListener("keyup", function() {
+        //        HandleSelect_Filter()
+        //    });
 
-        let el_sel_inactive = document.getElementById("id_sel_inactive")
-            el_sel_inactive.addEventListener("click", function(){HandleSelectButton(el_sel_inactive)});
+        //let el_sel_inactive = document.getElementById("id_sel_inactive")
+        //    el_sel_inactive.addEventListener("click", function(){HandleSelectButton(el_sel_inactive)});
 
 // --- buttons in btn_container
         let btns = document.getElementById("id_btn_container").children;
@@ -191,10 +192,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let el_modshift_absence = document.getElementById("id_modshift_absence");
             el_modshift_absence.addEventListener("change", function() {ModShiftBtnSaveEnable()}, false );
-        let el_modshift_timestart = document.getElementById("id_modshift_timestart")
-            el_modshift_timestart.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_timestart, "modshift")}, false );
-        let el_modshift_timeend = document.getElementById("id_modshift_timeend");
-            el_modshift_timeend.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_timeend, "modshift")}, false );
+        let el_modshift_offsetstart = document.getElementById("id_modshift_offsetstart")
+            el_modshift_offsetstart.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_offsetstart, "modshift")}, false );
+        let el_modshift_offsetend = document.getElementById("id_modshift_offsetend");
+            el_modshift_offsetend.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_offsetend, "modshift")}, false );
         let el_modshift_breakduration = document.getElementById("id_modshift_breakduration");
             el_modshift_breakduration.addEventListener("click", function() {ModShiftTimepickerOpen(el_modshift_breakduration, "modshift")}, false );
         let el_modshift_timeduration = document.getElementById("id_modshift_timeduration");
@@ -339,8 +340,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const tblName = "employee";
                     const imgsrc_default = imgsrc_inactive_grey;
                     const imgsrc_hover = imgsrc_inactive_black;
-                    const include_parent_code = false;
-                    FillSelectTable(employee_map, tblName, include_parent_code,
+                    const include_parent_code = null;
+                    FillSelectTable(employee_map, tblName, null, include_parent_code,
                         HandleSelect_Filter, HandleFilterInactive,
                         HandleSelect_Row,  HandleSelectRowButton,
                         imgsrc_default, imgsrc_hover,
@@ -747,7 +748,7 @@ console.log("calendar_header_dict", calendar_header_dict)
 
         const url_employee_import = get_attr_from_el(el_data, "data-employee_import_url");
 
-        AddSubmenuButton(el_div, el_data, "id_submenu_employee_import", null, "data-txt_employee_import","mx-2", url_employee_import )
+        AddSubmenuButton(el_div, el_data, "id_submenu_employee_import", null, "data-txt_employee_import", "mx-2", url_employee_import)
         AddSubmenuButton(el_div, el_data, "id_submenu_employee_add", function() {HandleButtonEmployeeAdd()}, "data-txt_employee_add", "mx-2")
         AddSubmenuButton(el_div, el_data, "id_submenu_employee_delete", function() {ModConfirmOpen("delete")}, "data-txt_employee_delete", "mx-2")
 
@@ -1449,12 +1450,14 @@ console.log("calendar_header_dict", calendar_header_dict)
                 }
 
                 if (["code", "name", "namelast", "namefirst", "team", "identifier"].indexOf( fieldname ) > -1){
-                   format_text_element (el_input, el_msg, field_dict, false, msg_offset)
+                   const key_str = "value";
+                   format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
                 } else if (fieldname === "order"){
+                    const key_str = "value";
                     if(is_absence){
-                        format_select_element (el_input, field_dict)
+                        format_select_element (el_input, key_str, field_dict)
                     } else {
-                        format_text_element (el_input, el_msg, field_dict, false, msg_offset)
+                        format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
                     }
                 } else if (["pricerate"].indexOf( fieldname ) > -1){
                    format_price_element (el_input, el_msg, field_dict, msg_offset, user_lang)
@@ -1480,7 +1483,8 @@ console.log("calendar_header_dict", calendar_header_dict)
                     }
                 } else if (fieldname ===  "team"){
                     if (tblName === "shifts"){
-                        format_text_element (el_input, el_msg, field_dict, false, msg_offset)
+                        const key_str = "value";
+                        format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
                     }
                 } else if (fieldname ===  "employee"){
                     // fieldname "employee") is used in mode absence and shift, teammember table
@@ -1512,7 +1516,8 @@ console.log("calendar_header_dict", calendar_header_dict)
                     el_input.disabled = locked
 
                 } else if (tblName === "teammember" && fieldname === "breakduration"){
-                    format_text_element (el_input, el_msg, field_dict, false, msg_offset)
+                    const key_str = "value";
+                    format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
 
                 } else if (fieldname === "workhoursperday") {
                     format_duration_element (el_input, el_msg, field_dict, user_lang)
@@ -1752,7 +1757,7 @@ console.log("calendar_header_dict", calendar_header_dict)
                 id_dict = {temp_pk: pk_new, "create": true, "table": "employee"}
             } else {
                 // get id from existing record
-                const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", pk_str);
+                const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk);
                 id_dict = get_dict_value_by_key(map_dict, "id")
             }  // if(!selected_employee_pk)
 
@@ -2035,8 +2040,8 @@ console.log("calendar_header_dict", calendar_header_dict)
                         const tblName = "employee";
                         const imgsrc_default = imgsrc_inactive_grey;
                         const imgsrc_hover = imgsrc_inactive_black;
-                        const include_parent_code = false;
-                        FillSelectTable(employee_map, tblName, include_parent_code,
+                        const include_parent_code = null;
+                        FillSelectTable(employee_map, tblName, null, include_parent_code,
                             HandleSelect_Filter, HandleFilterInactive,
                             HandleSelect_Row,  HandleSelectRowButton,
                             imgsrc_default, imgsrc_hover,
@@ -3244,8 +3249,8 @@ console.log("calendar_header_dict", calendar_header_dict)
         //console.log( "offset_start: ", offset_start, "offset_end: ", offset_end, "break_duration: ", break_duration, "time_duration: ", time_duration);
 
         //display_offset_time (offset, timeformat, user_lang, skip_prefix_suffix, blank_when_zero)
-        el_modshift_timestart.innerText = display_offset_time (offset_start, timeformat, user_lang, false, false)
-        el_modshift_timeend.innerText = display_offset_time (offset_end, timeformat, user_lang, false, false)
+        el_modshift_offsetstart.innerText = display_offset_time (offset_start, timeformat, user_lang, false, false)
+        el_modshift_offsetend.innerText = display_offset_time (offset_end, timeformat, user_lang, false, false)
         el_modshift_breakduration.innerText = display_offset_time (break_duration, timeformat, user_lang, false, true)
         el_modshift_timeduration.innerText = display_offset_time (time_duration, timeformat, user_lang, false, true)
 

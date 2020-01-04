@@ -824,7 +824,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (fieldname === "orderhour") {
                                     field_dict["locked"] = true
                                 }
-                                format_text_element (el_input, el_msg, field_dict, false, [-220, 60], title_overlap);
+                                const key_str = "code";
+                                format_text_element (el_input, key_str, el_msg, field_dict, false, [-220, 60], title_overlap);
 
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
                                 format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)

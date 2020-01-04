@@ -2,41 +2,60 @@
 //    xls:"application/vnd.ms-excel",
 //    xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"};
 
-// PR2019-02-07 deprecated: $(document).ready(function() {
 // with pure vanilla Javascript. Was jQuery: $(function() {
 document.addEventListener('DOMContentLoaded', function() {
 
 // ---  set selected menu button active
     const cls_active = "active";
-    let btn_clicked = document.getElementById("id_hdr_ordr");
+    const cls_hover = "tr_hover";
+    const cls_selected = "c_table_stud_thead_td_selected";
+
+    const cls_colExcelTsa_tr = "c_colExcelTsa_tr";
+    const cls_columns_header = "c_columns_header";
+    const cls_colLinked_tr = "c_colLinked_tr";
+    const cls_grid_colExcel = "c_grid_colExcel";
+    const cls_grid_colLinked = "c_grid_colLinked";
+    const cls_cell_saved_even = "cell_saved_even";
+    const cls_cell_saved_odd = "cell_saved_odd";
+    const cls_cell_unchanged_even = "cell_unchanged_even";
+    const cls_cell_unchanged_odd = "cell_unchanged_odd";
+    const cls_ea_flex = "ea_flex";
+    const cls_li_flex= "li_flex";
+    const cls_display_show = "display_show";
+    const cls_display_hide = "display_hide";
+    const cls_btn_selected = "tsa_btn_selected";
+
+    let btn_clicked = document.getElementById("id_sub_empl_imp");
     SetMenubuttonActive(btn_clicked);
 
 // set global variables
     let div_info = document.getElementById('div_infoID');
     let para = document.createElement('p');
 
-    let file_dialog = document.getElementById("filedialogID");
-    file_dialog.addEventListener("change", handle_file_dialog, false);
+    let el_filedialog = document.getElementById("id_filedialog");
+    el_filedialog.addEventListener("change", handle_file_dialog, false);
 
     let el_worksheet_list = document.getElementById("id_worksheet_list");
     el_worksheet_list.addEventListener("change", handle_worksheet_list, false);
 
-    let checkbox_noheader = document.getElementById("checkBoxID");
-    checkbox_noheader.addEventListener("change", handle_checkbox_noheader_changed) //, false);
+    let checkbox_hasheader = document.getElementById("checkBoxID");
+    checkbox_hasheader.addEventListener("change", handle_checkbox_hasheader_changed) //, false);
 
-    // get the stored_columns from data-tag in div #id_data
-    let div_data = $("#id_data");
-    let captions = {};
+// --- get data stored in page
+    let el_data = document.getElementById("id_data");
+    const captions = get_attr_from_el_dict(el_data, "data-captions");
+    const settings_dict = get_attr_from_el_dict(el_data, "data-settings");
+
+    // get the stored_columns from data-tag in el_data
     let stored_coldefs = {};
-    if (!!div_data.data("captions")){captions = div_data.data("captions")};
-
-    const settings = div_data.data("setting");
-    if (!!settings){
-        if (!!settings.stored_coldefs){stored_coldefs = settings.stored_coldefs};
+    let stored_has_header = true;
+    let stored_worksheetname = "";
+    let stored_code_calc = "linked";
+    if (!!settings_dict){
+        stored_worksheetname = get_dict_value_by_key(settings_dict, "worksheetname")
+        stored_coldefs = get_dict_value_by_key(settings_dict, "coldefs")
+        stored_has_header = get_dict_value_by_key(settings_dict, "has_header")
     };
-
-    console.log("stored_coldefs: ", typeof stored_coldefs);
-    console.log(stored_coldefs);
 
     let selected_file = null;
     let workbook;
@@ -45,20 +64,26 @@ document.addEventListener('DOMContentLoaded', function() {
     let worksheet_data = [];
     let excel_columns = [];
 
-    let selected_no_header = false;
-    let stored_worksheetname = "";
-
     let selected_worksheetname = stored_worksheetname;
+
+    let selected_btn = "";
 
     const file_types = {
         xls:"application/vnd.ms-excel",
         xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     };
 
+
+// --- addEventListener to buttons in prev next
+    document.getElementById("id_btn_mod_prev").addEventListener("click", function() {HandleBtnPrevNext("prev")}, false )
+    document.getElementById("id_btn_mod_next").addEventListener("click", function() {HandleBtnPrevNext("next")}, false )
+
+    HandleBtnPrevNext()
+
 //=========   handle_file_dialog   ======================
     function handle_file_dialog() { // functie wordt alleen doorlopen als file is geselecteerd
 //console.log(" ========== handle_file_dialog ===========");
-        let curFiles = file_dialog.files; //This one doesn't work in Firefox: var curFiles = event.target.files;
+        let curFiles = el_filedialog.files; //This one doesn't work in Firefox: var curFiles = event.target.files;
 
         selected_file = null;
         excel_columns = [];
@@ -78,6 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
         div_info.appendChild(para);
 
         Get_Workbook(selected_file);
+
+        DisableButtons();
     }
 
 //=========  handle_worksheet_list   ======================
@@ -94,10 +121,10 @@ console.log(" ========== handle_worksheet_list ===========");
                     worksheet_range = GetSheetRange (worksheet);
                     if (!!worksheet_range) {
 
-//--------- set checkbox_noheader checked
-                        checkbox_noheader.checked = selected_no_header;
+//--------- set checkbox_hasheader checked
+                        checkbox_hasheader.checked = stored_has_header;
 //--------- fill worksheet_data with data from worksheet
-                        worksheet_data = FillWorksheetData(worksheet, worksheet_range, selected_no_header);
+                        worksheet_data = FillWorksheetData(worksheet, worksheet_range, stored_has_header);
 //--------- fill table excel_columns
                         Fill_Excel_Items();
                         CreateMapTableWrap("col");
@@ -105,18 +132,20 @@ console.log(" ========== handle_worksheet_list ===========");
                         FillDataTable(worksheet_range);
                         UpdateDatatableHeader();
                         // upload new settings tsaCaption
-                        UploadSettings ();
+                        UploadSettingsImport ();
             }}}
         }  // if(!!workbook)
+
+        DisableButtons();
     }  // function handle_worksheet_list()
 
-//=========   handle_checkbox_noheader_changed   ======================
-    function handle_checkbox_noheader_changed() {
-console.log(" ========== handle_checkbox_noheader_changed ===========");
+//=========   handle_checkbox_hasheader_changed   ======================
+    function handle_checkbox_hasheader_changed() {
+console.log(" ========== handle_checkbox_hasheader_changed ===========");
         if(!!worksheet && !!worksheet_range) {
-            selected_no_header = checkbox_noheader.checked;
+            stored_has_header = checkbox_hasheader.checked;
 //--------- fill worksheet_data with data from worksheet
-            worksheet_data = FillWorksheetData(worksheet, worksheet_range, selected_no_header);
+            worksheet_data = FillWorksheetData(worksheet, worksheet_range, stored_has_header);
 //--------- fill table excel_columns
             Fill_Excel_Items();
             CreateMapTableWrap("col");
@@ -124,19 +153,25 @@ console.log(" ========== handle_checkbox_noheader_changed ===========");
             FillDataTable(worksheet_range);
             UpdateDatatableHeader();
             // upload new settings tsaCaption
-            UploadSettings ();
+            UploadSettingsImport ();
         }  // if(!!worksheet){
-    }; //handle_checkbox_noheader_changed
+    }; //handle_checkbox_hasheader_changed
+
+//=========   handle_select_code_calc   ======================
+    function handle_select_code_calc() {
+        // console.log("=========   handle_select_code_calc   ======================") ;
+        UploadSettingsImport ();
+    }  // handle_select_code_calc
 
 //=========   handle_EAL_row_clicked   ======================
     function handle_EAL_row_clicked(e) {  //// EAL: Excel Tsa Linked table
         // function gets row_clicked.id, row_other_id, row_clicked_key, row_other_key
         // sets class 'highlighted' and 'hover'
         // and calls 'linkColumns' or 'unlinkColumns'
-        // event.currentTarget is the element to which the event handler has been attached (which is #document)
-        // event.target identifies the element on which the event occurred.
-console.log("=========   handle_EAL_row_clicked   ======================") ;
-console.log("e.target.currentTarget.id", e.currentTarget.id) ;
+        // currentTarget refers to the element to which the event handler has been attached
+        // event.target which identifies the element on which the event occurred.
+        //console.log("=========   handle_EAL_row_clicked   ======================") ;
+        //console.log("e.target.currentTarget.id", e.currentTarget.id) ;
 
         if(!!e.target && e.target.parentNode.nodeName === "TR") {
             let cur_table = e.currentTarget; // id_col_table_tsa
@@ -160,20 +195,17 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
             let row_other_key = "";
 
             if((tableName === "exc")|| (tableName === "tsa") ) {
-                const cls_hl = "c_colTsaExcel_highlighted";
-                const cls_hv = "c_colTsaExcel_hover";
-
-                if(row_clicked.classList.contains(cls_hl)) {
-                    row_clicked.classList.remove(cls_hl, cls_hv);
+                    if(row_clicked.classList.contains(cls_selected)) {
+                    row_clicked.classList.remove(cls_selected, cls_hover);
                 } else {
-                    row_clicked.classList.add(cls_hl);
+                    row_clicked.classList.add(cls_selected);
                     // remove clas from all other rows in theis table
                     if(!!table_body_clicked.rows){
                         for (let i = 0, row; row = table_body_clicked.rows[i]; i++) {
                             if(row === row_clicked){
-                                row.classList.add(cls_hl);
+                                row.classList.add(cls_selected);
                             } else {
-                                row.classList.remove(cls_hl, cls_hv);
+                                row.classList.remove(cls_selected, cls_hover);
                             }
                         }
                     }
@@ -185,7 +217,7 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
                     let table_body_other = document.getElementById(row_other_tbody_id);
 //console.log("table_body_other",table_body_other)
                     for (let j = 0, row_other; row_other = table_body_other.rows[j]; j++) {
-                       if(row_other.classList.contains(cls_hl)) {
+                       if(row_other.classList.contains(cls_selected)) {
                            link_rows = true;
                            if(row_other.hasAttribute("id")){row_other_id = row_other.getAttribute("id");}
                            if(row_other.hasAttribute("key")){row_other_key = row_other.getAttribute("key");}
@@ -202,19 +234,16 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
                 }
 
             } else if (tableName === "lnk") {
-                const cls_hl = "c_colLinked_highlighted";
-                const cls_hv = "c_colLinked_hover";
-
-                if(row_clicked.classList.contains(cls_hl)) {
-                    row_clicked.classList.remove(cls_hl, cls_hv);
+                if(row_clicked.classList.contains(cls_selected)) {
+                    row_clicked.classList.remove(cls_selected, cls_hover);
                 } else {
-                    row_clicked.classList.add(cls_hl);
+                    row_clicked.classList.add(cls_selected);
                    // remove clas from all other rows in theis table
                     for (let i = 0, row; row = table_body_clicked.rows[i]; i++) {
                         if(row === row_clicked){
-                            row.classList.add(cls_hl);
+                            row.classList.add(cls_selected);
                         } else {
-                            row.classList.remove(cls_hl);
+                            row.classList.remove(cls_selected);
                         }
                     }
                     // unlink row_clicked  with delay of 250ms (to show selected Tsa and Excel row)
@@ -232,7 +261,9 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
     function Get_Workbook(sel_file) {
         //* download the data using jQuery.post( url [, data ] [, success ] [, dataType ] ) PR2017-10-29 uit: https://api.jquery.com/jquery.post/
        if(!!sel_file){
-// console.log("sel_file.name" + sel_file.name );
+            console.log("======  Get_Workbook  =====" + sel_file.name );
+            console.log("stored_worksheetname: " + stored_worksheetname );
+
             var reader = new FileReader();
             var rABS = false; // false: readAsArrayBuffer,  true: readAsBinaryString
             if (rABS) {reader.readAsBinaryString(sel_file);} else {reader.readAsArrayBuffer(sel_file);}
@@ -260,13 +291,15 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
     // give message when workbook has no worksheets, reset selected_worksheetname
                     if(workbook.SheetNames.length === 0) {
                         selected_worksheetname = "";
-                        para.textContent = "There are no worksheets." ;
+                        // TODO translate
+                        //para.textContent = "There are no worksheets." ;
+                        para.textContent = get_attr_from_el(el_data, "data-txt_no_worksheets");
                         div_info.appendChild(para);
                     } else {
     // fill el_worksheet_list.options with sheets that are not empty
                         for (let x=0; x<workbook.SheetNames.length; ++x){
                             const sheetname = workbook.SheetNames[x];
-    // if workbook.SheetNames[x] has range: add to worksheet_list
+    // if workbook.SheetNames[x] has range: add to el_worksheet_list
                             if (SheetHasRange(workbook.Sheets[sheetname])) {
                                 let option = document.createElement("option");
                                 option.value = sheetname;
@@ -280,9 +313,11 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
                             }
                         } //for (let x=0;
 
-//---------  gibve message when no data in worksheetse
+//---------  give message when no data in worksheetse
                         if (!el_worksheet_list.options.length){
-                            para.textContent = "There are no worksheets with data." ;
+                            // TODO translate
+                            //para.textContent = "There are no worksheets with data." ;
+                            para.textContent = get_attr_from_el(el_data, "data-txt_no_worksheets_with_data");
                             div_info.appendChild(para);
                         } else {
 //---------  if only one sheet exists: makke selected = True
@@ -293,17 +328,16 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
                         } //if (!el_worksheet_list.options.length){
 
 //---------  get selected worksheet, if any
-
                         if(!!selected_worksheetname){
                             worksheet = workbook.Sheets[selected_worksheetname];
                             if(!!worksheet){
 //---------  get Column and Rownumber of upper left cell and lower right cell of SheetRange
                                 worksheet_range = GetSheetRange (worksheet);
                                 if (!!worksheet_range) {
-    //--------- set checkbox_noheader checked
-                                    checkbox_noheader.checked = selected_no_header;
+    //--------- set checkbox_hasheader checked
+                                    checkbox_hasheader.checked = stored_has_header;
         //--------- fill worksheet_data with data from worksheet
-                                    worksheet_data = FillWorksheetData(worksheet, worksheet_range, selected_no_header);
+                                    worksheet_data = FillWorksheetData(worksheet, worksheet_range, stored_has_header);
         //--------- fill table excel_columns
                                     Fill_Excel_Items();
                                     CreateMapTableWrap("col");
@@ -313,20 +347,23 @@ console.log("e.target.currentTarget.id", e.currentTarget.id) ;
                                     UpdateDatatableHeader();
 
                                     // upload new settings tsaCaption
-                                    UploadSettings ();
-               }}}}}
+                                    UploadSettingsImport ();
+                                }
+                            }
+                        }
+                    }
+                }
             }; // reader.onload = function(event) {
-       }; // if(!!sel_file){
+        }; // if(!!sel_file){
     }  // function Get_Workbook(sel_file))
 
-
 //=========  fill worksheet_data  ========================================================================
-    function FillWorksheetData(work_sheet, sheet_range, no_header) {
+    function FillWorksheetData(work_sheet, sheet_range, has_header) {
     // fills the list 'worksheet_data' with data from 'worksheet'
         let sheet_data = [];
         let row = sheet_range.StartRowNumber;
         // skip first row when first row is header row
-        if (!no_header) {++row;};
+        if (has_header) {++row;};
         for (; row<=sheet_range.EndRowNumber; ++row){
             let NewRow = [];
             for (let col=sheet_range.StartColNumber; col <= sheet_range.EndColNumber; ++col){
@@ -355,13 +392,13 @@ console.log("=========  Fill_Excel_Items ========= ");
 // get headers if Not SelectedSheetHasNoHeader: from first row, otherwise: F01 etc ");
             let row_number = worksheet_range.StartRowNumber;
             for (let col_number=worksheet_range.StartColNumber, idx = 0, colName = ""; col_number<=worksheet_range.EndColNumber; ++col_number){
-                if (selected_no_header){
-                    const index = "00" + col_number;
-                    colName = "F" + index.slice(-2);
-                } else {
+                if (stored_has_header){
                     const cellName = GetCellName (col_number,row_number);
                     const excValue = GetExcelValue(worksheet, cellName,"w");
                     colName = replaceChar(excValue);
+                } else {
+                    const index = "00" + col_number;
+                    colName = "F" + index.slice(-2);
                 }
                 excel_columns.push ({index: idx, excKey: colName});
                 ++idx;
@@ -379,7 +416,7 @@ console.log("=========  Fill_Excel_Items ========= ");
         if(!!stored_coldefs) {
             for (let i = 0, len = stored_coldefs.length; i < len; i++) {
                 let stored_row = stored_coldefs[i];
-console.log("stored_row", stored_row)
+//console.log("stored_row", stored_row)
                 // stored_row = {tsaKey: "orderdatelast", caption: "Einddatum opdracht"}
                 let is_linked = false;
                 if (!!stored_row.tsaKey && !!stored_row.excKey){
@@ -437,10 +474,18 @@ console.log("=========  function FillDataTable =========");
             //var EndRowIndex = 9;
             var LastRowIndex = sheet_range.RowCount -1;
             // worksheet_data has no header row, start allways at 0
-            if (!selected_no_header) { --LastRowIndex;}
+            if (stored_has_header) { --LastRowIndex;}
             //if (EndRow-1 < EndRowIndex) { EndRowIndex = EndRow-1;};
             for (let i = 0; i <= LastRowIndex; i++) {
                 let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+
+                if (i%2 === 0) {
+                    class_background = cls_cell_unchanged_even;
+                } else {
+                    class_background = cls_cell_unchanged_odd;
+                }
+                tblRow.classList.add(class_background);
+
                 for (let j = 0 ; j < sheet_range.ColCount; j++) {
 //console.log("worksheet_data[" + i + "][" + j + "]: <" + worksheet_data[i][j]) + ">";
                     let cell = tblRow.insertCell(-1); //index -1 results in that the new cell will be inserted at the last position.
@@ -453,7 +498,6 @@ console.log("=========  function FillDataTable =========");
             //table.setAttribute("border", "2");
         }; // if(!!worksheet_data && !!excel_columns){
     };//function DataTabel_Set() {
-
 
 //=========  FillDataTableAfterUpload  ==============================
     function FillDataTableAfterUpload(response, sheet_range) {
@@ -488,12 +532,12 @@ console.log("=========  function FillDataTableAfterUpload =========");
             //var EndRowIndex = 9;
             var LastRowIndex = sheet_range.RowCount -1;
             // worksheet_data has no header row, start allways at 0
-            if (!selected_no_header) { --LastRowIndex;}
+            if (stored_has_header) { --LastRowIndex;}
             //if (EndRow-1 < EndRowIndex) { EndRowIndex = EndRow-1;};
             for (let i = 0, len = response.length; i <= len; i++) {
                 let datarow = response[i];
 
-console.log("datarow: ", i , datarow );
+//console.log("datarow: ", i , datarow );
 //e_idnumber: "ID number already exists."
 //e_lastname: "Student name already exists."
 //o_firstname: "Arlienne Marie Nedelie"
@@ -508,21 +552,22 @@ console.log("datarow: ", i , datarow );
 //--------- iterate through columns of response row
 
 // ---  add <tr>
-                let id_datarow =  "id_datarow_" + i.toString()
+                let id_datarow = "id_datarow_" + i.toString()
                 let class_background;
                 if (record_is_saved){
                     if (i%2 === 0) {
-                        class_background = "cell_saved_even";
+                        class_background = cls_cell_saved_even;
                     } else {
-                        class_background = "cell_saved_odd";
+                        class_background = cls_cell_saved_odd;
                     }
                 } else {
                     if (i%2 === 0) {
-                        class_background = "cell_unchanged_even";
+                        class_background = cls_cell_unchanged_even;
                     } else {
-                        class_background = "cell_unchanged_odd";
+                        class_background = cls_cell_unchanged_odd;
                     }
                 }
+//console.log("class_background", class_background)
                 $("<tr>").appendTo(tblBody)
                     .attr({"id": id_datarow})
                     .addClass(class_background);
@@ -579,7 +624,6 @@ console.log("datarow: ", i , datarow );
             } //for (let i = 0; i < 2; i++)
         }; // if(!!worksheet_data && !!excel_columns){
     };//function FillDataTableAfterUpload() {
-
 
 //========= is_valid_filetype  ====================================
     function is_valid_filetype(File) {
@@ -674,7 +718,6 @@ console.log("datarow: ", i , datarow );
         return objRange;
     }; //function GetSheetRange (Sheet)
 
-
 //========= GetCellName  ====================================
     function GetCellName (ColNumber, RowNumber ) {
         //PR2017-11-12
@@ -704,7 +747,6 @@ console.log("datarow: ", i , datarow );
         return col_name;
     }; //function GetCellName (ColIndex, RowIndex )
 
-
 //========= GetExcelValue  ====================================
     // PR2017-11-04 from: https://stackoverflow.com/questions/2693021/how-to-count-javascript-array-objects
     function GetExcelValue(Sheet, CellName, ValType) {
@@ -721,7 +763,6 @@ console.log("datarow: ", i , datarow );
                             if (prop2 === ValType) {
                                 propFound = true;
                                 result = Cell[ValType];
-//console.log("result " + ValType + ": " + result);
                                 break;
                             } //if (prop2 === ValType)
                         }; //if (Cell.hasOwnProperty(prop2))
@@ -757,7 +798,6 @@ console.log("datarow: ", i , datarow );
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 //========= CreateMapTableWrap(tableBase))  ====================================
     function CreateMapTableWrap(tableBase) {
 console.log("==== CreateMapTableWrap  =========> ", tableBase);
@@ -785,30 +825,43 @@ console.log("==== CreateMapTableWrap  =========> ", tableBase);
 
 //========= CreateMapTableSub  ====================================
     function CreateMapTableSub(tableBase, header1, header2, headExc, headTsa, headLnk ) {
-console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2, headExc, headTsa, headLnk);
+        //console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2, headExc, headTsa, headLnk);
         let base_div = $("#id_basediv_" + tableBase);  // BaseDivID =  "col"
         // delete existing rows of tblColExcel, tblColTsa, tblColLinked
         base_div.html("");
 
         //append column header to base_div
         $("<div>").appendTo(base_div)
-                .addClass("c_columns_header")
+                .addClass(cls_columns_header)
                 //header1 = "Link sectors"
                 //header2 = "Click to link or unlink sector"
-                .html("<p><b>" + header1 + "</b></p><p>" + header2 + "</p>");
+                //.html("<p><b>" + header1 + "</b></p><p>" + header2 + "</p>");
+                //.html("<p><b>" + header1 + "</b></p>");
 
         // append flex div for table Excel and Tsa
         $("<div>").appendTo(base_div)
-                .attr({id: "id_ea_flex_" + tableBase})
-                .addClass("ea_flex");
+            .attr({id: "id_ea_flex_" + tableBase})
+            .addClass(cls_ea_flex);
+
+        // append div for table Tsa
+            $("<div>").appendTo("#id_ea_flex_" + tableBase)
+                .attr({id: "id_tsa_div_" + tableBase});
+                $("<table>").appendTo("#id_tsa_div_" + tableBase)
+                        .attr({id: "id_tsa_table_" + tableBase})
+                        .addClass(cls_grid_colExcel)
+                        .on("click", handle_EAL_row_clicked);
+                    $("<thead>").appendTo("#id_tsa_table_" + tableBase)
+                            .html("<tr><td>" + headTsa + "</td></tr>"); // headTsa: "TSA columns"
+                    $("<tbody>").appendTo("#id_tsa_table_" + tableBase)
+                            .attr({id: "id_tsa_tbody_" + tableBase});
+
 
         // append div for table Excel
             $("<div>").appendTo("#id_ea_flex_" + tableBase)
-                    .attr({id: "id_exc_div_" + tableBase});
-
+                .attr({id: "id_exc_div_" + tableBase});
                 $("<table>").appendTo("#id_exc_div_" + tableBase)
                         .attr({id: "id_exc_table_" + tableBase})
-                        .addClass("c_grid_colExcel")
+                        .addClass(cls_grid_colExcel)
                         .on("click", handle_EAL_row_clicked);
 
                     $("<thead>").appendTo("#id_exc_table_" + tableBase)
@@ -816,27 +869,16 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
                     $("<tbody>").appendTo("#id_exc_table_" + tableBase)
                             .attr({id: "id_exc_tbody_" + tableBase});
 
-        // append div for table Tsa
-            $("<div>").appendTo("#id_ea_flex_" + tableBase)
-                    .attr({id: "id_tsa_div_" + tableBase});
-                $("<table>").appendTo("#id_tsa_div_" + tableBase)
-                        .attr({id: "id_tsa_table_" + tableBase})
-                        .addClass("c_grid_colLinked")  //.addClass("c_grid_colExcel")
-                        .on("click", handle_EAL_row_clicked);
-                    $("<thead>").appendTo("#id_tsa_table_" + tableBase)
-                            .html("<tr><td>" + headTsa + "</td></tr>"); // headTsa: "TSA columns"
-                    $("<tbody>").appendTo("#id_tsa_table_" + tableBase)
-                            .attr({id: "id_tsa_tbody_" + tableBase});
 
         // append flex div for table Linked
         $("<div>").appendTo(base_div)
                 .attr({id: "id_li_flex_" + tableBase})
-                .addClass("li_flex");
+                .addClass(cls_li_flex);
             $("<div>").appendTo("#id_li_flex_" + tableBase)
                     .attr({id: "id_lnk_div_" + tableBase});
                 $("<table>").appendTo("#id_lnk_div_" + tableBase)
                         .attr({id: "id_lnk_table_" + tableBase})
-                        .addClass("c_grid_colLinked")
+                        .addClass(cls_grid_colLinked)
                         .on("click", handle_EAL_row_clicked);
                     $("<thead>").appendTo("#id_lnk_table_" + tableBase)
                             .attr({id: "id_sct_th_lnk_" + tableBase})
@@ -850,10 +892,8 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
     function CreateMapTableRows(tableBase, stored_items, excel_items,
                     JustLinkedTsaId, JustUnlinkedTsaId, JustUnlinkedExcId) {
 
-    console.log("==== CreateMapTableRows  =========>> ", tableBase);
-        const cae_hv = "c_colTsaExcel_hover";
+    //console.log("==== CreateMapTableRows  =========>> ", tableBase);
         //const cae_hl = "c_colTsaExcel_highlighted";
-        const cli_hv = "c_colLinked_hover";
         //const cli_hi = "c_colLinked_highlighted";
 
         const Xid_exc_tbody = "#id_exc_tbody_" + tableBase;
@@ -881,32 +921,32 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
             if (!!row.excKey){
                 $("<tr>").appendTo(Xid_lnk_tbody)
                     .attr({"id": idTsaRow, "key": row.tsaKey})
-                    .addClass("c_colLinked_tr")
-                    .mouseenter(function(){$(XidTsaRow).addClass(cli_hv);})
-                    .mouseleave(function(){$(XidTsaRow).removeClass(cli_hv);})
+                    .addClass(cls_colLinked_tr)
+                    .mouseenter(function(){$(XidTsaRow).addClass(cls_hover);})
+                    .mouseleave(function(){$(XidTsaRow).removeClass(cls_hover);})
         // append cells to row Linked
-                    .append("<td>" + row.excKey + "</td>")
-                    .append("<td>" + row.caption + "</td>");
+                    .append("<td>" + row.caption + "</td>")
+                    .append("<td>" + row.excKey + "</td>");
 
         //if new appended row: highlight row for 1 second
                 if (!!JustLinkedTsaId && !!idTsaRow && JustLinkedTsaId === idTsaRow) {
-                   $(XidTsaRow).addClass(cli_hv);
-                   setTimeout(function (){$(XidTsaRow).removeClass(cli_hv);}, 1000);
+                   $(XidTsaRow).addClass(cls_hover);
+                   setTimeout(function (){$(XidTsaRow).removeClass(cls_hover);}, 1000);
                 }
             } else {
 
         // append row to table Tsa if excKey does not exist in stored_items
                 $("<tr>").appendTo(Xid_tsa_tbody)
                     .attr({"id": idTsaRow, "key": row.tsaKey})
-                    .addClass("c_colExcelTsa_tr")
-                    .mouseenter(function(){$(XidTsaRow).addClass(cae_hv);})
-                    .mouseleave(function(){$(XidTsaRow).removeClass(cae_hv);})
+                    .addClass(cls_colExcelTsa_tr)
+                    .mouseenter(function(){$(XidTsaRow).addClass(cls_hover);})
+                    .mouseleave(function(){$(XidTsaRow).removeClass(cls_hover);})
         // append cell to row ExcKey
                     .append("<td>" + row.caption + "</td>");
         // if new unlinked row: highlight row for 1 second
                 if (!!JustUnlinkedTsaId && !!idTsaRow && JustUnlinkedTsaId === idTsaRow) {
-                    $(XidTsaRow).addClass(cae_hv);
-                    setTimeout(function () {$(XidTsaRow).removeClass(cae_hv);}, 1000);
+                    $(XidTsaRow).addClass(cls_hover);
+                    setTimeout(function () {$(XidTsaRow).removeClass(cls_hover);}, 1000);
             }}};
 
     //======== loop through array excel_items ========
@@ -923,22 +963,22 @@ console.log("==== CreateMapTableSub  =========>>>", tableBase, header1, header2,
                 $("<tr>").appendTo(Xid_exc_tbody)
                     .attr({"id": idExcRow})
                     .attr({"id": idExcRow, "key": row.excKey})
-                    .addClass("c_colExcelTsa_tr")
-                    .mouseenter(function(){$(XidExcRow).addClass(cae_hv);})
-                    .mouseleave(function(){$(XidExcRow).removeClass(cae_hv);})
+                    .addClass(cls_colExcelTsa_tr)
+                    .mouseenter(function(){$(XidExcRow).addClass(cls_hover);})
+                    .mouseleave(function(){$(XidExcRow).removeClass(cls_hover);})
         // append cell to row ExcKey
                     .append("<td>" + row.excKey + "</td>");
         // if new unlinked row: highlight row ColExc
                 if (!!JustUnlinkedExcId && !!idExcRow && JustUnlinkedExcId === idExcRow) {
-                    $(XidExcRow).addClass(cae_hv);
-                    setTimeout(function () {$(XidExcRow).removeClass(cae_hv);}, 1000);
+                    $(XidExcRow).addClass(cls_hover);
+                    setTimeout(function () {$(XidExcRow).removeClass(cls_hover);}, 1000);
         }}};
      }; //function CreateMapTableRows()
 
 //========= function UdateDatatableHeader  ====================================================
     function UpdateDatatableHeader() {
 //----- set tsaCaption in linked header colomn of datatable
-console.log("---------  function UpdateDatatableHeader ---------");
+//console.log("---------  function UpdateDatatableHeader ---------");
 //----- loop through array excel_columns from row index = 0
         for (let j = 0 ; j <excel_columns.length; j++) {
             // only rows that are not linked are added to tblColExcel
@@ -948,10 +988,10 @@ console.log("---------  function UpdateDatatableHeader ---------");
             let tblColHead = document.getElementById("idTblCol_" + ExcCol);
             if (!!TsaCaption){
                 tblColHead.innerHTML = TsaCaption;
-                tblColHead.classList.add("c_table_stud_thead_td_selected");
+                tblColHead.classList.add(cls_selected);
             } else {
                 tblColHead.innerHTML = ExcCol;
-                tblColHead.classList.remove("c_table_stud_thead_td_selected");
+                tblColHead.classList.remove(cls_selected);
             }
         }
    } // function UpdateDatatableHeader
@@ -959,12 +999,12 @@ console.log("---------  function UpdateDatatableHeader ---------");
 
 //========= linkColumns  ====================================================
     function linkColumns(tableBase, tableName, row_clicked_id, row_other_id, row_clicked_key, row_other_key) {
-console.log("==========  linkColumns ==========>> ", tableBase, tableName, row_clicked_key, row_other_key);
+//console.log("==========  linkColumns ==========>> ", tableBase, tableName, row_clicked_key, row_other_key);
 // function adds 'excCol' to stored_coldefs and 'tsaCaption' to excel_columns
 
-console.log("tableBase ", tableBase, "tableName: ", tableName);
-console.log("row_clicked_id: ", row_clicked_id, "row_other_id ", row_other_id );
-console.log("row_clicked_key ", row_clicked_key, "row_other_key ", row_other_key );
+//console.log("tableBase ", tableBase, "tableName: ", tableName);
+//console.log("row_clicked_id: ", row_clicked_id, "row_other_id ", row_other_id );
+//console.log("row_clicked_key ", row_clicked_key, "row_other_key ", row_other_key );
 
         let stored_items, excel_items;
         if (tableBase === "col") {
@@ -987,7 +1027,7 @@ console.log("row_clicked_key ", row_clicked_key, "row_other_key ", row_other_key
         // stored_row = {tsaKey: "ordername", caption: "Opdracht"}
         let excel_row = get_arrayRow_by_keyValue (excel_items, "excKey", excel_row_excKey);
         // excel_row = {caption: "Opdracht", excKey: "sector_sequence", tsaKey: "ordername"}
-console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
+//console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
 
         if(!!stored_row && !!excel_row){
             if(!!excel_row.excKey){
@@ -999,7 +1039,7 @@ console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
         }
 // stored_row = {tsaKey: "ordername", caption: "Opdracht", excKey: "sector_name"}
 // excel_row = {index: 0, excKey: "sector_name", tsaKey: "ordername", tsaCaption: "Opdracht"}
-console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
+//console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
 
         // save changes in array stored_coldefs, excel_columns etc
         if (tableBase === "col") {
@@ -1014,7 +1054,7 @@ console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
             UpdateDatatableHeader();
         }
     // upload new settings
-       UploadSettings();
+       UploadSettingsImport();
     };
 
 //========= unlinkColumns =======================================================
@@ -1022,7 +1062,7 @@ console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
         // function deletes attribute 'excKey' from stored_items
         // and deletes attributes 'tsaKey' and 'tsaCaption' from ExcelDef
         // if type= 'col': UpdateDatatableHeader
-        // calls UploadSettings and
+        // calls UploadSettingsImport and
 //console.log("====== unlinkColumns =======================");
 
 // function removes 'excKey' from stored_items and 'tsaKey' from excel_items
@@ -1064,21 +1104,27 @@ console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
         }
 
     // upload new settings
-       UploadSettings();
+       UploadSettingsImport();
 
     }  // function unlinkColumns(idTsaCol)
 
 
 //========= UPLOAD SETTING COLUMNS =====================================
-    function UploadSettings () {
-        console.log ("==========  UPLOAD SETTINGS");
+    function UploadSettingsImport () {
+        console.log ("==========  UploadSettingsImport");
+        console.log ("stored_coldefs: ", stored_coldefs);
         if(!!stored_coldefs) {
             // stored_coldefs is an array and has a .length property
             if(stored_coldefs.length > 0){
                 // settingsValue is an associative array
                 let settingsValue = {};
                 if (!!selected_worksheetname){settingsValue["worksheetname"] = selected_worksheetname}
-                settingsValue["no_header"] = selected_no_header;
+
+                // get value of code_calc
+                //let el_select_code_calc = document.getElementById("id_select_code_calc");
+                //if (!!el_select_code_calc.value){settingsValue["codecalc"] = el_select_code_calc.value}
+
+                settingsValue["has_header"] = stored_has_header;
 
                 let coldefs = {};
                 if (!!stored_coldefs){
@@ -1086,12 +1132,19 @@ console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
                         if (!!stored_coldefs[i].excKey){
                             coldefs[stored_coldefs[i].tsaKey] = stored_coldefs[i].excKey;
                 }}};
-                if (!!coldefs){settingsValue["coldefs"] = coldefs}
 
-                // parameters = {setting: "{"worksheetname":"vakquery","no_header":false,
+                if (!!coldefs){settingsValue["coldefs"] = coldefs}
+                // parameters = {setting: "{"worksheetname":"vakquery","has_header":false,
                 //                         "coldefs:{"companyname":"code","ordername":"sequence"}}"}
+
+console.log("settingsValue", settingsValue.toString())
                 const parameters = {"setting": JSON.stringify (settingsValue)};
-                const url_str = $("#id_data").data("orderimport_uploadsetting_url");
+console.log("parameters", parameters)
+
+                const url_str = get_attr_from_el(el_data, "data-orderimport_uploadsetting_url");
+
+console.log("url_str", url_str)
+
 
                 response = "";
                 $.ajax({
@@ -1108,72 +1161,94 @@ console.log(msg + '\n' + xhr.responseText);
                 });  // $.ajax
             }; //if(stored_coldefs > 0)
         }  //  if(!!stored_coldefs)
-    }; // function (UploadSettings)
+    }; // function (UploadSettingsImport)
 
 
 //========= UPLOAD DATA =====================================
-    $("#btn_import").on("click", function () {
+    $("#btn_upload").on("click", function () {
 console.log ("==========  UPLOAD DATA ==========");
 
-        const url_str = $("#id_data").data("orderimport_uploaddata_url");
-//--------- delete existing rows
-        $("#id_tbody").html("");
+        const url_str = get_attr_from_el(el_data, "data-orderimport_uploaddata_url")
 
-//--------- shoq loading gif
-        ShowLoadingGif(true);
+//--------- delete existing rows
+        document.getElementById("id_tbody").innerText = null
+
 
         let rowLength = 0, colLength = 0;
         if(!!worksheet_data){rowLength = worksheet_data.length;};
         if(!!stored_coldefs){colLength = stored_coldefs.length;};
         if(rowLength > 0 && colLength > 0){
 
+//  ---  loop through excel_columns to get linked tsaKeys
+            let tsaKey_list = []
+            for (let i = 0, len = excel_columns.length ; i < len; i++) {
+                let col = excel_columns[i];
+                const tsaKey = get_dict_value_by_key(col, "tsaKey")
+                if (!!tsaKey){tsaKey_list.push(tsaKey)}
+            }
+            if(!tsaKey_list || !tsaKey_list.length){
+                alert("No linked columns")
+            } else {
+
 // ---  loop through all rows of worksheet_data
-            let orders = [];
-// row <3 is for testing TODO: replace with rowLength
-            for (let row = 0 ; row < rowLength; row++) {
-                let DataRow = worksheet_data[row];
-
-//------ loop through excel_columns
-                let item = {};
-                for (let idx = 0, len = excel_columns.length ; idx < len; idx++) {
-                    if (!!excel_columns[idx].tsaKey){
-                        let tsa_key = excel_columns[idx].tsaKey;
-                        if (!!DataRow[idx]){
-                            item[tsa_key] = DataRow[idx];
+                let orders = [];
+    // row <5 is for testing
+                for (let row = 0 ; row < rowLength; row++) {
+                    let DataRow = worksheet_data[row];
+    //------ loop through excel_columns
+                    let item = {};
+                    for (let idx = 0, len = excel_columns.length ; idx < len; idx++) {
+                        if (!!excel_columns[idx].tsaKey){
+                            let tsa_key = excel_columns[idx].tsaKey;
+                            if (!!DataRow[idx]){
+                                item[tsa_key] = DataRow[idx];
+                            }
                         }
-                    }
-                }; //for (let col = 1 ; col <colLength; col++)
-                orders.push(item);
-            }  // for (let row = 0 ; row < 5; row++)
+                    }; //for (let col = 1 ; col <colLength; col++)
+                    orders.push(item);
+                }  // for (let row = 0 ; row < 5; row++)
+                if(!orders || !orders.length){
+                    alert("No customers found")
+                } else {
+//--------- show loading gif
+                    ShowLoadingGif(true);
 
-console.log("orders ==>");
-console.log( orders);
-            let parameters = {"order": JSON.stringify (orders)};
+                    const request = {tsaKey_list: tsaKey_list, orders: orders}
+                    const parameters = {"upload": JSON.stringify (request)};
+                    console.log("parameters", request);
+                    $.ajax({
+                        type: "POST",
+                        url: url_str,
+                        data: parameters,
+                        dataType:'json',
+                        success: function (response) {
+                            console.log("========== response Upload orders ==>", typeof response,  response);
 
-            $.ajax({
-                type: "POST",
-                url: url_str,
-                data: parameters,
-                dataType:'json',
-                success: function (response) {
-console.log("========== response Upload Orders ==>", typeof response,  response);
+        //--------- hide loading gif
+                            ShowLoadingGif(false);
 
-//--------- hide loading gif
-                    ShowLoadingGif(false);
+                            FillDataTableAfterUpload(response, worksheet_range);
 
-                    FillDataTableAfterUpload(response, worksheet_range);
-                },
-                error: function (xhr, msg) {
-//--------- hide loading gif
-                    ShowLoadingGif(false);
 
-                    console.log(msg + '\n' + xhr.responseText);
-                }
-            });
+        //--------- print log file
+                            log_list = get_dict_value_by_key(response, "logfile")
+                            if (!!log_list && log_list.length > 0) {
+                                printPDFlogfile(log_list, "logimportcustomers")
+                            }
+                        },
+                        error: function (xhr, msg) {
+        //--------- hide loading gif
+                            ShowLoadingGif(false);
+
+                            console.log(msg + '\n' + xhr.responseText);
+                        }
+                    });
+
+                }  // if(!orders || !orders.length){
+            }  // if(!tsaKey_list || !tsaKey_list.length){
         }; //if(rowLength > 0 && colLength > 0)
-    }); //$("#btn_import").on("click", function ()
+    }); //$("#btn_upload").on("click", function ()
 //========= END UPLOAD =====================================
-
 
     function get_tsakey_from_storeditems(stored_items, excKey) {
     //--------- lookup tsaKey in stored_items PR2019-02-22
@@ -1207,4 +1282,64 @@ console.log("========== response Upload Orders ==>", typeof response,  response)
             datatable.classList.add(cls_display_show);
         }
     }
-    }); //$(document).ready(function() {
+
+
+//=========  HandleBtnPrevNext  ================ PR2019-05-25
+    function HandleBtnPrevNext(prev_next) {
+        console.log( "===== HandleBtnPrevNext ========= ");
+
+        console.log( "prev_next: ", prev_next);
+        if(prev_next === "next"){
+            selected_btn = (selected_btn === "mod_step1") ? "mod_step2" : "mod_step3";
+        } else {
+            selected_btn = (selected_btn === "mod_step3") ? "mod_step2" : "mod_step1";
+        }
+        console.log( "selected_btn: ", selected_btn);
+
+// ---  highlight selected button
+        let btns = document.getElementById("id_btn_container").children;
+        for (let i = 0, btn, len = btns.length; i < len; i++) {
+            btn = btns[i]
+            const data_mode = get_attr_from_el(btn, "data-mode")
+        console.log( "data_mode: ", data_mode);
+            if (data_mode === selected_btn){
+                btn.classList.add(cls_btn_selected)
+        console.log( "cls_btn_selected: ", btn);
+            } else {
+                btn.classList.remove(cls_btn_selected)
+            }
+
+        }
+
+        DisableButtons();
+
+// ---  show only the elements that are used in this mod_shift_option
+        let list = document.getElementsByClassName("mod_show");
+        for (let i=0, len = list.length; i<len; i++) {
+            let el = list[i]
+            const is_show = el.classList.contains(selected_btn)
+            show_hide_element(el, is_show)
+        }
+
+    }  // HandleBtnPrevNext
+
+//=========  DisableButtons  ================ PR2019-05-25
+    function DisableButtons() {
+        document.getElementById("id_btn_mod_prev").disabled = (selected_btn === "mod_step1");
+        document.getElementById("id_btn_mod_next").disabled = (selected_btn === "mod_step3" || !selected_file);
+
+        if(selected_btn === "mod_step1"){
+            if (!selected_file) {
+                el_filedialog.focus()
+            } else if (!selected_worksheetname) {
+                document.getElementById("id_worksheet_list").focus()
+            } else {
+                document.getElementById("id_btn_mod_next").focus()
+            }
+        } else if(selected_btn === "mod_step3"){
+                document.getElementById("btn_upload").focus()
+
+        }
+    }  // DisableButtons
+
+}); //$(document).ready(function() {

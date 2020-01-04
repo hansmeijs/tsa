@@ -1307,7 +1307,7 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
             elif field == 'orderhour':
                 field_dict['pk'] = ppk_int
                 field_dict['ppk'] = row.get('o_id')   # order.id
-                field_dict['value'] = ' - '.join([row.get('c_code'), row.get('o_code')])
+                field_dict['code'] = ' - '.join([row.get('c_code'), row.get('o_code')])
 
             elif field == 'employee':
                 e_id = row.get('e_id')
@@ -1315,7 +1315,7 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
                     # if employee_id does not exist in row, it returns 'None'. Therefore default value 0 does not work
                     field_dict['pk'] = e_id  # employee.id
                     field_dict['ppk'] = company_id
-                    field_dict['value'] = row.get('e_code', '')
+                    field_dict['code'] = row.get('e_code', '')
                     #  make field red when has overlap
                     if overlap:  # overlap: 1 overlap start, 2 overlap end, 3 full overlap
                         field_dict['overlap'] = True

@@ -174,9 +174,10 @@
     }  // format_offset_time
 
 //========= format_text_element  ======== PR2019-06-09
-    function format_text_element (el_input, el_msg, field_dict, skip_ok, msg_offset, title_overlap) {
-        //console.log("--- format_text_element ---")
-        //console.log("skip_ok: ", skip_ok)
+    function format_text_element (el_input, key_str, el_msg, field_dict, skip_ok, msg_offset, title_overlap) {
+       // console.log("--- format_text_element ---")
+        //console.log("field_dict: ", field_dict)
+        //console.log("key_str: ", key_str)
 
         if(!!el_input && !isEmpty(field_dict)){
             const pk = get_dict_value_by_key (field_dict, "pk");
@@ -185,7 +186,8 @@
             const msg_err = get_dict_value_by_key (field_dict, "error");
             // NIU  const placeholder_txt = get_dict_value_by_key (field_dict, "placeholder");
 
-            let value = get_dict_value_by_key (field_dict, "value");
+            let value = get_dict_value_by_key (field_dict, key_str);
+            //console.log("value: ", value)
 
             // lock element when locked
             const locked = get_dict_value_by_key (field_dict, "locked");
@@ -227,14 +229,14 @@
     }  // format_text_element
 
 //========= format_select_element  ======== PR2019-12-03
-    function format_select_element (el_input, field_dict) {
+    function format_select_element (el_input, key_str, field_dict) {
         //console.log("--- format_select_element ---")
         //console.log("field_dict: ", field_dict)
 
         if(!!el_input && !isEmpty(field_dict)){
             let pk_int = parseInt(get_dict_value_by_key (field_dict, "pk"))
             if(!pk_int){pk_int = 0}
-            const value = get_dict_value_by_key (field_dict, "value");
+            const value = get_dict_value_by_key (field_dict, key_str);
             const is_updated = get_dict_value_by_key (field_dict, "updated");
 
             // lock element when locked
@@ -242,6 +244,7 @@
             el_input.disabled = locked
 
             el_input.value = pk_int
+            // 'data-value' is used to filter on displayed text of select element
             el_input.setAttribute("data-value", value);
             el_input.setAttribute("data-pk", pk_int);
 

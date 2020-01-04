@@ -671,8 +671,9 @@ def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
     return new_dat_str
 
 
-def detect_dateformat(dict, field):
-    # logger.debug(' --- detect_dateformat ---')
+def detect_dateformat(dict_list, field):
+    logger.debug(' --- detect_dateformat ---')
+    logger.debug('field: ' + str(field) + ' ' + ' dict_list: ' + str(dict_list))
     # PR2019-08-05  detect date format
     format_str = ''
     date_string = ''
@@ -680,18 +681,17 @@ def detect_dateformat(dict, field):
         arr00_max = 0
         arr01_max = 0
         arr02_max = 0
-        for item in dict:
+        for dict in dict_list:
             arr00 = 0
             arr01 = 0
             arr02 = 0
 
-            date_string = item.get(field)
+            date_string = dict.get(field)
             if date_string:
                 arr = get_datetimearray_from_dateISO(date_string)
 
                 isok = False
                 if len(arr) > 2:
-
                     if arr[0].isnumeric():
                         arr00 = int(arr[0])
                         if arr[1].isnumeric():
@@ -744,7 +744,7 @@ def detect_dateformat(dict, field):
                 if day_pos == 1:
                     format_str = 'mm-dd-yyyy'
 
-        # logger.debug('format_str: ' + str(format_str) + ' max00: ' + str(arr00_max) + ' max01: ' + str(arr01_max) + ' max02: ' + str(arr02_max))
+        logger.debug('format_str: ' + str(format_str) + ' max00: ' + str(arr00_max) + ' max01: ' + str(arr01_max) + ' max02: ' + str(arr02_max))
 
     except:
         logger.debug('detect_dateformat error: ' + str(date_string))

@@ -136,15 +136,15 @@ urlpatterns = [
         path('customers/', customer_views.CustomerListView.as_view(), name='customer_list_url'),
         path('customer_upload/', customer_views.CustomerUploadView.as_view(), name='customer_upload_url'),
         path('pricerate_upload/', customer_views.PricerateUploadView.as_view(), name='pricerate_upload_url'),
+
+        path('import', customer_views.OrderImportView.as_view(), name='order_import_url'),
+        path('uploadsetting', customer_views.OrderImportUploadSetting.as_view(), name='orderimport_uploadsetting_url'),
+        path('uploaddata', customer_views.OrderImportUploadData.as_view(), name='orderimport_uploaddata_url'),
+
     ])),
 
     path('employee/', include([
         path('', employee_views.EmployeeListView.as_view(), name='employee_list_url'),
-    #    path('add/', employee_views.EmployeeAddView.as_view(), name='employee_add_url'),
-    #    path('<int:pk>/', include([
-    #        path('edit/', employee_views.EmployeeEditView.as_view(), name='employee_edit_url'),
-    #        path('delete/', employee_views.EmployeeDeleteView.as_view(), name='employee_delete_url'),
-    #    ])),
         path('upload/', employee_views.EmployeeUploadView.as_view(), name='employee_upload_url'),
 
         path('teammember_upload', employee_views.TeammemberUploadView.as_view(), name='teammember_upload_url'),

@@ -4,16 +4,16 @@
 
 //========= ModTimepickerOpen  ====================================
     function ModTimepickerOpen(el_input, ModTimepickerChanged, tp_dict, st_dict) {
-        console.log("=== MODAL  ModTimepickerOpen  =====");
-        console.log( "tp_dict: ", tp_dict);
-        console.log( "st_dict: ", st_dict);
+       // console.log("=== MODAL  ModTimepickerOpen  =====");
+        //console.log( "tp_dict: ", tp_dict);
+        //console.log( "st_dict: ", st_dict);
 
         CalcMinMax(tp_dict)
 
-        console.log( "offset: ", tp_dict["offset"]);
-        console.log( "minoffset: ", tp_dict["minoffset"]);
-        console.log( "maxoffset: ", tp_dict["maxoffset"]);
-        console.log( "quicksave: ", tp_dict["quicksave"]["value"]);
+        //console.log( "offset: ", tp_dict["offset"]);
+        //console.log( "minoffset: ", tp_dict["minoffset"]);
+        //console.log( "maxoffset: ", tp_dict["maxoffset"]);
+        //console.log( "quicksave: ", tp_dict["quicksave"]["value"]);
 
 // display cur_datetime_local in header
         CreateHeader(tp_dict, st_dict);
@@ -727,19 +727,19 @@ function CalcMinMax(dict) {
 
 //========= get_header_date  ========================= PR2019-10-13
     function get_header_date(tp_dict, st_dict) {
-        console.log( "--- get_header_date  ");
+        //console.log( "--- get_header_date  ");
         // Using vanlla JS instead of moment.js.
 
-        console.log( "tp_dict ", tp_dict);
-        console.log( "st_dict ", st_dict);
+        //console.log( "tp_dict ", tp_dict);
+        //console.log( "st_dict ", st_dict);
 
         const fieldname = tp_dict["field"];
         const rosterdate = tp_dict["rosterdate"];
         let curDayOffset = tp_dict["curDayOffset"];
 
-        console.log( "fieldname ", fieldname);
-        console.log( "rosterdate ", rosterdate);
-        console.log( "curDayOffset ", curDayOffset);
+        //console.log( "fieldname ", fieldname);
+        //console.log( "rosterdate ", rosterdate);
+        //console.log( "curDayOffset ", curDayOffset);
 
         let date_text = "";
         if (fieldname === "breakduration"){

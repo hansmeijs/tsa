@@ -16,6 +16,18 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
     # ====== PAGE CUSTOMER =========================
     if page == 'customer':
+
+        # header
+        dict['Short_name'] = TXT_Short_name
+        dict['Customer'] = TXT_Customer
+        dict['Customer_name'] = TXT_Customer_name
+        dict['Order'] = TXT_Order
+        dict['Order_name'] = TXT_Order_name
+        dict['Order_code'] = TXT_Order_code
+        dict['Employee'] = TXT_Employee
+        dict['Rosterdate'] = TXT_Rosterdate
+        dict['Identifier'] = TXT_Identifier
+
         dict['weekdays_long'] = TXT_weekdays_long
         dict['months_abbrev'] = TXT_months_abbrev
         dict['Hours'] = TXT_Hours
@@ -129,7 +141,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['add_scheme'] = _('Add scheme')
 
         # modal roster
-        dict['rosterdate'] = TXT_rosterdate  # 'Rosterdate'
+        dict['Rosterdate'] = TXT_Rosterdate  # 'Rosterdate'
         dict['rosterdate_hdr_create'] = _('Create shift roster')
         dict['rosterdate_hdr_delete'] = _('Delete shift roster')
 
@@ -293,6 +305,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
 # === TEXT USED IN MULTIPLE PAGES ==================== PR2019-11-12
 
+# headers
+
+TXT_Short_name = _('Short name')
+
 TXT_btn_close = _('Close')
 TXT_btn_cancel = _('Cancel')
 
@@ -305,7 +321,7 @@ TXT_Exit_Quicksave = _('Exit Quick save')
 TXT_btn_create = _('Create')
 TXT_btn_delete = _('Delete')
 
-TXT_rosterdate = _('Rosterdate')
+TXT_Rosterdate = _('Rosterdate')
 TXT_Periode = _('Period')
 
 TXT_Worked_hours = _('Worked hours')
@@ -316,11 +332,16 @@ TXT_Rate = _('Rate')
 TXT_Amount = _('Amount')
 
 TXT_Date = _('Date')
+
 TXT_Customer = _('Customer')
+TXT_Customer_name = _('Customer name')
 TXT_Select_customer = _('Select customer')
 TXT_No_customers = _('No customers')
+TXT_Identifier = _('Identifier')
 
 TXT_Order = _('Order')
+TXT_Order_name = _('Order name')
+TXT_Order_code = _('Order code')
 TXT_Select_order = _('Select order')
 TXT_No_orders = _('No orders')
 

@@ -10,12 +10,12 @@
 // ++++++++++++  SELECT TABLE in sidebar +++++++++++++++++++++++++++++++++++++++
 
 //========= FillSelectTable  ============= PR2019-12-21
-    function FillSelectTable(data_map, tblName, include_parent_code,
+    function FillSelectTable(data_map, tblName, selected_pk, include_parent_code,
                             HandleSelect_Filter, HandleSelectFilterButton,
                             HandleSelect_Row, HandleSelectRowButton,
                             imgsrc_default, imgsrc_hover,
                             filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey) {
-        //console.log(">>>>>>>>>FillSelectTable");
+        //console.log(" --- FillSelectTable");
         //console.log("data_map: ", data_map);
 
         CreateSelectHeader(tblName, HandleSelect_Filter, HandleSelectFilterButton, imgsrc_default, imgsrc_hover);
@@ -28,7 +28,7 @@
 //--- loop through data_map
         for (const [map_id, item_dict] of data_map.entries()) {
             const row_index = null // add at end when no rowindex
-            let selectRow = CreateSelectRow(tblBody_select, tblName, row_index, item_dict,
+            let selectRow = CreateSelectRow(tblBody_select, tblName, row_index, item_dict, selected_pk,
                                         HandleSelect_Row, HandleSelectRowButton,
                                         imgsrc_default, imgsrc_hover);
 
@@ -43,6 +43,7 @@
         //console.log(" === CreateSelectHeader === ")
 
         const show_button = (!!HandleSelectFilterButton);
+        //console.log("show_button = ", show_button)
 
         let tblHead = document.getElementById("id_thead_select");
         tblHead.innerText = null;
@@ -61,9 +62,8 @@
                 el_input.addEventListener("keyup", function() {
                     setTimeout(function() {HandleSelect_Filter()}, 50)});
 
-                // TODO width not correct const td_width = (show_button) ? "td_width_200" : "td_width_150";
-                const td_width = "td_width_150";
-                //el_input.classList.add(td_width)
+                const td_width = (show_button) ? "td_width_150" : "td_width_200";
+                el_input.classList.add(td_width)
                 //el_input.classList.add("tsa_bc_transparent")
                 el_input.classList.add("border_none")
                 el_input.classList.add("px-2")
@@ -91,11 +91,11 @@
     }  // CreateSelectHeader
 
 //========= CreateSelectRow  ============= PR2019-10-20
-    function CreateSelectRow(tblBody_select, tblName, row_index, item_dict,
+    function CreateSelectRow(tblBody_select, tblName, row_index, item_dict, selected_pk,
                                 HandleSelect_Row, HandleSelectRowButton,
                                 imgsrc_default, imgsrc_hover ) {
         //console.log(" === CreateSelectRow === ")
-        //console.log("tblBody_select: ", tblBody_select);
+        //console.log("selected_pk: ", selected_pk);
 
         // add row at end when row_index is blank
         if(row_index == null){row_index = -1}
@@ -109,7 +109,6 @@
                 const tblName = get_dict_value_by_key(id_dict, "table");
                 const pk_int = get_dict_value_by_key(id_dict, "pk");
                 const map_id = get_map_id(tblName, pk_int);
-                //const ppk_int = ("ppk" in id_dict) ? id_dict["ppk"] : null;
 
             const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
             const inactive_value = get_subdict_value_by_key(item_dict, "inactive", "value", false);
@@ -124,8 +123,11 @@
             tblRow.setAttribute("data-table", tblName);
             tblRow.setAttribute("data-inactive", inactive_value);
 
-            tblRow.classList.add(cls_bc_lightlightgrey);
-
+            if (!!pk_int && pk_int === selected_pk){
+                tblRow.classList.add(cls_bc_yellow);
+            } else {
+                tblRow.classList.add(cls_bc_lightlightgrey);
+            }
     //- add hover to select row
             tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover)});
             tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover)});
@@ -147,8 +149,8 @@
             //    td.addEventListener("click", function() {HandleSelect_Row(tblRow, "event")}, false)
             //}
 
-
-    // --- add active img to second td in table, only when HandleSelectRowButton exists
+    // --- add default inactive img to second td in table, only when HandleSelectRowButton exists
+    // or grey delete button, gets red on hover
             const show_button = (!!HandleSelectRowButton);
             if (show_button) {
                 CreateSelectButton(tblRow, HandleSelectRowButton, imgsrc_default, imgsrc_hover);
@@ -161,7 +163,7 @@
 //=========  CreateSelectButton  ================ PR2019-11-16
     function CreateSelectButton(tblRow, HandleSelectButton, imgsrc_default, imgsrc_hover ){
         //console.log(" === CreateSelectButton === ")
-
+        // SelectButton can be Inactive or Delete
         let td = tblRow.insertCell(-1);
             let el_a = document.createElement("a");
                 el_a.setAttribute("id", "id_filter_select_btn")
@@ -198,13 +200,19 @@
             if(!!is_deleted) {
                 selectRow.parentNode.removeChild(selectRow)
             } else {
+// --- put value of select row in tblRow and el_input
+                let code_value = get_subdict_value_by_key(update_dict, "code", "value", "")
+                //console.log("update_dict", update_dict);
 
+// if include_parent_code: add parent code to code_value . include_parent_code containsname of table: 'customer'
+                if (!!include_parent_code && include_parent_code in update_dict){
+                    const parent_code = get_subdict_value_by_key (update_dict, include_parent_code, "code");
+                    if(!!parent_code) {
+                        code_value = parent_code + " - " + code_value
+                    }
+                }
 // --- get first td from selectRow.
                 let el_input = selectRow.cells[0].children[0]
-
-// --- put value of selecet row in tblRow and el_input
-
-                const code_value = get_subdict_value_by_key(update_dict, "code", "value", "")
 
                 el_input.innerText = code_value;
                 el_input.setAttribute("data-value", code_value);
@@ -817,8 +825,9 @@
 
 //=========  HighlightSelectRowByPk  ================ PR2019-10-05
     function HighlightSelectRowByPk(tableBody, selected_pk, cls_selected, cls_background) {
-        //console.log(" --- HighlightSelectedSelectRowByPk ---")
-        //console.log("selected_pk", selected_pk, typeof selected_pk)
+        console.log(" --- HighlightSelectedSelectRowByPk ---")
+        console.log("cls_selected", cls_selected)
+        console.log("cls_background", cls_background)
 
         if(!!tableBody){
             DeselectHighlightedTblbody(tableBody, cls_selected, cls_background)
@@ -828,10 +837,15 @@
                 tblRow = tblrows[i];
                 if(!!tblRow){
                     const pk_int = parseInt(tblRow.getAttribute("data-pk"));
+        console.log("pk_int", pk_int, typeof pk_int)
                     if (!!selected_pk && pk_int === selected_pk){
+                        console.log("----------------------------pk_int === selected_pk")
                         if(!!cls_background){tblRow.classList.remove(cls_background)};
                         tblRow.classList.add(cls_selected)
+                        tblRow.classList.add("TESTING")
+                        console.log("----------------------------TESTING")
                     } else if(tblRow.classList.contains(cls_selected)) {
+                        console.log("pk_int !== selected_pk")
                         tblRow.classList.remove(cls_selected);
                         if(!!cls_background){tblRow.classList.add(cls_background)}
                     }

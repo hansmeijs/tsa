@@ -733,3 +733,60 @@
         }
         return period_formatted;
     }
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+//========= function test printPDF  ====  PR2020-01-02
+    function printPDFlogfile(log_list, file_name, printtoscreen) {
+        console.log("printPDF")
+        let doc = new jsPDF();
+
+        doc.setFontSize(10);
+
+        let startHeight = 25;
+        let noOnFirstPage = 40;
+        let noOfRows = 40;
+        let z = 1;
+
+        const pos_x = 15
+        const line_height = 6
+        if (!!log_list && log_list.length > 0){
+            const len = log_list.length;
+            for (let i = 0, item; i < len; i++) {
+                item = log_list[i];
+                if (!!item) {
+                    if(i <= noOnFirstPage){
+                        startHeight = startHeight + line_height;
+                        addData(item, pos_x, startHeight, doc);
+                    }else{
+                        if(z ==1 ){
+                            startHeight = 0;
+                            doc.addPage();
+                        }
+                        if(z <= noOfRows){
+                            startHeight = startHeight + line_height;
+                            addData(item, pos_x, startHeight, doc);
+                            z++;
+                        }else{
+                            z = 1;
+                        }
+                    }
+                }  //  if (!item.classList.contains("display_none")) {
+            }
+            // doc.output('datauri) not wortking, blocked by browser PR2010-01-02
+            // if (printtoscreen){
+            //     doc.output('datauri');
+            // } else {
+                doc.save(file_name);
+            // }  // if (printtoscreen){
+        }  // if (len > 0){
+    }  // function printPDFlogfile
+
+    function addData(item, pos_x, height, doc){
+        if(!!item){
+            doc.text(pos_x, height, item);
+        }  // if(!!tblRow){
+    }  // function addData
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+

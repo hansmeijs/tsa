@@ -3189,14 +3189,13 @@ def update_scheme(instance, upload_dict, update_dict, request):
     logger.debug(' ============= update_scheme')
     logger.debug('upload_dict: ' + str(upload_dict))
 
-    has_error = False
+    save_changes = False
     if instance:
         # FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
         #                  'code', 'datefirst', 'datelast',
         #                  'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday',
         #                  'priceratejson', 'additionjson', 'inactive')
         table = 'scheme'
-        save_changes = False
         for field in c.FIELDS_SCHEME:
             # --- get field_dict from  item_dict  if it exists
             field_dict = upload_dict[field] if field in upload_dict else {}
@@ -3300,12 +3299,12 @@ def update_scheme(instance, upload_dict, update_dict, request):
             try:
                 instance.save(request=request)
             except:
-                has_error = True
+                save_changes = False
                 msg_err = _('This scheme could not be updated.')
                 if update_dict:
                     update_dict['id']['error'] = msg_err
 
-    return has_error
+    return save_changes
 
 
 #######################################################

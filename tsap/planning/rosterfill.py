@@ -382,7 +382,7 @@ sql_teammember_sub08 = """
 
         CAST(%(rd)s AS date) AS tm_rd,
         CAST(%(rd)s AS date) - CAST(%(ref)s AS date) AS tm_ddif,
-
+        
         e_sub.tm_id_arr,
         e_sub.si_id_arr,
         e_sub.mod_arr,
@@ -404,6 +404,8 @@ sql_teammember_sub08 = """
 
     WHERE (c.company_id = %(cid)s)
     AND (o.istemplate = FALSE)
+    AND (CAST(%(ph)s AS BOOLEAN) = FALSE OR s.excludepublicholiday = FALSE)
+    AND (CAST(%(ch)s AS BOOLEAN) = FALSE OR s.excludecompanyholiday = FALSE)
     AND ( (tm.datefirst <= CAST(%(rd)s AS date) ) OR (tm.datefirst IS NULL) )
     AND ( (tm.datelast  >= CAST(%(rd)s AS date) ) OR (tm.datelast IS NULL) )
     AND ( (s.datefirst <= CAST(%(rd)s AS date) ) OR (s.datefirst IS NULL) )
@@ -2034,11 +2036,11 @@ def create_employee_calendar(datefirst_iso, datelast_iso, customer_id, order_id,
         while rosterdate_dte <= datelast_dte:
 
 # 4. create calendar_header of this date
-            create_calendar_header(rosterdate_dte, calendar_header_dict, user_lang, request)
+            is_publicholiday, is_companyholiday = create_calendar_header(rosterdate_dte, calendar_header_dict, user_lang, request)
 
 # 5. create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
-            rows = get_teammember_rows_with_shifts(rosterdate_dte, refdate, customer_id, order_id, employee_id, company_id)
+            rows = get_employee_calendar_rows(rosterdate_dte, refdate, is_publicholiday, is_companyholiday, customer_id, order_id, employee_id, company_id)
 
 # 6. add to all_rows
             all_rows.extend(rows)
@@ -2106,8 +2108,8 @@ def create_employee_calendar(datefirst_iso, datelast_iso, customer_id, order_id,
     return calendar_dictlist, calendar_header_dict
 
 
-def get_teammember_rows_with_shifts(rosterdate, refdate, customer_id, order_id, employee_id, company_id):
-    # logger.debug(' =============== get_teammember_rows_with_shifts ============= ')
+def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_companyholiday, customer_id, order_id, employee_id, company_id):
+    # logger.debug(' =============== get_employee_calendar_rows ============= ')
 
     # logger.debug('rosterdate:' + str(rosterdate.isoformat()) + str(type(rosterdate)))
     # logger.debug('refdate:' + str(refdate.isoformat()) + str(type(refdate)))
@@ -2143,7 +2145,9 @@ def get_teammember_rows_with_shifts(rosterdate, refdate, customer_id, order_id, 
         'orderid': order_id,
         'eid': employee_id,
         'rd': rosterdate,
-        'ref': refdate
+        'ref': refdate,
+        'ph': is_publicholiday,
+        'ch': is_companyholiday
     })
     rows = newcursor.fetchall()
 
@@ -2640,11 +2644,11 @@ def create_order_calendar(datefirst_iso, datelast_iso, order_id, comp_timezone, 
         while rosterdate_dte <= datelast_dte:
 
 # 4. create calendar_header of this date
-            create_calendar_header(rosterdate_dte, calendar_header_dict, user_lang, request)
+            is_publicholiday, is_companyholiday = create_calendar_header(rosterdate_dte, calendar_header_dict, user_lang, request)
 
 # 5. create list with all sschemitems of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
-            rows = get_order_calendar_rows(rosterdate_dte, refdate, order_id, company_id)
+            rows = get_order_calendar_rows(rosterdate_dte, refdate, is_publicholiday, is_companyholiday, order_id, company_id)
 
 # 6. add to all_rows
             all_rows.extend(rows)
@@ -3067,7 +3071,7 @@ sql_calendar_order_team_sub11 = """
 
         CAST(%(rd)s AS date) AS tm_rd,
         CAST(%(rd)s AS date) - CAST(%(ref)s AS date) AS tm_ddif,
-
+        
         tm_sub.tm_id_arr,
         NULL AS si_id_arr,
         NULL AS mod_arr,
@@ -3087,6 +3091,8 @@ sql_calendar_order_team_sub11 = """
     WHERE (c.company_id = %(cid)s)
     AND (o.istemplate = FALSE)
     AND (o.isabsence = FALSE)
+    AND (CAST(%(ph)s AS BOOLEAN) = FALSE OR s.excludepublicholiday = FALSE)
+    AND (CAST(%(ch)s AS BOOLEAN) = FALSE OR s.excludecompanyholiday = FALSE)
     AND ( (s.datefirst <= CAST(%(rd)s AS date) ) OR (s.datefirst IS NULL) )
     AND ( (s.datelast  >= CAST(%(rd)s AS date) ) OR (s.datelast IS NULL) )
     AND ( (o.datefirst <= CAST(%(rd)s AS date) ) OR (o.datefirst IS NULL) )
@@ -3095,7 +3101,7 @@ sql_calendar_order_team_sub11 = """
 """
 
 
-def get_order_calendar_rows(rosterdate, refdate, order_id, company_id):
+def get_order_calendar_rows(rosterdate, refdate, is_publicholiday, is_companyholiday, order_id, company_id):
     # logger.debug(' =============== get_order_calendar_rows ============= ')
     # # logger.debug('rosterdate: ' + str(rosterdate))
     # logger.debug('refdate: ' + str(refdate))
@@ -3119,7 +3125,9 @@ def get_order_calendar_rows(rosterdate, refdate, order_id, company_id):
         'cid': company_id,
         'orderid': order_id,
         'rd': rosterdate,
-        'ref': refdate
+        'ref': refdate,
+        'ph': is_publicholiday,
+        'ch': is_companyholiday
     })
     rows = newcursor.fetchall()
     return rows
@@ -3130,7 +3138,8 @@ def create_calendar_header(rosterdate_dte, calendar_header, user_lang, request):
     # logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
     # logger.debug('user_lang: ' + str(user_lang) + ' ' + str(type(user_lang)))
 
-    header_dict = {}
+    is_publicholiday = False
+    is_companyholiday = False
     calendar_date = m.Calendar.objects.get_or_none(rosterdate=rosterdate_dte, company=request.user.company)
     if calendar_date:
 
@@ -3139,8 +3148,11 @@ def create_calendar_header(rosterdate_dte, calendar_header, user_lang, request):
 
         if calendar_date.ispublicholiday:
             header_dict['ispublicholiday'] = calendar_date.ispublicholiday
+            is_publicholiday = True
+
         if calendar_date.iscompanyholiday:
             header_dict['iscompanyholiday'] = calendar_date.iscompanyholiday
+            is_companyholiday = True
 
         if calendar_date.ispublicholiday and calendar_date.code:
             display_txt = _(calendar_date.code)
@@ -3151,3 +3163,4 @@ def create_calendar_header(rosterdate_dte, calendar_header, user_lang, request):
         rosterdate_iso = f.get_dateISO_from_dateOBJ(rosterdate_dte)
         calendar_header[rosterdate_iso] = header_dict
 
+    return is_publicholiday, is_companyholiday

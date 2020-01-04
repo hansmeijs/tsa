@@ -2959,7 +2959,8 @@ document.addEventListener('DOMContentLoaded', function() {
 //----- update input field team_code
         if (tblName === "team"){
             const field_dict = get_dict_value_by_key(update_dict, "code")
-            format_text_element (el_team_code, el_msg, field_dict, false, [-220, 60])
+            const key_str = "value";
+            format_text_element (el_team_code, key_str, el_msg, field_dict, false, [-220, 60])
         } else if (tblName === "scheme"){
             // skip scheme, it has no table
         } else {
@@ -3180,11 +3181,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
                                         user_lang, comp_timezone, false, true)
                 } else if (["code", "employee", "replacement"].indexOf( fieldname ) > -1){
-                   format_text_element (el_input, el_msg, field_dict, false, [-240, 200])
+                   const key_str = (fieldname === "code") ? "value" : "code";
+                   format_text_element (el_input, key_str, el_msg, field_dict, false, [-240, 200])
             // put placeholder in employee field when employee is removed
-                    if (fieldname === "employee" && !get_dict_value_by_key(field_dict, "pk")){
-                        el_input.value = get_attr_from_el_str(el_data, "data-txt_employee_select") + "...";
-                    }
+                    //if (fieldname === "employee" && !get_dict_value_by_key(field_dict, "pk")){
+                        //el_input.value = get_attr_from_el_str(el_data, "data-txt_employee_select") + "...";
+                    //}
                 } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
                     const hide_weekday = false, hide_year = false;
                     format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
@@ -3193,7 +3195,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     format_restshift_element (el_input, field_dict,
                         imgsrc_rest_black, imgsrc_stat00, title_restshift)
                 } else if (["shift", "team"].indexOf( fieldname ) > -1){
-                    format_select_element (el_input, field_dict)
+                    const key_str = "code";
+                    format_select_element (el_input, key_str, field_dict)
                 } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
                     // not in use
                     format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
@@ -3414,7 +3417,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     //el.setAttribute("data-table", tblName)
 
                     if (["code", "cycle"].indexOf( fieldname ) > -1){
-                        format_text_element (el, el_msg, field_dict, false, [-220, 60])
+                        const key_str = "value";
+                        format_text_element (el, key_str, el_msg, field_dict, false, [-220, 60])
                         el.readOnly = false;
                     } else if (fieldname === "datefirst" || fieldname === "datelast"){
                         el.value = value
@@ -3632,7 +3636,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_mod_period_header").innerText = hdr_text;
 
 // set value of input label
-        document.getElementById("id_mod_rosterdate_label").innerText = loc.rosterdate + ": "
+        document.getElementById("id_mod_rosterdate_label").innerText = loc.Rosterdate + ": "
 
 // set value of input element blank, set readOnly = true
         let el_input = document.getElementById("id_mod_rosterdate_input")
@@ -3684,7 +3688,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const new_value = document.getElementById("id_mod_rosterdate_input").value;
 
 // update value of input label
-        const label_txt = loc.rosterdate + ": " +
+        const label_txt = loc.Rosterdate + ": " +
             format_date_iso (new_value, loc.months_long, loc.weekdays_long, false, false, user_lang);
         document.getElementById("id_mod_rosterdate_label").innerText = label_txt
 
@@ -3808,7 +3812,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let text_list = ["", "", "", ""];
         // set value of input label
-        text_list[0] = loc.rosterdate + ": " +
+        text_list[0] = loc.Rosterdate + ": " +
             format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_long, false, false, user_lang);
 
         if(!count){
@@ -5181,7 +5185,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= HandleFilterName  ====================================
     function HandleFilterName(el, index, el_key) {
-        console.log( "===== HandleFilterName  ========= ");
+        //console.log( "===== HandleFilterName  ========= ");
 
         //console.log( "el.value", el.value, index, typeof index);
         //console.log( "el.filter_dict", filter_dict, typeof filter_dict);
@@ -5328,6 +5332,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         }
                                         if (!el_value){el_value = get_attr_from_el(el, "data-value")}
 
+                                        //console.log( "el_value", el_value);
                                         if (!!el_value){
                                             if (filter_blank){
                                                 hide_row = true
@@ -5343,6 +5348,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 hide_row = true
                                             } // iif (filter_blank){
                                         }   // if (!!el_value)
+
+                                        //console.log( "hide_row: ", hide_row);
                                     }  //  if(!!filter_text)
                                 }  // if (!!el) {
                             }  //  if (!!tbl_cell){
@@ -5359,8 +5366,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateSettings  ====================================
     function UpdateSettings(setting_list){
-        console.log(" --- UpdateSettings ---")
-        console.log("setting_list", setting_list)
+        //console.log(" --- UpdateSettings ---")
+        //console.log("setting_list", setting_list)
 
         for (let i = 0, len = setting_list.length; i < len; i++) {
             const setting_dict = setting_list[i];

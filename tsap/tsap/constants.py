@@ -91,11 +91,9 @@ GENDER_CHOICES = (
     (GENDER_FEMALE, _('V')),
 )
 
-
-# SCHOOL SETTING KEYS PR2019-03-09
-KEY_CUSTOMER_COLDEFS = "cust_coldefs"
+# SETTING KEYS PR2019-03-09
+KEY_ORDER_COLDEFS = "order_coldefs"
 KEY_EMPLOYEE_COLDEFS = "empl_coldefs"
-
 
 LANG_NL = 'nl'
 LANG_EN = 'en'
@@ -303,7 +301,7 @@ COLDEF_EMPLOYEE = {LANG_EN: [
                             ]
                     }
 
-CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
+CAPTION_IMPORT = {LANG_EN: {'no_file': 'No file is currently selected',
                                  'link_columns': 'Link columns',
                                  'click_items': 'Click items to link or unlink columns',
                                  'excel_columns': 'Excel columns',
@@ -315,6 +313,60 @@ CAPTION_EMPLOYEE = {LANG_EN: {'no_file': 'No file is currently selected',
                                  'excel_columns': 'Excel kolommen',
                                  'tsa_columns': 'TSA kolommen',
                                  'linked_columns': 'Gekoppelde kolommen'}
+                    }
+
+
+
+COLDEF_ORDER = {LANG_EN: [
+                                {'tsaKey': 'custcode', 'caption': 'Customer - Short name'},
+                                {'tsaKey': 'custname', 'caption': 'Customer - Nname'},
+                                {'tsaKey': 'custidentifier', 'caption': 'Customer - Identifier'},
+                                # {'tsaKey': 'custcontactname', 'caption': 'Customer - Contact name'},
+                                # {'tsaKey': 'custaddress', 'caption': 'Customer - Address'},
+                                # {'tsaKey': 'custzipcode', 'caption': 'Customer - Zipcode'},
+                                # {'tsaKey': 'custcity', 'caption': 'Customer - City'},
+                                # {'tsaKey': 'custcountry', 'caption': 'Customer - Country'},
+                                # {'tsaKey': 'custemail', 'caption': 'Customer - Email address'},
+                                # {'tsaKey': 'custtelephone', 'caption': 'Customer - Telephone'},
+
+                                {'tsaKey': 'ordercode', 'caption': 'Order - Short name'},
+                                {'tsaKey': 'ordername', 'caption': 'Order - Name'},
+                                {'tsaKey': 'orderidentifier', 'caption': 'Order - Identifier'},
+                                # {'tsaKey': 'ordercontactname', 'caption': 'Order - Contact name'},
+                                # {'tsaKey': 'orderaddress', 'caption': 'Order - Address'},
+    #  {'tsaKey': 'orderzipcode', 'caption': 'Order - Zipcode'},
+    #  {'tsaKey': 'ordercity', 'caption': 'Order - City'},
+                                # {'tsaKey': 'ordercountry', 'caption': 'Order - Country'},
+                                # {'tsaKey': 'orderemail', 'caption': 'Order - Email address'},
+                                # {'tsaKey': 'ordertelephone', 'caption': 'Order - Telephone'},
+                                {'tsaKey': 'orderdatefirst', 'caption': 'Order - First date of order'},
+                                {'tsaKey': 'orderdatelast', 'caption': 'Order - Last date of order'},
+                            ],
+                    LANG_NL: [
+                                {'tsaKey': 'custcode', 'caption': 'Klant - Korte naam'},
+                                {'tsaKey': 'custname', 'caption': 'Klant - Naam '},
+                                {'tsaKey': 'custidentifier', 'caption': 'Klant - Identificatienummer'},
+                                # {'tsaKey': 'custcontactname', 'caption': 'Klant - Contactpersoon'},
+                                # {'tsaKey': 'custaddress', 'caption': 'Klant - Adres'},
+                                # {'tsaKey': 'custzipcode', 'caption': 'Klant - Postcode'},
+                                # {'tsaKey': 'custcity', 'caption': 'Klant - Plaats'},
+                                #  {'tsaKey': 'custcountry', 'caption': 'Klant - Land'},
+                                # {'tsaKey': 'custemail', 'caption': 'Klant - Email adres'},
+                                # {'tsaKey': 'custtelephone', 'caption': 'Klant - Telefoon'},
+
+                                {'tsaKey': 'ordercode', 'caption': 'Locatie - Korte naam'},
+                                {'tsaKey': 'ordername', 'caption': 'Locatie - Naam'},
+                                {'tsaKey': 'orderidentifier', 'caption': 'Locatie - Identificatienummer'},
+                                # {'tsaKey': 'ordercontactname', 'caption': 'Locatie - Contactpersoon'},
+                                # {'tsaKey': 'orderaddress', 'caption': 'Locatie - Adres'},
+                                # {'tsaKey': 'orderzipcode', 'caption': 'Locatie - Postcode'},
+                                # {'tsaKey': 'ordercity', 'caption': 'Locatie - Plaats'},
+                                # {'tsaKey': 'ordercountry', 'caption': 'Locatie - Land'},
+                                # {'tsaKey': 'orderemail', 'caption': 'Locatie - Email adres'},
+                                # {'tsaKey': 'ordertelephone', 'caption': 'Locatie - Telefoon'},
+                                {'tsaKey': 'orderdatefirst', 'caption': 'Locatie - Begindatum opdracht'},
+                                {'tsaKey': 'orderdatelast', 'caption': 'Locatie - Einddatum opdracht'},
+                            ]
                     }
 
 FIELDS_COMPANY = ('id', 'code', 'name')

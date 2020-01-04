@@ -199,7 +199,6 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 
-
 @method_decorator([login_required], name='dispatch')
 class PricerateUploadView(UpdateView):# PR2019-10-02
 
@@ -614,4 +613,419 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
 
     return has_error
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# >>>>>>>   ORDER IMPORT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# === OrderImportView ===================================== PR2020-01-01
+@method_decorator([login_required], name='dispatch')
+class OrderImportView(View):
+    logger.debug(' ============= OrderImportView ============= ')
+
+    def get(self, request):
+        param = {}
+
+        if request.user.company is not None:
+            # coldef_list = [{'tsaKey': 'employee', 'caption': _('Company name')},
+            #                      {'tsaKey': 'ordername', 'caption': _('Order name')},
+            #                      {'tsaKey': 'orderdatefirst', 'caption': _('First date order')},
+            #                      {'tsaKey': 'orderdatelast', 'caption': _('Last date order')} ]
+# LOCALE #
+    # get user_lang
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+
+    # get coldef_list order
+            lang = user_lang if user_lang in c.COLDEF_ORDER else c.LANG_DEFAULT
+            coldef_list = c.COLDEF_ORDER[lang]
+
+    # get caption list order
+            lang = user_lang if user_lang in c.CAPTION_IMPORT else c.LANG_DEFAULT
+
+            captions_dict = c.CAPTION_IMPORT[lang]
+
+            self.has_header = True
+            self.worksheetname = ''
+            stored_json = m.Companysetting.get_jsonsetting(c.KEY_ORDER_COLDEFS, request.user.company)
+            if stored_json:
+                stored_setting = json.loads(stored_json)
+                if stored_setting:
+                    self.has_header = stored_setting.get('has_header', True)
+                    self.worksheetname = stored_setting.get('worksheetname', '')
+                    if 'coldefs' in stored_setting:
+                        stored_coldefs = stored_setting['coldefs']
+                        # skip if stored_coldefs does not exist
+                        if stored_coldefs:
+                            # loop through coldef_list
+                            for coldef in coldef_list:
+                                # coldef = {'tsaKey': 'employee', 'caption': 'Cliënt'}
+                                # get fieldname from coldef
+                                fieldname = coldef.get('tsaKey')
+                                if fieldname:  # fieldname should always be present
+                                    # check if fieldname exists in stored_coldefs
+                                    if fieldname in stored_coldefs:
+                                        # if so, add Excel name with key 'excKey' to coldef
+                                        coldef['excKey'] = stored_coldefs[fieldname]
+                                        # logger.debug('stored_coldefs[fieldname]: ' + str(stored_coldefs[fieldname]))
+
+            coldefs_dict = {
+                'worksheetname': self.worksheetname,
+                'has_header': self.has_header,
+                'coldefs': coldef_list
+                }
+            coldefs_json = json.dumps(coldefs_dict, cls=LazyEncoder)
+            captions = json.dumps(captions_dict, cls=LazyEncoder)
+
+            param = get_headerbar_param(request, {'captions': captions, 'setting': coldefs_json})
+
+        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
+        return render(request, 'order_import.html', param)
+
+
+@method_decorator([login_required], name='dispatch')
+class OrderImportUploadSetting(View):   # PR2019-03-10
+    # function updates mapped fields, has_header and worksheetname in table Companysetting
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ============= OrderImportUploadSetting ============= ')
+        # logger.debug('request.POST' + str(request.POST) )
+
+        if request.user is not None :
+            if request.user.company is not None:
+                if request.POST['setting']:
+                    new_setting_json = request.POST['setting']
+                    logger.debug('new_setting_json' + str(new_setting_json))
+                    # new_setting is in json format, no need for json.loads and json.dumps
+                    # new_setting = json.loads(request.POST['setting'])
+                    # new_setting_json = json.dumps(new_setting)
+
+                    # m.Companysetting.set_setting(c.KEY_ORDER_COLDEFS, new_setting_json, request.user.company)
+                    m.Companysetting.set_jsonsetting(c.KEY_ORDER_COLDEFS, new_setting_json, request.user.company)
+
+        return HttpResponse(json.dumps("Import settings uploaded", cls=LazyEncoder))
+
+
+@method_decorator([login_required], name='dispatch')
+class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
+
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ============= OrderImportUploadData ============= ')
+
+# 1. Reset language
+        # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+        user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+        activate(user_lang)
+
+# 2. get stored setting from Companysetting
+        stored_setting_json = m.Companysetting.get_jsonsetting(c.KEY_ORDER_COLDEFS, request.user.company)
+        logger.debug('stored_setting_json: ' + str(stored_setting_json) + ' ' + str(type(stored_setting_json)))
+
+        tsaKey_list = []
+        if stored_setting_json:
+            stored_setting = json.loads(stored_setting_json)
+            logger.debug('stored_setting: ' + str(stored_setting) + ' ' + str(type(stored_setting)))
+            if stored_setting:
+
+                stored_coldefs = stored_setting.get('coldefs')
+                logger.debug('stored_coldefs: ' + str(stored_coldefs))
+                # stored_coldefs: {'namelast': 'ANAAM', 'namefirst': 'Voor_namen', 'identifier': 'ID', ...}
+                if stored_coldefs:
+                    tsaKey_list = list(stored_coldefs.keys())
+
+        params = {}
+        logfile = []
+
+# 2. get upload_dict from request.POST
+        order_list = []
+        if request.user is not None:
+            if request.user.company is not None:
+                upload_json = request.POST.get('upload', None)
+                if upload_json:
+                    upload_dict = json.loads(upload_json)
+                    if upload_dict:
+                        order_list = upload_dict.get('orders')
+        # logger.debug('order_list: ' + str(order_list))
+
+        if order_list:
+            today_dte = f.get_today_dateobj()
+            today_formatted = f.format_WDMY_from_dte(today_dte, user_lang)
+
+            logfile.append(
+                '===================================================================================== ')
+            logfile.append(
+                '  ' + str(request.user.company.code) + '  -  Log import orders : ' + str(today_formatted))
+            logfile.append(
+                '===================================================================================== ')
+
+            format_str = None
+            if 'orderdatefirst' in tsaKey_list or 'orderdatelast' in tsaKey_list:
+                # detect dateformat of field 'datefirst' and 'datelast'
+                datefirst_format_str = f.detect_dateformat(order_list, 'orderdatefirst')
+                datelast_format_str = f.detect_dateformat(order_list, 'orderdatelast')
+                logfile.append('Detected datefirst_format_str: ' + str(datefirst_format_str))
+                logfile.append('Detected datelast_format_str: ' + str(datelast_format_str))
+                if datefirst_format_str:
+                    if datelast_format_str:
+                        if datefirst_format_str == datelast_format_str:
+                            format_str = datefirst_format_str
+                    else:
+                        format_str = datefirst_format_str
+                elif datelast_format_str:
+                    format_str = datelast_format_str
+
+                if format_str:
+                    logfile.append('Detected date format: ' + str(format_str))
+                else:
+                    logfile.append('No valid or multiple date formats detected. Dates cannot be imported.')
+
+            update_list = []
+            mapped_customers_identifier = {}
+            mapped_customers_code = {}
+            for order_dict in order_list:
+                # logger.debug('--------- import order   ------------')
+                # logger.debug(str(order_dict))
+                # 'code', 'namelast', 'namefirst',  'prefix', 'email', 'tel', 'datefirst',
+
+# A +++++++++++  CUSTOMER
+
+# lookup if customer exists, create if not found, update fields if changed
+
+                update_dict = {}
+                is_update = False
+                has_error = False
+                value = order_dict.get('custcode', '')[0:c.CODE_MAX_LENGTH]
+                custcode = value if value else None
+
+                value = order_dict.get('custname', '')[0:c.NAME_MAX_LENGTH]
+                custname = value if value else None
+
+                value = order_dict.get('custidentifier', '')[0:c.CODE_MAX_LENGTH]
+                custidentifier = value if value else None
+
+# check if custmer is already updated. In that case ccustomer_pk is stored in mapped_customers_identifier or mapped_customers_code
+                customer_pk = None
+                customer = None
+                customer_found_in_map = False
+                found_in_field = None
+                if custidentifier in mapped_customers_identifier:
+                    customer_pk = mapped_customers_identifier.get(custidentifier)
+                if customer_pk is None:
+                    customer_pk = mapped_customers_code.get(custcode)
+                if customer_pk:
+                    customer = m.Customer.objects.get_or_none(id=customer_pk, company=request.user.company)
+                    if customer:
+                        customer_found_in_map = True
+
+                if customer is None:
+                # 1. lookup customer by identifier first, then by code. Return customer when found
+                # return values 'multiple_found' and 'value_too_long' return the lookup_value of the error field
+                    customer, no_value, multiple_found, value_too_long, found_in_field = lookup_customer_or_order(
+                        'customer', custcode, custidentifier, None, request)
+                    has_error = (no_value or value_too_long or multiple_found)
+                    if no_value:
+                        logfile.append('This customer is skipped. No_value given for identifier and code.')
+                    elif value_too_long:
+                        logfile.append('Customer ' + (custcode or '<blank>') + " is skipped. Value '" + value_too_long + "' is too long. Max " + c.CODE_MAX_LENGTH + " characters.")
+                    elif multiple_found:
+                        logfile.append('Customer ' + (custcode or '<blank>') + " is skipped. Value '" + multiple_found + "' is found multiple times.")
+
+                if not has_error:
+# 2. create customer if customer not found
+                    if customer is None:
+                        if custname is None:
+                            custname = custcode
+                        customer = m.Customer(
+                            company=request.user.company,
+                            code=custcode,
+                            name=custname
+                            )
+                        if custidentifier:
+                            setattr(customer, 'identifier', custidentifier)
+                        customer.save(request=request)
+
+                        logfile.append('Customer ' + str(customer.code) + ' is created.')
+                    else:
+                        is_update = True
+                        # add customer to mapped_customer, so we dont have to look it up again
+                        if found_in_field == 'identifier':
+                            mapped_customers_identifier[custidentifier] = customer.pk
+                        elif found_in_field == 'code':
+                            mapped_customers_code[custcode] = customer.pk
+                        # skip msg when customer retrieved from map (to porevent multiple messages for same ciustomer
+                        if not customer_found_in_map:
+                            logfile.append ('Customer ' + str(customer.code) + ' already exists.')
+
+                    if customer:
+    # 3. check if fields have changed
+                        for field in ('code', 'identifier', 'name', 'contactname', 'address', 'zipcode', 'city', 'country', 'email', 'telephone'):
+                            if field in ('code', 'identifier'):
+                                max_len = c.USERNAME_SLICED_MAX_LENGTH
+                            elif field == 'telephone':
+                                max_len = c.CODE_MAX_LENGTH
+                            else:
+                                max_len = c.NAME_MAX_LENGTH
+                            prefix = 'cust'
+                            if prefix + field in tsaKey_list:
+                                value_str = order_dict.get(prefix + field, '')[0:max_len]
+                                new_value = value_str if value_str else None
+                                old_value = getattr(customer, field)
+                                logfile.append(" " * 10 + 'check changes in  ' + str(field) + ' ' + str(old_value) + ' > ' + str(new_value))
+                                if new_value != old_value:
+                                    setattr(customer, field, new_value)
+                                    is_updated = True
+                                    old_str = ' is updated from: ' + (old_value or '<blank>') + ' to: ' if is_update else ''
+                                    logfile.append((" " * 10 + 'first name' + " " * 25)[:35] + old_str + (value_str or '<blank>'))
+
+                        customer.save(request=request)
+
+    # B +++++++++++  ORDER
+
+    # lookup if order exists, create if not found, update fields if changed
+                        value = order_dict.get('ordercode', '')[0:c.CODE_MAX_LENGTH]
+                        ordercode = value if value else None
+
+                        value = order_dict.get('ordername', '')[0:c.NAME_MAX_LENGTH]
+                        ordername = value if value else None
+
+                        value = order_dict.get('orderidentifier', '')[0:c.CODE_MAX_LENGTH]
+                        orderidentifier = value if value else None
+
+    # return values 'multiple_found' and 'value_too_long' return the lookup_value of the error field
+                        order, no_value, multiple_found, value_too_long, found_in_field = lookup_customer_or_order(
+                            'order', ordercode, orderidentifier, customer, request)
+
+                        if no_value:
+                            logfile.append('Order ' + (ordercode or '<blank>') + ' is skipped. No_value given for identifier and code.')
+                        elif value_too_long:
+                            logfile.append('Order ' + (ordercode or '<blank>') + " is skipped. Value '" + value_too_long + "' is too long. Max " + c.CODE_MAX_LENGTH + " characters.")
+                        elif multiple_found:
+                            logfile.append('Order ' + (ordercode or '<blank>') + " is skipped. Value '" + multiple_found + "' is found multiple times.")
+                        else:
+    # 2. order customer if order not found
+                            if order is None:
+                                if ordername is None:
+                                    ordername = ordercode
+                                order = m.Order(
+                                    customer=customer,
+                                    code=ordercode,
+                                    name=ordername
+                                )
+                                if orderidentifier:
+                                    setattr(order, 'identifier', orderidentifier)
+                                order.save(request=request)
+                                logfile.append('Order ' + str(order.code) + ' is created.')
+                            else:
+                                is_update = True
+
+                            if order:
+                                prefix = 'order'
+                                has_changes = False
+                                # 3. check if fields have changed
+                                for field in ('code', 'identifier', 'name', 'contactname', 'address',
+                                               'zipcode', 'city', 'country', 'email', 'telephone', 'datefirst', 'datelast'):
+                                    if (prefix + field) in tsaKey_list:
+                                        if field in ('datefirst', 'datelast'):
+                                            date_str = order_dict.get(field)
+                                            new_date_dte = None
+                                            old_date_dte = getattr(order, field)
+
+                                            if date_str and format_str:
+                                                date_iso = f.get_dateISO_from_string(date_str, format_str)
+                                                new_date_dte = f.get_date_from_ISO(
+                                                    date_iso)  # date_dte: 1900-01-01 <class 'datetime.date'>
+                                            logfile.append(" " * 10 + 'check changes in  ' + str(field) + ' ' + str(old_date_dte) + ' > ' + str(new_date_dte))
+
+                                            if new_date_dte != old_date_dte:
+                                                setattr(order, field, new_date_dte)
+                                                has_changes = True
+                                                old_date_str = old_date_dte.isoformat() if old_date_dte else '<blank>'
+                                                new_date_str = new_date_dte.isoformat() if new_date_dte else '<blank>'
+                                                old_str = ' is updated from: ' + old_date_str + ' to: ' if is_update else ''
+                                                fieldtext = 'first date of order' if field == 'datefirst' else 'last date of order'
+                                                logfile.append((" " * 10 + fieldtext + " " * 25)[:35] + old_str + new_date_str)
+                                        else:
+
+                                            if field in ('code', 'identifier'):
+                                                max_len = c.USERNAME_SLICED_MAX_LENGTH
+                                            elif field == 'telephone':
+                                                max_len = c.CODE_MAX_LENGTH
+                                            else:
+                                                max_len = c.NAME_MAX_LENGTH
+
+                                            value_str = order_dict.get(prefix + field, '')[0:max_len]
+                                            new_value = value_str if value_str else None
+                                            old_value = getattr(order, field)
+                                            logfile.append(" " * 10 + 'check changes in  ' + str(field) + ' ' + str(old_value) + ' > ' + str(new_value))
+                                            if new_value != old_value:
+                                                setattr(order, field, new_value)
+                                                has_changes = True
+                                                old_str = ' is updated from: ' + (
+                                                            old_value or '<blank>') + ' to: ' if is_update else ''
+                                                logfile.append(
+                                                    (" " * 10 + field + " " * 25)[:35] + old_str + (value_str or '<blank>'))
+
+                                if has_changes:
+                                    order.save(request=request)
+                                    logfile.append(" " * 10 + 'changes are saved')
+
+            # --- end for order in orders
+
+            # if update_list:  # 'Any' returns True if any element of the iterable is true.
+                # params['employee_list'] = update_list
+            if logfile:  # 'Any' returns True if any element of the iterable is true.
+                params['logfile'] = logfile
+                    # params.append(new_employee)
+
+         # return HttpResponse(json.dumps(params))
+        return HttpResponse(json.dumps(params, cls=LazyEncoder))
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+def lookup_customer_or_order(modelname, code, identifier, order_parent, request):  # PR2020-01-01
+    # function searches for existing order in the following order: code, identifier
+    instance = None
+    multiple_found = None
+    value_too_long = None
+    has_value_count = 0
+    found_in_field = None
+    for lookup_field in ('identifier', 'code'):
+        lookup_value = identifier if lookup_field == 'identifier' else code
+# B search order by identifier
+        if lookup_value:
+            has_value_count += 1
+        # check if value is not too long
+            if len(lookup_value) > c.CODE_MAX_LENGTH:
+                # dont lookup other fields when lookup_value is too long
+                value_too_long = lookup_value
+                break
+            else:
+        # check if identifier__iexact already exists
+                # don't use count - then you have to call the sql always twice, this way only when multiple found
+                row_count = 0
+                instance = None
+                instances = None
+                if modelname == 'customer':
+                    if lookup_field == 'identifier':
+                        instances = m.Customer.objects.filter(identifier__iexact=lookup_value,
+                                                                company=request.user.company)
+                    else:
+                        instances = m.Customer.objects.filter(code__iexact=lookup_value,
+                                                              company=request.user.company)
+                elif modelname == 'order':
+                    # identifier must be unique for company, ordercode must be unique for customer
+                    if lookup_field == 'identifier':
+                        instances = m.Order.objects.filter(identifier__iexact=lookup_value, customer=order_parent,
+                                                            customer__company=request.user.company)
+                    else:
+                        instances = m.Order.objects.filter(code__iexact=lookup_value, customer=order_parent,
+                                                            customer__company=request.user.company)
+                for instance in instances:
+                    row_count += 1
+                if row_count > 1:
+                    multiple_found = lookup_value
+                    instance = None
+                    break
+    # one instance found: dont search other field
+        if instance:
+            found_in_field = lookup_field
+            break
+    no_value = (has_value_count == 0)
+    return instance, no_value, multiple_found, value_too_long, found_in_field
 

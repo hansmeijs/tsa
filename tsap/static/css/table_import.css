@@ -171,7 +171,8 @@ a:hover{
     flex-wrap: wrap;
     justify-content: space-around /*center /* space-between;  space-around PR2019-01-05 try flexbox */
     align-items: flex-start;
-    border: 1px solid #2D4E77;    /*  #2D4E77; HeaderBackColor Default Schema Blauw donkerblauw */
+    border: none; /*border: 1px solid #2D4E77;    /*  #2D4E77; HeaderBackColor Default Schema Blauw donkerblauw */
+    border-color: #303024; /* dark dark Panta Rhei grey 48 48 36 */
 /*
     font-size: 14px;
     line-height: 1.25;
@@ -188,7 +189,7 @@ a:hover{
 
 .ea_flex > div {
     flex: 1;
-    border: 1px solid #2D4E77;    /*  #2D4E77; HeaderBackColor Default Schema Blauw donkerblauw */
+    border: 1px solid; /*solid #2D4E77;    /*  #2D4E77; HeaderBackColor Default Schema Blauw donkerblauw */
 }
 
 .li_flex {
@@ -239,9 +240,9 @@ a:hover{
     padding: 4px 8px;
 
     color: #376191;  /*FooterBackColor Default Schema Blauw donkerblauw */
-    background-color: #F5FAFF; */ /*licht licht blauw; */
-    /* background-color: #376191;  /*FooterBackColor Default Schema Blauw donkerblauw */
+    /*background-color: #F5FAFF; */ /*licht licht blauw; */
 
+    background-color: #f5f5f5; /* #f5f5f5 = 245 245 245  licht licht licht grijs;
     -webkit-box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
             box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
 
@@ -292,10 +293,12 @@ a:hover{
 .c_colExcelTsa_tr {
     /*background-color:    #a5c2ff; lighter blueish*/
     /*background-color: #B8CCE4; /* 'TextboxBackColor Default Schema Blauw lichtblauw */ /* #4A7DBB; /* 'TextboxBackColor Default Schema Blauw medium blauw */
-    color: #ffffff;
+    /* color: #ffffff; */
 
     color: #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
-    background-color: #d7e4f3; /*#d7e4f3 is even lighter blueish  #B8CCE4; /* 'TextboxBackColor Default Schema Blauw lichtblauw */
+    /* background-color: #d7e4f3; /*#d7e4f3 is even lighter blueish  #B8CCE4; /* 'TextboxBackColor Default Schema Blauw lichtblauw */
+    /*background-color: #f5f5f5; /* #f5f5f5 = 245 245 245  licht licht licht grijs; */
+    background-color:  #d8d8d8;  /* light grey 218 218 218 100%  /*  #e0e0e0; light grey 224 224 224 */
     text-align: left;
     padding: 4px 8px;
 
@@ -410,14 +413,14 @@ a:hover{
             box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
 }
 
-.c_form_text {
+.NIUc_form_text {
     font-size: 14px;
     margin: 8px;
     /*color: #E3EBF4; /*HeaderForeColor Default Schema Blauw */
     color: #376191;  /*FooterBackColor Default Schema Blauw donkerblauw */
 }
 
-.c_form_select {
+.NIUc_form_select {
     font-size: 14px;
     margin: 8px;
     width: 360px;
