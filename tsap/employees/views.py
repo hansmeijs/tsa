@@ -365,6 +365,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
 
     update_wrap = {}
     scheme_has_changed = False
+    team_has_changed = False
     teammembers_have_changed = False
     shifts_have_changed = False
 
@@ -448,6 +449,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                     scheme=scheme,
                     code=code_with_sequence)
                 team.save(request=request)
+                team_has_changed = True
 # --- TEAMMEMBER ---
                 # also add teammember without employee
                 teammember = m.Teammember(team=team)
@@ -605,6 +607,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                             teammember = None
                             if is_create:
                                 teammember = m.Teammember(team=parent_team)
+                                teammember.save(request=request)
                             else:
                                 teammember_pk = id_dict.get('pk')
                                 logger.debug('teammember_pk: ' + str(teammember_pk))
@@ -612,35 +615,10 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                                     teammember = m.Teammember.objects.get_or_none(id=teammember_pk, team=team)
                             logger.debug('teammembe ??? r: ' + str(teammember))
                             if teammember:
+                                update_dict = {}
+                                # teammember.save is part of update_teammember
+                                teammembers_have_changed = update_teammember(teammember, teammember_dict, update_dict, request)
 
-                                employee_dict = teammember_dict.get('employee')
-
-                                logger.debug('employee_dict: ' + str(employee_dict))
-                                if employee_dict:
-                                    if 'update' in employee_dict:
-                                        logger.debug('update in employee_dict: ')
-                                        employee = None
-                                        employee_pk = employee_dict.get('pk')
-                                        logger.debug('employee_pk: ' + str(employee_pk))
-                                        if employee_pk:
-                                            employee = m.Employee.objects.get_or_none(id=employee_pk, company=request.user.company)
-                                        # delete employee when None, therefore dont use 'if employee'
-
-                                        logger.debug('employee: ' + str(employee))
-                                        teammember.employee=employee
-                                        teammembers_have_changed = True
-                                replacement_dict = teammember_dict.get('replacement')
-                                if replacement_dict:
-                                    if 'update' in replacement_dict:
-                                        employee = None
-                                        employee_pk = replacement_dict.get('pk')
-                                        if employee_pk:
-                                            employee = m.Employee.objects.get_or_none(id=employee_pk, company=request.user.company)
-                                        # delete employee when None, therefore dont use 'if employee'
-                                        teammember.replacement_dict=employee
-                                        teammembers_have_changed = True
-                                if teammembers_have_changed:
-                                    teammember.save(request=request)
 
 # J create updated ordere_calendar_list
     datefirst_iso = upload_dict.get('calendar_datefirst')
@@ -662,29 +640,44 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
             update_wrap['order_calendar_list'] = calendar_dictlist
             update_wrap['calendar_header_dict'] = calendar_header_dict
 
-        # 8. update scheme_list when changes are made
-    if scheme_has_changed:
-        # all schemes are loaded when scheme page loaded, including template and inactive
-        scheme_list = pld.create_scheme_list(
-            request=request,
-            is_singleshift=None,
-            is_template=False,
-            inactive=None,
-            user_lang=user_lang
-        )
-        if scheme_list:
-            update_wrap['scheme_list'] = scheme_list
+# 8. update scheme_list when changes are made
+    filter_dict = {'order_pk': order_pk}
 
-    if shifts_have_changed:
-        update_wrap['shift_list'] = pld.create_shift_list(
-            customer_pk=None,
-            user_lang=user_lang,
-            request=request)
+    scheme_list = pld.create_scheme_list(
+        filter_dict=filter_dict,
+        company=request.user.company,
+        user_lang=user_lang)
 
-    if teammembers_have_changed:
-        teammember_list = d.create_teammember_list(filter_dict={}, company=request.user.company, user_lang=user_lang)
-        if teammember_list:
-            update_wrap['teammember_list'] = teammember_list
+    if scheme_list:
+        update_wrap['scheme_list'] = scheme_list
+
+    team_list = pld.create_team_list(
+        filter_dict=filter_dict,
+        company=request.user.company)
+    if team_list:
+        update_wrap['team_list'] = team_list
+
+    shift_list = pld.create_shift_list(
+        filter_dict=filter_dict,
+        company=request.user.company,
+        user_lang=user_lang)
+    if shift_list:
+        update_wrap['shift_list'] = shift_list
+
+    teammember_list = d.create_teammember_list(
+        filter_dict=filter_dict,
+        company=request.user.company,
+        user_lang=user_lang)
+    if teammember_list:
+        update_wrap['teammember_list'] = teammember_list
+
+    schemeitem_list = pld.create_schemeitem_list(
+        filter_dict=filter_dict,
+        company=request.user.company,
+        comp_timezone=comp_timezone,
+        user_lang=user_lang)
+    if schemeitem_list:
+        update_wrap['schemeitem_list'] = schemeitem_list
 
  # J. return update_wrap
     return update_wrap
@@ -1257,6 +1250,13 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
 
 def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25
     logger.debug('============= TeammemberUploadView ============= ')
+# Absence is updated in absence_upload
+
+# upload_dict =  {
+    # 'id': {'pk': 910, 'ppk': 1987, 'table': 'teammember'},
+    # 'datefirst': {'value': '2020-01-15', 'update': True}}
+    # 'employee': {'pk': 2576, 'ppk': 3, 'update': True}}
+    # 'replacement': {'pk': 2586, 'ppk': 3, 'update': True}}
 
     update_dict = {}
 
@@ -1314,7 +1314,7 @@ def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25
 
 # h. remove empty attributes from update_dict
         f.remove_empty_attr_from_dict(update_dict)
-        logger.debug('update_dict: ' + str(update_dict))
+        # logger.debug('update_dict: ' + str(update_dict))
 
 # J. return update_dict
     return update_dict
@@ -1402,7 +1402,7 @@ def update_teammember(instance, upload_dict, update_dict, request):
     # 'employee': {'pk': 2569, 'code': 'Crisostomo Ortiz, Rayna', 'workhoursperday': 480},
     # 'order': {'pk': 1265, 'ppk': 610, 'update': True}}
 
-    has_error = False
+    has_changed = False
     if instance:
 
 # 1. get iddict variables
@@ -1411,10 +1411,14 @@ def update_teammember(instance, upload_dict, update_dict, request):
 
 # --- get field_dict from  item_dict if it exists
             field_dict = upload_dict[field] if field in upload_dict else {}
+            logger.debug('field_dict' + str(field_dict))
             if field_dict:
                 if 'update' in field_dict:
                     logger.debug('field: ' + str(field))
                     logger.debug('field_dict: ' + str(field_dict))
+
+                    if field not in update_dict:
+                        update_dict[field] = {}
 
                     is_updated = False
 # a. get new_value
@@ -1498,11 +1502,11 @@ def update_teammember(instance, upload_dict, update_dict, request):
         if save_changes:
             try:
                 instance.save(request=request)
+                has_changed = True
             except:
                 update_dict['id']['error'] = _('This teammember could not be updated.')
-                has_error = True
 
-    return has_error
+    return has_changed
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

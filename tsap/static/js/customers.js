@@ -184,7 +184,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_modshift_btn_delete = document.getElementById("id_modshift_btn_delete");
             el_modshift_btn_delete.addEventListener("click", function() {MSO_Save("delete")}, false );
 
-
 // ---  put datefirst datelast in input boxes
         let el_modshift_datefirst = document.getElementById("id_modshift_datefirst")
             el_modshift_datefirst.addEventListener("change", function() {MSO_SchemeDateChanged("datefirst")}, false );
@@ -572,7 +571,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleSelect_Row ================ PR2019-08-28
     function HandleSelect_Row(sel_tr_clicked) {
-        //console.log( "===== HandleSelect_Row  ========= ");
+        console.log( "===== HandleSelect_Row  ========= ");
         // selectRow contains customers, in calendar mod it contains orders
 
         if(!!sel_tr_clicked) {
@@ -609,6 +608,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 //console.log( "sel_cust_code: ", sel_cust_code);
                 //console.log( "sel_order_code: ", sel_order_code);
+                const datalist_request = {
+                    scheme: {istemplate: false, inactive: null, issingleshift: null},
+                    schemeitem: {customer_pk: selected_customer_pk,
+                                 order_pk: selected_order_pk}, // , issingleshift: false},
+                    shift: {istemplate: false},
+                    team: {istemplate: false},
+                    teammember: {customer_pk: selected_customer_pk,
+                                 order_pk: selected_order_pk},
+                    employee: {inactive: null}
+                    };
+                DatalistDownload(datalist_request);
+
 
 // --- save selected_customer_pk in Usersettings
                 const upload_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
@@ -2720,9 +2731,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         el_modshift_teamcode.value = team_code;
 
-// ---  fill teammeber tblBody
-        let teammember_dict = {};
-        MSO_FillTableTeammember()
+// ---  fill tabe teammembers
+        const fieldsettings = {tblName: "teammember", colcount: 5,
+                                caption: ["Employee", "Start_date", "End_date", "Replacement_employee"],
+                                name: ["employee", "datefirst", "datelast", "replacement", "delete"],
+                                tag: ["div", "input", "input", "div", "a"],
+                                width: ["180", "150", "150", "180", "032"],
+                                align: ["left", "left", "left", "left", "right"]}
+        MSO_CreateTblTeammemberHeader(fieldsettings);
+        MSO_CreateTblTeammemberFooter()
+        MSO_FillTableTeammember();
 
 // ---  display offset, selected values are shown because they are added to mod_upload_dict
         ModShiftUpdateInputboxes()
@@ -2745,7 +2763,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_modshift_datelast").readOnly = false;
 
 // ---  reset weekdays, don't disable
-        MSO_BtnWeekdayFormat(false);
+        MSO_BtnWeekdaySchemeitemsFormat(false);
 
 // --- set excluded checkboxen upload_dict, don't disable
         el_modshift_publicholiday.checked = scheme_excludepublicholiday;
@@ -3269,7 +3287,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         }  // if(!!sel_tr_clicked)
        //-----------------------------------------------
-    }
+    }  // MSO_SelectOrderRowClicked
 
 //=========  MSO_FilterEmployee  ================ PR2019-11-23
     function MSO_FilterEmployee(el_filter) {
@@ -3307,7 +3325,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // reset weekdays, disable
 
-        MSO_BtnWeekdayFormat(once_only);
+        MSO_BtnWeekdaySchemeitemsFormat(once_only);
     }; // function MSO_OnceOnly
 
 //=========  MSO_SchemeDateChanged  ================ PR2020-01-03
@@ -3332,9 +3350,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }; // function MSO_PublicholidayChanged
 
-//=========  MSO_BtnWeekdayFormat  ================ PR2019-12-06
-    function MSO_BtnWeekdayFormat(is_disable_btns) {
-        console.log( "===== MSO_BtnWeekdayFormat  ========= ");
+//=========  MSO_BtnWeekdaySchemeitemsFormat  ================ PR2019-12-06
+    function MSO_BtnWeekdaySchemeitemsFormat(is_disable_btns) {
+        console.log( "===== MSO_BtnWeekdaySchemeitemsFormat  ========= ");
 
         // this function resets weekdays
         // on 'onceonly' only weekday_index  has value: select this weekday_index, disable rest
@@ -3344,8 +3362,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const weekday_index = get_subdict_value_by_key(mod_upload_dict, "calendar", "weekday_index")
         const selected_weekday_list = get_subdict_value_by_key(mod_upload_dict, "calendar", "weekday_list")
-        console.log( "mod_upload_dict: ", mod_upload_dict);
-        console.log( "selected_weekday_list: ", selected_weekday_list);
+        //console.log( "mod_upload_dict: ", mod_upload_dict);
+        //console.log( "selected_weekday_list: ", selected_weekday_list);
 
         btns = document.getElementById("id_modshift_weekdays").children;
         for (let i = 0, btn, btn_index, len = btns.length; i < len; i++) {
@@ -3369,6 +3387,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.classList.remove("tsa_bc_medium_green");
             btn.classList.remove("tsa_color_white");
             btn.classList.remove("tsa_fontweight_bold");
+            btn.classList.remove("tsa_bc_white")
 
             const data_value = (btn_weekday_index === weekday_index) ? (has_schemeitem) ? "selected" : "create" : "not_selected"
             btn.setAttribute("data-selected", data_value);
@@ -3396,17 +3415,83 @@ document.addEventListener('DOMContentLoaded', function() {
 
             btn.disabled = is_disable_btns;
         }
-    }; // MSO_BtnWeekdayFormat
+    }; // MSO_BtnWeekdaySchemeitemsFormat
+
+//=========  MSO_BtnWeekdayTeammemberFormat  ================ PR2019-12-06
+    function MSO_BtnWeekdayTeammemberFormat() {
+        console.log( "===== MSO_BtnWeekdayTeammemberFormat  ========= ");
+
+        // this function resets weekdays of teammembers
+        // existing shifts have weekday_list with schemitems of selected weekdays,
+        // listindex is weekday index, first one is not in use
+        // weekday_list: (8) [[], [], [1057, 1058, 1059], ... , []]
+        // weekdays without schemeitem have white background
+        const weekday_index = get_subdict_value_by_key(mod_upload_dict, "calendar", "weekday_index")
+        const selected_weekday_list = get_subdict_value_by_key(mod_upload_dict, "calendar", "weekday_list")
+        //console.log( "mod_upload_dict: ", mod_upload_dict);
+        console.log( "selected_weekday_list: ", selected_weekday_list);
+
+        btns = document.getElementById("id_modshift_weekdays").children;
+        for (let i = 0, btn, btn_index, len = btns.length; i < len; i++) {
+            btn = btns[i];
+
+            let schemeitem_pk = 0;
+            let has_schemeitem = false;
+            const btn_weekday_index = get_attr_from_el_int(btn, "data-weekday");
+            const arr = selected_weekday_list[btn_weekday_index];
+            if (!!arr){
+                for (let j = 0, len = arr.length; j < len; j++) {
+                    has_schemeitem = (!!arr[j]);
+                    if (arr[j] === mod_upload_dict.schemeitem.pk ){
+                        schemeitem_pk = arr[j];
+                    }
+                }
+            }
+
+            btn.classList.remove("tsa_bc_darkgrey");
+            btn.classList.remove("tsa_bc_mediumred");
+            btn.classList.remove("tsa_bc_medium_green");
+            btn.classList.remove("tsa_color_white");
+            btn.classList.remove("tsa_fontweight_bold");
+            btn.classList.remove("tsa_bc_white")
+
+            const data_value = (btn_weekday_index === weekday_index) ? (has_schemeitem) ? "selected" : "create" : "not_selected"
+            btn.setAttribute("data-selected", data_value);
+
+            if(has_schemeitem){
+                // existing schemeitem: can be selected > delete > unselected
+                btn.classList.add("tsa_fontweight_bold");
+                if (data_value === "selected"){
+                    btn.classList.add("tsa_bc_darkgrey");
+                    btn.classList.add("tsa_color_white");
+                }
+            } else{
+                // new schemeitem: can be addnww or unselected
+                btn.classList.add("tsa_bc_white")
+            }
+            if (data_value === "selected"){
+               // btn.classList.add("tsa_bc_darkgrey");
+                //btn.classList.add("tsa_color_white");
+            } else if (data_value === "create"){
+               // btn.classList.add("tsa_bc_medium_green")
+            // datavalue=delete happens only in MSO_BtnWeekdayClicked
+            //} else if (data_value === "delete"){
+            //    btn.classList.add("tsa_bc_mediumred")
+            }
+
+            //btn.disabled = is_disable_btns;
+        }
+    }; // MSO_BtnWeekdayTeammemberFormat
 
 //========= MSO_BtnWeekdayClicked  ============= PR2019-11-23
     function MSO_BtnWeekdayClicked(btn) {
-        console.log( "=== MSO_BtnWeekdayClicked ");
+        //console.log( "=== MSO_BtnWeekdayClicked ");
 
         const btn_weekday = get_attr_from_el_int(btn, "data-weekday")
         const selected_weekday_list = get_subdict_value_by_key(mod_upload_dict, "calendar", "weekday_list")
         const schemeitem_pk =  selected_weekday_list[btn_weekday]
-        console.log( "btn_weekday", btn_weekday);
-        console.log( "schemeitem_pk", schemeitem_pk);
+        //console.log( "btn_weekday", btn_weekday);
+        //console.log( "schemeitem_pk", schemeitem_pk);
 
         let list_length = 0;
         if (!!selected_weekday_list[btn_weekday]){list_length = selected_weekday_list[btn_weekday].length}
@@ -3439,13 +3524,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     } // MSO_BtnWeekdayClicked
 
-
-
-
-
 //=========  MSO_BtnShiftTeamClicked  ================ PR2019-12-06
     function MSO_BtnShiftTeamClicked(mod) {
-        console.log( "===== MSO_BtnShiftTeamClicked  ========= ");
+        //console.log( "===== MSO_BtnShiftTeamClicked  ========= ");
 
 // ---  select btn_singleshift / btn_schemeshift
         // mod_= mod_shift or mod_team
@@ -3455,6 +3536,12 @@ document.addEventListener('DOMContentLoaded', function() {
         set_element_class("id_modshift_btn_shift", (mod === "mod_shift"), cls_btn_selected)
         set_element_class("id_modshift_btn_employees", (mod === "mod_team"), cls_btn_selected)
 
+        if(mod === "mod_shift"){
+            MSO_BtnWeekdaySchemeitemsFormat()
+        } else  if(mod === "mod_team"){
+            MSO_BtnWeekdayTeammemberFormat()
+        }
+
 // ---  show only the elements that are used in this mod
         MSO_ShowElements(mod)
 
@@ -3462,14 +3549,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MSO_SelectShiftChanged  ================ PR2019-12-24
     function MSO_SelectShiftChanged(el_input) {
-        console.log( "===== MSO_SelectShiftChanged  ========= ");
+        //console.log( "===== MSO_SelectShiftChanged  ========= ");
 
         const pk_str = el_input.value;
-        console.log( "pk_str: ", pk_str, typeof pk_str);
+        //console.log( "pk_str: ", pk_str, typeof pk_str);
         // also new shifts can be selected , with pk 'new3', only when pk = 0 a new shift must be created
         if(pk_str !== "0"){
             const shift_dict = get_mapdict_from_datamap_by_tblName_pk(shift_map, "shift", pk_str)
-            console.log( "shift_dict: ", shift_dict, typeof shift_dict);
+            //console.log( "shift_dict: ", shift_dict, typeof shift_dict);
             if (!isEmpty(shiftmap_dict)){
 
 // ---  lookup shift_map, get shift info from shift_map
@@ -3495,7 +3582,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!!new_shift_code){el_modshift_shiftcode.value = new_shift_code};
              }
         } else {
-                //console.log( " ==== MSO_AddTeammember ====");
+
 // ---  create new shift
         // ---  get selected scheme_pk from mod_upload_dict
                 const selected_scheme_pk = mod_upload_dict.scheme.pk;
@@ -3521,17 +3608,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // put values in mod_upload_dict.shift
                 mod_upload_dict.shift = {pk: pk_str, ppk: selected_scheme_pk, code: new_shift_code,
                                      offsetstart: null, offsetend: null,
-                                     breakduration: 0, timeduration: 0},
+                                     breakduration: 0, timeduration: 0};
 
-                console.log("mod_upload_dict.shift_list")
-                console.log(mod_upload_dict.shift_list)
+                //console.log("mod_upload_dict.shift_list")
+                //console.log(mod_upload_dict.shift_list)
         // ---  reset input boxes
                 //MSO_FillTableTeammember()
         }
 // ---  display offset
         ModShiftUpdateInputboxes()
 
-        console.log( "mod_upload_dict.value: ", mod_upload_dict);
+        //console.log( "mod_upload_dict.value: ", mod_upload_dict);
     }; // function MSO_SelectShiftChanged
 
 //=========  MSO_SelectTeamChanged  ================ PR2019-12-24
@@ -3579,6 +3666,36 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "mod_upload_dict[field]: ", field,  mod_upload_dict[field]);
     }; // function MSO_ShiftcodeOrTeamcodeChanged
 
+//=========  MSO_TeammemberDateChanged  ================ PR2020-01-04
+    function MSO_TeammemberDateChanged(el_input) {
+        console.log( "===== MSO_TeammemberDateChanged  ========= ");
+        console.log( "el_input: ", el_input);
+
+        const tblRow = get_tablerow_selected(el_input);
+        const sel_teammember_pk_str = get_attr_from_el(tblRow, "data-pk");
+        const sel_date_field = get_attr_from_el_str(el_input, "data-field")
+        const new_date = el_input.value;
+
+// --- lookup teammember_dict in mod_upload_dict.teammember_list
+        let sel_teammember_dict = {};
+        for (let i = 0; i < mod_upload_dict.teammember_list.length; i++) {
+            let sel_teammember_dict = mod_upload_dict.teammember_list[i];
+            if(!isEmpty(sel_teammember_dict)){
+                const pk_int = get_subdict_value_by_key(sel_teammember_dict, "id", "pk")
+                if(!!pk_int && pk_int.toString() === sel_teammember_pk_str) {
+                    console.log("==============---sel_teammember_dict", sel_teammember_dict );
+                    if (!(sel_date_field in sel_teammember_dict)){ sel_teammember_dict[sel_date_field] = {} }
+                    sel_teammember_dict[sel_date_field]["value"] = new_date;
+                    sel_teammember_dict[sel_date_field]["update"] = true;
+                    sel_teammember_dict["update"] = true;
+                    break;
+                }  // if((!!pk_int && pk_int === sel_teammember_pk)
+            }  // if(!isEmpty(dict))
+        }; //   for (let i = 0; i < mod_upload_dict.teammember_list.length; i++) {
+
+        console.log( "mod_upload_dict: ", mod_upload_dict);
+    }; // function MSO_TeammemberDateChanged
+
 //=========  MSO_BtnSaveDeleteEnable  ================ PR2019-11-23
     function MSO_BtnSaveDeleteEnable(){
         //console.log( "MSO_BtnSaveDeleteEnable");
@@ -3596,6 +3713,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- hide select_order when order_pk has value
     }  // MSO_BtnSaveDeleteEnable
+
 //=========  MSO_BtnSaveEnable  ================ PR2019-11-23
     function MSO_ShowElements(mod){
         //console.log( "===  MSO_BtnSaveEnable  =====");
@@ -3738,7 +3856,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= MSO_FillTableTeammember  ====================================
     function MSO_FillTableTeammember(){
         console.log( "===== MSO_FillTableTeammember  ========= ");
-        // this function is called by MSO_Open
 
         const fieldsettings = {tblName: "teammember", colcount: 5,
                                 caption: ["Employee", "Start_date", "End_date", "Replacement_employee"],
@@ -3747,37 +3864,42 @@ document.addEventListener('DOMContentLoaded', function() {
                                 width: ["180", "150", "150", "180", "032"],
                                 align: ["left", "left", "left", "left", "right"]}
 
-        MOSCreateTblHeader(fieldsettings)
-        MOSCreateTblFooter()
-
 // --- reset tblBody
         // id_tbody_teammember is on modeordershift.html
         let tblBody = document.getElementById("id_tbody_teammember");
         tblBody.innerText = null;
 
 // --- loop through mod_upload_dict.teammember_list
-        let selected_team_pk = mod_upload_dict.team.pk
+        let selected_team_pk = get_subsubdict_value_by_key(mod_upload_dict, "team", "id", "pk");
+        console.log( "selected_team_pk: ", selected_team_pk);
+
         const len = mod_upload_dict.teammember_list.length;
+        console.log( "len: ", len);
         if(!!len){
             for (let i = 0; i < len; i++) {
                 let teammember_dict = mod_upload_dict.teammember_list[i];
                 if(!isEmpty(teammember_dict)){
+        console.log( "teammember_dict: ", teammember_dict);
                     // show only rows of selected_team_pk, show none if null
                     // also skip rows when 'delete' in id
                     const row_team_pk = get_subdict_value_by_key(teammember_dict, "id", "ppk")
                     const row_is_delete = get_subdict_value_by_key(teammember_dict, "id", "delete", false)
+        console.log( "row_team_pk: ", row_team_pk);
+        console.log( "row_is_delete: ", row_is_delete);
+        console.log( "selected_team_pk: ", selected_team_pk);
                     if((!!row_team_pk && row_team_pk === selected_team_pk) && !row_is_delete) {
-                        let tblRow = MSO_CreateTblRow(fieldsettings, teammember_dict);
-                        MOSUpdateTableRow(tblRow, teammember_dict);
+                        let tblRow = MSO_CreateTblTeammemberRow(fieldsettings, teammember_dict);
+                        MSO_TeammemberUpdateTableRow(tblRow, teammember_dict);
+        console.log( "MOSUpdateTableRow: ");
                     }
                 }
             }  //   for (let i = 0; i < len; i++)
         } //  if(!!len)
     }  // MSO_FillTableTeammember
 
-//=========  MOSCreateTblHeader  === PR2019-11-09
-    function MOSCreateTblHeader(fieldsettings) {
-        //console.log("===  MOSCreateTblHeader == ");
+//=========  MSO_CreateTblTeammemberHeader  === PR2019-11-09
+    function MSO_CreateTblTeammemberHeader(fieldsettings) {
+        //console.log("===  MSO_CreateTblHeader == ");
         let tblHead = document.getElementById("id_thead_teammember");
         tblHead.innerText = null
         let tblRow = tblHead.insertRow (-1);
@@ -3799,11 +3921,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_div.classList.add("text_align_" + fieldsettings.align[j])
             th.appendChild(el_div)
         }  // for (let j = 0; j < column_count; j++)
-    };  //function MOSCreateTblHeader
+    };  //function MSO_CreateTblTeammemberHeader
 
-//=========  MOSCreateTblFooter  === PR2019-11-26
-    function MOSCreateTblFooter(){
-        //console.log("===  MOSCreateTblFooter == ");
+//=========  MSO_CreateTblTeammemberFooter  === PR2019-11-26
+    function MSO_CreateTblTeammemberFooter(){
+        //console.log("===  MSO_CreateTblTeammemberFooter == ");
 
         let tblFoot = document.getElementById("id_tfoot_teammember");
         tblFoot.innerText = null;
@@ -3826,10 +3948,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 td.appendChild(el);
             }
         }
-    };  //function MOSCreateTblFooter
+    };  //function MSO_CreateTblTeammemberFooter
 
-//=========  MSOCreateTblRow  ================ PR2019-09-04
-    function MSO_CreateTblRow(fieldsettings, teammember_dict){
+//=========  MSO_CreateTblTeammemberRow  ================ PR2019-09-04
+    function MSO_CreateTblTeammemberRow(fieldsettings, teammember_dict){
+        //console.log("--- MSO_CreateTblTeammemberRow  --------------");
 
         // console.log("=========  MSOCreateTblRow =========");
         const tblName = "teammember";
@@ -3875,7 +3998,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 } else if ([1, 2].indexOf( j ) > -1){
                     el.setAttribute("type", "date")
-                    el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false);
+                    el.addEventListener("change", function() {MSO_TeammemberDateChanged(el)}, false);
                     // class input_popup_date is necessary to skip closing popup
                     el.classList.add("input_popup_date")
                 };
@@ -3899,7 +4022,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return tblRow
 
-    };// MSOCreateTblRow
+    };// MSO_CreateTblTeammemberRow
 
 //=========  CreateBtnDelete  ================ PR2019-10-23
     function CreateBtnDelete(el){
@@ -3917,9 +4040,9 @@ document.addEventListener('DOMContentLoaded', function() {
         AppendChildIcon(el, imgsrc_delete)
     }  // CreateBtnDelete
 
-//========= MOSUpdateTableRow  =============
-    function MOSUpdateTableRow(tblRow, update_dict){
-        //console.log("--- MOSUpdateTableRow  --------------");
+//========= MSO_TeammemberUpdateTableRow  =============
+    function MSO_TeammemberUpdateTableRow(tblRow, update_dict){
+        //console.log("--- MSO_TeammemberUpdateTableRow  --------------");
         //console.log("update_dict", update_dict);
 
 // format of update_dict is : { id: {table: "customer", pk: 504, ppk: 2, temp_pk: "customer_504"}
@@ -3998,17 +4121,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     // el_input is first child of td, td is cell of tblRow
                     let el_input = tblRow.cells[i].children[0];
                     if(!!el_input){
-                        MOSUpdateField(el_input, update_dict);
+                        MSO_TeammemberUpdateField(el_input, update_dict);
                     };  // if(!!el_input)
                 }  //  for (let j = 0; j < 8; j++)
             } // if (!!tblRow)
         };  // if (!isEmpty(update_dict) && !!tblRow)
-    }  // function MOSUpdateTableRow
+    }  // function MSO_TeammemberUpdateTableRow
 
-//========= MOSUpdateField  ============= PR2019-10-09
-    function MOSUpdateField(el_input, update_dict) {
+//========= MSO_TeammemberUpdateField  ============= PR2019-10-09
+    function MSO_TeammemberUpdateField(el_input, update_dict) {
         const fldName = get_attr_from_el(el_input, "data-field");
-        //console.log(" --- MOSUpdateField ---");
+        //console.log(" --- MSO_TeammemberUpdateField ---");
         //console.log("update_dict ", update_dict);
         //console.log("fldName ", fldName);
 
@@ -4024,10 +4147,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const field_dict = get_dict_value_by_key (update_dict, fldName);
 
             if (["datefirst", "datelast"].indexOf( fldName ) > -1){
-                const hide_weekday = true, hide_year = false;
-                const el_msg = null;
-                format_date_element (el_input, el_msg, field_dict, loc.month_list, loc.weekday_list,
-                            loc.user_lang, loc.comp_timezone, hide_weekday, hide_year)
+                //const hide_weekday = true, hide_year = false;
+                //const el_msg = null;
+                //format_date_element (el_input, el_msg, field_dict, loc.month_list, loc.weekday_list,
+                //            loc.user_lang, loc.comp_timezone, hide_weekday, hide_year)
+                const value = get_dict_value_by_key(field_dict, "value")            ;
+                el_input.value = value;
             } else if (["employee", "replacement"].indexOf( fldName ) > -1){
                 const value = get_dict_value_by_key (field_dict, "code", "---");
                 const pk_int = get_dict_value_by_key (field_dict, "pk")
@@ -4038,36 +4163,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_input.innerText = value;
             };
         } // if (isEmpty(update_dict))
-   }; // MOSUpdateField
+   }; // MSO_TeammemberUpdateField
 
 //========= MSO_AddTeammember  ============= PR2019-12-31
     function MSO_AddTeammember() {
         //console.log( " ==== MSO_AddTeammember ====");
 
 // ---  get selected team_pk from mod_upload_dict
-        const selected_team_pk = mod_upload_dict.team.pk;
-        const selected_team_ppk = mod_upload_dict.team.ppk;
-        const selected_team_code = mod_upload_dict.team.code;
+        const team_dict = get_dict_value_by_key(mod_upload_dict, "team");
+        if(!isEmpty(team_dict)) {
+            //console.log( "team_dict: ", team_dict);
+            const selected_team_pk = get_subdict_value_by_key(team_dict, "id", "pk");
+            const selected_team_ppk = get_subdict_value_by_key(team_dict, "id", "ppk");
+            const selected_team_code = get_subdict_value_by_key(team_dict, "code", "value");
+            //console.log( "selected_team_pk: ", selected_team_pk);
+            //console.log( "selected_team_ppk: ", selected_team_ppk);
+            //console.log( "selected_team_code: ", selected_team_code);
 
-// ---  create new map_id
-        // get new temp_pk
-        id_new = id_new + 1
-        const pk_str = "new" + id_new.toString()
-        const tblName = "teammember";
-        const new_map_id = get_map_id(tblName, pk_str);
+    // ---  create new map_id
+            // get new temp_pk
+            id_new = id_new + 1
+            const pk_str = "new" + id_new.toString()
+            const tblName = "teammember";
+            const new_map_id = get_map_id(tblName, pk_str);
 
-// ---  create new_teammember_dict
-        let new_teammember_dict = {
-                id: {pk: pk_str, ppk: selected_team_pk, create: true},
-                team: {pk: selected_team_pk, ppk: selected_team_ppk, code: selected_team_code},
-                update: true
-                };
-        //teammember_map.set(new_map_id, new_teammember_dict);
-        mod_upload_dict.teammember_list.push(new_teammember_dict)
-        //console.log("mod_upload_dict.teammember_list")
-        //console.log(mod_upload_dict.teammember_list)
+    // ---  create new_teammember_dict
+            let new_teammember_dict = {
+                    id: {pk: pk_str, ppk: selected_team_pk, create: true},
+                    team: {pk: selected_team_pk, ppk: selected_team_ppk, code: selected_team_code},
+                    update: true
+                    };
+            //console.log( "new_teammember_dict: ", new_teammember_dict);
+            //teammember_map.set(new_map_id, new_teammember_dict);
+            mod_upload_dict.teammember_list.push(new_teammember_dict)
+            //console.log("mod_upload_dict.")
+            //console.log(mod_upload_dict)
 
-        MSO_FillTableTeammember()
+            MSO_FillTableTeammember()
+        }  //   if(!isEmpty(team_dict)) {
 
     }  // MSO_AddTeammember
 
@@ -4192,7 +4325,6 @@ document.addEventListener('DOMContentLoaded', function() {
         $("#id_mod_employee").modal({backdrop: true});
 
     };  // ModEmployeeOpen
-
 
 //=========  ModEmployeeSelect  ================ PR2019-05-24
     function ModEmployeeSelect(tblRow) {

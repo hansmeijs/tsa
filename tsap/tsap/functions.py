@@ -1,5 +1,6 @@
 # PR2018-05-28
 from datetime import date, time, datetime, timedelta
+from django.db.models.functions import  Lower
 from django.utils.translation import ugettext_lazy as _
 
 from tsap.settings import TIME_ZONE
@@ -261,7 +262,7 @@ def get_datetime_utc_from_offset(rosterdate, offset_int, comp_timezone):
 
         # a. add local timezone to naive datetime object with offset_int
 
-        logger.debug('# a. add local timezone to naive datetime object with offset_int ')
+        # logger.debug('# a. add local timezone to naive datetime object with offset_int ')
         dt_local = get_datetimelocal_from_offset(
             rosterdate=rosterdate,
             offset_int=offset_int,
@@ -672,8 +673,8 @@ def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
 
 
 def detect_dateformat(dict_list, field):
-    logger.debug(' --- detect_dateformat ---')
-    logger.debug('field: ' + str(field) + ' ' + ' dict_list: ' + str(dict_list))
+    #logger.debug(' --- detect_dateformat ---')
+    #logger.debug('field: ' + str(field) + ' ' + ' dict_list: ' + str(dict_list))
     # PR2019-08-05  detect date format
     format_str = ''
     date_string = ''
@@ -744,10 +745,11 @@ def detect_dateformat(dict_list, field):
                 if day_pos == 1:
                     format_str = 'mm-dd-yyyy'
 
-        logger.debug('format_str: ' + str(format_str) + ' max00: ' + str(arr00_max) + ' max01: ' + str(arr01_max) + ' max02: ' + str(arr02_max))
+        #logger.debug('format_str: ' + str(format_str) + ' max00: ' + str(arr00_max) + ' max01: ' + str(arr01_max) + ' max02: ' + str(arr02_max))
 
     except:
-        logger.debug('detect_dateformat error: ' + str(date_string))
+        pass
+        #logger.debug('detect_dateformat error: ' + str(date_string))
 
     return format_str
 
@@ -2185,7 +2187,78 @@ def display_offset_time (offset, timeformat, user_lang, blank_when_zero, skip_pr
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+# <<<<<<<<<< calc_timeduration_from_shift >>>>>>>>>>>>>>>>>>> PR2020-01-04
+def calc_timeduration_from_values(is_restshift, offsetstart, offsetend, breakduration, saved_timeduration):
 
+    timeduration_minus_break = 0
+    if not is_restshift:
+        if offsetstart is not None and offsetend is not None:
+            timeduration = offsetend - offsetstart
+        else:
+            timeduration = saved_timeduration
+        timeduration_minus_break = timeduration - breakduration
+
+    return timeduration_minus_break
+
+# <<<<<<<<<< calc_timeduration_from_shift >>>>>>>>>>>>>>>>>>> PR2020-01-04
+def calc_timeduration_from_schemitem(schemeitem):
+    # function calculates timeduration from values in shift, if no shift: get from schemeitem
+    # if both offsetstart and offsetend have value: timeduration is calculated
+    # else: use stored value of timeduration
+    # timeduration = 0 in restshift
+    # timeduration_minus_break is used in field 'timeduration' in shift_dict
+    # timeduration is used for minoffset and maxoffset
+
+    is_restshift = False
+    offsetstart = None
+    offsetend = None
+    breakduration = 0
+    timeduration = 0
+    timeduration_minus_break = 0
+
+    if schemeitem:
+        shift = schemeitem.shift
+        if shift:
+            is_restshift, offsetstart, offsetend, breakduration, \
+            timeduration_minus_break, timeduration = calc_timeduration_from_shift(shift)
+        else:
+            is_restshift, offsetstart, offsetend, breakduration, \
+            timeduration_minus_break, timeduration = calc_timeduration_from_shift(schemeitem)
+
+    return is_restshift, offsetstart, offsetend, breakduration, timeduration_minus_break, timeduration
+
+
+# <<<<<<<<<< calc_timeduration_from_shift >>>>>>>>>>>>>>>>>>> PR2020-01-04
+def calc_timeduration_from_shift(shift):
+    # function calculates timeduration from values in shift
+    # if both offsetstart and offsetend have value: timeduration is calculated
+    # else: use stored value of timeduration
+    # timeduration = 0 in restshift
+    # timeduration_minus_break is used in field 'timeduration' in shift_dict
+    # timeduration is used for minoffset and maxoffset
+
+    is_restshift = False
+    offsetstart = None
+    offsetend = None
+    breakduration = 0
+    timeduration = 0
+    timeduration_minus_break = 0
+
+    if shift:
+        offsetstart = getattr(shift, 'offsetstart')  # offsetstart can have value 'None'
+        offsetend = getattr(shift, 'offsetend')  # offsetend can have value 'None'
+        breakduration = getattr(shift, 'breakduration', 0)
+        saved_timeduration = getattr(shift, 'timeduration', 0)
+        is_restshift = getattr(shift, 'isrestshift', False)
+
+        if not is_restshift:
+            if offsetstart is not None and offsetend is not None:
+                timeduration = offsetend - offsetstart
+            else:
+                timeduration = saved_timeduration
+            timeduration_minus_break = timeduration - breakduration
+
+    return is_restshift, offsetstart, offsetend, breakduration, timeduration_minus_break, timeduration
 
 # <<<<<<<<<< calc_timestart_time_end_from_offset >>>>>>>>>>>>>>>>>>> PR2019-12-10
 def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, breakduration, is_restshift, comp_timezone):
@@ -2429,9 +2502,10 @@ def set_calendar_publicholidays(year, month, day, code, request):
 
 
 def get_code_with_sequence(table, parent, user_lang):
+    logger.debug(' --- get_code_with_sequence --- ')
+    logger.debug('table: ' + str(table))
     # create new code with sequence 1 higher than existing code PR2019-12-28
     # get scheme names of this order
-    max_index = 0
     default_code = ''
     instances = None
     if table == 'scheme':
@@ -2444,16 +2518,49 @@ def get_code_with_sequence(table, parent, user_lang):
         default_code = c.SHIFT_TEXT[user_lang]
         instances = m.Shift.objects.filter(scheme=parent, code__istartswith=default_code, istemplate=False)
 
+    new_code = default_code
     default_code_len = len(default_code)
-    if instances:
+    logger.debug('default_code: ' + str(default_code))
+    logger.debug('default_code_len: ' + str(default_code_len))
+
+    count = 0
+    if table == 'team':
+        max_index = 64
         for item in instances:
+            count += 1
+            index_str = item.code[default_code_len:].strip()
+            logger.debug('index_str: ' + str(index_str))
+            if index_str:
+                if len(index_str) == 1:
+                    index = ord(index_str)
+                    logger.debug('index: ' + str(index))
+                    if 65 <= index < 90 or 97 <= index < 122:
+                        logger.debug('65 <= index < 90 or 97 <= index < 122: ' + str(index))
+                        if index > max_index:
+                            max_index = index
+                            logger.debug('max_index: ' + str(max_index))
+        if count + 64 > max_index:
+            max_index = count + 64
+        new_code = default_code + ' ' + chr(max_index + 1)
+    else:
+        max_index = 0
+        for item in instances:
+            count += 1
             index_str = item.code[default_code_len:].strip()
             if index_str:
+                is_number = False
                 index = 0
                 try:
                     index = int(index_str)
+                    is_number = True
                 except:
                     pass
-                if index > max_index:
-                    max_index = index
-    return default_code + ' ' + str(max_index + 1)
+                if is_number:
+                    if index > max_index:
+                        max_index = index
+            else:
+                max_index = 1
+
+        new_code = default_code + ' ' + str(max_index + 1)
+    logger.debug('new_code: ' + str(new_code))
+    return new_code

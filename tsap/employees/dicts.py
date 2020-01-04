@@ -121,35 +121,19 @@ def create_teammember_list(filter_dict, company, user_lang):
     # --- create list of all teammembers of this order PR2019-08-29
     logger.debug(' ----- create_teammember_list  -----  ')
     logger.debug('filter_dict' + str(filter_dict) )
-    # teammember: {order_pk: null datefirst: null datelast: null}
+    # teammember: {customer_pk: selected_customer_pk, order_pk: selected_order_pk},
 
-    cat = filter_dict.get('cat')
-    datefirst = filter_dict.get('datefirst')
-    datelast = filter_dict.get('datelast')
-    order = filter_dict.get('order')
+    customer_pk = filter_dict.get('customer_pk')
+    order_pk = filter_dict.get('order_pk')
     employee_nonull = filter_dict.get('employee_nonull', False)
 
     crit = Q(team__scheme__order__customer__company=company)
     if employee_nonull:
         crit.add(Q(employee__isnull=False), crit.connector)
-    # if cat:
-        # crit.add(Q(team__scheme__order__cat=cat), crit.connector)
-    # if order:
-        # crit.add(Q(order=order), crit.connector)
-    # if datelast:
-        # crit.add(Q(datefirst__lte=datelast) | Q(datefirst__isnull=True), crit.connector)
-    # if datefirst:
-        # crit.add(Q(datelast__gte=datefirst) | Q(datelast__isnull=True), crit.connector)
-    # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
-
-    #         teammembers = m.Teammember.objects\
-    #             .select_related('employee')\
-    #             .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1))))\
-    #             .filter(team_id=team_id, employee__isnull=False)\
-    #             .values('id', 'employee__code', 'datelast_nonull')\
-    #             .order_by('-datelast_nonull')
-    #         logger.debug('teammembers SQL: ' + str(teammembers.query))
-
+    if order_pk:
+        crit.add(Q(team__scheme__order_id=order_pk), crit.connector)
+    elif customer_pk:
+        crit.add(Q(team__scheme__order__customer_id=customer_pk), crit.connector)
 
     teammembers = m.Teammember.objects\
         .select_related('employee')\
@@ -157,8 +141,10 @@ def create_teammember_list(filter_dict, company, user_lang):
         .select_related('team__scheme')\
         .select_related('team__scheme__order')\
         .select_related('team__scheme__order__customer') \
-        .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1)))) \
-        .filter(crit).order_by('employee__code', '-datelast_nonull')  #   .filter(crit).order_by('-datelast_nonull')
+        .filter(crit).order_by('employee__code')
+    # was:
+        # .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1)))) \
+        # .filter(crit).order_by('employee__code', '-datelast_nonull')  # .filter(crit).order_by('-datelast_nonull')
 
     # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
     # logger.debug(teammembers.query)
@@ -189,7 +175,6 @@ def create_teammember_dict(teammember, item_dict, user_lang):
         is_template = teammember.istemplate
 
 # ---  get datefirst/ datelast of scheme, order and employee
-
         team = teammember.team
         scheme = team.scheme
         order = scheme.order
@@ -227,7 +212,7 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                     if team_code:
                         field_dict['code'] = team_code
                     schemeteam_code = team_code if is_absence or is_singleshift else ' - '.join([scheme.code, team_code])
-                    field_dict['value'] = schemeteam_code
+                    field_dict['display'] = schemeteam_code
 
             elif field == 'scheme':
                 if scheme:

@@ -264,7 +264,7 @@
 
                                     let display_text = rosterdate_display + "\n"
                                     if(!!display_time) {display_text +=  display_time + "\n"}
-                                    // shift name can be the same as tome, skip if that is the cse
+                                    // shift name can be the same as time, skip display_text if that is the case
                                     if(!!shift_code && shift_code !== display_time) {display_text +=  shift_code + "\n"}
 
                                     if(is_order_calendar){

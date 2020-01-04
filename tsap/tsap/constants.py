@@ -412,7 +412,7 @@ FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
 # PR2019-12-20 Note: 'scheme' and 'order' are not model fields, but necessary for absence update
 FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'replacement', 'datefirst', 'datelast',
                      'scheme', 'order',
-                    'isabsence', 'issingleshift', 'istemplate',
+                     'isabsence', 'issingleshift', 'istemplate',
                      'wagefactor', 'priceratejson', 'additionjson', 'override')
 
 # teammember wagerate not in use

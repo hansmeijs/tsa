@@ -9,7 +9,7 @@ from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from companies.views import LazyEncoder
 
@@ -18,7 +18,7 @@ from tsap import functions as f
 from planning import dicts as pd
 from planning import views as pv
 
-from tsap.settings import TIME_ZONE, LANGUAGE_CODE
+from tsap.settings import TIME_ZONE
 
 from companies import models as m
 
@@ -350,7 +350,7 @@ sql_teammember_sub08 = """
         COALESCE(c.code,'') AS c_code, 
         c.company_id AS comp_id, 
 
-        tm.employee_id AS e_id,
+        e_sub.e_id AS e_id,
         COALESCE(e_sub.e_code,'') AS e_code,
         COALESCE(e_sub.e_nl,'') AS e_nl,
         COALESCE(e_sub.e_nf,'') AS e_nf,
@@ -883,6 +883,10 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
     shift_breakduration = 0
     shift_wagefactor = 0
     shift_isrestshift = False
+    breakduration = 0
+    timeduration = 0
+    timestart = None
+    timeend = None
 
     if schemeitem:
         shift = schemeitem.shift
@@ -925,7 +929,6 @@ def add_orderhour_emplhour(schemeitem, new_rosterdate_dte,
 
     # TODO add get_schemeitem_additionrate(schemeitem)
     additionrate  = 0
-
 # get billable info from schemeitem or shift, scheme, order, company
     is_override, is_billable = f.get_billable_schemeitem(schemeitem)
 
@@ -2084,7 +2087,7 @@ def create_employee_calendar(datefirst_iso, datelast_iso, customer_id, order_id,
                 # Then each absence row must get its own team, scheme and schemeitem
                 # advantage is that offset can be removed from teammember
                 # for now: skip rows that have simpleshift and no schemeitem
-                if row[idx_tm_mod] == 's' and row[idx_si_id] == None:
+                if row[idx_tm_mod] == 's' and row[idx_si_id] is None:
                     add_row_to_dict = False
 
         # create employee_planning dict
@@ -2151,12 +2154,14 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
     })
     rows = newcursor.fetchall()
 
-    # newcursor.execute(sql_teammember_sub08,
-    # {'cid': company_id, 'custid': customer_id, 'orderid': order_id, 'eid': employee_id, 'rd': rosterdate,'ref': refdate})
-    # dictrows = f.dictfetchall(newcursor)
-    # for dictrow in dictrows:
-    #    logger.debug('---------------------' + str(rosterdate.isoformat()))
-    #    logger.debug('dictrow' + str(dictrow))
+    newcursor.execute(sql_teammember_sub08,
+    {'cid': company_id, 'custid': customer_id, 'orderid': order_id, 'eid': employee_id, 'rd': rosterdate,'ref': refdate,
+        'ph': is_publicholiday,
+        'ch': is_companyholiday})
+    dictrows = f.dictfetchall(newcursor)
+    for dictrow in dictrows:
+       logger.debug('---------------------' + str(rosterdate.isoformat()))
+       logger.debug('dictrow' + str(dictrow))
     return rows
 
 
@@ -2570,13 +2575,15 @@ def create_employee_calendar_dict(row, has_overlap, overlap_siid_list, comp_time
             planning_dict['offsetend'] = row[idx_si_sh_oe]
         if row[idx_si_sh_bd]:
             planning_dict['breakduration'] = row[idx_si_sh_bd]
-        if row[idx_si_sh_td]:
-            planning_dict['timeduration'] = row[idx_si_sh_td]
+        # calculate timeduration
+        # si_sh_os etc returns value of shift if si has shift, returns si values if si has no shift
+        planning_dict['timeduration'] = f.calc_timeduration_from_values(
+            is_restshift,  row[idx_si_sh_os],  row[idx_si_sh_oe],  row[idx_si_sh_bd], row[idx_si_sh_td])
+
         if has_overlap:
             planning_dict['overlap'] = {'value': has_overlap}
             if overlap_siid_list:
                 planning_dict['overlap']['siid_list'] = overlap_siid_list
-
 # add weekday_list of schemeitems of this scheme and their weekday
         planning_dict['weekday_list'] = create_weekday_list(row[idx_s_id])
 
@@ -2692,7 +2699,7 @@ def create_order_calendar(datefirst_iso, datelast_iso, order_id, comp_timezone, 
             # Then each absence row must get its own team, scheme and schemeitem
             # advantage is that offset can be removed from teammember
             # for now: skip rows that have simpleshift and no schemeitem
-            if row[idx_tm_mod] == 's' and row[idx_si_id] == None:
+            if row[idx_tm_mod] == 's' and row[idx_si_id] is None:
                 add_row_to_dict = False
 
     # create employee_planning dict

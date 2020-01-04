@@ -581,6 +581,21 @@
         return key_found
     }
 
+//========= function get_subsubdict_value_by_key  ================= PR2020-01-04
+    function get_subsubdict_value_by_key (dict, key, subkey, subsubkey, default_value) {
+        let value = null;
+        if (!!key && !!dict && dict.hasOwnProperty(key)) {
+            const key_dict = dict[key];
+            if (!!subkey && !!key_dict && key_dict.hasOwnProperty(subkey)) {
+                const subkey_dict =key_dict[subkey];
+                if (!!subsubkey && !!subkey_dict && subkey_dict.hasOwnProperty(subsubkey)) {
+                    value = subkey_dict[subsubkey];
+        }}};
+        // (value == null) equals to (value === undefined || value === null)
+        if (value == null && default_value != null) {
+            value = default_value}
+        return value
+    }
 //========= function get_subdict_value_by_key  ================= PR2019-05-24
     function get_subdict_value_by_key (dict, key, subkey, default_value) {
         let value = null;
@@ -599,7 +614,7 @@
     function get_dict_value_by_key (dict, key, default_value) {
         // Function returns value of key in obj PR2019-02-19 PR2019-04-27 PR2019-06-12
         let value = null;
-        if (!!key && !isEmpty(dict) ){
+        if (!!key && !!dict){
             // or: if (key in dict) { value = dict[key];}
             if (dict.hasOwnProperty(key)) {
                 value = dict[key];

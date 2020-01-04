@@ -225,6 +225,8 @@
     function PrintEmployeePlanning(option, selected_period, planning_map, company_dict,
                         label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang) {
         console.log("PrintEmployeePlanning")
+    console.log("planning_map")
+    console.log(planning_map)
         //console.log("selected_period", selected_period)
         const is_preview = (option === "preview");
         const company = get_subdict_value_by_key(company_dict, "name", "value", "");
@@ -276,21 +278,27 @@
 
 //======================== loop through planning map
         for (const [map_id, item_dict] of planning_map.entries()) {
+            console.log("=========================: loop through planning map")
             console.log("item_dict: ", item_dict)
 
 // -------- get weekindex and weekday of this_rosterdate
             this_rosterdate_iso = get_subdict_value_by_key(item_dict, "rosterdate", "value", "");
+        console.log("this_rosterdate_iso: ", this_rosterdate_iso)
             this_rosterdate_JS = get_dateJS_from_dateISO (this_rosterdate_iso)
+        console.log("this_rosterdate_iso: ", this_rosterdate_iso)
             this_weekIndex = this_rosterdate_JS.getWeekIndex();
+        console.log("this_weekIndex: ", this_weekIndex)
             this_weekday = this_rosterdate_JS.getDay()
             if (this_weekday === 0 ) {this_weekday = 7}// JS sunday = 0, iso sunday = 7
-            //console.log("this_rosterdate_iso: ", this_rosterdate_iso)
 
 //======================== change in employee
 // -------- detect change in employee
             const employee_pk = get_subdict_value_by_key(item_dict, "employee", "pk", 0);
+
+        console.log("employee_pk: ", employee_pk, "this_employee_pk:", this_employee_pk)
             if (employee_pk !== this_employee_pk){
 
+        console.log("employee_pk: ", employee_pk, " not equal to this_employee_pk:", this_employee_pk)
 //---------- skip addPage on first page
                 if(is_first_page){
                     is_first_page = false
@@ -316,8 +324,8 @@
 //---------- get employee values
                 const namelast = get_subdict_value_by_key(item_dict, "employee", "namelast", "");
                 const namefirst = get_subdict_value_by_key(item_dict, "employee", "namefirst", "");
-                //console.log(" =================== employee: ",  namelast , namefirst)
-                //console.log("prev_rosterdate_iso ???????: ",  prev_rosterdate_iso)
+console.log(" =================== employee: ",  namelast , namefirst)
+console.log("prev_rosterdate_iso ???????: ",  prev_rosterdate_iso)
                 value_list = [company,
                               namelast + ", " + namefirst,
                               get_period_formatted(selected_period, month_list, weekday_list, user_lang),
@@ -337,8 +345,11 @@
 //======================== change in this_rosterdate
 // -------- detect change in this_rosterdate
             // when weekday = 1 it starts at first column (monday) if not , get monday before weekday
+
+        console.log("this_weekIndex: ", this_weekIndex, " prev_weekIndex:", prev_weekIndex)
             if (this_weekIndex !== prev_weekIndex){
 
+        console.log("this_weekIndex: ", this_weekIndex, " not equal to prev_weekIndex:", prev_weekIndex)
 //------------- print Week
                 // print printWeekHeader and printWeekData before updating prev_weekIndex
                 PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting, label_list, value_list, colhdr_list, month_list, weekday_list, user_lang, doc)
@@ -359,11 +370,17 @@
             }  //  if (weekIndex !== this_weekIndex){
 
 //======================== get shift info
-            const shift = get_subdict_value_by_key(item_dict, "shift", "value", "");
-            const order = get_subdict_value_by_key(item_dict, "order", "value", "");
-            const customer = get_subdict_value_by_key(item_dict, "customer", "value", "");
-            //const rosterdate_formatted = format_date_iso (this_rosterdate_iso, month_list, weekday_list, false, false, user_lang);
+console.log("======================== get shift info: ")
+console.log("item_dict: ", item_dict)
+            const shift_code = get_subdict_value_by_key(item_dict, "shift", "code", "");
+            const order_code = get_subdict_value_by_key(item_dict, "order", "code", "");
+            const customer_code = get_subdict_value_by_key(item_dict, "customer", "code", "");
+            const rosterdate_formatted = format_date_iso (this_rosterdate_iso, month_list, weekday_list, false, false, user_lang);
 
+console.log("shift_code: ", shift_code)
+console.log("order_code: ", order_code)
+console.log("customer_code: ", customer_code)
+console.log("rosterdate_formatted: ", rosterdate_formatted)
             //const timestart_iso = get_subdict_value_by_key(item_dict, "timestart", "datetime", "")
            // console.log("timestart_iso: ", timestart_iso)
            // const timestart_mnt = moment.tz(timestart_iso, comp_timezone);
@@ -377,8 +394,8 @@
             //let display_time = timestart_formatted + " - " + timeend_formatted
 
             //let display_time = null;
-            const offset_start = get_subdict_value_by_key(item_dict, "timestart", "offset");
-            const offset_end = get_subdict_value_by_key(item_dict, "timeend", "offset");
+            const offset_start = get_dict_value_by_key(item_dict, "offsetstart");
+            const offset_end = get_dict_value_by_key(item_dict, "offsetend");
             //if(!!offset_start || offset_end){
             //    const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, true); // true = skip_prefix_suffix
             //    const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, true); // true = skip_prefix_suffix
@@ -387,9 +404,12 @@
             const skip_prefix_suffix = true;
             const display_time = display_offset_timerange (offset_start, offset_end, skip_prefix_suffix, timeformat, user_lang)
 
-            const duration = get_subdict_value_by_key(item_dict, "duration", "value");
-            if(!!duration) {this_duration_sum += duration};
+console.log("display_time: ", display_time)
 
+            const time_duration = get_dict_value_by_key(item_dict, "timeduration");
+            if(!!time_duration) {this_duration_sum += time_duration};
+
+console.log("time_duration: ", time_duration)
             const overlap = get_subdict_value_by_key(item_dict, "overlap", "value", false);
 
             //was for testing: let shift_list = [ this_weekday + " - " + this_rosterdate_iso]
@@ -397,15 +417,20 @@
             // first item in shift_list contains overlap, is not printed
             shift_list.push(overlap);
             if(!!display_time) {shift_list.push(display_time)};
-            if(!!shift) { shift_list.push(shift)};
-            if(!!customer) { shift_list.push(customer)};
-            if(!!order) { shift_list.push(order )};
-            // don't show duration. is for testing
-            //if(!!duration) { shift_list.push(display_duration (duration, user_lang))};
+            // shift_code can be the same as time, skip shift_code if that is the case
+            if(!!shift_code && shift_code !== display_time) {shift_list.push(shift_code)}
 
+            if(!!customer_code) { shift_list.push(customer_code)};
+            if(!!order_code) { shift_list.push(order_code)};
+            // don't show time_duration. is for testing
+            if(!!time_duration) { shift_list.push(display_duration (time_duration, user_lang))};
+
+console.log("shift_list: ", shift_list)
             let day_list = week_list[this_weekday]
             day_list.push(shift_list);
+console.log("day_list: ", day_list)
             week_list[this_weekday] = day_list
+console.log("week_list: ", week_list)
         }  //  for (const [map_id, item_dict] of planning_map.entries()) {
 
 // ================ print last Week of last employee

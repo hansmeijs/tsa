@@ -135,38 +135,40 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 is_template=True,
                                 inactive=inactive)
 
-                        elif table == 'schemeitem_template':
-                            dict_list = d.create_schemeitem_template_list(request, comp_timezone, user_lang)
-
                         # get all schemes, because of validation schemenames
                         elif table == 'scheme':
                             dict_list = d.create_scheme_list(
-                                request=request,
-                                is_singleshift=is_singleshift,
-                                is_template=is_template,
-                                inactive=inactive,
+                                filter_dict=table_dict,
+                                company=request.user.company,
                                 user_lang=user_lang)
 
                         elif table == 'shift':
                             dict_list = d.create_shift_list(
-                                customer_pk=customer_pk,
-                                user_lang=user_lang,
-                                request=request)
+                                filter_dict=table_dict,
+                                company=request.user.company,
+                                user_lang=user_lang)
 
                         elif table == 'team':
                             dict_list = d.create_team_list(
-                                request=request,
-                                is_singleshift=is_singleshift,
-                                customer_pk=customer_pk)
+                                filter_dict=table_dict,
+                                company=request.user.company)
+
+                        elif table == 'teammember':
+                            dict_list = e.create_teammember_list(
+                                filter_dict=table_dict,
+                                company=request.user.company,
+                                user_lang=user_lang)
 
                         elif table == 'schemeitem':
                             dict_list = d.create_schemeitem_list(
-                                request=request,
-                                customer_pk=customer_pk,
-                                is_absence=is_absence,
-                                is_singleshift=is_singleshift,
+                                filter_dict=table_dict,
+                                company=request.user.company,
                                 comp_timezone=comp_timezone,
                                 user_lang=user_lang)
+
+                        # elif table == 'schemeitem_template':
+                            # TODO use create_schemeitem_list
+                            # dict_list = d.create_schemeitem_template_list(request, comp_timezone, user_lang)
 
                         elif table == 'abscat':
                             dict_list = cust_dicts.create_absencecategory_list(request)
@@ -176,9 +178,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                         elif table == 'replacement':
                             dict_list = d.create_replacementshift_list(table_dict, request.user.company)
-
-                        elif table == 'teammember':
-                            dict_list = e.create_teammember_list(table_dict, request.user.company, user_lang)
 
                         elif table == 'rosterdate_check':
                             # rosterdate_check: {rosterdate: "2019-11-14"}
@@ -258,6 +257,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             # logger.debug('calendar_header_dict: ' + str(calendar_header_dict))
                             datalists['calendar_header_dict'] = calendar_header_dict
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
                         elif table == 'employee_planning':
                             datefirst_iso = table_dict['datefirst'] if 'datefirst' in table_dict else None
                             datelast_iso = table_dict['datelast'] if 'datelast' in table_dict else None
@@ -266,7 +266,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             order_id = table_dict['order_id'] if 'order_id' in table_dict else None
                             employee_id = table_dict['employee_id'] if 'employee_id' in table_dict else None
 
-                            dict_list = r.create_employee_calendar(datefirst_iso, datelast_iso, customer_id, order_id, employee_id, comp_timezone, timeformat, user_lang, request)
+                            dict_list, calendar_header_dict = r.create_employee_calendar(datefirst_iso, datelast_iso, customer_id, order_id, employee_id, comp_timezone, timeformat, user_lang, request)
 
                         elif table == 'customer_planning':
                             datefirst_iso = table_dict['datefirst'] if 'datefirst' in table_dict else None

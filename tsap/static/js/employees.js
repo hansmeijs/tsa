@@ -376,10 +376,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if ("employee_planning_list" in response) {
                     get_datamap(response["employee_planning_list"], planning_map)
-                    //FillTableRows("planning");
+                    FillTableRows("planning");
 
                     PrintEmployeePlanning("preview", period_dict, planning_map, company_dict,
                         label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang);
+
                 }
                 // employee_calendar_list goes before order_calendar_list
                 if ("calendar_header_dict" in response) {
@@ -2406,7 +2407,7 @@ console.log("calendar_header_dict", calendar_header_dict)
         UpdateHeaderPeriod();
         let datalist_request = {"employee_planning": period_dict};
         DatalistDownload(datalist_request);
-    }
+    }  // ModPeriodSave
 
 
 //=========  CreateTblPeriod  ================ PR2019-11-16

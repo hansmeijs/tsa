@@ -495,18 +495,25 @@ def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, ove
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def create_scheme_list(request, is_singleshift, is_template, inactive, user_lang):
+def create_scheme_list(filter_dict, company, user_lang):
     # logger.debug(' --- create_scheme_list --- ')
     # logger.debug('is_singleshift: ' + str(is_singleshift))
 
+    customer_pk = filter_dict.get('customer_pk')
+    order_pk = filter_dict.get('order_pk')
+    is_template = filter_dict.get('is_template')
+    inactive = filter_dict.get('inactive')
+
 # --- create list of schemes of this company, absence=false PR2019-11-22
-    crit = (Q(order__customer__company=request.user.company) & Q(isabsence=False))
-    if is_singleshift is not None:
-        crit.add(Q(issingleshift=is_singleshift), crit.connector)
+    crit = (Q(order__customer__company=company) & Q(isabsence=False))
     if is_template is not None:
         crit.add(Q(istemplate=is_template), crit.connector)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
+    if order_pk:
+        crit.add(Q(order_id=order_pk), crit.connector)
+    elif customer_pk:
+        crit.add(Q(order__customer_id=customer_pk), crit.connector)
 
     schemes = m.Scheme.objects.filter(crit)
     # logger.debug('schemes SQL: ' + str(schemes.query))
@@ -606,35 +613,23 @@ def create_scheme_dict(scheme, item_dict, user_lang):
     f.remove_empty_attr_from_dict(item_dict)
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def create_schemeitem_template_list(request, comp_timezone, user_lang):
-    # --- create list of all template schemes of this company PR2019-07-24
-    # logger.debug("========== create_schemeitem_template_list ==== ")
 
-    schemeitem_list = []
-    order = m.Order.objects.get_or_none(
-        customer__company=request.user.company,
-        istemplate=True
-    )
-    #logger.debug("order: " + str(order))
-    if order:
-        schemeitem_list = create_schemeitem_list(
-            request=request,
-            customer_pk=order.customer_id,
-            is_absence=None,
-            is_singleshift=None,
-            comp_timezone=comp_timezone,
-            user_lang=user_lang)
-
-    #logger.debug("schemeitem_list " + str(schemeitem_list))
-    return schemeitem_list
-
-
-def create_schemeitem_list(request, customer_pk, is_absence, is_singleshift, comp_timezone, user_lang):
+def create_schemeitem_list(filter_dict, company, comp_timezone, user_lang):
     # create list of schemeitems of this scheme PR2019-09-28
+    # --- create list of all schemeitems of this cujstomere / order PR2019-08-29
+    logger.debug(' ----- create_teammember_list  -----  ')
+    logger.debug('filter_dict' + str(filter_dict) )
 
-    crit = Q(scheme__order__customer__company=request.user.company)
-    if customer_pk:
-        crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
+    customer_pk = filter_dict.get('customer_pk')
+    order_pk = filter_dict.get('order_pk')
+    is_absence = filter_dict.get('is_absence', False)
+    is_singleshift = filter_dict.get('is_singleshift', False)
+
+    crit = Q(scheme__order__customer__company=company)
+    if order_pk:
+        crit.add(Q(scheme__order_id=order_pk), crit.connector)
+    elif customer_pk:
+            crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
     if is_absence:
         crit.add(Q(isabsence=is_absence), crit.connector)
     if is_singleshift:
@@ -659,22 +654,10 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
     # logger.debug ('item_dict' + str(item_dict))
 
     if schemeitem:
-        # FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team',
-        #                      'cat', 'istemplate', 'billable',
-        #                      'rosterdate', 'iscyclestart',
-        #                      'offsetstart', 'offsetend', 'breakduration', 'timeduration',
-        #                      'priceratejson', 'additionjson', 'inactive')
 
-        offsetstart_value = getattr(schemeitem, 'offsetstart')
-        offsetend_value = getattr(schemeitem, 'offsetend')
-        breakduration_value = getattr(schemeitem, 'breakduration')
-
-        # calculate timeduration
-        timeduration = 0
-        timeduration_minus_break = 0
-        if offsetstart_value is not None and offsetend_value is not None:
-            timeduration = offsetend_value - offsetstart_value
-            timeduration_minus_break = timeduration
+# calculate timeduration from values in shift, if no shift: get from schemeitem
+        is_restshift, offsetstart, offsetend, breakduration, \
+            timeduration_minus_break, timeduration = f.calc_timeduration_from_schemitem(schemeitem)
 
         is_override, is_billable = f.get_billable_schemeitem(schemeitem)
         if is_override or is_billable:
@@ -738,32 +721,32 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
 
             elif field == 'offsetstart':
                 # Note: value '0' is a valid value, so don't use 'if value:'
-                if offsetstart_value is not None:
-                    field_dict['value'] = offsetstart_value
+                if offsetstart is not None:
+                    field_dict['value'] = offsetstart
                 field_dict["minoffset"] = -720
 
                 maxoffset = 1440
-                if offsetend_value is not None:
-                    maxoffset = offsetend_value - breakduration_value
+                if offsetend is not None:
+                    maxoffset = offsetend - breakduration
                     if maxoffset > 1440:
                         maxoffset = 1440
                 field_dict["maxoffset"] = maxoffset
 
             elif field == 'offsetend':
                 # Note: value '0' is a valid value, so don't use 'if value:'
-                if offsetend_value is not None:
-                    field_dict['value'] = offsetend_value
+                if offsetend is not None:
+                    field_dict['value'] = offsetend
                 field_dict["maxoffset"] = 2160
 
                 minoffset = 0
-                if offsetstart_value is not None:
-                    minoffset = offsetstart_value + breakduration_value
+                if offsetstart is not None:
+                    minoffset = offsetstart + breakduration
                     if minoffset < 0:
                         minoffset = 0
                 field_dict["minoffset"] = minoffset
 
             elif field == 'breakduration':
-                field_dict['value'] = breakduration_value
+                field_dict['value'] = breakduration
                 field_dict["minoffset"] = 0
                 field_dict["maxoffset"] = timeduration if timeduration < 1440 else 1440
 
@@ -808,16 +791,22 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_shift_list(customer_pk, user_lang, request):
+def create_shift_list(filter_dict, company, user_lang):
     # create list of shifts of this order PR2019-08-08
     # logger.debug(' --- create_shift_list --- ')
-    shift_list = []
 
-    crit = Q(scheme__order__customer__company=request.user.company)
-    if customer_pk:
+    customer_pk = filter_dict.get('customer_pk')
+    order_pk = filter_dict.get('order_pk')
+
+    crit = Q(scheme__order__customer__company=company)
+    if order_pk:
+        crit.add(Q(scheme__order_id=order_pk), crit.connector)
+    elif customer_pk:
         crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
+
     shifts = m.Shift.objects.select_related('scheme').filter(crit).order_by('code')
 
+    shift_list = []
     for shift in shifts:
         update_dict = {}
         create_shift_dict(shift, update_dict, user_lang)
@@ -837,22 +826,19 @@ def create_shift_dict(shift, update_dict, user_lang):
     #                 'wagefactor', 'priceratejson', 'additionjson')
 
     if shift:
-        offsetstart_value = shift.offsetstart
-        offsetend_value = shift.offsetend
-        breakduration_value = shift.breakduration if shift.breakduration else 0
-
-        # logger.debug('shiftcode: ' + str(shift.code))
-        #  logger.debug('shift.offsetstart: ' + str(shift.offsetstart))
-        # logger.debug('shift.offsetend: ' + str(shift.offsetend))
-        # logger.debug('offsetstart_value: ' + str(offsetstart_value))
-        # logger.debug('offsetend_value: ' + str(offsetend_value))
+        offsetstart_value = getattr(shift, 'offsetstart') # offsetstart can have value 'None'
+        offsetend_value = getattr(shift, 'offsetend') # offsetend can have value 'None'
+        breakduration_value = getattr(shift, 'breakduration', 0)
+        timeduration_value = getattr(shift, 'timeduration', 0)
+        is_restshift = getattr(shift, 'isrestshift', False)
 
 # calculate timeduration
-        timeduration = 0
-        timeduration_minus_break = 0
-        if offsetstart_value is not None and offsetend_value is not None:
-            timeduration = offsetend_value - offsetstart_value
-            timeduration_minus_break = timeduration - breakduration_value
+        # if both offsetstart and offsetend have value: calculate timeduration
+        # else: use stored value of timeduration
+        # timeduration = 0 in restshift
+
+        is_restshift, offsetstart, offsetend, breakduration, \
+            timeduration_minus_break, timeduration = f.calc_timeduration_from_shift(shift)
 
         for field in c.FIELDS_SHIFT:
 
@@ -929,21 +915,25 @@ def create_shift_dict(shift, update_dict, user_lang):
 # --- end of create_shift_dict
 
 
-def create_team_list(request, customer_pk, is_singleshift):
+def create_team_list(filter_dict, company):
     # create list of teams of this order PR2019-09-02
     # logger.debug(' ----- create_team_list  -----  ')
-    team_list = []
 
-    crit = Q(scheme__order__customer__company=request.user.company)
+    customer_pk = filter_dict.get('customer_pk')
+    order_pk = filter_dict.get('order_pk')
+    is_singleshift = filter_dict.get('is_singleshift', False)
+
+    crit = Q(scheme__order__customer__company=company)
     if is_singleshift:
         crit.add(Q(issingleshift=is_singleshift), crit.connector)
-    if customer_pk:
+    if order_pk:
+        crit.add(Q(scheme__order_id=order_pk), crit.connector)
+    elif customer_pk:
         crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
-        is_singleshift = is_singleshift,
 
     teams = m.Team.objects.select_related('scheme').filter(crit)
-    # logger.debug(teammembers.query)
 
+    team_list = []
     for team in teams:
         item_dict = {}
         create_team_dict(team, item_dict)
