@@ -4,7 +4,7 @@
         const cls_error = "tsa_tr_error";
 
 //=========  CreateCalendar  ================ PR2019-08-29
-    function CreateCalendar(calendar_dict, calendar_map, ModShiftOpen, loc, timeformat, user_lang) {
+    function CreateCalendar(tblName, calendar_dict, calendar_map, ModShiftOpen, loc, timeformat, user_lang) {
         //console.log("=========  CreateCalendar =========");
 
         const column_count = 8;
@@ -96,12 +96,12 @@
             }  // for (let col_index = 0; col_index < 8; col_index++)
         }  //  for (let i = 0, td, el; i < 12; i++) {
 
-        UpdateCalendar(calendar_dict, calendar_map, loc, timeformat, user_lang);
+        UpdateCalendar(tblName, calendar_dict, calendar_map, loc, timeformat, user_lang);
     };  // CreateCalendar
 
 //=========  UpdateCalendar ================ PR2019-12-04
-    function UpdateCalendar(calendar_dict, calendar_map, loc, timeformat, user_lang) {
-        //console.log( "===== UpdateCalendar  ========= ");
+    function UpdateCalendar(tblName, calendar_dict, calendar_map, loc, timeformat, user_lang) {
+        console.log( "===== UpdateCalendar  ========= ");
         //console.log( calendar_dict);
 
         const column_count = 8;
@@ -200,13 +200,14 @@
                     for (let x = list_len -1; x >= 0; x--) {
                         let item_dict = dict_list[x]
                         if(!isEmpty(item_dict)){
+                            //console.log( "------------- item_dict: ", item_dict);
 
                             let map_id = get_subdict_value_by_key(item_dict, "id", "pk")
                             const row_index_start = get_dict_value_by_key(item_dict, "row_index_start")
                             // max shifts per day is 24, cannot display more than 1 per hour
                             if(row_index_start < 24){
                                 const row_index_end_plusone = get_dict_value_by_key(item_dict, "row_index_end_plusone")
-                                const has_overlap = (!!get_dict_value_by_key(item_dict, "overlap", false))
+                                let has_overlap = (!!get_dict_value_by_key(item_dict, "overlap", false))
 
                                 let order_code = get_subdict_value_by_key(item_dict, "order", "code", "")
                                 let shift_code = get_subdict_value_by_key(item_dict, "shift", "code", "")
@@ -215,6 +216,7 @@
 
                                 let is_restshift = get_subdict_value_by_key(item_dict, "shift", "isrestshift", false)
                                 let is_absence = get_subdict_value_by_key(item_dict, "order", "isabsence", false)
+
 
                                 let offset_start = get_dict_value_by_key(item_dict, "offsetstart")
                                 let offset_end = get_dict_value_by_key(item_dict, "offsetend")
@@ -235,9 +237,6 @@
                                 // spanned_columns[index][0] contains sum of spanned_rows
                                 let modified_colindex = col_index - spanned_columns[row_index_start][0]
 
-                                //console.log("col_index", col_index)
-                                //console.log("modified_colindex", modified_colindex)
-
                                 let row_span = row_index_end_plusone - row_index_start;
 
                                 let tblRow = tblBody.rows[row_index_start];
@@ -245,8 +244,9 @@
 
                                 if(!!tblCell){
                                     tblCell.setAttribute("rowspan", row_span.toString());
-                                //console.log(">>>>>>>>> rowspan", row_span)
 
+                                    // dont make overlap red in order calendar
+                                    if(tblName === "order"){ has_overlap = false};
                                     const cls_color = (has_overlap) ? cls_error :  (is_absence || is_restshift) ? cls_bc_lightlightgrey :  cls_selected
                                     tblCell.classList.add(cls_color);
                                     tblCell.classList.add("border_calendarshift");
@@ -265,6 +265,11 @@
                                     let display_text = rosterdate_display + "\n"
                                     if(!!display_time) {display_text +=  display_time + "\n"}
                                     // shift name can be the same as time, skip display_text if that is the case
+
+                                    //console.log("shift_code", shift_code)
+                                    //console.log("display_time", display_time)
+                                    //console.log("(!!shift_code && shift_code !== display_time)", (!!shift_code && shift_code !== display_time))
+
                                     if(!!shift_code && shift_code !== display_time) {display_text +=  shift_code + "\n"}
 
                                     if(is_order_calendar){
@@ -382,7 +387,7 @@
 
 //========= RowindexCalculate  ============= PR2019-12-08
     function RowindexCalculate(map_list_per_column, column_count) {
-       // console.log( " ==== RowindexCalculate ====");
+       //console.log( " ==== RowindexCalculate ====");
         // this function puts the item_dict of each shift in the right column
         // ans adds row_index_start, row_index_end_plusone and has_overlap to the item_dict
 

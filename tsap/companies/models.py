@@ -487,7 +487,7 @@ class Teammember(TsaBaseModel):
 
     team = ForeignKey(Team, related_name='teammembers', on_delete=CASCADE)
     employee = ForeignKey(Employee, related_name='teammembers', on_delete=SET_NULL, null=True, blank=True)
-    replacement = ForeignKey(Employee, related_name='replacements', on_delete=CASCADE, null=True, blank=True)
+    replacement = ForeignKey(Employee, related_name='replacements', on_delete=SET_NULL, null=True, blank=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None

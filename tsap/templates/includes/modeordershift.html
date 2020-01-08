@@ -93,7 +93,7 @@
 
                             <div class="content_header mod_show mod_team">
                                 <div class="content_subheader_left mx-1 my-2">
-                                    <div style="overflow-x:hidden;overflow-y:auto;height:180px">
+                                    <div style="overflow-x:hidden;overflow-y:auto;width:720px;height:180px">
                                         <table  class="table tsa-tbl mb-0">
                                             <thead id="id_thead_teammember"></thead>
                                             <tbody id="id_tbody_teammember"></tbody>
@@ -164,13 +164,14 @@
                             </div>
                                 <!-- BUTTON GROUP WEEKDAYS-->
                             <div id="id_modshift_weekdays" class="content_subheader_left mx-2 mod_show mod_shift mod_team">
-                                <button data-weekday="1" class="btn btn-add">{% trans 'Mon' %}</button>
-                                <button data-weekday="2" class="btn btn-add">{% trans 'Tue' %}</button>
-                                <button data-weekday="3" class="btn btn-add">{% trans 'Wed' %}</button>
-                                <button data-weekday="4" class="btn btn-add">{% trans 'Thu' %}</button>
-                                <button data-weekday="5" class="btn btn-add">{% trans 'Fri' %}</button>
-                                <button data-weekday="6" class="btn btn-add"> {% trans 'Sat' %}</button>
-                                <button data-weekday="7" class="btn btn-add"> {% trans 'Sun' %}</button>
+                                <button data-weekday="1" class="btn btn-weekday">{% trans 'Mon' %}</button>
+                                <button data-weekday="2" class="btn btn-weekday">{% trans 'Tue' %}</button>
+                                <button data-weekday="3" class="btn btn-weekday">{% trans 'Wed' %}</button>
+                                <button data-weekday="4" class="btn btn-weekday">{% trans 'Thu' %}</button>
+                                <button data-weekday="5" class="btn btn-weekday">{% trans 'Fri' %}</button>
+                                <button data-weekday="6" class="btn btn-weekday"> {% trans 'Sat' %}</button>
+                                <button data-weekday="7" class="btn btn-weekday"> {% trans 'Sun' %}</button>
+
                             </div>
                             <div class="content_subheader_left mx-1 mod_show mod_shift mod_team">
                                 <small class="tsa_margin_form_label">{% trans "Days in black background will be updated, days in green added and days in red deleted." %}</small>

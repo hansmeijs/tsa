@@ -313,8 +313,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 //========= get_datamap  ================== PR2019-10-03
-    function get_datamap(data_list, data_map) {
+    function get_datamap(data_list, data_map, calc_duration_sum) {
         data_map.clear();
+        let duration_sum = 0
         if (!!data_list) {
             for (let i = 0, len = data_list.length; i < len; i++) {
                 const item_dict = data_list[i];
@@ -323,11 +324,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const table = get_dict_value_by_key(id_dict, "table");
                 const map_id = get_map_id(table, pk_str);
                 data_map.set(map_id, item_dict);
+                if (calc_duration_sum){
+                    const duration = get_dict_value_by_key(item_dict, "timeduration");
+                    const teammember_count = get_dict_value_by_key(item_dict, "tm_count");
+                    if(!!duration && !!teammember_count){
+                        const total_duration = duration * teammember_count;
+                        duration_sum += duration * teammember_count;
+                    };
+                }
             }
         }
+        return duration_sum
     };
-
-
 
 //========= get_attr_from_el  =============PR2019-06-07
     function get_attr_from_el(element, key, default_value){

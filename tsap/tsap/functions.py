@@ -2502,8 +2502,8 @@ def set_calendar_publicholidays(year, month, day, code, request):
 
 
 def get_code_with_sequence(table, parent, user_lang):
-    logger.debug(' --- get_code_with_sequence --- ')
-    logger.debug('table: ' + str(table))
+    #logger.debug(' --- get_code_with_sequence --- ')
+
     # create new code with sequence 1 higher than existing code PR2019-12-28
     # get scheme names of this order
     default_code = ''
@@ -2520,8 +2520,6 @@ def get_code_with_sequence(table, parent, user_lang):
 
     new_code = default_code
     default_code_len = len(default_code)
-    logger.debug('default_code: ' + str(default_code))
-    logger.debug('default_code_len: ' + str(default_code_len))
 
     count = 0
     if table == 'team':
@@ -2529,16 +2527,12 @@ def get_code_with_sequence(table, parent, user_lang):
         for item in instances:
             count += 1
             index_str = item.code[default_code_len:].strip()
-            logger.debug('index_str: ' + str(index_str))
             if index_str:
                 if len(index_str) == 1:
                     index = ord(index_str)
-                    logger.debug('index: ' + str(index))
                     if 65 <= index < 90 or 97 <= index < 122:
-                        logger.debug('65 <= index < 90 or 97 <= index < 122: ' + str(index))
                         if index > max_index:
                             max_index = index
-                            logger.debug('max_index: ' + str(max_index))
         if count + 64 > max_index:
             max_index = count + 64
         new_code = default_code + ' ' + chr(max_index + 1)
@@ -2562,5 +2556,4 @@ def get_code_with_sequence(table, parent, user_lang):
                 max_index = 1
 
         new_code = default_code + ' ' + str(max_index + 1)
-    logger.debug('new_code: ' + str(new_code))
     return new_code

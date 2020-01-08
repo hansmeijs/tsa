@@ -1319,37 +1319,81 @@
         }
     }  // function FillOptionsAbscat
 
-//========= FillOptionShiftOrTeam  ============= PR2019-12-24
-    function FillOptionShiftOrTeam(data_map, sel_parent_pk, with_rest_abbrev, firstoption_txt) {
-         //console.log( "===== FillOptionShiftOrTeam  ========= ");
-         //console.log( "data_map: ", data_map);
-         //console.log( "sel_parent_pk: ", sel_parent_pk);
 
+//========= FillOptionShiftOrTeamFromList  ============= PR2020-01-08
+    function FillOptionShiftOrTeamFromList(data_list, sel_parent_pk_int, selected_pk_int, with_rest_abbrev, firstoption_txt) {
+         //console.log( "===== FillOptionShiftOrTeamFromList  ========= ");
+         // add empty option on first row, put firstoption_txt in < > (placed here to escape \< and \>
+        if(!firstoption_txt){firstoption_txt = "-"}
+        let option_text = "<option value=\"0\" data-ppk=\"0\">" + firstoption_txt + "</option>";
+        for (let i = 0, len = data_list.length; i < len; i++) {
+            const item_dict = data_list[i];
+            const item_text = FillOptionFromItemDict(item_dict, sel_parent_pk_int, selected_pk_int, with_rest_abbrev);
+            option_text += item_text;
+        }
+        return option_text
+    }  // FillOptionShiftOrTeamFromList
+
+//========= FillOptionShiftOrTeam  ============= PR2020-01-08
+    function FillOptionShiftOrTeam(data_map, sel_parent_pk_int, selected_pk_int, with_rest_abbrev, firstoption_txt) {
+         //console.log( "===== FillOptionShiftOrTeam  ========= ");
 // add empty option on first row, put firstoption_txt in < > (placed here to escape \< and \>
         if(!firstoption_txt){firstoption_txt = "-"}
         let option_text = "<option value=\"0\" data-ppk=\"0\">" + firstoption_txt + "</option>";
-
 // --- loop through shift_map
         for (const [map_id, item_dict] of data_map.entries()) {
-            const pk_int = get_pk_from_dict(item_dict);
-            const ppk_int = get_ppk_from_dict(item_dict);
-
-// skip if selected_scheme_pk exists and does not match ppk_int
-            if (!!sel_parent_pk && ppk_int === sel_parent_pk) {
-                let value = get_subdict_value_by_key(item_dict, "code", "value", "-")
-                if (with_rest_abbrev){
-                    const is_restshift = get_subdict_value_by_key(item_dict, "isrestshift", "value")
-                    if (is_restshift) { value += " (R)"}
-                }
-                option_text += "<option value=\"" + pk_int + "\" data-ppk=\"" + ppk_int + "\">" + value + "</option>";
-            }
-        }  // for (let key in item_list)
+            const item_text = FillOptionFromItemDict(item_dict, sel_parent_pk_int, selected_pk_int, with_rest_abbrev);
+            option_text += item_text;
+        }
         return option_text
     }  // FillOptionShiftOrTeam
 
+//========= FillOptionShiftOrTeam  ============= PR2020-01-08
+    function FillOptionFromItemDict(item_dict, sel_parent_pk_int, selected_pk_int, with_rest_abbrev) {
+         //console.log( "===== FillOptionShiftOrTeam  ========= ");
+        const pk_int = get_pk_from_dict(item_dict);
+        const ppk_int = get_ppk_from_dict(item_dict);
+        let item_text = "";
+        // skip if selected_scheme_pk exists and does not match ppk_int
+        if (!!sel_parent_pk_int && ppk_int === sel_parent_pk_int) {
+            let code_value = get_subdict_value_by_key(item_dict, "code", "value", "-")
+            if (with_rest_abbrev){
+                const is_restshift = get_subdict_value_by_key(item_dict, "isrestshift", "value")
+                if (is_restshift) { code_value += " (R)"}
+            }
+            item_text = "<option value=\"" + pk_int + "\"";
+            item_text += " data-ppk=\"" + ppk_int + "\"";
+// --- add selected if selected_pk_int has value
+            if (!!selected_pk_int && pk_int === selected_pk_int) {item_text += " selected=true" };
+            item_text +=  ">" + code_value + "</option>";
+        }
+        return item_text
+    }  // FillOptionShiftOrTeam
+
+
+//========= Lookup_Same_Shift  ============= PR2020-01-08
+    function Lookup_Same_Shift(shift_list, sel_parent_pk_int,
+            offset_start, offset_end, break_duration, time_duration, is_restshift ) {
+    // check if this scheme already has a shift with the same values
+        const val = "value";
+        let same_shift_pk = 0;
+        if (!!shift_list && !!sel_parent_pk_int) {
+            for (let i = 0, len = shift_list.length; i < len; i++) {
+                const dict = shift_list[i];
+                if (sel_parent_pk_int === get_ppk_from_dict(dict)) {
+                    if (offset_start === get_subdict_value_by_key(dict, "offsetstart", val)) {
+                        if (offset_end === get_subdict_value_by_key(dict, "offsetend", val)) {
+                            if (break_duration === get_subdict_value_by_key(dict, "breakduration", val)) {
+                                const shiftdict_timeduration = get_subdict_value_by_key(dict, "timeduration", val);
+                                if (time_duration === get_subdict_value_by_key(dict, "timeduration", val)) {
+                                    if (is_restshift === get_subdict_value_by_key(dict, "isrestshift", val, false)) {
+                                        same_shift_pk = get_pk_from_dict(dict);
+                                        break;
+        }}}}}}}};
+        return same_shift_pk
+    }  // Lookup_Same_Shift
 
 //>>>>>>>>>>> MOD SHIFT CALENDAR >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 
 //========= CreateTblRows  ====================================
     function CreateTblRows(tableBase, stored_items, excel_items,
@@ -1537,3 +1581,65 @@
        }}}
     };  // handle_EAL_row_clicked
 
+
+    function get_teamcode_with_sequence(team_map, parent_pk, loc){
+        "use strict";
+        console.log(' --- get_teamcode_with_sequence --- ')
+        console.log('parent_pk: ', parent_pk)
+        // create new code with sequence 1 higher than existing code PR2019-12-28
+        // get scheme names of this order
+        let new_code = "", default_code = "", default_code_len = 0;
+        if(!!loc){
+            default_code = get_dict_value_by_key(loc, "Team");
+            if(!!default_code){
+                default_code_len = default_code.length;
+                new_code = default_code;
+            }
+        }
+        let count = 0, max_index = 64;
+        // --- loop through team_map
+        // lookup teams of this scheme that end woth a character, like 'Team C'
+        for (const [map_id, item_dict] of team_map.entries()) {
+            const team_ppk = get_subdict_value_by_key(item_dict, "id", "ppk")
+            if(team_ppk === parent_pk){
+                count += 1;
+                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
+                const index_str = code_value.slice(default_code_len).trim()
+                if(!!index_str && index_str.length === 1){
+                    const index = Number(index_str);
+                    if (!!index){
+                        if ((index >= 65 && index < 90) || (index >= 97 && index < 122)){
+                            if (index > max_index) {
+                                max_index = index
+        }}}}}};
+
+        // when 4 teans exists, ne team must have name 'Team E'
+        let new_index = max_index + 1
+        if (count + 65 > new_index) {
+            new_index = count + 65
+        }
+        new_code = default_code + " " + String.fromCharCode(new_index);
+        //console.log('new_code: ' , new_code)
+        return new_code;
+    } ; // get_teamcode_with_sequence
+
+    function get_teamcode_initial(team_code){
+        "use strict";
+        //console.log(' --- get_teamcode_initial --- ')
+        // from 'Team D', get D, from 'Team' get 'T', from "Other Name" get 'O'
+        // get last character only if length of last word = 1, otherwise get first character of team_code
+        let initial = "";
+        if(!!team_code){
+            const arr = team_code.split(' ');
+            if (!!arr.length){
+                const last_chunk = arr[arr.length - 1]
+                if(last_chunk.length === 1){
+                    initial = last_chunk;
+                }
+            }
+            if (!initial){ initial = team_code.charAt(0)}
+        }  // if(!!team_code){
+
+        //console.log('initial: ' , initial)
+        return initial;
+    } ; // get_teamcode_with_sequence

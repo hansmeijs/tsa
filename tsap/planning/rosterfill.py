@@ -68,12 +68,13 @@ idx_tm_rd = 30
 idx_tm_ddif = 31  # tm_ddif = %(rd)s - %(ref)s
 
 idx_tm_id_arr = 32
-idx_si_id_arr = 33
-idx_mod_arr = 34  # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
-idx_ddif_arr = 35
-idx_osref_arr = 36
-idx_oeref_arr = 37
-idx_o_seq_arr = 38
+idx_tm_count = 33
+idx_si_id_arr = 34
+idx_mod_arr = 35  # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
+idx_ddif_arr = 36
+idx_osref_arr = 37
+idx_oeref_arr = 38
+idx_o_seq_arr = 39
 
 
 # CASE WHEN si_sub.sh_os IS NULL THEN CASE WHEN tm_sub.tm_os IS NULL THEN 0 ELSE tm_sub.tm_os END ELSE si_sub.sh_os END AS offsetstart,
@@ -653,6 +654,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                 if dict:
                     update_dict['rosterdate'] = dict
 
+                logger.debug(('????????????? dict: ' + str(dict)))
                 period_dict = pd.get_period_from_settings(request)
                 period_timestart_utc, period_timeend_utc = pd.get_timesstartend_from_perioddict(period_dict, request)
                 # TODO range
@@ -681,11 +683,6 @@ def FillRosterdate(new_rosterdate_dte, update_list, comp_timezone, user_lang, lo
 
     logger.debug(' ============= FillRosterdate ============= ')
     logger.debug('new_rosterdate_dte: ' + str(new_rosterdate_dte) + ' ' + str(type(new_rosterdate_dte)))
-    # logger.debug('isocalendar year: ' + str(new_rosterdate_dte.isocalendar()[0]))
-    # logger.debug('isocalendar weeknr: ' + str(new_rosterdate_dte.isocalendar()[1]))
-    # logger.debug('isocalendar: daynr' + str(new_rosterdate_dte.isocalendar()[2]))
-    # logger.debug('isocalendar' + str(new_rosterdate_dte.isocalendar()))
-    # new_rosterdate_dte: 2019-04-10 <class 'datetime.date'>
 
     if new_rosterdate_dte:
         # update schemeitem rosterdate.
@@ -1650,7 +1647,7 @@ def create_rest_shifts(new_rosterdate_dte, absence_dict, rest_dict, logfile, req
 
 #######################################################
 
-def create_customer_planning(datefirst, datelast, customer_list, comp_timezone, request):
+def create_customer_planning(datefirst, datelast, orderid_list, comp_timezone, request):
     logger.debug(' ============= create_customer_planning ============= ')
     # this function creates a list with planned roster, without saving emplhour records  # PR2019-11-09
 
@@ -1683,12 +1680,12 @@ def create_customer_planning(datefirst, datelast, customer_list, comp_timezone, 
         # employee_list contains id's of filtered employees
         # filter: inactive=false, within range, no template
         company_id = request.user.company.pk
-        customer_id_dictlist = create_customer_id_list(datefirst, datelast, customer_list, company_id)
+        orderid_dictlist = create_order_id_list(datefirst, datelast, orderid_list, company_id)
         # logger.debug('customer_id_dictlist: ' + str(customer_id_dictlist))
         # employee_id_dictlist: {477: {}, 478: {}}
 
 # B. loop through list of customer_id's
-        for customer_id in customer_id_dictlist:
+        for order_id in orderid_dictlist:
             #logger.debug('customer_id: ' + str(customer_id))
 
     # 1. loop through dates, also get date before and after rosterdate
@@ -1700,7 +1697,7 @@ def create_customer_planning(datefirst, datelast, customer_list, comp_timezone, 
 
         # b. create dict with teammembers of this customer and this_rosterdate
                 # this functions retrieves the data from the database
-                rows = get_teammember_rows_per_date_per_customer(rosterdate, customer_id, refdate, company_id)
+                rows = get_teammember_rows_per_date_per_customer(rosterdate, order_id, refdate, company_id)
                 for row in rows:
                     fake_id = str(row['tm_id']) + '-' + str(row['ddif'])
                     customer_rows_dict[fake_id] = row
@@ -1726,11 +1723,11 @@ def create_customer_planning(datefirst, datelast, customer_list, comp_timezone, 
     return customer_planning_dictlist
 
 
-def create_customer_id_list(datefirst, datelast, customer_list, company_id):
-    logger.debug(' ============= create_customer_id_list ============= ')
+def create_order_id_list(datefirst, datelast, order_list, company_id):
+    logger.debug(' ============= create_order_id_list ============= ')
     # this function creates a list customer_id's, that meet the given criteria PR2019-11-09
 
-    customer_id_dictlist = {}
+    order_id_dictlist = {}
     if datefirst and datelast:
 
         # 2. set criteria:
@@ -1750,24 +1747,25 @@ def create_customer_id_list(datefirst, datelast, customer_list, company_id):
                (Q(team__scheme__datelast__gte=datefirst) | Q(team__scheme__datelast__isnull=True)) & \
                (Q(datefirst__lte=datelast) | Q(datefirst__isnull=True)) & \
                (Q(datelast__gte=datefirst) | Q(datelast__isnull=True))
-        if customer_list:
-            crit.add(Q(team__scheme__order__customer_id__in=customer_list), crit.connector)
+        if order_list:
+            crit.add(Q(team__scheme__order_id__in=order_list), crit.connector)
 
-        customer_id_list = m.Teammember.objects \
+        order_id_list = m.Teammember.objects \
             .select_related('team') \
             .select_related('team__scheme__order') \
             .select_related('team__scheme__order__customer') \
             .select_related('team__scheme__order__customer__company') \
-            .filter(crit).values_list('team__scheme__order__customer__id', flat=True).distinct().order_by(Lower('team__scheme__order__customer__code'))
-        for customer_id in customer_id_list:
-            customer_id_dictlist[customer_id] = {}
+            .filter(crit).values_list('team__scheme__order_id', flat=True).distinct().\
+            order_by(Lower('team__scheme__order__customer__code'), Lower('team__scheme__order__code') )
+        for order_id in order_id_list:
+            order_id_dictlist[order_id] = {}
 
-        logger.debug('customer_id_dictlist: ' + str(customer_id_dictlist))
+        logger.debug('order_id_dictlist: ' + str(order_id_dictlist))
 
-    return customer_id_dictlist
+    return order_id_dictlist
 
 
-def get_teammember_rows_per_date_per_customer(rosterdate, customer_id, refdate, company_id):
+def get_teammember_rows_per_date_per_customer(rosterdate, order_id, refdate, company_id):
     logger.debug('get_teammember_rows_per_date_per_customer')
     # 1 create list of teammembers of this customer on this rosterdate
 
@@ -1871,7 +1869,8 @@ def get_teammember_rows_per_date_per_customer(rosterdate, customer_id, refdate, 
             INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
             INNER JOIN companies_order AS o ON (s.order_id = o.id) 
             INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-            WHERE (c.company_id = %(cid)s) AND (c.id = %(cust_id)s) 
+            WHERE (c.company_id = %(cid)s) 
+            AND (%(order_id)s IS NULL OR o.id = %(order_id)s )
             AND (tm.cat < %(abs_cat_lt)s) 
             AND (o.datefirst <= %(rd)s OR o.datefirst IS NULL)
             AND (o.datelast >= %(rd)s OR o.datelast IS NULL)
@@ -1881,7 +1880,7 @@ def get_teammember_rows_per_date_per_customer(rosterdate, customer_id, refdate, 
             """, {
                 'cid': company_id,
                 'abs_cat_lt': c.SHIFT_CAT_0512_ABSENCE,
-                'cust_id': customer_id,
+                'order_id': order_id,
                 'rd': rosterdate,
                 'ref': refdate
                 })
@@ -2112,7 +2111,7 @@ def create_employee_calendar(datefirst_iso, datelast_iso, customer_id, order_id,
 
 
 def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_companyholiday, customer_id, order_id, employee_id, company_id):
-    # logger.debug(' =============== get_employee_calendar_rows ============= ')
+    logger.debug(' =============== get_employee_calendar_rows ============= ')
 
     # logger.debug('rosterdate:' + str(rosterdate.isoformat()) + str(type(rosterdate)))
     # logger.debug('refdate:' + str(refdate.isoformat()) + str(type(refdate)))
@@ -2153,11 +2152,17 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
         'ch': is_companyholiday
     })
     rows = newcursor.fetchall()
+    order_id = [44]
+    newcursor.execute(
+    """
+        SELECT o.id AS o_id, 
+        o.code AS o_code
+        FROM companies_order AS o
+        WHERE ( %(orderid)s IS NULL OR o.id IN ( SELECT DISTINCT UNNEST(%(orderid)s) )  )
 
-    newcursor.execute(sql_teammember_sub08,
-    {'cid': company_id, 'custid': customer_id, 'orderid': order_id, 'eid': employee_id, 'rd': rosterdate,'ref': refdate,
-        'ph': is_publicholiday,
-        'ch': is_companyholiday})
+    """
+    ,
+    {'orderid': order_id, 'eid': employee_id})
     dictrows = f.dictfetchall(newcursor)
     for dictrow in dictrows:
        logger.debug('---------------------' + str(rosterdate.isoformat()))
@@ -2277,8 +2282,8 @@ def check_row_for_absence_overlap(row):
     skip_row = False
     # PR2019-12-17 debug: arr can be empty, when employee is not in service
     if row[idx_mod_arr] and row_os is not None and row_oe is not None:
-        row_os_ref = row[idx_tm_ddif] * 1440 + row[idx_si_sh_os]
-        row_oe_ref = row[idx_tm_ddif] * 1440 + row[idx_si_sh_oe]
+        row_os_ref = row[idx_tm_ddif] * 1440 + row_os
+        row_oe_ref = row[idx_tm_ddif] * 1440 + row_oe
 
         for i, lookup_mode in enumerate(row[idx_mod_arr]):
             # skip normal and single shifts
@@ -2493,8 +2498,7 @@ def create_employee_calendar_dict(row, has_overlap, overlap_siid_list, comp_time
 
         if is_absence:
             planning_dict.update(isabsence=is_absence)
-        if is_restshift:
-            planning_dict.update(isrestshift=is_restshift)
+
         if is_singleshift:
             planning_dict.update(issingleshift=is_singleshift)
 
@@ -2554,7 +2558,7 @@ def create_employee_calendar_dict(row, has_overlap, overlap_siid_list, comp_time
             }
             if is_restshift:
                 # planning_dict['scheme']['isrestshift'] = is_restshift
-                planning_dict['scheme'].update(isrestshift=is_restshift)
+                planning_dict['shift'].update(isrestshift=is_restshift)
 
         if row[idx_c_id]:
             planning_dict['customer'] = {
@@ -2580,6 +2584,8 @@ def create_employee_calendar_dict(row, has_overlap, overlap_siid_list, comp_time
         planning_dict['timeduration'] = f.calc_timeduration_from_values(
             is_restshift,  row[idx_si_sh_os],  row[idx_si_sh_oe],  row[idx_si_sh_bd], row[idx_si_sh_td])
 
+        planning_dict['tm_count'] = row[idx_tm_count]
+
         if has_overlap:
             planning_dict['overlap'] = {'value': has_overlap}
             if overlap_siid_list:
@@ -2595,12 +2601,33 @@ def create_employee_calendar_dict(row, has_overlap, overlap_siid_list, comp_time
 
 def create_weekday_list(scheme_id):
     # add weekday_list of schemeitems of this scheme and their weekday
+    # one schemitem array consists of |update,schemitem_pk, scheme_pk, team_pk, shift_pk|
     schemeitems = m.Schemeitem.objects.filter(scheme_id=scheme_id)
-    weekday_list = [[], [], [], [], [], [], [], []]  # listindex is weekday index, first one is not in use
+    weekday_list = ['-', '', '', '', '', '', '', '']  # listindex is weekday index, first one is not in use
+    weekday_str = ''
     if schemeitems:
         for schemeitem in schemeitems:
             weekday = schemeitem.rosterdate.isoweekday()
-            weekday_list[weekday].append(schemeitem.pk)
+            schemeitem_pk = getattr(schemeitem, 'id')
+            if schemeitem_pk is None:
+                schemeitem_pk = 0
+            scheme_pk = getattr(schemeitem, 'scheme_id')
+            if scheme_pk is None:
+                scheme_pk = 0
+            team_pk = getattr(schemeitem, 'team_id')
+            if team_pk is None:
+                team_pk = 0
+            shift_pk = getattr(schemeitem, 'shift_id')
+            if shift_pk is None:
+                shift_pk = 0
+            arr = [str(schemeitem_pk), str(scheme_pk), str(team_pk), str(shift_pk)]
+            schemeitem_arr = ','.join(arr)
+            schemeitem_arr = '|-,' + schemeitem_arr
+            weekday_list[weekday] += schemeitem_arr
+    for index, schemeitem_arr in enumerate(weekday_list):
+        if schemeitem_arr:
+            if schemeitem_arr[:1] == '|':
+                weekday_list[index] = schemeitem_arr[1:]
     return weekday_list
 
 # [{'rosterdate': '2019-04-13', 't_id': 1410, 'o_id': 1145, 'o_code': 'Punda', 'o_df': None, 'o_dl': None, 'c_code': 'MCB',
@@ -2668,7 +2695,7 @@ def create_order_calendar(datefirst_iso, datelast_iso, order_id, comp_timezone, 
         # from https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
         # PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
         # caused bij idx_e_code = None. Coalesce added in query
-        sorted_rows = sorted(all_rows, key=operator.itemgetter(idx_e_code, idx_tm_rd, idx_c_code, idx_o_code))
+        sorted_rows = sorted(all_rows, key=operator.itemgetter(idx_c_code, idx_o_code, idx_tm_rd, idx_e_code))
 
     # row: (1388, 'Adamus, Gerson', 'Adamus', 'Gerson Bibiano',
         # 823, 'nacht', False, -60, 420, 0,
@@ -2709,8 +2736,9 @@ def create_order_calendar(datefirst_iso, datelast_iso, order_id, comp_timezone, 
             if add_row_to_dict:
                 overlap_siid_list = []
                 has_overlap = False
-                if row[idx_tm_mod] not in ('a', 'r'):
-                    has_overlap, overlap_siid_list = check_shiftrow_for_overlap(row)
+                # order_calendar doenst need to check for overlapping records
+                #if row[idx_tm_mod] not in ('a', 'r'):
+                #    has_overlap, overlap_siid_list = check_shiftrow_for_overlap(row)
 
                 planning_dict = create_employee_calendar_dict(row, has_overlap, overlap_siid_list, comp_timezone, timeformat, user_lang)
                 if planning_dict:
@@ -2873,7 +2901,8 @@ sql_order_teammember_aggr_sub06= """
         ARRAY_AGG(sq.ddif_ref) AS ddif_arr,
         ARRAY_AGG(sq.os_ref) AS osref_arr,
         ARRAY_AGG(sq.oe_ref) AS oeref_arr,
-        ARRAY_AGG(sq.o_seq) AS o_seq_arr
+        ARRAY_AGG(sq.o_seq) AS o_seq_arr,
+        COUNT(sq.tm_id) AS tm_count
     FROM (""" + sql_order_teammember_calc_sub05 + """) AS sq 
     GROUP BY sq.e_id
 """
@@ -2954,6 +2983,7 @@ sql_calendar_order_sub08 = """
         CAST(%(rd)s AS date) - CAST(%(ref)s AS date) AS tm_ddif,
 
         e_sub.tm_id_arr,
+        e_sub.tm_count AS tm_count,
         e_sub.si_id_arr,
         e_sub.mod_arr,
         e_sub.ddif_arr,
@@ -3021,7 +3051,8 @@ sql_calendar_teammember_aggr_sub10 = """
         tm.t_id, 
         ARRAY_AGG(tm.tm_id) AS tm_id_arr, 
         ARRAY_AGG(tm.e_id) AS e_id_arr,
-        ARRAY_AGG(tm.e_code) AS e_code_arr
+        ARRAY_AGG(tm.e_code) AS e_code_arr,
+        COUNT(tm.tm_id) AS tm_count
 
     FROM (""" + sql_calendar_teammember_sub09 + """) AS tm 
     GROUP BY tm.t_id
@@ -3080,6 +3111,7 @@ sql_calendar_order_team_sub11 = """
         CAST(%(rd)s AS date) - CAST(%(ref)s AS date) AS tm_ddif,
         
         tm_sub.tm_id_arr,
+        tm_sub.tm_count,
         NULL AS si_id_arr,
         NULL AS mod_arr,
         NULL AS ddif_arr,

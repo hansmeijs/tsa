@@ -676,8 +676,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add width
                 if (j === 1){
                     el.classList.add("td_width_180")
+                } else if (j === 2){
+                    el.classList.add("td_width_120");
                 } else if (j === 3){
-                    el.classList.add("td_width_180");
+                    el.classList.add("td_width_150");
                 } else if ( [8, 9].indexOf( j ) > -1 ){
                     el.classList.add("td_width_060");
                 } else {

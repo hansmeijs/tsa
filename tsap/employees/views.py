@@ -294,7 +294,6 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                         update_wrap = calendar_employee_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
                     elif mode == 'schemeshift':
                         # 'table' has no value in mode 'schemeshift'
-                        logger.debug('table calendar_order: ')
                         update_wrap = calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
 
                     else:
@@ -350,7 +349,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     logger.debug('============= calendar_order_upload ============= ')
     logger.debug('upload_dict: ' + str(upload_dict))
 # upload_dict: {
-    # 'id': {'table': 'schemeitem', 'mode': 'schemeshift'},
+    # 'id': {'mode': 'schemeshift'},
     # 'rosterdate': '2020-01-03',
     # 'calendar_datefirst': '2019-12-30', 'calendar_datelast': '2020-01-05',
     # 'weekday_index': 5, 'weekday_list': ['-', '-', '-', '-', '-', 'update1528', '-', '-'],
@@ -362,6 +361,17 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     # 'shift': {'id': {'pk': 528, 'ppk': 1563, 'table': 'shift'}},
     # 'schemeitem': {'id': {'pk': 1528, 'ppk': 1563, 'table': 'schemeitem'}}, 'team': {'id': {'pk': 1919, 'ppk': 1563, 'table': 'team'}}}
 
+# upload_dict: {
+    #  {'id': {'mode': 'schemeshift'},
+    #  'rosterdate': '2020-01-07',
+    #  'calendar_datefirst': '2020-01-06', 'calendar_datelast': '2020-01-12',
+    #  'weekday_index': 2,
+    #  'weekday_list': ['-', '-', 'update1658,2017,578,1657,2018,579', '-', '-', '-', '-', '-'],
+    #  'teammember_list': [], 'order': {'id': {'pk': 1370, 'ppk': 648, 'table': 'order'}, 'code': {'value': 'Rooi Katootje'}}, 'scheme': {'pk': 1607, 'id': {'pk': 1607, 'ppk': 1370, 'table': 'scheme'}, 'billable': {'override': False, 'billable': False}, 'cat': {'value': 0}, 'isdefaultweekshift': {'value': True}, 'code': {'value': 'Schema 1'}, 'cycle': {'value': 7}, 'excludepublicholiday': {'value': True}},
+    #  'shift': {'id': {'pk': 'new5', 'ppk': 1607, 'create': True}, 'code': {'value': '01.00 - 02.00', 'update': True}, 'offsetstart': {'value': 60, 'minoffset': -720, 'maxoffset': 120, 'update': True}, 'offsetend': {'value': 120, 'minoffset': 60, 'maxoffset': 2160, 'update': True}, 'breakduration': {'value': 0, 'minoffset': 0, 'maxoffset': 60}, 'timeduration': {'value': 60, 'minoffset': 0, 'maxoffset': 1440}, 'update': True},
+    #  'team': {'id': {'pk': 2018, 'ppk': 1607, 'table': 'team'}, 'scheme': {'pk': 1607, 'ppk': 1370, 'code': 'Schema 1'}, 'code': {'value': 'Ploeg B'}},
+    #  'schemeitem': {'id': {'table': 'schemeitem', 'pk': 1657, 'ppk': 1607}}}
+
 
     update_wrap = {}
     scheme_has_changed = False
@@ -370,13 +380,11 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     shifts_have_changed = False
 
 # 1. get iddict variables
-    is_create, is_delete = False, False
+    is_create = False
     id_dict = upload_dict.get('id')
     if id_dict:
         is_create = ('create' in id_dict)  # 'create' means create new scheme
-        is_delete = ('delete' in id_dict)  # 'delete' means delete entire scheme
     logger.debug('is_create: ' + str(is_create))
-    logger.debug( 'is_delete: ' + str(is_delete))
 
 # --- ORDER ---
     order = None
@@ -397,13 +405,12 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     scheme = None
     if order:
         scheme_dict = upload_dict.get('scheme')
-        logger.debug('scheme_dict: ' + str(scheme_dict))
-
         if scheme_dict:
-            scheme_pk, is_create, is_delete = 0, False, False
+            scheme_pk, scheme_ppk, is_create, is_delete = None, None, False, False
             id_dict = scheme_dict.get('id')
             if id_dict:
                 scheme_pk = id_dict.get('pk')
+                scheme_ppk = id_dict.get('ppk')
                 is_create = ('create' in id_dict)
                 is_delete = ('delete' in id_dict)
 
@@ -413,9 +420,9 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                 # get scheme name with next sequence
                 code_with_sequence = f.get_code_with_sequence('scheme', order, user_lang)
                 scheme = m.Scheme(
-                    order=order,
+                    order_id=scheme_ppk,
                     code=code_with_sequence,
-                    isdefaultweekshift = True,
+                    isdefaultweekshift=True
                     # cycle = 7 (default)
                 )
                 scheme.save(request=request)
@@ -423,6 +430,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
             else:
                 scheme = m.Scheme.objects.get_or_none(id=scheme_pk, order__customer__company=request.user.company)
             logger.debug('scheme: ' + str(scheme))
+
             if scheme:
                 if is_delete:
                     scheme.delete(request=request)
@@ -434,8 +442,10 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
 
 # --- TEAM ---
     team = None
+    mapped_team_pk_dict = {}
     if scheme:
         team_dict = upload_dict.get('team')
+        logger.debug('team_dict: ' + str(team_dict))
         if team_dict:
             team_pk, is_create, is_delete = 0, False, False
             id_dict = team_dict.get('id')
@@ -444,18 +454,19 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                 is_create = ('create' in id_dict)
                 is_delete = ('delete' in id_dict)
             if is_create:
-                code_with_sequence = f.get_code_with_sequence('team', scheme, user_lang)
+                field_dict = team_dict.get('code')
+                code_value = field_dict.get('value')
+                if code_value is None:
+                    code_value = f.get_code_with_sequence('team', scheme, user_lang)
                 team = m.Team(
                     scheme=scheme,
-                    code=code_with_sequence)
+                    code=code_value)
                 team.save(request=request)
+                # put new team.pk in mapped_team_pk_dict, to be used for adding teammember
+                mapped_team_pk_dict[team_pk] = team.pk
                 team_has_changed = True
-# --- TEAMMEMBER ---
-                # also add teammember without employee
-                teammember = m.Teammember(team=team)
-                teammember.save(request=request)
-                teammembers_have_changed = True
-                logger.debug('add teammember without employee: ' + str(teammember))
+        # ---  TEAMMEMBER ---
+                # also add teammember without employee > teammmeber will be added further
             else:
                 team = m.Team.objects.get_or_none(id=team_pk, scheme__order__customer__company=request.user.company)
             # team has no other fields to be updated
@@ -506,6 +517,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
         logger.debug('clicked_rosterdate_dte: ' + str(clicked_rosterdate_dte) + ' ' + str(type(clicked_rosterdate_dte)))
 
         # weekday_list: ['-', '-', '-', 'update1466,1467', '-', 'create', '-', '-']
+        # 'weekday_list': ['-', '-', 'update1657,2018,578', '-', 'create', '-', '-', '-'],
         weekday_list = upload_dict.get('weekday_list')
         logger.debug('weekday_list: ' + str(weekday_list) + ' ' + str(type(weekday_list)))
 
@@ -513,6 +525,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
         schemeitem_dict = upload_dict.get('schemeitem')
         logger.debug('schemeitem_dict: ' + str(schemeitem_dict))
 
+        selected_scheme_pk = scheme.pk
         selected_schemeitem_pk = None
         if schemeitem_dict:
             id_dict = schemeitem_dict.get('id')
@@ -520,70 +533,73 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                 selected_schemeitem_pk = id_dict.get('pk')
         logger.debug('selected_schemeitem_pk: ' + str(selected_schemeitem_pk))
         logger.debug('clicked_rosterdate_dte: ' + str(clicked_rosterdate_dte))
-
+# 'weekday_list': ['-', '-', '-', 'update,1665,1607,-,-', '-', 'delete,1667,1607,-,-', '-', '-'],
         if clicked_rosterdate_dte and weekday_list:
-            for weekday_index, weekdaylist_value in enumerate(weekday_list):
-                # mode = 'create', 'update' or 'delete'
-                mode = weekdaylist_value[:6]
-                logger.debug('mode: ' + str(mode))
+            # loop through weekdays
+            for weekday_index in range(1,8):
+                weekdaylist_value = weekday_list[weekday_index]
+                # weekdaylist_value: delete,1667,1607,-,-
+                logger.debug('weekdaylist_value: ' + str(weekdaylist_value))
+                if ',' in weekdaylist_value:
+                    # loop through schemitems of this day
+                    schemitems_arr = weekdaylist_value.split('|')
+                    logger.debug('schemitems_arr: ' + str(schemitems_arr))
+                    logger.debug('len(schemitems_arr): ' + str(len(schemitems_arr)))
+                    for schemitem in schemitems_arr:
+                        pk_arr = schemitem.split(',')
+                        # mode = 'create', 'update' or 'delete'
+                        mode = pk_arr[0]
+                        schemeitem_pk = pk_arr[1]
+                        scheme_pk = pk_arr[2]
+                        logger.debug('mode: ' + str(mode))
+                        logger.debug('scheme_pk: ' + str(scheme_pk))
 
-                if mode == 'create':
-                    days_add = weekday_index - clicked_rosterdate_dte.isoweekday()
-                    rosterdate_dte = clicked_rosterdate_dte + timedelta(days=days_add)
-                    logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+                        if mode == 'create':
+                            days_add = weekday_index - clicked_rosterdate_dte.isoweekday()
+                            rosterdate_dte = clicked_rosterdate_dte + timedelta(days=days_add)
+                            logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
 
-                    is_cyclestart = (weekday_index == 1)
-                    schemeitem = m.Schemeitem(
-                        scheme=scheme,
-                        rosterdate=rosterdate_dte,
-                        team=team,
-                        shift=shift,
-                        iscyclestart=is_cyclestart
-                    )
-                    schemeitem.save(request=request)
-                    logger.debug('created schemeitem: ' + str(schemeitem) + ' ' + str(type(schemeitem)))
-
-                elif mode in ('update', 'delete'):
-                    # with multiple shifts only the current schemeitem must be updated or deleted
-                    # The current schemeitem is stored in field_dict schemeitem
-                    schemeitem_pk_list = weekdaylist_value[6:].split(',')
-                    logger.debug('schemeitem_pk_list: ' + str(schemeitem_pk_list) + ' ' + str(type(schemeitem_pk_list)))
-                    if schemeitem_pk_list:
-                        schemeitem_pk = None
-                        if len(schemeitem_pk_list) > 1:
-                            schemeitem_pk = selected_schemeitem_pk
-                        elif len(schemeitem_pk_list) == 1:
-                            schemeitem_pk = schemeitem_pk_list[0]
-
-                        logger.debug('schemeitem_pk: ' + str(schemeitem_pk) + ' ' + str(type(schemeitem_pk)))
-
-                        schemeitem = None
-                        if schemeitem_pk:
-                            schemeitem = m.Schemeitem.objects.get_or_none(
-                                id=schemeitem_pk,
-                                scheme__order__customer__company=request.user.company
+                            is_cyclestart = (weekday_index == 1)
+                            schemeitem = m.Schemeitem(
+                                scheme=scheme,
+                                rosterdate=rosterdate_dte,
+                                team=team,
+                                shift=shift,
+                                iscyclestart=is_cyclestart
                             )
-                            logger.debug('schemeitem: ' + str(schemeitem))
-                        if schemeitem:
+                            schemeitem.save(request=request)
+                            logger.debug('created schemeitem: ' + str(schemeitem) + ' ' + str(type(schemeitem)))
+
+                        elif mode in ('update', 'delete'):
+                            # with multiple schemeitems all schemeitem of this scheme on this day will be updated or deleted
+
+                            schemeitem = None
+                            if schemeitem_pk:
+                                schemeitem = m.Schemeitem.objects.get_or_none(
+                                    id=schemeitem_pk,
+                                    scheme__order__customer__company=request.user.company
+                                )
+                                logger.debug('schemeitem: ' + str(schemeitem))
+                            if schemeitem:
+                                if mode == 'delete':
+                                    logger.debug('delete schemeitem: ' + str(schemeitem) + ' ' + str(type(schemeitem)))
+                                    schemeitem.delete(request=request)
+                                else:
+                                    schemeitem.team = team
+                                    schemeitem.shift = shift
+                                    schemeitem.save(request=request)
+                                    logger.debug('update schemeitem: ' + str(schemeitem) + ' ' + str(type(schemeitem)))
                             if mode == 'delete':
-                                logger.debug('delete schemeitem: ' + str(schemeitem) + ' ' + str(type(schemeitem)))
-                                schemeitem.delete(request=request)
-                            else:
-                                schemeitem.team = team
-                                schemeitem.shift = shift
-                                schemeitem.save(request=request)
-                                logger.debug('update schemeitem: ' + str(schemeitem) + ' ' + str(type(schemeitem)))
-                    if mode == 'delete':
-                        # delete scheme completely when there are no schemeitems left in this scheme
-                        if scheme:
-                            count = m.Schemeitem.objects.filter(scheme=scheme).count()
-                            if count == 0:
-                                logger.debug('scheme.delete: ' + str(scheme) + ' ' + str(type(scheme)))
-                                # shifts, teams annd teammembers of this scheme will also be deleted because of on_delete=CASCADE
-                                scheme.delete(request=request)
+                                # delete scheme completely when there are no schemeitems left in this scheme
+                                count = m.Schemeitem.objects.filter(scheme=scheme).count()
+                                if count == 0:
+                                    logger.debug('scheme.delete: ' + str(scheme) + ' ' + str(type(scheme)))
+                                    # shifts, teams annd teammembers of this scheme will also be deleted because of on_delete=CASCADE
+                                    scheme.delete(request=request)
 
 # --- TEAMMEMBER ---
         teammember_list = upload_dict.get('teammember_list')
+        logger.debug('---------------------teammember_list: ' + str(teammember_list))
         if teammember_list:
             for teammember_dict in teammember_list:
                 logger.debug('teammember_dict: ' + str(teammember_dict))
@@ -599,10 +615,19 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                     else:
                         # parent_team can be different from team in upload_dict
                         parent_team = None
-                        team_pk = id_dict.get('ppk')
+                        team_pk_str = id_dict.get('ppk')
+                        logger.debug('team_pk_str: ' + str(team_pk_str) + str(type(team_pk_str)))
+                        logger.debug('mapped_team_pk_dict: ' + str(mapped_team_pk_dict))
+                        try:
+                            team_pk = int(team_pk_str)
+                        except:
+                            # if pk_str = 'new4': get mapped new pk from  mapped_team_pk_dict
+                            team_pk = mapped_team_pk_dict[team_pk_str]
+
                         logger.debug('team_pk: ' + str(team_pk))
                         if team_pk:
                             parent_team = m.Team.objects.get_or_none(id=team_pk, scheme=scheme)
+                        logger.debug('parent_team: ' + str(parent_team))
                         if parent_team:
                             teammember = None
                             if is_create:
@@ -613,7 +638,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                                 logger.debug('teammember_pk: ' + str(teammember_pk))
                                 if teammember_pk:
                                     teammember = m.Teammember.objects.get_or_none(id=teammember_pk, team=team)
-                            logger.debug('teammembe ??? r: ' + str(teammember))
+                            logger.debug('teammember: ' + str(teammember))
                             if teammember:
                                 update_dict = {}
                                 # teammember.save is part of update_teammember
@@ -642,7 +667,6 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
 
 # 8. update scheme_list when changes are made
     filter_dict = {'order_pk': order_pk}
-
     scheme_list = pld.create_scheme_list(
         filter_dict=filter_dict,
         company=request.user.company,
@@ -1431,12 +1455,16 @@ def update_teammember(instance, upload_dict, update_dict, request):
                     # 'employee': {'update': True, 'value': 'Camila', 'pk': 243}}
                     # remove employee: employee: {update: true}
                     if field in ['employee', 'replacement']:
+                        logger.debug('field: ' + str(field))
                         pk = field_dict.get('pk')
+                        logger.debug('pk: ' + str(pk))
                         employee = None
                         if pk:
                             employee = m.Employee.objects.get_or_none(
                                 id=pk,
                                 company=request.user.company)
+
+                        logger.debug('employee: ' + str(employee))
                 # also update when employee = None: employee will be removed
                         setattr(instance, field, employee)
                         is_updated = True

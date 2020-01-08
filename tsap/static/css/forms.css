@@ -271,7 +271,16 @@
     border-color: #c4c4c4;
 
 }
+.btn-weekday {
+    padding: 0rem 0.05rem 0rem 0.05rem;
+    margin: 0px;
+    width: 42px;
+    color: #303024; /* PR logo zwart */
+    background-color: white;
+    border-color: #c4c4c4;
+    overflow-wrap: break-word;
 
+}
 .databar {
     -webkit-box-flex: 1;
     -ms-flex: 1;

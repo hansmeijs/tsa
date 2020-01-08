@@ -1690,7 +1690,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         user_lang, comp_timezone, false, true)
                 }
                 if(!!selected_scheme_pk){
-                    tblRow.cells[1].children[0].innerHTML = FillOptionShiftOrTeam(shift_map, ppk_int, true)
+                    tblRow.cells[1].children[0].innerHTML = FillOptionShiftOrTeam(shift_map, ppk_int, null, true)
                     tblRow.cells[2].children[0].innerHTML = FillOptionShiftOrTeam(team_map, ppk_int)
                 }
 
@@ -1940,7 +1940,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // called by DatalistDownload, info not downloaded yet when rows are created
             if (tblName === "schemeitem"){
                 if (j === 1) {
-                    el.innerHTML = FillOptionShiftOrTeam(shift_map, ppk_int, true)
+                    el.innerHTML = FillOptionShiftOrTeam(shift_map, ppk_int, null, true)
                 } else if (j === 2) {
                     el.innerHTML = FillOptionShiftOrTeam(team_map, ppk_int)
                 }

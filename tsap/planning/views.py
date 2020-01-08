@@ -268,13 +268,18 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                             dict_list, calendar_header_dict = r.create_employee_calendar(datefirst_iso, datelast_iso, customer_id, order_id, employee_id, comp_timezone, timeformat, user_lang, request)
 
-                        elif table == 'customer_planning':
-                            datefirst_iso = table_dict['datefirst'] if 'datefirst' in table_dict else None
-                            datelast_iso = table_dict['datelast'] if 'datelast' in table_dict else None
-                            customer_list = table_dict['customer_list'] if 'customer_list' in table_dict else []
+                        elif table == 'order_planning':
+                            datefirst_iso = table_dict.get('datefirst')
+                            datelast_iso = table_dict.get('datelast')
 
-                            dict_list = r.create_customer_planning(datefirst_iso, datelast_iso, customer_list, comp_timezone, request)
+                            order_id = table_dict.get('order_id')
+                            order_id = table_dict['order_id'] if 'order_id' in table_dict else None
+                            dict_list, calendar_header_dict = r.create_order_calendar(datefirst_iso, datelast_iso,
+                                                                                      order_id, comp_timezone,
+                                                                                      timeformat, user_lang, request)
 
+
+                        # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@
                         elif table == 'rosterdatefill':
                             pass
                             # datalists[table] = d.get_rosterdatefill_dict(rosterdate_fill_dte, request.user.company)
@@ -530,14 +535,12 @@ class SchemeUploadView_MAYBE_NOT_IN_USE(UpdateView):  # PR2019-07-21
                         update_wrap['update_list'] = update_list
 
 # J. update scheme_list when changes are made
-                    #scheme_list = d.create_scheme_list(
-                        #    request=request,
-                        #    is_singleshift=None,
-                        #    is_template=None,
-                        #    inactive=None,
-                    #     user_lang=user_lang)
-                        # if scheme_list:
-        #    update_wrap['scheme_list'] = scheme_list
+                    scheme_list = d.create_scheme_list(
+                        filter_dict={'customer_pk': parent.customer_id},
+                        company=request.user.company,
+                        user_lang=user_lang)
+                    if scheme_list:
+                        update_wrap['scheme_list'] = scheme_list
 
 # K. return update_wrap
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
@@ -608,39 +611,30 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
                     # filters by customer, therefore no need for istemplate or inactve filter
                     # dont show singleshifts
                     scheme_list = d.create_scheme_list(
-                        request=request,
-                        is_singleshift=False,
-                        is_template=None,
-                        inactive=None,
-                        user_lang=user_lang
-                    )
+                        filter_dict={'customer_pk': customer.id, 'is_singleshift': False},
+                        company=request.user.company,
+                        user_lang=user_lang)
                     if scheme_list:
                         update_wrap['scheme_list'] = scheme_list
 
                     schemeitem_list = d.create_schemeitem_list(
-                        request=request,
-                        customer_pk=customer.id,
-                        is_absence=None,
-                        is_singleshift=None,
+                        filter_dict={'customer_pk': customer.id},
+                        company=request.user.company,
                         comp_timezone=comp_timezone,
-                        user_lang=user_lang
-                    )
+                        user_lang=user_lang)
                     if schemeitem_list:
                         update_wrap['schemeitem_list'] = schemeitem_list
 
                     shift_list = d.create_shift_list(
-                        customer=customer,
-                        user_lang=user_lang,
-                        request=request
-                    )
+                        filter_dict={'customer_pk': customer.id},
+                        company=request.user.company,
+                        user_lang=user_lang)
                     if shift_list:
                         update_wrap['shift_list'] = shift_list
 
                     team_list = d.create_team_list(
-                        request=request,
-                        customer=customer,
-                        is_singleshift=None
-                    )
+                        filter_dict={'customer_pk': customer.id},
+                        company=request.user.company)
                     if team_list:
                         update_wrap['team_list'] = team_list
                     update_wrap['refresh_tables'] = {'new_scheme_pk': new_scheme_pk}
@@ -1065,15 +1059,12 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
                         # I. update schemeitem_list when changes are made
                         # necesasry to update offset in schemeitems
                             schemeitem_list = d.create_schemeitem_list(
-                                request=request,
-                                customer_pk=None,
-                                is_absence=None,
-                                is_singleshift=None,
+                                filter_dict={},
+                                company=request.user.company,
                                 comp_timezone=comp_timezone,
                                 user_lang=user_lang)
                             if schemeitem_list:
                                 update_wrap['schemeitem_list'] = schemeitem_list
-
 
                         # 6. also recalc schemitems
                         # PR2019-12-11 dont update offset / time in schemeitems any more
@@ -1142,24 +1133,19 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
 # 8. update scheme_list when changes are made
                 # alle schemes are loaded when scheme page loaded, including template and inactive
                 scheme_list = d.create_scheme_list(
-                    request=request,
-                    is_singleshift=False,
-                    is_template=None,
-                    inactive=None,
-                    user_lang=user_lang
-                )
+                    filter_dict={'customer_pk': parent.customer_id},
+                    company=request.user.company,
+                    user_lang=user_lang)
                 if scheme_list:
                     update_wrap['scheme_list'] = scheme_list
 
     # 8. update schemeitem_list when changes are made
                 # filters by customer, therefore no need for istemplate or inactve filter
-                schemeitem_list = d.create_schemeitem_list(request=request,
-                                                           customer_pk=parent.customer_id,
-                                                           is_absence=None,
-                                                           is_singleshift=None,
-                                                           comp_timezone=comp_timezone,
-                                                           user_lang=user_lang)
-
+                schemeitem_list = d.create_schemeitem_list(
+                    filter_dict={'customer_pk': parent.customer_id},
+                    company=request.user.company,
+                    comp_timezone=comp_timezone,
+                    user_lang=user_lang)
                 if schemeitem_list:
                     update_wrap['schemeitem_list'] = schemeitem_list
     return update_wrap
@@ -1463,26 +1449,23 @@ class SchemeitemDownloadView(View):  # PR2019-03-10
 
                         # create shift_list
                         shift_list = d.create_shift_list(
-                            customer=scheme.order.customer,
-                            user_lang=user_lang,
-                            request=request)
+                            filter_dict={'customer_pk': scheme.order.customer_id},
+                            company=request.user.company,
+                            user_lang=user_lang)
                         if shift_list:
                             datalists['shift_list'] = shift_list
 
                         # create team_list
                         team_list = d.create_team_list(
-                            request=request,
-                            customer=scheme.order.customer,
-                            is_singleshift=None)
+                            filter_dict={'customer_pk': scheme.order.customer_id},
+                            company=request.user.company)
                         if team_list:
                             datalists['team_list'] = team_list
 
                         # create schemeitem_list
                         schemeitem_list = d.create_schemeitem_list(
-                            request=request,
-                            customer_pk=scheme.order.customer_id,
-                            is_absence=None,
-                            is_singleshift=None,
+                            filter_dict={'customer_pk': scheme.order.customer_id},
+                            company=request.user.company,
                             comp_timezone=comp_timezone,
                             user_lang=user_lang)
                         if schemeitem_list:
@@ -1716,10 +1699,8 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
 
                 # e. create schemeitem_list
                 schemeitem_list = d.create_schemeitem_list(
-                    request=request,
-                    customer_pk=scheme.order.customer_id,
-                    is_absence=None,
-                    is_singleshift=None,
+                    filter_dict={'customer_pk': scheme.order.customer_id},
+                    company=request.user.company,
                     comp_timezone=comp_timezone,
                     user_lang=user_lang)
 
@@ -1807,10 +1788,8 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
 
 # 8. update schemeitem_list when changes are made
                     item_list = d.create_schemeitem_list(
-                        request=request,
-                        customer_pk=parent.order.customer_id,
-                        is_absence=None,
-                        is_singleshift=None,
+                        filter_dict={'customer_pk': parent.order.customer_id},
+                        company=request.user.company,
                         comp_timezone=comp_timezone,
                         user_lang=user_lang)
                     if item_list:

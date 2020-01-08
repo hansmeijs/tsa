@@ -17,6 +17,13 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
     # ====== PAGE CUSTOMER =========================
     if page == 'customer':
 
+        # print planning
+        dict['Company'] = TXT_Company
+        dict['Planning'] = TXT_Planning
+        dict['of'] = TXT_of
+        dict['Date'] = TXT_Date
+        dict['Print_date'] = TXT_Print_date
+        dict['Total_hours'] = TXT_Total_hours
         # header
         dict['Short_name'] = TXT_Short_name
         dict['Customer'] = TXT_Customer
@@ -27,9 +34,15 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Employee'] = TXT_Employee
         dict['Rosterdate'] = TXT_Rosterdate
         dict['Identifier'] = TXT_Identifier
+        dict['Shift'] = TXT_Shift
+        dict['Date'] = TXT_Date
 
+
+        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
         dict['weekdays_long'] = TXT_weekdays_long
         dict['months_abbrev'] = TXT_months_abbrev
+        dict['months_long'] = TXT_months_long
+
         dict['Hours'] = TXT_Hours
         dict['Hour'] = TXT_Hour
         dict['Full_day'] = TXT_Full_day
@@ -39,8 +52,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['New_scheme'] = TXT_New_scheme
         dict['New_shift'] = TXT_New_shift
         dict['New_team'] = TXT_New_team
-
-        dict['New_team'] = TXT_New_team
+        dict['Team'] = TXT_Team
 
         # table headers
         dict['Employee'] = TXT_Employee
@@ -49,6 +61,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['End_date'] = TXT_End_date
         dict['Start_time'] = TXT_Start_time
         dict['End_time'] = TXT_End_time
+        dict['Start_Endtime'] = TXT_Start_Endtime
         dict['Break'] = TXT_Break
         dict['Working_hours'] = TXT_Working_hours
 
@@ -331,8 +344,7 @@ TXT_Billable = _('Billable')
 TXT_Rate = _('Rate')
 TXT_Amount = _('Amount')
 
-TXT_Date = _('Date')
-
+TXT_Company = _('Company')
 TXT_Customer = _('Customer')
 TXT_Customer_name = _('Customer name')
 TXT_Select_customer = _('Select customer')
@@ -387,11 +399,20 @@ TXT_yes_create = _('Yes, create')
 TXT_yes_delete = _('Yes, delete')
 TXT_no_cancel = _('No, cancel')
 
+# print planning
+TXT_Planning = _('Planning')
+TXT_of = _('of')
+TXT_Date = _('Date')
+TXT_Print_date = _('Print date')
+
+TXT_Total_hours = _('Total hours')
+
 TXT_now = _('Now')
 TXT_thisnight = _('This night')
 TXT_thismorning = _('This morning')
 TXT_thisafternoon = _('This afternoon')
 TXT_thisevening = _('This evening')
+
 
 TXT_today = _('Today')
 TXT_tomorrow = _('Tomorrow')
@@ -424,6 +445,10 @@ TXT_Start_date = _('Start date')
 TXT_End_date = _('End date')
 TXT_Start_time = _('Start time')
 TXT_End_time = _('End time')
+
+TXT_Start_Endtime = _('Start - Endtime')
+TXT_Duration = _('Duration')
+
 TXT_Break = _('Break')
 TXT_Working_hours = _('Working hours')
 TXT_Hours = _('Hours')

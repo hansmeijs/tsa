@@ -17,13 +17,16 @@
                         "fontsize_line": 10,
                         "padding_left": 2}
 
-// ++++++++++++  PRINT CUSTOMER PLANNING +++++++++++++++++++++++++++++++++++++++
-    function PrintCustomerPlanning(option, selected_period, planning_map, company_dict,
+// ++++++++++++  PRINT ORDER PLANNING +++++++++++++++++++++++++++++++++++++++
+    function PrintOrderPlanning(option, selected_period, planning_map, display_duration_total,
                         label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang) {
-        //console.log("PrintCustomerPlanning")
+        //console.log("PrintOrderPlanning")
+        //console.log("month_list", month_list)
+        //console.log("weekday_list", weekday_list)
+
         //console.log("selected_period", selected_period)
         const is_preview = (option === "preview");
-        const company = get_subdict_value_by_key(company_dict, "name", "value", "");
+        //const company = get_subdict_value_by_key(company_dict, "name", "value", "");
         const period_txt = get_period_formatted(selected_period, month_list, weekday_list, user_lang);
 
         const datefirst_iso = get_dict_value_by_key(selected_period, "datefirst");
@@ -41,9 +44,7 @@
         // when last weekday = 7 it ends at last column (sunday) if not , get sunday after datelast_JS
         const enddateJS = addDaysJS(datelast_JS, + 7 - datelast_weekday)
         //const endWeekIndex = enddateJS.getWeekYear() * 100 + enddateJS.getWeek();;
-
         const endWeekIndex = enddateJS.getWeekIndex();
-
         //console.log("endWeekIndex", endWeekIndex)
 
         let doc = new jsPDF("landscape","mm","A4");
@@ -51,7 +52,7 @@
         const today_JS = new Date();
         const today_str = format_date_vanillaJS (today_JS, month_list, weekday_list, user_lang, true, false)
 
-
+        //console.log("today_str", today_str)
 
         let pos = {"left": setting.margin_left, "top": setting.margin_top};
 
@@ -72,6 +73,7 @@
         let week_list;
         let value_list = [];
 
+        //console.log("planning_map", planning_map)
 //======================== loop through planning map
         for (const [map_id, item_dict] of planning_map.entries()) {
             //console.log("item_dict: ", item_dict)
@@ -87,6 +89,7 @@
 //======================== change in order
 // -------- detect change in order
             const order_pk = get_subdict_value_by_key(item_dict, "order", "pk", 0);
+            //console.log("order_pk: ", order_pk, "this_order_pk:", this_order_pk)
             if (order_pk !== this_order_pk){
 
 //---------- skip addPage on first page
@@ -112,14 +115,15 @@
                 pos.top = setting.margin_top;
 
 //---------- get order values
-                const order_code = get_subdict_value_by_key(item_dict, "order", "value", "");
-                const customer_code = get_subdict_value_by_key(item_dict, "customer", "value", "");
-                //console.log(" =================== employee: ",  namelast , namefirst)
+                const order_code = get_subdict_value_by_key(item_dict, "order", "code", "");
+                const customer_code = get_subdict_value_by_key(item_dict, "customer", "code", "");
+                //console.log(" =================== order: ",  order_code , customer_code)
                 //console.log("prev_rosterdate_iso ???????: ",  prev_rosterdate_iso)
-                value_list = [company,
+                value_list = [display_duration_total,
                               customer_code + " - " + order_code,
                               get_period_formatted(selected_period, month_list, weekday_list, user_lang),
                               today_str];
+                //console.log("value_list ",  value_list)
 
 //----------  print order header
                 // argument passed by reference from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
@@ -129,7 +133,7 @@
                 //const TblHeader_height = printTblHeader(month_list, weekday_list, pos, setting, doc)
                 //console.log("TblHeader_height", TblHeader_height )
                 //pos.y += TblHeader_height
-               // console.log("printTblHeader pos.y", pos.y )
+               //console.log("printTblHeader pos.y", pos.y )
             }  // if (order_pk !== this_order_pk){
 
 //======================== change in this_rosterdate
@@ -153,25 +157,18 @@
                 // day_list has 0 ore more shift_listst
                 // shift_list contains [time, shift, cust, order]
                 week_list = [ [], [], [], [], [], [], [], [] ];
+                this_duration_sum = 0;
 
             }  //  if (weekIndex !== this_weekIndex){
 
 //======================== get employee info
-            const shift = get_subdict_value_by_key(item_dict, "shift", "value", "");
-            const employee = get_subdict_value_by_key(item_dict, "employee", "value", "");
-            //const rosterdate_formatted = format_date_iso (this_rosterdate_iso, month_list, weekday_list, false, false, user_lang);
+            const shift_code = get_subdict_value_by_key(item_dict, "shift", "code", "");
+            const employee_code_list = get_subdict_value_by_key(item_dict, "employee", "code", "");
+            const rosterdate_formatted = format_date_iso (this_rosterdate_iso, month_list, weekday_list, false, false, user_lang);
 
-            //const timestart_iso = get_subdict_value_by_key(item_dict, "timestart", "datetime", "")
-           // console.log("timestart_iso: ", timestart_iso)
-           // const timestart_mnt = moment.tz(timestart_iso, comp_timezone);
-           // const timestart_formatted = format_time(timestart_mnt, timeformat, false )
-            //console.log("timestart_formatted: ", timestart_formatted)
-
-            //const timeend_iso = get_subdict_value_by_key(item_dict, "timeend", "datetime", "")
-            //const timeend_mnt = moment.tz(timeend_iso, comp_timezone);
-        //  when display24 = true: zo 00.00 u is displayed as 'za 24.00 u'
-            //const timeend_formatted = format_time(timeend_mnt, timeformat, true )
-            //let display_time = timestart_formatted + " - " + timeend_formatted
+//console.log("shift_code: ", shift_code)
+//console.log("employee_code_list: ", employee_code_list)
+//console.log("rosterdate_formatted: ", rosterdate_formatted)
 
             let display_time = null;
             const offset_start = get_subdict_value_by_key(item_dict, "timestart", "offset");
@@ -181,20 +178,34 @@
                 const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, true); // true = skip_prefix_suffix
                 display_time = offsetstart_formatted + " - " + offsetend_formatted
             }
-            const duration = get_subdict_value_by_key(item_dict, "duration", "value");
-            if(!!duration) {this_duration_sum += duration};
+            const time_duration = get_dict_value_by_key(item_dict, "timeduration");
 
-            const overlap = get_subdict_value_by_key(item_dict, "overlap", "value", false);
+            const overlap = false; // get_subdict_value_by_key(item_dict, "overlap", "value", false);
 
             //was for testing: let shift_list = [ this_weekday + " - " + this_rosterdate_iso]
             let shift_list = [];
             // first item in shift_list contains overlap, is not printed
             shift_list.push(overlap);
             if(!!display_time) {shift_list.push(display_time)};
-            if(!!shift) { shift_list.push(shift)};
-            if(!!employee) { shift_list.push(employee)};
-            // don't show duration. is for testing
-            //if(!!duration) { shift_list.push(display_duration (duration, user_lang))};
+//console.log("display_time: ", display_time)
+
+            // shift_code can be the same as time, skip shift_code if that is the case
+            if(!!shift_code && shift_code !== display_time) {shift_list.push(shift_code)}
+            let shift_timeduration = 0;
+            if(!!employee_code_list) {
+                for (let i = 0, len = employee_code_list.length; i < len; i++) {
+                    let employee_code = employee_code_list[i];
+                    if(!!employee_code){
+                        shift_list.push(employee_code)
+                    }
+                    // count time_duration for each teammember, also without employee
+                    if(!!time_duration) {shift_timeduration += time_duration};
+                }
+            };
+            if(!!shift_timeduration) {this_duration_sum += shift_timeduration};
+            //console.log("shift_timeduration: ", shift_timeduration)
+            // don't show time_duration. is for testing
+            if(!!shift_timeduration) { shift_list.push(display_duration (shift_timeduration, user_lang))};
 
             let day_list = week_list[this_weekday]
             day_list.push(shift_list);
@@ -217,16 +228,15 @@
             doc.save('planning');
         }
 
-    }  // PrintEmployeePlanning
+    }  // PrintOrderPlanning
 
 
 // ++++++++++++  PRINT EMPLOYEE PLANNING +++++++++++++++++++++++++++++++++++++++
 
     function PrintEmployeePlanning(option, selected_period, planning_map, company_dict,
                         label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang) {
-        console.log("PrintEmployeePlanning")
-    console.log("planning_map")
-    console.log(planning_map)
+        //console.log("PrintEmployeePlanning")
+
         //console.log("selected_period", selected_period)
         const is_preview = (option === "preview");
         const company = get_subdict_value_by_key(company_dict, "name", "value", "");
@@ -247,9 +257,7 @@
         // when last weekday = 7 it ends at last column (sunday) if not , get sunday after datelast_JS
         const enddateJS = addDaysJS(datelast_JS, + 7 - datelast_weekday)
         //const endWeekIndex = enddateJS.getWeekYear() * 100 + enddateJS.getWeek();;
-
         const endWeekIndex = enddateJS.getWeekIndex();
-
         //console.log("endWeekIndex", endWeekIndex)
 
         let doc = new jsPDF("landscape","mm","A4");
@@ -276,29 +284,26 @@
         let week_list;
         let value_list = [];
 
+        //console.log("planning_map", planning_map)
 //======================== loop through planning map
         for (const [map_id, item_dict] of planning_map.entries()) {
-            console.log("=========================: loop through planning map")
-            console.log("item_dict: ", item_dict)
+            //console.log("=========================: loop through planning map")
+            //console.log("item_dict: ", item_dict)
 
 // -------- get weekindex and weekday of this_rosterdate
             this_rosterdate_iso = get_subdict_value_by_key(item_dict, "rosterdate", "value", "");
-        console.log("this_rosterdate_iso: ", this_rosterdate_iso)
             this_rosterdate_JS = get_dateJS_from_dateISO (this_rosterdate_iso)
-        console.log("this_rosterdate_iso: ", this_rosterdate_iso)
             this_weekIndex = this_rosterdate_JS.getWeekIndex();
-        console.log("this_weekIndex: ", this_weekIndex)
             this_weekday = this_rosterdate_JS.getDay()
             if (this_weekday === 0 ) {this_weekday = 7}// JS sunday = 0, iso sunday = 7
+            //console.log("this_rosterdate_iso: ", this_rosterdate_iso)
 
 //======================== change in employee
 // -------- detect change in employee
             const employee_pk = get_subdict_value_by_key(item_dict, "employee", "pk", 0);
-
-        console.log("employee_pk: ", employee_pk, "this_employee_pk:", this_employee_pk)
+            //console.log("employee_pk: ", employee_pk, "this_employee_pk:", this_employee_pk)
             if (employee_pk !== this_employee_pk){
 
-        console.log("employee_pk: ", employee_pk, " not equal to this_employee_pk:", this_employee_pk)
 //---------- skip addPage on first page
                 if(is_first_page){
                     is_first_page = false
@@ -324,12 +329,11 @@
 //---------- get employee values
                 const namelast = get_subdict_value_by_key(item_dict, "employee", "namelast", "");
                 const namefirst = get_subdict_value_by_key(item_dict, "employee", "namefirst", "");
-console.log(" =================== employee: ",  namelast , namefirst)
-console.log("prev_rosterdate_iso ???????: ",  prev_rosterdate_iso)
                 value_list = [company,
                               namelast + ", " + namefirst,
                               get_period_formatted(selected_period, month_list, weekday_list, user_lang),
                               today_str];
+                //console.log("value_list ",  value_list)
 
 //----------  print employee header
                 // argument passed by reference from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
@@ -339,17 +343,14 @@ console.log("prev_rosterdate_iso ???????: ",  prev_rosterdate_iso)
                 //const TblHeader_height = printTblHeader(month_list, weekday_list, pos, setting, doc)
                 //console.log("TblHeader_height", TblHeader_height )
                 //pos.y += TblHeader_height
-               // console.log("printTblHeader pos.y", pos.y )
+               //console.log("printTblHeader pos.y", pos.y )
             }  // if (employee_pk !== this_employee_pk){
 
 //======================== change in this_rosterdate
 // -------- detect change in this_rosterdate
             // when weekday = 1 it starts at first column (monday) if not , get monday before weekday
+              if (this_weekIndex !== prev_weekIndex){
 
-        console.log("this_weekIndex: ", this_weekIndex, " prev_weekIndex:", prev_weekIndex)
-            if (this_weekIndex !== prev_weekIndex){
-
-        console.log("this_weekIndex: ", this_weekIndex, " not equal to prev_weekIndex:", prev_weekIndex)
 //------------- print Week
                 // print printWeekHeader and printWeekData before updating prev_weekIndex
                 PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting, label_list, value_list, colhdr_list, month_list, weekday_list, user_lang, doc)
@@ -381,26 +382,11 @@ console.log("shift_code: ", shift_code)
 console.log("order_code: ", order_code)
 console.log("customer_code: ", customer_code)
 console.log("rosterdate_formatted: ", rosterdate_formatted)
-            //const timestart_iso = get_subdict_value_by_key(item_dict, "timestart", "datetime", "")
-           // console.log("timestart_iso: ", timestart_iso)
-           // const timestart_mnt = moment.tz(timestart_iso, comp_timezone);
-           // const timestart_formatted = format_time(timestart_mnt, timeformat, false )
-            //console.log("timestart_formatted: ", timestart_formatted)
-
-            //const timeend_iso = get_subdict_value_by_key(item_dict, "timeend", "datetime", "")
-            //const timeend_mnt = moment.tz(timeend_iso, comp_timezone);
-        //  when display24 = true: zo 00.00 u is displayed as 'za 24.00 u'
-            //const timeend_formatted = format_time(timeend_mnt, timeformat, true )
-            //let display_time = timestart_formatted + " - " + timeend_formatted
 
             //let display_time = null;
             const offset_start = get_dict_value_by_key(item_dict, "offsetstart");
             const offset_end = get_dict_value_by_key(item_dict, "offsetend");
-            //if(!!offset_start || offset_end){
-            //    const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, true); // true = skip_prefix_suffix
-            //    const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, true); // true = skip_prefix_suffix
-            //    display_time = offsetstart_formatted + " - " + offsetend_formatted
-            //}
+
             const skip_prefix_suffix = true;
             const display_time = display_offset_timerange (offset_start, offset_end, skip_prefix_suffix, timeformat, user_lang)
 
@@ -408,8 +394,8 @@ console.log("display_time: ", display_time)
 
             const time_duration = get_dict_value_by_key(item_dict, "timeduration");
             if(!!time_duration) {this_duration_sum += time_duration};
-
 console.log("time_duration: ", time_duration)
+
             const overlap = get_subdict_value_by_key(item_dict, "overlap", "value", false);
 
             //was for testing: let shift_list = [ this_weekday + " - " + this_rosterdate_iso]
@@ -425,12 +411,9 @@ console.log("time_duration: ", time_duration)
             // don't show time_duration. is for testing
             if(!!time_duration) { shift_list.push(display_duration (time_duration, user_lang))};
 
-console.log("shift_list: ", shift_list)
             let day_list = week_list[this_weekday]
             day_list.push(shift_list);
-console.log("day_list: ", day_list)
             week_list[this_weekday] = day_list
-console.log("week_list: ", week_list)
         }  //  for (const [map_id, item_dict] of planning_map.entries()) {
 
 // ================ print last Week of last employee
@@ -464,7 +447,7 @@ console.log("week_list: ", week_list)
 
         // print employee name
         pos_y += lineheight
-        doc.text(pos_x + tabs[0], pos_y, label_list[1]);
+        doc.text(pos_x + tabs[0], pos_y, label_list[1]);  // print employee name
         doc.text(pos_x + tabs[1], pos_y , ":");
         doc.text(pos_x + tabs[2], pos_y , value_list[1]);
 
@@ -609,9 +592,9 @@ console.log("week_list: ", week_list)
     }  //  printWeekHeader
 
     function printWeekData(week_list, pos, setting, doc){
-        console.log(" --- printWeekData" )
-        console.log("week_list" )
-        console.log(week_list)
+        //console.log(" --- printWeekData" )
+        //console.log("week_list" )
+        //console.log(week_list)
         //console.log("pos.top: ", pos.top )
         let pos_x = pos.left;
         let pos_y = pos.top;
@@ -731,6 +714,9 @@ console.log("week_list: ", week_list)
             // add padding when multiple shifts in one day
             if(!!i){ height += padding_top;};
             shift_list = day_list[i];
+            //console.log("shift_list", shift_list)
+            // in order_planning: [false, "09.00 - 16.00", ["---", "Wilmans RS"], "06:30"]
+            // in employee_planning: [false, "09:00 - 16:00", "09.00 - 16.00", "MCB bank", "Barber TEST", "06:30"]
             // skip fiirst item of shift_list, it contains 'has_overlap'
             const len = shift_list.length;
             if (len > 1) {
@@ -763,7 +749,7 @@ console.log("week_list: ", week_list)
 
 //========= function test printPDF  ====  PR2020-01-02
     function printPDFlogfile(log_list, file_name, printtoscreen) {
-        console.log("printPDF")
+        //console.log("printPDF")
         let doc = new jsPDF();
 
         doc.setFontSize(10);
