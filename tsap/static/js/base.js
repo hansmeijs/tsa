@@ -1,4 +1,5 @@
 
+//========= add csrftoken to ajax header ==================================
     // add csrftoken to ajax header to prevent error 403 Forbidden PR2018-12-03
     // from https://docs.djangoproject.com/en/dev/ref/csrf/#ajax
     const csrftoken = Cookies.get('csrftoken');
@@ -17,7 +18,6 @@
         // these HTTP methods do not require CSRF protection
         return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
     }
-
 
 //========= addEventListener touchstart touchmove ==================================
 // from https://stackoverflow.com/questions/46094912/added-non-passive-event-listener-to-a-scroll-blocking-touchstart-event
@@ -38,7 +38,25 @@
 }());
 
 
+document.addEventListener('DOMContentLoaded', function() {
+    "use strict";
 
+    $("#id_sidebar").mCustomScrollbar({
+         theme: "minimal"
+    });
+
+    $('#sidebarCollapse').on('click', function () {
+        // open or close navbar
+        $('#id_sidebar').toggleClass('active');
+        // close dropdowns
+        $('.collapse.in').toggleClass('in');
+        // and also adjust aria-expanded attributes we use for the open/closed arrows
+        // in our CSS
+        $('a[aria-expanded=true]').attr('aria-expanded', 'false');
+    });
+})
+
+//========= SUBMENU ==================================
 //========= SetMenubuttonActive  ====================================
     function SetMenubuttonActive(btn_clicked) {
         "use strict";
@@ -73,38 +91,15 @@
             el_div.appendChild(el_a);
     }
 
-//$(function() {
-
-document.addEventListener('DOMContentLoaded', function() {
-    "use strict";
-
-    $("#id_sidebar").mCustomScrollbar({
-         theme: "minimal"
-    });
-
-    $('#sidebarCollapse').on('click', function () {
-        // open or close navbar
-        $('#id_sidebar').toggleClass('active');
-        // close dropdowns
-        $('.collapse.in').toggleClass('in');
-        // and also adjust aria-expanded attributes we use for the open/closed arrows
-        // in our CSS
-        $('a[aria-expanded=true]').attr('aria-expanded', 'false');
-    });
-
-
-
-})
-
 
 //=========  AddSubmenuButton  === PR2019-08-27
-    function AddSubmenuButton(el_div, el_data, a_id, a_function, a_data_txt, a_mx, a_href) {
+    function AddSubmenuButton(el_div, a_innerText, a_id, a_function, a_mx, a_href) {
         // console.log(" ---  AddSubmenuButton --- ");
         if (!a_href){a_href = "#"}
         let el_a = document.createElement("a");
             if(!!a_id){el_a.setAttribute("id", a_id)};
             el_a.setAttribute("href", a_href);
-            el_a.innerText =  get_attr_from_el_str(el_data, a_data_txt);
+            el_a.innerText = a_innerText;
             if(!!a_function){el_a.addEventListener("click", a_function, false)};
             if(!!a_mx){el_a.classList.add(a_mx)};
         el_div.appendChild(el_a);
@@ -917,6 +912,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         return rosterdate_date_local;
     }  // get_date_moment_from_datetimeISO
+
 //========= format_period  ========== PR2019-07-09
     function format_period(datefirst_ISO, datelast_ISO, month_list, weekday_list, user_lang) {
         const hide_weekday = true, hide_year = false;
@@ -928,7 +924,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let formatted_period = "";
         if (!!datefirst_formatted || !!datelast_formatted ) {
-            formatted_period = datefirst_formatted + " - " + datelast_formatted;
+            if(datefirst_ISO === datelast_ISO) {
+                formatted_period = datefirst_formatted;
+            } else {
+                if (datefirst_ISO.slice(0,8) === datelast_ISO.slice(0,8)) { //  slice(0,8) = 2019-11'
+                    // same month: show '13 - 14 nov 2019
+                    const day_first = Number(datefirst_ISO.slice(8)).toString()
+                    formatted_period = day_first + " - " + datelast_formatted
+                } else {
+                    formatted_period = datefirst_formatted + " - " + datelast_formatted
+                }
+            }
         }
         return formatted_period
     }  // format_period

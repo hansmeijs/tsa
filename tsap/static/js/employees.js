@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- create table Headers
                     CreateTblHeaders();
-                    //CreateTblPeriod();
+                    //CreateTblModSelectPeriod();
                 }
                 if ("setting_list" in response) {
                     // this must come after locale_dict, where weekday_list is loaded
@@ -756,12 +756,14 @@ console.log("calendar_header_dict", calendar_header_dict)
 
         const url_employee_import = get_attr_from_el(el_data, "data-employee_import_url");
 
-        AddSubmenuButton(el_div, el_data, "id_submenu_employee_import", null, "data-txt_employee_import", "mx-2", url_employee_import)
-        AddSubmenuButton(el_div, el_data, "id_submenu_employee_add", function() {HandleButtonEmployeeAdd()}, "data-txt_employee_add", "mx-2")
-        AddSubmenuButton(el_div, el_data, "id_submenu_employee_delete", function() {ModConfirmOpen("delete")}, "data-txt_employee_delete", "mx-2")
-
-
-        AddSubmenuButton(el_div, el_data, "id_submenu_employee_planning_preview", function() {ModPeriodOpen()}, "data-txt_planning_preview", "mx-2")
+        let a_innerText = get_attr_from_el_str(el_data, "data-txt_employee_import");
+        AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_import", null, "mx-2", url_employee_import);
+        a_innerText = get_attr_from_el_str(el_data, "data-txt_employee_add");
+        AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_add", function() {HandleButtonEmployeeAdd()}, "mx-2")
+        a_innerText = get_attr_from_el_str(el_data, "data-txt_employee_delete");
+        AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_delete", function() {ModConfirmOpen("delete")}, mx-2")
+        a_innerText = get_attr_from_el_str(el_data, "data-txt_planning_preview");
+        AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_planning_preview", function() {ModPeriodOpen()}, "mx-2")
 
         //AddSubmenuButton(el_div, el_data, "id_submenu_employee_planning_preview", function() {
         //    PrintEmployeePlanning("preview", period_dict, planning_map, company_dict,
@@ -2352,7 +2354,7 @@ console.log("calendar_header_dict", calendar_header_dict)
                 document.getElementById("id_mod_period_datelast").value = period_dict["datelast"]
             }
         }
-        //let el_mod_period_tblbody = document.getElementById("id_mod_period_tblbody");
+        //let el_mod_period_tblbody = document.getElementById("id_modperiod_selectperiod_tblbody");
 
         // ---  show modal, set focus on save button
         $("#id_mod_period").modal({backdrop: true});
@@ -2417,11 +2419,11 @@ console.log("calendar_header_dict", calendar_header_dict)
     }  // ModPeriodSave
 
 
-//=========  CreateTblPeriod  ================ PR2019-11-16
-    function CreateTblPeriod() {
-        // console.log("===  CreateTblPeriod == ");
+//=========  CreateTblModSelectPeriod  ================ PR2019-11-16
+    function CreateTblModSelectPeriod() {
+        // console.log("===  CreateTblModSelectPeriod == ");
         // console.log(period_dict);
-        let tBody = document.getElementById("id_mod_period_tblbody");
+        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
 //+++ insert td's ino tblRow
         const len = loc.period_select_list.length
         for (let j = 0, tblRow, td, tuple; j < len; j++) {
@@ -2439,7 +2441,7 @@ console.log("calendar_header_dict", calendar_header_dict)
             tblRow.setAttribute("data-tag", tuple[0]);
         }
 
-    } // CreateTblPeriod
+    } // CreateTblModSelectPeriod
 
 
 // +++++++++++++++++ MODAL CONFIRM ++++++++++++++++++++++++++++++++++++++++++

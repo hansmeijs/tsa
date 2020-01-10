@@ -995,8 +995,8 @@ def create_team_dict(team, item_dict):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
-    # logger.debug(' ============== period_get_and_save ================ ')
-    # logger.debug(' period_dict: ' + str(period_dict))
+    logger.debug(' ============== period_get_and_save ================ ')
+    logger.debug(' period_dict: ' + str(period_dict))
     # period_dict: {'get': True, 'now': [2019, 11, 17, 7, 9]}
     # period_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
 
@@ -1006,7 +1006,7 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
 # 1. check if values must be retrieved from Usersetting
         get_saved = period_dict.get('get', False)
 
-# 2. get now from period_dict, if not in period_dict: create 'now' (should not be possible)
+# 2. get now from period_dict
         now_arr = period_dict.get('now')
     # b. if 'now' is not in period_dict: create 'now' (should not be possible)
         if now_arr is None:
@@ -1035,11 +1035,16 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
             key = c.KEY_USER_PERIOD_REVIEW
         elif page == 'emplhour':
             key = c.KEY_USER_PERIOD_EMPLHOUR
+        elif page == 'customer':
+            key = c.KEY_USER_PERIOD_CUSTOMER
+
+        logger.debug(' key: ' + str(key))
         if get_saved and key:
             period_dict = Usersetting.get_jsonsetting(key, request.user)
+        logger.debug('get_saved period_dict: ' + str(period_dict))
 
 # 4. create update_dict
-        update_dict = {'page': key, 'now': now_arr}
+        update_dict = {'page': page, 'key': key, 'now': now_arr}
         # period_dict comes either from argument or from Usersetting
         period_tag = 'today'
         extend_offset = 0
@@ -1058,10 +1063,6 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
         if periodend is not None:
             update_dict['periodend'] = periodend
 
- # 5. save update_dict
-        Usersetting.set_jsonsetting(key, update_dict, request.user)
-        # new update_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
-
         # default tag is 'today'
         rosterdatefirst_dte = today_dte
         rosterdatelast_dte = today_dte
@@ -1070,7 +1071,6 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
         # value for morning, evening, night and day are different
         offset_firstdate = 0 - extend_offset
         offset_lastdate = 1440 + extend_offset
-
 
         if period_tag != 'now':  # 60: 'Now'
             if period_tag == 'tnight':  # 1: 'This night', offset_firstdate is default:  0 - offset
@@ -1146,7 +1146,27 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
         update_dict['rosterdatefirst_minus1'] = rosterdatefirst_minus1.isoformat()
         update_dict['rosterdatelast_plus1'] = rosterdatelast_plus1.isoformat()
 
-    # logger.debug('update_dict: ' + str(update_dict))
+        # rosterdatefirst is used in review, datefirst in customer. TODO: make uniform variable
+        update_dict['datefirst'] = rosterdatefirst_dte.isoformat()
+        update_dict['datelast'] = rosterdatelast_dte.isoformat()
+
+
+    # 5. save update_dict
+        setting_tobe_saved = {
+            'period_tag': period_tag
+        }
+        if period_tag == 'other':
+            setting_tobe_saved['datefirst'] = rosterdatefirst_dte.isoformat(),
+            setting_tobe_saved['datelast'] = rosterdatelast_dte.isoformat(),
+        if extend_offset:
+            setting_tobe_saved['extend_offset'] = extend_offset
+
+        logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))
+        Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
+        # new update_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
+
+
+#logger.debug('update_dict: ' + str(update_dict))
     #  update_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360,
     #  'now': [2019, 11, 17, 7, 58],
     #  'periodstart': datetime.datetime(2019, 11, 17, 18, 0, tzinfo=<DstTzInfo 'Europe/Amsterdam' CET+1:00:00 STD>),

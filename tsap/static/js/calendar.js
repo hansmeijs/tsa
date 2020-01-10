@@ -101,7 +101,7 @@
 
 //=========  UpdateCalendar ================ PR2019-12-04
     function UpdateCalendar(tblName, calendar_dict, calendar_map, loc, timeformat, user_lang) {
-        console.log( "===== UpdateCalendar  ========= ");
+        //console.log( "===== UpdateCalendar  ========= ");
         //console.log( calendar_dict);
 
         const column_count = 8;

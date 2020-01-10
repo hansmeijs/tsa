@@ -619,7 +619,7 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
 # === OrderImportView ===================================== PR2020-01-01
 @method_decorator([login_required], name='dispatch')
 class OrderImportView(View):
-    logger.debug(' ============= OrderImportView ============= ')
+    #logger.debug(' ============= OrderImportView ============= ')
 
     def get(self, request):
         param = {}

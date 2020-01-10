@@ -303,12 +303,13 @@ document.addEventListener('DOMContentLoaded', function() {
         CreateTblFooters();
 
 // --- first get locale, to make it faster
-        DatalistDownload({setting: {page_scheme: {mode: "get"},
-                                      selected_pk: {mode: "get"},
-                                      },
-                           quicksave: {mode: "get"},
-                           locale: {page: "scheme"}
-                           });
+        DatalistDownload({
+            setting: {page_scheme: {mode: "get"},
+                      selected_pk: {mode: "get"}
+                      },
+            quicksave: {mode: "get"},
+            locale: {page: "scheme"}
+        });
 
         const datalist_request = {customer: {isabsence: false, istemplate: null, inactive: false},
                                   order: {isabsence: false, istemplate: null, inactive: false},
@@ -346,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                // if ("period" in response) {
                 //    period_dict= response["period"];
-               //     CreateTblPeriod();
+               //     CreateTblModSelectPeriod();
                 //}
                 // setting_list come before 'customer' and 'order'
                 if ("setting_list" in response) {
@@ -1999,11 +2000,11 @@ document.addEventListener('DOMContentLoaded', function() {
         return tblRow
     };  // CreateTblRow
 
-//=========  CreateTblPeriod  ================ PR2019-11-16
-    function CreateTblPeriod() {
-        //console.log("===  CreateTblPeriod == ");
+//=========  CreateTblModSelectPeriod  ================ PR2019-11-16
+    function CreateTblModSelectPeriod() {
+        //console.log("===  CreateTblModSelectPeriod == ");
         //console.log(period_dict);
-        let tBody = document.getElementById("id_mod_period_tblbody");
+        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
         tBody.innerText = null;
 //+++ insert td's ino tblRow
         const len = loc.period_select_list.length
@@ -2027,7 +2028,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //let el_select = document.getElementById("id_mod_period_extend");
         //FillOptionsPeriodExtension(el_select, loc.period_extension)
 
-    } // CreateTblPeriod
+    } // CreateTblModSelectPeriod
 
 //=========  ResetSchemeInputElements  ================ PR2019-12-01
     function ResetSchemeInputElements() {

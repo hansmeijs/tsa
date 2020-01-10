@@ -232,6 +232,7 @@ KEY_USER_QUICKSAVE = 'quicksave'
 KEY_USER_PERIOD_EMPLHOUR = 'period_emplhour'
 KEY_USER_PERIOD_ROSTER = 'period_roster'
 KEY_USER_PERIOD_REVIEW = 'period_review'
+KEY_USER_PERIOD_CUSTOMER = 'period_customer'
 KEY_USER_SETTINGS = ('selected_pk', 'page_employee', 'page_customer', 'planning_period', 'calendar', 'quicksave')
 # code, cycle, excludecompanyholiday, excludepublicholiday PR2019-08-24
 SCHEME_24H_DEFAULT = {LANG_EN: ('24 hours 16 days', 16, False, False),

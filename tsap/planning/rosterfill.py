@@ -2494,7 +2494,7 @@ def create_employee_calendar_dict(row, has_overlap, overlap_siid_list, comp_time
         # logger.debug(' timeend: ' + str(timeend) + ' ' + str(type(timeend)))
         # create fake id teammember_pk - schemeitem_pk - datedifference
         fid = '-'.join([str(row[idx_tm_id]), str(row[idx_si_id]), str(row[idx_tm_ddif])])
-        planning_dict = {'id': {'pk': fid, 'ppk': fid, 'table': 'planning'}, 'pk': fid}
+        planning_dict = {'id': {'pk': fid, 'ppk': row[idx_c_id], 'table': 'planning'}, 'pk': fid}
 
         if is_absence:
             planning_dict.update(isabsence=is_absence)
@@ -2651,17 +2651,21 @@ def create_weekday_list(scheme_id):
 # end of create_employee_calendar_dict
 #######################################################
 
-def create_order_calendar(datefirst_iso, datelast_iso, order_id, comp_timezone, timeformat, user_lang, request):
-    logger.debug(' ============= create_order_calendar ============= ')
+def create_customer_calendar(datefirst_iso, datelast_iso, customer_pk, order_pk, comp_timezone, timeformat, user_lang, request):
+    logger.debug(' ============= create_customer_calendar ============= ')
+    logger.debug('datefirst_iso' + str(datefirst_iso))
+    logger.debug('datelast_iso' + str(datelast_iso))
+    logger.debug('customer_pk' + str(customer_pk))
+    logger.debug('order_pk' + str(order_pk))
     # this function calcuLates the planning per order per day, without saving emplhour records  # PR2019-12-22
     # it shows teammembers without employee, hides absence and hides restshsifts
     calendar_header_dict = {}
     calendar_dictlist = []
     if datefirst_iso and datelast_iso:
         all_rows = []
-        company_id = request.user.company.pk
         calendar_header_dict = {'calendar_type': 'order_calendar', 'datefirst': datefirst_iso, 'datelast': datelast_iso}
 
+        logger.debug('calendar_header_dict' + str(calendar_header_dict))
 # 1. convert datefirst and datelast into date_objects
         datefirst_dte = f.get_date_from_ISO(datefirst_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
         datelast_dte = f.get_date_from_ISO(datelast_iso)
@@ -2676,13 +2680,22 @@ def create_order_calendar(datefirst_iso, datelast_iso, order_id, comp_timezone, 
 # 3. loop through dates
         rosterdate_dte = datefirst_dte
         while rosterdate_dte <= datelast_dte:
+            logger.debug('rosterdate_dte' + str(rosterdate_dte))
 
 # 4. create calendar_header of this date
             is_publicholiday, is_companyholiday = create_calendar_header(rosterdate_dte, calendar_header_dict, user_lang, request)
 
 # 5. create list with all sschemitems of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
-            rows = get_order_calendar_rows(rosterdate_dte, refdate, is_publicholiday, is_companyholiday, order_id, company_id)
+            rows = get_order_calendar_rows(
+                rosterdate=rosterdate_dte,
+                refdate=refdate,
+                company_pk=request.user.company.pk,
+                customer_pk=customer_pk,
+                order_pk=order_pk,
+                is_publicholiday=is_publicholiday,
+                is_companyholiday=is_companyholiday
+            )
 
 # 6. add to all_rows
             all_rows.extend(rows)
@@ -3137,10 +3150,11 @@ sql_calendar_order_team_sub11 = """
     AND ( (o.datefirst <= CAST(%(rd)s AS date) ) OR (o.datefirst IS NULL) )
     AND ( (o.datelast  >= CAST(%(rd)s AS date) ) OR (o.datelast IS NULL) )
     AND ( (o.id = %(orderid)s) OR (%(orderid)s IS NULL) )
+    AND ( (c.id = %(customerid)s) OR (%(customerid)s IS NULL) )
 """
 
 
-def get_order_calendar_rows(rosterdate, refdate, is_publicholiday, is_companyholiday, order_id, company_id):
+def get_order_calendar_rows(rosterdate, refdate, company_pk, customer_pk, order_pk, is_publicholiday, is_companyholiday):
     # logger.debug(' =============== get_order_calendar_rows ============= ')
     # # logger.debug('rosterdate: ' + str(rosterdate))
     # logger.debug('refdate: ' + str(refdate))
@@ -3161,8 +3175,9 @@ def get_order_calendar_rows(rosterdate, refdate, is_publicholiday, is_companyhol
     #     logger.debug('dictrow' + str(dictrow))
 
     newcursor.execute(sql_calendar_order_team_sub11, {
-        'cid': company_id,
-        'orderid': order_id,
+        'cid': company_pk,
+        'orderid': order_pk,
+        'customerid': customer_pk,
         'rd': rosterdate,
         'ref': refdate,
         'ph': is_publicholiday,

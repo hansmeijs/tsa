@@ -1257,6 +1257,55 @@
 
 //>>>>>>>>>>> FILL OPTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+//========= FillSelectOption2020  ====================================
+    function FillSelectOption2020(el_select, data_map, tblName, is_template_mode, ppk_str, selected_pk,
+            has_selectall, selectall_text, select_text_none, select_text) {
+        //console.log( "=== FillSelectOption2020 ", tblName, "ppk_str:" , ppk_str);
+
+// ---  fill options of select box
+        let option_text = "";
+        let row_count = 0
+        let ppk_int = 0
+
+        // customer list has no ppk_str
+        if (!!ppk_str){ppk_int = parseInt(ppk_str)};
+
+// --- loop through data_map
+        for (const [map_id, item_dict] of data_map.entries()) {
+            const pk_int = get_pk_from_dict(item_dict);
+            const ppk_in_dict = get_ppk_from_dict(item_dict);
+            const is_template = get_subdict_value_by_key(item_dict, "id", "istemplate", false);
+            const code_value = get_subdict_value_by_key(item_dict, "code", "value", "-");
+
+    // filter is_template
+            if (is_template === is_template_mode) {
+    // skip if ppk_int exists and does not match ppk_in_dict (not in tbl customer)
+                if ((!!ppk_int && ppk_int === ppk_in_dict) || (tblName === "customer")) {
+                    option_text += "<option value=\"" + pk_int + "\"";
+                    option_text += " data-ppk=\"" + ppk_in_dict + "\"";
+                    if (pk_int === selected_pk) {option_text += " selected=true" };
+                    option_text +=  ">" + code_value + "</option>";
+                    row_count += 1
+                }
+            }
+        }
+        let select_first_option = false;
+        if (!row_count && !!select_text_none){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text_none + "...</option>"
+        } else if (!!has_selectall){
+            option_text = "<option value=\"0\">" + selectall_text + "</option>" + option_text;
+        } else if (row_count === 1) {
+            select_first_option = true
+        } else if (!!select_text){
+            option_text = "<option value=\"\" disabled selected hidden>" + select_text + "...</option>" + option_text;
+        }
+        el_select.innerHTML = option_text;
+        // if there is only 1 option: select first option
+        if (select_first_option){
+            el_select.selectedIndex = 0
+        }
+    }  //function FillSelectOption2020
+
 //========= FillOptionsPeriodExtension  ====================================
     function FillOptionsPeriodExtension(el_select, option_list) {
         // console.log( "=== FillOptionsPeriodExtension  ");
@@ -1643,3 +1692,6 @@
         //console.log('initial: ' , initial)
         return initial;
     } ; // get_teamcode_with_sequence
+
+
+

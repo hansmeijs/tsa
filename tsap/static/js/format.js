@@ -65,6 +65,60 @@
         return date_str;
     }
 
+//========= get_period_text  ====================================
+    function get_period_text(period_dict, period_select_list, period_extension, months_abbrev, weekdays_abbrev, user_lang) {
+        console.log( "===== get_period_text  ========= ");
+        let period_text = null
+        if (!isEmpty(period_dict)){
+            const period_tag = get_dict_value_by_key(period_dict, "period_tag");
+        console.log( "period_tag: ", period_tag);
+        console.log( "period_select_list: ", period_select_list);
+
+            let default_text = null
+            for(let i = 0, item, len = period_select_list.length; i < len; i++){
+                item = period_select_list[i];
+                if (item[0] === period_tag){ period_text = item[1] }
+                if (item[0] === 'today'){ default_text = item[1] }
+            }
+            if(!period_text){period_text = default_text}
+
+            let extend_text = get_dict_value_by_key(period_extension, "extend_index");
+        console.log( "extend_text: ", extend_text);
+
+            if(period_tag === "other"){
+                const rosterdatefirst = get_dict_value_by_key(period_dict, "rosterdatefirst");
+                const rosterdatelast = get_dict_value_by_key(period_dict, "rosterdatelast");
+                if(rosterdatefirst === rosterdatelast) {
+                    period_text =  format_date_iso (rosterdatefirst, months_abbrev, weekdays_abbrev, false, false, user_lang);
+                } else {
+                    const datelast_formatted = format_date_iso (rosterdatelast, months_abbrev, weekdays_abbrev, true, false, user_lang)
+                    if (rosterdatefirst.slice(0,8) === rosterdatelast.slice(0,8)) { //  slice(0,8) = 2019-11-17'
+                        // same month: show '13 - 14 nov
+                        const day_first = Number(rosterdatefirst.slice(8)).toString()
+                        period_text = day_first + " - " + datelast_formatted
+                    } else {
+                        const datefirst_formatted = format_date_iso (rosterdatefirst, months_abbrev, weekdays_abbrev, true, true, user_lang)
+                        period_text = datefirst_formatted + " - " + datelast_formatted
+                    }
+                }
+            }
+
+        console.log( "period_text: ", period_text);
+        // from https://www.fileformat.info/info/unicode/char/25cb/index.htm
+        //el_a.innerText = " \u29BF "  /// circeled bullet: \u29BF,  bullet: \u2022 "  // "\uD83D\uDE00" "gear (settings) : \u2699" //
+        //el_a.innerText = " \u25CB "  /// 'white circle' : \u25CB  /// black circle U+25CF
+
+        //let bullet = ""
+        //if(mode === "current"){bullet = " \u29BF "} else {bullet = " \u25CB "}
+        //document.getElementById("id_period_current").innerText = bullet;
+
+        }  // if (!isEmpty(period_dict))
+
+        return period_text;
+
+
+    }; // function get_period_text
+
   //========= format_period_from_datetimelocal  ========== PR2019-07-09
     function format_period_from_datetimelocal(periodstart_local, periodend_local, month_list, weekday_list, timeformat) {
         "use strict";
@@ -924,6 +978,32 @@
         return time_format
     }  // function format_total_duration
 
+
+//========= display_toFixed  ======== PR2020-01-08
+    function display_toFixed (minutes, user_lang) {
+        let display_value = "";
+        if(!!minutes){
+            const decimal_delimiter = (user_lang === "en") ? "." : ",";
+            const thousand_delimiter = (user_lang === "en") ? "," : ".";
+            const hours = minutes / 60
+            const value_toFixed = hours.toFixed(2);
+            const len = value_toFixed.length
+            if (len > 2) {display_value = replace_at_index (value_toFixed, len - 3, decimal_delimiter)
+            } else { display_value = value_toFixed}
+            if (len > 6) {display_value = insertAtIndex(display_value, len - 6, thousand_delimiter)}
+            if (len > 9) {display_value = insertAtIndex(display_value, len - 9, thousand_delimiter)}
+        }  // if(!!hours)
+        return display_value
+    }  // function display_duration
+
+//========= replaceAtIndex  ======== PR2020-01-08
+    function replace_at_index (string, index, new_character) {
+        return string.substr(0, index) + new_character + string.substr(index + new_character.length);
+    }
+//========= insertAtIndex  ======== PR2020-01-08
+    function insertAtIndex (string, index, new_character) {
+        return string.substr(0, index) + new_character + string.substr(index);
+    }
 //========= display_duration  ======== PR2019-09-08
     function display_duration (value_int, user_lang, hour_suffix, hour_suffix_plural) {
         //console.log("+++++++++ display_duration")

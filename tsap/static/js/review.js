@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let review_list = [];
 
     let loc = {};  // locale_dict
-    let period_dict = {};
+    let selected_period = {};
     let mod_upload_dict = {};
 
     let tblBody_items = document.getElementById("id_tbody_items");
@@ -66,9 +66,9 @@ document.addEventListener('DOMContentLoaded', function() {
     el_flt_period.addEventListener("mouseleave", function(){el_flt_period.classList.remove(cls_hover)});
 
 // buttons in  modal period
-    document.getElementById("id_mod_period_datefirst").addEventListener("change", function() {ModPeriodEdit("datefirst")}, false )
-    document.getElementById("id_mod_period_datelast").addEventListener("change", function() {ModPeriodEdit("datelast")}, false )
-    document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false )
+    document.getElementById("id_mod_period_datefirst").addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false )
+    document.getElementById("id_mod_period_datelast").addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false )
+    document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodDateChanged()}, false )
 
 
     // send 'now' as array to server, so 'now' of local computer will be used
@@ -124,11 +124,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     fill_table = true;
                 }
                 if ("period" in response) {
-                    period_dict= response["period"];
-                    //console.log("period_dict", period_dict)
-                    document.getElementById("id_flt_period").value = get_period_text(period_dict);
+                    selected_period= response["period"];
+                    //console.log("selected_period", selected_period)
+                    document.getElementById("id_flt_period").value = get_period_text(selected_period,
+                                loc.period_select_list, loc.period_extension, loc.months_abbrev, loc.weekdays_abbrev, period_text);
 
-                    CreateTblPeriod();
+                    CreateTblModSelectPeriod();
                 }
 
                 if (fill_table) {FillTableRows()}
@@ -154,11 +155,10 @@ document.addEventListener('DOMContentLoaded', function() {
     };//function CreateSubmenu
 
 
-//=========  CreateTblPeriod  ================ PR2019-11-16
-    function CreateTblPeriod() {
+//=========  CreateTblModSelectPeriod  ================ PR2019-11-16
+    function CreateTblModSelectPeriod() {
         //console.log("===  CreateTblPeriod == ");
-        //console.log(period_dict);
-        let tBody = document.getElementById("id_mod_period_tblbody");
+        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
         tBody.innerText = null;
 //+++ insert td's ino tblRow
         const len = loc.period_select_list.length
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //+++ insert tblRow ino tBody
             tblRow = tBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
     // --- add EventListener to tblRow.
-            tblRow.addEventListener("click", function() {ModPeriodSelect(tblRow, j);}, false )
+            tblRow.addEventListener("click", function() {ModPeriodSelectPeriod(tblRow, j);}, false )
     //- add hover to tableBody row
             tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
             tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //let el_select = document.getElementById("id_mod_period_extend");
         //FillOptionsPeriodExtension(el_select, loc.period_extension)
 
-    } // CreateTblPeriod
+    } // CreateTblModSelectPeriod
 
 
 //========= FillTableRows  ====================================
@@ -824,19 +824,13 @@ function printPDF() {
 //========= ModPeriodOpen====================================
     function ModPeriodOpen () {
         //console.log("===  ModPeriodOpen  =====") ;
-        //console.log("period_dict", period_dict) ;
+        //console.log("selected_period", selected_period) ;
 
-        // period_dict = {page: "period_review", period_tag: "tweek", extend_offset: 0,
-        // now: (5) [2019, 11, 20, 7, 29],
-        // periodend: "2019-11-25T00:00:00+01:00", periodstart: "2019-11-18T00:00:00+01:00",
-        // rosterdatefirst: "2019-11-18", rosterdatefirst_minus1: "2019-11-17",
-        // rosterdatelast: "2019-11-24", rosterdatelast_plus1: "2019-11-25"}
-
-        mod_upload_dict = period_dict;
+        mod_upload_dict = selected_period;
 
     // highligh selected period in table, put period_tag in data-tag of tblRow
-        let tBody = document.getElementById("id_mod_period_tblbody");
-        const period_tag = get_dict_value_by_key(period_dict, "period_tag")
+        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
+        const period_tag = get_dict_value_by_key(selected_period, "period_tag")
         for (let i = 0, tblRow, row_tag; tblRow = tBody.rows[i]; i++) {
             row_tag = get_attr_from_el(tblRow, "data-tag")
             if (period_tag === row_tag){
@@ -847,19 +841,19 @@ function printPDF() {
         };
 
     // set value of extend select box
-        const extend_index = get_dict_value_by_key(period_dict, "extend_index", 0)
+        const extend_index = get_dict_value_by_key(selected_period, "extend_index", 0)
         document.getElementById("id_mod_period_extend").selectedIndex = extend_index
 
     // set value of date imput elements
         const is_custom_period = (period_tag === "other")
         let el_datefirst = document.getElementById("id_mod_period_datefirst")
         let el_datelast = document.getElementById("id_mod_period_datelast")
-        el_datefirst.value = get_dict_value_by_key(period_dict, "rosterdatefirst")
-        el_datelast.value = get_dict_value_by_key(period_dict, "rosterdatelast")
+        el_datefirst.value = get_dict_value_by_key(selected_period, "rosterdatefirst")
+        el_datelast.value = get_dict_value_by_key(selected_period, "rosterdatelast")
 
     // set min max of input fields
-        ModPeriodEdit("datefirst");
-        ModPeriodEdit("datelast");
+        ModPeriodDateChanged("datefirst");
+        ModPeriodDateChanged("datelast");
 
         el_datefirst.disabled = !is_custom_period
         el_datelast.disabled = !is_custom_period
@@ -869,9 +863,9 @@ function printPDF() {
 
 }; // function ModPeriodOpen
 
-//=========  ModPeriodSelect  ================ PR2019-07-14
-    function ModPeriodSelect(tr_clicked, selected_index) {
-        //console.log( "===== ModPeriodSelect ========= ", selected_index);
+//=========  ModPeriodSelectPeriod  ================ PR2019-07-14
+    function ModPeriodSelectPeriod(tr_clicked, selected_index) {
+        //console.log( "===== ModPeriodSelectPeriod ========= ", selected_index);
         if(!!tr_clicked) {
     // ---  deselect all highlighted rows, highlight selected row
             DeselectHighlightedRows(tr_clicked, cls_selected);
@@ -892,10 +886,10 @@ function printPDF() {
                 ModPeriodSave();
             }
         }
-    }  // ModPeriodSelect
+    }  // ModPeriodSelectPeriod
 
-//=========  ModPeriodEdit  ================ PR2019-07-14
-    function ModPeriodEdit(fldName) {
+//=========  ModPeriodDateChanged  ================ PR2019-07-14
+    function ModPeriodDateChanged(fldName) {
     // set min max of other input field
         let attr_key = (fldName === "datefirst") ? "min" : "max";
         let fldName_other = (fldName === "datefirst") ? "datelast" : "datefirst";
@@ -903,7 +897,7 @@ function printPDF() {
         let el_other = document.getElementById("id_mod_period_" + fldName_other)
         if (!!el_this.value){ el_other.setAttribute(attr_key, el_this.value)
         } else { el_other.removeAttribute(attr_key) };
-    }  // ModPeriodEdit
+    }  // ModPeriodDateChanged
 
 //=========  ModPeriodSave  ================ PR2019-07-11
     function ModPeriodSave() {
@@ -920,7 +914,11 @@ function printPDF() {
                        (extend_index=== 5) ? 720 :
                        (extend_index=== 6) ? 1440 : 0;
 
-        mod_upload_dict = {"page": "review", "period_tag": period_tag, "extend_index": extend_index, "extend_offset": extend_offset};
+        mod_upload_dict = {
+            page: "review",
+            period_tag: period_tag,
+            extend_index: extend_index,
+            extend_offset: extend_offset};
         //console.log("new mod_upload_dict:", mod_upload_dict);
 
         // only save dates when tag = "other"
@@ -942,55 +940,6 @@ function printPDF() {
         DatalistDownload({"review": mod_upload_dict});
 
     }  // ModPeriodSave
-
-//========= get_period_text  ====================================
-    function get_period_text(period_dict) {
-        //console.log( "===== get_period_text  ========= ");
-        let period_text = null
-        if (!isEmpty(period_dict)){
-            const period_tag = get_dict_value_by_key(period_dict, "period_tag");
-
-            let default_text = null
-            for(let i = 0, item, len = loc.period_select_list.length; i < len; i++){
-                item = loc.period_select_list[i];
-                if (item[0] === period_tag){ period_text = item[1] }
-                if (item[0] === 'today'){ default_text = item[1] }
-            }
-            if(!period_text){period_text = default_text}
-
-            let extend_text = get_dict_value_by_key(loc.period_extension, "extend_index");
-
-            if(period_tag === "other"){
-                const rosterdatefirst = get_dict_value_by_key(period_dict, "rosterdatefirst");
-                const rosterdatelast = get_dict_value_by_key(period_dict, "rosterdatelast");
-                if(rosterdatefirst === rosterdatelast) {
-                    period_text =  format_date_iso (rosterdatefirst, month_list, weekday_list, false, false, user_lang);
-                } else {
-                    const datelast_formatted = format_date_iso (rosterdatelast, month_list, weekday_list, true, false, user_lang)
-                    if (rosterdatefirst.slice(0,8) === rosterdatelast.slice(0,8)) { //  slice(0,8) = 2019-11-17'
-                        // same month: show '13 - 14 nov
-                        const day_first = Number(rosterdatefirst.slice(8)).toString()
-                        period_text = day_first + " - " + datelast_formatted
-                    } else {
-                        const datefirst_formatted = format_date_iso (rosterdatefirst, month_list, weekday_list, true, true, user_lang)
-                        period_text = datefirst_formatted + " - " + datelast_formatted
-                    }
-                }
-            }
-        // from https://www.fileformat.info/info/unicode/char/25cb/index.htm
-        //el_a.innerText = " \u29BF "  /// circeled bullet: \u29BF,  bullet: \u2022 "  // "\uD83D\uDE00" "gear (settings) : \u2699" //
-        //el_a.innerText = " \u25CB "  /// 'white circle' : \u25CB  /// black circle U+25CF
-
-        //let bullet = ""
-        //if(mode === "current"){bullet = " \u29BF "} else {bullet = " \u25CB "}
-        //document.getElementById("id_period_current").innerText = bullet;
-
-        }  // if (!isEmpty(period_dict))
-
-        return period_text;
-
-
-    }; // function get_period_text
 
 // +++++++++++++++++ END MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
 
@@ -1080,7 +1029,7 @@ function printPDF() {
                     if (!tblRow.classList.contains(cls_hide)) {
                         if(i <= noOnFirstPage){
                             startHeight = startHeight + line_height;
-                            printData(tblRow, pos_x, startHeight, doc, img_warning);
+                            review_printData(tblRow, pos_x, startHeight, doc, img_warning);
                         }else{
                             if(z ==1 ){
                                 startHeight = 0;
@@ -1088,7 +1037,7 @@ function printPDF() {
                             }
                             if(z <= noOfRows){
                                 startHeight = startHeight + line_height;
-                                printData(tblRow, pos_x, startHeight ,doc, img_warning);
+                                review_printData(tblRow, pos_x, startHeight ,doc, img_warning);
                                 z++;
                             }else{
                                 z = 1;
@@ -1105,10 +1054,42 @@ function printPDF() {
 			}  // if (len > 0){
     }  // printPDF
 
+    function review_printData(tblRow, pos_x, height, doc, img_warning){
+    const column_count = 6;
+    if(!!tblRow){
+        for (let j = 0, el, a, img ; j < column_count; j++) {
+            if(!!tblRow.cells){
+                el = tblRow.cells[j]
+                if(!!el){
+                    if (j < column_count ){
+                        a = el.firstChild;
+                        if(!!a){
+                            doc.text(pos_x[j], height, a.innerText);
+                        }
+                    } else {
+                        a = el.firstChild;
+                        if(!!a){
+                            img = el.firstChild;
+                           // if(!!img){
+                                //if(img.src !== "/static/img/warning.gif") {//  imgsrc_warning;
+                                                                //var options = {orientation: 'p', unit: 'mm', format: custom};
+                         //var doc = new jsPDF(options);
+                                    //doc.addImage(img_warning, 'JPEG', pos_x[j], height, 12, 12);  // x, y wifth height
+                                //    }
+                           // }
+                        }
+                    }
+                } // if(!!el){
+            }
+
+            }  // if(!!tblRow.cells[0]){
+    }  // if(!!tblRow){
+}  // function review_printData
+
+
     function ExportToExcel(){
         console.log(" === ExportToExcel ===")
             let createXLSLFormatObj = [];
-
             /* XLS Head Columns */
             //var xlsHeader = loc.col_headers;
 
@@ -1119,9 +1100,7 @@ function printPDF() {
             $.each(xlsRows, function(index, value) {
             //console.log("value", value)
                 var innerRowData = [];
-
                 $.each(value, function(ind, val) {
-
                     //innerRowData.push(val);
                 });
                 //createXLSLFormatObj.push(innerRowData);
@@ -1138,8 +1117,25 @@ function printPDF() {
 
             let wb = XLSX.utils.book_new()
             let ws = XLSX.utils.aoa_to_sheet(createXLSLFormatObj);
+            // Datum	Klant	Locatie	Medewerker	Dienst	Werkuren	Declarabel	Factuur uren	Verschil	Tarief	Bedrag
+            const wscols = [
+                {wch:15},
+                {wch:15},
+                {wch:15},
+                {wch:15},
+                {wch:15},
+                {wch:10},
+                {wch:10},
+                {wch:10},
+                {wch:10},
+                {wch:10}
+            ];
 
+            ws['!cols'] = wscols;
             /* Add worksheet to workbook */
+
+        console.log("--------------- ws", ws)
+
             XLSX.utils.book_append_sheet(wb, ws, ws_name);
 
             /* Write workbook and Download */

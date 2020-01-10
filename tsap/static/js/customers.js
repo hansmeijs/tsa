@@ -77,16 +77,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let teammember_map = new Map();
         let employee_map = new Map();
+let planning_list = [] // for export and printing - can replace map?
 
-        let planning_map = new Map();
         let calendar_map = new Map();
+        let planning_map = new Map();
+        let planning_duration_sum = 0; // stores total hours, calciulated whem creating planning_map
 
         let loc = {};  // locale_dict with translated text
 
         let calendar_header_dict = {};
+        let selected_period = {};
         let mod_upload_dict = {};
         let mod_employee_dict = {}; // only used for mod employee form
-        let selected_period = {};
         let quicksave = false
 
         let filter_select = "";
@@ -116,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const field_width = {
             customer: ["180", "220", "120", "032"],
             order: ["180", "180", "180", "120", "120", "120", "032", "032"],
-            planning: ["120", "120", "180", "120", "090", "120", "090"]}
+            planning: ["120", "120", "180", "120", "120", "120", "090"]}
         const field_align = {
             customer: ["left", "left", "left", "right"],
             order: ["left", "left","left", "left", "left", "left", "right", "right"],
@@ -137,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_loader = document.getElementById("id_loader");
         let el_msg = document.getElementById("id_msgbox");
 
-// === reset filter when ckicked on Escape button ===
+// === reset filter when clicked on Escape button ===
         document.addEventListener("keydown", function (event) {
              if (event.key === "Escape") {ResetFilterRows()}
         });
@@ -229,10 +231,25 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_mod_employee_btn_save").addEventListener("click", function() {ModEmployeeSave("update")}, false);
         document.getElementById("id_mod_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("delete")}, false);
 
-// ---  select period header
-        document.getElementById("id_div_hdr_period").addEventListener("click", function(){ModPeriodOpen()});
-// ---  save button in ModPeriod
-        document.getElementById("id_mod_period_btn_save").addEventListener("click", function(){ModPeriodSave()});
+// ---  MOD PERIOD ------------------------------------
+
+// ---  header select period
+        document.getElementById("id_hdr_period").addEventListener("click", function(){ModPeriodOpen()});
+
+        let el_modperiod_selectcustomer = document.getElementById("id_modperiod_selectcustomer")
+            el_modperiod_selectcustomer.addEventListener("change", function() {
+                        ModPeriodSelectCustomer(el_modperiod_selectcustomer.value)}, false )
+
+        let el_modperiod_selectorder = document.getElementById("id_modperiod_selectorder")
+            el_modperiod_selectorder.addEventListener("change", function() {
+                        ModPeriodSelectOrder(el_modperiod_selectorder.value)}, false )
+// buttons in  modal period
+        document.getElementById("id_mod_period_datefirst").addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false )
+        document.getElementById("id_mod_period_datelast").addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false )
+        document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false )
+
+
+// ---  MOD confirm ------------------------------------
 // ---  save button in ModConfirm
         let el_confirm_btn_save = document.getElementById("id_confirm_btn_save");
             el_confirm_btn_save.addEventListener("click", function(){ModConfirmSave()});
@@ -276,14 +293,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  set selected menu button active
         SetMenubuttonActive(document.getElementById("id_hdr_cust"));
 
-// --- create Submenu
-        CreateSubmenu()
-
         // skip cat: 512=absence, 4096=template, # inactive=None: show all
         const datalist_request = {
             setting: {page_customer: {mode: "get"},
                       selected_pk: {mode: "get"},
-                      planning_period: {mode: "get"}},
+                      period_customer
+                      : {mode: "get"}},
             quicksave: {mode: "get"},
             locale: {page: "customer"},
             company: {value: true},
@@ -303,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request) {
         console.log( "=== DatalistDownload ")
-        //console.log( datalist_request)
+        console.log( datalist_request)
 
 // ---  show loader
         el_loader.classList.remove(cls_visible_hide)
@@ -320,10 +335,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(response);
                 if ("locale_dict" in response) {
                     loc = response["locale_dict"];
-// --- create header row and footer
+                    CreateSubmenu()
                     CreateTblHeaders();
                     CreateTblFooters();
+                    CreateTblModSelectPeriod();
                 }
+                if ("period" in response) {
+                    selected_period= response["period"];
+                    document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
+                }
+
                 if ("quicksave" in response) {
                     quicksave = get_subdict_value_by_key(response, "quicksave", "value", false)
                 }
@@ -383,23 +404,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if ("teammember_list" in response) {get_datamap(response["teammember_list"], teammember_map)}
         if ("schemeitem_list" in response) {get_datamap(response["schemeitem_list"], schemeitem_map)}
 
-        if ("order_planning_list" in response) {
-
-            const duration_sum = get_datamap(response["order_planning_list"], planning_map, true)
+        if ("customer_planning_list" in response) {
+            const duration_sum = get_datamap(response["customer_planning_list"], planning_map, true)
             FillTableRows("planning");
-            console.log("planning_map: ", planning_map)
-            console.log("duration_sum: ", duration_sum)
-                            const display_duration_sum = display_duration (duration_sum, user_lang)
-            // get total time duration
 
-
-            const label_list = [loc.Total_hours, loc.Customer, loc.Planning + " " + loc.of, loc.Print_date];
+            const label_list = [loc.Total_hours, loc.Customer + " - " + loc.Order, loc.Planning + " " + loc.of, loc.Print_date];
             const pos_x_list = [6, 65, 105, 130, 155, 185];
             const colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
 
-           // PrintOrderPlanning("preview", selected_period, planning_map, display_duration_sum,
-           //             label_list, pos_x_list, colhdr_list, timeformat,
-           //             loc.months_abbrev, loc.weekdays_abbrev, user_lang);
+            //const display_duration_sum = display_duration (duration_sum, user_lang)
+            //PrintOrderPlanning("preview", selected_period, planning_map, display_duration_sum,
+            //           label_list, pos_x_list, colhdr_list, timeformat,
+            //           loc.months_abbrev, loc.weekdays_abbrev, user_lang);
         }
 
         // setting_list must go after FillSelectTable() and before FillTableRows();
@@ -433,7 +449,6 @@ document.addEventListener('DOMContentLoaded', function() {
         DeselectHighlightedTblbody(tblFoot, cls_selected)
 
         tr_clicked.classList.add(cls_selected)
-
 
 // ---  get map_dict
         const map_dict = get_mapdict_from_tblRow(tr_clicked)
@@ -573,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- update header text
         UpdateHeaderText();
-        UpdateHeaderPeriod();
+        document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
 
     }  // HandleBtnSelect
 
@@ -871,13 +886,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const url_order_import = get_attr_from_el(el_data, "data-order_import_url");
 
         //console.log("url_order_import: ", url_order_import);
-        AddSubmenuButton(el_div, el_data, "id_submenu_order_import", null, "data-txt_order_import","mx-2", url_order_import )
+        let a_innerText = get_attr_from_el_str(el_data, "data-txt_order_import");
+        AddSubmenuButton(el_div, a_innerText, "id_submenu_order_import", null, "mx-2", url_order_import )
         //AddSubmenuButton(el_div, el_data, "id_submenu_employee_add", function() {HandleButtonEmployeeAdd()}, "data-txt_employee_add", "mx-2")
         //AddSubmenuButton(el_div, el_data, "id_submenu_employee_delete", function() {ModConfirmOpen("delete")}, "data-txt_employee_delete", "mx-2")
 
-        AddSubmenuButton(el_div, el_data, "id_submenu_customer_planning_print", function() {
-            ModPeriodOpen()}, "data-txt_planning_preview", "mx-2")
+        a_innerText = get_attr_from_el_str(el_data, "data-txt_planning_preview");
+        const display_duration_total = display_duration (planning_duration_sum, user_lang)
+        const label_list = [loc.Total_hours, loc.Customer + " - " + loc.Order, loc.Planning + " " + loc.of, loc.Print_date];
+        const pos_x_list = [6, 65, 105, 130, 155, 185];
+        const colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
 
+        AddSubmenuButton( el_div, a_innerText,  "id_submenu_customer_planning_print",
+            function() {
+            PrintOrderPlanning("preview", selected_period, planning_map, display_duration_total,
+                    label_list, pos_x_list, colhdr_list, timeformat, loc.months_abbrev, loc.weekdays_abbrev, user_lang
+                    )
+            },
+            "mx-2"
+        )
+
+        CreateSubmenuButton(el_submenu, null, loc.menubtn_export_excel, "mx-2", ExportToExcel);
+    // CreateSubmenuButton(el_div, id, btn_text, class_key, function_on_click) {
 
        // AddSubmenuButton(el_div, el_data, "id_submenu_customer_planning_print", function() {
        //     PrintOrderPlanning("preview", selected_period, planning_map, company_dict,
@@ -894,12 +924,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= FillTableRows  ====================================
     function FillTableRows(tblName, selected_parent_pk) {
-        console.log( "===== FillTableRows  ========= ", tblName);
+        //console.log( "===== FillTableRows  ========= ", tblName);
 
         // selected_btns are: customer, order, planning, calendar, customer_form
         if (selected_btn === "customer_form") { tblName = "customer"};
-        console.log( "tblName: ", tblName);
-        console.log( "selected_parent_pk: ", selected_parent_pk);
+        //console.log( "tblName: ", tblName);
+        //console.log( "selected_parent_pk: ", selected_parent_pk);
 
 // --- reset tblBody
         // id_tbody_teammember is on modeordershift.html
@@ -929,7 +959,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const pk_int = get_dict_value_by_key(id_dict, "pk");
                         const ppk_int = get_dict_value_by_key(id_dict, "ppk");
 
-        console.log( "id_dict: ", id_dict);
+        //console.log( "id_dict: ", id_dict);
                     // in table order: show only rows of selected_customer_pk, show all if null
                     let add_Row = false;
                     let row_customer_pk = null;
@@ -986,8 +1016,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 th.appendChild(el_div)
     // --- add innerText to th
                 const data_text = loc[thead_text[mode][j]];
-                console.log("--------------------thead_text[mode][j]", thead_text[mode][j])
-                console.log("data_text", data_text)
                 if(!!data_text) el_div.innerText = data_text;
                 el_div.setAttribute("overflow-wrap", "break-word");
     // --- add margin to first column
@@ -1428,8 +1456,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblRow, update_dict){
-        console.log("--- UpdateTableRow  --------------");
-        console.log("update_dict", update_dict);
+        //console.log("--- UpdateTableRow  --------------");
+        //console.log("update_dict", update_dict);
         //console.log("tblRow", tblRow);
 
 // format of update_dict is : { id: {table: "customer", pk: 504, ppk: 2, temp_pk: "customer_504"}
@@ -1518,7 +1546,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= UpdateField  ============= PR2019-10-09
     function UpdateField(el_input, update_dict, is_addnew_row) {
         const fldName = get_attr_from_el(el_input, "data-field");
-        console.log("========= UpdateField  ========= ", fldName);
+        //console.log("========= UpdateField  ========= ", fldName);
         //console.log("update_dict ", update_dict);
 
 // --- reset fields when update_dict is empty
@@ -1541,12 +1569,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const updated = get_dict_value_by_key (field_dict, "updated");
                 const msg_offset = (selected_btn === "customer_form") ? [-260, 210] : [-240, 210];
 
-                if (["code", "name", "order", "identifier", "rosterdate"].indexOf( fldName ) > -1){
+                if (["code", "name", "identifier"].indexOf( fldName ) > -1){
+                   format_text_element (el_input, "value", el_msg, field_dict, is_addnew_row, msg_offset)
+                } else if (["order", "shift"].indexOf( fldName ) > -1){
+                   format_text_element (el_input, "code", el_msg, field_dict, is_addnew_row, msg_offset)
+                } else if (fldName ===  "rosterdate"){
+                    const display_str = get_dict_value_by_key (field_dict, "display");
+                    const data_value_str = get_dict_value_by_key (field_dict, "value");
 
-                   const key_str = (fldName ===  "order") ? "code" :
-                                   (fldName ===  "rosterdate") ? "display" : "value";
-                   format_text_element (el_input, key_str, el_msg, field_dict, is_addnew_row, msg_offset)
-
+                    el_input.value = display_str;
+                    el_input.setAttribute("data-value", data_value_str);
                 } else if (fldName ===  "customer"){
                     // fldName "customer") is used in mode order
                     //console.log("fldName: ", fldName);
@@ -1575,12 +1607,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     format_date_element (el_input, el_msg, field_dict, loc.month_list, loc.weekday_list,
                                 user_lang, comp_timezone, hide_weekday, hide_year)
 
-                } else if (fldName === "rosterdateXX"){
-                    //const hide_weekday = (tblName === "planning") ? false : true;
-                    //const hide_year = (tblName === "planning") ?  true : false;
-                    //format_date_element (el_input, el_msg, field_dict, loc.month_list, loc.weekday_list,
-                    //                    user_lang, comp_timezone, hide_weekday, hide_year)
-
                 } else if (fldName === "offsetstart"){
                     let display_time = null;
                     const offset_start = get_dict_value_by_key(update_dict, "offsetstart");
@@ -1593,8 +1619,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     el_input.value = display_time
 
                 } else if (fldName === "timeduration"){
-                    const time_duration = get_dict_value_by_key(update_dict, "timeduration");
-                    el_input.value = display_duration (time_duration, user_lang);
+                   const tm_count = get_dict_value_by_key (update_dict, "tm_count");
+                   const time_duration = get_dict_value_by_key(update_dict, "timeduration");
+                   const total_duration = (!!tm_count && time_duration) ? tm_count * time_duration : 0
+
+                   //el_input.value = display_duration (total_duration, user_lang);
+                   const display_value = display_toFixed (total_duration, user_lang);
+                   el_input.value = display_toFixed (total_duration, user_lang);
+                   el_input.setAttribute("data-total_duration", total_duration);
 
                 } else if (fldName === "billable"){
                     format_billable_element (el_input, field_dict,
@@ -1611,12 +1643,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         el_input.value = code_arr[0] + " (" + len.toString() + ")";
                         let title_str = "";
+                        let data_value_str = ""
                         for (let i = 0; i < len; i++) {
                             let code = code_arr[i]
                             if (!code) {code = "---"};
                             title_str += "\n" + code;
+                            data_value_str += ";" + code;
                         }
+                        if (data_value_str.charAt(0) === ";") {data_value_str = data_value_str.slice(1)};
                         el_input.title = title_str
+                        el_input.setAttribute("data-value", data_value_str);
+
                     }
                 } else if (fldName === "inactive") {
                    if(isEmpty(field_dict)){field_dict = {value: false}}
@@ -1706,23 +1743,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         document.getElementById("id_hdr_text").innerText = header_text
 
-        document.getElementById("id_calendar_hdr_text").innerText = header_text
-
     }  // UpdateHeaderText
 
 //=========  UpdateHeaderPeriod ================ PR2019-11-09
     function UpdateHeaderPeriod() {
-        // console.log( "===== UpdateHeaderPeriod  ========= ");
+        console.log( "===== UpdateHeaderPeriod  ========= ");
+
+        const datefirst_ISO = get_dict_value_by_key(selected_period, "datefirst");
+        const datelast_ISO = get_dict_value_by_key(selected_period, "datelast");
+        const period_txt = format_period(datefirst_ISO, datelast_ISO, loc.months_abbrev, loc.weekdays_abbrev, user_lang)
+
         let header_text = "";
-        const period_txt = get_period_formatted(selected_period, loc.month_list, loc.weekday_list, user_lang);
-        // console.log( "period_txt", period_txt);
         if (!!period_txt) {
             header_text = get_attr_from_el_str(el_data, "data-txt_period") + ": " + period_txt
         } else {
             header_text = get_attr_from_el_str(el_data, "data-txt_select_period") + "...";
         }
-        // console.log( "header_text", header_text);
-        document.getElementById("id_hdr_period").innerText = header_text
+
+        return header_text
     }  // UpdateHeaderPeriod
 
 //========= UpdateSettings  ====================================
@@ -1788,7 +1826,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }  // if (key === "page_customer"){
                 if (key === "planning_period"){
                     selected_period = setting_dict[key];
-                    UpdateHeaderPeriod();
+                    document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
                 }
             });
         };
@@ -1806,9 +1844,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const data_map = (tblName === "customer") ? customer_map :
                            (tblName === "order") ? order_map :
                            (tblName === "teammember") ? teammember_map : null
-
-            if(!!data_map.size){
-                map_dict = data_map.get(map_id);
+            if(!!data_map){
+                if(!!data_map.size){
+                    map_dict = data_map.get(map_id);
+                }
             }
         }
         return map_dict
@@ -2125,446 +2164,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //###########################################################################
 // +++++++++++++++++ MODAL ++++++++++++++++++++++++++++++++++++++++++++++++++
-// +++++++++++++++++ MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
-//=========  ModPeriodOpen  ================ PR2019-10-28
-    function ModPeriodOpen() {
-        // console.log(" -----  ModPeriodOpen   ----")
-        // when clicked on delete btn in form tehre is no tr_selected, use selected_customer_pk
 
-        if(!isEmpty(selected_period)){
-            if("datefirst" in selected_period){
-                document.getElementById("id_mod_period_datefirst").value = selected_period["datefirst"]
-            }
-            if("datelast" in selected_period){
-                document.getElementById("id_mod_period_datelast").value = selected_period["datelast"]
-            }
-        }
-        //let el_mod_period_tblbody = document.getElementById("id_mod_period_tblbody");
-
-        // ---  show modal, set focus on save button
-        $("#id_mod_period").modal({backdrop: true});
-    };  // ModPeriodOpen
-
-//=========  ModPeriodSave  ================ PR2019-10-28
-    function ModPeriodSave() {
-        console.log("===  ModPeriodSave  =====") ;
-        $("#id_mod_period").modal("hide");
-
-        const datefirst = document.getElementById("id_mod_period_datefirst").value
-        const datelast = document.getElementById("id_mod_period_datelast").value
-
-// ---  upload new selected_btn
-        selected_period = {"datefirst": datefirst, "datelast": datelast};
-        let upload_dict = {"planning_period": selected_period};
-        UploadSettings (upload_dict, url_settings_upload);
-
-        UpdateHeaderPeriod();
-
-        upload_dict = {"datefirst": datefirst, "datelast": datelast};
-        // TODO select multiple orders
-        const orderid_list = [selected_order_pk];
-
-        if(!!selected_order_pk){upload_dict["order_id"] = selected_order_pk};
-        let datalist_request = {"order_planning": upload_dict};
-        console.log("datalist_request: ", datalist_request) ;
-        DatalistDownload(datalist_request);
-
-    }
-
-
-// +++++++++++++++++ MODAL CONFIRM +++++++++++++++++++++++++++++++++++++++++++
-//=========  ModConfirmOpen  ================ PR2019-06-23
-    function ModConfirmOpen(mode, el_input) {
-        // console.log(" -----  ModConfirmOpen   ----", mode)
-
-        const tblRow = get_tablerow_selected(el_input);
-
-        let tblName, cust_code;
-        // tblRow is undefined when el_input = undefined
-        if(!!tblRow){
-            tblName = get_attr_from_el(tblRow, "data-table")
-            const pk_str = get_attr_from_el(tblRow, "data-pk")
-            const map_id = get_map_id(tblName, pk_str);
-            const data_map = (tblName === "customer") ? customer_map :
-                             (tblName === "order") ? order_map : null;
-            const map_dict = data_map.get(map_id);
-
-            cust_code = get_subdict_value_by_key(map_dict, "code", "value")
-        } else {
-            // get info from mod_upload_dict
-            tblName = get_subdict_value_by_key(mod_upload_dict, "id", "table")
-            cust_code = get_subdict_value_by_key(mod_upload_dict, "code", "value")
-        }
-
-        const data_key_01 = (tblName === "customer") ? "data-txt_this_customer" :
-                            (tblName === "order") ? "data-txt_this_order" : null;
-        const data_key_02 = (mode === "delete") ?  "data-txt_confirm_msg01_delete" :
-                            (mode === "inactive") ? "data-txt_confirm_msg01_inactive" : null;
-        const msg_01_txt = get_attr_from_el(el_data, data_key_01) + " " + get_attr_from_el(el_data, data_key_02)
-
-// put text in modal form
-        document.getElementById("id_confirm_header").innerText = cust_code;
-        document.getElementById("id_confirm_msg01").innerText = msg_01_txt;
-        const data_txt_btn_save = "data-txt_confirm_btn_" + mode
-        document.getElementById("id_confirm_btn_save").innerText = get_attr_from_el(el_data, data_txt_btn_save);
-
-// set focus to cancel button
-        setTimeout(function (){
-            document.getElementById("id_confirm_btn_cancel").focus();
-        }, 500);
-
-// show modal
-        $("#id_mod_confirm").modal({backdrop: true});
-
-    };  // ModConfirmOpen
-
-//=========  ModConfirmSave  ================ PR2019-06-23
-    function ModConfirmSave() {
-        // console.log(" --- ModConfirmSave --- ");
-        // onsole.log("mod_upload_dict: ", mod_upload_dict);
-// ---  hide modal
-        $("#id_mod_confirm").modal("hide");
-// ---  Upload Changes
-        const url_str = url_customer_upload
-        UploadDeleteChanges(mod_upload_dict, url_str);
-
-    }
-
-
-//############################################################################
-// +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
-
-//========= HandleSelect_Filter  ====================================
-    function HandleSelect_Filter() {
-        // console.log( "===== HandleSelect_Filter  ========= ");
-        // skip filter if filter value has not changed, update variable filter_select
-
-        let new_filter = document.getElementById("id_filter_select_input").value;
-
-        let skip_filter = false
-        if (!new_filter){
-            if (!filter_select){
-                skip_filter = true
-            } else {
-                filter_select = "";
-            }
-        } else {
-            if (new_filter.toLowerCase() === filter_select) {
-                skip_filter = true
-            } else {
-                filter_select = new_filter.toLowerCase();
-            }
-        }
-        if (!skip_filter) {
-            let tblBody = document.getElementById("id_tbody_" + selected_btn);
-            if(!!tblBody){
-                FilterTableRows(tblBody)
-            }
-
-            FilterSelectRows()
-
-        } //  if (!skip_filter) {
-    }; // function HandleSelect_Filter
-
-//========= HandleFilterName  ====================================
-    function HandleFilterName(el, index, el_key) {
-        //console.log( "===== HandleFilterName  ========= ");
-
-        //console.log( "el", el, typeof el);
-        //console.log( "index", index, typeof index);
-        //console.log( "el_key", el_key, typeof el_key);
-
-        // skip filter if filter value has not changed, update variable filter_text
-
-// --- get filter tblRow and tblBody
-        let tblRow = get_tablerow_selected(el);
-        const mode = get_attr_from_el_str(el,"data-mode");
-        let tblBody = document.getElementById("id_tbody_" + mode);
-
-        let skip_filter = false
-        if (el_key === 27) {
-            filter_dict = {}
-
-            for (let i = 0, len = tblRow.cells.length; i < len; i++) {
-                let el = tblRow.cells[i].children[0];
-                if(!!el){
-                    el.value = null
-                }
-            }
-            UpdateHeaderText();
-        } else {
-            let filter_dict_text = ""
-            if (index in filter_dict) {filter_dict_text = filter_dict[index];}
-            //if(!filter_dict_text){filter_dict_text = ""}
-            //console.log( "filter_dict_text: <" + filter_dict_text + ">");
-
-            let new_filter = el.value.toString();
-            //console.log( "new_filter: <" + new_filter + ">");
-            if (!new_filter){
-                if (!filter_dict_text){
-                    //console.log( "skip_filter = true");
-                    skip_filter = true
-                } else {
-                    //console.log( "delete filter_dict");
-                    delete filter_dict[index];
-                    //console.log( "deleted filter : ", filter_dict);
-                }
-            } else {
-                if (new_filter.toLowerCase() === filter_dict_text) {
-                    skip_filter = true
-                    //console.log( "skip_filter = true");
-                } else {
-                    filter_dict[index] = new_filter.toLowerCase();
-                    //console.log( "filter_dict[index]: ", filter_dict[index]);
-                }
-            }
-        }
-
-        if (!skip_filter) {
-            if(!!tblBody){
-                FilterTableRows(tblBody)
-            }
-
-            FilterSelectRows();
-        } //  if (!skip_filter) {
-
-
-    }; // function HandleFilterName
-
-//=========  HandleFilterInactive  ================ PR2019-03-23
-    function HandleFilterInactive(el) {
-        //console.log(" --- HandleFilterInactive --- ");
-// toggle value
-        filter_show_inactive = !filter_show_inactive
-// toggle icon
-        // filter is on sidebar, use imgsrc_inactive_lightgrey
-        const img_src = (filter_show_inactive) ? imgsrc_inactive_black : imgsrc_inactive_lightgrey;
-        // debug: dont use el.firstChild, it  also returns text and comment nodes, can give error
-        el.children[0].setAttribute("src", img_src);
-// Filter TableRows
-        FilterSelectRows();
-
-        let tblBody = document.getElementById("id_tbody_" + selected_btn);
-        if(!!tblBody){
-            FilterTableRows(tblBody)
-        }
-
-    }  // function HandleFilterInactive
-
-//========= ResetFilterRows  ====================================
-    function ResetFilterRows() {  // PR2019-10-26
-        console.log( "===== ResetFilterRows  ========= ");
-
-        filter_select = "";
-        filter_show_inactive = false;
-        filter_dict = {};
-
-        selected_customer_pk = 0;
-        selected_order_pk = 0;
-
-        const tblName = (selected_btn === "customer") ? "customer" :
-                        (selected_btn === "order") ? "order" : null;
-        if (!!tblName){
-            let tblBody = document.getElementById("id_tbody_" + tblName)
-            if(!!tblBody){
-                FilterTableRows(tblBody);
-            }
-
-            let tblHead = document.getElementById("id_thead_" + tblName)
-            if(!!tblHead){
-                let filterRow = tblHead.rows[1];
-                if(!!filterRow){
-                    const column_count = tbl_col_count[tblName];
-                    for (let j = 0, el; j < column_count; j++) {
-                        el = filterRow.cells[j].children[0]
-                        if(!!el){el.value = null}
-                    }
-                }
-            }
-
-            //--- reset filter of select table
-            let el_filter_select_input = document.getElementById("id_filter_select_input")
-            if (!!el_filter_select_input){
-                el_filter_select_input.value = null
-            }
-
-            // reset icon of filter select table
-            // debug: dont use el.firstChild, it also returns text and comment nodes, can give error
-            // select table is in sidebar: use lightgrey instead of imgsrc_inactive_grey
-
-            let el_filter_select_btn = document.getElementById("id_filter_select_btn")
-            if (!!el_filter_select_btn){
-                el_filter_select_btn.children[0].setAttribute("src", imgsrc_inactive_lightgrey);
-            }
-            FilterSelectRows()
-            UpdateHeaderText();
-
-            // reset customer name and pk in addnew row of tbody_order
-            UpdateAddnewRow(0, 0, null);
-
-        }  //  if (!!tblName){
-
-    }  // function ResetFilterRows
-
-//========= FilterSelectRows  ==================================== PR2019-08-28
-    function FilterSelectRows() {
-        // console.log( "===== FilterSelectRows  ========= ");
-        // console.log( "filter_show_inactive", filter_show_inactive);
-        for (let i = 0, len = tblBody_select.rows.length; i < len; i++) {
-            let tblRow = tblBody_select.rows[i];
-            if (!!tblRow){
-                let hide_row = false
-        // hide inactive rows when filter_show_inactive = false
-                if(!filter_show_inactive){
-                    const inactive_str = get_attr_from_el(tblRow, "data-inactive")
-                    if (!!inactive_str) {
-                        hide_row = (inactive_str.toLowerCase() === "true")
-                    }
-                }
-        // show all rows if filter_select = ""
-                if (!hide_row && !!filter_select){
-                    let found = false
-                    if (!!tblRow.cells[0]) {
-                        let el_value = tblRow.cells[0].innerText;
-                        if (!!el_value){
-                            el_value = el_value.toLowerCase();
-        // show row if filter_select is found in el_value
-                            found = (el_value.indexOf(filter_select) !== -1)
-                        }
-                    }
-                    hide_row = (!found)
-                }  // if (!!filter_select)
-                if (hide_row) {
-                    tblRow.classList.add(cls_hide)
-                } else {
-                    tblRow.classList.remove(cls_hide)
-                };
-            }  // if (!!tblRow){
-        }
-    }; // FilterSelectRows
-
-//========= FilterTableRows  ====================================
-    function FilterTableRows(tblBody) {  // PR2019-06-24
-        //console.log( "===== FilterTableRows  ========= ");
-        //console.log( "tblBody", tblBody);
-        let tblRows = tblBody.rows
-        const len = tblBody.rows.length;
-
-        if (!!len){
-            for (let i = 0, tblRow, show_row; i < len; i++) {
-                tblRow = tblBody.rows[i]
-        //console.log( "tblRow", tblRow);
-
-                show_row = ShowTableRow_dict(tblRow)
-        //console.log( "show_row", show_row);
-
-                if (show_row) {
-                    tblRow.classList.remove(cls_hide)
-                } else {
-                    tblRow.classList.add(cls_hide)
-                };
-            }
-        };
-    }; // function FilterTableRows
-
-//========= ShowTableRow_dict  ====================================
-    function ShowTableRow_dict(tblRow) {  // PR2019-09-15
-        //console.log( "===== ShowTableRow_dict  ========= ");
-        //console.log( "tblRow: ", tblRow);
-
-        // function filters by inactive and substring of fields
-        // also filters selected customer pk in table order
-        //  - iterates through cells of tblRow
-        //  - skips filter of new row (new row is always visible)
-        //  - if filter_name is not null:
-        //       - checks tblRow.cells[i].children[0], gets value, in case of select element: data-value
-        //       - returns show_row = true when filter_name found in value
-        //  - if col_inactive has value >= 0 and hide_inactive = true:
-        //       - checks data-value of column 'inactive'.
-        //       - hides row if inactive = true
-        let hide_row = false;
-        if (!!tblRow){
-
-// 1. skip new row
-    // check if row is_addnew_row. This is the case when pk is a string ('new_3'). Not all search tables have "id" (select customer has no id in tblrow)
-            const is_addnew_row = (get_attr_from_el(tblRow, "data-addnew") === "true");
-            if(!is_addnew_row){
-
-// 2. hide other customers when selected_customer_pk has value
-            // only in table order, planning
-                const tblName = get_attr_from_el(tblRow, "data-table");
-
-                //console.log( "tblName: ", tblName);
-                if (!hide_row && !!selected_customer_pk) {
-                    if (["order", "planning"].indexOf(tblName) > -1) {
-                        const row_customer_pk_str = get_attr_from_el(tblRow, "data-ppk");
-                        //console.log( "row_customer_pk_str", row_customer_pk_str, typeof row_customer_pk_str);
-                        //console.log( "selected_customer_pk", selected_customer_pk, typeof selected_customer_pk);
-                        hide_row = (row_customer_pk_str !== selected_customer_pk.toString())
-                        //console.log( "hide_row", hide_row, typeof hide_row);
-                    }
-                }
-
-                // hide inactive rows if filter_show_inactive
-                if(!hide_row && !filter_show_inactive){
-                    const inactive_str = get_attr_from_el(tblRow, "data-inactive")
-                    if (!!inactive_str && (inactive_str.toLowerCase() === "true")) {
-                        hide_row = true;
-                    }
-                }
-
-// show all rows if filter_name = ""
-            // console.log(  "show_row", show_row, "filter_name",  filter_name,  "col_length",  col_length);
-                if (!hide_row){
-                    Object.keys(filter_dict).forEach(function(key) {
-                        const filter_text = filter_dict[key];
-                        const filter_blank = (filter_text ==="#")
-                        let tbl_cell = tblRow.cells[key];
-                        if (!!tbl_cell){
-                            let el = tbl_cell.children[0];
-                            if (!!el) {
-                        // skip if no filter on this colums
-                                if(!!filter_text){
-                        // get value from el.value, innerText or data-value
-                                    const el_tagName = el.tagName.toLowerCase()
-                                    let el_value = null;
-                                    if (el_tagName === "select"){
-                                        el_value = el.options[el.selectedIndex].text;
-                                    } else if (el_tagName === "input"){
-                                        el_value = el.value;
-                                    } else if (el_tagName === "a"){
-                                        // skip
-                                    } else {
-                                        el_value = el.innerText;
-                                    }
-                                    if (!el_value){el_value = get_attr_from_el(el, "data-value")}
-
-                                    if (!!el_value){
-                                        if (filter_blank){
-                                            hide_row = true
-                                        } else {
-                                            el_value = el_value.toLowerCase();
-                                            // hide row if filter_text not found
-                                            if (el_value.indexOf(filter_text) === -1) {
-                                                hide_row = true
-                                            }
-                                        }
-                                    } else {
-                                        if (!filter_blank){
-                                            hide_row = true
-                                        } // iif (filter_blank){
-                                    }   // if (!!el_value)
-                                }  //  if(!!filter_text)
-                            }  // if (!!el) {
-                        }  //  if (!!tbl_cell){
-                    });  // Object.keys(filter_dict).forEach(function(key) {
-                }  // if (!hide_row)
-            } //  if(!is_addnew_row){
-        }  // if (!!tblRow)
-        return !hide_row
-    }; // function ShowTableRow_dict
-
-//##################################################################################
 // +++++++++ MODAL SHIFT ORDER ++++++++++++++++++++++++++++++++++++++++++++++++++++ PR2019-12-30
 
 //=========  MSO_Open  ================ PR2019-10-28
@@ -4286,6 +3886,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }  // if(!!tblRow)
     }  // MSO_BtnDeleteClicked
 
+//############################################################################
 // +++++++++ MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++ PR2019-12-29
 //=========  ModEmployeeOpen  ================ PR2019-11-06
     function ModEmployeeOpen(el_input, ModEmployeeChanged) {
@@ -4693,4 +4294,663 @@ document.addEventListener('DOMContentLoaded', function() {
         }  //  if (employee_map.size === 0)
     } // ModEmployeeFillSelectTableEmployee
 
+//>>>>>>>>>>> MOD PERIOD >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// +++++++++++++++++ MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
+//=========  ModPeriodOpen  ================ PR2019-10-28
+    function ModPeriodOpen() {
+        console.log(" -----  ModPeriodOpen   ----")
+        // when clicked on delete btn in form tehre is no tr_selected, use selected_customer_pk
+        // https://stackoverflow.com/questions/7972446/is-there-a-not-in-operator-in-javascript-for-checking-object-properties/12573605#12573605
+
+        if(!selected_period.hasOwnProperty('period_tag')) {
+            selected_period["period_tag"] = "tmonth";
+        }
+        console.log("selected_period:", selected_period)
+
+        mod_upload_dict = selected_period;
+
+    // highligh selected period in table, put period_tag in data-tag of tblRow
+        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
+        const period_tag = get_dict_value_by_key(selected_period, "period_tag")
+        for (let i = 0, tblRow, row_tag; tblRow = tBody.rows[i]; i++) {
+            row_tag = get_attr_from_el(tblRow, "data-tag")
+            if (period_tag === row_tag){
+                tblRow.classList.add(cls_selected)
+            } else {
+                tblRow.classList.remove(cls_selected)
+            }
+        };
+
+    // set value of date imput elements
+        const is_custom_period = (period_tag === "other")
+
+        if(!selected_period.hasOwnProperty('datefirst')) {
+            document.getElementById("id_mod_period_datefirst").value = selected_period["datefirst"]
+        }
+        if(!selected_period.hasOwnProperty('datelast')) {
+            document.getElementById("id_mod_period_datelast").value = selected_period["datelast"]
+        }
+
+
+        let el_mod_period_tblbody = document.getElementById("id_modperiod_selectperiod_tblbody");
+
+        let el_select = document.getElementById("id_modperiod_selectcustomer")
+        let selectall_text =  "&lt;" +  loc.All_customers + "&gt;"
+        let select_text_none =  "&lt;" +  loc.No_customers.toLowerCase() + "&gt;"
+        FillSelectOption2020(el_select, customer_map, "customer",
+                    false, 0, selected_customer_pk, true, selectall_text, select_text_none)
+
+        el_select = document.getElementById("id_modperiod_selectorder")
+        selectall_text =  "&lt;" +  loc.All_orders.toLowerCase() + "&gt;"
+        select_text_none =  "&lt;" +  loc.No_orders.toLowerCase() + "&gt;"
+        FillSelectOption2020(el_select, order_map, "order",
+                    false, selected_customer_pk, selected_order_pk, true, selectall_text, select_text_none)
+
+    // set min max of input fields
+        ModPeriodDateChanged("datefirst");
+        ModPeriodDateChanged("datelast");
+
+        document.getElementById("id_mod_period_datefirst").disabled = !is_custom_period
+        document.getElementById("id_mod_period_datelast").disabled = !is_custom_period
+
+        // ---  show modal, set focus on save button
+        $("#id_mod_period").modal({backdrop: true});
+    };  // ModPeriodOpen
+
+
+//=========  ModPeriodSelectCustomer  ================ PR2020-01-09
+    function ModPeriodSelectCustomer(selected_pk_str) {
+        console.log( "===== ModPeriodSelectCustomer ========= ");
+        selected_customer_pk = Number(selected_pk_str)
+
+        console.log( "selected_pk_str: ", selected_pk_str);
+
+
+        let el_select = document.getElementById("id_modperiod_selectorder")
+        el_select.innerText = null
+        const selectall_text =  "&lt;" +  loc.All_orders.toLowerCase() + "&gt;"
+        const select_text_none =  "&lt;" +  loc.No_orders.toLowerCase() + "&gt;"
+        FillSelectOption2020(el_select, order_map, "order",
+                    false, selected_customer_pk, selected_order_pk, true, selectall_text, select_text_none)
+
+    }  // ModPeriodSelectCustomer
+
+
+//=========  ModPeriodSelectOrder  ================ PR2020-01-09
+    function ModPeriodSelectOrder(selected_pk_str) {
+        console.log( "===== ModPeriodSelectOrder ========= ");
+        selected_order_pk = Number(selected_pk_str)
+
+        console.log( "selected_order_pk: ", selected_order_pk);
+
+    }  // ModPeriodSelectOrder
+
+//=========  ModPeriodSelectPeriod  ================ PR2020-01-09
+    function ModPeriodSelectPeriod(tr_clicked, selected_index) {
+        console.log( "===== ModPeriodSelectPeriod ========= ", selected_index);
+        if(!!tr_clicked) {
+    // ---  deselect all highlighted rows, highlight selected row
+            DeselectHighlightedRows(tr_clicked, cls_selected);
+            tr_clicked.classList.add(cls_selected)
+
+    // add period_tag to mod_upload_dict
+            const period_tag = get_attr_from_el(tr_clicked, "data-tag")
+            mod_upload_dict["period_tag"] = period_tag;
+
+    // enable date input elements, give focus to start
+            if (period_tag === "other") {
+                let el_datefirst = document.getElementById("id_mod_period_datefirst");
+                let el_datelast = document.getElementById("id_mod_period_datelast");
+                el_datefirst.disabled = false;
+                el_datelast.disabled = false;
+                el_datefirst.focus();
+            } else{
+                ModPeriodSave();
+            }
+        }
+    }  // ModPeriodSelectPeriod
+
+//=========  ModPeriodDateChanged  ================ PR2019-07-14
+    function ModPeriodDateChanged(fldName) {
+    // set min max of other input field
+        let attr_key = (fldName === "datefirst") ? "min" : "max";
+        let fldName_other = (fldName === "datefirst") ? "datelast" : "datefirst";
+        let el_this = document.getElementById("id_mod_period_" + fldName)
+        let el_other = document.getElementById("id_mod_period_" + fldName_other)
+        if (!!el_this.value){ el_other.setAttribute(attr_key, el_this.value)
+        } else { el_other.removeAttribute(attr_key) };
+    }  // ModPeriodDateChanged
+
+//=========  ModPeriodSave  ================ PR2020-01-09
+    function ModPeriodSave() {
+        console.log("===  ModPeriodSave  =====") ;
+
+        const period_tag = get_dict_value_by_key(mod_upload_dict, "period_tag", "tweek");
+        let upload_dict = {
+            page: "customer",
+            period_customer: {page: "customer",
+                              period_tag: period_tag
+            }
+        };
+        if(!!selected_customer_pk){upload_dict.period_customer["customer_pk"] = selected_customer_pk};
+        if(!!selected_order_pk){upload_dict.period_customer["order_pk"] = selected_order_pk};
+        // only save dates when tag = "other"
+        if(period_tag == "other"){
+            const datefirst = document.getElementById("id_mod_period_datefirst").value
+            const datelast = document.getElementById("id_mod_period_datelast").value
+            if (!!datefirst) {upload_dict.period_customer["datefirst"] = datefirst};
+            if (!!datelast) {upload_dict.period_customer["datelast"] = datelast};
+        }
+
+        // send 'now' as array to server, so 'now' of local computer will be used
+        const now = new Date();
+        const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()];
+        upload_dict.period_customer["now"] = now_arr;
+
+// ---  upload new setting
+        // settings are saved in function customer_planning, function 'period_get_and_save'
+
+        document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
+
+        let datalist_request = {customer_planning: upload_dict};
+        console.log("datalist_request: ", datalist_request) ;
+
+        DatalistDownload(datalist_request);
+
+        $("#id_mod_period").modal("hide");
+    }
+
+//=========  CreateTblModSelectPeriod  ================ PR2019-11-16
+    function CreateTblModSelectPeriod() {
+        // console.log("===  CreateTblModSelectPeriod == ");
+        // console.log(period_dict);
+        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
+//+++ insert td's ino tblRow
+        const len = loc.period_select_list.length
+        for (let j = 0, tblRow, td, tuple; j < len; j++) {
+            tuple = loc.period_select_list[j];
+//+++ insert tblRow ino tBody
+            tblRow = tBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
+    // --- add EventListener to tblRow.
+            tblRow.addEventListener("click", function() {ModPeriodSelectPeriod(tblRow, j);}, false )
+    //- add hover to tableBody row
+            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
+            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+            td = tblRow.insertCell(-1);
+            td.innerText = tuple[1];
+    //- add data-tag to tblRow
+            tblRow.setAttribute("data-tag", tuple[0]);
+        }
+// ---  save button in ModPeriod
+        document.getElementById("id_mod_period_btn_save").addEventListener("click", function(){ModPeriodSave()});
+
+    } // CreateTblModSelectPeriod
+//>>>>>>>>>>> END MOD PERIOD >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// +++++++++++++++++ MODAL CONFIRM +++++++++++++++++++++++++++++++++++++++++++
+//=========  ModConfirmOpen  ================ PR2019-06-23
+    function ModConfirmOpen(mode, el_input) {
+        // console.log(" -----  ModConfirmOpen   ----", mode)
+
+        const tblRow = get_tablerow_selected(el_input);
+
+        let tblName, cust_code;
+        // tblRow is undefined when el_input = undefined
+        if(!!tblRow){
+            tblName = get_attr_from_el(tblRow, "data-table")
+            const pk_str = get_attr_from_el(tblRow, "data-pk")
+            const map_id = get_map_id(tblName, pk_str);
+            const data_map = (tblName === "customer") ? customer_map :
+                             (tblName === "order") ? order_map : null;
+            const map_dict = data_map.get(map_id);
+
+            cust_code = get_subdict_value_by_key(map_dict, "code", "value")
+        } else {
+            // get info from mod_upload_dict
+            tblName = get_subdict_value_by_key(mod_upload_dict, "id", "table")
+            cust_code = get_subdict_value_by_key(mod_upload_dict, "code", "value")
+        }
+
+        const data_key_01 = (tblName === "customer") ? "data-txt_this_customer" :
+                            (tblName === "order") ? "data-txt_this_order" : null;
+        const data_key_02 = (mode === "delete") ?  "data-txt_confirm_msg01_delete" :
+                            (mode === "inactive") ? "data-txt_confirm_msg01_inactive" : null;
+        const msg_01_txt = get_attr_from_el(el_data, data_key_01) + " " + get_attr_from_el(el_data, data_key_02)
+
+// put text in modal form
+        document.getElementById("id_confirm_header").innerText = cust_code;
+        document.getElementById("id_confirm_msg01").innerText = msg_01_txt;
+        const data_txt_btn_save = "data-txt_confirm_btn_" + mode
+        document.getElementById("id_confirm_btn_save").innerText = get_attr_from_el(el_data, data_txt_btn_save);
+
+// set focus to cancel button
+        setTimeout(function (){
+            document.getElementById("id_confirm_btn_cancel").focus();
+        }, 500);
+
+// show modal
+        $("#id_mod_confirm").modal({backdrop: true});
+
+    };  // ModConfirmOpen
+
+//=========  ModConfirmSave  ================ PR2019-06-23
+    function ModConfirmSave() {
+        // console.log(" --- ModConfirmSave --- ");
+        // onsole.log("mod_upload_dict: ", mod_upload_dict);
+// ---  hide modal
+        $("#id_mod_confirm").modal("hide");
+// ---  Upload Changes
+        const url_str = url_customer_upload
+        UploadDeleteChanges(mod_upload_dict, url_str);
+
+    }
+
+//############################################################################
+// +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
+
+//========= HandleSelect_Filter  ====================================
+    function HandleSelect_Filter() {
+        // console.log( "===== HandleSelect_Filter  ========= ");
+        // skip filter if filter value has not changed, update variable filter_select
+
+        let new_filter = document.getElementById("id_filter_select_input").value;
+
+        let skip_filter = false
+        if (!new_filter){
+            if (!filter_select){
+                skip_filter = true
+            } else {
+                filter_select = "";
+            }
+        } else {
+            if (new_filter.toLowerCase() === filter_select) {
+                skip_filter = true
+            } else {
+                filter_select = new_filter.toLowerCase();
+            }
+        }
+        if (!skip_filter) {
+            let tblBody = document.getElementById("id_tbody_" + selected_btn);
+            if(!!tblBody){
+                FilterTableRows(tblBody)
+            }
+
+            FilterSelectRows()
+
+        } //  if (!skip_filter) {
+    }; // function HandleSelect_Filter
+
+//========= HandleFilterName  ====================================
+    function HandleFilterName(el, index, el_key) {
+        console.log( "===== HandleFilterName  ========= ");
+
+        console.log( "el", el, typeof el);
+        console.log( "index", index, typeof index);
+        console.log( "el_key", el_key, typeof el_key);
+
+        // skip filter if filter value has not changed, update variable filter_text
+
+// --- get filter tblRow and tblBody
+        let tblRow = get_tablerow_selected(el);
+        const mode = get_attr_from_el_str(el,"data-mode");
+        let tblBody = document.getElementById("id_tbody_" + mode);
+
+        let skip_filter = false
+        if (el_key === 27) {
+            filter_dict = {}
+
+            for (let i = 0, len = tblRow.cells.length; i < len; i++) {
+                let el = tblRow.cells[i].children[0];
+                if(!!el){
+                    el.value = null
+                }
+            }
+            UpdateHeaderText();
+        } else {
+            let filter_dict_text = ""
+            if (index in filter_dict) {filter_dict_text = filter_dict[index];}
+            //if(!filter_dict_text){filter_dict_text = ""}
+            console.log( "filter_dict_text: <" + filter_dict_text + ">");
+
+            let new_filter = el.value.toString();
+            console.log( "new_filter: <" + new_filter + ">");
+            if (!new_filter){
+                if (!filter_dict_text){
+                    console.log( "skip_filter = true");
+                    skip_filter = true
+                } else {
+                    console.log( "delete filter_dict");
+                    delete filter_dict[index];
+                    console.log( "deleted filter : ", filter_dict);
+                }
+            } else {
+                if (new_filter.toLowerCase() === filter_dict_text) {
+                    skip_filter = true
+                    console.log( "skip_filter = true");
+                } else {
+                    filter_dict[index] = new_filter.toLowerCase();
+                    console.log( "filter_dict[" + index + "]: ", filter_dict[index]);
+                }
+            }
+        }
+
+        if (!skip_filter) {
+            if(!!tblBody){
+                FilterTableRows(tblBody)
+            }
+
+            FilterSelectRows();
+        } //  if (!skip_filter) {
+
+
+    }; // function HandleFilterName
+
+//=========  HandleFilterInactive  ================ PR2019-03-23
+    function HandleFilterInactive(el) {
+        //console.log(" --- HandleFilterInactive --- ");
+// toggle value
+        filter_show_inactive = !filter_show_inactive
+// toggle icon
+        // filter is on sidebar, use imgsrc_inactive_lightgrey
+        const img_src = (filter_show_inactive) ? imgsrc_inactive_black : imgsrc_inactive_lightgrey;
+        // debug: dont use el.firstChild, it  also returns text and comment nodes, can give error
+        el.children[0].setAttribute("src", img_src);
+// Filter TableRows
+        FilterSelectRows();
+
+        let tblBody = document.getElementById("id_tbody_" + selected_btn);
+        if(!!tblBody){
+            FilterTableRows(tblBody)
+        }
+
+    }  // function HandleFilterInactive
+
+//========= ResetFilterRows  ====================================
+    function ResetFilterRows() {  // PR2019-10-26
+        console.log( "===== ResetFilterRows  ========= ");
+
+        filter_select = "";
+        filter_show_inactive = false;
+        filter_dict = {};
+
+        selected_customer_pk = 0;
+        selected_order_pk = 0;
+
+        const tblName = (selected_btn === "customer") ? "customer" :
+                        (selected_btn === "order") ? "order" : null;
+        if (!!tblName){
+            let tblBody = document.getElementById("id_tbody_" + tblName)
+            if(!!tblBody){
+                FilterTableRows(tblBody);
+            }
+
+            let tblHead = document.getElementById("id_thead_" + tblName)
+            if(!!tblHead){
+                let filterRow = tblHead.rows[1];
+                if(!!filterRow){
+                    const column_count = tbl_col_count[tblName];
+                    for (let j = 0, el; j < column_count; j++) {
+                        el = filterRow.cells[j].children[0]
+                        if(!!el){el.value = null}
+                    }
+                }
+            }
+
+            //--- reset filter of select table
+            let el_filter_select_input = document.getElementById("id_filter_select_input")
+            if (!!el_filter_select_input){
+                el_filter_select_input.value = null
+            }
+
+            // reset icon of filter select table
+            // debug: dont use el.firstChild, it also returns text and comment nodes, can give error
+            // select table is in sidebar: use lightgrey instead of imgsrc_inactive_grey
+
+            let el_filter_select_btn = document.getElementById("id_filter_select_btn")
+            if (!!el_filter_select_btn){
+                el_filter_select_btn.children[0].setAttribute("src", imgsrc_inactive_lightgrey);
+            }
+            FilterSelectRows()
+            UpdateHeaderText();
+
+            // reset customer name and pk in addnew row of tbody_order
+            UpdateAddnewRow(0, 0, null);
+
+        }  //  if (!!tblName){
+
+    }  // function ResetFilterRows
+
+//========= FilterSelectRows  ==================================== PR2019-08-28
+    function FilterSelectRows() {
+        // console.log( "===== FilterSelectRows  ========= ");
+        // console.log( "filter_show_inactive", filter_show_inactive);
+        for (let i = 0, len = tblBody_select.rows.length; i < len; i++) {
+            let tblRow = tblBody_select.rows[i];
+            if (!!tblRow){
+                let hide_row = false
+        // hide inactive rows when filter_show_inactive = false
+                if(!filter_show_inactive){
+                    const inactive_str = get_attr_from_el(tblRow, "data-inactive")
+                    if (!!inactive_str) {
+                        hide_row = (inactive_str.toLowerCase() === "true")
+                    }
+                }
+        // show all rows if filter_select = ""
+                if (!hide_row && !!filter_select){
+                    let found = false
+                    if (!!tblRow.cells[0]) {
+                        let el_value = tblRow.cells[0].innerText;
+                        if (!!el_value){
+                            el_value = el_value.toLowerCase();
+        // show row if filter_select is found in el_value
+                            found = (el_value.indexOf(filter_select) !== -1)
+                        }
+                    }
+                    hide_row = (!found)
+                }  // if (!!filter_select)
+                if (hide_row) {
+                    tblRow.classList.add(cls_hide)
+                } else {
+                    tblRow.classList.remove(cls_hide)
+                };
+            }  // if (!!tblRow){
+        }
+    }; // FilterSelectRows
+
+//========= FilterTableRows  ====================================
+    function FilterTableRows(tblBody) {  // PR2019-06-24
+        //console.log( "===== FilterTableRows  ========= ");
+        let tblRows = tblBody.rows
+        const len = tblBody.rows.length;
+
+        if (!!len){
+            for (let i = 0, tblRow, show_row; i < len; i++) {
+                tblRow = tblBody.rows[i]
+                show_row = ShowTableRow_dict(tblRow)
+                if (show_row) {
+                    tblRow.classList.remove(cls_hide)
+                } else {
+                    tblRow.classList.add(cls_hide)
+                };
+            }
+        };
+    }; // function FilterTableRows
+
+//========= ShowTableRow_dict  ====================================
+    function ShowTableRow_dict(tblRow) {  // PR2019-09-15
+        //console.log( "===== ShowTableRow_dict  ========= ");
+        //console.log( "tblRow: ", tblRow);
+
+        // function filters by inactive and substring of fields
+        // also filters selected customer pk in table order
+        //  - iterates through cells of tblRow
+        //  - skips filter of new row (new row is always visible)
+        //  - if filter_name is not null:
+        //       - checks tblRow.cells[i].children[0], gets value, in case of select element: data-value
+        //       - returns show_row = true when filter_name found in value
+        //  - if col_inactive has value >= 0 and hide_inactive = true:
+        //       - checks data-value of column 'inactive'.
+        //       - hides row if inactive = true
+        let hide_row = false;
+        if (!!tblRow){
+
+// 1. skip new row
+    // check if row is_addnew_row. This is the case when pk is a string ('new_3'). Not all search tables have "id" (select customer has no id in tblrow)
+            const is_addnew_row = (get_attr_from_el(tblRow, "data-addnew") === "true");
+            if(!is_addnew_row){
+
+// 2. hide other customers when selected_customer_pk has value
+            // only in table order, planning
+                const tblName = get_attr_from_el(tblRow, "data-table");
+                if (!hide_row && !!selected_customer_pk) {
+                    if (["order", "planning"].indexOf(tblName) > -1) {
+                        const row_customer_pk_str = get_attr_from_el(tblRow, "data-ppk");
+                        hide_row = (row_customer_pk_str !== selected_customer_pk.toString())
+                    }
+                }
+                // hide inactive rows if filter_show_inactive
+                if(!hide_row && !filter_show_inactive){
+                    const inactive_str = get_attr_from_el(tblRow, "data-inactive")
+                    if (!!inactive_str && (inactive_str.toLowerCase() === "true")) {
+                        hide_row = true;
+                    }
+                }
+
+// show all rows if filter_name = ""
+                if (!hide_row){
+                    Object.keys(filter_dict).forEach(function(key) {
+                        const filter_text = filter_dict[key];
+                        //console.log("filter_text", filter_text);
+                        const filter_blank = (filter_text ==="#")
+                        let tbl_cell = tblRow.cells[key];
+                        if (!!tbl_cell){
+                            let el = tbl_cell.children[0];
+                            if (!!el) {
+                        // skip if no filter on this colums
+                                if(!!filter_text){
+                        // get value from el.value, innerText or data-value
+                                    const el_tagName = el.tagName.toLowerCase()
+                                    let el_value = null;
+                                    if (el_tagName === "select"){
+                                        el_value = el.options[el.selectedIndex].text;
+                                    } else if (el_tagName === "input"){
+                                        el_value = el.value;
+                                    } else if (el_tagName === "a"){
+                                        // skip
+                                    } else {
+                                        el_value = el.innerText;
+                                    }
+                                    if (!el_value){el_value = get_attr_from_el(el, "data-value")}
+                                    //console.log("el_tagName", el_tagName, "el_value",  el_value);
+                                    if (!!el_value){
+                                        if (filter_blank){
+                                            hide_row = true
+                                        } else {
+                                            el_value = el_value.toLowerCase();
+                                            // hide row if filter_text not found
+                                            if (el_value.indexOf(filter_text) === -1) {
+                                                hide_row = true
+                                            }
+                                        }
+                                    } else {
+                                        if (!filter_blank){
+                                            hide_row = true
+                                        } // iif (filter_blank){
+                                    }   // if (!!el_value)
+                                }  //  if(!!filter_text)
+                            }  // if (!!el) {
+                        }  //  if (!!tbl_cell){
+                    });  // Object.keys(filter_dict).forEach(function(key) {
+                }  // if (!hide_row)
+            } //  if(!is_addnew_row){
+        }  // if (!!tblRow)
+        return !hide_row
+    }; // function ShowTableRow_dict
+
+// +++++++++++++++++ END FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
+//##################################################################################
+// +++++++++++++++++ EXPORT TO EXCEL ++++++++++++++++++++++++++++++++++++++++++++++++++
+    function ExportToExcel(){
+        console.log(" === ExportToExcel ===")
+
+            /* File Name */
+            let filename = "Planning.xlsx";
+
+            /* Sheet Name */
+            let ws_name = "Planning";
+
+            let wb = XLSX.utils.book_new()
+            let ws = FillExcelRows();
+
+        console.log("ws", ws)
+
+            /* Add worksheet to workbook */
+            XLSX.utils.book_append_sheet(wb, ws, ws_name);
+
+            /* Write workbook and Download */
+            XLSX.writeFile(wb, filename);
+    }
+
+//========= FillExcelRows  ====================================
+    function FillExcelRows() {
+        console.log("=== FillExcelRows  =====")
+        let ws = {}
+
+// title row
+        let title_value = UpdateHeaderPeriod();
+        ws["A1"] = {v: title_value, t: "s"};
+// header row
+        const header_rowindex = 3
+        let headerrow = [loc.Customer, loc.Order, loc.Employee, loc.Date, loc.Shift,  loc.Start_Endtime, loc.Working_hours]
+        for (let j = 0, len = headerrow.length, cell_index, cell_dict; j < len; j++) {
+            const cell_value = headerrow[j];
+            cell_index = String.fromCharCode(65 + j) + header_rowindex.toString()
+            ws[cell_index] = {v: cell_value, t: "s"};
+        }
+        console.log("------------------ws:", ws)
+
+// --- loop through rows of table planning
+        const cell_types = ["s", "s", "s", "d", "s", "s", "n"]
+        let tblBody = document.getElementById("id_tbody_planning");
+        const first_row = 4
+        const row_count = tblBody.rows.length;
+        const last_row = first_row  + row_count;
+        for (let i = 0; i < row_count; i++) {
+            const row = tblBody.rows[i];
+            console.log ("----------------------- row::::::::::::::::::::::::");
+            console.log (row);
+            for (let j = 0, len = row.cells.length, cell_index, cell_dict; j < len; j++) {
+                const col = row.cells[j];
+                cell_index = String.fromCharCode(65 + j) + (i + first_row).toString()
+                let excel_cell_value = null;
+                if ([0, 1, 4, 5].indexOf( j ) > -1){
+                    excel_cell_value = col.children[0].value;
+                } else if (j === 2){
+                    excel_cell_value = col.children[0].title;
+                } else if (j === 3){
+                    excel_cell_value = get_attr_from_el( col.children[0], "data-value")
+                } else if (j === 6){
+                    const total_hours = get_attr_from_el( col.children[0], "data-total_duration") / 60
+                    excel_cell_value = total_hours;
+                }
+                ws[cell_index] = {v: excel_cell_value, t: cell_types[j]};
+                if (j === 6){
+                    ws[cell_index]["z"] = "0.00"
+                }
+            }
+        }
+        ws["!ref"] = "A1:G" + last_row.toString();
+        ws['!cols'] = [
+                {wch:20},
+                {wch:20},
+                {wch:30},
+                {wch:15},
+                {wch:15},
+                {wch:15},
+                {wch:10}
+            ];
+
+        return ws;
+    }  // FillExcelRows
+    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 }); //$(document).ready(function()

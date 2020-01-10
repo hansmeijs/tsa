@@ -17,6 +17,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
     # ====== PAGE CUSTOMER =========================
     if page == 'customer':
 
+        dict['menubtn_export_excel'] = _('Export to Excel')
+
         # print planning
         dict['Company'] = TXT_Company
         dict['Planning'] = TXT_Planning
@@ -36,6 +38,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Identifier'] = TXT_Identifier
         dict['Shift'] = TXT_Shift
         dict['Date'] = TXT_Date
+        dict['All_customers'] = TXT_All_customers
+        dict['All_orders'] = TXT_All_orders
+        dict['No_customers'] = TXT_No_customers
+        dict['No_orders'] = TXT_No_orders
 
 
         dict['weekdays_abbrev'] = TXT_weekdays_abbrev
@@ -84,6 +90,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Quick_save'] = TXT_Quick_save
         dict['Exit_Quicksave'] = TXT_Exit_Quicksave
 
+        dict['period_select_list'] = TXT_Period_planning_list
+
 # ====== PAGE EMPLOYEE =========================
     if page == 'employee':
         # dict['Select_employee'] = _('Select employee')
@@ -126,13 +134,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Select_abscat'] = TXT_Select_abscat
         dict['No_abscat'] = TXT_No_abscat
 
-
-        dict['period_select_list'] = (
-            ('tweek', TXT_thisweek),
-            ('tmonth', TXT_thismonth),
-            ('nmonth', TXT_nextmonth),
-            ('other', TXT_customperiod)
-        )
+        dict['period_select_list'] = TXT_Period_planning_list
 
 
 
@@ -418,11 +420,14 @@ TXT_today = _('Today')
 TXT_tomorrow = _('Tomorrow')
 TXT_yesterday = _('Yesterday')
 TXT_thisweek = _('This week')
+TXT_nextweek = _('Next week')
 TXT_lastweek = _('Last week')
 TXT_thismonth = _('This month')
 TXT_lastmonth = _('Last month')
 TXT_nextmonth = _('Next month')
 TXT_customperiod = _('Custom period...')
+TXT_All_customers = _('All customers')
+TXT_All_orders = _('All orders')
 
 TXT_err_msg_error = _('An error occurred.')
 TXT_err_msg_order = _('Please select an order.')
@@ -461,4 +466,12 @@ TXT_Next_day = _('Next day')
 TXT_Previous_day_title = _('Shift starts on the previous day')
 TXT_Next_day_title = _('Shift ends on the next day')
 TXT_As_of = _('As of')
+
+TXT_Period_planning_list = (
+    ('tweek', TXT_thisweek),
+    ('nweek', TXT_nextweek),
+    ('tmonth', TXT_thismonth),
+    ('nmonth', TXT_nextmonth),
+    ('other', TXT_customperiod)
+)
 

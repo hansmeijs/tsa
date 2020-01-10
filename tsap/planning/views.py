@@ -41,8 +41,8 @@ logger = logging.getLogger(__name__)
 class DatalistDownloadView(View):  # PR2019-05-23
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= DatalistDownloadView ============= ')
-        logger.debug('request.POST' + str(request.POST))
+        logger.debug(' +++++++++++++++++ DatalistDownloadView +++++++++++++++++ ')
+        #logger.debug('request.POST' + str(request.POST))
         # {'download': ['{"period":{"period_index":5,"datefirst":"2019-11-16","datelast":"2019-11-16","extend_index":3}}']}
 
         datalists = {}
@@ -209,6 +209,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                                                    comp_timezone=comp_timezone)
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
                         elif table == 'employee_calendar' or table == 'order_calendar':
+
                             datefirst_iso = table_dict.get('datefirst')
                             datelast_iso = table_dict.get('datelast')
 
@@ -252,7 +253,15 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                             elif table == 'order_calendar':
                                 order_id = table_dict['order_id'] if 'order_id' in table_dict else None
-                                dict_list, calendar_header_dict = r.create_order_calendar(datefirst_iso, datelast_iso, order_id, comp_timezone, timeformat, user_lang, request)
+                                dict_list, calendar_header_dict = r.create_customer_calendar(
+                                    datefirst_iso=datefirst_iso,
+                                    datelast_iso=datelast_iso,
+                                    order_pk=order_id,
+                                    customer_pk=customer_pk,
+                                    comp_timezone=comp_timezone,
+                                    timeformat=timeformat,
+                                    user_lang=user_lang,
+                                    request=request)
 
                             # logger.debug('calendar_header_dict: ' + str(calendar_header_dict))
                             datalists['calendar_header_dict'] = calendar_header_dict
@@ -268,16 +277,22 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                             dict_list, calendar_header_dict = r.create_employee_calendar(datefirst_iso, datelast_iso, customer_id, order_id, employee_id, comp_timezone, timeformat, user_lang, request)
 
-                        elif table == 'order_planning':
-                            datefirst_iso = table_dict.get('datefirst')
-                            datelast_iso = table_dict.get('datelast')
+                        elif table == 'customer_planning':
+                            # save new period and retrieve saved period
+                            period_customer_dict = table_dict.get('period_customer')
+                            period_dict = d.period_get_and_save(period_customer_dict, request, comp_timezone)
+                            logger.debug('>>>>>>>>>>>>>>>>>>>period_dict: ' + str(period_dict))
+                            datalists['period'] = period_dict
 
-                            order_id = table_dict.get('order_id')
-                            order_id = table_dict['order_id'] if 'order_id' in table_dict else None
-                            dict_list, calendar_header_dict = r.create_order_calendar(datefirst_iso, datelast_iso,
-                                                                                      order_id, comp_timezone,
-                                                                                      timeformat, user_lang, request)
-
+                            dict_list, calendar_header_dict = r.create_customer_calendar(
+                                datefirst_iso=period_dict.get('rosterdatefirst'),
+                                datelast_iso=period_dict.get('rosterdatelast'),
+                                customer_pk=table_dict.get('customer_pk'),
+                                order_pk=table_dict.get('order_pk'),
+                                comp_timezone=comp_timezone,
+                                timeformat=timeformat,
+                                user_lang=user_lang,
+                                request=request)
 
                         # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@
                         elif table == 'rosterdatefill':
@@ -291,25 +306,27 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             datalists[table] = quicksave_dict
 
                         elif table == 'setting':
-                            # "setting": {"page_scheme": {"mode": "get"},
-                            #             "selected_pk": {"mode": "get"},
-                            #             "locale": {"mode": "get"}},
+                            # setting: {page_employee: {mode: "get"},
+                            #   planning_period: {mode: "get"},
+                            #   calendar: {mode: "get"}},
+                            # setting: {page_customer: {mode: "get"},
+                            #   selected_pk: {mode: "get"},
+                            #   planning_period: {mode: "get"}},
+                            # {setting: {page_scheme: {mode: "get"},
+                            #   selected_pk: {mode: "get"},},
 
                             settings_dict = {}
-                            for key in c.KEY_USER_SETTINGS: # KEY_USER_SETTINGS = ('selected_pk', 'page_settings')
-                                # logger.debug(' key: ' + str(key))
-                                if key in table_dict:
-                                    settings_dict[key] = Usersetting.get_jsonsetting(key, request.user)
-                            logger.debug(' settings_dict: ' + str(settings_dict))
-
+                            for key in table_dict:
+                                dict = Usersetting.get_jsonsetting(key, request.user)
+                                if dict:
+                                    settings_dict[key] = dict
                             dict_list.append(settings_dict)
                             # logger.debug(' dict_list: ' + str(dict_list))
 
                         if dict_list:
                             datalists[table + '_list'] = dict_list
 
-
-        # logger.debug('datalists: ' + str(datalists))
+        #logger.debug('datalists: ' + str(datalists))
 
 # 9. return datalists
         datalists_json = json.dumps(datalists, cls=LazyEncoder)

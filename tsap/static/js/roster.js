@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     loc = response["locale_dict"];
                     // --- create Submenu after downloading locale
                     // CreateSubmenu()
-                    CreateTblPeriod();
+                    CreateTblModSelectPeriod();
                 }
                 if ("period" in response) {
                     period_dict= response["period"];
@@ -395,11 +395,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     };//function CreateSubmenu
 
-//=========  CreateTblPeriod  ================ PR2019-11-16
-    function CreateTblPeriod() {
-        // console.log("===  CreateTblPeriod == ");
+//=========  CreateTblModSelectPeriod  ================ PR2019-11-16
+    function CreateTblModSelectPeriod() {
+        // console.log("===  CreateTblModSelectPeriod == ");
         // console.log(period_dict);
-        let tBody = document.getElementById("id_mod_period_tblbody");
+        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
 //+++ insert td's ino tblRow
         const len = loc.period_select_list.length
         for (let j = 0, tblRow, td, tuple; j < len; j++) {
@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_select = document.getElementById("id_mod_period_extend");
         FillOptionsPeriodExtension(el_select, loc.period_extension)
 
-    } // CreateTblPeriod
+    } // CreateTblModSelectPeriod
 
 //=========  CreateSelectTableCustomers  ================ PR2019-11-16
     function CreateSelectTableCustomers() {
@@ -2170,7 +2170,7 @@ console.log("===  function HandlePopupWdySave =========");
         mod_upload_dict = period_dict;
 
     // highligh selected period in table, put period_tag in data-tag of tblRow
-        let tBody = document.getElementById("id_mod_period_tblbody");
+        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
         const period_tag = get_dict_value_by_key(period_dict, "period_tag")
         for (let i = 0, tblRow, row_tag; tblRow = tBody.rows[i]; i++) {
             row_tag = get_attr_from_el(tblRow, "data-tag")
@@ -2348,7 +2348,7 @@ console.log("===  function HandlePopupWdySave =========");
         // period_dict = {extend_index: 2, extend_offset: 120, period_index: null, periodend: null,
         //                periodstart: null, rosterdatefirst: "2019-11-15", rosterdatelast: "2019-11-17"
 
-        let tBody = document.getElementById("id_mod_period_tblbody");
+        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
         tBody.removeAttribute("data-value");
         let period_index, extend_index;
         if (!isEmpty(period_dict)){
@@ -2420,7 +2420,7 @@ console.log("===  function HandlePopupWdySave =========");
 
         period_dict = {}
 
-        const tblBody = document.getElementById("id_mod_period_tblbody")
+        const tblBody = document.getElementById("id_modperiod_selectperiod_tblbody")
         let period_index = get_attr_from_el_int(tblBody, "data-value");
         //console.log("period_index: ", period_index, typeof period_index);
         const extend_index = document.getElementById("id_mod_period_extend").selectedIndex

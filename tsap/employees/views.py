@@ -651,7 +651,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
 
     if order_pk is not None and datefirst_iso is not None and datelast_iso is not None:
 
-        calendar_dictlist, calendar_header_dict = prf. create_order_calendar(
+        calendar_dictlist, calendar_header_dict = prf. create_customer_calendar(
             datefirst_iso,
             datelast_iso,
             order_pk,
