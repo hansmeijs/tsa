@@ -543,48 +543,44 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                 for key in upload_dict:
                     new_setting = upload_dict[key]
                     # logger.debug('new_setting: ' + str(new_setting))
-                    if key in c.KEY_USER_SETTINGS:  # KEY_USER_SETTINGS = ('selected_pk', 'page_customer')
-                        settings_dict = {}
-                        if key == 'selected_pk':
-                            settings_dict = Usersetting.get_jsonsetting(key, request.user)
-                            # logger.debug('settings_dict: ' + str(settings_dict))
-                    # new_setting = {'selected_customer_pk': 392, 'selected_order_pk': 0}}
-                            for sel_pk in new_setting:
-                                sel_value = new_setting[sel_pk]
-                                # logger.debug('sel_value: ' + str(sel_value))
-                                settings_dict[sel_pk] = sel_value
-                        else:
-                            # "planning_period":{"datefirst":"2019-10-10","datelast":"2019-12-13"}}
-                            settings_dict = upload_dict[key]
-                        #logger.debug('key: ' + str(key))
-                        #logger.debug('settings_dict: ' + str(settings_dict))
+                    if key == 'selected_pk':
+                        settings_dict = Usersetting.get_jsonsetting(key, request.user)
+                        # logger.debug('settings_dict: ' + str(settings_dict))
+                # new_setting = {'selected_customer_pk': 392, 'selected_order_pk': 0}}
+                        for sel_pk in new_setting:
+                            sel_value = new_setting[sel_pk]
+                            # logger.debug('sel_value: ' + str(sel_value))
+                            settings_dict[sel_pk] = sel_value
+                    else:
+                        # "planning_period":{"datefirst":"2019-10-10","datelast":"2019-12-13"}}
+                        settings_dict = upload_dict[key]
+                    #logger.debug('key: ' + str(key))
+                    #logger.debug('settings_dict: ' + str(settings_dict))
 
-                        # new_setting is in json format, no need for json.loads and json.dumps
-                        # new_setting = json.loads(request.POST['setting'])
-                        # new_setting_json = json.dumps(new_setting)
-                        if settings_dict:
-                            #logger.debug('key settings_dict: ' + str(key) + str(settings_dict))
-                            Usersetting.set_jsonsetting(key, settings_dict, request.user)
+                    # new_setting is in json format, no need for json.loads and json.dumps
+                    # new_setting = json.loads(request.POST['setting'])
+                    # new_setting_json = json.dumps(new_setting)
+                    if settings_dict:
+                        #logger.debug('key settings_dict: ' + str(key) + str(settings_dict))
+                        Usersetting.set_jsonsetting(key, settings_dict, request.user)
 
 # 2. get iddict variables
-                # KEY_USER_SETTINGS = ('selected_pk', 'page_settings')
-                # for field in c.KEY_USER_SETTINGS:
-                    # if field in upload_dict:
-                        # new_dict = upload_dict.get(field)
-                        # saved_dict = Usersetting.get_jsonsetting(key, settings_dict, request.user)
-                        # logger.debug('settings_dict ' + str(settings_dict))
-                        # settings_dict {'page_employee': {'selected_btn': 'absence'}}
-                        # if settings_dict:
-                            # key = c.KEY_USER_PAGE_SETTINGS
-                            # page = 'pagexx'
-                            # new_setting_dict = {}
-                            # selected_btn = settings_dict.get('selected_btn')
-                            # logger.debug('selected_btn ' + str(selected_btn))
+                # if field in upload_dict:
+                    # new_dict = upload_dict.get(field)
+                    # saved_dict = Usersetting.get_jsonsetting(key, settings_dict, request.user)
+                    # logger.debug('settings_dict ' + str(settings_dict))
+                    # settings_dict {'page_employee': {'selected_btn': 'absence'}}
+                    # if settings_dict:
+                        # key = c.KEY_USER_PAGE_SETTINGS
+                        # page = 'pagexx'
+                        # new_setting_dict = {}
+                        # selected_btn = settings_dict.get('selected_btn')
+                        # logger.debug('selected_btn ' + str(selected_btn))
 
-                            # TODO: multiple settings, get saves settingsfirst, then update new setting
-                            # new_page_dict = {}
-                            #  new_page_dict[page] = {'selected_btn': selected_btn}
-                            # logger.debug('new_page_dict ' + str(new_page_dict))
+                        # TODO: multiple settings, get saves settingsfirst, then update new setting
+                        # new_page_dict = {}
+                        #  new_page_dict[page] = {'selected_btn': selected_btn}
+                        # logger.debug('new_page_dict ' + str(new_page_dict))
 
         # c. add update_dict to update_wrap
                         update_wrap['setting'] = {"result": "ok"}

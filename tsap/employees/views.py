@@ -260,7 +260,7 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
 class TeammemberUploadView(UpdateView):  # PR2019-12-06
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= TeammemberUploadView ============= ')
+        logger.debug(' >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> TeammemberUploadView >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -278,6 +278,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
             upload_json = request.POST.get("upload")
             if upload_json:
                 upload_dict = json.loads(upload_json)
+                logger.debug('upload_dict: ' + str(upload_dict))
 
 # 3. save quicksave
             # quicksave is saved in UploadUserSettings
@@ -290,6 +291,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                     mode = id_dict.get('mode')
                     is_absence = id_dict.get('isabsence', False)
                     logger.debug('is_absence: ' + str(is_absence))
+                    logger.debug('mode: ' + str(mode))
                     if mode == 'singleshift':
                         update_wrap = calendar_employee_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
                     elif mode == 'schemeshift':
@@ -297,7 +299,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                         update_wrap = calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
 
                     else:
-                        #logger.debug('table: ' + str(table))
+                        logger.debug('table: ' + str(table))
                         if table == 'teammember':
                             # called by scheme page, teammember table update
                             update_dict = {}
@@ -346,8 +348,9 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
 
 def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_lang): # PR2019-12-06
 
-    logger.debug('============= calendar_order_upload ============= ')
+    logger.debug('++++++++++++++++++++++ calendar_order_upload ++++++++++++++++++++++ ')
     logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug('--- ')
 # upload_dict: {
     # 'id': {'mode': 'schemeshift'},
     # 'rosterdate': '2020-01-03',
@@ -462,14 +465,17 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                     scheme=scheme,
                     code=code_value)
                 team.save(request=request)
+                logger.debug('team: ' + str(team))
                 # put new team.pk in mapped_team_pk_dict, to be used for adding teammember
                 mapped_team_pk_dict[team_pk] = team.pk
+                logger.debug('mapped_team_pk_dict: ' + str(mapped_team_pk_dict))
                 team_has_changed = True
         # ---  TEAMMEMBER ---
                 # also add teammember without employee > teammmeber will be added further
             else:
                 team = m.Team.objects.get_or_none(id=team_pk, scheme__order__customer__company=request.user.company)
             # team has no other fields to be updated
+        logger.debug('team: ' + str(team))
 
 # --- SHIFT ---
         # if current shift has changed it will be updated in plvw.update_shift when 'update' in field_dict
@@ -650,19 +656,20 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     datelast_iso = upload_dict.get('calendar_datelast')
 
     if order_pk is not None and datefirst_iso is not None and datelast_iso is not None:
-
+        customer_pk = None
         calendar_dictlist, calendar_header_dict = prf. create_customer_calendar(
-            datefirst_iso,
-            datelast_iso,
-            order_pk,
-            comp_timezone,
-            timeformat,
-            user_lang,
-            request)
+            datefirst_iso=datefirst_iso,
+            datelast_iso=datelast_iso,
+            customer_pk=customer_pk,
+            order_pk=order_pk,
+            comp_timezone=comp_timezone,
+            timeformat=timeformat,
+            user_lang=user_lang,
+            request=request)
 
         # logger.debug('employee_calendar_list: ' + str(employee_calendar_list))
         if calendar_dictlist:
-            update_wrap['order_calendar_list'] = calendar_dictlist
+            update_wrap['customer_calendar_list'] = calendar_dictlist
             update_wrap['calendar_header_dict'] = calendar_header_dict
 
 # 8. update scheme_list when changes are made
@@ -1435,12 +1442,8 @@ def update_teammember(instance, upload_dict, update_dict, request):
 
 # --- get field_dict from  item_dict if it exists
             field_dict = upload_dict[field] if field in upload_dict else {}
-            logger.debug('field_dict' + str(field_dict))
             if field_dict:
                 if 'update' in field_dict:
-                    logger.debug('field: ' + str(field))
-                    logger.debug('field_dict: ' + str(field_dict))
-
                     if field not in update_dict:
                         update_dict[field] = {}
 
@@ -2101,10 +2104,10 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
                     is_updated = False
 # a. get new_value
                     new_value = field_dict.get('value')
+                    saved_value = getattr(instance, field)
 
 # 2. save changes in field 'code', required field
                     if field in ['code', 'identifier']:
-                        saved_value = getattr(instance, field)
                         if new_value != saved_value:
             # validate_code_name_id checks for null, too long and exists. Puts msg_err in update_dict
                             has_error = validate_code_name_identifier(
@@ -2120,7 +2123,6 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
 
     # 3. save changes in fields 'namefirst', 'namelast'
                     elif field in ['namefirst', 'namelast']:
-                        saved_value = getattr(instance, field)
                         if new_value != saved_value:
                             name_first = None
                             name_last = None
@@ -2170,11 +2172,10 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
                                 setattr(instance, field, new_rate)
                                 is_updated = True
 
-                    elif field in ['workhoursperday']:
-                        value = str(field_dict.get('value'))
+                    elif field in ['XXworkhours', 'XXworkdays', 'XXleavedays']:
                         # convert workhoursperday_hours to minutes per week
-                        value_float, msg_err = f.get_float_from_string(value)
-                        logger.debug('value_float: ' + str(value_float) + ' ' + str(type(value_float)))
+                        value_float, msg_err = f.get_float_from_string(new_value)
+                        logger.debug('>>>>>>>>>>>>>>value_float: ' + str(value_float) + ' ' + str(type(value_float)))
 
                         if msg_err:
                             update_dict[field]['error'] = msg_err
@@ -2205,7 +2206,6 @@ def update_employee(instance, parent, upload_dict, update_dict, user_lang, reque
                             logger.debug('inactive is_updated]: ' + str(is_updated) + ' ' + str(type(is_updated)))
 
                     else:
-                        saved_value = getattr(instance, field)
                         if new_value != saved_value:
                             setattr(instance, field, new_value)
                             is_updated = True

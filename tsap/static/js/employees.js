@@ -45,18 +45,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const imgsrc_billable_cross_red = get_attr_from_el(el_data, "data-imgsrc_cross_red")
         const imgsrc_billable_cross_grey = get_attr_from_el(el_data, "data-imgsrc_cross_grey")
 
-// const for report
-        const label_list = [get_attr_from_el_str(el_data,"data-txt_company"),
-                    get_attr_from_el_str(el_data,"data-txt_employee"),
-                    get_attr_from_el_str(el_data,"data-txt_planning") + " " + get_attr_from_el_str(el_data,"data-txt_of"),
-                    get_attr_from_el_str(el_data,"data-txt_printdate")];
-        const pos_x_list = [6, 65, 105, 130, 155, 185];
-        const colhdr_list = [ get_attr_from_el_str(el_data,"data-txt_date"),
-                            get_attr_from_el_str(el_data,"data-txt_timestart"),
-                            get_attr_from_el_str(el_data,"data-txt_timeend"),
-                            get_attr_from_el_str(el_data,"data-txt_shift"),
-                            get_attr_from_el_str(el_data,"data-txt_order"),
-                            get_attr_from_el_str(el_data,"data-txt_date")];
 
 // ---  id of selected employee
         const id_sel_prefix = "sel_"
@@ -71,13 +59,16 @@ document.addEventListener('DOMContentLoaded', function() {
         let teammember_map = new Map();
         let abscat_map = new Map();
 
-        let planning_map = new Map();
         let calendar_map = new Map();
+        let planning_map = new Map();
+// const for report
+        let planning_display_duration_total = ""; // stores total hours, calculated when creating planning_map
+        let label_list = [], pos_x_list = [], colhdr_list = [];
 
         let loc = {};  // locale_dict with translated text
         let calendar_header_dict = {};
         let mod_upload_dict = {};
-        let period_dict = {};
+        let selected_period = {};
         //let spanned_columns = [];
         let quicksave = false
 
@@ -89,43 +80,46 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  id_new assigns fake id to new records
         let id_new = 0;
 
-        const tbl_col_count = { "employee": 8, "absence": 8, "shifts": 5, "planning": 8, "pricerate": 4};
+        const tbl_col_count = { "employee": 8, "absence": 6, "shifts": 7, "planning": 7};
+
+        //const thead_text = {
+        //    "employee": ["Employee", "First_date", "Last_date", "Hours_per_day", "Days_per_week", "Vacation_days", "Hourly_rate"],
+        //    "absence": ["Employee", "Absence_category", "First_date", "Last_date", "Start_time", "End_time", "Hours_per_day"],
+        //    "shifts": ["Employee", "Order", "Team", "First_date", "Last_date", "Replacement_employee"],
+        //    "planning": ["txt_hour", "txt_day01", "txt_day02", "txt_day03", "txt_day04", "txt_day05", "txt_day06", "txt_day07"],
+        //    "pricerate": ["Employee", "Order", "Hourly_rate", ""]}
 
         const thead_text = {
-            "employee": ["txt_employee", "txt_datefirst", "txt_datelast", "txt_hoursperday", "txt_daysperweek", "txt_vacation", "txt_pricerate"],
-            "absence": ["txt_employee", "txt_abscat", "txt_datefirst", "txt_datelast", "txt_timestart", "txt_timeend", "txt_hoursperday"],
-            "shifts": ["txt_employee", "txt_order", "txt_team", "txt_datefirst", "txt_datelast"],
-            "planning": ["txt_hour", "txt_day01", "txt_day02", "txt_day03", "txt_day04", "txt_day05", "txt_day06", "txt_day07"],
-            "pricerate": ["txt_employee", "txt_order", "txt_pricerate", ""]}
+            employee: ["Employee", "First_date", "Last_date", "Hours_per_day", "Days_per_week", "Vacation_days", "Hourly_rate"],
+            absence: ["Employee", "Absence_category", "First_date", "Last_date", "Hours_per_day"],
+            shifts: ["Employee", "Order", "Team", "First_date", "Last_date", "Replacement_employee"],
+            planning: ["Employee", "Customer", "Order", "Date", "Shift", "Start_Endtime", "Working_hours"]}
 
         const field_names = {
-            "employee": ["code", "datefirst", "datelast", "hoursperday", "daysperweek", "leavedays",
+            employee: ["code", "datefirst", "datelast", "hoursperday", "daysperweek", "leavedays",
                         "pricerate", "delete"],
-            "absence": ["employee", "order", "datefirst", "datelast", "offsetstart", "offsetend", "workhoursperday", "delete"],
-            "shifts": ["employee", "order", "team", "datefirst", "datelast", "delete"],
-            "planning": ["hour", "day01", "day02", "day03", "day04", "day05", "day06", "day07"],
-            "pricerate": ["employee", "order", "pricerate", "override"]}
+            absence: ["employee", "order", "datefirst", "datelast", "workhoursperday", "delete"],
+            shifts: ["employee", "order", "team", "datefirst", "datelast", "replacement", "delete"],
+            planning: ["employee", "customer", "order", "rosterdate", "shift", "offsetstart", "timeduration"]}
 
         const field_tags = {
-            "employee": ["input", "input", "input", "input", "input", "input", "input", "a"],
-            "absence": ["input", "select", "input", "input", "input", "input", "input", "a"],
-            "shifts": ["input", "input", "input", "input", "input", "input", "a", "a"],
-            "planning": ["input", "input", "input", "input", "input", "input", "input", "input"],
-            "pricerate": ["input", "input", "input", "a"]}
+            employee: ["input", "input", "input", "input", "input", "input", "input", "a"],
+            absence: ["input", "select", "input", "input",  "input", "a"],
+            shifts: ["input", "input", "input", "input", "input", "input", "a"],
+            planning: ["input", "input", "input", "input", "input", "input", "input"]}
 
         const field_width = {
-            "employee": ["180", "090", "090", "120", "120", "120", "090", "032"],
-            "absence": ["180", "220", "120", "120","090", "090","120", "032"],
-            "shifts": ["180", "180", "180", "120", "090", "090", "090", "060"],
-            "planning": ["90", "120", "120", "120", "120", "120", "120", "120"],
-            "pricerate": ["180", "220", "120", "032"]}
+            employee: ["180", "090", "090", "120", "120", "120", "090", "032"],
+            absence: ["180", "220", "120", "120","120", "032"],
+            shifts: ["180", "220", "120", "120", "120", "180", "032"],
+            planning: ["120", "120", "180", "120", "120", "120", "090"]}
 
         const field_align = {
-            "employee": ["left", "right", "right", "right", "right", "right", "right", "left"],
-            "absence": ["left", "left", "right", "right", "right", "right", "right", "left"],
-            "shifts": ["left", "left", "left", "left", "right", "right", "left", "left"],
-            "planning": ["center", "center","center", "center", "center", "center", "center", "center"],
-            "pricerate": ["left", "left", "right", "left"]}
+            employee: ["left", "right", "right", "right", "right", "right", "right", "left"],
+            absence: ["left", "left", "right", "right", "right", "left"],
+            shifts: ["left", "left", "left", "left", "left", "left", "left"],
+            planning: ["left", "left", "left", "left", "left", "right", "right"]}
+
 
         let tblBody_select = document.getElementById("id_tbody_select")
 
@@ -157,6 +151,22 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener("click", function() {HandleBtnSelect(data_mode)}, false )
         }
 
+// ---  employee form
+        let form_elements = document.getElementById("id_div_data_form").querySelectorAll(".form-control")
+        for (let i = 0, el, len = form_elements.length; i < len; i++) {
+            el = form_elements[i]
+            const fieldname = get_attr_from_el(el, "data-field")
+            if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
+                el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false)
+            } else {
+                el.addEventListener("change", function() {UploadFormChanges(el)}, false);
+            }
+        }
+        document.getElementById("id_form_btn_delete").addEventListener("click", function(){ModConfirmOpen("delete")});
+        document.getElementById("id_form_btn_add").addEventListener("click", function(){HandleEmployeeAdd()});
+
+
+
 // ---  create EventListener for buttons in calendar
         btns = document.getElementById("id_btns_calendar").children;
         for (let i = 0, btn; i < btns.length; i++) {
@@ -174,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_mod_employee_btn_save").addEventListener("click", function() {ModEmployeeSave("save")}, false )
         document.getElementById("id_mod_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("remove")}, false )
 
-// ---  Modal Shift ------------------------------------
+// ---  MODAL SHIFT ------------------------------------
         let el_modshift_filter_order = document.getElementById("id_modshift_filter_order")
             el_modshift_filter_order.addEventListener("keyup", function(event){
                     setTimeout(function() {ModShiftFilterOrder("modshift", el_modshift_filter_order)}, 50)});
@@ -210,17 +220,23 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener("click", function() {ModShiftBtnWeekdayClicked(btn)}, false )
         }
 
-
-
-// ---  Modal Period
-        let el_modperiod_filter_order = document.getElementById("id_modperiod_filter_order")
-            el_modperiod_filter_order.addEventListener("keyup", function(event){
-                    setTimeout(function() {ModShiftFilterOrder("modperiod", el_modperiod_filter_order)}, 50)});
+// ---  MOD PERIOD ------------------------------------
 // ---  select period header
-        document.getElementById("id_div_hdr_period").addEventListener("click", function(){ModPeriodOpen()});
-// ---  save button in ModPeriod
-        document.getElementById("id_mod_period_btn_save").addEventListener("click", function(){ModPeriodSave()});
+        document.getElementById("id_hdr_period").addEventListener("click", function(){ModPeriodOpen()});
+// ---  select customer
+        let el_modperiod_selectcustomer = document.getElementById("id_modperiod_selectcustomer")
+            el_modperiod_selectcustomer.addEventListener("change", function() {
+                        ModPeriodSelectCustomer(el_modperiod_selectcustomer.value)}, false )
+// ---  select order
+        let el_modperiod_selectorder = document.getElementById("id_modperiod_selectorder")
+            el_modperiod_selectorder.addEventListener("change", function() {
+                        ModPeriodSelectOrder(el_modperiod_selectorder.value)}, false )
+// buttons in  modal period
+        document.getElementById("id_mod_period_datefirst").addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false )
+        document.getElementById("id_mod_period_datelast").addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false )
+        document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false )
 
+// ---  MOD CONFIRM ------------------------------------
 // ---  save button in ModConfirm
         document.getElementById("id_confirm_btn_save").addEventListener("click", function(){ModConfirmSave()});
 
@@ -229,19 +245,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_popup_date = document.getElementById("id_popup_date")
              el_popup_date.addEventListener("change", function() {HandlePopupDateSave(el_popup_date);}, false )
 
-// ---  employee form
-        let form_elements = document.getElementById("id_div_data_form").querySelectorAll(".form-control")
-        for (let i = 0, el, len = form_elements.length; i < len; i++) {
-            el = form_elements[i]
-            const fieldname = get_attr_from_el(el, "data-field")
-            if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
-                el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false)
-            } else {
-                el.addEventListener("change", function() {UploadFormChanges(el)}, false);
-            }
-        }
-        document.getElementById("id_form_btn_delete").addEventListener("click", function(){ModConfirmOpen("delete")});
-        document.getElementById("id_form_btn_add").addEventListener("click", function(){HandleEmployeeAdd()});
 
 // === close windows ===
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
@@ -286,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let datalist_request = {
             setting: {page_employee: {mode: "get"},
-                        planning_period: {mode: "get"},
+                        period_employee: {mode: "get"},
                         calendar: {mode: "get"}},
             quicksave: {mode: "get"},
             locale: {page: "employee"},
@@ -327,80 +330,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if ("locale_dict" in response) {
                     loc = response["locale_dict"];
-
 // --- create table Headers
                     CreateTblHeaders();
-                    //CreateTblModSelectPeriod();
+                    CreateTblModSelectPeriod();
+
+                    label_list = [loc.Company, loc.Employee, loc.Planning + " " + loc.of, loc.Print_date];
+                    pos_x_list = [6, 65, 105, 130, 155, 185];
+                    colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
+
                 }
                 if ("setting_list" in response) {
                     // this must come after locale_dict, where weekday_list is loaded
                     UpdateSettings(response["setting_list"])
                 }
-
-                if ("company_dict" in response) {
-                    company_dict = response["company_dict"];
-                }
-                if ("employee_list" in response) {
-                    get_datamap(response["employee_list"], employee_map)
-
-                    const tblName = "employee";
-                    const imgsrc_default = imgsrc_inactive_grey;
-                    const imgsrc_hover = imgsrc_inactive_black;
-                    const include_parent_code = null;
-                    FillSelectTable(employee_map, tblName, null, include_parent_code,
-                        HandleSelect_Filter, HandleFilterInactive,
-                        HandleSelect_Row,  HandleSelectRowButton,
-                        imgsrc_default, imgsrc_hover,
-                        filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
-
-
-                    FilterSelectRows(tblBody_select, filter_select);
-
-                    FillTableRows("employee");
-                    FilterTableRows(document.getElementById("id_tbody_employee"));
-                }
-
-                if ("abscat_list" in response) {
-                    get_datamap(response["abscat_list"], abscat_map)
-                }
-                if ("teammember_list" in response) {
-                    get_datamap(response["teammember_list"], teammember_map)
-
-                    FillTableRows("absence");
-                    FillTableRows("shifts");
-
-                    FilterTableRows(document.getElementById("id_tbody_absence"));
-                    FilterTableRows(document.getElementById("id_tbody_team"));
-
-                    CreateAddnewRow("absence")
-                    CreateAddnewRow("shifts")
-                }
-
-                if ("order_list" in response) {
-                    get_datamap(response["order_list"], order_map)
-                    ModShiftFillSelectTableOrder()
-                }
-
-                if ("employee_planning_list" in response) {
-                    get_datamap(response["employee_planning_list"], planning_map)
-                    FillTableRows("planning");
-
-                    PrintEmployeePlanning("preview", period_dict, planning_map, company_dict,
-                        label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang);
-
-                }
-                // employee_calendar_list goes before order_calendar_list
-                if ("calendar_header_dict" in response) {
-                    calendar_header_dict = response["calendar_header_dict"]
-                }
-                if ("employee_calendar_list" in response) {
-                    get_datamap(response["employee_calendar_list"], calendar_map)
-                    CreateCalendar("employee", calendar_header_dict, calendar_map, MSO_open, loc, timeformat, user_lang);
-                }
                 if ("quicksave" in response) {
                     quicksave = get_subdict_value_by_key(response, "quicksave", "value", false)
                 }
                 HandleBtnSelect(selected_btn);
+
+// --- refresh maps and fill tables
+                refresh_maps(response);
 
         // --- hide loader
                el_loader.classList.add(cls_visible_hide)
@@ -415,6 +364,79 @@ document.addEventListener('DOMContentLoaded', function() {
 
 }
 
+//=========  refresh_maps  ================ PR2020-01-03
+    function refresh_maps(response) {
+
+        if ("company_dict" in response) {
+            company_dict = response["company_dict"];
+        }
+        if ("employee_list" in response) {
+            get_datamap(response["employee_list"], employee_map)
+
+            const tblName = "employee";
+            const imgsrc_default = imgsrc_inactive_grey;
+            const imgsrc_hover = imgsrc_inactive_black;
+            const include_parent_code = null;
+            const title_header_btn = "Click to show or hide inactive employees";
+            FillSelectTable(employee_map, tblName, null, include_parent_code,
+                HandleSelect_Filter, HandleFilterInactive,
+                HandleSelect_Row,  HandleSelectRowButton,
+                imgsrc_default, imgsrc_hover,
+                imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
+                title_header_btn)
+
+            FilterSelectRows(tblBody_select, filter_select);
+
+            FillTableRows("employee");
+            FilterTableRows(document.getElementById("id_tbody_employee"));
+        }
+
+        if ("abscat_list" in response) {
+            get_datamap(response["abscat_list"], abscat_map)
+        }
+        if ("teammember_list" in response) {
+            get_datamap(response["teammember_list"], teammember_map)
+
+            FillTableRows("absence");
+            FillTableRows("shifts");
+
+            FilterTableRows(document.getElementById("id_tbody_absence"));
+            FilterTableRows(document.getElementById("id_tbody_team"));
+
+            CreateAddnewRow("absence")
+            CreateAddnewRow("shifts")
+        }
+        if ("order_list" in response) {
+            get_datamap(response["order_list"], order_map)
+            ModShiftFillSelectTableOrder()
+        }
+
+        if ("period" in response) {
+            selected_period = response["period"];
+            document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
+        }
+
+        if ("employee_planning_list" in response) {
+            console.log("...................employee_planning_list: ", response)
+            const duration_sum = get_datamap(response["employee_planning_list"], planning_map, true) // calc_duration_sum = true
+            planning_display_duration_total = display_duration (duration_sum, user_lang)
+            FillTableRows("planning");
+
+            PrintEmployeePlanning("preview", selected_period, planning_map, company_dict,
+                label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang);
+
+        }
+        // employee_calendar_list goes before customer_calendar_list
+        if (("calendar_header_dict" in response) || ("employee_calendar_list" in response) ) {
+            if ("calendar_header_dict" in response) {
+                calendar_header_dict = response["calendar_header_dict"]
+            }
+            if ("employee_calendar_list" in response) {
+                get_datamap(response["employee_calendar_list"], calendar_map)
+            }
+            CreateCalendar("employee", calendar_header_dict, calendar_map, MSO_open, loc, timeformat, user_lang);
+        }
+    }  // refresh_maps
 //###########################################################################
 // +++++++++++++++++ EVENT HANDLERS +++++++++++++++++++++++++++++++++++++++++
 
@@ -442,6 +464,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+// ---  show only the elements that are used in this tab
+        let list = document.getElementsByClassName("tab_show");
+        for (let i=0, len = list.length; i<len; i++) {
+            let el = list[i]
+            const is_show = el.classList.contains("tab_" + selected_btn)
+            show_hide_element(el, is_show)
+        }
+
 // ---  show / hide selected table
         const mode_list = ["employee", "absence", "shifts", "planning", "calendar"];
         for(let i = 0, tbl_mode, len = mode_list.length; i < len; i++){
@@ -459,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (selected_btn === "employee_form"){
             document.getElementById("id_div_data_form").classList.remove(cls_hide);
         } else {
-            document.getElementById("id_div_data_form").classList.add(cls_hide);
+           //  document.getElementById("id_div_data_form").classList.add(cls_hide);
         };
 
 // ---  highlight row in list table
@@ -470,7 +500,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- update header text
         UpdateHeaderText();
-        UpdateHeaderPeriod();
+
+        const header_period = UpdateHeaderPeriod();
+        console.log ("header_period: ", header_period)
+        document.getElementById("id_hdr_period").innerText = header_period;
+
+        document.getElementById("id_div_hdr_text").classList.remove("display_hide");
+            console.log("remove display_hide")
 
     }  // HandleBtnSelect
 
@@ -480,14 +516,15 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( sel_tr_clicked);
 
         if(!!sel_tr_clicked) {
+// ---  get map_dict
             const tblName = get_attr_from_el_str(sel_tr_clicked, "data-table");
             const pk_str = get_attr_from_el_str(sel_tr_clicked, "data-pk");
             const map_id = get_map_id(tblName, pk_str);
+            // function 'get_mapdict_from_.....' returns empty dict if tblName or pk_str are not defined or key not exists.
+            const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, tblName, pk_str);
 
 // ---  update selected_employee_pk
-            // function 'get_mapdict_from_.....' returns empty dict if tblName or pk_str are not defined or key not exists.
-            const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, tblName, pk_str);
-            selected_employee_pk = get_subdict_value_by_key(employee_dict, "id", "pk", 0);
+            selected_employee_pk = get_subdict_value_by_key(map_dict, "id", "pk", 0);
             selected_teammember_pk = 0;
 
  // ---  highlight clicked row in select table
@@ -503,16 +540,16 @@ document.addEventListener('DOMContentLoaded', function() {
             UpdateHeaderText();
 
 // ---  update employee form
-
             if(selected_btn === "employee_form"){
-                UpdateForm();
+                UpdateForm("HandleSelect_Row");
 // ---  enable delete button
                 document.getElementById("id_form_btn_delete").disabled = (!selected_employee_pk)
+
             } else if(selected_btn === "calendar"){
                 DatalistDownload({"employee_calendar":
                                     {"datefirst": calendar_header_dict["datefirst"],
                                     "datelast": calendar_header_dict["datelast"],
-                                    "employee_id": selected_employee_pk}});
+                                    "employee_pk": selected_employee_pk}});
             } else {
                 let tblBody = document.getElementById("id_tbody_" + selected_btn);
                 if(!!tblBody){
@@ -544,8 +581,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 let el_input = lastRow.cells[0].children[0];
                                 if(!!el_input){
                                     el_input.setAttribute("data-pk", selected_employee_pk)
-                                    el_input.setAttribute("data-ppk", get_dict_value_by_key(employee_dict, "ppk"))
-                                    const employee_code = get_subdict_value_by_key(employee_dict, "code", "value");
+                                    el_input.setAttribute("data-ppk", get_dict_value_by_key(map_dict, "ppk"))
+                                    const employee_code = get_subdict_value_by_key(map_dict, "code", "value");
                                     el_input.setAttribute("data-value", employee_code)
                                     el_input.value = employee_code
                                 }
@@ -626,7 +663,7 @@ document.addEventListener('DOMContentLoaded', function() {
         selected_teammember_pk = 0;
 
         UpdateHeaderText();
-        UpdateForm()
+        UpdateForm("HandleEmployeeAdd")
         let el = document.getElementById("id_form_code")
         el.readOnly = false;
         el.focus();
@@ -674,6 +711,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const new_inactive = (!inactive);
                 upload_dict["inactive"] = {"value": new_inactive, "update": true};
         // change inactive icon, before uploading
+                // format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive, title_inactive, title_active)
+                    console.log("format_inactive_element")
                 format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
         // ---  show modal, only when made inactive
                 if(!!new_inactive){
@@ -729,14 +768,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         calendar_header_dict = {"datefirst": calendar_datefirst_iso,
                         "datelast": calendar_datelast_iso}
-console.log("calendar_header_dict", calendar_header_dict)
         const upload_dict = {"calendar": calendar_header_dict};
         UploadSettings (upload_dict, url_settings_upload);
 
         let datalist_request = {"employee_calendar":
                     {"datefirst": calendar_datefirst_iso,
                      "datelast": calendar_datelast_iso,
-                     "employee_id": selected_employee_pk}};
+                     "employee_pk": selected_employee_pk}};
 
         console.log( "datalist_request", datalist_request);
         DatalistDownload(datalist_request);
@@ -761,15 +799,15 @@ console.log("calendar_header_dict", calendar_header_dict)
         a_innerText = get_attr_from_el_str(el_data, "data-txt_employee_add");
         AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_add", function() {HandleButtonEmployeeAdd()}, "mx-2")
         a_innerText = get_attr_from_el_str(el_data, "data-txt_employee_delete");
-        AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_delete", function() {ModConfirmOpen("delete")}, mx-2")
+        AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_delete", function() {ModConfirmOpen("delete")}, "mx-2")
         a_innerText = get_attr_from_el_str(el_data, "data-txt_planning_preview");
         AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_planning_preview", function() {ModPeriodOpen()}, "mx-2")
 
         //AddSubmenuButton(el_div, el_data, "id_submenu_employee_planning_preview", function() {
-        //    PrintEmployeePlanning("preview", period_dict, planning_map, company_dict,
+        //    PrintEmployeePlanning("preview", selected_period, planning_map, company_dict,
         //                label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang)}, "data-txt_planning_preview", "mx-2")
         //AddSubmenuButton(el_div, el_data, "id_submenu_employee_planning_download", function() {
-        //    PrintReport("print", period_dict, planning_map, company_dict,
+        //    PrintReport("print", selected_period, planning_map, company_dict,
         //                label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang)}, "data-txt_planning_download", "mx-2")
 
         el_submenu.classList.remove(cls_hide);
@@ -778,14 +816,14 @@ console.log("calendar_header_dict", calendar_header_dict)
 
 //========= FillTableRows  ====================================
     function FillTableRows(selected_btn, workhoursperday) {
-        //console.log( "===== FillTableRows  ========= ");
-        //  tables are: employee, absence, team, planning
+        console.log( "===== FillTableRows  ========= ");
+        //  tables are: employee, absence, team, planning (calendar)
         // data_maps are: employee, teammember, planning
-        // modes (buttons) are: employee, absence, team, planning, employee_form
-
+        // modes (buttons) are: employee, absence, shifts, calendar, planning, employee_form
 
 // --- reset tblBody
-        let tblBody = document.getElementById("id_tbody_" + selected_btn).innerText = null
+        let tblBody = document.getElementById("id_tbody_" + selected_btn);
+        tblBody.innerText = null
 
 // --- get  data_map
         const data_map = (selected_btn === "employee") ? employee_map :
@@ -821,7 +859,7 @@ console.log("calendar_header_dict", calendar_header_dict)
                     add_Row = true;
                 }
                 if (add_Row){
-                    let tblRow = CreateTblRow(selected_btn, pk_int, ppk_int, row_employee_pk, workhoursperday)
+                    let tblRow = CreateTblRow(tblBody, selected_btn, pk_int, ppk_int, row_employee_pk, workhoursperday)
                     UpdateTblRow(tblRow, item_dict)
 
 // --- highlight selected row
@@ -865,20 +903,25 @@ console.log("calendar_header_dict", calendar_header_dict)
 // --- add th to tblRow.
                 let th = document.createElement("th");
 // --- add vertical line between columns in planning
-                if (mode === "planning"){th.classList.add("border_right")};
+                // if (mode === "planning"){th.classList.add("border_right")};
 
     // --- add div to th, margin not workign with th
                 let el_div = document.createElement("div");
 
     // --- add innerText to el_div
-                let data_key = null, hdr_txt = "";
-                if (mode === "planning"){
-                    //hdr_txt = (j === 0) ? "" : loc.weekdays_long[j];
-                } else {
-                    data_key = "data-" + thead_text[mode][j];
-                    hdr_txt = get_attr_from_el(el_data, data_key);
-                }
-                el_div.innerText = hdr_txt
+                const data_text = loc[thead_text[mode][j]];
+                if(!!data_text) el_div.innerText = data_text;
+
+    // --- add innerText to el_div
+                //let data_key = null, hdr_txt = "";
+                //if (mode === "planning"){
+                //    //hdr_txt = (j === 0) ? "" : loc.weekdays_long[j];
+                //} else {
+                //    data_key = "data-" + thead_text[mode][j];
+                //    hdr_txt = get_attr_from_el(el_data, data_key);
+                //}
+                //el_div.innerText = hdr_txt
+
                 el_div.setAttribute("overflow-wrap", "break-word");
 
 // --- add left margin to first column
@@ -894,9 +937,7 @@ console.log("calendar_header_dict", calendar_header_dict)
 
             }  // for (let j = 0; j < column_count; j++)
 
-
             CreateTblFilter(tblHead, mode);
-
         });  //  mode_list.forEach
 
     };  //function CreateTblHeaders
@@ -967,17 +1008,14 @@ console.log("calendar_header_dict", calendar_header_dict)
     };  //function CreateTblFilter
 
 //=========  CreateTblRow  ================ PR2019-08-29
-    function CreateTblRow(selected_btn, pk_str, ppk_str, employee_pk, workhoursperday) {
+    function CreateTblRow(tblBody, selected_btn, pk_str, ppk_str, employee_pk, workhoursperday) {
         //console.log("=========  CreateTblRow =========", selected_btn);
-        //console.log("pk_str", pk_str , typeof pk_str);
-        //console.log("ppk_str", ppk_str , typeof ppk_str);
 
         const tblName = (selected_btn === "employee") ? "employee" :
                         (["absence", "shifts"].indexOf( selected_btn ) > -1) ? "teammember":
                         (selected_btn === "planning") ? "planning" : null;
 
 // --- insert tblRow into tblBody
-        let tblBody = document.getElementById("id_tbody_" + selected_btn);
         let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
         const map_id = get_map_id(tblName, pk_str)
@@ -1008,7 +1046,7 @@ console.log("calendar_header_dict", calendar_header_dict)
             el.setAttribute("data-field", field_names[selected_btn][j]);
 
 // --- add img delete to col_delete
-            if ((selected_btn === "employee" && j === 7) || (selected_btn === "absence" && j === 7)) {
+            if ((selected_btn === "employee" && j === (column_count - 1)) || (selected_btn === "absence" && j === (column_count - 1))) {
                 if (!is_new_row){
                     CreateBtnDeleteInactive("delete", tblRow, el);
                 }
@@ -1045,28 +1083,32 @@ console.log("calendar_header_dict", calendar_header_dict)
                     el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false)
                 }
             } else if (selected_btn === "absence"){
+                // 0: employee", 1: order, 2: datefirst, 3: datelast, 4: offsetstart, 5: offsetend, 6: workhoursperday, 7: delete
                 // select employee only in addnew row
                 if (j === 0){
                     if (is_new_row){
                         el.addEventListener("click", function() {ModEmployeeOpen(el)}, false )
                     }
                 } else if ( j === 1){
-                    el.addEventListener("change", function() { UploadTeammemberChanges(el)}, false)
-                } else if ([2, 3].indexOf( j ) > -1){
+                    el.addEventListener("change", function() {UploadAbscatChanges(el)}, false)
+                } else if (([2, 3].indexOf( j ) > -1) && (!is_new_row)) {
                     el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false)
-                } else if ([4, 5, 6].indexOf( j ) > -1){
-                    el.addEventListener("click", function() {HandleTimepickerOpen(el, "absence")}, false)
+                } else if (([4].indexOf( j ) > -1) && (!is_new_row)) {
+                   // el.addEventListener("click", function() {HandleTimepickerOpen(el, "absence")}, false)
                 }
             } else if (selected_btn === "shifts"){
+            // 0: employee, 1: order, 2: team, 3: datefirst, 4: datelast, 5: replacement, 6: delete
                 if (j === 0){
                     el.addEventListener("click", function() {MSO_open(el)}, false)
                 } else if (j === 1){
-                        el.addEventListener("change", function() { UploadTeammemberChanges(el)}, false)
+                        // cannot change employee in shifts.
                 } else if (j === 2){
                         // TODO add team select box, add eventhandler
                        // el.addEventListener("change", function() { UploadTeammemberChanges(el)}, false)
                 } else if ([3,4].indexOf( j ) > -1){
                     el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false)
+                }  else if (j === 5){
+                    el.addEventListener("click", function() {ModEmployeeOpen(el)}, false )
                 }
             }  //  if (selected_btn === "employee"){
 
@@ -1106,6 +1148,8 @@ console.log("calendar_header_dict", calendar_header_dict)
         id_new += 1;
         const pk_new = "new" + id_new.toString()
 
+        let tblBody = document.getElementById("id_tbody_" + selected_btn);
+
 // --- create addnew row when selected_btn is 'employee'
         if(selected_btn === "employee"){
             // get ppk_int from company_dict ( ppk_int = company_pk)
@@ -1115,13 +1159,11 @@ console.log("calendar_header_dict", calendar_header_dict)
             let dict = {"id": {"pk": pk_new, "ppk": ppk_int, "temp_pk": pk_new}};
             //dict["employee"] = {"pk": null, "ppk": null, "value": null, "field": "employee", "locked": false}
             // in employee table: don't put name selected employee but pu placeholder
-            let newRow = CreateTblRow(selected_btn, pk_new, ppk_int, null)
+            let newRow = CreateTblRow(tblBody, selected_btn, pk_new, ppk_int, null)
             UpdateTblRow(newRow, dict)
 
 // --- create addnew row when selected_btn is 'absence' or 'shifts'
         } else if (["absence", "shifts"].indexOf(selected_btn) > -1) {
-            let tblBody = document.getElementById("id_tbody_" + selected_btn);
-
 // get info from selected employee, store in dict
             let employee_ppk = 0;
             // Note: the parent of 'teammember' is 'team', not 'employee'!!
@@ -1156,7 +1198,7 @@ console.log("calendar_header_dict", calendar_header_dict)
 // if lastRow is not an addnewRow: create an 'addnew' row
             if (lastRow_isnot_addnewRow){
                 dict["id"] = {"pk": pk_new, "ppk": teammember_ppk, "temp_pk": pk_new, "table": "teammember"};
-                lastRow = CreateTblRow(selected_btn, pk_new, teammember_ppk, selected_employee_pk)
+                lastRow = CreateTblRow(tblBody, selected_btn, pk_new, teammember_ppk, selected_employee_pk)
                 //dict["id"]["created"] = true;
 
 // if lastRow is an 'addnew' row: update with employee name
@@ -1195,6 +1237,15 @@ console.log("calendar_header_dict", calendar_header_dict)
         AppendChildIcon(el_input, img_src)
     }  // CreateBtnDeleteInactive
 
+//------------------------------
+
+
+    function tblName_from_selectedbtn(btn) {
+        return (["employee", "employee_form"].indexOf(btn ) > -1) ? "employee" :
+               (["absence", "shifts"].indexOf(btn ) > -1) ? "teammember" :
+               (["calendar", "planning"].indexOf(btn ) > -1) ? "planning" : null;
+    } //tblName_from_selectedbtn
+
 //###########################################################################
 // +++++++++++++++++ UPDATE ++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1212,20 +1263,21 @@ console.log("calendar_header_dict", calendar_header_dict)
             const map_id = get_map_id(tblName, pk_int);
             const is_created = ("created" in id_dict);
             const is_deleted = ("deleted" in id_dict);
-        //console.log("temp_pk_str", temp_pk_str);
-        //console.log("is_created", is_created);
+        console.log("temp_pk_str", temp_pk_str);
+        console.log("is_created", is_created);
 
         if(selected_btn === "employee_form"){
-            UpdateForm()
+            UpdateForm("UpdateFromResponse", update_dict)
         } else {
 
 //--- lookup table row of updated item
             // created row has id 'teammemnber_new1', existing has id 'teammemnber_379'
             // 'is_created' is false when creating failed, use instead: (!is_created && !map_id)
-            const row_id_str = ((is_created) || (!is_created && !map_id)) ? tblName + "_" + temp_pk_str : map_id;
-            //console.log("row_id_str", row_id_str);
+            const row_id_str = ((is_created) || (!is_created && !map_id)) ? temp_pk_str : map_id;
+            console.log("row_id_str", row_id_str);
 
             let tblRow = document.getElementById(row_id_str);
+            console.log("tblRow", tblRow);
             if(!!tblRow){
                 //console.log("tblRow", tblRow);
 
@@ -1266,12 +1318,11 @@ console.log("calendar_header_dict", calendar_header_dict)
         };
 
 //--- update or delete selectRow, before remove_err_del_cre_updated__from_itemdict
-        // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
-        UpdateSelectRow(selectRow, update_dict, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
+        UpdateSelectRow(selectRow, update_dict, false, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
 
 //--- remove 'updated, deleted created and msg_err from update_dict
-        // TODO replace remove
-        // remove_err_del_cre_updated__from_itemdict(update_dict)
+        // after updating fields and selectRow
+        remove_err_del_cre_updated__from_itemdict(update_dict)
 
 //--- replace updated item in map
         let data_map = (tblName === "employee") ? employee_map :
@@ -1299,18 +1350,24 @@ console.log("calendar_header_dict", calendar_header_dict)
     }  // UpdateFromResponse(update_list)
 
 //========= UpdateForm  ============= PR2019-10-05
-    function UpdateForm(){
+    function UpdateForm(called_by, update_dict){
+        // if update_dict does not exist: get info from data_map
         //console.log("========= UpdateForm  =========");
-        const map_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk )
-        const pk_int = Number(get_subdict_value_by_key(map_dict, "id", "pk", 0));
+        let item_dict = {}
+        if(called_by === "UpdateFromResponse"){
+            item_dict = update_dict
+        } else {
+            item_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk )
+        };
+        const pk_int = Number(get_subdict_value_by_key(item_dict, "id", "pk", 0));
         const readonly = (!pk_int);
 
-// ---  employee form
+// ---  update fields in employee form
         let form_elements = document.getElementById("id_div_data_form").querySelectorAll(".form-control")
         for (let i = 0, len = form_elements.length; i < len; i++) {
             let el_input = form_elements[i];
             el_input.readOnly = readonly;
-            UpdateField(el_input, map_dict);
+            UpdateField(el_input, item_dict);
         }
     };
 
@@ -1344,6 +1401,9 @@ console.log("calendar_header_dict", calendar_header_dict)
                 } else {tblRow.removeAttribute("data-employee_pk")};
             if(!!employee_ppk){tblRow.setAttribute("data-employee_ppk", employee_ppk)
                 } else {tblRow.removeAttribute("data-employee_ppk")};
+
+// also put replacement_id in tblRow.data, for filtering rows
+            // TODO
 
 // --- show error message of row
             if (!!msg_err){
@@ -1435,29 +1495,39 @@ console.log("calendar_header_dict", calendar_header_dict)
         if (isEmpty(item_dict)){
             if (fieldname === "inactive") {
                 const field_dict = {value: false}
+                // format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive, title_inactive, title_active)
                 format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
             } else {
                 el_input.value = null
                 el_input.removeAttribute("data-value");
                 el_input.removeAttribute("data-pk");
+                el_input.removeAttribute("data-ppk");
              }
         } else {
     // --- lookup field in item_dict, get data from field_dict
-            if (fieldname in item_dict){
+            if (!(fieldname in item_dict)){
+                el_input.value = null
+                el_input.removeAttribute("data-value");
+                el_input.removeAttribute("data-pk");
+                el_input.removeAttribute("data-ppk");
+            } else {
                 const field_dict = get_dict_value_by_key (item_dict, fieldname);
                 const value = get_dict_value_by_key (field_dict, "value");
                 const updated = get_dict_value_by_key (field_dict, "updated");
                 const msg_offset = (selected_btn === "employee_form") ? [-260, 210] : [-240, 210];
 
+                // Disable element when locked
+                const locked = (!!get_dict_value_by_key (field_dict, "locked"));
+                el_input.disabled = locked
+
                 if(updated){
                     el_input.classList.add("border_valid");
                     setTimeout(function (){
                         el_input.classList.remove("border_valid");
-
                         }, 2000);
                 }
 
-                if (["code", "name", "namelast", "namefirst", "team", "identifier"].indexOf( fieldname ) > -1){
+                if (["code", "name", "namelast", "namefirst", "identifier"].indexOf( fieldname ) > -1){
                    const key_str = "value";
                    format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
                 } else if (fieldname === "order"){
@@ -1467,8 +1537,6 @@ console.log("calendar_header_dict", calendar_header_dict)
                     } else {
                         format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
                     }
-                } else if (["pricerate"].indexOf( fieldname ) > -1){
-                   format_price_element (el_input, el_msg, field_dict, msg_offset, user_lang)
                 } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
                     const hide_weekday = true, hide_year = false;
                     format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
@@ -1490,59 +1558,52 @@ console.log("calendar_header_dict", calendar_header_dict)
                     format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)
                     }
                 } else if (fieldname ===  "team"){
-                    if (tblName === "shifts"){
-                        const key_str = "value";
+                    //if (tblName === "shifts"){
+
+                        const key_str = "code";
                         format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
-                    }
-                } else if (fieldname ===  "employee"){
+                    //}
+                } else if (["employee", "replacement"].indexOf( fieldname ) > -1){
                     // fieldname "employee") is used in mode absence and shift, teammember table
 
                     // abscat: use team_pk, but display order_code, is stored in 'value, team_code stored in 'code'
                     const employee_pk = get_dict_value_by_key (field_dict, "pk")
                     const employee_ppk = get_dict_value_by_key (field_dict, "ppk")
-                    const employee_value = get_dict_value_by_key (field_dict, "value")
+                    const employee_code = get_dict_value_by_key (field_dict, "code")
 
-                    if (!!employee_value) {
-                        el_input.value = employee_value;
-                        el_input.setAttribute("data-value", employee_value);
+                    if (!!employee_code) {
+                        el_input.value = employee_code;
+                        el_input.setAttribute("data-value", employee_code);
                     } else {
                         el_input.value = null;
                         el_input.removeAttribute("data-value");
                     }
                     el_input.setAttribute("data-pk", employee_pk);
                     el_input.setAttribute("data-ppk", employee_ppk);
-                    el_input.setAttribute("data-field", "employee");
+                    //el_input.setAttribute("data-field", fieldname);
         // --- add placeholder if no employee selected.
-                    if (!employee_pk){
-                        el_input.setAttribute("placeholder", get_attr_from_el(el_data, "data-txt_employee_select") + "...")
+                    if (!employee_pk && fieldname === "employee"){
+                        el_input.setAttribute("placeholder", loc.Select_employee + "...")
                     } else {
                         el_input.removeAttribute("placeholder")
                     }
-
-                    // lock element when locked
-                    const locked = get_dict_value_by_key (field_dict, "locked");
-                    el_input.disabled = locked
 
                 } else if (tblName === "teammember" && fieldname === "breakduration"){
                     const key_str = "value";
                     format_text_element (el_input, key_str, el_msg, field_dict, false, msg_offset)
 
-                } else if (fieldname === "workhoursperday") {
-                    format_duration_element (el_input, el_msg, field_dict, user_lang)
-
-                } else if (["workdays", "workhours"].indexOf( fieldname ) > -1){
-                    if(!!value){
-                        el_input.value = value / 1440
-                        el_input.setAttribute("data-value", value);
-                        //el_input.setAttribute("data-pk", pk_int);
-                    } else {
-                        el_input.value = null;
-                        el_input.removeAttribute("data-value");
-                        //el_input.removeAttribute("data-pk");
+                } else if (["workhours", "workdays", "leavedays"].indexOf( fieldname ) > -1){
+                    let quotient = null;
+                    if(!Number.isNaN(value)){
+                        const divisor = (fieldname === "workhours") ? 60 : 1440;
+                        quotient = value / divisor
                     }
+                    el_input.value = quotient
+                    el_input.setAttribute("data-value", quotient);
 
                 } else if (fieldname === "inactive") {
                    if(isEmpty(field_dict)){field_dict = {value: false}}
+                // format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive, title_inactive, title_active)
                    format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
 
                 } else {
@@ -1568,7 +1629,8 @@ console.log("calendar_header_dict", calendar_header_dict)
 
             let dict = {"id": {"pk": pk_new, "ppk": ppk_int, "temp_pk": pk_new}};
             // in  "teammember" and "absence" selected_employee_pk has always value
-            let newRow = CreateTblRow(mode, pk_new, ppk_int, selected_employee_pk)
+            let tblBody = document.getElementById("id_tbody_" + selected_btn);
+            let newRow = CreateTblRow(tblBody, mode, pk_new, ppk_int, selected_employee_pk)
             UpdateTblRow(tblName, newRow, dict)
 
 // --- create addnew row when mode is 'absence' or 'team'
@@ -1641,8 +1703,9 @@ console.log("calendar_header_dict", calendar_header_dict)
                     }
                 }
                 if (key === "planning_period"){
-                    period_dict = setting_dict[key];
-                    UpdateHeaderPeriod();
+                    selected_period = setting_dict[key];
+                    const header_period = UpdateHeaderPeriod();
+                    document.getElementById("id_hdr_period").innerText = header_period;
                 }
                 if (key === "calendar"){
                     calendar_header_dict = setting_dict[key];
@@ -1650,7 +1713,9 @@ console.log("calendar_header_dict", calendar_header_dict)
                     CreateCalendar("employee", calendar_header_dict, calendar_map, MSO_open, loc, timeformat, user_lang);
                 }
             });
-            //console.log("period_dict", period_dict)
+            //console.log("selected_period", selected_period)
+            document.getElementById("id_div_hdr_text").classList.remove("display_hide");
+            console.log("remove display_hide")
         }
     }  // UpdateSettings
 
@@ -1663,37 +1728,23 @@ console.log("calendar_header_dict", calendar_header_dict)
 
         let header_text = null;
         if (selected_btn === "employee") { //show 'Employee list' in header when List button selected
-            header_text = get_attr_from_el_str(el_data, "data-txt_employee_list")
+            header_text = loc.Employee_list //was:  get_attr_from_el_str(el_data, "data-txt_employee_list")
         } else if (!!selected_employee_pk) {
             const dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk)
             const employee_code = get_subdict_value_by_key(dict,"code", "value")
         //console.log( "employee_code", employee_code);
-
             if(!!employee_code){header_text = employee_code}
         } else {
             // TODO is_addnew_mode is not defined yet
-            if (!!is_addnew_mode){
-                header_text = get_attr_from_el_str(el_data, "data-txt_employee_add")
+            if (is_addnew_mode){
+                header_text = loc.Add_employee + "...";
             } else {
-                header_text = get_attr_from_el_str(el_data, "data-txt_employee_select") + "...";
+                header_text = loc.Select_employee + "...";
             }
         }
         //console.log( "header_text", header_text);
         document.getElementById("id_hdr_text").innerText = header_text
     }  // UpdateHeaderText
-
-//=========  UpdateHeaderPeriod ================ PR2019-10-28
-    function UpdateHeaderPeriod() {
-        //console.log( "===== UpdateHeaderPeriod  ========= ");
-        let header_text = "";
-        const period_txt = get_period_formatted(period_dict, month_list, weekday_list, user_lang);
-        if (!!period_txt) {
-            header_text = get_attr_from_el_str(el_data, "data-txt_period") + ": " + period_txt
-        } else {
-            header_text = get_attr_from_el_str(el_data, "data-txt_select_period") + "...";
-        }
-        //document.getElementById("id_hdr_period").innerText = header_text
-    }  // UpdateHeaderPeriod
 
 
 //###########################################################################
@@ -1706,7 +1757,7 @@ console.log("calendar_header_dict", calendar_header_dict)
 
 //========= UploadDeleteInactive  ============= PR2019-09-23
     function UploadDeleteInactive(mode, el_input) {
-        //console.log( " ==== UploadDeleteInactive ====", mode);
+        console.log( " ==== UploadDeleteInactive ====", mode);
 
         let tblRow = get_tablerow_selected(el_input)
         if(!!tblRow){
@@ -1738,6 +1789,8 @@ console.log("calendar_header_dict", calendar_header_dict)
                     const new_inactive = (!inactive);
                     upload_dict["inactive"] = {"value": new_inactive, "update": true};
             // change inactive icon, before uploading
+                    // format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive, title_inactive, title_active)
+                    console.log("format_inactive_element")
                     format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
             // ---  show modal, only when made inactive
                     if(!!new_inactive){
@@ -1754,9 +1807,8 @@ console.log("calendar_header_dict", calendar_header_dict)
 
 //========= UploadFormChanges  ============= PR2019-10-05
     function UploadFormChanges(el_input) {
-        //console.log( " ==== UploadFormChanges ====");
-        //console.log( el_input);
-        let id_dict = {}, upload_dict = {};
+        console.log( " ==== UploadFormChanges ====");
+        let id_dict = {}, upload_dict = {}, is_not_valid = false;
         if(!!el_input){
             if(!selected_employee_pk){
                 // get new temp_pk
@@ -1774,21 +1826,90 @@ console.log("calendar_header_dict", calendar_header_dict)
             let upload_dict = {"id": id_dict};
     // create field_dict
             const fieldname = get_attr_from_el(el_input,"data-field")
-            let field_dict = {"update": true}
-            if(!!el_input.value) {field_dict["value"] = el_input.value}
-            upload_dict[fieldname] = field_dict;
+            const old_value = get_attr_from_el(el_input, "data-value");
+            let value = null, err_msg = null;
+            if (["workhours", "workdays", "leavedays"].indexOf( fieldname ) > -1){
+                const multiplier = (fieldname === "workhours") ? 60 : 1440;
+                const min_value = 0;
+                const max_value = (fieldname === "workhours") ? 168 * 60 :
+                      (fieldname === "workdays") ? 7 * 1440 :
+                      (fieldname === "leavedays") ? 365 * 1440 : 0;
+                const arr = get_number_from_input(el_input.value, old_value, multiplier, min_value, max_value, loc);
+                value = arr[0];
+                err_msg = arr[1];
+            } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
+                // uses HandlePopupDateOpen ;
+            } else {
+                value = el_input.value;
+            }
 
     // UploadChanges
-            UploadChanges(upload_dict, url_employee_upload);
+            if(!!err_msg) {
+                let field_dict = {value: old_value, error: err_msg};
+                format_text_element (el_input, "value", el_msg, field_dict, false, [-240, 200])
+            } else {
+                upload_dict[fieldname] = {value: value, update: true};
+                UploadChanges(upload_dict, url_employee_upload);
+            }
         } // if(!!el_input){
     }  // UploadFormChanges
+
+//========= UploadAbscatChanges  ============= PR2020-01-11
+    function UploadAbscatChanges(el_input) {
+        console.log("--- UploadAbscatChanges  --------------");
+        // abscat pk = order_pk, abdscat ppk = customer_pk
+
+        // format of  upload_dict: {
+        //   'id': {'create': True, 'temp_pk': 'teammember_new2', 'table': 'teammember', 'isabsence': True},
+        //   'employee': {'pk': 2556, 'code': 'Levinson, Daniela', 'workhoursperday': 480},
+        //    'order': {'pk': 1265, 'value': 'Vakantie', 'ppk': 610, 'is_absence': True, 'update': True}}
+
+        let tr_changed = get_tablerow_selected(el_input)
+        if (!!tr_changed){
+// ---  create id_dict
+            let id_dict = get_iddict_from_element(tr_changed);
+            id_dict["isabsence"] = true;
+// ---  create upload_dict
+            let upload_dict = {id: id_dict};
+// ---  get is_create from id_dict
+            const is_create = get_dict_value_by_key(id_dict, "create", false)
+            if(is_create){el_input.classList.remove("tsa_color_darkgrey")}
+// add employee - only when it is a new record
+            if(is_create) {
+                let el_employee = tr_changed.cells[0].children[0];
+                const employee_pk = get_attr_from_el_int(el_employee, "data-pk")
+                const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", employee_pk)
+                const employee_code = get_subdict_value_by_key(employee_dict, "code", "value")
+                upload_dict["employee"] = {"pk": employee_pk, "code": employee_code};
+            }
+// --- add absence
+            // Field abscat contains pk of abscat order
+            // abscat_team_pk is stored as ppk in tablerow. Parent of Team is Scheme, parent of Scheme is abscat order
+            upload_dict["order"] = {pk: Number(el_input.value), table: "order", isabsence: true, update: true};
+
+            //set default value to workhours
+            //if(fldName === "team" && is_create){
+           //     // convert to hours, because input is in hours
+            //    // TODO add popup hours window
+            //    const hours = workhoursperday / 60
+            //    upload_dict["workhoursperday"] = {"value": hours, "update": true }
+           // }
+
+    console.log("----------------- upload_dict: ", upload_dict);
+
+            UploadChanges(upload_dict, url_teammember_upload);
+
+        }  //  if (!! tr_changed)
+
+    }  // UploadAbscatChanges
 
 //========= UploadTeammemberChanges  ============= PR2019-03-03
     function UploadTeammemberChanges(el_input) {
         console.log("--- UploadTeammemberChanges  --------------");
+            console.log("el_input: ", el_input);
+
         let tr_changed = get_tablerow_selected(el_input)
         if (!!tr_changed){
-
     // ---  create id_dict
             let id_dict = get_iddict_from_element(tr_changed);
             console.log("id_dict: ", id_dict);
@@ -1827,34 +1948,15 @@ console.log("calendar_header_dict", calendar_header_dict)
                 upload_dict["employee"] = {"pk": employee_pk, "code": employee_code, "workhoursperday": workhoursperday};
 
     // --- add absence, skip when is_delete
+                // moved to update UploadAbscatChanges
+
                 if(!is_delete){
-                    if (["order", "team"].indexOf( fldName ) > -1){
-                        // option value = team_pk_int
-                        const absence_team_pk_int = parseInt(el_input.value);
-                        //console.log(">>>>>>>add absence fldName", fldName);
-                        //console.log(">>>>>>>add absence absence_team_pk_int", absence_team_pk_int);
-                        //console.log(el_input);
-                        if(!!absence_team_pk_int){
-                            field_dict["pk"] = absence_team_pk_int
-                            if (el_input.selectedIndex > -1) {
-                                const option = el_input.options[el_input.selectedIndex]
-                                const code = option.text;
-                                const absence_team_ppk_int = get_attr_from_el_int(option, "data-ppk")
-                                if(!!code){field_dict["value"] = code};
-                                if(!!absence_team_ppk_int){field_dict["ppk"] = absence_team_ppk_int};
-                                field_dict["is_absence"] = is_absence;
-                        //console.log("add absence code", code);
-                            }
-                        }
-                        field_dict["update"] = true;
+                    if (fldName === "replacement"){
+                        let value = el_input.value;
+                        field_dict = {update: true}
+                        if(!value){field_dict["value"] = value};
                         upload_dict[fldName] = field_dict;
-                        //set default value to workhours
-                        if(fldName === "team" && is_create){
-                            // convert to hours, because input is in hours
-                            // TODO add popup hours window
-                            const hours = workhoursperday / 60
-                            upload_dict["workhoursperday"] = {"value": hours, "update": true }
-                        }
+
                     } else if (["workhoursperday", "workdays", "leavedays",].indexOf( fldName ) > -1){
                         let value = el_input.value;
                         if(!value){value = 0}
@@ -1866,6 +1968,7 @@ console.log("calendar_header_dict", calendar_header_dict)
 
                 console.log("upload_dict: ", upload_dict);
                 UploadChanges(upload_dict, url_teammember_upload);
+        console.log("----------------- upload_dict: ", upload_dict);
 
             }  // if (!isEmpty(id_dict))
         }  //  if (!! tr_changed)
@@ -2042,6 +2145,13 @@ console.log("calendar_header_dict", calendar_header_dict)
                     console.log( "response");
                     console.log( response);
 
+                    if ("update_list" in response) {
+                        for (let i = 0, len = response["update_list"].length; i < len; i++) {
+                            const update_dict = response["update_list"][i];
+                            UpdateFromResponse(update_dict);
+                        }
+                    };
+
                     if ("employee_list" in response) {
                         get_datamap(response["employee_list"], employee_map)
 
@@ -2049,11 +2159,13 @@ console.log("calendar_header_dict", calendar_header_dict)
                         const imgsrc_default = imgsrc_inactive_grey;
                         const imgsrc_hover = imgsrc_inactive_black;
                         const include_parent_code = null;
+                        const title_header_btn = "Click to show or hide inactive employees";
                         FillSelectTable(employee_map, tblName, null, include_parent_code,
                             HandleSelect_Filter, HandleFilterInactive,
                             HandleSelect_Row,  HandleSelectRowButton,
                             imgsrc_default, imgsrc_hover,
-                            filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
+                            imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
+                            title_header_btn)
 
                         FilterSelectRows(tblBody_select, filter_select);
 
@@ -2063,27 +2175,13 @@ console.log("calendar_header_dict", calendar_header_dict)
                     if ("teammember_list" in response) {
                         get_datamap(response["teammember_list"], teammember_map)
                     };
-                    if ("update_list" in response) {
-                        for (let i = 0, len = response["update_list"].length; i < len; i++) {
-                            const update_dict = response["update_list"][i];
-                            UpdateFromResponse(update_dict);
-                        }
-                    };
+
                     if ("teammember_update" in response) {
                         UpdateFromResponse(response["teammember_update"]);
                     };
 
                     if ("employee_calendar_list" in response) {
                         get_datamap(response["employee_calendar_list"], calendar_map)
-
-                        console.log("updated =========> response[employee_calendar_list")
-                        console.log( response)
-
-                        console.log("2222222 calendar_header_dict")
-                        console.log(calendar_header_dict)
-                        console.log("calendar_map")
-                        console.log(calendar_map)
-
 
                         CreateCalendar("employee", calendar_header_dict, calendar_map, MSO_open, loc, timeformat, user_lang);
                     }
@@ -2117,7 +2215,6 @@ console.log("calendar_header_dict", calendar_header_dict)
             map_id = tblName + pk_str;
         } else {
             const tblRow = get_tablerow_selected(el_input)
-            console.log("tblRow", tblRow) ;
             pk_str = get_attr_from_el(tblRow, "data-pk");
             tblName = get_attr_from_el(tblRow, "data-table") ;
             data_mode = get_attr_from_el(tblRow, "data-mode") ;
@@ -2164,16 +2261,15 @@ console.log("calendar_header_dict", calendar_header_dict)
             let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
             el_popup_date_container.setAttribute("style", msgAttr)
 
-        // ---  show el_popup
-                el_popup_date_container.classList.remove(cls_hide);
-
+    // ---  show el_popup
+            el_popup_date_container.classList.remove(cls_hide);
         }  // if (!!tr_selected){
-
     }; // function HandlePopupDateOpen
 
 //=========  HandlePopupDateSave  ================ PR2019-04-14
     function HandlePopupDateSave() {
         console.log("===  function HandlePopupDateSave =========");
+        console.log(el_popup_date);
 // ---  get pk_str and fieldname from el_popup
         const pk_str = el_popup_date.getAttribute("data-pk");
         const fieldname = el_popup_date.getAttribute("data-field");
@@ -2196,15 +2292,16 @@ console.log("calendar_header_dict", calendar_header_dict)
         el_popup_date_container.classList.add(cls_hide);
 
         if(!!pk_int && !! ppk_int){
-            let upload_dict = {};
-            upload_dict["id"] = {pk: pk_int, ppk: ppk_int, table: tblName, mode: data_mode}
-            const new_value = el_popup_date.value
+            let id_dict = {pk: pk_int, ppk: ppk_int, table: tblName} //  , mode: data_mode}
+            if(data_mode === "absence") {id_dict["isabsence"] = true}
 
+            const new_value = el_popup_date.value
             if (new_value !== data_value) {
                 // key "update" triggers update in server, "updated" shows green OK in inputfield,
                 let field_dict = {update: true}
                 if(!!new_value){field_dict["value"] = new_value};
-                upload_dict[fieldname] =  field_dict;
+                let upload_dict = {id: id_dict}
+                upload_dict[fieldname] = field_dict;
 
 // put new value in inputbox before new value is back from server
                 const map_id = get_map_id(tblName, pk_str);
@@ -2213,10 +2310,11 @@ console.log("calendar_header_dict", calendar_header_dict)
 
                 // --- lookup input field with name: fieldname
                         //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
-                        // CSS.escape not supported by IE, Chrome and Safaris,
-                        // CSS.escape is not necessaary, there are no special characters in fieldname
+                        // CSS.escape not supported by IE, Chrome and Safari,
+                        // CSS.escape is not necessary, there are no special characters in fieldname
                 let el_input = tr_changed.querySelector("[data-field=" + fieldname + "]");
                 if (!!el_input){
+                    console.log("el_input", el_input);
                     const hide_weekday = true, hide_year = false;
                     format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
                                         user_lang, comp_timezone, hide_weekday, hide_year)
@@ -2226,8 +2324,8 @@ console.log("calendar_header_dict", calendar_header_dict)
                                 url_employee_upload : url_teammember_upload;
                 const parameters = {"upload": JSON.stringify (upload_dict)}
                 console.log("url_str: ", url_str);
-                console.log ("upload", upload_dict);
-                
+                console.log ("upload_dict", upload_dict);
+
                 let response;
                 $.ajax({
                     type: "POST",
@@ -2346,15 +2444,19 @@ console.log("calendar_header_dict", calendar_header_dict)
         console.log(" -----  ModPeriodOpen   ----")
         // when clicked on delete btn in form tehre is no tr_selected, use selected_employee_pk
 
-        if(!isEmpty(period_dict)){
-            if("datefirst" in period_dict){
-                document.getElementById("id_mod_period_datefirst").value = period_dict["datefirst"]
+        if(!isEmpty(selected_period)){
+            if("datefirst" in selected_period){
+                document.getElementById("id_mod_period_datefirst").value = selected_period["datefirst"]
             }
-            if("datelast" in period_dict){
-                document.getElementById("id_mod_period_datelast").value = period_dict["datelast"]
+            if("datelast" in selected_period){
+                document.getElementById("id_mod_period_datelast").value = selected_period["datelast"]
             }
         }
-        //let el_mod_period_tblbody = document.getElementById("id_modperiod_selectperiod_tblbody");
+    let el = document.getElementById("id_modperiod_div_selectcustomer")
+
+        console.log("el", el)
+        el.classList.add(cls_hide)
+    document.getElementById("id_modperiod_div_selectorder").classList.add(cls_hide)
 
         // ---  show modal, set focus on save button
         $("#id_mod_period").modal({backdrop: true});
@@ -2362,9 +2464,44 @@ console.log("calendar_header_dict", calendar_header_dict)
 
     };  // ModPeriodOpen
 
-//=========  ModPeriodSelect  ================ PR2019-07-14
-    function ModPeriodSelect(tr_clicked, selected_index) {
-        //console.log( "===== ModPeriodSelect ========= ", selected_index);
+
+//=========  ModPeriodSelectCustomer  ================ PR2020-01-09
+    function ModPeriodSelectCustomer(selected_pk_str) {
+        console.log( "===== ModPeriodSelectCustomer ========= ");
+        const new_customer_pk = Number(selected_pk_str)
+        if (new_customer_pk !== selected_customer_pk ){
+            selected_customer_pk = new_customer_pk;
+            selected_order_pk = 0;
+        }
+        console.log( "selected_pk_str: ", selected_pk_str);
+        console.log( "selected_customer_pk: ", selected_customer_pk);
+        console.log( "selected_order_pk: ", selected_order_pk);
+
+        let el_select = document.getElementById("id_modperiod_selectorder")
+        el_select.innerText = null
+        const selectall_text =  "&lt;" +  loc.All_orders + "&gt;"
+        const select_text_none =  "&lt;" +  loc.No_orders + "&gt;"
+        // when 'all customers is selected (selected_customer_pk): there are no orders in selectbox 'orders'
+        // to display 'all orders' instead of 'no orders' we make have boolean 'hide_none' = true
+        const is_template_mode = false, has_selectall = true, hide_none = (!selected_customer_pk);
+        FillSelectOption2020(el_select, order_map, "order",is_template_mode, has_selectall, hide_none,
+                    selected_customer_pk, selected_order_pk, selectall_text, select_text_none)
+    }  // ModPeriodSelectCustomer
+
+
+//=========  ModPeriodSelectOrder  ================ PR2020-01-09
+    function ModPeriodSelectOrder(selected_pk_str) {
+        console.log( "===== ModPeriodSelectOrder ========= ");
+        console.log( "selected_pk_str: ", selected_pk_str);
+
+        selected_order_pk = Number(selected_pk_str)
+        console.log( "selected_order_pk: ", selected_order_pk);
+
+    }  // ModPeriodSelectOrder
+
+//=========  ModPeriodSelectPeriod  ================ PR2020-01-09
+    function ModPeriodSelectPeriod(tr_clicked, selected_index) {
+        console.log( "===== ModPeriodSelectPeriod ========= ", selected_index);
         if(!!tr_clicked) {
     // ---  deselect all highlighted rows, highlight selected row
             DeselectHighlightedRows(tr_clicked, cls_selected);
@@ -2375,20 +2512,33 @@ console.log("calendar_header_dict", calendar_header_dict)
             mod_upload_dict["period_tag"] = period_tag;
 
     // enable date input elements, give focus to start
+            let el_datefirst = document.getElementById("id_mod_period_datefirst");
+            let el_datelast = document.getElementById("id_mod_period_datelast");
+
+            el_datefirst.disabled = (period_tag !== "other");
+            el_datelast.disabled = (period_tag !== "other");
+
             if (period_tag === "other") {
-                let el_datefirst = document.getElementById("id_mod_period_datefirst");
-                let el_datelast = document.getElementById("id_mod_period_datelast");
-                el_datefirst.disabled = false;
-                el_datelast.disabled = false;
                 el_datefirst.focus();
-            } else{
-                //ModPeriodSave();
+            } else {
+                let lst = []
+                if (period_tag === "tweek") {
+                    lst = get_thisweek_monday_sunday_iso();
+                } else if (period_tag === "nweek") {
+                    lst = get_nextweek_monday_sunday_iso();
+                } else if (period_tag === "tmonth") {
+                    lst = get_thismonth_first_last_iso();
+                } else if (period_tag === "nmonth") {
+                    lst = get_nextmonth_first_last_iso();
+                }
+                el_datefirst.value = lst[0];
+                el_datelast.value = lst[1];
             }
         }
-    }  // ModPeriodSelect
+    }  // ModPeriodSelectPeriod
 
-//=========  ModPeriodEdit  ================ PR2019-07-14
-    function ModPeriodEdit(fldName) {
+//=========  ModPeriodDateChanged  ================ PR2019-07-14
+    function ModPeriodDateChanged(fldName) {
     // set min max of other input field
         let attr_key = (fldName === "datefirst") ? "min" : "max";
         let fldName_other = (fldName === "datefirst") ? "datelast" : "datefirst";
@@ -2396,33 +2546,58 @@ console.log("calendar_header_dict", calendar_header_dict)
         let el_other = document.getElementById("id_mod_period_" + fldName_other)
         if (!!el_this.value){ el_other.setAttribute(attr_key, el_this.value)
         } else { el_other.removeAttribute(attr_key) };
-    }  // ModPeriodEdit
+    }  // ModPeriodDateChanged
 
-//=========  ModPeriodSave  ================ PR2019-10-28
+//=========  ModPeriodSave  ================ PR2020-01-09
     function ModPeriodSave() {
         console.log("===  ModPeriodSave  =====") ;
-        $("#id_mod_period").modal("hide");
+        // TODO selected_customer_pk selected_order_pk
+        const selected_customer_pk = 0, selected_order_pk = 0;
 
-        const datefirst = document.getElementById("id_mod_period_datefirst").value
-        const datelast = document.getElementById("id_mod_period_datelast").value
+        const period_tag = get_dict_value_by_key(mod_upload_dict, "period_tag", "tweek");
+        let upload_dict = {
+            page: "employee",
+            period_employee: {page: "employee",
+                              period_tag: period_tag
+            },
 
-// ---  upload new selected_btn
-        period_dict = {"datefirst": datefirst, "datelast": datelast};
-        let upload_dict = {"planning_period": period_dict};
-        UploadSettings (upload_dict, url_settings_upload);
-        UpdateHeaderPeriod();
+            customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
+            order_pk: (!!selected_order_pk) ? selected_order_pk : null,
+            employee_pk: (!!selected_employee_pk) ? selected_employee_pk : null
+        };
+        // only save dates when tag = "other"
+        if(period_tag == "other"){
+            const datefirst = document.getElementById("id_mod_period_datefirst").value
+            const datelast = document.getElementById("id_mod_period_datelast").value
+            if (!!datefirst) {upload_dict.period_employee["rosterdatefirst"] = datefirst};
+            if (!!datelast) {upload_dict.period_employee["rosterdatelast"] = datelast};
+        }
 
-        upload_dict = {"datefirst": datefirst, "datelast": datelast};
-        if(!!selected_employee_pk){upload_dict["employee_id"] = selected_employee_pk};
-        let datalist_request = {"employee_planning": upload_dict};
+        // send 'now' as array to server, so 'now' of local computer will be used
+        const now = new Date();
+        console.log ("now: ", now)
+        const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()];
+        console.log ("now_arr: ", now_arr)
+        console.log ("upload_dict: ", upload_dict)
+        upload_dict.period_employee["now"] = now_arr;
+
+// ---  upload new setting
+        // settings are saved in function customer_planning, function 'period_get_and_save'
+        const header_period = UpdateHeaderPeriod();
+        document.getElementById("id_hdr_period").innerText = header_period;
+
+        let datalist_request = {employee_planning: upload_dict};
+        console.log("datalist_request: ", datalist_request) ;
+
         DatalistDownload(datalist_request);
-    }  // ModPeriodSave
 
+        $("#id_mod_period").modal("hide");
+    }
 
 //=========  CreateTblModSelectPeriod  ================ PR2019-11-16
     function CreateTblModSelectPeriod() {
         // console.log("===  CreateTblModSelectPeriod == ");
-        // console.log(period_dict);
+        // console.log(selected_period);
         let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
 //+++ insert td's ino tblRow
         const len = loc.period_select_list.length
@@ -2431,7 +2606,7 @@ console.log("calendar_header_dict", calendar_header_dict)
 //+++ insert tblRow ino tBody
             tblRow = tBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
     // --- add EventListener to tblRow.
-            tblRow.addEventListener("click", function() {ModPeriodSelect(tblRow, j);}, false )
+            tblRow.addEventListener("click", function() {ModPeriodSelectPeriod(tblRow, j);}, false )
     //- add hover to tableBody row
             tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
             tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
@@ -2442,6 +2617,43 @@ console.log("calendar_header_dict", calendar_header_dict)
         }
 
     } // CreateTblModSelectPeriod
+
+//=========  UpdateHeaderPeriod ================ PR2019-11-09
+    function UpdateHeaderPeriod() {
+        console.log( "===== UpdateHeaderPeriod  ========= ");
+        console.log( "selected_period: ", selected_period);
+
+        const datefirst_ISO = get_dict_value_by_key(selected_period, "rosterdatefirst");
+        const datelast_ISO = get_dict_value_by_key(selected_period, "rosterdatelast");
+        const period_tag = get_dict_value_by_key(selected_period, "period_tag");
+        console.log( "period_tag: ", period_tag);
+        console.log( "datefirst_ISO: ", datefirst_ISO);
+        console.log( "datelast_ISO: ", datelast_ISO);
+        let period_txt = "";
+        if (period_tag === "other"){
+            period_txt = loc.Period + ": "
+        } else {
+            for (let i = 0, len = loc.period_select_list.length; i < len; i++) {
+                if(loc.period_select_list[i][0] === period_tag ){
+                    period_txt = loc.period_select_list[i][1] + ": "
+                    break;
+                }
+            }
+        }
+        console.log( "========== period_txt: ", period_txt);
+        period_txt += format_period(datefirst_ISO, datelast_ISO, loc.months_abbrev, loc.weekdays_abbrev, user_lang)
+
+        console.log( "+++++++++++++++ period_txt: ", period_txt);
+        let header_text = "";
+        if (!!period_txt) {
+            header_text = period_txt;
+        } else {
+            header_text = loc.Select_period + "...";
+        }
+        console.log( "+++++++++++++++ header_text: ", header_text);
+        return header_text;
+    }  // UpdateHeaderPeriod
+
 
 
 // +++++++++++++++++ MODAL CONFIRM ++++++++++++++++++++++++++++++++++++++++++
@@ -2535,13 +2747,21 @@ console.log("calendar_header_dict", calendar_header_dict)
 //=========  ModEmployeeOpen  ================ PR2019-11-06
     function ModEmployeeOpen(el_input) {
         console.log(" -----  ModEmployeeOpen   ----")
+        console.log(el_input)
         // mod_upload_dict contains info of selected row and employee.
         let tblRow = get_tablerow_selected(el_input);
+        const id_dict = get_iddict_from_element(tblRow);
         const row_id_str = get_attr_from_el_str(tblRow, "id")
-        mod_upload_dict = {row_id: row_id_str};
 
-// get current employee_pk from el_input (does not exist in addnew row)
-        const fieldname = get_attr_from_el(el_input, "data-field")
+        const mode = get_attr_from_el_str(tblRow, "data-mode");
+        if(mode ==="absence"){id_dict["isabsence"] = true};
+
+        const tblName = get_attr_from_el(tblRow, "data-table");
+        const fieldname = get_attr_from_el(el_input, "data-field");
+        mod_upload_dict = {id: id_dict, row_id: row_id_str, field: fieldname, table: tblName};
+        console.log("mod_upload_dict: " + mod_upload_dict.toString())
+
+// get current employee_pk from el_input (does not exist in addnew row), ge te,mployee info from employee_map
         const employee_pk = get_attr_from_el_str(el_input, "data-pk");
         const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, fieldname, employee_pk)
         const employee_code = get_subdict_value_by_key(employee_dict, "code", "value");
@@ -2557,7 +2777,9 @@ console.log("calendar_header_dict", calendar_header_dict)
             el_div_remove.classList.remove(cls_hide)
         } else {
 // ---  or header "select employee'
-            el_header.innerText = get_attr_from_el(el_data, "data-txt_employee_select") + ":";
+            const header_text = (fieldname === "replacement") ? loc.Select_replacement_employee : loc.Select_employee;
+
+            el_header.innerText = header_text + ":";
             el_div_remove.classList.add(cls_hide)
         }
 
@@ -2591,7 +2813,7 @@ console.log("calendar_header_dict", calendar_header_dict)
 
 //=========  ModEmployeeSelect  ================ PR2019-05-24
     function ModEmployeeSelect(tblRow) {
-        console.log( "===== ModEmployeeSelect ========= ");
+        //console.log( "===== ModEmployeeSelect ========= ");
 
 // ---  deselect all highlighted rows
         DeselectHighlightedRows(tblRow, cls_selected)
@@ -2610,19 +2832,19 @@ console.log("calendar_header_dict", calendar_header_dict)
 // put code_value in el_input_employee
                 document.getElementById("id_mod_employee_input_employee").value = code_value
 // save selected employee
-                ModEmployeeSave();
+                ModEmployeeSave("save");
             }  // if (!isEmpty(map_dict)){
         }  // if(!!tblRow) {
     }  // ModEmployeeSelect
 
 //=========  ModEmployeeFilterEmployee  ================ PR2019-11-06
     function ModEmployeeFilterEmployee(option, event_key) {
-        console.log( "===== ModEmployeeFilterEmployee  ========= ", option);
+        //console.log( "===== ModEmployeeFilterEmployee  ========= ", option);
 
         let el_input = document.getElementById("id_mod_employee_input_employee")
 // save when clicked 'Enter', TODO only if quicksave === true
         if(event_key === "Enter" && get_attr_from_el_str(el_input, "data-quicksave") === "true") {
-            ModEmployeeSave();
+            ModEmployeeSave("save");
         } else {
             el_input.removeAttribute("data-quicksave")
         }
@@ -2709,38 +2931,67 @@ console.log("calendar_header_dict", calendar_header_dict)
 
 //=========  ModEmployeeSave  ================ PR2019-11-06
     function ModEmployeeSave(option) {
-        //console.log("========= ModEmployeeSave ===" );
+        console.log("========= ModEmployeeSave ===" );
+        console.log("mod_upload_dict: ", mod_upload_dict );
 
-        if (selected_btn ==="absence"){
-            const row_id_str = get_dict_value_by_key(mod_upload_dict, "row_id")
-            let tblRow = document.getElementById(row_id_str)
-            if(!!tblRow){
-                let el_input = tblRow.cells[0].children[0];
-                if(!!el_input){
-                    const dict = get_dict_value_by_key(mod_upload_dict, "employee")
-                    el_input.setAttribute("data-pk", get_dict_value_by_key(dict, "pk"))
-                    el_input.setAttribute("data-ppk", get_dict_value_by_key(dict, "ppk"))
-                    const employee_code =  get_subdict_value_by_key(dict, "code", "value");
-                    el_input.setAttribute("data-value", employee_code)
-                    el_input.value = employee_code
-                    UploadTeammemberChanges(el_input);
+        const tblName = get_dict_value_by_key(mod_upload_dict, "table");
+        const fieldname = get_dict_value_by_key(mod_upload_dict, "field");
+        const row_id_str = get_dict_value_by_key(mod_upload_dict, "row_id");
+        const id_dict = get_dict_value_by_key(mod_upload_dict, "id");
+
+        // replacement employee is also stored in  mod_upload_dict.employee
+        const dict = get_dict_value_by_key(mod_upload_dict, "employee")
+        console.log("fieldname: ", fieldname );
+
+        let tblRow = document.getElementById(row_id_str)
+        console.log("tblRow: ", tblRow );
+        if(!!tblRow){
+            // --- lookup input field with name: fieldname
+                    // PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
+                    // CSS.escape not supported by IE, Chrome and Safari,
+                    // CSS.escape is not necessary, there are no special characters in fieldname
+            let el_input = tblRow.querySelector("[data-field=" + fieldname + "]");
+            if(!!el_input){
+                if(tblName === "teammember"){
+                    if (fieldname ==="employee"){
+                        el_input.setAttribute("data-pk", get_dict_value_by_key(dict, "pk"))
+                        el_input.setAttribute("data-ppk", get_dict_value_by_key(dict, "ppk"))
+                        const employee_code =  get_subdict_value_by_key(dict, "code", "value");
+                        el_input.setAttribute("data-value", employee_code)
+                        el_input.value = employee_code
+                        UploadTeammemberChanges(el_input);
+
+                    } else if (fieldname ==="replacement"){
+                        const pk_int = get_dict_value_by_key(dict, "pk")
+                        const ppk_int = get_dict_value_by_key(dict, "ppk")
+                        const code_value = get_subdict_value_by_key(dict, "code", "value")
+                        el_input.setAttribute("data-pk", get_dict_value_by_key(dict, "pk"))
+                        el_input.setAttribute("data-ppk", get_dict_value_by_key(dict, "ppk"))
+                        const employee_code =  get_subdict_value_by_key(dict, "code", "value");
+                        el_input.setAttribute("data-value", employee_code)
+                        el_input.value = employee_code
+                        const replacement_dict = {pk: pk_int, ppk: ppk_int, code: code_value, update: true}
+                        let upload_dict = {id: id_dict, replacement: replacement_dict }
+                        console.log("upload_dict", upload_dict)
+                        UploadChanges(upload_dict, url_teammember_upload);
+                    }
+                } else {
+
+                    // store employee_pk in addnewRow, upload when absence cat is also entered
+                    let upload_dict = {"id": mod_upload_dict["id"]};
+                    if (option ==="remove"){
+            // remove current employee from teammemember, is removed when {employee: {update: true} without pk
+                        upload_dict["employee"] = {"update": true}
+                    } else {
+                        const employee_dict = mod_upload_dict["employee"]
+                        //console.log("employee_dict: ", employee_dict );
+                        upload_dict["employee"] = {"pk": employee_dict["id"]["pk"], "ppk": employee_dict["id"]["ppk"], "update": true}
+                    }
+
+                    UploadChanges(upload_dict, url_teammember_upload);
                 }
-            }
-        } else {
-
-            // store employee_pk in addnewRow, upload when absence cat is also entered
-            let upload_dict = {"id": mod_upload_dict["id"]};
-            if (option ==="remove"){
-    // remove current employee from teammemember, is removed when {employee: {update: true} without pk
-                upload_dict["employee"] = {"update": true}
-            } else {
-                const employee_dict = mod_upload_dict["employee"]
-                //console.log("employee_dict: ", employee_dict );
-                upload_dict["employee"] = {"pk": employee_dict["id"]["pk"], "ppk": employee_dict["id"]["ppk"], "update": true}
-            }
-
-            UploadChanges(upload_dict, url_teammember_upload);
-        }
+            }  // if(!!el_input)
+        }  // if(!!tblRow)
 // ---  hide modal
     $("#id_mod_employee").modal("hide");
     } // ModEmployeeSave
@@ -2795,7 +3046,7 @@ console.log("calendar_header_dict", calendar_header_dict)
          //console.log( "=== ModEmployeeFillSelectTableEmployee ");
 
         const caption_one = get_attr_from_el(el_data, "data-txt_employee_select") + ":";
-        const caption_none = get_attr_from_el(el_data, "data-txt_employee_select_none") + ":";
+        const caption_none = loc.No_employees + ":";
 
         let tblBody = document.getElementById("id_mod_employee_tblbody");
         tblBody.innerText = null;
@@ -2847,6 +3098,7 @@ console.log("calendar_header_dict", calendar_header_dict)
 //=========  MSO_open  ================ PR2019-10-28
     function MSO_open(el_input) {
         console.log(" -----  MSO_open   ----")
+        console.log(el_input)
 
         mod_upload_dict = {};
         //return false;
@@ -2861,6 +3113,7 @@ console.log("calendar_header_dict", calendar_header_dict)
         let offset_start = null, offset_end = null, break_duration = null, time_duration = null;
 
         let tr_selected = get_tablerow_selected(el_input)
+        console.log("tr_selected", tr_selected)
 
 // ---  get rosterdate and weekday from date_cell
         let tblCell = el_input.parentNode;
@@ -2982,7 +3235,7 @@ console.log("calendar_header_dict", calendar_header_dict)
         document.getElementById("id_modshift_btn_absenceshift").disabled = (!!map_id && !order_isabsence);
 
         // calendar_datefirst/last is used to create a new employee_calendar_list
-        // calendar_header_dict + {datefirst: "2019-12-09", datelast: "2019-12-15", employee_id: 1456}
+        // calendar_header_dict + {datefirst: "2019-12-09", datelast: "2019-12-15", employee_pk: 1456}
         const calendar_datefirst = get_dict_value_by_key(calendar_header_dict, "datefirst");
         const calendar_datelast = get_dict_value_by_key(calendar_header_dict, "datelast");
 
@@ -3035,7 +3288,7 @@ console.log("calendar_header_dict", calendar_header_dict)
 // ---  put employee name in header
         let el_header_employee = document.getElementById("id_modshift_header")
         let el_header_order = document.getElementById("id_modshift_order")
-        let employee_text = get_attr_from_el(el_data, "data-txt_employee_select") + "...";
+        let employee_text = loc.Select_employee + "...";
         if(!!employee_code) {employee_text = employee_code}
         el_header_employee.innerText = employee_text;
 
@@ -3306,6 +3559,7 @@ console.log("calendar_header_dict", calendar_header_dict)
 
 //========= ModShiftFillSelectTableOrder  ============= PR2019-11-23
     function ModShiftFillSelectTableOrder() {
+/*
         //console.log( "=== ModShiftFillSelectTableOrder ");
         const caption_one = loc.Select_order + ":";
 
@@ -3362,7 +3616,7 @@ console.log("calendar_header_dict", calendar_header_dict)
             }  // if (data_map.size === 0)
 
         });  // mode_list.forEach(function (mode, index)
-
+*/
     } // ModShiftFillSelectTableOrder
 
 //========= ModShiftSelectOrderRowClicked  ============= PR2019-12-06
@@ -3833,6 +4087,7 @@ console.log("calendar_header_dict", calendar_header_dict)
 
         // reset icon of filter select table
         // debug: dont use el.firstChild, it also returns text and comment nodes, can give error
+        let el_sel_inactive = document.getElementById("id_filter_select_btn")
         el_sel_inactive.children[0].setAttribute("src", imgsrc_inactive_lightgrey);
 
         FilterSelectRows(tblBody_select, filter_select)
@@ -3927,7 +4182,7 @@ console.log("calendar_header_dict", calendar_header_dict)
             // console.log( "is_new_row", is_new_row, typeof is_new_row);
             if(!is_new_row){
 
-// 2. hide other employees when selected_employee_pk has value
+// 2. hide other employees when selected_employee_pk has value, but not when employee is replacement
                 // only in table absence, shift, planning
                 const tblName = get_attr_from_el(tblRow, "data-table");
                 //console.log( "tblName", tblName, typeof tblName);
@@ -4004,5 +4259,3 @@ console.log("calendar_header_dict", calendar_header_dict)
 //##################################################################################
 
 }); //$(document).ready(function()
-// with pure vanilla Javascript. Was jQuery: $(function() {
-document.addEventListener

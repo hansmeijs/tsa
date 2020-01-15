@@ -14,23 +14,33 @@
                 </div>
 
                 <div  id="id_mod_period_body" class="modal-body">
-                    <div id="id_modperiod_div_selectcustomer " class="mx-2 my-2 display_hideXX">
-                        <h5 class="mx-2 my-1">{% trans 'Select customer' %}:</h5>
-                        <select id="id_modperiod_selectcustomer"
-                               autocomplete="off"
-                               ondragstart="return false;"
-                               ondrop="return false;"
-                               class="form-control">
-                        </select>
-                    </div>
-                    <div id="id_modperiod_div_selectorder" class="mx-2 my-4 display_hideXX">
-                        <h5 class="mx-2 my-1">{% trans 'Select order' %}:</h5>
-                        <select id="id_modperiod_selectorder"
-                               autocomplete="off"
-                               ondragstart="return false;"
-                               ondrop="return false;"
-                               class="form-control">
-                        </select>
+
+                    <div class="modal_container">
+                        <div class="modal_body_left">
+
+                            <div id="id_modperiod_div_selectcustomer" class="mx-2 my-2">
+                                <h5 class="mx-2 my-1">{% trans 'Select customer' %}:</h5>
+                                <select id="id_modperiod_selectcustomer"
+                                       autocomplete="off"
+                                       ondragstart="return false;"
+                                       ondrop="return false;"
+                                       class="form-control">
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal_body_left">
+                            <div id="id_modperiod_div_selectorder" class="mx-2 my-2">
+                                <h5 class="mx-2 my-1">{% trans 'Select order' %}:</h5>
+                                <select id="id_modperiod_selectorder"
+                                       autocomplete="off"
+                                       ondragstart="return false;"
+                                       ondrop="return false;"
+                                       class="form-control">
+                                </select>
+                            </div>
+
+
+                        </div>
                     </div>
                     <div id="id_modperiod_div_selectperiod" class="mx-2 my-4 display_hideXX">
 

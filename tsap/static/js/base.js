@@ -592,7 +592,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return sunday_JS;
     }  // get_sunday_JS_from_DateJS_vanilla
 
-//========= get_thisweek_monday_sunday_dateobj new  ========== PR2019-12-05
+//========= get_thisweek_monday_sunday_dateobj ========== PR2019-12-05
     function get_thisweek_monday_sunday_dateobj() {
         const today_JS = new Date();
         let today_weekday = today_JS.getDay()
@@ -602,13 +602,11 @@ document.addEventListener('DOMContentLoaded', function() {
         return [monday_JS, sunday_JS];
     }  // get_thisweek_monday_sunday_dateobj
 
-//========= get_thismonday_iso new  ========== PR2019-11-15
+//========= get_thisweek_monday_sunday_iso new  ========== PR2019-11-15
     function get_thisweek_monday_sunday_iso() {
-        const today_JS = new Date();
-        let today_weekday = today_JS.getDay()
-        if (today_weekday === 0 ) {today_weekday = 7}// JS sunday = 0, iso sunday = 7
-        const monday_JS = addDaysJS(today_JS, + 1 - today_weekday)
-        const sunday_JS = addDaysJS(today_JS, + 7 - today_weekday)
+        const lst = get_thisweek_monday_sunday_dateobj();
+        const monday_JS = lst[0];
+        const sunday_JS = lst[1];
         // this one returns '2019-11-1' and doesn't work with date input
         //const monday_iso = [monday_JS.getFullYear(), 1 + monday_JS.getMonth(), monday_JS.getDate()].join("-");
         const monday_iso = get_yyyymmdd_from_ISOstring(monday_JS.toISOString())
@@ -616,7 +614,31 @@ document.addEventListener('DOMContentLoaded', function() {
         return [monday_iso, sunday_iso];
     }  // get_thisweek_monday_sunday_iso
 
-//========= get_thismonday_iso new  ========== PR2019-11-15
+
+
+//========= get_nextweek_monday_sunday_dateobj ========== PR2019-12-05
+    function get_nextweek_monday_sunday_dateobj() {
+        const today_JS = new Date();
+        let today_weekday = today_JS.getDay()
+        if (today_weekday === 0 ) {today_weekday = 7}// JS sunday = 0, iso sunday = 7
+        const nextweek_monday_JS = addDaysJS(today_JS, + 8 - today_weekday)
+        const nextweek_sunday_JS = addDaysJS(today_JS, + 14 - today_weekday)
+        return [nextweek_monday_JS, nextweek_sunday_JS];
+    }  // get_nextweek_monday_sunday_dateobj
+
+//========= get_nextweek_monday_sunday_iso new  ========== PR2019-11-15
+    function get_nextweek_monday_sunday_iso() {
+        const lst = get_nextweek_monday_sunday_dateobj();
+        const nextweek_monday_JS = lst[0];
+        const nextweek_sunday_JS = lst[1];
+        // this one returns '2019-11-1' and doesn't work with date input
+        //const monday_iso = [monday_JS.getFullYear(), 1 + monday_JS.getMonth(), monday_JS.getDate()].join("-");
+        const nextweek_monday_iso = get_yyyymmdd_from_ISOstring(nextweek_monday_JS.toISOString())
+        const nextweek_sunday_iso = get_yyyymmdd_from_ISOstring(nextweek_sunday_JS.toISOString())
+        return [nextweek_monday_iso, nextweek_sunday_iso];
+    }  // get_nextweek_monday_sunday_iso
+
+//========= get_thismonth_first_last_iso  ========== PR2019-11-15
     function get_thismonth_first_last_iso() {
         const today_JS = new Date(), y = today_JS.getFullYear(), m = today_JS.getMonth();
         const firstday_JS = new Date(y, m, 1);
@@ -627,6 +649,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const lastday_iso = get_yyyymmdd_from_ISOstring(lastday_JS.toISOString())
         return [firstday_iso, lastday_iso];
     }  // get_thisweek_monday_sunday_iso
+
+//========= get_nextmonth_first_last_iso  ========== PR2020-001-10
+    function get_nextmonth_first_last_iso() {
+        const today_JS = new Date(), y = today_JS.getFullYear(), m = today_JS.getMonth();
+        const nextmonth_firstday_JS = new Date(y, m + 1, 1);
+        const nextmonth_lastday_JS = new Date(y, m + 2, 0);
+        // this one returns '2019-11-1' and doesn't work with date input
+        //const firstday_iso = [firstday_JS.getFullYear(), 1 + firstday_JS.getMonth(), firstday_JS.getDate()].join("-");
+        const nextmonth_firstday_iso = get_yyyymmdd_from_ISOstring(nextmonth_firstday_JS.toISOString())
+        const nextmonth_lastday_iso = get_yyyymmdd_from_ISOstring(nextmonth_lastday_JS.toISOString())
+        return [nextmonth_firstday_iso, nextmonth_lastday_iso];
+    }  // get_nextweek_monday_sunday_iso
+
+
+
 
 //========= get_tomorrow_iso new  ========== PR2019-12=04
     function get_dateISO_from_dateJS_vanilla(date_JS) {
@@ -1001,6 +1038,53 @@ document.addEventListener('DOMContentLoaded', function() {
         return userOffset;
 
     }
+
+//========= get_number_from_input  ========== PR2020-01-12
+    function get_number_from_input(input_value, old_value, multiplier, min_value, max_value, loc) {
+        //console.log("--------- get_number_from_input ---------")
+        let output_value = null, value_int = 0, value_decimal = 0, is_not_valid = false, err_msg = null;
+        if(input_value === 0){
+            output_value = 0;
+        } else if(!!input_value){
+            // replace comma's with dots
+            const value_with_dot = input_value.replace(/\,/g,".");
+            const index_last_dot = value_with_dot.lastIndexOf(".")
+            // check if input has dots
+            if (index_last_dot === -1){
+                // if input has no dots: convert to integer
+                value_int = Number(value_with_dot);
+                is_not_valid = (!value_int && value_int !== 0)
+            } else {
+                // if input has dots: split into integer and decimal
+                const int_part = value_with_dot.slice(0, index_last_dot);
+                // replace other dots with '', convert to integer
+                value_int = Number(int_part.replace(/\./g,""));
+                is_not_valid = (!value_int && value_int !== 0);
+                if(!is_not_valid){
+                    // get decimal part
+                    const dec_part = value_with_dot.slice(index_last_dot + 1 );
+                    const value_after_dot = Number(dec_part);
+                    is_not_valid = (!value_after_dot && value_after_dot !== 0);
+                    if(!is_not_valid){
+                        // multiply by exp. length, i.e. convert '75' to '0.75'
+                        value_decimal = value_after_dot * (10 ** -dec_part.length);
+                    }
+                }
+            }
+            if(is_not_valid){
+                err_msg = "'" + ((input_value) ? input_value : "") + "' " + loc.err_msg_is_invalid_number;
+            } else {
+                // multiply to get minutes instead of hours or days
+                output_value = Math.round(multiplier * (value_int + value_decimal));
+                is_not_valid = (output_value < min_value || output_value > max_value) ;
+                if(is_not_valid){
+                    err_msg = loc.err_msg_number_between + " " + min_value / multiplier + " " + loc.err_msg_and + " " + max_value / multiplier + ".";
+                }
+            }
+        }
+
+        return [output_value, err_msg];
+    }  // get_number_from_input
 
 // NOT WORKING YET
 //========= addfunction removeItem to object prototype  ========== PR2019-09-15

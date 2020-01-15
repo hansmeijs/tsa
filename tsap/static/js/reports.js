@@ -20,16 +20,20 @@
 // ++++++++++++  PRINT ORDER PLANNING +++++++++++++++++++++++++++++++++++++++
     function PrintOrderPlanning(option, selected_period, planning_map, display_duration_total,
                         label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang) {
-        //console.log("PrintOrderPlanning")
+        console.log("PrintOrderPlanning")
         //console.log("month_list", month_list)
-        //console.log("weekday_list", weekday_list)
+        console.log("selected_period", selected_period)
+        console.log("label_list", label_list)
+        console.log("colhdr_list", colhdr_list)
 
         //console.log("selected_period", selected_period)
         const is_preview = (option === "preview");
         //const company = get_subdict_value_by_key(company_dict, "name", "value", "");
         const period_txt = get_period_formatted(selected_period, month_list, weekday_list, user_lang);
 
-        const datefirst_iso = get_dict_value_by_key(selected_period, "datefirst");
+        const datefirst_iso = get_dict_value_by_key(selected_period, "rosterdatefirst");
+        console.log("datefirst_iso", datefirst_iso)
+
         const datefirst_JS = get_dateJS_from_dateISO (datefirst_iso)
         let datefirst_weekday = datefirst_JS.getDay()
         if (datefirst_weekday === 0 ) {datefirst_weekday = 7}// JS sunday = 0, iso sunday = 7
@@ -37,7 +41,7 @@
         const startdateJS = addDaysJS(datefirst_JS, + 1 - datefirst_weekday)
         const startWeekIndex = startdateJS.getWeekYear() * 100 + startdateJS.getWeek();
 
-        const datelast_iso = get_dict_value_by_key(selected_period, "datelast");
+        const datelast_iso = get_dict_value_by_key(selected_period, "rosterdatelast");
         const datelast_JS = get_dateJS_from_dateISO (datelast_iso)
         let datelast_weekday = datelast_JS.getDay()
         if (datelast_weekday === 0 ) {datelast_weekday = 7}// JS sunday = 0, iso sunday = 7
@@ -166,13 +170,16 @@
             const employee_code_list = get_subdict_value_by_key(item_dict, "employee", "code", "");
             const rosterdate_formatted = format_date_iso (this_rosterdate_iso, month_list, weekday_list, false, false, user_lang);
 
-//console.log("shift_code: ", shift_code)
-//console.log("employee_code_list: ", employee_code_list)
-//console.log("rosterdate_formatted: ", rosterdate_formatted)
+console.log("............................item_dict: ", item_dict)
+console.log("shift_code: ", shift_code)
+console.log("employee_code_list: ", employee_code_list)
+console.log("rosterdate_formatted: ", rosterdate_formatted)
 
             let display_time = null;
-            const offset_start = get_subdict_value_by_key(item_dict, "timestart", "offset");
-            const offset_end = get_subdict_value_by_key(item_dict, "timeend", "offset");
+            const offset_start = get_dict_value_by_key(item_dict, "offsetstart");
+            const offset_end = get_dict_value_by_key(item_dict, "offsetend");
+console.log("offset_start: ", offset_start)
+console.log("offset_end: ", offset_end)
             if(!!offset_start || offset_end){
                 const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, true); // true = skip_prefix_suffix
                 const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, true); // true = skip_prefix_suffix
@@ -187,7 +194,9 @@
             // first item in shift_list contains overlap, is not printed
             shift_list.push(overlap);
             if(!!display_time) {shift_list.push(display_time)};
-//console.log("display_time: ", display_time)
+
+            console.log("................shift_code: ", shift_code)
+            console.log("................display_time: ", display_time)
 
             // shift_code can be the same as time, skip shift_code if that is the case
             if(!!shift_code && shift_code !== display_time) {shift_list.push(shift_code)}
@@ -235,14 +244,17 @@
 
     function PrintEmployeePlanning(option, selected_period, planning_map, company_dict,
                         label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang) {
-        //console.log("PrintEmployeePlanning")
+        console.log("PrintEmployeePlanning")
 
-        //console.log("selected_period", selected_period)
+        console.log("selected_period", selected_period)
+              console.log("label_list", label_list)
+        console.log("colhdr_list", colhdr_list)
+
         const is_preview = (option === "preview");
         const company = get_subdict_value_by_key(company_dict, "name", "value", "");
         const period_txt = get_period_formatted(selected_period, month_list, weekday_list, user_lang);
 
-        const datefirst_iso = get_dict_value_by_key(selected_period, "datefirst");
+        const datefirst_iso = get_dict_value_by_key(selected_period, "rosterdatefirst");
         const datefirst_JS = get_dateJS_from_dateISO (datefirst_iso)
         let datefirst_weekday = datefirst_JS.getDay()
         if (datefirst_weekday === 0 ) {datefirst_weekday = 7}// JS sunday = 0, iso sunday = 7
@@ -250,7 +262,7 @@
         const startdateJS = addDaysJS(datefirst_JS, + 1 - datefirst_weekday)
         const startWeekIndex = startdateJS.getWeekYear() * 100 + startdateJS.getWeek();
 
-        const datelast_iso = get_dict_value_by_key(selected_period, "datelast");
+        const datelast_iso = get_dict_value_by_key(selected_period, "rosterdatelast");
         const datelast_JS = get_dateJS_from_dateISO (datelast_iso)
         let datelast_weekday = datelast_JS.getDay()
         if (datelast_weekday === 0 ) {datelast_weekday = 7}// JS sunday = 0, iso sunday = 7
@@ -404,6 +416,8 @@ console.log("time_duration: ", time_duration)
             shift_list.push(overlap);
             if(!!display_time) {shift_list.push(display_time)};
             // shift_code can be the same as time, skip shift_code if that is the case
+            console.log("................shift_code: ", shift_code)
+            console.log("................display_time: ", display_time)
             if(!!shift_code && shift_code !== display_time) {shift_list.push(shift_code)}
 
             if(!!customer_code) { shift_list.push(customer_code)};
@@ -738,8 +752,8 @@ console.log("time_duration: ", time_duration)
         //console.log( "===== get_period_formatted  ========= ");
         let period_formatted = "";
         if(!isEmpty(period_dict)){
-            const datefirst_ISO = get_dict_value_by_key(period_dict, "datefirst");
-            const datelast_ISO = get_dict_value_by_key(period_dict, "datelast");
+            const datefirst_ISO = get_dict_value_by_key(period_dict, "rosterdatefirst");
+            const datelast_ISO = get_dict_value_by_key(period_dict, "rosterdatelast");
             period_formatted = format_period(datefirst_ISO, datelast_ISO, month_list, weekday_list, user_lang)
         }
         return period_formatted;

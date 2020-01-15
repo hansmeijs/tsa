@@ -5,7 +5,7 @@
 
 //=========  CreateCalendar  ================ PR2019-08-29
     function CreateCalendar(tblName, calendar_dict, calendar_map, ModShiftOpen, loc, timeformat, user_lang) {
-        //console.log("=========  CreateCalendar =========");
+        console.log("=========  CreateCalendar =========");
 
         const column_count = 8;
         const field_width = ["90", "120", "120", "120", "120", "120", "120", "120"]
@@ -101,11 +101,10 @@
 
 //=========  UpdateCalendar ================ PR2019-12-04
     function UpdateCalendar(tblName, calendar_dict, calendar_map, loc, timeformat, user_lang) {
-        //console.log( "===== UpdateCalendar  ========= ");
-        //console.log( calendar_dict);
+        console.log( "===== UpdateCalendar  ========= ");
 
         const column_count = 8;
-        const is_order_calendar = (get_dict_value_by_key(calendar_dict, "calendar_type") === "order_calendar")
+        const is_customer_calendar = (get_dict_value_by_key(calendar_dict, "calendar_type") === "customer_calendar")
 
 // --- get first and last date from calendar_dict, set today if no date in dict
         let datefirst_iso = get_dict_value_by_key(calendar_dict, "datefirst")
@@ -199,8 +198,10 @@
                     let prev_index_start = 24
                     for (let x = list_len -1; x >= 0; x--) {
                         let item_dict = dict_list[x]
+
+        console.log( "---------------item_dict: ", item_dict);
                         if(!isEmpty(item_dict)){
-                            //console.log( "------------- item_dict: ", item_dict);
+                            console.log( "------------- item_dict: ", item_dict);
 
                             let map_id = get_subdict_value_by_key(item_dict, "id", "pk")
                             const row_index_start = get_dict_value_by_key(item_dict, "row_index_start")
@@ -215,8 +216,9 @@
                                 let rosterdate_display = get_subdict_value_by_key(item_dict, "rosterdate", "display", "")
 
                                 let is_restshift = get_subdict_value_by_key(item_dict, "shift", "isrestshift", false)
-                                let is_absence = get_subdict_value_by_key(item_dict, "order", "isabsence", false)
+                                let is_absence = get_dict_value_by_key(item_dict, "isabsence", false)
 
+                            console.log( "------------- is_absence: ", is_absence);
 
                                 let offset_start = get_dict_value_by_key(item_dict, "offsetstart")
                                 let offset_end = get_dict_value_by_key(item_dict, "offsetend")
@@ -272,7 +274,7 @@
 
                                     if(!!shift_code && shift_code !== display_time) {display_text +=  shift_code + "\n"}
 
-                                    if(is_order_calendar){
+                                    if(is_customer_calendar){
                                         const employee_code_arr = get_subdict_value_by_key(item_dict, "employee", "code", [])
                                         const len =employee_code_arr.length;
                                         for (let i = 0; i < len; i++) {
@@ -518,25 +520,23 @@
 //=========  count_spanned_columns  ================ PR2019-12-25
 function count_spanned_columns (tr_selected, column_count, cell_weekday_index){
         //console.log( " ==== count_spanned_columns ====");
-        //console.log( "column_count: ", column_count);
-        //console.log( "cell_weekday_index: ", cell_weekday_index);
 // ---  count number of spanned columns till this column   [4, 1, 1, 0, 0, 1, 1, 0] (first column contains sum)
 // function is called by ModShiftOpen in employees.js and customer.js
         let spanned_column_sum = 0;
         let non_spanned_column_sum = 0
         const spanned_columns_str = tr_selected.getAttribute("data-spanned_columns")
-        const spanned_columns = spanned_columns_str.split(",");
-        //console.log( spanned_columns);
-
-        for (let i = 1; i < column_count; i++) {
-            const value = parseInt(spanned_columns[i])
-            if (!!value){
-                spanned_column_sum += 1
-            } else {
-                non_spanned_column_sum += 1;
-            }
-            if (non_spanned_column_sum >= cell_weekday_index){
-                break;
+        if(!!spanned_columns_str){
+            const spanned_columns = spanned_columns_str.split(",");
+            for (let i = 1; i < column_count; i++) {
+                const value = parseInt(spanned_columns[i])
+                if (!!value){
+                    spanned_column_sum += 1
+                } else {
+                    non_spanned_column_sum += 1;
+                }
+                if (non_spanned_column_sum >= cell_weekday_index){
+                    break;
+                }
             }
         }
         //console.log( "spanned_column_sum: ", spanned_column_sum);

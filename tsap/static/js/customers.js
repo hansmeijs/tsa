@@ -57,7 +57,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const title_billable =  get_attr_from_el(el_data, "data-title_billable");
         const title_notbillable =  get_attr_from_el(el_data, "data-title_notbillable");
 
-
 // ---  id of selected customer
         const id_sel_prefix = "sel_";
         let selected_customer_pk = 0;
@@ -81,7 +80,9 @@ let planning_list = [] // for export and printing - can replace map?
 
         let calendar_map = new Map();
         let planning_map = new Map();
-        let planning_duration_sum = 0; // stores total hours, calciulated whem creating planning_map
+// const for report
+        let label_list = [], pos_x_list = [], colhdr_list = [];
+        let planning_display_duration_total = ""; // stores total hours, calculated when creating planning_map
 
         let loc = {};  // locale_dict with translated text
 
@@ -232,14 +233,13 @@ let planning_list = [] // for export and printing - can replace map?
         document.getElementById("id_mod_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("delete")}, false);
 
 // ---  MOD PERIOD ------------------------------------
-
 // ---  header select period
         document.getElementById("id_hdr_period").addEventListener("click", function(){ModPeriodOpen()});
-
+// ---  select customer
         let el_modperiod_selectcustomer = document.getElementById("id_modperiod_selectcustomer")
             el_modperiod_selectcustomer.addEventListener("change", function() {
                         ModPeriodSelectCustomer(el_modperiod_selectcustomer.value)}, false )
-
+// ---  select order
         let el_modperiod_selectorder = document.getElementById("id_modperiod_selectorder")
             el_modperiod_selectorder.addEventListener("change", function() {
                         ModPeriodSelectOrder(el_modperiod_selectorder.value)}, false )
@@ -249,7 +249,7 @@ let planning_list = [] // for export and printing - can replace map?
         document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false )
 
 
-// ---  MOD confirm ------------------------------------
+// ---  MOD CONFIRM ------------------------------------
 // ---  save button in ModConfirm
         let el_confirm_btn_save = document.getElementById("id_confirm_btn_save");
             el_confirm_btn_save.addEventListener("click", function(){ModConfirmSave()});
@@ -297,8 +297,7 @@ let planning_list = [] // for export and printing - can replace map?
         const datalist_request = {
             setting: {page_customer: {mode: "get"},
                       selected_pk: {mode: "get"},
-                      period_customer
-                      : {mode: "get"}},
+                      period_customer: {mode: "get"}},
             quicksave: {mode: "get"},
             locale: {page: "customer"},
             company: {value: true},
@@ -318,7 +317,7 @@ let planning_list = [] // for export and printing - can replace map?
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request) {
         console.log( "=== DatalistDownload ")
-        console.log( datalist_request)
+        console.log(">>>>>>>>>>>>>>>>>>>datalist_request: ", datalist_request)
 
 // ---  show loader
         el_loader.classList.remove(cls_visible_hide)
@@ -339,10 +338,17 @@ let planning_list = [] // for export and printing - can replace map?
                     CreateTblHeaders();
                     CreateTblFooters();
                     CreateTblModSelectPeriod();
+
+                    label_list = [loc.Total_hours, loc.Customer + " - " + loc.Order, loc.Planning + " " + loc.of, loc.Print_date];
+                    pos_x_list = [6, 65, 105, 130, 155, 185];
+                    colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
+
                 }
-                if ("period" in response) {
-                    selected_period= response["period"];
-                    document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
+
+                // setting_list must go after FillSelectTable() and before FillTableRows(); TODO check if this place is correct
+                // setting_list must come after locale_dict, where weekday_list is loaded
+                if ("setting_list" in response) {
+                    UpdateSettings(response["setting_list"])
                 }
 
                 if ("quicksave" in response) {
@@ -380,11 +386,13 @@ let planning_list = [] // for export and printing - can replace map?
             const tblName = "customer";
             const imgsrc_default = imgsrc_inactive_grey;
             const imgsrc_hover = imgsrc_inactive_black;
+            const title_header_btn = "Click to show or hide inactive customers";
             FillSelectTable(customer_map, tblName, selected_customer_pk, null,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row,  HandleSelectRowButton,
                 imgsrc_default, imgsrc_hover,
-                filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
+                imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
+                title_header_btn)
 
             FilterSelectRows();
 
@@ -404,13 +412,16 @@ let planning_list = [] // for export and printing - can replace map?
         if ("teammember_list" in response) {get_datamap(response["teammember_list"], teammember_map)}
         if ("schemeitem_list" in response) {get_datamap(response["schemeitem_list"], schemeitem_map)}
 
-        if ("customer_planning_list" in response) {
-            const duration_sum = get_datamap(response["customer_planning_list"], planning_map, true)
-            FillTableRows("planning");
+        if ("period" in response) {
+            selected_period = response["period"];
+            document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
+        }
 
-            const label_list = [loc.Total_hours, loc.Customer + " - " + loc.Order, loc.Planning + " " + loc.of, loc.Print_date];
-            const pos_x_list = [6, 65, 105, 130, 155, 185];
-            const colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
+        if ("customer_planning_list" in response) {
+            console.log("...................customer_planning_list: ", response)
+            const duration_sum = get_datamap(response["customer_planning_list"], planning_map, true)
+            planning_display_duration_total = display_duration (duration_sum, user_lang)
+            FillTableRows("planning");
 
             //const display_duration_sum = display_duration (duration_sum, user_lang)
             //PrintOrderPlanning("preview", selected_period, planning_map, display_duration_sum,
@@ -418,15 +429,12 @@ let planning_list = [] // for export and printing - can replace map?
             //           loc.months_abbrev, loc.weekdays_abbrev, user_lang);
         }
 
-        // setting_list must go after FillSelectTable() and before FillTableRows();
-        // setting_list must come after locale_dict, where weekday_list is loaded
-        if ("setting_list" in response) { UpdateSettings(response["setting_list"])}
 
-        // calendar_header_dict goes before order_calendar_list
+        // calendar_header_dict goes before customer_calendar_list
         if ("calendar_header_dict" in response) {calendar_header_dict = response["calendar_header_dict"]}
 
-        if ("order_calendar_list" in response) {
-            get_datamap(response["order_calendar_list"], calendar_map)
+        if ("customer_calendar_list" in response) {
+            get_datamap(response["customer_calendar_list"], calendar_map)
             CreateCalendar("order", calendar_header_dict, calendar_map, MSO_Open, loc, timeformat, user_lang);
         };
     }  // refresh_maps
@@ -551,12 +559,14 @@ let planning_list = [] // for export and printing - can replace map?
                 const tblName = "customer";
                 const imgsrc_default = imgsrc_inactive_grey;
                 const imgsrc_hover = imgsrc_inactive_black;
+            const title_header_btn = "Click to show or hide inactive customers";
 
                 FillSelectTable(customer_map, tblName, selected_customer_pk, null,
                     HandleSelect_Filter, HandleFilterInactive,
                     HandleSelect_Row, HandleSelectRowButton,
                     imgsrc_default, imgsrc_hover,
-                    filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
+                    imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
+                    title_header_btn)
             }
 
 // ---  show / hide selected table
@@ -605,103 +615,94 @@ let planning_list = [] // for export and printing - can replace map?
             // function 'get_mapdict_from_tblRow.....' returns empty dict if map or key not exist.
             const map_dict = get_mapdict_from_tblRow(sel_tr_clicked)
 
-            //console.log( "tblName: ", tblName);
-            //console.log( "map_id: ", map_id);
-            //console.log( "map_dict: ", map_dict);
-
-            if (!isEmpty(map_dict)){
-
 // ---  update selected_customer_pk
-                let sel_cust_code = "";
-                let sel_order_code = "";
-                let sel_cust_ppk = null
-                if (tblName === "customer"){
-                    selected_customer_pk = get_subdict_value_by_key(map_dict, "id", "pk", 0);
-                    sel_cust_ppk = get_subdict_value_by_key(map_dict, "id", "ppk");
-                    sel_cust_code = get_subdict_value_by_key(map_dict, "code", "value");
-
+            let sel_cust_code = "";
+            let sel_order_code = "";
+            let sel_cust_ppk = null
+            if (tblName === "customer"){
+                selected_customer_pk = get_subdict_value_by_key(map_dict, "id", "pk", 0);
+                sel_cust_ppk = get_subdict_value_by_key(map_dict, "id", "ppk");
+                sel_cust_code = get_subdict_value_by_key(map_dict, "code", "value");
 // --- deselect selected_order_pk when selected customer changes
-                    selected_order_pk = 0
-                } else{
-                    selected_customer_pk = get_subdict_value_by_key(map_dict, "id", "ppk", 0);
-                    selected_order_pk = get_subdict_value_by_key(map_dict, "id", "pk", 0);
+                selected_order_pk = 0
+            } else{
+                selected_customer_pk = get_subdict_value_by_key(map_dict, "id", "ppk", 0);
+                selected_order_pk = get_subdict_value_by_key(map_dict, "id", "pk", 0);
 
-                    sel_cust_code = get_subdict_value_by_key(map_dict, "customer", "code");
-                    sel_order_code = get_subdict_value_by_key(map_dict, "code", "value");
-                }
-                //console.log( "sel_cust_code: ", sel_cust_code);
-                //console.log( "sel_order_code: ", sel_order_code);
-                const datalist_request = {
-                    scheme: {istemplate: false, inactive: null, issingleshift: null},
-                    schemeitem: {customer_pk: selected_customer_pk,
-                                 order_pk: selected_order_pk}, // , issingleshift: false},
-                    shift: {istemplate: false},
-                    team: {istemplate: false},
-                    teammember: {customer_pk: selected_customer_pk,
-                                 order_pk: selected_order_pk},
-                    employee: {inactive: null}
-                    };
-                DatalistDownload(datalist_request);
+                sel_cust_code = get_subdict_value_by_key(map_dict, "customer", "code");
+                sel_order_code = get_subdict_value_by_key(map_dict, "code", "value");
+            }
 
+ // ---  highlight clicked row in select table
+            // DeselectHighlightedRows(sel_tr_clicked, cls_bc_yellow, cls_bc_lightlightgrey);
+            // yelllow won/t show if you dont first remove background color
+            // sel_tr_clicked.classList.remove(cls_bc_lightlightgrey)
+            // sel_tr_clicked.classList.add(cls_bc_yellow)
 
-// --- save selected_customer_pk in Usersettings
-                const upload_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
-                UploadSettings (upload_dict, url_settings_upload);
-
-// ---  highlight clicked row in select table
-                //DeselectHighlightedRows(sel_tr_clicked, cls_bc_yellow, cls_bc_lightlightgrey);
-                // yelllow won/t show if you dont first remove background color
-                //sel_tr_clicked.classList.remove(cls_bc_lightlightgrey)
-                //sel_tr_clicked.classList.add(cls_bc_yellow)
-                 // ChangeBackgroundRows(tableBody, new_background, keep_old_hightlighted, tr_selected, sel_background)
-                ChangeBackgroundRows(tblBody_select, cls_bc_lightlightgrey, false, sel_tr_clicked, cls_bc_yellow);
+             // ChangeBackgroundRows(tableBody, new_background, keep_old_hightlighted, tr_selected, sel_background)
+            ChangeBackgroundRows(tblBody_select, cls_bc_lightlightgrey, false, sel_tr_clicked, cls_bc_yellow);
 
 // ---  update header text
-                UpdateHeaderText()
+            UpdateHeaderText()
+
+// --- save selected_customer_pk and selected_order_pk in Usersettings
+            // TODO check which one is correct
+            const datalist_request = {
+                scheme: {istemplate: false, inactive: null, issingleshift: null},
+                schemeitem: {customer_pk: selected_customer_pk,
+                             order_pk: selected_order_pk}, // , issingleshift: false},
+                shift: {istemplate: false},
+                team: {istemplate: false},
+                teammember: {customer_pk: selected_customer_pk,
+                             order_pk: selected_order_pk},
+                employee: {inactive: null}
+                };
+            DatalistDownload(datalist_request);
+
+// --- save selected_customer_pk in Usersettings
+            const upload_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
+            UploadSettings (upload_dict, url_settings_upload);
 
 // ---  update customer form
-                // btns are: 'customer', 'order', 'planning', 'customer_form'
-                if(selected_btn === "customer_form"){
-                    UpdateForm()
+            // btns are: 'customer', 'order', 'planning', 'customer_form'
+            if(selected_btn === "customer_form"){
+                UpdateForm()
 
 // ---  enable delete button
-                    document.getElementById("id_form_btn_delete").disabled = (!selected_customer_pk)
-                } else {
-                    let tblBody = document.getElementById("id_tbody_" + selected_btn);
-                    if(!!tblBody){
+                document.getElementById("id_form_btn_delete").disabled = (!selected_customer_pk)
+            } else {
+                let tblBody = document.getElementById("id_tbody_" + selected_btn);
+                if(!!tblBody){
 
 // ---  highlight row in tblBody
-                       if(selected_btn === "customer"){
+                   if(selected_btn === "customer"){
 
-                           let tblRow = HighlightSelectedTblRowByPk(tblBody, selected_customer_pk)
+                       let tblRow = HighlightSelectedTblRowByPk(tblBody, selected_customer_pk)
 // ---  scrollIntoView, only in tblBody customer
-                            if (!!tblRow){
-                                tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
-                            };
-                        } else if(selected_btn === "order"){
+                        if (!!tblRow){
+                            tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
+                        };
+                    } else if(selected_btn === "order"){
 
 // ---  filter tablerows in table 'order', 'planning',
-                            if(!!tblBody){
-                                FilterTableRows(tblBody)
-                            }
-
+                        if(!!tblBody){
+                            FilterTableRows(tblBody)
+                        }
 
 // ---  update addnew row: put pk and ppk of selected customer in addnew row of tbody_order
-                            UpdateAddnewRow(selected_customer_pk, sel_cust_ppk, sel_cust_code)
+                        UpdateAddnewRow(selected_customer_pk, sel_cust_ppk, sel_cust_code)
 
-// ---  get order_calendar
-                        } else  if(selected_btn === "calendar"){
-                            //console.log("selected_btn === calendar")
-                            DatalistDownload({"order_calendar":
-                                                {"datefirst": calendar_header_dict["datefirst"],
-                                                "datelast": calendar_header_dict["datelast"],
-                                                "order_id": selected_order_pk}});
-                        }  // if(selected_btn === "customer")
-                    }  // if(!!tblBody)
-                };  // if(selected_btn === "customer_form")
+// ---  get customer_calendar
+                    } else  if(selected_btn === "calendar"){
+                        //console.log("selected_btn === calendar")
+                        DatalistDownload({"customer_calendar":
+                                            {"datefirst": calendar_header_dict["datefirst"],
+                                            "datelast": calendar_header_dict["datelast"],
+                                            "order_id": selected_order_pk}});
+                    }  // if(selected_btn === "customer")
+                }  // if(!!tblBody)
+            };  // if(selected_btn === "customer_form")
 
-
-            }  //  if (!isEmpty(map_dict))
         }  // if(!!sel_tr_clicked)
 
 // ---  enable add button, also when no customer selected
@@ -768,15 +769,17 @@ let planning_list = [] // for export and printing - can replace map?
         }  // if(!!el_changed){
     };  // HandleBillableClicked
 
+//========= HandleSelectRowButton  ============= PR2019-09-23
     function HandleSelectRowButton(el_input) {
         HandleBtnInactiveDeleteClicked("inactive", el_input);
     }
+//========= HandleBtnDeleteClicked  ============= PR2019-09-23
     function HandleBtnDeleteClicked(el_input) {
         HandleBtnInactiveDeleteClicked("delete", el_input);
     }
 //========= HandleBtnInactiveDeleteClicked  ============= PR2019-09-23
     function HandleBtnInactiveDeleteClicked(mode, el_input) {
-        //console.log( " ==== HandleBtnInactiveDeleteClicked ====");
+        console.log( " ==== HandleBtnInactiveDeleteClicked ====");
         //console.log(el_input);
 
         let tblRow = get_tablerow_selected(el_input)
@@ -862,7 +865,7 @@ let planning_list = [] // for export and printing - can replace map?
         const upload_dict = {"calendar": calendar_header_dict};
         UploadSettings (upload_dict, url_settings_upload);
 
-        let datalist_request = {"order_calendar":
+        let datalist_request = {"customer_calendar":
                     {"datefirst": calendar_datefirst_iso,
                      "datelast": calendar_datelast_iso,
                      "order_id": selected_order_pk}};
@@ -871,8 +874,7 @@ let planning_list = [] // for export and printing - can replace map?
         DatalistDownload(datalist_request);
 
     }  // HandleBtnCalendar
-
-
+``
 //###########################################################################
 // +++++++++++++++++ CREATE +++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  CreateSubmenu  === PR2019-07-30
@@ -892,14 +894,13 @@ let planning_list = [] // for export and printing - can replace map?
         //AddSubmenuButton(el_div, el_data, "id_submenu_employee_delete", function() {ModConfirmOpen("delete")}, "data-txt_employee_delete", "mx-2")
 
         a_innerText = get_attr_from_el_str(el_data, "data-txt_planning_preview");
-        const display_duration_total = display_duration (planning_duration_sum, user_lang)
         const label_list = [loc.Total_hours, loc.Customer + " - " + loc.Order, loc.Planning + " " + loc.of, loc.Print_date];
         const pos_x_list = [6, 65, 105, 130, 155, 185];
         const colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
 
         AddSubmenuButton( el_div, a_innerText,  "id_submenu_customer_planning_print",
             function() {
-            PrintOrderPlanning("preview", selected_period, planning_map, display_duration_total,
+            PrintOrderPlanning("preview", selected_period, planning_map, planning_display_duration_total,
                     label_list, pos_x_list, colhdr_list, timeformat, loc.months_abbrev, loc.weekdays_abbrev, user_lang
                     )
             },
@@ -928,8 +929,6 @@ let planning_list = [] // for export and printing - can replace map?
 
         // selected_btns are: customer, order, planning, calendar, customer_form
         if (selected_btn === "customer_form") { tblName = "customer"};
-        //console.log( "tblName: ", tblName);
-        //console.log( "selected_parent_pk: ", selected_parent_pk);
 
 // --- reset tblBody
         // id_tbody_teammember is on modeordershift.html
@@ -951,7 +950,6 @@ let planning_list = [] // for export and printing - can replace map?
             UpdateForm()
         } else {
             if(!!data_map){
-
 // --- loop through data_map
                 for (const [map_id, item_dict] of data_map.entries()) {
                     const id_dict = get_dict_value_by_key(item_dict, "id");
@@ -959,7 +957,6 @@ let planning_list = [] // for export and printing - can replace map?
                         const pk_int = get_dict_value_by_key(id_dict, "pk");
                         const ppk_int = get_dict_value_by_key(id_dict, "ppk");
 
-        //console.log( "id_dict: ", id_dict);
                     // in table order: show only rows of selected_customer_pk, show all if null
                     let add_Row = false;
                     let row_customer_pk = null;
@@ -979,19 +976,18 @@ let planning_list = [] // for export and printing - can replace map?
                     if(add_Row) {
                         // parameters: tblName, pk_str, ppk_str, is_addnew, row_customer_pk
                         // row_customer_pk not in use in teammember tbl
-                        let tblRow = CreateTblRow("tbody", row_tblName, pk_int, ppk_int, false, row_customer_pk)
+
+// --- insert tblRow ino tblBody or tFoot
+                        let tblRow = CreateTblRow(tblBody, row_tblName, pk_int, ppk_int, false, row_customer_pk)
                         UpdateTableRow(tblRow, item_dict)
 // --- highlight selected row
                         if (pk_int === selected_pk) {
                             tblRow.classList.add(cls_selected)
                         }
                     }  // if (add_Row)
-
                 }  //  for (const [pk_int, item_dict] of data_map.entries())
             }  // if(!!data_map){
-
         }  // if (form_mode)
-
     }  // FillTableRows
 
 //=========  CreateTblHeaders  === PR2019-11-09
@@ -1051,8 +1047,10 @@ let planning_list = [] // for export and printing - can replace map?
             let tblRow;
             // ppk_int = company_pk when customer, otherwise: ppk_int = selected_customer_pk
             const ppk_int = (tblName === "customer") ? get_subdict_value_by_key (company_dict, "id", "pk", 0) : selected_customer_pk
-            // CreateTblRow(prefix, tblName, pk_str, ppk_str, is_addnew, data_customer_pk)
-            tblRow = CreateTblRow("tfoot", tblName, pk_new, ppk_int, true, selected_customer_pk)
+
+// --- insert tblRow ino tblBody or tFoot
+            let tFoot = document.getElementById("id_tfoot_" + tblName);
+            tblRow = CreateTblRow(tFoot, tblName, pk_new, ppk_int, true, selected_customer_pk)
 
             let dict = {"id": {"pk": pk_new, "ppk": ppk_int, "temp_pk": pk_new, "table": tblName}};
 
@@ -1197,12 +1195,10 @@ let planning_list = [] // for export and printing - can replace map?
     };  //function CreateTblFilter
 
 //=========  CreateTblRow  ================ PR2019-09-04
-    function CreateTblRow(prefix, tblName, pk_str, ppk_str, is_addnew_row, data_customer_pk) {
+    function CreateTblRow(tblBody_or_tFoot, tblName, pk_str, ppk_str, is_addnew_row, data_customer_pk) {
         //console.log("=========  CreateTblRow =========");
-        //console.log("tblName", tblName);
 
 // --- insert tblRow ino tblBody or tFoot
-        let tblBody_or_tFoot = document.getElementById("id_" + prefix + "_" + tblName);
         let tblRow = tblBody_or_tFoot.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
         const map_id = get_map_id(tblName, pk_str)
@@ -1324,8 +1320,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  UpdateFromResponse  ================ PR2019-10-20
     function UpdateFromResponse(update_dict) {
-        //console.log(" --- UpdateFromResponse  ---");
-        //console.log("update_dict", update_dict);
+        console.log(" --- UpdateFromResponse  ---");
+        console.log("update_dict", update_dict);
 
 //--- get info from update_dict["id"]
         const id_dict = get_dict_value_by_key (update_dict, "id");
@@ -1361,7 +1357,11 @@ let planning_list = [] // for export and printing - can replace map?
         } else if (is_created){
     // item is created: add new row on correct index of table, reset addnew row
             // parameters: tblName, pk_str, ppk_str, is_addnew, customer_pk
-            tblRow = CreateTblRow("tbody", tblName, pk_int, ppk_int)
+            //console.log("------------------ tblName", tblName);
+
+// --- insert tblRow ino tblBody or tFoot
+            let tblBody = document.getElementById("id_tbody_" + tblName);
+            tblRow = CreateTblRow(tblBody, tblName, pk_int, ppk_int)
             UpdateTableRow(tblRow, update_dict)
 
     // set focus to code input of added row
@@ -1413,9 +1413,10 @@ let planning_list = [] // for export and printing - can replace map?
             if(is_created){
                 const row_index = GetNewSelectRowIndex(tblBody_select, 0, update_dict, user_lang);
                 const imgsrc_default = imgsrc_inactive_grey, imgsrc_hover = imgsrc_inactive_black;
-                selectRow = CreateSelectRow(tblBody_select, el_data, tblName, row_index, update_dict,
+
+                selectRow = CreateSelectRow(false, tblBody_select, el_data, tblName, row_index, selected_customer_pk,
                                             HandleSelect_Row, HandleBtnInactiveDeleteClicked,
-                                            imgsrc_default, imgsrc_hover )
+                                            imgsrc_default, imgsrc_hover)
 
         // imgsrc_inactive_lightgrey
                 HighlightSelectRow(selectRow, cls_bc_yellow, cls_bc_lightlightgrey);
@@ -1424,9 +1425,10 @@ let planning_list = [] // for export and printing - can replace map?
                 const rowid_str = id_sel_prefix + map_id
                 selectRow = document.getElementById(rowid_str);
             };
-        //console.log(" --- UpdateFromResponse  UpdateSelectRow---");
-    //--- update or delete selectRow, before remove_err_del_cre_updated__from_itemdict
-            UpdateSelectRow(selectRow, update_dict, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
+            //--- update or delete selectRow, before remove_err_del_cre_updated__from_itemdict
+            UpdateSelectRow(selectRow, update_dict, false, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
+
+
         }  // if( tblName === "customer")
 
 //--- remove 'updated, deleted created and msg_err from update_dict
@@ -1553,6 +1555,7 @@ let planning_list = [] // for export and printing - can replace map?
         if (isEmpty(update_dict)){
             if (fldName === "inactive") {
                 const field_dict = {value: false}
+        console.log("+++++++++ format_inactive_element")
                 format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
             } else {
                 el_input.value = null
@@ -1657,6 +1660,7 @@ let planning_list = [] // for export and printing - can replace map?
                     }
                 } else if (fldName === "inactive") {
                    if(isEmpty(field_dict)){field_dict = {value: false}}
+        console.log("+++++++++ format_inactive_element")
                    format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
                 } else {
                     el_input.value = value
@@ -1749,18 +1753,34 @@ let planning_list = [] // for export and printing - can replace map?
     function UpdateHeaderPeriod() {
         console.log( "===== UpdateHeaderPeriod  ========= ");
 
-        const datefirst_ISO = get_dict_value_by_key(selected_period, "datefirst");
-        const datelast_ISO = get_dict_value_by_key(selected_period, "datelast");
-        const period_txt = format_period(datefirst_ISO, datelast_ISO, loc.months_abbrev, loc.weekdays_abbrev, user_lang)
+        const datefirst_ISO = get_dict_value_by_key(selected_period, "rosterdatefirst");
+        const datelast_ISO = get_dict_value_by_key(selected_period, "rosterdatelast");
+        const period_tag = get_dict_value_by_key(selected_period, "period_tag");
+        console.log( "period_tag: ", period_tag);
+        console.log( "datefirst_ISO: ", datefirst_ISO);
+        console.log( "datelast_ISO: ", datelast_ISO);
+        let period_txt = "";
+        if (period_tag === "other"){
+            period_txt = loc.Period + ": "
+        } else {
+            for (let i = 0, len = loc.period_select_list.length; i < len; i++) {
+                if(loc.period_select_list[i][0] === period_tag ){
+                    period_txt = loc.period_select_list[i][1] + ": "
+                    break;
+                }
+            }
+        }
+        console.log( "========== period_txt: ", period_txt);
+        period_txt += format_period(datefirst_ISO, datelast_ISO, loc.months_abbrev, loc.weekdays_abbrev, user_lang)
 
+        console.log( "+++++++++++++++ period_txt: ", period_txt);
         let header_text = "";
         if (!!period_txt) {
-            header_text = get_attr_from_el_str(el_data, "data-txt_period") + ": " + period_txt
+            header_text = period_txt;
         } else {
-            header_text = get_attr_from_el_str(el_data, "data-txt_select_period") + "...";
+            header_text =loc.Select_period + "...";
         }
-
-        return header_text
+        return header_text;
     }  // UpdateHeaderPeriod
 
 //========= UpdateSettings  ====================================
@@ -1825,9 +1845,17 @@ let planning_list = [] // for export and printing - can replace map?
                     }
                 }  // if (key === "page_customer"){
                 if (key === "planning_period"){
+                console.log("NIU ??????????  planning_period: ", selected_period);
                     selected_period = setting_dict[key];
                     document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
                 }
+
+                if (key === "period_customer"){
+                    selected_period = setting_dict[key];
+                    console.log("@@@@@@@@@@@@@@selected_period: ", selected_period);
+                    document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
+                }
+
             });
         };
     }  // UpdateSettings
@@ -1888,7 +1916,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= UploadDeleteChanges  ============= PR2019-10-23
     function UploadDeleteChanges(upload_dict, url_str) {
-        // console.log("--- UploadDeleteChanges  --------------");
+         console.log("--- UploadDeleteChanges  --------------");
         // console.log("upload_dict");
 
 // if delete: add 'delete' to id_dict and make tblRow red
@@ -2010,6 +2038,12 @@ let planning_list = [] // for export and printing - can replace map?
                     console.log( "response");
                     console.log( response);
 
+                    if ("update_list" in response) {
+                        for (let i = 0, len = response["update_list"].length; i < len; i++) {
+                            const update_dict = response["update_list"][i];
+                            UpdateFromResponse(update_dict);
+                        }
+                    };
 // --- refresh maps and fill tables
                     refresh_maps(response);
 
@@ -2299,6 +2333,7 @@ let planning_list = [] // for export and printing - can replace map?
             shift_code = MSO_CreateShiftname(offset_start);
             shiftcode_haschanged = true
             offsetstart_haschanged = true
+        // shift_dict will be created further in in MSO_FillShiftValues
 
  // create team_dict
         // create new team_pk
@@ -2735,7 +2770,7 @@ let planning_list = [] // for export and printing - can replace map?
             may_override = true
         } else {
             const code_sliced = code_trimmed.slice(0, 2);
-            may_override = (!isNaN(Number(code_sliced)))
+            may_override = (!Number.isNaN(code_sliced));
         }
         if (may_override){
            //display_offset_time (offset, timeformat, user_lang, skip_prefix_suffix, blank_when_zero)
@@ -3457,12 +3492,15 @@ let planning_list = [] // for export and printing - can replace map?
         // calculate min max of timefields, store in mod_upload_dict
         // (offset_start != null) is added to change undefined into null, 0 stays 0 (0.00 u is dfferent from null)
 
-        console.log( " ===  MSO_FillShiftValues  ===");
+        //console.log( " ===  MSO_FillShiftValues  ===");
+
         if (!shift_dict){shift_dict = {}};
 
         if (!shift_dict.id){shift_dict.id = {table: "shift"}};
         shift_dict.id["pk"] = (!!shift_pk) ? shift_pk : null;
         shift_dict.id["ppk"] = (!!shift_ppk) ? shift_ppk : null;
+        // add 'create' when pk = 'new3'
+        if(isNaN(Number(shift_pk))){shift_dict.id["create"] = true};
 
         //when changing offset you cn skip shift_code, parameter shift_code = null
         if(shift_code != null){
@@ -3868,8 +3906,7 @@ let planning_list = [] // for export and printing - can replace map?
             if (index >= 0) {
             // if sel_teammember_pk = NaN, the row is an added row. Just remove it from the .teammember_list
 
-            console.log("isNaN(sel_teammember_pk): ", isNaN(sel_teammember_pk));
-                if(isNaN(sel_teammember_pk)){
+                if(Number.isNaN(sel_teammember_pk)){
                     mod_upload_dict.teammember_list.splice(index, 1);
                 } else {
             // if sel_teammember_pk is numeric, the row is a saved row. Put 'delete in id_dict for deletion
@@ -4336,15 +4373,18 @@ let planning_list = [] // for export and printing - can replace map?
 
         let el_select = document.getElementById("id_modperiod_selectcustomer")
         let selectall_text =  "&lt;" +  loc.All_customers + "&gt;"
-        let select_text_none =  "&lt;" +  loc.No_customers.toLowerCase() + "&gt;"
-        FillSelectOption2020(el_select, customer_map, "customer",
-                    false, 0, selected_customer_pk, true, selectall_text, select_text_none)
+        let select_text_none =  "&lt;" +  loc.No_customers + "&gt;"
+        let is_template_mode = false, has_selectall = true, hide_none = false;
+        FillSelectOption2020(el_select, customer_map, "customer", is_template_mode, has_selectall, hide_none,
+                    null, selected_customer_pk, selectall_text, select_text_none)
+
 
         el_select = document.getElementById("id_modperiod_selectorder")
-        selectall_text =  "&lt;" +  loc.All_orders.toLowerCase() + "&gt;"
-        select_text_none =  "&lt;" +  loc.No_orders.toLowerCase() + "&gt;"
-        FillSelectOption2020(el_select, order_map, "order",
-                    false, selected_customer_pk, selected_order_pk, true, selectall_text, select_text_none)
+        selectall_text =  "&lt;" +  loc.All_orders + "&gt;"
+        select_text_none =  "&lt;" +  loc.No_orders + "&gt;"
+        hide_none = (!selected_customer_pk);
+        FillSelectOption2020(el_select, order_map, "order", is_template_mode, has_selectall, hide_none,
+                    selected_customer_pk, selected_order_pk, selectall_text, select_text_none)
 
     // set min max of input fields
         ModPeriodDateChanged("datefirst");
@@ -4361,26 +4401,33 @@ let planning_list = [] // for export and printing - can replace map?
 //=========  ModPeriodSelectCustomer  ================ PR2020-01-09
     function ModPeriodSelectCustomer(selected_pk_str) {
         console.log( "===== ModPeriodSelectCustomer ========= ");
-        selected_customer_pk = Number(selected_pk_str)
-
+        const new_customer_pk = Number(selected_pk_str)
+        if (new_customer_pk !== selected_customer_pk ){
+            selected_customer_pk = new_customer_pk;
+            selected_order_pk = 0;
+        }
         console.log( "selected_pk_str: ", selected_pk_str);
-
+        console.log( "selected_customer_pk: ", selected_customer_pk);
+        console.log( "selected_order_pk: ", selected_order_pk);
 
         let el_select = document.getElementById("id_modperiod_selectorder")
         el_select.innerText = null
-        const selectall_text =  "&lt;" +  loc.All_orders.toLowerCase() + "&gt;"
-        const select_text_none =  "&lt;" +  loc.No_orders.toLowerCase() + "&gt;"
-        FillSelectOption2020(el_select, order_map, "order",
-                    false, selected_customer_pk, selected_order_pk, true, selectall_text, select_text_none)
-
+        const selectall_text =  "&lt;" +  loc.All_orders + "&gt;"
+        const select_text_none =  "&lt;" +  loc.No_orders + "&gt;"
+        // when 'all customers is selected (selected_customer_pk): there are no orders in selectbox 'orders'
+        // to display 'all orders' instead of 'no orders' we make have boolean 'hide_none' = true
+        const is_template_mode = false, has_selectall = true, hide_none = (!selected_customer_pk);
+        FillSelectOption2020(el_select, order_map, "order",is_template_mode, has_selectall, hide_none,
+                    selected_customer_pk, selected_order_pk, selectall_text, select_text_none)
     }  // ModPeriodSelectCustomer
 
 
 //=========  ModPeriodSelectOrder  ================ PR2020-01-09
     function ModPeriodSelectOrder(selected_pk_str) {
         console.log( "===== ModPeriodSelectOrder ========= ");
-        selected_order_pk = Number(selected_pk_str)
+        console.log( "selected_pk_str: ", selected_pk_str);
 
+        selected_order_pk = Number(selected_pk_str)
         console.log( "selected_order_pk: ", selected_order_pk);
 
     }  // ModPeriodSelectOrder
@@ -4398,14 +4445,27 @@ let planning_list = [] // for export and printing - can replace map?
             mod_upload_dict["period_tag"] = period_tag;
 
     // enable date input elements, give focus to start
+            let el_datefirst = document.getElementById("id_mod_period_datefirst");
+            let el_datelast = document.getElementById("id_mod_period_datelast");
+
+            el_datefirst.disabled = (period_tag !== "other");
+            el_datelast.disabled = (period_tag !== "other");
+
             if (period_tag === "other") {
-                let el_datefirst = document.getElementById("id_mod_period_datefirst");
-                let el_datelast = document.getElementById("id_mod_period_datelast");
-                el_datefirst.disabled = false;
-                el_datelast.disabled = false;
                 el_datefirst.focus();
-            } else{
-                ModPeriodSave();
+            } else {
+                let lst = []
+                if (period_tag === "tweek") {
+                    lst = get_thisweek_monday_sunday_iso();
+                } else if (period_tag === "nweek") {
+                    lst = get_nextweek_monday_sunday_iso();
+                } else if (period_tag === "tmonth") {
+                    lst = get_thismonth_first_last_iso();
+                } else if (period_tag === "nmonth") {
+                    lst = get_nextmonth_first_last_iso();
+                }
+                el_datefirst.value = lst[0];
+                el_datelast.value = lst[1];
             }
         }
     }  // ModPeriodSelectPeriod
@@ -4430,10 +4490,10 @@ let planning_list = [] // for export and printing - can replace map?
             page: "customer",
             period_customer: {page: "customer",
                               period_tag: period_tag
-            }
+            },
+            customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
+            order_pk: (!!selected_order_pk) ? selected_order_pk : null
         };
-        if(!!selected_customer_pk){upload_dict.period_customer["customer_pk"] = selected_customer_pk};
-        if(!!selected_order_pk){upload_dict.period_customer["order_pk"] = selected_order_pk};
         // only save dates when tag = "other"
         if(period_tag == "other"){
             const datefirst = document.getElementById("id_mod_period_datefirst").value
@@ -4922,11 +4982,17 @@ let planning_list = [] // for export and printing - can replace map?
             for (let j = 0, len = row.cells.length, cell_index, cell_dict; j < len; j++) {
                 const col = row.cells[j];
                 cell_index = String.fromCharCode(65 + j) + (i + first_row).toString()
+
+                console.log (row);
                 let excel_cell_value = null;
                 if ([0, 1, 4, 5].indexOf( j ) > -1){
                     excel_cell_value = col.children[0].value;
                 } else if (j === 2){
                     excel_cell_value = col.children[0].title;
+                    console.log("excel_cell_value: ", excel_cell_value , typeof excel_cell_value)
+                    if(!excel_cell_value){
+                        excel_cell_value = col.children[0].value;
+                    }
                 } else if (j === 3){
                     excel_cell_value = get_attr_from_el( col.children[0], "data-value")
                 } else if (j === 6){
@@ -4934,6 +5000,7 @@ let planning_list = [] // for export and printing - can replace map?
                     excel_cell_value = total_hours;
                 }
                 ws[cell_index] = {v: excel_cell_value, t: cell_types[j]};
+
                 if (j === 6){
                     ws[cell_index]["z"] = "0.00"
                 }

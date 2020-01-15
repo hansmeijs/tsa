@@ -2192,6 +2192,11 @@ def calc_timeduration_from_values(is_restshift, offsetstart, offsetend, breakdur
 
     timeduration_minus_break = 0
     if not is_restshift:
+        if not breakduration:
+            breakduration = 0
+        if not saved_timeduration:
+            saved_timeduration = 0
+
         if offsetstart is not None and offsetend is not None:
             timeduration = offsetend - offsetstart
         else:

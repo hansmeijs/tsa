@@ -311,8 +311,12 @@ document.addEventListener('DOMContentLoaded', function() {
             locale: {page: "scheme"}
         });
 
-        const datalist_request = {customer: {isabsence: false, istemplate: null, inactive: false},
-                                  order: {isabsence: false, istemplate: null, inactive: false},
+        //const datalist_request = {customer: {isabsence: false, istemplate: null, inactive: false},
+        //                          order: {isabsence: false, istemplate: null, inactive: false},
+        //                          scheme: {istemplate: null, inactive: null, issingleshift: null},
+        //                          employee: {inactive: null}};
+        const datalist_request = {TEST: {test: true}, customer: {isabsence: null, istemplate: null, inactive: null},
+                                  order: {isabsence: null, istemplate: null, inactive: null},
                                   scheme: {istemplate: null, inactive: null, issingleshift: null},
                                   employee: {inactive: null}};
         DatalistDownload(datalist_request);
@@ -322,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= DatalistDownload  ====================================
     function DatalistDownload(datalist_request) {
         console.log( "=== DatalistDownload ")
-        console.log( "datalist_request", datalist_request)
+        console.log( "@@@@@@@@@@@@@@@@@@datalist_request", datalist_request)
 
         // show loader
         el_loader.classList.remove(cls_hide)

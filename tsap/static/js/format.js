@@ -67,12 +67,12 @@
 
 //========= get_period_text  ====================================
     function get_period_text(period_dict, period_select_list, period_extension, months_abbrev, weekdays_abbrev, user_lang) {
-        console.log( "===== get_period_text  ========= ");
+        //console.log( "===== get_period_text  ========= ");
         let period_text = null
         if (!isEmpty(period_dict)){
             const period_tag = get_dict_value_by_key(period_dict, "period_tag");
-        console.log( "period_tag: ", period_tag);
-        console.log( "period_select_list: ", period_select_list);
+        //console.log( "period_tag: ", period_tag);
+        //console.log( "period_select_list: ", period_select_list);
 
             let default_text = null
             for(let i = 0, item, len = period_select_list.length; i < len; i++){
@@ -83,7 +83,7 @@
             if(!period_text){period_text = default_text}
 
             let extend_text = get_dict_value_by_key(period_extension, "extend_index");
-        console.log( "extend_text: ", extend_text);
+        //console.log( "extend_text: ", extend_text);
 
             if(period_tag === "other"){
                 const rosterdatefirst = get_dict_value_by_key(period_dict, "rosterdatefirst");
@@ -103,7 +103,7 @@
                 }
             }
 
-        console.log( "period_text: ", period_text);
+        //console.log( "period_text: ", period_text);
         // from https://www.fileformat.info/info/unicode/char/25cb/index.htm
         //el_a.innerText = " \u29BF "  /// circeled bullet: \u29BF,  bullet: \u2022 "  // "\uD83D\uDE00" "gear (settings) : \u2699" //
         //el_a.innerText = " \u25CB "  /// 'white circle' : \u25CB  /// black circle U+25CF
@@ -229,7 +229,7 @@
 
 //========= format_text_element  ======== PR2019-06-09
     function format_text_element (el_input, key_str, el_msg, field_dict, skip_ok, msg_offset, title_overlap) {
-       // console.log("--- format_text_element ---")
+       //console.log("--- format_text_element ---")
         //console.log("field_dict: ", field_dict)
         //console.log("key_str: ", key_str)
 
@@ -741,27 +741,27 @@
 
 //========= format_offset_element  ======== PR2019-09-08
     function format_offset_element (el_input, el_msg, fieldname, field_dict, offset, timeformat, user_lang, title_prev, title_next, blank_when_zero) {
-        // console.log("------ format_offset_element --------------", fieldname)
+        //console.log("------ format_offset_element --------------", fieldname)
         // offsetstart: {offset: 0, minoffset: -720, maxoffset: 1440}
         const tagName = el_input.tagName
-        // console.log("field_dict", field_dict)
-        // console.log("el_input", el_input)
+        //console.log("field_dict", field_dict)
+        //console.log("el_input", el_input)
         if(!!el_input){
             let offset = null, display_text = "", title = "";
             if(!!field_dict){
                 // offset:  "270" = 04:30, value can be null
                 const fld = (fieldname === "breakduration") ? "value" : "value";
                 offset = get_dict_value_by_key(field_dict, fld);
-                // console.log("offset", offset)
+                //console.log("offset", offset)
 
                 const updated = get_dict_value_by_key (field_dict, "updated");
                 const msg_err = get_dict_value_by_key (field_dict, "error");
                 // (variable == null) will catch null and undefined simultaneously. Equal to (variable === undefined || variable === null)
                 let hide_value = (offset == null) || (blank_when_zero && offset === 0);
-                // console.log("blank_when_zero", blank_when_zero)
-                // console.log("hide_value", hide_value)
+                //console.log("blank_when_zero", blank_when_zero)
+                //console.log("hide_value", hide_value)
 
-                // console.log("hide_value", hide_value)
+                //console.log("hide_value", hide_value)
                 if (!hide_value){
                     let days_offset = Math.floor(offset/1440)  // - 90 (1.5 h)
                     const remainder = offset - days_offset * 1440
@@ -787,7 +787,7 @@
                 }
             }  //  if(!!field_dict)
 
-       // console.log("display_text", display_text)
+       //console.log("display_text", display_text)
             if(!!display_text){
                 if(el_input.tagName === "INPUT"){
                     el_input.value = display_text;
@@ -1123,6 +1123,8 @@
     function format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive, title_inactive, title_active) {
         // inactive: {value: true}
         //console.log("+++++++++ format_inactive_element")
+        //console.log("imgsrc_inactive_black:", imgsrc_inactive_black)
+        //console.log("imgsrc_inactive:", imgsrc_inactive)
 
         if(!!el_input){
             let is_inactive = get_dict_value_by_key (field_dict, "value", false)
@@ -1210,7 +1212,7 @@
         // inactive: {value: true}
         //console.log("+++++++++ format_status_element")
         //console.log(field_dict)
-        // console.log(el_input)
+        //console.log(el_input)
 
         if(!!el_input){
             let status_sum = 0;
@@ -1223,7 +1225,7 @@
 
             // update icon if img existst
             let el_img = el_input.children[0];
-            // console.log ("el_img", el_img)
+            //console.log ("el_img", el_img)
             if (!!el_img){
 
                 let imgsrc = imgsrc_stat00;

@@ -496,16 +496,20 @@ def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, ove
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def create_scheme_list(filter_dict, company, user_lang):
-    # logger.debug(' --- create_scheme_list --- ')
-    # logger.debug('is_singleshift: ' + str(is_singleshift))
+    logger.debug(' --- create_scheme_list --- ')
+    logger.debug('filter_dict: ' + str(filter_dict))
 
     customer_pk = filter_dict.get('customer_pk')
     order_pk = filter_dict.get('order_pk')
+    is_absence = filter_dict.get('is_absence')
     is_template = filter_dict.get('is_template')
     inactive = filter_dict.get('inactive')
 
 # --- create list of schemes of this company, absence=false PR2019-11-22
-    crit = (Q(order__customer__company=company) & Q(isabsence=False))
+    crit = Q(order__customer__company=company)
+
+    if is_absence is not None:
+        crit.add(Q(isabsence=is_absence), crit.connector)
     if is_template is not None:
         crit.add(Q(istemplate=is_template), crit.connector)
     if inactive is not None:
@@ -994,9 +998,9 @@ def create_team_dict(team, item_dict):
 # --- end of create_team_dict
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
-    logger.debug(' ============== period_get_and_save ================ ')
-    logger.debug(' period_dict: ' + str(period_dict))
+def period_get_and_save(key, period_dict, request, comp_timezone):   # PR2019-11-16
+    #logger.debug(' ============== period_get_and_save ================ ')
+    #logger.debug(' period_dict: ' + str(period_dict))
     # period_dict: {'get': True, 'now': [2019, 11, 17, 7, 9]}
     # period_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
 
@@ -1023,28 +1027,17 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
         # today_dte: 2019-11-17 <class 'datetime.date'>
         now_usercomp_dtm = f.get_datetime_from_arr(now_arr)
         # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
-        # logger.debug('now_arr: ' + str(now_arr))
-        # logger.debug('today_dte: ' + str(today_dte))
+        #logger.debug('now_arr: ' + str(now_arr))
+        #logger.debug('today_dte: ' + str(today_dte))
 
 # 3. get saved period_dict if get_saved = True
-        key = None
-        page = period_dict.get('page')
-        if page == 'roster':
-            key = c.KEY_USER_PERIOD_ROSTER
-        elif page == 'review':
-            key = c.KEY_USER_PERIOD_REVIEW
-        elif page == 'emplhour':
-            key = c.KEY_USER_PERIOD_EMPLHOUR
-        elif page == 'customer':
-            key = c.KEY_USER_PERIOD_CUSTOMER
-
-        logger.debug(' key: ' + str(key))
+        #logger.debug('key: ' + str(key))
         if get_saved and key:
             period_dict = Usersetting.get_jsonsetting(key, request.user)
-        logger.debug('get_saved period_dict: ' + str(period_dict))
+            #logger.debug('get_saved period_dict: ' + str(period_dict))
 
 # 4. create update_dict
-        update_dict = {'page': page, 'key': key, 'now': now_arr}
+        update_dict = {'key': key, 'now': now_arr}
         # period_dict comes either from argument or from Usersetting
         period_tag = 'today'
         extend_offset = 0
@@ -1116,6 +1109,15 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
                 rosterdatefirst_dte = firstof_nextmonth_dte
                 rosterdatelast_dte = lastof_nextmonth_dte
             elif period_tag == 'other':  # 10: 'Custom period'
+                # in customer planning  'rosterdatefirst' and 'rosterdatelast' is used
+                # in roster planning 'periodstart' and 'periodend' is used TODO give same names
+
+                rosterdatefirst = period_dict.get('rosterdatefirst')
+                if rosterdatefirst:
+                    periodstart = rosterdatefirst
+                rosterdatelast = period_dict.get('rosterdatelast')
+                if rosterdatelast:
+                    periodend = rosterdatelast
                 # if one date blank: use other date, if both blank: use today
                 if periodstart is None:
                     if periodend is None:
@@ -1146,34 +1148,28 @@ def period_get_and_save(period_dict, request, comp_timezone):   # PR2019-11-16
         update_dict['rosterdatefirst_minus1'] = rosterdatefirst_minus1.isoformat()
         update_dict['rosterdatelast_plus1'] = rosterdatelast_plus1.isoformat()
 
-        # rosterdatefirst is used in review, datefirst in customer. TODO: make uniform variable
-        update_dict['datefirst'] = rosterdatefirst_dte.isoformat()
-        update_dict['datelast'] = rosterdatelast_dte.isoformat()
-
-
     # 5. save update_dict
         setting_tobe_saved = {
             'period_tag': period_tag
         }
         if period_tag == 'other':
-            setting_tobe_saved['datefirst'] = rosterdatefirst_dte.isoformat(),
-            setting_tobe_saved['datelast'] = rosterdatelast_dte.isoformat(),
+            setting_tobe_saved['rosterdatefirst'] = rosterdatefirst_dte.isoformat(),
+            setting_tobe_saved['rosterdatelast'] = rosterdatelast_dte.isoformat(),
         if extend_offset:
             setting_tobe_saved['extend_offset'] = extend_offset
 
-        logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))
         Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
-        # new update_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
-
 
 #logger.debug('update_dict: ' + str(update_dict))
-    #  update_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360,
-    #  'now': [2019, 11, 17, 7, 58],
-    #  'periodstart': datetime.datetime(2019, 11, 17, 18, 0, tzinfo=<DstTzInfo 'Europe/Amsterdam' CET+1:00:00 STD>),
-    #  'periodend': datetime.datetime(2019, 11, 19, 6, 0, tzinfo=<DstTzInfo 'Europe/Amsterdam' CET+1:00:00 STD>),
-    #  'rosterdatefirst': '2019-11-17', 'rosterdatelast': '2019-11-19'}
+    # update_dict:  {'key': 'customer_planning',
+    # 'now': [2020, 1, 10, 16, 43],  'period_tag': 'nmonth',  'extend_offset': 0,
+    # 'periodstart': datetime.datetime(2020, 2, 1, 0, 0, tzinfo=<DstTzInfo 'Europe/Amsterdam' CET+1:00:00 STD>),
+    #  'periodend': datetime.datetime(2020, 3, 1, 0, 0, tzinfo=<DstTzInfo 'Europe/Amsterdam' CET+1:00:00 STD>),
+    # 'rosterdatefirst': '2020-02-01',  'rosterdatelast': '2020-02-29',
+    # 'rosterdatefirst_minus1': '2020-01-31',  'rosterdatelast_plus1': '2020-03-01'}
 
     return update_dict
+
 
 def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
     # logger.debug(' ============= create_emplhour_list ============= ')

@@ -281,8 +281,9 @@ def validate_namelast_namefirst(namelast, namefirst, company, update_field, upda
     if msg_err_namelast is None:
         if len(namelast) > c.NAME_MAX_LENGTH:
             msg_err_namelast = _("Last name is too long.") + str(c.NAME_MAX_LENGTH) + _(' characters or fewer.')
-        elif len(namefirst) > c.NAME_MAX_LENGTH:
-            msg_err_namefirst = _("First name is too long.") + str(c.NAME_MAX_LENGTH) + _(' characters or fewer.')
+        elif namefirst:
+            if len(namefirst) > c.NAME_MAX_LENGTH:
+                msg_err_namefirst = _("First name is too long.") + str(c.NAME_MAX_LENGTH) + _(' characters or fewer.')
 
         # check if first + lastname already exists
         if msg_err_namelast is None and msg_err_namefirst is None:

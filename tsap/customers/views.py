@@ -83,7 +83,7 @@ class CustomerListView(View):
 class CustomerUploadView(UpdateView):# PR2019-03-04
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= CustomerUploadView ============= ')
+        #logger.debug(' ============= CustomerUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -203,7 +203,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 class PricerateUploadView(UpdateView):# PR2019-10-02
 
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= PricerateUploadView ============= ')
+        #logger.debug(' ============= PricerateUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -217,14 +217,14 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                # logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
 
     # 3. get iddict variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
                     update_dict = {}
                     pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode = f.get_iddict_variables(id_dict)
-                    # logger.debug('table: ' + str(table) + ' ppk_int: ' + str(ppk_int))
+                    #logger.debug('table: ' + str(table) + ' ppk_int: ' + str(ppk_int))
 # =====  ORDER  ==========
                     if table == "order":
                         update_dict = f.create_update_dict(
@@ -235,10 +235,10 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             temp_pk=temp_pk_str)
 
                         parent = m.Customer.objects.get_or_none(id=ppk_int, company=request.user.company)
-                        # logger.debug('parent: ' + str(parent))
+                        #logger.debug('parent: ' + str(parent))
                         if parent:
                             instance = m.get_instance(table, pk_int, parent, update_dict)
-                            # logger.debug('parent: ' + str(instance))
+                            #logger.debug('parent: ' + str(instance))
                             if instance:
                                 update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                         f.remove_empty_attr_from_dict(update_dict)
@@ -252,10 +252,10 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             temp_pk=temp_pk_str)
 
                         parent = m.Order.objects.get_or_none(id=ppk_int, customer__company=request.user.company)
-                        # logger.debug('SCHEME parent: ' + str(parent))
+                        #logger.debug('SCHEME parent: ' + str(parent))
                         if parent:
                             instance = m.get_instance(table, pk_int, parent, update_dict)
-                            # logger.debug('SCHEME instance: ' + str(instance))
+                            #logger.debug('SCHEME instance: ' + str(instance))
                             if instance:
                                 update_scheme(instance, upload_dict, update_dict, request)
                         f.remove_empty_attr_from_dict(update_dict)
@@ -268,10 +268,10 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             ppk=ppk_int,
                             temp_pk=temp_pk_str)
                         parent = m.Scheme.objects.get_or_none(id=ppk_int, order__customer__company=request.user.company)
-                        # logger.debug('SHIFT parent: ' + str(parent))
+                        #logger.debug('SHIFT parent: ' + str(parent))
                         if parent:
                             instance = m.get_instance(table, pk_int, parent, update_dict)
-                            # logger.debug('SHIFT instance: ' + str(instance))
+                            #logger.debug('SHIFT instance: ' + str(instance))
                             if instance:
                                 update_shift(instance, parent, upload_dict, update_dict, user_lang, request)
                         f.remove_empty_attr_from_dict(update_dict)
@@ -289,8 +289,8 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
 def create_customer(upload_dict, update_dict, request):
     # --- create customer or order # PR2019-06-24
     # Note: all keys in update_dict must exist by running create_update_dict first
-    # logger.debug(' --- create_customer')
-    # logger.debug(upload_dict)
+    #logger.debug(' --- create_customer')
+    #logger.debug(upload_dict)
     # {'id': {'temp_pk': 'new_1', 'create': True, 'ppk': 1, 'table': 'customer'}, 'code': {'value': 'nw4', 'update': True}}
 
     instance = None
@@ -305,7 +305,7 @@ def create_customer(upload_dict, update_dict, request):
     # 2. get parent instance
         parent = m.get_parent(table, ppk_int, update_dict, request)
         if parent:
-            # logger.debug('parent: ' + str(parent))
+            #logger.debug('parent: ' + str(parent))
 
     # 3. Get value of 'code' and 'name'
             code = None
@@ -348,8 +348,8 @@ def create_customer(upload_dict, update_dict, request):
 def update_customer(instance, parent, upload_dict, update_dict, request):
     # --- update existing and new customer or order PR2019-06-24
     # add new values to update_dict (don't reset update_dict, it has values)
-    # logger.debug(' --- update_customer --- ')
-    # logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' --- update_customer --- ')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
     has_error = False
     if instance:
@@ -429,8 +429,8 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
 def create_order(upload_dict, update_dict, request):
     # --- create customer or order # PR2019-06-24
     # Note: all keys in update_dict must exist by running create_update_dict first
-    # logger.debug(' --- create_customer_or_order')
-    # logger.debug(upload_dict)
+    #logger.debug(' --- create_customer_or_order')
+    #logger.debug(upload_dict)
     # {'id': {'temp_pk': 'new_1', 'create': True, 'ppk': 1, 'table': 'customer'}, 'code': {'value': 'nw4', 'update': True}}
 
     instance = None
@@ -490,8 +490,8 @@ def create_order(upload_dict, update_dict, request):
 def update_order(instance, parent, upload_dict, update_dict, user_lang, request):
     # --- update existing and new customer or order PR2019-06-24
     # add new values to update_dict (don't reset update_dict, it has values)
-    # logger.debug(' --- update_order --- ')
-    # logger.debug('upload_dict: ' + str(upload_dict))
+    #logger.debug(' --- update_order --- ')
+    #logger.debug('upload_dict: ' + str(upload_dict))
 
     has_error = False
     if instance:
@@ -507,7 +507,7 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                     is_updated = False
 # a. get new_value
                     new_value = field_dict.get('value')
-                    # logger.debug('new_value: ' + str(new_value))
+                    #logger.debug('new_value: ' + str(new_value))
 
 # 2. save changes in field 'code', 'name'
                     if field in ['code', 'name']:
@@ -527,14 +527,14 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                     elif field in ['billable']:
                         is_override = field_dict.get('override', False)
                         is_billable = field_dict.get('billable', False)
-                        # logger.debug('is_override: ' + str(is_override))
-                        # logger.debug('is_billable: ' + str(is_billable))
+                        #logger.debug('is_override: ' + str(is_override))
+                        #logger.debug('is_billable: ' + str(is_billable))
                         new_value = 0
                         if is_override:
                             new_value = 2 if is_billable else 1
-                        # logger.debug('new_value: ' + str(new_value))
+                        #logger.debug('new_value: ' + str(new_value))
                         saved_value = getattr(instance, field, 0)
-                        # logger.debug('saved_value: ' + str(saved_value))
+                        #logger.debug('saved_value: ' + str(saved_value))
 
                         if new_value != saved_value:
                             setattr(instance, field, new_value)
@@ -557,7 +557,7 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
 
     # 4. save changes in fields 'priceratejson'
                     elif field in ['priceratejson']:
-                        # logger.debug('field: ' + str(field))
+                        #logger.debug('field: ' + str(field))
                         # TODO save pricerate with date and wagefactor
                         rosterdate = None
                         wagefactor = None
@@ -566,8 +566,8 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                         if pricerate_is_updated:
                             is_updated = True
 
-                        # logger.debug('instance.priceratejson: ' + str(instance.priceratejson))
-                        # logger.debug('is_updated: ' + str(is_updated))
+                        #logger.debug('instance.priceratejson: ' + str(instance.priceratejson))
+                        #logger.debug('is_updated: ' + str(is_updated))
 
     # 4. save changes in field 'taxcode'
                     elif field in ['taxcode']:
@@ -600,7 +600,7 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                     if is_updated:
                         update_dict[field]['updated'] = True
                         save_changes = True
-                        # logger.debug('update_dict[field]: ' + str(update_dict[field]))
+                        #logger.debug('update_dict[field]: ' + str(update_dict[field]))
 
 # 5. save changes
         if save_changes:
@@ -664,7 +664,7 @@ class OrderImportView(View):
                                     if fieldname in stored_coldefs:
                                         # if so, add Excel name with key 'excKey' to coldef
                                         coldef['excKey'] = stored_coldefs[fieldname]
-                                        # logger.debug('stored_coldefs[fieldname]: ' + str(stored_coldefs[fieldname]))
+                                        #logger.debug('stored_coldefs[fieldname]: ' + str(stored_coldefs[fieldname]))
 
             coldefs_dict = {
                 'worksheetname': self.worksheetname,
@@ -684,14 +684,14 @@ class OrderImportView(View):
 class OrderImportUploadSetting(View):   # PR2019-03-10
     # function updates mapped fields, has_header and worksheetname in table Companysetting
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= OrderImportUploadSetting ============= ')
-        # logger.debug('request.POST' + str(request.POST) )
+        #logger.debug(' ============= OrderImportUploadSetting ============= ')
+        #logger.debug('request.POST' + str(request.POST) )
 
         if request.user is not None :
             if request.user.company is not None:
                 if request.POST['setting']:
                     new_setting_json = request.POST['setting']
-                    logger.debug('new_setting_json' + str(new_setting_json))
+                    #logger.debug('new_setting_json' + str(new_setting_json))
                     # new_setting is in json format, no need for json.loads and json.dumps
                     # new_setting = json.loads(request.POST['setting'])
                     # new_setting_json = json.dumps(new_setting)
@@ -706,7 +706,7 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
 class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= OrderImportUploadData ============= ')
+        #logger.debug(' ============= OrderImportUploadData ============= ')
 
 # 1. Reset language
         # PR2019-03-15 Debug: language gets lost, get request.user.lang again
@@ -715,16 +715,16 @@ class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
 
 # 2. get stored setting from Companysetting
         stored_setting_json = m.Companysetting.get_jsonsetting(c.KEY_ORDER_COLDEFS, request.user.company)
-        logger.debug('stored_setting_json: ' + str(stored_setting_json) + ' ' + str(type(stored_setting_json)))
+        #logger.debug('stored_setting_json: ' + str(stored_setting_json) + ' ' + str(type(stored_setting_json)))
 
         tsaKey_list = []
         if stored_setting_json:
             stored_setting = json.loads(stored_setting_json)
-            logger.debug('stored_setting: ' + str(stored_setting) + ' ' + str(type(stored_setting)))
+            #logger.debug('stored_setting: ' + str(stored_setting) + ' ' + str(type(stored_setting)))
             if stored_setting:
 
                 stored_coldefs = stored_setting.get('coldefs')
-                logger.debug('stored_coldefs: ' + str(stored_coldefs))
+                #logger.debug('stored_coldefs: ' + str(stored_coldefs))
                 # stored_coldefs: {'namelast': 'ANAAM', 'namefirst': 'Voor_namen', 'identifier': 'ID', ...}
                 if stored_coldefs:
                     tsaKey_list = list(stored_coldefs.keys())
@@ -741,7 +741,7 @@ class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
                     upload_dict = json.loads(upload_json)
                     if upload_dict:
                         order_list = upload_dict.get('orders')
-        # logger.debug('order_list: ' + str(order_list))
+        #logger.debug('order_list: ' + str(order_list))
 
         if order_list:
             today_dte = f.get_today_dateobj()
@@ -779,8 +779,8 @@ class OrderImportUploadData(View):  # PR2018-12-04 PR2019-08-05
             mapped_customers_identifier = {}
             mapped_customers_code = {}
             for order_dict in order_list:
-                # logger.debug('--------- import order   ------------')
-                # logger.debug(str(order_dict))
+                #logger.debug('--------- import order   ------------')
+                #logger.debug(str(order_dict))
                 # 'code', 'namelast', 'namefirst',  'prefix', 'email', 'tel', 'datefirst',
 
 # A +++++++++++  CUSTOMER

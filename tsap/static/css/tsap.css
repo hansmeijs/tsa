@@ -317,6 +317,12 @@ h4 h5 {
     color: #015bff !important; /*HeaderForeColor Default Schema Blauw */
 }
 
+
+.tsa_color_placeholder_white::-webkit-input-placeholder {
+    color: #fff; /* white */
+ }
+
+
 .tsa_bc_lightlightred {
     background: #ffe8e8cc; /* 255-232-232 80% licht lichtrood; */
 }

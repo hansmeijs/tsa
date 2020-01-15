@@ -97,11 +97,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if(curFiles.length === 0) {
             para.textContent = captions.no_file_selected // 'No file is currently selected';
         } else {
+            const txt_filename = get_attr_from_el_str(el_data, "data-txt_filename");
+            const txt_novalidtype = get_attr_from_el_str(el_data, "data-txt_novalidtype");
+            const txt_updateyourselection = get_attr_from_el_str(el_data, "data-txt_updateyourselection");
             if(!is_valid_filetype(curFiles[0])) {
-                para.textContent = 'File name ' + curFiles[0].name + ': Not a valid file type. Update your selection.';
+                para.textContent = txt_filename + " " + curFiles[0].name + ": "  + txt_novalidtype + " " + txt_updateyourselection;
             } else {
                 selected_file = curFiles[0];
-                para.textContent = 'File name: '+ selected_file.name ;
+                para.textContent = txt_filename + ": " + selected_file.name ;
             }
         }
 
@@ -114,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  handle_worksheet_list   ======================
     function handle_worksheet_list() {
-console.log(" ========== handle_worksheet_list ===========");
+        //console.log(" ========== handle_worksheet_list ===========");
         if(!!workbook){
             if(!!el_worksheet_list.value){
                 selected_worksheetname = el_worksheet_list.value;
@@ -164,7 +167,7 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
 
 //=========   handle_select_code_calc   ======================
     function handle_select_code_calc() {
-        // console.log("=========   handle_select_code_calc   ======================") ;
+        //console.log("=========   handle_select_code_calc   ======================") ;
         UploadSettingsImport ();
     }  // handle_select_code_calc
 
@@ -266,8 +269,8 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
     function Get_Workbook(sel_file) {
         //* download the data using jQuery.post( url [, data ] [, success ] [, dataType ] ) PR2017-10-29 uit: https://api.jquery.com/jquery.post/
        if(!!sel_file){
-            console.log("======  Get_Workbook  =====" + sel_file.name );
-            console.log("stored_worksheetname: " + stored_worksheetname );
+            //console.log("======  Get_Workbook  =====" + sel_file.name );
+            //console.log("stored_worksheetname: " + stored_worksheetname );
 
             var reader = new FileReader();
             var rABS = false; // false: readAsArrayBuffer,  true: readAsBinaryString
@@ -296,8 +299,6 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
     // give message when workbook has no worksheets, reset selected_worksheetname
                     if(workbook.SheetNames.length === 0) {
                         selected_worksheetname = "";
-                        // TODO translate
-                        //para.textContent = "There are no worksheets." ;
                         para.textContent = get_attr_from_el(el_data, "data-txt_no_worksheets");
                         div_info.appendChild(para);
                     } else {
@@ -320,8 +321,6 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
 
 //---------  give message when no data in worksheetse
                         if (!el_worksheet_list.options.length){
-                            // TODO translate
-                            //para.textContent = "There are no worksheets with data." ;
                             para.textContent = get_attr_from_el(el_data, "data-txt_no_worksheets_with_data");
                             div_info.appendChild(para);
                         } else {
@@ -728,7 +727,7 @@ console.log("=========  function FillDataTableAfterUpload =========");
         //PR2017-11-12
         //calculate power (exponent): strColName ABC = 1*26^2 + 2*26^1 + 3*26^0
         //ColNumber[x] += CharIndex *  Math.pow(26, exp);
-// console.log("ColNumber: " + ColNumber + " RowNumber: " + RowNumber);
+//console.log("ColNumber: " + ColNumber + " RowNumber: " + RowNumber);
         var col_name = "";
         if (ColNumber>0 && RowNumber>0){
 
@@ -737,17 +736,17 @@ console.log("=========  function FillDataTableAfterUpload =========");
                 let dividend = ColNumber;
                 // subtract 1 (otherwise 26=AA instead of Z, except for last character (exp=0)
                 if (exp > 0 ){--dividend;};
-// console.log("exp: " + exp + ", dividend: " + dividend +", divisor: " + divisor);
+//console.log("exp: " + exp + ", dividend: " + dividend +", divisor: " + divisor);
                 const mod = Math.floor((dividend)/divisor);
                 const frac = ColNumber - mod * divisor;
-// console.log("mod: " + mod + ", frac: " + frac);
+//console.log("mod: " + mod + ", frac: " + frac);
                 if (mod>0){
                     col_name += String.fromCharCode(mod + 64);
                 };// if (mod>0){
                 ColNumber = frac;
             }; //for (let exp=2; exp>=0; --exp)
             col_name = col_name + RowNumber;
-// console.log("col_name " + col_name);
+//console.log("col_name " + col_name);
         }; //if (ColNumber>0 && RowNumber>0)
         return col_name;
     }; //function GetCellName (ColIndex, RowIndex )
@@ -755,8 +754,8 @@ console.log("=========  function FillDataTableAfterUpload =========");
 //========= GetExcelValue  ====================================
     // PR2017-11-04 from: https://stackoverflow.com/questions/2693021/how-to-count-javascript-array-objects
     function GetExcelValue(Sheet, CellName, ValType) {
-// console.log("--------------GetExcelValue");
-// console.log("GetExcelValue CellName: " + CellName + "ValType: " + ValType);
+//console.log("--------------GetExcelValue");
+//console.log("GetExcelValue CellName: " + CellName + "ValType: " + ValType);
         var result = "";
         for(let prop in Sheet) {
             if (Sheet.hasOwnProperty(prop)) {
@@ -904,8 +903,8 @@ console.log("==== CreateMapTableWrap  =========> ", tableBase);
         const Xid_tsa_tbody = "#id_tsa_tbody_" + tableBase;
         const Xid_lnk_tbody = "#id_lnk_tbody_" + tableBase;
 
-// console.log("stored_items", stored_items, typeof stored_items);
-// console.log("excel_items", excel_items, typeof excel_items);
+//console.log("stored_items", stored_items, typeof stored_items);
+//console.log("excel_items", excel_items, typeof excel_items);
 
         // JustUnlinkedTsaId = id_tsa_tr_sct_1
         // JustUnlinkedExcId = id_exc_tr_sct_2
@@ -1225,7 +1224,6 @@ console.log("========== response Upload employees ==>", typeof response,  respon
                 error: function (xhr, msg) {
 //--------- hide loading gif
                     ShowLoadingGif(false);
-
                     console.log(msg + '\n' + xhr.responseText);
                 }
             });
@@ -1270,20 +1268,15 @@ console.log("========== response Upload employees ==>", typeof response,  respon
 
 //=========  HandleBtnPrevNext  ================ PR2019-05-25
     function HandleBtnPrevNext(prev_next) {
-        console.log( "===== HandleBtnPrevNext ========= ");
+        //console.log( "===== HandleBtnPrevNext ========= ");
         if (!prev_next){prev_next = "mod_step1"}
-        console.log( "prev_next: ", prev_next);
+        //console.log( "prev_next: ", prev_next);
 
         let index = Number(selected_btn.charAt(8));
-        console.log( "index: ", index);
-        console.log( "index: ", index);
         if (prev_next === "next"){index++} else {index--}
         if (index > 4){index=4} else
         if (index <1){index=1};
-        console.log( "index: ", index);
         selected_btn =  "mod_step" + index.toString();
-        console.log( "new selected_btn: ", selected_btn);
-
 
 // ---  highlight selected button
         let btns = document.getElementById("id_btn_container").children;
@@ -1304,7 +1297,6 @@ console.log("========== response Upload employees ==>", typeof response,  respon
         let list = document.getElementsByClassName("mod_show");
         for (let i=0, len = list.length; i<len; i++) {
             let el = list[i]
-        console.log( "el: ", el);
             const is_show = el.classList.contains(selected_btn)
             show_hide_element(el, is_show)
         }

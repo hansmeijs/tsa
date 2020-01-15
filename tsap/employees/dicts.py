@@ -119,8 +119,8 @@ def create_employee_dict(instance, item_dict, user_lang):
 
 def create_teammember_list(filter_dict, company, user_lang):
     # --- create list of all teammembers of this order PR2019-08-29
-    logger.debug(' ----- create_teammember_list  -----  ')
-    logger.debug('filter_dict' + str(filter_dict) )
+    #logger.debug(' ----- create_teammember_list  -----  ')
+    #logger.debug('filter_dict' + str(filter_dict) )
     # teammember: {customer_pk: selected_customer_pk, order_pk: selected_order_pk},
 
     customer_pk = filter_dict.get('customer_pk')

@@ -939,12 +939,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // fill select table employees, skip selected employee
             ModEmployeeFillSelectTableEmployee(cur_employee_pk)
 
-    // change label 'txt_employee_replacement' to 'select_employee' if no employee, hide right panel
+    // change label 'txt_replacement' to 'select_employee' if no employee, hide right panel
             let data_text, mode;
             let el_body_right = document.getElementById("id_mod_employee_body_right")
             if(!!cur_employee_pk){
                 el_body_right.classList.remove(cls_hide)
-                data_text = "data-txt_employee_replacement"
+                data_text = "data-txt_replacement"
                 mode = "absence"
             } else {
                 el_body_right.classList.add(cls_hide)
@@ -1101,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_div_mod_absent.classList.remove(cls_hide)
             el_div_mod_switch.classList.add(cls_hide)
             el_div_mod_split.classList.add(cls_hide)
-            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_employee_replacement") + ":"
+            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_replacement") + ":"
             btn_absent.classList.add("tsa_btn_selected")
             break;
         case "switch":
@@ -1116,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_div_mod_absent.classList.add(cls_hide)
             el_div_mod_switch.classList.add(cls_hide)
             el_div_mod_split.classList.remove(cls_hide)
-            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_employee_replacement") + ":"
+            el_labl_mod_employee.innerText =  el_data.getAttribute("data-txt_replacement") + ":"
             btn_split.classList.add("tsa_btn_selected")
             el_mod_employee_input_employee.focus()
 		}

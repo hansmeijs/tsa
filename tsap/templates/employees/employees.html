@@ -21,22 +21,6 @@
 
             <table >
                 <thead id="id_thead_select"class="mx-1 my-1 ">
-                <!--
-                    <tr>
-                        <td>
-                            <input id="id_filter_select_input"
-                                type="text"
-                                class="td_width_150 tsa_bc_transparent border_none px-2"
-                                autocomplete="off"
-                                placeholder="{% trans 'filter ...' %}">
-                        </td>
-                        <td>
-                            <a id="id_sel_inactive" href="#">
-                                <img id="id_sel_img_inactive"  src="{% static 'img/inactive_lightgrey.png' %}" height="24" width="24">
-                            </a>
-                        </td>
-                    </tr>
-                -->
                 </thead>
                 <tbody id="id_tbody_select"></tbody>
             </table>
@@ -82,73 +66,27 @@
 
 {% block content %}
     {% if user.is_authenticated %}
+
+<!-- =================== id_msgbox  =================== -->
+        <div class="popup display_hide" >
+            <span class="popuptext" id="id_msgbox"></span>
+        </div>
+<!-- =================== POPUP DATE  =================== -->
+         <div id="id_popup_date_container" class="popup_box tsa_bc_yellow_lightlight display_hide">
+             <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
+         </div>
 <!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
-
-<!-- =================== MODAL PLANNING PERIOD  =================== -->
-    <div class="modal fade" id="id_mod_period" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-md " role="document">
-            <div class="modal-content">
-
-                <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_mod_period_header" class="modal-title mx-2" >{% trans 'Select period' %}</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-
-                <div  id="id_mod_period_body" class="modal-body">
-                    <h6 class="mx-2 my-1">{% trans 'Select an option or set the start- and end date' %}:</h6>
-                    <div class="modal_container">
-<!-- modal_body_left contains order select table -->
-                        <div class="modal_body_left">
-                           <div class="content_subheader_left m-2">
-                                <div>
-                                    <h5>{% trans 'Orders' %}:</h5>
-                                </div>
-                                <div >
-                                    <input id="id_modperiod_filter_order"
-                                        type="text"
-                                        class="td_width_150 tsa_bc_transparent border_none px-2"
-                                        autocomplete="off"
-                                        placeholder="{% trans 'filter ...' %}">
-                                </div>
-                                <div style="overflow-x:hidden;overflow-y:auto;height:320px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
-                                    <table class="table table-condensed tsa-tbl mx-1 my-1">
-                                        <tbody id="id_modperiod_tblbody_order" ></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal_body_left">
-                             <div class="form-group">
-                                <label for="id_mod_period_datefirst" class="mx-2 my-1">{% trans 'Period start date' %}:</label>
-                                <input id="id_mod_period_datefirst" type="date" class="form-control mx-2 my-1">
-                                <label for="id_mod_period_datelast" class="mx-2 my-1">{% trans 'Period end date' %}:</label>
-                                <input id="id_mod_period_datelast" type="date" class="form-control mx-2 my-1">
-                             </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                    <button id="id_mod_period_btn_save" type="button" class="btn btn-primary">{% trans 'OK' %}</button>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-
+<!-- =================== MODAL PERIOD  =================== -->
+        {% include 'includes/modperiod.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
         {% include 'includes/selectemployee.html' %}
 <!-- =================== MODAL EMPLOYEE SHIFT  ===================-->
         {% include 'includes/modemployeeshift.html' %}
 <!-- =================== CONTAINER =================== -->
         <div class="container ">
-
 <!-- CONTENT HEADER - LOADER -->
-            <div class="tsa_margin_top_64">
+            <div class="tsa_margin_top_32">
     <!-- class content_header -->
          <!-- header_text -->
                 <div class="content_header">
@@ -182,192 +120,69 @@
                     <button id="id_btn_list" type="button" data-mode="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
                     <button id="id_btn_absence" type="button"  data-mode="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
                     <button id="id_btn_team" type="button"  data-mode="shifts" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
-                    <button id="id_btn_calendar" type="button"  data-mode="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
-                    <button id="id_btn_planning" type="button"  data-mode="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
-                    <button id="id_btn_data" type="button"  data-mode="employee_form" class="btn btn-secondary ">{% trans 'Data' %}</button>
+                    <button id="id_btn_calendar" type="button" data-mode="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
+                    <button id="id_btn_planning" type="button" data-mode="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
+                    <button id="id_btn_data" type="button" data-mode="employee_form" class="btn btn-secondary ">{% trans 'Data' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
 
-<!-- =================== id_msgbox  =================== -->
-                <div class="popup display_hide" >
-                    <span class="popuptext" id="id_msgbox"></span>
-                </div>
-<!-- =================== POPUP DATE  =================== -->
-                 <div id="id_popup_date_container" class="popup_box tsa_bc_yellow_lightlight display_hide">
-                     <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
-                 </div>
-<!-- =================== DATA FORM  =================== -->
-                <div id="id_div_data_form" class="p-2 tsa_bc_lightlightgrey display_hide">
+                <div id="id_div_hdr_text"  class="content_header mx-2 my-2 display_hide">
+                    <div class="content_subheader_left mx-2">
+                        <h5 id="id_hdr_text" class="tab_show tab_employee tab_absence tab_shifts tab_calendar tab_employee_form"></h5>
 
-                     <div class="content_header">
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_code" class="tsa_margin_form_label">{% trans 'Short name' %}:</label>
-                            <input id="id_form_code" type="text" data-field= "code"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_namelast" class="tsa_margin_form_label">{% trans 'Last name' %}:</label>
-                            <input id="id_form_namelast" type="text" data-field="namelast"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_namefirst" class="tsa_margin_form_label">{% trans 'First name' %}:</label>
-                            <input id="id_form_namefirst" type="text" data-field="namefirst"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_identifier" class="tsa_margin_form_label">{% trans 'Identification code' %}:</label>
-                            <input id="id_form_identifier" type="text" data-field="identifier"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                     </div>
-                     <div class="content_header">
-                         <div class="content_subheader_left mx-1 ">
-                            <label for="id_form_telephone" class="tsa_margin_form_label">{% trans 'Telephone' %}:</label>
-                            <input id="id_form_telephone" type="text" data-field= "telephone"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1 ">
-                            <label for="id_form_email" class="tsa_margin_form_label">{% trans 'Email address' %}:</label>
-                            <input id="id_form_email" type="text" data-field= "email"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1 ">
-                            <label for="id_form_datefirst" class="tsa_margin_form_label">{% trans 'First date in service' %}:</label>
-                            <input id="id_form_datefirst" type="text" data-field= "datefirst"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control input_popup_date">
-                         </div>
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_datelast" class="tsa_margin_form_label">{% trans 'Last date in service' %}:</label>
-                            <input id="id_form_datelast" type="text" data-field= "datelast"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control input_popup_date">
-                         </div>
-                     </div>
-
-                     <div class="content_header">
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_address" class="tsa_margin_form_label">{% trans 'Address' %}:</label>
-                            <input id="id_form_address" type="text" data-field= "city"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_city" class="tsa_margin_form_label">{% trans 'City' %}:</label>
-                            <input id="id_form_city" type="text" data-field= "city"
-                                    autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_zipcode" class="tsa_margin_form_label">{% trans 'Zip code' %}:</label>
-                            <input id="id_form_zipcode" type="text" data-field= "zipcode"
-                            autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_country" class="tsa_margin_form_label">{% trans 'Country' %}:</label>
-                            <input id="id_form_country" type="text" data-field= "country"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                     </div>
-
-                     <div class="content_header">
-                         <div class="content_subheader_left mx-1">
-                             <label for="id_form_workhours" class="tsa_margin_form_label">{% trans 'Working hours per week' %}:</label>
-                            <input id="id_form_workhours" type="text" data-field= "workhours"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1 ">
-                            <label for="id_form_workdays" class="tsa_margin_form_label">{% trans 'Work days per week' %}:</label>
-                            <input id="id_form_workdays" type="text" data-field= "workdays"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1 ">
-                            <label for="id_form_leavedays" class="tsa_margin_form_label">{% trans 'Leave days per year' %}:</label>
-                            <input id="id_form_leavedays" type="text" data-field= "workdays"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                            <small class="tsa_margin_form_label">{% trans 'Leave days are on a full time basis.' %}</small>
-                         </div>
-                         <div class="content_subheader_left mx-1 ">
-                            <label for="id_form_payrollcode" class="tsa_margin_form_label">{% trans 'Payroll code' %}:</label>
-                            <input id="id_form_payrollcode" type="text" data-field= "payrollcode"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                     </div>
-                     <div class="content_header">
-                         <!--
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_wagerate" class="tsa_margin_form_label">{% trans 'Hourly wage' %}:</label>
-                            <input id="id_form_wagerate" type="text" data-field= "wagerate"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_wagecode" class="tsa_margin_form_label">{% trans 'Wage code' %}:</label>
-                            <input id="id_form_wagecode" type="text" data-field= "wagecode"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         -->
-                         <div class="content_subheader_left mx-1">
-                            <label for="id_form_pricerate" class="tsa_margin_form_label">{% trans 'Billing rate per hour' %}:</label>
-                            <input id="id_form_pricerate" type="text" data-field= "pricerate"
-                                autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
-                         </div>
-                         <div class="content_subheader_left mx-1"></div>
-                         <div class="content_subheader_left mx-1"></div>
-                         <div class="content_subheader_left mx-1"></div>
-                     </div>
-
-                    <div class="content_subheader_left mx-1 mt-4">
-                        <button id="id_form_btn_add" type="button" class="btn btn-outline-primary">{% trans 'Add employee' %}</button>
-                        <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger">{% trans 'Delete employee' %}</button>
+                        <h5 id="id_hdr_period" title="{% trans 'Click to select a period.' %}" class="pointer_show XXtab_show tab_planning">XXX</h5>
+                    </div>
+                    <div id="id_btns_calendar" class="content_subheader_right tab_show tab_calendar">
+                        <button id="id_btn_prevweek" data-mode="prevweek" title="{% trans 'Show previous week.' %}" class="btn btn-add ml-2">&Larr;</button>
+                        <button id="id_btn_prevday" data-mode="prevday" title="{% trans 'Go one day back.' %}" class="btn btn-add">&larr;</button>
+                        <button id="id_btn_select_date" data-mode="thisweek" class="btn btn-add">{% trans 'This week' %}</button>
+                        <button id="id_btn_nextday" data-mode="nextday" title="{% trans 'Go one day forward.' %}" class="btn btn-add"> &rarr;</button>
+                        <button id="id_btn_nextweek" data-mode="nextweek" title="{% trans 'Show next week.' %}" class="btn btn-add"> &Rarr;</button>
                     </div>
                 </div>
 
+
     <!-- =================== DATA TABLE  =================== -->
-                <div id="id_div_tbl_employee" class="display_hide">
+                <div id="id_div_tbl_employee" class="tab_show tab_employee">
                      <table class="table tsa-tbl ">
                         <thead id="id_thead_employee"></thead>
                         <tbody id="id_tbody_employee"></tbody>
+                        <tfoot id="id_tfoot_employee"></tfoot>
                     </table>
                 </div>
-                <div id="id_div_tbl_absence" class="display_hide">
+                <div id="id_div_tbl_absence" class="tab_show tab_absence">
                      <table  class="table tsa-tbl ">
                         <thead id="id_thead_absence"></thead>
                         <tbody id="id_tbody_absence"></tbody>
+                        <tfoot id="id_tfoot_absence"></tfoot>
                     </table>
                 </div>
-                <div id="id_div_tbl_shifts" class="display_hide">
+                <div id="id_div_tbl_shifts" class="tab_show tab_shifts">
                      <table  class="table tsa-tbl ">
                         <thead id="id_thead_shifts"></thead>
                         <tbody id="id_tbody_shifts"></tbody>
+                        <tfoot id="id_tfoot_shifts"></tfoot>
                     </table>
                 </div>
-                <div id="id_div_tbl_planning" class="display_hide">
+                <div id="id_div_tbl_planning" class="tab_show tab_planning">
                      <table  class="table tsa-tbl ">
                         <thead id="id_thead_planning"></thead>
                         <tbody id="id_tbody_planning"></tbody>
                     </table>
                 </div>
 
-                <div id="id_div_tbl_calendar" class="display_hide">
-
-                    <div class="content_header mx-2 mb-2">
-                        <div class="content_subheader_left mx-2">
-                            <h5 id="id_hdr_text"></h5>
-                        </div>
-
-                        <div id="id_btns_calendar" class="content_subheader_right">
-                            <button id="id_btn_prevweek" data-mode="prevweek" title="{% trans 'Show previous week.' %}" class="btn btn-add ml-2">&Larr;</button>
-                            <button id="id_btn_prevday" data-mode="prevday" title="{% trans 'Go one day back.' %}" class="btn btn-add">&larr;</button>
-                            <button id="id_btn_select date" data-mode="thisweek" class="btn btn-add">{% trans 'This week' %}</button>
-                            <button id="id_btn_nextday" data-mode="nextday" title="{% trans 'Go one day forward.' %}" class="btn btn-add"> &rarr;</button>
-                            <button id="id_btn_nextweek" data-mode="nextweek" title="{% trans 'Show next week.' %}" class="btn btn-add"> &Rarr;</button>
-                        </div>
-                    </div>
-
+                <div id="id_div_tbl_calendar" class="tab_show tab_calendar">
                      <table  class="table tsa-tbl">
                         <thead id="id_thead_calendar"></thead>
                         <tbody id="id_tbody_calendar"></tbody>
                     </table>
                 </div>
 
-   <!-- =================== END DATA TABLE  =================== -->
+<!-- =================== END DATA TABLE  =================== -->
+<!-- =================== DATA FORM  =================== -->
+                <div id="id_div_data_form" class="p-2 tsa_bc_lightlightgrey tab_show tab_employee_form display_hide">
+                    {% include 'employees/employee_form.html' %}
+                </div>
             </div>
 <!-- END CONTENT BODY -->
          </div>
@@ -403,13 +218,7 @@
             data-txt_company = "{% trans 'Company' %}"
             data-txt_employee = "{% trans 'Employee' %}"
             data-txt_employees= "{% trans 'Employees' %}"
-            data-txt_employee_select= "{% trans 'Select employee' %}"
-            data-txt_employee_select_none= "{% trans 'No employees' %}"
-            data-txt_employee_enter= "{% trans 'Enter employee' %}"
-            data-txt_employee_replacement= "{% trans 'Replacement employee' %}"
-            data-txt_employee_replacement_add= "{% trans 'Add replacement employee' %}"
-            data-txt_employee_list= "{% trans 'Employee list' %}"
-            data-txt_employee_data= "{% trans 'Employee data' %}"
+
             data-txt_employee_import= "{% trans 'Upload employees' %}"
             data-txt_employee_delete= "{% trans 'Delete employee' %}"
             data-txt_employee_add= "{% trans 'Add new employee' %}"
@@ -435,19 +244,8 @@
             data-txt_make_inactive = "{% trans 'Make employee inactive' %}"
             data-txt_make_active = "{% trans 'Make employee active' %}"
 
-
             data-txt_date="{% trans 'Date' %}"
             data-txt_rosterdate="{% trans 'Rosterdate' %}"
-            data-txt_timestart= "{% trans 'Start time' %}"
-            data-txt_timeend= "{% trans 'End time' %}"
-            data-txt_datefirst= "{% trans 'First date' %}"
-            data-txt_datelast= "{% trans 'Last date' %}"
-            data-txt_hoursperday= "{% trans 'Hours per day' %}"
-            data-txt_daysperweek= "{% trans 'Days per week' %}"
-            data-txt_vacation= "{% trans 'Vacation days' %}"
-            data-txt_identifier= "{% trans 'Identifier' %}"
-            data-txt_pricerate= "{% trans 'Hourly rate' %}"
-            data-txt_wagerate= "{% trans 'Wage rate' %}"
 
             data-txt_confirm_msg01_delete = "{% trans 'will be deleted.' %}"
             data-txt_confirm_msg01_employee_delete = "{% trans 'This employee will be deleted.' %}"

@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def create_company_list(company):
-    # logger.debug(' --- create_customer_list --- ')
+    #logger.debug(' --- create_customer_list --- ')
     item_dict = {}
     if company:
         # FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier', 'email', 'telephone',
@@ -31,19 +31,21 @@ def create_company_list(company):
 
     return item_dict
 
-def create_customer_list(company, is_absence, is_template=None, inactive=None):
-    # logger.debug(' --- create_customer_list --- ')
-    # logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
+def create_customer_list(company, is_absence=None, is_template=None, inactive=None):
+    #logger.debug(' --- create_customer_list --- ')
+    #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
 
 # --- create list of customers of this company PR2019-09-03
     # .order_by(Lower('code')) is in model
-    crit = (Q(company=company) & Q(isabsence=is_absence))
+    crit = Q(company=company)
+    if is_absence is not None:
+        crit.add(Q(isabsence=is_absence), crit.connector)
     if is_template is not None:
         crit.add(Q(istemplate=is_template), crit.connector)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
     customers = m.Customer.objects.filter(crit)
-    # logger.debug(str(customers.query))
+    #logger.debug(str(customers.query))
 
     customer_list = []
     for customer in customers:
@@ -93,13 +95,15 @@ def create_customer_dict(customer, item_dict):
     f.remove_empty_attr_from_dict(item_dict)
 
 
-def create_order_list(company, user_lang, is_absence, is_template=None, inactive=None):
-    # logger.debug(' --- create_order_list --- ')
+def create_order_list(company, user_lang, is_absence=None, is_template=None, inactive=None):
+    #logger.debug(' --- create_order_list --- ')
     # Order of absence and template are made by system and cannot be updated
     # TODO: make it possible to rename them as company setting
 
 # --- create list of orders of this company PR2019-06-16
-    crit = (Q(customer__company=company) & Q(isabsence=is_absence))
+    crit = Q(customer__company=company)
+    if is_absence is not None:
+        crit.add(Q(isabsence=is_absence), crit.connector)
     if is_template is not None:
         crit.add(Q(istemplate=is_template), crit.connector)
     if inactive is not None:
@@ -110,7 +114,7 @@ def create_order_list(company, user_lang, is_absence, is_template=None, inactive
         orders = m.Order.objects.filter(crit).order_by('sequence')
     else:
         orders = m.Order.objects.filter(crit).order_by('customer__code', 'code')
-    # logger.debug(orders.query)
+    #logger.debug(orders.query)
 
     order_list = []
     for order in orders:
@@ -189,16 +193,16 @@ def create_order_dict(order, item_dict, user_lang):
                 # TODO add cur_rosterdate, cur_wagefactor
                 pricerate = None
                 pricerate_json = getattr(order, 'priceratejson')
-                # logger.debug('>>  pricerate_json: ' + str(pricerate_json))
+                #logger.debug('>>  pricerate_json: ' + str(pricerate_json))
                 if pricerate_json:
                     pricerate_dict = json.loads(pricerate_json)
-                    # logger.debug('pricerate_dict: ' + str(pricerate_dict))
+                    #logger.debug('pricerate_dict: ' + str(pricerate_dict))
                     pricerate = f.get_pricerate_from_dict(pricerate_dict, None, None)
-                    # logger.debug('>>> pricerate: ' + str(pricerate))
+                    #logger.debug('>>> pricerate: ' + str(pricerate))
                     if pricerate is not None:
                         field_dict['value'] = pricerate
                 field_dict['display'] = f.get_rate_display(pricerate, user_lang)
-                # logger.debug('field_dict: ' + str(field_dict))
+                #logger.debug('field_dict: ' + str(field_dict))
 
             else:
                 value = getattr(order, field)
@@ -216,15 +220,15 @@ def create_absencecategory_list(request):
     # each absence category contains abscat_customer, abscat_order, abscat_scheme and abscat_team
     order_list = []
 
-    # logger.debug(" --- create_absencecategory_list ---")
+    #logger.debug(" --- create_absencecategory_list ---")
     # create an absence customer, order scheme and teams if they do not exist yet PR2019-07-27
     get_or_create_absence_customer(request)
-    # logger.debug(" --- get_or_create_absence_customer ---")
+    #logger.debug(" --- get_or_create_absence_customer ---")
 
     orders = m.Order.objects.filter(customer__company=request.user.company, isabsence=True).order_by('sequence')
 
     for order in orders:
-        # logger.debug(" --- for order in orders ---")
+        #logger.debug(" --- for order in orders ---")
         dict = create_absencecat_dict(order, request)
         order_list.append(dict)
 
@@ -234,14 +238,14 @@ def create_absencecategory_list(request):
 def create_absencecat_dict(order, request):
 # --- create dict of this absence category PR2019-06-25
 # if scheme or team of this order does not exist: create it
-    # logger.debug(" --- create_absencecat_dict ---")
-    # logger.debug("order: ", order)
+    #logger.debug(" --- create_absencecat_dict ---")
+    #logger.debug("order: ", order)
     item_dict = {}
     if order:
         abscat_code = getattr(order, 'code', '-')
         customer = order.customer
         customer_code =  getattr(customer, 'code', '-')
-        # logger.debug("abscat_code: ", abscat_code)
+        #logger.debug("abscat_code: ", abscat_code)
 
         item_dict['id'] = {
             'pk': order.pk,
@@ -262,9 +266,9 @@ def create_absencecat_dict(order, request):
     return item_dict
 
 
-# === Create new 'absence' customer, order and scheme and team
+# === Create new 'absence' customer and orders. Every absence teammember has its own scheme and team (and shift)
 def get_or_create_absence_customer(request):
-    # logger.debug(" === get_or_create_absence_customer ===")
+    #logger.debug(" === get_or_create_absence_customer ===")
 
 # 1. get locale text of absene categories
     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
@@ -303,7 +307,7 @@ def get_or_create_absence_customer(request):
 
 def create_absence_orders(abs_cust, user_lang, request):
 # === Create new 'absence' orders PR2019-06-24 PR2019-12-18
-    # logger.debug(" === create_absence_orders ===")
+    #logger.debug(" === create_absence_orders ===")
 
     if user_lang in c.ABSENCE_CATEGORY:
         categories_locale = c.ABSENCE_CATEGORY[user_lang]
@@ -331,7 +335,7 @@ def create_absence_orders(abs_cust, user_lang, request):
 
 # === Create new 'template' customer and order
 def get_or_create_template_order(request):
-    # logger.debug(" --- get_or_create_template_order ---")
+    #logger.debug(" --- get_or_create_template_order ---")
 
     order = None
     # get user_lang
@@ -359,7 +363,7 @@ def get_or_create_template_order(request):
             customer.save(request=request)
 
 # 3. check if 'template' customer has order - only one 'template' order allowed
-    # logger.debug('customer: ' + str(customer))
+    #logger.debug('customer: ' + str(customer))
     if customer:
          # don't use get_or_none, it wil return None when multiple customers exist
         order = m.Order.objects.filter(
@@ -374,13 +378,13 @@ def get_or_create_template_order(request):
                 istemplate=True
             )
             order.save(request=request)
-            # logger.debug("order.save: " + str(order.pk) + ' ' + str(order.code))
-    # logger.debug('order: ' + str(order))
+            #logger.debug("order.save: " + str(order.pk) + ' ' + str(order.code))
+    #logger.debug('order: ' + str(order))
     return order
 
 
 def create_order_pricerate_list(company, user_lang):
-    # logger.debug(' --- create_order_pricerate_list --- ')
+    #logger.debug(' --- create_order_pricerate_list --- ')
 
     # --- create list of all active customers of this company PR2019-09-03, no absence, no template
 

@@ -37,8 +37,8 @@
 <!-- BUTTON GROUP -->
             <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                 <button id="id_btn_mod_step1" type="button" data-mode="mod_step1" class="btn btn-secondary">{% trans 'Step' %} 1: {% trans 'Select file' %}</button>
-                <button id="id_btn_mod_step2" type="button" data-mode="mod_step2" class="btn btn-secondary">{% trans 'Step' %} 2: {% trans 'Link colums' %}</button>
-                <button id="id_btn_mod_step3" type="button" data-mode="mod_step3" class="btn btn-secondary">{% trans 'Step' %} 3: {% trans 'Calculate short name' %}</button>
+                <button id="id_btn_mod_step2" type="button" data-mode="mod_step2" class="btn btn-secondary">{% trans 'Step' %} 2: {% trans 'Calculate short name' %}</button>
+                <button id="id_btn_mod_step3" type="button" data-mode="mod_step3" class="btn btn-secondary">{% trans 'Step' %} 3: {% trans 'Link colums' %}</button>
                 <button id="id_btn_mod_step4" type="button"  data-mode="mod_step4" class="btn btn-secondary ">{% trans 'Step' %} 4: {% trans 'Upload data' %}</button>
             </div>
     <!-- end BUTTON GROUP -->
@@ -82,7 +82,7 @@
                             {% trans "Select how you want TSA to calculate the short name." %} {% trans "If the short name is calculated, a linked short name will be ignored." %}
                         </small></div>
                         <div class="content_header">
-                            <div class="content_subheader_left mx-1">
+                            <div class="tsa_flex_2  mx-1">
                                 <select id="id_select_code_calc" type="text" size="4"
                                         autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                         class="form-control mt-2">
@@ -92,7 +92,7 @@
                                     <option value="nospace">{% trans "Calculate like: Smith JSA" %}</option>
                                 </select>
                             </div>
-                            <div class="content_subheader_left mx-1">
+                            <div class="tsa_flex_1 mx-1">
                             </div>
                         </div>
                     </div>
@@ -141,6 +141,12 @@
                 data-settings = "{{ setting }}"
                 data-txt_no_worksheets= "{% trans 'There are no worksheets.' %}"
                 data-txt_no_worksheets_with_data= "{% trans 'There are no worksheets with data.' %}"
+
+                data-txt_filename= "{% trans 'File name' %}"
+                data-txt_novalidtype= "{% trans 'Not a valid file type.' %}"
+                data-txt_updateyourselection= "{% trans 'Update your selection.' %}"
+
+
             ></div>
 
         </div>

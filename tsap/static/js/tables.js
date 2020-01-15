@@ -14,11 +14,16 @@
                             HandleSelect_Filter, HandleSelectFilterButton,
                             HandleSelect_Row, HandleSelectRowButton,
                             imgsrc_default, imgsrc_hover,
-                            filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey) {
+                            imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
+                            title_header_btn) {
         //console.log(" --- FillSelectTable");
-        //console.log("data_map: ", data_map);
 
-        CreateSelectHeader(tblName, HandleSelect_Filter, HandleSelectFilterButton, imgsrc_default, imgsrc_hover);
+       // select table has button when HandleSelectFilterButton has value
+       // select table has inactive button when imgsrc_inactive_lightgrey has value
+        const is_delete = (!!HandleSelectFilterButton && !imgsrc_inactive_lightgrey);
+
+        CreateSelectHeader(is_delete, tblName, HandleSelect_Filter, HandleSelectFilterButton, imgsrc_default, imgsrc_hover,
+                            imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, title_header_btn);
 
         let tblBody_select = document.getElementById("id_tbody_select");
         tblBody_select.innerText = null;
@@ -28,7 +33,7 @@
 //--- loop through data_map
         for (const [map_id, item_dict] of data_map.entries()) {
             const row_index = null // add at end when no rowindex
-            let selectRow = CreateSelectRow(tblBody_select, tblName, row_index, item_dict, selected_pk,
+            let selectRow = CreateSelectRow(is_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                         HandleSelect_Row, HandleSelectRowButton,
                                         imgsrc_default, imgsrc_hover);
 
@@ -39,11 +44,13 @@
     } // FillSelectTable
 
 //========= CreateSelectHeader  ============= PR2019-12-21
-    function CreateSelectHeader(tblName, HandleSelect_Filter, HandleSelectFilterButton, imgsrc_default, imgsrc_hover) {
+    function CreateSelectHeader(is_delete, tblName, HandleSelect_Filter, HandleSelectFilterButton, imgsrc_default, imgsrc_hover,
+                            imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
+                            title_header_btn) {
         //console.log(" === CreateSelectHeader === ")
 
-        const show_button = (!!HandleSelectFilterButton);
-        //console.log("show_button = ", show_button)
+        const has_button = (!!HandleSelectFilterButton);
+        //console.log("has_button = ", has_button)
 
         let tblHead = document.getElementById("id_thead_select");
         tblHead.innerText = null;
@@ -62,11 +69,12 @@
                 el_input.addEventListener("keyup", function() {
                     setTimeout(function() {HandleSelect_Filter()}, 50)});
 
-                const td_width = (show_button) ? "td_width_150" : "td_width_200";
+                const td_width = (has_button) ? "td_width_150" : "td_width_200";
                 el_input.classList.add(td_width)
-                //el_input.classList.add("tsa_bc_transparent")
+                el_input.classList.add("tsa_bc_transparent")
                 el_input.classList.add("border_none")
                 el_input.classList.add("px-2")
+                el_input.classList.add("tsa_color_placeholder_white")
                 el_input.setAttribute("autocomplete", "off")
                 el_input.setAttribute("placeholder", "filter ...")
 
@@ -74,8 +82,9 @@
         tblRow.appendChild(td);
 
 // --- add filter button tblRow.
-        if (show_button){
-            CreateSelectButton(tblRow, HandleSelectFilterButton, imgsrc_default, imgsrc_hover )
+        if (has_button){
+            CreateSelectButton(true, is_delete, tblRow, HandleSelectFilterButton, imgsrc_default, imgsrc_hover,
+                            imgsrc_inactive_lightgrey, title_header_btn)
         }
 
 // --- add imgsrc_rest_black to shift header, inactive_black toschemeitem
@@ -91,9 +100,11 @@
     }  // CreateSelectHeader
 
 //========= CreateSelectRow  ============= PR2019-10-20
-    function CreateSelectRow(tblBody_select, tblName, row_index, item_dict, selected_pk,
+    function CreateSelectRow(is_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                 HandleSelect_Row, HandleSelectRowButton,
-                                imgsrc_default, imgsrc_hover ) {
+                                imgsrc_default, imgsrc_hover,
+                            imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
+                            title_header_btn) {
         //console.log(" === CreateSelectRow === ")
         //console.log("selected_pk: ", selected_pk);
 
@@ -151,9 +162,12 @@
 
     // --- add default inactive img to second td in table, only when HandleSelectRowButton exists
     // or grey delete button, gets red on hover
-            const show_button = (!!HandleSelectRowButton);
-            if (show_button) {
-                CreateSelectButton(tblRow, HandleSelectRowButton, imgsrc_default, imgsrc_hover);
+            const has_button = (!!HandleSelectRowButton);
+            if (has_button) {
+                // CreateSelectButton(is_delete, is_header, tblRow, HandleSelectButton, imgsrc_default, imgsrc_hover, imgsrc_light)
+                CreateSelectButton(false, is_delete, tblRow, HandleSelectRowButton,
+                                    imgsrc_default, imgsrc_hover, imgsrc_inactive_lightgrey,
+                                    title_header_btn);
             }  // if (show_button) {
 
         }  //  if (!isEmpty(item_dict))
@@ -161,7 +175,8 @@
     } // CreateSelectRow
 
 //=========  CreateSelectButton  ================ PR2019-11-16
-    function CreateSelectButton(tblRow, HandleSelectButton, imgsrc_default, imgsrc_hover ){
+    function CreateSelectButton(is_header, is_delete, tblRow, HandleSelectButton,
+                                imgsrc_default, imgsrc_hover, imgsrc_light, title_header_btn){
         //console.log(" === CreateSelectButton === ")
         // SelectButton can be Inactive or Delete
         let td = tblRow.insertCell(-1);
@@ -169,22 +184,26 @@
                 el_a.setAttribute("id", "id_filter_select_btn")
                 el_a.setAttribute("href", "#");
                 el_a.addEventListener("click", function(){HandleSelectButton(el_a)}, false )
-                //- add hover only when imgsrc_hover exists
-                if(!!imgsrc_hover){
+
+                if(!!title_header_btn){el_a.title = title_header_btn}
+                    //- add hover only on delete button
+                if(!!is_delete && !is_header){
                     el_a.addEventListener("mouseenter", function(){el_a.children[0].setAttribute("src", imgsrc_hover)});
                     el_a.addEventListener("mouseleave", function(){el_a.children[0].setAttribute("src", imgsrc_default)});
                 }
                 el_a.classList.add("mx-2")
-            AppendChildIcon(el_a, imgsrc_default)
+            const skip_btn = (is_delete && is_header)
+            if(!skip_btn) {
+                const img_src = (is_header) ? imgsrc_light :  imgsrc_default;
+                AppendChildIcon(el_a, img_src)
+            }
         td.appendChild(el_a);
         td.classList.add("td_width_032");
-
     }  // CreateSelectButton
 
 //========= UpdateSelectRow  ============= PR2019-10-20
     function UpdateSelectRow(selectRow, update_dict, include_parent_code, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey) {
         //console.log("UpdateSelectRow in tables.js");
-        //console.log("update_dict", update_dict);
 
         // update_dict = { id: {pk: 489, ppk: 2, table: "customer"}, cat: {value: 0}, inactive: {},
         //                 code: {value: "mc"} , name: {value: "mc"}, interval: {value: 0}
@@ -202,7 +221,6 @@
             } else {
 // --- put value of select row in tblRow and el_input
                 let code_value = get_subdict_value_by_key(update_dict, "code", "value", "")
-                //console.log("update_dict", update_dict);
 
 // if include_parent_code: add parent code to code_value . include_parent_code containsname of table: 'customer'
                 if (!!include_parent_code && include_parent_code in update_dict){
@@ -461,7 +479,7 @@
                 id_dict["pk"] = pk_int};
 
             // don't use Number, id can also be "543-02" in planning, that retruns false with Number
-            if(!parseInt(id_str)) {
+            if(!parseInt(pk_str)) {
                 id_dict["temp_pk"] = id_str;
             }
 
@@ -474,8 +492,8 @@
             if (!!tblName){id_dict["table"] = tblName}
 
 // get mode from data-table in el (mode is used in employees.js)
-            const data_mode = get_attr_from_el(el, "data-mode");
-            if (!!data_mode){id_dict["mode"] = data_mode}
+            //const data_mode = get_attr_from_el(el, "data-mode");
+            //if (!!data_mode){id_dict["mode"] = data_mode}
 
         }
         return id_dict
@@ -706,13 +724,13 @@
 //=========  ShowMsgError  ================ PR2019-06-01
     function ShowMsgError(el_input, el_msg, msg_err, offset, set_value, display_value, data_value, display_title) {
         // show MsgBox with msg_err , offset[0] shifts horizontal position, offset[1] VERTICAL
-        console.log("ShowMsgError")
-        console.log("el_msg", el_msg )
-        // console.log("msg_err", msg_err, typeof msg_err )
-        // console.log("set_value", set_value, typeof set_value )
-        // console.log("display_value", display_value, typeof display_value )
-        // console.log("data_value", data_value, typeof data_value )
-        // console.log("display_title", display_title, typeof display_title )
+        //console.log("ShowMsgError")
+        //console.log("el_msg", el_msg )
+        //console.log("msg_err", msg_err, typeof msg_err )
+        //console.log("set_value", set_value, typeof set_value )
+        //console.log("display_value", display_value, typeof display_value )
+        //console.log("data_value", data_value, typeof data_value )
+        //console.log("display_title", display_title, typeof display_title )
 
         if(!!el_input && msg_err) {
             el_input.classList.add("border_bg_invalid");
@@ -721,11 +739,11 @@
         // The viewport is the user's visible area of a web page.
         // const viewportWidth = document.documentElement.clientWidth;
         // const viewportHeight = document.documentElement.clientHeight;
-        // console.log("viewportWidth: " + viewportWidth + " viewportHeight: " + viewportHeight  )
+        //console.log("viewportWidth: " + viewportWidth + " viewportHeight: " + viewportHeight  )
 
         // const docWidth = document.body.clientWidth;
         // const docHeight = document.body.clientHeight;
-        // console.log("docWidth: " + docWidth + " docHeight: " + docHeight  )
+        //console.log("docWidth: " + docWidth + " docHeight: " + docHeight  )
 
         // put  msgbox in HTML right below {% if user.is_authenticated %}
         // el_msg [0,0] pposotions msgbox on left top position of <div id="id_content">
@@ -840,9 +858,9 @@
 
 //=========  HighlightSelectRowByPk  ================ PR2019-10-05
     function HighlightSelectRowByPk(tableBody, selected_pk, cls_selected, cls_background) {
-        console.log(" --- HighlightSelectedSelectRowByPk ---")
-        console.log("cls_selected", cls_selected)
-        console.log("cls_background", cls_background)
+        //console.log(" --- HighlightSelectedSelectRowByPk ---")
+        //console.log("cls_selected", cls_selected)
+        //console.log("cls_background", cls_background)
 
         if(!!tableBody){
             DeselectHighlightedTblbody(tableBody, cls_selected, cls_background)
@@ -852,15 +870,15 @@
                 tblRow = tblrows[i];
                 if(!!tblRow){
                     const pk_int = parseInt(tblRow.getAttribute("data-pk"));
-        console.log("pk_int", pk_int, typeof pk_int)
+        //console.log("pk_int", pk_int, typeof pk_int)
                     if (!!selected_pk && pk_int === selected_pk){
-                        console.log("----------------------------pk_int === selected_pk")
+                        //console.log("----------------------------pk_int === selected_pk")
                         if(!!cls_background){tblRow.classList.remove(cls_background)};
                         tblRow.classList.add(cls_selected)
                         tblRow.classList.add("TESTING")
-                        console.log("----------------------------TESTING")
+                        //console.log("----------------------------TESTING")
                     } else if(tblRow.classList.contains(cls_selected)) {
-                        console.log("pk_int !== selected_pk")
+                        //console.log("pk_int !== selected_pk")
                         tblRow.classList.remove(cls_selected);
                         if(!!cls_background){tblRow.classList.add(cls_background)}
                     }
@@ -1067,7 +1085,7 @@
                 }; // if(col_inactive !== -1){
 
 // show all rows if filter_name = ""
-            // console.log(  "show_row", show_row, "filter_name",  filter_name,  "col_length",  col_length);
+            //console.log(  "show_row", show_row, "filter_name",  filter_name,  "col_length",  col_length);
                 if (show_row && !!filter_name){
                     let found = false
                     for (let i = 0, len = tblRow.cells.length, el, el_value; i < len; i++) {
@@ -1108,7 +1126,7 @@
 
 //  ======= ReplaceItemDict ========
     function ReplaceItemDict (item_list, item_dict){
-        // console.log ("======= ReplaceItemDict ========")
+        //console.log ("======= ReplaceItemDict ========")
         const len = item_list.length;
         // function searches dict in list and replaces it with updated dict
         if (!!len && !isEmpty(item_dict)){
@@ -1125,7 +1143,7 @@
 
 //  ======= SortItemList ========
     function SortItemList (item_list, field, user_lang){
-        // console.log ("======= SortItemList ========")
+        //console.log ("======= SortItemList ========")
 
         let sorted_list = []
         const item_list_len = item_list.length;
@@ -1147,14 +1165,14 @@
             } // for (let i = 0, item_dict; i < len; i++) {
 
         }  //  if (!!len)
-        // console.log (sorted_list)
+        //console.log (sorted_list)
         return sorted_list
     };  // SortItemList
 
 
 //  ======= SortItem ========
     function SortItem (sorted_list, item_str, field,user_lang ){
-        // console.log ("--- SortItem ---> ", item_str)
+        //console.log ("--- SortItem ---> ", item_str)
         // function searches dict in list and replaces it with updated dict
 
         // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
@@ -1175,7 +1193,7 @@
 
 // make index halfway min_index and max_index
             idx = Math.floor((max_index - min_index)/2)
-            // console.log ( "---idx: ", idx, "min_index", min_index, "max_index", max_index)
+            //console.log ( "---idx: ", idx, "min_index", min_index, "max_index", max_index)
 
 // find item in middle of sorted_list
             for (let x = 0; x < sorted_len; x++) {
@@ -1202,7 +1220,7 @@
                     idx = Math.ceil((max_index + min_index)/2)
                 }
 
-                // console.log (item_str, " <> ", sorted_str, "compare: ", compare, "less_than_index: ", less_than_index, "greater_than_index: ", greater_than_index)
+                //console.log (item_str, " <> ", sorted_str, "compare: ", compare, "less_than_index: ", less_than_index, "greater_than_index: ", greater_than_index)
 
 // repeat till less_than_index and greater_than_index havedifference <=1
                 if( (less_than_index - greater_than_index ) <= 1){
@@ -1213,54 +1231,17 @@
             } // for (let x = 0; x < list_len; x++) {
         }  //   if (!!sorted_len && item_str)
 
-        // console.log ("insert_index: ", insert_index)
+        //console.log ("insert_index: ", insert_index)
         return insert_index
     };  // SortItem
-
-/*
-//NOT IN USE ========= ShowRow ========= PR2019-06-09
-    function ShowRow(row_dict, field_list, filter, inactive_included) {
-        console.log("==== ShowRow ===")
-
-        // function filters by substring of filter, get value from attr "data-value" from element
-        let show_row = false;
-
-        const len = field_list.length
-        if (!len) {
-            show_row = true;
-        } else {
-
-            for (let i = 0, fieldname, field_dict, value; i <len; i++) {
-                fieldname = field_list[i];
-                field_dict = get_dict_value_by_key(row_dict, fieldname)
-                value = get_dict_value_by_key(field_dict, "value")
-                console.log("fieldname: ", fieldname, "value: ", value, "field_dict: ", field_dict)
-
-// --- show active rows, when inactive_included: show also inactive rows
-        if (inactive_included || !inactive){
-// --- hide rows with empty value
-            if (!!value){
-    // --- show all rows if filter = ""
-                if (!filter){
-                    show_row = true
-                } else {
-                    value = value.toLowerCase();
-// --- show rows when substring 'filter' is  found in string 'value'
-                    show_row = (value.indexOf(filter) !== -1)
-        }}}
-
-            }  // for (let i = 0 ; i
-        }  // if (!len)
-        return show_row
-    }; // function ShowRow
-*/
 
 //>>>>>>>>>>> FILL OPTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //========= FillSelectOption2020  ====================================
-    function FillSelectOption2020(el_select, data_map, tblName, is_template_mode, ppk_str, selected_pk,
-            has_selectall, selectall_text, select_text_none, select_text) {
+    function FillSelectOption2020(el_select, data_map, tblName, is_template_mode, has_selectall, hide_none,
+            ppk_str, selected_pk, selectall_text, select_text_none, select_text) {
         //console.log( "=== FillSelectOption2020 ", tblName, "ppk_str:" , ppk_str);
+        //console.log( "hide_none", hide_none);
 
 // ---  fill options of select box
         let option_text = "";
@@ -1271,26 +1252,31 @@
         if (!!ppk_str){ppk_int = parseInt(ppk_str)};
 
 // --- loop through data_map
-        for (const [map_id, item_dict] of data_map.entries()) {
-            const pk_int = get_pk_from_dict(item_dict);
-            const ppk_in_dict = get_ppk_from_dict(item_dict);
-            const is_template = get_subdict_value_by_key(item_dict, "id", "istemplate", false);
-            const code_value = get_subdict_value_by_key(item_dict, "code", "value", "-");
+        if(!!data_map){
+            for (const [map_id, item_dict] of data_map.entries()) {
+                const pk_int = get_pk_from_dict(item_dict);
+                const ppk_in_dict = get_ppk_from_dict(item_dict);
+                const is_template = get_subdict_value_by_key(item_dict, "id", "istemplate", false);
+                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "-");
 
-    // filter is_template
-            if (is_template === is_template_mode) {
-    // skip if ppk_int exists and does not match ppk_in_dict (not in tbl customer)
-                if ((!!ppk_int && ppk_int === ppk_in_dict) || (tblName === "customer")) {
-                    option_text += "<option value=\"" + pk_int + "\"";
-                    option_text += " data-ppk=\"" + ppk_in_dict + "\"";
-                    if (pk_int === selected_pk) {option_text += " selected=true" };
-                    option_text +=  ">" + code_value + "</option>";
-                    row_count += 1
+        // filter is_template
+                if (is_template === is_template_mode) {
+        // skip if ppk_int exists and does not match ppk_in_dict (not in tbl customer)
+                    if ((!!ppk_int && ppk_int === ppk_in_dict) || (tblName === "customer")) {
+                        option_text += "<option value=\"" + pk_int + "\"";
+                        option_text += " data-ppk=\"" + ppk_in_dict + "\"";
+                        if (pk_int === selected_pk) {option_text += " selected=true" };
+                        option_text +=  ">" + code_value + "</option>";
+                        row_count += 1
+                    }
                 }
             }
-        }
+        }  //   if(!!data_map){
         let select_first_option = false;
-        if (!row_count && !!select_text_none){
+
+        // when 'all customers is selected (selected_customer_pk): there are no orders in selectbox 'orders'
+        // to display 'all orders' instead of 'no orders' we make have boolean 'hide_none' = true
+        if (!row_count && !!select_text_none && !hide_none){
             option_text = "<option value=\"\" disabled selected hidden>" + select_text_none + "...</option>"
         } else if (!!has_selectall){
             option_text = "<option value=\"0\">" + selectall_text + "</option>" + option_text;
@@ -1304,11 +1290,12 @@
         if (select_first_option){
             el_select.selectedIndex = 0
         }
+        el_select.disabled = (!row_count)
     }  //function FillSelectOption2020
 
 //========= FillOptionsPeriodExtension  ====================================
     function FillOptionsPeriodExtension(el_select, option_list) {
-        // console.log( "=== FillOptionsPeriodExtension  ");
+        //console.log( "=== FillOptionsPeriodExtension  ");
 
 // ---  fill options of select box
         let option_text = null;
@@ -1325,7 +1312,7 @@
 
 //========= FillOptionsAbscat  ====================================
     function FillOptionsAbscat(el_select, abscat_map, select_txt, select_none_txt) {
-        // console.log( "=== FillOptionsAbscat  ");
+        //console.log( "=== FillOptionsAbscat  ");
 
 // ---  fill options of select box
         let option_text = "";
@@ -1367,7 +1354,6 @@
             el_select.selectedIndex = 0
         }
     }  // function FillOptionsAbscat
-
 
 //========= FillOptionShiftOrTeamFromList  ============= PR2020-01-08
     function FillOptionShiftOrTeamFromList(data_list, sel_parent_pk_int, selected_pk_int, with_rest_abbrev, firstoption_txt) {
@@ -1459,8 +1445,8 @@
         const Xid_lnk_tbody = "#id_lnk_tbody_" + tableBase;
 
         // only when level is required, i.e. when mapped_level_list exists
-// console.log("stored_items", stored_items, typeof stored_items);
-// console.log("excel_items", excel_items, typeof excel_items);
+//console.log("stored_items", stored_items, typeof stored_items);
+//console.log("excel_items", excel_items, typeof excel_items);
 
         // JustUnlinkedAwpId = id_awp_tr_sct_1
         // JustUnlinkedExcId = id_exc_tr_sct_2
@@ -1633,8 +1619,8 @@
 
     function get_teamcode_with_sequence(team_map, parent_pk, loc){
         "use strict";
-        console.log(' --- get_teamcode_with_sequence --- ')
-        console.log('parent_pk: ', parent_pk)
+        //console.log(' --- get_teamcode_with_sequence --- ')
+        //console.log('parent_pk: ', parent_pk)
         // create new code with sequence 1 higher than existing code PR2019-12-28
         // get scheme names of this order
         let new_code = "", default_code = "", default_code_len = 0;
