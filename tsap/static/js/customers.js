@@ -248,7 +248,6 @@ let planning_list = [] // for export and printing - can replace map?
         document.getElementById("id_mod_period_datelast").addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false )
         document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false )
 
-
 // ---  MOD CONFIRM ------------------------------------
 // ---  save button in ModConfirm
         let el_confirm_btn_save = document.getElementById("id_confirm_btn_save");
@@ -516,10 +515,10 @@ let planning_list = [] // for export and printing - can replace map?
     }
 
 //=========  HandleBtnSelect  ================ PR2019-05-25
-    function HandleBtnSelect(data_mode, skip_update) {
+    function HandleBtnSelect(btn_mode, skip_update) {
         //console.log( "===== HandleBtnSelect ========= ", data_mode);
 
-        selected_btn = data_mode
+        selected_btn = btn_mode
         if(!selected_btn){selected_btn = "customer"}
 
 // ---  upload new selected_btn
@@ -528,16 +527,8 @@ let planning_list = [] // for export and printing - can replace map?
             UploadSettings (upload_dict, url_settings_upload);
         }
 // ---  highlight selected button
-        let btns = document.getElementById("id_btn_container").children;
-        for (let i = 0, btn, len = btns.length; i < len; i++) {
-            btn = btns[i]
-            const data_mode = get_attr_from_el(btn, "data-mode")
-            if (data_mode === selected_btn){
-                btn.classList.add(cls_btn_selected)
-            } else {
-                btn.classList.remove(cls_btn_selected)
-            }
-        }
+        let btn_container = document.getElementById("id_btn_container")
+        HighlightBtnSelect(btn_container, selected_btn);
 
 // ---  show orderlist in selecttable when clicked on plnning, otherwise: customer_lsi
         const tblName = (selected_btn === "calendar") ? "order" : "customer";
@@ -559,7 +550,7 @@ let planning_list = [] // for export and printing - can replace map?
                 const tblName = "customer";
                 const imgsrc_default = imgsrc_inactive_grey;
                 const imgsrc_hover = imgsrc_inactive_black;
-            const title_header_btn = "Click to show or hide inactive customers";
+                const title_header_btn = "Click to show or hide inactive customers";
 
                 FillSelectTable(customer_map, tblName, selected_customer_pk, null,
                     HandleSelect_Filter, HandleFilterInactive,
@@ -1844,6 +1835,7 @@ let planning_list = [] // for export and printing - can replace map?
                         UpdateHeaderText();
                     }
                 }  // if (key === "page_customer"){
+
                 if (key === "planning_period"){
                 console.log("NIU ??????????  planning_period: ", selected_period);
                     selected_period = setting_dict[key];

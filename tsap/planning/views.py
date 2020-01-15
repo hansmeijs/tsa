@@ -20,7 +20,7 @@ from tsap import functions as f
 from tsap import locale as l
 from planning import dicts as d
 from planning import rosterfill as r
-from employees import dicts as e
+from employees import dicts as ed
 
 from tsap.settings import TIME_ZONE
 from tsap.headerbar import get_headerbar_param
@@ -120,7 +120,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 user_lang=user_lang)
 
                         elif table == 'employee_pricerate':
-                            dict_list = e.create_employee_pricerate_list(company=request.user.company, user_lang=user_lang)
+                            dict_list = ed.create_employee_pricerate_list(company=request.user.company, user_lang=user_lang)
 
                         elif table == 'order_template':
                             # inactive = None: include active and inactive, False: only active
@@ -150,7 +150,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 company=request.user.company)
 
                         elif table == 'teammember':
-                            dict_list = e.create_teammember_list(
+                            dict_list = ed.create_teammember_list(
                                 filter_dict=table_dict,
                                 company=request.user.company,
                                 user_lang=user_lang)
@@ -170,7 +170,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             dict_list = cust_dicts.create_absencecategory_list(request)
 
                         elif table == 'employee':
-                            dict_list = e.create_employee_list(company=request.user.company, user_lang=user_lang)
+                            dict_list = ed.create_employee_list(company=request.user.company, user_lang=user_lang)
 
                         elif table == 'replacement':
                             dict_list = d.create_replacementshift_list(table_dict, request.user.company)
@@ -673,14 +673,6 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
                     if scheme_list:
                         update_wrap['scheme_list'] = scheme_list
 
-                    schemeitem_list = d.create_schemeitem_list(
-                        filter_dict={'customer_pk': customer.id},
-                        company=request.user.company,
-                        comp_timezone=comp_timezone,
-                        user_lang=user_lang)
-                    if schemeitem_list:
-                        update_wrap['schemeitem_list'] = schemeitem_list
-
                     shift_list = d.create_shift_list(
                         filter_dict={'customer_pk': customer.id},
                         company=request.user.company,
@@ -693,6 +685,22 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
                         company=request.user.company)
                     if team_list:
                         update_wrap['team_list'] = team_list
+
+                    teammember_list = ed.create_teammember_list(
+                        filter_dict={'isabsence': False},
+                        company=request.user.company,
+                        user_lang=user_lang)
+                    if teammember_list:
+                        update_wrap['teammember_list'] = teammember_list
+
+                    schemeitem_list = d.create_schemeitem_list(
+                        filter_dict={'customer_pk': customer.id},
+                        company=request.user.company,
+                        comp_timezone=comp_timezone,
+                        user_lang=user_lang)
+                    if schemeitem_list:
+                        update_wrap['schemeitem_list'] = schemeitem_list
+
                     update_wrap['refresh_tables'] = {'new_scheme_pk': new_scheme_pk}
 
         update_dict_json = json.dumps(update_wrap, cls=LazyEncoder)
@@ -775,13 +783,23 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
 
             template_team = m.Team(
                 scheme=template_scheme,
-                code=this_text,
+                code=team.code,
                 istemplate=True
             )
             template_team.save(request=request)
             # make dict with mapping of old and new team_id
             mapping_teams[team.pk] = template_team.pk
-        # logger.debug('mapping_teams: ' + str(mapping_teams))
+            # logger.debug('mapping_teams: ' + str(mapping_teams))
+
+# - copy teammembers of this team to template
+            teammembers = m.Teammember.objects.filter(team=team)
+            for teammember in teammembers:
+                # dont copy employee, replacement and datfirst datelast
+                template_teammember = m.Teammember(
+                    team=template_team,
+                    istemplate=True
+                )
+                template_teammember.save(request=request)
 
 # - copy schemeitems to template
         # Schemeitem ordering = ['rosterdate', 'timestart']
@@ -789,10 +807,26 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
         # first item has cyclestart = True (needed for startdate of copied scheme, set False after first item
         is_cyclestart = True
         for schemeitem in schemeitems:
+
+        # loopkup shift
+            template_shift = None
+            if schemeitem.shift:
+                template_shift_pk = mapping_shifts.get(schemeitem.shift.pk)
+                if template_shift_pk:
+                    template_shift = m.Shift.objects.get_or_none(pk=template_shift_pk)
+
+        # loopkup team
+            template_team = None
+            if schemeitem.team:
+                template_team_pk = mapping_teams.get(schemeitem.team.pk)
+                if template_team_pk:
+                    template_team = m.Team.objects.get_or_none(pk=template_team_pk)
+
             # logger.debug('schemeitem: ' + str(schemeitem))
             template_schemeitem = m.Schemeitem(
                 scheme=template_scheme,
-                shift=schemeitem.shift,
+                shift=template_shift,
+                team=template_team,
                 rosterdate=schemeitem.rosterdate,
                 istemplate=True,
                 iscyclestart=is_cyclestart,
@@ -803,21 +837,6 @@ def copy_to_template(upload_dict, request):  # PR2019-08-24
             )
             is_cyclestart = False
 
-    # loopkup shift
-            if schemeitem.shift:
-                lookup_shift_pk = mapping_shifts[schemeitem.shift.pk]
-                shift = m.Shift.objects.get_or_none(pk=lookup_shift_pk)
-                if shift:
-                    template_schemeitem.shift = shift
-
-    # loopkup team
-            if schemeitem.team:
-                lookup_team_pk = mapping_teams[schemeitem.team.pk]
-                team = m.Team.objects.get_or_none(pk=lookup_team_pk)
-                if team:
-                    template_schemeitem.team = team
-
-    # save template_schemeitem
             template_schemeitem.save(request=request)
             # logger.debug('template_schemeitem.shift: ' + str(template_schemeitem.shift))
     return template_customer_pk
@@ -837,51 +856,40 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
 # - get iddict variables
     id_dict = upload_dict.get('id')
     # "id":{"pk":44,"ppk":2,"table":"scheme"}
-    # logger.debug('id_dict: ' + str(id_dict))
 
 # - get pk of order to which the template must be copied
     order_pk = None
     order_dict = upload_dict.get('copyto_order')
     if order_dict:
         order_pk = order_dict.get('pk')
-    # logger.debug('order_pk: ' + str(order_pk) + ' ' + str(type(order_pk)))
 
 # - get new scheme_code
     scheme_code = None
     code_dict = upload_dict.get('code')
     if code_dict:
         scheme_code = code_dict.get('value')
-    # logger.debug('scheme_code: ' + str(scheme_code) + ' ' + str(type(scheme_code)))
 
     if id_dict and order_pk and scheme_code:
 # get scheme_pk and ppk of the template from which will be copied
         table = 'scheme'
-        template_pk_int = id_dict.get('pk', 0)  # int not necessary. Was: int(id_dict.get('pk', 0))
-        template_ppk_int = id_dict.get('ppk', 0) # int not necessary. Was: int(id_dict.get('ppk', 0))
-        # logger.debug('template_pk_int: ' + str(template_pk_int) + ' template_ppk_int: ' + str(template_ppk_int))
-
-        # logger.debug('template_pk_int: ' + str(template_pk_int) + ' ' + str(type(template_pk_int)))
-        # logger.debug('template_ppk_int: ' + str(template_ppk_int) + ' ' + str(type(template_ppk_int)))
+        template_scheme_pk = id_dict.get('pk', 0)  # int not necessary. Was: int(id_dict.get('pk', 0))
+        template_scheme_ppk = id_dict.get('ppk', 0) # int not necessary. Was: int(id_dict.get('ppk', 0))
 
     # - check if scheme parent exists (order is parent of scheme)
-        template_parent = m.get_parent(table, template_ppk_int, {}, request)
-        # logger.debug('template_parent: ' + str(template_parent))
-
+        template_order = m.Order.objects.get_or_none(id=template_scheme_ppk, customer__company=request.user.company)
     # update_dict['id']['pk'] and update_dict['pk']  are added in get_instance
-        template_scheme = m.get_instance(table, template_pk_int, template_parent, {})
-        # logger.debug('template_scheme: ' + str(template_scheme))
+        template_scheme = m.Scheme.objects.get_or_none(id=template_scheme_pk, order=template_order)
 
 # - check if scheme parent exists (order is parent of scheme)
         #   update_dict['id']['ppk'] and ['id']['table'] are added in get_parent
         update_dict = {}
-        new_scheme_parent = m.get_parent(table, order_pk, update_dict, request)
-        # logger.debug('scheme_parent: ' + str(new_scheme_parent))
+        new_scheme_order = m.get_parent(table, order_pk, update_dict, request)
 
-        if template_scheme and new_scheme_parent:
+        if template_scheme and new_scheme_order:
 
 # - copy template_scheme to new_scheme (don't copy datefirst, datelast)
             new_scheme = m.Scheme(
-                order=new_scheme_parent,
+                order=new_scheme_order,
                 code=scheme_code,
                 cat=template_scheme.cat,
                 isabsence=template_scheme.isabsence,
@@ -892,7 +900,6 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                 # don't copy these fields: billable, pricerate, priceratejson, additionjson
             )
             new_scheme.save(request=request)
-            # logger.debug('new_scheme: ' + str(new_scheme.code) + ' new_scheme_pk: ' + str(new_scheme.pk))
 
             if new_scheme:
                 new_scheme_pk = new_scheme.pk
@@ -935,14 +942,38 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                     new_team.save(request=request)
                     # make dict with mapping of old and new team_id
                     team_mapping[template_team.pk] = new_team.pk
-                # logger.debug('template_teams mapping: ' + str(team_mapping))
+
+    # - copy teammembers of this team to template
+                    template_teammembers = m.Teammember.objects.filter(team=template_team)
+                    for template_teammember in template_teammembers:
+                        # dont copy employee, replacement and datfirst datelast
+                        new_teammember = m.Teammember(
+                            team=new_team,
+                            istemplate=False
+                        )
+                        new_teammember.save(request=request)
 
     # - copy template_schemeitems to schemeitems
                 template_schemeitems = m.Schemeitem.objects.filter(scheme=template_scheme)
                 for template_schemeitem in template_schemeitems:
+
+                # - lookup shift, add to new_schemeitem when found
+                    new_shift = None
+                    if template_schemeitem.shift:
+                        lookup_shift_pk = shift_mapping[template_schemeitem.shift_id]
+                        new_shift = m.Shift.objects.get_or_none(pk=lookup_shift_pk)
+
+                # - lookup team, add to new_schemeitem when found
+                    new_team = None
+                    if template_schemeitem.team:
+                        lookup_team_pk = team_mapping[template_schemeitem.team_id]
+                        new_team = m.Team.objects.get_or_none(pk=lookup_team_pk)
+
                     # logger.debug('template_schemeitem: ' + str(template_schemeitem))
                     new_schemeitem = m.Schemeitem(
                         scheme=new_scheme,
+                        shift=new_shift,
+                        team=new_team,
                         rosterdate=template_schemeitem.rosterdate,
                         cat=template_schemeitem.cat,
                         iscyclestart=template_schemeitem.iscyclestart,
@@ -951,25 +982,11 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
                         offsetend=template_schemeitem.offsetend,
                         breakduration=template_schemeitem.breakduration,
                         timeduration=template_schemeitem.timeduration
-                        # shift and team are copied further, because they have differenet pk than template
                         # don't copy these fields: billable, pricerate, priceratejson, additionjson
                     )
-    # - lookup shift, add to new_schemeitem when found
-                    if template_schemeitem.shift:
-                        lookup_shift_pk = shift_mapping[template_schemeitem.shift_id]
-                        new_shift = m.Shift.objects.get_or_none(pk=lookup_shift_pk)
-                        if new_shift:
-                            new_schemeitem.shift = new_shift
-    # - lookup team, add to new_schemeitem when found
-                    if template_schemeitem.team:
-                        lookup_team_pk = team_mapping[template_schemeitem.team_id]
-                        new_team = m.Team.objects.get_or_none(pk=lookup_team_pk)
-                        if new_team:
-                            new_schemeitem.team = new_team
+
     # - save new_schemeitem
                     new_schemeitem.save(request=request)
-                    # logger.debug('new_schemeitem.team: ' + str(new_schemeitem.team))
-                    # logger.debug('new_schemeitem.shift: ' + str(new_schemeitem.shift))
 
     return new_scheme_pk
 
@@ -1121,6 +1138,13 @@ class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
                                 user_lang=user_lang)
                             if schemeitem_list:
                                 update_wrap['schemeitem_list'] = schemeitem_list
+
+                            teammember_list = ed.create_teammember_list(
+                                filter_dict={'isabsence': False},
+                                company=request.user.company,
+                                user_lang=user_lang)
+                            if teammember_list:
+                                update_wrap['teammember_list'] = teammember_list
 
                         # 6. also recalc schemitems
                         # PR2019-12-11 dont update offset / time in schemeitems any more
@@ -1305,7 +1329,7 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
 # 5. Create new team
             if is_create:
                 # create_team adds 'temp_pk', 'created' to id_dict, and 'error' to code_dict
-                instance = create_team(upload_dict, update_dict, request)
+                instance = create_team(upload_dict, update_dict, user_lang, request)
                 if instance:
                     deleted_or_created_ok = True
 
@@ -1331,7 +1355,7 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
 # 3. update teammember_list when team is created or deleted
     if deleted_or_created_ok:
         table_dict = {'order_pk': parent.order}
-        teammember_list = e.create_teammember_list(table_dict, request.user.company, user_lang)
+        teammember_list = ed.create_teammember_list(table_dict, request.user.company, user_lang)
         if teammember_list:
             update_wrap['teammember_list'] = teammember_list
 
@@ -1341,14 +1365,11 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def create_team(upload_dict, update_dict, request):
+def create_team(upload_dict, update_dict, user_lang, request):
     # logger.debug(' --- create_team --- ')
     # --- create team # PR2019-10-01
     # Note: all keys in update_dict must exist by running create_update_dict first
     team = None
-    # TODO see if team_cat and teammember_cat are used
-    team_cat = 0
-    teammember_cat = 0
 
 # 1. get iddict variables
     id_dict = upload_dict.get('id')
@@ -1366,18 +1387,13 @@ def create_team(upload_dict, update_dict, request):
         if parent:
 
 # 4. create team name
-            team_text = _('Team')
-            team_count = m.Team.objects.filter(scheme=parent).count()
-            # logger.debug('team_count' + str(team_count) + ' ' + str(type(team_count)))
-            team_code = team_text + ' ' + str(team_count + 1)
-
+            team_code = f.get_code_with_sequence('team', parent, user_lang)
             # logger.debug('team_code: ' + str(team_code))
 
     # 4. create and save team
             team = m.Team(
                 scheme=parent,
-                code=team_code,
-                cat=team_cat)
+                code=team_code)
             team.save(request=request)
             team_pk = team.pk
             # logger.debug(' --- new  team_pk: ' + str(team_pk))
@@ -1389,8 +1405,9 @@ def create_team(upload_dict, update_dict, request):
 
  # ===== Create new teammember without employee
             # don't add empty teammember, is confusing PR2019-12-07
-            #teammember = m.Teammember( team_id=team_pk )
-            #teammember.save(request=request)
+            # change of plan: do add empty teammember PR2020-01-15
+            teammember = m.Teammember(team_id=team_pk )
+            teammember.save(request=request)
 
     return team
 ######################
@@ -1466,9 +1483,7 @@ def update_team(instance, parent, upload_dict, update_dict, request):
         d.create_team_dict(instance, update_dict)
     return has_error
 
-
 ############################
-
 @method_decorator([login_required], name='dispatch')
 class SchemeitemDownloadView(View):  # PR2019-03-10
     # function downloads scheme, teams and schemeitems of selected scheme
