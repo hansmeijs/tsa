@@ -4490,8 +4490,8 @@ let planning_list = [] // for export and printing - can replace map?
         if(period_tag == "other"){
             const datefirst = document.getElementById("id_mod_period_datefirst").value
             const datelast = document.getElementById("id_mod_period_datelast").value
-            if (!!datefirst) {upload_dict.period_customer["datefirst"] = datefirst};
-            if (!!datelast) {upload_dict.period_customer["datelast"] = datelast};
+            if (!!datefirst) {upload_dict.period_customer["rosterdatefirst"] = datefirst};
+            if (!!datelast) {upload_dict.period_customer["rosterdatelast"] = datelast};
         }
 
         // send 'now' as array to server, so 'now' of local computer will be used
