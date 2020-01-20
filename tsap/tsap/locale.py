@@ -29,21 +29,39 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
         # header
         dict['Short_name'] = TXT_Short_name
+
         dict['Customer'] = TXT_Customer
+        dict['Customers'] = TXT_Customers
         dict['Customer_name'] = TXT_Customer_name
+        dict['Select_customer'] = TXT_Select_customer
+        dict['Add_customer'] = TXT_Add_customer
+        dict['Delete_customer'] = TXT_Delete_customer
+        dict['Customer_list'] = TXT_Customer_list
+        dict['All_customers'] = TXT_All_customers
+        dict['No_customers'] = TXT_No_customers
+        dict['Enter_short_name_of_customer'] = TXT_Enter_short_name_of_customer
+        dict['Upload_customers_and_orders'] = TXT_Upload_customers_and_orders
+
+        dict['TXT_Cick_show_inactive_customers'] = TXT_Cick_show_inactive_customers
+
+        dict['Preview_planning'] = TXT_Preview_planning
+        dict['Download_planning'] = TXT_Download_planning
+
+
         dict['Order'] = TXT_Order
         dict['Order_name'] = TXT_Order_name
         dict['Order_code'] = TXT_Order_code
+        dict['Add_order'] = TXT_Add_order
+        dict['Delete_order'] = TXT_Delete_order
+        dict['All_orders'] = TXT_All_orders
+        dict['No_orders'] = TXT_No_orders
+
+
         dict['Employee'] = TXT_Employee
         dict['Rosterdate'] = TXT_Rosterdate
         dict['Identifier'] = TXT_Identifier
         dict['Shift'] = TXT_Shift
         dict['Date'] = TXT_Date
-        dict['All_customers'] = TXT_All_customers
-        dict['All_orders'] = TXT_All_orders
-        dict['No_customers'] = TXT_No_customers
-        dict['No_orders'] = TXT_No_orders
-
 
         dict['weekdays_abbrev'] = TXT_weekdays_abbrev
         dict['weekdays_long'] = TXT_weekdays_long
@@ -94,6 +112,15 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Period'] = TXT_Period
         dict['Select_period'] = TXT_Select_period
         dict['period_select_list'] = TXT_Period_planning_list
+
+        dict['This_customer'] = TXT_This_customer
+        dict['This_order'] = TXT_This_order
+        dict['will_be_deleted'] = TXT_will_be_deleted
+        dict['will_be_made_inactive'] = TXT_will_be_made_inactive
+        dict['Yes_delete'] = TXT_Yes_delete # 'Yes, delete'
+        dict['Yes_make_inactive'] = TXT_Yes_make_inactive # 'Yes, make inactive'
+        dict['No_cancel'] = TXT_No_cancel
+
 
 # ====== PAGE EMPLOYEE =========================
     if page == 'employee':
@@ -236,9 +263,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['created'] = TXT_created
 
         dict['want_to_continue'] = TXT_want_to_continue  # 'Do you want to continue?'
-        dict['yes_create'] = TXT_yes_create  # 'Yes, create'
-        dict['yes_delete'] = TXT_yes_delete # 'Yes, delete'
-        dict['no_cancel'] = TXT_no_cancel # ''No, cancel'
+        dict['Yes_create'] = TXT_Yes_create  # 'Yes, create'
+        dict['Yes_delete'] = TXT_Yes_delete # 'Yes, delete'
+        dict['Yes_make_inactive'] = TXT_Yes_make_inactive # 'Yes, make inactive'
+
+        dict['No_cancel'] = TXT_No_cancel # ''No, cancel'
         dict['close'] = TXT_btn_close # 'Close'
 
         dict['btn_close'] = TXT_btn_close  # 'Close'
@@ -249,6 +278,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Customer'] = TXT_Customer
         dict['Select_customer'] = TXT_Select_customer
         dict['No_customers'] = TXT_No_customers
+        dict['Customer_list'] = TXT_Customer_list
+
         dict['Order'] = TXT_Order
         dict['Select_order'] = TXT_Select_order
         dict['No_orders'] = TXT_No_orders
@@ -386,16 +417,30 @@ TXT_Amount = _('Amount')
 
 TXT_Company = _('Company')
 TXT_Customer = _('Customer')
+TXT_Customers = _('Customers')
 TXT_Customer_name = _('Customer name')
 TXT_Select_customer = _('Select customer')
+TXT_Customer_list = _('Customer list')
 TXT_No_customers = _('No customers')
 TXT_Identifier = _('Identifier')
+
+TXT_Add_customer = _('Add customer')
+TXT_Delete_customer = _('Delete customer')
+TXT_Enter_short_name_of_customer = _('Enter short name of customer')
+
+TXT_Upload_customers_and_orders = _('Upload customers and orders')
+TXT_Cick_show_inactive_customers = _('Click to show or hide inactive customers.')
+
+TXT_Preview_planning = _('Preview planning')
+TXT_Download_planning = _('Download planning')
 
 TXT_Order = _('Order')
 TXT_Order_name = _('Order name')
 TXT_Order_code = _('Order code')
 TXT_Select_order = _('Select order')
 TXT_No_orders = _('No orders')
+TXT_Add_order = _('Add order')
+TXT_Delete_order = _('Delete order')
 
 TXT_New_scheme = _('New scheme')
 
@@ -434,7 +479,6 @@ TXT_Absence_category = _('Absence category')
 TXT_Select_abscat = _('Select absence category')
 TXT_No_abscat = _('No absence categories')
 
-
 TXT_one = _('one')
 TXT_confirmed = _('confirmed')
 TXT_updated = _('updated')
@@ -443,9 +487,15 @@ TXT_created = _('created')
 
 TXT_want_to_continue = _('Do you want to continue?')
 
-TXT_yes_create = _('Yes, create')
-TXT_yes_delete = _('Yes, delete')
-TXT_no_cancel = _('No, cancel')
+TXT_Yes_create = _('Yes, create')
+TXT_Yes_delete = _('Yes, delete')
+TXT_Yes_make_inactive = _('Yes, make inactive')
+TXT_No_cancel = _('No, cancel')
+
+TXT_This_customer = _('This customer')
+TXT_This_order = _('This order')
+TXT_will_be_deleted = _('will be deleted.')
+TXT_will_be_made_inactive = _('will be made inactive.')
 
 # print planning
 TXT_Planning = _('Planning')
@@ -528,3 +578,28 @@ TXT_Period_planning_list = (
     ('other', TXT_customperiod)
 )
 
+"""
+data-err_msg01= "{% trans 'An error occurred.' %}"
+
+
+data-txt_billable = "{% trans 'Billable' %}"
+data-title_billable= "{% trans 'Billable hours. Changes in worked hours will also change the billing hours.' %}"
+data-title_notbillable=  "{% trans 'Fixed billing hours. Changes in worked hours will not affect the billing hours.' %}"
+data-txt_taxcode= "{% trans 'Tax code' %}"
+
+data-txt_orderschemeshift = "{% trans 'Order / Scheme / Shift' %}"
+data-txt_cust_code_enter = "{% trans 'Enter a short name of the customer' %}..."
+
+data-txt_customer_data = "{% trans 'Customer data' %}"
+
+data-txt_planning_preview = "{% trans 'Preview planning' %}"
+data-txt_planning_download = "{% trans 'Download planning' %}"
+
+data-txt_order_code = "{% trans 'Order code' %}"
+data-txt_order_name = "{% trans 'Order name' %}"
+data-txt_order_add = "{% trans 'Add new order' %}"
+data-txt_order_delete = "{% trans 'Delete order' %}"
+
+
+
+"""

@@ -116,6 +116,7 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
         max_rosterdate_dict = m.Orderhour.objects.\
             filter(order__customer__company=request.user.company).\
             aggregate(Max('rosterdate'))
+        logger.debug(' --- max_rosterdate_dict: ' + str(max_rosterdate_dict))
         # last_rosterdate_dict: {'rosterdate__max': datetime.date(2019, 12, 19)} <class 'dict'>
         if max_rosterdate_dict:
             rosterdate = max_rosterdate_dict['rosterdate__max'] # datetime.date(2019, 10, 28)
@@ -135,30 +136,50 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
         rosterdate_dict['rosterdate'] = rosterdate_iso
         rosterdate_dict['count'] = rosterdate_count
         rosterdate_dict['confirmed'] = rosterdate_confirmed
+    logger.debug(' --- rosterdate_dict: ' + str(rosterdate_dict))
 
     return rosterdate_dict
 
 
 def check_rosterdate_confirmed(rosterdate_dte, company):  # PR2019-11-12
-    # logger.debug(' ============= check_rosterdate_confirmed ============= ')
+    logger.debug(' ============= check_rosterdate_confirmed ============= ')
     # logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
     # check if rosterdate has orderhours / emplhours. If so, check if there are lockes  /confirmed shifts
 
+# count orderhour records of this date
+    orderhour_count = m.Orderhour.objects.filter(
+        order__customer__company=company,
+        rosterdate=rosterdate_dte).count()
+    logger.debug('orderhour_count: ' + str(orderhour_count))
+
+    orderhour_confirmed_or_locked = 0
+    if(orderhour_count):
+    # if any: count orderhour records that are confirmed
+        orderhour_confirmed_or_locked = m.Orderhour.objects.filter(
+            order__customer__company=company,
+            rosterdate=rosterdate_dte,
+            status__gte=c.STATUS_02_START_CONFIRMED).count()
+
 # get emplhour records of this date and status less than STATUS_02_START_CONFIRMED, also delete records with rosterdate Null
-    row_count_confirmed_or_locked = 0
     # count emplhour records on this date
-    row_count = m.Emplhour.objects.filter(
+    emplhour_count = m.Emplhour.objects.filter(
         orderhour__order__customer__company=company,
         rosterdate=rosterdate_dte).count()
 
-    if(row_count):
+    emplhour_count_confirmed_or_locked = 0
+    if(emplhour_count):
     # if any: count emplhour records that are confirmed
-        row_count_confirmed_or_locked = m.Emplhour.objects.filter(
+        emplhour_count_confirmed_or_locked = m.Emplhour.objects.filter(
             orderhour__order__customer__company=company,
             rosterdate=rosterdate_dte,
             status__gte=c.STATUS_02_START_CONFIRMED).count()
 
-    # logger.debug('row_count: ' + str(row_count) + ' row_count_confirmed_or_locked: ' + str(row_count_confirmed_or_locked))
+    logger.debug('orderhour_count: ' + str(orderhour_count) + ' orderhour_confirmed_or_locked: ' + str(orderhour_confirmed_or_locked))
+    logger.debug('emplhour_count: ' + str(emplhour_count) + ' emplhour_count_confirmed_or_locked: ' + str(emplhour_count_confirmed_or_locked))
+    row_count = emplhour_count if emplhour_count > orderhour_count else orderhour_count
+    row_count_confirmed_or_locked = emplhour_count_confirmed_or_locked if emplhour_count_confirmed_or_locked > orderhour_confirmed_or_locked else orderhour_confirmed_or_locked
+
+    logger.debug('emplhour_count: ' + str(emplhour_count) + ' emplhour_count_confirmed_or_locked: ' + str(emplhour_count_confirmed_or_locked))
     return row_count, row_count_confirmed_or_locked
 
 
@@ -999,8 +1020,9 @@ def create_team_dict(team, item_dict):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def period_get_and_save(key, period_dict, request, comp_timezone):   # PR2019-11-16
-    #logger.debug(' ============== period_get_and_save ================ ')
-    #logger.debug(' period_dict: ' + str(period_dict))
+    logger.debug(' ============== period_get_and_save ================ ')
+    logger.debug(' key: ' + str(key))
+    logger.debug(' period_dict: ' + str(period_dict))
     # period_dict: {'get': True, 'now': [2019, 11, 17, 7, 9]}
     # period_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
 
@@ -1009,6 +1031,9 @@ def period_get_and_save(key, period_dict, request, comp_timezone):   # PR2019-11
     if period_dict:
 # 1. check if values must be retrieved from Usersetting
         get_saved = period_dict.get('get', False)
+
+# 2. check if it is planning or roster. When planning: default is this week, when roster: default is today
+        default_period = period_dict.get('dflt', 'today')
 
 # 2. get now from period_dict
         now_arr = period_dict.get('now')
@@ -1034,20 +1059,25 @@ def period_get_and_save(key, period_dict, request, comp_timezone):   # PR2019-11
         #logger.debug('key: ' + str(key))
         if get_saved and key:
             period_dict = Usersetting.get_jsonsetting(key, request.user)
-            #logger.debug('get_saved period_dict: ' + str(period_dict))
+            logger.debug('get_saved period_dict: ' + str(period_dict))
 
 # 4. create update_dict
         update_dict = {'key': key, 'now': now_arr}
         # period_dict comes either from argument or from Usersetting
-        period_tag = 'today'
+        period_tag = None
         extend_offset = 0
         periodstart = None
         periodend = None
+        periodstart_datetimelocal = None
+        periodend_datetimelocal = None
+
         if period_dict:
-            period_tag = period_dict.get('period_tag', 'today')
+            period_tag = period_dict.get('period_tag')
             extend_offset = period_dict.get('extend_offset', 0)
             periodstart = period_dict.get('periodstart')
             periodend = period_dict.get('periodend')
+        if period_tag is None:
+            period_tag = default_period
 
         update_dict['period_tag'] = period_tag
         update_dict['extend_offset'] = extend_offset
@@ -1056,9 +1086,10 @@ def period_get_and_save(key, period_dict, request, comp_timezone):   # PR2019-11
         if periodend is not None:
             update_dict['periodend'] = periodend
 
-        # default tag is 'today'
+        # default tag is 'today' when roster, this week when planning
         rosterdatefirst_dte = today_dte
         rosterdatelast_dte = today_dte
+
         # default offest start is 0 - offset, (midnight - offset)
         # default offest start is 1440 + offset (24 h after midnight + offset)
         # value for morning, evening, night and day are different
@@ -1128,6 +1159,9 @@ def period_get_and_save(key, period_dict, request, comp_timezone):   # PR2019-11
                 else:
                     if periodend is None:
                         periodend = periodstart
+
+                logger.debug(' periodstart: ' + str(periodstart) + ' ' + str(type(periodstart)))
+                logger.debug(' periodend: ' + str(periodend) + ' ' + str(type(periodend)))
                 rosterdatefirst_dte = f.get_dateobj_from_dateISOstring(periodstart)
                 rosterdatelast_dte = f.get_dateobj_from_dateISOstring(periodend)
 
@@ -1135,29 +1169,39 @@ def period_get_and_save(key, period_dict, request, comp_timezone):   # PR2019-11
             periodend_datetimelocal = f.get_datetimelocal_from_offset(rosterdatelast_dte, offset_lastdate, comp_timezone)
 
         else:
-            periodstart_datetimelocal = now_usercomp_dtm - timedelta(minutes=extend_offset)
-            periodend_datetimelocal = now_usercomp_dtm + timedelta(minutes=extend_offset)
+            if now_usercomp_dtm:
+                periodstart_datetimelocal = now_usercomp_dtm - timedelta(minutes=extend_offset)
+                periodend_datetimelocal = now_usercomp_dtm + timedelta(minutes=extend_offset)
 
-        rosterdatefirst_minus1 = rosterdatefirst_dte - timedelta(days=1)
-        rosterdatelast_plus1 = rosterdatelast_dte + timedelta(days=1)
+        if periodstart_datetimelocal:
+            update_dict['periodstart'] = periodstart_datetimelocal
+        if periodend_datetimelocal:
+            update_dict['periodend'] = periodend_datetimelocal
 
-        update_dict['periodstart'] = periodstart_datetimelocal
-        update_dict['periodend'] = periodend_datetimelocal
-        update_dict['rosterdatefirst'] = rosterdatefirst_dte.isoformat()
-        update_dict['rosterdatelast'] = rosterdatelast_dte.isoformat()
-        update_dict['rosterdatefirst_minus1'] = rosterdatefirst_minus1.isoformat()
-        update_dict['rosterdatelast_plus1'] = rosterdatelast_plus1.isoformat()
+        if rosterdatefirst_dte:
+            #rosterdatefirst_minus1 = rosterdatefirst_dte - timedelta(days=1)
+            update_dict['rosterdatefirst'] = rosterdatefirst_dte.isoformat()
+            # update_dict['rosterdatefirst_minus1'] = rosterdatefirst_minus1.isoformat()
+
+        if rosterdatelast_dte:
+            #rosterdatelast_plus1 = rosterdatelast_dte + timedelta(days=1)
+            update_dict['rosterdatelast'] = rosterdatelast_dte.isoformat()
+            # update_dict['rosterdatelast_plus1'] = rosterdatelast_plus1.isoformat()
 
     # 5. save update_dict
         setting_tobe_saved = {
             'period_tag': period_tag
         }
         if period_tag == 'other':
-            setting_tobe_saved['rosterdatefirst'] = rosterdatefirst_dte.isoformat(),
-            setting_tobe_saved['rosterdatelast'] = rosterdatelast_dte.isoformat(),
+            if rosterdatefirst_dte:
+                setting_tobe_saved['rosterdatefirst'] = rosterdatefirst_dte.isoformat()
+            if rosterdatelast_dte:
+                setting_tobe_saved['rosterdatelast'] = rosterdatelast_dte.isoformat()
         if extend_offset:
             setting_tobe_saved['extend_offset'] = extend_offset
 
+        logger.debug('set_jsonsetting key: ' + str(key))
+        logger.debug('setting_tobe_saved: ' + str(setting_tobe_saved))
         Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
 
 #logger.debug('update_dict: ' + str(update_dict))
@@ -1285,23 +1329,24 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
         fields = ('id', 'orderhour', 'employee', 'rosterdate', 'cat',
                            'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
                            'isrestshift', 'shift',
-                           'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',)
-
-        fields = ('id', 'orderhour', 'employee', 'rosterdate', 'cat',
-                           'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
-                           'isrestshift', 'shift',
                            'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',
-                             'status', 'overlap', 'locked')
+                            'status', 'overlap', 'locked')
         for field in fields:
             field_dict = {}
 
             # 2. lock date when locked=true of  timestart and timeend are both confirmed
-            if status_locked or (status_conf_start and status_conf_end):
+            if status_locked:
                 field_dict['locked'] = True
-            elif field in ('timestart', 'employee')and status_conf_start:
-                field_dict['locked'] = True
-            elif field == 'timeend'and status_conf_end:
-                field_dict['locked'] = True
+
+            if field == 'employee':
+                if status_conf_start or status_conf_end:
+                    field_dict['locked'] = True
+            elif field == 'timestart':
+                if status_conf_start:
+                    field_dict['confirmed'] = True
+            elif field == 'timeend':
+                if status_conf_end:
+                    field_dict['locked'] = True
 
             if field == 'id':
                 field_dict['pk'] = pk_int

@@ -9,20 +9,21 @@ from django.utils.translation import activate, ugettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, View
 
+from accounts import models as acc_m
 from companies import models as m
 from companies.views import LazyEncoder
 
-from customers import dicts as d
+from customers import dicts as cd
+from planning import dicts as pld
 
 from tsap.headerbar import get_headerbar_param
-
 from tsap.settings import TIME_ZONE
+from tsap import locale as loc
 from planning.views import update_scheme, update_shift
 
 from tsap import constants as c
 from tsap import functions as f
 from tsap import validators as v
-
 
 import json
 
@@ -45,34 +46,10 @@ class CustomerListView(View):
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
 
-# b. get comp_timezone and timeformat
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-            timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
-
-# ---  get interval
-            interval = 15
-            if request.user.company.interval:
-                interval = request.user.company.interval
-
-# get weekdays translated
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-            if not user_lang in c.WEEKDAYS_ABBREV:
-                user_lang = c.LANG_DEFAULT
-            weekdays_json = json.dumps(c.WEEKDAYS_ABBREV[user_lang])
-
- # get months translated
-            if not user_lang in c.MONTHS_ABBREV:
-                user_lang = c.LANG_DEFAULT
-            months_json = json.dumps(c.MONTHS_ABBREV[user_lang])
+# 9. return datalists
 
             param = get_headerbar_param(request, {
-                'ppk': request.user.company.pk,
-                'lang': user_lang,
-                'timezone': comp_timezone,
-                'timeformat': timeformat,
-                'interval': interval,
-                'weekdays': weekdays_json,
-                'months': months_json,
+                'ppk': request.user.company.pk
             })
 
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
@@ -144,7 +121,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
                             if instance:
-                                d.create_customer_dict(instance, update_dict)
+                                cd.create_customer_dict(instance, update_dict)
 
 # =====  ORDER  ==========
                     elif table == "order":
@@ -183,7 +160,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
                             if instance:
-                                d.create_order_dict(instance, update_dict, user_lang)
+                                cd.create_order_dict(instance, update_dict, user_lang)
 # =====  END ORDER  ==========
 
 # H. remove empty attributes from update_dict
@@ -278,7 +255,7 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                     if update_dict:
                         update_wrap['update_dict'] = update_dict
 # 8. create pricerate_list
-                    pricerate_list = d.create_order_pricerate_list(company=request.user.company, user_lang=user_lang)
+                    pricerate_list = cd.create_order_pricerate_list(company=request.user.company, user_lang=user_lang)
                     if pricerate_list:
                         update_wrap['pricerate_list'] = pricerate_list
 

@@ -5,7 +5,9 @@
 
 //=========  CreateCalendar  ================ PR2019-08-29
     function CreateCalendar(tblName, calendar_dict, calendar_map, ModShiftOpen, loc, timeformat, user_lang) {
-        console.log("=========  CreateCalendar =========");
+        //console.log("=========  CreateCalendar =========");
+        //console.log("calendar_dict: ", calendar_dict);
+        // calendar_dict: {datefirst: "2020-01-19", datelast: "2020-01-25"}
 
         const column_count = 8;
         const field_width = ["90", "120", "120", "120", "120", "120", "120", "120"]
@@ -46,7 +48,6 @@
 // create element with tag from field_tags
             let el = document.createElement("div"); // ("div");
             el.classList.add("tsa_transparent")
-
 // --- add left margin to first column
             if (col_index === 0 ){el.classList.add("ml-2")};
 // --- add width to el
@@ -55,7 +56,6 @@
             el.classList.add("text_align_" + field_align[col_index])
             td.appendChild(el);
         }  // for (let col_index = 0; col_index < 8; col_index++)
-
 //................................................
 // --- insert tblRows into tblBody
         let tblBody = document.getElementById("id_tbody_calendar");
@@ -101,20 +101,22 @@
 
 //=========  UpdateCalendar ================ PR2019-12-04
     function UpdateCalendar(tblName, calendar_dict, calendar_map, loc, timeformat, user_lang) {
-        console.log( "===== UpdateCalendar  ========= ");
+        //console.log( "===== UpdateCalendar  ========= ");
+        //console.log( "calendar_dict: ", calendar_dict);
+        //console.log( "calendar_map: ", calendar_map);
 
         const column_count = 8;
         const is_customer_calendar = (get_dict_value_by_key(calendar_dict, "calendar_type") === "customer_calendar")
 
 // --- get first and last date from calendar_dict, set today if no date in dict
-        let datefirst_iso = get_dict_value_by_key(calendar_dict, "datefirst")
+        let datefirst_iso = get_dict_value_by_key(calendar_dict, "rosterdatefirst")
         let calendar_datefirst_JS = get_dateJS_from_dateISO_vanilla(datefirst_iso);
         if(!calendar_datefirst_JS){
             calendar_datefirst_JS = new Date();
             const calendar_datelast_JS = addDaysJS(calendar_datefirst_JS, 6)
 
-            calendar_dict["datefirst"] = get_yyyymmdd_from_ISOstring(calendar_datefirst_JS.toISOString())
-            calendar_dict["datelast"] = get_yyyymmdd_from_ISOstring(calendar_datelast_JS.toISOString())
+            calendar_dict["rosterdatefirst"] = get_yyyymmdd_from_ISOstring(calendar_datefirst_JS.toISOString())
+            calendar_dict["rosterdatelast"] = get_yyyymmdd_from_ISOstring(calendar_datelast_JS.toISOString())
         }
         let weekday_of_first_column = calendar_datefirst_JS.getDay();
         if(weekday_of_first_column === 0){weekday_of_first_column = 7} // in ISO, weekday of Sunday is 7, not 0
@@ -129,7 +131,7 @@
 
 // --- create map_list_per_column. This is a list of lists with dicts, 1 for each column. Column 0 (hour) not in use
         let map_list_per_column = create_map_list_per_column(calendar_map, column_count, weekday_of_first_column)
-        //console.log("UpdateCalendar >>>>> map_list_per_column", map_list_per_column)
+        //console.log("map_list_per_column", map_list_per_column)
 
 // --- get tblHead and tblBody
         let tblHead = document.getElementById("id_thead_calendar")
@@ -142,9 +144,8 @@
 
         let this_date_iso = datefirst_iso;
 
+//--- loop through weekdays, column 0 contains time
         for (let col_index = 1; col_index < column_count; col_index++) {
-            //console.log("UpdateCalendar >>>>> col_index", col_index)
-
             let this_date__JS = get_dateJS_from_dateISO_vanilla(this_date_iso);
 
 //--- get ifo from calendar_dict
@@ -199,9 +200,9 @@
                     for (let x = list_len -1; x >= 0; x--) {
                         let item_dict = dict_list[x]
 
-        console.log( "---------------item_dict: ", item_dict);
+        //console.log( "---------------item_dict: ", item_dict);
                         if(!isEmpty(item_dict)){
-                            console.log( "------------- item_dict: ", item_dict);
+                            //console.log( "------------- item_dict: ", item_dict);
 
                             let map_id = get_subdict_value_by_key(item_dict, "id", "pk")
                             const row_index_start = get_dict_value_by_key(item_dict, "row_index_start")
@@ -218,7 +219,7 @@
                                 let is_restshift = get_subdict_value_by_key(item_dict, "shift", "isrestshift", false)
                                 let is_absence = get_dict_value_by_key(item_dict, "isabsence", false)
 
-                            console.log( "------------- is_absence: ", is_absence);
+                                //console.log( "------------- is_absence: ", is_absence);
 
                                 let offset_start = get_dict_value_by_key(item_dict, "offsetstart")
                                 let offset_end = get_dict_value_by_key(item_dict, "offsetend")
@@ -273,10 +274,9 @@
                                     //console.log("(!!shift_code && shift_code !== display_time)", (!!shift_code && shift_code !== display_time))
 
                                     if(!!shift_code && shift_code !== display_time) {display_text +=  shift_code + "\n"}
-
                                     if(is_customer_calendar){
                                         const employee_code_arr = get_subdict_value_by_key(item_dict, "employee", "code", [])
-                                        const len =employee_code_arr.length;
+                                        const len = employee_code_arr.length;
                                         for (let i = 0; i < len; i++) {
                                             display_text += employee_code_arr[i] + "\n";
                                         }

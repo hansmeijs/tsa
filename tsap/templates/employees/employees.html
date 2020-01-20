@@ -16,8 +16,8 @@
             <h3>{% trans 'Employees' %}</h3>
         </div>
 
+        <h6 class="td_width_200 line_height_normal mx-2 px-2">{% trans 'Select employee' %}:</h6>
         <div class="td_width_200 mx-2 mt-2 mb-5">
-            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select employee' %}:</h6>
 
             <table >
                 <thead id="id_thead_select"class="mx-1 my-1 ">
@@ -144,38 +144,35 @@
 
     <!-- =================== DATA TABLE  =================== -->
                 <div id="id_div_tbl_employee" class="tab_show tab_employee">
-                     <table class="table tsa-tbl ">
+                     <table class="table tsa_tbl ">
                         <thead id="id_thead_employee"></thead>
                         <tbody id="id_tbody_employee"></tbody>
                         <tfoot id="id_tfoot_employee"></tfoot>
                     </table>
                 </div>
                 <div id="id_div_tbl_absence" class="tab_show tab_absence">
-                     <table  class="table tsa-tbl ">
+                     <table  class="table tsa_tbl ">
                         <thead id="id_thead_absence"></thead>
                         <tbody id="id_tbody_absence"></tbody>
                         <tfoot id="id_tfoot_absence"></tfoot>
                     </table>
                 </div>
                 <div id="id_div_tbl_shifts" class="tab_show tab_shifts">
-                     <table  class="table tsa-tbl ">
+                     <table  class="table tsa_tbl ">
                         <thead id="id_thead_shifts"></thead>
                         <tbody id="id_tbody_shifts"></tbody>
                         <tfoot id="id_tfoot_shifts"></tfoot>
                     </table>
                 </div>
                 <div id="id_div_tbl_planning" class="tab_show tab_planning">
-                     <table  class="table tsa-tbl ">
+                     <table  class="table tsa_tbl ">
                         <thead id="id_thead_planning"></thead>
                         <tbody id="id_tbody_planning"></tbody>
                     </table>
                 </div>
 
-                <div id="id_div_tbl_calendar" class="tab_show tab_calendar">
-                     <table  class="table tsa-tbl">
-                        <thead id="id_thead_calendar"></thead>
-                        <tbody id="id_tbody_calendar"></tbody>
-                    </table>
+                <div id="id_div_tbl_calendar" class="tab_show tab_calendar display_hide">
+                    {% include 'includes/calendar.html' %}
                 </div>
 
 <!-- =================== END DATA TABLE  =================== -->

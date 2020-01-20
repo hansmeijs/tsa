@@ -16,15 +16,25 @@
             <h3>{% trans 'Customers' %}</h3>
         </div>
 
-        <div class="td_width_200 mx-2 mt-2 mb-5">
-            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select customer' %}:</h6>
+        <h6 class="td_width_200 line_height_normal mx-2 px-2">{% trans 'Select customer' %}:</h6>
 
+        <div class="tbl_div_50vh_200 m-2">
             <table>
-                <thead id="id_thead_select"class="mx-1 my-1 ">
+                <thead id="id_thead_select" class="mx-1 my-1">
                 </thead>
-                <tbody id="id_tbody_select"></tbody>
+                <tbody id="id_tbody_select_customer"></tbody>
             </table>
         </div>
+
+        <div id="id_div_tbody_select_order" class="tab_show tab_calendar tab_planning display_hide">
+            <h6 class="td_width_200 line_height_normal mx-2 px-2">{% trans 'Select order' %}:</h6>
+            <div class="tbl_div_50vh_200 m-2">
+                <table>
+                    <tbody id="id_tbody_select_order"></tbody>
+                </table>
+            </div>
+        </div>
+
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
@@ -73,7 +83,7 @@
                     <button type="button" data-mode="order" class="btn btn-secondary">{% trans 'Orders' %}</button>
                     <button type="button"  data-mode="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
                     <button type="button"  data-mode="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
-                    <button type="button" data-mode="customer_form" class="btn btn-secondary">{% trans 'Data' %}</button>
+                    <button type="button" data-mode="form" class="btn btn-secondary">{% trans 'Data' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
             </div>
@@ -86,8 +96,38 @@
                  <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
                      <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
                  </div>
-<!-- =================== DATA FORM  =================== -->
-                <div id="id_div_data_form" class="display_hide">
+
+    <!-- =================== DATA TABLE  =================== -->
+                <div id="id_div_tbl_customer" class="tab_show tab_customer display_hide">
+                     <table  class="table tsa_tbl">
+                        <thead id="id_thead_customer"></thead>
+                        <tbody id="id_tbody_customer"></tbody>
+                        <tfoot id="id_tfoot_customer"></tfoot>
+                    </table>
+                </div>
+                <div id="id_div_tbl_order" class="tab_show tab_order display_hide">
+                     <table  class="table tsa_tbl">
+                        <thead id="id_thead_order"></thead>
+                        <tbody id="id_tbody_order"></tbody>
+                        <tfoot id="id_tfoot_order"></tfoot>
+                    </table>
+                </div>
+                <div id="id_div_tbl_planning" class="content_header tab_show tab_planning display_hide">
+                    <div class="content_subheader_left mx-2">
+                        <h5 id="id_hdr_period" title="{% trans 'Click to select a customer, order and period.' %}" class="pointer_show"></h5>
+                    </div>
+                     <table  class="table tsa_tbl">
+                        <thead id="id_thead_planning"></thead>
+                        <tbody id="id_tbody_planning"></tbody>
+                        <tfoot id="id_tfoot_planning"></tfoot>
+                    </table>
+                </div>
+                <div id="id_div_tbl_calendar" class="tab_show tab_calendar display_hide">
+                    {% include 'includes/calendar.html' %}
+                </div>
+
+                <!-- =================== DATA FORM  =================== -->
+                <div id="id_div_data_form" class="tab_show tab_form display_hide">
                     <div class="form-group mx-2">
                         <label for="id_form_code" class="mx-2 my-2">{% trans 'Short name of customer' %}:</label>
                         <input id="id_form_code" type="text" data-field= "code"
@@ -101,32 +141,7 @@
                         <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger">{% trans 'Delete customer' %}</button>
                     </div>
                 </div>
-    <!-- =================== DATA TABLE  =================== -->
-                <div id="id_div_tbl_customer" class="display_hide">
-                     <table  class="table tsa-tbl">
-                        <thead id="id_thead_customer"></thead>
-                        <tbody id="id_tbody_customer"></tbody>
-                        <tfoot id="id_tfoot_customer"></tfoot>
-                    </table>
-                </div>
-                <div id="id_div_tbl_order" class="display_hide">
-                     <table  class="table tsa-tbl">
-                        <thead id="id_thead_order"></thead>
-                        <tbody id="id_tbody_order"></tbody>
-                        <tfoot id="id_tfoot_order"></tfoot>
-                    </table>
-                </div>
-                <div id="id_div_tbl_planning" class="content_header display_hide">
-                    <div class="content_subheader_left mx-2">
-                        <h5 id="id_hdr_period" title="{% trans 'Click to select a customer, order and period.' %}" class="pointer_show"></h5>
-                    </div>
-                     <table  class="table tsa-tbl">
-                        <thead id="id_thead_planning"></thead>
-                        <tbody id="id_tbody_planning"></tbody>
-                        <tfoot id="id_tfoot_planning"></tfoot>
-                    </table>
-                </div>
-                {% include 'includes/calendar.html' %}
+
     <!-- =================== END DATA TABLE  =================== -->
             </div>
 <!-- END CONTENT BODY -->
@@ -138,17 +153,7 @@
             data-customer_upload_url="{% url 'customer_upload_url' %}"
             data-teammember_upload_url="{% url 'teammember_upload_url' %}"
             data-order_import_url="{% url 'order_import_url' %}"
-
             data-pricerate_upload_url="{% url 'pricerate_upload_url' %}"
-            data-err_msg01= "{% trans 'An error occurred.' %}"
-
-            data-lang ="{{ lang }}"
-            data-timezone ="{{ timezone }}"
-            data-timeformat ="{{ timeformat }}"
-            data-interval ="{{ interval }}"
-
-            data-weekdays ="{{ weekdays }}"
-            data-months ="{{ months }}"
 
             data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
             data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"
@@ -162,58 +167,8 @@
             data-imgsrc_cross_lightgrey = "{% static 'img/cross_lightgrey.png' %}"
             data-imgsrc_stat00="{% static 'img/stat00.png' %}"
 
-            data-title_billable= "{% trans 'Billable hours. Changes in worked hours will also change the billing hours.' %}"
-            data-title_notbillable=  "{% trans 'Fixed billing hours. Changes in worked hours will not affect the billing hours.' %}"
             data-imgsrc_delete="{% static 'img/delete.gif' %}"
             data-imgsrc_deletered="{% static 'img/deletered.gif' %}"
-
-            data-txt_shortname = "{% trans 'Short name' %}"
-            data-txt_orderschemeshift = "{% trans 'Order / Scheme / Shift' %}"
-            data-txt_cust_code_enter = "{% trans 'Enter a short name of the customer' %}..."
-            data-txt_customer = "{% trans 'Customer' %}"
-            data-txt_customer_name = "{% trans 'Customer name' %}"
-            data-txt_customer_add = "{% trans 'Add new customer' %}"
-            data-txt_customer_delete = "{% trans 'Delete customer' %}"
-
-            data-txt_customer_list = "{% trans 'Customer list' %}"
-            data-txt_customer_data = "{% trans 'Customer data' %}"
-            data-txt_customer_select = "{% trans 'Select customer' %}"
-
-            data-txt_period = "{% trans 'Period' %}"
-            data-txt_select_period = "{% trans 'Select period' %}"
-            data-txt_planning_preview = "{% trans 'Preview planning' %}"
-            data-txt_planning_download = "{% trans 'Download planning' %}"
-
-            data-txt_order = "{% trans 'Order' %}"
-            data-txt_order_code = "{% trans 'Order code' %}"
-            data-txt_order_name = "{% trans 'Order name' %}"
-            data-txt_order_add = "{% trans 'Add new order' %}"
-            data-txt_order_delete = "{% trans 'Delete order' %}"
-            data-txt_shift= "{% trans 'Shift' %}"
-
-            data-txt_order_import= "{% trans 'Upload customers and orders' %}"
-
-            data-txt_rosterdate="{% trans 'Rosterdate' %}"
-            data-txt_timestart= "{% trans 'Start time' %}"
-            data-txt_timeend= "{% trans 'End time' %}"
-            data-txt_datefirst = "{% trans 'Start date' %}"
-            data-txt_datelast = "{% trans 'End date' %}"
-            data-txt_pricerate = "{% trans 'Hourly rate' %}"
-            data-txt_taxcode= "{% trans 'Tax code' %}"
-            data-txt_asof ="{% trans 'As of' %}"
-
-            data-txt_employee = "{% trans 'Employee' %}"
-            data-txt_billable = "{% trans 'Billable' %}"
-            data-txt_identifier = "{% trans 'Identifier' %}"
-
-            data-txt_this_customer = "{% trans 'This customer ' %}"
-            data-txt_this_order = "{% trans 'This order ' %}"
-            data-txt_confirm_msg01_delete = "{% trans 'will be deleted.' %}"
-            data-txt_confirm_msg01_inactive = "{% trans 'will be made inactive.' %}"
-
-            data-txt_confirm_btn_delete = "{% trans 'Yes, delete' %}"
-            data-txt_confirm_btn_inactive = "{% trans 'Yes, make inactive' %}"
-
         >
         </div>
 

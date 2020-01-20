@@ -1172,11 +1172,8 @@
     function format_confirmation_element (el_input, field_dict, fieldname,
         imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_questionmark, imgsrc_warning,
         title_stat00, title_question_start, title_question_end, title_warning_start, title_warning_end ) {
-
          "use strict";
-
         //console.log("+++++++++ format_confirmation_element", fieldname, field_dict)
-
 
         if(!!el_input){
             let el_img = el_input.children[0];

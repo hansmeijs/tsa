@@ -260,7 +260,7 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
 class TeammemberUploadView(UpdateView):  # PR2019-12-06
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> TeammemberUploadView >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ')
+        logger.debug(' ===================== TeammemberUploadView ===================== ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -326,10 +326,14 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                         if employee_pk is not None and datefirst is not None and datelast is not None:
                             customer_id, order_id = None, None
 
-                            # employee_calendar_list = prf.create_employee_calendar(datefirst, datelast, customer_id, order_id, employee_pk,
+                            # employee_calendar_list = prf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk, add_empty_shifts,
                              #                                                      comp_timezone, timeformat, user_lang, request)
-                            employee_calendar_list, calendar_header_dict = prf.create_employee_calendar(datefirst, datelast, customer_id, order_id, employee_pk,
-                                                                                  comp_timezone, timeformat, user_lang, request)
+                            add_empty_shifts = False
+                            skip_restshifts = False
+                            orderby_rosterdate_customer = False
+                            employee_calendar_list, calendar_header_dict = prf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
+                                                                                  add_empty_shifts, skip_restshifts, orderby_rosterdate_customer,
+                                                                                comp_timezone, timeformat, user_lang, request)
                             logger.debug('???????????????employee_calendar_list: ' + str(employee_calendar_list))
                             logger.debug('??????????????? calendar_header_dict: ' + str(calendar_header_dict))
                             if calendar_header_dict:
@@ -657,7 +661,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
 
     if order_pk is not None and datefirst_iso is not None and datelast_iso is not None:
         customer_pk = None
-        calendar_dictlist, calendar_header_dict = prf. create_customer_calendar(
+        calendar_dictlist, calendar_header_dict = prf. create_customer_planning(
             datefirst_iso=datefirst_iso,
             datelast_iso=datelast_iso,
             customer_pk=customer_pk,
@@ -985,8 +989,12 @@ def calendar_employee_upload(request, upload_dict, comp_timezone, timeformat, us
 
     if employee_pk is not None and datefirst is not None and datelast is not None:
         customer_id, order_id = None, None
-        calendar_dictlist, calendar_header_dict = prf.create_employee_calendar(datefirst, datelast, customer_id, order_id, employee_pk,
-                                               comp_timezone, timeformat, user_lang, request)
+        add_empty_shifts = False
+        skip_restshifts = False
+        orderby_rosterdate_customer = False
+        calendar_dictlist, calendar_header_dict = prf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
+                                               add_empty_shifts, skip_restshifts, orderby_rosterdate_customer,
+                                                comp_timezone, timeformat, user_lang, request)
 
         #logger.debug('employee_calendar_list: ' + str(employee_calendar_list))
         if calendar_dictlist:
@@ -1280,7 +1288,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
 
 
 def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25
-    logger.debug('============= TeammemberUploadView ============= ')
+    logger.debug(' ---------------- teammember_upload ---------------- ')
 # Absence is updated in absence_upload
 
 # upload_dict =  {

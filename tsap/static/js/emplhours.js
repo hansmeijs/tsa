@@ -798,12 +798,12 @@ console.log("=========  function HandleCreateRecord =========");
             dataType:'json',
             success: function (response) {
                 //console.log( response)
-                if ("order" in response) {
-                    order_list= response["order"]
+                if ("order_list" in response) {
+                    order_list= response["order_list"]
                     FillDatalists(order_list, "id_datalist_orders")
                 }
-                if ("employee" in response) {
-                    employee_list= response["employee"]
+                if ("employee_list" in response) {
+                    employee_list= response["employee_list"]
                     FillDatalists(employee_list, "id_datalist_employees")
                 }
             },
@@ -1126,8 +1126,6 @@ console.log("=========  function HandlePopupSave =========");
             dataType:'json',
             success: function (response) {
                 if ("row_update" in response) {
-
-
 
                     UpdateFields(tr_selected, response["row_update"])
                 }

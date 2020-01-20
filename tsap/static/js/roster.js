@@ -557,7 +557,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 el.classList.add("tsa_color_darkgrey")
                 el.classList.add("tsa_transparent")
-
 // --- add width
                 if (j === 1){
                     el.classList.add("td_width_180")
@@ -567,7 +566,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     el.classList.add("td_width_060");
                 } else {
                     el.classList.add("td_width_090")};
-
 // --- add text_align
                 if ( [0, 1, 2, 3].indexOf( j ) > -1 ){
                     el.classList.add("text_align_left")
@@ -627,7 +625,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!is_new_item){
 
                 // --- first add <a> element with EventListener to td
-                    el.addEventListener("click", function() {ModalStatusOpen(el);}, false)
+                    el.addEventListener("click", function() {ModalStatusOpen(el)}, false)
 
 //- add hover to confirm elements
                     if ([5, 7].indexOf( j ) > -1){
@@ -877,7 +875,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const fieldname = (data_field === "confirmstart") ? "timestart" : "timeend"
         const img_src = (data_field === "confirmstart") ? imgsrc_stat02 : imgsrc_stat03;
         const field_dict = get_dict_value_by_key(item_dict, fieldname)
-        const locked = (overlap_or_locked(field_dict) || has_no_employee(item_dict));
+
+        const field_is_locked = ("locked" in field_dict)
+        const has_overlap = ("overlap" in field_dict)
+        const has_no_employee = (!get_subdict_value_by_key(item_dict, "employee", "pk"))
+        const locked = (field_is_locked || has_overlap || has_no_employee);
 
         if(!locked){
             el.children[0].setAttribute("src", img_src)
@@ -1983,7 +1985,6 @@ console.log("===  function HandlePopupWdySave =========");
 // ---  get pk_str from id of el_timepicker
         const pk_str = el_timepicker.getAttribute("data-pk")// pk of record  of element clicked
 
-
 // get values from el_timepicker
         const data_table = get_attr_from_el(el_timepicker, "data-table")
         const id_str = get_attr_from_el(el_timepicker, "data-pk")
@@ -2057,101 +2058,6 @@ console.log("===  function HandlePopupWdySave =========");
             el_timepicker.classList.add(cls_hide);
         }  // if(!!pk_str && !! parent_pk){
     }  // HandlePopupDateSave
-
-
-//=========  ModalStatusSave  ================ PR2019-07-11
-    function ModalStatusSave() {
-        console.log("===  ModalStatusSave =========");
-
-        // put values in el_body
-        let el_body = document.getElementById("id_mod_status_body")
-        const tblName = get_attr_from_el(el_body, "data-table")
-        const data_ppk = get_attr_from_el(el_body, "data-ppk")
-        const data_field = get_attr_from_el(el_body, "data-field")
-
-        const data_pk = get_attr_from_el(el_body, "data-pk")
-        let tr_changed = document.getElementById(data_pk)
-
-        const id_dict = get_iddict_from_element(el_body);;
-        let upload_dict = {"id": id_dict}
-
-        const status_value = get_attr_from_el_int(el_body, "data-value")
-        let status_dict = {};
-        if(data_field === "confirmstart"){
-            status_dict = {"value": 2, "update": true}  // STATUS_02_START_CONFIRMED = 2
-        } else if(data_field === "confirmend"){
-            status_dict = {"value": 4, "update": true}  // STATUS_04_END_CONFIRMED = 4
-        } else if(data_field === "status"){
-            if(status_value >= 8){
-                status_dict = {"value": 8, "remove": true, "update": true}  // STATUS_08_LOCKED = 8
-            } else {
-                status_dict = {"value": 8, "update": true}   // STATUS_08_LOCKED = 8
-            }
-        }
-        upload_dict["status"] = status_dict
-
-        $("#id_mod_status").modal("hide");
-
-        if(!!upload_dict) {
-            console.log( "upload_dict", upload_dict);
-            let parameters = {"upload": JSON.stringify(upload_dict)};
-
-            let response = "";
-            $.ajax({
-                type: "POST",
-                url: url_emplhour_upload,
-                data: parameters,
-                dataType:'json',
-                success: function (response) {
-                    console.log( "response");
-                    console.log( response);
-
-                    if ("update_list" in response) {
-                        let update_list = response["update_list"];
-                        UpdateFromResponseNEW(tblName, update_list)
-                    }
-
-
-                    if ("item_update" in response) {
-                        let item_dict =response["item_update"]
-                        const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
-
-                        console.log("ooo UpdateTableRow ooo");
-                        UpdateTableRow("emplhour", tr_changed, item_dict)
-                        // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
-                        //id: {parent_pk: 126, table: "teammembers", created: true, pk: 57, temp_pk: "new_4"}
-                        //team: {pk: 126, value: "A", updated: true}
-                        const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
-                        if (is_created){
-// add new empty row
-                    console.log( "UploadTblrowChanged >>> add new empty row");
-                            id_new = id_new + 1
-                            const pk_new = "new" + id_new.toString()
-                            const parent_pk = get_ppk_from_dict (item_dict)
-
-                            let new_dict = {}
-                            new_dict["id"] = {"pk": pk_new, "ppk": parent_pk, "temp_pk": pk_new}
-
-                            if (tblName === "teammembers"){
-                                const team_code = get_subdict_value_by_key (item_dict, "team", "value")
-                                new_dict["team"] = {"pk": parent_pk, "value": team_code}
-                            }
-                            // row_index = -1 (add to end), is_new_item = true
-                            let tblRow = CreateTblRow(pk_new, parent_pk, -1, true)
-
-                        console.log("<<< UpdateTableRow <<<");
-                            UpdateTableRow("emplhour", tblRow, new_dict)
-                        }
-                    }
-                },
-                error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
-                    alert(msg + '\n' + xhr.responseText);
-                }
-            });
-        }  //  if(!!new_item)
-    }  // ModalStatusSave
-
 
 //###########################################################################
 // +++++++++++++++++ MODAL ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2458,49 +2364,66 @@ console.log("===  function HandlePopupWdySave =========");
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //========= ModalStatusOpen====================================
     function ModalStatusOpen (el_input) {
-        //console.log("===  ModalStatusOpen  =====") ;
+        console.log("===  ModalStatusOpen  =====") ;
 
         let item_dict = get_itemdict_from_datamap_by_el(el_input, emplhour_map)
         let id_dict = item_dict["id"];
-        //console.log("item_dict", item_dict) ;
+        console.log("item_dict", item_dict) ;
 
 // get tr_selected
         let tr_selected = get_tablerow_selected(el_input)
 
 // get values from el_input
         const data_field = get_attr_from_el(el_input, "data-field");
-        //console.log("data_field", data_field)
 
 // get status from field status, not from confirm satrt/end
         const status_sum = get_subdict_value_by_key(item_dict,"status", "value")
-        //console.log("status_sum", status_sum, typeof status_sum)
+        console.log("status_sum", status_sum, typeof status_sum)
 
         let header_text = "Confirm shift";
         let btn_save_text = "Confirm";
         let time_label = "Time:"
         let time_col_index = 0
         let is_field_status = false;
+
+        // STATUS_01_CREATED = 1
+        // STATUS_02_START_CONFIRMED = 2
+        // STATUS_04_END_CONFIRMED = 4
+        // STATUS_08_LOCKED = 8
+        // STATUS_16_QUESTION = 16
+
         const allow_lock_status = (status_sum < 16)  // STATUS_16_QUESTION = 16
-        //console.log("allow_lock_status", allow_lock_status)
+        console.log("allow_lock_status", allow_lock_status)
         const status_locked = status_found_in_statussum(8, status_sum)
-        //console.log("status_locked", status_locked)
+        console.log("status_locked", status_locked)
+
+        const fieldname = (data_field === "confirmstart") ? "timestart" : "timeend"
+        const field_dict = get_dict_value_by_key(item_dict, fieldname)
+
+
+        const field_is_locked = ("locked" in field_dict)
+        const field_is_confirmed = ("confirmed" in field_dict)
+        const has_overlap = ("overlap" in field_dict)
+        const has_no_employee = (!get_subdict_value_by_key(item_dict, "employee", "pk"))
+
+        mod_upload_dict = {id: id_dict,
+                            fieldname: fieldname,
+                            locked: field_is_locked,
+                            confirmed: field_is_confirmed}
+        console.log("mod_upload_dict", mod_upload_dict)
 
         if (data_field === "confirmstart") {
-            header_text = "Confirm start of shift"
+            header_text = (field_is_confirmed) ? "Undo confirmation" : "Confirm start of shift";
+            btn_save_text = (field_is_confirmed) ? "Undo" : "Confirm";
             time_label = "Start time:"
             time_col_index = 4
         } else if (data_field === "confirmend") {
-            header_text = "Confirm end of shift"
+            header_text = (field_is_confirmed) ? "Undo confirmation" : "Confirm end of shift";
+            btn_save_text = (field_is_confirmed) ? "Undo" : "Confirm";
             time_label = "End time:"
             time_col_index = 6
         } else if (data_field === "status") {
             is_field_status = true;
-
-            // STATUS_01_CREATED = 1
-            // STATUS_02_START_CONFIRMED = 2
-            // STATUS_04_END_CONFIRMED = 4
-            // STATUS_08_LOCKED = 8
-            // STATUS_16_QUESTION = 16
 
             if (status_locked) {  // STATUS_08_LOCKED
                 header_text = "Unlock confirmation"
@@ -2513,11 +2436,23 @@ console.log("===  function HandlePopupWdySave =========");
             time_col_index = 9
         }
 // don't open modal when locked and confirmstart / confirmend
-        const fieldname = (data_field === "confirmstart") ? "timestart" : "timeend"
-        const field_dict = get_dict_value_by_key(item_dict, fieldname)
+        let allow_open = false;
+        if (is_field_status){
+            // status field cabn always be opened TODO add user permission
+            allow_open = true;
+        } else {
+            // cannot open when field is locked
+            if (!field_is_locked){
+                // when has_overlap or has_no_employee: can undo, but not confirm
+                if (has_overlap || has_no_employee) {
+                    if (field_is_confirmed){
+                        allow_open = true;
+                    }
+                }
+            }
+        }
 
-        const dont_open = (!is_field_status) && (status_locked || overlap_or_locked(field_dict) || has_no_employee(item_dict))
-        if(!dont_open) {
+        if(allow_open) {
 
 // put values in el_body
             let el_body = document.getElementById("id_mod_status_body")
@@ -2527,6 +2462,7 @@ console.log("===  function HandlePopupWdySave =========");
 
             el_body.setAttribute("data-field", data_field);
             el_body.setAttribute("data-value", status_sum);
+            el_body.setAttribute("data-confirmed", field_is_confirmed);
 
             document.getElementById("id_mod_status_header").innerText = header_text
             document.getElementById("id_mod_status_time_label").innerText = time_label
@@ -2570,6 +2506,110 @@ console.log("===  function HandlePopupWdySave =========");
             $("#id_mod_status").modal({backdrop: true});
         }
 }; // function ModalStatusOpen
+
+//=========  ModalStatusSave  ================ PR2019-07-11
+    function ModalStatusSave() {
+        console.log("===  ModalStatusSave =========");
+
+        // put values in el_body
+        let el_body = document.getElementById("id_mod_status_body")
+        const tblName = get_attr_from_el(el_body, "data-table")
+        const data_ppk = get_attr_from_el(el_body, "data-ppk")
+        const data_field = get_attr_from_el(el_body, "data-field")
+        const field_is_confirmed = get_attr_from_el(el_body, "data-confirmed", false)
+        const status_value = get_attr_from_el_int(el_body, "data-value")
+
+        const data_pk = get_attr_from_el(el_body, "data-pk")
+        let tr_changed = document.getElementById(data_pk)
+
+        const id_dict = get_iddict_from_element(el_body);;
+        let upload_dict = {"id": id_dict}
+
+        let status_dict = {};
+        if(data_field === "confirmstart"){
+            if (field_is_confirmed) {
+                status_dict = {"value": 2, "remove": true, "update": true}  // STATUS_02_START_CONFIRMED = 2
+            } else {
+                status_dict = {"value": 2, "update": true}  // STATUS_02_START_CONFIRMED = 2
+            }
+        } else if(data_field === "confirmend"){
+            if (field_is_confirmed) {
+                 status_dict = {"value": 4, "remove": true, "update": true}  // STATUS_04_END_CONFIRMED = 4
+            } else {
+                 status_dict = {"value": 4, "update": true}  // STATUS_04_END_CONFIRMED = 4
+            }
+        } else if(data_field === "status"){
+            if(status_value >= 8){
+                status_dict = {"value": 8, "remove": true, "update": true}  // STATUS_08_LOCKED = 8
+            } else {
+                status_dict = {"value": 8, "update": true}   // STATUS_08_LOCKED = 8
+            }
+        }
+        upload_dict["status"] = status_dict
+
+        $("#id_mod_status").modal("hide");
+
+        if(!!upload_dict) {
+            console.log( "upload_dict", upload_dict);
+            let parameters = {"upload": JSON.stringify(upload_dict)};
+
+            let response = "";
+            $.ajax({
+                type: "POST",
+                url: url_emplhour_upload,
+                data: parameters,
+                dataType:'json',
+                success: function (response) {
+                    console.log( "response");
+                    console.log( response);
+
+                    if ("update_list" in response) {
+                        let update_list = response["update_list"];
+                        UpdateFromResponseNEW(tblName, update_list)
+                    }
+
+
+                    if ("item_update" in response) {
+                        let item_dict =response["item_update"]
+                        const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
+
+                        console.log("ooo UpdateTableRow ooo");
+                        UpdateTableRow("emplhour", tr_changed, item_dict)
+                        // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
+                        //id: {parent_pk: 126, table: "teammembers", created: true, pk: 57, temp_pk: "new_4"}
+                        //team: {pk: 126, value: "A", updated: true}
+                        const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
+                        if (is_created){
+// add new empty row
+                    console.log( "UploadTblrowChanged >>> add new empty row");
+                            id_new = id_new + 1
+                            const pk_new = "new" + id_new.toString()
+                            const parent_pk = get_ppk_from_dict (item_dict)
+
+                            let new_dict = {}
+                            new_dict["id"] = {"pk": pk_new, "ppk": parent_pk, "temp_pk": pk_new}
+
+                            if (tblName === "teammembers"){
+                                const team_code = get_subdict_value_by_key (item_dict, "team", "value")
+                                new_dict["team"] = {"pk": parent_pk, "value": team_code}
+                            }
+                            // row_index = -1 (add to end), is_new_item = true
+                            let tblRow = CreateTblRow(pk_new, parent_pk, -1, true)
+
+                        console.log("<<< UpdateTableRow <<<");
+                            UpdateTableRow("emplhour", tblRow, new_dict)
+                        }
+                    }
+                },
+                error: function (xhr, msg) {
+                    console.log(msg + '\n' + xhr.responseText);
+                    alert(msg + '\n' + xhr.responseText);
+                }
+            });
+        }  //  if(!!new_item)
+    }  // ModalStatusSave
+
+
 
 //  #############################################################################################################
 
@@ -2882,7 +2922,7 @@ console.log("===  function HandlePopupWdySave =========");
                 };
             }
         };
-    }; // function FilterTableRows_dict
+    }; // FilterTableRows_dict
 
 //========= ShowTableRow_dict  ====================================
     function ShowTableRow_dict(tblRow) {  // PR2019-09-15
@@ -3160,7 +3200,6 @@ console.log("===  function HandlePopupWdySave =========");
 //###########################################################################
 // +++++++++++++++++ UPDATE ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 //=========  UpdateFromResponseNEW  ================ PR2019-10-14
     function UpdateFromResponseNEW(tblName, update_list) {
         console.log(" --- UpdateFromResponseNEW  ---");
@@ -3310,28 +3349,8 @@ console.log("===  function HandlePopupWdySave =========");
 
 //############################################################################
 // +++++++++++++++++ FUNCTIONS ++++++++++++++++++++++++++++++++++++++++++++++++++
-//========= has_overlap  ==================================== PR2019-09-20
-    function has_overlap(field_dict) {
-        let hasoverlap = false;
-        if(!isEmpty(field_dict)) {
-            hasoverlap = ("overlap" in field_dict)
-        }
-        return hasoverlap
-    }
- //========= has_employee  ==================================== PR2019-09-20
-    function has_no_employee(item_dict) {
-        let has_employee = false;
-        if(!isEmpty(item_dict)) {
-            if ("employee" in item_dict){
-                const field_dict = item_dict["employee"];
-                // if overlap = false there is no 'value' key, if locked = false there is no 'locked' key,
-                if ("pk" in field_dict){
-                    has_employee = (!!parseInt(field_dict["pk"]))
-                }
-            }
-        }
-        return !has_employee
-    }
+
+
 // ###################################################################################
 
 }); //$(document).ready(function()

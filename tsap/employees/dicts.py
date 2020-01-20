@@ -126,8 +126,11 @@ def create_teammember_list(filter_dict, company, user_lang):
     customer_pk = filter_dict.get('customer_pk')
     order_pk = filter_dict.get('order_pk')
     employee_nonull = filter_dict.get('employee_nonull', False)
+    is_template = filter_dict.get('is_template')
 
     crit = Q(team__scheme__order__customer__company=company)
+    if is_template is not None:
+        crit.add(Q(istemplate=is_template), crit.connector)
     if employee_nonull:
         crit.add(Q(employee__isnull=False), crit.connector)
     if order_pk:

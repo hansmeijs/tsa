@@ -351,9 +351,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 //    period_dict= response["period"];
                //     CreateTblModSelectPeriod();
                 //}
-                // setting_list come before 'customer' and 'order'
-                if ("setting_list" in response) {
-                    UpdateSettings(response["setting_list"])
+                // setting_dict come before 'customer' and 'order'
+                if ("setting_dict" in response) {
+                    UpdateSettings(response["setting_dict"])
                 }
 
                 if ("rosterdate_check" in response) {
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  upload new selected_btn
         if(!skip_update){
-            const upload_dict = {"page_scheme": {"mode": selected_btn}};
+            const upload_dict = {"page_scheme": {"btn": selected_btn}};
             UploadSettings (upload_dict, url_settings_upload);
         }
 
@@ -1121,6 +1121,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("CreateSelectRow");
 
         if(row_index == null){row_index = -1}
+
         let tblRow;
         if (!isEmpty(item_dict)) {
 //--- get info from item_dict
@@ -1140,6 +1141,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //--------- insert tableBody row
             const row_id = id_sel_prefix + map_id
             tblRow = tblBody_select.insertRow(row_index);
+
             tblRow.setAttribute("id", row_id);
             tblRow.setAttribute("data-map_id", map_id );
             tblRow.setAttribute("data-pk", pk_int);
@@ -3039,6 +3041,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };  // if (tblName === "team"){
 
+// ++++ update selectRow ++++
 //--- insert new selectRow if is_created, highlight selected row
         if (["scheme", "shift", "team"].indexOf( tblName ) > -1){
             let tblBody_select = (tblName === "scheme") ? tblBody_scheme_select :
@@ -3836,23 +3839,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // +++++++++  ModRosterdateFinished  ++++++++++++++++++++++++++++++ PR2019-11-13
     function ModRosterdateFinished(response_dict) {
-        //console.log("=== ModRosterdateFinished =========" );
-        //console.log("response_dict", response_dict );
+        console.log("=== ModRosterdateFinished =========" );
+        console.log("response_dict", response_dict );
         // rosterdate: {rosterdate: {…}, logfile:
         const mode = get_dict_value_by_key(response_dict,"mode")
         const is_delete = (mode === "delete")
-        //console.log("mode", mode );
-        //console.log("is_delete", is_delete );
-
+        console.log("mode", mode );
+        console.log("is_delete", is_delete );
+        const msg_01_txt = get_dict_value_by_key(response_dict,"msg_01")
+        const msg_02_txt = get_dict_value_by_key(response_dict, "msg_02")
+        const msg_03_txt = get_dict_value_by_key(response_dict, "msg_03")
 // hide loader
         document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
 
     // set info textboxes
-        const info_txt = loc.rosterdate_finished + ((is_delete) ? loc.deleted : loc.created) + ".";
+        const info01_txt = loc.rosterdate_finished + ((is_delete) ? loc.deleted : loc.created) + ".";
 
-        document.getElementById("id_mod_rosterdate_info_01").innerText = info_txt;
-        document.getElementById("id_mod_rosterdate_info_02").innerText = null;
-        document.getElementById("id_mod_rosterdate_info_03").innerText = null;
+        document.getElementById("id_mod_rosterdate_info_01").innerText = msg_01_txt;
+        document.getElementById("id_mod_rosterdate_info_02").innerText = msg_02_txt;
+        document.getElementById("id_mod_rosterdate_info_03").innerText = msg_03_txt;
 
     // hide ok button, put 'Close' on cancel button
         document.getElementById("id_mod_rosterdate_btn_ok").classList.add(cls_hide);
@@ -5318,7 +5323,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
             }
         };
-    }; // function FilterTableRows_dict
+    }; // FilterTableRows_dict
 
 //========= ShowTableRow_dict  ====================================
     function ShowTableRow_dict(tblRow) {  // PR2019-09-15
@@ -5424,38 +5429,34 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ OTHER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= UpdateSettings  ====================================
-    function UpdateSettings(setting_list){
+    function UpdateSettings(setting_dict){
         //console.log(" --- UpdateSettings ---")
-        //console.log("setting_list", setting_list)
+        //console.log("setting_dict", setting_dict)
 
-        for (let i = 0, len = setting_list.length; i < len; i++) {
-            const setting_dict = setting_list[i];
-            //console.log("setting_dict", setting_dict)
-            Object.keys(setting_dict).forEach(function(key) {
-                if (key === "selected_pk"){
-                    const sel_dict = setting_dict[key];
-                    //console.log("sel_dict", sel_dict)
+        let key = "selected_pk";
+        if (key in setting_dict){
+            const sel_dict = setting_dict[key];
+            //console.log("sel_dict", sel_dict)
 
-                    // these variables store pk of customer / order from setting.
-                    // They are used in HandleSelectCustomer to go to saved customer / order
-                    // field type is integer
-                    setting_cust_pk = get_dict_value_by_key(sel_dict, "sel_cust_pk", 0);
-                    setting_order_pk = get_dict_value_by_key(sel_dict, "sel_order_pk", 0);
-                    setting_scheme_pk = get_dict_value_by_key(sel_dict, "sel_scheme_pk", 0);
-                }
-                if (key === "quicksave"){
-                    quicksave = setting_dict[key];
-                }
-                if (key === "page_scheme"){
-                    const page_dict = setting_dict[key];
-                    if ("mode" in page_dict ){
-                        selected_btn = page_dict["mode"];
-                        HandleBtnSelect(selected_btn, true);
-                    }
-                }  // if (key === "page_customer"){
-
-            });
-        };
+            // these variables store pk of customer / order from setting.
+            // They are used in HandleSelectCustomer to go to saved customer / order
+            // field type is integer
+            setting_cust_pk = get_dict_value_by_key(sel_dict, "sel_cust_pk", 0);
+            setting_order_pk = get_dict_value_by_key(sel_dict, "sel_order_pk", 0);
+            setting_scheme_pk = get_dict_value_by_key(sel_dict, "sel_scheme_pk", 0);
+        }
+        key = "quicksave";
+        if (key in setting_dict){
+            quicksave = setting_dict[key];
+        }
+        key = "page_scheme";
+        if (key in setting_dict){
+            const page_dict = setting_dict[key];
+            if ("btn" in page_dict ){
+                selected_btn = page_dict["btn"];
+                HandleBtnSelect(selected_btn, true);
+            }
+        }
     }  // UpdateSettings
 
 

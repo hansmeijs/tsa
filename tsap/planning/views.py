@@ -17,7 +17,7 @@ from customers import dicts as cust_dicts
 
 from tsap import constants as c
 from tsap import functions as f
-from tsap import locale as l
+from tsap import locale as loc
 from planning import dicts as d
 from planning import rosterfill as r
 from employees import dicts as ed
@@ -60,60 +60,313 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
                     # logger.debug('request.user.company.timezone: ' + str(request.user.company.timezone))
                     timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
+# ---  get interval
+                    interval = 15
+                    if request.user.company.interval:
+                        interval = request.user.company.interval
 
                     datalist_dict = json.loads(request.POST['download'])
                     logger.debug('datalist_dict: ' + str(datalist_dict) + ' ' + str(type(datalist_dict)))
 
-# - loop through datalist_dict
+# ----- settings -- first get settings, to be used in other downlaods
+                    table_dict = datalist_dict.get('setting')
+                    if table_dict:
+                        logger.debug('#############  table_dict: ' + str(table_dict) + ' ' + str(type(table_dict)))
+                        # setting: {page_customer: {mode: "get"},
+                        #           selected_pk: {mode: "get"},
+                        #           planning_period: {mode: "get"}}
+                        setting_dict = {'user_lang': user_lang,
+                                        'comp_timezone': comp_timezone,
+                                        'timeformat': timeformat,
+                                        'interval': interval}
+                        for key in table_dict:
+                            return_dict = {}
+                            dict = Usersetting.get_jsonsetting(key, request.user)
+                            logger.debug('vvvvvvvvvvvvvvvvvvvvvdict: ' + str(dict) + ' ' + str(type(dict)))
+                            if dict:
+                                if key in ('period_customer', 'period_employee'):
+                                    return_dict = d.period_get_and_save(key, dict, request, comp_timezone)
+                                    logger.debug('vvvvvvvvvvvvvvvvvvvdatalists[key]: ' + str(datalists[key]) + ' ' + str(type(datalists[key])))
+                                else:
+                                    return_dict = dict
+                            setting_dict[key] = return_dict
+                        datalists['setting_dict'] = setting_dict
+# ----- locale
+                    table_dict = datalist_dict.get('locale')
+                    if table_dict:
+                        # table_dict: {page: "employee"}
+                        datalists['locale_dict'] = loc.get_locale_dict(table_dict, user_lang, comp_timezone, timeformat)
 
-                    for table in datalist_dict:
-                        table_dict = datalist_dict[table]
+# ----- quicksave
+                    table_dict = datalist_dict.get('quicksave')
+                    if table_dict:
+                        # get quicksave from Usersetting
+                        quicksave_dict = Usersetting.get_jsonsetting(c.KEY_USER_QUICKSAVE, request.user)
+                        logger.debug(' quicksave_dict: ' + str(quicksave_dict))
+                        datalists['quicksave'] = quicksave_dict
+# ----- submenu
+                    table_dict = datalist_dict.get('submenu')
+                    if table_dict:
+                        submenu_dict = {}
+                        if request.user.is_role_system_and_perm_admin:
+                            submenu_dict['user_is_role_system_and_perm_admin'] = True
+                        if request.user.is_role_company_and_perm_admin:
+                            submenu_dict['user_is_role_company_and_perm_admin'] = True
+                        if submenu_dict:
+                            datalists['submenu_dict'] = submenu_dict
 
-# - get is_absence, is_template, inactive from table_dict
-                        is_absence = table_dict.get('isabsence')
-                        is_template = table_dict.get('istemplate', False)
-                        is_singleshift = table_dict.get('issingleshift', False)
+# ----- company
+                    table_dict = datalist_dict.get('company')
+                    if table_dict:
+                        company_dict = cust_dicts.create_company_list(company=request.user.company)
+                        if company_dict:
+                            datalists['company_dict'] = company_dict
+# ----- abscat
+                    table_dict = datalist_dict.get('abscat')
+                    if table_dict:
+                        dict_list = cust_dicts.create_absencecategory_list(request)
+                        if dict_list:
+                            datalists['abscat_list'] = dict_list
+# ----- employee
+                    table_dict = datalist_dict.get('employee')
+                    if table_dict:
+                        dict_list = ed.create_employee_list(company=request.user.company, user_lang=user_lang)
+                        if dict_list:
+                            datalists['employee_list'] = dict_list
+# ----- customer
+                    table_dict = datalist_dict.get('customer')
+                    if table_dict:
+                        dict_list = cust_dicts.create_customer_list(
+                            company=request.user.company,
+                            is_absence=table_dict.get('isabsence'),
+                            is_template=table_dict.get('istemplate'),
+                            inactive=table_dict.get('inactive'))
+                        if dict_list:
+                            datalists['customer_list'] = dict_list
+# ----- order
+                    table_dict = datalist_dict.get('order')
+                    if table_dict:
+                        dict_list = cust_dicts.create_order_list(
+                            company=request.user.company,
+                            user_lang=user_lang,
+                            is_absence=table_dict.get('isabsence'),
+                            is_template=table_dict.get('istemplate'),
+                            inactive=table_dict.get('inactive'))
+                        if dict_list:
+                            datalists['order_list'] = dict_list
+# ----- scheme
+                    table_dict = datalist_dict.get('scheme')
+                    if table_dict:
+                        # get all schemes, because of validation schemenames
+                        dict_list = d.create_scheme_list(
+                            filter_dict=table_dict,
+                            company=request.user.company,
+                            user_lang=user_lang)
+                        if dict_list:
+                            datalists['scheme_list'] = dict_list
+# ----- shift
+                    table_dict = datalist_dict.get('shift')
+                    if table_dict:
+                        dict_list = d.create_shift_list(
+                            filter_dict=table_dict,
+                            company=request.user.company,
+                            user_lang=user_lang)
+                        if dict_list:
+                            datalists['shift_list'] = dict_list
+# ----- team
+                    table_dict = datalist_dict.get('team')
+                    if table_dict:
+                        dict_list = d.create_team_list(
+                            filter_dict=table_dict,
+                            company=request.user.company)
+                        if dict_list:
+                            datalists['team_list'] = dict_list
+# ----- teammember
+                    table_dict = datalist_dict.get('teammember')
+                    if table_dict:
+                        dict_list = ed.create_teammember_list(
+                            filter_dict=table_dict,
+                            company=request.user.company,
+                            user_lang=user_lang)
+                        if dict_list:
+                            datalists['teammember_list'] = dict_list
+# ----- schemeitem
+                    table_dict = datalist_dict.get('schemeitem')
+                    if table_dict:
+                        dict_list = d.create_schemeitem_list(
+                            filter_dict=table_dict,
+                            company=request.user.company,
+                            comp_timezone=comp_timezone,
+                            user_lang=user_lang)
+                        if dict_list:
+                            datalists['schemeitem_list'] = dict_list
 
-                        # inactive = True: show inactive only, False: active only , None: show all
-                        inactive = None
-                        if 'inactive' in table_dict:
-                            inactive = table_dict.get('inactive')
-                        # logger.debug('datalist table: ' + str(table))
+# ----- planning_period
+                    # planning_period_dict is used further in customer/employee planning
+                    planning_period_dict = {}
+                    table_dict = datalist_dict.get('planning_period')
+                    if table_dict:
+                        # save new period and retrieve saved period
+                        planning_period_dict = d.period_get_and_save('planning_period', table_dict, request,
+                                                            comp_timezone)
+                        datalists['planning_period'] = planning_period_dict
 
-                        dict_list = []
+                        logger.debug('oooooooooooooo planning_period_dict: ' + str(planning_period_dict))
 
-                        if table == 'submenu':
-                            datalists[table] = {}
-                            if request.user.is_role_system_and_perm_admin:
-                                datalists[table]['user_is_role_system_and_perm_admin'] = True
-                            if request.user.is_role_company_and_perm_admin:
-                                datalists[table]['user_is_role_company_and_perm_admin'] = True
 
-                        if table == 'locale':
-                            datalists['locale_dict'] = l.get_locale_dict(table_dict, user_lang, comp_timezone, timeformat)
+# ----- calendar_period
+                    # calendar_period_dict is used further in customer/employee calendar
+                    calendar_period_dict = {}
+                    table_dict = datalist_dict.get('calendar_period')
+                    if table_dict:
+                        # save new period and retrieve saved period
+                        calendar_period_dict = d.period_get_and_save('calendar_period', table_dict, request,
+                                                            comp_timezone)
+                        datalists['calendar_period'] = calendar_period_dict
 
-                        elif table == 'company':
-                            company_dict = cust_dicts.create_company_list(company=request.user.company)
-                            if company_dict:
-                                datalists['company_dict'] = company_dict
+                        logger.debug(',,,,,,,,,,,,,,,,, calendar_period_dict: ' + str(calendar_period_dict))
 
-                        elif table == 'customer':
-                            # inactive = None: show all, False: only active (same for is_template)
-                            dict_list = cust_dicts.create_customer_list(
-                                company=request.user.company,
-                                is_absence=is_absence,
-                                is_template=is_template,
-                                inactive=inactive)
 
-                        elif table == 'order':
-                            # inactive = None: show all, False: only active (same for is_template)
-                            dict_list = cust_dicts.create_order_list(
-                                company=request.user.company,
-                                user_lang=user_lang,
-                                is_absence=is_absence,
-                                is_template=is_template,
-                                inactive=inactive)
 
+# ----- emplhour
+                    table_dict = datalist_dict.get('emplhour')
+                    if table_dict:
+                        # d.check_overlapping_shifts(range_start_iso, range_end_iso, request)  # PR2019-09-18
+                        # don't use the variable 'list', because table = 'period' and will create dict 'period_list'
+                        # planning_period_dict is already retrieved
+                        emplhour_list = d.create_emplhour_list(period_dict=planning_period_dict,
+                                                               company=request.user.company,
+                                                               comp_timezone=comp_timezone)
+                        # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
+                        datalists['emplhour_list'] = emplhour_list
+
+# ----- review
+                    table_dict = datalist_dict.get('review')
+                    if table_dict:
+                        # planning_period_dict is already retrieved
+                        datalists['review_list'] = d.create_review_list(period_dict=planning_period_dict,
+                                                               company=request.user.company,
+                                                               comp_timezone=comp_timezone)
+
+# ----- employee_calendar
+                    table_dict = datalist_dict.get('employee_calendar')
+                    if table_dict:
+
+                        customer_pk = None
+                        order_pk = table_dict.get('order_pk')
+                        if order_pk is None:
+                            customer_pk = table_dict.get('customer_pk')
+                        employee_pk = table_dict.get('employee_pk')
+
+                        datefirst_iso = calendar_period_dict.get('rosterdatefirst')
+                        datelast_iso = calendar_period_dict.get('rosterdatelast')
+                        add_empty_shifts = False
+                        skip_restshifts = False
+                        orderby_rosterdate_customer = False
+                        dict_list, calendar_setting_dict = r.create_employee_planning(
+                            datefirst_iso=datefirst_iso,
+                            datelast_iso=datelast_iso,
+                            customer_pk=customer_pk,
+                            order_pk=order_pk,
+                            employee_pk=employee_pk,
+                            add_empty_shifts=add_empty_shifts,
+                            skip_restshifts=skip_restshifts,
+                            orderby_rosterdate_customer=orderby_rosterdate_customer,
+                            comp_timezone=comp_timezone,
+                            timeformat=timeformat,
+                            user_lang=user_lang,
+                            request=request)
+                        datalists['calendar_setting_dict'] = calendar_setting_dict
+                        datalists['employee_calendar_list'] = dict_list
+
+# ----- customer_calendar
+                    table_dict = datalist_dict.get('customer_calendar')
+                    if table_dict:
+                        customer_pk = None
+                        order_pk = table_dict.get('order_pk')
+                        if order_pk is None:
+                            customer_pk = table_dict.get('customer_pk')
+
+                        datefirst_iso = calendar_period_dict.get('rosterdatefirst')
+                        datelast_iso = calendar_period_dict.get('rosterdatelast')
+
+                        dict_list, calendar_setting_dict = r.create_customer_planning(
+                            datefirst_iso=datefirst_iso,
+                            datelast_iso=datelast_iso,
+                            customer_pk=customer_pk,
+                            order_pk=order_pk,
+                            comp_timezone=comp_timezone,
+                            timeformat=timeformat,
+                            user_lang=user_lang,
+                            request=request)
+                        # datalists['calendar_setting_dict'] = calendar_setting_dict
+                        datalists['customer_calendar_list'] = dict_list
+
+# ----- employee_planning
+                    table_dict = datalist_dict.get('employee_planning')
+                    if table_dict:
+                        customer_pk = None
+                        order_pk = table_dict.get('order_pk')
+                        if order_pk is None:
+                            customer_pk = table_dict.get('customer_pk')
+                        employee_pk = table_dict.get('employee_pk')
+                        add_empty_shifts = table_dict.get('add_empty_shifts', False)
+                        skip_restshifts = table_dict.get('skip_restshifts', False)
+                        orderby_rosterdate_customer = table_dict.get('orderby_rosterdate_customer', False)
+
+                        # planning_period_dict is already retrieved
+                        rosterdatefirst = planning_period_dict.get('rosterdatefirst')
+                        rosterdatelast = planning_period_dict.get('rosterdatelast')
+                        dict_list, calendar_setting_dict = r.create_employee_planning(
+                            datefirst_iso=rosterdatefirst,
+                            datelast_iso=rosterdatelast,
+                            customer_pk=customer_pk,
+                            order_pk=order_pk,
+                            employee_pk=employee_pk,
+                            add_empty_shifts=add_empty_shifts,
+                            skip_restshifts=skip_restshifts,
+                            orderby_rosterdate_customer=orderby_rosterdate_customer,
+                            comp_timezone=comp_timezone,
+                            timeformat=timeformat,
+                            user_lang=user_lang,
+                            request=request)
+                        datalists['calendar_setting_dict'] = calendar_setting_dict
+                        datalists['employee_planning_list'] = dict_list
+
+# ----- customer_planning
+                    table_dict = datalist_dict.get('customer_planning')
+                    if table_dict:
+                        customer_pk = None
+                        order_pk = table_dict.get('order_pk')
+                        if order_pk is None:
+                            customer_pk = table_dict.get('customer_pk')
+
+                        # planning_period_dict is already retrieved
+                        rosterdatefirst = planning_period_dict.get('rosterdatefirst')
+                        rosterdatelast = planning_period_dict.get('rosterdatelast')
+
+                        dict_list, calendar_setting_dict = r.create_customer_planning(
+                            datefirst_iso=rosterdatefirst,
+                            datelast_iso=rosterdatelast,
+                            customer_pk=customer_pk,
+                            order_pk=order_pk,
+                            comp_timezone=comp_timezone,
+                            timeformat=timeformat,
+                            user_lang=user_lang,
+                            request=request)
+                        #datalists['calendar_setting_dict'] = calendar_setting_dict
+                        datalists['customer_planning_list'] = dict_list
+                        logger.debug('oooooooooooooocustomer_planning  calendar_setting_dict: ' + str(calendar_setting_dict))
+
+        #logger.debug('datalists: ' + str(datalists))
+
+# 9. return datalists
+        datalists_json = json.dumps(datalists, cls=LazyEncoder)
+
+        return HttpResponse(datalists_json)
+
+"""
+NIU ???
                         elif table == 'order_pricerate':
                             dict_list = cust_dicts.create_order_pricerate_list(
                                 company=request.user.company,
@@ -131,247 +384,21 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                 is_template=True,
                                 inactive=inactive)
 
-                        # get all schemes, because of validation schemenames
-                        elif table == 'scheme':
-                            dict_list = d.create_scheme_list(
-                                filter_dict=table_dict,
-                                company=request.user.company,
-                                user_lang=user_lang)
-
-                        elif table == 'shift':
-                            dict_list = d.create_shift_list(
-                                filter_dict=table_dict,
-                                company=request.user.company,
-                                user_lang=user_lang)
-
-                        elif table == 'team':
-                            dict_list = d.create_team_list(
-                                filter_dict=table_dict,
-                                company=request.user.company)
-
-                        elif table == 'teammember':
-                            dict_list = ed.create_teammember_list(
-                                filter_dict=table_dict,
-                                company=request.user.company,
-                                user_lang=user_lang)
-
-                        elif table == 'schemeitem':
-                            dict_list = d.create_schemeitem_list(
-                                filter_dict=table_dict,
-                                company=request.user.company,
-                                comp_timezone=comp_timezone,
-                                user_lang=user_lang)
 
                         # elif table == 'schemeitem_template':
                             # TODO use create_schemeitem_list
                             # dict_list = d.create_schemeitem_template_list(request, comp_timezone, user_lang)
-
-                        elif table == 'abscat':
-                            dict_list = cust_dicts.create_absencecategory_list(request)
-
-                        elif table == 'employee':
-                            dict_list = ed.create_employee_list(company=request.user.company, user_lang=user_lang)
 
                         elif table == 'replacement':
                             dict_list = d.create_replacementshift_list(table_dict, request.user.company)
 
                         elif table == 'rosterdate_check':
                             # rosterdate_check: {rosterdate: "2019-11-14"}
+                            # rosterdate_check: {mode: "delete"}
                             datalists[table] = d.get_rosterdate_check(table_dict, request)
 
-                        elif table == 'period':
-            # save new period and retrieve saved period
-                            period_dict = d.period_get_and_save(table, table_dict, request, comp_timezone)
-                            datalists['period'] = period_dict
 
-                            # d.check_overlapping_shifts(range_start_iso, range_end_iso, request)  # PR2019-09-18
-                            # don't use the variable 'list', because table = 'period' and will create dict 'period_list'
-
-# create_emplhour_list
-                            emplhour_list = d.create_emplhour_list(period_dict=period_dict,
-                                                                   company=request.user.company,
-                                                                   comp_timezone=comp_timezone)
-
-                            # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be retruned
-                            datalists['emplhour_list'] = emplhour_list
-
-                        elif table == 'review':
-                            # save new period and retrieve saved period
-                            period_dict = d.period_get_and_save(table, table_dict, request, comp_timezone)
-                            datalists['period'] = period_dict
-
-                            datalists[table] = d.create_review_list(period_dict=period_dict,
-                                                                   company=request.user.company,
-                                                                   comp_timezone=comp_timezone)
-#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-                        elif table == 'employee_calendar' or table == 'customer_calendar':
-
-                            datefirst_iso = table_dict.get('datefirst')
-                            datelast_iso = table_dict.get('datelast')
-
-                            logger.debug('table_dict: ' + str(table_dict))
-                            logger.debug('datefirst_iso: ' + str(datefirst_iso) + ' ' + str(type(datefirst_iso)))
-                            logger.debug('datelast_iso: ' + str(datelast_iso) + ' ' + str(type(datelast_iso)))
-
-                            if datefirst_iso is not None and datelast_iso is not None:
-                                # save datefirst and datelast in Usersetting, when they are in upload_dict
-                                Usersetting.set_jsonsetting(table, table_dict, request.user)
-                            else:
-                                # get dates from usersetting
-                                settings_dict = Usersetting.get_jsonsetting(table, request.user)
-                                datefirst_iso = settings_dict.get('datefirst')
-                                datelast_iso = settings_dict.get('datefirst')
-                                logger.debug('Usersetting datefirst_iso: ' + str(datefirst_iso) + ' ' + str(type(datefirst_iso)))
-                                logger.debug('Usersetting datelast_iso: ' + str(datelast_iso) + ' ' + str(type(datelast_iso)))
-
-                                if datefirst_iso is None:
-                                    this_monday = f.get_firstof_week(date.today(), 0)
-                                    end_of_week = this_monday + timedelta(days=6)
-                                    datefirst_iso = f.get_dateISO_from_dateOBJ(this_monday)
-                                    datelast_iso = f.get_dateISO_from_dateOBJ(end_of_week)
-                                    logger.debug('this_monday datefirst_iso: ' + str(datefirst_iso) + ' ' + str(type(datefirst_iso)))
-                                    logger.debug('end_of_week datelast_iso: ' + str(datelast_iso) + ' ' + str(type(datelast_iso)))
-                                else:
-                                    datefirst_dte = f.get_dateobj_from_dateISOstring(datefirst_iso)
-                                    end_of_week = datefirst_dte + timedelta(days=6)
-                                    datelast_iso = f.get_dateISO_from_dateOBJ(end_of_week)
-                                    logger.debug('datefirst_dte datefirst_iso: ' + str(datefirst_iso) + ' ' + str(type(datefirst_iso)))
-                                    logger.debug('end_of_week datelast_iso: ' + str(datelast_iso) + ' ' + str(type(datelast_iso)))
-
-                            calendar_header_dict = {}
-                            dict_list = []
-
-                            customer_pk = None
-                            order_pk = table_dict.get('order_id')
-                            if order_pk is None:
-                                customer_pk = table_dict.get('customer_id')
-                            employee_pk = table_dict.get('employee_pk')
-                            if table == 'employee_calendar':
-                                dict_list, calendar_header_dict = r.create_employee_calendar(
-                                    datefirst_iso=datefirst_iso,
-                                    datelast_iso=datelast_iso,
-                                    customer_pk=customer_pk,
-                                    order_pk=order_pk,
-                                    employee_pk=employee_pk,
-                                    comp_timezone=comp_timezone,
-                                    timeformat=timeformat,
-                                    user_lang=user_lang,
-                                    request=request)
-
-                            elif table == 'customer_calendar':
-                                dict_list, calendar_header_dict = r.create_customer_calendar(
-                                    datefirst_iso=datefirst_iso,
-                                    datelast_iso=datelast_iso,
-                                    customer_pk=customer_pk,
-                                    order_pk=order_pk,
-                                    comp_timezone=comp_timezone,
-                                    timeformat=timeformat,
-                                    user_lang=user_lang,
-                                    request=request)
-
-                            # logger.debug('calendar_header_dict: ' + str(calendar_header_dict))
-                            datalists['calendar_header_dict'] = calendar_header_dict
-# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-                        elif table == 'employee_planning':
-                            customer_pk = None
-                            order_pk = table_dict.get('order_pk')
-                            if order_pk is None:
-                                customer_pk = table_dict.get('customer_pk')
-                            employee_pk = table_dict.get('employee_pk')
-                            logger.debug('customer_pk: ' + str(customer_pk))
-                            logger.debug('order_pk: ' + str(order_pk))
-                            logger.debug('employee_pk: ' + str(employee_pk))
-
-                            # save new period and retrieve saved period
-                            period_employee_dict = table_dict.get('period_employee')
-                            logger.debug('period_employee_dict: ' + str(period_employee_dict))
-                            period_dict = d.period_get_and_save(table, period_employee_dict, request, comp_timezone)
-                            logger.debug('>>>>>>>>>>>>>>>>>>> period_dict: ' + str(period_dict))
-                            datalists['period'] = period_dict
-
-                            rosterdatefirst = period_dict.get('rosterdatefirst')
-                            rosterdatelast = period_dict.get('rosterdatelast')
-
-                            dict_list, calendar_header_dict = r.create_employee_calendar(
-                                datefirst_iso=rosterdatefirst,
-                                datelast_iso=rosterdatelast,
-                                customer_pk=customer_pk,
-                                order_pk=order_pk,
-                                employee_pk=employee_pk,
-                                comp_timezone=comp_timezone,
-                                timeformat=timeformat,
-                                user_lang=user_lang,
-                                request=request)
-
-                        elif table == 'customer_planning':
-                            customer_pk = None
-                            order_pk = table_dict.get('order_pk')
-                            if order_pk is None:
-                                customer_pk = table_dict.get('customer_pk')
-
-                            # save new period and retrieve saved period
-                            period_customer_dict = table_dict.get('period_customer')
-                            logger.debug('period_customer_dict: ' + str(period_customer_dict))
-                            period_dict = d.period_get_and_save(table, period_customer_dict, request, comp_timezone)
-                            logger.debug('>>>>>>>>>>>>>>>>>>> period_dict: ' + str(period_dict))
-                            datalists['period'] = period_dict
-
-                            rosterdatefirst = period_dict.get('rosterdatefirst')
-                            rosterdatelast = period_dict.get('rosterdatelast')
-
-                            dict_list, calendar_header_dict = r.create_customer_calendar(
-                                datefirst_iso=rosterdatefirst,
-                                datelast_iso=rosterdatelast,
-                                customer_pk=customer_pk,
-                                order_pk=order_pk,
-                                comp_timezone=comp_timezone,
-                                timeformat=timeformat,
-                                user_lang=user_lang,
-                                request=request)
-
-                        # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-                        elif table == 'rosterdatefill':
-                            pass
-                            # datalists[table] = d.get_rosterdatefill_dict(rosterdate_fill_dte, request.user.company)
-
-                        elif table == 'quicksave':
-                            # get quicksave from Usersetting
-                            quicksave_dict = Usersetting.get_jsonsetting(c.KEY_USER_QUICKSAVE, request.user)
-                            logger.debug(' quicksave_dict: ' + str(quicksave_dict))
-                            datalists[table] = quicksave_dict
-
-                        elif table == 'setting':
-                            # setting: {page_employee: {mode: "get"},
-                            #   planning_period: {mode: "get"},
-                            #   calendar: {mode: "get"}},
-                            # setting: {page_customer: {mode: "get"},
-                            #   selected_pk: {mode: "get"},
-                            #   planning_period: {mode: "get"}},
-                            # {setting: {page_scheme: {mode: "get"},
-                            #   selected_pk: {mode: "get"},},
-
-                            settings_dict = {}
-                            for key in table_dict:
-                                dict = Usersetting.get_jsonsetting(key, request.user)
-                                if dict:
-                                    if key in ('period_customer', 'period_employee'):
-                                        settings_dict[key] = d.period_get_and_save(key, dict, request, comp_timezone)
-                                    else:
-                                        settings_dict[key] = dict
-                            dict_list.append(settings_dict)
-                            # logger.debug(' dict_list: ' + str(dict_list))
-
-                        if dict_list:
-                            datalists[table + '_list'] = dict_list
-
-        #logger.debug('datalists: ' + str(datalists))
-
-# 9. return datalists
-        datalists_json = json.dumps(datalists, cls=LazyEncoder)
-
-        return HttpResponse(datalists_json)
-
+"""
 
 # === RosterView ===================================== PR2019-05-26
 @method_decorator([login_required], name='dispatch')

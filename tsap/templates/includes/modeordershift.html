@@ -19,27 +19,6 @@
                     <div class="modal_container">
 
 <!-- modal_body_left contains order select table -->
-                        <div id="id_modshift_select_order" class="modal_body_left">
-                            <div class="content_subheader_left m-2">
-                                <div>
-                                    <h5>{% trans 'Orders' %}:</h5>
-                                </div>
-
-                                <div >
-                                    <input id="id_modshift_filter_order"
-                                        type="text"
-                                        class="td_width_150 tsa_bc_transparent border_none px-2"
-                                        autocomplete="off"
-                                        placeholder="{% trans 'filter ...' %}">
-
-                                </div>
-                                <div style="overflow-x:hidden;overflow-y:auto;height:320px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
-                                    <table class="table table-condensed tsa-tbl mx-1 my-1">
-                                        <tbody id="id_modshift_select_order_tblBody" ></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
 
                         <div id="id_modshift_body_right"  class="modal_body_flex3">
                                 <div>
@@ -94,7 +73,7 @@
                             <div class="content_header mod_show mod_team">
                                 <div class="content_subheader_left mx-1 my-2">
                                     <div style="overflow-x:hidden;overflow-y:auto;width:720px;height:180px">
-                                        <table  class="table tsa-tbl mb-0">
+                                        <table  class="table tsa_tbl mb-0">
                                             <thead id="id_thead_teammember"></thead>
                                             <tbody id="id_tbody_teammember"></tbody>
                                             <tfoot id="id_tfoot_teammember"></tfoot>

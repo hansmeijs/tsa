@@ -607,7 +607,7 @@ class Schemeitem(TsaBaseModel):
             if datediff_days == 0:
                 new_si_rosterdate_naive = si_rosterdate_naive
             else:
-                scheme = Scheme.objects.get_or_none(pk=self.scheme.pk)
+                scheme = Scheme.objects.get_or_none(pk=self.scheme.id)
                 if scheme:
                     # logger.debug('scheme: ' + str(scheme.code))
                     # skip if cycle = 0 (once-only)
@@ -679,8 +679,6 @@ class Emplhour(TsaBaseModel):
 
     orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=PROTECT)
     employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
-    # deprecated, use teammemberid instead
-    teammember = ForeignKey(Teammember, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
     rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)

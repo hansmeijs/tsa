@@ -119,8 +119,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     CreateSubmenu()
                 }
 
-                if ("review" in response) {
-                    review_list= response["review"];
+                if ("review_list" in response) {
+                    review_list= response["review_list"];
                     fill_table = true;
                 }
                 if ("period" in response) {

@@ -48,28 +48,39 @@ class ForgivingManifestStaticFilesStorage(ManifestStaticFilesStorage):
 def get_dateobj_from_dateISOstring(date_ISOstring):  # PR2019-10-25
     dte = None
     if date_ISOstring:
-        arr = get_datetimearray_from_dateISO(date_ISOstring)
-        dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
+        try:
+            arr = get_datetimearray_from_dateISO(date_ISOstring)
+            dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
+        except:
+            logger.debug('Error get_dateobj_from_dateISOstring: date_ISOstring' +
+                         str(date_ISOstring) + ' ' + str(type(date_ISOstring)))
     return dte
-
 
 def get_dateISO_from_dateOBJ(date_obj):  # PR2019-12-22
     date_iso = None
     if date_obj:
-        year_str = str(date_obj.year)
-        month_str = ('0' + str(date_obj.month))[-2:]
-        date_str = ('0' + str(date_obj.day))[-2:]
-        date_iso = '-'.join([year_str, month_str, date_str])
-        # today_iso: 2019-11-17 <class 'str'>
+        try:
+            year_str = str(date_obj.year)
+            month_str = ('0' + str(date_obj.month))[-2:]
+            date_str = ('0' + str(date_obj.day))[-2:]
+            date_iso = '-'.join([year_str, month_str, date_str])
+            # today_iso: 2019-11-17 <class 'str'>
+        except:
+            logger.debug('Error get_dateISO_from_dateOBJ: date_obj' +
+                         str(date_obj) + ' ' + str(type(date_obj)))
     return date_iso
 
 
 def get_datetime_naive_from_ISOstring(date_ISOstring):  # PR2019-10-25
     datetime_naive = None
     if date_ISOstring:
-        date_obj = get_dateobj_from_dateISOstring(date_ISOstring)
-        if date_obj:
-            datetime_naive = get_datetime_naive_from_dateobject(date_obj)
+        try:
+            date_obj = get_dateobj_from_dateISOstring(date_ISOstring)
+            if date_obj:
+                datetime_naive = get_datetime_naive_from_dateobject(date_obj)
+        except:
+            logger.debug('Error get_datetime_naive_from_ISOstring: date_ISOstring' +
+                         str(date_ISOstring) + ' ' + str(type(date_ISOstring)))
     return datetime_naive
 
 
@@ -79,11 +90,14 @@ def get_datetime_naive_from_dateobject(date_obj):
     # Finally found the way to convert a date object to a datetime object PR2019-07-28
     # https://stackoverflow.com/questions/1937622/convert-date-to-datetime-in-python/1937636#1937636
     # time.min retrieves the minimum value representable by datetime and then get its time component.
-
-    datetime_naive = datetime.combine(date_obj, time.min)
-    # logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
-    # datetime_naive: 2019-07-27 00:00:00 type: <class 'datetime.datetime'>
-
+    datetime_naive = None
+    try:
+        datetime_naive = datetime.combine(date_obj, time.min)
+        # logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
+        # datetime_naive: 2019-07-27 00:00:00 type: <class 'datetime.datetime'>
+    except:
+        logger.debug('Error get_datetime_naive_from_dateobject: date_ISOstring' +
+                     str(date_obj) + ' ' + str(type(date_obj)))
     return datetime_naive
 
 
@@ -102,26 +116,30 @@ def get_datetime_naive_from_offset(rosterdate, offset_int):
 
     datetime_naive = None
     if rosterdate and offset_int is not None:
+        try:
+            # a. convert rosterdate (date object) to rosterdatetime (datetime object, naive)
+                rosterdatetime_naive = get_datetime_naive_from_dateobject(rosterdate)
+                # .debug('rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
+                # rosterdatetime_naive: 2019-03-31 00:00:00 <class 'datetime.datetime'>
 
-    # a. convert rosterdate (date object) to rosterdatetime (datetime object, naive)
-        rosterdatetime_naive = get_datetime_naive_from_dateobject(rosterdate)
-        # .debug('rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
-        # rosterdatetime_naive: 2019-03-31 00:00:00 <class 'datetime.datetime'>
+            # b. split offset in days and minutes ( timedelta with minutes > 60 not working: split in days and seconds)
+                offset_days = math.floor(offset_int/1440)  # - 90 (1.5 h before midnight: offset_days = -1)
+                remainder_seconds = (offset_int - offset_days * 1440) * 60 # remainder_seconds: (-90 - (-1)*1440 = 1350 * 60 = 8100)
+                # new_hour = math.floor(remainder/60)
+                # new_minute = remainder - new_hour * 60
+                # logger.debug('offset_days: ' + str(offset_days) + ' ' + str(type(offset_days)))
+                # offset_days: -1 <class 'int'>
+                #logger.debug('remainder_seconds: ' + str(remainder_seconds) + ' ' + str(type(remainder_seconds)))
+                # remainder_seconds: 43200 <class 'int'>
 
-    # b. split offset in days and minutes ( timedelta with minutes > 60 not working: split in days and seconds)
-        offset_days = math.floor(offset_int/1440)  # - 90 (1.5 h before midnight: offset_days = -1)
-        remainder_seconds = (offset_int - offset_days * 1440) * 60 # remainder_seconds: (-90 - (-1)*1440 = 1350 * 60 = 8100)
-        # new_hour = math.floor(remainder/60)
-        # new_minute = remainder - new_hour * 60
-        # logger.debug('offset_days: ' + str(offset_days) + ' ' + str(type(offset_days)))
-        # offset_days: -1 <class 'int'>
-        #logger.debug('remainder_seconds: ' + str(remainder_seconds) + ' ' + str(type(remainder_seconds)))
-        # remainder_seconds: 43200 <class 'int'>
-
-    # c. add offset_days and  remainder_seconds to the naive rosterdate (dont use local midnight, is not correct when DST changes)
-        datetime_naive = rosterdatetime_naive + timedelta(days=offset_days, seconds=remainder_seconds)
-        # logger.debug('datetime_naive: ' + str(datetime_naive) + ' ' + str(type(datetime_naive)))
-        # datetime_naive: 2019-03-30 12:00:00 <class 'datetime.datetime'>
+            # c. add offset_days and  remainder_seconds to the naive rosterdate (dont use local midnight, is not correct when DST changes)
+                datetime_naive = rosterdatetime_naive + timedelta(days=offset_days, seconds=remainder_seconds)
+                # logger.debug('datetime_naive: ' + str(datetime_naive) + ' ' + str(type(datetime_naive)))
+                # datetime_naive: 2019-03-30 12:00:00 <class 'datetime.datetime'>
+        except:
+            logger.debug('Error get_datetime_naive_from_offset:' +
+                            ' rosterdate' + str(rosterdate) + ' ' + str(type(rosterdate)) +
+                            ' offset_int' + str(offset_int) + ' ' + str(type(offset_int)))
 
     return datetime_naive
 
@@ -2278,19 +2296,20 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
 
     # calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
     if rosterdate_dte:
-        # a. convert stored date_obj 'rosterdate' '2019-08-09' to datetime object 'rosterdatetime_naive'
+    # a. convert stored date_obj 'rosterdate' '2019-08-09' to datetime object 'rosterdatetime_naive'
         rosterdatetime_naive = get_datetime_naive_from_dateobject(rosterdate_dte)
         # logger.debug(' schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
         # schemeitem.rosterdate: 2019-11-21 <class 'datetime.date'>
         # logger.debug(' rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
         # rosterdatetime_naive: 2019-11-21 00:00:00 <class 'datetime.datetime'>
 
-        # b. get starttime from rosterdate and offsetstart
+    # b. get starttime from rosterdate and offsetstart
         starttime_local = get_datetimelocal_from_offset(
             rosterdate=rosterdatetime_naive,
             offset_int=offsetstart,
             comp_timezone=comp_timezone)
-        # c. get endtime from rosterdate and offsetstart
+
+    # c. get endtime from rosterdate and offsetstart
         # logger.debug('c. get endtime from rosterdate and offsetstart ')
         endtime_local = get_datetimelocal_from_offset(
             rosterdate=rosterdatetime_naive,
@@ -2298,14 +2317,13 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
             comp_timezone=comp_timezone)
         # logger.debug(' new_endtime: ' + str(new_endtime) + ' ' + str(type(new_endtime)))
 
-        # e. recalculate timeduration
-        fieldname = 'timeduration'
+    # d. recalculate timeduration
         if starttime_local and endtime_local:
             datediff = endtime_local - starttime_local
             datediff_minutes = int((datediff.total_seconds() / 60))
             timeduration = int(datediff_minutes - breakduration)
 
-            # when rest shift : timeduration = 0     # cst = 0 = normal, 1 = rest
+            # when rest shift : timeduration = 0
             if is_restshift:
                 timeduration = 0
     return starttime_local, endtime_local, timeduration

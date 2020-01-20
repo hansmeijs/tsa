@@ -23,6 +23,7 @@
 // from https://stackoverflow.com/questions/46094912/added-non-passive-event-listener-to-a-scroll-blocking-touchstart-event
 // PR2019-12-21 to prevent message Added non-passive event listener to a scroll-blocking <some> event.
 //                Consider marking event handler as 'passive' to make the page more responsive.
+
 (function () {
     if (typeof EventTarget !== "undefined") {
         let func = EventTarget.prototype.addEventListener;
@@ -930,6 +931,13 @@ document.addEventListener('DOMContentLoaded', function() {
         //now_utc_added 2019-07-28T16:47:14Z
 
         return now_utc;
+    }
+
+    function get_now_arr_JS() {
+        // send 'now' as array to server, so 'now' of local computer will be used
+        const now = new Date();
+        const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()];
+        return now_arr;
     }
 
 //###########################################################

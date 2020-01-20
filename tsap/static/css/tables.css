@@ -123,7 +123,7 @@
 }
 
 /* PR2019-04-06 from https://css-tricks.com/fixing-tables-long-strings/ */
-.tsa-tbl  {
+.tsa_tbl  {
     /*table-layout: auto;*/
     table-layout: fixed;
     width: 100%; /* must have this set instead of 'auto'*/
@@ -134,7 +134,7 @@
     overflow: auto;
 }
 
-.tsa-tbl th  {
+.tsa_tbl th  {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
     margin: 0;
     /*background: #f8f8f8; /*licht licht licht grijs 248 248 248 100%; */
@@ -147,12 +147,12 @@
     text-overflow: ellipsis;*/
 }
 
-.tsa-tbl tr {
+.tsa_tbl tr {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
     margin: 0;
 }
 
-.tsa-tbl td {
+.tsa_tbl td {
     padding: 0.2rem 0.25rem 0.05rem 0.25rem;
     margin: 0;
     overflow: hidden;
@@ -358,4 +358,30 @@
 .tsa_flex_4 {
     flex: 4;
 }
+.tsa_scroll_100vh {
+    max-height: 100vh;
+    overflow: auto;
+}
+.tsa_scroll_50vh {
+    max-height: 50vh;
+    overflow: auto;
+}
+.tbl_div_400_220 {
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 400px;
+    width: 220px;
+}
 
+.tbl_div_50vh_200 {
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 50vh;
+    width: 200px;
+}
+.tbl_div_25vh_200 {
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 25vh;
+    width: 200px;
+}
