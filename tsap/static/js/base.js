@@ -333,6 +333,54 @@ document.addEventListener('DOMContentLoaded', function() {
         return duration_sum
     };
 
+//========= insertAtIndex  ================== PR2020-01-20
+// from https://stackoverflow.com/questions/53235759/insert-at-specific-index-in-a-map
+
+    function insertInMapAtIndex(data_map, map_id, item_dict, code_colindex, user_lang){
+        console.log(("===== insertInMapAtIndex ==== "))
+        const data_arr = Array.from(data_map);
+        console.log("data_arr: ", data_arr)
+
+        const row_index = getRowIndex(data_arr, code_colindex, item_dict, user_lang);
+        console.log("row_index: ", row_index)
+
+        data_arr.splice(row_index, 0, [map_id, item_dict]);
+
+        data_map.clear();
+        data_arr.forEach(([k,v]) => data_map.set(k,v));
+    }  // insertInMapAtIndex
+
+//========= getRowIndex  =============  PR2020-01-20
+    function getRowIndex(data_arr, code_colindex, item_dict, user_lang) {
+        //console.log(" --- getRowIndex --- ")
+        // function gets code from item_dict and searches sorted position of this code in selecttable, returns index
+        // similar to GetNewSelectRowIndex in tables.js
+        let row_index = -1
+        if (!!data_arr && !!item_dict){
+            const new_code = get_subdict_value_by_key(item_dict, "code", "value", "").toLowerCase()
+            const len = data_arr.length;
+            if (!!len){
+                for (let i = 0, row, value, el; i < len; i++) {
+                    row = data_arr[i];
+                    row_code = (!!row[code_colindex]) ? row[code_colindex] : "";
+                    // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
+                    // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
+                    // row_code 'acu' new_code 'giro' compare = -1
+                    // row_code 'mcb' new_code 'giro' compare =  1
+                    let compare = row_code.localeCompare(new_code, user_lang, { sensitivity: 'base' });
+                    if (compare > 0) {
+                        row_index = i - 1;
+                        break;
+                    }
+                }
+            }
+        };
+        return row_index;
+    }  // getRowIndex
+
+
+
+
 //========= get_attr_from_el  =============PR2019-06-07
     function get_attr_from_el(element, key, default_value){
         "use strict";

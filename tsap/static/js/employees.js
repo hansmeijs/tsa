@@ -1322,7 +1322,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // after updating fields and selectRow
         remove_err_del_cre_updated__from_itemdict(update_dict)
 
-//--- replace updated item in map
+//--- replace updated item in map - after remove_err_del_cre_updated__from_itemdict
         let data_map = (tblName === "employee") ? employee_map :
                        (tblName === "teammember") ? teammember_map : null
         if(is_deleted){

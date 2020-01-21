@@ -1085,11 +1085,11 @@
 
 //========= f_Filter_TableRows  ==================================== PR2020-01-17
     function f_Filter_TableRows(tblBody, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {  // PR2019-06-24
-        //console.log( "===== f_Filter_TableRows  ========= ", tblName);
+        console.log( "===== f_Filter_TableRows  ========= ", tblName);
         //console.log( "filter_dict", filter_dict);
-        //console.log( "filter_show_inactive", filter_show_inactive);
-        //console.log( "has_ppk_filter", has_ppk_filter);
-        //console.log( "selected_ppk", selected_ppk);
+        console.log( "filter_show_inactive", filter_show_inactive);
+        console.log( "has_ppk_filter", has_ppk_filter);
+        console.log( "selected_ppk", selected_ppk);
 
         let tblRows = tblBody.rows
         //console.log( "tblBody", tblBody);

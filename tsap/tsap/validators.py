@@ -181,7 +181,7 @@ class validate_unique_employee_name(object):  # PR2019-03-15
             raise ValidationError(_('Employee name already exists.'))
         return value
 
-def validate_code_name_identifier(table, field, new_value, parent, update_dict, this_pk=None):
+def validate_code_name_identifier(table, field, new_value, parent, update_dict, request, this_pk=None):
     # validate if code already_exists in this table PR2019-07-30
     # from https://stackoverflow.com/questions/1285911/how-do-i-check-that-multiple-keys-are-in-a-dict-in-a-single-pass
                     # if all(k in student for k in ('idnumber','lastname', 'firstname')):
@@ -215,14 +215,31 @@ def validate_code_name_identifier(table, field, new_value, parent, update_dict, 
             msg_err = _("%(fld)s '%(val)s' is too long, %(max)s characters or fewer.") % {'fld': fld, 'val': new_value, 'max': max_len}
             # msg_err = _('%(fld)s cannot be blank.') % {'fld': fld}
         if not msg_err:
-    # check if code already exists
             crit = None
+            if table == 'employee' or table == 'customer':
+                crit = Q(company=request.user.company)
+            elif table == 'order':
+                crit = Q(customer__company=request.user.company)
+                 # identifier is unique in company
+                if field != 'identifier':
+                    crit.add(Q(customer=parent), crit.connector)
+            elif table == 'scheme':
+                crit = Q(order__customer__company=request.user.company)
+                crit.add(Q(order=parent), crit.connector)
+            elif table == 'shift' or table == 'team':
+                crit = Q(scheme__order__customer__company=request.user.company)
+                crit.add(Q(scheme=parent), crit.connector)
+            else:
+                msg_err = _("Model '%(mdl)s' not found.") % {'mdl': table}
+
+    # filter code, name, identifier, not case sensitive
             if field == 'code':
-                crit = Q(code__iexact=new_value)
+                crit.add(Q(code__iexact=new_value), crit.connector)
             elif field == 'name':
-                crit = Q(name__iexact=new_value)
+                crit.add(Q(name__iexact=new_value), crit.connector)
             elif field == 'identifier':
-                crit = Q(identifier__iexact=new_value)
+                crit.add(Q(identifier__iexact=new_value), crit.connector)
+    # exclude this record
             if this_pk:
                 crit.add(~Q(pk=this_pk), crit.connector)
 
@@ -231,22 +248,16 @@ def validate_code_name_identifier(table, field, new_value, parent, update_dict, 
 
             exists = False
             if table == 'employee':
-                crit.add(Q(company=parent), crit.connector)
                 exists = m.Employee.objects.filter(crit).exists()
             elif table == 'customer':
-                crit.add(Q(company=parent), crit.connector)
                 exists = m.Customer.objects.filter(crit).exists()
             elif table == 'order':
-                crit.add(Q(customer=parent), crit.connector)
                 exists = m.Order.objects.filter(crit).exists()
             elif table == 'scheme':
-                crit.add(Q(order=parent), crit.connector)
                 exists = m.Scheme.objects.filter(crit).exists()
             elif table == 'shift':
-                crit.add(Q(scheme=parent), crit.connector)
                 exists = m.Shift.objects.filter(crit).exists()
             elif table == 'team':
-                crit.add(Q(scheme=parent), crit.connector)
                 exists = m.Team.objects.filter(crit).exists()
             else:
                 msg_err = _("Model '%(mdl)s' not found.") % {'mdl': table}

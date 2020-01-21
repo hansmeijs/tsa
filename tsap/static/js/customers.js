@@ -540,8 +540,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  HandleBtnSelect  ================ PR2019-05-25
     function HandleBtnSelect(btn_mode, skip_update) {
-        console.log( "===== HandleBtnSelect ========= ", btn_mode);
-        console.log( "skip_update", skip_update);
+        //console.log( "===== HandleBtnSelect ========= ", btn_mode);
+        //console.log( "skip_update", skip_update);
 
         selected_btn = btn_mode
         if(!selected_btn){selected_btn = "customer"}
@@ -562,10 +562,8 @@ let planning_list = [] // for export and printing - can replace map?
         if (selected_btn === "customer") {
         } else if (selected_btn === "order") {
         // ---  update addnew row: put pk and ppk of selected customer in addnew row of tBody_order
-            //dont selected_customer has no value yet
-
-            console.log( ">>>>>>>>>>>>>> selected_customer_pk", selected_customer_pk);
-            ResetAddnewRow("order")
+            //dont: selected_customer has no value yet
+            UpdateAddnewRow("order")
         } else if (selected_btn === "calendar" && !skip_update) {
             if(skip_update){
                 // create emptyy calendar when skip_update
@@ -750,7 +748,7 @@ let planning_list = [] // for export and printing - can replace map?
 
             // ---  update addnew row: put pk and ppk of selected customer in addnew row of tBody_order
                         //UpdateAddnewRow(selected_customer_pk, sel_cust_ppk, sel_cust_code)
-                        ResetAddnewRow("order")
+                        UpdateAddnewRow("order")
 
                     } else  if(selected_btn === "calendar"){
                         let datalist_request = {calendar_period: selected_calendar_period,
@@ -1130,50 +1128,77 @@ let planning_list = [] // for export and printing - can replace map?
 
         let tblFoot = document.getElementById("id_tfoot_" + tblName);
         if(!!tblFoot){
-            let tblRow;
-            // ppk_int = company_pk when customer, otherwise: ppk_int = selected_customer_pk
-            const ppk_int = (tblName === "customer") ? get_subdict_value_by_key (company_dict, "id", "pk", 0) : selected_customer_pk
 
-// --- insert tblRow ino tblBody or tFoot
-            let tFoot = document.getElementById("id_tfoot_" + tblName);
-            tblRow = CreateTblRow(tFoot, tblName, pk_new, ppk_int, true, selected_customer_pk)
+            let ppk_int = 0, code_value = null
+            if (tblName === "customer"){
+                 ppk_int = get_subdict_value_by_key (company_dict, "id", "pk", 0);
+            } else  if (tblName === "order"){
+                ppk_int = selected_customer_pk
+                const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", ppk_int);
+                code_value = get_subdict_value_by_key(customer_dict, "code", "value")
+            }
 
-            let dict = {"id": {"pk": pk_new, "ppk": ppk_int, "temp_pk": pk_new, "table": tblName}};
 
-    // --- add customer in first columns when tblName is 'order'
-            if (tblName === "order") {
+// --- insert tblRow into tFoot
+            let tblRow = tblFoot.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
-    // get info from selected customer, store in dict
-                // if selected customer has value: create customer_dict, store value in field customer and tblRow of AddneRow
-                if (!!ppk_int ){
-                    const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", ppk_int);
-                    const customer_ppk = get_subdict_value_by_key(customer_dict, "id", "ppk");
-                    const code_value = get_subdict_value_by_key(customer_dict, "code", "value")
-                    //console.log("code_value", code_value);
-                    //dict["id"]["ppk"] = selected_customer_pk;
-                    dict["customer"] = {"pk": ppk_int, "ppk": customer_ppk, "value": code_value, "field": "customer", "locked": true}
+            tblRow.setAttribute("data-pk", pk_new);
+            tblRow.setAttribute("data-ppk", ppk_int);
+            tblRow.setAttribute("data-table", tblName);
+
+    // --- add EventListener to tblRow.
+            tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow, tblName, "list");}, false )
+
+    //+++ insert td's into tblRow
+            const column_count = tbl_col_count[tblName];
+            for (let j = 0; j < column_count; j++) {
+                // index -1 results in that the new cell will be inserted at the last position.
+                let td = tblRow.insertCell(-1);
+                let el = document.createElement(field_tags[tblName][j]);
+                el.setAttribute("data-field", field_names[tblName][j]);
+                el.setAttribute("type", "text")
+                el.classList.add("input_text");
+    // --- add EventListener to el
+                if(tblName === "order" && j === 0 && !!code_value){
+                    el.value = code_value
                 } else {
-                    // dict["customer"] is needed to put 'Select customer' in field 'customer'
-                    dict["customer"] = {"pk": null, "ppk": null, "value": null, "field": "customer", "locked": false}
+                    el.value = null;
                 }
-            };
+    // --- add EventListener to el
+                if ((tblName === "customer" && [0, 1].indexOf( j ) > -1) || (tblName === "order" && j === 1)) {
+                    el.addEventListener("change", function() {UploadElChanges(el)}, false);
+                }
+    // --- add readOnly to el
+                const is_enabled = ((tblName === "customer" && [0, 1].indexOf( j ) > -1) || (tblName === "order" && j === 1))
+                el.readOnly = !is_enabled
 
-            //console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@ CreateTblFooter UpdateTableRow ");
-            //console.log("tblRow  ", tblRow);
-            UpdateTableRow(tblRow, dict)
+    // --- add placeholder, only when is_addnew_row.
+                if((tblName === "customer" && j === 0) || (tblName === "order" && j === 1)){
+                    const placeholder = (tblName === "customer") ? loc.Add_customer : loc.Add_order
+                    el.setAttribute("placeholder", placeholder + "...")
+                }
+                if (j === 0 ){el.classList.add("ml-2")}
+                el.classList.add("td_width_" + field_width[tblName][j])
+                el.classList.add("text_align_" + field_align[tblName][j])
+                el.classList.add("border_none");
+                el.setAttribute("autocomplete", "off");
+                el.setAttribute("ondragstart", "return false;");
+                el.setAttribute("ondrop", "return false;");
 
+                td.appendChild(el);
+
+            }  // for (let j = 0; j < 8; j++)
         }  //  if(!!tblFoot)
     };  //function CreateTblFooter
 
-//=========  ResetAddnewRow  === PR2019-11-26
-    function ResetAddnewRow(tblName) {
-        console.log("===  ResetAddnewRow == ", tblName);
-        console.log("selected_customer_pk ", selected_customer_pk);
+//=========  UpdateAddnewRow  === PR2019-11-26
+    function UpdateAddnewRow(tblName) {
+        //console.log("===  UpdateAddnewRow == ", tblName);
+        //console.log("selected_customer_pk ", selected_customer_pk);
 
 // --- lookup row 'add new' in tFoot
         const tblFoot_id = "id_tfoot_" + tblName;
         let tblFoot = document.getElementById(tblFoot_id);
-        console.log("tblFoot.rows.length ", tblFoot.rows.length);
         if (!!tblFoot.rows.length){
             let tblRow = tblFoot.rows[0];
             if (!!tblRow){
@@ -1181,13 +1206,15 @@ let planning_list = [] // for export and printing - can replace map?
                 const customer_ppk = get_subdict_value_by_key(map_dict, "id", "ppk");
                 const customer_value = get_subdict_value_by_key(map_dict, "code", "value")
 
-        console.log("customer_map ", customer_map);
-        console.log("customer_value ", customer_value);
                 let el_input_customer = tblRow.cells[0].children[0];
+                let el_input_order = tblRow.cells[1].children[0];
+                // el_input_order contains customer_name in table customer
+                el_input_order.value = null
 
                 if (tblName === "customer") {
                     el_input_customer.value = null
                     el_input_customer.readOnly = false;
+                    el_input_order.readOnly = false;
                     el_input_customer.classList.remove("tsa_color_darkgrey")
 
                 } else if (tblName === "order") {
@@ -1201,9 +1228,8 @@ let planning_list = [] // for export and printing - can replace map?
                     el_input_customer.readOnly = true;
                     el_input_customer.classList.add("tsa_color_darkgrey")
 
-                    let el_input_order = tblRow.cells[1].children[0];
-                        el_input_order.value = null
-                        el_input_order.readOnly = (!selected_customer_pk);
+        //console.log("(!selected_customer_pk) ", (!selected_customer_pk));
+                    el_input_order.readOnly = (!selected_customer_pk);
                 };  // else if (tblName === "order")
             };
     // remove placeholder from element 'code
@@ -1212,7 +1238,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         }  // if (!!rows_length){
 
-    };  //function ResetAddnewRow
+    };  // UpdateAddnewRow
 
 //=========  CreateTblFilter  ================ PR2019-11-09
     function CreateTblFilter(tblHead, tblName) {
@@ -1285,12 +1311,6 @@ let planning_list = [] // for export and printing - can replace map?
         tblRow.setAttribute("data-ppk", ppk_str);
         tblRow.setAttribute("data-table", tblName);
         if(!!data_customer_pk){tblRow.setAttribute("data-customer_pk", data_customer_pk)};
-
-// --- put data-addnew in tr when is_addnew_row
-        // was: const is_new_row = !parseInt(pk_str); // don't use Number, "545-03" wil give NaN
-        if (is_addnew_row){
-            tblRow.setAttribute("data-addnew", true);
-        }
 
 // --- add EventListener to tblRow.
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow, tblName, "list");}, false )
@@ -1398,8 +1418,9 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  UpdateFromResponse  ================ PR2019-10-20
     function UpdateFromResponse(update_dict) {
-        console.log(" --- UpdateFromResponse  ---");
+        console.log("==== UpdateFromResponse ====");
         console.log("update_dict", update_dict);
+        console.log("selected_btn", selected_btn);
 
 //--- get info from update_dict["id"]
         const id_dict = get_dict_value_by_key (update_dict, "id");
@@ -1411,13 +1432,12 @@ let planning_list = [] // for export and printing - can replace map?
         const is_created = ("created" in id_dict);
         const is_deleted = ("deleted" in id_dict);
         const inactive_changed = get_subdict_value_by_key(update_dict, "inactive", "updated")
+        console.log("is_created", is_created);
         console.log("inactive_changed", inactive_changed);
 
         let tblRow;
         if (!!map_id){
             tblRow = document.getElementById(map_id);
-//--- replace updated item in map or remove deleted item from map
-            update_map_item(map_id, update_dict);
         }
 
         if(selected_btn === "form"){
@@ -1452,24 +1472,29 @@ let planning_list = [] // for export and printing - can replace map?
             }
 
             HandleTableRowClicked(tblRow);
+
     // ---  scrollIntoView, only in tblBody customer
             if (selected_btn === "customer"){
                 tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
             };
 
-    //--- save pk in settings when created, set selected_customer_pk
+    //--- save pk in settings when changed
+            let sel_cust_pk = 0, sel_order_pk = 0
             if (tblName === "customer"){
-                selected_customer_pk = pk_int
-                selected_order_pk = 0
+                sel_cust_pk = pk_int;
+                sel_order_pk = 0;
             } else if (tblName === "order"){
-                selected_customer_pk = ppk_int;
-                selected_order_pk = pk_int;
+                sel_cust_pk = ppk_int;
+                sel_order_pk = pk_int;
             };
-            const setting_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
-            UploadSettings (setting_dict, url_settings_upload);
-
+            if(sel_cust_pk !== selected_customer_pk || sel_order_pk !== selected_order_pk){
+                selected_customer_pk = sel_cust_pk;
+                selected_order_pk = sel_order_pk;
+                const setting_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
+                UploadSettings (setting_dict, url_settings_upload);
+            }
     // reset addnew row
-            ResetAddnewRow(tblName)
+            UpdateAddnewRow(tblName)
 
         } // else if (is_created)
 
@@ -1491,7 +1516,7 @@ let planning_list = [] // for export and printing - can replace map?
             let selectRow;
             if(is_created){
                 const row_index = GetNewSelectRowIndex(tblBody_select_customer, 0, update_dict, user_lang);
-                console.log ("row_index: ", row_index)
+
                 const title_inactive_btn = loc.TXT_Cick_show_inactive_customers;
                 const imgsrc_default = imgsrc_inactive_grey, imgsrc_hover = imgsrc_inactive_black;
                 selectRow = CreateSelectRow(false, tblBody_select_customer, tblName, row_index, update_dict, selected_customer_pk,
@@ -1507,25 +1532,34 @@ let planning_list = [] // for export and printing - can replace map?
                 const rowid_str = id_sel_prefix + map_id
                 selectRow = document.getElementById(rowid_str);
             };
-            //--- update or delete selectRow, before remove_err_del_cre_updated__from_itemdict
+        //--- update or delete selectRow, before remove_err_del_cre_updated__from_itemdict
             UpdateSelectRow(selectRow, update_dict, false, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
 
-// ++++ update table filter when inactive changed ++++
-
         }  // if( tblName === "customer")
+// ++++ update table filter when inactive changed ++++
+        if (inactive_changed && !filter_show_inactive){
+            // let row disappear when inactive and not filter_show_inactive
+            setTimeout(function (){
+                f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk)  // true = has_ppk_filter
+            }, 2000);
+          }
+
+//--- refresh header text - alwas, not only when if(pk_int === selected_customer_pk)
+        UpdateHeaderText();
 
 //--- remove 'updated, deleted created and msg_err from update_dict
         //remove_err_del_cre_updated__from_itemdict(update_dict)
 
-//--- refresh header text - alwas, not only when
-        //if(pk_int === selected_customer_pk){
-        UpdateHeaderText();
+//--- replace updated item in map or remove deleted item from map
+        // must be after remove_err_del_cre_updated__from_itemdict
+
+         update_map_item(map_id, update_dict);
 
     }  // UpdateFromResponse
 
 //========= UpdateForm  ============= PR2019-10-05
     function UpdateForm(){
-        //console.log("========= UpdateForm  =========");
+        console.log("========= UpdateForm  =========");
         const map_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk)
         const pk_int = Number(get_subdict_value_by_key(map_dict, "id", "pk", 0));
         const readonly = (!pk_int);
@@ -1665,7 +1699,7 @@ let planning_list = [] // for export and printing - can replace map?
                    format_text_element (el_input, "value", el_msg, field_dict, is_addnew_row, msg_offset)
                 } else if (["order", "shift"].indexOf( fldName ) > -1){
                    format_text_element (el_input, "code", el_msg, field_dict, is_addnew_row, msg_offset)
-                } else if (fldName ===  "rosterdate"){
+                } else if (fldName === "rosterdate"){
                     const display_str = get_dict_value_by_key (field_dict, "display");
                     const data_value_str = get_dict_value_by_key (field_dict, "value");
 
@@ -1696,7 +1730,7 @@ let planning_list = [] // for export and printing - can replace map?
 
                 } else if (["datefirst", "datelast"].indexOf( fldName ) > -1){
                     const hide_weekday = true, hide_year = false;
-                    format_date_element (el_input, el_msg, field_dict, loc.month_list, loc.weekday_list,
+                    format_date_element (el_input, el_msg, field_dict, loc.months_abbrev, loc.weekdays_abbrev,
                                 user_lang, comp_timezone, hide_weekday, hide_year)
 
                 } else if (fldName === "offsetstart"){
@@ -1768,7 +1802,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 
 //========= UpdateAddnewRow  ==================================== PR2019-11-25
-    function UpdateAddnewRow(sel_cust_pk, sel_cust_ppk, sel_cust_code ) {
+    function Update_AddnewRowXXX(sel_cust_pk, sel_cust_ppk, sel_cust_code ) {
         //console.log(" --- UpdateAddnewRow --- ", selected_btn)
         //console.log("sel_cust_pk: ", sel_cust_pk, "sel_cust_ppk: ", sel_cust_ppk, "sel_cust_code: ", sel_cust_code)
         // function puts pk and ppk of selected customer in addnew row
@@ -1815,18 +1849,18 @@ let planning_list = [] // for export and printing - can replace map?
     function UpdateHeaderText(is_addnew_mode) {
         //console.log( "===== UpdateHeaderText  ========= ");
 
-        let header_text = null;
+        let header_text = "";
         if (selected_btn === "customer") { //show 'Customer list' in header when List button selected
             header_text = loc.Customer_list;
         } else {
             let customer_code = "", order_code = ""
             if (!!selected_customer_pk) {
                 const dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk)
-                customer_code = get_subdict_value_by_key(dict,"code", "value")
+                customer_code = get_subdict_value_by_key(dict,"code", "value", "")
             }
             if (!!selected_order_pk) {
                 const dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_order_pk)
-                order_code = get_subdict_value_by_key(dict,"code", "value")
+                order_code = get_subdict_value_by_key(dict,"code", "value", "")
             }
             if (["calendar", "planning"].indexOf(selected_btn) > -1) {
                 header_text = customer_code + " - " + order_code;
@@ -1873,8 +1907,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= UpdateSettings  ====================================
     function UpdateSettings(setting_dict){
-        console.log("===== UpdateSettings ===== ")
-        console.log("setting_dict", setting_dict)
+        //console.log("===== UpdateSettings ===== ")
+        //console.log("setting_dict", setting_dict)
 
         user_lang = get_dict_value_by_key(setting_dict, "user_lang");
         comp_timezone = get_dict_value_by_key(setting_dict, "comp_timezone");
@@ -1945,8 +1979,12 @@ let planning_list = [] // for export and printing - can replace map?
             if(is_deleted){
                 data_map.delete(map_id);
             } else if(is_created){
-        // insert new item in alphabetical order, but no solution found yet
-                data_map.set(map_id, update_dict)
+        // insert new item in alphabetical order,
+                if (!!data_map.size){
+                    insertInMapAtIndex(data_map, map_id, update_dict, 0, user_lang)
+                } else {
+                    data_map.set(map_id, update_dict)
+                }
             } else {
                 data_map.set(map_id, update_dict)
             }
@@ -2300,7 +2338,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 // ++++++++++++++++ clicked on cell with item in calendar_map ++++++++++++++++
         if(!isEmpty(map_dict)){
-// ---  get selected_weekday_list from map_dict, select weekday buttons (dont mix up with loc.weekday_list that contains names of weekdays)
+// ---  get selected_weekday_list from map_dict, select weekday buttons (dont mix up with loc.weekdays_abbrev that contains names of weekdays)
             selected_weekday_list = get_dict_value_by_key(map_dict, "weekday_list");
             console.log("selected_weekday_list: ", selected_weekday_list)
 // -------------------------------------
@@ -2642,8 +2680,9 @@ let planning_list = [] // for export and printing - can replace map?
 // ---  create st_dict
         const show_btn_delete = true;
         let st_dict = { "interval": interval, "comp_timezone": comp_timezone, "user_lang": user_lang,
-                        "show_btn_delete": show_btn_delete, "weekday_list": loc.weekday_list, "month_list": loc.month_list        ,
-                    "url_settings_upload": url_settings_upload};
+                        "show_btn_delete": show_btn_delete,
+                        "weekday_list": loc.weekdays_abbrev, "month_list": loc.months_abbrev,
+                        "url_settings_upload": url_settings_upload};
         // only needed in scheme
         if(!!loc.Current_day){st_dict["text_curday"] = loc.Current_day};
         if(!!loc.Previous_day){st_dict["text_prevday"] = loc.Previous_day};
@@ -3783,7 +3822,7 @@ let planning_list = [] // for export and printing - can replace map?
             if (["datefirst", "datelast"].indexOf( fldName ) > -1){
                 //const hide_weekday = true, hide_year = false;
                 //const el_msg = null;
-                //format_date_element (el_input, el_msg, field_dict, loc.month_list, loc.weekday_list,
+                //format_date_element (el_input, el_msg, field_dict, loc.months_abbrev, loc.weekdays_abbrev,
                 //            loc.user_lang, loc.comp_timezone, hide_weekday, hide_year)
                 const value = get_dict_value_by_key(field_dict, "value")            ;
                 el_input.value = value;
@@ -4758,8 +4797,8 @@ let planning_list = [] // for export and printing - can replace map?
             UpdateHeaderText();
 
             // reset customer name and pk in addnew row of tBody_order
-            //UpdateAddnewRow(0, 0, null);
-            ResetAddnewRow(tblName)
+
+            UpdateAddnewRow(tblName)
 
         }  //  if (!!tblName){
 

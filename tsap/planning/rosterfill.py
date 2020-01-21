@@ -866,7 +866,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2019
                     add_row = False
                     logger.debug('skip rest shift without employee. add_row: ' + str(add_row))
                 if add_row:
-                    add_row = check_row_for_absence_overlap(row)
+                    has_overlap = check_row_for_absence_overlap(row)
+                    add_row = not has_overlap
                     logger.debug('after check_row_for_absence_rest add_row: ' + str(add_row))
 
             # create employee_planning dict
@@ -2075,11 +2076,11 @@ def getKey(item):
 
 
 def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk, employee_pk,
-                             add_empty_shifts, skip_restshifts, orderby_rosterdate_customer,
+                             add_empty_shifts, skip_absence_and_restshifts, orderby_rosterdate_customer,
                              comp_timezone, timeformat, user_lang, request):
     logger.debug(' ============= create_employee_planning ============= ')
     logger.debug('add_empty_shifts: ' + str(add_empty_shifts))
-    logger.debug('skip_restshifts: ' + str(skip_restshifts))
+    logger.debug('skip_absence_and_restshifts: ' + str(skip_absence_and_restshifts))
     # this function calcuLates the planning per employee per day, without saving emplhour records  # PR2019-11-30
 
     calendar_setting_dict = {}
@@ -2143,32 +2144,67 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
             logger.debug('row mode: ' + str(row[idx_si_mod]))
             is_absence = (row[idx_si_mod] == 'a')
             is_restshift = (row[idx_si_mod] == 'r')
-            logger.debug('is_restshift mode: ' + str(row[is_restshift]))
+            logger.debug('is_restshift: ' + str(is_restshift))
 
+            new_e_id = row[idx_e_id]
+            new_e_code = row[idx_e_code]
+
+            add_row_to_dict = False
             # skip is_restshift when skip_restshifts
-            if not is_restshift or not skip_restshifts:
+            if not is_restshift or not skip_absence_and_restshifts:
                 if row[idx_e_id] is None:
                     logger.debug('(row[idx_e_id] is None ')
                     if add_empty_shifts:
-                        planning_dict = create_employee_calendar_dict(row, False, None, comp_timezone, timeformat, user_lang)
-                        if planning_dict:
-                            calendar_dictlist.append(planning_dict)
+                        add_row_to_dict = True
                 else:
                     logger.debug('row idx_e_id: ' + str(row[idx_e_id]))
-                    logger.debug('row idx_si_mod: ' + str(row[idx_si_mod]))
+                    logger.debug('row idx_e_code: ' + str(row[idx_e_code]))
 
                     # PR2019-12-22 Note: sql filter inservice: only filters employee that are in service any day in range. WHen cretaing dict filter in service on correct date
-                    add_row_to_dict = True
         # - A. row is absence row
                     if is_absence:
-                        add_row_to_dict = check_absencerow_for_doubles(row)
-                        logger.debug('check_absencerow_for_doubles  add_row_to_dict: ' + str(add_row_to_dict))
+                        if not skip_absence_and_restshifts:
+                            add_row_to_dict = check_absencerow_for_doubles(row)
+                            logger.debug('check_absencerow_for_doubles  add_row_to_dict: ' + str(add_row_to_dict))
                     else:
-                        # TODO in customer planning shift that overlap absen
-                        #  ce must not be skipped, instead remove employee
+                        # TODO in customer planning shift that overlap absence must not be skipped, instead remove employee
                         # check if shift has overlap with absence or restshift
-                        add_row_to_dict = check_row_for_absence_overlap(row)
-                        logger.debug('after check_row_for_absence_rest add_row_to_dict: ' + str(add_row_to_dict))
+                        has_absence_or_restshift = check_row_for_absence_overlap(row, False)
+                        if has_absence_or_restshift:
+                        ########################################
+                            # has absent employee replacement?
+                            rpl_id = row[idx_rpl_id]
+                            rpl_code = row[idx_rpl_code]
+                            logger.debug('rpl_id: ' + str(rpl_id))
+                            logger.debug('rpl_code: ' + str(rpl_code))
+
+                            if rpl_id:
+                                # is replacement absent?
+                                has_absence_or_restshift = check_row_for_absence_overlap(row, True)
+                                if has_absence_or_restshift:
+                                    if add_empty_shifts:
+                                        new_e_code = '**---'
+                                        new_e_id = None
+                                        add_row_to_dict = True
+                                        logger.debug('new_e_code: ' + str(new_e_code))
+                                else:
+                                    new_e_code = '*' + row[idx_rpl_code]
+                                    new_e_id = row[idx_rpl_id]
+                                    add_row_to_dict = True
+                                    logger.debug('new_e_code: ' + str(new_e_code))
+                            else:
+                                if add_empty_shifts:
+                                    new_e_code = '*---'
+                                    new_e_id = None
+                                    add_row_to_dict = True
+                                    logger.debug('new_e_code: ' + str(new_e_code))
+
+                        #######################################
+
+                        else:
+                            add_row_to_dict = True
+                    logger.debug('after check_row_for_absence_rest add_row_to_dict: ' + str(add_row_to_dict))
+
                     # TODO PR2019-12-16 row is made for sipleshift without schemitem.
                     #  To be solved by adding required schemitem to absence and change left join in inner join
                     # Then each absence row must get its own team, scheme and schemeitem
@@ -2178,19 +2214,28 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                         add_row_to_dict = False
 
             # create employee_planning dict
-                    # logger.debug('add_row_to_dict: ' + str(add_row_to_dict))
-                    if add_row_to_dict:
-                        overlap_siid_list = []
-                        has_overlap = False
-                        if row[idx_si_mod] not in ('a', 'r'):
-                            has_overlap, overlap_siid_list = check_shiftrow_for_overlap(row)
+            # logger.debug('add_row_to_dict: ' + str(add_row_to_dict))
+            if add_row_to_dict:
+                row_list = list(row)
 
-                            logger.debug('has_overlap, overlap_siid_list: ' + str(has_overlap) + str(overlap_siid_list))
+                row_list[idx_e_code] = new_e_id
+                if new_e_id is None:
+                    row_list[idx_e_nl] = None
+                    row_list[idx_e_nf] = None
 
-                        planning_dict = create_employee_calendar_dict(row, has_overlap, overlap_siid_list, comp_timezone, timeformat, user_lang)
-                        if planning_dict:
-                            calendar_dictlist.append(planning_dict)
-                            # logger.debug('=-------------- row added to dict ')
+                if new_e_code:
+                    row_list[idx_e_code] = new_e_code
+
+                    overlap_siid_list = []
+                has_overlap = False
+                #if row[idx_si_mod] not in ('a', 'r'):
+                #    has_overlap, overlap_siid_list = check_shiftrow_for_overlap(row)
+
+                planning_dict = create_employee_calendar_dict(row_list, has_overlap, [], comp_timezone, timeformat, user_lang)
+                logger.debug('planning_dict : ' + str(planning_dict))
+                if planning_dict:
+                    calendar_dictlist.append(planning_dict)
+                    # logger.debug('=-------------- row added to dict ')
 
     # add empty dict when list has no items. To refresh a empty calendar
     if len(calendar_dictlist) == 0:
@@ -2202,12 +2247,12 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
 
 def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_companyholiday, customer_id, order_id, employee_pk, company_id):
     logger.debug(' =============== get_employee_calendar_rows ============= ')
-    #logger.debug('rosterdate: ' + str(rosterdate.isoformat()) + str(type(rosterdate)))
-    #logger.debug('refdate: ' + str(refdate.isoformat()) + str(type(refdate)))
-    #logger.debug('company_id: ' + str(company_id) + str(type(company_id)))
-    #logger.debug('customer_id: ' + str(customer_id) + str(type(customer_id)))
-    #logger.debug('order_id: ' + str(order_id) + str(type(order_id)))
-    #logger.debug('employee_pk: ' + str(employee_pk) + str(type(employee_pk)))
+    logger.debug('rosterdate: ' + str(rosterdate.isoformat()) + str(type(rosterdate)))
+    logger.debug('refdate: ' + str(refdate.isoformat()) + str(type(refdate)))
+    logger.debug('company_id: ' + str(company_id) + str(type(company_id)))
+    logger.debug('customer_id: ' + str(customer_id) + str(type(customer_id)))
+    logger.debug('order_id: ' + str(order_id) + str(type(order_id)))
+    logger.debug('employee_pk: ' + str(employee_pk) + str(type(employee_pk)))
 
 
     # PR2019-11-28 Bingo: get absence and shifts in one query
@@ -2244,7 +2289,7 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
     # 'tm_id_arr': [1007, 1008], 'si_id_arr': [1748, 1752], 'mod_arr': ['n', 'a'], 'ddifref_arr': [2, 2], 'osref_arr': [3360, 2880], 'oeref_arr': [3840, 2880], 'o_seq_arr': [-1, 1]}
 
     # dictrows is for logging only
-    #logger.debug('sql_teammember_sub08 ---------------- rosterdate' + str(rosterdate))
+    logger.debug('sql_teammember_sub08 ---------------- rosterdate' + str(rosterdate))
     order_pk = None
     customer_pk = None
     employee_pk = None
@@ -2258,10 +2303,10 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
         'ph': is_publicholiday,
         'ch': is_companyholiday
      })
-    #dictrows = f.dictfetchall(newcursor)
-    #for dictrow in dictrows:
-    #    logger.debug('...................................')
-        #    logger.debug('dictrow' + str(dictrow))
+    dictrows = f.dictfetchall(newcursor)
+    for dictrow in dictrows:
+        logger.debug('...................................')
+        logger.debug('dictrow' + str(dictrow))
 
     newcursor.execute(sql_teammember_sub08, {
         'cid': company_id,
@@ -2391,13 +2436,29 @@ def check_absencerow_for_doubles(row):
     return not skip_row
 
 
-def check_row_for_absence_overlap(row):
+def check_row_for_absence_overlap(row, check_replacement):
     logger.debug('--- check_row_for_absence_overlap ---  ')
     # This function checks for overlap with absence
     # this row is a normal, singleshift or rest row, not an absence row, is filtered out
     # ref means that the offset is measured against the reference date
 
-    skip_row = False
+    if not check_replacement:
+        idx_mod_arr = idx_e_mod_arr
+        idx_tm_id_arr = idx_e_tm_id_arr
+        idx_si_id_arr = idx_e_si_id_arr
+        idx_ddifref_arr = idx_e_ddifref_arr
+        idx_osref_arr = idx_e_osref_arr
+        idx_oeref_arr = idx_e_oeref_arr
+    else:
+        idx_mod_arr = idx_r_mod_arr
+        idx_tm_id_arr = idx_r_tm_id_arr
+        idx_si_id_arr = idx_r_si_id_arr
+        idx_ddifref_arr = idx_r_ddifref_arr
+        idx_osref_arr = idx_r_osref_arr
+        idx_oeref_arr = idx_r_oeref_arr
+
+
+    has_overlap = False
     row_mode = row[idx_si_mod]
     if row_mode != 'a':
         row_tm_id = row[idx_tm_id]
@@ -2407,31 +2468,31 @@ def check_row_for_absence_overlap(row):
         row_os = row[idx_si_sh_os_nonull]
         row_oe = row[idx_si_sh_oe_nonull]
 
-        logger.debug('     this row: mode: ' + str(row_mode) + ' shift: ' + str(row[idx_sh_code]) + ' row_tm_id: ' + str(row_tm_id) + ' row_si_id: ' + str(row_si_id))
+        logger.debug('     this row: mode: ' + str(row_mode) + ' shift: ' + str(row[idx_sh_code]))
+        logger.debug('     row_tm_id: ' + str(row_tm_id) + ' row_si_id: ' + str(row_si_id))
         logger.debug('     employee: ' + str(row[idx_e_code]))
         logger.debug('     replacement: ' + str(row[idx_rpl_code]))
-        logger.debug('     e_mod_arr: ' + str(row[idx_e_mod_arr]))
         logger.debug('     row_os: ' + str(row_os) + ' row_oe: ' + str(row_oe))
 
         # PR2019-12-17 debug: arr can be empty, when employee is not in service
-        if row[idx_e_mod_arr]:
+        if row[idx_mod_arr]:
             row_os_ref = row[idx_tm_ddif] * 1440 + row_os
             row_oe_ref = row[idx_tm_ddif] * 1440 + row_oe
-            logger.debug('      row_os_ref: ' + str(row_os_ref) + ' row_oe_ref: ' + str(row_oe_ref))
+            logger.debug('     row_os_ref: ' + str(row_os_ref) + ' row_oe_ref: ' + str(row_oe_ref))
 
-            logger.debug('      lookup rows exist: ')
+            logger.debug('..... iterate through lookup rows: ')
             # loop through shifts of employee, to check if there are absence of rest rows
-            for i, lookup_mode in enumerate(row[idx_e_mod_arr]):
-                logger.debug('      lookup mode: ' + str(lookup_mode))
+            for i, lookup_mode in enumerate(row[idx_mod_arr]):
+                logger.debug('     lookup mode: ' + str(lookup_mode))
                 # skip normal and single shifts
                 if lookup_mode in ('a', 'r'):
-
-                    lookup_tm_id = row[idx_e_tm_id_arr][i]
-                    lookup_si_id = row[idx_e_si_id_arr][i]
-                    lookup_tm_ddif = row[idx_e_ddifref_arr][i]
-                    lookup_os_ref = row[idx_e_osref_arr][i]
-                    lookup_oe_ref = row[idx_e_oeref_arr][i]
-                    logger.debug('      lookup_tm_id: ' + str(lookup_tm_id) + ' lookup_si_id: ' + str(lookup_si_id) + ' lookup_os_ref: ' + str(lookup_os_ref) + ' lookup_oe_ref: ' + str(lookup_oe_ref))
+                    lookup_tm_id = row[idx_tm_id_arr][i]
+                    lookup_si_id = row[idx_si_id_arr][i]
+                    lookup_tm_ddif = row[idx_ddifref_arr][i]
+                    lookup_os_ref = row[idx_osref_arr][i]
+                    lookup_oe_ref = row[idx_oeref_arr][i]
+                    logger.debug('     lookup_tm_id: ' + str(lookup_tm_id) + ' lookup_si_id: ' + str(lookup_si_id))
+                    logger.debug('     lookup_os_ref: ' + str(lookup_os_ref) + ' lookup_oe_ref: ' + str(lookup_oe_ref))
 
                     # skip if row and lookup are the same
                     if row_tm_id != lookup_tm_id or row_si_id != lookup_si_id:
@@ -2444,7 +2505,7 @@ def check_row_for_absence_overlap(row):
                                     # skip rest row when it fully within or equal to absence row
                                     if row_os_ref >= lookup_os_ref and row_oe_ref <= lookup_oe_ref:
                                         logger.debug('--- rest row is fully within lookup absence row')
-                                        skip_row = True
+                                        has_overlap = True
                                         break
                                 elif lookup_mode == 'r':
                                     logger.debug('      lookup row is rest shift')
@@ -2453,23 +2514,23 @@ def check_row_for_absence_overlap(row):
                                         logger.debug('      rest row os and oe equal lookup os and oe')
                                         if row_tm_id > lookup_tm_id:
                                             logger.debug('--- row_tm_id > lookup_tm_id')
-                                            skip_row = True
+                                            has_overlap = True
                                             break
                                         elif row_tm_id == lookup_tm_id:
                                             logger.debug('      row_tm_id == lookup_tm_id')
                                             if row_si_id > lookup_si_id:
                                                 logger.debug('--- row_si_id > lookup_si_id')
-                                                skip_row = True
+                                                has_overlap = True
                                                 break
-                            # row mode is single or nornal shift
+                            # row mode is single or normal shift
                             else:
                                 # skip normal / single row when it is partly in absence row or rest row
                                 if row_os_ref < lookup_oe_ref and row_oe_ref > lookup_os_ref:
-                                    logger.debug('--- rest row is partly or fully within absence row')
-                                    skip_row = True
+                                    logger.debug('--- normal row is partly or fully within absence row')
+                                    has_overlap = True
                                     break
                                 else:
-                                    logger.debug('--- rest row is NOT within absence row')
+                                    logger.debug('--- normal row is NOT within absence row')
                         else:
                             logger.debug('--- row and lookup row are on differnt days')
                     else:
@@ -2477,9 +2538,9 @@ def check_row_for_absence_overlap(row):
                 else:
                     logger.debug('--- row is not an absence or rest row')
         else:
-            logger.debug('--- e_mod_arr is empty')
+            logger.debug('--- mod_arr is empty')
 
-    return not skip_row
+    return has_overlap
 
 
 def check_shiftrow_for_overlap(row):
@@ -2947,7 +3008,6 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                             else:
                                 #logger.debug(str(j) + ': no e_mod found ')
                                 e_code = e_code_arr[j]
-
                             #logger.debug( str(j) + ': e_code: ' + str(e_code) + ' ' + str(type(e_code)))
 
                         new_e_code_arr.append(e_code)
@@ -3451,28 +3511,28 @@ sql_customer_calendar_team_sub11 = """
 
 
 def get_customer_calendar_rows(rosterdate, refdate, company_pk, customer_pk, order_pk, is_publicholiday, is_companyholiday):
-    #logger.debug(' =============== get_customer_calendar_rows =============  order_pk: ' + str(order_pk)+ ' customer_pk: ' + str(customer_pk))
-    #logger.debug('rosterdate' + str(rosterdate))
+    logger.debug(' =============== get_customer_calendar_rows =============  order_pk: ' + str(order_pk)+ ' customer_pk: ' + str(customer_pk))
+    logger.debug('rosterdate' + str(rosterdate))
 
     newcursor = connection.cursor()
 
-    #logger.debug('============================================  ')
+    logger.debug('============================================  ')
     # ============================================
-    #logger.debug('sql_customer_calendar_team_sub11 rd: ' + str(rosterdate) + ' refdate: ' + str(rosterdate))
+    logger.debug('sql_customer_calendar_team_sub11 rd: ' + str(rosterdate) + ' refdate: ' + str(rosterdate))
 
-    #newcursor.execute(sql_customer_calendar_team_sub11, {
-    #    'cid': company_pk,
-    #    'customerid': customer_pk,
-    #    'orderid': order_pk,
-    #    'rd': rosterdate,
-     #   'ref': refdate,
-    #    'ph': is_publicholiday,
-    #    'ch': is_companyholiday
-    # })
-    #dictrows = f.dictfetchall(newcursor)
-    #for dictrow in dictrows:
-        #logger.debug('...................................')
-        #logger.debug('dictrow' + str(dictrow))
+    newcursor.execute(sql_customer_calendar_team_sub11, {
+        'cid': company_pk,
+        'customerid': customer_pk,
+        'orderid': order_pk,
+        'rd': rosterdate,
+        'ref': refdate,
+        'ph': is_publicholiday,
+        'ch': is_companyholiday
+     })
+    dictrows = f.dictfetchall(newcursor)
+    for dictrow in dictrows:
+        logger.debug('...................................')
+        logger.debug('dictrow' + str(dictrow))
 
     # ============================================
     newcursor.execute(sql_customer_calendar_team_sub11, {

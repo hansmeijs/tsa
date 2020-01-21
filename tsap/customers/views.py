@@ -279,12 +279,12 @@ def create_customer(upload_dict, update_dict, request):
         table = id_dict.get('table')
         ppk_int = id_dict.get('ppk')
 
-    # 2. get parent instance
+# 2. get parent instance
         parent = m.get_parent(table, ppk_int, update_dict, request)
         if parent:
             #logger.debug('parent: ' + str(parent))
 
-    # 3. Get value of 'code' and 'name'
+# 3. Get value of 'code' and 'name'
             code = None
             name = None
             code_dict = upload_dict.get('code')
@@ -302,9 +302,9 @@ def create_customer(upload_dict, update_dict, request):
             if code and name:
 
     # c. validate code and name
-                has_error = v.validate_code_name_identifier(table, 'code', code, parent, update_dict)
+                has_error = v.validate_code_name_identifier(table, 'code', code, parent, update_dict, request)
                 if not has_error:
-                    has_error = v.validate_code_name_identifier(table, 'name', name, parent, update_dict)
+                    has_error = v.validate_code_name_identifier(table, 'name', name, parent, update_dict, request)
 
     # 4. create and save 'customer' or 'order'
                     if not has_error:
@@ -351,7 +351,7 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
                         # fields 'code', 'name' are required
                         if new_value != saved_value:
                 # b. validate code or name
-                            has_error = v.validate_code_name_identifier(table, field, new_value, parent, update_dict, this_pk=None)
+                            has_error = v.validate_code_name_identifier(table, field, new_value, parent, update_dict, request, this_pk=None)
                             if not has_error:
                  # c. save field if changed and no_error
                                 setattr(instance, field, new_value)
@@ -444,9 +444,9 @@ def create_order(upload_dict, update_dict, request):
         if code and name:
 
 # c. validate code and name
-            has_error = v.validate_code_name_identifier(table, 'code', code, parent, update_dict)
+            has_error = v.validate_code_name_identifier(table, 'code', code, parent, update_dict, request)
             if not has_error:
-                has_error = v.validate_code_name_identifier(table, 'name', name, parent, update_dict)
+                has_error = v.validate_code_name_identifier(table, 'name', name, parent, update_dict, request)
 
 # 4. create and save 'customer' or 'order'
                 if not has_error:
@@ -487,14 +487,14 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                     #logger.debug('new_value: ' + str(new_value))
 
 # 2. save changes in field 'code', 'name'
-                    if field in ['code', 'name']:
+                    if field in ['code', 'name', 'identifier']:
         # a. get old value
                         saved_value = getattr(instance, field)
                         # fields 'code', 'name' are required
                         if new_value != saved_value:
         # b. validate code or name
                             has_error = v.validate_code_name_identifier(table, field,
-                                                                        new_value, parent, update_dict, instance.pk)
+                                                                        new_value, parent, update_dict, request, instance.pk)
                             if not has_error:
         # c. save field if changed and no_error
                                 setattr(instance, field, new_value)

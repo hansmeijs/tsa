@@ -56,7 +56,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['All_orders'] = TXT_All_orders
         dict['No_orders'] = TXT_No_orders
 
-
         dict['Employee'] = TXT_Employee
         dict['Rosterdate'] = TXT_Rosterdate
         dict['Identifier'] = TXT_Identifier

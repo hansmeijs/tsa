@@ -131,8 +131,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     table_dict = datalist_dict.get('employee')
                     if table_dict:
                         dict_list = ed.create_employee_list(company=request.user.company, user_lang=user_lang)
-                        if dict_list:
-                            datalists['employee_list'] = dict_list
+                        datalists['employee_list'] = dict_list
 # ----- customer
                     table_dict = datalist_dict.get('customer')
                     if table_dict:
@@ -141,8 +140,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             is_absence=table_dict.get('isabsence'),
                             is_template=table_dict.get('istemplate'),
                             inactive=table_dict.get('inactive'))
-                        if dict_list:
-                            datalists['customer_list'] = dict_list
+                        datalists['customer_list'] = dict_list
 # ----- order
                     table_dict = datalist_dict.get('order')
                     if table_dict:
@@ -152,8 +150,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             is_absence=table_dict.get('isabsence'),
                             is_template=table_dict.get('istemplate'),
                             inactive=table_dict.get('inactive'))
-                        if dict_list:
-                            datalists['order_list'] = dict_list
+                        datalists['order_list'] = dict_list
 # ----- scheme
                     table_dict = datalist_dict.get('scheme')
                     if table_dict:
@@ -162,8 +159,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             filter_dict=table_dict,
                             company=request.user.company,
                             user_lang=user_lang)
-                        if dict_list:
-                            datalists['scheme_list'] = dict_list
+                        datalists['scheme_list'] = dict_list
 # ----- shift
                     table_dict = datalist_dict.get('shift')
                     if table_dict:
@@ -171,16 +167,14 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             filter_dict=table_dict,
                             company=request.user.company,
                             user_lang=user_lang)
-                        if dict_list:
-                            datalists['shift_list'] = dict_list
+                        datalists['shift_list'] = dict_list
 # ----- team
                     table_dict = datalist_dict.get('team')
                     if table_dict:
                         dict_list = d.create_team_list(
                             filter_dict=table_dict,
                             company=request.user.company)
-                        if dict_list:
-                            datalists['team_list'] = dict_list
+                        datalists['team_list'] = dict_list
 # ----- teammember
                     table_dict = datalist_dict.get('teammember')
                     if table_dict:
@@ -188,8 +182,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             filter_dict=table_dict,
                             company=request.user.company,
                             user_lang=user_lang)
-                        if dict_list:
-                            datalists['teammember_list'] = dict_list
+                        datalists['teammember_list'] = dict_list
 # ----- schemeitem
                     table_dict = datalist_dict.get('schemeitem')
                     if table_dict:
@@ -198,9 +191,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             company=request.user.company,
                             comp_timezone=comp_timezone,
                             user_lang=user_lang)
-                        if dict_list:
-                            datalists['schemeitem_list'] = dict_list
-
+                        datalists['schemeitem_list'] = dict_list
 # ----- planning_period
                     # planning_period_dict is used further in customer/employee planning
                     planning_period_dict = {}
@@ -210,10 +201,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         planning_period_dict = d.period_get_and_save('planning_period', table_dict, request,
                                                             comp_timezone)
                         datalists['planning_period'] = planning_period_dict
-
-                        logger.debug('oooooooooooooo planning_period_dict: ' + str(planning_period_dict))
-
-
 # ----- calendar_period
                     # calendar_period_dict is used further in customer/employee calendar
                     calendar_period_dict = {}
@@ -223,11 +210,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         calendar_period_dict = d.period_get_and_save('calendar_period', table_dict, request,
                                                             comp_timezone)
                         datalists['calendar_period'] = calendar_period_dict
-
-                        logger.debug(',,,,,,,,,,,,,,,,, calendar_period_dict: ' + str(calendar_period_dict))
-
-
-
 # ----- emplhour
                     table_dict = datalist_dict.get('emplhour')
                     if table_dict:
@@ -239,7 +221,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                                                comp_timezone=comp_timezone)
                         # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
                         datalists['emplhour_list'] = emplhour_list
-
 # ----- review
                     table_dict = datalist_dict.get('review')
                     if table_dict:
@@ -247,7 +228,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['review_list'] = d.create_review_list(period_dict=planning_period_dict,
                                                                company=request.user.company,
                                                                comp_timezone=comp_timezone)
-
 # ----- employee_calendar
                     table_dict = datalist_dict.get('employee_calendar')
                     if table_dict:
@@ -270,7 +250,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             order_pk=order_pk,
                             employee_pk=employee_pk,
                             add_empty_shifts=add_empty_shifts,
-                            skip_restshifts=skip_restshifts,
+                            skip_absence_and_restshifts=skip_restshifts,
                             orderby_rosterdate_customer=orderby_rosterdate_customer,
                             comp_timezone=comp_timezone,
                             timeformat=timeformat,
@@ -324,7 +304,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             order_pk=order_pk,
                             employee_pk=employee_pk,
                             add_empty_shifts=add_empty_shifts,
-                            skip_restshifts=skip_restshifts,
+                            skip_absence_and_restshifts=skip_restshifts,
                             orderby_rosterdate_customer=orderby_rosterdate_customer,
                             comp_timezone=comp_timezone,
                             timeformat=timeformat,
@@ -1477,6 +1457,7 @@ def update_team(instance, parent, upload_dict, update_dict, request):
                                 new_value=new_value,
                                 parent=parent,
                                 update_dict=update_dict,
+                                request=request,
                                 this_pk=instance.pk)
                             if not has_error:
              # c. save field if changed and no_error
@@ -3286,7 +3267,7 @@ def update_scheme(instance, upload_dict, update_dict, request):
                         saved_value = getattr(instance, field)
                         if new_value != saved_value:
                             # TODO code can have inactive duplicates
-                            has_error = False  # v.validate_code_name_identifier(table, field, new_value, parent, update_dict,  this_pk=None)
+                            has_error = False  # v.validate_code_name_identifier(table, field, new_value, parent, update_dict, request,  this_pk=None)
                             if not has_error:
                                 setattr(instance, field, new_value)
                                 is_updated = True
@@ -3803,7 +3784,7 @@ def create_shift(upload_dict, update_dict, request):
                 code = code_dict.get('value')
             if code:
 # c. validate code
-                has_error = validate_code_name_identifier(table, 'code', code, parent, update_dict)
+                has_error = validate_code_name_identifier(table, 'code', code, parent, update_dict, request)
                 if not has_error:
 # 4. create and save shift
                     try:
@@ -3864,6 +3845,7 @@ def update_shift(instance, parent, upload_dict, update_dict, user_lang, request)
                                 new_value=new_value,
                                 parent=parent,
                                 update_dict=update_dict,
+                                request=request,
                                 this_pk=instance.pk)
                             if not has_error:
              # c. save field if changed and no_error
@@ -4007,7 +3989,7 @@ def create_teXXXam(upload_dict, update_dict, request):
                 code = code_dict.get('value')
             if code:
     # c. validate code
-                has_error = validate_code_name_identifier(table, 'code', code, parent, update_dict)
+                has_error = validate_code_name_identifier(table, 'code', code, parent, update_dict, request)
                 if not has_error:
 # 4. create and save team
                     team = m.Team(scheme=parent, code=code)
@@ -4045,7 +4027,7 @@ def create_scheme(parent, upload_dict, update_dict, request, temp_pk_str=None):
             code = code_dict.get('value')
 
 # c. validate code
-        has_error = validate_code_name_identifier('scheme', 'code', code,  parent, update_dict)
+        has_error = validate_code_name_identifier('scheme', 'code', code,  parent, update_dict, request)
 
         if not has_error:
             instance = m.Scheme(order=parent, code=code)
