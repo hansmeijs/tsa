@@ -2,6 +2,8 @@ from django.db import connection
 from django.db.models import Q, Value, Max
 from django.db.models.functions import Coalesce
 
+from django.utils.translation import ugettext_lazy as _
+
 from datetime import date, datetime, timedelta
 from timeit import default_timer as timer
 
@@ -517,8 +519,8 @@ def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, ove
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def create_scheme_list(filter_dict, company, user_lang):
-    logger.debug(' --- create_scheme_list --- ')
-    logger.debug('filter_dict: ' + str(filter_dict))
+    #logger.debug(' --- create_scheme_list --- ')
+    #logger.debug('filter_dict: ' + str(filter_dict))
 
     customer_pk = filter_dict.get('customer_pk')
     order_pk = filter_dict.get('order_pk')
@@ -642,8 +644,8 @@ def create_scheme_dict(scheme, item_dict, user_lang):
 def create_schemeitem_list(filter_dict, company, comp_timezone, user_lang):
     # create list of schemeitems of this scheme PR2019-09-28
     # --- create list of all schemeitems of this cujstomere / order PR2019-08-29
-    logger.debug(' ----- create_teammember_list  -----  ')
-    logger.debug('filter_dict' + str(filter_dict) )
+    #logger.debug(' ----- create_teammember_list  -----  ')
+    #logger.debug('filter_dict' + str(filter_dict) )
 
     customer_pk = filter_dict.get('customer_pk')
     order_pk = filter_dict.get('order_pk')
@@ -1019,190 +1021,200 @@ def create_team_dict(team, item_dict):
 # --- end of create_team_dict
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def period_get_and_save(key, period_dict, request, comp_timezone):   # PR2019-11-16
-    logger.debug(' ============== period_get_and_save ================ ')
-    logger.debug(' key: ' + str(key))
-    logger.debug(' period_dict: ' + str(period_dict))
+def period_get_and_save(key, period_dict, comp_timezone, user_lang, request):   # PR2019-11-16
+    #logger.debug(' ============== period_get_and_save ================ ')
+    #logger.debug(' key: ' + str(key))
+    #logger.debug(' period_dict: ' + str(period_dict))
     # period_dict: {'get': True, 'now': [2019, 11, 17, 7, 9]}
     # period_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
 
     update_dict = {}
 
-    if period_dict:
+    if period_dict is None:
+        period_dict = {'get': True}
+
 # 1. check if values must be retrieved from Usersetting
-        get_saved = period_dict.get('get', False)
+    get_saved = period_dict.get('get', False)
 
 # 2. check if it is planning or roster. When planning: default is this week, when roster: default is today
-        default_period = period_dict.get('dflt', 'today')
+    default_period = period_dict.get('dflt', 'today')
 
 # 2. get now from period_dict
-        now_arr = period_dict.get('now')
-    # b. if 'now' is not in period_dict: create 'now' (should not be possible)
-        if now_arr is None:
-            now = datetime.now()
-            now_arr = [now.year, now.month, now.day, now.hour, now.minute]
-    # c. get today_iso, today_dte and now_usercomp_dtm from now_arr
-        # now is the time of the computer of the current user. May be different from company local
-        year_str = str(now_arr[0])
-        month_str = str(now_arr[1])
-        date_str = str(now_arr[2])
-        today_iso = '-'.join([year_str, month_str, date_str])
-        # today_iso: 2019-11-17 <class 'str'>
-        today_dte = f.get_date_from_arr(now_arr)
-        # today_dte: 2019-11-17 <class 'datetime.date'>
-        now_usercomp_dtm = f.get_datetime_from_arr(now_arr)
-        # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
-        #logger.debug('now_arr: ' + str(now_arr))
-        #logger.debug('today_dte: ' + str(today_dte))
+    now_arr = period_dict.get('now')
+# b. if 'now' is not in period_dict: create 'now' (should not be possible)
+    if now_arr is None:
+        now = datetime.now()
+        now_arr = [now.year, now.month, now.day, now.hour, now.minute]
+# c. get today_iso, today_dte and now_usercomp_dtm from now_arr
+    # now is the time of the computer of the current user. May be different from company local
+    year_str = str(now_arr[0])
+    month_str = str(now_arr[1])
+    date_str = str(now_arr[2])
+    today_iso = '-'.join([year_str, month_str, date_str])
+    # today_iso: 2019-11-17 <class 'str'>
+    today_dte = f.get_date_from_arr(now_arr)
+    # today_dte: 2019-11-17 <class 'datetime.date'>
+    now_usercomp_dtm = f.get_datetime_from_arr(now_arr)
+    # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
+    #logger.debug('now_arr: ' + str(now_arr))
+    #logger.debug('today_dte: ' + str(today_dte))
 
 # 3. get saved period_dict if get_saved = True
-        #logger.debug('key: ' + str(key))
-        if get_saved and key:
-            period_dict = Usersetting.get_jsonsetting(key, request.user)
-            logger.debug('get_saved period_dict: ' + str(period_dict))
+    #logger.debug('key: ' + str(key))
+    if get_saved and key:
+        period_dict = Usersetting.get_jsonsetting(key, request.user)
+        #logger.debug('get_saved period_dict: ' + str(period_dict))
 
 # 4. create update_dict
-        update_dict = {'key': key, 'now': now_arr}
-        # period_dict comes either from argument or from Usersetting
-        period_tag = None
-        extend_offset = 0
-        periodstart = None
-        periodend = None
-        periodstart_datetimelocal = None
-        periodend_datetimelocal = None
+    update_dict = {'key': key, 'now': now_arr}
+    # period_dict comes either from argument or from Usersetting
+    period_tag = None
+    extend_offset = 0
+    periodstart = None
+    periodend = None
+    periodstart_datetimelocal = None
+    periodend_datetimelocal = None
 
-        if period_dict:
-            period_tag = period_dict.get('period_tag')
-            extend_offset = period_dict.get('extend_offset', 0)
-            periodstart = period_dict.get('periodstart')
-            periodend = period_dict.get('periodend')
-        if period_tag is None:
-            period_tag = default_period
+    if period_dict:
+        period_tag = period_dict.get('period_tag')
+        extend_offset = period_dict.get('extend_offset', 0)
+        periodstart = period_dict.get('periodstart')
+        periodend = period_dict.get('periodend')
+    if period_tag is None:
+        period_tag = default_period
 
-        update_dict['period_tag'] = period_tag
-        update_dict['extend_offset'] = extend_offset
-        if periodstart is not None:
-            update_dict['periodstart'] = periodstart
-        if periodend is not None:
-            update_dict['periodend'] = periodend
+    update_dict['period_tag'] = period_tag
+    update_dict['extend_offset'] = extend_offset
+    if periodstart is not None:
+        update_dict['periodstart'] = periodstart
+    if periodend is not None:
+        update_dict['periodend'] = periodend
 
-        # default tag is 'today' when roster, this week when planning
-        rosterdatefirst_dte = today_dte
-        rosterdatelast_dte = today_dte
+    # default tag is 'today' when roster, this week when planning
+    rosterdatefirst_dte = today_dte
+    rosterdatelast_dte = today_dte
 
-        # default offest start is 0 - offset, (midnight - offset)
-        # default offest start is 1440 + offset (24 h after midnight + offset)
-        # value for morning, evening, night and day are different
-        offset_firstdate = 0 - extend_offset
-        offset_lastdate = 1440 + extend_offset
+    # default offest start is 0 - offset, (midnight - offset)
+    # default offest start is 1440 + offset (24 h after midnight + offset)
+    # value for morning, evening, night and day are different
+    offset_firstdate = 0 - extend_offset
+    offset_lastdate = 1440 + extend_offset
 
-        if period_tag != 'now':  # 60: 'Now'
-            if period_tag == 'tnight':  # 1: 'This night', offset_firstdate is default:  0 - offset
-                offset_lastdate = 360 + extend_offset
-            elif period_tag == 'tmorning':  #  2: 'This morning'
-                offset_firstdate = 360 - extend_offset
-                offset_lastdate = 720 + extend_offset
-            elif period_tag == 'tafternoon':  # 3: 'This afternoon'
-                offset_firstdate = 720 - extend_offset
-                offset_lastdate = 1080 + extend_offset
-            elif period_tag == 'tevening':  # 4: 'This evening', , offset_lastdate is default: 1440 + offset
-                offset_firstdate = 1080 - extend_offset
-            elif period_tag == 'Today':  # 5: 'Today'
-                pass
-            elif period_tag == 'tomorrow':  # 6: 'Tomorrow'
-                rosterdatefirst_dte = f.add_days_to_date(today_dte, 1)
-                rosterdatelast_dte = rosterdatefirst_dte
-            elif period_tag == 'yesterday':  # 7: 'Yesterday'
-                rosterdatefirst_dte = f.add_days_to_date(today_dte, -1)
-                rosterdatelast_dte = rosterdatefirst_dte
-            elif period_tag == 'tweek':  # 8: 'This week'
-                rosterdatefirst_dte = f.get_firstof_week(today_dte, 0)
-                rosterdatelast_dte = f.get_lastof_week(today_dte, 0)
-            elif period_tag == 'lweek':  # 8: 'Last week'
-                rosterdatefirst_dte = f.get_firstof_week(today_dte, -1)
-                rosterdatelast_dte = f.get_lastof_week(today_dte, -1)
-            elif period_tag == 'nweek':  # 8: 'Next week'
-                rosterdatefirst_dte = f.get_firstof_week(today_dte, 1)
-                rosterdatelast_dte = f.get_lastof_week(today_dte, 1)
-            elif period_tag == 'tmonth':  # 9: 'This month'
-                rosterdatefirst_dte = f.get_firstof_month(today_dte)
-                rosterdatelast_dte = f.get_lastof_month(today_dte)
-            elif period_tag == 'lmonth':  # 9: 'This month'
-                firstof_thismonth_dte = f.get_firstof_month(today_dte)
-                firstof_lastmonth_dte = f.add_month_to_firstof_month(firstof_thismonth_dte, -1)
-                lastof_lastmonth_dte = f.get_lastof_month(firstof_lastmonth_dte)
-                rosterdatefirst_dte = firstof_lastmonth_dte
-                rosterdatelast_dte = lastof_lastmonth_dte
-            elif period_tag == 'nmonth':  # 9: 'Next month'
-                firstof_thismonth_dte = f.get_firstof_month(today_dte)
-                firstof_nextmonth_dte = f.add_month_to_firstof_month(firstof_thismonth_dte, 1)
-                lastof_nextmonth_dte = f.get_lastof_month(firstof_nextmonth_dte)
-                rosterdatefirst_dte = firstof_nextmonth_dte
-                rosterdatelast_dte = lastof_nextmonth_dte
-            elif period_tag == 'other':  # 10: 'Custom period'
-                # in customer planning  'rosterdatefirst' and 'rosterdatelast' is used
-                # in roster planning 'periodstart' and 'periodend' is used TODO give same names
+    if period_tag != 'now':  # 60: 'Now'
+        if period_tag == 'tnight':  # 1: 'This night', offset_firstdate is default:  0 - offset
+            offset_lastdate = 360 + extend_offset
+        elif period_tag == 'tmorning':  #  2: 'This morning'
+            offset_firstdate = 360 - extend_offset
+            offset_lastdate = 720 + extend_offset
+        elif period_tag == 'tafternoon':  # 3: 'This afternoon'
+            offset_firstdate = 720 - extend_offset
+            offset_lastdate = 1080 + extend_offset
+        elif period_tag == 'tevening':  # 4: 'This evening', , offset_lastdate is default: 1440 + offset
+            offset_firstdate = 1080 - extend_offset
+        elif period_tag == 'Today':  # 5: 'Today'
+            pass
+        elif period_tag == 'tomorrow':  # 6: 'Tomorrow'
+            rosterdatefirst_dte = f.add_days_to_date(today_dte, 1)
+            rosterdatelast_dte = rosterdatefirst_dte
+        elif period_tag == 'yesterday':  # 7: 'Yesterday'
+            rosterdatefirst_dte = f.add_days_to_date(today_dte, -1)
+            rosterdatelast_dte = rosterdatefirst_dte
+        elif period_tag == 'tweek':  # 8: 'This week'
+            rosterdatefirst_dte = f.get_firstof_week(today_dte, 0)
+            rosterdatelast_dte = f.get_lastof_week(today_dte, 0)
+        elif period_tag == 'lweek':  # 8: 'Last week'
+            rosterdatefirst_dte = f.get_firstof_week(today_dte, -1)
+            rosterdatelast_dte = f.get_lastof_week(today_dte, -1)
+        elif period_tag == 'nweek':  # 8: 'Next week'
+            rosterdatefirst_dte = f.get_firstof_week(today_dte, 1)
+            rosterdatelast_dte = f.get_lastof_week(today_dte, 1)
+        elif period_tag == 'tmonth':  # 9: 'This month'
+            rosterdatefirst_dte = f.get_firstof_month(today_dte)
+            rosterdatelast_dte = f.get_lastof_month(today_dte)
+        elif period_tag == 'lmonth':  # 9: 'This month'
+            firstof_thismonth_dte = f.get_firstof_month(today_dte)
+            firstof_lastmonth_dte = f.add_month_to_firstof_month(firstof_thismonth_dte, -1)
+            lastof_lastmonth_dte = f.get_lastof_month(firstof_lastmonth_dte)
+            rosterdatefirst_dte = firstof_lastmonth_dte
+            rosterdatelast_dte = lastof_lastmonth_dte
+        elif period_tag == 'nmonth':  # 9: 'Next month'
+            firstof_thismonth_dte = f.get_firstof_month(today_dte)
+            firstof_nextmonth_dte = f.add_month_to_firstof_month(firstof_thismonth_dte, 1)
+            lastof_nextmonth_dte = f.get_lastof_month(firstof_nextmonth_dte)
+            rosterdatefirst_dte = firstof_nextmonth_dte
+            rosterdatelast_dte = lastof_nextmonth_dte
+        elif period_tag == 'other':  # 10: 'Custom period'
+            # in customer planning  'rosterdatefirst' and 'rosterdatelast' is used
+            # in roster planning 'periodstart' and 'periodend' is used TODO give same names
 
-                rosterdatefirst = period_dict.get('rosterdatefirst')
-                if rosterdatefirst:
-                    periodstart = rosterdatefirst
-                rosterdatelast = period_dict.get('rosterdatelast')
-                if rosterdatelast:
-                    periodend = rosterdatelast
-                # if one date blank: use other date, if both blank: use today
-                if periodstart is None:
-                    if periodend is None:
-                        periodstart = today_iso
-                        periodend = today_iso
-                    else:
-                        periodstart = periodend
+            rosterdatefirst = period_dict.get('rosterdatefirst')
+            if rosterdatefirst:
+                periodstart = rosterdatefirst
+            rosterdatelast = period_dict.get('rosterdatelast')
+            if rosterdatelast:
+                periodend = rosterdatelast
+            # if one date blank: use other date, if both blank: use today
+            if periodstart is None:
+                if periodend is None:
+                    periodstart = today_iso
+                    periodend = today_iso
                 else:
-                    if periodend is None:
-                        periodend = periodstart
+                    periodstart = periodend
+            else:
+                if periodend is None:
+                    periodend = periodstart
 
-                logger.debug(' periodstart: ' + str(periodstart) + ' ' + str(type(periodstart)))
-                logger.debug(' periodend: ' + str(periodend) + ' ' + str(type(periodend)))
-                rosterdatefirst_dte = f.get_dateobj_from_dateISOstring(periodstart)
-                rosterdatelast_dte = f.get_dateobj_from_dateISOstring(periodend)
+            #logger.debug(' periodstart: ' + str(periodstart) + ' ' + str(type(periodstart)))
+            #logger.debug(' periodend: ' + str(periodend) + ' ' + str(type(periodend)))
+            rosterdatefirst_dte = f.get_dateobj_from_dateISOstring(periodstart)
+            rosterdatelast_dte = f.get_dateobj_from_dateISOstring(periodend)
 
-            periodstart_datetimelocal = f.get_datetimelocal_from_offset(rosterdatefirst_dte, offset_firstdate, comp_timezone)
-            periodend_datetimelocal = f.get_datetimelocal_from_offset(rosterdatelast_dte, offset_lastdate, comp_timezone)
+        periodstart_datetimelocal = f.get_datetimelocal_from_offset(rosterdatefirst_dte, offset_firstdate, comp_timezone)
+        periodend_datetimelocal = f.get_datetimelocal_from_offset(rosterdatelast_dte, offset_lastdate, comp_timezone)
 
-        else:
-            if now_usercomp_dtm:
-                periodstart_datetimelocal = now_usercomp_dtm - timedelta(minutes=extend_offset)
-                periodend_datetimelocal = now_usercomp_dtm + timedelta(minutes=extend_offset)
+    else:
+        if now_usercomp_dtm:
+            periodstart_datetimelocal = now_usercomp_dtm - timedelta(minutes=extend_offset)
+            periodend_datetimelocal = now_usercomp_dtm + timedelta(minutes=extend_offset)
 
-        if periodstart_datetimelocal:
-            update_dict['periodstart'] = periodstart_datetimelocal
-        if periodend_datetimelocal:
-            update_dict['periodend'] = periodend_datetimelocal
+    if periodstart_datetimelocal:
+        update_dict['periodstart'] = periodstart_datetimelocal
+    if periodend_datetimelocal:
+        update_dict['periodend'] = periodend_datetimelocal
 
+    if rosterdatefirst_dte:
+        # rosterdatefirst_minus1 is used in create_emplhour_list
+        rosterdatefirst_minus1 = rosterdatefirst_dte - timedelta(days=1)
+        update_dict['rosterdatefirst'] = rosterdatefirst_dte.isoformat()
+        update_dict['rosterdatefirst_minus1'] = rosterdatefirst_minus1.isoformat()
+
+    if rosterdatelast_dte:
+        # rosterdatelast_plus1 is used in create_emplhour_list
+        rosterdatelast_plus1 = rosterdatelast_dte + timedelta(days=1)
+        update_dict['rosterdatelast'] = rosterdatelast_dte.isoformat()
+        update_dict['rosterdatelast_plus1'] = rosterdatelast_plus1.isoformat()
+
+# 5. add calendar header info
+    if rosterdatefirst_dte and rosterdatelast_dte:
+        calendar_header_dict = create_calendar_header(rosterdatefirst_dte, rosterdatelast_dte, user_lang, request)
+        if calendar_header_dict:
+            update_dict.update(calendar_header_dict)
+
+# 5. save update_dict
+    setting_tobe_saved = {
+        'period_tag': period_tag
+    }
+    if period_tag == 'other':
         if rosterdatefirst_dte:
-            #rosterdatefirst_minus1 = rosterdatefirst_dte - timedelta(days=1)
-            update_dict['rosterdatefirst'] = rosterdatefirst_dte.isoformat()
-            # update_dict['rosterdatefirst_minus1'] = rosterdatefirst_minus1.isoformat()
-
+            setting_tobe_saved['rosterdatefirst'] = rosterdatefirst_dte.isoformat()
         if rosterdatelast_dte:
-            #rosterdatelast_plus1 = rosterdatelast_dte + timedelta(days=1)
-            update_dict['rosterdatelast'] = rosterdatelast_dte.isoformat()
-            # update_dict['rosterdatelast_plus1'] = rosterdatelast_plus1.isoformat()
+            setting_tobe_saved['rosterdatelast'] = rosterdatelast_dte.isoformat()
+    if extend_offset:
+        setting_tobe_saved['extend_offset'] = extend_offset
 
-    # 5. save update_dict
-        setting_tobe_saved = {
-            'period_tag': period_tag
-        }
-        if period_tag == 'other':
-            if rosterdatefirst_dte:
-                setting_tobe_saved['rosterdatefirst'] = rosterdatefirst_dte.isoformat()
-            if rosterdatelast_dte:
-                setting_tobe_saved['rosterdatelast'] = rosterdatelast_dte.isoformat()
-        if extend_offset:
-            setting_tobe_saved['extend_offset'] = extend_offset
-
-        logger.debug('set_jsonsetting key: ' + str(key))
-        logger.debug('setting_tobe_saved: ' + str(setting_tobe_saved))
-        Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
+    #logger.debug('set_jsonsetting key: ' + str(key))
+    #logger.debug('setting_tobe_saved: ' + str(setting_tobe_saved))
+    Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
 
 #logger.debug('update_dict: ' + str(update_dict))
     # update_dict:  {'key': 'customer_planning',
@@ -1215,8 +1227,63 @@ def period_get_and_save(key, period_dict, request, comp_timezone):   # PR2019-11
     return update_dict
 
 
-def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
-    # logger.debug(' ============= create_emplhour_list ============= ')
+def create_calendar_header(rosterdatefirst_dte, rosterdatelast_dte, user_lang, request):
+    #logger.debug(' --- create_calendar_header ---')
+
+    # PR2020-01-22 function creates dict with 'ispublicholiday', 'iscompanyholiday', 'display'
+    # and is is added with key 'rosterdate' to calendar_header_dict
+    # calendar_header only has value when exists in table Calendar
+    # calendar_header: {'2019-12-26': {'ispublicholiday': True, 'display': 'Tweede Kerstdag'}}
+
+    calendar_header_dict = {}
+
+    calendar_dates = m.Calendar.objects.filter(
+            company=request.user.company,
+            rosterdate__gte=rosterdatefirst_dte,
+            rosterdate__lte=rosterdatelast_dte
+            )
+    for row in calendar_dates:
+        header_dict = {}
+
+        if row.ispublicholiday:
+            header_dict['ispublicholiday'] = row.ispublicholiday
+        if row.iscompanyholiday:
+            header_dict['iscompanyholiday'] = row.iscompanyholiday
+        if row.ispublicholiday and row.code:
+            display_txt = _(row.code)
+        else:
+            display_txt = f.format_date_element(rosterdate_dte=row.rosterdate, user_lang=user_lang, show_year=False)
+        header_dict['display'] = display_txt
+
+        # was: rosterdate_iso = f.get_dateISO_from_dateOBJ(row.rosterdate)
+        rosterdate_iso = row.rosterdate.isoformat()
+
+        calendar_header_dict[rosterdate_iso] = header_dict
+
+    return calendar_header_dict
+
+
+def get_ispublicholiday_iscompanyholiday(rosterdate_dte, request):
+    #logger.debug(' --- create_calendar_header ---')
+    # PR2020-01-26 function returns 'ispublicholiday', 'iscompanyholiday' from Calendar
+    is_publicholiday = False
+    is_companyholiday = False
+    if rosterdate_dte:
+        calendar_date = m.Calendar.objects.get_or_none(
+                company=request.user.company,
+                rosterdate=rosterdate_dte
+                )
+        if calendar_date:
+            is_publicholiday = calendar_date.ispublicholiday
+            is_companyholiday = calendar_date.iscompanyholiday
+
+    return is_publicholiday, is_companyholiday
+
+# ========================
+
+def create_emplhour_list(period_dict, request, comp_timezone, timeformat, user_lang): # PR2019-11-16
+    logger.debug(' ============= create_emplhour_list ============= ')
+    logger.debug('period_dict: ' + str(period_dict))
 
     periodstart_datetimelocal = period_dict.get('periodstart')
     periodend_datetimelocal = period_dict.get('periodend')
@@ -1231,52 +1298,58 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
-    company_id = company.pk
-    customer_id = None
-    order_id = None
-    employee_id = None
+    if request.user.company is not None:
+        company_id = request.user.company.pk
+        customer_id = None
+        order_id = None
+        employee_id = None
 
-# show emplhour records with :
-    # LEFT JOIN employee (also records without employee are shown)
-    # - this company
-    # - this customer if not blank
-    # - this order if not blank
-    # - this employee if not blank
-    # - this rosterdate
-    # - within time range
-    #   NOTE: don't forget to add also: emplhourtimestart/end IS NULL OR periodtimestart/end IS NULL
+    # show emplhour records with :
+        # LEFT JOIN employee (also records without employee are shown)
+        # - this company
+        # - this customer if not blank
+        # - this order if not blank
+        # - this employee if not blank
+        # - this rosterdate
+        # - within time range
+        #   NOTE: don't forget to add also: emplhourtimestart/end IS NULL OR periodtimestart/end IS NULL
 
-    # Note: filter also on min max rosterdate, in case timestart / end is null
+        # Note: filter also on min max rosterdate, in case timestart / end is null
 
-    # Note: when emplhourtimestart is blank filter on rosterdatefirst instead of rosterdatefirst_minus1
-    # AND (eh.rosterdate >= %(rdfm1)s)  AND (eh.rosterdate <= %(rdlp1)s)
-    # instead:
-    # AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
-    # AND CASE WHEN eh.timeend IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
+        # Note: when emplhourtimestart is blank filter on rosterdatefirst instead of rosterdatefirst_minus1
+        # AND (eh.rosterdate >= %(rdfm1)s)  AND (eh.rosterdate <= %(rdlp1)s)
+        # instead:
+        # AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
+        # AND CASE WHEN eh.timeend IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
 
-    newcursor = connection.cursor()
-    newcursor.execute("""
-        SELECT eh.id AS eh_id, oh.id AS oh_id, o.id AS o_id, eh.rosterdate AS eh_rd, eh.shift AS eh_sh, 
-        eh.timestart AS eh_ts, eh.timeend AS eh_te, eh.status AS eh_st, eh.overlap AS eh_ov,
-        eh.breakduration AS eh_bd, eh.timeduration AS eh_td, eh.plannedduration AS eh_pd, 
-        c.code AS c_code, o.code AS o_code, 
-        e.id AS e_id, e.code AS e_code
-        FROM companies_emplhour AS eh 
-        LEFT JOIN companies_employee AS e ON (eh.employee_id = e.id)
-        INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id = oh.id) 
-        INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
-        INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-        WHERE (c.company_id = %(cid)s) 
-        AND (c.id = %(cust_id)s OR %(cust_id)s IS NULL)
-        AND (o.id = %(ord_id)s OR %(ord_id)s IS NULL)
-        AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
-        AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
-        AND CASE WHEN eh.timeend IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END 
-        AND (eh.timestart < %(pte)s OR eh.timestart IS NULL OR %(pte)s IS NULL)
-        AND (eh.timeend > %(pts)s OR eh.timeend IS NULL OR %(pts)s IS NULL)
-        ORDER BY eh.rosterdate ASC, eh.timestart ASC, LOWER(c.code) ASC, LOWER(o.code) ASC
+        newcursor = connection.cursor()
+        newcursor.execute("""
+            SELECT eh.id AS eh_id, oh.id AS oh_id, o.id AS o_id, c.id AS cust_id, c.company_id AS comp_id, 
+            eh.rosterdate AS eh_rd, eh.shift AS eh_sh, 
+            eh.isabsence AS eh_abs, 
+            eh.isreplacement AS eh_isrpl,
+            eh.timestart AS eh_ts, eh.timeend AS eh_te, eh.status AS eh_st, eh.overlap AS eh_ov,
+            eh.breakduration AS eh_bd, eh.timeduration AS eh_td, eh.plannedduration AS eh_pd, 
+            c.code AS c_code, o.code AS o_code, 
+            e.id AS e_id, e.code AS e_code
+            
+            FROM companies_emplhour AS eh 
+            LEFT JOIN companies_employee AS e ON (eh.employee_id = e.id)
+            INNER JOIN companies_orderhour AS oh ON (eh.orderhour_id = oh.id) 
+            INNER JOIN companies_order AS o ON (oh.order_id = o.id) 
+            INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
+            WHERE (c.company_id = %(comp_id)s)
+            AND (c.id = %(cust_id)s OR %(cust_id)s IS NULL)
+            AND (o.id = %(ord_id)s OR %(ord_id)s IS NULL)
+            AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
+            
+            AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
+            AND CASE WHEN eh.timeend   IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
+            AND (eh.timestart < %(pte)s OR eh.timestart IS NULL OR %(pte)s IS NULL)
+            AND (eh.timeend   > %(pts)s OR eh.timeend   IS NULL OR %(pts)s IS NULL)
+            ORDER BY eh.rosterdate ASC, LOWER(c.code) ASC, LOWER(o.code) ASC, eh.timestart ASC
             """, {
-                'cid': company_id,
+                'comp_id': company_id,
                 'cust_id': customer_id,
                 'ord_id': order_id,
                 'empl_id': employee_id,
@@ -1288,148 +1361,226 @@ def create_emplhour_list(period_dict, company, comp_timezone): # PR2019-11-16
                 'pte': periodend_datetimelocal
                 })
 
-    # logger.debug("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVV")
+        #logger.debug("rosterdatefirst_minus1: " + str(rosterdatefirst_minus1))
+        #logger.debug("rosterdatelast_plus1: " + str(rosterdatelast_plus1))
+        #logger.debug("periodstart_datetimelocal: " + str(periodstart_datetimelocal))
+        #logger.debug("periodend_datetimelocal: " + str(periodend_datetimelocal))
 
-    # logger.debug("rosterdatefirst_minus1: " + str(rosterdatefirst_minus1))
-    # logger.debug("rosterdatelast_plus1: " + str(rosterdatelast_plus1))
-    # logger.debug("periodstart_datetimelocal: " + str(periodstart_datetimelocal))
-    # logger.debug("periodend_datetimelocal: " + str(periodend_datetimelocal))
+        emplhours_rows = f.dictfetchall(newcursor)
 
-    emplhours_rows = f.dictfetchall(newcursor)
-    # dictfetchall returns a list with dicts for each emplhour row
-    # emplhours_rows:  [ {'eh_id': 4504, 'eh_rd': datetime.date(2019, 11, 14), 'c_code': 'MCB', 'o_code': 'Punda', 'e_code': 'Bernardus-Cornelis, Yaha'},
+        #for emplhours_row in emplhours_rows:
+        #    logger.debug('...................................')
+        #    logger.debug('emplhours_row' + str(emplhours_row))
 
-    # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
-    #                         'timestart', 'timeend', 'timeduration', 'breakduration',
-    #                         'wagerate', 'wagefactor', 'wage', 'status', 'overlap')
-    field_tuple = c.FIELDS_EMPLHOUR
+        # dictfetchall returns a list with dicts for each emplhour row
+        # emplhours_rows:  [ {'eh_id': 4504, 'eh_rd': datetime.date(2019, 11, 14), 'c_code': 'MCB', 'o_code': 'Punda', 'e_code': 'Bernardus-Cornelis, Yaha'},
 
-    emplhour_list = []
-    for row in emplhours_rows:
-        # logger.debug("row: " + str(row))
-        item_dict = {}
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# --- start of create_emplhour_itemdict
+        # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
+        #                         'timestart', 'timeend', 'timeduration', 'breakduration',
+        #                         'wagerate', 'wagefactor', 'wage', 'status', 'overlap')
+        field_tuple = c.FIELDS_EMPLHOUR
 
-        # get pk and ppk
-        pk_int = row.get('eh_id') # emplhour.id
-        ppk_int = row.get('oh_id')  # orderhour.id
+        emplhour_list = []
+        for row in emplhours_rows:
+            # logger.debug("row: " + str(row))
+    #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # --- start of create_emplhour_itemdict
+            item_dict = create_NEWemplhour_itemdict(row, {}, comp_timezone, timeformat, user_lang)
+    # --- end of create_emplhour_itemdict
+     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-        rosterdate = row.get('eh_rd')  # instance.rosterdate
-        timestart = row.get('eh_ts')  # instance.timestart
-        timeend = row.get('eh_te')  # instance.timeend
-        overlap = row.get('eh_ov')  # instance.overlap if instance.overlap else 0
-
-        # lock field when status = locked or higher
-        status_sum = row.get('eh_st')  # instance.status
-        status_conf_start = f.get_status_value(status_sum, 1)
-        status_conf_end = f.get_status_value(status_sum, 2)
-        status_locked = (status_sum >= c.STATUS_08_LOCKED)
-
-        fields = ('id', 'orderhour', 'employee', 'rosterdate', 'cat',
-                           'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
-                           'isrestshift', 'shift',
-                           'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',
-                            'status', 'overlap', 'locked')
-        for field in fields:
-            field_dict = {}
-
-            # 2. lock date when locked=true of  timestart and timeend are both confirmed
-            if status_locked:
-                field_dict['locked'] = True
-
-            if field == 'employee':
-                if status_conf_start or status_conf_end:
-                    field_dict['locked'] = True
-            elif field == 'timestart':
-                if status_conf_start:
-                    field_dict['confirmed'] = True
-            elif field == 'timeend':
-                if status_conf_end:
-                    field_dict['locked'] = True
-
-            if field == 'id':
-                field_dict['pk'] = pk_int
-                field_dict['ppk'] = ppk_int
-                field_dict['table'] = 'emplhour'
-                item_dict['pk'] = pk_int
-
-            # orderhour is parent of emplhour
-            elif field == 'orderhour':
-                field_dict['pk'] = ppk_int
-                field_dict['ppk'] = row.get('o_id')   # order.id
-                field_dict['code'] = ' - '.join([row.get('c_code'), row.get('o_code')])
-
-            elif field == 'employee':
-                e_id = row.get('e_id')
-                if e_id is not None:
-                    # if employee_id does not exist in row, it returns 'None'. Therefore default value 0 does not work
-                    field_dict['pk'] = e_id  # employee.id
-                    field_dict['ppk'] = company_id
-                    field_dict['code'] = row.get('e_code', '')
-                    #  make field red when has overlap
-                    if overlap:  # overlap: 1 overlap start, 2 overlap end, 3 full overlap
-                        field_dict['overlap'] = True
-                    #  lock field employee when start is confirmed > already locked above
-
-            elif field == 'rosterdate':
-                if rosterdate:
-                    field_dict['value'] = rosterdate.isoformat()
-
-            # also add date when empty, to add min max date
-            elif field in ('timestart', 'timeend'):
-                has_overlap = (field == 'timestart' and overlap in (1, 3)) or \
-                              (field == 'timeend' and overlap in (2, 3))
-                set_fielddict_datetime(field=field,
-                                       field_dict=field_dict,
-                                       rosterdate=rosterdate,
-                                       timestart_utc=timestart,
-                                       timeend_utc=timeend,
-                                       has_overlap=has_overlap,
-                                       comp_timezone=comp_timezone)
-
-            elif field == 'shift':
-                eh_sh = row.get('eh_sh')
-                if eh_sh:
-                    field_dict['value'] = eh_sh
-
-            elif field == 'breakduration':
-                eh_bd = row.get('eh_bd')
-                if eh_bd:
-                    field_dict['value'] = eh_bd
-
-            elif field == 'timeduration':
-                eh_td = row.get('eh_td')
-                if eh_td:
-                    field_dict['value'] = eh_td
-
-            elif field == 'status':
-                field_dict['value'] = status_sum
-            #else:
-               # value = getattr(instance, field)
-              #  if value:
-                #    field_dict['value'] = value
-
-            item_dict[field] = field_dict
-
-        # --- remove empty attributes from update_dict
-        f.remove_empty_attr_from_dict(item_dict)
-
-# --- end of create_emplhour_itemdict
- # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-        # logger.debug('create_emplhour_itemdict: ' + str(item_dict))
-        if item_dict:
-            emplhour_list.append(item_dict)
+            # logger.debug('create_emplhour_itemdict: ' + str(item_dict))
+            if item_dict:
+                emplhour_list.append(item_dict)
 
     # logger.debug('list elapsed time  is :')
     # logger.debug(timer() - starttime)
 
-    return emplhour_list
+        return emplhour_list
+
+
+def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
+    # logger.debug("row: " + str(row))
+
+    # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # --- start of create_emplhour_itemdict
+
+    # get pk and ppk
+    pk_int = row.get('eh_id')  # emplhour.id
+    ppk_int = row.get('oh_id')  # orderhour.id
+
+    is_absence = row.get('eh_abs', False)
+
+    # lock field when status = locked or higher
+    status_sum = row.get('eh_st')  # instance.status
+    status_conf_start = f.get_status_value(status_sum, 1)
+    status_conf_end = f.get_status_value(status_sum, 2)
+    status_locked = (status_sum >= c.STATUS_08_LOCKED)
+
+    comp_id = row.get('comp_id')
+    cust_id = row.get('cust_id')
+    o_id = row.get('o_id')  # order.id
+    o_code = row.get('o_code', '')
+    c_code = row.get('c_code', '')
+
+    e_id = row.get('e_id')
+    e_code = row.get('e_code', '')
+    eh_isrpl = row.get('eh_isrpl', False)
+
+    eh_sh = row.get('eh_sh')
+    eh_bd = row.get('eh_bd', 0)
+    eh_td = row.get('eh_td', 0)
+    eh_pd = row.get('eh_pd', 0)
+
+    rosterdate_dte = row.get('eh_rd')  # instance.rosterdate
+    rosterdate_iso = rosterdate_dte.isoformat()
+    excel_date = f.get_Exceldate_from_datetime(rosterdate_dte)
+
+    timestart_utc = row.get('eh_ts')  # instance.timestart
+    timeend_utc = row.get('eh_te')  # instance.timeend
+    overlap = row.get('eh_ov')  # instance.overlap if instance.overlap else 0
+
+    timestart_local = None
+    timeend_local = None
+
+    dst_warning = False
+    if timestart_utc and timeend_utc:
+        timezone = pytz.timezone(comp_timezone)
+        timestart_local = timestart_utc.astimezone(timezone)
+        timeend_local = timeend_utc.astimezone(timezone)
+        timestart_utc_offset = timestart_local.utcoffset()
+        timeend_utc_offset = timeend_local.utcoffset()
+        dst_warning = (timestart_utc_offset != timeend_utc_offset)
+
+    item_dict = {}
+    if update_dict is None:
+        update_dict = {}
+
+    #  FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence',
+    #   'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
+    #   'isrestshift', 'shift',
+    #   'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',
+    #   'wagerate', 'wagefactor', 'wage', 'pricerate', 'pricerate',
+    #   'status', 'overlap', 'locked')
+    for field in c.FIELDS_EMPLHOUR:
+
+# --- get field_dict from update_dict if it exists (only when update)
+        field_dict = update_dict[field] if field in update_dict else {}
+
+        # 2. lock date when locked=true of  timestart and timeend are both confirmed
+        if status_locked:
+            field_dict['locked'] = True
+
+        if field == 'employee':
+            if status_conf_start or status_conf_end:
+                field_dict['locked'] = True
+        elif field == 'timestart':
+            if status_conf_start:
+                field_dict['confirmed'] = True
+        elif field == 'timeend':
+            if status_conf_end:
+                field_dict['locked'] = True
+
+        if field == 'id':
+            field_dict['pk'] = pk_int
+            field_dict['ppk'] = ppk_int
+            field_dict['table'] = 'emplhour'
+            if is_absence:
+                field_dict['isabsence'] = True
+            item_dict['pk'] = pk_int
+
+        # orderhour is parent of emplhour
+        elif field == 'orderhour':
+            field_dict['pk'] = ppk_int
+            field_dict['ppk'] = o_id
+            field_dict['code'] = ' - '.join([c_code, o_code])
+
+            if o_code:
+                item_dict['order'] = {'pk': o_id, 'code': o_code}
+            if c_code:
+                item_dict['customer'] = {'pk': cust_id, 'code': c_code}
+
+        elif field == 'employee':
+            if e_id is not None:
+                # if employee_id does not exist in row, it returns 'None'. Therefore default value 0 does not work
+                field_dict['pk'] = e_id  # employee.id
+                field_dict['ppk'] = comp_id
+                field_dict['code'] = e_code
+
+                #  make field red when has overlap
+                if overlap:  # overlap: 1 overlap start, 2 overlap end, 3 full overlap
+                    field_dict['overlap'] = True
+                #  lock field employee when start is confirmed > already locked above
+
+            if eh_isrpl:
+                field_dict['isreplacement'] = eh_isrpl
+
+        elif field == 'rosterdate':
+            if rosterdate_dte:
+                field_dict['value'] = rosterdate_iso
+                field_dict['exceldate'] = excel_date
+
+                field_dict['timestartend'] = f.format_time_range(
+                    timestart_local=timestart_local,
+                    timeend_local=timeend_local,
+                    timeformat=timeformat,
+                    user_lang=user_lang)
+
+        # also add date when empty, to add min max date
+        elif field in ('timestart', 'timeend'):
+            has_overlap = (field == 'timestart' and overlap in (1, 3)) or \
+                          (field == 'timeend' and overlap in (2, 3))
+            set_fielddict_datetime(field=field,
+                                   field_dict=field_dict,
+                                   rosterdate_dte=rosterdate_dte,
+                                   timestart_utc=timestart_utc,
+                                   timeend_utc=timeend_utc,
+                                   has_overlap=has_overlap,
+                                   comp_timezone=comp_timezone,
+                                   timeformat=timeformat,
+                                   user_lang=user_lang)
+
+        elif field == 'shift':
+            if eh_sh:
+                field_dict['code'] = eh_sh
+
+        elif field == 'breakduration':
+            if eh_bd:
+                field_dict['value'] = eh_bd
+                field_dict['display'] = f.display_duration(eh_bd, user_lang, False) # False = dont skip_prefix_suffix
+
+        elif field == 'timeduration':
+            if eh_td:
+                field_dict['value'] = eh_td
+                field_dict['display'] = f.display_duration(eh_td, user_lang, False)  # False = dont skip_prefix_suffix
+            if dst_warning:
+                field_dict['dst_warning'] = True
+                field_dict['title'] = _('Daylight saving time has changed. This has been taken into account.')
+
+        elif field == 'plannedduration':
+            if eh_pd:
+                field_dict['value'] = eh_pd
+                field_dict['display'] = f.display_duration(eh_pd, user_lang, False)  # False = dont skip_prefix_suffix
+
+        elif field == 'status':
+            field_dict['value'] = status_sum
+        # else:
+        # value = getattr(instance, field)
+        #  if value:
+        #    field_dict['value'] = value
+
+        item_dict[field] = field_dict
+
+# --- remove empty attributes from update_dict
+    f.remove_empty_attr_from_dict(item_dict)
+
+    return item_dict
+# --- end of create_NEWemplhour_itemdict
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-def create_emplhour_itemdict(emplhour, item_dict, comp_timezone):  # PR2019-09-21
+def create_emplhour_itemdict(emplhour, item_dict, comp_timezone, timeformat, user_lang):  # PR2019-09-21
     # --- create dict of this emplhour PR2019-10-11
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
@@ -1446,35 +1597,49 @@ def create_emplhour_itemdict(emplhour, item_dict, comp_timezone):  # PR2019-09-2
         pk_int = emplhour.pk
         ppk_int = emplhour.orderhour.pk
 
-        rosterdate = emplhour.rosterdate
+        rosterdate_dte = emplhour.rosterdate
         timestart = emplhour.timestart
         timeend = emplhour.timeend
         overlap = emplhour.overlap if emplhour.overlap else 0
+        is_absence = emplhour.isabsence
 
 # lock field when status = locked or higher
-        status_value = getattr(emplhour, 'status', 0)
-        locked = (status_value >= c.STATUS_08_LOCKED)
+        status_sum = getattr(emplhour, 'status', 0) # instance.status
+        status_conf_start = f.get_status_value(status_sum, 1)
+        status_conf_end = f.get_status_value(status_sum, 2)
+        status_locked = (status_sum >= c.STATUS_08_LOCKED)
 
+#  FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence',
+        #   'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
+        #   'isrestshift', 'shift',
+        #   'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',
+        #   'wagerate', 'wagefactor', 'wage', 'pricerate', 'pricerate',
+        #   'status', 'overlap', 'locked')
         for field in c.FIELDS_EMPLHOUR:
 
 # --- get field_dict from  item_dict  if it exists
             field_dict = item_dict[field] if field in item_dict else {}
 
 # 2. lock date when confirmed, field is already locked when locked = True
-            if locked:
+            if status_locked:
                 field_dict['locked'] = True
             else:
-                status_check = c.STATUS_02_START_CONFIRMED if field == 'timestart' else c.STATUS_04_END_CONFIRMED
-                if status_found_in_statussum(status_check, status_value):
-                    field_dict['locked'] = True
+                if field == 'employee':
+                    if status_conf_start or status_conf_end:
+                        field_dict['locked'] = True
+                elif field == 'timestart':
+                    if status_conf_start:
+                        field_dict['confirmed'] = True
+                elif field == 'timeend':
+                    if status_conf_end:
+                        field_dict['locked'] = True
 
             if field == 'id':
                 field_dict['pk'] = pk_int
                 field_dict['ppk'] = ppk_int
                 field_dict['table'] = 'emplhour'
-                if emplhour.isabsence:
+                if is_absence:
                     field_dict['isabsence'] = True
-
                 item_dict['pk'] = pk_int
 
             # orderhour is parent of emplhour
@@ -1491,7 +1656,7 @@ def create_emplhour_itemdict(emplhour, item_dict, comp_timezone):  # PR2019-09-2
                             order_code = order.code
                         customer = order.customer
                         if customer.code:
-                            cust_code =  customer.code
+                            cust_code = customer.code
                     field_dict['value'] = ' - '.join([cust_code, order_code])
 
             elif field == 'employee':
@@ -1508,12 +1673,12 @@ def create_emplhour_itemdict(emplhour, item_dict, comp_timezone):  # PR2019-09-2
                     if overlap: # overlap: 1 overlap start, 2 overlap end, 3 full overlap
                         field_dict['overlap'] = True
                     #  lock field employee when start is confirmed
-                    if status_value >= c.STATUS_02_START_CONFIRMED:
+                    if status_sum >= c.STATUS_02_START_CONFIRMED:
                         field_dict['locked'] = True
 
             elif field == 'rosterdate':
-                if rosterdate:
-                    field_dict['value'] = rosterdate.isoformat()
+                if rosterdate_dte:
+                    field_dict['value'] = rosterdate_dte.isoformat()
 
             # also add date when empty, to add min max date
             elif field in ('timestart', 'timeend'):
@@ -1521,11 +1686,13 @@ def create_emplhour_itemdict(emplhour, item_dict, comp_timezone):  # PR2019-09-2
                               (field == 'timeend' and overlap in (2,3))
                 set_fielddict_datetime(field=field,
                                        field_dict=field_dict,
-                                       rosterdate=rosterdate,
+                                       rosterdate_dte=rosterdate_dte,
                                        timestart_utc=timestart,
                                        timeend_utc=timeend,
                                        has_overlap=has_overlap,
-                                       comp_timezone=comp_timezone)
+                                       comp_timezone=comp_timezone,
+                                       timeformat=timeformat,
+                                       user_lang=user_lang)
 
             elif field == 'overlap':
                 pass
@@ -1543,7 +1710,7 @@ def create_emplhour_itemdict(emplhour, item_dict, comp_timezone):  # PR2019-09-2
 # --- end of create_emplhour_itemdict
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-def create_emplhour_dict(update_dict, comp_timezone):
+def create_emplhour_dict(update_dict, comp_timezone, timeformat, user_lang):
     # logger.debug ('--- create_emplhour_dict ---')
     # logger.debug ('update_dict: ' + str(update_dict))
     # update_dict: {'id': {'ppk': 3145, 'table': 'emplhour', 'pk': 3625},
@@ -1575,110 +1742,6 @@ def create_emplhour_dict(update_dict, comp_timezone):
 
             create_emplhour_itemdict(row_dict, update_dict, c.FIELDS_EMPLHOUR, comp_timezone)
 
-
-def create_emplhour_dictOLD(instance, item_dict, comp_timezone):
-    # --- create dict of this emplhour PR2019-09-02
-    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    #logger.debug ('--- create_emplhour_dict ---')
-    #logger.debug ('item_dict' + str(item_dict))
-
-    # FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
-    #                    'timestart', 'timeend', 'timeduration', 'breakduration',
-    #                    'wagerate', 'wagefactor', 'wage', 'status')
-    field_tuple = c.FIELDS_EMPLHOUR
-
-    if instance:
-# lock field when status = locked or higher
-        status_value = instance.status
-        locked = (status_value >= c.STATUS_08_LOCKED)
-
-# get pk and ppk
-        pk_int = instance.id
-        ppk_int = instance.orderhour.id
-
-
-        table = 'emplhour'
-        for field in field_tuple:
-# 1. get or create field_dict
-            if field in item_dict:
-                field_dict = item_dict[field]
-            else:
-                field_dict = {}
-
-# 2. lock date when confirmed, field is already locked when locked = True
-            if locked:
-                item_dict[field]['locked'] = True
-            else:
-                status_check = c.STATUS_02_START_CONFIRMED if field == 'timestart' else c.STATUS_04_END_CONFIRMED
-                if status_found_in_statussum(status_check, status_value):
-                    item_dict[field]['locked'] = True
-
-# 3. create pk, ppk, table keys
-            if field == 'id':
-                item_dict['pk'] = pk_int
-                item_dict['ppk'] = ppk_int
-
-                field_dict['pk'] = pk_int
-                field_dict['ppk'] = ppk_int
-                field_dict['cat'] = instance.cat  # required, default = 0
-                field_dict['table'] = table
-
-            # orderhour is parent of emplhour
-            elif field == 'orderhour':
-                if instance.orderhour:
-                    orderhour = instance.orderhour
-                    field_dict['pk'] = orderhour.pk
-                    field_dict['ppk'] = orderhour.order_id
-
-                    order_code = ''
-                    cust_code = ''
-                    order = orderhour.order
-                    if order:
-                        if order.code:
-                            order_code = order.code
-                        customer = order.customer
-                        if customer:
-                            if customer.code:
-                                cust_code = customer.code
-                        field_dict['value'] = ' - '.join([cust_code, order_code])
-
-            elif field == 'employee':
-                employee = instance.employee
-                if employee:
-                    field_dict['pk'] = employee.pk
-                    field_dict['ppk'] = employee.company_id
-                    if employee.code:
-                        field_dict['value'] = employee.code
-
-            elif field == 'rosterdate':
-                if instance.rosterdate:
-                    field_dict['value'] = instance.rosterdate.isoformat()
-
-            # also add date when empty, to add min max date
-            elif field in ('timestart', 'timeend'):
-                # TODO calculate overlap
-                has_overlap = False
-                set_fielddict_datetime(field=field,
-                                       field_dict=field_dict,
-                                       rosterdate=instance.rosterdate,
-                                       timestart_utc=instance.timestart,
-                                       timeend_utc=instance.timeend,
-                                       has_overlap=has_overlap,
-                                       comp_timezone=comp_timezone)
-
-            # also zero when empty
-            elif field in ('breakduration', 'timeduration', 'wagerate', 'wagefactor', 'wage'):
-                field_dict['value'] = getattr(instance, field, 0)
-
-            else:
-                value = getattr(instance, field)
-                if value:
-                    field_dict['value'] = value
-
-            item_dict[field] = field_dict
-
-# --- remove empty attributes from update_dict > is called outside this function
-        #f.remove_empty_attr_from_dict(item_dict)
 
 def create_teammemberabsence_list(dict, company):
     # logger.debug('create_emplabs_list: ' + str(dict))
@@ -2283,10 +2346,11 @@ def get_rosterdatefill_dict(rosterdate_fill_dte, company):  # PR2019-11-12
 
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend_utc, has_overlap, comp_timezone):
+def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, timeend_utc, has_overlap,
+                           comp_timezone, timeformat, user_lang):
     # logger.debug(" ")
     # logger.debug(" ------- set_fielddict_datetime ---------- ")
-    # logger.debug("rosterdate " + str(rosterdate) + ' ' + str(type(rosterdate)))
+    # logger.debug("rosterdate_dte " + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
     # logger.debug("timestart_utc " + str(timestart_utc) + ' ' + str(type(timestart_utc)))
     # logger.debug("timeend_utc " + str(timeend_utc) + ' ' + str(type(timeend_utc)))
     # logger.debug("comp_timezone " + str(comp_timezone) + ' ' + str(type(comp_timezone)))
@@ -2294,13 +2358,13 @@ def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend
     timezone = pytz.timezone(comp_timezone)
 
     # get mindatetime and  maxdatetime
-    min_datetime_utc, max_datetime_utc = get_minmax_datetime_utc(field, rosterdate,
+    min_datetime_utc, max_datetime_utc = get_minmax_datetime_utc(field, rosterdate_dte,
                                                                  timestart_utc, timeend_utc, comp_timezone)
 
     min_offset_int = None
     if min_datetime_utc:
         min_datetime_local = min_datetime_utc.astimezone(timezone)
-        min_offset_int = f.get_offset_from_datetimelocal(rosterdate, min_datetime_local)
+        min_offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, min_datetime_local)
         # logger.debug("min_datetime_utc " + str(min_datetime_utc) + ' ' + str(type(min_datetime_utc)))
         #  logger.debug("min_datetime_local " + str(min_datetime_local) + ' ' + str(type(min_datetime_local)))
         # logger.debug("min_offset_int " + str(min_offset_int) + ' ' + str(type(min_offset_int)))
@@ -2308,8 +2372,8 @@ def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend
     max_offset_int = None
     if max_datetime_utc:
         max_datetime_local = max_datetime_utc.astimezone(timezone)
-        max_offset_int = f.get_offset_from_datetimelocal(rosterdate, max_datetime_local)
-        # logger.debug("rosterdate " + str(rosterdate) + ' ' + str(type(rosterdate)))
+        max_offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, max_datetime_local)
+        # logger.debug("rosterdate_dte " + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
         # logger.debug("max_datetime_utc " + str(max_datetime_utc) + ' ' + str(type(max_datetime_utc)))
         # logger.debug("max_datetime_local " + str(max_datetime_local) + ' ' + str(type(max_datetime_local)))
         # logger.debug("max_offset_int " + str(max_offset_int) + ' ' + str(type(max_offset_int)))
@@ -2317,12 +2381,13 @@ def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend
     field_dict['field'] = field
 
     datetime_utc = None
+    datetime_local = None
     offset_int = None
     if field == "timestart":
         datetime_utc = timestart_utc
         if datetime_utc:
             datetime_local = datetime_utc.astimezone(timezone)
-            offset_int = f.get_offset_from_datetimelocal(rosterdate, datetime_local)
+            offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, datetime_local)
 
             # logger.debug("datetime_utc.isoformat() " + str(datetime_utc.isoformat()) + ' ' + str(type(datetime_utc.isoformat())))
             # logger.debug("datetime_local " + str(datetime_local) + ' ' + str(type(datetime_local)))
@@ -2332,7 +2397,7 @@ def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend
         datetime_utc = timeend_utc
         if datetime_utc:
             datetime_local = datetime_utc.astimezone(timezone)
-            offset_int = f.get_offset_from_datetimelocal(rosterdate, datetime_local)
+            offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, datetime_local)
 
             # logger.debug("datetime_utc.isoformat() " + str(datetime_utc.isoformat()) + ' ' + str(type(datetime_utc.isoformat())))
             # logger.debug("datetime_local " + str(datetime_local) + ' ' + str(type(datetime_local)))
@@ -2349,12 +2414,28 @@ def set_fielddict_datetime(field, field_dict, rosterdate, timestart_utc, timeend
 
     if datetime_utc:
         field_dict['datetime'] = datetime_utc.isoformat()
+        field_dict['exceldatetime'] = f.get_Exceldatetime_from_datetime(datetime_local)
+
+        dt_local_utc_offset = datetime_local.utcoffset()
+        days_diff = dt_local_utc_offset.days
+        minutes_diff = dt_local_utc_offset.seconds // 60
+        field_dict['utcoffset'] = days_diff * 1440 + minutes_diff
+
+        field_dict['display'] = f.format_time_element(
+                                rosterdate_dte=rosterdate_dte,
+                                offset=offset_int,
+                                timeformat=timeformat,
+                                user_lang=user_lang,
+                                show_weekday=True,
+                                blank_when_zero=True,
+                                skip_prefix_suffix=False)
+
     if min_datetime_utc:
         field_dict['mindatetime'] = min_datetime_utc.isoformat()
     if max_datetime_utc:
         field_dict['maxdatetime'] = max_datetime_utc.isoformat()
-    if rosterdate:
-        field_dict['rosterdate'] = rosterdate
+    if rosterdate_dte:
+        field_dict['rosterdate'] = rosterdate_dte.isoformat()
     if has_overlap:
         field_dict['overlap'] = True
 

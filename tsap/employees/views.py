@@ -33,7 +33,7 @@ from employees import dicts as d
 from customers import dicts as cd
 from planning import dicts as pld
 from planning import views as plvw
-from planning import rosterfill as prf
+from planning import rosterfill as plrf
 
 import logging
 logger = logging.getLogger(__name__)
@@ -296,8 +296,8 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                         update_wrap = calendar_employee_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
                     elif mode == 'schemeshift':
                         # 'table' has no value in mode 'schemeshift'
+                        logger.debug('mode: ' + str(mode))
                         update_wrap = calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
-
                     else:
                         logger.debug('table: ' + str(table))
                         if table == 'teammember':
@@ -326,12 +326,12 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
                         if employee_pk is not None and datefirst is not None and datelast is not None:
                             customer_id, order_id = None, None
 
-                            # employee_calendar_list = prf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk, add_empty_shifts,
+                            # employee_calendar_list = plrf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk, add_empty_shifts,
                              #                                                      comp_timezone, timeformat, user_lang, request)
                             add_empty_shifts = False
                             skip_restshifts = False
                             orderby_rosterdate_customer = False
-                            employee_calendar_list, calendar_header_dict = prf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
+                            employee_calendar_list, calendar_header_dict = plrf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
                                                                                   add_empty_shifts, skip_restshifts, orderby_rosterdate_customer,
                                                                                 comp_timezone, timeformat, user_lang, request)
                             logger.debug('???????????????employee_calendar_list: ' + str(employee_calendar_list))
@@ -352,32 +352,35 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
 
 def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_lang): # PR2019-12-06
 
+    # this disables the logger, except for critical
+    # logging.disable(logging.CRITICAL)
     logger.debug('++++++++++++++++++++++ calendar_order_upload ++++++++++++++++++++++ ')
     logger.debug('upload_dict: ' + str(upload_dict))
     logger.debug('--- ')
-# upload_dict: {
-    # 'id': {'mode': 'schemeshift'},
-    # 'rosterdate': '2020-01-03',
-    # 'calendar_datefirst': '2019-12-30', 'calendar_datelast': '2020-01-05',
-    # 'weekday_index': 5, 'weekday_list': ['-', '-', '-', '-', '-', 'update1528', '-', '-'],
-    # 'teammember_list': [{'id': {'pk': 'new3', 'ppk': 1919, 'create': True},
-    # 'team': {'pk': 1919, 'ppk': 1563, 'code': 'Ploeg 1'}, 'update': True,
-    # 'employee': {'field': 'employee', 'pk': 2585, 'ppk': 3, 'code': 'Gomes Bravio NM', 'update': True}}],
-    # 'order': {'id': {'pk': 1372, 'ppk': 648, 'table': 'order'}},
-    # 'scheme': {'id': {'pk': 1563, 'ppk': 1372, 'table': 'scheme', 'isdefaultweekshift': True}, 'cycle': {'value': 7}},
-    # 'shift': {'id': {'pk': 528, 'ppk': 1563, 'table': 'shift'}},
-    # 'schemeitem': {'id': {'pk': 1528, 'ppk': 1563, 'table': 'schemeitem'}}, 'team': {'id': {'pk': 1919, 'ppk': 1563, 'table': 'team'}}}
 
-# upload_dict: {
-    #  {'id': {'mode': 'schemeshift'},
-    #  'rosterdate': '2020-01-07',
-    #  'calendar_datefirst': '2020-01-06', 'calendar_datelast': '2020-01-12',
-    #  'weekday_index': 2,
-    #  'weekday_list': ['-', '-', 'update1658,2017,578,1657,2018,579', '-', '-', '-', '-', '-'],
-    #  'teammember_list': [], 'order': {'id': {'pk': 1370, 'ppk': 648, 'table': 'order'}, 'code': {'value': 'Rooi Katootje'}}, 'scheme': {'pk': 1607, 'id': {'pk': 1607, 'ppk': 1370, 'table': 'scheme'}, 'billable': {'override': False, 'billable': False}, 'cat': {'value': 0}, 'isdefaultweekshift': {'value': True}, 'code': {'value': 'Schema 1'}, 'cycle': {'value': 7}, 'excludepublicholiday': {'value': True}},
-    #  'shift': {'id': {'pk': 'new5', 'ppk': 1607, 'create': True}, 'code': {'value': '01.00 - 02.00', 'update': True}, 'offsetstart': {'value': 60, 'minoffset': -720, 'maxoffset': 120, 'update': True}, 'offsetend': {'value': 120, 'minoffset': 60, 'maxoffset': 2160, 'update': True}, 'breakduration': {'value': 0, 'minoffset': 0, 'maxoffset': 60}, 'timeduration': {'value': 60, 'minoffset': 0, 'maxoffset': 1440}, 'update': True},
-    #  'team': {'id': {'pk': 2018, 'ppk': 1607, 'table': 'team'}, 'scheme': {'pk': 1607, 'ppk': 1370, 'code': 'Schema 1'}, 'code': {'value': 'Ploeg B'}},
-    #  'schemeitem': {'id': {'table': 'schemeitem', 'pk': 1657, 'ppk': 1607}}}
+    # upload_dict: {
+        # 'id': {'mode': 'schemeshift'},
+        # 'rosterdate': '2020-01-03',
+        # 'calendar_datefirst': '2019-12-30', 'calendar_datelast': '2020-01-05',
+        # 'weekday_index': 5, 'weekday_list': ['-', '-', '-', '-', '-', 'update1528', '-', '-'],
+        # 'teammember_list': [{'id': {'pk': 'new3', 'ppk': 1919, 'create': True},
+        # 'team': {'pk': 1919, 'ppk': 1563, 'code': 'Ploeg 1'}, 'update': True,
+        # 'employee': {'field': 'employee', 'pk': 2585, 'ppk': 3, 'code': 'Gomes Bravio NM', 'update': True}}],
+        # 'order': {'id': {'pk': 1372, 'ppk': 648, 'table': 'order'}},
+        # 'scheme': {'id': {'pk': 1563, 'ppk': 1372, 'table': 'scheme', 'isdefaultweekshift': True}, 'cycle': {'value': 7}},
+        # 'shift': {'id': {'pk': 528, 'ppk': 1563, 'table': 'shift'}},
+        # 'schemeitem': {'id': {'pk': 1528, 'ppk': 1563, 'table': 'schemeitem'}}, 'team': {'id': {'pk': 1919, 'ppk': 1563, 'table': 'team'}}}
+
+    # upload_dict: {
+        #  {'id': {'mode': 'schemeshift'},
+        #  'rosterdate': '2020-01-07',
+        #  'calendar_datefirst': '2020-01-06', 'calendar_datelast': '2020-01-12',
+        #  'weekday_index': 2,
+        #  'weekday_list': ['-', '-', 'update1658,2017,578,1657,2018,579', '-', '-', '-', '-', '-'],
+        #  'teammember_list': [], 'order': {'id': {'pk': 1370, 'ppk': 648, 'table': 'order'}, 'code': {'value': 'Rooi Katootje'}}, 'scheme': {'pk': 1607, 'id': {'pk': 1607, 'ppk': 1370, 'table': 'scheme'}, 'billable': {'override': False, 'billable': False}, 'cat': {'value': 0}, 'isdefaultweekshift': {'value': True}, 'code': {'value': 'Schema 1'}, 'cycle': {'value': 7}, 'excludepublicholiday': {'value': True}},
+        #  'shift': {'id': {'pk': 'new5', 'ppk': 1607, 'create': True}, 'code': {'value': '01.00 - 02.00', 'update': True}, 'offsetstart': {'value': 60, 'minoffset': -720, 'maxoffset': 120, 'update': True}, 'offsetend': {'value': 120, 'minoffset': 60, 'maxoffset': 2160, 'update': True}, 'breakduration': {'value': 0, 'minoffset': 0, 'maxoffset': 60}, 'timeduration': {'value': 60, 'minoffset': 0, 'maxoffset': 1440}, 'update': True},
+        #  'team': {'id': {'pk': 2018, 'ppk': 1607, 'table': 'team'}, 'scheme': {'pk': 1607, 'ppk': 1370, 'code': 'Schema 1'}, 'code': {'value': 'Ploeg B'}},
+        #  'schemeitem': {'id': {'table': 'schemeitem', 'pk': 1657, 'ppk': 1607}}}
 
 
     update_wrap = {}
@@ -420,9 +423,8 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                 scheme_ppk = id_dict.get('ppk')
                 is_create = ('create' in id_dict)
                 is_delete = ('delete' in id_dict)
-
             logger.debug('scheme_pk: ' + str(scheme_pk))
-            logger.debug('is_create: ' + str(is_create))
+
             if is_create:
                 # get scheme name with next sequence
                 code_with_sequence = f.get_code_with_sequence('scheme', order, user_lang)
@@ -452,7 +454,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     mapped_team_pk_dict = {}
     if scheme:
         team_dict = upload_dict.get('team')
-        logger.debug('team_dict: ' + str(team_dict))
+        #logger.debug('team_dict: ' + str(team_dict))
         if team_dict:
             team_pk, is_create, is_delete = 0, False, False
             id_dict = team_dict.get('id')
@@ -486,7 +488,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
         # if shift is added: this shift will be put in selected schemitems. There are no multiple shift uploads (like with teammembers)
         shift = None
         shift_dict = upload_dict.get('shift')
-        logger.debug('shift_dict: ' + str(shift_dict))
+        #logger.debug('shift_dict: ' + str(shift_dict))
         if shift_dict:
             shift_pk, is_create, is_delete = 0, False, False
             id_dict = shift_dict.get('id')
@@ -524,7 +526,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     # 1. get rosterdate and weekday_index. This is the date and weekday of the calendercolumn that is clcked on
         clicked_rosterdate_iso = upload_dict.get('rosterdate')
         clicked_rosterdate_dte = f.get_date_from_ISO(clicked_rosterdate_iso)
-        logger.debug('clicked_rosterdate_dte: ' + str(clicked_rosterdate_dte) + ' ' + str(type(clicked_rosterdate_dte)))
+        #logger.debug('clicked_rosterdate_dte: ' + str(clicked_rosterdate_dte) + ' ' + str(type(clicked_rosterdate_dte)))
 
         # weekday_list: ['-', '-', '-', 'update1466,1467', '-', 'create', '-', '-']
         # 'weekday_list': ['-', '-', 'update1657,2018,578', '-', 'create', '-', '-', '-'],
@@ -543,7 +545,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                 selected_schemeitem_pk = id_dict.get('pk')
         logger.debug('selected_schemeitem_pk: ' + str(selected_schemeitem_pk))
         logger.debug('clicked_rosterdate_dte: ' + str(clicked_rosterdate_dte))
-# 'weekday_list': ['-', '-', '-', 'update,1665,1607,-,-', '-', 'delete,1667,1607,-,-', '-', '-'],
+        # 'weekday_list': ['-', '-', '-', 'update,1665,1607,-,-', '-', 'delete,1667,1607,-,-', '-', '-'],
         if clicked_rosterdate_dte and weekday_list:
             # loop through weekdays
             for weekday_index in range(1,8):
@@ -567,7 +569,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                         if mode == 'create':
                             days_add = weekday_index - clicked_rosterdate_dte.isoweekday()
                             rosterdate_dte = clicked_rosterdate_dte + timedelta(days=days_add)
-                            logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+                            #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
 
                             is_cyclestart = (weekday_index == 1)
                             schemeitem = m.Schemeitem(
@@ -578,11 +580,12 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                                 iscyclestart=is_cyclestart
                             )
                             schemeitem.save(request=request)
-                            logger.debug('created schemeitem: ' + str(schemeitem) + ' ' + str(type(schemeitem)))
+                            #logger.debug('created schemeitem: ' + str(schemeitem) + ' ' + str(type(schemeitem)))
 
                         elif mode in ('update', 'delete'):
                             # with multiple schemeitems all schemeitem of this scheme on this day will be updated or deleted
 
+                            logger.debug('mode update delete: ')
                             schemeitem = None
                             if schemeitem_pk:
                                 schemeitem = m.Schemeitem.objects.get_or_none(
@@ -592,7 +595,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                                 logger.debug('schemeitem: ' + str(schemeitem))
                             if schemeitem:
                                 if mode == 'delete':
-                                    logger.debug('delete schemeitem: ' + str(schemeitem) + ' ' + str(type(schemeitem)))
+                                    #logger.debug('delete schemeitem: ' + str(schemeitem) + ' ' + str(type(schemeitem)))
                                     schemeitem.delete(request=request)
                                 else:
                                     schemeitem.team = team
@@ -603,7 +606,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                                 # delete scheme completely when there are no schemeitems left in this scheme
                                 count = m.Schemeitem.objects.filter(scheme=scheme).count()
                                 if count == 0:
-                                    logger.debug('scheme.delete: ' + str(scheme) + ' ' + str(type(scheme)))
+                                    #logger.debug('scheme.delete: ' + str(scheme) + ' ' + str(type(scheme)))
                                     # shifts, teams annd teammembers of this scheme will also be deleted because of on_delete=CASCADE
                                     scheme.delete(request=request)
 
@@ -618,50 +621,55 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                     is_create = 'create' in id_dict
                     is_delete = 'delete' in id_dict
                     logger.debug('is_create: ' + str(is_create))
+                    logger.debug('is_delete: ' + str(is_delete))
 
-                    if is_delete:
-                        # TODO
-                        pass
-                    else:
-                        # parent_team can be different from team in upload_dict
-                        parent_team = None
-                        team_pk_str = id_dict.get('ppk')
-                        logger.debug('team_pk_str: ' + str(team_pk_str) + str(type(team_pk_str)))
-                        logger.debug('mapped_team_pk_dict: ' + str(mapped_team_pk_dict))
-                        try:
-                            team_pk = int(team_pk_str)
-                        except:
-                            # if pk_str = 'new4': get mapped new pk from  mapped_team_pk_dict
-                            team_pk = mapped_team_pk_dict[team_pk_str]
+                    # parent_team of teammember can be different from team in upload_dict!!!
+                    team_pk_str = id_dict.get('ppk')
+                    logger.debug('team_pk_str: ' + str(team_pk_str) + str(type(team_pk_str)))
+                    logger.debug('mapped_team_pk_dict: ' + str(mapped_team_pk_dict))
+                    try:
+                        team_pk = int(team_pk_str)
+                    except:
+                        # if pk_str = 'new4': get mapped new pk from  mapped_team_pk_dict
+                        # mapped_team_pk_dict is filled when creating new teams
+                        team_pk = mapped_team_pk_dict[team_pk_str]
+                    logger.debug('team_pk: ' + str(team_pk))
 
-                        logger.debug('team_pk: ' + str(team_pk))
-                        if team_pk:
-                            parent_team = m.Team.objects.get_or_none(id=team_pk, scheme=scheme)
-                        logger.debug('parent_team: ' + str(parent_team))
-                        if parent_team:
-                            teammember = None
-                            if is_create:
-                                teammember = m.Teammember(team=parent_team)
-                                teammember.save(request=request)
-                            else:
-                                teammember_pk = id_dict.get('pk')
-                                logger.debug('teammember_pk: ' + str(teammember_pk))
-                                if teammember_pk:
-                                    teammember = m.Teammember.objects.get_or_none(id=teammember_pk, team=team)
-                            logger.debug('teammember: ' + str(teammember))
-                            if teammember:
-                                update_dict = {}
-                                # teammember.save is part of update_teammember
-                                teammembers_have_changed = update_teammember(teammember, teammember_dict, update_dict, request)
-
+                    parent_team = None
+                    if team_pk:
+                        parent_team = m.Team.objects.get_or_none(id=team_pk, scheme=scheme)
+                    logger.debug('parent_team: ' + str(parent_team))
+                    if parent_team:
+                        teammember = None
+                        if is_create:
+                            teammember = m.Teammember(team=parent_team)
+                            teammember.save(request=request)
+                        else:
+                            teammember_pk = id_dict.get('pk')
+                            logger.debug('teammember_pk: ' + str(teammember_pk))
+                            if teammember_pk:
+                                teammember = m.Teammember.objects.get_or_none(id=teammember_pk, team=team)
+                                if is_delete:
+                                    teammember.delete(request=request)
+                        logger.debug('teammember: ' + str(teammember))
+                        if teammember:
+                            update_dict = {}
+                            # teammember.save is part of update_teammember
+                            teammembers_have_changed = update_teammember(teammember, teammember_dict, update_dict, request)
 
 # J create updated ordere_calendar_list
     datefirst_iso = upload_dict.get('calendar_datefirst')
     datelast_iso = upload_dict.get('calendar_datelast')
 
+    logger.debug('order_pk: ' + str(order_pk))
+    logger.debug('datefirst_iso: ' + str(datefirst_iso))
+    logger.debug('datelast_iso: ' + str(datelast_iso))
+
     if order_pk is not None and datefirst_iso is not None and datelast_iso is not None:
         customer_pk = None
-        calendar_dictlist, calendar_header_dict = prf. create_customer_planning(
+        logger.debug('mmmmmmmmmmmmmmm calendar_dictlist: ')
+
+        calendar_dictlist = plrf.create_customer_planning(
             datefirst_iso=datefirst_iso,
             datelast_iso=datelast_iso,
             customer_pk=customer_pk,
@@ -671,10 +679,9 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
             user_lang=user_lang,
             request=request)
 
-        # logger.debug('employee_calendar_list: ' + str(employee_calendar_list))
+        logger.debug('calendar_dictlist: ' + str(calendar_dictlist))
         if calendar_dictlist:
             update_wrap['customer_calendar_list'] = calendar_dictlist
-            update_wrap['calendar_header_dict'] = calendar_header_dict
 
 # 8. update scheme_list when changes are made
     filter_dict = {'order_pk': order_pk}
@@ -714,6 +721,10 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     if schemeitem_list:
         update_wrap['schemeitem_list'] = schemeitem_list
 
+    # this enables the logger
+    logging.disable(logging.NOTSET)
+
+    logging.debug('looging turned on again')
  # J. return update_wrap
     return update_wrap
 
@@ -992,7 +1003,7 @@ def calendar_employee_upload(request, upload_dict, comp_timezone, timeformat, us
         add_empty_shifts = False
         skip_restshifts = False
         orderby_rosterdate_customer = False
-        calendar_dictlist, calendar_header_dict = prf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
+        calendar_dictlist, calendar_header_dict = plrf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
                                                add_empty_shifts, skip_restshifts, orderby_rosterdate_customer,
                                                 comp_timezone, timeformat, user_lang, request)
 

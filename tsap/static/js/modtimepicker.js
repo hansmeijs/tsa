@@ -80,8 +80,8 @@
                 btn_quicksave.classList.add("pointer_show")
                 btn_quicksave.addEventListener("click", function() {
                         ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, "btn_qs")}, false )
-                btn_quicksave.addEventListener("mouseenter", function(){btn_quicksave.classList.add("tr_hover")});
-                btn_quicksave.addEventListener("mouseleave", function(){btn_quicksave.classList.remove("tr_hover")});
+                btn_quicksave.addEventListener("mouseenter", function() {btn_quicksave.classList.add("tr_hover")});
+                btn_quicksave.addEventListener("mouseleave", function() {btn_quicksave.classList.remove("tr_hover")});
 
                 if(!is_quicksave) {
                    btn_quicksave.setAttribute("data-toggle", "modal");

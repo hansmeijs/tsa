@@ -69,28 +69,40 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     logger.debug('datalist_dict: ' + str(datalist_dict) + ' ' + str(type(datalist_dict)))
 
 # ----- settings -- first get settings, to be used in other downlaods
+                    selected_page = None
+                    selected_btn = None
+                    selected_customer_pk = None
+                    selected_order_pk = None
+                    selected_employee_pk = None
                     table_dict = datalist_dict.get('setting')
+
+                    logger.debug('table_dict setting: ' + str(table_dict))
                     if table_dict:
-                        logger.debug('#############  table_dict: ' + str(table_dict) + ' ' + str(type(table_dict)))
                         # setting: {page_customer: {mode: "get"},
-                        #           selected_pk: {mode: "get"},
-                        #           planning_period: {mode: "get"}}
-                        setting_dict = {'user_lang': user_lang,
+                        #           selected_pk: {mode: "get"}}
+                        new_setting_dict = {'user_lang': user_lang,
                                         'comp_timezone': comp_timezone,
                                         'timeformat': timeformat,
                                         'interval': interval}
                         for key in table_dict:
-                            return_dict = {}
-                            dict = Usersetting.get_jsonsetting(key, request.user)
-                            logger.debug('vvvvvvvvvvvvvvvvvvvvvdict: ' + str(dict) + ' ' + str(type(dict)))
-                            if dict:
-                                if key in ('period_customer', 'period_employee'):
-                                    return_dict = d.period_get_and_save(key, dict, request, comp_timezone)
-                                    logger.debug('vvvvvvvvvvvvvvvvvvvdatalists[key]: ' + str(datalists[key]) + ' ' + str(type(datalists[key])))
-                                else:
-                                    return_dict = dict
-                            setting_dict[key] = return_dict
-                        datalists['setting_dict'] = setting_dict
+                            saved_setting_dict = Usersetting.get_jsonsetting(key, request.user)
+                            if saved_setting_dict:
+                                new_setting_dict[key] = saved_setting_dict
+                                if key == 'selected_pk':
+                                    selected_customer_pk = saved_setting_dict.get('sel_cust_pk')
+                                    selected_order_pk = saved_setting_dict.get('sel_order_pk')
+                                    selected_employee_pk = saved_setting_dict.get('sel_employee_pk')
+                                elif key[:4] == 'page':
+                                    # if 'page_' in request: and selected_btn == 'planning': also retrieve period
+                                    selected_page = key
+                                    btn = saved_setting_dict.get('btn')
+                                    if btn:
+                                        selected_btn = btn
+                        datalists['setting_dict'] = new_setting_dict
+                        logger.debug('selected_page: ' + str(selected_page) + ' ' + str(type(selected_page)))
+                        logger.debug('selected_btn: ' + str(selected_btn) + ' ' + str(type(selected_btn)))
+                        logger.debug('selected_order_pk: ' + str(selected_order_pk) + ' ' + str(type(selected_order_pk)))
+                        # page_customer: {btn: "planning"}
 # ----- locale
                     table_dict = datalist_dict.get('locale')
                     if table_dict:
@@ -196,29 +208,41 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     # planning_period_dict is used further in customer/employee planning
                     planning_period_dict = {}
                     table_dict = datalist_dict.get('planning_period')
-                    if table_dict:
+                    # also get planning_period_dict at startup of page  when btn = 'planning'
+                    if table_dict is not None or selected_btn == 'planning':
                         # save new period and retrieve saved period
-                        planning_period_dict = d.period_get_and_save('planning_period', table_dict, request,
-                                                            comp_timezone)
+                        planning_period_dict = d.period_get_and_save('planning_period', table_dict, comp_timezone, user_lang, request)
                         datalists['planning_period'] = planning_period_dict
 # ----- calendar_period
                     # calendar_period_dict is used further in customer/employee calendar
                     calendar_period_dict = {}
                     table_dict = datalist_dict.get('calendar_period')
+                    # also get calendar_period_dict at startup of page when btn = 'calendar'
+                    if table_dict is not None or selected_btn == 'calendar':
+                        # save new period and retrieve saved period
+                        calendar_period_dict = d.period_get_and_save('calendar_period', table_dict, comp_timezone, user_lang, request)
+                        datalists['calendar_period'] = calendar_period_dict
+
+# ----- roster_period
+                    # roster_period is used in emplhour
+                    roster_period_dict = {}
+                    table_dict = datalist_dict.get('roster_period')
                     if table_dict:
                         # save new period and retrieve saved period
-                        calendar_period_dict = d.period_get_and_save('calendar_period', table_dict, request,
-                                                            comp_timezone)
-                        datalists['calendar_period'] = calendar_period_dict
+                        roster_period_dict = d.period_get_and_save('roster_period', table_dict, comp_timezone, user_lang, request)
+                        datalists['roster_period'] = roster_period_dict
+
 # ----- emplhour
                     table_dict = datalist_dict.get('emplhour')
                     if table_dict:
                         # d.check_overlapping_shifts(range_start_iso, range_end_iso, request)  # PR2019-09-18
                         # don't use the variable 'list', because table = 'period' and will create dict 'period_list'
                         # planning_period_dict is already retrieved
-                        emplhour_list = d.create_emplhour_list(period_dict=planning_period_dict,
-                                                               company=request.user.company,
-                                                               comp_timezone=comp_timezone)
+                        emplhour_list = d.create_emplhour_list(period_dict=roster_period_dict,
+                                                               request=request,
+                                                                comp_timezone=comp_timezone,
+                                                                timeformat=timeformat,
+                                                                user_lang=user_lang)
                         # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
                         datalists['emplhour_list'] = emplhour_list
 # ----- review
@@ -230,76 +254,104 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                                                comp_timezone=comp_timezone)
 # ----- employee_calendar
                     table_dict = datalist_dict.get('employee_calendar')
-                    if table_dict:
 
+                    # also get customer_planning at startup of page
+                    if (table_dict is not None) or (selected_page == 'page_employee' and selected_btn == 'calendar'):
                         customer_pk = None
-                        order_pk = table_dict.get('order_pk')
-                        if order_pk is None:
-                            customer_pk = table_dict.get('customer_pk')
+                        if table_dict:
+                            order_pk = table_dict.get('order_pk')
+                            if order_pk is None:
+                                customer_pk = table_dict.get('customer_pk')
+                        else:
+                            order_pk = selected_order_pk
+                            if order_pk is None:
+                                customer_pk = selected_customer_pk
+
                         employee_pk = table_dict.get('employee_pk')
+
+                        add_empty_shifts = calendar_period_dict.get('add_empty_shifts', False)
+                        skip_absence_and_restshifts = calendar_period_dict.get('skip_absence_and_restshifts', False)
 
                         datefirst_iso = calendar_period_dict.get('rosterdatefirst')
                         datelast_iso = calendar_period_dict.get('rosterdatelast')
-                        add_empty_shifts = False
-                        skip_restshifts = False
+
                         orderby_rosterdate_customer = False
-                        dict_list, calendar_setting_dict = r.create_employee_planning(
+                        dict_list = r.create_employee_planning(
                             datefirst_iso=datefirst_iso,
                             datelast_iso=datelast_iso,
                             customer_pk=customer_pk,
                             order_pk=order_pk,
                             employee_pk=employee_pk,
                             add_empty_shifts=add_empty_shifts,
-                            skip_absence_and_restshifts=skip_restshifts,
+                            skip_absence_and_restshifts=skip_absence_and_restshifts,
                             orderby_rosterdate_customer=orderby_rosterdate_customer,
                             comp_timezone=comp_timezone,
                             timeformat=timeformat,
                             user_lang=user_lang,
                             request=request)
-                        datalists['calendar_setting_dict'] = calendar_setting_dict
                         datalists['employee_calendar_list'] = dict_list
 
 # ----- customer_calendar
                     table_dict = datalist_dict.get('customer_calendar')
-                    if table_dict:
-                        customer_pk = None
-                        order_pk = table_dict.get('order_pk')
+
+                    # also get customer_planning at startup of page
+                    if (table_dict is not None) or (selected_page == 'page_customer' and selected_btn == 'calendar'):
+                        # selected order is retrieved table_dict 'customer_calendar'.
+                        # iF not provided: use selected_order_pk
+                        # order_pk cannot be blank
+                        logger.debug('table_dict: ' + str(table_dict))
+                        logger.debug('selected_order_pk: ' + str(selected_order_pk))
+                        order_pk = None
+                        if table_dict:
+                            order_pk = table_dict.get('order_pk')
                         if order_pk is None:
-                            customer_pk = table_dict.get('customer_pk')
+                            order_pk = selected_order_pk
+                        logger.debug('order_pk: ' + str(order_pk))
 
                         datefirst_iso = calendar_period_dict.get('rosterdatefirst')
                         datelast_iso = calendar_period_dict.get('rosterdatelast')
 
-                        dict_list, calendar_setting_dict = r.create_customer_planning(
+                        dict_list = r.create_customer_planning(
                             datefirst_iso=datefirst_iso,
                             datelast_iso=datelast_iso,
-                            customer_pk=customer_pk,
+                            customer_pk=None,
                             order_pk=order_pk,
                             comp_timezone=comp_timezone,
                             timeformat=timeformat,
                             user_lang=user_lang,
                             request=request)
-                        # datalists['calendar_setting_dict'] = calendar_setting_dict
                         datalists['customer_calendar_list'] = dict_list
 
 # ----- employee_planning
                     table_dict = datalist_dict.get('employee_planning')
-                    if table_dict:
+                    # also get employee_planning at startup of page, also for page_customer
+                    if (table_dict is not None) or (selected_btn == 'planning'):
                         customer_pk = None
-                        order_pk = table_dict.get('order_pk')
-                        if order_pk is None:
-                            customer_pk = table_dict.get('customer_pk')
-                        employee_pk = table_dict.get('employee_pk')
-                        add_empty_shifts = table_dict.get('add_empty_shifts', False)
-                        skip_restshifts = table_dict.get('skip_restshifts', False)
-                        orderby_rosterdate_customer = table_dict.get('orderby_rosterdate_customer', False)
+                        skip_restshifts = False
+                        orderby_rosterdate_customer = False
+                        if table_dict:
+                            employee_pk = table_dict.get('employee_pk')
+                            customer_pk = None
+                            order_pk = table_dict.get('order_pk')
+                            if order_pk is None:
+                                customer_pk = table_dict.get('customer_pk')
+                            add_empty_shifts = table_dict.get('add_empty_shifts', False)
+                            skip_restshifts = table_dict.get('skip_restshifts', False)
+                            orderby_rosterdate_customer = table_dict.get('orderby_rosterdate_customer', False)
+                        else:
+                            employee_pk = selected_employee_pk
+                            order_pk = selected_order_pk
+                            if order_pk is None:
+                                customer_pk = selected_customer_pk
 
-                        # planning_period_dict is already retrieved
-                        rosterdatefirst = planning_period_dict.get('rosterdatefirst')
-                        rosterdatelast = planning_period_dict.get('rosterdatelast')
-                        dict_list, calendar_setting_dict = r.create_employee_planning(
-                            datefirst_iso=rosterdatefirst,
-                            datelast_iso=rosterdatelast,
+                            add_empty_shifts = True if selected_page == 'page_customer' else False
+
+                        datefirst_iso = planning_period_dict.get('rosterdatefirst')
+                        datelast_iso = planning_period_dict.get('rosterdatelast')
+
+                        dict_list = r.create_employee_planning(
+                            datefirst_iso=datefirst_iso,
+                            datelast_iso=datelast_iso,
                             customer_pk=customer_pk,
                             order_pk=order_pk,
                             employee_pk=employee_pk,
@@ -310,35 +362,45 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             timeformat=timeformat,
                             user_lang=user_lang,
                             request=request)
-                        datalists['calendar_setting_dict'] = calendar_setting_dict
                         datalists['employee_planning_list'] = dict_list
 
 # ----- customer_planning
                     table_dict = datalist_dict.get('customer_planning')
-                    if table_dict:
+
+                    # also get customer_planning at startup of page
+                    if (table_dict is not None) or (selected_page == 'page_customer' and selected_btn == 'planning'):
+
                         customer_pk = None
-                        order_pk = table_dict.get('order_pk')
-                        if order_pk is None:
-                            customer_pk = table_dict.get('customer_pk')
+                        if table_dict:
+                            customer_pk = None
+                            order_pk = table_dict.get('order_pk')
+                            if order_pk is None:
+                                customer_pk = table_dict.get('customer_pk')
+                        else:
+                            order_pk = selected_order_pk
+                            if order_pk is None:
+                                customer_pk = selected_customer_pk
 
-                        # planning_period_dict is already retrieved
-                        rosterdatefirst = planning_period_dict.get('rosterdatefirst')
-                        rosterdatelast = planning_period_dict.get('rosterdatelast')
+                        datefirst_iso = planning_period_dict.get('rosterdatefirst')
+                        datelast_iso = planning_period_dict.get('rosterdatelast')
 
-                        dict_list, calendar_setting_dict = r.create_customer_planning(
-                            datefirst_iso=rosterdatefirst,
-                            datelast_iso=rosterdatelast,
+                        dict_list = r.create_customer_planning(
+                            datefirst_iso=datefirst_iso,
+                            datelast_iso=datelast_iso,
                             customer_pk=customer_pk,
                             order_pk=order_pk,
                             comp_timezone=comp_timezone,
                             timeformat=timeformat,
                             user_lang=user_lang,
                             request=request)
-                        #datalists['calendar_setting_dict'] = calendar_setting_dict
                         datalists['customer_planning_list'] = dict_list
-                        logger.debug('oooooooooooooocustomer_planning  calendar_setting_dict: ' + str(calendar_setting_dict))
 
-        #logger.debug('datalists: ' + str(datalists))
+# ----- rosterdate_check
+                    table_dict = datalist_dict.get('rosterdate_check')
+                    if table_dict:
+                        # rosterdate_check: {rosterdate: "2019-11-14"}
+                        # rosterdate_check: {mode: "delete"}
+                        datalists['rosterdate_check'] = d.get_rosterdate_check(table_dict, request)
 
 # 9. return datalists
         datalists_json = json.dumps(datalists, cls=LazyEncoder)
@@ -355,27 +417,8 @@ NIU ???
                         elif table == 'employee_pricerate':
                             dict_list = ed.create_employee_pricerate_list(company=request.user.company, user_lang=user_lang)
 
-                        elif table == 'order_template':
-                            # inactive = None: include active and inactive, False: only active
-                            dict_list = cust_dicts.create_order_list(
-                                company=request.user.company,
-                                user_lang=user_lang,
-                                is_absence=False,
-                                is_template=True,
-                                inactive=inactive)
-
-
-                        # elif table == 'schemeitem_template':
-                            # TODO use create_schemeitem_list
-                            # dict_list = d.create_schemeitem_template_list(request, comp_timezone, user_lang)
-
                         elif table == 'replacement':
                             dict_list = d.create_replacementshift_list(table_dict, request.user.company)
-
-                        elif table == 'rosterdate_check':
-                            # rosterdate_check: {rosterdate: "2019-11-14"}
-                            # rosterdate_check: {mode: "delete"}
-                            datalists[table] = d.get_rosterdate_check(table_dict, request)
 
 
 """
@@ -2418,182 +2461,6 @@ def upload_period(interval_upload, request):  # PR2019-07-10
 
 
 @method_decorator([login_required], name='dispatch')
-class PeriodUploadView(UpdateView):  # PR2019-07-12
-
-    def post(self, request, *args, **kwargs):
-        logger.debug(' ============= PeriodUploadView ============= ')
-
-        item_update_dict = {}
-        if request.user is not None and request.user.company is not None:
-# A.
-    # 1. Reset language
-            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-            activate(user_lang)
-
-    # b. get comp_timezone PR2019-06-14
-            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-            # logger.debug('comp_timezone: ' + str(comp_timezone))
-
-            new_period_dict = {}
-
-    # 2. get upload_dict from request.POST
-            upload_json = request.POST.get('period_upload', None)
-            if upload_json:
-                upload_dict = json.loads(upload_json)
-                # logger.debug('upload_dict: ' + str(upload_dict))
-                # upload_dict: {'next': True, 'period': {'period': 8, 'interval': 0, 'overlap': 0, 'auto': False,
-                # 'periodstart': '2019-07-12T06:00:00.000Z', 'periodend': '2019-07-12T14:00:00.000Z'}}
-
-                # upload_dict: {'period': {'setting': True, 'interval': 3, 'overlap_prev': 2, 'overlap_next': 1}}
-                # upload_dict: {'period': {'mode': 'current'}}
-
-    # 3. get upload_period_dict and saved_period_dict
-                if 'period' in upload_dict:
-                    # 'period': {'period': 8, 'interval': 0, 'overlap': 0, 'auto': False,
-                    # {'period': {'next': True}}
-                    upload_period_dict = upload_dict['period']
-
-                    # get saved period_dict
-                    saved_period_dict = d.get_period_from_settings(request)
-                    # logger.debug('saved_period_dict: ' + str(saved_period_dict))
-                    # period_dict: {'range': '0;0;1;0', 'period': 6, 'interval': 6, 'overlap': 0, 'auto': True}
-                    # saved_period_dict: {'mode': 'current', 'interval': 24, 'overlap_prev': 0, 'overlap_next': 0,
-                    # 'periodstart': '2019-08-31T22:00:00+00:00', 'periodend': '2019-09-01T22:00:00+00:00',
-                    # 'range': '0;0;0;0', 'rangestart': '2019-08-19', 'rangeend': ''}
-
-                    new_period_dict = saved_period_dict
-
-                    period_timestart_utc = None
-                    period_timeend_utc = None
-                    range_start_iso = None
-                    range_end_iso = None
-
-     # get mode from upload_period_dict, default is 'saved'
-                    mode = 'saved'
-                    if 'mode' in upload_period_dict:
-                        if upload_period_dict['mode']:
-                            mode = upload_period_dict['mode']
-
-    # when mode = 'setting': save new settings in saved_period_dict, reset mode to current
-            # mode 'setting' sets interval and overlap. Get new values from upload_period_dict
-                    if mode == 'setting':
-                        mode = 'current'
-                        for field in ['interval', 'overlap_prev', 'overlap_next']:
-                            if field in upload_period_dict:
-                                saved_period_dict[field] = upload_period_dict[field]
-
-    # when mode = 'saved' or 'setting': get mode from saved_period_dict, default is 'current'
-                    if mode in ['saved', 'setting']:
-                        mode = 'current'
-                        if 'mode' in saved_period_dict:
-                            if saved_period_dict['mode']:
-                                mode = saved_period_dict['mode']
-
-                    if mode == 'current':
-                        new_period_dict['mode'] = 'current'
-
-                        interval_int = int(new_period_dict['interval'])
-                        overlap_prev_int = int(new_period_dict['overlap_prev'])
-                        overlap_next_int = int(new_period_dict['overlap_next'])
-                        # logger.debug('interval: ' + str(interval_int) + 'overlap_prev: ' + str(overlap_prev_int) + 'overlap_next: ' + str(overlap_next_int))
-
-         # get start- and end-time of current period in UTC
-                        period_timestart_utc, period_timeend_utc = d.get_current_period(
-                                                    interval_int, overlap_prev_int, overlap_next_int, request)
-                        if period_timestart_utc:
-                            new_period_dict['periodstart'] = period_timestart_utc.isoformat()
-
-                        if period_timeend_utc:
-                            new_period_dict['periodend'] = period_timeend_utc.isoformat()
-
-                        # logger.debug('period_timestart_utc: ' + str(period_timestart_utc) + 'period_timeend_utc: ' + str(period_timeend_utc))
-                        # period_timestart_utc: 2019-08-31 22:00:00+00:00period_timeend_utc: 2019-09-01 22:00:00+00:00
-
-                    elif mode == 'prev' or mode == 'next':
-                        new_period_dict['mode'] = 'prevnext'
-
-                        # Attention: add / subtract interval must be done in local time, because of DST
-                        interval_int = 0
-                        if 'interval' in saved_period_dict:
-                            interval_int = saved_period_dict['interval']
-                        new_period_dict['interval'] = interval_int
-
-                        overlap_prev_int = 0
-                        if 'overlap_prev' in saved_period_dict:
-                            overlap_prev_int = saved_period_dict['overlap_prev']
-
-                        overlap_next_int = 0
-                        if 'overlap_next' in saved_period_dict:
-                            overlap_next_int = saved_period_dict['overlap_next']
-
-                        if 'periodstart' in saved_period_dict:
-                            period_start_iso = saved_period_dict['periodstart']
-                            # logger.debug('period_start_iso: ' + str(period_start_iso) + ' ' + str(type(period_start_iso)))
-
-                            period_timestart_utc, period_timeend_utc = d.get_prevnext_period(
-                                mode,
-                                period_start_iso,
-                                interval_int,
-                                overlap_prev_int,
-                                overlap_next_int,
-                                comp_timezone)
-
-                            if period_timestart_utc:
-                                new_period_dict['periodstart'] = period_timestart_utc.isoformat()
-
-                            if period_timeend_utc:
-                                new_period_dict['periodend'] = period_timeend_utc.isoformat()
-
-                    elif (mode == 'range'):
-                        new_period_dict['mode'] = 'range'
-                        # logger.debug('mode == range: ')
-
-                        for field in ['range', 'rangestart']:
-                            if field in upload_period_dict:
-                                new_period_dict[field] = upload_period_dict[field]
-
-                        range = ""
-                        if 'range' in new_period_dict:
-                            range = new_period_dict['range']
-                        # logger.debug('range: ' + str(range))
-
-                        if 'rangestart' in new_period_dict:
-                            range_start_iso = new_period_dict['rangestart']
-                            # period_timestart_utc = f.get_datetime_UTC_from_ISOstring(range_start_iso)
-
-                            range_end_iso = d.get_range_enddate_iso(range, range_start_iso, comp_timezone)
-                            new_period_dict['rangeend'] = range_end_iso
-
-                        # logger.debug('new_period_dict: ' + str(new_period_dict))
-# 9. return emplhour_list
-
-                    rosterdatefirst = '2019-11-01'
-                    rosterdatelast = '2019-11-30'
-                    emplhour_list = d.create_emplhour_list(rosterdatefirst=rosterdatefirst,
-                                                           rosterdatelast=rosterdatelast,
-                                                           periodtimestart=period_timestart_utc,
-                                                           periodtimeend=period_timeend_utc,
-                                                           company=request.user.company,
-                                                           comp_timezone=comp_timezone)
-
-                    # debug: must also upload when list is empty
-                    item_update_dict['emplhour'] = emplhour_list
-
-                    # 'periodend': '2019-07-11T14:00:00.000Z'}}
-
-                period_dict_json = json.dumps(new_period_dict)  # dumps takes an object and produces a string:
-                # logger.debug('new_period_dict: ' + str(new_period_dict))
-
-                Usersetting.set_setting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json, request.user)
-
-                item_update_dict['period'] = new_period_dict
-
-        datalists_json = json.dumps(item_update_dict, cls=LazyEncoder)
-        return HttpResponse(datalists_json)
-
-
-@method_decorator([login_required], name='dispatch')
 class ReplacementUploadView(UpdateView):  # PR2019-08-18
 
     def post(self, request, *args, **kwargs):
@@ -2624,6 +2491,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
 # 2. get comp_timezone PR2019-06-14
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+            timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
 
 # 3. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
@@ -2690,7 +2558,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                                 # first create abscat record with current employee, in make_absent
                                 # then replace employee by upload_dict.employee in update_emplhour_orderhour
                                 if upload_dict['abscat']:
-                                    absence_dict = make_absent_or_split_shift("absence", instance, upload_dict, comp_timezone, request)
+                                    absence_dict = make_absent_or_split_shift("absence", instance, upload_dict, comp_timezone, timeformat, user_lang, request)
                                     if absence_dict:
                                         eplh_update_list.append(absence_dict)
                             elif mode == 'switch':
@@ -2698,12 +2566,12 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                             elif mode == 'split':
                                 # first create split record with upload_dict.employee, if blank: with current employee
                                 # current employee stays the same in update_emplhour_orderhour > remove from upload_dict
-                                split_dict = make_absent_or_split_shift("split", instance, upload_dict, comp_timezone, request)
+                                split_dict = make_absent_or_split_shift("split", instance, upload_dict, comp_timezone, timeformat, user_lang, request)
                                 if split_dict:
                                     eplh_update_list.append(split_dict)
                             logger.debug('upload_dict: ' + str(upload_dict))
 # E. Update instance, also when it is created
-                            update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_timezone, eplh_update_list)
+                            update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_timezone, timeformat, user_lang, eplh_update_list)
 
 
 # 6. remove empty attributes from update_dict
@@ -2824,7 +2692,7 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
 
     return emplhour, orderhour
 
-def make_absent_or_split_shift(mode, emplhour, upload_dict, comp_timezone, request):
+def make_absent_or_split_shift(mode, emplhour, upload_dict, comp_timezone, timeformat, user_lang, request):
     logger.debug('make_absent_or_split_shift')
     logger.debug('upload_dict: ' + str(upload_dict))
     # an absent emplhour record will be created for the current employee of this emplhour
@@ -2956,11 +2824,11 @@ def make_absent_or_split_shift(mode, emplhour, upload_dict, comp_timezone, reque
             update_dict = {'id': {'created': True}}
             if 'rowindex' in upload_dict['id']:
                 update_dict['id']['rowindex'] = upload_dict['id']['rowindex']
-            d.create_emplhour_itemdict(new_emplhour, update_dict, comp_timezone)
+            d.create_emplhour_itemdict(new_emplhour, update_dict, comp_timezone, timeformat, user_lang)
     return update_dict
 
 #######################################################
-def update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_timezone, eplh_update_list):
+def update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_timezone, timeformat, user_lang, eplh_update_list):
     # --- update existing and new emplhour PR2-019-06-23
     # add new values to update_dict (don't reset update_dict, it has values)
     # also update orerhour when time has changed
@@ -3159,7 +3027,7 @@ def update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_
                 if orderhour_needs_recalc:
                     recalc_orderhour (instance.orderhour)
 # 6. put updated saved values in update_dict
-        d.create_emplhour_itemdict(instance, update_dict, comp_timezone)
+        d.create_emplhour_itemdict(instance, update_dict, comp_timezone, timeformat, user_lang)
     return has_error
 
 def recalc_orderhour(orderhour): # PR2019-10-11

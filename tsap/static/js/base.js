@@ -78,31 +78,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }; //if(!!e.target)
     }; //function SetMenubuttonActive()
 
-//=========  CreateSubmenu  === PR2019-11-13
-    function CreateSubmenuButton(el_div, id, btn_text, class_key, function_on_click) {
-        // console.log("CreateSubmenuButton")
-
-    // --- add <a> element with EventListener to td
-        let el_a = document.createElement("a");
-            if(!!id) {el_a.setAttribute("id", id)};
-            el_a.setAttribute("href", "#");
-            if(!!class_key) { el_a.classList.add(class_key)}
-            el_a.innerText = btn_text;
-            el_a.addEventListener("click", function() {function_on_click()}, false )
-            el_div.appendChild(el_a);
-    }
-
-
-//=========  AddSubmenuButton  === PR2019-08-27
-    function AddSubmenuButton(el_div, a_innerText, a_id, a_function, a_mx, a_href) {
+//=========  AddSubmenuButton  === PR2020-01-26
+    function AddSubmenuButton(el_div, a_innerText, a_function, a_mx, a_id, a_href) {
         // console.log(" ---  AddSubmenuButton --- ");
-        if (!a_href){a_href = "#"}
         let el_a = document.createElement("a");
             if(!!a_id){el_a.setAttribute("id", a_id)};
-            el_a.setAttribute("href", a_href);
+
+            if(!!a_href) {el_a.setAttribute("href", a_href)};
             el_a.innerText = a_innerText;
             if(!!a_function){el_a.addEventListener("click", a_function, false)};
             if(!!a_mx){el_a.classList.add(a_mx)};
+            el_div.classList.add("pointer_show")
         el_div.appendChild(el_a);
     };//function AddSubmenuButton
 

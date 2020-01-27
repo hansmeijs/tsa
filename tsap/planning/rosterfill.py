@@ -15,8 +15,8 @@ from companies.views import LazyEncoder
 
 from tsap import constants as c
 from tsap import functions as f
-from planning import dicts as pd
-from planning import views as pv
+from planning import dicts as pld
+from planning import views as plv
 
 from tsap.settings import TIME_ZONE
 
@@ -86,6 +86,8 @@ idx_r_o_seq_arr = 46
 
 idx_si_sh_os_nonull = 47 # non zero os for sorting when creating rosterdate
 idx_si_sh_oe_nonull = 48 # non zero os for sorting when creating rosterdate
+
+idx_isreplacement = 49 # not used in sql, but added in calculate_add_row_to_dict
 
 # CASE WHEN si_sub.sh_os IS NULL THEN CASE WHEN tm_sub.tm_os IS NULL THEN 0 ELSE tm_sub.tm_os END ELSE si_sub.sh_os END AS offsetstart,
 #        COALESCE(tm_sub.tm_offsetstart, 0) + 1440 * dte_sub.ddiff AS osref,
@@ -310,7 +312,7 @@ sql_teammember_triple_sub04 = """
 
     WHERE (c.company_id = %(cid)s)
     AND (o.istemplate = FALSE)
-    AND ( (tm.employee_id = %(eid)s) OR (%(eid)s IS NULL) )
+
     AND ( (tm.datefirst <= CAST(%(rd)s AS date) ) OR (tm.datefirst IS NULL) )
     AND ( (tm.datelast >= CAST(%(rd)s AS date) ) OR (tm.datelast IS NULL) )
     AND ( (s.datefirst <= CAST(%(rd)s AS date) ) OR (s.datefirst IS NULL) )
@@ -319,6 +321,10 @@ sql_teammember_triple_sub04 = """
     AND ( (o.datelast >= CAST(%(rd)s AS date) ) OR (o.datelast IS NULL) )
 
 """
+# PR2020-01-21 debug: dont filter on eid, this blocks employee shifts when checked on replaceenet vice versa
+#   was:  AND ( (tm.employee_id = %(eid)s) OR (%(eid)s IS NULL) )
+
+
 # was:         CAST(%(rd)s AS date) - CAST(%(ref)s AS date) +
 #         CASE WHEN o.isabsence = TRUE THEN 0 ELSE COALESCE(si_sub.si_ddif, 0) END AS ddifref,
 # not necessary, since absence also has schemeitem
@@ -359,7 +365,6 @@ sql_teammember_calc_sub05 = """
         tm_sub.ddifref * 1440 + COALESCE(tm_sub.si_sh_oe, 1440) AS oe_ref,
         COALESCE(tm_sub.si_sh_bd, 0) AS si_sh_bd,
         COALESCE(tm_sub.si_sh_td, 0) AS si_sh_td
-    
 
     FROM  ( """ + sql_teammember_triple_sub04 + """ ) AS tm_sub
 """
@@ -438,7 +443,7 @@ sql_teammember_sub08 = """
         COALESCE(e_sub.e_nl,'') AS e_nl,
         COALESCE(e_sub.e_nf,'') AS e_nf,
         
-        tm.replacement_id AS rpl_id,
+        r_sub.e_id AS rpl_id,
         COALESCE(r_sub.e_code,'') AS rpl_code,
         
         si_sub.si_id,
@@ -484,8 +489,12 @@ sql_teammember_sub08 = """
         r_sub.o_seq_arr AS r_o_seq_arr, 
         
         COALESCE(si_sub.si_sh_os, 0) AS si_sh_os_nonull,
-        COALESCE(si_sub.si_sh_oe, 1440) AS si_sh_oe_nonull
+        COALESCE(si_sub.si_sh_oe, 1440) AS si_sh_oe_nonull, 
 
+        e_sub.e_id  AS e_sub_e_id,
+        r_sub.e_id  AS r_sub_e_id,
+        %(eid)s AS eid
+        
     FROM companies_teammember AS tm 
     INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
     INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
@@ -493,7 +502,6 @@ sql_teammember_sub08 = """
     INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
 
     INNER JOIN  ( """ + sql_schemeitem_sub00 + """ ) AS si_sub ON (si_sub.t_id = t.id)
-
     LEFT JOIN  ( """ + sql_employee_with_aggr_sub07 + """ ) AS e_sub ON (e_sub.e_id = tm.employee_id)
     LEFT JOIN  ( """ + sql_employee_with_aggr_sub07 + """ ) AS r_sub ON (r_sub.e_id = tm.replacement_id)
 
@@ -509,9 +517,8 @@ sql_teammember_sub08 = """
     AND ( (o.datelast  >= CAST(%(rd)s AS date) ) OR (o.datelast IS NULL) )
     AND ( (o.id = %(orderid)s) OR (%(orderid)s IS NULL) )
     AND ( (c.id = %(customerid)s) OR (%(customerid)s IS NULL) )
-    AND ( (tm.employee_id = %(eid)s) OR (tm.replacement_id = %(eid)s) OR (%(eid)s IS NULL) )
+    AND ( (e_sub.e_id = %(eid)s) OR (r_sub.e_id = %(eid)s) OR (%(eid)s IS NULL) ) 
 """
-
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -556,8 +563,6 @@ sql_teammembers_with_si_sub = """
         AND (o.istemplate = FALSE)
   
     """
-
-
 
 
 # PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
@@ -720,7 +725,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 
             if 'upload' in request.POST:
                 upload_dict = json.loads(request.POST['upload'])
-                #logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: {'mode': 'create', 'rosterdate': '2019-12-20', 'count': 0, 'confirmed': 0}
                 mode = upload_dict.get('mode')
                 rosterdate_iso = upload_dict.get('rosterdate')
@@ -729,12 +734,12 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                 logger.debug('rosterdate_dte: ' + str(rosterdate_dte))
 
                 update_list = []
+                logfile = []
                 dict = {}
                 if mode == 'create':
-                    logfile = []
 # FillRosterdate
-                    dict = FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request)
-                    dict['rosterdate'] = pd.get_rosterdatefill_dict(rosterdate_dte, request.user.company)
+                    dict, logfile = FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request)
+                    dict['rosterdate'] = pld.get_rosterdatefill_dict(rosterdate_dte, request.user.company)
 
                 elif mode == 'delete':
 
@@ -743,10 +748,12 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 
                 if dict:
                     update_dict['rosterdate'] = dict
+                if logfile:
+                    update_dict['logfile'] = logfile
 
                 #logger.debug(('????????????? dict: ' + str(dict)))
-                period_dict = pd.get_period_from_settings(request)
-                period_timestart_utc, period_timeend_utc = pd.get_timesstartend_from_perioddict(period_dict, request)
+                period_dict = pld.get_period_from_settings(request)
+                period_timestart_utc, period_timeend_utc = pld.get_timesstartend_from_perioddict(period_dict, request)
                 # TODO range
                 show_all = False
                 # list = update_list
@@ -769,13 +776,16 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 
 #######################################################
 
-def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2019-08-01
-    logger.debug(' ============= FillRosterdate ============= ')
-    logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020-01-27
+
+    logfile = []
+
     count_absent_rest = 0
     count_normal = 0
     return_dict = {'mode': 'create'}
     if rosterdate_dte:
+        logfile.append(' ============= Fill roster of: ' + str(rosterdate_dte.isoformat()) + ' ============= ')
+
         # update schemeitem rosterdate.
         absence_dict = {}  # {111: 'Vakantie', 112: 'Ziek'}
         rest_dict = {}     # {111: [(timestart, end), (timestart, end)], 112: [(timestart, end)]}
@@ -796,15 +806,13 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2019
         if not timeformat in c.TIMEFORMATS:
             timeformat = '24h'
 
-        logger.debug('timeformat: ' + str(timeformat) + ' ' + str(type(timeformat)))
-
     # 2 changerosterdates in scehemitems, to most recent rosterdate (add multiple of cycle days)
         schemeitems = m.Schemeitem.objects.filter(scheme__order__customer__company=request.user.company)
         for schemeitem in schemeitems:
-            pv.update_schemeitem_rosterdate(schemeitem, rosterdate_dte, comp_timezone)
+            plv.update_schemeitem_rosterdate(schemeitem, rosterdate_dte, comp_timezone)
 
     # 2 delete existing emplhour and orderhour records of this rosterdate if they are not confirmed or locked
-            # deleted_count, deleted_count_oh = delete_emplhours_orderhours(rosterdate_dte, request)
+        deleted_count, deleted_count_oh = delete_emplhours_orderhours(rosterdate_dte, request)
 
         entries_count = 0
         entry_balance = m.get_entry_balance(request, comp_timezone)
@@ -825,7 +833,9 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2019
         refdate = rosterdate_dte
 
     # 4. create calendar_header of this date, get is_publicholiday and is_companyholiday
-        calendar_setting_dict, is_publicholiday, is_companyholiday = create_calendar_header(rosterdate_dte, user_lang, request)
+        calendar_header_dict = pld.create_calendar_header(rosterdate_dte, rosterdate_dte, user_lang, request)
+        is_publicholiday = calendar_header_dict.get('ispublicholiday', False)
+        is_companyholiday = calendar_header_dict.get('iscompanyholiday', False)
 
     # 5. create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
@@ -840,39 +850,20 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2019
         #  Idem with idx_si_sh_os_nonull. idx_si_sh_os must stay, may have null value for updating
         sorted_rows = sorted(all_rows, key=operator.itemgetter(idx_si_sh_os_nonull, idx_c_code, idx_o_code))
 
-        for i, row in enumerate(sorted_rows):
-            logger.debug(' ')
-            logger.debug('++++++++++++++++++++++++++ idx_rosterdate: ' + str(row[idx_tm_rd]))
-
-            row_mode = row[idx_si_mod]
-            logger.debug('row mode: ' + str(row_mode))
-            logger.debug('employee: ' + str(row[idx_e_code]))
-            logger.debug('order: ' + str(row[idx_o_code]))
-            logger.debug('shift: ' + str(row[idx_sh_code]))
-
-            row_mode = row[idx_si_mod]
-            is_absence = (row_mode == 'a')
-            is_restshift = (row_mode == 'r')
-            is_absence_or_restshift = (row_mode in ('a', 'r') )
-
-            # PR2019-12-22 Note: sql filter inservice: only filters employee that are in service any day in range. WHen cretaing dict filter in service on correct date
-            add_row = True
-            # - A. row is absence row
-            if is_absence:
-                add_row = check_absencerow_for_doubles(row)
-                logger.debug('check_absencerow_for_doubles  add_row: ' + str(add_row))
-            else:
-                if is_restshift and row[idx_e_id] is None:
-                    add_row = False
-                    logger.debug('skip rest shift without employee. add_row: ' + str(add_row))
-                if add_row:
-                    has_overlap = check_row_for_absence_overlap(row)
-                    add_row = not has_overlap
-                    logger.debug('after check_row_for_absence_rest add_row: ' + str(add_row))
+        for i, row_tuple in enumerate(sorted_rows):
+            # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+            row, add_row = calculate_add_row_to_dict(
+                row_tuple=row_tuple,
+                logfile=logfile,
+                employee_pk=0,
+                skip_absence_and_restshifts=False,
+                add_empty_shifts=True)
+            # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
             # create employee_planning dict
-            # logger.debug('add_row_to_dict: ' + str(add_row_to_dict))
             if add_row:
+                logger.debug('################ row: ')
+                logger.debug(str(row))
                 emplhour_is_added = add_orderhour_emplhour(
                     row=row,
                     rosterdate_dte=rosterdate_dte,
@@ -880,6 +871,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2019
                     request=request)
 
                 if emplhour_is_added:
+                    is_absence_or_restshift = row[idx_si_mod] in ('a', 'r')
                     if is_absence_or_restshift:
                         count_absent_rest = count_absent_rest + 1
                     else:
@@ -888,7 +880,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2019
                 logger.debug('-------- count_absent_rest: ' + str(count_absent_rest))
                 logger.debug('-------- count_normal: ' + str(count_normal))
 
-                has_overlap =False
+                has_overlap = False
                 overlap_siid_list = []
                 planning_dict = create_employee_calendar_dict(row, has_overlap, overlap_siid_list, comp_timezone,
                                                               timeformat, user_lang)
@@ -905,12 +897,12 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2019
             rosterdate_iso = '<no rosterdate>'
             if rosterdate_dte:
                 rosterdate_iso = rosterdate_dte.isoformat()
-            logger.debug('Error FillRosterdate:' +
+            logfile.append('Error FillRosterdate:' +
                      ' rosterdate_dte: ' + str(rosterdate_iso) + ' ' + str(type(rosterdate_dte)))
             return_dict['msg_01'] = _('An error occurred while creating shifts.')
 
-        logger.debug('-------- count_absent_rest: ' + str(count_absent_rest))
-        logger.debug('-------- count_normal: ' + str(count_normal))
+        logfile.append('-------- count_absent_rest: ' + str(count_absent_rest))
+        logfile.append('-------- count_normal: ' + str(count_normal))
 
         if count_normal:
             if count_normal == 1:
@@ -931,12 +923,12 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2019
         if msg_skipped:
             return_dict['msg_03'] = msg_skipped
 
-    return return_dict
+    return return_dict, logfile
 
 
 def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR2020-01-5
 
-    #logger.debug(' ============= add_orderhour_emplhour ============= ')
+    logger.debug(' ============= add_orderhour_emplhour ============= ')
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
     #logger.debug('schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
 
@@ -992,6 +984,11 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
     #logger.debug('teammember: ' + str(teammember))
     teammember = m.Teammember.objects.get_or_none(id=row[idx_tm_id], team__scheme__order=order)
 
+# get employee
+    # Note: employee can be different from teammember.employee (when replacement employee)
+    #logger.debug('teammember: ' + str(teammember))
+    employee = m.Employee.objects.get_or_none(id=row[idx_e_id], company=request.user.company)
+    is_replacement = row[idx_isreplacement] if row[idx_isreplacement] == True else False
 
 # 1. check if emplhours from this schemeitem/teammmeber/rosterdate already exist
     # (happens when FillRosterdate for this rosterdate is previously used)
@@ -1092,6 +1089,8 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
         orderhour=orderhour,
         schemeitem=schemeitem,
         teammember=teammember,
+        employee=employee,
+        is_replacement=is_replacement,
         shift_code=shift_code,
         shift_wagefactor=None,
         shift_isrestshift=is_restshift,
@@ -1105,9 +1104,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
     return emplhour_is_added
 
 
-# 33333333333333333333333333333333333333333333333333
-
-def add_emplhour(orderhour, schemeitem, teammember,
+def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
             shift_code, shift_wagefactor, shift_isrestshift,
             timestart, timeend, breakduration, timeduration,
             comp_timezone, request):
@@ -1137,12 +1134,15 @@ def add_emplhour(orderhour, schemeitem, teammember,
                 monthindex=orderhour.monthindex,
                 weekindex=orderhour.weekindex,
                 payperiodindex=payperiodindex,
+                isabsence=orderhour.isabsence,
                 isrestshift=shift_isrestshift,
+                isreplacement=is_replacement,
                 shift=shift_code,
                 timestart=timestart,
                 timeend=timeend,
                 breakduration=breakduration,
                 timeduration=timeduration,
+                plannedduration=timeduration,
                 wagerate=wagerate,
                 wagefactor=wagefactor,
                 wage=wage,
@@ -1151,7 +1151,6 @@ def add_emplhour(orderhour, schemeitem, teammember,
                 overlap=overlap
             )
 
-            employee = teammember.employee
             if employee:
                 new_emplhour.employee = employee
                 new_emplhour.wagecode = employee.wagecode
@@ -1188,7 +1187,6 @@ def add_emplhour(orderhour, schemeitem, teammember,
 
         logger.debug(' ----------- emplhour is added: ' + str(emplhour_is_added))
     return emplhour_is_added
-# >>>>>>>>>>>>>>>>>>>>>>>
 
 
 def get_teammember_on_rosterdate_with_logfile(teammember, schemeitem, rosterdate_dte, absence_dict, rest_dict, logfile):
@@ -1232,8 +1230,6 @@ def get_teammember_on_rosterdate_with_logfile(teammember, schemeitem, rosterdate
 
     return add_teammember
 
-
-# 33333333333333333333333333333333333333333333333333
 
 def add_absence_orderhour_emplhour(order, teammember, new_rosterdate_dte, is_absence, is_restshift, request):  # PR2019-09-01
     logger.debug(' ============= add_absence_orderhour_emplhour ============= ')
@@ -1711,7 +1707,7 @@ def create_rest_shifts(new_rosterdate_dte, absence_dict, rest_dict, logfile, req
 
 #######################################################
 
-def create_customer_planning(datefirst, datelast, orderid_list, comp_timezone, request):
+def create_customer_planningXXX(datefirst, datelast, orderid_list, comp_timezone, request):
     logger.debug(' ============= create_customer_planning ============= ')
     # this function creates a list with planned roster, without saving emplhour records  # PR2019-11-09
 
@@ -1960,6 +1956,7 @@ def get_teammember_rows_per_date_per_customer(rosterdate, order_id, refdate, com
 
     return rows
 
+
 def check_absent_employee(row):
     # roww: {'rosterdate': '2019-11-07', 'tm_id': 573, 'si_id': 387,
     # 'ddif': 6, 'osdif': 9060, 'oedif': 9540, 'sh_os': 420, 'sh_oe': 900, 'sh_br': 60,
@@ -1983,6 +1980,7 @@ def check_absent_employee(row):
                     break
 
     return is_absent
+
 
 def create_customer_planning_dict(fid, row, datefirst_dte, datelast_dte, comp_timezone, company_id): # PR2019-10-27
     # logger.debug(' --- create_customer_planning_dict --- ')
@@ -2071,19 +2069,225 @@ def create_customer_planning_dict(fid, row, datefirst_dte, datelast_dte, comp_ti
 
 
 #######################################################
-def getKey(item):
-    return item[idx_e_code] if item[idx_e_code] is not None else ''
+def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_restshifts, add_empty_shifts):
+    # function checks if row must be added to planning.
+    # it will change e_id and e_code in row when replacement employee took over the shift
+    # called by FillRosterdate and also by create_employee_planning
 
+    # when called by create_employee_planning:
+    #  - employee_pk must have value
+    #  - dont add empty shifts
+    #  - dont skip_absence_and_restshifts
+
+    # when called by create_customer_planning:
+    #  - employee_pk is None
+    #  - add empty shifts
+    #  - skip_absence_and_restshifts
+
+    # when called by fill_rosterdate:
+    #  - employee_pk is None
+    #  - add empty shifts
+    #  - dont skip_absence_and_restshifts
+
+    # when called by FillRosterdate: add all rows, including rows without employee / replacement
+    # this disables the logger, except for critical
+    # logging.disable(logging.CRITICAL)
+
+    # row_tuple cannot be modified. Convert to list 'row'
+    row = list(row_tuple)
+
+    is_normal_employee = (employee_pk) and (employee_pk == row[idx_e_id])
+    # is_replacement_employee is only true when employee and replacement are not the same
+    # in case an employee is also his replacement...
+    is_replacement_employee = (employee_pk) and (employee_pk != row[idx_e_id]) and (employee_pk == row[idx_rpl_id])
+
+    logfile.append(' ')
+    logfile.append('+++++++++++++ calculate shift to be added +++++++++++++ ')
+    if row[idx_si_mod] == 'a':
+        mode = 'absence'
+    elif row[idx_si_mod] == 'r':
+        mode = 'res tshift'
+    elif row[idx_si_mod] == 'n':
+        mode = 'normal shift'
+    else:
+        mode = 'unknown'
+    logfile.append('mode       : ' + mode)
+    logfile.append('order      : ' + str(row[idx_c_code]) + ' - ' + str(row[idx_o_code]))
+    logfile.append('shift      : ' + str(row[idx_sh_code]))
+    logfile.append('employee   : ' + str(row[idx_e_code]))
+    logfile.append('replacement: ' + str(row[idx_rpl_code]))
+
+    add_row_to_dict = False
+
+    # >>>>> SHIFT IS ABSENCE
+    if row[idx_si_mod] == 'a':
+        logfile.append('--- shift is absence shift')
+        if skip_absence_and_restshifts:
+            logfile.append('--> absence shift skipped: skip_absence_and_restshifts')
+        elif is_replacement_employee:
+            logfile.append('--> absence shift skipped: is_replacement_employee')
+        elif is_replacement_employee:
+            logfile.append('--> absence shift skipped: is_replacement_employee')
+        elif row[idx_e_id]:
+            logfile.append('--> absence shift has employee:')
+            logfile.append('--- check absencerow for_doubles: ')
+            add_row_to_dict = check_absencerow_for_doubles(row)
+            if add_row_to_dict:
+                logfile.append('--> no double absence found: add absence')
+            else:
+                logfile.append('--> double absence found: skip absence')
+        else:
+            logfile.append('--> absence shift skipped: no employee')
+
+# >>>>> SHIFT IS REST SHIFT
+    elif row[idx_si_mod] == 'r':
+        logfile.append('--- row is rest shift')
+        if skip_absence_and_restshifts:
+            logfile.append('--> rest shift skipped')
+        elif is_replacement_employee:
+            logfile.append('--> skip, dont add rest row when is_replacement_employee')
+        elif row[idx_e_id]:
+            logfile.append('--> rest shift has employee:')
+            # check if employee is absent or has restshift
+            # rest row is skipped when:
+            #  - it is fully within or equal to absence row
+            #  - it is fully within lookup rest row
+            #  - it is equal to lookup rest row and has higher tm_id or si_id
+            if no_overlap_with_absence_or_restshift(row, False):  # False = check_normal_employee
+                add_row_to_dict = True
+                logfile.append('--> employee is not absent and has no restshift: add_row_to_dict')
+            else:
+                logfile.append('--> employee is absent or has restshift: skip, dont look for replacement')
+        else:
+            logfile.append('--> rest shift skipped: no employee')
+
+# >>>>> SHIFT IS NORMAL SHIFT
+    else:
+        logfile.append('--- row is normal shift')
+        if is_replacement_employee:
+            logfile.append('    is replacement employee')
+            # only add shift when employee is absent and replacement is not sbsent
+            # check if normal shift has overlap with absence or restshift
+            if no_overlap_with_absence_or_restshift(row, False):  # False = check_normal_employee
+                logfile.append('--> skip , normal employee is not absent')
+            else:
+                logfile.append('     - normal employee is absent or has restshift: check replacement')
+                # is replacement absent?
+                if not no_overlap_with_absence_or_restshift(row, True):  # True = check_replacement
+                    logfile.append('--> skip, replacement employee is absent')
+                else:
+                    # replace employee_id and -code by replacement_id and -code
+                    row[idx_e_id] = row[idx_rpl_id]
+                    row[idx_e_code] = '*' + row[idx_rpl_code]
+                    row[idx_e_nl] = None
+                    row[idx_e_nf] = None
+                    row[idx_isreplacement] = True
+                    add_row_to_dict = True
+                    logfile.append('--> replacement employee is not absent: add replacement to shift')
+        # === no employee filter
+        else:
+            # shift has employee
+            if row[idx_e_id]:
+                # check if employee is absent or has restshift
+                if no_overlap_with_absence_or_restshift(row, False):  # False = check_normal_employee
+                    add_row_to_dict = True
+                    logfile.append('--> employee is not absent and has no restshift: add employee to shift')
+                else:
+                    logfile.append('     employee is absent or has restshift > look for replacement')
+                    # employee is absent. Is there a replacement employee?
+                    if row[idx_rpl_id]:
+                        logfile.append('     replacement found: ' + str(row[idx_rpl_code]))
+                        # is replacement absent?
+                        if no_overlap_with_absence_or_restshift(row, True):  # True = check_replacement
+                            # replace employee_id and -code by replacement_id and -code
+                            row[idx_e_id] = row[idx_rpl_id]
+                            row[idx_e_code] = '*' + row[idx_rpl_code]
+                            row[idx_e_nl] = None
+                            row[idx_e_nf] = None
+                            row[idx_isreplacement] = True
+                            add_row_to_dict = True
+                            logfile.append('--> replacement is not absent and has no restshift: add replacement to shift')
+                        else:
+                            if add_empty_shifts:
+                                # remove employee_id and -code
+                                row[idx_e_id] = None
+                                row[idx_e_code] = '**---'
+                                row[idx_e_nl] = None
+                                row[idx_e_nf] = None
+                                add_row_to_dict = True
+                                logfile.append('--> replacement is absent or has restshift: add shift without employee')
+                            else:
+                                logfile.append('--> skip empty shift')
+                    else:
+                        logfile.append('     no replacement found')
+                        if add_empty_shifts:
+                            # remove employee_id and -code
+                            row[idx_e_id] = None
+                            row[idx_e_code] = '*---'
+                            row[idx_e_nl] = None
+                            row[idx_e_nf] = None
+                            add_row_to_dict = True
+                            logfile.append('--> no replacement found: add shift without employee')
+                        else:
+                            logfile.append('--> skip empty shift')
+            else:
+                # shift has no employee. Is there a replacement employee?
+                logfile.append('     shift has no employee > look for replacement')
+                if row[idx_rpl_id]:
+                    logfile.append('     replacement found: ' + str(row[idx_rpl_code]))
+                    # is replacement absent?
+                    if no_overlap_with_absence_or_restshift(row, True):  # True = check_replacement
+                        # replace employee_id and -code by replacement_id and -code
+                        row[idx_e_id] = row[idx_rpl_id]
+                        row[idx_e_code] = '*' + row[idx_rpl_code]
+                        row[idx_e_nl] = None
+                        row[idx_e_nf] = None
+                        row[idx_isreplacement] = True
+                        add_row_to_dict = True
+                        logfile.append('--> replacement is not absent and has no restshift: add replacement to shift')
+                    else:
+                        if add_empty_shifts:
+                            # remove employee_id and -code
+                            row[idx_e_id] = None
+                            row[idx_e_code] = '**---'
+                            row[idx_e_nl] = None
+                            row[idx_e_nf] = None
+                            add_row_to_dict = True
+                            logfile.append('--> replacement is absent or has restshift: add shift without employee')
+                        else:
+                            logfile.append('--> skip empty shift')
+                else:
+                    logfile.append('     no replacement found')
+                    if add_empty_shifts:
+                        # remove employee_id and -code
+                        row[idx_e_id] = None
+                        row[idx_e_code] = '*---'
+                        row[idx_e_nl] = None
+                        row[idx_e_nf] = None
+                        add_row_to_dict = True
+                        logfile.append('--> no replacement found: add shift without employee')
+                    else:
+                        logfile.append('--> skip empty shift')
+    if add_row_to_dict:
+        logfile.append('this shift will be added')
+    else:
+        logfile.append('this shift will not be added')
+
+    return row, add_row_to_dict
+#######################################################
 
 def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk, employee_pk,
                              add_empty_shifts, skip_absence_and_restshifts, orderby_rosterdate_customer,
                              comp_timezone, timeformat, user_lang, request):
-    logger.debug(' ============= create_employee_planning ============= ')
+    logger.debug(' @@@@@@@@@@@@@@@@@@============= create_employee_planning ============= ')
+
+    logger.debug('employee_pk: ' + str(employee_pk))
+    logger.debug('order_pk: ' + str(order_pk))
+    logger.debug('customer_pk: ' + str(customer_pk))
     logger.debug('add_empty_shifts: ' + str(add_empty_shifts))
     logger.debug('skip_absence_and_restshifts: ' + str(skip_absence_and_restshifts))
     # this function calcuLates the planning per employee per day, without saving emplhour records  # PR2019-11-30
 
-    calendar_setting_dict = {}
     calendar_dictlist = []
     if datefirst_iso and datelast_iso:
         all_rows = []
@@ -2109,8 +2313,8 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
         rosterdate_dte = datefirst_dte
         while rosterdate_dte <= datelast_dte:
 
-# 4. create calendar_header of this date
-            calendar_setting_dict, is_publicholiday, is_companyholiday = create_calendar_header(rosterdate_dte, user_lang, request)
+# 4. get is_publicholiday, is_companyholiday of this date from Calendar
+            is_publicholiday, is_companyholiday = pld.get_ispublicholiday_iscompanyholiday(rosterdate_dte, request)
 
 # 5. create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
@@ -2138,121 +2342,51 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
         # datetime.date(2019, 11, 29), 5, 622,
         # [4, 6], [None, 9060], [None, 10020], [625, 622], [1, -1],
         # {'2019-11-24': {'1': [480, None, None, -480], '..., '7': [None, None, None, 0]}})
-        for i, row in enumerate(sorted_rows):
-            logger.debug(' ')
-            logger.debug('+++++++++++++ idx_rosterdate: ' + str(row[idx_tm_rd]))
-            logger.debug('row mode: ' + str(row[idx_si_mod]))
-            is_absence = (row[idx_si_mod] == 'a')
-            is_restshift = (row[idx_si_mod] == 'r')
-            logger.debug('is_restshift: ' + str(is_restshift))
+        for i, row_tuple in enumerate(sorted_rows):
+# &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+            row, add_row_to_dict = calculate_add_row_to_dict(
+                row_tuple=row_tuple,
+                employee_pk=employee_pk,
+                skip_absence_and_restshifts=skip_absence_and_restshifts,
+                add_empty_shifts=add_empty_shifts)
+# &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-            new_e_id = row[idx_e_id]
-            new_e_code = row[idx_e_code]
-
-            add_row_to_dict = False
-            # skip is_restshift when skip_restshifts
-            if not is_restshift or not skip_absence_and_restshifts:
-                if row[idx_e_id] is None:
-                    logger.debug('(row[idx_e_id] is None ')
-                    if add_empty_shifts:
-                        add_row_to_dict = True
-                else:
-                    logger.debug('row idx_e_id: ' + str(row[idx_e_id]))
-                    logger.debug('row idx_e_code: ' + str(row[idx_e_code]))
-
-                    # PR2019-12-22 Note: sql filter inservice: only filters employee that are in service any day in range. WHen cretaing dict filter in service on correct date
-        # - A. row is absence row
-                    if is_absence:
-                        if not skip_absence_and_restshifts:
-                            add_row_to_dict = check_absencerow_for_doubles(row)
-                            logger.debug('check_absencerow_for_doubles  add_row_to_dict: ' + str(add_row_to_dict))
-                    else:
-                        # TODO in customer planning shift that overlap absence must not be skipped, instead remove employee
-                        # check if shift has overlap with absence or restshift
-                        has_absence_or_restshift = check_row_for_absence_overlap(row, False)
-                        if has_absence_or_restshift:
-                        ########################################
-                            # has absent employee replacement?
-                            rpl_id = row[idx_rpl_id]
-                            rpl_code = row[idx_rpl_code]
-                            logger.debug('rpl_id: ' + str(rpl_id))
-                            logger.debug('rpl_code: ' + str(rpl_code))
-
-                            if rpl_id:
-                                # is replacement absent?
-                                has_absence_or_restshift = check_row_for_absence_overlap(row, True)
-                                if has_absence_or_restshift:
-                                    if add_empty_shifts:
-                                        new_e_code = '**---'
-                                        new_e_id = None
-                                        add_row_to_dict = True
-                                        logger.debug('new_e_code: ' + str(new_e_code))
-                                else:
-                                    new_e_code = '*' + row[idx_rpl_code]
-                                    new_e_id = row[idx_rpl_id]
-                                    add_row_to_dict = True
-                                    logger.debug('new_e_code: ' + str(new_e_code))
-                            else:
-                                if add_empty_shifts:
-                                    new_e_code = '*---'
-                                    new_e_id = None
-                                    add_row_to_dict = True
-                                    logger.debug('new_e_code: ' + str(new_e_code))
-
-                        #######################################
-
-                        else:
-                            add_row_to_dict = True
-                    logger.debug('after check_row_for_absence_rest add_row_to_dict: ' + str(add_row_to_dict))
-
-                    # TODO PR2019-12-16 row is made for sipleshift without schemitem.
-                    #  To be solved by adding required schemitem to absence and change left join in inner join
-                    # Then each absence row must get its own team, scheme and schemeitem
-                    # advantage is that offset can be removed from teammember
-                    # for now: skip rows that have simpleshift and no schemeitem
-                    if row[idx_si_mod] == 's' and row[idx_si_id] is None:
-                        add_row_to_dict = False
+            # TODO PR2019-12-16 row is made for sipleshift without schemitem.
+            #  To be solved by adding required schemitem to absence and change left join in inner join
+            # Then each absence row must get its own team, scheme and schemeitem
+            # advantage is that offset can be removed from teammember
+            # for now: skip rows that have simpleshift and no schemeitem
+            if row[idx_si_mod] == 's' and row[idx_si_id] is None:
+                add_row_to_dict = False
 
             # create employee_planning dict
             # logger.debug('add_row_to_dict: ' + str(add_row_to_dict))
             if add_row_to_dict:
-                row_list = list(row)
-
-                row_list[idx_e_code] = new_e_id
-                if new_e_id is None:
-                    row_list[idx_e_nl] = None
-                    row_list[idx_e_nf] = None
-
-                if new_e_code:
-                    row_list[idx_e_code] = new_e_code
-
-                    overlap_siid_list = []
-                has_overlap = False
+                # TODO: add overlap ?? (might take to much time
                 #if row[idx_si_mod] not in ('a', 'r'):
                 #    has_overlap, overlap_siid_list = check_shiftrow_for_overlap(row)
 
-                planning_dict = create_employee_calendar_dict(row_list, has_overlap, [], comp_timezone, timeformat, user_lang)
-                logger.debug('planning_dict : ' + str(planning_dict))
+                planning_dict = create_employee_calendar_dict(row, False, [], comp_timezone, timeformat, user_lang)
+                # logger.debug('planning_dict : ' + str(planning_dict))
                 if planning_dict:
                     calendar_dictlist.append(planning_dict)
-                    # logger.debug('=-------------- row added to dict ')
+                    logger.debug('-------------- row added to calendar_dictlist ')
 
     # add empty dict when list has no items. To refresh a empty calendar
     if len(calendar_dictlist) == 0:
         calendar_dictlist = [{}]
 
     # logger.debug('calendar_dictlist' + str(calendar_dictlist))
-    return calendar_dictlist, calendar_setting_dict
+    return calendar_dictlist
 
-
-def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_companyholiday, customer_id, order_id, employee_pk, company_id):
+def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_companyholiday, customer_pk, order_pk, employee_pk, company_id):
     logger.debug(' =============== get_employee_calendar_rows ============= ')
-    logger.debug('rosterdate: ' + str(rosterdate.isoformat()) + str(type(rosterdate)))
-    logger.debug('refdate: ' + str(refdate.isoformat()) + str(type(refdate)))
-    logger.debug('company_id: ' + str(company_id) + str(type(company_id)))
-    logger.debug('customer_id: ' + str(customer_id) + str(type(customer_id)))
-    logger.debug('order_id: ' + str(order_id) + str(type(order_id)))
-    logger.debug('employee_pk: ' + str(employee_pk) + str(type(employee_pk)))
+    logger.debug('rosterdate: ' + str(rosterdate.isoformat()) + ' ' + str(type(rosterdate)))
+    logger.debug('refdate: ' + str(refdate.isoformat()) + ' ' + str(type(refdate)))
+    logger.debug('company_id: ' + str(company_id))
+    logger.debug('customer_pk: ' + str(customer_pk))
+    logger.debug('order_pk: ' + str(order_pk))
+    logger.debug('employee_pk: ' + str(employee_pk))
 
 
     # PR2019-11-28 Bingo: get absence and shifts in one query
@@ -2290,9 +2424,7 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
 
     # dictrows is for logging only
     logger.debug('sql_teammember_sub08 ---------------- rosterdate' + str(rosterdate))
-    order_pk = None
-    customer_pk = None
-    employee_pk = None
+    logger.debug('employee_pk: ' + str(employee_pk) + ' order_pk: ' + str(order_pk) + ' customer_pk: ' + str(customer_pk))
     newcursor.execute(sql_teammember_sub08, {
         'cid': company_id,
         'orderid': order_pk,
@@ -2310,8 +2442,8 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
 
     newcursor.execute(sql_teammember_sub08, {
         'cid': company_id,
-        'customerid': customer_id,
-        'orderid': order_id,
+        'customerid': customer_pk,
+        'orderid': order_pk,
         'eid': employee_pk,
         'rd': rosterdate,
         'ref': refdate,
@@ -2320,8 +2452,8 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
     })
     rows = newcursor.fetchall()
 
-    # TODO to filter multiple order_id's Works, but add 'Show All orders
-    # order_id = [44]
+    # TODO to filter multiple order_pk's Works, but add 'Show All orders
+    # order_pk = [44]
     # newcursor.execute(
     #"""
     #    SELECT o.id AS o_id,
@@ -2331,7 +2463,7 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
 
     #"""
     #,
-    #{'orderid': order_id, 'eid': employee_pk})
+    #{'orderid': order_pk, 'eid': employee_pk})
     #dictrows = f.dictfetchall(newcursor)
     #for dictrow in dictrows:
        #logger.debug('---------------------' + str(rosterdate.isoformat()))
@@ -2436,13 +2568,14 @@ def check_absencerow_for_doubles(row):
     return not skip_row
 
 
-def check_row_for_absence_overlap(row, check_replacement):
-    logger.debug('--- check_row_for_absence_overlap ---  ')
+def no_overlap_with_absence_or_restshift(row, check_replacement):
+    logger.debug('--- check overlap_with_absence_or_restshift: ---  ')
     # This function checks for overlap with absence
     # this row is a normal, singleshift or rest row, not an absence row, is filtered out
     # ref means that the offset is measured against the reference date
 
     if not check_replacement:
+        idx_id = idx_e_id
         idx_mod_arr = idx_e_mod_arr
         idx_tm_id_arr = idx_e_tm_id_arr
         idx_si_id_arr = idx_e_si_id_arr
@@ -2450,6 +2583,7 @@ def check_row_for_absence_overlap(row, check_replacement):
         idx_osref_arr = idx_e_osref_arr
         idx_oeref_arr = idx_e_oeref_arr
     else:
+        idx_id = idx_rpl_id
         idx_mod_arr = idx_r_mod_arr
         idx_tm_id_arr = idx_r_tm_id_arr
         idx_si_id_arr = idx_r_si_id_arr
@@ -2457,22 +2591,16 @@ def check_row_for_absence_overlap(row, check_replacement):
         idx_osref_arr = idx_r_osref_arr
         idx_oeref_arr = idx_r_oeref_arr
 
-
     has_overlap = False
-    row_mode = row[idx_si_mod]
-    if row_mode != 'a':
+
+    # skip when no employee or replacement, also when shift is absence
+    if row[idx_id] and row[idx_si_mod] != 'a':
         row_tm_id = row[idx_tm_id]
         row_si_id = row[idx_si_id]
         row_tm_ddif = row[idx_tm_ddif]
 
         row_os = row[idx_si_sh_os_nonull]
         row_oe = row[idx_si_sh_oe_nonull]
-
-        logger.debug('     this row: mode: ' + str(row_mode) + ' shift: ' + str(row[idx_sh_code]))
-        logger.debug('     row_tm_id: ' + str(row_tm_id) + ' row_si_id: ' + str(row_si_id))
-        logger.debug('     employee: ' + str(row[idx_e_code]))
-        logger.debug('     replacement: ' + str(row[idx_rpl_code]))
-        logger.debug('     row_os: ' + str(row_os) + ' row_oe: ' + str(row_oe))
 
         # PR2019-12-17 debug: arr can be empty, when employee is not in service
         if row[idx_mod_arr]:
@@ -2483,6 +2611,7 @@ def check_row_for_absence_overlap(row, check_replacement):
             logger.debug('..... iterate through lookup rows: ')
             # loop through shifts of employee, to check if there are absence of rest rows
             for i, lookup_mode in enumerate(row[idx_mod_arr]):
+                logger.debug('..... ..... ..... ')
                 logger.debug('     lookup mode: ' + str(lookup_mode))
                 # skip normal and single shifts
                 if lookup_mode in ('a', 'r'):
@@ -2498,30 +2627,40 @@ def check_row_for_absence_overlap(row, check_replacement):
                     if row_tm_id != lookup_tm_id or row_si_id != lookup_si_id:
                         # skip when lookup row and this row have not the same date
                         if row_tm_ddif == lookup_tm_ddif:
-                            if row_mode == 'r':
+                            if row[idx_si_mod] == 'r':
                                 logger.debug('      row is rest row')
                                 if lookup_mode == 'a':
                                     logger.debug('      lookup row is absence')
                                     # skip rest row when it fully within or equal to absence row
                                     if row_os_ref >= lookup_os_ref and row_oe_ref <= lookup_oe_ref:
-                                        logger.debug('--- rest row is fully within lookup absence row')
+                                        logger.debug('--> rest row is fully within lookup absence row')
                                         has_overlap = True
                                         break
                                 elif lookup_mode == 'r':
                                     logger.debug('      lookup row is rest shift')
+                                    # skip rest row when it fully within lookup rest row
+
                                     # skip rest row when it equal to lookup rest row and has higher tm_id or si_id
                                     if row_os_ref == lookup_os_ref and row_oe_ref == lookup_oe_ref:
                                         logger.debug('      rest row os and oe equal lookup os and oe')
                                         if row_tm_id > lookup_tm_id:
-                                            logger.debug('--- row_tm_id > lookup_tm_id')
+                                            logger.debug('--> row_tm_id > lookup_tm_id')
                                             has_overlap = True
                                             break
                                         elif row_tm_id == lookup_tm_id:
                                             logger.debug('      row_tm_id == lookup_tm_id')
                                             if row_si_id > lookup_si_id:
-                                                logger.debug('--- row_si_id > lookup_si_id')
+                                                logger.debug('--> row_si_id > lookup_si_id')
                                                 has_overlap = True
                                                 break
+
+                                    # skip rest row when it fully within lookup rest row
+                                    # (not when they are equal, but this is already filtered above)
+                                    elif row_os_ref >= lookup_os_ref and row_oe_ref <= lookup_oe_ref:
+                                        logger.debug('--> rest row fully within lookup restrow')
+                                        has_overlap = True
+                                        break
+
                             # row mode is single or normal shift
                             else:
                                 # skip normal / single row when it is partly in absence row or rest row
@@ -2530,17 +2669,22 @@ def check_row_for_absence_overlap(row, check_replacement):
                                     has_overlap = True
                                     break
                                 else:
-                                    logger.debug('--- normal row is NOT within absence row')
+                                    logger.debug('--> normal row is NOT within absence row')
+                                    pass
                         else:
-                            logger.debug('--- row and lookup row are on differnt days')
+                            logger.debug('--> row and lookup row are on differnt days')
+                            pass
                     else:
-                        logger.debug('--- row and lookup row are the same')
+                        logger.debug('--> row and lookup row are the same')
+                        pass
                 else:
-                    logger.debug('--- row is not an absence or rest row')
+                    logger.debug('--> row is not an absence or rest row')
+                    pass
         else:
-            logger.debug('--- mod_arr is empty')
-
-    return has_overlap
+            logger.debug('--> mod_arr is empty')
+            pass
+    logger.debug('--- has_overlap = ' + str (has_overlap))
+    return not has_overlap
 
 
 def check_shiftrow_for_overlap(row):
@@ -2874,18 +3018,13 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
     logger.debug('datelast_iso: ' + str(datelast_iso))
     logger.debug('customer_pk: ' + str(customer_pk))
     logger.debug('order_pk: ' + str(order_pk))
+
     # this function calcuLates the planning per order per day, without saving emplhour records  # PR2019-12-22
     # it shows teammembers without employee, hides absence and hides restshsifts
-    calendar_setting_dict = {}
+
     calendar_dictlist = []
     if datefirst_iso and datelast_iso:
         all_rows = []
-        calendar_setting_dict = {
-            'calendar_type': 'customer_calendar',
-            'rosterdatefirst': datefirst_iso,
-            'rosterdatelast': datelast_iso
-        }
-        logger.debug('calendar_setting_dict: ' + str(calendar_setting_dict))
 
 # 1. convert datefirst and datelast into date_objects
         datefirst_dte = f.get_date_from_ISO(datefirst_iso)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
@@ -2904,8 +3043,8 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
         while rosterdate_dte <= datelast_dte:
             #logger.debug('rosterdate_dte' + str(rosterdate_dte))
 
-# 4. create calendar_header of this date
-            calendar_dictNIU, is_publicholiday, is_companyholiday = create_calendar_header(rosterdate_dte, user_lang, request)
+# 4. get is_publicholiday, is_companyholiday of this date from Calendar
+            is_publicholiday, is_companyholiday = pld.get_ispublicholiday_iscompanyholiday(rosterdate_dte, request)
 
 # 5. create list with all sschemitems of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
@@ -3032,8 +3171,7 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
     if len(calendar_dictlist) == 0:
         calendar_dictlist = [{}]
 
-    logger.debug('return calendar_setting_dict: ' + str(calendar_setting_dict))
-    return calendar_dictlist, calendar_setting_dict
+    return calendar_dictlist
 
 # +++++++++++++++++++++++++++ ORDER CALENDAR
 
@@ -3547,35 +3685,3 @@ def get_customer_calendar_rows(rosterdate, refdate, company_pk, customer_pk, ord
     rows = newcursor.fetchall()
     return rows
 
-
-def create_calendar_header(rosterdate_dte, user_lang, request):
-    #logger.debug(' --- create_calendar_header ---')
-    #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
-    #logger.debug('user_lang: ' + str(user_lang) + ' ' + str(type(user_lang)))
-    calendar_header = {}
-    is_publicholiday = False
-    is_companyholiday = False
-    calendar_date = m.Calendar.objects.get_or_none(rosterdate=rosterdate_dte, company=request.user.company)
-    if calendar_date:
-
-        header_dict = {'rosterdate': rosterdate_dte,
-                       'weekday': rosterdate_dte.isoweekday()}
-
-        if calendar_date.ispublicholiday:
-            header_dict['ispublicholiday'] = calendar_date.ispublicholiday
-            is_publicholiday = True
-
-        if calendar_date.iscompanyholiday:
-            header_dict['iscompanyholiday'] = calendar_date.iscompanyholiday
-            is_companyholiday = True
-
-        if calendar_date.ispublicholiday and calendar_date.code:
-            display_txt = _(calendar_date.code)
-        else:
-            display_txt = f.format_date_element(rosterdate_dte=rosterdate_dte, user_lang=user_lang, show_year=False)
-        header_dict['display'] = display_txt
-
-        rosterdate_iso = f.get_dateISO_from_dateOBJ(rosterdate_dte)
-        calendar_header[rosterdate_iso] = header_dict
-
-    return calendar_header, is_publicholiday, is_companyholiday

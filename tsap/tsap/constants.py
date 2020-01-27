@@ -386,7 +386,7 @@ FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
                     'isbillable', 'isrestshift', 'shift', 'duration', 'status',
                     'pricerate', 'additionrate', 'taxrate', 'amount', 'tax', 'locked')
 
-FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence',
+FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence', 'isreplacement',
                    'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
                    'isrestshift', 'shift',
                    'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',

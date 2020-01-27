@@ -200,11 +200,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  save button in ModConfirm
         let el_confirm_btn_save = document.getElementById("id_confirm_btn_save");
-            el_confirm_btn_save.addEventListener("click", function(){ModConfirmSave()});
+            el_confirm_btn_save.addEventListener("click", function() {ModConfirmSave()});
 
-// ---  save and delete button in ModRosterdate
-        document.getElementById("id_mod_rosterdate_input").addEventListener("change", function(){ModRosterdateEdit()}, false)
-        document.getElementById("id_mod_rosterdate_btn_ok").addEventListener("click", function(){ModRosterdateSave()}, false)
+// ---  edit and save button in ModRosterdate
+        document.getElementById("id_mod_rosterdate_input").addEventListener("change", function() {ModRosterdateEdit()}, false)
+        document.getElementById("id_mod_rosterdate_btn_ok").addEventListener("click", function() {ModRosterdateSave()}, false)
 
 // ---  Popup date
         let el_popup_date_container = document.getElementById("id_popup_date_container");
@@ -221,18 +221,16 @@ document.addEventListener('DOMContentLoaded', function() {
              document.getElementById("id_popup_wdy_save").addEventListener("click", function() {HandlePopupWdySave();}, false )
 
 // ---  Input elements in scheme box
-        let el_scheme_code = document.getElementById("id_scheme_code")
-            el_scheme_code.addEventListener("change", function() {Upload_Scheme()}, false)
-        let el_scheme_cycle = document.getElementById("id_scheme_cycle");
-            el_scheme_cycle.addEventListener("change", function() {Upload_Scheme()}, false)
-        let el_scheme_datefirst = document.getElementById("id_scheme_datefirst");
-            el_scheme_datefirst.addEventListener("click", function() {HandlePopupDateOpen(el_scheme_datefirst)}, false);
-        let el_scheme_datelast = document.getElementById("id_scheme_datelast");
-            el_scheme_datelast.addEventListener("click", function() {HandlePopupDateOpen(el_scheme_datelast)}, false);
+        let el_data_form = document.getElementById("id_div_data_form");
+        let els = el_data_form.getElementsByClassName("frm_input");
+        for (let i=0, len = els.length; i<len; i++) {
+            let el = els[i];
+            const event_type = (el.type === "checkbox") ? "click" : (el.type === "date") ? "change" : "blur";
+            el.addEventListener(event_type, function() {Upload_Scheme(el)}, false);
+        }
 
         let el_scheme_btn_add = document.getElementById("id_form_btn_add");
             el_scheme_btn_add.addEventListener("click", function() {ModSchemeOpen()}, false);
-
         let el_scheme_btn_delete = document.getElementById("id_form_btn_delete");
             el_scheme_btn_delete.addEventListener("click", function() {UploadDeleteSchemeFromForm()}, false);
 
@@ -430,11 +428,11 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_submenu = document.getElementById("id_submenu")
         let el_div = document.createElement("div");
         // CreateSubmenuButton(el_div, id, btn_text, class_key, function_on_click)
-        CreateSubmenuButton(el_div, "id_menubtn_copy_from_template", loc.menubtn_copy_from_template, null, ModCopyfromTemplateOpen);
-        CreateSubmenuButton(el_div, "id_menubtn_copy_to_template", loc.menubtn_copy_to_template, "mx-2", ModCopytoTemplateOpen);
-        CreateSubmenuButton(el_div, "id_menubtn_show_templates", loc.menubtn_show_templates, "mx-2", HandleSubmenubtnTemplateShow);
-        CreateSubmenuButton(el_div, null, loc.menubtn_roster_create, "mx-2", ModRosterdateCreate);
-        CreateSubmenuButton(el_div, null, loc.menubtn_roster_delete, "mx-2", ModRosterdateDelete);
+        AddSubmenuButton(el_div, loc.menubtn_copy_from_template, function (){ModCopyfromTemplateOpen()}, null, "id_menubtn_copy_from_template");
+        AddSubmenuButton(el_div, loc.menubtn_copy_to_template, function (){ModCopytoTemplateOpen()}, "mx-2", "id_menubtn_copy_to_template");
+        AddSubmenuButton(el_div, loc.menubtn_show_templates, function (){HandleSubmenubtnTemplateShow()}, "mx-2", "id_menubtn_show_templates");
+        AddSubmenuButton(el_div, loc.menubtn_roster_create, function (){ModRosterdateCreate()}, "mx-2");
+        AddSubmenuButton(el_div, loc.menubtn_roster_delete, function (){ModRosterdateDelete()}, "mx-2");
 
         el_submenu.appendChild(el_div);
         el_submenu.classList.remove(cls_hide);
@@ -472,7 +470,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function DisableSubmenubtnTemplate() {
         let btn_copyfrom = document.getElementById("id_menubtn_copy_from_template");
         let btn_copyto = document.getElementById("id_menubtn_copy_to_template");
-        //console.log("btn_copyfrom",btn_copyfrom)
+        console.log("btn_copyfrom", btn_copyfrom)
+        console.log("btn_copyto", btn_copyto)
         if(template_mode){
             btn_copyfrom.setAttribute("aria-disabled", true)
             btn_copyto.setAttribute("aria-disabled", true)
@@ -1151,8 +1150,8 @@ document.addEventListener('DOMContentLoaded', function() {
             tblRow.classList.add(cls_bc_lightlightgrey);
 
 //--------- add hover to select row
-            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover)});
-            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover)});
+            tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover)});
+            tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover)});
 
 //--------- add first td to tblRow.
             // index -1 results in that the new cell will be inserted at the last position.
@@ -1174,10 +1173,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_a = document.createElement("a");
                 CreateBtnDeleteInactive("delete", tblRow, el_a);
 //--------- add hover delete img
-                td.addEventListener("mouseenter", function(){
+                td.addEventListener("mouseenter", function() {
                     td.children[0].children[0].setAttribute("src", imgsrc_deletered);
                 });
-                td.addEventListener("mouseleave", function(){
+                td.addEventListener("mouseleave", function() {
                     td.children[0].children[0].setAttribute("src", imgsrc_delete);
                 });
             td.appendChild(el_a);
@@ -1461,8 +1460,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 tblRow.classList.add(cls_bc);
 
 //- add hover to select row
-                tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover)});
-                tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover)});
+                tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover)});
+                tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover)});
 
 // --- add first td to tblRow.
                 // index -1 results in that the new cell will be inserted at the last position.
@@ -1604,8 +1603,8 @@ document.addEventListener('DOMContentLoaded', function() {
         //- add hover to tblFoot row
             // don't add hover to row 'Add scheme/Team'
             //- add hover to inactive button
-            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover)});
-            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover)});
+            tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover)});
+            tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover)});
 
         // --- add first td to tblRow.
             // index -1 results in that the new cell will be inserted at the last position.
@@ -2068,8 +2067,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- add EventListener to tblRow.
             tblRow.addEventListener("click", function() {ModPeriodSelect(tblRow, j);}, false )
     //- add hover to tableBody row
-            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+            tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover);});
+            tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover);});
             td = tblRow.insertCell(-1);
             td.innerText = tuple[1];
     //- add data-tag  to tblRow
@@ -2108,14 +2107,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // dont shwo title 'delete'
         // const data_id = (tblName === "customer") ? "data-txt_customer_delete" : "data-txt_order_delete"
         // el.setAttribute("title", get_attr_from_el(el_data, data_id));
-        el_input.addEventListener("click", function(){UploadDeleteInactive(mode, el_input)}, false )
+        el_input.addEventListener("click", function() {UploadDeleteInactive(mode, el_input)}, false )
 
 //- add hover delete img
         if (mode ==="delete") {
-            el_input.addEventListener("mouseenter", function(){
+            el_input.addEventListener("mouseenter", function() {
                 el_input.children[0].setAttribute("src", imgsrc_deletered);
             });
-            el_input.addEventListener("mouseleave", function(){
+            el_input.addEventListener("mouseleave", function() {
                 el_input.children[0].setAttribute("src", imgsrc_delete);
             });
         }
@@ -2183,8 +2182,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // NOT IN USE, put in tblBody. Was:  tblRow.setAttribute("data-table", tblName);
 
 //- add hover to tblBody row
-                tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-                tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+                tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover);});
+                tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover);});
 
 //- add EventListener to Modal SelectEmployee row
                 tblRow.addEventListener("click", function() {HandleTemplateSelect(tblRow)}, false )
@@ -2213,12 +2212,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ UPLOAD ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= Upload_Scheme  ============= PR2019-06-06
-    function Upload_Scheme(dtp_dict) {
+    function Upload_Scheme(el_input) {
         console.log("======== Upload_Scheme");
-        console.log("dtp_dict: ", dtp_dict);
-        // dtp_dict contains value of datetimepicker datefirst/last, overrides value of element
-        // when clicked on delete datefirst/last: dtp_dict = {"datefirst": {"value": null}}
-        // when value of datetimepicker has changed: datefirst: {value: "2019-05-02", o_value: "2019-05-28"}
 
         let upload_dict = {};
 
@@ -2236,46 +2231,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!!id_dict["pk"]){upload_dict["pk"] = id_dict["pk"]}
 
     // ---  loop through input elements of scheme
-                const field_list = ["code", "cycle", "datefirst", "datelast"];
-                for(let i = 0, fieldname, n_value, o_value, len = field_list.length; i < len; i++){
-                    fieldname = field_list[i];
-                    let el_input = document.getElementById("id_scheme_" + fieldname )
-    // get n_value
-                        // PR2019-03-17 debug: getAttribute("value");does not get the current value
-                        // The 'value' attribute determines the initial value (el_input.getAttribute("name").
-                        // The 'value' property holds the current value (el_input.value).
-                    n_value = null;
-                    if (["code", "cycle"].indexOf( fieldname ) > -1){
-                        if(!!el_input.value) {n_value = el_input.value};
-                    } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
-                        if(!isEmpty(dtp_dict)){
-                            // dtp_dict = {datelast: {value: "2019-06-10"}}
-                            let field_dict = dtp_dict[fieldname]
-                            //console.log("fieldname", fieldname, "field_dict", field_dict);
-                            if (!isEmpty(field_dict)){
-                                n_value =  get_dict_value_by_key (field_dict, "value");
-                                //console.log("fieldname", fieldname, "dtp_dict n_value", n_value);
-                            } else {
-                                n_value = get_attr_from_el(el_input, "data-value")}
-                        }  // if(!isEmpty(dtp_dict)
+                const fieldname = get_attr_from_el_str(el_input, "data-field")
+                console.log("fieldname", fieldname);
+                console.log("el_input", el_input);
+// get n_value
+                    // PR2019-03-17 debug: getAttribute("value");does not get the current value
+                    // The 'value' attribute determines the initial value (el_input.getAttribute("name").
+                    // The 'value' property holds the current value (el_input.value).
 
-                    }; // data-value="2019-05-11"
-                            //console.log("fieldname", fieldname, "el_input data-value n_value", n_value);
-    // get o_value
-                    o_value = get_attr_from_el(el_input, "data-o_value"); // data-value="2019-03-29"
-                    //console.log("fieldname", fieldname, "n_value", n_value, "o_value", o_value);
+// get o_value
+                let o_value = null, n_value = null;
+                if (el_input.type === "checkbox") {
+                    n_value = el_input.checked;
+                    o_value = (get_attr_from_el_str(el_input, "data-value", "false") === "true");
 
-                    // n_value can be blank when deleted, skip when both are blank
-                    if(n_value !== o_value){
-    // add n_value and 'update' to field_dict
-                        let field_dict = {"update": true};
-                        if(!!n_value){field_dict["value"] = n_value};
-    // add field_dict to upload_dict
-                        upload_dict[fieldname] = field_dict;
-                    };
-                };  //  for (let i = 0, el_input,
+                } else {
+                    n_value = el_input.value;
+                    o_value = get_attr_from_el(el_input, "data-value"); // data-value="2019-03-29"
+                };
+                console.log("o_value", o_value, typeof o_value);
+                console.log("n_value", n_value, typeof n_value);
 
-            }  // if(!!id_dict["arent_pk"])
+                // n_value can be blank when deleted, skip when both are blank
+                if(n_value !== o_value){
+// add n_value and 'update' to field_dict
+                    let field_dict = {"update": true};
+                    if(!!n_value){field_dict["value"] = n_value};
+// add field_dict to upload_dict
+                    upload_dict[fieldname] = field_dict;
+                };
+                console.log("upload_dict", upload_dict);
+
+            }  // if(!!id_dict["parent_pk"])
         };  // if (!isEmpty(id_dict))
 
         console.log("upload_dict", upload_dict);
@@ -3074,7 +3061,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //--- remove 'updated', deleted created and msg_err from update_dict
         // NOTE: first update tblRow, then remove these keys from update_dict, then replace update_dict in map
-        remove_err_del_cre_updated__from_itemdict(update_dict)
+        //remove_err_del_cre_updated__from_itemdict(update_dict)
 
 //--- replace updated item in map or remove deleted item from map
         if(is_deleted){
@@ -3415,8 +3402,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateSchemeInputElements  ================ PR2019-08-07
     function UpdateSchemeInputElements(item_dict) {
-        //console.log( "===== UpdateSchemeInputElements  ========= ");
-        //console.log(item_dict);
+        console.log( "===== UpdateSchemeInputElements  ========= ");
+        console.log(item_dict);
 
         const field_list = ["code", "cycle", "datefirst", "datelast", "excludepublicholiday", "excludecompanyholiday"];
 
@@ -3458,29 +3445,42 @@ document.addEventListener('DOMContentLoaded', function() {
                     fieldname = field_list[i];
         //console.log("fieldname", fieldname);
                     field_dict = get_dict_value_by_key (item_dict, fieldname)
-        //console.log("field_dict", field_dict);
+        console.log("field_dict", field_dict);
                     value = get_dict_value_by_key (field_dict, "value")
                     updated = get_dict_value_by_key (field_dict, "updated");
                     const msg_err = get_dict_value_by_key (field_dict, "error");
         //console.log("value", value);
+        console.log("updated", updated);
 
                     el = document.getElementById( "id_scheme_" + fieldname)
         //console.log("el", el);
-                if(!!msg_err){
-                    ShowMsgError(el, el_msg, msg_err, [-160, 80])
-                } else if(updated){
-                    el.classList.add("border_valid");
-                    setTimeout(function (){
-                        el.classList.remove("border_valid");
-                        }, 2000);
-                }
 
-
-                    //el.setAttribute("data-value", value)
-                    //el.setAttribute("data-field", fieldname)
-                   // el.setAttribute("data-pk", pk_int )
-                    //el.setAttribute("data-ppk", ppk_int)
-                    //el.setAttribute("data-table", tblName)
+                    if(!!msg_err){
+                        ShowMsgError(el, el_msg, msg_err, [-160, 80])
+                    } else if(updated){
+                        // el must loose focus, otherwise border_valid won't show
+                        el.blur()
+                        el.classList.add("border_valid");
+                        setTimeout(function (){
+                           el.classList.remove("border_valid");
+                            }, 2000);
+                    }
+                    el.setAttribute("data-field", fieldname)
+                    if(!!value) {
+                        el.setAttribute("data-value", value)
+                    } else {
+                        el.removeAttribute("data-value")
+                    }
+                    if(!!pk_int) {
+                        el.setAttribute("data-pk", pk_int)
+                    } else {
+                        el.removeAttribute("data-pk")
+                    }
+                    if(!!ppk_int) {
+                        el.setAttribute("data-ppk", ppk_int)
+                    } else {
+                        el.removeAttribute("ppk-pk")
+                    }
 
                     if (["code", "cycle"].indexOf( fieldname ) > -1){
                         const key_str = "value";
@@ -3679,6 +3679,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function ModRosterdateDelete() {
         ModRosterdateOpen("delete")
     };
+
 //=========  ModRosterdateOpen  ================ PR2019-11-11
     function ModRosterdateOpen(mode) {
         //console.log(" -----  ModRosterdateOpen   ----")
@@ -3699,7 +3700,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // set header
         const hdr_text = (is_delete) ? loc.rosterdate_hdr_delete : loc.rosterdate_hdr_create
-        document.getElementById("id_mod_period_header").innerText = hdr_text;
+        document.getElementById("id_mod_rosterdate_header").innerText = hdr_text;
 
 // set value of input label
         document.getElementById("id_mod_rosterdate_label").innerText = loc.Rosterdate + ": "
@@ -3836,7 +3837,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // function ModRosterdateChecked
 
-
 // +++++++++  ModRosterdateFinished  ++++++++++++++++++++++++++++++ PR2019-11-13
     function ModRosterdateFinished(response_dict) {
         console.log("=== ModRosterdateFinished =========" );
@@ -3864,7 +3864,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_mod_rosterdate_btn_cancel").innerText = loc.close;
 
     }  // function ModRosterdateFinished
-
 
 //=========  set_label_and_infoboxes  ================ PR2019-11-13
     function set_label_and_infoboxes(response_dict) {
@@ -4184,8 +4183,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     tblRow.setAttribute("data-value", code_value);
 
 //- add hover to tableBody row
-                    tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-                    tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+                    tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover);});
+                    tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover);});
 
 //- add EventListener to Modal SelectEmployee row
                     tblRow.addEventListener("click", function() {ModEmployeeSelect(tblRow)}, false )
@@ -4434,73 +4433,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function ModCopyfromTemplateEdit(mode) {
         console.log("=========  ModCopyfromTemplateEdit ========= mode:", mode);
 
-        let dict, el_err, msg_err, new_scheme_code;
-        let err_template = false, err_customer = false, err_order = false, err_code = false;
+        //let dict, el_err, msg_err, new_scheme_code;
+        //let err_template = false, err_customer = false, err_order = false, err_code = false;
         // TODO validation
-         //console.log("el_mod_copyfrom_cust.value", el_mod_copyfrom_cust.value, typeof el_mod_copyfrom_cust.value);
-
-       // dict = ModCopyfromTemplateValidateBlank()
-        //const template_code = dict["code"];
-        //err_template = dict["error"];
-        //el_mod_copyfrom_code.value = template_code;
-
-    // get selected_cust_pk and update SelectCustomer
-
-        //dict = ModTemplateCopyfromValidateCustomerBlank()
-        //err_customer = dict["error"];
-
-        //dict = ModTemplateCopyfromValidateOrderBlank()
-        //err_order = dict["error"];
-
-        //if(mode === "customer"){
-        //    HandleSelectCustomer(el_mod_copyfrom_cust)
-        //}
-
-     // get selected_order_pk and update SelectOrder
-        //dict = ModTemplateCopyfromValidateOrderBlank()
-        //err_order = dict["error"];
-        //if(mode === "order"){
-         //   HandleSelectOrder(el_mod_copyfrom_order)
-        //}
-
-       // dict = ModTemplateCopyfromValidateSchemeCode();
-       // const scheme_code = dict["code"];
-       // err_code = dict["error"];
-
-
-        // get rosterdate of cyclestart record from schemeitem_template_list
-        /*
-            let startdate;
-            msg_err = null;
-            el_err = document.getElementById("id_mod_copyfrom_template_select_err")
-            const template_pk = parseInt(el_mod_copyfrom_template_select.value)
-            if(!template_pk){
-                msg_err = get_attr_from_el(el_data, "data-err_msg_template_blank");
-            } else {
-                let rosterdate,  schemeitem_ppk, cyclestart = false;
-                for(let i = 0, dict, len = schemeitem_template_list.length; i < len; i++){
-                    dict = schemeitem_template_list[i];
-                    schemeitem_ppk = get_subdict_value_by_key(dict,"id", "ppk")
-                    if(schemeitem_ppk === template_pk){
-                        cyclestart = get_subdict_value_by_key(dict,"cyclestart", "value", false)
-                        if (!!cyclestart) {
-                            startdate = get_subdict_value_by_key(dict,"rosterdate", "value")
-                            break;
-                        }
-                    }
-                } // for(let i = 0,
-
-            */
-
-            //}  // if(!template_pk){
-
-           // if(!!startdate){
-            //    el_mod_copyfrom_datestart.value = startdate
-           // } else {
-           //     const todayDate = moment().toISOString()
-           //     const todayDate_str=  get_yyyymmdd_from_ISOstring(todayDate)
-           //     el_mod_copyfrom_datestart.value = todayDate_str
-           // }
 
         const has_err = false //(err_template || err_customer || err_order || err_code);
         //el_mod_copyfrom_btn_save.disabled = has_err;

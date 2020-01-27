@@ -925,8 +925,8 @@ console.log("==== CreateMapTableWrap  =========> ", tableBase);
                 $("<tr>").appendTo(Xid_lnk_tbody)
                     .attr({"id": idTsaRow, "key": row.tsaKey})
                     .addClass(cls_colLinked_tr)
-                    .mouseenter(function(){$(XidTsaRow).addClass(cls_hover);})
-                    .mouseleave(function(){$(XidTsaRow).removeClass(cls_hover);})
+                    .mouseenter(function() {$(XidTsaRow).addClass(cls_hover);})
+                    .mouseleave(function() {$(XidTsaRow).removeClass(cls_hover);})
         // append cells to row Linked
                     .append("<td>" + row.caption + "</td>")
                     .append("<td>" + row.excKey + "</td>");
@@ -942,8 +942,8 @@ console.log("==== CreateMapTableWrap  =========> ", tableBase);
                 $("<tr>").appendTo(Xid_tsa_tbody)
                     .attr({"id": idTsaRow, "key": row.tsaKey})
                     .addClass(cls_colExcelTsa_tr)
-                    .mouseenter(function(){$(XidTsaRow).addClass(cls_hover);})
-                    .mouseleave(function(){$(XidTsaRow).removeClass(cls_hover);})
+                    .mouseenter(function() {$(XidTsaRow).addClass(cls_hover);})
+                    .mouseleave(function() {$(XidTsaRow).removeClass(cls_hover);})
         // append cell to row ExcKey
                     .append("<td>" + row.caption + "</td>");
         // if new unlinked row: highlight row for 1 second
@@ -967,8 +967,8 @@ console.log("==== CreateMapTableWrap  =========> ", tableBase);
                     .attr({"id": idExcRow})
                     .attr({"id": idExcRow, "key": row.excKey})
                     .addClass(cls_colExcelTsa_tr)
-                    .mouseenter(function(){$(XidExcRow).addClass(cls_hover);})
-                    .mouseleave(function(){$(XidExcRow).removeClass(cls_hover);})
+                    .mouseenter(function() {$(XidExcRow).addClass(cls_hover);})
+                    .mouseleave(function() {$(XidExcRow).removeClass(cls_hover);})
         // append cell to row ExcKey
                     .append("<td>" + row.excKey + "</td>");
         // if new unlinked row: highlight row ColExc

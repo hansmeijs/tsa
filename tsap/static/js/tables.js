@@ -140,8 +140,8 @@
                 tblRow.classList.add(cls_bc_lightlightgrey);
             }
     //- add hover to select row
-            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover)});
-            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover)});
+            tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover)});
+            tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover)});
 
     // --- add first td to tblRow.
             // index -1 results in that the new cell will be inserted at the last position.
@@ -183,13 +183,13 @@
             let el_a = document.createElement("a");
                 el_a.setAttribute("id", "id_filter_select_btn")
                 el_a.setAttribute("href", "#");
-                el_a.addEventListener("click", function(){HandleSelectButton(el_a)}, false )
+                el_a.addEventListener("click", function() {HandleSelectButton(el_a)}, false )
 
                 if(!!title_header_btn){el_a.title = title_header_btn}
                     //- add hover only on delete button
                 if(!!is_delete && !is_header){
-                    el_a.addEventListener("mouseenter", function(){el_a.children[0].setAttribute("src", imgsrc_hover)});
-                    el_a.addEventListener("mouseleave", function(){el_a.children[0].setAttribute("src", imgsrc_default)});
+                    el_a.addEventListener("mouseenter", function() {el_a.children[0].setAttribute("src", imgsrc_hover)});
+                    el_a.addEventListener("mouseleave", function() {el_a.children[0].setAttribute("src", imgsrc_default)});
                 }
                 el_a.classList.add("mx-2")
             const skip_btn = (is_delete && is_header)

@@ -242,6 +242,9 @@
 
             let value = get_dict_value_by_key (field_dict, key_str);
             //console.log("value: ", value)
+            // add * in front of name when is_replacement
+            let is_replacement = get_dict_value_by_key (field_dict, "isreplacement", false);
+            if(!!is_replacement) {value = "*" + value}
 
             // lock element when locked
             const locked = get_dict_value_by_key (field_dict, "locked");
@@ -532,7 +535,7 @@
 
 
 
-//========= format_datetime_element without moment.js  ======== PR2019-10-12
+//========= format_date without moment.js  ======== PR2019-10-12
     function format_date_vanillaJS (date_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year) {
         //console.log(" ----- format_date_vanillaJS", date_JS);
         let display_value = "";
@@ -562,6 +565,9 @@
     function format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap) {
         //console.log("------ format_datetime_element --------------")
         //console.log("field_dict: ", field_dict)
+// probably not in use PR2020-01-16
+// used by employees.js UpdateField, fields "timestart", "timeend", not in table 'planning > maybe not in use
+// used by schemes.js UpdateField, fields "timestart", "timeend" > not in use
 
         if(!!el_input && !!field_dict){
 // timestart: {datetime: "2019-07-02T12:00:00Z", mindatetime: "2019-07-02T04:00:00Z",
@@ -636,8 +642,6 @@
                     //} else {
                     //    if(isAmPm){fulltime = datetime_local.format("hh.mm a")} else {fulltime = datetime_local.format("HH.mm") + " u"}};
 // set datetime_local_24h
-
-
 
 //check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
                 let display24 = false;
@@ -826,6 +830,18 @@
 
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+    //========= display_timerange  ======== PR2020-01-26
+    function display_timerange (timestart, timeend, skip_prefix_suffix, timeformat, user_lang) {
+        //console.log("------ display_timerange --------------", fieldname)
+        let display_time = "";
+        if(timestart != null || timeend != null){
+            const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, skip_prefix_suffix); // true = skip_prefix_suffix
+            const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, skip_prefix_suffix); // true = skip_prefix_suffix
+            display_time = offsetstart_formatted + " - " + offsetend_formatted
+        }
+        return display_time;
+    }  // display_timerange
+
     //========= display_offset_timerange  ======== PR2019-12-04
     function display_offset_timerange (offset_start, offset_end, skip_prefix_suffix, timeformat, user_lang) {
         //console.log("------ display_offset_timerange --------------", fieldname)
@@ -901,6 +917,7 @@
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
+
 //========= format_duration_element  ======== PR2019-07-22
     function format_duration_element (el_input, el_msg, field_dict, user_lang) {
         // timeduration: {value: 540, hm: "9:00"}
@@ -911,13 +928,17 @@
             let value_int = 0;
             if(!!field_dict){
                 value_int = parseInt(get_dict_value_by_key (field_dict, "value"));
+                const dst_warning = get_dict_value_by_key (field_dict, "dst_warning", false);
+                const title = get_dict_value_by_key (field_dict, "title");
+                if (!!title){el_input.title = title};
                 if (!value_int) {value_int = 0}
         //console.log("value_int: ", value_int)
 
                 let updated = get_dict_value_by_key (field_dict, "updated");
                 let msg_err = get_dict_value_by_key (field_dict, "error");
 
-                const display_value = display_duration (value_int, user_lang)
+                let display_value = display_duration (value_int, user_lang);
+                if (dst_warning) {display_value += "*"};
         //console.log("display_value: ", display_value)
                 el_input.value = display_value;
 
@@ -935,7 +956,7 @@
         } // if(!!el_input){
     }  // function format_duration_element
 
-//========= format_total_duration  ======== PR2019-08-22
+//========= format_total_duration ======== PR2019-08-22
     function format_total_duration (value_int, user_lang) {
         //console.log(" --- format_total_duration", value_int)
         let time_format = "";
@@ -976,11 +997,12 @@
 
         }  // if (!!value_int)
         return time_format
-    }  // function format_total_duration
+    }  // format_total_duration
 
 
 //========= display_toFixed  ======== PR2020-01-08
     function display_toFixed (minutes, user_lang) {
+        // display minutes as decimal hours
         let display_value = "";
         if(!!minutes){
             const decimal_delimiter = (user_lang === "en") ? "." : ",";
@@ -994,7 +1016,7 @@
             if (len > 9) {display_value = insertAtIndex(display_value, len - 9, thousand_delimiter)}
         }  // if(!!hours)
         return display_value
-    }  // function display_duration
+    }  // display_toFixed
 
 //========= replaceAtIndex  ======== PR2020-01-08
     function replace_at_index (string, index, new_character) {
@@ -1046,8 +1068,35 @@
 
         //console.log("display_value", display_value)
         return display_value
-    }  // function display_duration
+    }  // display_duration
 
+
+//========= display_planning_period  ======== PR2020-01-21
+    function display_planning_period(selected_planning_period, loc, user_lang) {
+        //console.log( "===== display_planning_period  ========= ");
+        const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatefirst");
+        const datelast_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatelast");
+        const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag");
+
+        let period_txt = loc.Period + ": "
+        if (period_tag !== "other"){
+            for (let i = 0, len = loc.period_select_list.length; i < len; i++) {
+                if(loc.period_select_list[i][0] === period_tag ){
+                    period_txt = loc.period_select_list[i][1] + ": "
+                    break;
+                }
+            }
+        }
+        period_txt += format_period(datefirst_ISO, datelast_ISO, loc.months_abbrev, loc.weekdays_abbrev, user_lang)
+
+        let display_text = "";
+        if (!!period_txt) {
+            display_text = period_txt;
+        } else {
+            display_text = loc.Select_period + "...";
+        }
+        return display_text;
+    }  // display_planning_period
 
 //========= format_restshift_element  ======== PR2019-10-03
     function format_restshift_element (el_input, field_dict, imgsrc_rest_black, imgsrc_stat00, title) {

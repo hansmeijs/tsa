@@ -21,6 +21,7 @@ from django.contrib.staticfiles.storage import ManifestStaticFilesStorage
 class SubManifestStaticFilesStorage(ManifestStaticFilesStorage):
     manifest_strict=False
 
+
 class ForgivingManifestStaticFilesStorage(ManifestStaticFilesStorage):
 
     def hashed_name(self, name, content=None, filename=None):
@@ -55,6 +56,7 @@ def get_dateobj_from_dateISOstring(date_ISOstring):  # PR2019-10-25
             logger.debug('Error get_dateobj_from_dateISOstring: date_ISOstring' +
                          str(date_ISOstring) + ' ' + str(type(date_ISOstring)))
     return dte
+
 
 def get_dateISO_from_dateOBJ(date_obj):  # PR2019-12-22
     date_iso = None
@@ -240,6 +242,7 @@ def get_today_iso():
     # today_iso: 2019-11-17 <class 'str'>
     return today_iso
 
+
 def get_today_dateobj():
     # function gets today in '2019-12-05' format
     now = datetime.now()
@@ -252,9 +255,52 @@ def get_today_dateobj():
 
     return today_dte
 
+
 # <<<<<<<<<< SO FAR checked and approved PR2019-09-17 <<<<<<<<<<<<<<<<<<<
 # ########################################################################<
 
+
+def get_Exceldate_from_datetime(date_obj):
+    logger.debug(' --- get_Exceldate_from_datetime --- ')
+    # PR2020-01-23 function convert date_object to number, representing Excel date
+    logger.debug('date_obj: ' + str(date_obj) + ' type: ' + str(type(date_obj)))
+    datetime_naive = get_datetime_naive_from_dateobject(date_obj)
+    excel_date = None
+    if datetime_naive:
+        # from: https://www.myonlinetraininghub.com/excel-date-and-time
+        # Caution! Excel dates after 28th February 1900 are actually one day out.
+        #          Excel behaves as though the date 29th February 1900 existed, which it didn't.
+        # Therefore 'zero' date = 31-12-1899, minus 1 day correction
+        excel_zero_date_naive = get_datetime_naive_from_ISOstring('1899-12-30')
+        timedelta_diff = datetime_naive - excel_zero_date_naive
+        excel_date = timedelta_diff.days
+    return excel_date
+
+
+def get_Exceldatetime_from_datetime(dt_local):
+    logger.debug(' -=========================-- get_Exceldatetime_from_datetime --- ')
+    # PR2020-01-23 function convert local dattime to number, representing Excel datetime
+    logger.debug('dt_local: ' + str(dt_local) + ' type: ' + str(type(dt_local)))
+
+    excel_datetime = None
+    if dt_local:
+        # from: https://www.myonlinetraininghub.com/excel-date-and-time
+        # Caution! Excel dates after 28th February 1900 are actually one day out.
+        #          Excel behaves as though the date 29th February 1900 existed, which it didn't.
+        # Therefore 'zero' date = 31-12-1899, minus 1 day correction
+        # '1999-12-31' has excel date 36525
+        excelzero = 36525
+        excelzero_date_naive = get_datetime_naive_from_ISOstring('1999-12-31')
+        excel_zerodate_utc = get_datetimeUTC_from_datetime(excelzero_date_naive)
+        dt_local_utc_offset = dt_local.utcoffset()
+
+        timedelta_diff = dt_local - excel_zerodate_utc + dt_local_utc_offset
+        days_diff = timedelta_diff.days
+        minutes_diff = timedelta_diff.seconds // 60
+
+        excel_datetime = excelzero + days_diff + minutes_diff / 1440
+
+    return excel_datetime
 
 
 def get_datetimeUTC_from_datetime(datetime_obj):
@@ -861,7 +907,7 @@ def get_date_DM_from_dte(dte, lang):  # PR2019-06-17
 # ################### FORMAT FUNCTIONS ###################
 
 
-
+#NIU
 def formatWHM_from_datetime(dte, timezone, lang):
     # returns 'zo 16.30 u' PR2019-06-16
     # or Sun 16:30
@@ -880,7 +926,7 @@ def formatWHM_from_datetime(dte, timezone, lang):
 
     return date_WHM
 
-
+#NIU
 def formatDMYHM_from_datetime(dte, timezone, lang):
     # returns 'zo 16 juni 2019 16.30 u' PR2019-06-14
     date_DMYHM = ''
@@ -912,45 +958,38 @@ def format_WDMY_from_dte(dte, lang):
     return date_WDMY
 
 
-def format_HM_from_dtetime(date_time, comp_timezone, lang):
+def format_HM_from_dt_local(datetime_local, timeformat, user_lang):
+    # PR2020-01026
     # Function returns time : "18.15 u." or "6:15 p.m."
     # 12.00 a.m is midnight, 12.00 p.m. is noon
-
+    # called by
     time_str = ''
-    if date_time:
+    display_txt = ''
+    if datetime_local:
         # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
         # entered date is dattime-naive, make it datetime aware with  pytz.timezone
-
-        # Convert time zone
-        timezone = pytz.timezone(comp_timezone)
-        datetime_local = date_time.astimezone(timezone)
-        # logger.debug('datetime_aware: ' + str(datetime_aware))
-
 
         # .strftime("%H") returns zero-padded 24 hour based string '03' or '22'
         hours_int = datetime_local.hour
         minutes_int = datetime_local.minute
-        hour_str = datetime_local.strftime("%H")
-        hour_int = int(hour_str)
-        minutes_str = datetime_local.strftime("%M") # %m is zero-padded
 
-        if lang == 'nl':
-            separator = '.'
-            suffix = 'u'
-        else:  #if lang == 'en':
-            separator = ':'
-            if hour_int >= 12:
-                suffix = 'p.m.'
-                if hour_int > 12:
-                    hour_int -= 12
-                    hour_zero_padded = '00' + str(hour_int)
-                    hour_str = hour_zero_padded[-2:]
-            else:
-                suffix = 'a.m.'
-        hourstr = separator.join([hour_str, minutes_str])
+        # NIU suffix = 'u' if user_lang == 'nl' else ''
+        suffix = None
+        if timeformat == 'ampm':
+            suffix = 'p.m.' if hours_int >= 12 else 'a.m.'
+            if hours_int > 12:
+                hours_int -= 12
 
-        time_str = ' '.join([hourstr, suffix])
-    return time_str
+        hour_str = ''.join(['00', str(hours_int)])[-2:]
+        minutes_str = ''.join(['00', str(minutes_int)])[-2:]
+
+        separator = '.' if user_lang == 'nl' else ':'
+        display_txt = separator.join([hour_str, minutes_str])
+
+        if suffix:
+            display_txt = ' '.join([display_txt, suffix])
+
+    return display_txt
 
 
 def format_DMY_from_dte(dte, lang):  # PR2019-06-09
@@ -2052,6 +2091,7 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
+
 def update_isabsence_istemplate():
     from django.db import connection
     with connection.cursor() as cursor:
@@ -2069,7 +2109,9 @@ def update_isabsence_istemplate():
         cursor.execute('UPDATE companies_team SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
         cursor.execute('UPDATE companies_teammember SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
         cursor.execute('UPDATE companies_schemeitem SET istemplate = TRUE WHERE istemplate = FALSE AND cat = 4096')
-# ###############################################################
+
+
+###############################################################
 # FORMAT ELEMENTS
 def format_date_element(rosterdate_dte, user_lang,
                         show_weekday=True, show_wd_long=False, show_day=True,
@@ -2166,6 +2208,14 @@ def format_time_element(rosterdate_dte, offset, timeformat, user_lang,
 
     return display_txt
 
+def format_time_range(timestart_local, timeend_local, timeformat, user_lang):
+    # PR2020-01-26
+    timestart_txt = format_HM_from_dt_local(timestart_local, timeformat, user_lang)
+    timeend_txt = format_HM_from_dt_local(timeend_local, timeformat, user_lang)
+    display_txt = ' - '.join([timestart_txt, timeend_txt])
+
+    return display_txt
+
 def display_offset_time (offset, timeformat, user_lang, blank_when_zero, skip_prefix_suffix, is_offsetend):
 
     days_offset = offset // 1440  # - 90 (1.5 h)
@@ -2202,6 +2252,37 @@ def display_offset_time (offset, timeformat, user_lang, blank_when_zero, skip_pr
 
     return prefix + hour_text + delim + minute_text + suffix
 
+
+def display_duration(value_int, user_lang, skip_prefix_suffix):
+    logger.debug(' ========= display_duration  ======== ')  # PR2020-01-24
+
+    time_format = ''
+    if value_int:
+        minus_sign = ''
+        if value_int < 0:
+            value_int = value_int * -1
+            minus_sign = '-'
+        decimal_separator = ',' if user_lang == 'en' else '.'
+
+        isEN = (user_lang == 'en')
+        suffix = ' u' if (not skip_prefix_suffix and not isEN) else ''
+
+        hours = value_int // 60  # // floor division: returns the integral part of the quotient.
+        hour_text = str(hours)
+        #if hours >= 1000000:
+        #    pos = len(hour_text) - 6
+        #    hour_text = dotcomma.join([hour_text[0 : pos], hour_text[pos:]])
+        #if hours >= 1000:
+        #    pos = len(hour_text) - 3
+        #    hour_text = dotcomma.join([hour_text[0 : pos], hour_text[pos:]])
+
+        minutes = value_int % 60  # % returns the decimal part (remainder) of the quotient.
+        minute_str = "00" + str(minutes)
+        minute_text = minute_str[-2:]
+
+        return minus_sign + hour_text + decimal_separator + minute_text + suffix
+
+    return time_format
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -2332,7 +2413,7 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 def check_and_fill_calendar(datefirst, datelast, request):  # PR2019-12-21
-    # functioncheck if calendar dates of the years of this range exist, if not: add calendar dates
+    # function checks if calendar dates of the years of this range exist, if not: add calendar dates
     # logger.debug('---  check_and_fill_calendar  ------- ')
     if request and datefirst and datelast:
         datefirst_year = datefirst.year
@@ -2491,7 +2572,7 @@ def save_publicholidays(year, country, request):
 
     if is_nl:
         date_dict = {2020: (6, 1),
-                    2021: (5, 24),
+                     2021: (5, 24),
                      2022: (6, 6),
                      2023: (5, 29),
                      2024: (5, 20),
@@ -2504,7 +2585,7 @@ def save_publicholidays(year, country, request):
 
 
 def set_calendar_publicholidays(year, month, day, code, request):
-    # PR2019-12-23 Function creates calendar_date and saves name of public Holiday (in Eglish)
+    # PR2019-12-23 Function creates calendar_date and saves name of public Holiday (in English)
     if year and month and day:
         rosterdate = date(year, month, day)
         calendar_date = m.Calendar.objects.filter(

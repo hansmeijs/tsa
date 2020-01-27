@@ -86,12 +86,12 @@
 <!-- =================== CONTAINER =================== -->
         <div class="container ">
 <!-- CONTENT HEADER - LOADER -->
-            <div class="tsa_margin_top_32">
+            <div class="tsa_margin_top_48">
     <!-- class content_header -->
          <!-- header_text -->
                 <div class="content_header">
                     <div class="content_subheader_left mx-2">
-                        <h5 id="id_hdr_texXXt"></h5>
+                        <h5 id="id_hdr_text"></h5>
                     </div>
 
                     <!-- loader -->
@@ -101,10 +101,6 @@
                             </div>
                         </div>
 
-        <!-- period -->
-                    <div id="id_div_hdr_period" class="content_subheader_right pointer_show mx-2">
-                      <!--   <h5 id="id_hdr_period"></h5>  -->
-                    </div>
         <!-- end loader -->
                 </div>
     <!-- end class content_header -->
@@ -126,56 +122,40 @@
                 </div>
     <!-- end BUTTON GROUP -->
 
-                <div id="id_div_hdr_text"  class="content_header mx-2 my-2 display_hide">
-                    <div class="content_subheader_left mx-2">
-                        <h5 id="id_hdr_text" class="tab_show tab_employee tab_absence tab_shifts tab_calendar tab_employee_form"></h5>
-
-                        <h5 id="id_hdr_period" title="{% trans 'Click to select a period.' %}" class="pointer_show XXtab_show tab_planning">XXX</h5>
-                    </div>
-                    <div id="id_btns_calendar" class="content_subheader_right tab_show tab_calendar">
-                        <button id="id_btn_prevweek" data-mode="prevweek" title="{% trans 'Show previous week.' %}" class="btn btn-add ml-2">&Larr;</button>
-                        <button id="id_btn_prevday" data-mode="prevday" title="{% trans 'Go one day back.' %}" class="btn btn-add">&larr;</button>
-                        <button id="id_btn_select_date" data-mode="thisweek" class="btn btn-add">{% trans 'This week' %}</button>
-                        <button id="id_btn_nextday" data-mode="nextday" title="{% trans 'Go one day forward.' %}" class="btn btn-add"> &rarr;</button>
-                        <button id="id_btn_nextweek" data-mode="nextweek" title="{% trans 'Show next week.' %}" class="btn btn-add"> &Rarr;</button>
-                    </div>
-                </div>
-
-
     <!-- =================== DATA TABLE  =================== -->
-                <div id="id_div_tbl_employee" class="tab_show tab_employee">
+                <div id="id_div_tbl_employee" class="tab_show tab_employee display_hide">
                      <table class="table tsa_tbl ">
                         <thead id="id_thead_employee"></thead>
                         <tbody id="id_tbody_employee"></tbody>
                         <tfoot id="id_tfoot_employee"></tfoot>
                     </table>
                 </div>
-                <div id="id_div_tbl_absence" class="tab_show tab_absence">
+                <div id="id_div_tbl_absence" class="tab_show tab_absence display_hide">
                      <table  class="table tsa_tbl ">
                         <thead id="id_thead_absence"></thead>
                         <tbody id="id_tbody_absence"></tbody>
                         <tfoot id="id_tfoot_absence"></tfoot>
                     </table>
                 </div>
-                <div id="id_div_tbl_shifts" class="tab_show tab_shifts">
+                <div id="id_div_tbl_shifts" class="tab_show tab_shifts display_hide">
                      <table  class="table tsa_tbl ">
                         <thead id="id_thead_shifts"></thead>
                         <tbody id="id_tbody_shifts"></tbody>
                         <tfoot id="id_tfoot_shifts"></tfoot>
                     </table>
                 </div>
-                <div id="id_div_tbl_planning" class="tab_show tab_planning">
-                     <table  class="table tsa_tbl ">
+                <div id="id_div_tbl_planning" class="content_header tab_show tab_planning display_hide">
+                    <div class="content_subheader_left mx-2">
+                        <h5 id="id_hdr_period" title="{% trans 'Click to select a customer, order and period.' %}" class="pointer_show"></h5>
+                    </div>
+                     <table  class="table tsa_tbl">
                         <thead id="id_thead_planning"></thead>
                         <tbody id="id_tbody_planning"></tbody>
                     </table>
                 </div>
-
                 <div id="id_div_tbl_calendar" class="tab_show tab_calendar display_hide">
                     {% include 'includes/calendar.html' %}
                 </div>
-
-<!-- =================== END DATA TABLE  =================== -->
 <!-- =================== DATA FORM  =================== -->
                 <div id="id_div_data_form" class="p-2 tsa_bc_lightlightgrey tab_show tab_employee_form display_hide">
                     {% include 'employees/employee_form.html' %}

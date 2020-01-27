@@ -17,7 +17,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
     # ====== PAGE CUSTOMER =========================
     if page == 'customer':
 
-        dict['menubtn_export_excel'] = _('Export to Excel')
+        dict['menubtn_export_excel'] = TXT_Export_to_Excel
 
         # print planning
         dict['Company'] = TXT_Company
@@ -44,9 +44,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
         dict['TXT_Cick_show_inactive_customers'] = TXT_Cick_show_inactive_customers
 
+        dict['Print_planning'] = TXT_Print_planning
         dict['Preview_planning'] = TXT_Preview_planning
         dict['Download_planning'] = TXT_Download_planning
-
 
         dict['Order'] = TXT_Order
         dict['Order_name'] = TXT_Order_name
@@ -85,7 +85,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['End_date'] = TXT_End_date
         dict['Start_time'] = TXT_Start_time
         dict['End_time'] = TXT_End_time
-        dict['Start_Endtime'] = TXT_Start_Endtime
+        dict['Time'] = TXT_Time
         dict['Break'] = TXT_Break
         dict['Working_hours'] = TXT_Working_hours
 
@@ -119,7 +119,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Yes_delete'] = TXT_Yes_delete # 'Yes, delete'
         dict['Yes_make_inactive'] = TXT_Yes_make_inactive # 'Yes, make inactive'
         dict['No_cancel'] = TXT_No_cancel
-
 
 # ====== PAGE EMPLOYEE =========================
     if page == 'employee':
@@ -201,8 +200,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Print_date'] = TXT_Print_date
         dict['Total_hours'] = TXT_Total_hours
 
-
-    # ====== PAGE SCHEME =========================
+# ====== PAGE SCHEME =========================
     if page == 'scheme':
         dict['weekdays_long'] = c.WEEKDAYS_LONG[user_lang]
         dict['months_long'] = c.MONTHS_LONG[user_lang]
@@ -308,10 +306,15 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['err_msg_cycle'] = _('Please enter the number of cycle days.')
         dict['err_msg_template_blank'] = _('Please enter a template name.')
 
-
-
 # ====== PAGE ROSTER =========================
     elif page == 'roster':
+
+        dict['menubtn_roster_create'] = _('Create roster')
+        dict['menubtn_roster_delete'] = _('Delete roster')
+
+        dict['menubtn_print_roster'] = TXT_Print_roster
+        dict['menubtn_print_report'] = TXT_Print_report
+        dict['menubtn_export_excel'] = TXT_Export_to_Excel
 
         dict['period_select_list'] = (
             ('now', TXT_now),
@@ -337,6 +340,87 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
             (720, _('12 hours')),
             (1440, _('24 hours'))
         )
+        dict['Roster'] = TXT_Roster
+        dict['of'] = TXT_of
+        dict['Rosterdate'] = TXT_Rosterdate
+        dict['rosterdate_hdr_create'] = _('Create shift roster')
+        dict['rosterdate_hdr_delete'] = _('Delete shift roster')
+
+        dict['rosterdate_click_btn_add'] = _('Click the button below to add the shifts of this rosterdate.')
+        dict['rosterdate_click_btn_delete'] =_('Click the button below to delete the shifts of this rosterdate.')
+        dict['rosterdate_adding'] = _('Creating shift roster')
+        dict['rosterdate_added_one'] = _('One shift was ')
+        dict['rosterdate_added_multiple'] = _(' shifts were ')
+        dict['rosterdate_added_success'] = _('successfully added to this rosterdate.')
+        # dict['rosterdate_willbe_deleted_one'] = _('This shift will be deleted')
+        # dict['rosterdate_willbe_deleted_multiple'] = _('These shifts will be deleted')
+
+        dict['rosterdate_deleting'] = _('Deleting shift roster')
+        dict['rosterdate_deleted_success'] = _('Shift roster was successfully deleted.')
+
+        dict['rosterdate_checking'] = _('Checking shifts of this rosterdate')
+        dict['rosterdate_checked_has'] = _('This rosterdate has ')
+        dict['rosterdate_checked_one'] = _('one shift')
+        dict['rosterdate_checked_multiple'] = _(' shifts')
+
+        dict['rosterdate_count_none'] = _('This rosterdate has no shifts.')
+        dict['rosterdate_count'] = _('This rosterdate has ')
+        dict['shift'] = TXT_shift
+        dict['shifts'] = TXT_shifts
+        dict['confirmed'] = TXT_confirmed
+        dict['one'] = TXT_one
+
+        dict['rosterdate_confirmed_one'] = _('1 of them is a confirmed shift.')
+        dict['rosterdate_confirmed_multiple'] = _(' of them are confirmed shifts.')
+
+        dict['rosterdate_shift_willbe'] = _('This shift will be ')
+        dict['rosterdate_shifts_willbe'] = _('These shifts will be ')
+        dict['rosterdate_skip01'] = _('Shifts that are not confirmed will be ')
+        dict['rosterdate_skip02'] = _(', confirmed shifts will be skipped.')
+        dict['rosterdate_finished'] = _('The shifts of this rosterdate have been ')
+
+        dict['updated'] = TXT_updated
+        dict['deleted'] = TXT_deleted
+        dict['created'] = TXT_created
+        dict['replaced'] = TXT_replaced
+
+        dict['want_to_continue'] = TXT_want_to_continue  # 'Do you want to continue?'
+        dict['Yes_create'] = TXT_Yes_create  # 'Yes, create'
+        dict['Yes_delete'] = TXT_Yes_delete # 'Yes, delete'
+        dict['Yes_make_inactive'] = TXT_Yes_make_inactive # 'Yes, make inactive'
+
+        dict['No_cancel'] = TXT_No_cancel # ''No, cancel'
+        dict['close'] = TXT_btn_close # 'Close'
+
+        dict['btn_close'] = TXT_btn_close  # 'Close'
+        dict['btn_cancel'] = TXT_btn_cancel  # 'Cancel'
+        dict['btn_create'] = TXT_btn_create  # 'Create'
+        dict['btn_delete'] = TXT_btn_delete  # 'Delete'
+
+
+
+        dict['Date'] = TXT_Date
+        dict['Customer'] = TXT_Customer
+        dict['Order'] = TXT_Order
+        dict['Employee'] = TXT_Employee
+        dict['Shift'] = TXT_Shift
+        dict['Start_time'] = TXT_Start_time
+        dict['End_time'] = TXT_End_time
+        dict['Start_Endtime'] = TXT_Start_Endtime
+        dict['Time'] = TXT_Time
+        dict['Break'] = TXT_Break
+        dict['Planned_hours'] = TXT_Planned_hours
+        dict['Worked_hours'] = TXT_Worked_hours
+        dict['Status'] = TXT_Status
+
+        dict['Print_date'] = TXT_Print_date
+
+        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
+        dict['weekdays_long'] = TXT_weekdays_long
+        dict['months_abbrev'] = TXT_months_abbrev
+        dict['months_long'] = TXT_months_long
+
+
 
 # ====== PAGE REVIEW ========================= PR2019-11-19
     elif page == 'review':
@@ -344,8 +428,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         # submenu
         dict['menubtn_expand_all'] = _('Expand all')
         dict['menubtn_collaps_all'] = _('Collaps all')
-        dict['menubtn_print_pdf'] = _('Print PDF')
-        dict['menubtn_export_excel'] = _('Export to Excel')
+
+        dict['menubtn_print_report'] = TXT_Print_report
+        dict['menubtn_export_excel'] = TXT_Export_to_Excel
+
 
         dict['col_headers'] = (
             TXT_Date,
@@ -388,6 +474,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
 # === TEXT USED IN MULTIPLE PAGES ==================== PR2019-11-12
 
+# submenu
+TXT_Print_roster = _('Print roster')
+TXT_Print_report = _('Print report')
+TXT_Export_to_Excel = _('Export to Excel')
+
 # headers
 
 TXT_Short_name = _('Short name')
@@ -403,16 +494,19 @@ TXT_Exit_Quicksave = _('Exit Quick save')
 TXT_btn_create = _('Create')
 TXT_btn_delete = _('Delete')
 
+TXT_Roster = _('Roster')
 TXT_Rosterdate = _('Rosterdate')
 TXT_Period = _('Period')
 TXT_Select_period = _('Select period')
 
+TXT_Planned_hours = _('Planned hours')
 TXT_Worked_hours = _('Worked hours')
 TXT_Billed_hours = _('Billed hours')
 TXT_Difference = _('Difference')
 TXT_Billable = _('Billable')
 TXT_Rate = _('Rate')
 TXT_Amount = _('Amount')
+TXT_Status = _('Status')
 
 TXT_Company = _('Company')
 TXT_Customer = _('Customer')
@@ -430,6 +524,7 @@ TXT_Enter_short_name_of_customer = _('Enter short name of customer')
 TXT_Upload_customers_and_orders = _('Upload customers and orders')
 TXT_Cick_show_inactive_customers = _('Click to show or hide inactive customers.')
 
+TXT_Print_planning = _('Print planning')
 TXT_Preview_planning = _('Preview planning')
 TXT_Download_planning = _('Download planning')
 
@@ -483,6 +578,7 @@ TXT_confirmed = _('confirmed')
 TXT_updated = _('updated')
 TXT_deleted = _('deleted')
 TXT_created = _('created')
+TXT_replaced = _('replaced')
 
 TXT_want_to_continue = _('Do you want to continue?')
 
@@ -549,11 +645,12 @@ TXT_Start_date = _('Start date')
 TXT_End_date = _('End date')
 TXT_Start_time = _('Start time')
 TXT_End_time = _('End time')
+TXT_Time = _('Time')
+TXT_Start_Endtime = _('Start - Endtime')
 
 TXT_First_date = _('First date')
 TXT_Last_date = _('Last date')
 
-TXT_Start_Endtime = _('Start - Endtime')
 TXT_Duration = _('Duration')
 
 TXT_Break = _('Break')

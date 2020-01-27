@@ -42,9 +42,9 @@
 {% block content %}
     {% if user.is_authenticated %}
 <!-- =================== id_msgbox  =================== -->
-            <div class="popup display_hide">
-                <span class="popuptext" id="id_msgbox"></span>
-            </div>
+        <div class="popup display_hide">
+            <span class="popuptext" id="id_msgbox"></span>
+        </div>
 <!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL PERIOD  =================== -->
@@ -53,29 +53,28 @@
         {% include 'includes/modeordershift.html' %}
 <!-- =================== MODAL EMPLOYEE SHIFT  ===================-->
         {% include 'includes/selectemployee.html' %}
+
 <!-- =================== CONTAINER =================== -->
-    <!-- =================== CONTAINER =================== -->
         <div class="container">
 
 <!-- CONTENT HEADER - LOADER -->
-            <div class="mt-5 tsa_margin_top_64XX">
-    <!-- class content_header -->
-         <!-- header_text -->
+            <div class="tsa_margin_top_48">
+    <!-- content_header -->
                 <div class="content_header">
+         <!-- header_text -->
                     <div class="content_subheader_left mx-2 ">
                         <h5 id="id_hdr_text"></h5>
                     </div>
+
          <!-- loader -->
                     <div class="content_header_middle ">
-                        <div id="id_loader" class="image_container XXXvisibility_hide">
+                        <div id="id_loader" class="image_container visibility_hide">
                             <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
                         </div>
                     </div>
-        <!-- period -->
-
-
-    <!-- end content_header -->
                 </div>
+    <!-- end content_header -->
+
     <!-- end class content_header -->
     <!-- BUTTON GROUP -->
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
@@ -91,12 +90,10 @@
 
 <!-- CONTENT BODY -->
             <div class="content_body mx-2">
-
 <!-- =================== POPUP DATE  =================== -->
                  <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
                      <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
                  </div>
-
     <!-- =================== DATA TABLE  =================== -->
                 <div id="id_div_tbl_customer" class="tab_show tab_customer display_hide">
                      <table  class="table tsa_tbl">
@@ -125,8 +122,7 @@
                 <div id="id_div_tbl_calendar" class="tab_show tab_calendar display_hide">
                     {% include 'includes/calendar.html' %}
                 </div>
-
-                <!-- =================== DATA FORM  =================== -->
+    <!-- =================== DATA FORM  =================== -->
                 <div id="id_div_data_form" class="tab_show tab_form display_hide">
                     <div class="form-group mx-2">
                         <label for="id_form_code" class="mx-2 my-2">{% trans 'Short name of customer' %}:</label>
@@ -141,12 +137,11 @@
                         <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger">{% trans 'Delete customer' %}</button>
                     </div>
                 </div>
-
     <!-- =================== END DATA TABLE  =================== -->
             </div>
 <!-- END CONTENT BODY -->
         </div>
-    <!-- =================== END CONTAINER =================== -->
+<!-- =================== END CONTAINER =================== -->
         <div id="id_data"
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-settings_upload_url="{% url 'settings_upload_url' %}"

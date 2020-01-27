@@ -223,7 +223,7 @@
             </div>
         </div>
     </div>
-<!-- =================== END MODAL COPY TO TEMPLATE  =================== -->
+
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
     {% include 'includes/selectemployee.html' %}
 <!-- =================== CONFIRM =================== -->
@@ -263,8 +263,7 @@
             </div>
             <!-- end CONTENT HEADER - LOADER -->
 
-
-                <!-- BUTTON GROUP -->
+            <!-- BUTTON GROUP -->
             <div id="id_btn_container" class="btn-group btn-block" role="group" aria-label="Choose option" >
                 <button type="button" data-mode="btn_schemeitem" class="btn btn-secondary">{% trans 'Planned shifts' %}</button>
                 <button type="button" data-mode="btn_shift" class="btn btn-secondary">{% trans 'Shifts' %}</button>
@@ -361,34 +360,34 @@
                         <label for="id_scheme_code" class="tsa_margin_form_label">{% trans 'Scheme name' %}:</label>
                         <input id="id_scheme_code" type="text" data-table="scheme" data-field="code"
                             autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                               class="form-control px-2">
+                               class="form-control frm_input px-2">
                     </div>
                     <div class="content_subheader_left mx-1">
                         <label for="id_scheme_cycle" class="tsa_margin_form_label">{% trans 'Cycle length' %}:</label>
                         <input id="id_scheme_cycle" type="number" data-table="scheme" data-field="cycle"
                             autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                               class="form-control px-2">
+                               class="form-control frm_input px-2">
                     </div>
                 </div>
                 <div class=" content_header">
                     <div class="content_subheader_left mx-1">
                         <label for="id_scheme_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
                         <input id="id_scheme_datefirst" type="date" data-field= "code"
-                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control frm_input">
                     </div>
                     <div class="content_subheader_left mx-1">
                         <label for="id_scheme_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
                         <input id="id_scheme_datelast" type="date" data-field="namelast"
-                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                        autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control frm_input">
                     </div>
                 </div>
                 <div class=" content_header">
                     <div class="content_subheader_left mx-1 mt-4">
-                        <input id="id_scheme_excludepublicholiday" type="checkbox" class="td_width_032 ">
-                        <label for="id_scheme_excludepublicholiday" class="mt-1">{% trans 'Not on public holidays' %}</label>
+                        <input id="id_scheme_excludepublicholiday" type="checkbox" class="td_width_032">
+                        <label for="id_scheme_excludepublicholiday" class="frm_input mt-1">{% trans 'Not on public holidays' %}</label>
 
                         <input id="id_scheme_excludecompanyholiday" type="checkbox" class="td_width_032">
-                        <label for="id_scheme_excludecompanyholiday" class="mt-1">{% trans 'Not on company holidays' %}</label>
+                        <label for="id_scheme_excludecompanyholiday" class="frm_input mt-1">{% trans 'Not on company holidays' %}</label>
                     </div>
                 </div>
 

@@ -62,8 +62,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  side bar - select period
     let el_flt_period = document.getElementById("id_flt_period");
     el_flt_period.addEventListener("click", function() {ModPeriodOpen()}, false );
-    el_flt_period.addEventListener("mouseenter", function(){el_flt_period.classList.add(cls_hover)});
-    el_flt_period.addEventListener("mouseleave", function(){el_flt_period.classList.remove(cls_hover)});
+    el_flt_period.addEventListener("mouseenter", function() {el_flt_period.classList.add(cls_hover)});
+    el_flt_period.addEventListener("mouseleave", function() {el_flt_period.classList.remove(cls_hover)});
 
 // buttons in  modal period
     document.getElementById("id_mod_period_datefirst").addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false )
@@ -147,10 +147,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function CreateSubmenu() {
         //console.log("===  CreateSubmenu == ");
         let el_submenu = document.getElementById("id_submenu")
-            CreateSubmenuButton(el_submenu, null, loc.menubtn_expand_all, null, HandleExpandAll);
-            CreateSubmenuButton(el_submenu, null, loc.menubtn_collaps_all, "mx-2", HandleCollapsAll);
-            CreateSubmenuButton(el_submenu, null, loc.menubtn_print_pdf, "mx-2", printPDF);
-            CreateSubmenuButton(el_submenu, null, loc.menubtn_export_excel, "mx-2", ExportToExcel);
+            AddSubmenuButton(el_submenu, loc.menubtn_expand_all, function() {HandleExpandAll()});
+            AddSubmenuButton(el_submenu, loc.menubtn_collaps_all, function() {HandleCollapsAll()}, "mx-2");
+            AddSubmenuButton(el_submenu, loc.menubtn_print_report, function() {printPDF()}, "mx-2");
+            AddSubmenuButton(el_submenu, loc.menubtn_export_excel, function() {ExportToExcel()}, "mx-2");
         el_submenu.classList.remove(cls_hide);
     };//function CreateSubmenu
 
@@ -171,8 +171,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- add EventListener to tblRow.
             tblRow.addEventListener("click", function() {ModPeriodSelectPeriod(tblRow, j);}, false )
     //- add hover to tableBody row
-            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+            tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover);});
+            tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover);});
             td = tblRow.insertCell(-1);
             td.innerText = tuple[1];
     //- add data-tag  to tblRow

@@ -58,6 +58,10 @@ document.addEventListener('DOMContentLoaded', function() {
         let order_map = new Map();
         let teammember_map = new Map();
         let abscat_map = new Map();
+        let scheme_map = new Map();
+        let shift_map = new Map();
+        //let team_map = new Map();
+        //let schemeitem_map = new Map();
 
         let calendar_map = new Map();
         let planning_map = new Map();
@@ -69,11 +73,13 @@ document.addEventListener('DOMContentLoaded', function() {
 // locale_dict with translated text
         let loc = {};
 
-        let calendar_setting_dict = {};
         let mod_upload_dict = {};
-        let selected_period = {};
         //let spanned_columns = [];
         let quicksave = false
+
+        let selected_planning_period = {};
+        let selected_calendar_period = {};
+
 
         let filter_select = "";
         let filter_mod_employee = "";
@@ -165,8 +171,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 el.addEventListener("change", function() {UploadFormChanges(el)}, false);
             }
         }
-        document.getElementById("id_form_btn_delete").addEventListener("click", function(){ModConfirmOpen("delete")});
-        document.getElementById("id_form_btn_add").addEventListener("click", function(){HandleEmployeeAdd()});
+        document.getElementById("id_form_btn_delete").addEventListener("click", function() {ModConfirmOpen("delete")});
+        document.getElementById("id_form_btn_add").addEventListener("click", function() {HandleEmployeeAdd()});
 
 // ---  create EventListener for buttons in calendar
         btns = document.getElementById("id_btns_calendar").children;
@@ -221,9 +227,9 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener("click", function() {ModShiftBtnWeekdayClicked(btn)}, false )
         }
 
-// ---  MOD PERIOD ------------------------------------
 // ---  select period header
-        document.getElementById("id_hdr_period").addEventListener("click", function(){ModPeriodOpen()});
+        document.getElementById("id_calendar_hdr_text").addEventListener("click", function() {ModPeriodOpen()})
+// ---  MOD PERIOD ------------------------------------;
 // ---  select customer
         let el_modperiod_selectcustomer = document.getElementById("id_modperiod_selectcustomer")
             el_modperiod_selectcustomer.addEventListener("change", function() {
@@ -239,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  MOD CONFIRM ------------------------------------
 // ---  save button in ModConfirm
-        document.getElementById("id_confirm_btn_save").addEventListener("click", function(){ModConfirmSave()});
+        document.getElementById("id_confirm_btn_save").addEventListener("click", function() {ModConfirmSave()});
 
 // ---  Popup date
         let el_popup_date_container = document.getElementById("id_popup_date_container");
@@ -288,11 +294,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  set selected menu button active
         SetMenubuttonActive(document.getElementById("id_hdr_empl"));
 
+        const now_arr = get_now_arr_JS();
         let datalist_request = {
-            setting: {page_employee: {mode: "get"},
-                        period_employee: {mode: "get"},
-                        calendar: {mode: "get"}},
+            setting: {page_employee: {mode: "get"}},
             quicksave: {mode: "get"},
+            planning_period: {get: true, now: now_arr},
+            calendar_period:  {get: true, now: now_arr},
             locale: {page: "employee"},
             company: {value: true},
             employee: {inactive: false},
@@ -347,6 +354,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("quicksave" in response) {
                     quicksave = get_subdict_value_by_key(response, "quicksave", "value", false)
                 }
+                if ("planning_period" in response){
+                    selected_planning_period = get_dict_value_by_key(response, "planning_period");
+                    document.getElementById("id_hdr_period").innerText = display_planning_period (selected_planning_period, loc, user_lang);
+                }
+                if ("calendar_period" in response){
+                    selected_calendar_period = get_dict_value_by_key(response, "calendar_period");
+                    selected_calendar_period["calendar_type"] = "employee_calendar";
+                }
+
                 HandleBtnSelect(selected_btn);
 
 // --- refresh maps and fill tables
@@ -412,10 +428,6 @@ document.addEventListener('DOMContentLoaded', function() {
             ModShiftFillSelectTableOrder()
         }
 
-        if ("period" in response) {
-            selected_period = response["period"];
-            document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
-        }
 
         if ("employee_planning_list" in response) {
             console.log("...................employee_planning_list: ", response)
@@ -423,20 +435,20 @@ document.addEventListener('DOMContentLoaded', function() {
             planning_display_duration_total = display_duration (duration_sum, user_lang)
             FillTableRows("planning");
 
-            PrintEmployeePlanning("preview", selected_period, planning_map, company_dict,
-                label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang);
+            //PrintEmployeePlanning("preview", selected_planning_period, planning_map, company_dict,
+            //    label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang);
 
         }
-        // employee_calendar_list goes before customer_calendar_list
-        if (("calendar_setting_dict" in response) || ("employee_calendar_list" in response) ) {
-            if ("calendar_setting_dict" in response) {
-                calendar_setting_dict = response["calendar_setting_dict"]
-            }
-            if ("employee_calendar_list" in response) {
-                get_datamap(response["employee_calendar_list"], calendar_map)
-            }
-            CreateCalendar("employee", calendar_setting_dict, calendar_map, MSO_open, loc, timeformat, user_lang);
-        }
+
+        if ("employee_calendar_list" in response) {
+            get_datamap(response["employee_calendar_list"], calendar_map)
+            //console.log("calendar_map", calendar_map )
+            //console.log("calendar_map", calendar_map )
+
+            UpdateHeaderText();
+            CreateCalendar("employee", selected_calendar_period, calendar_map, MSO_Open, loc, timeformat, user_lang);
+        };
+
     }  // refresh_maps
 //###########################################################################
 // +++++++++++++++++ EVENT HANDLERS +++++++++++++++++++++++++++++++++++++++++
@@ -504,9 +516,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const header_period = UpdateHeaderPeriod();
         //console.log ("header_period: ", header_period)
-        document.getElementById("id_hdr_period").innerText = header_period;
+        document.getElementById("id_calendar_hdr_text").innerText = header_period;
 
-        document.getElementById("id_div_hdr_text").classList.remove("display_hide");
+        //document.getElementById("id_div_hdr_text").classList.remove("display_hide");
         //console.log("remove display_hide")
 
     }  // HandleBtnSelect
@@ -547,10 +559,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById("id_form_btn_delete").disabled = (!selected_employee_pk)
 
             } else if(selected_btn === "calendar"){
-                DatalistDownload({"employee_calendar":
-                                    {"datefirst": calendar_setting_dict["datefirst"],
-                                    "datelast": calendar_setting_dict["datelast"],
-                                    "employee_pk": selected_employee_pk}});
+                let datalist_request = {employee_calendar: {
+                                            employee_pk: selected_employee_pk},
+                                            calendar_period: selected_calendar_period
+                                        };
+                DatalistDownload(datalist_request);
+
+
             } else {
                 let tblBody = document.getElementById("id_tbody_" + selected_btn);
                 if(!!tblBody){
@@ -732,7 +747,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function HandleBtnCalendar(mode) {
         console.log( " ==== HandleBtnCalendar ====", mode);
 
-        const datefirst_iso = get_dict_value_by_key(calendar_setting_dict, "datefirst")
+        const datefirst_iso = get_dict_value_by_key(selected_calendar_period, "rosterdatefirst")
         console.log( "datefirst_iso", datefirst_iso, typeof datefirst_iso);
 
         let calendar_datefirst_JS = get_dateJS_from_dateISO_vanilla(datefirst_iso);
@@ -765,20 +780,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const calendar_datefirst_iso = get_dateISO_from_dateJS_vanilla(calendar_datefirst_JS);
         const calendar_datelast_iso = get_dateISO_from_dateJS_vanilla(calendar_datelast_JS);
 
-// ---  upload new selected_btn
-
-        calendar_setting_dict = {"datefirst": calendar_datefirst_iso,
-                        "datelast": calendar_datelast_iso}
-        const upload_dict = {"calendar": calendar_setting_dict};
-        UploadSettings (upload_dict, url_settings_upload);
-
-        let datalist_request = {"employee_calendar":
-                    {"datefirst": calendar_datefirst_iso,
-                     "datelast": calendar_datelast_iso,
-                     "employee_pk": selected_employee_pk}};
-
-        console.log( "datalist_request", datalist_request);
+// ---  upload settings and download calendar
+        const now_arr = get_now_arr_JS();
+        selected_calendar_period = {now: now_arr, add_empty_shifts: false, skip_absence_and_restshifts: false}
+        if(mode === "thisweek") {
+            selected_calendar_period["period_tag"] = "tweek"
+        } else{
+            selected_calendar_period["period_tag"] = "other"
+            selected_calendar_period["rosterdatefirst"] = calendar_datefirst_iso
+            selected_calendar_period["rosterdatelast"] = calendar_datelast_iso
+        }
+        let datalist_request = {employee_calendar: {
+                                    employee_pk: selected_employee_pk},
+                                    calendar_period: selected_calendar_period
+                                };
         DatalistDownload(datalist_request);
+
+
 
     }  // HandleBtnCalendar
 
@@ -796,19 +814,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const url_employee_import = get_attr_from_el(el_data, "data-employee_import_url");
 
         let a_innerText = get_attr_from_el_str(el_data, "data-txt_employee_import");
-        AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_import", null, "mx-2", url_employee_import);
+        AddSubmenuButton(el_div, a_innerText, null, "mx-2", "id_submenu_employee_import", url_employee_import);
         a_innerText = get_attr_from_el_str(el_data, "data-txt_employee_add");
-        AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_add", function() {HandleButtonEmployeeAdd()}, "mx-2")
+        AddSubmenuButton(el_div, a_innerText, function() {HandleButtonEmployeeAdd()}, "mx-2", "id_submenu_employee_add")
         a_innerText = get_attr_from_el_str(el_data, "data-txt_employee_delete");
-        AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_delete", function() {ModConfirmOpen("delete")}, "mx-2")
+        AddSubmenuButton(el_div, a_innerText, function() {ModConfirmOpen("delete")}, "mx-2", "id_submenu_employee_delete")
         a_innerText = get_attr_from_el_str(el_data, "data-txt_planning_preview");
-        AddSubmenuButton(el_div, a_innerText, "id_submenu_employee_planning_preview", function() {ModPeriodOpen()}, "mx-2")
+        AddSubmenuButton(el_div, a_innerText, function() {ModPeriodOpen()}, "mx-2", "id_submenu_employee_planning_preview")
 
         //AddSubmenuButton(el_div, el_data, "id_submenu_employee_planning_preview", function() {
-        //    PrintEmployeePlanning("preview", selected_period, planning_map, company_dict,
+        //    PrintEmployeePlanning("preview", selected_planning_period, planning_map, company_dict,
         //                label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang)}, "data-txt_planning_preview", "mx-2")
         //AddSubmenuButton(el_div, el_data, "id_submenu_employee_planning_download", function() {
-        //    PrintReport("print", selected_period, planning_map, company_dict,
+        //    PrintReport("print", selected_planning_period, planning_map, company_dict,
         //                label_list, pos_x_list, colhdr_list, timeformat, month_list, weekday_list, user_lang)}, "data-txt_planning_download", "mx-2")
 
         el_submenu.classList.remove(cls_hide);
@@ -1215,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // dont swow title 'delete'
         // const data_id = (tblName === "customer") ? "data-txt_customer_delete" : "data-txt_order_delete"
         // el.setAttribute("title", get_attr_from_el(el_data, data_id));
-        el_input.addEventListener("click", function(){UploadDeleteInactive(mode, el_input)}, false )
+        el_input.addEventListener("click", function() {UploadDeleteInactive(mode, el_input)}, false )
 
         const title = (mode === "employee") ? get_attr_from_el(el_data, "data-txt_employee_delete") :
                       (mode === "absence")  ? get_attr_from_el(el_data, "data-txt_absence_delete") : "";
@@ -1223,10 +1241,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //- add hover delete img
         if (mode ==="delete") {
-            el_input.addEventListener("mouseenter", function(){
+            el_input.addEventListener("mouseenter", function() {
                 el_input.children[0].setAttribute("src", imgsrc_deletered);
             });
-            el_input.addEventListener("mouseleave", function(){
+            el_input.addEventListener("mouseleave", function() {
                 el_input.children[0].setAttribute("src", imgsrc_delete);
             });
         }
@@ -1470,7 +1488,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  //console.log("--- IN USE ??? : add delete button in new row  --------------");
                             let el = document.createElement("a");
                             el.setAttribute("href", "#");
-                            el.addEventListener("click", function(){ ModConfirmOpen("delete", tblRow)}, false )
+                            el.addEventListener("click", function() { ModConfirmOpen("delete", tblRow)}, false )
                             AppendChildIcon(el, imgsrc_delete)
                             td.appendChild(el);
                         }
@@ -1693,19 +1711,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         let key = "planning_period";
         if (key in setting_dict){
-            selected_period = setting_dict[key];
+            selected_planning_period = setting_dict[key];
             const header_period = UpdateHeaderPeriod();
-            document.getElementById("id_hdr_period").innerText = header_period;
-        }
-        key = "calendar_setting_dict";
-        if (key in setting_dict){
-            calendar_setting_dict = setting_dict[key];
-            // this CreateCalendar creates an empyy calendar
-            CreateCalendar("employee", calendar_setting_dict, calendar_map, MSO_open, loc, timeformat, user_lang);
+            document.getElementById("id_calendar_hdr_text").innerText = header_period;
         }
 
-        //console.log("selected_period", selected_period)
-        document.getElementById("id_div_hdr_text").classList.remove("display_hide");
+      //  key = "calendar_setting_dict";
+     //   if (key in setting_dict){
+     //       calendar_setting_dict = setting_dict[key];
+            // this CreateCalendar creates an empyy calendar
+      //      CreateCalendar("employee", calendar_setting_dict, calendar_map, MSO_Open, loc, timeformat, user_lang);
+     //   }
+
+        //console.log("selected_planning_period", selected_planning_period)
+        // TODO change
+        document.getElementById("id_calendar_hdr_text").classList.remove("display_hide");
         console.log("remove display_hide")
 
     }  // UpdateSettings
@@ -2174,7 +2194,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if ("employee_calendar_list" in response) {
                         get_datamap(response["employee_calendar_list"], calendar_map)
 
-                        CreateCalendar("employee", calendar_setting_dict, calendar_map, MSO_open, loc, timeformat, user_lang);
+                        CreateCalendar("employee", selected_calendar_period, calendar_map, MSO_Open, loc, timeformat, user_lang);
                     }
 
                 },  // success: function (response) {
@@ -2435,12 +2455,12 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(" -----  ModPeriodOpen   ----")
         // when clicked on delete btn in form tehre is no tr_selected, use selected_employee_pk
 
-        if(!isEmpty(selected_period)){
-            if("datefirst" in selected_period){
-                document.getElementById("id_mod_period_datefirst").value = selected_period["datefirst"]
+        if(!isEmpty(selected_planning_period)){
+            if("rosterdatefirst" in selected_planning_period){
+                document.getElementById("id_mod_period_datefirst").value = selected_planning_period["rosterdatefirst"]
             }
-            if("datelast" in selected_period){
-                document.getElementById("id_mod_period_datelast").value = selected_period["datelast"]
+            if("rosterdatelast" in selected_planning_period){
+                document.getElementById("id_mod_period_datelast").value = selected_planning_period["rosterdatelast"]
             }
         }
     let el = document.getElementById("id_modperiod_div_selectcustomer")
@@ -2575,7 +2595,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  upload new setting
         // settings are saved in function customer_planning, function 'period_get_and_save'
         const header_period = UpdateHeaderPeriod();
-        document.getElementById("id_hdr_period").innerText = header_period;
+        document.getElementById("id_calendar_hdr_text").innerText = header_period;
 
         let datalist_request = {employee_planning: upload_dict};
         //console.log("datalist_request: ", datalist_request) ;
@@ -2588,7 +2608,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  CreateTblModSelectPeriod  ================ PR2019-11-16
     function CreateTblModSelectPeriod() {
         // console.log("===  CreateTblModSelectPeriod == ");
-        // console.log(selected_period);
+        // console.log(selected_planning_period);
         let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
 //+++ insert td's ino tblRow
         const len = loc.period_select_list.length
@@ -2599,8 +2619,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- add EventListener to tblRow.
             tblRow.addEventListener("click", function() {ModPeriodSelectPeriod(tblRow, j);}, false )
     //- add hover to tableBody row
-            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+            tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover);});
+            tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover);});
             td = tblRow.insertCell(-1);
             td.innerText = tuple[1];
     //- add data-tag to tblRow
@@ -2612,11 +2632,11 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  UpdateHeaderPeriod ================ PR2019-11-09
     function UpdateHeaderPeriod() {
         //console.log( "===== UpdateHeaderPeriod  ========= ");
-        //console.log( "selected_period: ", selected_period);
+        //console.log( "selected_planning_period: ", selected_planning_period);
 
-        const datefirst_ISO = get_dict_value_by_key(selected_period, "rosterdatefirst");
-        const datelast_ISO = get_dict_value_by_key(selected_period, "rosterdatelast");
-        const period_tag = get_dict_value_by_key(selected_period, "period_tag");
+        const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatefirst");
+        const datelast_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatelast");
+        const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag");
         //console.log( "period_tag: ", period_tag);
         //console.log( "datefirst_ISO: ", datefirst_ISO);
         //console.log( "datelast_ISO: ", datelast_ISO);
@@ -3078,8 +3098,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     tblRow.setAttribute("data-value", code_value);
 
 //- add hover to tblBody row
-                    tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-                    tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+                    tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover);});
+                    tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover);});
 
 //- add EventListener to Modal SelectEmployee row
                     tblRow.addEventListener("click", function() {ModEmployeeSelect(tblRow)}, false )
@@ -3098,9 +3118,9 @@ document.addEventListener('DOMContentLoaded', function() {
     } // ModEmployeeFillSelectTableEmployee
 
 // +++++++++++++++++ MODAL SHIFT +++++++++++++++++++++++++++++++++++++++++++
-//=========  MSO_open  ================ PR2019-10-28
-    function MSO_open(el_input) {
-        console.log(" -----  MSO_open   ----")
+//=========  MSO_Open  ================ PR2019-10-28
+    function MSO_Open(el_input) {
+        console.log(" -----  MSO_Open   ----")
         console.log(el_input)
 
         mod_upload_dict = {};
@@ -3239,8 +3259,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // calendar_datefirst/last is used to create a new employee_calendar_list
         // calendar_setting_dict + {datefirst: "2019-12-09", datelast: "2019-12-15", employee_pk: 1456}
-        const calendar_datefirst = get_dict_value_by_key(calendar_setting_dict, "datefirst");
-        const calendar_datelast = get_dict_value_by_key(calendar_setting_dict, "datelast");
+        const calendar_datefirst = get_dict_value_by_key(selected_calendar_period, "rosterdatefirst");
+        const calendar_datelast = get_dict_value_by_key(selected_calendar_period, "rosterdatelast");
 
 // -------------------------------------
 // --- reset mod_upload_dict
@@ -3359,7 +3379,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  show modal
         $("#id_modshift").modal({backdrop: true});
-    };  // MSO_open
+    };  // MSO_Open
 
 //=========  ModShiftSave  ================ PR2019-11-23
     function ModShiftSave(mode){
@@ -3601,8 +3621,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     tblRow.setAttribute("data-display", display_code);
 
     // ---  add hover to tblBody row
-                    tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-                    tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+                    tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover);});
+                    tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover);});
 
     // ---  add EventListener to row
                     tblRow.addEventListener("click", function() {ModShiftSelectOrderRowClicked(mode, tblRow)}, false )

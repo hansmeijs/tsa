@@ -170,13 +170,11 @@ urlpatterns = [
     path('roster/', include([
         path('view', planning_views.RosterView.as_view(), name='roster_url'),
         path('emplhour_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
-        path('interval_upload', planning_views.PeriodUploadView.as_view(), name='period_upload_url'),
         path('replacement', planning_views.ReplacementUploadView.as_view(), name='replacement_upload_url'),
     ])),
 
     path('review/', include([
         path('view', planning_views.ReviewView.as_view(), name='review_url'),
         path('fill', rosterfill_views.FillRosterdateView.as_view(), name='emplhour_fill_rosterdate_url'),
-        # path('upload', planning_views.EmplhourUploadXXXView.as_view(), name='emplhour_upload_url'),
     ])),
 ]

@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const cls_hide = "display_hide";
 
         const cls_visible_hide = "visibility_hide";
-        const cls_visible_show = "visibility_show";
 
         const cls_bc_lightlightgrey = "tsa_bc_lightlightgrey";
         const cls_bc_yellow_lightlight = "tsa_bc_yellow_lightlight";
@@ -74,8 +73,7 @@ let planning_list = [] // for export and printing - can replace map?
         let planning_customer_map = new Map();
         let planning_employee_map = new Map();
 
-// const for report
-        let label_list = [], pos_x_list = [], colhdr_list = [];
+// for report
         let planning_display_duration_total = ""; // stores total hours, calculated when creating planning_customer_map
 
 // locale_dict with translated text
@@ -150,7 +148,7 @@ let planning_list = [] // for export and printing - can replace map?
         //        setTimeout(function() {HandleSelect_Filter()}, 50)});
 
        // let el_sel_inactive = document.getElementById("id_sel_inactive")
-       //     el_sel_inactive.addEventListener("click", function(){HandleFilterInactive(el_sel_inactive)});
+       //     el_sel_inactive.addEventListener("click", function() {HandleFilterInactive(el_sel_inactive)});
 
 // --- buttons in btn_container
         let btns = document.getElementById("id_btn_container").children;
@@ -230,7 +228,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 // ---  MOD PERIOD ------------------------------------
 // ---  header select period
-        document.getElementById("id_hdr_period").addEventListener("click", function(){ModPeriodOpen()});
+        document.getElementById("id_hdr_period").addEventListener("click", function() {ModPeriodOpen()});
 // ---  select customer
         let el_modperiod_selectcustomer = document.getElementById("id_modperiod_selectcustomer")
             el_modperiod_selectcustomer.addEventListener("change", function() {
@@ -247,7 +245,7 @@ let planning_list = [] // for export and printing - can replace map?
 // ---  MOD CONFIRM ------------------------------------
 // ---  save button in ModConfirm
         let el_confirm_btn_save = document.getElementById("id_confirm_btn_save");
-            el_confirm_btn_save.addEventListener("click", function(){ModConfirmSave()});
+            el_confirm_btn_save.addEventListener("click", function() {ModConfirmSave()});
 // ---  Popup date
         let el_popup_date_container = document.getElementById("id_popup_date_container");
         let el_popup_date = document.getElementById("id_popup_date")
@@ -258,8 +256,8 @@ let planning_list = [] // for export and printing - can replace map?
         let el_form_cust_name = document.getElementById("id_form_name");
              el_form_cust_name.addEventListener("change", function() {UploadFormChanges(el_form_cust_name)}, false);
         let el_form_btn_delete = document.getElementById("id_form_btn_delete");
-            el_form_btn_delete.addEventListener("click", function(){ModConfirmOpen("delete", el_form_btn_delete)});
-        document.getElementById("id_form_btn_add").addEventListener("click", function(){HandleCustomerAdd()});
+            el_form_btn_delete.addEventListener("click", function() {ModConfirmOpen("delete", el_form_btn_delete)});
+        document.getElementById("id_form_btn_add").addEventListener("click", function() {HandleCustomerAdd()});
 
 // === close windows ===
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
@@ -287,14 +285,16 @@ let planning_list = [] // for export and printing - can replace map?
 
 // ---  set selected menu button active
         SetMenubuttonActive(document.getElementById("id_hdr_cust"));
+
+// ---  download settings and datalists
         const now_arr = get_now_arr_JS();
         const datalist_request = {
             setting: {page_customer: {mode: "get"},
-                        selected_pk: {mode: "get"}},
+                      selected_pk: {mode: "get"}},
             locale: {page: "customer"},
             quicksave: {mode: "get"},
-            planning_period: {mode: "get", dflt: "tweek", now: now_arr},
-            calendar_period: {mode: "get", dflt: "tweek", now: now_arr},
+            planning_period: {get: true, now: now_arr},
+            calendar_period: {get: true, now: now_arr},
             company: {value: true},
             customer: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
             order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
@@ -340,11 +340,13 @@ let planning_list = [] // for export and printing - can replace map?
                 }
                 if ("planning_period" in response){
                     selected_planning_period = get_dict_value_by_key(response, "planning_period");
-                    document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
+                    document.getElementById("id_hdr_period").innerText = display_planning_period (selected_planning_period, loc, user_lang);
                 }
                 if ("calendar_period" in response){
                     selected_calendar_period = get_dict_value_by_key(response, "calendar_period");
                     selected_calendar_period["calendar_type"] = "customer_calendar";
+                    document.getElementById("id_calendar_hdr_text").innerText = display_planning_period (selected_calendar_period, loc, user_lang);
+
                 }
 // --- refresh maps and fill tables
                 refresh_maps(response);
@@ -411,7 +413,6 @@ let planning_list = [] // for export and printing - can replace map?
         if ("schemeitem_list" in response) {get_datamap(response["schemeitem_list"], schemeitem_map)}
 
         if ("customer_planning_list" in response) {
-            console.log (",,,,,,,,,,,,,,,,,,,===== customer_planning_list in response ==== ")
             // customer_planning_list is used for PDF planning (teammembers are grouped by team)
             const duration_sum = get_datamap(response["customer_planning_list"], planning_customer_map, true)
             planning_display_duration_total = display_duration (duration_sum, user_lang)
@@ -430,6 +431,7 @@ let planning_list = [] // for export and printing - can replace map?
             get_datamap(response["customer_calendar_list"], calendar_map)
             //console.log("calendar_map", calendar_map )
             //console.log("calendar_map", calendar_map )
+            console.log (",,,,,,,,,,,,,,,,,,,===== customer_calendar_list in response ==== ")
             UpdateHeaderText();
             CreateCalendar("order", selected_calendar_period, calendar_map, MSO_Open, loc, timeformat, user_lang);
         };
@@ -452,10 +454,6 @@ let planning_list = [] // for export and printing - can replace map?
         CreateTblHeaders();
         CreateTblFooters();
         CreateTblModSelectPeriod();
-
-        label_list = [loc.Total_hours, loc.Customer + " - " + loc.Order, loc.Planning + " " + loc.of, loc.Print_date];
-        pos_x_list = [6, 65, 105, 130, 155, 185];
-        colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
 
     }  // refresh_locale
 //###########################################################################
@@ -622,14 +620,13 @@ let planning_list = [] // for export and printing - can replace map?
         }
 
 */
-
         // ---  show / hide selected table
         let list = document.getElementsByClassName("tab_show");
         for (let i=0, len = list.length; i<len; i++) {
             let el = list[i];
             const is_show = el.classList.contains("tab_" + selected_btn)
-             show_hide_element(el, is_show)
-             // class 'display_hide' is necessary to prevent showing all tables when page opens
+            show_hide_element(el, is_show)
+            // class 'display_hide' is necessary to prevent showing all tables when page opens
         }
 
 // ---  filter  table customer and table order
@@ -641,7 +638,6 @@ let planning_list = [] // for export and printing - can replace map?
 
 // ---  update header text -- >  cant update header text until customer- and order_map are filled
         UpdateHeaderText();
-        //document.getElementById("id_hdr_period").innerText = UpdateHeaderPeriod();
 
     }  // HandleBtnSelect
 
@@ -862,7 +858,7 @@ let planning_list = [] // for export and printing - can replace map?
 //========= HandleBtnInactiveDeleteClicked  ============= PR2019-09-23
     function HandleBtnInactiveDeleteClicked(mode, el_input) {
         console.log( " ==== HandleBtnInactiveDeleteClicked ====");
-        //console.log(el_input);
+        console.log(el_input);
 
         let tblRow = get_tablerow_selected(el_input)
         if(!!tblRow){
@@ -891,6 +887,10 @@ let planning_list = [] // for export and printing - can replace map?
                 upload_dict["inactive"] = {"value": new_inactive, "update": true};
         // change inactive icon, before uploading
                 format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
+        // order has inactive button i nselect row and in tablerow. Als update the other one
+                if (tblName === "order"){
+
+                }
         // ---  show modal, only when made inactive
                 if(!!new_inactive){
                     mod_upload_dict = {"id": map_dict["id"], "inactive": {"value": new_inactive, "update": true}};
@@ -941,7 +941,7 @@ let planning_list = [] // for export and printing - can replace map?
         const calendar_datefirst_iso = get_dateISO_from_dateJS_vanilla(calendar_datefirst_JS);
         const calendar_datelast_iso = get_dateISO_from_dateJS_vanilla(calendar_datelast_JS);
 
-// ---  upload new selected_btn
+// ---  upload settings and download calendar
         const now_arr = get_now_arr_JS();
         if(mode === "thisweek") {
             selected_calendar_period =  {period_tag: "tweek", now: now_arr}
@@ -974,25 +974,18 @@ let planning_list = [] // for export and printing - can replace map?
         const url_order_import = get_attr_from_el(el_data, "data-order_import_url");
 
         //console.log("url_order_import: ", url_order_import);
-        AddSubmenuButton(el_div, loc.Upload_customers_and_orders, "id_submenu_order_import", null, "mx-2", url_order_import )
+        AddSubmenuButton(el_div, loc.Upload_customers_and_orders, null, "mx-2", "id_submenu_order_import", url_order_import)
         //AddSubmenuButton(el_div, el_data, "id_submenu_employee_add", function() {HandleButtonEmployeeAdd()}, "data-txt_employee_add", "mx-2")
         //AddSubmenuButton(el_div, el_data, "id_submenu_employee_delete", function() {ModConfirmOpen("delete")}, "data-txt_employee_delete", "mx-2")
 
-        const label_list = [loc.Total_hours, loc.Customer + " - " + loc.Order, loc.Planning + " " + loc.of, loc.Print_date];
-        const pos_x_list = [6, 65, 105, 130, 155, 185];
-        const colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
-
-        AddSubmenuButton( el_div, loc.Preview_planning,  "id_submenu_customer_planning_print",
-            function() {
-            PrintOrderPlanning("preview", selected_planning_period, planning_customer_map, planning_display_duration_total,
-                    label_list, pos_x_list, colhdr_list, timeformat, loc.months_abbrev, loc.weekdays_abbrev, user_lang
-                    )
-            },
-            "mx-2"
+        AddSubmenuButton(el_div, loc.Print_planning,
+            function() { PrintOrderPlanning("preview", selected_planning_period, planning_customer_map,
+                                planning_display_duration_total, loc, timeformat, user_lang)},
+            "mx-2",
+            "id_submenu_customer_planning_print"
         )
-
-        CreateSubmenuButton(el_submenu, null, loc.menubtn_export_excel, "mx-2", ExportToExcel);
-    // CreateSubmenuButton(el_div, id, btn_text, class_key, function_on_click) {
+        // was: CreateSubmenuButton(el_submenu, null, loc.menubtn_export_excel, "mx-2", ExportToExcel);
+        AddSubmenuButton(el_div, loc.menubtn_export_excel, ExportToExcel, "mx-2");
 
        // AddSubmenuButton(el_div, el_data, "id_submenu_customer_planning_print", function() {
        //     PrintOrderPlanning("preview", selected_planning_period, planning_customer_map, company_dict,
@@ -1396,14 +1389,14 @@ let planning_list = [] // for export and printing - can replace map?
         // dont shwo title 'delete'
         // const data_id = (tblName === "customer") ? "data-txt_customer_delete" : "data-txt_order_delete"
         // el.setAttribute("title", get_attr_from_el(el_data, data_id));
-        el_input.addEventListener("click", function(){HandleBtnInactiveDeleteClicked(mode, el_input)}, false )
+        el_input.addEventListener("click", function() {HandleBtnInactiveDeleteClicked(mode, el_input)}, false )
 
 //- add hover delete img
         if (mode ==="delete") {
-            el_input.addEventListener("mouseenter", function(){
+            el_input.addEventListener("mouseenter", function() {
                 el_input.children[0].setAttribute("src", imgsrc_deletered);
             });
-            el_input.addEventListener("mouseleave", function(){
+            el_input.addEventListener("mouseleave", function() {
                 el_input.children[0].setAttribute("src", imgsrc_delete);
             });
         }
@@ -1870,40 +1863,6 @@ let planning_list = [] // for export and printing - can replace map?
         }
         document.getElementById("id_hdr_text").innerText = header_text
     }  // UpdateHeaderText
-
-//=========  UpdateHeaderPeriod ================ PR2019-11-09
-    function UpdateHeaderPeriod() {
-        //console.log( "===== UpdateHeaderPeriod  ========= ");
-
-        const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatefirst");
-        const datelast_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatelast");
-        const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag");
-        //console.log( "period_tag: ", period_tag);
-        //console.log( "datefirst_ISO: ", datefirst_ISO);
-        //console.log( "datelast_ISO: ", datelast_ISO);
-        let period_txt = "";
-        if (period_tag === "other"){
-            period_txt = loc.Period + ": "
-        } else {
-            for (let i = 0, len = loc.period_select_list.length; i < len; i++) {
-                if(loc.period_select_list[i][0] === period_tag ){
-                    period_txt = loc.period_select_list[i][1] + ": "
-                    break;
-                }
-            }
-        }
-        //console.log( "========== period_txt: ", period_txt);
-        period_txt += format_period(datefirst_ISO, datelast_ISO, loc.months_abbrev, loc.weekdays_abbrev, user_lang)
-
-        //console.log( "+++++++++++++++ period_txt: ", period_txt);
-        let header_text = "";
-        if (!!period_txt) {
-            header_text = period_txt;
-        } else {
-            header_text =loc.Select_period + "...";
-        }
-        return header_text;
-    }  // UpdateHeaderPeriod
 
 //========= UpdateSettings  ====================================
     function UpdateSettings(setting_dict){
@@ -2612,10 +2571,37 @@ let planning_list = [] // for export and printing - can replace map?
         //console.log(mod_upload_dict.teammember_list)
         for (let i = 0, pk, len =  mod_upload_dict.teammember_list.length; i < len; i++) {
             const dict = mod_upload_dict.teammember_list[i];
-            // all update, create and delete dicts have 'update' = true in the root, to prevent checking subdicts
-            if(!isEmpty(dict) && "update" in dict) {
-                teammembers_tobe_updated.push(dict);
-            }  // if(!isEmpty(dict) && "update" in dict)
+            // id: {pk: 1092, ppk: 2131, table: "teammember"}
+            //scheme: {value: "Schema 1", pk: 1658, ppk: 1420, code: "Schema 1"}
+            //team: {pk: 2131, ppk: 1658, code: "Ploeg A"}
+            //employee: {pk: 2625, ppk: 3, code: "Agata MM"}
+            //replacement: {pk: 2612, ppk: 3, code: "Martis SA"}
+            //datefirst: {mindate: "1991-10-20"}
+            //datelast: {mindate: "1991-10-20"}
+
+            const id_dict = get_dict_value_by_key(dict, "id");
+            if(!isEmpty(id_dict)){
+                let tobe_updated = ("create" in id_dict || "delete" in id_dict);
+                let teammember_dict = {id: id_dict};
+                const fields = ["scheme", "team", "employee", "replacement", "datefirst", "datelast"];
+                for (let field of fields) {
+                    const field_dict = get_dict_value_by_key(dict, field);
+                    if(!isEmpty(field_dict)){
+                        //console.log("field_dict: ", field_dict)
+                        if ("update" in field_dict) {
+                        //console.log("update in field_dict: ")
+                            teammember_dict[field] = field_dict;
+                            tobe_updated = true
+                        }
+                    }
+                }
+                if(tobe_updated) {
+                    teammembers_tobe_updated.push(teammember_dict);
+                    //console.log("teammembers_tobe_updated: ", dict)
+                }  // if(!isEmpty(dict) && "update" in dict)
+            }  // if(!isEmpty(id_dict)){
+
+
         }  //  for (let i = 0, pk, len =  mod_upload_dict.teammember_list.length; i < len; i++) {
         //console.log("teammembers_tobe_updated")
         //console.log(teammembers_tobe_updated)
@@ -2663,8 +2649,6 @@ let planning_list = [] // for export and printing - can replace map?
             schemeitem_dict.id["create"] = true
         }
         upload_dict["schemeitem"] = schemeitem_dict;
-
-
 
 // =========== UploadChanges =====================
         UploadChanges(upload_dict, url_teammember_upload);
@@ -2889,8 +2873,8 @@ let planning_list = [] // for export and printing - can replace map?
                 tblRow.setAttribute("data-display", display_code);
 
 // ---  add hover to tblBody row
-                tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-                tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+                tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover);});
+                tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover);});
 
 // ---  add EventListener to row
                 tblRow.addEventListener("click", function() {MSO_SelectOrderRowClicked(tblRow)}, false )
@@ -3702,11 +3686,11 @@ let planning_list = [] // for export and printing - can replace map?
         //console.log("--- CreateBtnDelete  --------------");
         el.setAttribute("href", "#");
         el.setAttribute("title", loc.Delete_teammember);
-        el.addEventListener("click", function(){MSO_BtnDeleteClicked(el)}, false )
+        el.addEventListener("click", function() {MSO_BtnDeleteClicked(el)}, false )
 
 //- add hover delete img
-        el.addEventListener("mouseenter", function(){el.children[0].setAttribute("src", imgsrc_deletered)});
-        el.addEventListener("mouseleave", function(){el.children[0].setAttribute("src", imgsrc_delete)});
+        el.addEventListener("mouseenter", function() {el.children[0].setAttribute("src", imgsrc_deletered)});
+        el.addEventListener("mouseleave", function() {el.children[0].setAttribute("src", imgsrc_delete)});
 
         el.classList.add("ml-4")
 
@@ -3882,19 +3866,18 @@ let planning_list = [] // for export and printing - can replace map?
         let tblRow = get_tablerow_selected(el_input)
         if(!!tblRow){
             const sel_teammember_pk = get_attr_from_el(tblRow, "data-pk");
-            console.log("sel_teammember_pk: ", sel_teammember_pk);
+            //console.log("sel_teammember_pk: ", sel_teammember_pk);
 
     // --- lookup teammember_dict in mod_upload_dict.teammember_list
             let index = -1, dict = {};
             for (let i = 0; i < mod_upload_dict.teammember_list.length; i++) {
                 dict = mod_upload_dict.teammember_list[i];
-            console.log("for let dict: ", dict);
                 if(!!dict){
                     const pk_int = get_subdict_value_by_key(dict, "id", "pk");
                     if (!!pk_int){
-                console.log("pk_int: ", pk_int, typeof pk_int);
-                console.log("sel_teammember_pk ", sel_teammember_pk, typeof sel_teammember_pk);
-                console.log("(!!(pk_int.toString() === sel_teammember_pk)) ", (pk_int.toString() === sel_teammember_pk));
+                        //console.log("pk_int: ", pk_int, typeof pk_int);
+                        //console.log("sel_teammember_pk ", sel_teammember_pk, typeof sel_teammember_pk);
+                        //console.log("(!!(pk_int.toString() === sel_teammember_pk)) ", (pk_int.toString() === sel_teammember_pk));
                         if (pk_int.toString() === sel_teammember_pk) {
                             index = i;
                             break;
@@ -3902,7 +3885,7 @@ let planning_list = [] // for export and printing - can replace map?
                     }
                 }
             };
-            console.log("index: ", index);
+            //console.log("index: ", index);
             if (index >= 0) {
             // if sel_teammember_pk = NaN, the row is an added row. Just remove it from the .teammember_list
 
@@ -3911,12 +3894,11 @@ let planning_list = [] // for export and printing - can replace map?
                 } else {
             // if sel_teammember_pk is numeric, the row is a saved row. Put 'delete in id_dict for deletion
                     dict["id"]["delete"] = true;
-                    console.log("dict): ", dict);
+                    //console.log("dict): ", dict);
                 }
             }
-
-            console.log("mod_upload_dict.teammember_list: ");
-            console.log(mod_upload_dict.teammember_list);
+            //console.log("mod_upload_dict.teammember_list: ");
+            //console.log(mod_upload_dict.teammember_list);
 
             MSO_FillTableTeammember();
 
@@ -4060,7 +4042,7 @@ let planning_list = [] // for export and printing - can replace map?
                         //console.log ("response", response);
                         if ("update_list" in response) {
                             let update_list = response["update_list"];
-                            UpdateFromResponseNEW(tblName, update_list)
+                            //UpdateFromResponse????(tblName, update_list)
                         }
 
                     },
@@ -4310,8 +4292,8 @@ let planning_list = [] // for export and printing - can replace map?
                     tblRow.setAttribute("data-value", code_value);
 
 //- add hover to tblBody row
-                    tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-                    tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+                    tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover);});
+                    tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover);});
 
 //- add EventListener to Modal SelectEmployee row
                     tblRow.addEventListener("click", function() {
@@ -4339,16 +4321,20 @@ let planning_list = [] // for export and printing - can replace map?
         // when clicked on delete btn in form tehre is no tr_selected, use selected_customer_pk
         // https://stackoverflow.com/questions/7972446/is-there-a-not-in-operator-in-javascript-for-checking-object-properties/12573605#12573605
 
-        if(!selected_planning_period.hasOwnProperty('period_tag')) {
-            selected_planning_period["period_tag"] = "tmonth";
-        }
         console.log("selected_planning_period:", selected_planning_period)
+        const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag")
+        if(!period_tag) { period_tag = "tweek" }
+        const rosterdatefirst_iso = get_dict_value_by_key(selected_planning_period, "rosterdatefirst")
+        const rosterdatelast_iso = get_dict_value_by_key(selected_planning_period, "rosterdatelast")
+
+        console.log("period_tag:", period_tag)
+        console.log("rosterdatefirst_iso:", rosterdatefirst_iso)
+        console.log("rosterdatelast_iso:", rosterdatelast_iso)
 
         mod_upload_dict = selected_planning_period;
 
     // highligh selected period in table, put period_tag in data-tag of tblRow
         let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
-        const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag")
         for (let i = 0, tblRow, row_tag; tblRow = tBody.rows[i]; i++) {
             row_tag = get_attr_from_el(tblRow, "data-tag")
             if (period_tag === row_tag){
@@ -4359,14 +4345,10 @@ let planning_list = [] // for export and printing - can replace map?
         };
 
     // set value of date imput elements
-        const is_custom_period = (period_tag === "other")
+        const is_custom_period = (period_tag === "other");
 
-        if(!selected_planning_period.hasOwnProperty('rosterdatefirst')) {
-            document.getElementById("id_mod_period_datefirst").value = selected_planning_period["rosterdatefirst"]
-        }
-        if(!selected_planning_period.hasOwnProperty('rosterdatelast')) {
-            document.getElementById("id_mod_period_datelast").value = selected_planning_period["rosterdatelast"]
-        }
+        document.getElementById("id_mod_period_datefirst").value = rosterdatefirst_iso;
+        document.getElementById("id_mod_period_datelast").value = rosterdatelast_iso;
 
         let el_mod_period_tblbody = document.getElementById("id_modperiod_selectperiod_tblbody");
 
@@ -4538,8 +4520,8 @@ let planning_list = [] // for export and printing - can replace map?
     // --- add EventListener to tblRow.
             tblRow.addEventListener("click", function() {ModPeriodSelectPeriod(tblRow, j);}, false )
     //- add hover to tableBody row
-            tblRow.addEventListener("mouseenter", function(){tblRow.classList.add(cls_hover);});
-            tblRow.addEventListener("mouseleave", function(){tblRow.classList.remove(cls_hover);});
+            tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover);});
+            tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover);});
             td = tblRow.insertCell(-1);
             td.innerText = tuple[1];
     //- add data-tag to tblRow
@@ -4830,11 +4812,11 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= FillExcelRows  ====================================
     function FillExcelRows() {
-        console.log("=== FillExcelRows  =====")
+        //console.log("=== FillExcelRows  =====")
         let ws = {}
 
 // title row
-        let title_value = UpdateHeaderPeriod();
+        let title_value = display_planning_period (selected_planning_period, loc, user_lang); // UpdateHeaderPeriod();
         ws["A1"] = {v: title_value, t: "s"};
 // header row
         const header_rowindex = 3
@@ -4844,7 +4826,7 @@ let planning_list = [] // for export and printing - can replace map?
             cell_index = String.fromCharCode(65 + j) + header_rowindex.toString()
             ws[cell_index] = {v: cell_value, t: "s"};
         }
-        console.log("------------------ws:", ws)
+        //console.log("------------------ws:", ws)
 
 // --- loop through rows of table planning
         const cell_types = ["s", "s", "s", "d", "s", "s", "n"]
@@ -4854,19 +4836,17 @@ let planning_list = [] // for export and printing - can replace map?
         const last_row = first_row  + row_count;
         for (let i = 0; i < row_count; i++) {
             const row = tBody_planning.rows[i];
-            console.log ("----------------------- row::::::::::::::::::::::::");
-            console.log (row);
+            //console.log ("row: " , row);
             for (let j = 0, len = row.cells.length, cell_index, cell_dict; j < len; j++) {
                 const col = row.cells[j];
                 cell_index = String.fromCharCode(65 + j) + (i + first_row).toString()
 
-                console.log (row);
                 let excel_cell_value = null;
                 if ([0, 1, 4, 5].indexOf( j ) > -1){
                     excel_cell_value = col.children[0].value;
                 } else if (j === 2){
                     excel_cell_value = col.children[0].title;
-                    console.log("excel_cell_value: ", excel_cell_value , typeof excel_cell_value)
+                    //console.log("excel_cell_value: ", excel_cell_value , typeof excel_cell_value)
                     if(!excel_cell_value){
                         excel_cell_value = col.children[0].value;
                     }
@@ -4887,7 +4867,7 @@ let planning_list = [] // for export and printing - can replace map?
         ws['!cols'] = [
                 {wch:20},
                 {wch:20},
-                {wch:30},
+                {wch:20},
                 {wch:15},
                 {wch:15},
                 {wch:15},
@@ -4896,5 +4876,5 @@ let planning_list = [] // for export and printing - can replace map?
 
         return ws;
     }  // FillExcelRows
-    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 }); //$(document).ready(function()

@@ -5,8 +5,8 @@
 
 //=========  CreateCalendar  ================ PR2019-08-29
     function CreateCalendar(tblName, calendar_dict, calendar_map, ModShiftOpen, loc, timeformat, user_lang) {
-        //console.log("=========  CreateCalendar =========");
-        //console.log("calendar_dict: ", calendar_dict);
+        console.log("=========  CreateCalendar =========");
+        console.log("calendar_dict: ", calendar_dict);
         // calendar_dict: {datefirst: "2020-01-19", datelast: "2020-01-25"}
 
         const column_count = 8;
@@ -148,13 +148,14 @@
         for (let col_index = 1; col_index < column_count; col_index++) {
             let this_date__JS = get_dateJS_from_dateISO_vanilla(this_date_iso);
 
-//--- get ifo from calendar_dict
-            const this_date_dict = calendar_dict[this_date_iso];
+//--- get info from calendar_dict
             const display_arr = format_date_from_dateJS_vanilla(this_date, loc.weekdays_long, loc.months_abbrev, user_lang, true, true)
             //console.log( "display_arr", display_arr);
+            // display_arr = ["maandag", "20 jan"]
 
             let display_date = null;
             let is_publicholiday = false;
+            const this_date_dict = calendar_dict[this_date_iso];
             if(!isEmpty(this_date_dict)){
                 display_date = get_dict_value_by_key(this_date_dict, "display")
                 is_publicholiday = (!!get_dict_value_by_key(this_date_dict, "ispublicholiday"));
@@ -281,6 +282,10 @@
                                             display_text += employee_code_arr[i] + "\n";
                                         }
                                     } else {
+                                        // TODO remove, employee is for testing only
+                                        const employee_code = get_subdict_value_by_key(item_dict, "employee", "code", "---")
+                                        display_text += employee_code + "\n";
+
                                         const dash_or_newline = (customer_code.length + order_code.length > 17) ? "\n" : " - "
                                         display_text += customer_code  + dash_or_newline + order_code;
                                     }

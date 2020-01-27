@@ -683,6 +683,7 @@ class Emplhour(TsaBaseModel):
     rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
+    isreplacement = BooleanField(default=False)
 
     yearindex = PositiveSmallIntegerField(default=0)
     monthindex = PositiveSmallIntegerField(default=0)

@@ -328,20 +328,14 @@
     padding: 20px 20px 20px 20px;
 }
 
-.tsa_margin_top_32 {
+.tsa_margin_top_48 {
     /* margin: <top><right><bottom><left> */
-   margin-top: 32px
-}
-
-.tsa_margin_top_64 {
-    /* margin: <top><right><bottom><left> */
-   margin-top: 72px
+   margin-top: 48px
 }
 
 .tsa_margin_form_label {
     margin: 16px 8px 4px 8px;; /* mx-2 = .5 rem, mx-1 = .25 rem, 1 rem = 16 px*/
 }
-
 
 .tsa_flex_1 {
     flex: 1;

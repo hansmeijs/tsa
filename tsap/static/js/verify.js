@@ -14,7 +14,7 @@ console.log("Employees document.ready");
 //}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
 // still haveto try this one
         //show popup when clicking the trigger
-       // $('tbody').on('focus',".dateselector", function(){
+       // $('tbody').on('focus',".dateselector", function() {
        //     SetDateSelector();
        // });
 
