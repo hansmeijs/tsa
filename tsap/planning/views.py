@@ -2572,6 +2572,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                             logger.debug('upload_dict: ' + str(upload_dict))
 # E. Update instance, also when it is created
                             update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_timezone, timeformat, user_lang, eplh_update_list)
+                            logger.debug('>>>>>>>>>>>>>>>>>>>>>> update_dict: ' + str(update_dict))
 
 
 # 6. remove empty attributes from update_dict
@@ -2582,7 +2583,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                         eplh_update_list.append(update_dict)
                         update_wrap['update_list'] = eplh_update_list
 
- # eplh_update_list stores eplh.id's of records that are updated because of oerlap, add them to
+ # eplh_update_list stores eplh.id's of records that are updated because of overlap, add them to
                         """
                         logger.debug('2222222222222222222 eplh_update_list: ' + str(eplh_update_list))
                         if eplh_update_list:
@@ -3027,7 +3028,7 @@ def update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_
                 if orderhour_needs_recalc:
                     recalc_orderhour (instance.orderhour)
 # 6. put updated saved values in update_dict
-        d.create_emplhour_itemdict(instance, update_dict, comp_timezone, timeformat, user_lang)
+        update_dict = d.create_emplhour_itemdict(instance, update_dict, comp_timezone, timeformat, user_lang)
     return has_error
 
 def recalc_orderhour(orderhour): # PR2019-10-11

@@ -701,7 +701,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblName, tblRow, item_dict){
-        //console.log(" ------>>  UpdateTableRow", tblName);
+        console.log(" ------>>  UpdateTableRow", tblName);
 
         if (!!item_dict && !!tblRow) {
 
@@ -767,7 +767,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- loop through cells of tablerow
                 for (let i = 0, len = tblRow.cells.length; i < len; i++) {
-                    let field_dict = {}, fieldname, updated, err;
+                    let field_dict = {}, fieldname, err;
                     let value = "", o_value, n_value, data_value, data_o_value;
                     // el_input is first child of td, td is cell of tblRow
                     let el_input = tblRow.cells[i].children[0];
@@ -776,8 +776,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         fieldname = get_attr_from_el(el_input, "data-field");
                         if (fieldname in item_dict){
                             field_dict = get_dict_value_by_key (item_dict, fieldname);
-                            updated = get_dict_value_by_key (field_dict, "updated");
-                            if(updated){
+                            console.log("fieldname: ", fieldname)
+                            console.log("field_dict: ", field_dict)
+                            const is_updated = ("updated" in field_dict);
+                            console.log("is_updated: ", is_updated)
+                            if(is_updated){
                                 el_input.classList.add("border_valid");
                                 setTimeout(function (){
                                     el_input.classList.remove("border_valid");
@@ -3385,15 +3388,17 @@ console.log("===  function HandlePopupWdySave =========");
         // when clicked on 'Exit quicksave' and then 'Cancel' changes must not be saved, but quicksave does
         if("save_changes" in tp_dict) {
 
+            const url_str = url_emplhour_upload;
             upload_dict[tp_dict["field"]] = {"value": tp_dict["offset"], "update": true};
 
             const tblName = "emplhour";
             const map_id = get_map_id(tblName, get_subdict_value_by_key(tp_dict, "id", "pk").toString());
             let tr_changed = document.getElementById(map_id)
-                    console.log ("upload_dict", upload_dict);
+
+            console.log ("url_str", url_str);
+            console.log ("upload_dict", upload_dict);
 
             let parameters = {"upload": JSON.stringify (upload_dict)}
-            const url_str = url_emplhour_upload;
             let response;
             $.ajax({
                 type: "POST",

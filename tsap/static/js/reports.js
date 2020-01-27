@@ -21,7 +21,7 @@
 // ++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++
     function PrintRoster(option, selected_period, emplhour_map,
                         loc, imgsrc_warning, timeformat, user_lang) {
-        console.log("++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++")
+        //console.log("++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++")
         //console.log("weekday_list", weekday_list)
         //console.log("selected_period", selected_period)
         //console.log("planning_map", planning_map)
@@ -71,12 +71,12 @@
         if (len > 0) {
 // calculate subtotals
             let subtotals = calc_subtotals(data_arr);
-            console.log("subtotals: ", subtotals)
+            //console.log("subtotals: ", subtotals)
 
             const is_preview = (option === "preview");
             //const company = get_subdict_value_by_key(company_dict, "name", "value", "");
             const period_txt = get_period_formatted(selected_period, loc);
-            console.log("period_txt", period_txt)
+            //console.log("period_txt", period_txt)
 
             const datefirst_iso = get_dict_value_by_key(selected_period, "rosterdatefirst");
             const datefirst_JS = get_dateJS_from_dateISO (datefirst_iso)
@@ -119,25 +119,24 @@
             PrintReportHeader(rpthdr_tabs, rpthdr_labels, rpthdr_values, pos, setting, doc)
 
 //----------  print column headers
+            const x1 = pos.left + tab_list[0];
+            const x2 = pos.left + tab_list[tab_list.length - 1];
+            let y1 = pos.top - setting.line_height;
+            doc.line(x1, y1, x2, y1);
+            doc.setFontType("bold");
+            printRow(colhdr_list, colhdr_tabs, pos, setting.fontsize_line, doc, img_warning);
+            doc.setFontType("normal");
 
-                    const x1 = pos.left + tab_list[0];
-                    const x2 = pos.left + tab_list[tab_list.length - 1];
-                    let y1 = pos.top - setting.line_height;
-                    doc.line(x1, y1, x2, y1);
-                    doc.setFontType("bold");
-                    printRow(colhdr_list, colhdr_tabs, pos, setting.fontsize_line, doc, img_warning);
-                    doc.setFontType("normal");
-
-                    y1 = pos.top + 2
-                    doc.line(x1, y1, x2, y1);
-                    pos.top += setting.line_height + 2;
+            y1 = pos.top + 2
+            doc.line(x1, y1, x2, y1);
+            pos.top += setting.line_height + 2;
 
  //======================== loop through planning map
-           console.log(" ========== loop through rows: ")
+           //console.log(" ========== loop through rows: ")
            for (let i = 0; i < len; i++) {
                 let row = data_arr[i][1]; // data_arr is array with [key, value] arrays
                 //console.log("row: ", row)
-    console.log("............................ ")
+    //console.log("............................ ")
 
                 const this_customer_pk = get_subdict_value_by_key(row, "customer", "pk", 0);
                 const this_order_pk = get_subdict_value_by_key(row, "order", "pk", 0);
@@ -159,26 +158,26 @@
 
                 const this_td = format_total_duration(get_subdict_value_by_key(row, "timeduration", "value", 0), user_lang)
                 const this_pd = format_total_duration(get_subdict_value_by_key(row, "plannedduration", "value", 0), user_lang)
-                // const this_td = get_subdict_value_by_key(row, "timeduration", "display", "");
-                // const this_pd = get_subdict_value_by_key(row, "plannedduration", "display", "");
 
-                let cell_values = [ this_shift_code, display_timerange, this_employee_code, this_td, this_pd];
+                let cell_values = [ this_shift_code, display_timerange, this_employee_code, this_pd, this_td];
 
-                console.log(this_rosterdate_iso , prev_rosterdate_iso)
-                console.log(this_order_pk , prev_order_pk)
-                console.log(this_order_code , this_shift_code)
+                //console.log(this_rosterdate_iso , prev_rosterdate_iso)
+                //console.log(this_order_pk , prev_order_pk)
+                //console.log(this_order_code , this_shift_code)
+                //console.log("this_td" , this_td)
+                //console.log("this_pd" , this_pd)
 
     //======================== change in rosterdate
     // -------- detect change in rosterdate
                 let rosterdate_dict = get_dict_value_by_key(subtotals, this_rosterdate_iso);
                 if (this_rosterdate_iso !== prev_rosterdate_iso){
-    console.log(".........change detected in rosterdate: ", this_rosterdate_iso , prev_rosterdate_iso)
+    //console.log(".........change detected in rosterdate: ", this_rosterdate_iso , prev_rosterdate_iso)
                     // reset prev_order_pk
                     prev_order_pk = null
 
                     // lookup totals
                     rosterdate_dict = get_dict_value_by_key(subtotals, this_rosterdate_iso);
-    console.log(">>>>>>>>>>>>>>>>> rosterdate_dic: t", rosterdate_dict)
+    //console.log(">>>>>>>>>>>>>>>>> rosterdate_dict: ", rosterdate_dict)
                     let display_td = null, display_pd = null, display_diff = null;
                     if(!!rosterdate_dict){
                         const td = rosterdate_dict["total"][0];
@@ -188,7 +187,7 @@
                         display_diff = format_total_duration(td - pd, user_lang)
                     }
                     let subtotal_values = [ rosterdate_formatted_long,  "", "", display_pd,  display_td]
-    console.log("subtotal_values", subtotal_values)
+    //console.log("subtotal_values", subtotal_values)
                     pos.top += 4
                     const x1 = pos.left + tab_list[0];
                     const x2 = pos.left + tab_list[tab_list.length - 1];
@@ -204,15 +203,15 @@
                     pos.top += setting.line_height + 2;
                 }
 
-    //======================== change in order
+//======================== change in order
     // -------- detect change in order
                 if (this_order_pk !== prev_order_pk){
-    console.log("..............change detected in order: ", this_order_pk , prev_order_pk)
+    //console.log("..............change detected in order: ", this_order_pk , prev_order_pk)
 
         // lookup totals
                     let order_dict = get_subdict_value_by_key(rosterdate_dict, "order", this_order_pk);
-    console.log("rosterdate_dict: ", rosterdate_dict)
-    console.log("order_dict: ", order_dict)
+    //console.log("rosterdate_dict: ", rosterdate_dict)
+    //console.log("order_dict: ", order_dict)
                     let display_td = null, display_pd = null, display_diff = null;
                     if(!!order_dict){
                         const td = order_dict[0];
@@ -727,8 +726,8 @@ console.log("time_duration: ", time_duration)
 
 
     function PrintReportHeader(tabs, labels, values, pos, setting, doc){
-        console.log(" --- PrintReportHeader --- ")
-        console.log("tabs: ", tabs)
+        //console.log(" --- PrintReportHeader --- ")
+        //console.log("tabs: ", tabs)
         //Landscape: const tab_list = [0, 30, 40, 160, 185, 195];
         const pad_left =  0 ; // was: 2;
         const lineheight = 5;
@@ -978,10 +977,10 @@ console.log("time_duration: ", time_duration)
 
 
     function printRow(txt_list, tab_list, pos, fontsize, doc, img_warning){
-        console.log (" --- printRow ---: ")
-        console.log ("pos: ", pos)
-        console.log ("tab_list: ", tab_list)
-        console.log ("txt_list: ", txt_list)
+        //console.log (" --- printRow ---: ")
+        //console.log ("pos: ", pos)
+        //console.log ("tab_list: ", tab_list)
+        //console.log ("txt_list: ", txt_list)
 
         doc.setFontSize(fontsize);
 

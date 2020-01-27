@@ -1400,7 +1400,8 @@ def create_emplhour_list(period_dict, request, comp_timezone, timeformat, user_l
 
 
 def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
-    # logger.debug("row: " + str(row))
+    logger.debug(' === create_NEWemplhour_itemdict ==')
+    logger.debug('row: ' + str(row))
 
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # --- start of create_emplhour_itemdict
@@ -1571,142 +1572,63 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
 
         item_dict[field] = field_dict
 
-# --- remove empty attributes from update_dict
+# --- remove empty attributes from item_dict
     f.remove_empty_attr_from_dict(item_dict)
 
+    logger.debug('item_dict: ' + str(item_dict))
     return item_dict
 # --- end of create_NEWemplhour_itemdict
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-def create_emplhour_itemdict(emplhour, item_dict, comp_timezone, timeformat, user_lang):  # PR2019-09-21
+# >>>>>>>>>>> used in EmplhourUploadView
+def create_emplhour_itemdict(emplhour, update_dict, comp_timezone, timeformat, user_lang):  # PR2019-09-21
     # --- create dict of this emplhour PR2019-10-11
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     # logger.debug(' ============= create_emplhour_dict ============= ')
     # logger.debug(str(update_dict))
-
+    item_dict = {}
     if emplhour:
-        #  FIELDS_EMPLHOUR = ('id', 'orderhour', 'rosterdate', 'cat', 'employee', 'shift',
-        #                'timestart', 'timeend', 'timeduration', 'breakduration',
-        #                'wagerate', 'wagefactor', 'wage', 'status', 'overlap')
 
-
+        row = {}
 # get pk and ppk
-        pk_int = emplhour.pk
-        ppk_int = emplhour.orderhour.pk
+        row['comp_id'] = emplhour.orderhour.order.customer.company_id
+        row['cust_id'] = emplhour.orderhour.order.customer.id
+        row['o_id'] = emplhour.orderhour.order.id
+        row['oh_id'] = emplhour.orderhour.pk
+        row['eh_id'] = emplhour.pk
+        row['eh_abs'] = emplhour.isabsence
+        row['eh_isrpl'] = emplhour.isreplacement
+        row['eh_st'] = emplhour.status if emplhour.status else 0
 
-        rosterdate_dte = emplhour.rosterdate
-        timestart = emplhour.timestart
-        timeend = emplhour.timeend
-        overlap = emplhour.overlap if emplhour.overlap else 0
-        is_absence = emplhour.isabsence
+        row['o_code'] = emplhour.orderhour.order.code  if emplhour.orderhour.order.code else ''
+        row['c_code'] = emplhour.orderhour.order.customer.code  if emplhour.orderhour.order.customer.code else ''
 
-# lock field when status = locked or higher
-        status_sum = getattr(emplhour, 'status', 0) # instance.status
-        status_conf_start = f.get_status_value(status_sum, 1)
-        status_conf_end = f.get_status_value(status_sum, 2)
-        status_locked = (status_sum >= c.STATUS_08_LOCKED)
+        if emplhour.employee_id:
+            row['e_id'] = emplhour.employee_id
+            row['e_code'] = emplhour.employee.code if emplhour.employee.code else ''
 
-#  FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence',
-        #   'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
-        #   'isrestshift', 'shift',
-        #   'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',
-        #   'wagerate', 'wagefactor', 'wage', 'pricerate', 'pricerate',
-        #   'status', 'overlap', 'locked')
-        for field in c.FIELDS_EMPLHOUR:
+        row['eh_sh'] = emplhour.shift if emplhour.shift else ''
+        row['eh_bd'] = emplhour.breakduration if emplhour.shift else 0
+        row['eh_td'] = emplhour.timeduration if emplhour.shift else 0
+        row['eh_pd'] = emplhour.plannedduration if emplhour.shift else 0
+        if emplhour.rosterdate:
+            row['eh_rd'] = emplhour.rosterdate
+        if emplhour.timestart:
+            row['eh_ts'] = emplhour.timestart
+        if emplhour.timeend:
+            row['eh_te'] = emplhour.timeend
+        if emplhour.overlap:
+            row['eh_ov'] = emplhour.overlap
 
-# --- get field_dict from  item_dict  if it exists
-            field_dict = item_dict[field] if field in item_dict else {}
+# replaced by create_NEWemplhour_itemdict
+        item_dict =  create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, user_lang)
 
-# 2. lock date when confirmed, field is already locked when locked = True
-            if status_locked:
-                field_dict['locked'] = True
-            else:
-                if field == 'employee':
-                    if status_conf_start or status_conf_end:
-                        field_dict['locked'] = True
-                elif field == 'timestart':
-                    if status_conf_start:
-                        field_dict['confirmed'] = True
-                elif field == 'timeend':
-                    if status_conf_end:
-                        field_dict['locked'] = True
-
-            if field == 'id':
-                field_dict['pk'] = pk_int
-                field_dict['ppk'] = ppk_int
-                field_dict['table'] = 'emplhour'
-                if is_absence:
-                    field_dict['isabsence'] = True
-                item_dict['pk'] = pk_int
-
-            # orderhour is parent of emplhour
-            elif field == 'orderhour':
-                orderhour = emplhour.orderhour
-                if orderhour:
-                    field_dict['pk'] = ppk_int
-                    field_dict['ppk'] = orderhour.order.pk
-                    cust_code = ''
-                    order_code = ''
-                    order = orderhour.order
-                    if order:
-                        if order.code:
-                            order_code = order.code
-                        customer = order.customer
-                        if customer.code:
-                            cust_code = customer.code
-                    field_dict['value'] = ' - '.join([cust_code, order_code])
-
-            elif field == 'employee':
-                employee = emplhour.employee
-                if employee:
-
-                    # if employee_id does not exist in row, it returns 'None'. Therefore default value 0 does not work
-                    employee_pk = employee.pk
-
-                    field_dict['pk'] = employee.pk
-                    field_dict['ppk'] = employee.company.pk
-                    field_dict['value'] = employee.code if employee.code else ''
-                    #  make field red when has overlap
-                    if overlap: # overlap: 1 overlap start, 2 overlap end, 3 full overlap
-                        field_dict['overlap'] = True
-                    #  lock field employee when start is confirmed
-                    if status_sum >= c.STATUS_02_START_CONFIRMED:
-                        field_dict['locked'] = True
-
-            elif field == 'rosterdate':
-                if rosterdate_dte:
-                    field_dict['value'] = rosterdate_dte.isoformat()
-
-            # also add date when empty, to add min max date
-            elif field in ('timestart', 'timeend'):
-                has_overlap = (field == 'timestart' and overlap in (1,3)) or \
-                              (field == 'timeend' and overlap in (2,3))
-                set_fielddict_datetime(field=field,
-                                       field_dict=field_dict,
-                                       rosterdate_dte=rosterdate_dte,
-                                       timestart_utc=timestart,
-                                       timeend_utc=timeend,
-                                       has_overlap=has_overlap,
-                                       comp_timezone=comp_timezone,
-                                       timeformat=timeformat,
-                                       user_lang=user_lang)
-
-            elif field == 'overlap':
-                pass
-
-            else:
-                value = getattr(emplhour, field)
-                if value:
-                    field_dict['value'] = value
-
-            item_dict[field] = field_dict
-
+        logger.debug('??????????? item_dict: ' + str(item_dict))
 # --- remove empty attributes from update_dict
-        f.remove_empty_attr_from_dict(item_dict)
-
+        #f.remove_empty_attr_from_dict(item_dict)
+    return item_dict
 # --- end of create_emplhour_itemdict
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
