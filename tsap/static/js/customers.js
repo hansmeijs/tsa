@@ -4346,12 +4346,11 @@ let planning_list = [] // for export and printing - can replace map?
 
     // set value of date imput elements
         const is_custom_period = (period_tag === "other");
-
         document.getElementById("id_mod_period_datefirst").value = rosterdatefirst_iso;
         document.getElementById("id_mod_period_datelast").value = rosterdatelast_iso;
-
         let el_mod_period_tblbody = document.getElementById("id_modperiod_selectperiod_tblbody");
 
+    // fill options of modperiod_selectcustomer
         let el_select = document.getElementById("id_modperiod_selectcustomer")
         let selectall_text =  "&lt;" +  loc.All_customers + "&gt;"
         let select_text_none =  "&lt;" +  loc.No_customers + "&gt;"
@@ -4359,6 +4358,7 @@ let planning_list = [] // for export and printing - can replace map?
         FillSelectOption2020(el_select, customer_map, "customer", is_template_mode, has_selectall, hide_none,
                     null, selected_customer_pk, selectall_text, select_text_none)
 
+    // fill options of modperiod_selectorder
         el_select = document.getElementById("id_modperiod_selectorder")
         selectall_text =  "&lt;" +  loc.All_orders + "&gt;"
         select_text_none =  "&lt;" +  loc.No_orders + "&gt;"

@@ -722,7 +722,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 
 # - get comp_timezone PR2019-06-14
             comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-
+            timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
             if 'upload' in request.POST:
                 upload_dict = json.loads(request.POST['upload'])
                 logger.debug('upload_dict: ' + str(upload_dict))
@@ -735,38 +735,46 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 
                 update_list = []
                 logfile = []
-                dict = {}
+                return_dict = {}
                 if mode == 'create':
 # FillRosterdate
-                    dict, logfile = FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request)
-                    dict['rosterdate'] = pld.get_rosterdatefill_dict(rosterdate_dte, request.user.company)
+                    return_dict, logfile = FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request)
+                    return_dict['rosterdate'] = pld.get_rosterdatefill_dict(rosterdate_dte, request.user.company)
 
                 elif mode == 'delete':
 
 # RemoveRosterdate
-                    dict = RemoveRosterdate(rosterdate_iso, request)
+                    return_dict = RemoveRosterdate(rosterdate_iso, request)
 
-                if dict:
-                    update_dict['rosterdate'] = dict
+                if return_dict:
+                    update_dict['rosterdate'] = return_dict
                 if logfile:
                     update_dict['logfile'] = logfile
 
-                #logger.debug(('????????????? dict: ' + str(dict)))
-                period_dict = pld.get_period_from_settings(request)
-                period_timestart_utc, period_timeend_utc = pld.get_timesstartend_from_perioddict(period_dict, request)
-                # TODO range
-                show_all = False
-                # list = update_list
 
-                #logger.debug(('????????????? update_list: ' + str(update_list)))
+                # save new period and retrieve saved period
+                period_dict = None  # period_dict = None means" get saved period
+                roster_period_dict = pld.period_get_and_save('roster_period', period_dict, comp_timezone, user_lang,
+                                                           request)
 
-                # list = create_emplhour_list(company=request.user.company,
-                #                                      comp_timezone=comp_timezone,
-                #                                     time_min=None,
-                #                                     time_max=None,
-                #                                      range_start_iso='',
-                #                                      range_end_iso='',
-                #                                      show_all=show_all)  # PR2019-08-01
+                customer_pk = None
+                order_pk = None
+                emplhour_dict = upload_dict.get('emplhour')
+                if emplhour_dict:
+                    order_pk = emplhour_dict.get('order_pk')
+                    if order_pk is None:
+                        customer_pk = emplhour_dict.get('customer_pk')
+
+                emplhour_list = pld.create_emplhour_list(period_dict=roster_period_dict,
+                                                       customer_pk=customer_pk,
+                                                       order_pk=order_pk,
+                                                       request=request,
+                                                       comp_timezone=comp_timezone,
+                                                       timeformat=timeformat,
+                                                       user_lang=user_lang)
+                # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
+                update_dict['emplhour_list'] = emplhour_list
+
 
                 # debug: also update table in window when list is empty, Was: if list:
                 # update_dict['emplhour_list'] = list
@@ -2288,6 +2296,7 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
     logger.debug('skip_absence_and_restshifts: ' + str(skip_absence_and_restshifts))
     # this function calcuLates the planning per employee per day, without saving emplhour records  # PR2019-11-30
 
+    logfile = []
     calendar_dictlist = []
     if datefirst_iso and datelast_iso:
         all_rows = []
@@ -2346,6 +2355,7 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
 # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
             row, add_row_to_dict = calculate_add_row_to_dict(
                 row_tuple=row_tuple,
+                logfile=logfile,
                 employee_pk=employee_pk,
                 skip_absence_and_restshifts=skip_absence_and_restshifts,
                 add_empty_shifts=add_empty_shifts)

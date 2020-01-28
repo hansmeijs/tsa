@@ -25,13 +25,13 @@ class SubManifestStaticFilesStorage(ManifestStaticFilesStorage):
 class ForgivingManifestStaticFilesStorage(ManifestStaticFilesStorage):
 
     def hashed_name(self, name, content=None, filename=None):
-        logger.debug('hashed_name: ' + str(name))
+        #logger.debug('hashed_name: ' + str(name))
         try:
             result = super().hashed_name(name, content, filename)
         except ValueError:
             # When the file is missing, let's forgive and ignore that.
             result = name
-        logger.debug('result: ' + str(result))
+        #logger.debug('result: ' + str(result))
         return result
 
 
@@ -95,7 +95,7 @@ def get_datetime_naive_from_dateobject(date_obj):
     datetime_naive = None
     try:
         datetime_naive = datetime.combine(date_obj, time.min)
-        # logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
+        #logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
         # datetime_naive: 2019-07-27 00:00:00 type: <class 'datetime.datetime'>
     except:
         logger.debug('Error get_datetime_naive_from_dateobject: date_ISOstring' +
@@ -104,10 +104,10 @@ def get_datetime_naive_from_dateobject(date_obj):
 
 
 def get_datetime_naive_from_offset(rosterdate, offset_int):
-    # logger.debug(' +++ get_datetime_naive_from_offset +++')
-    # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+    #logger.debug(' +++ get_datetime_naive_from_offset +++')
+    #logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
     # rosterdate: 2019-03-31 <class 'datetime.date'>
-    # logger.debug('offset: ' + str(offset_int))
+    #logger.debug('offset: ' + str(offset_int))
     # offset: -720
 
     # !!! this is the correct way !!! tested and ok PR2019-09-17
@@ -129,14 +129,14 @@ def get_datetime_naive_from_offset(rosterdate, offset_int):
                 remainder_seconds = (offset_int - offset_days * 1440) * 60 # remainder_seconds: (-90 - (-1)*1440 = 1350 * 60 = 8100)
                 # new_hour = math.floor(remainder/60)
                 # new_minute = remainder - new_hour * 60
-                # logger.debug('offset_days: ' + str(offset_days) + ' ' + str(type(offset_days)))
+                #logger.debug('offset_days: ' + str(offset_days) + ' ' + str(type(offset_days)))
                 # offset_days: -1 <class 'int'>
                 #logger.debug('remainder_seconds: ' + str(remainder_seconds) + ' ' + str(type(remainder_seconds)))
                 # remainder_seconds: 43200 <class 'int'>
 
             # c. add offset_days and  remainder_seconds to the naive rosterdate (dont use local midnight, is not correct when DST changes)
                 datetime_naive = rosterdatetime_naive + timedelta(days=offset_days, seconds=remainder_seconds)
-                # logger.debug('datetime_naive: ' + str(datetime_naive) + ' ' + str(type(datetime_naive)))
+                #logger.debug('datetime_naive: ' + str(datetime_naive) + ' ' + str(type(datetime_naive)))
                 # datetime_naive: 2019-03-30 12:00:00 <class 'datetime.datetime'>
         except:
             logger.debug('Error get_datetime_naive_from_offset:' +
@@ -161,10 +161,10 @@ def get_datetime_from_arr(arr_int):  # PR2019-11-17
 
 
 def get_datetimelocal_from_offset(rosterdate, offset_int, comp_timezone):
-    # logger.debug(' +++ get_datetimelocal_from_offset +++')
-    # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+    #logger.debug(' +++ get_datetimelocal_from_offset +++')
+    #logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
         # rosterdate: 2019-11-21 <class 'datetime.date'>
-    # logger.debug('offset_int: ' + str(offset_int))
+    #logger.debug('offset_int: ' + str(offset_int))
         # offset_int: 2160
 
     dt_local = None
@@ -174,23 +174,23 @@ def get_datetimelocal_from_offset(rosterdate, offset_int, comp_timezone):
 
     # a. create new naive datetime object with hour and minute offset
         dt = get_datetime_naive_from_offset(rosterdate, offset_int)
-        # logger.debug('dt with offset: ' + str(dt) + ' ' + str(type(dt)))
+        #logger.debug('dt with offset: ' + str(dt) + ' ' + str(type(dt)))
             # dt with offset: 2019-11-22 12:00:00 <class 'datetime.datetime'>
-        # logger.debug('dt.tzinfo: ' + str(dt.tzinfo) + ' ' + str(type(dt.tzinfo)))
+        #logger.debug('dt.tzinfo: ' + str(dt.tzinfo) + ' ' + str(type(dt.tzinfo)))
             # dt.tzinfo: None <class 'NoneType'>
 
     # b. add timezone to naive datetime object
         timezone = pytz.timezone(comp_timezone)
         dt_local = timezone.localize(dt)  # dt_local.tzinfo: Europe/Amsterdam <class 'pytz.tzfile.Europe/Amsterdam'>
-        # logger.debug('dt_local: ' + str(dt_local) + ' ' + str(type(dt_local)))
+        #logger.debug('dt_local: ' + str(dt_local) + ' ' + str(type(dt_local)))
             # dt_local: 2019-11-22 12:00:00+01:00 <class 'datetime.datetime'>
-        # logger.debug('dt_local.tzinfo: ' + str(dt_local.tzinfo) + ' ' + str(type(dt_local.tzinfo)))
+        #logger.debug('dt_local.tzinfo: ' + str(dt_local.tzinfo) + ' ' + str(type(dt_local.tzinfo)))
             # dt_local.tzinfo: Europe/Amsterdam <class
     return dt_local
 
 
 def get_offset_from_datetimelocal(rosterdate, dt_local):  # PR2019-09-17
-    # logger.debug(' +++ get_offset_from_datetimelocal +++')
+    #logger.debug(' +++ get_offset_from_datetimelocal +++')
 
     # !!! this is the correct way !!! tested and ok PR2019-09-17
 
@@ -198,9 +198,9 @@ def get_offset_from_datetimelocal(rosterdate, dt_local):  # PR2019-09-17
     # otherwise timedelta wil still be calculated based on utc time instead of local time
     # and will give wrong timedelta when DST changes
 
-    # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+    #logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
     # rosterdate: 2019-03-31 <class 'datetime.date'>
-    # logger.debug('dt_local: ' + str(dt_local) + ' ' + str(type(dt_local)))
+    #logger.debug('dt_local: ' + str(dt_local) + ' ' + str(type(dt_local)))
     # dt_local: 2019-04-02 16:30:00+02:00 <class 'datetime.datetime'>
 
     offset_int = None
@@ -208,12 +208,12 @@ def get_offset_from_datetimelocal(rosterdate, dt_local):  # PR2019-09-17
 
     # a. convert rosterdate (date object) to rosterdatetime (datetime object, naive)
         rosterdatetime_naive = get_datetime_naive_from_dateobject(rosterdate)
-        # logger.debug('rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
+        #logger.debug('rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
         # rosterdatetime_naive: 2019-04-02 00:00:00 <class 'datetime.datetime'>
 
     # b. convert dt_local (datetime object) to dt_naive (datetime object, naive)
         dt_naive = dt_local.replace(tzinfo=None)
-        # logger.debug('dt_naive: ' + str(dt_naive) + ' ' + str(type(dt_naive)))
+        #logger.debug('dt_naive: ' + str(dt_naive) + ' ' + str(type(dt_naive)))
         # dt_naive: 2019-04-02 16:30:00 <class 'datetime.datetime'>
 
     # c. get time differenece between dt_naive and add rosterdatetime_naive
@@ -221,9 +221,9 @@ def get_offset_from_datetimelocal(rosterdate, dt_local):  # PR2019-09-17
         timedelta_diff = dt_naive - rosterdatetime_naive
         offset_int = timedelta_diff.days * 1440 + timedelta_diff.seconds // 60
 
-        # logger.debug('timedelta_diff: ' + str(timedelta_diff) + ' ' + str(type(timedelta_diff)))
+        #logger.debug('timedelta_diff: ' + str(timedelta_diff) + ' ' + str(type(timedelta_diff)))
         # timedelta_diff: 1 day, 12:00:00 <class 'datetime.timedelta'>
-        # logger.debug('offset_int: ' + str(offset_int) + ' ' + str(type(offset_int)))
+        #logger.debug('offset_int: ' + str(offset_int) + ' ' + str(type(offset_int)))
         # offset_int: 990 <class 'int'>
 
     return offset_int
@@ -261,9 +261,9 @@ def get_today_dateobj():
 
 
 def get_Exceldate_from_datetime(date_obj):
-    logger.debug(' --- get_Exceldate_from_datetime --- ')
+    #logger.debug(' --- get_Exceldate_from_datetime --- ')
     # PR2020-01-23 function convert date_object to number, representing Excel date
-    logger.debug('date_obj: ' + str(date_obj) + ' type: ' + str(type(date_obj)))
+    #logger.debug('date_obj: ' + str(date_obj) + ' type: ' + str(type(date_obj)))
     datetime_naive = get_datetime_naive_from_dateobject(date_obj)
     excel_date = None
     if datetime_naive:
@@ -278,9 +278,9 @@ def get_Exceldate_from_datetime(date_obj):
 
 
 def get_Exceldatetime_from_datetime(dt_local):
-    logger.debug(' -=========================-- get_Exceldatetime_from_datetime --- ')
+    #logger.debug(' -=========================-- get_Exceldatetime_from_datetime --- ')
     # PR2020-01-23 function convert local dattime to number, representing Excel datetime
-    logger.debug('dt_local: ' + str(dt_local) + ' type: ' + str(type(dt_local)))
+    #logger.debug('dt_local: ' + str(dt_local) + ' type: ' + str(type(dt_local)))
 
     excel_datetime = None
     if dt_local:
@@ -308,16 +308,16 @@ def get_datetimeUTC_from_datetime(datetime_obj):
     # datetime.replace makes datetime_obj aware. The good thing: it works both with naive and aware datetime_obj
 
     datetime_utc = datetime_obj.replace(tzinfo=pytz.utc)
-    # logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
+    #logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
     # datetime_utc: 2019-07-27 00:00:00+00:00 type: <class 'datetime.datetime'>
 
     return datetime_utc
 
 
 def get_datetime_utc_from_offset(rosterdate, offset_int, comp_timezone):
-    # logger.debug(' +++ get_datetimelocal_from_offset +++')
-    # logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
-    # logger.debug('offset_int: ' + str(offset_int))
+    #logger.debug(' +++ get_datetimelocal_from_offset +++')
+    #logger.debug('rosterdate: ' + str(rosterdate) + ' ' + str(type(rosterdate)))
+    #logger.debug('offset_int: ' + str(offset_int))
 
     # !!! this is the correct way !!! PR2019-07-31
 
@@ -326,7 +326,7 @@ def get_datetime_utc_from_offset(rosterdate, offset_int, comp_timezone):
 
         # a. add local timezone to naive datetime object with offset_int
 
-        # logger.debug('# a. add local timezone to naive datetime object with offset_int ')
+        #logger.debug('# a. add local timezone to naive datetime object with offset_int ')
         dt_local = get_datetimelocal_from_offset(
             rosterdate=rosterdate,
             offset_int=offset_int,
@@ -336,8 +336,8 @@ def get_datetime_utc_from_offset(rosterdate, offset_int, comp_timezone):
             # Note: to store datetime it is not necessary to convert to utc,
             #       datetime is stored in database without timezone, let it stay for readability
         dt__utc = dt_local.astimezone(pytz.UTC)
-        # logger.debug('dt__utc: ' + str(dt__utc) + ' ' + str(type(dt__utc)))
-        # logger.debug('dt__utc.tzinfo: ' + str(dt__utc.tzinfo) + ' ' + str(type(dt__utc.tzinfo)))
+        #logger.debug('dt__utc: ' + str(dt__utc) + ' ' + str(type(dt__utc)))
+        #logger.debug('dt__utc.tzinfo: ' + str(dt__utc.tzinfo) + ' ' + str(type(dt__utc.tzinfo)))
 
     return dt_local
 
@@ -362,14 +362,14 @@ def get_datetimearray_from_dateISO(datetime_ISOstring):  # PR2019-07-10
     #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
     #  split string into array  ["2019", "03", "30", "19", "05", "00"]
     #  regex \d+ - matches one or more numeric digits
-    # logger.debug('............. get_datetimearray_from_dateISO: ' + str(datetime_ISOstring))
-    # logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' ' + str(type(datetime_ISOstring)))
+    #logger.debug('............. get_datetimearray_from_dateISO: ' + str(datetime_ISOstring))
+    #logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' ' + str(type(datetime_ISOstring)))
 
     regex = re.compile('\D+')
 
-    # logger.debug(' regex: ' + str(regex))
+    #logger.debug(' regex: ' + str(regex))
     arr = regex.split(datetime_ISOstring)
-    # logger.debug(' arr: ' + str(arr))
+    #logger.debug(' arr: ' + str(arr))
     length = len(arr)
 
     while length < 5:
@@ -382,7 +382,7 @@ def get_datetimearray_from_dateISO(datetime_ISOstring):  # PR2019-07-10
 def get_datetime_LOCAL_from_ISOstring(datetime_ISOstring, comp_timezone):  # PR2019-07-13
     # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
 
-    # logger.debug('---- get_datetime_LOCAL_from_ISOstring  ------')
+    #logger.debug('---- get_datetime_LOCAL_from_ISOstring  ------')
     #logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' ' + str(type(datetime_ISOstring)))
     #  datetime_ISOstring: 2019-07-14 T 22:00:00 +00:00 <class 'str'>
 
@@ -395,21 +395,21 @@ def get_datetime_LOCAL_from_ISOstring(datetime_ISOstring, comp_timezone):  # PR2
     # convert datetime_naive to datetime with timezone utc
     timezone = pytz.utc
     datetime_utc = timezone.localize(datetime_naive)
-    # logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
+    #logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
     #  datetime_utc: 2019-07-14 22:00:00 +00:00 <class 'datetime.datetime'>
     #  tzinfo: UTC  <class 'pytz.UTC'>
 
     # this one is WRONG: does not change timezone, but gives utctime in different timezone
     # timezone = pytz.timezone(comp_timezone)
     # datetime_localWRONG = timezone.localize(datetime_naive)
-    # logger.debug('datetime_localWRONG: ' + str(datetime_localWRONG) + ' ' + str(type(datetime_localWRONG)))
+    #logger.debug('datetime_localWRONG: ' + str(datetime_localWRONG) + ' ' + str(type(datetime_localWRONG)))
     #  datetime_localWRONG: 2019-07-14 22:00:00+02:00 <class 'datetime.datetime'>
     #  tzinfo: UTC  <class 'pytz.UTC'>
 
     # this one is correct: it converts now_utc to now_local ( = company timezone)
     timezone = pytz.timezone(comp_timezone)
     datetime_local = datetime_utc.astimezone(timezone)
-    # logger.debug('datetime_local: ' + str(datetime_local) + ' ' + str(type(datetime_local)))
+    #logger.debug('datetime_local: ' + str(datetime_local) + ' ' + str(type(datetime_local)))
     # datetime_local: 2019-07-15 00:00:00 +02:00 <class 'datetime.datetime'>
 
     return datetime_local
@@ -418,20 +418,20 @@ def get_datetime_LOCAL_from_ISOstring(datetime_ISOstring, comp_timezone):  # PR2
 def get_datetime_UTC_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
     # from https://medium.com/@eleroy/10-things-you-need-to-know-about-date-and-time-in-python-with-datetime-pytz-dateutil-timedelta-309bfbafb3f7
 
-    # logger.debug('---- get_datetime_UTC_from_ISOstring  ------')
-    # logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' type: ' + str(type(datetime_ISOstring)))
+    #logger.debug('---- get_datetime_UTC_from_ISOstring  ------')
+    #logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' type: ' + str(type(datetime_ISOstring)))
     #  datetime_ISOstring: 2019-06-26 T 07:20:00.000Z  <class 'str'>
 
     # convert iso string to dattime naive: datetime_naive: 2019-06-23 18:45:00 <class 'datetime.datetime'>
     datetime_naive = get_datetimenaive_from_ISOstring(datetime_ISOstring)
-    # logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
+    #logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
     #  datetime_naive: 2019-06-26 07:20:00  <class 'datetime.datetime'>
     #  tzinfo: None  <class 'NoneType'>
 
     # convert datetime_naive to datetime with timezone utc
     timezone = pytz.utc
     datetime_utc = timezone.localize(datetime_naive)
-    # logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
+    #logger.debug('datetime_utc: ' + str(datetime_utc) + ' type: ' + str(type(datetime_utc)))
     #  datetime_utc: 2019-06-26 07:20:00+00:00  <class 'datetime.datetime'>
     #  tzinfo: UTC  <class 'pytz.UTC'>
 
@@ -440,7 +440,7 @@ def get_datetime_UTC_from_ISOstring(datetime_ISOstring):  # PR2019-07-13
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def get_date_from_ISOstring(datetime_ISOstring, blank_not_allowed=False, format=None):  # PR2019-04-28
-    # logger.debug('............. get_date_from_ISOstring: ' + str(datetime_ISOstring))
+    #logger.debug('............. get_date_from_ISOstring: ' + str(datetime_ISOstring))
     # function retrieves date from string format " yyyy-mm-dd" or  " yyyy/mm/dd"
     if not format:
         format = 'yyyy-mm-dd'
@@ -473,14 +473,14 @@ def get_date_from_ISOstring(datetime_ISOstring, blank_not_allowed=False, format=
             #msg_err = "'" + datetime_ISOstring + "'" + _("is not a valid date.")
             #msg_err = _("This is not a valid date.")
             msg_err = _("'%(fld)s' is not a valid date.") % {'fld': datetime_ISOstring}
-            # logger.debug('msg_err: ' + str(msg_err) + str(type(msg_err)))
+            #logger.debug('msg_err: ' + str(msg_err) + str(type(msg_err)))
             pass
     return dte, msg_err
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def get_datetimelocal_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-04-17
-    # logger.debug('............. get_datetimelocal_from_datetimeUTC: ' + str(date_timeUTC))
+    #logger.debug('............. get_datetimelocal_from_datetimeUTC: ' + str(date_timeUTC))
     # Function returns date: "2018-02-25T19:24:23"
 
     # date_time     :   2019-04-11 11:12:12+00:00
@@ -491,21 +491,21 @@ def get_datetimelocal_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-0
 
     datetime_local = None
     if date_timeUTC:
-        # logger.debug("date_timeUTC    :" + str(date_timeUTC))
-        # logger.debug("comp_timezone    :" + str(comp_timezone))
+        #logger.debug("date_timeUTC    :" + str(date_timeUTC))
+        #logger.debug("comp_timezone    :" + str(comp_timezone))
         # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
         # entered date is datetime-naive, make it datetime aware with  pytz.timezone
 
         # Convert time zone
         timezone = pytz.timezone(comp_timezone)
         datetime_local = date_timeUTC.astimezone(timezone)
-        # logger.debug('datetime_local: ' + str(datetime_local))
+        #logger.debug('datetime_local: ' + str(datetime_local))
 
     return datetime_local
 
 
 def XXXXget_today_local_iso(request):  # PR2019-07-14
-    # logger.debug(' ============= get_today_local_iso ============= ')
+    #logger.debug(' ============= get_today_local_iso ============= ')
      # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
     #PR2019-11-15 used in roster form selectperiod,
     today_local_iso = None
@@ -555,7 +555,7 @@ def XXXXget_today_local_iso(request):  # PR2019-07-14
             'firstof_month': firstof_month.isoformat(),
             'lastof_month': lastof_thismonth.isoformat()}
 
-        # logger.debug('period_dict: ' + str(period_dict))
+        #logger.debug('period_dict: ' + str(period_dict))
     return period_dict
 
 
@@ -668,8 +668,8 @@ def get_minutes_from_offset(offset_str):  #PR2019-06-13
 # ################### DATE STRING  FUNCTIONS ###################
 
 def get_date_from_ISO(date_string):  # PR2019-09-18
-    # logger.debug('... get_date_from_ISO ...')
-    # logger.debug('date_string: ' + str(date_string))
+    #logger.debug('... get_date_from_ISO ...')
+    #logger.debug('date_string: ' + str(date_string))
     dte = None
     if date_string:
         arr = date_string.split('-')
@@ -678,8 +678,8 @@ def get_date_from_ISO(date_string):  # PR2019-09-18
 
 
 def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
-    # logger.debug('... get_dateISO_from_string ...')
-    # logger.debug('date_string: ' + str(date_string), ' format: ' + str(format))
+    #logger.debug('... get_dateISO_from_string ...')
+    #logger.debug('date_string: ' + str(date_string), ' format: ' + str(format))
 
     # function converts string into given format. Used in employee_import
     if format is None:
@@ -708,7 +708,7 @@ def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
                         year_int = int(arr[0])
                         month_int = int(arr[1])
                         day_int = int(arr[2])
-                    # logger.debug('year_int: ' + str(year_int) + ' month_int: ' + str(month_int) + ' day_int:' + str(day_int))
+                    #logger.debug('year_int: ' + str(year_int) + ' month_int: ' + str(month_int) + ' day_int:' + str(day_int))
 
                     if year_int < 100:
                         currentYear = datetime.now().year
@@ -727,12 +727,11 @@ def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
 
                     day_str = '00' + str(day_int)
                     day_str = day_str[-2:]
-                    # logger.debug('year_str: ' + str(year_str) + ' month_str: ' + str(month_str) + ' day_str:' + str(day_str))
+                    #logger.debug('year_str: ' + str(year_str) + ' month_str: ' + str(month_str) + ' day_str:' + str(day_str))
 
                     new_dat_str = '-'.join([year_str, month_str, day_str])
         except:
-            logger.debug('get_dateISO_from_string error: ' + str(date_string))
-            # logger.debug('new_dat_str: ' + str(new_dat_str))
+            logger.debug('get_dateISO_from_string error: ' + str(date_string) + ' new_dat_str: ' + str(new_dat_str))
     return new_dat_str
 
 
@@ -841,7 +840,7 @@ def get_date_yyyymmdd(dte):
 
 
 def get_date_HM_from_minutes(minutes, lang):  # PR2019-05-07
-    # logger.debug('.... get_date_WDM_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) +' lang: ' + str(lang))
+    #logger.debug('.... get_date_WDM_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) +' lang: ' + str(lang))
     date_HM = ''
     if minutes:
         hour = int(minutes / 60)
@@ -863,7 +862,7 @@ def get_date_HM_from_minutes(minutes, lang):  # PR2019-05-07
 
 
 def get_date_WDM_from_dte(dte, lang):  # PR2019-05-01
-    # logger.debug('.... get_date_WDM_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) +' lang: ' + str(lang))
+    #logger.debug('.... get_date_WDM_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) +' lang: ' + str(lang))
     date_WDM = ''
     if dte:
         try:
@@ -906,38 +905,6 @@ def get_date_DM_from_dte(dte, lang):  # PR2019-06-17
 
 # ################### FORMAT FUNCTIONS ###################
 
-
-#NIU
-def formatWHM_from_datetime(dte, timezone, lang):
-    # returns 'zo 16.30 u' PR2019-06-16
-    # or Sun 16:30
-    # or Sun 4:30 pm
-    date_WHM = ''
-    if dte:
-        date_HM = format_HM_from_dtetime(dte, timezone, lang)
-
-        # get weekdays translated
-        if not lang in c.WEEKDAYS_ABBREV:
-            lang = c.LANG_DEFAULT
-        weekday_int = int(dte.strftime("%w"))
-        weekday_str = c.WEEKDAYS_ABBREV[lang][weekday_int]
-
-        date_WHM = ' '.join([weekday_str, date_HM])
-
-    return date_WHM
-
-#NIU
-def formatDMYHM_from_datetime(dte, timezone, lang):
-    # returns 'zo 16 juni 2019 16.30 u' PR2019-06-14
-    date_DMYHM = ''
-    if dte:
-        date_WDMY =  format_WDMY_from_dte(dte, lang)
-        date_HM = format_HM_from_dtetime(dte, timezone, lang)
-
-        date_DMYHM = ' '.join([date_WDMY, date_HM])
-    return date_DMYHM
-
-
 def format_WDMY_from_dte(dte, lang):
     # returns 'zo 16 juni 2019'
     date_WDMY = ''
@@ -954,7 +921,7 @@ def format_WDMY_from_dte(dte, lang):
             date_WDMY = ' '.join([weekday_str, date_DMY])
         except:
             pass
-    # logger.debug('... format_WDMY_from_dte: ' + str(date_WDMY) + ' type:: ' + str(type(date_WDMY)) + ' lang: ' + str(lang))
+    #logger.debug('... format_WDMY_from_dte: ' + str(date_WDMY) + ' type:: ' + str(type(date_WDMY)) + ' lang: ' + str(lang))
     return date_WDMY
 
 
@@ -993,7 +960,7 @@ def format_HM_from_dt_local(datetime_local, timeformat, user_lang):
 
 
 def format_DMY_from_dte(dte, lang):  # PR2019-06-09
-    # logger.debug('... format_DMY_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) + ' lang: ' + str(lang))
+    #logger.debug('... format_DMY_from_dte: ' + str(dte) + ' type:: ' + str(type(dte)) + ' lang: ' + str(lang))
     # returns '16 juni 2019'
     date_DMY = ''
     if dte:
@@ -1009,12 +976,12 @@ def format_DMY_from_dte(dte, lang):  # PR2019-06-09
             date_DMY = ' '.join([day_str, month_str, year_str])
         except:
             pass
-    # logger.debug('... date_DMY: ' + str(date_DMY) + ' type:: ' + str(type(dte)) + ' lang: ' + str(lang))
+    #logger.debug('... date_DMY: ' + str(date_DMY) + ' type:: ' + str(type(dte)) + ' lang: ' + str(lang))
     return date_DMY
 
 
 def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09
-    # logger.debug('............. get_date_longstr_from_dte: ' + str(dte) + ' lang: ' + str(lang))
+    #logger.debug('............. get_date_longstr_from_dte: ' + str(dte) + ' lang: ' + str(lang))
     date_longstr = ''
     if dte:
         try:
@@ -1034,12 +1001,12 @@ def get_date_longstr_from_dte(dte, lang):  # PR2019-03-09
                 date_longstr = ' '.join([day_str, month_str, year_str, time_longstr])
         except:
             pass
-    # logger.debug('............. date_longstr: ' + str(date_longstr) + ' lang: ' + str(lang))
+    #logger.debug('............. date_longstr: ' + str(date_longstr) + ' lang: ' + str(lang))
     return date_longstr
 
 
 def get_time_longstr_from_dte(dte, lang):  # PR2019-04-13
-    # logger.debug('............. get_date_longstr_from_dte: ' + str(dte) + ' lang: ' + str(lang))
+    #logger.debug('............. get_date_longstr_from_dte: ' + str(dte) + ' lang: ' + str(lang))
     date_longstr = ''
     if dte:
         try:
@@ -1067,7 +1034,7 @@ def get_time_longstr_from_dte(dte, lang):  # PR2019-04-13
                 date_longstr = ' '.join([day_str, month_str, year_str, time_longstr])
         except:
             pass
-    # logger.debug('............. date_longstr: ' + str(date_longstr) + ' lang: ' + str(lang))
+    #logger.debug('............. date_longstr: ' + str(date_longstr) + ' lang: ' + str(lang))
     return date_longstr
 
 
@@ -1103,13 +1070,13 @@ def get_time_minutes(timestart, timeend, break_minutes):  # PR2019-06-05
     if timestart and timeend:
         # duration unit in database is minutes
         datediff = timeend - timestart
-        # logger.debug('datediff: ' + str(datediff) + str(type(datediff)))
+        #logger.debug('datediff: ' + str(datediff) + str(type(datediff)))
 
         datediff_minutes = int((datediff.total_seconds() / 60))
-        # logger.debug('datediff_minutes: ' + str(datediff_minutes) + str(type(datediff_minutes)))
+        #logger.debug('datediff_minutes: ' + str(datediff_minutes) + str(type(datediff_minutes)))
 
         new_time_minutes = int(datediff_minutes - break_minutes)
-        # logger.debug('new_time_minutes: ' + str(new_time_minutes) + str(type(new_time_minutes)))
+        #logger.debug('new_time_minutes: ' + str(new_time_minutes) + str(type(new_time_minutes)))
 
     return new_time_minutes
 
@@ -1242,14 +1209,14 @@ def get_cat_value(cat_sum, cat_index):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def check_offset_overlap(a, b, x, y):  # PR2019-11-11
-    # logger.debug(' --- check_offset_overlap --- ')
+    #logger.debug(' --- check_offset_overlap --- ')
 
     has_overlap = False
     if a and b and x and y:
 # 1. validate if timeend before timestart
         if b < a or y < x:
             has_overlap = True
-            logger.debug('ERROR: timeend before timestart ')
+            #logger.debug('ERROR: timeend before timestart ')
         else:
     # 2. check overlap
             # has overlap                x|______________|y
@@ -1260,7 +1227,7 @@ def check_offset_overlap(a, b, x, y):  # PR2019-11-11
     return has_overlap
 
 def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
-    # logger.debug(' --- check_shift_overlap --- ')
+    #logger.debug(' --- check_shift_overlap --- ')
     # has_overlap = True when overlap and lower priority. With same priority: lower fid gets 'has_overlap = True'
 
     # # ext_row: [['568-0', 'a', 0, 1440, 4], ['568-1', 'a', 1440, 2880, 4]],
@@ -1275,9 +1242,9 @@ def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
 
     delete_this_row = False
     if cur_row and ext_row:
-        # logger.debug('----')
-        # logger.debug('cur_row:  ' + str(cur_row))
-        # logger.debug('ext_row:  ' + str(ext_row))
+        #logger.debug('----')
+        #logger.debug('cur_row:  ' + str(cur_row))
+        #logger.debug('ext_row:  ' + str(ext_row))
 
         x = ext_row[2] # osdif
         y = ext_row[3] # oedif
@@ -1334,7 +1301,7 @@ def check_shift_overlap(cur_row, ext_row):  # PR2019-11-07
 
 
 def check_absence_overlap(cur_fid, cur_row, ext_fid, ext_row):  # PR2019-10-29
-    # logger.debug(' --- check_overlap --- ')
+    #logger.debug(' --- check_overlap --- ')
     # has_overlap = True when overlap and lower priority. With same priority: lower fid gets 'has_overlap = True'
     # row: '503-7': {'rosterdate': '2019-10-05', 'tm_id': 503, 'e_id': 1465, 'e_code': 'Andrea, Johnatan',
     # 'ddif': 7, 'o_cat': 512, 'o_seq': 2, 'osdif': 10080, 'oedif': 11520}}
@@ -1372,24 +1339,24 @@ def check_absence_overlap(cur_fid, cur_row, ext_fid, ext_row):  # PR2019-10-29
 
         if has_overlap:
 # if overlap: lowest sequence stays, except for 0
-            # logger.debug('cur_row --- ' + str(cur_row))
-            # logger.debug('ext_row --- ' + str(ext_row))
+            #logger.debug('cur_row --- ' + str(cur_row))
+            #logger.debug('ext_row --- ' + str(ext_row))
 
             cur_row_seq = cur_row['o_seq'] if cur_row['o_seq'] is not None else 0
             ext_row_seq = ext_row['o_seq'] if ext_row['o_seq'] is not None else 0
 
-            # logger.debug('cur_row_seq --- ' + str(cur_row_seq) + ' ext_row_seq --- ' + str(ext_row_seq))
+            #logger.debug('cur_row_seq --- ' + str(cur_row_seq) + ' ext_row_seq --- ' + str(ext_row_seq))
             if cur_row_seq:
                 if ext_row_seq:
                     if cur_row_seq > ext_row_seq:
                         # cur_row_seq > ext_row_seq means cur_row has lower priority. overlap = True will delete cur_row
-                        # logger.debug('has_overlap = True --- ' + str(cur_row_seq) + ' > ' + str(ext_row_seq))
+                        #logger.debug('has_overlap = True --- ' + str(cur_row_seq) + ' > ' + str(ext_row_seq))
                         has_overlap = True
                     elif cur_row_seq == ext_row_seq:
                         # priority the same: just choose one, so that other will stay when it is cheked for overlap
                         if cur_fid < ext_fid:
                             has_overlap = True
-                            # logger.debug('priority the same cur_fid > ext_fid --- ' + str(cur_fid) + ' > ' + str(ext_fid))
+                            #logger.debug('priority the same cur_fid > ext_fid --- ' + str(cur_fid) + ' > ' + str(ext_fid))
             else:
                 if ext_row_seq:
                     has_overlap = True
@@ -1397,7 +1364,7 @@ def check_absence_overlap(cur_fid, cur_row, ext_fid, ext_row):  # PR2019-10-29
                     # priority the same: just choose one, so that other will stay when it is cheked for overlap
                     if cur_fid < ext_fid:
                         has_overlap = True
-                        # logger.debug('priority both 0 --- ' + str(cur_fid) + ' > ' + str(ext_fid))
+                        #logger.debug('priority both 0 --- ' + str(cur_fid) + ' > ' + str(ext_fid))
 
     #logger.debug('return has_overlap --- ' + str(has_overlap))
     return has_overlap
@@ -1406,8 +1373,8 @@ def check_absence_overlap(cur_fid, cur_row, ext_fid, ext_row):  # PR2019-10-29
 
 
 def check_XXXoverlap(row, all_rows, rosterdate):
-    logger.debug(' --- check_overlap --- ')
-    logger.debug('rosterdate: ' + str(rosterdate))
+    #logger.debug(' --- check_overlap --- ')
+    #logger.debug('rosterdate: ' + str(rosterdate))
 
     is_equal, is_full_outer, is_full_inner, is_partly_end, is_partly_start = False, False, False, False, False
     has_overlap = False
@@ -1418,9 +1385,9 @@ def check_XXXoverlap(row, all_rows, rosterdate):
         x = row['offsetstart'] if row['offsetstart'] is not None else offsetstart_when_none
         y = row['offsetend'] if row['offsetend'] is not None else offsetend_when_none
         row_seq = row['o_seq'] if row['o_seq'] is not None else 0
-        logger.debug('tm_id: ' + str(row['tm_id']) + ': x = ' + str(x) + ' y = ' + str(y))
+        #logger.debug('tm_id: ' + str(row['tm_id']) + ': x = ' + str(x) + ' y = ' + str(y))
         for sub_row in all_rows:
-            logger.debug('sub_row tm_id: ' + str(sub_row['tm_id']))
+            #logger.debug('sub_row tm_id: ' + str(sub_row['tm_id']))
             # skip sub_row that equals row
             if sub_row['tm_id'] != row['tm_id']:
         # compare sequence (only used in absence)
@@ -1435,10 +1402,10 @@ def check_XXXoverlap(row, all_rows, rosterdate):
 
                 a = sub_row['offsetstart'] + offset_diff if sub_row['offsetstart'] is not None else offsetstart_when_none
                 b = sub_row['offsetend'] + offset_diff if sub_row['offsetend'] is not None else offsetend_when_none
-                logger.debug('sub_row tm_id: ' + str(sub_row['tm_id']) + ': a = ' + str(a) + ' b = ' + str(b))
+                #logger.debug('sub_row tm_id: ' + str(sub_row['tm_id']) + ': a = ' + str(a) + ' b = ' + str(b))
 
-                # logger.debug(str(emplhour.id) + ': x = ' + str(x.isoformat()) + ' y = ' + str(y.isoformat()))
-                # logger.debug(str(sub_eplh['id']) + ': a = ' + str(a.isoformat()) + ' b = ' + str(b.isoformat()))
+                #logger.debug(str(emplhour.id) + ': x = ' + str(x.isoformat()) + ' y = ' + str(y.isoformat()))
+                #logger.debug(str(sub_eplh['id']) + ': a = ' + str(a.isoformat()) + ' b = ' + str(b.isoformat()))
 
                 # no overlap                x|_________|y
                 #               a|_____|b                  a|_____|b
@@ -1494,12 +1461,12 @@ def get_depbase_list_field_sorted_zerostripped(depbase_list):  # PR2018-08-23
     # so it can filter depbase_list__contains =";15;"
     if depbase_list:
         depbase_list_sorted = sorted(depbase_list)
-        # logger.debug('get_depbase_list_field_sorted_zerostripped depbase_list_sorted: <' + str(depbase_list_sorted) + '> Type: ' + str(type(depbase_list_sorted)))
+        #logger.debug('get_depbase_list_field_sorted_zerostripped depbase_list_sorted: <' + str(depbase_list_sorted) + '> Type: ' + str(type(depbase_list_sorted)))
 
         sorted_depbase_list = ''
         if depbase_list_sorted:
             for dep in depbase_list_sorted:
-                # logger.debug('get_depbase_list_field_sorted_zerostripped dep: <' + str(dep) + '> Type: ' + str(type(dep)))
+                #logger.debug('get_depbase_list_field_sorted_zerostripped dep: <' + str(dep) + '> Type: ' + str(type(dep)))
                 # skip zero
                 if dep != '0':
                     sorted_depbase_list = sorted_depbase_list + ';' + str(dep)
@@ -1509,7 +1476,7 @@ def get_depbase_list_field_sorted_zerostripped(depbase_list):  # PR2018-08-23
             # PR2018-08-30 add delimiter ';' at the end
             sorted_depbase_list += ';'
 
-            # logger.debug('get_depbase_list_field_sorted_zerostripped sorted_depbase_list: <' + str(sorted_depbase_list) + '> Type: ' + str(type(sorted_depbase_list)))
+            #logger.debug('get_depbase_list_field_sorted_zerostripped sorted_depbase_list: <' + str(sorted_depbase_list) + '> Type: ' + str(type(sorted_depbase_list)))
             return sorted_depbase_list
         else:
             return None
@@ -1529,7 +1496,7 @@ def get_tuple_from_list_str(list_str):  # PR2018-08-28
             list_tuple = tuple(depbase_list_split)
         except:
             pass
-    # logger.debug('get_tuple_from_list_str tuple list_tuple <' + str(list_tuple) + '> Type: " + str(list_tuple))
+    #logger.debug('get_tuple_from_list_str tuple list_tuple <' + str(list_tuple) + '> Type: " + str(list_tuple))
     return list_tuple
 
 
@@ -1604,7 +1571,7 @@ def get_fielddict_variable(upload_dict, field, key):
 # - get dict from upload_dict PR2019-06-12
     # 'rosterdate': {'update': True, 'value': '2019-06-12'}
     value = None
-    # logger.debug('get_fielddict_variables upload_dict: ' + str(upload_dict) + ' field' + str(field))
+    #logger.debug('get_fielddict_variables upload_dict: ' + str(upload_dict) + ' field' + str(field))
     if field:
         if field in upload_dict:
             dict = upload_dict[field]
@@ -1643,8 +1610,8 @@ def get_fielddict_pricerate(table, instance, field_dict, user_lang):
 
     # pricerate employee is different function below, to be corrected
 
-    # logger.debug('  ')
-    # logger.debug(' --- get_fielddict_pricerate --- table: ' + str(table) + ' instance: ' + str(instance))
+    #logger.debug('  ')
+    #logger.debug(' --- get_fielddict_pricerate --- table: ' + str(table) + ' instance: ' + str(instance))
 
     field = 'priceratejson'
 
@@ -1656,10 +1623,10 @@ def get_fielddict_pricerate(table, instance, field_dict, user_lang):
 
 # lookup pricerate in tbale ( table can be order, scheme, shift, schemeitem)
     saved_value_json = getattr(instance, field)  # {"0": {"0": 4400}}
-    # logger.debug('saved_value_json: ' + str(saved_value_json))
+    #logger.debug('saved_value_json: ' + str(saved_value_json))
     if saved_value_json is not None:
         saved_value_dict = json.loads(saved_value_json)  # {'0': {'0': 4400}}
-        # logger.debug('saved_value_dict: ' + str(saved_value_dict))
+        #logger.debug('saved_value_dict: ' + str(saved_value_dict))
         saved_pricerate = get_pricerate_from_dict(saved_value_dict, cur_rosterdate, cur_wagefactor)
         if saved_pricerate is not None: # 0 is a value, so don't use 'if pricerate:'
             pricerate = saved_pricerate
@@ -1687,7 +1654,7 @@ def get_fielddict_pricerate(table, instance, field_dict, user_lang):
                     pricerate = get_pricerate_from_instance(instance.scheme.order, field, cur_rosterdate, cur_wagefactor)
 
     display_text = get_rate_display(pricerate, user_lang)
-    # logger.debug('display_text: ' + str(display_text))
+    #logger.debug('display_text: ' + str(display_text))
 
     if pricerate is not None:  # 0 is a value, so don't use 'if pricerate:'
         field_dict['value'] = pricerate
@@ -1698,19 +1665,19 @@ def get_fielddict_pricerate(table, instance, field_dict, user_lang):
 
 
 def get_pricerate_from_instance(instance, field, cur_rosterdate, cur_wagefactor):
-    # logger.debug(' --- get_pricerate_from_instance: ' + str(instance))
+    #logger.debug(' --- get_pricerate_from_instance: ' + str(instance))
     pricerate = None
     if instance is not None:
         saved_value_json = getattr(instance, field)
-        # logger.debug('saved_value_json: ' + str(saved_value_json))
+        #logger.debug('saved_value_json: ' + str(saved_value_json))
         if saved_value_json is not None:
             saved_value_dict = json.loads(saved_value_json)  # {'0': {'0': 4400}}
-            # logger.debug('saved_value_dict: ' + str(saved_value_dict))
+            #logger.debug('saved_value_dict: ' + str(saved_value_dict))
             saved_pricerate = get_pricerate_from_dict(saved_value_dict, cur_rosterdate, cur_wagefactor)
-            # logger.debug('saved_pricerate: ' + str(saved_pricerate))
+            #logger.debug('saved_pricerate: ' + str(saved_pricerate))
             if saved_pricerate is not None:  # 0 is a value, so don't use 'if pricerate:'
                 pricerate = saved_pricerate
-                # logger.debug('pricerate: ' + str(pricerate))
+                #logger.debug('pricerate: ' + str(pricerate))
     return pricerate
 
 
@@ -1730,7 +1697,7 @@ def get_fielddict_pricerate_employee(table, instance, field_dict, user_lang):
                     if priceratejson:
                         teammember_pricerate = get_pricerate_from_dict(json.loads(priceratejson), cur_rosterdate,
                                                                        cur_wagefactor)
-                        # logger.debug(' teammember_pricerate: ' + str(teammember_pricerate))
+                        #logger.debug(' teammember_pricerate: ' + str(teammember_pricerate))
                         if teammember_pricerate:
                             pricerate = teammember_pricerate
                         elif teammember_pricerate is None:
@@ -1742,7 +1709,7 @@ def get_fielddict_pricerate_employee(table, instance, field_dict, user_lang):
                                                                                  cur_wagefactor)
                                     if employee_pricerate:
                                         pricerate = employee_pricerate
-                                        # logger.debug(' teammember.employee pricerate: ' + str(saved_value))
+                                        #logger.debug(' teammember.employee pricerate: ' + str(saved_value))
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 def get_billable_order(order):
@@ -1863,13 +1830,13 @@ def fielddict_duration(duration, user_lang):
 
 def remove_empty_attr_from_dict(dict):
 # --- function removes empty attributes from dict  PR2019-06-02
-    # logger.debug('--- remove_empty_attr_from_dict')
-    # logger.debug('dict: ' + str(dict))
+    #logger.debug('--- remove_empty_attr_from_dict')
+    #logger.debug('dict: ' + str(dict))
 # create list of fields in dict
     list = []
     for field in dict:
         list.append(field)
-    # logger.debug('list: ' + str(list))
+    #logger.debug('list: ' + str(list))
 # iterate through list of fields in dict
     # cannot iterate through dict because it changes during iteration
     for field in list:
@@ -1877,13 +1844,13 @@ def remove_empty_attr_from_dict(dict):
 # remove empty attributes from dict
             if not dict[field]:
                 del dict[field]
-                # logger.debug('deleted: ' + str(field))
+                #logger.debug('deleted: ' + str(field))
 # remove 'create' from id_dict
             elif field == 'id':
                 if 'create' in dict['id']:
                     del dict['id']['create']
 
-    # logger.debug('dict: ' + str(dict))
+    #logger.debug('dict: ' + str(dict))
 
 
 
@@ -1902,15 +1869,15 @@ def get_rate_from_value(value):
     # PR2019-09-20 rate is in cents.
     # Value 'None' removes current value, gives inherited value
     # value '0' gives rate zero (if you dont want to charge for these hours
-    # logger.debug(' --- get_rate_from_value ---')
+    #logger.debug(' --- get_rate_from_value ---')
 
-    # logger.debug('pricerate: ' + str(value) + ' ' + str(type(value)))
+    #logger.debug('pricerate: ' + str(value) + ' ' + str(type(value)))
 
     msg_err = None
     rate = None
     if value is not None:
         value_str = str(value)
-        # logger.debug('value_str <' + str(value_str) + '> ' +  str(type(value_str)))
+        #logger.debug('value_str <' + str(value_str) + '> ' +  str(type(value_str)))
         value_str = value_str.replace(' ', '')
 
         if value_str:
@@ -1947,7 +1914,7 @@ def get_rate_from_value(value):
             if error:
                 msg_err = _("'%(value)s' is not a valid number.") % {'value': value_str}
 
-    # logger.debug('rate <' + str(rate) + '> ' + str(type(rate)))
+    #logger.debug('rate <' + str(rate) + '> ' + str(type(rate)))
     return rate, msg_err
 
 
@@ -1957,7 +1924,7 @@ def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
     # key_startdate is the startdate of the new pricerate
     # from https://realpython.com/iterate-through-dictionary-python/
 
-    # logger.debug(' --- get_pricerate_from_dict --- ')
+    #logger.debug(' --- get_pricerate_from_dict --- ')
 
     if cur_rosterdate is None:
         cur_rosterdate = '0'
@@ -1992,9 +1959,9 @@ def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
     return pricerate
 
 def save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field):
-    # logger.debug('   ')
-    # logger.debug(' --- save_pricerate_to_instance --- ' + str(instance) + ' value: ' + str(new_value))
-    # logger.debug('field ' + str(field))
+    #logger.debug('   ')
+    #logger.debug(' --- save_pricerate_to_instance --- ' + str(instance) + ' value: ' + str(new_value))
+    #logger.debug('field ' + str(field))
 
     is_updated = False
     new_rate, msg_err = get_rate_from_value(new_value)
@@ -2011,14 +1978,14 @@ def save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, upda
         # b. add or replace new_rate in pricerate_dict
         # TODO save pricerate with date and wagefactor
         new_pricerate_dict, is_update = set_pricerate_to_dict(saved_pricerate_dict, rosterdate, wagefactor, new_rate)
-        # logger.debug('new_pricerate_dict ' + str(new_pricerate_dict))
+        #logger.debug('new_pricerate_dict ' + str(new_pricerate_dict))
 
         if is_update:
             # c. save new pricerate_dict
             new_pricerate_json = None
             if new_pricerate_dict:
                 new_pricerate_json = json.dumps(new_pricerate_dict)  # dumps takes an object and produces a string:
-                # logger.debug('new_pricerate_json ' + str(new_pricerate_json))
+                #logger.debug('new_pricerate_json ' + str(new_pricerate_json))
             setattr(instance, 'priceratejson', new_pricerate_json)
             is_updated = True
 
@@ -2031,11 +1998,11 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
     # key_startdate is the startdate of the new pricerate
     # from https://realpython.com/iterate-through-dictionary-python/
 
-    # logger.debug('  ')
-    # logger.debug(' -->>>- set_pricerate_to_dict --- ')
-    # logger.debug('rosterdate: ' + str(rosterdate))
-    # logger.debug('wagefactor: ' + str(wagefactor))
-    # logger.debug('new_pricerate: ' + str(new_pricerate))
+    #logger.debug('  ')
+    #logger.debug(' -->>>- set_pricerate_to_dict --- ')
+    #logger.debug('rosterdate: ' + str(rosterdate))
+    #logger.debug('wagefactor: ' + str(wagefactor))
+    #logger.debug('new_pricerate: ' + str(new_pricerate))
 
     is_update = False
     if rosterdate is None:
@@ -2054,29 +2021,29 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
     else:
         pricerate_dict = {}
 
-    # logger.debug('rosterdate_dict: ' + str(rosterdate_dict))
-    # logger.debug('wagefactor_key: ' + str(wagefactor_key))
+    #logger.debug('rosterdate_dict: ' + str(rosterdate_dict))
+    #logger.debug('wagefactor_key: ' + str(wagefactor_key))
 
 # --- add or replace key 'wagefactor_key' with value 'new_pricerate' to rosterdate_dict
     if wagefactor_key in rosterdate_dict.keys():
         old_pricerate = rosterdate_dict[wagefactor_key]
-        # logger.debug('wagefactor_key: ' + str(wagefactor_key) + ' old_pricerate: ' + str(old_pricerate))
-        # logger.debug('wagefactor_key: ' + str(wagefactor_key) + ' new_pricerate: ' + str(new_pricerate))
+        #logger.debug('wagefactor_key: ' + str(wagefactor_key) + ' old_pricerate: ' + str(old_pricerate))
+        #logger.debug('wagefactor_key: ' + str(wagefactor_key) + ' new_pricerate: ' + str(new_pricerate))
 
         if new_pricerate != old_pricerate:
             rosterdate_dict[wagefactor_key] = new_pricerate
             is_update = True
-            # logger.debug('is_update: rosterdate_dict ' + str(rosterdate_dict))
+            #logger.debug('is_update: rosterdate_dict ' + str(rosterdate_dict))
     else:
         rosterdate_dict[wagefactor_key] = new_pricerate
         is_update = True
-        # logger.debug('new rosterdate_dict: ' + str(rosterdate_dict))
+        #logger.debug('new rosterdate_dict: ' + str(rosterdate_dict))
 
 # --- add or replace rosterdate_dict in pricerate_dict
     if rosterdate_dict:
         pricerate_dict[rosterdate_key] = rosterdate_dict
-    # logger.debug('new pricerate_dict: ' + str(pricerate_dict))
-    # logger.debug('new is_update: ' + str(is_update))
+    #logger.debug('new pricerate_dict: ' + str(pricerate_dict))
+    #logger.debug('new is_update: ' + str(is_update))
 
     return pricerate_dict, is_update
 
@@ -2254,7 +2221,7 @@ def display_offset_time (offset, timeformat, user_lang, blank_when_zero, skip_pr
 
 
 def display_duration(value_int, user_lang, skip_prefix_suffix):
-    logger.debug(' ========= display_duration  ======== ')  # PR2020-01-24
+    #logger.debug(' ========= display_duration  ======== ')  # PR2020-01-24
 
     time_format = ''
     if value_int:
@@ -2366,7 +2333,7 @@ def calc_timeduration_from_shift(shift):
 
 # <<<<<<<<<< calc_timestart_time_end_from_offset >>>>>>>>>>>>>>>>>>> PR2019-12-10
 def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, breakduration, is_restshift, comp_timezone):
-    # logger.debug('------------------ calc_schemeitem_timeduration --------------------------')
+    #logger.debug('------------------ calc_schemeitem_timeduration --------------------------')
     # called by SchemeitemFillView, update_schemeitem and update_shift > recalc_schemeitems
 
     starttime_local = None
@@ -2379,9 +2346,9 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
     if rosterdate_dte:
     # a. convert stored date_obj 'rosterdate' '2019-08-09' to datetime object 'rosterdatetime_naive'
         rosterdatetime_naive = get_datetime_naive_from_dateobject(rosterdate_dte)
-        # logger.debug(' schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
+        #logger.debug(' schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
         # schemeitem.rosterdate: 2019-11-21 <class 'datetime.date'>
-        # logger.debug(' rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
+        #logger.debug(' rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
         # rosterdatetime_naive: 2019-11-21 00:00:00 <class 'datetime.datetime'>
 
     # b. get starttime from rosterdate and offsetstart
@@ -2391,12 +2358,12 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
             comp_timezone=comp_timezone)
 
     # c. get endtime from rosterdate and offsetstart
-        # logger.debug('c. get endtime from rosterdate and offsetstart ')
+        #logger.debug('c. get endtime from rosterdate and offsetstart ')
         endtime_local = get_datetimelocal_from_offset(
             rosterdate=rosterdatetime_naive,
             offset_int=offsetend,
             comp_timezone=comp_timezone)
-        # logger.debug(' new_endtime: ' + str(new_endtime) + ' ' + str(type(new_endtime)))
+        #logger.debug(' new_endtime: ' + str(new_endtime) + ' ' + str(type(new_endtime)))
 
     # d. recalculate timeduration
         if starttime_local and endtime_local:
@@ -2414,7 +2381,7 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
 
 def check_and_fill_calendar(datefirst, datelast, request):  # PR2019-12-21
     # function checks if calendar dates of the years of this range exist, if not: add calendar dates
-    # logger.debug('---  check_and_fill_calendar  ------- ')
+    #logger.debug('---  check_and_fill_calendar  ------- ')
     if request and datefirst and datelast:
         datefirst_year = datefirst.year
         datelast_year = datelast.year
@@ -2431,7 +2398,7 @@ def check_and_fill_calendar(datefirst, datelast, request):  # PR2019-12-21
 
 def save_publicholidays(year, country, request):
     # function saves code with public hodiday name in calendar
-    logger.debug('save_publicholiday year: ' + str(year) + ' ' + str(type(year)))
+    #logger.debug('save_publicholiday year: ' + str(year) + ' ' + str(type(year)))
 
     is_nl = (country == 'nl')
     is_cw = (country == 'cw')

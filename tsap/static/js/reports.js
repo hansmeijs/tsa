@@ -1135,21 +1135,31 @@ console.log("time_duration: ", time_duration)
         if (len > 0) {
             for (let i = 0; i < len; i++) {
                 let row = data_arr[i][1]; // data_arr is array with [key, value] arrays
-
+console.log("row: ", row)
                 const this_td = get_subdict_value_by_key(row, "timeduration", "value", 0)
                 const this_pd = get_subdict_value_by_key(row, "plannedduration", "value", 0)
-
+                const this_isabsence = get_subdict_value_by_key(row, "id", "isabsence", false)
+                const this_isrestshift = get_subdict_value_by_key(row, "id", "isrestshift", false)
+console.log("this_isabsence: ", this_isabsence)
+console.log("this_isrestshift: ", this_isrestshift)
                 if (!!this_td || !!this_pd){
-            // grand total
-                    subtotals["total"][0] += this_td
-                    subtotals["total"][1] += this_pd
-            // rosterdate
+                // create rosterdate dict if it does not exist
                     const rosterdate = get_subdict_value_by_key(row, "rosterdate", "value")
                     if(!(rosterdate in subtotals)) {
                         subtotals[rosterdate] = {total: [0, 0], customer: {}, order: {}};
                     }
-                    subtotals[rosterdate]["total"][0] += this_td
-                    subtotals[rosterdate]["total"][1] += this_pd
+
+            // grand total
+                    // grand total and rosterdate total ony contain worked hoursa, not absence or rest hours
+                    if(!this_isabsence && !this_isrestshift){
+console.log("!this_isabsence && !this_isrestshift: ")
+                        subtotals["total"][0] += this_td
+                        subtotals["total"][1] += this_pd
+            // add to rosterdate
+                        subtotals[rosterdate]["total"][0] += this_td
+                        subtotals[rosterdate]["total"][1] += this_pd
+                    }  // if(!this_isabsence){
+
             // customer
                     let pk_int = get_subdict_value_by_key(row, "customer", "pk")
                     if(!(pk_int in subtotals[rosterdate]["customer"])) {

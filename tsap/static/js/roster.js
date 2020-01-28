@@ -48,6 +48,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  id of selected emplhour
         let selected_emplhour_pk = 0;
+        let selected_customer_pk = 0; // used in modperiodselect
+        let selected_order_pk = 0;  // used in modperiodselect
 
         let loc = {};  // locale_dict with translated text
         let selected_roster_period = {};
@@ -170,10 +172,24 @@ document.addEventListener('DOMContentLoaded', function() {
 */
         }, false);
 
+// ---  MOD PERIOD ------------------------------------
+// ---  header select period
+        document.getElementById("id_hdr_period").addEventListener("click", function() {ModPeriodOpen()});
+// ---  select customer
+        let el_modperiod_selectcustomer = document.getElementById("id_modperiod_selectcustomer")
+            el_modperiod_selectcustomer.addEventListener("change", function() {
+                        ModPeriodSelectCustomer(el_modperiod_selectcustomer.value)}, false )
+// ---  select order
+        let el_modperiod_selectorder = document.getElementById("id_modperiod_selectorder")
+            el_modperiod_selectorder.addEventListener("change", function() {
+                        ModPeriodSelectOrder(el_modperiod_selectorder.value)}, false )
 // buttons in  modal period
-        document.getElementById("id_mod_period_datefirst").addEventListener("change", function() {ModPeriodEdit("datefirst")}, false )
-        document.getElementById("id_mod_period_datelast").addEventListener("change", function() {ModPeriodEdit("datelast")}, false )
+        document.getElementById("id_mod_period_datefirst").addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false )
+        document.getElementById("id_mod_period_datelast").addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false )
         document.getElementById("id_mod_period_btn_save").addEventListener("click", function() {ModPeriodSave()}, false )
+
+// ---  MOD CONFIRM ------------------------------------
+// ---  save button in ModConfirm
 
 // buttons in modal order
         //document.getElementById("id_mod_order_btn_save").addEventListener("click", function() {ModOrderSave()}, false )
@@ -285,9 +301,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if ("roster_period" in response) {
                     selected_roster_period= response["roster_period"];
-                    DisplayPeriod(selected_roster_period);
+                    //console.log("selected_roster_period: ", selected_roster_period)
+                    //DisplayPeriod(selected_roster_period);
+                    document.getElementById("id_hdr_period").innerText = display_planning_period (selected_roster_period, loc, user_lang);
                 }
-
                 let fill_table = false, check_status = false;
                 if ("abscat_list" in response) {
                     get_datamap(response["abscat_list"], abscat_map)
@@ -313,7 +330,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if ("emplhour_list" in response) {
                     get_datamap(response["emplhour_list"], emplhour_map)
-                    console.log(">>>>>>>>>>>>>>>emplhour_map")
                     console.log(emplhour_map)
                     fill_table = true;
                     check_status = true;
@@ -324,7 +340,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     fill_table = true;
                     check_status = true;
                 }
-
 
                 if ("quicksave" in response) {
                     quicksave = get_subdict_value_by_key(response, "quicksave", "value", false);
@@ -452,7 +467,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= FillTableRows  ====================================
     function FillTableRows() {
-        console.log(" ===== FillTableRows =====");
+        //console.log(" ===== FillTableRows =====");
 
 // --- reset tBody_roster
         tBody_roster.innerText = null;
@@ -498,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  CreateTblHeaderFilter  ================ PR2019-09-15
     function CreateTblHeaderFilter() {
-        console.log("=========  function CreateTblHeaderFilter =========");
+        //console.log("=========  function CreateTblHeaderFilter =========");
 
         let thead_roster = document.getElementById("id_thead_roster");
 
@@ -701,7 +716,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblName, tblRow, item_dict){
-        console.log(" ------>>  UpdateTableRow", tblName);
+        //console.log(" ------>>  UpdateTableRow", tblName);
 
         if (!!item_dict && !!tblRow) {
 
@@ -736,7 +751,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ppk_int = get_dict_value_by_key(id_dict, "ppk")
                 const map_id = get_map_id("emplhour", pk_int);
 
-               // console.log("id_str", id_str, typeof id_str);
+               //console.log("id_str", id_str, typeof id_str);
                 //console.log("pk_int", pk_int, typeof pk_int);
                 //console.log("map_id", map_id, typeof map_id);
             // check if item_dict.id 'new_1' is same as tablerow.id
@@ -776,10 +791,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         fieldname = get_attr_from_el(el_input, "data-field");
                         if (fieldname in item_dict){
                             field_dict = get_dict_value_by_key (item_dict, fieldname);
-                            console.log("fieldname: ", fieldname)
-                            console.log("field_dict: ", field_dict)
+                            //console.log("fieldname: ", fieldname)
+                            //console.log("field_dict: ", field_dict)
                             const is_updated = ("updated" in field_dict);
-                            console.log("is_updated: ", is_updated)
+                            //console.log("is_updated: ", is_updated)
                             if(is_updated){
                                 el_input.classList.add("border_valid");
                                 setTimeout(function (){
@@ -1005,6 +1020,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // set buttons
             document.getElementById("id_mod_rosterdate_btn_ok").disabled = true;
+
+
+        let emplhour_dict = {
+            customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
+            order_pk: (!!selected_order_pk) ? selected_order_pk : null,
+            add_empty_shifts: true,
+            skip_restshifts: true,
+            orderby_rosterdate_customer: true
+        };
+        mod_upload_dict["emplhour"] = emplhour_dict;
 
     // Upload Changes:
            UploadChanges(mod_upload_dict, url_emplhour_fill_rosterdate);
@@ -1272,14 +1297,14 @@ document.addEventListener('DOMContentLoaded', function() {
             let el_select_abscat = document.getElementById("id_mod_employee_abscat")
             if(el_select_abscat.selectedIndex > -1){
                 const selected_option = el_select_abscat.options[el_select_abscat.selectedIndex];
-                const abscat_team_pk = parseInt(el_select_abscat.value)
-                const abscat_team_ppk = get_attr_from_el_int(selected_option, "data-ppk");
-                const abscat_team_code = selected_option.text;
+                const abscat_order_pk = parseInt(el_select_abscat.value)
+                const abscat_order_ppk = get_attr_from_el_int(selected_option, "data-ppk");
+                const abscat_order_code = selected_option.text;
 
-                abscat_dict = {"table": "team", "isabsence": true};
-                if(!!abscat_team_pk){abscat_dict["pk"] = abscat_team_pk};
-                if(!!abscat_team_ppk){abscat_dict["ppk"] = abscat_team_ppk};
-                if(!!abscat_team_code){abscat_dict["code"] = abscat_team_code};
+                abscat_dict = {"table": "order", "isabsence": true};
+                if(!!abscat_order_pk){abscat_dict["pk"] = abscat_order_pk};
+                if(!!abscat_order_ppk){abscat_dict["ppk"] = abscat_order_ppk};
+                if(!!abscat_order_code){abscat_dict["code"] = abscat_order_code};
             }
         }
 
@@ -2341,16 +2366,22 @@ console.log("===  function HandlePopupWdySave =========");
             }
         };
 
-    // set value of extend select box
-        const extend_offset = get_dict_value_by_key(selected_roster_period, "extend_offset", 0)
-        let el_extend = document.getElementById("id_mod_period_extend")
-        for (let i = 0, option, value; i < el_extend.options.length; i++) {
-            value = Number(el_extend.options[i].value);
-            if (value === extend_offset) {
-                el_extend.options[i].selected = true;
-                break;
-            }
-        }
+
+    // fill options of modperiod_selectcustomer
+        let el_select = document.getElementById("id_modperiod_selectcustomer")
+        let selectall_text =  "&lt;" +  loc.All_customers + "&gt;"
+        let select_text_none =  "&lt;" +  loc.No_customers + "&gt;"
+        let is_template_mode = false, has_selectall = true, hide_none = false;
+        FillSelectOption2020(el_select, customer_map, "customer", is_template_mode, has_selectall, hide_none,
+                    null, selected_customer_pk, selectall_text, select_text_none)
+
+    // fill options of modperiod_selectorder
+        el_select = document.getElementById("id_modperiod_selectorder")
+        selectall_text =  "&lt;" +  loc.All_orders + "&gt;"
+        select_text_none =  "&lt;" +  loc.No_orders + "&gt;"
+        hide_none = (!selected_customer_pk);
+        FillSelectOption2020(el_select, order_map, "order", is_template_mode, has_selectall, hide_none,
+                    selected_customer_pk, selected_order_pk, selectall_text, select_text_none)
 
     // set value of date imput elements
         const is_custom_period = (period_tag === "other")
@@ -2366,6 +2397,16 @@ console.log("===  function HandlePopupWdySave =========");
         el_datefirst.disabled = !is_custom_period
         el_datelast.disabled = !is_custom_period
 
+    // set value of extend period input box
+        const extend_offset = get_dict_value_by_key(selected_roster_period, "extend_offset", 0)
+        let el_extend = document.getElementById("id_mod_period_extend")
+        for (let i = 0, option, value; i < el_extend.options.length; i++) {
+            value = Number(el_extend.options[i].value);
+            if (value === extend_offset) {
+                el_extend.options[i].selected = true;
+                break;
+            }
+        }
     // show extend period input box
         document.getElementById("id_mod_period_div_extend").classList.remove(cls_hide)
 
@@ -2373,6 +2414,42 @@ console.log("===  function HandlePopupWdySave =========");
         $("#id_mod_period").modal({backdrop: true});
 
 }; // function ModPeriodOpen
+
+
+//=========  ModPeriodSelectCustomer  ================ PR2020-01-09
+    function ModPeriodSelectCustomer(selected_pk_str) {
+        //console.log( "===== ModPeriodSelectCustomer ========= ");
+        const new_customer_pk = Number(selected_pk_str)
+        if (new_customer_pk !== selected_customer_pk ){
+            selected_customer_pk = new_customer_pk;
+            selected_order_pk = 0;
+        }
+        //console.log( "selected_pk_str: ", selected_pk_str);
+        //console.log( "selected_customer_pk: ", selected_customer_pk);
+        //console.log( "selected_order_pk: ", selected_order_pk);
+
+        let el_select_order = document.getElementById("id_modperiod_selectorder")
+        el_select_order.innerText = null
+        const selectall_text =  "&lt;" +  loc.All_orders + "&gt;"
+        const select_text_none =  "&lt;" +  loc.No_orders + "&gt;"
+        // when 'all customers is selected (selected_customer_pk): there are no orders in selectbox 'orders'
+        // to display 'all orders' instead of 'no orders' we make have boolean 'hide_none' = true
+        const is_template_mode = false, has_selectall = true, hide_none = (!selected_customer_pk);
+        FillSelectOption2020(el_select_order, order_map, "order", is_template_mode, has_selectall, hide_none,
+                    selected_customer_pk, selected_order_pk, selectall_text, select_text_none)
+    }  // ModPeriodSelectCustomer
+
+
+//=========  ModPeriodSelectOrder  ================ PR2020-01-09
+    function ModPeriodSelectOrder(selected_pk_str) {
+        //console.log( "===== ModPeriodSelectOrder ========= ");
+        //console.log( "selected_pk_str: ", selected_pk_str);
+
+        selected_order_pk = Number(selected_pk_str)
+        //console.log( "selected_order_pk: ", selected_order_pk);
+
+    }  // ModPeriodSelectOrder
+
 
 //=========  ModPeriodSelect  ================ PR2019-07-14
     function ModPeriodSelect(tr_clicked, selected_index) {
@@ -2441,17 +2518,23 @@ console.log("===  function HandlePopupWdySave =========");
         const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()]
         mod_upload_dict["now"] = now_arr;
 
-// hide modal
-        $("#id_mod_period").modal("hide");
+// ---  upload new setting
+        let emplhour_dict = {
+            customer_pk: (!!selected_customer_pk) ? selected_customer_pk : null,
+            order_pk: (!!selected_order_pk) ? selected_order_pk : null,
+            add_empty_shifts: true,
+            skip_restshifts: true,
+            orderby_rosterdate_customer: true
+        };
+        document.getElementById("id_hdr_period").innerText = loc.Period + "..."
 
-// ---  download settings and datalist
-        const datalist_request = {
-                roster_period: mod_upload_dict,
-                emplhour: {mode: "get"}
-            };
+        let datalist_request = {roster_period: mod_upload_dict,
+                                emplhour: emplhour_dict
+        };
         DatalistDownload(datalist_request);
 
-
+// hide modal
+        $("#id_mod_period").modal("hide");
     }  // ModPeriodSave
 
 //========= DisplayPeriod  ====================================
@@ -3461,10 +3544,13 @@ console.log("===  function HandlePopupWdySave =========");
                     if ("update_list" in response) {
                         UpdateFromResponse(response["update_list"]);
                     };
+                    if ("emplhour_list" in response) {
+                        get_datamap(response["emplhour_list"], emplhour_map)
+                        FillTableRows();
+                    };
                     if ("rosterdate" in response) {
                         ModRosterdateFinished(response["rosterdate"]);
-                    }
-
+                    };
                 },
                 error: function (xhr, msg) {
                     console.log(msg + '\n' + xhr.responseText);

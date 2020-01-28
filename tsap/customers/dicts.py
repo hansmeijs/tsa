@@ -217,7 +217,7 @@ def create_order_dict(order, item_dict, user_lang):
 
 def create_absencecategory_list(request):
     # --- create list of all active absence categories of this company PR2019-06-25
-    # each absence category contains abscat_customer, abscat_order, abscat_scheme and abscat_team
+    # each absence category contains abscat_customer, abscat_order
     order_list = []
 
     #logger.debug(" --- create_absencecategory_list ---")

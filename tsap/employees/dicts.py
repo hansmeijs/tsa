@@ -57,7 +57,7 @@ def create_employee_dict(instance, item_dict, user_lang):
         workdays = getattr(instance, 'workdays', 0)
         workhoursperday = 0
         if workhours and workdays:
-            workhoursperday = int(workhours / workdays * 1440)
+            workhoursperday = workhours / workdays * 1440
 
         for field in c.FIELDS_EMPLOYEE:
 # --- get field_dict from  item_dict if it exists

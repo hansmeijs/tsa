@@ -1895,7 +1895,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 // --- add absence
             // Field abscat contains pk of abscat order
-            // abscat_team_pk is stored as ppk in tablerow. Parent of Team is Scheme, parent of Scheme is abscat order
             upload_dict["order"] = {pk: Number(el_input.value), table: "order", isabsence: true, update: true};
 
             //set default value to workhours

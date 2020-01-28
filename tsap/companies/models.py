@@ -213,7 +213,7 @@ class Order(TsaBaseModel):
 
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
 
-    sequence = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
+    sequence = IntegerField(null=True) #
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
 
@@ -690,7 +690,6 @@ class Emplhour(TsaBaseModel):
     weekindex = PositiveSmallIntegerField(default=0)
     payperiodindex = PositiveSmallIntegerField(default=0)
 
-    # emplhour isrestshift not in use
     isrestshift = BooleanField(default=False)
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     timestart = DateTimeField(db_index=True, null=True, blank=True)

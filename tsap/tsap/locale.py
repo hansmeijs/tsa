@@ -397,11 +397,14 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['btn_create'] = TXT_btn_create  # 'Create'
         dict['btn_delete'] = TXT_btn_delete  # 'Delete'
 
-
-
+        dict['Period'] = TXT_Period
         dict['Date'] = TXT_Date
         dict['Customer'] = TXT_Customer
+        dict['All_customers'] = TXT_All_customers
+        dict['No_customers'] = TXT_No_customers
         dict['Order'] = TXT_Order
+        dict['All_orders'] = TXT_All_orders
+        dict['No_orders'] = TXT_No_orders
         dict['Employee'] = TXT_Employee
         dict['Shift'] = TXT_Shift
         dict['Start_time'] = TXT_Start_time

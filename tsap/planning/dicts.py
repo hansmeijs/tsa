@@ -1281,7 +1281,7 @@ def get_ispublicholiday_iscompanyholiday(rosterdate_dte, request):
 
 # ========================
 
-def create_emplhour_list(period_dict, request, comp_timezone, timeformat, user_lang): # PR2019-11-16
+def create_emplhour_list(period_dict, customer_pk, order_pk, request, comp_timezone, timeformat, user_lang): # PR2019-11-16
     logger.debug(' ============= create_emplhour_list ============= ')
     logger.debug('period_dict: ' + str(period_dict))
 
@@ -1299,7 +1299,7 @@ def create_emplhour_list(period_dict, request, comp_timezone, timeformat, user_l
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
     if request.user.company is not None:
-        company_id = request.user.company.pk
+        company_pk = request.user.company.pk
         customer_id = None
         order_id = None
         employee_id = None
@@ -1327,6 +1327,7 @@ def create_emplhour_list(period_dict, request, comp_timezone, timeformat, user_l
             SELECT eh.id AS eh_id, oh.id AS oh_id, o.id AS o_id, c.id AS cust_id, c.company_id AS comp_id, 
             eh.rosterdate AS eh_rd, eh.shift AS eh_sh, 
             eh.isabsence AS eh_abs, 
+            eh.isrestshift AS eh_rest, 
             eh.isreplacement AS eh_isrpl,
             eh.timestart AS eh_ts, eh.timeend AS eh_te, eh.status AS eh_st, eh.overlap AS eh_ov,
             eh.breakduration AS eh_bd, eh.timeduration AS eh_td, eh.plannedduration AS eh_pd, 
@@ -1347,11 +1348,11 @@ def create_emplhour_list(period_dict, request, comp_timezone, timeformat, user_l
             AND CASE WHEN eh.timeend   IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
             AND (eh.timestart < %(pte)s OR eh.timestart IS NULL OR %(pte)s IS NULL)
             AND (eh.timeend   > %(pts)s OR eh.timeend   IS NULL OR %(pts)s IS NULL)
-            ORDER BY eh.rosterdate ASC, LOWER(c.code) ASC, LOWER(o.code) ASC, eh.timestart ASC
+            ORDER BY eh.rosterdate ASC, eh.isabsence ASC, LOWER(c.code) ASC, LOWER(o.code) ASC, eh.isrestshift ASC, eh.timestart ASC
             """, {
-                'comp_id': company_id,
-                'cust_id': customer_id,
-                'ord_id': order_id,
+                'comp_id': company_pk,
+                'cust_id': customer_pk,
+                'ord_id': order_pk,
                 'empl_id': employee_id,
                 'rdf': rosterdatefirst,
                 'rdl': rosterdatelast,
@@ -1411,6 +1412,7 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
     ppk_int = row.get('oh_id')  # orderhour.id
 
     is_absence = row.get('eh_abs', False)
+    is_restshift = row.get('eh_rest', False)
 
     # lock field when status = locked or higher
     status_sum = row.get('eh_st')  # instance.status
@@ -1488,6 +1490,8 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
             field_dict['table'] = 'emplhour'
             if is_absence:
                 field_dict['isabsence'] = True
+            if is_restshift:
+                field_dict['isrestshift'] = True
             item_dict['pk'] = pk_int
 
         # orderhour is parent of emplhour
@@ -1610,9 +1614,9 @@ def create_emplhour_itemdict(emplhour, update_dict, comp_timezone, timeformat, u
             row['e_code'] = emplhour.employee.code if emplhour.employee.code else ''
 
         row['eh_sh'] = emplhour.shift if emplhour.shift else ''
-        row['eh_bd'] = emplhour.breakduration if emplhour.shift else 0
-        row['eh_td'] = emplhour.timeduration if emplhour.shift else 0
-        row['eh_pd'] = emplhour.plannedduration if emplhour.shift else 0
+        row['eh_bd'] = emplhour.breakduration
+        row['eh_td'] = emplhour.timeduration
+        row['eh_pd'] = emplhour.plannedduration
         if emplhour.rosterdate:
             row['eh_rd'] = emplhour.rosterdate
         if emplhour.timestart:
