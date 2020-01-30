@@ -1306,7 +1306,10 @@
 
         let el_filter_select_btn = document.getElementById(id_filter_select_btn)
         if (!!el_filter_select_btn){
-            el_filter_select_btn.children[0].setAttribute("src", imgsrc_inactive_lightgrey);
+            let el_filter_select_btn_cell = el_filter_select_btn.children[0]
+            if(!!el_filter_select_btn_cell){
+                el_filter_select_btn_cell.setAttribute("src", imgsrc_inactive_lightgrey);
+            }
         }
 
     }; // f_reset_tblSelect_filter

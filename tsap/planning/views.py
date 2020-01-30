@@ -266,18 +266,20 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     table_dict = datalist_dict.get('employee_calendar')
 
                     # also get customer_planning at startup of page
+                    # empty dict (dict = {} ) is also Falsey
                     if (table_dict is not None) or (selected_page == 'page_employee' and selected_btn == 'calendar'):
+
                         customer_pk = None
+                        employee_pk = None
                         if table_dict:
                             order_pk = table_dict.get('order_pk')
                             if order_pk is None:
                                 customer_pk = table_dict.get('customer_pk')
+                            employee_pk = table_dict.get('employee_pk')
                         else:
                             order_pk = selected_order_pk
                             if order_pk is None:
                                 customer_pk = selected_customer_pk
-
-                        employee_pk = table_dict.get('employee_pk')
 
                         add_empty_shifts = calendar_period_dict.get('add_empty_shifts', False)
                         skip_absence_and_restshifts = calendar_period_dict.get('skip_absence_and_restshifts', False)
@@ -309,14 +311,12 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         # selected order is retrieved table_dict 'customer_calendar'.
                         # iF not provided: use selected_order_pk
                         # order_pk cannot be blank
-                        logger.debug('table_dict: ' + str(table_dict))
-                        logger.debug('selected_order_pk: ' + str(selected_order_pk))
+
                         order_pk = None
                         if table_dict:
                             order_pk = table_dict.get('order_pk')
                         if order_pk is None:
                             order_pk = selected_order_pk
-                        logger.debug('order_pk: ' + str(order_pk))
 
                         datefirst_iso = calendar_period_dict.get('rosterdatefirst')
                         datelast_iso = calendar_period_dict.get('rosterdatelast')
