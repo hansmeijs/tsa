@@ -1021,12 +1021,13 @@ def create_team_dict(team, item_dict):
 # --- end of create_team_dict
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def period_get_and_save(key, period_dict, comp_timezone, user_lang, request):   # PR2019-11-16
-    #logger.debug(' ============== period_get_and_save ================ ')
-    #logger.debug(' key: ' + str(key))
-    #logger.debug(' period_dict: ' + str(period_dict))
+def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, request):   # PR2019-11-16
+    logger.debug(' ============== period_get_and_save ================ ')
+    logger.debug(' key: ' + str(key))
+    logger.debug(' period_dict: ' + str(period_dict))
     # period_dict: {'get': True, 'now': [2019, 11, 17, 7, 9]}
     # period_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
+    # period_dict: {'get': True, 'customer_pk': 695, 'order_pk': 1422}
 
     update_dict = {}
 
@@ -1059,27 +1060,60 @@ def period_get_and_save(key, period_dict, comp_timezone, user_lang, request):   
     #logger.debug('now_arr: ' + str(now_arr))
     #logger.debug('today_dte: ' + str(today_dte))
 
-# 3. get saved period_dict if get_saved = True
-    #logger.debug('key: ' + str(key))
-    if get_saved and key:
-        period_dict = Usersetting.get_jsonsetting(key, request.user)
-        #logger.debug('get_saved period_dict: ' + str(period_dict))
-
 # 4. create update_dict
     update_dict = {'key': key, 'now': now_arr}
+
     # period_dict comes either from argument or from Usersetting
-    period_tag = None
-    extend_offset = 0
-    periodstart = None
-    periodend = None
+# 3. get saved period_dict if get_saved = True
+    saved_period_dict = Usersetting.get_jsonsetting(key, request.user)
+
+# 3. get customer_pk, order_pk or employee_pk
+    save_selected_pk = False
+    customer_pk = 0
+    if 'customer_pk' in period_dict:
+        customer_pk = period_dict.get('customer_pk', 0)
+        save_selected_pk = True
+    else:
+        customer_pk =saved_period_dict.get('customer_pk', 0)
+
+    order_pk = 0
+    if 'order_pk' in period_dict:
+        order_pk = period_dict.get('order_pk', 0)
+        save_selected_pk = True
+    else:
+        order_pk = saved_period_dict.get('order_pk', 0)
+
+    employee_pk = 0
+    if 'employee_pk' in period_dict:
+        employee_pk = period_dict.get('employee_pk', 0)
+        save_selected_pk = True
+    else:
+        employee_pk = saved_period_dict.get('employee_pk', 0)
+
+    is_absence = None  # True: absence only, False: absence excluded, None: all records
+    if 'isabsence' in period_dict:
+        is_absence = period_dict.get('isabsence')
+        save_selected_pk = True
+    else:
+        is_absence = saved_period_dict.get('isabsence')
+
+    update_dict['customer_pk'] = customer_pk
+    update_dict['order_pk'] = order_pk
+    update_dict['employee_pk'] = employee_pk
+    update_dict['isabsence'] = is_absence
+
+# 3. get saved period_dict if get_saved = True
+    if get_saved:
+        period_dict = saved_period_dict
+
+# 4. create update_dict
     periodstart_datetimelocal = None
     periodend_datetimelocal = None
 
-    if period_dict:
-        period_tag = period_dict.get('period_tag')
-        extend_offset = period_dict.get('extend_offset', 0)
-        periodstart = period_dict.get('periodstart')
-        periodend = period_dict.get('periodend')
+    period_tag = period_dict.get('period_tag')
+    extend_offset = period_dict.get('extend_offset', 0)
+    periodstart = period_dict.get('periodstart')
+    periodend = period_dict.get('periodend')
     if period_tag is None:
         period_tag = default_period
 
@@ -1181,6 +1215,7 @@ def period_get_and_save(key, period_dict, comp_timezone, user_lang, request):   
         update_dict['periodstart'] = periodstart_datetimelocal
     if periodend_datetimelocal:
         update_dict['periodend'] = periodend_datetimelocal
+    update_dict['period_display'] = f.format_period_from_datetimelocal(periodstart_datetimelocal, periodend_datetimelocal, timeformat, user_lang)
 
     if rosterdatefirst_dte:
         # rosterdatefirst_minus1 is used in create_emplhour_list
@@ -1212,8 +1247,15 @@ def period_get_and_save(key, period_dict, comp_timezone, user_lang, request):   
     if extend_offset:
         setting_tobe_saved['extend_offset'] = extend_offset
 
-    #logger.debug('set_jsonsetting key: ' + str(key))
-    #logger.debug('setting_tobe_saved: ' + str(setting_tobe_saved))
+    logger.debug('=================save_selected_pk key: ' + str(save_selected_pk))
+    if save_selected_pk:
+        setting_tobe_saved['customer_pk'] = customer_pk
+        setting_tobe_saved['order_pk'] = order_pk
+        setting_tobe_saved['employee_pk'] = employee_pk
+        setting_tobe_saved['isabsence'] = is_absence
+
+    logger.debug('=============set_jsonsetting key: ' + str(key))
+    logger.debug('=============setting_tobe_saved: ' + str(setting_tobe_saved))
     Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
 
 #logger.debug('update_dict: ' + str(update_dict))
@@ -1281,9 +1323,9 @@ def get_ispublicholiday_iscompanyholiday(rosterdate_dte, request):
 
 # ========================
 
-def create_emplhour_list(period_dict, customer_pk, order_pk, request, comp_timezone, timeformat, user_lang): # PR2019-11-16
-    logger.debug(' ============= create_emplhour_list ============= ')
-    logger.debug('period_dict: ' + str(period_dict))
+def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, request): # PR2019-11-16
+    #logger.debug(' ============= create_emplhour_list ============= ')
+    #logger.debug('period_dict: ' + str(period_dict))
 
     periodstart_datetimelocal = period_dict.get('periodstart')
     periodend_datetimelocal = period_dict.get('periodend')
@@ -1291,6 +1333,8 @@ def create_emplhour_list(period_dict, customer_pk, order_pk, request, comp_timez
     rosterdatelast = period_dict.get('rosterdatelast')
     rosterdatefirst_minus1 = period_dict.get('rosterdatefirst_minus1')
     rosterdatelast_plus1 = period_dict.get('rosterdatelast_plus1')
+
+
 
     starttime = timer()
 
@@ -1300,9 +1344,21 @@ def create_emplhour_list(period_dict, customer_pk, order_pk, request, comp_timez
     # NOTE: To protect against SQL injection, you must not include quotes around the %s placeholders in the SQL string.
     if request.user.company is not None:
         company_pk = request.user.company.pk
-        customer_id = None
-        order_id = None
-        employee_id = None
+
+        customer_pk = None
+        order_pk = period_dict.get('order_pk')
+        if not order_pk:
+            order_pk = None
+        # only get customer_pk when order_pk = None
+        if order_pk is None:
+            customer_pk = period_dict.get('customer_pk')
+            if not customer_pk:
+                customer_pk = None
+
+        employee_pk = period_dict.get('employee_pk')
+        if not employee_pk:
+            employee_pk = None
+        is_absence = period_dict.get('isabsence')
 
     # show emplhour records with :
         # LEFT JOIN employee (also records without employee are shown)
@@ -1343,6 +1399,7 @@ def create_emplhour_list(period_dict, customer_pk, order_pk, request, comp_timez
             AND (c.id = %(cust_id)s OR %(cust_id)s IS NULL)
             AND (o.id = %(ord_id)s OR %(ord_id)s IS NULL)
             AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
+            AND (eh.isabsence = %(eh_absence)s OR %(eh_absence)s IS NULL)
             
             AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
             AND CASE WHEN eh.timeend   IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
@@ -1353,7 +1410,8 @@ def create_emplhour_list(period_dict, customer_pk, order_pk, request, comp_timez
                 'comp_id': company_pk,
                 'cust_id': customer_pk,
                 'ord_id': order_pk,
-                'empl_id': employee_id,
+                'empl_id': employee_pk,
+                'eh_absence': is_absence,
                 'rdf': rosterdatefirst,
                 'rdl': rosterdatelast,
                 'rdfm1': rosterdatefirst_minus1,
@@ -1361,7 +1419,8 @@ def create_emplhour_list(period_dict, customer_pk, order_pk, request, comp_timez
                 'pts': periodstart_datetimelocal,
                 'pte': periodend_datetimelocal
                 })
-
+        #             AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
+#             AND (eh.isabsence = %(eh_absence)s OR %(eh_absence)s IS NULL)
         #logger.debug("rosterdatefirst_minus1: " + str(rosterdatefirst_minus1))
         #logger.debug("rosterdatelast_plus1: " + str(rosterdatelast_plus1))
         #logger.debug("periodstart_datetimelocal: " + str(periodstart_datetimelocal))
@@ -1383,7 +1442,7 @@ def create_emplhour_list(period_dict, customer_pk, order_pk, request, comp_timez
 
         emplhour_list = []
         for row in emplhours_rows:
-            # logger.debug("row: " + str(row))
+            #logger.debug("row: " + str(row))
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # --- start of create_emplhour_itemdict
             item_dict = create_NEWemplhour_itemdict(row, {}, comp_timezone, timeformat, user_lang)
@@ -1394,15 +1453,15 @@ def create_emplhour_list(period_dict, customer_pk, order_pk, request, comp_timez
             if item_dict:
                 emplhour_list.append(item_dict)
 
-    # logger.debug('list elapsed time  is :')
-    # logger.debug(timer() - starttime)
+    #logger.debug('list elapsed time  is :')
+    #logger.debug(timer() - starttime)
 
         return emplhour_list
 
 
 def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
-    logger.debug(' === create_NEWemplhour_itemdict ==')
-    logger.debug('row: ' + str(row))
+    #logger.debug(' === create_NEWemplhour_itemdict ==')
+    #logger.debug('row: ' + str(row))
 
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # --- start of create_emplhour_itemdict
@@ -1579,7 +1638,7 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
 # --- remove empty attributes from item_dict
     f.remove_empty_attr_from_dict(item_dict)
 
-    logger.debug('item_dict: ' + str(item_dict))
+    #logger.debug('item_dict: ' + str(item_dict))
     return item_dict
 # --- end of create_NEWemplhour_itemdict
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1590,8 +1649,8 @@ def create_emplhour_itemdict(emplhour, update_dict, comp_timezone, timeformat, u
     # --- create dict of this emplhour PR2019-10-11
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
-    # logger.debug(' ============= create_emplhour_dict ============= ')
-    # logger.debug(str(update_dict))
+    #logger.debug(' ============= create_emplhour_dict ============= ')
+    #logger.debug(str(update_dict))
     item_dict = {}
     if emplhour:
 
@@ -1629,7 +1688,7 @@ def create_emplhour_itemdict(emplhour, update_dict, comp_timezone, timeformat, u
 # replaced by create_NEWemplhour_itemdict
         item_dict =  create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, user_lang)
 
-        logger.debug('??????????? item_dict: ' + str(item_dict))
+        #logger.debug('??????????? item_dict: ' + str(item_dict))
 # --- remove empty attributes from update_dict
         #f.remove_empty_attr_from_dict(item_dict)
     return item_dict
@@ -1637,8 +1696,8 @@ def create_emplhour_itemdict(emplhour, update_dict, comp_timezone, timeformat, u
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 def create_emplhour_dict(update_dict, comp_timezone, timeformat, user_lang):
-    # logger.debug ('--- create_emplhour_dict ---')
-    # logger.debug ('update_dict: ' + str(update_dict))
+    #logger.debug ('--- create_emplhour_dict ---')
+    #logger.debug ('update_dict: ' + str(update_dict))
     # update_dict: {'id': {'ppk': 3145, 'table': 'emplhour', 'pk': 3625},
     # 'orderhour': {}, 'rosterdate': {}, 'cat': {},
     # 'employee': {'updated': True, 'value': 'Windster L I L', 'pk': 269},
@@ -1649,7 +1708,7 @@ def create_emplhour_dict(update_dict, comp_timezone, timeformat, user_lang):
     id_dict = update_dict.get('id')
     if 'id' in update_dict:
         pk_int = id_dict.get('pk',0)
-        # logger.debug ('pk_int' + str(pk_int) + ' ' + str(type(pk_int)))
+        #logger.debug ('pk_int' + str(pk_int) + ' ' + str(type(pk_int)))
 
         if pk_int:
             row_dict = m.Emplhour.objects\
@@ -1670,7 +1729,7 @@ def create_emplhour_dict(update_dict, comp_timezone, timeformat, user_lang):
 
 
 def create_teammemberabsence_list(dict, company):
-    # logger.debug('create_emplabs_list: ' + str(dict))
+    #logger.debug('create_emplabs_list: ' + str(dict))
     # datalist_dict: {'replacement': {'action': 'switch', 'rosterdate': None, 'reployee_pk': 214}} <class 'dict'>
     # {'action': 'switch', 'rosterdate': None, 'reployee_pk': 214, 'reployee_ppk': 2}
     # create list of absence teammmber reocrds of this employee  PR2019-08-29
@@ -1716,7 +1775,7 @@ def create_teammemberabsence_list(dict, company):
 
 
 def create_replacementshift_list(dict, company):
-    # logger.debug('create_replacementshift_list: ' + str(dict))
+    #logger.debug('create_replacementshift_list: ' + str(dict))
     # datalist_dict: {'replacement': {'action': 'switch', 'rosterdate': None, 'reployee_pk': 214}} <class 'dict'>
     # {'action': 'switch', 'rosterdate': None, 'reployee_pk': 214, 'reployee_ppk': 2}
     # create list of avauilable shifts of this replacement employee PR2019-08-16
@@ -1732,7 +1791,7 @@ def create_replacementshift_list(dict, company):
 # 2. get start date of replacement period
         rosterdate = dict['rosterdate']
         rosterdate_min = f.get_datetimenaive_from_ISOstring(rosterdate)
-        # logger.debug('rosterdate_min: ' + str(rosterdate_min) + str(type(rosterdate_min)))
+        #logger.debug('rosterdate_min: ' + str(rosterdate_min) + str(type(rosterdate_min)))
 
 # 3. get replacement period from Companysetting
         # this period is rosterdate_min till rosterdate_min + REPLACEMENT_PERIOD_DEFAULT (days)
@@ -1745,7 +1804,7 @@ def create_replacementshift_list(dict, company):
 # 4. get pk of current employee and replacement employee
         employee_pk = dict['employee_pk']
         reployee_pk = dict['reployee_pk']
-        # logger.debug('reployee_pk: ' + str(reployee_pk))
+        #logger.debug('reployee_pk: ' + str(reployee_pk))
 
 # 5. loop through dates of replacement period
         count = 0
@@ -1768,7 +1827,7 @@ def create_replacementshift_list(dict, company):
                     Q(orderhour__order__locked=False) & \
                     Q(employee_id=reployee_pk)
             emplhours = m.Emplhour.objects.filter(crit)
-            # logger.debug('........ emplhours   ' + str(rosterdate_cur_str) + '......... ')
+            #logger.debug('........ emplhours   ' + str(rosterdate_cur_str) + '......... ')
 
             for emplhour in emplhours:
                 eplh_dict = {}
@@ -1811,18 +1870,18 @@ def create_replacementshift_list(dict, company):
                    (Q(datefirst__lte=rosterdate_cur_str) | Q(datefirst__isnull=True)) & \
                    (Q(datelast__gte=rosterdate_cur_str) | Q(datelast__isnull=True))
             teammembers = m.Teammember.objects.filter(crit)
-            # logger.debug('........ teammembers ' + str(rosterdate_cur_str) + '......... ')
+            #logger.debug('........ teammembers ' + str(rosterdate_cur_str) + '......... ')
 
             for teammember in teammembers:
-                logger.debug('teammember.pk: ' + str(teammember.pk))
+                #logger.debug('teammember.pk: ' + str(teammember.pk))
                 # if teammember.employee:
-                    # logger.debug('teammember.employee: ' + str(teammember.employee.code))
+                    #logger.debug('teammember.employee: ' + str(teammember.employee.code))
 
                 item_dict = {}                # check if teammemember is the first teammember
                 first_teammember = m.Teammember.get_first_teammember_on_rosterdate(teammember.team, rosterdate_cur_str)
                 if first_teammember:
                     if teammember.employee_id == first_teammember.employee_id:
-                        # logger.debug('teammember.employee_id == first_teammember.employee_id ')
+                        #logger.debug('teammember.employee_id == first_teammember.employee_id ')
                         # now we have the team, of which the replacement employee is the first teammember on this date
                         # next step is to find the schemeitems on this date with this team
 
@@ -1830,13 +1889,13 @@ def create_replacementshift_list(dict, company):
                         for schemeitem in schemeitems:
 
                             # skip inactive schemeitems
-                            # logger.debug('. schemeitem: ' + str(schemeitem.pk) + ' rosterdate: ' + str(schemeitem.rosterdate))
+                            #logger.debug('. schemeitem: ' + str(schemeitem.pk) + ' rosterdate: ' + str(schemeitem.rosterdate))
                             # get rosterdate of this schemeitem that is within this cycle:
                             si_rosterdate_within_cycle = schemeitem.get_rosterdate_within_cycle(rosterdate_cur_dtm)
-                            # logger.debug('... si_rosterdate_within_cycle: ' + str(si_rosterdate_within_cycle) + ' rosterdate_cur_dtm: ' + str(rosterdate_cur_dtm))
+                            #logger.debug('... si_rosterdate_within_cycle: ' + str(si_rosterdate_within_cycle) + ' rosterdate_cur_dtm: ' + str(rosterdate_cur_dtm))
                             datediff = si_rosterdate_within_cycle - rosterdate_cur_dtm  # datediff is class 'datetime.timedelta'
                             datediff_days = datediff.days  # <class 'int'>
-                            # logger.debug('... datediff_days: ' + str(datediff_days))
+                            #logger.debug('... datediff_days: ' + str(datediff_days))
 
                             # if si_rosterdate_within_cycle is same as rosterdate_cur_dtm: c
                             if datediff_days == 0:
@@ -1898,7 +1957,7 @@ def create_replacementshift_list(dict, company):
         for si_dict in si_list:
             si_pk = si_dict['si_pk']
             si_rosterdate = si_dict['rosterdate']
-            # logger.debug(' ADD: si_pk: ' + str(si_pk) + ' si_rosterdate: ' + str(si_rosterdate))
+            #logger.debug(' ADD: si_pk: ' + str(si_pk) + ' si_rosterdate: ' + str(si_rosterdate))
             replacementshift_list.append(si_dict)
 
     return_dict = {'replacement': True} # just to make dict not empty
@@ -1911,20 +1970,20 @@ def create_replacementshift_list(dict, company):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def create_review_list(period_dict, company, comp_timezone):  # PR2019-08-20
     # create list of shifts of this order PR2019-08-08
-    # logger.debug(' --- create_review_list --- ')
-    # logger.debug('datefirst:  ' + str(datefirst) + ' datelast:  ' + str(datelast))
+    #logger.debug(' --- create_review_list --- ')
+    #logger.debug('datefirst:  ' + str(datefirst) + ' datelast:  ' + str(datelast))
 
 
     review_list = []
     if company:
-        logger.debug(' ============= create_emplhour_list ============= ')
+        #logger.debug(' ============= create_emplhour_list ============= ')
 
         rosterdatefirst = period_dict.get('rosterdatefirst')
         rosterdatelast = period_dict.get('rosterdatelast')
 
-        # logger.debug(emplhours.query)
+        #logger.debug(emplhours.query)
         # from django.db import connection
-        # logger.debug(connection.queries)
+        #logger.debug(connection.queries)
         if rosterdatefirst is None:
             rosterdatefirst = '1900-01-01'
         if rosterdatelast is None:
@@ -2033,7 +2092,7 @@ def reset_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
         AND (eh.rosterdate <= %(dl)s)""", {'cid': request.user.company_id, 'df': datefirst, 'dl': datelast})
 
 def check_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
-    # logger.debug(' === check_overlapping_shifts === ' + ' datefirst: ' + str(datefirst) + ' datelast: ' + str(datelast))
+    #logger.debug(' === check_overlapping_shifts === ' + ' datefirst: ' + str(datefirst) + ' datelast: ' + str(datelast))
 
     # cursor.fetchall(): [(427, ), (238, ), (363, )]
     # from https://docs.djangoproject.com/en/2.2/topics/db/sql/
@@ -2064,13 +2123,13 @@ def check_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
     if not datefirst:
         datefirst = '1900-01-01'
     datefirst_dte = f.get_date_from_ISO(datefirst)  # datefirst_dte: 1900-01-01 <class 'datetime.date'>
-    # logger.debug('datefirst_dte: ' + str(datefirst_dte) + ' ' + str(type(datefirst_dte)))
+    #logger.debug('datefirst_dte: ' + str(datefirst_dte) + ' ' + str(type(datefirst_dte)))
     datefirst_dtm = datefirst_dte + timedelta(days=-1)  # datefirst_dtm: 1899-12-31 <class 'datetime.date'>
-    # logger.debug('datefirst_dtm: ' + str(datefirst_dtm) + ' ' + str(type(datefirst_dtm)))
+    #logger.debug('datefirst_dtm: ' + str(datefirst_dtm) + ' ' + str(type(datefirst_dtm)))
     datefirst_iso = datefirst_dtm.isoformat()  # datefirst_iso: 1899-12-31 <class 'str'>
-    # logger.debug('datefirst_iso: ' + str(datefirst_iso) + ' ' + str(type(datefirst_iso)))
+    #logger.debug('datefirst_iso: ' + str(datefirst_iso) + ' ' + str(type(datefirst_iso)))
     datefirst_extended = datefirst_iso.split('T')[0]  # datefirst_extended: 1899-12-31 <class 'str'>
-    # logger.debug('datefirst_extended: ' + str(datefirst_extended) + ' ' + str(type(datefirst_extended)))
+    #logger.debug('datefirst_extended: ' + str(datefirst_extended) + ' ' + str(type(datefirst_extended)))
 
     if not datelast:
         datelast = '2500-01-01'
@@ -2099,13 +2158,13 @@ def check_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
         HAVING COUNT(eh.id) > 1""",
         {'cid': request.user.company_id, 'df': datefirst_extended, 'dl': datelast_extended})
     employee_list = cursor.fetchall()
-    # logger.debug('employee_list: ' + str(employee_list) + ' ' + str(type(employee_list)))
+    #logger.debug('employee_list: ' + str(employee_list) + ' ' + str(type(employee_list)))
     # employee_list: [(393,), (155,), (363,), (1252,), (265,), (281,), (1352,)] <class 'list'>
 
 # 4. loop through list of employees with multiple emplhours
     for item in employee_list:
         employee_id = item[0]
-        # logger.debug('employee_id: ' + str(employee_id) + ' ' + str(type(employee_id)))
+        #logger.debug('employee_id: ' + str(employee_id) + ' ' + str(type(employee_id)))
 
         # eplh_update_list not in use in check_overlapping_shifts
         eplh_update_list = []
@@ -2114,8 +2173,8 @@ def check_overlapping_shifts(datefirst, datelast, request):  # PR2019-09-18
 
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 def update_emplhour_overlap(employee_id, rosterdate, request, eplh_update_list):  # PR2019-09-21
-    logger.debug('--- update_emplhour_overlap --- ' + str(employee_id))
-    logger.debug('rosterdate' + str(rosterdate) + ' ' + str(type(rosterdate)))
+    #logger.debug('--- update_emplhour_overlap --- ' + str(employee_id))
+    #logger.debug('rosterdate' + str(rosterdate) + ' ' + str(type(rosterdate)))
     # 1. create 'extende range' -  add 1 day at beginning and end for overlapping shifts of previous and next day
     # eplh_update_list strores eplh.id's of records that are updated
 
@@ -2133,14 +2192,14 @@ def update_emplhour_overlap(employee_id, rosterdate, request, eplh_update_list):
 
     update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelast_extended, request, eplh_update_list)
 
-    logger.debug('eplh_update_list: ' + str(eplh_update_list))
+    #logger.debug('eplh_update_list: ' + str(eplh_update_list))
 
 
 def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelast_extended, request, eplh_update_list):  # PR2019-09-21
-    # logger.debug(' === update_overlap === employee_id ' + ' ' + str(employee_id))
-    # logger.debug(' datefirst: ' + str(datefirst) + ' datelast: ' + str(datelast))
-    # logger.debug(' datefirst_extended: ' + str(datefirst_extended) +  'datelast_extended: ' + str(datelast_extended))
-    # logger.debug(' eplh_update_list: ' + str(eplh_update_list))
+    #logger.debug(' === update_overlap === employee_id ' + ' ' + str(employee_id))
+    #logger.debug(' datefirst: ' + str(datefirst) + ' datelast: ' + str(datelast))
+    #logger.debug(' datefirst_extended: ' + str(datefirst_extended) +  'datelast_extended: ' + str(datelast_extended))
+    #logger.debug(' eplh_update_list: ' + str(eplh_update_list))
 
     # cursor.fetchall(): [(427, ), (238, ), (363, )]
     # from https://docs.djangoproject.com/en/2.2/topics/db/sql/
@@ -2168,8 +2227,8 @@ def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelas
     #        logger.debug('test employee: ' + str(employee) + ' datefirst: ' + str(member.datefirst) + ' datelast: ' + str(member.datelast))
 
 
-    # logger.debug('------- ')
-    # logger.debug('------- > employee_id: ' + str(employee_id) + '' + str(type(employee_id)))
+    #logger.debug('------- ')
+    #logger.debug('------- > employee_id: ' + str(employee_id) + '' + str(type(employee_id)))
 
 # 1. create queryset of this employee with emplhours in the narrow timerange
     crit = Q(orderhour__order__customer__company=request.user.company) & \
@@ -2193,12 +2252,12 @@ def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelas
         filter(crit).\
         values('id', 'timestart_nonull', 'timeend_nonull').\
         order_by('id')
-    # logger.debug(str(emplhours_extended.query))
-    # logger.debug(str(emplhours_extended))
+    #logger.debug(str(emplhours_extended.query))
+    #logger.debug(str(emplhours_extended))
 
 # 5. loop through narrow queryset
     for emplhour in emplhours:
-        # logger.debug(str(emplhour.employee.code) + ' ' + str(emplhour.shift)  + ' ' + str(emplhour.rosterdate))
+        #logger.debug(str(emplhour.employee.code) + ' ' + str(emplhour.shift)  + ' ' + str(emplhour.rosterdate))
 
 # 6. loop through extended queryset and check if record overlaps with other record
 
@@ -2211,8 +2270,8 @@ def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelas
                 a = sub_eplh['timestart_nonull']
                 b = sub_eplh['timeend_nonull']
 
-                # logger.debug(str(emplhour.id) + ': x = ' + str(x.isoformat()) + ' y = ' + str(y.isoformat()))
-                # logger.debug(str(sub_eplh['id']) + ': a = ' + str(a.isoformat()) + ' b = ' + str(b.isoformat()))
+                #logger.debug(str(emplhour.id) + ': x = ' + str(x.isoformat()) + ' y = ' + str(y.isoformat()))
+                #logger.debug(str(sub_eplh['id']) + ': a = ' + str(a.isoformat()) + ' b = ' + str(b.isoformat()))
 
                 # no overlap                x|_________|y
                 #               a|_____|b                  a|_____|b
@@ -2231,18 +2290,18 @@ def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelas
                 #                     a >= x   and   b <= y
 
                 if (a <= x and b >= y) or (a >= x and b <= y):
-                    # logger.debug(' full overlap (a <= x and b >= y) or (a >= x and b <= y)')
+                    #logger.debug(' full overlap (a <= x and b >= y) or (a >= x and b <= y)')
                     # full overlap
                     overlap_start = 1
                     overlap_end = 2
                 elif a < x < b <= y:    #  a < x and b > x and b <= y:
-                    # logger.debug(' overlap_start (a < x and b > x and b <= y)')
+                    #logger.debug(' overlap_start (a < x and b > x and b <= y)')
                     overlap_start = 1
                 elif  x <= a < y < b:   #  a >= x and a < y and b > y:
-                    # logger.debug(' overlap_end (a >= x and a < y and b > y)')
+                    #logger.debug(' overlap_end (a >= x and a < y and b > y)')
                     overlap_end = 2
                 # else:
-                    # logger.debug(' no overlap')
+                    #logger.debug(' no overlap')
 
             if overlap_start == 1 and overlap_end == 2:
                 break
@@ -2256,7 +2315,7 @@ def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelas
         if overlap_start + overlap_end != old_overlap:
             if emplhour.id not in eplh_update_list:
                 eplh_update_list.append(emplhour.id)
-        # logger.debug('eplh_update_list: ' + str(eplh_update_list))
+        #logger.debug('eplh_update_list: ' + str(eplh_update_list))
 
 def get_rosterdatefill_dict(rosterdate_fill_dte, company):  # PR2019-11-12
     rosterdate_dict = {}
@@ -2274,12 +2333,12 @@ def get_rosterdatefill_dict(rosterdate_fill_dte, company):  # PR2019-11-12
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, timeend_utc, has_overlap,
                            comp_timezone, timeformat, user_lang):
-    # logger.debug(" ")
-    # logger.debug(" ------- set_fielddict_datetime ---------- ")
-    # logger.debug("rosterdate_dte " + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
-    # logger.debug("timestart_utc " + str(timestart_utc) + ' ' + str(type(timestart_utc)))
-    # logger.debug("timeend_utc " + str(timeend_utc) + ' ' + str(type(timeend_utc)))
-    # logger.debug("comp_timezone " + str(comp_timezone) + ' ' + str(type(comp_timezone)))
+    #logger.debug(" ")
+    #logger.debug(" ------- set_fielddict_datetime ---------- ")
+    #logger.debug("rosterdate_dte " + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+    #logger.debug("timestart_utc " + str(timestart_utc) + ' ' + str(type(timestart_utc)))
+    #logger.debug("timeend_utc " + str(timeend_utc) + ' ' + str(type(timeend_utc)))
+    #logger.debug("comp_timezone " + str(comp_timezone) + ' ' + str(type(comp_timezone)))
 
     timezone = pytz.timezone(comp_timezone)
 
@@ -2291,18 +2350,18 @@ def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, tim
     if min_datetime_utc:
         min_datetime_local = min_datetime_utc.astimezone(timezone)
         min_offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, min_datetime_local)
-        # logger.debug("min_datetime_utc " + str(min_datetime_utc) + ' ' + str(type(min_datetime_utc)))
-        #  logger.debug("min_datetime_local " + str(min_datetime_local) + ' ' + str(type(min_datetime_local)))
-        # logger.debug("min_offset_int " + str(min_offset_int) + ' ' + str(type(min_offset_int)))
+        #logger.debug("min_datetime_utc " + str(min_datetime_utc) + ' ' + str(type(min_datetime_utc)))
+        #logger.debug("min_datetime_local " + str(min_datetime_local) + ' ' + str(type(min_datetime_local)))
+        #logger.debug("min_offset_int " + str(min_offset_int) + ' ' + str(type(min_offset_int)))
 
     max_offset_int = None
     if max_datetime_utc:
         max_datetime_local = max_datetime_utc.astimezone(timezone)
         max_offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, max_datetime_local)
-        # logger.debug("rosterdate_dte " + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
-        # logger.debug("max_datetime_utc " + str(max_datetime_utc) + ' ' + str(type(max_datetime_utc)))
-        # logger.debug("max_datetime_local " + str(max_datetime_local) + ' ' + str(type(max_datetime_local)))
-        # logger.debug("max_offset_int " + str(max_offset_int) + ' ' + str(type(max_offset_int)))
+        #logger.debug("rosterdate_dte " + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+        #logger.debug("max_datetime_utc " + str(max_datetime_utc) + ' ' + str(type(max_datetime_utc)))
+        #logger.debug("max_datetime_local " + str(max_datetime_local) + ' ' + str(type(max_datetime_local)))
+        #logger.debug("max_offset_int " + str(max_offset_int) + ' ' + str(type(max_offset_int)))
 
     field_dict['field'] = field
 
@@ -2315,9 +2374,9 @@ def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, tim
             datetime_local = datetime_utc.astimezone(timezone)
             offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, datetime_local)
 
-            # logger.debug("datetime_utc.isoformat() " + str(datetime_utc.isoformat()) + ' ' + str(type(datetime_utc.isoformat())))
-            # logger.debug("datetime_local " + str(datetime_local) + ' ' + str(type(datetime_local)))
-            # logger.debug("offset_int " + str(offset_int) + ' ' + str(type(offset_int)))
+            #logger.debug("datetime_utc.isoformat() " + str(datetime_utc.isoformat()) + ' ' + str(type(datetime_utc.isoformat())))
+            #logger.debug("datetime_local " + str(datetime_local) + ' ' + str(type(datetime_local)))
+            #logger.debug("offset_int " + str(offset_int) + ' ' + str(type(offset_int)))
 
     elif field == "timeend":
         datetime_utc = timeend_utc
@@ -2325,9 +2384,9 @@ def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, tim
             datetime_local = datetime_utc.astimezone(timezone)
             offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, datetime_local)
 
-            # logger.debug("datetime_utc.isoformat() " + str(datetime_utc.isoformat()) + ' ' + str(type(datetime_utc.isoformat())))
-            # logger.debug("datetime_local " + str(datetime_local) + ' ' + str(type(datetime_local)))
-            # logger.debug("offset_int " + str(offset_int) + ' ' + str(type(offset_int)))
+            #logger.debug("datetime_utc.isoformat() " + str(datetime_utc.isoformat()) + ' ' + str(type(datetime_utc.isoformat())))
+            #logger.debug("datetime_local " + str(datetime_local) + ' ' + str(type(datetime_local)))
+            #logger.debug("offset_int " + str(offset_int) + ' ' + str(type(offset_int)))
 
     if offset_int is not None:
         field_dict['offset'] = offset_int
@@ -2368,11 +2427,11 @@ def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, tim
     # logger.debug('field_dict: '+ str(field_dict))
 
 def get_minmax_datetime_utc(field, rosterdate, timestart_utc, timeend_utc, comp_timezone):  # PR2019-08-07
-    # logger.debug(" ------- get_minmax_datetime_utc ---------- ")
-    # logger.debug(" ------- rosterdate:    " + str(rosterdate) + ' ' + str(type(rosterdate)))
-    # logger.debug(" ------- timestart_utc: " + str(timestart_utc) + ' ' + str(type(rosterdate)))
-    # logger.debug(" ------- timeend_utc:   " + str(timeend_utc) + ' ' + str(type(timeend_utc)))
-    # logger.debug(" ------- comp_timezone: " + str(comp_timezone) + ' ' + str(type(comp_timezone)))
+    #logger.debug(" ------- get_minmax_datetime_utc ---------- ")
+    #logger.debug(" ------- rosterdate:    " + str(rosterdate) + ' ' + str(type(rosterdate)))
+    #logger.debug(" ------- timestart_utc: " + str(timestart_utc) + ' ' + str(type(rosterdate)))
+    #logger.debug(" ------- timeend_utc:   " + str(timeend_utc) + ' ' + str(type(timeend_utc)))
+    #logger.debug(" ------- comp_timezone: " + str(comp_timezone) + ' ' + str(type(comp_timezone)))
 
     min_datetime_utc = None
     max_datetime_utc = None
@@ -2389,8 +2448,8 @@ def get_minmax_datetime_utc(field, rosterdate, timestart_utc, timeend_utc, comp_
                 comp_timezone=comp_timezone)
 
             min_datetime_utc = min_rosterdate_local.astimezone(pytz.utc)
-            # logger.debug("min_rosterdate_local: " + str(min_rosterdate_local))
-            # logger.debug("    min_datetime_utc: " + str(min_datetime_utc))
+            #logger.debug("min_rosterdate_local: " + str(min_rosterdate_local))
+            #logger.debug("    min_datetime_utc: " + str(min_datetime_utc))
 
             # get maxdatetime, 24 hours after midnight
             max_rosterdate_local = f.get_datetimelocal_from_offset(
@@ -2400,9 +2459,9 @@ def get_minmax_datetime_utc(field, rosterdate, timestart_utc, timeend_utc, comp_
             max_rosterdate_utc = max_rosterdate_local.astimezone(pytz.utc)
             # maxdatetime = timeend_utc if that comes before max_rosterdate_utc
             max_datetime_utc = timeend_utc if timeend_utc and timeend_utc < max_rosterdate_utc else max_rosterdate_utc
-            # logger.debug("max_rosterdate_local: " + str(max_rosterdate_local))
-            # logger.debug("  max_rosterdate_utc: " + str(max_rosterdate_utc))
-            # logger.debug("    max_datetime_utc: " + str(max_datetime_utc))
+            #logger.debug("max_rosterdate_local: " + str(max_rosterdate_local))
+            #logger.debug("  max_rosterdate_utc: " + str(max_rosterdate_utc))
+            #logger.debug("    max_datetime_utc: " + str(max_datetime_utc))
 
         elif field == field == 'timeend':
             # get mindatetime, equals midnight (midnight = rosterdate 00.00 u)
@@ -2412,9 +2471,9 @@ def get_minmax_datetime_utc(field, rosterdate, timestart_utc, timeend_utc, comp_
                 comp_timezone=comp_timezone)
             min_rosterdate_utc = min_rosterdate_local.astimezone(pytz.utc)
             min_datetime_utc = timestart_utc if timestart_utc and timestart_utc > min_rosterdate_utc else min_rosterdate_utc
-            # logger.debug("min_rosterdate_local: " + str(min_rosterdate_local))
-            # logger.debug("  min_rosterdate_utc: " + str(min_rosterdate_utc))
-            # logger.debug("    min_datetime_utc: " + str(min_datetime_utc))
+            #logger.debug("min_rosterdate_local: " + str(min_rosterdate_local))
+            #logger.debug("  min_rosterdate_utc: " + str(min_rosterdate_utc))
+            #logger.debug("    min_datetime_utc: " + str(min_datetime_utc))
 
             # get maxdatetime, 36 hours after midnight (midnight = rosterdate 00.00 u)
             max_rosterdate_local = f.get_datetimelocal_from_offset(
@@ -2422,25 +2481,25 @@ def get_minmax_datetime_utc(field, rosterdate, timestart_utc, timeend_utc, comp_
                 offset_int=2160,
                 comp_timezone=comp_timezone)
             max_datetime_utc = max_rosterdate_local.astimezone(pytz.utc)
-            # logger.debug("max_rosterdate_local: " + str(max_rosterdate_local))
-            # logger.debug("    max_datetime_utc: " + str(max_datetime_utc))
+            #logger.debug("max_rosterdate_local: " + str(max_rosterdate_local))
+            #logger.debug("    max_datetime_utc: " + str(max_datetime_utc))
 
     return min_datetime_utc, max_datetime_utc
 
 
 def get_rosterdate_midnight_local(rosterdate_utc, comp_timezone): # PR2019-07-09
-    # logger.debug("  ---  get_rosterdate_midnight_local --- " + str(rosterdate_utc))
+    #logger.debug("  ---  get_rosterdate_midnight_local --- " + str(rosterdate_utc))
     rosterdate_midnight_local = None
     if rosterdate_utc:
     # BUG: gives wrong date whem tomezone offset is negative
         # astimezone changes timezone of a timezone aware object, utc time stays the same
         timezone = pytz.timezone(comp_timezone)
         rosterdate_local = rosterdate_utc.astimezone(timezone)
-        # logger.debug("rosterdate_local: " + str(rosterdate_local))
+        #logger.debug("rosterdate_local: " + str(rosterdate_local))
 
         # make the date midnight at local timezone
         rosterdate_midnight_local = rosterdate_local.replace(hour=0, minute=0)
-        # logger.debug("rosterdate_midnight_local: " + str(rosterdate_midnight_local))
+        #logger.debug("rosterdate_midnight_local: " + str(rosterdate_midnight_local))
         # make the date midnight at local timezone
 
     return rosterdate_midnight_local
@@ -2448,7 +2507,7 @@ def get_rosterdate_midnight_local(rosterdate_utc, comp_timezone): # PR2019-07-09
 
 
 def get_period_endtimeXXXX(interval_int, overlap_prev_int, overlap_next_int, request):  # PR2019-07-12
-    # logger.debug(' ============= get_period_endtime ============= ')
+    #logger.debug(' ============= get_period_endtime ============= ')
      # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
 
     period_starttime_utc = None
@@ -2480,33 +2539,33 @@ def get_period_endtimeXXXX(interval_int, overlap_prev_int, overlap_next_int, req
         interval_index = 0
         if interval_int:
             interval_index = int(hour_int / interval_int)
-        # logger.debug('interval_int: ' + str(interval_int) + ' interval_index: ' + str(interval_index))
+        #logger.debug('interval_int: ' + str(interval_int) + ' interval_index: ' + str(interval_index))
 
 # get local start hour of current interval
         period_starthour = interval_int * interval_index
-        # logger.debug('period_starthour: ' + str(period_starthour))
+        #logger.debug('period_starthour: ' + str(period_starthour))
 
 # get local start time of current interval without timezone
         interval_starttime_naive = datetime(year_int, month_int, date_int, period_starthour, 0)
-        # logger.debug('interval_starttime_naive: ' + str(interval_starttime_naive))
+        #logger.debug('interval_starttime_naive: ' + str(interval_starttime_naive))
 
 # get local start time of current interval in local timezone ( = company timezone)
         # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
         interval_starttime_local = timezone.localize(interval_starttime_naive)
-        logger.debug('interval_starttime_local: ' + str(interval_starttime_local))
+        #logger.debug('interval_starttime_local: ' + str(interval_starttime_local))
 
 # get local start time of current period (is interval_start_local minus overlap_prev_int)
         period_starttime_local = interval_starttime_local - timedelta(hours=overlap_prev_int)
-        # logger.debug('overlap_prev_int: ' + str(overlap_prev_int) + ' period_starttime_local: ' + str(period_starttime_local))
+        #logger.debug('overlap_prev_int: ' + str(overlap_prev_int) + ' period_starttime_local: ' + str(period_starttime_local))
 
 # get start time of current period in UTC
         period_starttime_utc = period_starttime_local.astimezone(pytz.UTC)
-        # logger.debug('period_starttime_utc: ' + str(period_starttime_utc))
+        #logger.debug('period_starttime_utc: ' + str(period_starttime_utc))
 
 # get utc end time of current period ( = local start time of current period plus overlap_prev_int + interval + overlap_next_int
         period_int = overlap_prev_int + interval_int + overlap_next_int
         period_endtime_utc = period_starttime_utc + timedelta(hours=period_int)
-        # logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
+        #logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
 
     return period_endtime_utc
 
@@ -2555,7 +2614,7 @@ def get_datetime_utc(dtm):
         # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
         datetime_utc = pytz.utc.localize(datetime_naive)
         # datetime_utc: 2019-06-23 00:00:00+00:00
-        # logger.debug("datetime_utc: " + str(datetime_utc))
+        #logger.debug("datetime_utc: " + str(datetime_utc))
     return datetime_utc
 
 
@@ -2570,41 +2629,11 @@ def get_rosterdate_utc(rosterdate):
         # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
         rosterdate_utc = pytz.utc.localize(rosterdate_naive)
         # rosterdate_utc: 2019-06-23 00:00:00+00:00
-        # logger.debug("rosterdate_utc: " + str(rosterdate_utc))
+        #logger.debug("rosterdate_utc: " + str(rosterdate_utc))
 
     return rosterdate_utc
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# TODO not in use
-def get_rosterdate_current(company): # PR2019-06-16
-#get next rosterdate from companysetting
-    rd_cur_str = m.Companysetting.get_setting(c.KEY_COMP_ROSTERDATE_CURRENT, company)
-    rosterdate, msg_err = f.get_date_from_ISOstring(rd_cur_str)
-
-    # logger.debug('rosterdate: ' + str(rosterdate) + ' type: ' + str(type(rosterdate)))
-# if no date found in settings: get first rosterdate of all schemitems of company PR2019-06-07
-    if rosterdate is None:
-        schemeitem = m.Schemeitem.objects.filter(scheme__order__customer__company=company).first()
-        if schemeitem:
-            rosterdate = schemeitem.rosterdate
-    if rosterdate is None:
-        rosterdate = date.today()
-    return rosterdate
-
-
-def get_rosterdate_next(company): # PR2019-06-17
-    #get current rosterdate from companysetting and add one day
-    rosterdate_current = get_rosterdate_current(company)
-    rosterdate_next = rosterdate_current + timedelta(days=1)
-    return rosterdate_next
-
-
-def get_rosterdate_previous(company): # PR2019-06-17
-    #get current rosterdate from companysetting and add one day
-    rosterdate_current = get_rosterdate_current(company)
-    rosterdate_previous = rosterdate_current + timedelta(days=-1)
-    return rosterdate_previous
-
 
 def get_customer_order_code(order, delim=' '): # PR2019-08-16
     customer_order_code = ''
@@ -2617,7 +2646,7 @@ def get_customer_order_code(order, delim=' '): # PR2019-08-16
     return customer_order_code
 
 def get_team_code(team):
-    # logger.debug(' --- get_team_code --- ')
+    #logger.debug(' --- get_team_code --- ')
 
     team_title = ''
     count = 0
@@ -2626,9 +2655,9 @@ def get_team_code(team):
         teammembers = m.Teammember.objects\
             .select_related('employee')\
             .filter(team=team)
-        # logger.debug('teammembers SQL: ' + str(teammembers.query))
+        #logger.debug('teammembers SQL: ' + str(teammembers.query))
         for teammember in teammembers:
-            # logger.debug('teammember: ' + str(teammember))
+            #logger.debug('teammember: ' + str(teammember))
             # teammember: {'id': 300, 'employee__code': 'Crisostomo Ortiz R Y', 'datelast_nonull': datetime.datetime(2500, 1, 1, 0, 0)}
             employee = teammember.employee
             if employee:

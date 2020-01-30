@@ -423,6 +423,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['months_abbrev'] = TXT_months_abbrev
         dict['months_long'] = TXT_months_long
 
+        dict['Also_show_absence'] = TXT_Also_show_absence
+        dict['Absence_included'] = TXT_Absence_included
+        dict['Dont_show_absence'] = TXT_Dont_show_absence
+        dict['Without_absence'] = TXT_Without_absence
+        dict['Show_absence_only'] = TXT_Show_absence_only
 
 
 # ====== PAGE REVIEW ========================= PR2019-11-19
@@ -575,6 +580,12 @@ TXT_Absence = _('Absence')
 TXT_Absence_category = _('Absence category')
 TXT_Select_abscat = _('Select absence category')
 TXT_No_abscat = _('No absence categories')
+
+TXT_Also_show_absence = _('Also show absence')
+TXT_Absence_included  = _('Absence included')
+TXT_Dont_show_absence = _("Don't show absence")
+TXT_Without_absence = _("Without absence")
+TXT_Show_absence_only = _("Show absence only")
 
 TXT_one = _('one')
 TXT_confirmed = _('confirmed')

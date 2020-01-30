@@ -10,8 +10,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const cls_visible_hide = "visibility_hide";
 
     const cls_bc_lightlightgrey = "tsa_bc_lightlightgrey";
+    const cls_bc_lightgrey = "tsa_bc_lightgrey";
 
-    const cls_selected = "tsa_tr_selected";
+    const cls_selected =  "tsa_tr_selected";
     const cls_error = "tsa_tr_error";
 
 // --- get data stored in page
@@ -50,6 +51,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let selected_emplhour_pk = 0;
         let selected_customer_pk = 0; // used in modperiodselect
         let selected_order_pk = 0;  // used in modperiodselect
+        let selected_employee_pk = 0;  // used in modselectorderselect
+        let selected_isabsence = null;  // used in modselectorderselect
 
         let loc = {};  // locale_dict with translated text
         let selected_roster_period = {};
@@ -110,17 +113,20 @@ document.addEventListener('DOMContentLoaded', function() {
 // === EVENT HANDLERS ===
 
 // ---  side bar - select period
-        let el_flt_period = document.getElementById("id_flt_period");
+        let el_flt_period = document.getElementById("id_sidebar_select_period");
         el_flt_period.addEventListener("click", function() {ModPeriodOpen()}, false );
         el_flt_period.addEventListener("mouseenter", function() {el_flt_period.classList.add(cls_hover)});
         el_flt_period.addEventListener("mouseleave", function() {el_flt_period.classList.remove(cls_hover)});
-
-// ---  side bar - select order
-        // under construction
-        //let el_flt_order = document.getElementById("id_flt_order");
-        //el_flt_order.addEventListener("click", function() {ModOrderOpen()}, false );
-        //el_flt_order.addEventListener("mouseenter", function() {el_flt_order.classList.add(cls_hover)});
-        //el_flt_order.addEventListener("mouseleave", function() {el_flt_order.classList.remove(cls_hover)});
+// ---  side bar - select customer
+        let el_flt_customer = document.getElementById("id_sidebar_select_customer");
+        el_flt_customer.addEventListener("click", function() {ModSelectOrder_Open("customer")}, false );
+        el_flt_customer.addEventListener("mouseenter", function() {el_flt_customer.classList.add(cls_hover)});
+        el_flt_customer.addEventListener("mouseleave", function() {el_flt_customer.classList.remove(cls_hover)});
+// ---  side bar - select absence
+        let el_flt_absence = document.getElementById("id_sidebar_select_absence");
+        el_flt_absence.addEventListener("click", function() {ModSelectOrder_Open("absence")}, false );
+        el_flt_absence.addEventListener("mouseenter", function() {el_flt_absence.classList.add(cls_hover)});
+        el_flt_absence.addEventListener("mouseleave", function() {el_flt_absence.classList.remove(cls_hover)});
 
 // ---  add 'keyup' event handler to filter
         let el_mod_filter_employee = document.getElementById("id_mod_employee_filter_employee");
@@ -172,6 +178,13 @@ document.addEventListener('DOMContentLoaded', function() {
 */
         }, false);
 
+// ---  MOD SELECT ORDER ------------------------------
+        document.getElementById("id_modorder_input_customer").addEventListener("keyup", function(event){
+                setTimeout(function() {ModSelectOrder_FilterCustomer("filter", event.key)}, 50)});
+        let el_modorder_absence = document.getElementById("id_modorder_select_absence")
+        el_modorder_absence.addEventListener("change", function() {ModSelectOrder_SelectAbsence(el_modorder_absence)}, false )
+        document.getElementById("id_modorder_btn_save").addEventListener("click", function() {ModSelectOrder_Save()}, false )
+
 // ---  MOD PERIOD ------------------------------------
 // ---  header select period
         document.getElementById("id_hdr_period").addEventListener("click", function() {ModPeriodOpen()});
@@ -200,7 +213,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_mod_employee_btn_split").addEventListener("click", function() {ModEmployeeBtnSelect("split")}, false )
         document.getElementById("id_mod_employee_btn_save").addEventListener("click", function() {ModEmployeeSave()}, false )
         document.getElementById("id_mod_employee_switch_date").addEventListener("change", function() {ModEmployeeFillOptionsShift()}, false )
-
 
 // ---  edit and save button in ModRosterdate
         document.getElementById("id_mod_rosterdate_input").addEventListener("change", function() {ModRosterdateEdit()}, false)
@@ -300,10 +312,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     CreateTblModSelectPeriod();
                 }
                 if ("roster_period" in response) {
-                    selected_roster_period= response["roster_period"];
+                    selected_roster_period = response["roster_period"];
                     //console.log("selected_roster_period: ", selected_roster_period)
-                    //DisplayPeriod(selected_roster_period);
-                    document.getElementById("id_hdr_period").innerText = display_planning_period (selected_roster_period, loc, user_lang);
+                    DisplayPeriod(selected_roster_period);
+
+
                 }
                 let fill_table = false, check_status = false;
                 if ("abscat_list" in response) {
@@ -320,7 +333,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if ("customer_list" in response) {
                     get_datamap(response["customer_list"], customer_map)
-                    CreateSelectTableCustomers();
+
+                    //CreateSelectTableCustomers();
+
                 }
                 if ("order_list" in response) {
                     get_datamap(response["order_list"], order_map)
@@ -463,6 +478,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function HandleBtnClicked() {
 
     }
+
+
+
+
 //????????????????????????????????????????????????????????
 
 //========= FillTableRows  ====================================
@@ -1161,7 +1180,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     } // function set_label_and_infoboxes
 
-
+// ++++ MOD SELECT ORDER ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 // ++++ MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1252,7 +1271,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  ModEmployeeSave  ================ PR2019-06-23
     function ModEmployeeSave() {
         let btn_name = el_mod_employee_body.getAttribute("data-action");
-        //console.log("===  ModEmployeeSave ========= btn_name: ", btn_name);
+        console.log("===  ModEmployeeSave ========= btn_name: ", btn_name);
 
         const map_id = get_attr_from_el(el_mod_employee_body, "data-map_id");
         //console.log("map_id", map_id);
@@ -1618,7 +1637,6 @@ document.addEventListener('DOMContentLoaded', function() {
             } // for (const [pk_int, item_dict] of employee_map.entries())
         }  // if (employee_map.size === 0)
     } // ModEmployeeFillSelectTableEmployee
-
 
 //========= ModEmployeeFillOptionDates  ====================================
     function ModEmployeeFillOptionDates(replacement_dates) {
@@ -2366,7 +2384,6 @@ console.log("===  function HandlePopupWdySave =========");
             }
         };
 
-
     // fill options of modperiod_selectcustomer
         let el_select = document.getElementById("id_modperiod_selectcustomer")
         let selectall_text =  "&lt;" +  loc.All_customers + "&gt;"
@@ -2416,28 +2433,6 @@ console.log("===  function HandlePopupWdySave =========");
 }; // function ModPeriodOpen
 
 
-//=========  ModPeriodSelectCustomer  ================ PR2020-01-09
-    function ModPeriodSelectCustomer(selected_pk_str) {
-        //console.log( "===== ModPeriodSelectCustomer ========= ");
-        const new_customer_pk = Number(selected_pk_str)
-        if (new_customer_pk !== selected_customer_pk ){
-            selected_customer_pk = new_customer_pk;
-            selected_order_pk = 0;
-        }
-        //console.log( "selected_pk_str: ", selected_pk_str);
-        //console.log( "selected_customer_pk: ", selected_customer_pk);
-        //console.log( "selected_order_pk: ", selected_order_pk);
-
-        let el_select_order = document.getElementById("id_modperiod_selectorder")
-        el_select_order.innerText = null
-        const selectall_text =  "&lt;" +  loc.All_orders + "&gt;"
-        const select_text_none =  "&lt;" +  loc.No_orders + "&gt;"
-        // when 'all customers is selected (selected_customer_pk): there are no orders in selectbox 'orders'
-        // to display 'all orders' instead of 'no orders' we make have boolean 'hide_none' = true
-        const is_template_mode = false, has_selectall = true, hide_none = (!selected_customer_pk);
-        FillSelectOption2020(el_select_order, order_map, "order", is_template_mode, has_selectall, hide_none,
-                    selected_customer_pk, selected_order_pk, selectall_text, select_text_none)
-    }  // ModPeriodSelectCustomer
 
 
 //=========  ModPeriodSelectOrder  ================ PR2020-01-09
@@ -2553,7 +2548,6 @@ console.log("===  function HandlePopupWdySave =========");
             }
             if(!period_text){period_text = default_text}
 
-            console.log( "loc.period_extension", loc.period_extension);
             let extend_text = null, extend_default_text = null
             for(let i = 0, item, len = loc.period_extension.length; i < len; i++){
                 item = loc.period_extension[i];
@@ -2561,7 +2555,6 @@ console.log("===  function HandlePopupWdySave =========");
                 if (item[0] === 0){ extend_default_text = item[1] }
             }
             if(!extend_text){extend_text = extend_default_text}
-
 
             if(period_tag === "other"){
                 const rosterdatefirst = get_dict_value_by_key(selected_roster_period, "rosterdatefirst");
@@ -2583,46 +2576,419 @@ console.log("===  function HandlePopupWdySave =========");
             if(!!extend_offset){
                 period_text += " +- " + extend_text;
             }
-            document.getElementById("id_flt_period").value = period_text
+            // put period_textx in sidebar id_sidebar_select_period
+            document.getElementById("id_sidebar_select_period").value = period_text
+
+            selected_customer_pk = get_dict_value_by_key(selected_roster_period, "customer_pk", 0)
+            selected_order_pk = get_dict_value_by_key(selected_roster_period, "order_pk", 0)
+            selected_employee_pk = get_dict_value_by_key(selected_roster_period, "employee_pk", 0)
+            selected_isabsence = get_dict_value_by_key(selected_roster_period, "isabsence")
+
+            // put text in header of this page
+            const display_period = get_dict_value_by_key(selected_roster_period, "period_display", "")
+            document.getElementById("id_hdr_period").innerText = display_period
+
+            console.log( "=== ModSelectOrder_headertext  ");
+            console.log(  mod_upload_dict);
+            //document.getElementById("id_sidebar_select_absence").value = absence_txt
+
+            let header_text = null, absence_text = null;
+            if(!!selected_customer_pk){
+                const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk)
+                const customer_code = get_subdict_value_by_key(customer_dict, "code", "value", "");
+                let order_code = null;
+                if(!!selected_order_pk){
+                    const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_order_pk)
+                    order_code = get_subdict_value_by_key(order_dict, "code", "value");
+                } else {
+                    order_code = loc.All_orders.toLowerCase()
+                }
+                header_text = customer_code + " - " + order_code
+            // if customer is selected: always show 'Without_absence'
+                absence_text = loc.Without_absence;
+            } else {
+                if (selected_isabsence === true){
+                    // in this case customer box must show 'No customer
+                    header_text = loc.No_customers
+                    // absence only
+                    absence_text = loc.Show_absence_only;
+                } else if (selected_isabsence === false){
+                    header_text = loc.All_customers
+                    absence_text = loc.Without_absence;
+                } else {
+                   header_text = loc.All_customers
+                    // Absence_included only when 'All_customers'
+                    absence_text = loc.Absence_included;
+                }
+            }
+            document.getElementById("id_sidebar_select_customer").value = header_text
+            document.getElementById("id_sidebar_select_absence").value = absence_text
 
         }  // if (!isEmpty(selected_roster_period))
 
     }; // function DisplayPeriod
 
-// +++++++++++++++++ MODAL ORDER +++++++++++++++++++++++++++++++++++++++++++
-//========= ModOrderOpen====================================  PR2019-11-16
-    function ModOrderOpen () {
-        //console.log("===  ModOrderOpen  =====") ;
+
+// +++++++++++++++++ MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
+//========= ModSelectOrder_Open ====================================  PR2019-11-16
+    function ModSelectOrder_Open (mode) {
+        console.log("===  ModSelectOrder_Open  =====") ;
         //console.log("selected_roster_period", selected_roster_period) ;
         // selected_roster_period = {extend_index: 2, extend_offset: 120, period_index: null, periodend: null,
         //                periodstart: null, rosterdatefirst: "2019-11-15", rosterdatelast: "2019-11-17"
 
-        let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
-        tBody.removeAttribute("data-value");
-        let period_index, extend_index;
-        if (!isEmpty(selected_roster_period)){
-            period_index = get_dict_value_by_key(selected_roster_period, "period_index")
-            extend_index = get_dict_value_by_key(selected_roster_period, "extend_index")
+
+        let customer_pk = (selected_customer_pk > 0) ? selected_customer_pk : null;
+        let order_pk = (selected_order_pk > 0) ? selected_order_pk : null;
+        let employee_pk = (selected_employee_pk > 0) ? selected_employee_pk : null;
+        let is_absence = selected_isabsence;
+
+        if (mode === "absence") {
+            // reset customer_pk to "all customers", to show select box absence
+            customer_pk = 0;
+            order_pk = 0;
         }
 
-    // highligh selected period in table, put value in data-value of tBody
-        for (let i = 0, tblRow; tblRow = tBody.rows[i]; i++) {
-            if (period_index === i){
-                tblRow.classList.add(cls_selected)
-            } else {
-                tblRow.classList.remove(cls_selected)
-            }
-        };
-        if(period_index != null){
-            tBody.setAttribute("data-value", period_index);
-        } else {
-            tBody.removeAttribute("data-value");
+        mod_upload_dict = {page: "roster",
+                           customer_pk: customer_pk,
+                           order_pk: order_pk,
+                           employee_pk: employee_pk,
+                           is_absence: is_absence};
+
+        let tblBody_select_customer = document.getElementById("id_modorder_tblbody_customer");
+        let tblHead = document.getElementById("id_modorder_thead_customer");
+        const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = "<" + loc.All_customers + ">";
+        fFill_SelectTable(tblBody_select_customer, tblHead, customer_map, "customer", selected_customer_pk, null,
+            HandleSelect_Filter, null,
+            ModSelectOrder_SelectCustomer,  null,
+            filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+            null, cls_selected
+            );
+
+        // TODO filter_select
+        let filter_select = "";
+        fFilter_SelectRows(tblBody_select_customer, filter_select);
+
+        ModSelectOrder_FillOptionsAbsence()
+
+        if (mode === "absence") {
+            let tblRow = tblBody_select_customer.rows[0];
+            ModSelectOrder_SelectCustomer(tblRow);
         }
+
+        ModSelectOrder_headertext(mod_upload_dict);
+
     // ---  show modal
-         $("#id_mod_order").modal({backdrop: true});
+         $("#id_modselectorder").modal({backdrop: true});
 
-}; // function ModOrderOpen
+}; // ModSelectOrder_Open
 
+//=========  ModSelectOrder_Save  ================ PR2020-01-29
+    function ModSelectOrder_Save() {
+        console.log("===  ModSelectOrder_Save =========");
+
+        // mod_upload_dict is reset in ModSelectOrder_Open
+
+        // send 'now' as array to server, so 'now' of local computer will be used
+        const now = new Date();
+        const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()]
+
+// ---  upload new setting
+        const emplhour_dict = {
+            add_empty_shifts: true,
+            skip_restshifts: true,
+            orderby_rosterdate_customer: true
+        };
+        const roster_period_dict = {
+            get: true,
+            now: now_arr,
+            customer_pk: mod_upload_dict.customer_pk,
+            order_pk: mod_upload_dict.order_pk,
+            employee_pk: mod_upload_dict.employee_pk,
+            isabsence: mod_upload_dict.is_absence
+        }
+
+        document.getElementById("id_hdr_period").innerText = loc.Period + "..."
+
+        let datalist_request = {roster_period: roster_period_dict,
+                                emplhour: emplhour_dict};
+        DatalistDownload(datalist_request);
+
+// hide modal
+        $("#id_modselectorder").modal("hide");
+
+    }  // ModSelectOrder_Save
+
+//=========  ModSelectOrder_SelectCustomer  ================ PR2020-01-09
+    function ModSelectOrder_SelectCustomer(tblRow) {
+        //console.log( "===== ModSelectOrder_SelectCustomer ========= ");
+        //console.log( tblRow);
+
+// ---  get clicked tablerow
+        if(!!tblRow) {
+
+// ---  deselect all highlighted rows
+            DeselectHighlightedRows(tblRow, cls_selected)
+// ---  highlight clicked row
+            tblRow.classList.add(cls_selected)
+
+// el_input is first child of td, td is cell of tblRow
+            const el_select = tblRow.cells[0].children[0];
+            const value = get_attr_from_el(el_select, "data-value");
+
+// ---  get pk from id of select_tblRow
+            let data__pk = get_attr_from_el(tblRow, "data-pk")
+            if(!Number(data__pk)){
+                if(data__pk === "addall" ) {
+                    mod_upload_dict.customer_pk = 0;
+                    mod_upload_dict.order_pk = 0;
+                }
+            } else {
+                const pk_int = Number(data__pk)
+                if (pk_int !== selected_customer_pk){
+                    mod_upload_dict.customer_pk = pk_int;
+                    mod_upload_dict.order_pk = 0;
+                }
+            }
+
+            let el_div_order = document.getElementById("id_modorder_div_tblbody_order")
+            let el_div_absence = document.getElementById("id_modorder_div_select_absence")
+
+            let tblBody_select_order = document.getElementById("id_modorder_tblbody_order");
+            if (!mod_upload_dict.customer_pk){
+                el_div_order.classList.add(cls_hide)
+                tblBody_select_order.innerText = null;
+                el_div_absence.classList.remove(cls_hide)
+            } else {
+                el_div_order.classList.remove(cls_hide)
+                el_div_absence.classList.add(cls_hide)
+                let tblHead = null;
+                const filter_ppk_int = mod_upload_dict.customer_pk, filter_include_inactive = true;
+                const addall_to_list_txt = "<" + loc.All_orders + ">";
+                fFill_SelectTable(tblBody_select_order, null, order_map, "order", mod_upload_dict.customer_pk, null,
+                    HandleSelect_Filter, null,
+                    ModSelectOrder_SelectOrder, null,
+                    filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                    null, cls_selected
+                );
+            }
+            ModSelectOrder_headertext(mod_upload_dict);
+        }
+    }  // ModSelectOrder_SelectCustomer
+
+//=========  ModSelectOrder_SelectOrder  ================ PR2020-01-09
+    function ModSelectOrder_SelectOrder(tblRow) {
+        //console.log( "===== ModSelectOrder_SelectOrder ========= ");
+
+// ---  get clicked tablerow
+        if(!!tblRow) {
+
+// ---  deselect all highlighted rows
+            DeselectHighlightedRows(tblRow, cls_selected)
+// ---  highlight clicked row
+            tblRow.classList.add(cls_selected)
+
+// el_input is first child of td, td is cell of tblRow
+            const el_select = tblRow.cells[0].children[0];
+            const value = get_attr_from_el(el_select, "data-value");
+
+// ---  get pk from id of select_tblRow
+            let order_pk = get_attr_from_el(tblRow, "data-pk")
+
+            if(order_pk === "addall"){
+                mod_upload_dict.order_pk = 0;
+            } else {
+                mod_upload_dict.order_pk = order_pk;
+            }
+
+// ---  get pk from id of select_tblRow
+            let data__pk = get_attr_from_el(tblRow, "data-pk")
+            if(!Number(data__pk)){
+                if(data__pk === "addall" ) {
+                    mod_upload_dict.order_pk = 0;
+                }
+            } else {
+                mod_upload_dict.order_pk = Number(data__pk)
+            }
+
+            ModSelectOrder_headertext(mod_upload_dict);
+        console.log( "mod_upload_dic: ", mod_upload_dict);
+
+        }
+    }  // ModSelectOrder_SelectOrder
+
+//=========  ModSelectOrder_SelectAbsence  ================ PR2020-01-09
+    function ModSelectOrder_SelectAbsence(el_select) {
+        console.log( "===== ModSelectOrder_SelectAbsence ========= ");
+
+// ---  get clicked tablerow
+        if(!!el_select) {
+            let selected_option_str = Number(el_select.options[el_select.selectedIndex].value);
+            console.log(  "selected_option_str: ", selected_option_str, typeof selected_option_str);
+
+            if (selected_option_str === 2) {
+                 mod_upload_dict.is_absence = true
+            } else if (selected_option_str === 1) {
+                mod_upload_dict.is_absence = false
+            } else {
+                mod_upload_dict.is_absence = null
+            }
+
+        console.log(  "mod_upload_dict: ", mod_upload_dict);
+
+            ModSelectOrder_headertext(mod_upload_dict);
+        }
+    }  // ModSelectOrder_SelectAbsence
+
+//=========  ModSelectOrder_FilterCustomer  ================ PR2020-01-28
+    function ModSelectOrder_FilterCustomer(option) {
+        //console.log( "===== ModSelectOrder_FilterCustomer  ========= ", option);
+
+        let new_filter = "";
+        let skip_filter = false
+        if (option === "input") {
+            if (!!el_mod_employee_input_employee.value) {
+                new_filter = el_mod_employee_input_employee.value
+            }
+        } else {
+            new_filter = el_mod_filter_employee.value;
+        }  //  if (option === "input") {
+
+ // skip filter if filter value has not changed, update variable filter_mod_employee
+        if (!new_filter){
+            if (!filter_mod_employee){
+                skip_filter = true
+            } else {
+                filter_mod_employee = "";
+            }
+        } else {
+            if (new_filter.toLowerCase() === filter_mod_employee) {
+                skip_filter = true
+            } else {
+                filter_mod_employee = new_filter.toLowerCase();
+            }
+        }
+
+        let has_selection = false, has_multiple = false;
+        let select_value, select_pk, select_parentpk;
+        let len = el_mod_employee_tblbody.rows.length;
+        if (!skip_filter && !!len){
+            for (let row_index = 0, tblRow, show_row, el, el_value; row_index < len; row_index++) {
+                tblRow = el_mod_employee_tblbody.rows[row_index];
+                el = tblRow.cells[0].children[0]
+                show_row = false;
+                if (!filter_mod_employee){
+// --- show all rows if filter_text = ""
+                     show_row = true;
+                } else if (!!el){
+                    el_value = get_attr_from_el(el, "data-value");
+                    if (!!el_value){
+                        el_value = el_value.toLowerCase();
+                        show_row = (el_value.indexOf(filter_mod_employee) !== -1)
+                    }
+                }
+                if (show_row) {
+                    tblRow.classList.remove(cls_hide)
+                    // put values from first selected row in select_value
+                    if(!has_selection ) {
+                        select_value = get_attr_from_el(el, "data-value");
+                        select_pk = get_attr_from_el(el, "data-pk");
+                        select_parentpk = get_attr_from_el(el, "data-ppk");
+                    }
+                    if (has_selection) {has_multiple = true}
+                    has_selection = true;
+                } else {
+                    tblRow.classList.add(cls_hide)
+                };
+            }  //  for (let row_index = 0, show
+        } //  if (!skip_filter) {
+        if (has_selection && !has_multiple ) {
+            el_mod_employee_input_employee.value = select_value
+            el_mod_employee_input_employee.setAttribute("data-pk",select_pk)
+            el_mod_employee_input_employee.setAttribute("data-ppk",select_parentpk)
+         // get shifts if mode = switch
+            if(el_mod_employee_body.getAttribute("data-action") === "switch"){
+                const cur_employee_pk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_pk");
+                const cur_employee = get_attr_from_el(el_mod_employee_body, "data-field_value");
+                const cur_employee_ppk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_ppk");
+                const cur_rosterdate = get_attr_from_el(el_mod_employee_body, "data-rosterdate");
+
+                const datalist_request = {"replacement": { "action": "switch", "rosterdate": cur_rosterdate,
+                        "employee": cur_employee, "employee_pk": cur_employee_pk_int, "employee_ppk": cur_employee_ppk_int,
+                        "reployee": select_value, "reployee_pk": select_pk, "reployee_ppk": select_parentpk}};
+                DatalistDownload(datalist_request);
+            }
+
+        }
+
+    }; // function ModSelectOrder_FilterCustomer
+
+    function ModSelectOrder_headertext(mod_upload_dict) {
+        console.log( "=== ModSelectOrder_headertext  ");
+        console.log(  mod_upload_dict);
+        let header_text = null;
+
+        if(!!mod_upload_dict.customer_pk){
+            const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", mod_upload_dict.customer_pk)
+            const customer_code = get_subdict_value_by_key(customer_dict, "code", "value", "");
+            let order_code = null;
+            if(!!mod_upload_dict.order_pk){
+                const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", mod_upload_dict.order_pk)
+                order_code = get_subdict_value_by_key(order_dict, "code", "value");
+            } else {
+                order_code = loc.All_orders.toLowerCase()
+            }
+            header_text = customer_code + " - " + order_code
+        } else {
+            header_text = loc.All_customers
+            if (mod_upload_dict.is_absence === true){
+                header_text = loc.Show_absence_only
+            } else if (mod_upload_dict.is_absence === false){
+                header_text = loc.All_customers + " (" + loc.Dont_show_absence.toLowerCase() + ")";
+            } else {
+                header_text = loc.All_customers + ", " + loc.Absence_included.toLowerCase();
+            }
+        }
+
+        document.getElementById("id_modorder_header").innerText = header_text
+
+    }  // ModSelectOrder_headertext
+
+    //========= ModSelectOrder_FillOptionsAbsence  ==================================== PR2020-01-29
+    function ModSelectOrder_FillOptionsAbsence() {
+        //console.log( "=== ModSelectOrder_FillOptionsAbsence  ", option_list);
+
+// ---  fill options of select box
+        let curOption = 0
+        if (selected_isabsence === true){
+            curOption = 2
+        } else if (selected_isabsence === false){
+            curOption = 1
+        }
+
+        // customer list has no parent_pk_str
+        let el_select = document.getElementById("id_modorder_select_absence")
+        el_select.innerText = null
+
+// --- loop through option list
+        const option_list = [loc.Also_show_absence,
+                             loc.Dont_show_absence,
+                             loc.Show_absence_only]
+
+        let option_text = "";
+        for (let i = 0, len = option_list.length; i < len; i++) {
+            let dict = option_list[i];
+            option_text += "<option value=\"" + i.toString() + "\"";
+            if (dict.pk === curOption) {option_text += " selected=true" };
+            option_text +=  ">" + option_list[i] + "</option>";
+        }  // for (let i = 0, len = option_list.length;
+        el_select.innerHTML = option_text;
+
+    }  // ModSelectOrder_FillOptionsAbsence
+
+
+
+// ??????????
 //=========  ModOrderSelectCustomer  ================  PR2019-11-16
     function ModOrderSelectCustomer(tr_clicked, selected_index) {
         //console.log( "===== ModOrderSelectCustomer ========= ", selected_index);
@@ -2698,7 +3064,7 @@ console.log("===  function HandlePopupWdySave =========");
         selected_roster_period["extend_index"] = extend_index;
         selected_roster_period["extend_offset"] = extend_offset;
 // hide modal
-        $("#id_mod_order").modal("hide");
+        $("#id_modselectorder").modal("hide");
 
         DatalistDownload({"roster_period": selected_roster_period});
 
@@ -3254,6 +3620,44 @@ console.log("===  function HandlePopupWdySave =========");
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
+
+//========= HandleSelect_Filter  ====================================
+    function HandleSelect_Filter() {
+        //console.log( "===== HandleSelect_Filter  ========= ");
+        // skip filter if filter value has not changed, update variable filter_select
+
+        let new_filter = document.getElementById("id_filter_select_input").value;
+
+        let skip_filter = false
+        if (!new_filter){
+            if (!filter_select){
+                skip_filter = true
+            } else {
+                filter_select = "";
+            }
+        } else {
+            if (new_filter.toLowerCase() === filter_select) {
+                skip_filter = true
+            } else {
+                filter_select = new_filter.toLowerCase();
+            }
+        }
+        if (!skip_filter) {
+// filter table customer and order
+    // reset filter tBody_customer
+            f_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
+    // reset filter tBody_order (show all orders, therefore dont filter on selected_customer_pk
+            f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
+    // reset filter tBody_planning (show all orders, therefore dont filter on selected_customer_pk
+            f_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
+
+// filter selecttable customer and order
+            fFilter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive, false)
+            fFilter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
+
+        } //  if (!skip_filter) {
+    }; // function HandleSelect_Filter
+
 
 //========= FilterTableRows_dict  ====================================
     function FilterTableRows_dict() {  // PR2019-06-09

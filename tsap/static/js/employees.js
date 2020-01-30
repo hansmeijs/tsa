@@ -395,9 +395,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const imgsrc_hover = imgsrc_inactive_black;
             const include_parent_code = null;
             const title_header_btn = "Click to show or hide inactive employees";
-            fFill_SelectTable(tblBody_select, employee_map, tblName, null, include_parent_code,
+            let tblHead = document.getElementById("id_thead_select");
+            const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
+            fFill_SelectTable(tblBody_select, tblHead, employee_map, tblName, null, include_parent_code,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row,  HandleSelectRowButton,
+                filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_default, imgsrc_hover,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                 title_header_btn)
@@ -2170,9 +2174,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         const imgsrc_hover = imgsrc_inactive_black;
                         const include_parent_code = null;
                         const title_header_btn = "Click to show or hide inactive employees";
-                        fFill_SelectTable(tblBody_select, employee_map, tblName, null, include_parent_code,
+                        let tblHead = document.getElementById("id_thead_select");
+                        const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
+                        fFill_SelectTable(tblBody_select, tblHead, employee_map, tblName, null, include_parent_code,
                             HandleSelect_Filter, HandleFilterInactive,
                             HandleSelect_Row,  HandleSelectRowButton,
+                            filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                            cls_bc_lightlightgrey, cls_bc_yellow,
                             imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                             title_header_btn)

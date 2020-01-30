@@ -754,24 +754,15 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 
                 # save new period and retrieve saved period
                 period_dict = None  # period_dict = None means" get saved period
-                roster_period_dict = pld.period_get_and_save('roster_period', period_dict, comp_timezone, user_lang,
-                                                           request)
-
-                customer_pk = None
-                order_pk = None
-                emplhour_dict = upload_dict.get('emplhour')
-                if emplhour_dict:
-                    order_pk = emplhour_dict.get('order_pk')
-                    if order_pk is None:
-                        customer_pk = emplhour_dict.get('customer_pk')
+                roster_period_dict = pld.period_get_and_save('roster_period', period_dict,
+                                                             comp_timezone, timeformat, user_lang, request)
 
                 emplhour_list = pld.create_emplhour_list(period_dict=roster_period_dict,
-                                                       customer_pk=customer_pk,
-                                                       order_pk=order_pk,
-                                                       request=request,
                                                        comp_timezone=comp_timezone,
                                                        timeformat=timeformat,
-                                                       user_lang=user_lang)
+                                                       user_lang=user_lang,
+                                                       request=request)
+
                 # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
                 update_dict['emplhour_list'] = emplhour_list
 

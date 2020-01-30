@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // === EVENT HANDLERS ===
 
 // ---  side bar - select period
-    let el_flt_period = document.getElementById("id_flt_period");
+    let el_flt_period = document.getElementById("id_sidebar_select_period");
     el_flt_period.addEventListener("click", function() {ModPeriodOpen()}, false );
     el_flt_period.addEventListener("mouseenter", function() {el_flt_period.classList.add(cls_hover)});
     el_flt_period.addEventListener("mouseleave", function() {el_flt_period.classList.remove(cls_hover)});
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("period" in response) {
                     selected_period= response["period"];
                     //console.log("selected_period", selected_period)
-                    document.getElementById("id_flt_period").value = get_period_text(selected_period,
+                    document.getElementById("id_sidebar_select_period").value = get_period_text(selected_period,
                                 loc.period_select_list, loc.period_extension, loc.months_abbrev, loc.weekdays_abbrev, period_text);
 
                     CreateTblModSelectPeriod();

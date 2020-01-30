@@ -373,9 +373,13 @@ let planning_list = [] // for export and printing - can replace map?
             get_datamap(response["customer_list"], customer_map)
 
             const title_inactive_btn = loc.TXT_Cick_show_inactive_customers;
-            fFill_SelectTable(tblBody_select_customer, customer_map, "customer", selected_customer_pk, null,
+            let tblHead = document.getElementById("id_thead_select");
+            const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
+            fFill_SelectTable(tblBody_select_customer, tblHead, customer_map, "customer", selected_customer_pk, null,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row,  HandleSelectRowButton,
+                filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_inactive_grey, imgsrc_inactive_black,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                 title_inactive_btn);
@@ -385,10 +389,14 @@ let planning_list = [] // for export and printing - can replace map?
             f_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);  // false = no ppk_filter
         }
         if ("order_list" in response) {
-            get_datamap(response["order_list"], order_map)
-            fFill_SelectTable(tblBody_select_order, order_map, "order", selected_order_pk, false,
+            get_datamap(response["order_list"], order_map);
+            let tblHead = document.getElementById("id_thead_select");
+            const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
+            fFill_SelectTable(tblBody_select_order, tblHead, order_map, "order", selected_order_pk, false,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row,  HandleSelectRowButton,
+                filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_inactive_grey, imgsrc_inactive_black,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive);
             const has_rows = fFilter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk);
@@ -598,10 +606,12 @@ let planning_list = [] // for export and printing - can replace map?
             const imgsrc_hover = imgsrc_inactive_black;
             const include_parent_code = "customer";
 
-            console.log ("HandleBtnSelect fFill_SelectTable order")
-            fFill_SelectTable(tblBody_select_order, order_map, tblName, selected_order_pk, include_parent_code,
+            console.log ("HandleBtnSelect fFill_SelectTable order");
+            let tblHead = document.getElementById("id_thead_select");
+            fFill_SelectTable(tblBody_select_order, tblHead, order_map, tblName, selected_order_pk, include_parent_code,
                 HandleSelect_Filter, null,
                 HandleSelect_Row,  null,
+                cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_default, imgsrc_hover)
 
         } else {
@@ -610,10 +620,12 @@ let planning_list = [] // for export and printing - can replace map?
             const imgsrc_hover = imgsrc_inactive_black;
             const title_inactive_btn = loc.TXT_Cick_show_inactive_customers;
 
-            console.log ("HandleBtnSelect fFill_SelectTable customer")
-            fFill_SelectTable(tblBody_select_customer, customer_map, tblName, selected_customer_pk, null,
+            console.log ("HandleBtnSelect fFill_SelectTable customer");
+            let tblHead = document.getElementById("id_thead_select");
+            fFill_SelectTable(tblBody_select_customer, tblHead, customer_map, tblName, selected_customer_pk, null,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row, HandleSelectRowButton,
+                cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_default, imgsrc_hover,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                 title_inactive_btn)
@@ -4590,7 +4602,6 @@ let planning_list = [] // for export and printing - can replace map?
 
 //############################################################################
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
 //========= HandleSelect_Filter  ====================================
     function HandleSelect_Filter() {

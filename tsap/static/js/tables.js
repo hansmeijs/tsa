@@ -3,54 +3,96 @@
     "use strict";
     const cls_hide = "display_hide";
     const cls_hover = "tr_hover";
-    const cls_bc_lightlightgrey = "tsa_bc_lightlightgrey";
-    const cls_bc_yellow = "tsa_bc_yellow";
-
 
 // ++++++++++++  SELECT TABLE in sidebar +++++++++++++++++++++++++++++++++++++++
 
 //========= fFill_SelectTable  ============= PR2019-12-21
-    function fFill_SelectTable(tblBody_select, data_map, tblName, selected_pk, include_parent_code,
+    function fFill_SelectTable(tblBody_select, tblHead, data_map, tblName, selected_pk, include_parent_code,
                             HandleSelect_Filter, HandleSelectFilterButton,
                             HandleSelect_Row, HandleSelectRowButton,
+                            filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                            bc_color_notselected, bc_color_selected,
                             imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                             title_header_btn) {
-        //console.log("===== fFill_SelectTable ===== ", tblName);
+        console.log("===== fFill_SelectTable ===== ", tblName);
+        console.log("filter_ppk_int = ", filter_ppk_int)
+        console.log("filter_include_inactive = ", filter_include_inactive)
+        console.log("bc_color_notselected = ", bc_color_notselected)
+        console.log("bc_color_selected = ", bc_color_selected)
 
        // select table has button when HandleSelectFilterButton has value
        // select table has inactive button when imgsrc_inactive_lightgrey has value
         const is_delete = (!!HandleSelectFilterButton && !imgsrc_inactive_lightgrey);
-
-        CreateSelectHeader(is_delete, tblName, HandleSelect_Filter, HandleSelectFilterButton, imgsrc_default, imgsrc_hover,
+        if(!!tblHead){
+            CreateSelectHeader(is_delete, tblName, tblHead, HandleSelect_Filter, HandleSelectFilterButton,
+                            bc_color_notselected, bc_color_selected,
+                            imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, title_header_btn);
-
+        }
         tblBody_select.innerText = null;
         tblBody_select.setAttribute("data-table", tblName)
 
 //--- loop through data_map
+        let row_count = {count: 0};
         for (const [map_id, item_dict] of data_map.entries()) {
-            const row_index = null // add at end when no rowindex
+            const row_index = null // add row at end when no rowindex
             let selectRow = CreateSelectRow(is_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                         HandleSelect_Row, HandleSelectRowButton,
+                                        filter_ppk_int, filter_include_inactive, row_count,
+                                        bc_color_notselected, bc_color_selected,
                                         imgsrc_default, imgsrc_hover);
+
 
 // update values in SelectRow
             // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
             UpdateSelectRow(selectRow, item_dict, include_parent_code, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
-        }  // for (let cust_key in data_map) {
+        }  // for (let cust_key in data_map)
+        console.log("row_count: ", row_count.count, typeof row_count.count)
+
+
+        if(!!addall_to_list_txt && row_count.count > 1) {
+        // add '<All customers> at beginning of list when tehre are more than 1 rows
+        //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    //--------- insert tblBody_select row
+                let tblRow = tblBody_select.insertRow(0);
+                tblRow.setAttribute("id",  "sel_addall");
+                tblRow.setAttribute("data-pk", "addall");
+                tblRow.setAttribute("data-table", tblName);
+                tblRow.setAttribute("data-inactive", false);
+                tblRow.classList.add(bc_color_notselected);
+        //- add hover to select row
+                tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover)});
+                tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover)});
+
+        // --- add td to tblRow.
+                let td = tblRow.insertCell(-1);
+                let el_a = document.createElement("div");
+                    el_a.setAttribute("data-field", "code");
+                    el_a.innerText = addall_to_list_txt;
+                    el_a.setAttribute("data-value", addall_to_list_txt);
+                    td.appendChild(el_a);
+                td.classList.add("px-2")
+                td.classList.add("td_width_200")
+                td.classList.add("tsa_bc_transparent")
+    //--------- add addEventListener
+                tblRow.addEventListener("click", function() {HandleSelect_Row(tblRow, event.target)}, false);
+
+        //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        }
     } // fFill_SelectTable
 
 //========= CreateSelectHeader  ============= PR2019-12-21
-    function CreateSelectHeader(is_delete, tblName, HandleSelect_Filter, HandleSelectFilterButton, imgsrc_default, imgsrc_hover,
-                            imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
-                            title_header_btn) {
-        //console.log(" === CreateSelectHeader === ")
+    function CreateSelectHeader(is_delete, tblName, tblHead, HandleSelect_Filter, HandleSelectFilterButton,
+                                bc_color_notselected, bc_color_selected,
+                                imgsrc_default, imgsrc_hover,
+                                imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
+                                title_header_btn) {
+        console.log(" === CreateSelectHeader === ")
 
         const has_button = (!!HandleSelectFilterButton);
-        //console.log("has_button = ", has_button)
+        console.log("has_button = ", has_button)
 
-        let tblHead = document.getElementById("id_thead_select");
         tblHead.innerText = null;
 
         let tblRow = tblHead.insertRow (-1);  // index -1: insert new cell at last position.
@@ -68,6 +110,7 @@
                     setTimeout(function() {HandleSelect_Filter()}, 50)});
 
                 const td_width = (has_button) ? "td_width_150" : "td_width_200";
+                console.log("td_width: ", td_width)
                 el_input.classList.add(td_width)
                 el_input.classList.add("tsa_bc_transparent")
                 el_input.classList.add("border_none")
@@ -100,6 +143,8 @@
 //========= CreateSelectRow  ============= PR2019-10-20
     function CreateSelectRow(is_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                 HandleSelect_Row, HandleSelectRowButton,
+                                filter_ppk_int, filter_include_inactive, row_count,
+                                bc_color_notselected, bc_color_selected,
                                 imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
                             title_header_btn) {
@@ -119,63 +164,74 @@
                 const pk_int = get_dict_value_by_key(id_dict, "pk");
                 const ppk_int = get_dict_value_by_key(id_dict, "ppk");
                 const map_id = get_map_id(tblName, pk_int);
+                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
+                const is_inactive = get_subdict_value_by_key(item_dict, "inactive", "value", false);
 
-            const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
-            const inactive_value = get_subdict_value_by_key(item_dict, "inactive", "value", false);
+        //console.log("ppk_int = ", ppk_int)
+        //console.log("filter_ppk_int = ", filter_ppk_int)
+        //console.log("filter_include_inactive = ", filter_include_inactive)
+    //--------- filter parent_pk or inactive if filter has value
+            let skip_row = (!!filter_ppk_int && ppk_int !== filter_ppk_int) ||
+                            (!filter_include_inactive && is_inactive === true );
+        //console.log("skip_row = ", skip_row)
+            if (!skip_row){
 
-//--------- insert tblBody_select row
-            const row_id = "sel_" + map_id
-            tblRow = tblBody_select.insertRow(row_index);
+    //--------- insert tblBody_select row
+                const row_id = "sel_" + map_id
+                tblRow = tblBody_select.insertRow(row_index);
+                const count  = row_count.count + 1
+                row_count.count = count;
 
-            tblRow.setAttribute("id", row_id);
-            //tblRow.setAttribute("data-map_id", map_id );
-            tblRow.setAttribute("data-pk", pk_int);
-            tblRow.setAttribute("data-ppk", ppk_int);
-            tblRow.setAttribute("data-table", tblName);
-            tblRow.setAttribute("data-inactive", inactive_value);
+                tblRow.setAttribute("id", row_id);
+                //tblRow.setAttribute("data-map_id", map_id );
+                tblRow.setAttribute("data-pk", pk_int);
+                tblRow.setAttribute("data-ppk", ppk_int);
+                tblRow.setAttribute("data-table", tblName);
+                tblRow.setAttribute("data-inactive", is_inactive);
 
-            if (!!pk_int && pk_int === selected_pk){
-                tblRow.classList.add(cls_bc_yellow);
-            } else {
-                tblRow.classList.add(cls_bc_lightlightgrey);
-            }
-    //- add hover to select row
-            tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover)});
-            tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover)});
+                if (!!pk_int && pk_int === selected_pk){
+                    tblRow.classList.add(bc_color_selected);
+                } else {
+                    tblRow.classList.add(bc_color_notselected);
+                }
+        //- add hover to select row
+                tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover)});
+                tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover)});
 
-    // --- add first td to tblRow.
-            // index -1 results in that the new cell will be inserted at the last position.
-            let td = tblRow.insertCell(-1);
-            // el_a.innerText and el_a.setAttribute("data-value") are added in UpdateSelectRow
-            let el_a = document.createElement("div");
-                el_a.setAttribute("data-field", "code");
-                //el_a.setAttribute("data-value", code_value);
-                td.appendChild(el_a);
-            td.classList.add("px-2")
+        // --- add first td to tblRow.
+                // index -1 results in that the new cell will be inserted at the last position.
+                let td = tblRow.insertCell(-1);
+                // el_a.innerText and el_a.setAttribute("data-value") are added in UpdateSelectRow
+                let el_a = document.createElement("div");
+                    el_a.setAttribute("data-field", "code");
+                    //el_a.setAttribute("data-value", code_value);
+                    td.appendChild(el_a);
+                td.classList.add("px-2")
 
-            tblRow.addEventListener("click", function() {HandleSelect_Row(tblRow, event.target)}, false);
+                const has_button = (!!HandleSelectRowButton);
+                const td_width = (has_button) ? "td_width_150" : "td_width_200";
+                td.classList.add(td_width)
+                td.classList.add("tsa_bc_transparent")
 
-//--------- add addEventListener
-            //if (["scheme", "shift", "team"].indexOf( tblName ) > -1){
-            //    td.addEventListener("click", function() {HandleSelect_Row(tblRow, "event")}, false)
-            //}
+    //--------- add addEventListener
+                tblRow.addEventListener("click", function() {HandleSelect_Row(tblRow, event.target)}, false);
 
-    // --- add default inactive img to second td in table, only when HandleSelectRowButton exists
-    // or grey delete button, gets red on hover
-            const has_button = (!!HandleSelectRowButton);
-            if (has_button) {
-                // CreateSelectButton(is_delete, is_header, tblRow, HandleSelectButton, imgsrc_default, imgsrc_hover, imgsrc_light)
-                CreateSelectButton(false, is_delete, tblRow, HandleSelectRowButton,
-                                    imgsrc_default, imgsrc_hover, imgsrc_inactive_lightgrey,
-                                    title_header_btn);
-            }  // if (show_button) {
-
+        // --- add default inactive img to second td in table, only when HandleSelectRowButton exists
+        // or grey delete button, gets red on hover
+                if (has_button) {
+                    // CreateSelectButton(is_delete, is_header, tblRow, HandleSelectButton, imgsrc_default, imgsrc_hover, imgsrc_light)
+                    CreateSelectButton(false, is_delete, tblRow, HandleSelectRowButton,
+                                        imgsrc_default, imgsrc_hover, imgsrc_inactive_lightgrey,
+                                        title_header_btn);
+                }  // if (show_button) {
+            }  // if (!filter_ppk_int || ppk_int === filter_ppk_int)
         }  //  if (!isEmpty(item_dict))
         return tblRow;
     } // CreateSelectRow
 
 //=========  CreateSelectButton  ================ PR2019-11-16
     function CreateSelectButton(is_header, is_delete, tblRow, HandleSelectButton,
+                                bc_color_notselected, bc_color_selected,
                                 imgsrc_default, imgsrc_hover, imgsrc_light, title_header_btn){
         //console.log(" === CreateSelectButton === ")
         // SelectButton can be Inactive or Delete
@@ -1364,8 +1420,8 @@
 //========= FillSelectOption2020  ====================================
     function FillSelectOption2020(el_select, data_map, tblName, is_template_mode, has_selectall, hide_none,
             ppk_str, selected_pk, selectall_text, select_text_none, select_text) {
-        //console.log( "=== FillSelectOption2020 ", tblName, "ppk_str:" , ppk_str);
-        //console.log( "hide_none", hide_none);
+        console.log( "=== FillSelectOption2020 ", tblName, "ppk_str:" , ppk_str);
+        console.log( "hide_none", hide_none);
 
 // ---  fill options of select box
         let option_text = "";

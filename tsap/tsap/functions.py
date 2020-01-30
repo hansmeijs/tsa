@@ -905,33 +905,100 @@ def get_date_DM_from_dte(dte, lang):  # PR2019-06-17
 
 # ################### FORMAT FUNCTIONS ###################
 
-def format_WDMY_from_dte(dte, lang):
+
+def format_period_from_datetimelocal(periodstart_dtmlocal, periodend_dtmlocal, timeformat, user_lang):
+    #logger.debug(' --- format_period_from_datetimelocal --- ')
+    #logger.debug('periodstart_datetimelocal: ' + str(periodstart_dtmlocal))
+    #logger.debug('periodend_datetimelocal: ' + str(periodend_dtmlocal))
+
+    display_text = ''
+    # challenge: when end time is 0:00, display it as 24:00 previous day
+    use24insteadof00 = False
+    use_suffix = True
+    start_time, niu = format_HM_from_dt_local(periodstart_dtmlocal, use24insteadof00, use_suffix, timeformat, user_lang)
+    use24insteadof00 = True
+    end_time, is24insteadof00 = format_HM_from_dt_local(periodend_dtmlocal, use24insteadof00, use_suffix, timeformat, user_lang)
+
+    same_time = (periodstart_dtmlocal == periodend_dtmlocal)
+    # if time is 24.00 u, set end datime one day back. Debug: must be after 'same_time = ...'
+    if is24insteadof00:
+        periodend_dtmlocal = periodend_dtmlocal + timedelta(days=-1)
+
+    same_year = (periodstart_dtmlocal.year == periodend_dtmlocal.year)
+    same_month = (periodstart_dtmlocal.month == periodend_dtmlocal.month)
+    same_day = (periodstart_dtmlocal.day == periodend_dtmlocal.day)
+
+    end_year_str = str(periodend_dtmlocal.year)
+    end_month_str = c.MONTHS_ABBREV[user_lang][periodend_dtmlocal.month]
+    end_isoweekday = periodend_dtmlocal.isoweekday()
+    end_day_str = str(periodend_dtmlocal.day)
+    end_weekday_str = c.WEEKDAYS_ABBREV[user_lang][end_isoweekday]
+
+    start_year_str = str(periodstart_dtmlocal.year)
+    start_month_str = c.MONTHS_ABBREV[user_lang][periodstart_dtmlocal.month]
+    start_isoweekday = periodstart_dtmlocal.isoweekday()
+    start_day_str = str(periodstart_dtmlocal.day)
+    start_weekday_str = c.WEEKDAYS_ABBREV[user_lang][start_isoweekday]
+
+    if user_lang == 'nl':
+        end_fulldate_str = ''.join([end_weekday_str, ' ', end_day_str, ' ', end_month_str, ' ', end_year_str])
+        start_fulldate_str = ''.join([start_weekday_str, ' ', start_day_str, ' ', start_month_str, ' ', start_year_str])
+        if same_time:
+            # now, no extension
+            display_text = ''.join([end_fulldate_str, ', ' , end_time])
+        elif same_year and same_month and same_day:
+            # start- and end time are on same date
+            display_text = ''.join([end_fulldate_str, ', ' , start_time , ' - ', end_time])
+        elif not same_year:
+            display_text = ''.join([start_fulldate_str, ', ', start_time , ' - ', end_fulldate_str, ', ', end_time])
+        else:
+            display_text = ''.join([start_weekday_str, ' ', start_day_str, ' ', start_month_str, ' ', start_time , ' - ',
+                                    end_fulldate_str, ', ', end_time])
+
+    elif user_lang == 'en':
+        end_fulldate_str = ''.join([end_weekday_str, ', ', end_month_str, ' ', end_day_str, ', ', end_year_str])
+        start_fulldate_str = ''.join([start_weekday_str, ', ', start_month_str, ' ', start_day_str, ', ', start_year_str])
+        if same_time:
+            # now, no extension
+            display_text = ''.join([end_fulldate_str, ', ', end_time])
+        elif same_year and same_month and same_day:
+            # start- and end time are on same date
+            display_text = ''.join([end_fulldate_str, ', ', start_time , ' - ', end_time])
+        elif not same_year:
+            display_text = ''.join([start_fulldate_str, ', ', start_time , ' - ', end_fulldate_str, ', ', end_time])
+        else:
+            display_text = ''.join([start_weekday_str, ', ', start_month_str, ' ', start_day_str, ', ', start_time , ' - ',
+                                    end_fulldate_str, ', ', end_time])
+
+    return display_text
+
+def format_WDMY_from_dte(dte, user_lang):
     # returns 'zo 16 juni 2019'
     date_WDMY = ''
     if dte:
         try:
-            date_DMY = format_DMY_from_dte(dte, lang)
+            date_DMY = format_DMY_from_dte(dte, user_lang)
 
             # get weekdays translated
-            if not lang in c.WEEKDAYS_ABBREV:
-                lang = c.LANG_DEFAULT
+            if not user_lang in c.WEEKDAYS_ABBREV:
+                user_lang = c.LANG_DEFAULT
             weekday_int = int(dte.strftime("%w"))
-            weekday_str = c.WEEKDAYS_ABBREV[lang][weekday_int]
+            weekday_str = c.WEEKDAYS_ABBREV[user_lang][weekday_int]
 
             date_WDMY = ' '.join([weekday_str, date_DMY])
         except:
             pass
-    #logger.debug('... format_WDMY_from_dte: ' + str(date_WDMY) + ' type:: ' + str(type(date_WDMY)) + ' lang: ' + str(lang))
+    #logger.debug('... format_WDMY_from_dte: ' + str(date_WDMY) + ' type:: ' + str(type(date_WDMY)) + ' user_lang: ' + str(user_lang))
     return date_WDMY
 
 
-def format_HM_from_dt_local(datetime_local, timeformat, user_lang):
-    # PR2020-01026
+def format_HM_from_dt_local(datetime_local, use24insteadof00, use_suffix, timeformat, user_lang):
+    # PR2020-01-26
     # Function returns time : "18.15 u." or "6:15 p.m."
     # 12.00 a.m is midnight, 12.00 p.m. is noon
-    # called by
-    time_str = ''
+
     display_txt = ''
+    is24insteadof00 = False
     if datetime_local:
         # from https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
         # entered date is dattime-naive, make it datetime aware with  pytz.timezone
@@ -940,12 +1007,18 @@ def format_HM_from_dt_local(datetime_local, timeformat, user_lang):
         hours_int = datetime_local.hour
         minutes_int = datetime_local.minute
 
-        # NIU suffix = 'u' if user_lang == 'nl' else ''
         suffix = None
-        if timeformat == 'ampm':
+        if use_suffix and user_lang == 'nl':
+            suffix = 'u'
+
+        if timeformat.lower() == 'ampm':
             suffix = 'p.m.' if hours_int >= 12 else 'a.m.'
             if hours_int > 12:
                 hours_int -= 12
+        elif use24insteadof00 and hours_int == 0 and minutes_int == 0:
+            hours_int = 24
+            is24insteadof00 = True
+
 
         hour_str = ''.join(['00', str(hours_int)])[-2:]
         minutes_str = ''.join(['00', str(minutes_int)])[-2:]
@@ -953,10 +1026,11 @@ def format_HM_from_dt_local(datetime_local, timeformat, user_lang):
         separator = '.' if user_lang == 'nl' else ':'
         display_txt = separator.join([hour_str, minutes_str])
 
+        logger.debug('suffix ???????????????????????:  ' + str(suffix))
         if suffix:
             display_txt = ' '.join([display_txt, suffix])
 
-    return display_txt
+    return display_txt, is24insteadof00
 
 
 def format_DMY_from_dte(dte, lang):  # PR2019-06-09
@@ -2177,8 +2251,10 @@ def format_time_element(rosterdate_dte, offset, timeformat, user_lang,
 
 def format_time_range(timestart_local, timeend_local, timeformat, user_lang):
     # PR2020-01-26
-    timestart_txt = format_HM_from_dt_local(timestart_local, timeformat, user_lang)
-    timeend_txt = format_HM_from_dt_local(timeend_local, timeformat, user_lang)
+    use24insteadof00 = True
+    use_suffix = False
+    timestart_txt, is24insteadof00 = format_HM_from_dt_local(timestart_local, use24insteadof00, use_suffix, timeformat, user_lang)
+    timeend_txt, is24insteadof00 = format_HM_from_dt_local(timeend_local, use24insteadof00, use_suffix, timeformat, user_lang)
     display_txt = ' - '.join([timestart_txt, timeend_txt])
 
     return display_txt

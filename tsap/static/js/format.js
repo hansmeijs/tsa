@@ -1073,7 +1073,8 @@
 
 //========= display_planning_period  ======== PR2020-01-21
     function display_planning_period(selected_planning_period, loc, user_lang) {
-        //console.log( "===== display_planning_period  ========= ");
+        console.log( "===== display_planning_period  ========= ");
+        console.log( "selected_planning_period: ", selected_planning_period);
         const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatefirst");
         const datelast_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatelast");
         const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag");

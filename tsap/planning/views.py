@@ -49,9 +49,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
         if request.user is not None:
             if request.user.company is not None:
                 if request.POST['download']:
-
-# TODO update_isabsence_istemplate is one time only, to be removed after update
-                    f.update_isabsence_istemplate()
+                    # update_isabsence_istemplate was one time only, is removed after update
+                    # f.update_isabsence_istemplate()
 # - get user_lang
                     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
                     activate(user_lang)
@@ -211,7 +210,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     # also get planning_period_dict at startup of page  when btn = 'planning'
                     if table_dict is not None or selected_btn == 'planning':
                         # save new period and retrieve saved period
-                        planning_period_dict = d.period_get_and_save('planning_period', table_dict, comp_timezone, user_lang, request)
+                        planning_period_dict = d.period_get_and_save('planning_period', table_dict,
+                                                                     comp_timezone, timeformat, user_lang, request)
                         datalists['planning_period'] = planning_period_dict
 # ----- calendar_period
                     # calendar_period_dict is used further in customer/employee calendar
@@ -220,7 +220,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     # also get calendar_period_dict at startup of page when btn = 'calendar'
                     if table_dict is not None or selected_btn == 'calendar':
                         # save new period and retrieve saved period
-                        calendar_period_dict = d.period_get_and_save('calendar_period', table_dict, comp_timezone, user_lang, request)
+                        calendar_period_dict = d.period_get_and_save('calendar_period', table_dict,
+                                                                     comp_timezone, timeformat, user_lang, request)
                         datalists['calendar_period'] = calendar_period_dict
 
 # ----- roster_period ( roster_period is used in emplhour)
@@ -236,7 +237,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     table_dict = datalist_dict.get('roster_period')
                     if table_dict:
                         # save new period and retrieve saved period
-                        roster_period_dict = d.period_get_and_save('roster_period', table_dict, comp_timezone, user_lang, request)
+                        roster_period_dict = d.period_get_and_save('roster_period', table_dict,
+                                                                   comp_timezone, timeformat, user_lang, request)
                         datalists['roster_period'] = roster_period_dict
 
 # ----- emplhour
@@ -246,17 +248,11 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         # don't use the variable 'list', because table = 'period' and will create dict 'period_list'
                         # roster_period_dict is already retrieved
 
-                        customer_pk = None
-                        order_pk = table_dict.get('order_pk')
-                        if order_pk is None:
-                            customer_pk = table_dict.get('customer_pk')
                         emplhour_list = d.create_emplhour_list(period_dict=roster_period_dict,
-                                                                customer_pk=customer_pk,
-                                                                order_pk=order_pk,
-                                                                request=request,
                                                                 comp_timezone=comp_timezone,
                                                                 timeformat=timeformat,
-                                                                user_lang=user_lang)
+                                                                user_lang=user_lang,
+                                                                request=request)
                         # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
                         datalists['emplhour_list'] = emplhour_list
 # ----- review
