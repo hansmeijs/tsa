@@ -4118,8 +4118,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // reset icon of filter select table
         // debug: dont use el.firstChild, it also returns text and comment nodes, can give error
         let el_sel_inactive = document.getElementById("id_filter_select_btn")
-        el_sel_inactive.children[0].setAttribute("src", imgsrc_inactive_lightgrey);
-
+        let el_sel_inactive_cell = el_sel_inactive.children[0];
+        if(!!el_sel_inactive_cell){
+            el_sel_inactive_cell.setAttribute("src", imgsrc_inactive_lightgrey);
+        }
         FilterSelectRows(tblBody_select, filter_select)
         UpdateHeaderText();
     }  // function ResetFilterRows

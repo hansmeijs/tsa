@@ -2408,8 +2408,8 @@ console.log("===  function HandlePopupWdySave =========");
         el_datelast.value = get_dict_value_by_key(selected_roster_period, "rosterdatelast")
 
     // set min max of input fields
-        ModPeriodEdit("datefirst");
-        ModPeriodEdit("datelast");
+        ModPeriodDateChanged("datefirst");
+        ModPeriodDateChanged("datelast");
 
         el_datefirst.disabled = !is_custom_period
         el_datelast.disabled = !is_custom_period
@@ -2471,16 +2471,18 @@ console.log("===  function HandlePopupWdySave =========");
         }
     }  // ModPeriodSelect
 
-//=========  ModPeriodEdit  ================ PR2019-07-14
-    function ModPeriodEdit(fldName) {
+//=========  ModPeriodDateChanged  ================ PR2019-07-14
+    function ModPeriodDateChanged(fldName) {
+        console.log("ModPeriodDateChanged");
     // set min max of other input field
+    // TODO not working
         let attr_key = (fldName === "datefirst") ? "min" : "max";
         let fldName_other = (fldName === "datefirst") ? "datelast" : "datefirst";
         let el_this = document.getElementById("id_mod_period_" + fldName)
         let el_other = document.getElementById("id_mod_period_" + fldName_other)
         if (!!el_this.value){ el_other.setAttribute(attr_key, el_this.value)
         } else { el_other.removeAttribute(attr_key) };
-    }  // ModPeriodEdit
+    }  // ModPeriodDateChanged
 
 //=========  ModPeriodSave  ================ PR2019-07-11
     function ModPeriodSave() {
@@ -2632,7 +2634,7 @@ console.log("===  function HandlePopupWdySave =========");
 // +++++++++++++++++ MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
 //========= ModSelectOrder_Open ====================================  PR2019-11-16
     function ModSelectOrder_Open (mode) {
-        console.log("===  ModSelectOrder_Open  =====") ;
+        console.log("xxxxxxxxxxxxxxxxxxx===  ModSelectOrder_Open  =====") ;
         //console.log("selected_roster_period", selected_roster_period) ;
         // selected_roster_period = {extend_index: 2, extend_offset: 120, period_index: null, periodend: null,
         //                periodstart: null, rosterdatefirst: "2019-11-15", rosterdatelast: "2019-11-17"
@@ -2658,6 +2660,7 @@ console.log("===  function HandlePopupWdySave =========");
         let tblBody_select_customer = document.getElementById("id_modorder_tblbody_customer");
         let tblHead = document.getElementById("id_modorder_thead_customer");
         const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = "<" + loc.All_customers + ">";
+        console.log("??????????????")
         fFill_SelectTable(tblBody_select_customer, tblHead, customer_map, "customer", selected_customer_pk, null,
             HandleSelect_Filter, null,
             ModSelectOrder_SelectCustomer,  null,

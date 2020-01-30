@@ -19,8 +19,9 @@
         console.log("filter_ppk_int = ", filter_ppk_int)
         console.log("filter_include_inactive = ", filter_include_inactive)
         console.log("bc_color_notselected = ", bc_color_notselected)
-        console.log("bc_color_selected = ", bc_color_selected)
+        console.log("???????????bc_color_selected = ", bc_color_selected)
 
+        console.log("tblHead = ", tblHead)
        // select table has button when HandleSelectFilterButton has value
        // select table has inactive button when imgsrc_inactive_lightgrey has value
         const is_delete = (!!HandleSelectFilterButton && !imgsrc_inactive_lightgrey);
@@ -33,6 +34,7 @@
         tblBody_select.innerText = null;
         tblBody_select.setAttribute("data-table", tblName)
 
+        console.log("tblBody_select = ", tblBody_select)
 //--- loop through data_map
         let row_count = {count: 0};
         for (const [map_id, item_dict] of data_map.entries()) {
@@ -42,7 +44,6 @@
                                         filter_ppk_int, filter_include_inactive, row_count,
                                         bc_color_notselected, bc_color_selected,
                                         imgsrc_default, imgsrc_hover);
-
 
 // update values in SelectRow
             // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
@@ -148,7 +149,7 @@
                                 imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
                             title_header_btn) {
-        //console.log(" === CreateSelectRow === ")
+        console.log(" === CreateSelectRow === ")
         //console.log("selected_pk: ", selected_pk);
         //console.log("row_index: ", row_index);
 
@@ -233,7 +234,7 @@
     function CreateSelectButton(is_header, is_delete, tblRow, HandleSelectButton,
                                 bc_color_notselected, bc_color_selected,
                                 imgsrc_default, imgsrc_hover, imgsrc_light, title_header_btn){
-        //console.log(" === CreateSelectButton === ")
+        console.log(" === CreateSelectButton === ")
         // SelectButton can be Inactive or Delete
         let td = tblRow.insertCell(-1);
             let el_a = document.createElement("a");
@@ -259,8 +260,8 @@
 
 //========= UpdateSelectRow  ============= PR2019-10-20
     function UpdateSelectRow(selectRow, update_dict, include_parent_code, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey) {
-        //console.log("UpdateSelectRow in tables.js");
-
+        console.log("UpdateSelectRow in tables.js");
+        console.log("selectRow:", selectRow);
         // update_dict = { id: {pk: 489, ppk: 2, table: "customer"}, cat: {value: 0}, inactive: {},
         //                 code: {value: "mc"} , name: {value: "mc"}, interval: {value: 0}
 
@@ -296,21 +297,28 @@
                 if(!isEmpty(inactive_dict)){
                     const inactive_value = get_dict_value_by_key(inactive_dict, "value", false);
                     selectRow.setAttribute("data-inactive", inactive_value);
+                    let selectRow_cell = selectRow.cells[1];
+                    if(!!selectRow_cell){
 
-                    let el_input = selectRow.cells[1].children[0]
-                    format_inactive_element (el_input, inactive_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
+                        let el_input = selectRow_cell.children[0]
+                        if(!!el_input){
 
-// make el_input green for 2 seconds
-                    if("updated" in inactive_dict){
-                        el_input.classList.add("border_valid");
-                        setTimeout(function (){
-                            el_input.classList.remove("border_valid");
-                            // let row disappear when inactive and not filter_show_inactive
-                            if(!filter_show_inactive && inactive_value){
-                                selectRow.classList.add(cls_hide)
-                            }
-                        }, 2000);
-                    }  //  if("updated" in inactive_dict)
+                            format_inactive_element (el_input, inactive_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
+
+        // make el_input green for 2 seconds
+                            if("updated" in inactive_dict){
+                                el_input.classList.add("border_valid");
+                                setTimeout(function (){
+                                    el_input.classList.remove("border_valid");
+                                    // let row disappear when inactive and not filter_show_inactive
+                                    if(!filter_show_inactive && inactive_value){
+                                        selectRow.classList.add(cls_hide)
+                                    }
+                                }, 2000);
+                            }  //  if("updated" in inactive_dict)
+
+                        }  // if(!!el_input)
+                    }  // if(!!selectRow_cell)
                 }  // if(!isEmpty(inactive_dict))
             }  //  if(!!is_deleted)
         }  //  if(!!selectRow && !!update_dict){
