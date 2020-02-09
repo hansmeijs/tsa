@@ -366,7 +366,7 @@ class Scheme(TsaBaseModel):
     isdefaultweekshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
-    cycle = PositiveSmallIntegerField(default=7)
+    cycle = PositiveSmallIntegerField(default=7)  # default cycle is one week
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
 
     excludecompanyholiday = BooleanField(default=False)
@@ -574,10 +574,10 @@ class Schemeitem(TsaBaseModel):
     rosterdate = DateField(db_index=True)
     iscyclestart = BooleanField(default=False)
 
-    offsetstart = SmallIntegerField(null=True)  # only for absence
-    offsetend = SmallIntegerField(null=True)  # only for absence
-    breakduration = IntegerField(default=0) # unit is minut
-    timeduration = IntegerField(default=0)  # unit is minute
+    offsetstart = SmallIntegerField(null=True)  # only for absence >> deprecated
+    offsetend = SmallIntegerField(null=True)  # only for absence>> deprecated
+    breakduration = IntegerField(default=0) # unit is minut >> deprecated
+    timeduration = IntegerField(default=0)  # unit is minute >> deprecated
 
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
     additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%

@@ -175,9 +175,9 @@ let planning_list = [] // for export and printing - can replace map?
             el_modshift_btn_delete.addEventListener("click", function() {MSO_Save("delete")}, false );
 
 // ---  put datefirst datelast in input boxes
-        let el_modshift_datefirst = document.getElementById("id_modshift_datefirst")
+        let el_modshift_datefirst = document.getElementById("id_modshift_input_datefirst")
             el_modshift_datefirst.addEventListener("change", function() {MSO_SchemeDateChanged("datefirst")}, false );
-        let el_modshift_datelast = document.getElementById("id_modshift_datelast")
+        let el_modshift_datelast = document.getElementById("id_modshift_input_datelast")
             el_modshift_datelast.addEventListener("change", function() {MSO_SchemeDateChanged("datelast")}, false );
 
         let el_modshift_btn_shift = document.getElementById("id_modshift_btn_shift")
@@ -194,13 +194,13 @@ let planning_list = [] // for export and printing - can replace map?
         let el_modshift_selectteam = document.getElementById("id_modshift_selectteam")
             el_modshift_selectteam.addEventListener("change", function() {MSO_SelectTeamChanged()}, false)
 
-        let el_modshift_offsetstart = document.getElementById("id_modshift_offsetstart")
+        let el_modshift_offsetstart = document.getElementById("id_modshift_input_offsetstart")
             el_modshift_offsetstart.addEventListener("click", function() {MSO_TimepickerOpen(el_modshift_offsetstart, "modshift")}, false );
-        let el_modshift_offsetend = document.getElementById("id_modshift_offsetend");
+        let el_modshift_offsetend = document.getElementById("id_modshift_input_offsetend");
             el_modshift_offsetend.addEventListener("click", function() {MSO_TimepickerOpen(el_modshift_offsetend, "modshift")}, false );
-        let el_modshift_breakduration = document.getElementById("id_modshift_breakduration");
+        let el_modshift_breakduration = document.getElementById("id_modshift_input_breakduration");
             el_modshift_breakduration.addEventListener("click", function() {MSO_TimepickerOpen(el_modshift_breakduration, "modshift")}, false );
-        let el_modshift_timeduration = document.getElementById("id_modshift_timeduration");
+        let el_modshift_timeduration = document.getElementById("id_modshift_input_timeduration");
             el_modshift_timeduration.addEventListener("click", function() {MSO_TimepickerOpen(el_modshift_timeduration, "modshift")}, false );
         let el_modshift_onceonly = document.getElementById("id_modshift_onceonly");
             el_modshift_onceonly.addEventListener("change", function() {MSO_OnceOnly()}, false );
@@ -229,14 +229,6 @@ let planning_list = [] // for export and printing - can replace map?
 // ---  MOD PERIOD ------------------------------------
 // ---  header select period
         document.getElementById("id_hdr_period").addEventListener("click", function() {ModPeriodOpen()});
-// ---  select customer
-        let el_modperiod_selectcustomer = document.getElementById("id_modperiod_selectcustomer")
-            el_modperiod_selectcustomer.addEventListener("change", function() {
-                        ModPeriodSelectCustomer(el_modperiod_selectcustomer.value)}, false )
-// ---  select order
-        let el_modperiod_selectorder = document.getElementById("id_modperiod_selectorder")
-            el_modperiod_selectorder.addEventListener("change", function() {
-                        ModPeriodSelectOrder(el_modperiod_selectorder.value)}, false )
 // buttons in  modal period
         document.getElementById("id_mod_period_datefirst").addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false )
         document.getElementById("id_mod_period_datelast").addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false )
@@ -375,6 +367,7 @@ let planning_list = [] // for export and printing - can replace map?
             const title_inactive_btn = loc.TXT_Cick_show_inactive_customers;
             let tblHead = document.getElementById("id_thead_select");
             const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
+
             fFill_SelectTable(tblBody_select_customer, tblHead, customer_map, "customer", selected_customer_pk, null,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row,  HandleSelectRowButton,
@@ -399,9 +392,9 @@ let planning_list = [] // for export and printing - can replace map?
                 cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_inactive_grey, imgsrc_inactive_black,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive);
-            const has_rows = fFilter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk);
+            const has_rows_arr = fFilter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk);
 
-            if ( has_rows && ["calendar", "planning"].indexOf(selected_btn) > -1){
+            if ( !!has_rows_arr[0] && ["calendar", "planning"].indexOf(selected_btn) > -1){
                 document.getElementById("id_div_tbody_select_order").classList.remove(cls_hide)
             } else {
                 document.getElementById("id_div_tbody_select_order").classList.add(cls_hide)
@@ -737,6 +730,8 @@ let planning_list = [] // for export and printing - can replace map?
                         }
                     }
                 }
+
+        console.log( "update_needed: ", update_needed);
                 if(update_needed){
 
     // ---  update customer_calendar
@@ -751,7 +746,7 @@ let planning_list = [] // for export and printing - can replace map?
                             tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
                         };
                     } else if(selected_btn === "order"){
-            // reset filter tBody_order (show all orders, theregfore dont filter on selected_customer_pk
+            // reset filter tBody_order (show all orders, therefore dont filter on selected_customer_pk
                         f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
 
             // ---  update addnew row: put pk and ppk of selected customer in addnew row of tBody_order
@@ -783,8 +778,13 @@ let planning_list = [] // for export and printing - can replace map?
                     const upload_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};
                     UploadSettings (upload_dict, url_settings_upload);
     // ---  filter selectrows of tbody_select_order
-                    const has_rows = fFilter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk)
-                    if ( has_rows && ["calendar", "planning"].indexOf(selected_btn) > -1){
+                    // has_rows_dict: {row_count: 2, selected_pk: null, selected_parentpk: null, selected_value: null}
+                    const has_rows_dict = fFilter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk)
+
+
+        console.log( "has_rows_dict: ", has_rows_dict);
+
+                    if ( !!has_rows_dict.row_count && ["calendar", "planning"].indexOf(selected_btn) > -1){
                         document.getElementById("id_div_tbody_select_order").classList.remove(cls_hide)
                     } else {
                         document.getElementById("id_div_tbody_select_order").classList.add(cls_hide)
@@ -997,7 +997,7 @@ let planning_list = [] // for export and printing - can replace map?
             "id_submenu_customer_planning_print"
         )
         // was: CreateSubmenuButton(el_submenu, null, loc.menubtn_export_excel, "mx-2", ExportToExcel);
-        AddSubmenuButton(el_div, loc.menubtn_export_excel, ExportToExcel, "mx-2");
+        AddSubmenuButton(el_div, loc.Export_to_Excel, ExportToExcel, "mx-2");
 
        // AddSubmenuButton(el_div, el_data, "id_submenu_customer_planning_print", function() {
        //     PrintOrderPlanning("preview", selected_planning_period, planning_customer_map, company_dict,
@@ -1428,15 +1428,16 @@ let planning_list = [] // for export and printing - can replace map?
         console.log("selected_btn", selected_btn);
 
 //--- get info from update_dict["id"]
-        const id_dict = get_dict_value_by_key (update_dict, "id");
-        const tblName = get_dict_value_by_key(id_dict, "table");
-        const pk_int = get_dict_value_by_key(id_dict, "pk");
-        const ppk_int = get_dict_value_by_key(id_dict, "ppk");
-        const temp_pk_str = get_dict_value_by_key(id_dict, "temp_pk");
+        const id_dict = get_dict_value(update_dict, ["id"]);
+            const tblName = get_dict_value(id_dict, ["table"]);
+            const pk_int = get_dict_value(id_dict, ["pk"]);
+            const ppk_int = get_dict_value(id_dict, ["ppk"]);
+            const temp_pk_str = get_dict_value(id_dict, ["temp_pk"]);
+            const is_created = ("created" in id_dict);
+            const is_deleted = ("deleted" in id_dict);
         const map_id = get_map_id(tblName, pk_int);
-        const is_created = ("created" in id_dict);
-        const is_deleted = ("deleted" in id_dict);
-        const inactive_changed = get_subdict_value_by_key(update_dict, "inactive", "updated")
+        const inactive_changed = get_dict_value(update_dict, ["inactive", "updated"])
+
         console.log("is_created", is_created);
         console.log("inactive_changed", inactive_changed);
 
@@ -1453,9 +1454,9 @@ let planning_list = [] // for export and printing - can replace map?
     //--- reset selected_customer and selected_order when deleted
         if(is_deleted){
             selected_order_pk = 0;
-            if (tblName === "customer") {selected_customer_pk = 0;}
-    //--- delete tblRow
-            if (!!tblRow){tblRow.parentNode.removeChild(tblRow)}
+            if (tblName === "customer") {selected_customer_pk = 0};
+    //--- remove deleted tblRow
+            if (!!tblRow){tblRow.parentNode.removeChild(tblRow)};
 
 // ++++ created ++++
         } else if (is_created){
@@ -1463,7 +1464,7 @@ let planning_list = [] // for export and printing - can replace map?
             // parameters: tblName, pk_str, ppk_str, is_addnew, customer_pk
             //console.log("------------------ tblName", tblName);
 
-// --- insert tblRow in tblBody
+    // --- insert tblRow in tblBody
             let tblBody = document.getElementById("id_tbody_" + tblName);
             tblRow = CreateTblRow(tblBody, tblName, pk_int, ppk_int)
             UpdateTableRow(tblRow, update_dict)
@@ -1524,6 +1525,7 @@ let planning_list = [] // for export and printing - can replace map?
 
                 const title_inactive_btn = loc.TXT_Cick_show_inactive_customers;
                 const imgsrc_default = imgsrc_inactive_grey, imgsrc_hover = imgsrc_inactive_black;
+                console.log(" xxxxxxxxxxxx before CreateSelectRow ")
                 selectRow = CreateSelectRow(false, tblBody_select_customer, tblName, row_index, update_dict, selected_customer_pk,
                                             HandleSelect_Row, HandleBtnInactiveDeleteClicked,
                                             imgsrc_default, imgsrc_hover, imgsrc_inactive_black, imgsrc_inactive_grey,
@@ -1541,19 +1543,21 @@ let planning_list = [] // for export and printing - can replace map?
             UpdateSelectRow(selectRow, update_dict, false, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
 
         }  // if( tblName === "customer")
+
 // ++++ update table filter when inactive changed ++++
         if (inactive_changed && !filter_show_inactive){
             // let row disappear when inactive and not filter_show_inactive
+            console.log (" ++++ update table filter when inactive changed ++++")
             setTimeout(function (){
                 f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk)  // true = has_ppk_filter
             }, 2000);
           }
 
-//--- refresh header text - alwas, not only when if(pk_int === selected_customer_pk)
+//--- refresh header text - always, not only when if(pk_int === selected_customer_pk)
         UpdateHeaderText();
 
 //--- remove 'updated, deleted created and msg_err from update_dict
-        //remove_err_del_cre_updated__from_itemdict(update_dict)
+        remove_err_del_cre_updated__from_itemdict(update_dict)
 
 //--- replace updated item in map or remove deleted item from map
         // must be after remove_err_del_cre_updated__from_itemdict
@@ -2259,7 +2263,7 @@ let planning_list = [] // for export and printing - can replace map?
     function MSO_Open(el_input) {
         console.log(" ======  MSO_Open  =======")
 
-        let mod_shift_option = "mod_shift";
+        const mod_shift_option = "mod_shift";
         let tr_selected = get_tablerow_selected(el_input)
 
         mod_upload_dict = {};
@@ -2275,7 +2279,7 @@ let planning_list = [] // for export and printing - can replace map?
         let team_pk = null, team_code = null;
         let schemeitem_pk = null, schemeitem_ppk = null, teammember_pk = null, teammember_ppk = null;
 
-        // calendar_datefirst/last is used to create a new employee_calendar_list
+// ---  calendar_datefirst/last is used to create a new employee_calendar_list
         // calendar_period + {datefirst: "2019-12-09", datelast: "2019-12-15", employee_id: 1456}
         const calendar_datefirst = get_dict_value_by_key(selected_calendar_period, "rosterdatefirst");
         const calendar_datelast = get_dict_value_by_key(selected_calendar_period, "rosterdatelast");
@@ -2308,6 +2312,7 @@ let planning_list = [] // for export and printing - can replace map?
         console.log("map_dict: ", map_dict)
 
 // ++++++++++++++++ clicked on cell with item in calendar_map ++++++++++++++++
+        // dont use !map_dict, because map_dict = {}, therefore !!map_dict will give true
         if(!isEmpty(map_dict)){
 // ---  get selected_weekday_list from map_dict, select weekday buttons (dont mix up with loc.weekdays_abbrev that contains names of weekdays)
             selected_weekday_list = get_dict_value_by_key(map_dict, "weekday_list");
@@ -2352,9 +2357,10 @@ let planning_list = [] // for export and printing - can replace map?
 // -------------------------------------
             schemeitem_pk = get_subdict_value_by_key(map_dict, "schemeitem", "pk");
             schemeitem_ppk = get_subdict_value_by_key(map_dict, "schemeitem", "ppk");
-
         } else {
-// ++++++++++++++++ clicked on empty cell ++++++++++++++++
+
+// ++++++++++++++++ clicked on empty cell ++++++++++++++++++++++++++++++++++++
+
             add_new_mode = true;
 
 // ---  get selected order_pk when cliced on empty row
@@ -2384,7 +2390,7 @@ let planning_list = [] // for export and printing - can replace map?
             shift_pk = "new" + id_new.toString();
             shift_ppk = scheme_pk_str;
             offset_start = 60 * row_index
-            shift_code = MSO_CreateShiftname(offset_start);
+            shift_code = Create_Shift_code(loc, offset_start, offset_end, time_duration, shift_code);
             shiftcode_haschanged = true
             offsetstart_haschanged = true
         // shift_dict will be created further in in MSO_FillShiftValues
@@ -2398,7 +2404,9 @@ let planning_list = [] // for export and printing - can replace map?
         // create team_dict
             team_dict = {id: {pk: team_pk_str, ppk: scheme_pk_str, table: "team", create: true},
                         code: {value: team_code, update: true}};
-        };  //  if(!isEmpty(map_dict)){
+
+        };  //  if(!isEmpty(map_dict))
+// ++++++++++++++++++++++++++++++++
 
 // --- reset mod_upload_dict
         // shift is filled in MSO_FillShiftValues
@@ -2426,7 +2434,6 @@ let planning_list = [] // for export and printing - can replace map?
         console.log("shift_code: ", shift_code)
         MSO_FillShiftValues(mod_upload_dict.shift, shift_pk, shift_ppk, shift_code, offset_start, offset_end, break_duration, time_duration,
                                 shiftcode_haschanged, offsetstart_haschanged)
-
 
         // create new team with 1 teammmeber when clicked on empty hour
         if(add_new_mode){
@@ -2460,7 +2467,7 @@ let planning_list = [] // for export and printing - can replace map?
         let el_select = document.getElementById("id_modshift_selectshift");
         let new_option_txt =  "&lt;" +  loc.New_shift.toLowerCase() + "&gt;"
         const selected_shift_pk_int = (!!shift_pk) ? shift_pk : 0;
-        console.log(">>>>>>>>>>>> selected_shift_pk_int: ", selected_shift_pk_int, typeof selected_shift_pk_int)
+        console.log("selected_shift_pk_int: ", selected_shift_pk_int, typeof selected_shift_pk_int)
         el_select.innerHTML = FillOptionShiftOrTeam(shift_map, scheme_pk, selected_shift_pk_int, true, new_option_txt);
         //el_select.value = selected_shift_pk_int;
 
@@ -2498,11 +2505,11 @@ let planning_list = [] // for export and printing - can replace map?
         } else {
             el_onceonly_container.classList.add(cls_hide)
         }
-        document.getElementById("id_modshift_datefirst").readOnly = false;
-        document.getElementById("id_modshift_datelast").readOnly = false;
+        document.getElementById("id_modshift_input_datefirst").readOnly = false;
+        document.getElementById("id_modshift_input_datelast").readOnly = false;
 
 // ---  set weekdays, don't disable
-        MSO_BtnWeekdaySchemeitemsFormat(false);
+        MSO_BtnWeekdaysFormat(false);
 
 // --- set excluded checkboxen upload_dict, don't disable
         el_modshift_publicholiday.checked = scheme_excludepublicholiday;
@@ -2771,7 +2778,7 @@ let planning_list = [] // for export and printing - can replace map?
             console.log( "value_has_changed: ", value_has_changed);
 
             if (value_has_changed){
-                const new_shift_code = MSO_CreateShiftname(offset_start, offset_end, shift_code);
+                const new_shift_code = Create_Shift_code(loc, offset_start, offset_end, time_duration, shift_code);
                 if (new_shift_code !== shift_code){
                     shift_code = new_shift_code;
                     shiftcode_haschanged = true;
@@ -2797,7 +2804,7 @@ let planning_list = [] // for export and printing - can replace map?
                     ModShiftUpdateInputboxes()
                 }
     // set focus to next element
-                const next_el_id = (fldName === "offsetstart") ? "id_modshift_offsetend" : "id_modshift_btn_save";
+                const next_el_id = (fldName === "offsetstart") ? "id_modshift_input_offsetend" : "id_modshift_btn_save";
                 setTimeout(function() { document.getElementById(next_el_id).focus()}, 50);
             }  // if (value_has_changed)
         }  // if("save_changes" in tp_dict) {
@@ -2821,35 +2828,6 @@ let planning_list = [] // for export and printing - can replace map?
         el_modshift_timeduration.innerText = display_offset_time (time_duration, timeformat, user_lang, false, true)
 
     }  // ModShiftUpdateInputboxes
-
-//========= MSO_CreateShiftname  ============= PR2019-12-24
-    function MSO_CreateShiftname(offset_start, offset_end, cur_shift_code) {
-        //console.log( "=== ModShiftCreateShiftname ");
-        // shiftname will be replaced by calculated shiftname if:
-         // 1) cur_shift_code is empty 2) starts with '-' 3) starts with '<' or 4) first 2 characters are digits
-
-        //console.log( "=== cur_shift_code ", cur_shift_code, typeof cur_shift_code);
-
-        const code_trimmed = (!!cur_shift_code) ? cur_shift_code.trim() : "";
-        let may_override = false;
-        let new_shift_code = null;
-        if (!code_trimmed){
-            may_override = true;
-        } else if (code_trimmed[0] === "-"){
-            may_override = true
-        } else if (code_trimmed[0] === "<"){
-            may_override = true
-        } else {
-            const code_sliced = code_trimmed.slice(0, 2);
-            may_override = (!Number.isNaN(code_sliced));
-        }
-        if (may_override){
-           //display_offset_time (offset, timeformat, user_lang, skip_prefix_suffix, blank_when_zero)
-            new_shift_code = display_offset_time (offset_start, loc.timeformat, loc.user_lang, true, false) + ' - ' +
-                             display_offset_time (offset_end, loc.timeformat, loc.user_lang, true, false)
-        }
-        return new_shift_code
-    }  // MSO_CreateShiftname
 
 //========= MSO_FillSchemeshifts  ============= PR2019-12-14
     function MSO_FillSchemeshiftsXXX() {
@@ -2925,8 +2903,8 @@ let planning_list = [] // for export and printing - can replace map?
         console.log( "selected_weekday_list: ", selected_weekday_list);
         console.log( "weekday_index: ", weekday_index);
 
-        let el_datefirst = document.getElementById("id_modshift_datefirst");
-        let el_datelast = document.getElementById("id_modshift_datelast");
+        let el_datefirst = document.getElementById("id_modshift_input_datefirst");
+        let el_datelast = document.getElementById("id_modshift_input_datelast");
         el_datefirst.value = datefirst_value
         el_datefirst.readOnly = once_only;
         el_datelast.value = datefirst_value
@@ -2939,7 +2917,7 @@ let planning_list = [] // for export and printing - can replace map?
         el_modshift_companyholiday.disabled = once_only;
 
         // reset weekdays, disable
-        MSO_BtnWeekdaySchemeitemsFormat(once_only);
+        MSO_BtnWeekdaysFormat(once_only);
 
     }; // function MSO_OnceOnly
 
@@ -2965,9 +2943,9 @@ let planning_list = [] // for export and printing - can replace map?
         }
     }; // function MSO_PublicholidayChanged
 
-//=========  MSO_BtnWeekdaySchemeitemsFormat  ================ PR2019-12-06
-    function MSO_BtnWeekdaySchemeitemsFormat(is_disable_btns) {
-        //console.log( "===== MSO_BtnWeekdaySchemeitemsFormat  ========= ");
+//=========  MSO_BtnWeekdaysFormat  ================ PR2019-12-06
+    function MSO_BtnWeekdaysFormat(is_disable_btns) {
+        //console.log( "===== MSO_BtnWeekdaysFormat  ========= ");
 
         // this function resets weekdays
         // on 'onceonly' only weekday_index  has value: select this weekday_index, disable rest
@@ -2978,9 +2956,8 @@ let planning_list = [] // for export and printing - can replace map?
         // schemeitem_arr = [schemeitem_pk, team_pk, shift_pk]
 
         const weekday_index = get_subdict_value_by_key(mod_upload_dict, "calendar", "weekday_index")
+        // dont mix up selected_weekday_list with weekday_list = loc.weekdays_abbrev that contains names of weekdays)
         const selected_weekday_list = get_subdict_value_by_key(mod_upload_dict, "calendar", "weekday_list")
-        //console.log( "mod_upload_dict: ", mod_upload_dict);
-        //console.log( "selected_weekday_list: ", selected_weekday_list);
 
         btns = document.getElementById("id_modshift_weekdays").children;
         for (let i = 0, btn, btn_index, len = btns.length; i < len; i++) {
@@ -3003,15 +2980,15 @@ let planning_list = [] // for export and printing - can replace map?
             // existing schemeitem: can be selected > delete > unselected
             let data_value = "none";
             if (has_schemeitem){
-                data_value = (is_selected_weekday) ? "selected" :"not_selected"
+                data_value = (is_selected_weekday) ? "selected" : "not_selected"
             } else if(is_selected_weekday){
                 data_value = "create"
             }
-            MSO_BtnWeekdaySetClass(btn, data_value);
+            MSE_MSO_BtnWeekdaySetClass(btn, data_value);
 
             btn.disabled = is_disable_btns;
         }
-    }; // MSO_BtnWeekdaySchemeitemsFormat
+    }; // MSO_BtnWeekdaysFormat
 
 //=========  MSO_BtnWeekdayTeammemberFormat  ================ PR2019-12-06
     function MSO_BtnWeekdayTeammemberFormatXX() {
@@ -3073,7 +3050,7 @@ let planning_list = [] // for export and printing - can replace map?
             } else if(is_selected_weekday){
                 data_value === "create"
             }
-            MSO_BtnWeekdaySetClass(btn, data_value);
+            MSE_MSO_BtnWeekdaySetClass(btn, data_value);
 
             btn.disabled = is_disable_btns;
         }
@@ -3102,37 +3079,13 @@ let planning_list = [] // for export and printing - can replace map?
         } else { // if (current_data_value === "not_selected"){
             new_data_value = (!!list_length) ? "selected" : "create"
         }
+
         //console.log( "new_data_value", new_data_value);
-        MSO_BtnWeekdaySetClass(btn, new_data_value);
+        MSE_MSO_BtnWeekdaySetClass(btn, new_data_value);
 
 
     } // MSO_BtnWeekdayClicked
 
-//=========  MSO_BtnShiftTeamClicked  ================ PR2020-01-05
-    function MSO_BtnWeekdaySetClass(btn, data_value) {
-        // functiuon stores data_value in btn and sets backgroundcolor
-        btn.setAttribute("data-selected", data_value);
-
-        btn.classList.remove("tsa_bc_white")
-        btn.classList.remove("tsa_tr_selected") // Note: tsa_tr_selected is used for not_selected
-        btn.classList.remove("tsa_bc_darkgrey");
-        btn.classList.remove("tsa_bc_mediumred");
-        btn.classList.remove("tsa_bc_medium_green");
-        btn.classList.remove("tsa_color_white");
-
-        if (data_value === "selected"){
-            btn.classList.add("tsa_bc_darkgrey");
-            btn.classList.add("tsa_color_white");
-        } else if (data_value === "not_selected"){
-            btn.classList.add("tsa_tr_selected");
-        } else if (data_value === "create"){
-            btn.classList.add("tsa_bc_medium_green")
-        } else if (data_value === "delete"){
-            btn.classList.add("tsa_bc_mediumred")
-        } else {
-            btn.classList.add("tsa_bc_white")
-        };
-    }
 
 //=========  MSO_BtnShiftTeamClicked  ================ PR2019-12-06
     function MSO_BtnShiftTeamClicked(mod) {
@@ -4362,22 +4315,6 @@ let planning_list = [] // for export and printing - can replace map?
         document.getElementById("id_mod_period_datelast").value = rosterdatelast_iso;
         let el_mod_period_tblbody = document.getElementById("id_modperiod_selectperiod_tblbody");
 
-    // fill options of modperiod_selectcustomer
-        let el_select = document.getElementById("id_modperiod_selectcustomer")
-        let selectall_text =  "&lt;" +  loc.All_customers + "&gt;"
-        let select_text_none =  "&lt;" +  loc.No_customers + "&gt;"
-        let is_template_mode = false, has_selectall = true, hide_none = false;
-        FillSelectOption2020(el_select, customer_map, "customer", is_template_mode, has_selectall, hide_none,
-                    null, selected_customer_pk, selectall_text, select_text_none)
-
-    // fill options of modperiod_selectorder
-        el_select = document.getElementById("id_modperiod_selectorder")
-        selectall_text =  "&lt;" +  loc.All_orders + "&gt;"
-        select_text_none =  "&lt;" +  loc.No_orders + "&gt;"
-        hide_none = (!selected_customer_pk);
-        FillSelectOption2020(el_select, order_map, "order", is_template_mode, has_selectall, hide_none,
-                    selected_customer_pk, selected_order_pk, selectall_text, select_text_none)
-
     // set min max of input fields
         ModPeriodDateChanged("datefirst");
         ModPeriodDateChanged("datelast");
@@ -4388,41 +4325,6 @@ let planning_list = [] // for export and printing - can replace map?
         // ---  show modal, set focus on save button
         $("#id_mod_period").modal({backdrop: true});
     };  // ModPeriodOpen
-
-
-//=========  ModPeriodSelectCustomer  ================ PR2020-01-09
-    function ModPeriodSelectCustomer(selected_pk_str) {
-        console.log( "===== ModPeriodSelectCustomer ========= ");
-        const new_customer_pk = Number(selected_pk_str)
-        if (new_customer_pk !== selected_customer_pk ){
-            selected_customer_pk = new_customer_pk;
-            selected_order_pk = 0;
-        }
-        console.log( "selected_pk_str: ", selected_pk_str);
-        console.log( "selected_customer_pk: ", selected_customer_pk);
-        console.log( "selected_order_pk: ", selected_order_pk);
-
-        let el_select_order = document.getElementById("id_modperiod_selectorder")
-        el_select_order.innerText = null
-        const selectall_text =  "&lt;" +  loc.All_orders + "&gt;"
-        const select_text_none =  "&lt;" +  loc.No_orders + "&gt;"
-        // when 'all customers is selected (selected_customer_pk): there are no orders in selectbox 'orders'
-        // to display 'all orders' instead of 'no orders' we make have boolean 'hide_none' = true
-        const is_template_mode = false, has_selectall = true, hide_none = (!selected_customer_pk);
-        FillSelectOption2020(el_select_order, order_map, "order", is_template_mode, has_selectall, hide_none,
-                    selected_customer_pk, selected_order_pk, selectall_text, select_text_none)
-    }  // ModPeriodSelectCustomer
-
-
-//=========  ModPeriodSelectOrder  ================ PR2020-01-09
-    function ModPeriodSelectOrder(selected_pk_str) {
-        console.log( "===== ModPeriodSelectOrder ========= ");
-        console.log( "selected_pk_str: ", selected_pk_str);
-
-        selected_order_pk = Number(selected_pk_str)
-        console.log( "selected_order_pk: ", selected_order_pk);
-
-    }  // ModPeriodSelectOrder
 
 //=========  ModPeriodSelectPeriod  ================ PR2020-01-09
     function ModPeriodSelectPeriod(tr_clicked, selected_index) {
@@ -4716,8 +4618,8 @@ let planning_list = [] // for export and printing - can replace map?
         el.children[0].setAttribute("src", img_src);
 // Filter SelectRows
         fFilter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
-        const has_rows = fFilter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk);
-        if(has_rows){
+        const has_rows_arr = fFilter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk);
+        if(!!has_rows_arr[0]){
             tblBody_select_order.classList.remove(cls_hide)
         } else {
             tblBody_select_order.classList.add(cls_hide)
@@ -4887,5 +4789,5 @@ let planning_list = [] // for export and printing - can replace map?
 
         return ws;
     }  // FillExcelRows
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// ##################################################################################
 }); //$(document).ready(function()

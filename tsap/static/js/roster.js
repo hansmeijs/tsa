@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let selected_customer_pk = 0; // used in modperiodselect
         let selected_order_pk = 0;  // used in modperiodselect
         let selected_employee_pk = 0;  // used in modselectorderselect
-        let selected_isabsence = null;  // used in modselectorderselect
+        let selected_isabsence = null;  // used in modselectorderselect, can have value null, false or true
 
         let loc = {};  // locale_dict with translated text
         let selected_roster_period = {};
@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let filter_text = "";
         let filter_hide_inactive = true;
         let filter_mod_employee = "";
+        let filter_mod_customer = "";
 
         let filter_dict = {};
         let rosterdate_fill;
@@ -118,20 +119,21 @@ document.addEventListener('DOMContentLoaded', function() {
         el_flt_period.addEventListener("mouseenter", function() {el_flt_period.classList.add(cls_hover)});
         el_flt_period.addEventListener("mouseleave", function() {el_flt_period.classList.remove(cls_hover)});
 // ---  side bar - select customer
-        let el_flt_customer = document.getElementById("id_sidebar_select_customer");
-        el_flt_customer.addEventListener("click", function() {ModSelectOrder_Open("customer")}, false );
-        el_flt_customer.addEventListener("mouseenter", function() {el_flt_customer.classList.add(cls_hover)});
-        el_flt_customer.addEventListener("mouseleave", function() {el_flt_customer.classList.remove(cls_hover)});
+        let el_sidebar_select_customer = document.getElementById("id_sidebar_select_customer");
+            el_sidebar_select_customer.addEventListener("click", function() {ModSelectOrder_Open("customer")}, false );
+            el_sidebar_select_customer.addEventListener("mouseenter", function() {el_sidebar_select_customer.classList.add(cls_hover)});
+            el_sidebar_select_customer.addEventListener("mouseleave", function() {el_sidebar_select_customer.classList.remove(cls_hover)});
 // ---  side bar - select absence
-        let el_flt_absence = document.getElementById("id_sidebar_select_absence");
-        el_flt_absence.addEventListener("click", function() {ModSelectOrder_Open("absence")}, false );
-        el_flt_absence.addEventListener("mouseenter", function() {el_flt_absence.classList.add(cls_hover)});
-        el_flt_absence.addEventListener("mouseleave", function() {el_flt_absence.classList.remove(cls_hover)});
+        let el_sidebar_select_absence = document.getElementById("id_sidebar_select_absence");
+            el_sidebar_select_absence.addEventListener("click", function() {ModSelectOrder_Open("absence")}, false );
+            el_sidebar_select_absence.addEventListener("mouseenter", function() {el_sidebar_select_absence.classList.add(cls_hover)});
+            el_sidebar_select_absence.addEventListener("mouseleave", function() {el_sidebar_select_absence.classList.remove(cls_hover)});
 
 // ---  add 'keyup' event handler to filter
         let el_mod_filter_employee = document.getElementById("id_mod_employee_filter_employee");
             el_mod_filter_employee.addEventListener("keyup", function() {
                 setTimeout(function() {ModEmployeeFilterEmployee("filter")}, 50)});
+        // TODO: is "id_mod_employee_input_employee" is used in modrosteremployee and modselectemployee. Can become one form?
         let el_mod_employee_input_employee = document.getElementById("id_mod_employee_input_employee")
             el_mod_employee_input_employee.addEventListener("keyup", function() {
                 setTimeout(function() {ModEmployeeFilterEmployee("input")}, 50)});
@@ -179,23 +181,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }, false);
 
 // ---  MOD SELECT ORDER ------------------------------
-        document.getElementById("id_modorder_input_customer").addEventListener("keyup", function(event){
-                setTimeout(function() {ModSelectOrder_FilterCustomer("filter", event.key)}, 50)});
-        let el_modorder_absence = document.getElementById("id_modorder_select_absence")
-        el_modorder_absence.addEventListener("change", function() {ModSelectOrder_SelectAbsence(el_modorder_absence)}, false )
-        document.getElementById("id_modorder_btn_save").addEventListener("click", function() {ModSelectOrder_Save()}, false )
+        let el_modorder_input_customer = document.getElementById("id_modorder_input_customer")
+            el_modorder_input_customer.addEventListener("keyup", function(event){
+                setTimeout(function() {ModSelectOrder_FilterCustomer()}, 50)});
+        let el_modorder_select_absence = document.getElementById("id_modorder_select_absence")
+            el_modorder_select_absence.addEventListener("change", function() {ModSelectOrder_SelectAbsence(el_modorder_select_absence)}, false )
+        let el_modorder_btn_save = document.getElementById("id_modorder_btn_save")
+            el_modorder_btn_save.addEventListener("click", function() {ModSelectOrder_Save()}, false )
 
 // ---  MOD PERIOD ------------------------------------
 // ---  header select period
         document.getElementById("id_hdr_period").addEventListener("click", function() {ModPeriodOpen()});
-// ---  select customer
-        let el_modperiod_selectcustomer = document.getElementById("id_modperiod_selectcustomer")
-            el_modperiod_selectcustomer.addEventListener("change", function() {
-                        ModPeriodSelectCustomer(el_modperiod_selectcustomer.value)}, false )
-// ---  select order
-        let el_modperiod_selectorder = document.getElementById("id_modperiod_selectorder")
-            el_modperiod_selectorder.addEventListener("change", function() {
-                        ModPeriodSelectOrder(el_modperiod_selectorder.value)}, false )
+
 // buttons in  modal period
         document.getElementById("id_mod_period_datefirst").addEventListener("change", function() {ModPeriodDateChanged("datefirst")}, false )
         document.getElementById("id_mod_period_datelast").addEventListener("change", function() {ModPeriodDateChanged("datelast")}, false )
@@ -399,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function() {
         AddSubmenuButton(el_div, loc.menubtn_roster_create, function() {ModRosterdateOpen("create")}, "mx-2");
         AddSubmenuButton(el_div, loc.menubtn_roster_delete, function() {ModRosterdateOpen("delete")}, "mx-2");
         AddSubmenuButton( el_div, loc.menubtn_print_roster, function() { PrintReport()}, "mx-2");
-        AddSubmenuButton( el_div, loc.menubtn_export_excel, function() { ExportToExcel()}, "mx-2");
+        AddSubmenuButton( el_div, loc.Export_to_Excel, function() { ExportToExcel()}, "mx-2");
 
         el_submenu.classList.remove(cls_hide);
 
@@ -955,10 +952,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const btn_class_add = (is_delete) ? "btn-outline-danger" : "btn-primary"
         const btn_class_remove = (is_delete) ? "btn-primary" :  "btn-outline-danger";
         console.log("loc", loc)
-        const btn_text = (is_delete) ? loc.btn_delete : loc.btn_create
-        console.log("loc.btn_delete", loc.btn_delete)
-        console.log("loc.btn_create", loc.btn_create)
-        console.log("loc.btn_cancel", loc.btn_cancel)
+        const btn_text = (is_delete) ? loc.Delete : loc.Create
+        console.log("loc.Delete", loc.Delete)
+        console.log("loc.Create", loc.Create)
+        console.log("loc.Cancel", loc.Cancel)
         let el_btn_ok = document.getElementById("id_mod_rosterdate_btn_ok")
             el_btn_ok.innerText = btn_text;
             el_btn_ok.classList.remove(btn_class_remove)
@@ -966,7 +963,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_btn_ok.classList.remove(cls_hide)
             el_btn_ok.disabled = true;
         let el_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
-            el_btn_cancel.innerText = loc.btn_cancel;
+            el_btn_cancel.innerText = loc.Cancel;
 
 // ---  show modal
         $("#id_mod_rosterdate").modal({backdrop: true});
@@ -1006,14 +1003,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // reset buttons
         const btn_add_class = (is_delete) ? "btn-outline-danger" : "btn-primary"
         const btn_remove_class = (is_delete) ? "btn-primary" :  "btn-outline-danger";
-        const btn_text = (is_delete) ? loc.btn_delete : loc.btn_create
+        const btn_text = (is_delete) ? loc.Delete : loc.Create
         let el_btn_ok = document.getElementById("id_mod_rosterdate_btn_ok")
             el_btn_ok.innerText = btn_text;
             el_btn_ok.classList.remove(btn_remove_class)
             el_btn_ok.classList.add(btn_add_class)
             el_btn_ok.disabled = true;
         let el_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
-            el_btn_cancel.innerText = loc.btn_cancel;
+            el_btn_cancel.innerText = loc.Cancel;
 
     }  // ModRosterdateEdit
 
@@ -1104,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // hide ok button, put 'Close' on cancel button
         document.getElementById("id_mod_rosterdate_btn_ok").classList.add(cls_hide);
-        document.getElementById("id_mod_rosterdate_btn_cancel").innerText = loc.close;
+        document.getElementById("id_mod_rosterdate_btn_cancel").innerText = loc.Close;
 
     }  // function ModRosterdateFinished
 
@@ -1167,9 +1164,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // also disable when no rosterdate
         const is_disabled = ((!rosterdate_iso) || ((is_delete) && (!count || count === confirmed)))
 
-        const ok_txt = (is_delete) ? ((!!count) ? loc.Yes_delete : loc.btn_delete) :
-                                     ((!!count) ? loc.Yes_create : loc.btn_create);
-        const cancel_txt = (!!count) ? loc.No_cancel : loc.btn_cancel
+        const ok_txt = (is_delete) ? ((!!count) ? loc.Yes_delete : loc.Delete) :
+                                     ((!!count) ? loc.Yes_create : loc.Create);
+        const cancel_txt = (!!count) ? loc.No_cancel : loc.Cancel
 
         let el_ok = document.getElementById("id_mod_rosterdate_btn_ok");
             el_ok.innerText = ok_txt;
@@ -2384,22 +2381,6 @@ console.log("===  function HandlePopupWdySave =========");
             }
         };
 
-    // fill options of modperiod_selectcustomer
-        let el_select = document.getElementById("id_modperiod_selectcustomer")
-        let selectall_text =  "&lt;" +  loc.All_customers + "&gt;"
-        let select_text_none =  "&lt;" +  loc.No_customers + "&gt;"
-        let is_template_mode = false, has_selectall = true, hide_none = false;
-        FillSelectOption2020(el_select, customer_map, "customer", is_template_mode, has_selectall, hide_none,
-                    null, selected_customer_pk, selectall_text, select_text_none)
-
-    // fill options of modperiod_selectorder
-        el_select = document.getElementById("id_modperiod_selectorder")
-        selectall_text =  "&lt;" +  loc.All_orders + "&gt;"
-        select_text_none =  "&lt;" +  loc.No_orders + "&gt;"
-        hide_none = (!selected_customer_pk);
-        FillSelectOption2020(el_select, order_map, "order", is_template_mode, has_selectall, hide_none,
-                    selected_customer_pk, selected_order_pk, selectall_text, select_text_none)
-
     // set value of date imput elements
         const is_custom_period = (period_tag === "other")
         let el_datefirst = document.getElementById("id_mod_period_datefirst")
@@ -2581,27 +2562,27 @@ console.log("===  function HandlePopupWdySave =========");
             // put period_textx in sidebar id_sidebar_select_period
             document.getElementById("id_sidebar_select_period").value = period_text
 
-            selected_customer_pk = get_dict_value_by_key(selected_roster_period, "customer_pk", 0)
-            selected_order_pk = get_dict_value_by_key(selected_roster_period, "order_pk", 0)
-            selected_employee_pk = get_dict_value_by_key(selected_roster_period, "employee_pk", 0)
-            selected_isabsence = get_dict_value_by_key(selected_roster_period, "isabsence")
+            selected_customer_pk = get_dict_value(selected_roster_period, ["customer_pk"], 0)
+            selected_order_pk = get_dict_value(selected_roster_period, ["order_pk"], 0)
+            selected_employee_pk = get_dict_value(selected_roster_period, ["employee_pk"], 0)
+            selected_isabsence = get_dict_value(selected_roster_period, ["isabsence"]) //  can have value null, false or true
 
             // put text in header of this page
             const display_period = get_dict_value_by_key(selected_roster_period, "period_display", "")
             document.getElementById("id_hdr_period").innerText = display_period
 
-            console.log( "=== ModSelectOrder_headertext  ");
+            console.log( "mod_upload_dict");
             console.log(  mod_upload_dict);
-            //document.getElementById("id_sidebar_select_absence").value = absence_txt
+            //el_sidebar_select_absence.value = absence_txt
 
             let header_text = null, absence_text = null;
             if(!!selected_customer_pk){
                 const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk)
-                const customer_code = get_subdict_value_by_key(customer_dict, "code", "value", "");
+                const customer_code = get_dict_value(customer_dict, ["code", "value"], "");
                 let order_code = null;
                 if(!!selected_order_pk){
                     const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_order_pk)
-                    order_code = get_subdict_value_by_key(order_dict, "code", "value");
+                    order_code = get_dict_value(order_dict, ["code", "value"]);
                 } else {
                     order_code = loc.All_orders.toLowerCase()
                 }
@@ -2623,8 +2604,8 @@ console.log("===  function HandlePopupWdySave =========");
                     absence_text = loc.Absence_included;
                 }
             }
-            document.getElementById("id_sidebar_select_customer").value = header_text
-            document.getElementById("id_sidebar_select_absence").value = absence_text
+            el_sidebar_select_customer.value = header_text
+            el_sidebar_select_absence.value = absence_text
 
         }  // if (!isEmpty(selected_roster_period))
 
@@ -2634,16 +2615,15 @@ console.log("===  function HandlePopupWdySave =========");
 // +++++++++++++++++ MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
 //========= ModSelectOrder_Open ====================================  PR2019-11-16
     function ModSelectOrder_Open (mode) {
-        console.log("xxxxxxxxxxxxxxxxxxx===  ModSelectOrder_Open  =====") ;
+        console.log(" ===  ModSelectOrder_Open  =====") ;
         //console.log("selected_roster_period", selected_roster_period) ;
         // selected_roster_period = {extend_index: 2, extend_offset: 120, period_index: null, periodend: null,
         //                periodstart: null, rosterdatefirst: "2019-11-15", rosterdatelast: "2019-11-17"
 
-
         let customer_pk = (selected_customer_pk > 0) ? selected_customer_pk : null;
         let order_pk = (selected_order_pk > 0) ? selected_order_pk : null;
         let employee_pk = (selected_employee_pk > 0) ? selected_employee_pk : null;
-        let is_absence = selected_isabsence;
+        let is_absence =  selected_isabsence;
 
         if (mode === "absence") {
             // reset customer_pk to "all customers", to show select box absence
@@ -2659,8 +2639,12 @@ console.log("===  function HandlePopupWdySave =========");
 
         let tblBody_select_customer = document.getElementById("id_modorder_tblbody_customer");
         let tblHead = document.getElementById("id_modorder_thead_customer");
+
+        // reset el_modorder_input_customer and filter_customer
+        filter_mod_customer = ""
+        el_modorder_input_customer.innerText = null;
+
         const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = "<" + loc.All_customers + ">";
-        console.log("??????????????")
         fFill_SelectTable(tblBody_select_customer, tblHead, customer_map, "customer", selected_customer_pk, null,
             HandleSelect_Filter, null,
             ModSelectOrder_SelectCustomer,  null,
@@ -2668,18 +2652,20 @@ console.log("===  function HandlePopupWdySave =========");
             null, cls_selected
             );
 
-        // TODO filter_select
-        let filter_select = "";
-        fFilter_SelectRows(tblBody_select_customer, filter_select);
-
         ModSelectOrder_FillOptionsAbsence()
 
         if (mode === "absence") {
             let tblRow = tblBody_select_customer.rows[0];
             ModSelectOrder_SelectCustomer(tblRow);
         }
-
         ModSelectOrder_headertext(mod_upload_dict);
+
+// Set focus to el_mod_employee_input
+        //Timeout function necessary, otherwise focus wont work because of fade(300)
+        setTimeout(function (){
+            el_modorder_input_customer.focus()
+        }, 500);
+
 
     // ---  show modal
          $("#id_modselectorder").modal({backdrop: true});
@@ -2724,20 +2710,17 @@ console.log("===  function HandlePopupWdySave =========");
 
 //=========  ModSelectOrder_SelectCustomer  ================ PR2020-01-09
     function ModSelectOrder_SelectCustomer(tblRow) {
-        //console.log( "===== ModSelectOrder_SelectCustomer ========= ");
-        //console.log( tblRow);
-
+        console.log( "===== ModSelectOrder_SelectCustomer ========= ");
+        console.log( tblRow);
+        // all data attributes are now in tblRow, not in el_select = tblRow.cells[0].children[0];
 // ---  get clicked tablerow
         if(!!tblRow) {
 
 // ---  deselect all highlighted rows
             DeselectHighlightedRows(tblRow, cls_selected)
+
 // ---  highlight clicked row
             tblRow.classList.add(cls_selected)
-
-// el_input is first child of td, td is cell of tblRow
-            const el_select = tblRow.cells[0].children[0];
-            const value = get_attr_from_el(el_select, "data-value");
 
 // ---  get pk from id of select_tblRow
             let data__pk = get_attr_from_el(tblRow, "data-pk")
@@ -2754,30 +2737,46 @@ console.log("===  function HandlePopupWdySave =========");
                 }
             }
 
-            let el_div_order = document.getElementById("id_modorder_div_tblbody_order")
-            let el_div_absence = document.getElementById("id_modorder_div_select_absence")
+// ---  put value in input box
+            el_modorder_input_customer.value = get_attr_from_el(tblRow, "data-value", "")
 
-            let tblBody_select_order = document.getElementById("id_modorder_tblbody_order");
-            if (!mod_upload_dict.customer_pk){
-                el_div_order.classList.add(cls_hide)
-                tblBody_select_order.innerText = null;
-                el_div_absence.classList.remove(cls_hide)
-            } else {
-                el_div_order.classList.remove(cls_hide)
-                el_div_absence.classList.add(cls_hide)
-                let tblHead = null;
-                const filter_ppk_int = mod_upload_dict.customer_pk, filter_include_inactive = true;
-                const addall_to_list_txt = "<" + loc.All_orders + ">";
-                fFill_SelectTable(tblBody_select_order, null, order_map, "order", mod_upload_dict.customer_pk, null,
-                    HandleSelect_Filter, null,
-                    ModSelectOrder_SelectOrder, null,
-                    filter_ppk_int, filter_include_inactive, addall_to_list_txt,
-                    null, cls_selected
-                );
-            }
+            ModSelectOrder_FillSelectOrder();
             ModSelectOrder_headertext(mod_upload_dict);
         }
     }  // ModSelectOrder_SelectCustomer
+
+
+//=========  ModSelectOrder_FillSelectOrder  ================ PR2020-02-07
+    function ModSelectOrder_FillSelectOrder() {
+        console.log( "===== ModSelectOrder_FillSelectOrder ========= ");
+
+        let el_div_order = document.getElementById("id_modorder_div_tblbody_order")
+        let el_div_absence = document.getElementById("id_modorder_div_select_absence")
+        let tblBody_select_order = document.getElementById("id_modorder_tblbody_order");
+
+        if (!mod_upload_dict.customer_pk){
+            el_div_order.classList.add(cls_hide)
+            tblBody_select_order.innerText = null;
+            el_div_absence.classList.remove(cls_hide)
+        } else {
+            el_div_order.classList.remove(cls_hide)
+            el_div_absence.classList.add(cls_hide)
+            let tblHead = null;
+            const filter_ppk_int = mod_upload_dict.customer_pk, filter_include_inactive = true;
+            const addall_to_list_txt = "<" + loc.All_orders + ">";
+            fFill_SelectTable(tblBody_select_order, null, order_map, "order", mod_upload_dict.customer_pk, null,
+                HandleSelect_Filter, null,
+                ModSelectOrder_SelectOrder, null,
+                filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                null, cls_selected
+            );
+    // select first tblRow
+            if(!!tblBody_select_order.rows.length) {
+                let firstRow = tblBody_select_order.rows[0];
+                ModSelectOrder_SelectOrder(firstRow);
+            }
+        }
+    }  // ModSelectOrder_FillSelectOrder
 
 //=========  ModSelectOrder_SelectOrder  ================ PR2020-01-09
     function ModSelectOrder_SelectOrder(tblRow) {
@@ -2815,8 +2814,6 @@ console.log("===  function HandlePopupWdySave =========");
             }
 
             ModSelectOrder_headertext(mod_upload_dict);
-        console.log( "mod_upload_dic: ", mod_upload_dict);
-
         }
     }  // ModSelectOrder_SelectOrder
 
@@ -2837,94 +2834,70 @@ console.log("===  function HandlePopupWdySave =========");
                 mod_upload_dict.is_absence = null
             }
 
-        console.log(  "mod_upload_dict: ", mod_upload_dict);
-
+            console.log(  "mod_upload_dict: ", mod_upload_dict);
             ModSelectOrder_headertext(mod_upload_dict);
         }
     }  // ModSelectOrder_SelectAbsence
 
 //=========  ModSelectOrder_FilterCustomer  ================ PR2020-01-28
-    function ModSelectOrder_FilterCustomer(option) {
-        //console.log( "===== ModSelectOrder_FilterCustomer  ========= ", option);
+    function ModSelectOrder_FilterCustomer() {
+        console.log( "===== ModSelectOrder_FilterCustomer  ========= ");
 
         let new_filter = "";
         let skip_filter = false
-        if (option === "input") {
-            if (!!el_mod_employee_input_employee.value) {
-                new_filter = el_mod_employee_input_employee.value
-            }
-        } else {
-            new_filter = el_mod_filter_employee.value;
-        }  //  if (option === "input") {
 
- // skip filter if filter value has not changed, update variable filter_mod_employee
+        if (!!el_modorder_input_customer.value) {
+            new_filter = el_modorder_input_customer.value
+        }
+
+ // skip filter if filter value has not changed, update variable filter_mod_customer
         if (!new_filter){
-            if (!filter_mod_employee){
+            if (!filter_mod_customer){
                 skip_filter = true
             } else {
-                filter_mod_employee = "";
+                filter_mod_customer = "";
             }
         } else {
-            if (new_filter.toLowerCase() === filter_mod_employee) {
+            if (new_filter.toLowerCase() === filter_mod_customer) {
                 skip_filter = true
             } else {
-                filter_mod_employee = new_filter.toLowerCase();
+                filter_mod_customer = new_filter.toLowerCase();
             }
         }
 
-        let has_selection = false, has_multiple = false;
-        let select_value, select_pk, select_parentpk;
-        let len = el_mod_employee_tblbody.rows.length;
+        let tblBody_select_customer = document.getElementById("id_modorder_tblbody_customer");
+        const len = tblBody_select_customer.rows.length;
         if (!skip_filter && !!len){
-            for (let row_index = 0, tblRow, show_row, el, el_value; row_index < len; row_index++) {
-                tblRow = el_mod_employee_tblbody.rows[row_index];
-                el = tblRow.cells[0].children[0]
-                show_row = false;
-                if (!filter_mod_employee){
-// --- show all rows if filter_text = ""
-                     show_row = true;
-                } else if (!!el){
-                    el_value = get_attr_from_el(el, "data-value");
-                    if (!!el_value){
-                        el_value = el_value.toLowerCase();
-                        show_row = (el_value.indexOf(filter_mod_employee) !== -1)
+// ---  filter select_customer rows
+            const filter_dict = fFilter_SelectRows(tblBody_select_customer, filter_mod_customer);
+
+// ---  if filter results have only one customer: put selected customer in el_modorder_input_customer
+            const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
+            if (!!selected_pk) {
+                el_modorder_input_customer.value = get_dict_value(filter_dict, ["selected_value"])
+
+// ---  put pk of selected customer in mod_upload_dict
+                if(!Number(selected_pk)){
+                    if(selected_pk === "addall" ) {
+                        mod_upload_dict.customer_pk = 0;
+                        mod_upload_dict.order_pk = 0;
+                    }
+                } else {
+                    const pk_int = Number(selected_pk)
+                    if (pk_int !== selected_customer_pk){
+                        mod_upload_dict.customer_pk = pk_int;
+                        mod_upload_dict.order_pk = 0;
                     }
                 }
-                if (show_row) {
-                    tblRow.classList.remove(cls_hide)
-                    // put values from first selected row in select_value
-                    if(!has_selection ) {
-                        select_value = get_attr_from_el(el, "data-value");
-                        select_pk = get_attr_from_el(el, "data-pk");
-                        select_parentpk = get_attr_from_el(el, "data-ppk");
-                    }
-                    if (has_selection) {has_multiple = true}
-                    has_selection = true;
-                } else {
-                    tblRow.classList.add(cls_hide)
-                };
-            }  //  for (let row_index = 0, show
-        } //  if (!skip_filter) {
-        if (has_selection && !has_multiple ) {
-            el_mod_employee_input_employee.value = select_value
-            el_mod_employee_input_employee.setAttribute("data-pk",select_pk)
-            el_mod_employee_input_employee.setAttribute("data-ppk",select_parentpk)
-         // get shifts if mode = switch
-            if(el_mod_employee_body.getAttribute("data-action") === "switch"){
-                const cur_employee_pk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_pk");
-                const cur_employee = get_attr_from_el(el_mod_employee_body, "data-field_value");
-                const cur_employee_ppk_int = get_attr_from_el_int(el_mod_employee_body, "data-field_ppk");
-                const cur_rosterdate = get_attr_from_el(el_mod_employee_body, "data-rosterdate");
 
-                const datalist_request = {"replacement": { "action": "switch", "rosterdate": cur_rosterdate,
-                        "employee": cur_employee, "employee_pk": cur_employee_pk_int, "employee_ppk": cur_employee_ppk_int,
-                        "reployee": select_value, "reployee_pk": select_pk, "reployee_ppk": select_parentpk}};
-                DatalistDownload(datalist_request);
+                ModSelectOrder_FillSelectOrder();
+                ModSelectOrder_headertext(mod_upload_dict);
+
+// ---  Set focus to btn_save
+                el_modorder_btn_save.focus()
             }
-
         }
-
-    }; // function ModSelectOrder_FilterCustomer
+    }; // ModSelectOrder_FilterCustomer
 
     function ModSelectOrder_headertext(mod_upload_dict) {
         console.log( "=== ModSelectOrder_headertext  ");
@@ -2969,10 +2942,6 @@ console.log("===  function HandlePopupWdySave =========");
             curOption = 1
         }
 
-        // customer list has no parent_pk_str
-        let el_select = document.getElementById("id_modorder_select_absence")
-        el_select.innerText = null
-
 // --- loop through option list
         const option_list = [loc.Also_show_absence,
                              loc.Dont_show_absence,
@@ -2985,7 +2954,7 @@ console.log("===  function HandlePopupWdySave =========");
             if (dict.pk === curOption) {option_text += " selected=true" };
             option_text +=  ">" + option_list[i] + "</option>";
         }  // for (let i = 0, len = option_list.length;
-        el_select.innerHTML = option_text;
+        el_modorder_select_absence.innerHTML = option_text;
 
     }  // ModSelectOrder_FillOptionsAbsence
 
@@ -4159,21 +4128,8 @@ console.log("===  function HandlePopupWdySave =========");
 
 //========= FillExcelRows  ====================================
     function FillExcelRows() {
-        console.log("=== FillExcelRows  =====")
+        //console.log("=== FillExcelRows  =====")
         let ws = {}
-
-// emplhour_map = {
-    // id: {pk: 5416, ppk: 4901, table: "emplhour"}
-    // orderhour: {pk: 4901, ppk: 1422, code: "UTS - Punda", locked: true}
-    // employee: {pk: 2625, ppk: 3, code: "Agata MM"}
-    // rosterdate: {value: "2020-01-20"}
-    // shift: {value: "08.00 - 17.00"}
-    // timestart: {field: "timestart", offset: 480, minoffset: -720, maxoffset: 1020, datetime: "2020-01-20T07:00:00+00:00", …}
-    // timeend: {field: "timeend", offset: 1020, minoffset: 480, maxoffset: 2160, datetime: "2020-01-20T16:00:00+00:00", …}
-    // timeduration: {value: 480}
-    // breakduration: {value: 60}
-    // status: {value: 1}
-
 
 // title row
         let title_value = display_planning_period (selected_roster_period, loc, user_lang); // UpdateHeaderPeriod();
@@ -4182,17 +4138,18 @@ console.log("===  function HandlePopupWdySave =========");
         const header_rowindex = 3
         let headerrow = [loc.Date, loc.Customer, loc.Order, loc.Employee, loc.Shift,
                          loc.Start_time, loc.End_time, loc.Break, loc.Working_hours, loc.Status]
-        console.log("headerrow", headerrow)
         for (let j = 0, len = headerrow.length, cell_index, cell_dict; j < len; j++) {
             const cell_value = headerrow[j];
             cell_index = String.fromCharCode(65 + j) + header_rowindex.toString()
             ws[cell_index] = {v: cell_value, t: "s"};
         }
-        console.log("------------------ws:", ws)
+        //console.log("------------------ws:", ws)
 
-// --- loop through rows of table roster
+// --- loop through items of emplhour_map
         // Date, Customer, Order, Shift, Employee, Start, End, Break, Hours, Status
-        if(!!emplhour_map){
+        if(!!emplhour_map
+
+        ){
             const cell_types = ["n", "s", "s", "s", "s", "n", "n", "n", "n", "s"]
             const col_count = 10
             const row_count = emplhour_map.size;
@@ -4203,19 +4160,19 @@ console.log("===  function HandlePopupWdySave =========");
             let row_index = first_row
             for (const [map_id, map_dict] of emplhour_map.entries()) {
                 let cell_values = [
-                    get_subdict_value_by_key(map_dict, "rosterdate", "exceldate", ""),
-                    get_subdict_value_by_key(map_dict, "customer", "code", ""),
-                    get_subdict_value_by_key(map_dict, "order", "code", ""),
-                    get_subdict_value_by_key(map_dict, "employee", "code", ""),
-                    get_subdict_value_by_key(map_dict, "shift", "code", ""),
+                    get_dict_value(map_dict, ["rosterdate", "exceldate"], ""),
+                    get_dict_value(map_dict, ["customer", "code"], ""),
+                    get_dict_value(map_dict, ["order", "code"], ""),
+                    get_dict_value(map_dict, ["employee", "code"], ""),
+                    get_dict_value(map_dict, ["shift", "code"], ""),
 
-                    get_subdict_value_by_key(map_dict, "timestart", "exceldatetime", ""),
-                    get_subdict_value_by_key(map_dict, "timeend", "exceldatetime", ""),
-                    get_subdict_value_by_key(map_dict, "breakduration", "value", 0) / 60,
-                    get_subdict_value_by_key(map_dict, "timeduration", "value", 0) / 60,
-                    get_subdict_value_by_key(map_dict, "status", "value", "")
+                    get_dict_value(map_dict, ["timestart", "exceldatetime"], ""),
+                    get_dict_value(map_dict, ["timeend", "exceldatetime"], ""),
+                    get_dict_value(map_dict, ["breakduration", "value"], 0) / 60,
+                    get_dict_value(map_dict, ["timeduration", "value"], 0) / 60,
+                    get_dict_value(map_dict, ["status", "value"], "")
                     ]
-                console.log(cell_values)
+                //console.log(cell_values)
                 for (let j = 0; j < col_count; j++) {
                     let cell_index = String.fromCharCode(65 + j) + (row_index).toString()
                     ws[cell_index] = {v: cell_values[j], t: cell_types[j]};

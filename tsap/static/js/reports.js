@@ -154,7 +154,7 @@
                 const offset_start = get_subdict_value_by_key(row, "timestart", "offset");
                 const offset_end = get_subdict_value_by_key(row, "timeend", "offset");
                 const skip_prefix_suffix = false;
-                const display_timerange = display_offset_timerange (offset_start, offset_end, skip_prefix_suffix, timeformat, user_lang)
+                const display_timerange = display_offset_timerange (offset_start, offset_end, timeformat, user_lang, skip_prefix_suffix)
 
                 const this_td = format_total_duration(get_subdict_value_by_key(row, "timeduration", "value", 0), user_lang)
                 const this_pd = format_total_duration(get_subdict_value_by_key(row, "plannedduration", "value", 0), user_lang)
@@ -298,7 +298,6 @@
         const rpthdr_labels = [loc.Customer + " - " + loc.Order, loc.Total_hours, loc.Planning + " " + loc.of, loc.Print_date];
         const pos_x_list = [6, 65, 105, 130, 155, 185];
         const colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
-
 
         //console.log("selected_period", selected_period)
         const is_preview = (option === "preview");
@@ -519,12 +518,23 @@ console.log("offset_end: ", offset_end)
 
     function PrintEmployeePlanning(option, selected_period, planning_map, company_dict,
                         loc, timeformat, user_lang) {
-        //console.log("PrintEmployeePlanning")
+        console.log("PrintEmployeePlanning")
 
         //console.log("selected_period", selected_period)
 
+        const today_JS = new Date();
+        const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, user_lang, true, false)
+
+        const rpthdr_tabs = [0, 30, 40, 160, 185, 195];
+        const rpthdr_labels = [loc.Employee, loc.Company, loc.Planning + " " + loc.of, loc.Print_date];
+        let rpthdr_values = ["",
+                            get_dict_value(company_dict, ["name", "value"], ""),
+                            get_period_formatted(selected_period, loc),
+                            today_str];
+        const pos_x_list = [6, 65, 105, 130, 155, 185];
+        const colhdr_list = [loc.Date, loc.Start_time, loc.End_time, loc.Shift, loc.Order, loc.Date];
+
         const is_preview = (option === "preview");
-        const company = get_subdict_value_by_key(company_dict, "name", "value", "");
         const period_txt = get_period_formatted(selected_period, loc);
 
         const datefirst_iso = get_dict_value_by_key(selected_period, "rosterdatefirst");
@@ -547,8 +557,6 @@ console.log("offset_end: ", offset_end)
 
         let doc = new jsPDF("landscape","mm","A4");
 
-        const today_JS = new Date();
-        const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, user_lang, true, false)
 
         let pos = {"left": setting.margin_left, "top": setting.margin_top};
 
@@ -583,6 +591,7 @@ console.log("offset_end: ", offset_end)
             //console.log("this_rosterdate_iso: ", this_rosterdate_iso)
 
 //======================== change in employee
+
 // -------- detect change in employee
             const employee_pk = get_subdict_value_by_key(item_dict, "employee", "pk", 0);
             //console.log("employee_pk: ", employee_pk, "this_employee_pk:", this_employee_pk)
@@ -612,16 +621,14 @@ console.log("offset_end: ", offset_end)
                 pos.top = setting.margin_top;
 
 //---------- get employee values
-                const namelast = get_subdict_value_by_key(item_dict, "employee", "namelast", "");
-                const namefirst = get_subdict_value_by_key(item_dict, "employee", "namefirst", "");
-                const rpthdr_values = [company,
-                              namelast + ", " + namefirst,
-                              get_period_formatted(selected_period, loc),
-                              today_str];
+                const code = get_dict_value(item_dict, ["employee", "code"], "");
+                const namelast = get_dict_value(item_dict, ["employee", "namelast"], "");
+                const namefirst = get_dict_value(item_dict, ["employee", "namefirst"], "");
+                rpthdr_values[0] = (!!namelast || !!namefirst) ? namelast + ", " + namefirst : code;
 
 //----------  print employee header
                 // argument passed by reference from https://medium.com/nodesimplified/javascript-pass-by-value-and-pass-by-reference-in-javascript-fcf10305aa9c
-                const rpthdr_tabs = [0, 30, 40, 160, 185, 195];
+
                 PrintReportHeader(rpthdr_tabs, rpthdr_labels, rpthdr_values, pos, setting, doc)
 
 //----------  print table header NOT IN USE
@@ -675,7 +682,7 @@ console.log("rosterdate_formatted: ", rosterdate_formatted)
             const offset_end = get_dict_value_by_key(item_dict, "offsetend");
 
             const skip_prefix_suffix = true;
-            const display_time = display_offset_timerange (offset_start, offset_end, skip_prefix_suffix, timeformat, user_lang)
+            const display_time = display_offset_timerange (offset_start, offset_end, timeformat, user_lang, skip_prefix_suffix)
 
 console.log("display_time: ", display_time)
 

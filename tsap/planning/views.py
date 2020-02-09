@@ -162,6 +162,16 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             is_template=table_dict.get('istemplate'),
                             inactive=table_dict.get('inactive'))
                         datalists['order_list'] = dict_list
+# ----- schemes - dict with all schemes with shifts, teams, schemeitems and teammembers
+                    table_dict = datalist_dict.get('schemes_dict')
+                    if table_dict:
+                        # get all schemes, because of validation schemenames
+                        dict_list = d.create_schemes_extended_dict(
+                            filter_dict=table_dict,
+                            company=request.user.company,
+                            comp_timezone=comp_timezone,
+                            user_lang=user_lang)
+                        datalists['schemes_dict'] = dict_list
 # ----- scheme
                     table_dict = datalist_dict.get('scheme')
                     if table_dict:
@@ -169,6 +179,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         dict_list = d.create_scheme_list(
                             filter_dict=table_dict,
                             company=request.user.company,
+                            comp_timezone=comp_timezone,
                             user_lang=user_lang)
                         datalists['scheme_list'] = dict_list
 # ----- shift
@@ -265,10 +276,13 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # ----- employee_calendar
                     table_dict = datalist_dict.get('employee_calendar')
 
-                    # also get customer_planning at startup of page
+                    # also get employee_calendar at startup of page
                     # empty dict (dict = {} ) is also Falsey
                     if (table_dict is not None) or (selected_page == 'page_employee' and selected_btn == 'calendar'):
+                        logger.debug('table_dict: ' + str(table_dict))
 
+                        dict_list = []
+                        logfile = []
                         customer_pk = None
                         employee_pk = None
                         if table_dict:
@@ -281,27 +295,36 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             if order_pk is None:
                                 customer_pk = selected_customer_pk
 
-                        add_empty_shifts = calendar_period_dict.get('add_empty_shifts', False)
-                        skip_absence_and_restshifts = calendar_period_dict.get('skip_absence_and_restshifts', False)
+                        logger.debug('employee_pk: ' + str(employee_pk))
+                        logger.debug('customer_pk: ' + str(customer_pk))
+                        logger.debug('order_pk: ' + str(order_pk))
+                        # calendar must have customer_pk, order_pk or employee_pk
+                        if customer_pk or order_pk or employee_pk:
+                            add_empty_shifts = calendar_period_dict.get('add_empty_shifts', False)
+                            skip_absence_and_restshifts = calendar_period_dict.get('skip_absence_and_restshifts', False)
 
-                        datefirst_iso = calendar_period_dict.get('rosterdatefirst')
-                        datelast_iso = calendar_period_dict.get('rosterdatelast')
+                            datefirst_iso = calendar_period_dict.get('rosterdatefirst')
+                            datelast_iso = calendar_period_dict.get('rosterdatelast')
 
-                        orderby_rosterdate_customer = False
-                        dict_list = r.create_employee_planning(
-                            datefirst_iso=datefirst_iso,
-                            datelast_iso=datelast_iso,
-                            customer_pk=customer_pk,
-                            order_pk=order_pk,
-                            employee_pk=employee_pk,
-                            add_empty_shifts=add_empty_shifts,
-                            skip_absence_and_restshifts=skip_absence_and_restshifts,
-                            orderby_rosterdate_customer=orderby_rosterdate_customer,
-                            comp_timezone=comp_timezone,
-                            timeformat=timeformat,
-                            user_lang=user_lang,
-                            request=request)
+                            orderby_rosterdate_customer = False
+                            dict_list, logfile = r.create_employee_planning(
+                                datefirst_iso=datefirst_iso,
+                                datelast_iso=datelast_iso,
+                                customer_pk=customer_pk,
+                                order_pk=order_pk,
+                                employee_pk=employee_pk,
+                                add_empty_shifts=add_empty_shifts,
+                                skip_absence_and_restshifts=skip_absence_and_restshifts,
+                                orderby_rosterdate_customer=orderby_rosterdate_customer,
+                                comp_timezone=comp_timezone,
+                                timeformat=timeformat,
+                                user_lang=user_lang,
+                                request=request)
+
                         datalists['employee_calendar_list'] = dict_list
+                        if logfile:
+                            datalists['logfile'] = logfile
+
 
 # ----- customer_calendar
                     table_dict = datalist_dict.get('customer_calendar')
@@ -359,7 +382,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datefirst_iso = planning_period_dict.get('rosterdatefirst')
                         datelast_iso = planning_period_dict.get('rosterdatelast')
 
-                        dict_list = r.create_employee_planning(
+                        logfile = []
+                        dict_list, logfile = r.create_employee_planning(
                             datefirst_iso=datefirst_iso,
                             datelast_iso=datelast_iso,
                             customer_pk=customer_pk,
@@ -373,6 +397,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             user_lang=user_lang,
                             request=request)
                         datalists['employee_planning_list'] = dict_list
+                        datalists['logfile'] = logfile
 
 # ----- customer_planning
                     table_dict = datalist_dict.get('customer_planning')
@@ -594,7 +619,7 @@ class SchemeUploadView_MAYBE_NOT_IN_USE(UpdateView):  # PR2019-07-21
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
             user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
             activate(user_lang)
-
+            comp_timezone = None
 # 2. get upload_dict from request.POST
             upload_json = request.POST.get('upload', None)
             if upload_json:
@@ -654,6 +679,7 @@ class SchemeUploadView_MAYBE_NOT_IN_USE(UpdateView):  # PR2019-07-21
                         scheme_list = d.create_scheme_list(
                             filter_dict={'customer_pk': parent.customer_id},
                             company=request.user.company,
+                            comp_timezone=comp_timezone,
                             user_lang=user_lang)
                         if scheme_list:
                             update_wrap['scheme_list'] = scheme_list
@@ -729,6 +755,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
                     scheme_list = d.create_scheme_list(
                         filter_dict={'customer_pk': customer.id, 'is_singleshift': False},
                         company=request.user.company,
+                        comp_timezone=comp_timezone,
                         user_lang=user_lang)
                     if scheme_list:
                         update_wrap['scheme_list'] = scheme_list
@@ -1275,6 +1302,7 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
                 scheme_list = d.create_scheme_list(
                     filter_dict={'customer_pk': parent.customer_id},
                     company=request.user.company,
+                    comp_timezone=comp_timezone,
                     user_lang=user_lang)
                 if scheme_list:
                     update_wrap['scheme_list'] = scheme_list

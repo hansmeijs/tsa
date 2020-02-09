@@ -24,7 +24,6 @@
                                 <div>
                                     <h5>{% trans 'Orders' %}:</h5>
                                 </div>
-
                                 <div >
                                     <input id="id_modshift_filter_order"
                                         type="text"
@@ -46,10 +45,10 @@
                                 <h5 id="id_modshift_order" class="mx-2" >{% trans 'Select order' %}...</h5>
                             </div>
                             <!-- BUTTON GROUP -->
-                            <div id="id_modshift_btn_shift_container" class="btn-group btn-block mx-2 my-2 pr-4" role="group" aria-label="Choose option" >
-                                <button id="id_modshift_btn_singleshift" type="button" data-mode="single" class="btn btn-secondary ">{% trans 'Single shift' %}</button>
-                                <button id="id_modshift_btn_schemeschift" type="button"  data-mode="scheme" class="btn btn-secondary ">{% trans 'Team shift' %}</button>
-                                <button id="id_modshift_btn_absenceshift" type="button"  data-mode="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
+                            <div id="id_modshift_selectbtns_container" class="btn-group btn-block mx-2 my-2 pr-4" role="group" aria-label="Choose option" >
+                                <button type="bXutton" data-mode="singleshift" class="btn btn-secondary">{% trans 'Single shift' %}</button>
+                                <button type="Xbutton"  data-mode="schemeshift" class="btn btn-secondary">{% trans 'Team shift' %}</button>
+                                <button type="buXtton"  data-mode="absenceshift" class="btn btn-secondary">{% trans 'Absence' %}</button>
                             </div>
                             <!-- end BUTTON GROUP -->
 
@@ -73,31 +72,31 @@
 
                             <div class="content_header mod_show absenceshift">
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_absence" class="tsa_margin_form_label">{% trans 'Absence category' %}:</label>
-                                    <select id="id_modshift_absence" type="text" data-field="absence"
+                                    <label for="id_modshift_input_absence" class="tsa_margin_form_label">{% trans 'Absence category' %}:</label>
+                                    <select id="id_modshift_input_absence" type="text" data-field="absence"
                                     autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                     class="form-control mb-0"></select>
                                 </div>
                             </div>
                             <div id="id_modshift_timefields" class="content_header mod_show singleshift absenceshift">
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_offsetstart" class="tsa_margin_form_label">{% trans 'Start time' %}:</label>
-                                    <p id="id_modshift_offsetstart" data-toggle="modal" href="#id_mod_timepicker"
+                                    <label for="id_modshift_input_offsetstart" class="tsa_margin_form_label">{% trans 'Start time' %}:</label>
+                                    <p id="id_modshift_input_offsetstart" data-toggle="modal" href="#id_mod_timepicker"
                                        data-field= "offsetstart" tabindex="0" class="form-control pointer_show mb-0"> </p>
                                 </div>
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_offsetend" class="tsa_margin_form_label">{% trans 'End time' %}:</label>
-                                    <p id="id_modshift_offsetend" data-toggle="modal" href="#id_mod_timepicker"
+                                    <label for="id_modshift_input_offsetend" class="tsa_margin_form_label">{% trans 'End time' %}:</label>
+                                    <p id="id_modshift_input_offsetend" data-toggle="modal" href="#id_mod_timepicker"
                                        data-field="offsetend" tabindex="0" class="form-control pointer_show mb-0">  </p>
                                 </div>
                                 <div class="content_subheader_left mx-1 mod_show singleshift schemeshift">
-                                    <label for="id_modshift_breakduration" class="tsa_margin_form_label">{% trans 'Break' %}:</label>
-                                    <p id="id_modshift_breakduration" data-toggle="modal" href="#id_mod_timepicker"
+                                    <label for="id_modshift_input_breakduration" class="tsa_margin_form_label">{% trans 'Break' %}:</label>
+                                    <p id="id_modshift_input_breakduration" data-toggle="modal" href="#id_mod_timepicker"
                                        data-field="breakduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
                                 </div>
                                 <div class="content_subheader_left mx-1">
-                                    <label id="id_modshift_label_timeduration"  for="id_modshift_timeduration" class="tsa_margin_form_label">{% trans 'Working hours' %}:</label>
-                                    <p id="id_modshift_timeduration"  data-toggle="modal" href="#id_mod_timepicker"
+                                    <label id="id_modshift_label_timeduration"  for="id_modshift_input_timeduration" class="tsa_margin_form_label">{% trans 'Working hours' %}:</label>
+                                    <p id="id_modshift_input_timeduration"  data-toggle="modal" href="#id_mod_timepicker"
                                        data-field="timeduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
                                 </div>
                             </div>
@@ -106,13 +105,12 @@
                              </div>
                             <div class="content_header mod_show singleshift schemeshift absenceshift">
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
-                                    <input id="id_modshift_datefirst" type="date" data-field= "code"
-                                    autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
+                                    <label for="id_modshift_input_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
+                                    <input id="id_modshift_input_datefirst" type="date" data-field= "datefirst" class="form-control">
                                 </div>
                                     <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
-                                    <input id="id_modshift_datelast" type="date" data-field="namelast"
+                                    <label for="id_modshift_input_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
+                                    <input id="id_modshift_input_datelast" type="date" data-field="datelast"
                                     autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                                 </div>
                             </div>
@@ -151,13 +149,13 @@
                             <div class="content_subheader_left mx-1 mod_show singleshift">
                                 <small class="tsa_margin_form_label">{% trans "Days in black background will be updated, days in green added and days in red deleted." %}</small>
                             </div>
-                            <div class="mx-2 mt-2 mod_show singleshift">
+                            <div class="mx-2 mt-2 mod_show singleshift schemeshift">
                                 <span>
                                     <input id="id_modshift_publicholiday" type="checkbox" class="td_width_032 mx-2">
                                     <label for="id_modshift_publicholiday" class="mx-2 my-1">{% trans 'Not on public holidays' %}</label>
                                 </span>
                             </div>
-                            <div class="mx-2 mod_show singleshiftNOTYETINUSE">
+                            <div class="mx-2 mod_show singleshift schemeshift">
                                 <span>
                                     <input id="id_modshift_companyholiday" type="checkbox" class="td_width_032 mx-2">
                                     <label for="id_modshift_companyholiday" class="mx-2 my-1">{% trans 'Not on company holidays' %}</label>
@@ -169,9 +167,8 @@
                 </div>
                 <div class="modal-footer pr-4">
 
-                    <div class="content_subheader_left mx-1 mod_show absenceshift">
+                    <div class="content_subheader_left mx-1 mod_show singleshift absenceshift">
                         <button id="id_modshift_btn_delete" type="button" data-dismiss="modal" class="btn btn-outline-danger">{% trans 'Delete' %}</button>
-
                     </div>
                     <div class="content_subheader_right mod_show singleshift schemeshift absenceshift">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>

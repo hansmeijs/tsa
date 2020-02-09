@@ -300,15 +300,17 @@ document.addEventListener('DOMContentLoaded', function() {
         CreateTblFooters();
 
 // --- Datalist Download
+        // TODO for testing, show_absence must be false in production
+        const show_absence = null ;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}
                       },
             quicksave: {mode: "get"},
             locale: {page: "scheme"},
-            customer: {isabsence: false, istemplate: null, inactive: false},
-            order: {isabsence: false, istemplate: null, inactive: false},
-            scheme: {isabsence: false, istemplate: null, inactive: null, issingleshift: null},
+            customer: {isabsence: show_absence, istemplate: null, inactive: false},
+            order: {isabsence: show_absence, istemplate: null, inactive: false},
+            scheme: {isabsence: show_absence, istemplate: null, inactive: null, issingleshift: null},
             shift: {customer_pk: null},
             team: {customer_pk: null, isabsence: false},
             teammember: {customer_pk: null, isabsence: false},
@@ -960,7 +962,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++  HandleBtnSchemeitems  ++++++++++++++++++++++++++++++ PR2019-03-16 PR2019-06-14
     function HandleBtnSchemeitems(param_name) {
         console.log("=== HandleBtnSchemeitems =========", param_name);
-/*
+
         // params are: prev, next, dayup, daydown, autofill, delete
         if (!!selected_scheme_pk){
             let parameters = {"upload": JSON.stringify ({"mode": param_name, "scheme_pk": selected_scheme_pk})};
@@ -994,7 +996,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
-        */
+
     } // function HandleBtnSchemeitems
 //=========  HandleTemplateSelect  ================ PR2019-05-24
     function HandleTemplateSelect(tblRow) {
@@ -2580,16 +2582,50 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("tp_dict", tp_dict);
 
         let upload_dict = {"id": tp_dict["id"]};
-        // quicksaveis saved separately by uploadusetsettings
+        // quicksaveis saved separately by uploadusersettings
         //if("quicksave" in tp_dict) {quicksave = tp_dict["quicksave"]};
 
         // when clicked on 'Exit quicksave' and then 'Cancel' changes must not be saved, but quicksave does
         if("save_changes" in tp_dict) {
 
-            upload_dict[tp_dict["field"]] = {"value": tp_dict["offset"], "update": true};
+            upload_dict[tp_dict.field] = {value: tp_dict.offset, update: true};
 
             const tblName = "shift";
-            const map_id = get_map_id(tblName, get_subdict_value_by_key(tp_dict, "id", "pk").toString());
+            const map_id = get_map_id(tblName, get_dict_value(tp_dict, ["id", "pk"]));
+            const map_dict = get_mapdict_from_datamap_by_id(shift_map, map_id)
+
+        console.log("ooooooooooooooooooooo map_dict", map_dict);
+            const cur_shift_code = get_dict_value(map_dict, ["code", "value"])
+        console.log("cur_shift_code ", cur_shift_code);
+            let offset_start = get_dict_value(map_dict, ["offsetstart", "value"])
+        console.log("offset_start ", offset_start);
+            let offset_end = get_dict_value(map_dict, ["offsetend", "value"])
+            let break_duration = get_dict_value(map_dict, ["breakduration", "value"])
+            let time_duration = get_dict_value(map_dict, ["timeduration", "value"])
+            let update_shift_code = false;
+            if (tp_dict.field === "offsetstart") {
+                offset_start = tp_dict.offset;
+        console.log("new offset_start ", offset_start);
+                upload_dict[tp_dict.field] = {value: tp_dict.offset, update: true};
+                update_shift_code = true;
+            } else if (tp_dict.field === "offsetend") {
+                offset_end = tp_dict.offset;
+                upload_dict[tp_dict.field] = {value: tp_dict.offset, update: true};
+                update_shift_code = true;
+            } else if (tp_dict.field === "breakduration") {
+                break_duration = tp_dict.offset;
+                upload_dict[tp_dict.field] = {value: tp_dict.offset, update: true};
+            } else if (tp_dict.field === "timeduration") {
+                time_duration = tp_dict.offset;
+                upload_dict[tp_dict.field] = {value: tp_dict.offset, update: true};
+            }
+            if (update_shift_code) {
+                const new_shift_code = Create_Shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code);
+                if (!!new_shift_code && new_shift_code !== cur_shift_code){
+                    upload_dict["code"] = {value: new_shift_code, update: true};
+                }
+            }
+
             let tr_changed = document.getElementById(map_id)
 
             let parameters = {"upload": JSON.stringify (upload_dict)}
@@ -3061,7 +3097,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //--- remove 'updated', deleted created and msg_err from update_dict
         // NOTE: first update tblRow, then remove these keys from update_dict, then replace update_dict in map
-        //remove_err_del_cre_updated__from_itemdict(update_dict)
+        remove_err_del_cre_updated__from_itemdict(update_dict)
 
 //--- replace updated item in map or remove deleted item from map
         if(is_deleted){
@@ -3235,7 +3271,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         user_lang, comp_timezone, false, true)
                 } else if (["code", "employee", "replacement"].indexOf( fieldname ) > -1){
                    const key_str = (fieldname === "code") ? "value" : "code";
-                   format_text_element (el_input, key_str, el_msg, field_dict, false, [-240, 200])
+                   format_text_element (el_input, key_str, el_msg, field_dict, false, [0, 0])
             // put placeholder in employee field when employee is removed
                     //if (fieldname === "employee" && !get_dict_value_by_key(field_dict, "pk")){
                         //el_input.value = get_attr_from_el_str(el_data, "data-txt_employee_select") + "...";
@@ -3402,8 +3438,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  UpdateSchemeInputElements  ================ PR2019-08-07
     function UpdateSchemeInputElements(item_dict) {
-        console.log( "===== UpdateSchemeInputElements  ========= ");
-        console.log(item_dict);
+        //console.log( "===== UpdateSchemeInputElements  ========= ");
+        //console.log(item_dict);
 
         const field_list = ["code", "cycle", "datefirst", "datelast", "excludepublicholiday", "excludecompanyholiday"];
 
@@ -3429,10 +3465,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- error
             if (!!msg_err){
+                const el_scheme_code = document.getElementById("id_scheme_code");
                 ShowMsgError(el_scheme_code, el_msg, msg_err, [-160, 80])
 
 // --- new created record
             } else if (is_created){
+                const el_scheme_code = document.getElementById("id_scheme_code");
                 ShowOkElement(el_scheme_code)
             }
 
@@ -3445,12 +3483,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     fieldname = field_list[i];
         //console.log("fieldname", fieldname);
                     field_dict = get_dict_value_by_key (item_dict, fieldname)
-        console.log("field_dict", field_dict);
+        //console.log("field_dict", field_dict);
                     value = get_dict_value_by_key (field_dict, "value")
                     updated = get_dict_value_by_key (field_dict, "updated");
                     const msg_err = get_dict_value_by_key (field_dict, "error");
         //console.log("value", value);
-        console.log("updated", updated);
+        //console.log("updated", updated);
 
                     el = document.getElementById( "id_scheme_" + fieldname)
         //console.log("el", el);
@@ -3529,7 +3567,7 @@ document.addEventListener('DOMContentLoaded', function() {
             info_01 +=  loc.rosterdate_added_success
         }
         document.getElementById("id_mod_rosterdate_info_01").innerText = info_01;
-        document.getElementById("id_mod_rosterdate_btn_ok").innerText = loc.btn_close;
+        document.getElementById("id_mod_rosterdate_btn_ok").innerText = loc.Close;
 
     }
 
@@ -3540,7 +3578,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  ModConfirmOpen  ================ PR2019-10-23
     function ModConfirmOpen(mode, el_input) {
         console.log(" -----  ModConfirmOpen   ----", mode)
-        console.log(">>>>>>>>>>>>>>>mod_upload_dict", mod_upload_dict)
         // modes are schemeitem_delete, delete, inactive
         const tblRow = get_tablerow_selected(el_input);
 
@@ -3614,7 +3651,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 //             get_attr_from_el(el_data, "data-txt_conf_scheme").toLowerCase() + "."
 
             } else if(tblName === "teammember"){
-                header_text = get_subdict_value_by_key(mod_upload_dict, "employee", "value")
+                // mod_upload_dict got its value in UploadDeleteInactive
+                // mod_upload_dict: id: {pk: 1212, ppk: 2267, table: "teammember", isabsence: true, delete: true},
+                //                  employee: { pk: 2620. ppk: 3, code: "Merenciana TV", workhours: 2400}
+                header_text = get_dict_value(mod_upload_dict, ["employee", "code"], "")
             } else {
             // TODO get all infro from mod_upload_dict
                 let code_value = get_subdict_value_by_key(mod_upload_dict, "code", "value");
@@ -3648,8 +3688,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModConfirmSave  ================ PR2019-09-20
     function ModConfirmSave() {
-        console.log("========= ModConfirmSave ===" );
-        console.log("mod_upload_dict: ", mod_upload_dict );
+        //console.log("========= ModConfirmSave ===" );
+        //console.log("mod_upload_dict: ", mod_upload_dict );
 
 // ---  hide modal
         $('#id_mod_confirm').modal('hide');
@@ -3725,7 +3765,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // reset buttons
         const btn_class_add = (is_delete) ? "btn-outline-danger" : "btn-primary"
         const btn_class_remove = (is_delete) ? "btn-primary" :  "btn-outline-danger";
-        const btn_text = (is_delete) ? loc.btn_delete : loc.btn_create
+        const btn_text = (is_delete) ? loc.Delete : loc.Create
         let el_btn_ok = document.getElementById("id_mod_rosterdate_btn_ok")
             el_btn_ok.innerText = btn_text;
             el_btn_ok.classList.remove(btn_class_remove)
@@ -3733,7 +3773,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_btn_ok.classList.remove(cls_hide)
             el_btn_ok.disabled = true;
         let el_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
-            el_btn_cancel.innerText = loc.btn_cancel;
+            el_btn_cancel.innerText = loc.Cancel;
 
 // ---  show modal
         $("#id_mod_rosterdate").modal({backdrop: true});
@@ -3773,14 +3813,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // reset buttons
         const btn_add_class = (is_delete) ? "btn-outline-danger" : "btn-primary"
         const btn_remove_class = (is_delete) ? "btn-primary" :  "btn-outline-danger";
-        const btn_text = (is_delete) ? loc.btn_delete : loc.btn_create
+        const btn_text = (is_delete) ? loc.Delete : loc.Create
         let el_btn_ok = document.getElementById("id_mod_rosterdate_btn_ok")
             el_btn_ok.innerText = btn_text;
             el_btn_ok.classList.remove(btn_remove_class)
             el_btn_ok.classList.add(btn_add_class)
             el_btn_ok.disabled = true;
         let el_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
-            el_btn_cancel.innerText = loc.btn_cancel;
+            el_btn_cancel.innerText = loc.Cancel;
 
     }  // ModRosterdateEdit
 
@@ -3861,7 +3901,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // hide ok button, put 'Close' on cancel button
         document.getElementById("id_mod_rosterdate_btn_ok").classList.add(cls_hide);
-        document.getElementById("id_mod_rosterdate_btn_cancel").innerText = loc.close;
+        document.getElementById("id_mod_rosterdate_btn_cancel").innerText = loc.Close;
 
     }  // function ModRosterdateFinished
 
@@ -3924,9 +3964,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // also disable when no rosterdate
         const is_disabled = ((!rosterdate_iso) || ((is_delete) && (!count || count === confirmed)))
 
-        const ok_txt = (is_delete) ? ((!!count) ? loc.yes_delete : loc.btn_delete) :
-                                     ((!!count) ? loc.yes_create : loc.btn_create);
-        const cancel_txt = (!!count) ? loc.no_cancel : loc.btn_cancel
+        const ok_txt = (is_delete) ? ((!!count) ? loc.Yes_delete : loc.Delete) :
+                                     ((!!count) ? loc.Yes_create : loc.Create);
+        const cancel_txt = (!!count) ? loc.no_cancel : loc.Cancel
 
         let el_ok = document.getElementById("id_mod_rosterdate_btn_ok");
             el_ok.innerText = ok_txt;
@@ -4210,7 +4250,12 @@ document.addEventListener('DOMContentLoaded', function() {
         el_mod_code.value = null
         el_mod_cycle.value = 7
 
+        // set focus to el_mod_code, delay 500ms because of modal fade
+        setTimeout(function (){el_mod_code.focus();}, 500);
+
         $("#id_mod_scheme").modal({backdrop: true});
+
+
 
     }  // ModSchemeEOpen
 
@@ -4941,6 +4986,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // get info pk etc from tr_selected, in scheme it is stored in el_scheme_code
         let el_info;
+        const el_scheme_code = document.getElementById("id_scheme_code");
         if (!!tr_selected){el_info = tr_selected} else {el_info = el_scheme_code}
         const data_table = get_attr_from_el(el_info, "data-table")
         const id_str = get_attr_from_el(el_info, "data-pk")

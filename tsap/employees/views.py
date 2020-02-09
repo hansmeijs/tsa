@@ -278,68 +278,75 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
             upload_json = request.POST.get("upload")
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
 
 # 3. save quicksave
             # quicksave is saved in UploadUserSettings
 
 # 4. get iddict variables
+                # when called by employee_calendar:
+                # upload_dict: {'id': {'mode': 'unchanged', 'shiftoption': 'singleshift'}, 'rosterdate': '2020-02-04', ..
                 id_dict = upload_dict.get('id')
-                logger.debug('id_dict: ' + str(id_dict))
                 if id_dict:
                     table = id_dict.get('table', '')
-                    mode = id_dict.get('mode')
+                    # key 'mode' is used in calendar_employee_upload etc
+                    shift_option = id_dict.get('shiftoption')
                     is_absence = id_dict.get('isabsence', False)
-                    logger.debug('is_absence: ' + str(is_absence))
-                    logger.debug('mode: ' + str(mode))
-                    if mode == 'singleshift':
+                    logger.debug('id_dict: ' + str(id_dict))
+
+                    update_dict = {}
+                    if shift_option in ('issingleshift', 'isabsence'):
+                        # called by employee page, calendar
                         update_wrap = calendar_employee_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
-                    elif mode == 'schemeshift':
+                    elif shift_option == 'schemeshift':
                         # 'table' has no value in mode 'schemeshift'
-                        logger.debug('mode: ' + str(mode))
                         update_wrap = calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_lang)
                     else:
                         logger.debug('table: ' + str(table))
                         if table == 'teammember':
                             # called by scheme page, teammember table update
-                            update_dict = {}
+                            # TODO replace 'id.isabsence' by shift_option == 'isabsence':
                             if is_absence:
+                                logger.debug('ccccccccccccccccccccccccccc teammember is_absence')
                                 update_dict = absence_upload(request, upload_dict, user_lang)
                             else:
                                 update_dict = teammember_upload(request, upload_dict, user_lang)
                             update_wrap['teammember_update'] = update_dict
 
+                    if shift_option:
+                        # get saved calendar_period_dict
+                        period_dict = {'get': True}
+                        calendar_period_dict = pld.period_get_and_save('calendar_period', period_dict,
+                                                                     comp_timezone, timeformat, user_lang, request)
 
-                    if mode in ('absence', 'singleshift', 'schemeshift'):
-                   # J create updated employee_calendar_list
-                        datefirst = upload_dict.get('calendar_datefirst')
-                        datelast = upload_dict.get('calendar_datelast')
+                        datefirst_iso = calendar_period_dict.get('rosterdatefirst')
+                        datelast_iso = calendar_period_dict.get('rosterdatelast')
+                        logger.debug('datefirst_iso: ' + str(datefirst_iso))
+                        logger.debug('datelast_iso: ' + str(datelast_iso))
 
-                    # 3. get employee
+                # 3. get employee
                         employee_pk = None
                         employee_dict = upload_dict.get('employee')
+                        logger.debug('ooooooooooooooooooooooooooo employee_dict: ' + str(employee_dict))
                         if employee_dict:
-                            id_dict = employee_dict.get('id')
-                            if id_dict:
-                                employee_pk = id_dict.get('pk')
-
-                        if employee_pk is not None and datefirst is not None and datelast is not None:
-                            customer_id, order_id = None, None
-
-                            # employee_calendar_list = plrf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk, add_empty_shifts,
-                             #                                                      comp_timezone, timeformat, user_lang, request)
-                            add_empty_shifts = False
-                            skip_restshifts = False
-                            orderby_rosterdate_customer = False
-                            employee_calendar_list, calendar_header_dict = plrf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
-                                                                                  add_empty_shifts, skip_restshifts, orderby_rosterdate_customer,
-                                                                                comp_timezone, timeformat, user_lang, request)
-                            logger.debug('???????????????employee_calendar_list: ' + str(employee_calendar_list))
-                            logger.debug('??????????????? calendar_header_dict: ' + str(calendar_header_dict))
-                            if calendar_header_dict:
-                                update_wrap.update(calendar_header_dict=calendar_header_dict)
-                            if employee_calendar_list:
-                                update_wrap['employee_calendar_list'] = employee_calendar_list
+                            employee_pk = employee_dict.get('pk')
+                        logger.debug('employee_pk: ' + str(employee_pk))
+                        logfile = []
+                        employee_calendar_list, logfile = plrf.create_employee_planning(
+                            datefirst_iso=datefirst_iso,
+                            datelast_iso=datelast_iso,
+                            customer_pk=None,
+                            order_pk=None,
+                            employee_pk=employee_pk,
+                            add_empty_shifts=False,
+                            skip_absence_and_restshifts=False,
+                            orderby_rosterdate_customer=False,
+                            comp_timezone=comp_timezone,
+                            timeformat=timeformat,
+                            user_lang=user_lang,
+                            request=request)
+                        if employee_calendar_list:
+                            update_wrap['employee_calendar_list'] = employee_calendar_list
 
         # logger.debug('update_wrap: ' + str(update_wrap))
 
@@ -485,7 +492,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
 
 # --- SHIFT ---
         # if current shift has changed it will be updated in plvw.update_shift when 'update' in field_dict
-        # if shift is added: this shift will be put in selected schemitems. There are no multiple shift uploads (like with teammembers)
+        # if shift is added: this shift will be put in selected schemeitems. There are no multiple shift uploads (like with teammembers)
         shift = None
         shift_dict = upload_dict.get('shift')
         #logger.debug('shift_dict: ' + str(shift_dict))
@@ -533,7 +540,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
         weekday_list = upload_dict.get('weekday_list')
         logger.debug('weekday_list: ' + str(weekday_list) + ' ' + str(type(weekday_list)))
 
-        # get schemeitem that is clicked on, in case weekday has multiple schemitems
+        # get schemeitem that is clicked on, in case weekday has multiple schemeitems
         schemeitem_dict = upload_dict.get('schemeitem')
         logger.debug('schemeitem_dict: ' + str(schemeitem_dict))
 
@@ -553,12 +560,12 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
                 # weekdaylist_value: delete,1667,1607,-,-
                 logger.debug('weekdaylist_value: ' + str(weekdaylist_value))
                 if ',' in weekdaylist_value:
-                    # loop through schemitems of this day
-                    schemitems_arr = weekdaylist_value.split('|')
-                    logger.debug('schemitems_arr: ' + str(schemitems_arr))
-                    logger.debug('len(schemitems_arr): ' + str(len(schemitems_arr)))
-                    for schemitem in schemitems_arr:
-                        pk_arr = schemitem.split(',')
+                    # loop through es of this day
+                    schemeitems_arr = weekdaylist_value.split('|')
+                    logger.debug('schemeitems_arr: ' + str(schemeitems_arr))
+                    logger.debug('len(schemeitems_arr): ' + str(len(schemeitems_arr)))
+                    for schemeitem in schemeitems_arr:
+                        pk_arr = schemeitem.split(',')
                         # mode = 'create', 'update' or 'delete'
                         mode = pk_arr[0]
                         schemeitem_pk = pk_arr[1]
@@ -688,6 +695,7 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
     scheme_list = pld.create_scheme_list(
         filter_dict=filter_dict,
         company=request.user.company,
+        comp_timezone=comp_timezone,
         user_lang=user_lang)
 
     if scheme_list:
@@ -731,106 +739,17 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
 #######################################
 
 def calendar_employee_upload(request, upload_dict, comp_timezone, timeformat, user_lang): # PR2019-12-06
-
     logger.debug('============= calendar_employee_upload ============= ')
     logger.debug('upload_dict: ' + str(upload_dict))
-
-# upload_dict:
-    # {'id': {'table': 'teammember', 'mode': 'singleshift', 'pk': 800, 'ppk': 1879},
-    # 'rosterdate': '2019-12-24', 'calendar_datefirst': '2019-12-23', 'calendar_datelast': '2019-12-29',
-    # 'weekday_index': 2,
-    # 'team': {'issingleshift': True},
-    # 'weekday_list': ['-', '-', 'update1372', '-', '-', '-', '-', '-'],
-    # 'employee': {'pk': 2567, 'ppk': 3},
-    # 'order': {'pk': 1270, 'ppk': 611},
-    # 'scheme': {'
-    #       id': {'table': 'scheme', 'issingleshift': True},
-    #       'cycle': {'value': 7, 'update': True},
-    #       'datefirst': {'update': True},
-    #       'datelast': {'update': True},
-    #       'excludepublicholiday': {'value': False, 'update': True},
-    #       'excludecompanyholiday': {'value': False, 'update': True}},
-    # 'teammember': {'id': {'table': 'teammember', 'issingleshift': True, 'pk': 800, 'ppk': 1879}},
-    # 'schemeitem': {'id': {'pk': 1372, 'ppk': 1524, 'table': 'schemeitem'},
-    # 'offsetstart': {'value': 480, 'update': True},
-    # 'offsetend': {'value': 900, 'update': True},
-    #  'timeduration': {'value': 420, 'update': True}}}
+    # this function is only called by TeammemberUploadView - singleshift
 
     update_wrap = {}
-
-# 1. get iddict variables
-    is_create, is_delete = False, False
-    id_dict = upload_dict.get('id')
-    if id_dict:
-        # table = 'teammember'
-        is_create = ('create' in id_dict)
-    logger.debug('is_create: ' + str(is_create))
 
 # 2. get rosterdate and weekday_index. This is the date and weekday of the calendercolumn that is clcked on
     clicked_rosterdate_iso = upload_dict.get('rosterdate')
     clicked_rosterdate_dte = f.get_date_from_ISO(clicked_rosterdate_iso)
 
-# 2. get scheme info: datefirst, datelast, excludepublicholiday, excludecompanyholiday
-    scheme_datefirst_dte, scheme_datelast_dte, datefirst_weekday_index = None, None, None
-    is_excludepublicholiday, is_excludecompanyholiday = False, False
-    scheme_dict = upload_dict.get('scheme')
-    if scheme_dict:
-        field_dict = scheme_dict.get('excludepublicholiday')
-        if field_dict:
-            is_excludepublicholiday = field_dict.get('value', False)
-        field_dict = scheme_dict.get('excludecompanyholiday')
-        if field_dict:
-            is_excludecompanyholiday = field_dict.get('value', False)
-
-    # get datefirst and its weekday
-        field_dict = scheme_dict.get('datefirst')
-        if field_dict:
-            value = field_dict.get('value')
-            if value:
-                scheme_datefirst_dte = f.get_date_from_ISO(value)
-                if scheme_datefirst_dte:
-                    datefirst_weekday_index = scheme_datefirst_dte.isoweekday()
-    # get datelast
-        field_dict = scheme_dict.get('datelast')
-        if field_dict:
-            value = field_dict.get('value')
-            if value:
-                scheme_datelast_dte = f.get_date_from_ISO(field_dict.get('value'))
-    # logger.debug('scheme_datefirst_dte: ' + str(scheme_datefirst_dte) + ' ' + str(type(scheme_datefirst_dte)))
-    # logger.debug('datefirst_weekday_index: ' + str(datefirst_weekday_index) + ' ' + str(type(datefirst_weekday_index)))
-    # logger.debug('scheme_datelast_dte: ' + str(scheme_datelast_dte) + ' ' + str(type(scheme_datelast_dte)))
-
-# 3. get schemeitem  info:offset_start, offset_end, break_duration, time_duration, pricerate_json, addition_json
-    offset_start, offset_end, break_duration, time_duration = None, None, 0, 0
-    pricerate_json, addition_json = None, None
-
-    logger.debug('>>>>>>>>>>>>> upload_dict: ' + str(upload_dict))
-    logger.debug('>>>>>>>>>>>>> field_dict: ' + str(upload_dict.get('offsetstart', '???')))
-
-    field_dict = upload_dict.get('offsetstart')
-    if field_dict:
-        offset_start = field_dict.get('value')
-
-    field_dict = upload_dict.get('offsetend')
-    if field_dict:
-        offset_end = field_dict.get('value')
-
-    field_dict = upload_dict.get('breakduration')
-    if field_dict:
-        break_duration = field_dict.get('value')
-
-    field_dict = upload_dict.get('timeduration')
-    if field_dict:
-        time_duration = field_dict.get('value')
-    # pricerate_json = None
-    # addition_json = None
-
-    logger.debug('offset_start: ' + str(offset_start))
-    logger.debug('offset_end: ' + str(offset_end))
-    logger.debug('break_duration: ' + str(break_duration))
-    logger.debug('time_duration: ' + str(time_duration))
-
-# 3. get employee
+# 3. get employee - employee is required
     employee = None
     employee_pk = None
     employee_dict = upload_dict.get('employee')
@@ -841,8 +760,10 @@ def calendar_employee_upload(request, upload_dict, comp_timezone, timeformat, us
             pk=employee_pk
         )
     logger.debug('employee: ' + str(employee))
+    if employee is None:
+        return {}
 
-# 4. get order
+# 4. get order - order is required
     order = None
     order_dict = upload_dict.get('order')
     if order_dict:
@@ -852,144 +773,60 @@ def calendar_employee_upload(request, upload_dict, comp_timezone, timeformat, us
             pk=order_pk
         )
     logger.debug('order: ' + str(order))
+    if order is None:
+        return {}
 
-    if order:
-        scheme = None
-        team = None
-        teammember = None
+# 5. ++++++++++++++++  update schemes from upload_dict ++++++++++++++++
+    # only one scheme is used, no need for mapped_schemepk
+    scheme_dict = upload_dict.get('scheme')
+    scheme, mapped_schemepk_dictNIU = update_instance_from_item_dict('scheme', scheme_dict, order, user_lang, request)
+    logger.debug('scheme: ' + str(scheme))
 
-# A. Create new teammember with one schemeitem for each weekday in weekday_list
-        if is_create:
-            logger.debug('Create new teammember ')
+    if scheme is None:
+        return {}
 
-    # create new scheme
-            scheme_code = employee.code if employee.code else c.SCHEME_TEXT[user_lang]
-            logger.debug('scheme_code: ' + str(scheme_code))
-            scheme = m.Scheme(
-                order=order,
-                code=scheme_code,
-                issingleshift = True,
-                # cycle = 7 (default)
-                datefirst=scheme_datefirst_dte,
-                datelast=scheme_datelast_dte,
-                excludepublicholiday=is_excludepublicholiday,
-                excludecompanyholiday=is_excludecompanyholiday
-            )
-            scheme.save(request=request)
+# ++++++++++++++++  update team from upload_dict ++++++++++++++++
+    team_dict = upload_dict.get('team')
+    logger.debug('# ++++++++++++++++  update team from upload_dict ++++++++++++++++')
+    logger.debug(team_dict)
+    team, mapped_teampk_dict = update_instance_from_item_dict('team', team_dict, scheme, user_lang, request)
+    logger.debug('>>>>>>>>>>>>>> team: ' + str(team))
 
-    # create new team
-            if scheme:
-                team_code = employee.code if employee.code else c.TEAM_TEXT[user_lang]
-                logger.debug('new_team_code: ' + str(team_code))
-                team = m.Team(
-                    scheme=scheme,
-                    code=team_code,
-                    issingleshift = True
-                )
-                team.save(request=request)
-                logger.debug('new_team: ' + str(team))
+    if team is None:
+        return {}
 
-    # create new teammember
-                teammember_dict = upload_dict.get('teammember')
-                # datefirst is saved in scheme, not in teammember
-                if teammember_dict:
-                    teammember = m.Teammember(
-                        team=team,
-                        employee=employee,
-                        issingleshift=True
-                    )
-                    teammember.save(request=request)
-                    logger.debug('new_teammember employee: ' + str(teammember.employee))
+# ++++++++++++++++  update shifts from upload_dict ++++++++++++++++
+    logger.debug('# ++++++++++++++++  update shift from upload_dict ++++++++++++++++')
+    shift_dict = upload_dict.get('shift')
+    shiftNIU, mapped_shiftpk_dict = update_instance_from_item_dict('shift', shift_dict, scheme, user_lang, request)
 
-        else:
-# if upate: get existing scheme,team and teammember
-            logger.debug('Update existing teammember ')
-            teammember_dict = upload_dict.get('teammember')
-            if teammember_dict:
-                id_dict = teammember_dict.get('id')
-                if id_dict:
-                    teammember_pk = id_dict.get('pk')
-                    logger.debug('teammember_pk : ' + str(teammember_pk))
-                    if teammember_pk:
-                        # no fields are updated in teammember
-                        teammember = m.Teammember.objects.get_or_none(
-                            id=teammember_pk,
-                            team__scheme__order__customer__company=request.user.company
-                        )
-                        logger.debug('teammember: ' + str(teammember))
-                        if teammember:
-                            team = teammember.team
-                            logger.debug('team: ' + str(team))
-                            if team:
-                                scheme = team.scheme
-                                logger.debug('scheme: ' + str(scheme))
-# update fields in scheme when update (in create mode fields got already value when creating scheme)
-                                if scheme :
-                                    scheme.datefirst=scheme_datefirst_dte
-                                    scheme.datelast=scheme_datelast_dte
-                                    scheme.excludepublicholiday=is_excludepublicholiday
-                                    scheme.excludecompanyholiday=is_excludecompanyholiday
-                                    scheme.save(request=request)
+# ++++++++++++++++  update teammember from upload_dict ++++++++++++++++
+    teammembers_dict = upload_dict.get('teammembers_dict')
+    logger.debug('# ++++++++++++++++  update teammember from upload_dict ++++++++++++++++')
+    logger.debug(teammembers_dict)
 
-# create and update schemeitems (for existing and created teammember)
-        if teammember:
-            # weekday_list: [0, 'delete_1106', 'delete_1107', 'update_1091', 'update_1094', 0, "create" 0]
-            weekday_list = upload_dict.get('weekday_list')
-            logger.debug('weekday_list: ' + str(weekday_list) + ' ' + str(type(weekday_list)))
-            if clicked_rosterdate_dte and weekday_list:
-                for weekday_index, weekdaylist_value in enumerate(weekday_list):
-                    mode = weekdaylist_value[:6]
-                    logger.debug('mode: ' + str(mode))
-                    schemeitem = None
-                    if mode == 'create':
-                        days_add = weekday_index - clicked_rosterdate_dte.isoweekday()
-                        rosterdate_dte = clicked_rosterdate_dte + timedelta(days=days_add)
-                        logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+    update_teammembers_from_uploaddict(
+        items_dict=teammembers_dict,
+        mapped_teampks=mapped_teampk_dict,
+        user_lang=user_lang,
+        request=request)
 
-                        is_cyclestart = (weekday_index == 1)
-                        schemeitem = m.Schemeitem(
-                            scheme=scheme,
-                            team=team,
-                            rosterdate=rosterdate_dte,
-                            iscyclestart=is_cyclestart,
-                            issingleshift = True
-                        )
-                        if schemeitem:
-                            schemeitem_delete_update_save(schemeitem, mode,
-                                                           offset_start, offset_end, break_duration, time_duration,
-                                                           pricerate_json, addition_json, request)
-                    elif mode in ('update', 'delete'):
-                        # weekday can have multiple schemeitems
-                        schemeitem_pk_list = weekdaylist_value[6:].split(',')
-                        logger.debug('schemeitem_pk_list: ' + str(schemeitem_pk_list))
-                        if len(schemeitem_pk_list):
-                            for schemeitem_pk in schemeitem_pk_list:
-                                logger.debug('schemeitem_pk: ' + str(schemeitem_pk))
-                                if schemeitem_pk:
-                                    schemeitem = m.Schemeitem.objects.get_or_none(
-                                        id=schemeitem_pk,
-                                        scheme__order__customer__company=request.user.company
-                                    )
-                                logger.debug('schemeitem: ' + str(schemeitem))
-                                if schemeitem:
-                                    schemeitem_delete_update_save(schemeitem, mode,
-                                                                   offset_start, offset_end, break_duration, time_duration,
-                                                                   pricerate_json, addition_json, request)
+# ++++++++++++++++  update_schemeitems_from_uploaddict ++++++++++++++++
+    schemeitems_dict = upload_dict.get('schemeitems_dict')
+    logger.debug('# ++++++++++++++++  update_schemeitems_from_uploaddict ++++++++++++++++')
+    logger.debug(schemeitems_dict)
 
-                    if mode == 'delete':
-                        # also delete teammember, tem and scheme when there are no schemeitems left in this scheme
-                        if scheme:
-                            count = m.Schemeitem.objects.filter(scheme=scheme).count()
-                            if count == 0:
-                                # delete teammember
-                                teammember.delete(request=request)
-                                # delete team
-                                team.delete(request=request)
-                                # check if there are any shifts (should not be possible
-                                if m.Shift.objects.filter(scheme=scheme).count():
-                                    m.Shift.objects.filter(scheme=scheme).delete()
-                                # delete scheme
-                                scheme.delete(request=request)
+    update_schemeitems_from_uploaddict(
+            items_dict=schemeitems_dict,
+            mapped_shiftpks=mapped_shiftpk_dict,
+            mapped_teampks=mapped_teampk_dict,
+            parent=scheme,
+            user_lang=user_lang,
+            request=request)
+
+    # TODO also delete scheme when there are no schemeitems left in this scheme
+    # team, teammember, shift and schemeitem are cascade delete, will be deleted when scheme is deleted
+
 
 # J create updated employee_calendar_list
     datefirst = upload_dict.get('calendar_datefirst')
@@ -1003,7 +840,9 @@ def calendar_employee_upload(request, upload_dict, comp_timezone, timeformat, us
         add_empty_shifts = False
         skip_restshifts = False
         orderby_rosterdate_customer = False
-        calendar_dictlist, calendar_header_dict = plrf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
+        logfile = []
+        calendar_header_dict = None
+        calendar_dictlist, logfile = plrf.create_employee_planning(datefirst, datelast, customer_id, order_id, employee_pk,
                                                add_empty_shifts, skip_restshifts, orderby_rosterdate_customer,
                                                 comp_timezone, timeformat, user_lang, request)
 
@@ -1014,30 +853,225 @@ def calendar_employee_upload(request, upload_dict, comp_timezone, timeformat, us
     # J. return update_wrap
     return update_wrap
 
-def schemeitem_delete_update_save(schemeitem, mode,
-                              offset_start, offset_end, break_duration, time_duration,
-                              pricerate_json, addition_json, request): # PR2019-12-25
 
-    logger.debug('schemeitem_delete_update_save: ' + str(mode))
-    logger.debug('offset_start: ' + str(offset_start))
-    logger.debug('offset_end: ' + str(offset_end))
-    logger.debug('break_duration: ' + str(break_duration))
-    logger.debug('time_duration: ' + str(time_duration))
+def update_teammembers_from_uploaddict (items_dict, mapped_teampks, user_lang, request):
+    logger.debug('# ++++++++++++++++  update_teammembers_from_uploaddict ++++++++++++++++ ')
 
-    if schemeitem:
-        if mode == 'delete':
-            schemeitem.delete(request=request)
-        else:
-            schemeitem.offsetstart = offset_start
-            schemeitem.offsetend = offset_end
-            schemeitem.breakduration = break_duration
-            schemeitem.timeduration = time_duration
-            schemeitem.priceratejson = pricerate_json
-            schemeitem.additionjson = addition_json
-            schemeitem.save(request=request)
+    #  item_dict: {
+    #  'id': {'pk': 'new4', 'ppk': 'new8', 'table': 'teammember', 'mode': 'create', 'shiftoption': 'issingleshift'},
+    #  'employee': {'pk': 2623, 'ppk': 3, 'table': 'employee', 'code': 'Wu XX Y'}}
 
-            logger.debug('schemeitem.save schemeitem.offsetstart: ' + str(schemeitem.offsetstart))
+    mapped_pk_dict = {}
+    if items_dict:
+        table = 'teammember'
+        for key, item_dict in items_dict.items():
+            logger.debug('key: ' + str(key))
+            logger.debug('item_dict: ' + str(item_dict))
+
+    # replace parent 'team_pk' = 'new7' by pk of saved item, using mapped_pks
+            team_pk = f.get_dict_value(item_dict, ('id', 'ppk'))
+            logger.debug('team_pk: ' + str(team_pk))
+            logger.debug('mapped_teampks: ' + str(mapped_teampks))
+            if mapped_teampks and team_pk in mapped_teampks:
+                team_pk = mapped_teampks.get(team_pk)
+            # get parent 'team'
+            logger.debug('new team_pk: ' + str(team_pk))
+            if team_pk:
+                team = m.Team.objects.get_or_none(pk=team_pk,
+                    scheme__order__customer__company=request.user.company)
+                if team:
+                    update_instance_from_item_dict(table, item_dict, team, user_lang, request)
+
+
+def update_schemeitems_from_uploaddict (items_dict, mapped_shiftpks, mapped_teampks, parent, user_lang, request):
+    logger.debug('# ++++++++++++++++  update_schemeitems_from_uploaddict ++++++++++++++++ ')
+    logger.debug('parent: ' + str(parent) + ' ' + str(type(parent)))
+
+    #  item_dict: {
+    #  'id': {'pk': 'new11', 'ppk': 'new6', 'table': 'schemeitem', 'mode': 'create', 'shiftoption': 'issingleshift'},
+    #  'rosterdate': '2020-02-07',
+    #  'iscyclestart': False,
+    #  'shift': {'pk': 'new7', 'code': '05.00 - 08.00'},
+    #  'team': {'pk': 'new8', 'code': 'van Delden JM'}}
+
+    mapped_pk_dict = {}
+    if items_dict:
+        table = 'schemeitem'
+        for key, item_dict in items_dict.items():
+            logger.debug('key: ' + str(key))
+            logger.debug('item_dict: ' + str(item_dict))
+
+    # replace scheme_pk 'new7' by pk of saved item, using mapped_tpks
+            # not necessary, parent = scheme, there is only one scheme
+
+    # replace shift_pk 'new7' by pk of saved item, using mapped_tpks
+            shift_pk = f.get_dict_value(item_dict, ('shift', 'pk'))
+            logger.debug('shift_pk: ' + str(shift_pk))
+            if mapped_shiftpks and shift_pk in mapped_shiftpks:
+                mapped_shiftpk = mapped_shiftpks.get(shift_pk)
+                logger.debug('mapped_shiftpk: ' + str(mapped_shiftpk))
+                item_dict['shift']['pk'] = mapped_shiftpk
+                logger.debug('new item_dict[shift]: ' + str(item_dict['shift']))
+
+    # replace team_pk 'new7' by pk of saved item, using mapped_pks
+            team_pk = f.get_dict_value(item_dict, ('team', 'pk'))
+            logger.debug('team_pk: ' + str(team_pk))
+            logger.debug('mapped_teampks: ' + str(mapped_teampks))
+            if mapped_teampks and team_pk in mapped_teampks:
+                mapped_teampk = mapped_teampks.get(team_pk)
+                logger.debug('mapped_teampk: ' + str(mapped_teampk))
+                item_dict['team']['pk'] = mapped_teampk
+                logger.debug('new item_dict[team]: ' + str(item_dict['team']))
+
+            instance, mapped_pk_dict = update_instance_from_item_dict(table, item_dict, parent, user_lang, request)
+    return mapped_pk_dict
+
+def update_instance_from_item_dict (table, item_dict, parent, user_lang, request):
+    logger.debug('# ++++++++++++++++  update instance from items_dict ++++++++++++++++: ')
+    logger.debug('table: ' + str(table))
+    logger.debug('parent: ' + str(parent) + ' ' + str(type(parent)))
+    logger.debug('item_dict: ' + str(item_dict))
+    # item_dict: {'id': {'pk': 'new9', 'ppk': '1424', 'table': 'scheme', 'mode': 'create', 'shiftoption': 'isabsence', 'cycle': 1},
+    #       'code': 'Colpa de WH', 'datefirst': '2020-02-05', 'datelast': '2020-02-07', 'excludepublicholiday': False, 'excludecompanyholiday': False}
+    instance = None
+    mapped_pk_dict = {}
+    if item_dict:
+        mode = f.get_dict_value(item_dict, ('id', 'mode'))
+        # shiftopions are: 'absenceshift', 'singleshift', 'schemeshift'
+        shift_option = f.get_dict_value(item_dict, ('id', 'shiftoption'))
+        pk = f.get_dict_value(item_dict, ('id', 'pk'))
+        is_absence = (shift_option == 'isabsence')
+        is_singleshift = (shift_option == 'issingleshift')
+
+        logger.debug('mode: ' + str(mode))
+        logger.debug('pk: ' + str(pk))
+        logger.debug('is_absence: ' + str(is_absence))
+        logger.debug('is_singleshift: ' + str(is_singleshift))
+
+        if mode == 'create':
+            if table == 'scheme':
+                # when absence cycle = 1, when singleshift cycle = 7
+                cycle = f.get_dict_value(item_dict, ('id', 'cycle'), 7)
+                instance = m.Scheme(order=parent,
+                                    code=c.SCHEME_TEXT[user_lang],
+                                    cycle=cycle,
+                                    isabsence=is_absence,
+                                    issingleshift=is_singleshift)
+            if table == 'shift':
+                instance = m.Shift(scheme=parent,
+                                   code=c.SHIFT_TEXT[user_lang])
+            elif table == 'team':
+                instance = m.Team(scheme=parent,
+                                  code=c.TEAM_TEXT[user_lang],
+                                  isabsence=is_absence, issingleshift=is_singleshift)
+            elif table == 'teammember':
+                instance = m.Teammember(team=parent,
+                                        isabsence=is_absence, issingleshift=is_singleshift)
+            elif table == 'schemeitem':
+                rosterdate = item_dict.get('rosterdate')
+                is_cyclestart = item_dict.get('iscyclestart', False)
+                if rosterdate:
+                    instance = m.Schemeitem(scheme=parent,
+                                            rosterdate=rosterdate,
+                                            iscyclestart=is_cyclestart,
+                                            isabsence=is_absence,
+                                            issingleshift=is_singleshift)
+            if instance:
+                instance.save(request=request)
+                mapped_pk_dict[pk] = instance.pk
+                logger.debug('created instance: ' + str(instance))
+                logger.debug('mapped_pk_dict: ' + str(mapped_pk_dict))
+
+        elif pk:
+            if table == 'scheme':
+                instance = m.Scheme.objects.get_or_none(pk=pk,
+                    order__customer__company=request.user.company)
+            if table == 'shift':
+                instance = m.Shift.objects.get_or_none(pk=pk,
+                    scheme__order__customer__company=request.user.company)
+            elif table == 'team':
+                instance = m.Team.objects.get_or_none(pk=pk,
+                    scheme__order__customer__company=request.user.company)
+            elif table == 'teammember':
+                instance = m.Teammember.objects.get_or_none(pk=pk,
+                    team__scheme__order__customer__company=request.user.company)
+            elif table == 'schemeitem':
+                instance = m.Schemeitem.objects.get_or_none(pk=pk,
+                    scheme__order__customer__company=request.user.company)
+
+            logger.debug('existing instance: ' + str(instance) + ' ' + str(type(instance)))
+            if instance and mode == 'delete':
+                instance.delete(request=request)
+                instance = None
+                logger.debug('instance is deleted')
+
+        if instance:
+            logger.debug('instance exists: ' + str(instance) + ' ' + str(type(instance)))
+
+            is_updated = False
+            # loop through fields in item_dict. Fields in item_dict are updated,
+            # no need for 'update=true' in dict, therefore also 'key 'vaue ' not needed
+
+    # change parent - only when absence and table = scheme: order changes when changing abscat
+            if is_absence and  table == 'scheme':
+                new_order_pk = f.get_dict_value(item_dict, ('id', 'ppk'))
+                #logger.debug('new_order_pk: ' + str(new_order_pk))
+                if new_order_pk and new_order_pk != parent.pk:
+                    new_order = m.Order.objects.get_or_none(pk=new_order_pk,
+                                    customer__company=request.user.company)
+                    #logger.debug('new_order: ' + str(new_order))
+                    if new_order:
+                        instance.order = new_order
+                        is_updated = True
+
+            for field, field_dict in item_dict.items():
+                # field 'id' already retrieved
+                if field != 'id':
+                    #logger.debug('field: ' + str(field) + ' ' + str(type(field)))
+                    old_value = getattr(instance, field)
+                    #logger.debug('old_value: ' + str(old_value) + ' ' + str(type(old_value)))
+            # get new_value
+                    new_value = None
+                    if field in ('team', 'shift', 'employee', 'replacement'):
+                        pk_int = field_dict.get('pk')
+                        if pk_int:
+                            if field in ('employee', 'replacement'):
+                                new_value = m.Employee.objects.get_or_none(
+                                    pk=pk_int,
+                                    company=request.user.company)
+                            if field == 'team':
+                                new_value = m.Team.objects.get_or_none(
+                                    pk=pk_int,
+                                    scheme__order__customer__company=request.user.company)
+                            if field == 'shift':
+                                new_value = m.Shift.objects.get_or_none(
+                                    pk=pk_int,
+                                    scheme__order__customer__company=request.user.company)
+                    else:
+                        new_value = item_dict.get(field)
+                        # set default value when None
+                        if new_value is None:
+                            if field == 'code':
+                                new_value = c.SHIFT_TEXT[user_lang]
+                            if field == 'cycle':
+                                new_value = 7
+                            elif field in ('breakduration', 'timeduration'):
+                                new_value = 0
+                            elif field in ('isabsence', 'issingleshift', 'excludecompanyholiday', 'excludepublicholiday'):
+                                new_value = False
+                    # only save when value has changed
+                    if new_value != old_value:
+                        setattr(instance, field, new_value)
+                        is_updated = True
+                        #logger.debug('new_value != old_value: ' + str(new_value))
+            if is_updated:
+                instance.save(request=request)
+                logger.debug('instance is saved: ' + str(instance))
+    #  ++++++++++++++++  end update_from_teamsdict ++++++++++++++++
+    return instance, mapped_pk_dict
+
 #######################################
+
 
 def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
     logger.debug(' --- absence_upload ---')
@@ -1045,17 +1079,29 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
 
     update_dict = {}
 
-    # upload_dict: {
-    #   'id': {'create': True, 'temp_pk': 'teammember_new2', 'table': 'teammember', 'mode': 'absence', 'isabsence': True},
-    #   'employee': {'pk': 2556, 'code': 'Levinson, Daniela', 'workhoursperday': 480},
-    #   'order': {'pk': 1265, 'value': 'Vakantie', 'ppk': 610, 'is_absence': True, 'update': True}}
+# from employee, tab absence:
+# create absence:
+    # upload_dict: {'id': {'create': True, 'temp_pk': 'teammember_new2', 'table': 'teammember', 'isabsence': True},
+    #               'employee': {'pk': 2619, 'code': 'Gomes Bravio NM'},
+    #               'order': {'pk': 1424, 'table': 'order', 'isabsence': True, 'update': True}}
+# change absence category:
+    # upload_dict: {'id': {'pk': 1179, 'ppk': 2228, 'table': 'teammember', 'isabsence': True},
+    #               'order': {'pk': 1426, 'table': 'order', 'isabsence': True, 'update': True}}
+# change datefirst / datelast:
+    # upload_dict: {'id': {'pk': 1179, 'ppk': 2228, 'table': 'teammember', 'isabsence': True},
+    #               'datelast': {'update': True, 'value': '2020-02-11'}}
+# delete absence:
+    # upload_dict: {'mode': 'delete', 'id': {'table': 'teammember', 'pk': 1179, 'ppk': 2228, 'isabsence': True, 'delete': True}}
 
 # 1. get iddict variables
     id_dict = upload_dict.get('id')
     if id_dict:
         pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode = f.get_iddict_variables(id_dict)
-
         logger.debug('is_delete: ' + str(is_delete))
+        logger.debug('is_create: ' + str(is_create))
+        logger.debug('mode: ' + str(mode))
+        logger.debug('temp_pk_str: ' + str(temp_pk_str))
+
 # 2. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
         update_dict = f.create_update_dict(
             c.FIELDS_TEAMMEMBER,
@@ -1064,14 +1110,13 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
             ppk=ppk_int,
             temp_pk=temp_pk_str)
 
-# A. Delete teammember and its schemitems, team and scheme
+# A. Delete teammember and its schemeitems, team and scheme
         if is_delete:
             teammember = m.Teammember.objects.get_or_none(
                 id=pk_int,
                 team__scheme__order__customer__company=request.user.company)
-
-            logger.debug('is_delete: ' + str(is_delete))
             logger.debug('teammember: ' + str(teammember))
+
             if teammember:
                 team = teammember.team
                 if team:
@@ -1083,7 +1128,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                             order_code = getattr(order, 'code','')
                         this_text = _("Absence '%(tbl)s'") % {'tbl': order_code}
                         # delete_instance adds 'deleted' or 'error' to id_dict
-                        # teammember, team, shift and schemitem all have 'on_delete=CASCADE'
+                        # teammember, team, shift and schemeitem all have 'on_delete=CASCADE'
                         # therefore deleting scheme also deletes the other records
                         deleted_ok = m.delete_instance(scheme, update_dict, request, this_text)
                         logger.debug('deleted_ok: ' + str(deleted_ok))
@@ -1096,7 +1141,6 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
             logger.debug('new_order_dict: ' + str(new_order_dict))
             if new_order_dict:
                 is_order_update = new_order_dict.get('update', False)
-                logger.debug('is_order_update: ' + str(is_order_update))
                 if is_order_update:
                     new_order_pk = new_order_dict.get('pk', 0)
                     if new_order_pk:
@@ -1104,7 +1148,6 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                             id=new_order_pk,
                             customer__company=request.user.company
                         )
-                    logger.debug('new_order: ' + str(new_order))
                     if new_order is None:
                         is_order_update = False
             logger.debug('is_order_update: ' + str(is_order_update))
@@ -1115,7 +1158,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
             datefirst_dte = None
             field_dict = upload_dict.get('datefirst')
             if field_dict:
-                is_datefirst_update= field_dict.get('update', False)
+                is_datefirst_update = field_dict.get('update', False)
                 datefirst_iso = field_dict.get('value')
                 datefirst_dte = f.get_date_from_ISO(datefirst_iso)
                 logger.debug('datefirst_iso: ' + str(datefirst_iso))
@@ -1131,7 +1174,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                 logger.debug('datelast_iso: ' + str(datelast_iso))
             logger.debug('is_datelast_update: ' + str(is_datelast_update))
 
-# C. get info from  schemeitem info: offset_start, offset_end, time_duration
+# C. get info from schemeitem info: offset_start, offset_end, time_duration
             offset_start, is_offsetstart_update = None, False
             field_dict = upload_dict.get('offsetstart')
             if field_dict:
@@ -1173,6 +1216,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                     # employee is required
                     employee = None
                     employee_dict = upload_dict.get('employee')
+                    logger.debug('employee_dict: ' + str(employee_dict))
                     if employee_dict:
                         employee_pk = employee_dict.get('pk')
                         if employee_pk:
@@ -1217,9 +1261,10 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
                             update_dict['id']['created'] = True
 
                 # create new schemeitem
-                            # TODO: create schemeitem for each weekday in service
+                            # create only schemeitem for each weekday in service?? Dont, just make hours = 0 on weekdays not in servce
                             # get the monday date of this week
                             this_date = f.get_firstof_week(date.today(), 0)
+                            # add schemeitem for each day of the week, except for weekends (isoweekday = 6 or 7)
                             for i in range(1, 8):
                                 is_cyclestart = (this_date.isoweekday() == 1)
 
@@ -1327,7 +1372,7 @@ def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25
 
 # A. new absence has no parent, get ppk_int from team_dict and put it back in upload_dict
         # absence is handled bij absence_upload
-        # is_absence = f.get_fielddict_variable(upload_dict, 'isabsence', 'value')
+        # is_absence = f.get_fielddict_variableXXX(upload_dict, 'isabsence', 'value')
         # logger.debug('is_absence: ' + str(is_absence))
         # if is_create and is_absence:
         #    team_dict = upload_dict.get('team')

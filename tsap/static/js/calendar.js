@@ -2,11 +2,13 @@
 
         const cls_selected = "tsa_tr_selected";
         const cls_error = "tsa_tr_error";
+        const cls_bc_lightlightgrey = "tsa_bc_lightlightgrey";
 
 //=========  CreateCalendar  ================ PR2019-08-29
     function CreateCalendar(tblName, calendar_dict, calendar_map, ModShiftOpen, loc, timeformat, user_lang) {
-        console.log("=========  CreateCalendar =========");
-        console.log("calendar_dict: ", calendar_dict);
+        //console.log("=========  CreateCalendar =========");
+        //console.log("calendar_dict: ", calendar_dict);
+        //console.log("calendar_map: ", calendar_map);
         // calendar_dict: {datefirst: "2020-01-19", datelast: "2020-01-25"}
 
         const column_count = 8;
@@ -102,14 +104,12 @@
 //=========  UpdateCalendar ================ PR2019-12-04
     function UpdateCalendar(tblName, calendar_dict, calendar_map, loc, timeformat, user_lang) {
         //console.log( "===== UpdateCalendar  ========= ");
-        //console.log( "calendar_dict: ", calendar_dict);
-        //console.log( "calendar_map: ", calendar_map);
 
         const column_count = 8;
-        const is_customer_calendar = (get_dict_value_by_key(calendar_dict, "calendar_type") === "customer_calendar")
+        const is_customer_calendar = (get_dict_value(calendar_dict, ["calendar_type"]) === "customer_calendar")
 
 // --- get first and last date from calendar_dict, set today if no date in dict
-        let datefirst_iso = get_dict_value_by_key(calendar_dict, "rosterdatefirst")
+        let datefirst_iso = get_dict_value(calendar_dict, ["rosterdatefirst"])
         let calendar_datefirst_JS = get_dateJS_from_dateISO_vanilla(datefirst_iso);
         if(!calendar_datefirst_JS){
             calendar_datefirst_JS = new Date();
@@ -150,15 +150,14 @@
 
 //--- get info from calendar_dict
             const display_arr = format_date_from_dateJS_vanilla(this_date, loc.weekdays_long, loc.months_abbrev, user_lang, true, true)
-            //console.log( "display_arr", display_arr);
             // display_arr = ["maandag", "20 jan"]
 
             let display_date = null;
             let is_publicholiday = false;
             const this_date_dict = calendar_dict[this_date_iso];
             if(!isEmpty(this_date_dict)){
-                display_date = get_dict_value_by_key(this_date_dict, "display")
-                is_publicholiday = (!!get_dict_value_by_key(this_date_dict, "ispublicholiday"));
+                display_date = get_dict_value(this_date_dict, ["display"])
+                is_publicholiday = (!!get_dict_value(this_date_dict, ["ispublicholiday"]));
             }
             if (!display_date){display_date = display_arr[0]}
 
@@ -189,47 +188,46 @@
             this_date_iso = get_dateISO_from_dateJS_vanilla(this_date)
 
 //............................................................
-//--- Put shift info from weekday list in tablerows
+//--- Put shift info from map_list_per_column in tablerows
             if (!!map_list_per_column[col_index].length){
                 let dict_list = map_list_per_column[col_index]
-                //console.log( "------------- dict_list: ");
+                //console.log( "------------- dict_list: ", dict_list);
                 const list_len = dict_list.length
                 if(!!list_len){
 
 //--- loop through dict items in reverse order. In that way we can track the starttime of the later shift
                     let prev_index_start = 24
                     for (let x = list_len -1; x >= 0; x--) {
+                        // item_dict is item of employee_calendar_list
                         let item_dict = dict_list[x]
-
         //console.log( "---------------item_dict: ", item_dict);
                         if(!isEmpty(item_dict)){
-                            //console.log( "------------- item_dict: ", item_dict);
-
-                            let map_id = get_subdict_value_by_key(item_dict, "id", "pk")
-                            const row_index_start = get_dict_value_by_key(item_dict, "row_index_start")
+                            const map_id = get_dict_value(item_dict, ["id", "pk"]);
+                            const row_index_start = get_dict_value(item_dict, ["row_index_start"]);
+        //console.log( "row_index_start: ", row_index_start);
                             // max shifts per day is 24, cannot display more than 1 per hour
                             if(row_index_start < 24){
-                                const row_index_end_plusone = get_dict_value_by_key(item_dict, "row_index_end_plusone")
-                                let has_overlap = (!!get_dict_value_by_key(item_dict, "overlap", false))
+                                const row_index_end_plusone = get_dict_value(item_dict, ["row_index_end_plusone"])
 
-                                let order_code = get_subdict_value_by_key(item_dict, "order", "code", "")
-                                let shift_code = get_subdict_value_by_key(item_dict, "shift", "code", "")
-                                let customer_code = get_subdict_value_by_key(item_dict, "customer", "code", "")
-                                let rosterdate_display = get_subdict_value_by_key(item_dict, "rosterdate", "display", "")
+                                const rosterdate_display = get_dict_value(item_dict, ["rosterdate", "display"], "");
+                                const is_restshift = get_dict_value(item_dict, ["isrestshift"], false);
+                                const is_absence = get_dict_value(item_dict, ["isabsence"], false);
+                                let has_overlap = get_dict_value(item_dict, ["overlap"], false);
+        //console.log( "rosterdate_display", rosterdate_display);
+        //console.log( "has_overlap", has_overlap);
 
-                                let is_restshift = get_subdict_value_by_key(item_dict, "shift", "isrestshift", false)
-                                let is_absence = get_dict_value_by_key(item_dict, "isabsence", false)
+                                let customer_code = get_dict_value(item_dict, ["customer", "code"], "");
+                                let order_code = get_dict_value(item_dict, ["order", "code"], "");
+                                let shift_code = get_dict_value(item_dict, ["shift", "code"], "");
 
-                                //console.log( "------------- is_absence: ", is_absence);
-
-                                let offset_start = get_dict_value_by_key(item_dict, "offsetstart")
-                                let offset_end = get_dict_value_by_key(item_dict, "offsetend")
-                                let time_duration = get_dict_value_by_key(item_dict, "timeduration")
+                                let offset_start = get_dict_value(item_dict, ["shift", "offsetstart"]);
+                                let offset_end = get_dict_value(item_dict, ["shift", "offsetend"]);
+                                let time_duration = get_dict_value(item_dict, ["shift", "timeduration"], 0);
 
                                 const skip_prefix_suffix = true;
                                 let display_time = "";
                                 if(!!offset_start || !!offset_end ){
-                                    display_time = display_offset_timerange (offset_start, offset_end, skip_prefix_suffix, timeformat, user_lang)
+                                    display_time = display_offset_timerange (offset_start, offset_end, timeformat, user_lang, skip_prefix_suffix)
                                 } else if(!!time_duration){
                                     display_time = display_duration (time_duration, user_lang, loc.Hour, loc.Hours);
                                 } else {
@@ -260,7 +258,7 @@
                                 // so the end cells that are pushed outside table can be deleted
                                     for (let y = row_index_start + 1 ; y < row_index_end_plusone; y++) {
                                         //++spanned_rows[y];
-                                        // spanned_columns contains spanmed columns of eachweekday, to correct weekday in ModShft
+                                        // spanned_columns contains spanned columns of each weekday, to correct weekday in ModShft
                                         spanned_columns[y][col_index] = 1
                                         // column zero contains sum of spanned columns, to be used to delete cells that are pushed outside table
                                         spanned_columns[y][0] += 1
@@ -269,21 +267,23 @@
                                     let display_text = rosterdate_display + "\n"
                                     if(!!display_time) {display_text +=  display_time + "\n"}
                                     // shift name can be the same as time, skip display_text if that is the case
+        //console.log("shift_code", "<" + shift_code + ">")
+        //console.log("display_time", display_time)
+        //console.log("(!!shift_code && shift_code !== display_time)", (!!shift_code && shift_code !== display_time))
 
-                                    //console.log("shift_code", shift_code)
-                                    //console.log("display_time", display_time)
-                                    //console.log("(!!shift_code && shift_code !== display_time)", (!!shift_code && shift_code !== display_time))
+                                    // remove shift_code ' - '
+                                    if (shift_code.trim() === "-") {shift_code = ""}
 
                                     if(!!shift_code && shift_code !== display_time) {display_text +=  shift_code + "\n"}
                                     if(is_customer_calendar){
-                                        const employee_code_arr = get_subdict_value_by_key(item_dict, "employee", "code", [])
+                                        const employee_code_arr = get_dict_value(item_dict, ["employee", "code"], [])
                                         const len = employee_code_arr.length;
                                         for (let i = 0; i < len; i++) {
                                             display_text += employee_code_arr[i] + "\n";
                                         }
                                     } else {
                                         // TODO remove, employee is for testing only
-                                        const employee_code = get_subdict_value_by_key(item_dict, "employee", "code", "---")
+                                        const employee_code = get_dict_value(item_dict, ["employee", "code"], "---")
                                         display_text += employee_code + "\n";
 
                                         const dash_or_newline = (customer_code.length + order_code.length > 17) ? "\n" : " - "
@@ -335,30 +335,35 @@
             for (const [map_id, item_dict] of calendar_map.entries()) {
 
 // ---  get columnindex, based on item_dict weekday and weekday_of_first_column
-                const item_weekday = get_subdict_value_by_key(item_dict, "rosterdate", "weekday", 0);
+                const item_weekday = get_dict_value(item_dict, ["rosterdate", "weekday"], 0);
                 let columnindex = item_weekday - (weekday_of_first_column - 1);
                 if (columnindex < 1) {columnindex += 7};
         //console.log( "========= columnindex: ", columnindex);
-        //console.log( "item_dict: ", item_dict);
 
 // ---  get offsetstart and offsetend of item_dict
-                const item_offsetstart = get_dict_value_by_key(item_dict, "offsetstart", 0)
-                const item_offsetend = get_dict_value_by_key(item_dict, "offsetend", 1440)
-        //console.log( "item_offsetstart: ", item_offsetstart, " item_offsetend: ", item_offsetend);
+                const item_offsetstart = get_dict_value(item_dict, ["shift", "offsetstart"], 0)
+                const item_offsetend = get_dict_value(item_dict, ["shift", "offsetend"], 1440)
+        //console.log( "rosterdate: ", get_dict_value(item_dict, ["rosterdate", "value"]));
+        //console.log( "item_offsetstart: ", item_offsetstart);
+        //console.log( "item_offsetend: ", item_offsetend);
 
 // ---  insert item in the list at sorted order
                 let col_list = map_list_per_column[columnindex];
+        //console.log( "----------- col_list.length: ", col_list.length);
                 let is_inserted = false;
                 for (let listindex = 0, len = col_list.length; listindex < len; listindex++) {
         //console.log( "..........listindex: ", listindex);
                     const list_dict = col_list[listindex];
-                    const listdict_offsetstart = get_dict_value_by_key(list_dict, "offsetstart", 0);
-                    const listdict_offsetend = get_dict_value_by_key(list_dict, "offsetend", 1440);
-        //console.log( "listdict_offsetstart: ", listdict_offsetstart, " listdict_offsetend: ", listdict_offsetend);
+                    const listdict_offsetstart = get_dict_value(list_dict, ["shift", "offsetstart"], 0);
+                    const listdict_offsetend = get_dict_value(list_dict, ["shift", "offsetend"], 1440);
+        //console.log( "listdict_offsetstart: ", listdict_offsetstart);
+        //console.log( "listdict_offsetend: ", listdict_offsetend);
 
         // insert when offsetstart of new item is less than offsetstart of listitem
                     if (item_offsetstart < listdict_offsetstart) {
         //console.log( "item_offsetstart < listdict_offsetstart: ");
+                        // Array.splice() modifies an array by removing existing elements and/or adding new elements.
+                        // Syntax: Array.splice( index, remove_count, item_list )
                         col_list.splice(listindex, 0, item_dict);
                         is_inserted = true;
         //console.log( "is_inserted at listindex: ", listindex);
@@ -370,21 +375,21 @@
                         if (item_offsetend <= listdict_offsetend ){
                             col_list.splice(listindex, 0, item_dict);
                             is_inserted = true;
-        //console.log( "is_inserted at listindex: ", listindex);
+        //console.log( "item is at listindex: ", listindex);
                             break;
                         }
                     }
                 }
-                //console.log( ".......... end listindex: ");
+        //console.log( ".......... end listindex: ");
 
         // insert at the end when it is not yet inserted
                 if(!is_inserted ) {
-        //console.log( "insert at the end: ");
                     col_list.push(item_dict)
-        //console.log( "is_inserted at listindex: ");
+        //console.log( "item is inserted at the end");
                 };
             }
         }
+        //console.log( "map_list_per_column: ", map_list_per_column);
 
 // --- calculate the size of each shift, put row_start_index and ro_end_index in     map_list_per_column
         RowindexCalculate(map_list_per_column, column_count) ;
@@ -413,13 +418,13 @@
                     for (let x = list_len - 1; x >= 0; x--) {
                         let item_dict = dict_list[x]
                         if(!isEmpty(item_dict)){
-                            //console.log( "item_dict: ", item_dict);
-                            let map_id = get_subdict_value_by_key(item_dict, "id", "pk")
-                            let offset_start = get_dict_value_by_key(item_dict, "offsetstart")
-                            let offset_end = get_dict_value_by_key(item_dict, "offsetend")
-                            //console.log( "map_id: ", map_id);
-                            //console.log( "offset_start: ", offset_start);
-                            //console.log( "offset_end: ", offset_end);
+                    //console.log( "------- item_dict: ", item_dict);
+                            let map_id = get_dict_value(item_dict, ["id", "pk"])
+                            let offset_start = get_dict_value(item_dict, ["shift", "offsetstart"])
+                            let offset_end = get_dict_value(item_dict, ["shift", "offsetend"])
+                    //console.log( "map_id: ", map_id);
+                    //console.log( "offset_start: ", offset_start);
+                    //console.log( "offset_end: ", offset_end);
 
                             let hour_start, hour_end, row_index_start, row_index_end_plusone;
                             if(offset_start == null ){
@@ -440,46 +445,46 @@
                                 if (hour_end > 23) {hour_end = 23}
                                 row_index_end_plusone = hour_end;
                             }
-                            //console.log( "row_index_start: ", row_index_start);
-                            //console.log( "row_index_end_plusone: ", row_index_end_plusone);
+                    //console.log( "row_index_start: ", row_index_start);
+                    //console.log( "row_index_end_plusone: ", row_index_end_plusone);
 
-                            //console.log( "> prev_index_start: ", prev_index_start);
-                            //console.log( "> prev_index_end_plusone: ", prev_index_end_plusone);
+                    //console.log( "> prev_index_start: ", prev_index_start);
+                    //console.log( "> prev_index_end_plusone: ", prev_index_end_plusone);
 
                             let has_overlap = false
                 // if shifts have the same start-time: show first shift on one row, shift startindex of previous shift with 1 row
                             if (row_index_start === prev_index_start ){ // } && row_index_end_plusone === prev_index_end_plusone){
-                                //console.log( "shifts have the same start-time: ");
+                    //console.log( "shifts have the same start-time: has_overlap = true");
                                 has_overlap = true;
                                 // make this shift 1 row high
                                 row_index_end_plusone = row_index_start + 1;
                                 // shift previous shifts one row down when hour < 18
-                                //console.log( "row_index_end_plusone: ", row_index_end_plusone);
+                    //console.log( "row_index_end_plusone: ", row_index_end_plusone);
 
                                 // change start row in previous shift Note: x+1 because of reverse loop
                                 let y_minus_1_row_index_end_plusone = row_index_end_plusone
                                 for (let y = x + 1 ; y < list_len; y++) {
                                     let y_row_index_start = map_list_per_column[col_index][y]["row_index_start"]
-                                //console.log( "y_row_index_start: ", y_row_index_start);
+                    //console.log( "y_row_index_start: ", y_row_index_start);
                                     let y_row_index_end_plusone = map_list_per_column[col_index][y]["row_index_end_plusone"]
-                                //console.log( "y_row_index_end_plusone: ", y_row_index_end_plusone);
+                    //console.log( "y_row_index_end_plusone: ", y_row_index_end_plusone);
                                     const y_row_height = y_row_index_end_plusone - y_row_index_start;
-                                //console.log( "y_row_height: ", y_row_height);
+                    //console.log( "y_row_height: ", y_row_height);
 
                                     // if shift has 2 or more rows: make it 1 row smaller, keep end row
                                     y_row_index_start = y_minus_1_row_index_end_plusone
-                                //console.log( "y_row_index_start: ", y_row_index_start);
+                    //console.log( "y_row_index_start: ", y_row_index_start);
                                     // if it has only 1 row: shift end 1 row
                                     if(y_row_height < 2){
                                         y_row_index_end_plusone = y_row_index_start + 1
                                     }
-                                //console.log( "y_row_index_end_plusone: ", y_row_index_end_plusone);
+                    //console.log( "y_row_index_end_plusone: ", y_row_index_end_plusone);
                                     map_list_per_column[col_index][y]["row_index_start"] = y_row_index_start
                                     map_list_per_column[col_index][y]["row_index_end_plusone"] = y_row_index_end_plusone
-                                //console.log( " map_list_per_column[col_index][y]: ",  map_list_per_column[col_index][y]);
+                    //console.log( " map_list_per_column[col_index][y]: ",  map_list_per_column[col_index][y]);
 
                                     y_minus_1_row_index_end_plusone = y_row_index_end_plusone
-                                //console.log( "y_minus_1_row_index_end_plusone: ", y_minus_1_row_index_end_plusone);
+                    //console.log( "y_minus_1_row_index_end_plusone: ", y_minus_1_row_index_end_plusone);
                                 }
 
                                 if (x < list_len - 1 && prev_index_start < 23){
@@ -487,16 +492,16 @@
                                     map_list_per_column[col_index][x+1]["overlap"] = true
                                 }
                             } else {
-                                //console.log( "shifts have NOT the same start-time: ");
+                    //console.log( "shifts have NOT the same start-time: ");
 
-                                //console.log( "row_index_end_plusone: ", row_index_end_plusone);
+                    //console.log( "row_index_end_plusone: ", row_index_end_plusone);
 
                                 if (row_index_end_plusone > prev_index_start) {
-                                    //console.log( "row_index_end_plusone > prev_index_start: ");
+                    //console.log( "row_index_end_plusone > prev_index_start: ");
                                     row_index_end_plusone = prev_index_start;
                                     has_overlap = true;
                                 }
-                                //console.log( "has_overlap: ", has_overlap);
+                    //console.log( "has_overlap: ", has_overlap);
                             }
                             if (has_overlap){
                                 map_list_per_column[col_index][x]["overlap"] = true
@@ -508,17 +513,17 @@
                             prev_index_start = row_index_start;
                             prev_index_end_plusone = row_index_end_plusone;
 
-                            //console.log( "end loop > prev_index_start: ", prev_index_start);
-                            //console.log( "end loop > prev_index_end_plusone: ", prev_index_end_plusone);
+                    //console.log( "end loop > prev_index_start: ", prev_index_start);
+                    //console.log( "end loop > prev_index_end_plusone: ", prev_index_end_plusone);
                         }  // if(!isEmpty(dict)){
                     }  // for (let x = 1, len = dict_list.length; x < len; x++)
 //............................................................
                 }
             }
         } // for (let col_index = 1; col_index < column_count; col_index++) {
-//console.log( "map_list_per_column: ");
-//console.log(map_list_per_column);
-//console.log( " ==== End of RowindexCalculate ====");
+        //console.log( "map_list_per_column: ");
+        //console.log(map_list_per_column);
+        //console.log( " ==== End of RowindexCalculate ====");
     }  // RowindexCalculate
 
 
@@ -547,3 +552,29 @@ function count_spanned_columns (tr_selected, column_count, cell_weekday_index){
         //console.log( "spanned_column_sum: ", spanned_column_sum);
         return spanned_column_sum;
 }  // count_spanned_columns
+
+//=========  MSE_MSO_BtnWeekdaySetClass  ================ PR2020-01-05
+    function MSE_MSO_BtnWeekdaySetClass(btn, data_value) {
+        // function stores data_value in btn and sets backgroundcolor
+        btn.setAttribute("data-selected", data_value);
+
+        btn.classList.remove("tsa_bc_white")
+        btn.classList.remove("tsa_tr_selected") // Note: tsa_tr_selected is used for not_selected
+        btn.classList.remove("tsa_bc_darkgrey");
+        btn.classList.remove("tsa_bc_mediumred");
+        btn.classList.remove("tsa_bc_medium_green");
+        btn.classList.remove("tsa_color_white");
+
+        if (data_value === "selected"){
+            btn.classList.add("tsa_bc_darkgrey");
+            btn.classList.add("tsa_color_white");
+        } else if (data_value === "not_selected"){
+            btn.classList.add("tsa_tr_selected");
+        } else if (data_value === "create"){
+            btn.classList.add("tsa_bc_medium_green")
+        } else if (data_value === "delete"){
+            btn.classList.add("tsa_bc_mediumred")
+        } else {
+            btn.classList.add("tsa_bc_white")
+        };
+    }

@@ -229,9 +229,9 @@
 
 //========= format_text_element  ======== PR2019-06-09
     function format_text_element (el_input, key_str, el_msg, field_dict, skip_ok, msg_offset, title_overlap) {
-       //console.log("--- format_text_element ---")
+        //console.log("--- format_text_element ---")
         //console.log("field_dict: ", field_dict)
-        //console.log("key_str: ", key_str)
+        //console.log("msg_offset: ", msg_offset)
 
         if(!!el_input && !isEmpty(field_dict)){
             const pk = get_dict_value_by_key (field_dict, "pk");
@@ -261,8 +261,7 @@
             }
             if(!!msg_err){
                 if(!value) { value = null} // otherwise 'undefined will show in tetbox
-                //ShowMsgError(el_input, el_msg, msg_err, msg_offset, true, value)
-                ShowMsgError(el_input, el_msg, msg_err, [0,0], true, value)
+                ShowMsgError(el_input, el_msg, msg_err, msg_offset, true, value)
             } else if(updated){
                 // dont make el green when addnew row is cleared
                 if(!skip_ok){
@@ -843,7 +842,7 @@
     }  // display_timerange
 
     //========= display_offset_timerange  ======== PR2019-12-04
-    function display_offset_timerange (offset_start, offset_end, skip_prefix_suffix, timeformat, user_lang) {
+    function display_offset_timerange (offset_start, offset_end, timeformat, user_lang, skip_prefix_suffix) {
         //console.log("------ display_offset_timerange --------------", fieldname)
         let display_time = "";
         if(offset_start != null || offset_end != null){
@@ -912,10 +911,39 @@
             display_time =  prefix + hour_text + delim + minute_text + suffix;
         }
         return display_time;
-    }  // function display_offset_time
+    }  // display_offset_time
 
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+//========= Create_Shift_code  ============= PR2020-02-02
+    function Create_Shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code) {
+        //console.log( "=== Create_Shift_code ");
+        // shiftname will be replaced by calculated shiftname if:
+         // 1) cur_shift_code is empty 2) starts with '-' 3) starts with '<' or 4) first 2 characters are digits
+
+        const code_trimmed = (!!cur_shift_code) ? cur_shift_code.trim() : "";
+        let may_override = false;
+        let new_shift_code = null;
+        if (!code_trimmed){
+            may_override = true;
+        } else if (code_trimmed[0] === "-"){
+            may_override = true
+        } else if (code_trimmed[0] === "<"){
+            may_override = true
+        } else {
+            const code_sliced = code_trimmed.slice(0, 1);
+            // Number("0") is falsey
+            may_override = (!!Number(code_sliced) || code_sliced === "0");
+        }
+        if (may_override){
+            if (offset_start != null || offset_end != null) {
+                new_shift_code = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, true)  // true = skip_prefix_suffix
+            } else if (!!time_duration) {
+                new_shift_code = display_duration (time_duration, loc.user_lang, loc.Hour, loc.Hours);
+            }
+        }
+        return new_shift_code
+    }  // Create_Shift_code
 
 
 //========= format_duration_element  ======== PR2019-07-22
@@ -1073,8 +1101,8 @@
 
 //========= display_planning_period  ======== PR2020-01-21
     function display_planning_period(selected_planning_period, loc, user_lang) {
-        console.log( "===== display_planning_period  ========= ");
-        console.log( "selected_planning_period: ", selected_planning_period);
+        //console.log( "===== display_planning_period  ========= ");
+        //console.log( "selected_planning_period: ", selected_planning_period);
         const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatefirst");
         const datelast_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatelast");
         const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag");

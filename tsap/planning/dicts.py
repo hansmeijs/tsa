@@ -518,7 +518,8 @@ def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, ove
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def create_scheme_list(filter_dict, company, user_lang):
+
+def create_scheme_list(filter_dict, company, comp_timezone, user_lang):
     #logger.debug(' --- create_scheme_list --- ')
     #logger.debug('filter_dict: ' + str(filter_dict))
 
@@ -563,7 +564,7 @@ def create_scheme_dict(scheme, item_dict, user_lang):
     if scheme:
         # FIELDS_SCHEME = ('id', 'order', 'cat', 'cycle', 'excludecompanyholiday', 'excludepublicholiday', 'inactive')
 
-# ---  get min max date from scheme and order
+        # ---  get min max date from scheme and order
         scheme_datefirst = getattr(scheme, 'datefirst')
         order_datefirst = getattr(scheme.order, 'datefirst')
         mindate = f.date_latest_of_two(scheme_datefirst, order_datefirst)  # PR2019-09-12
@@ -649,11 +650,14 @@ def create_schemeitem_list(filter_dict, company, comp_timezone, user_lang):
 
     customer_pk = filter_dict.get('customer_pk')
     order_pk = filter_dict.get('order_pk')
+    scheme_pk = filter_dict.get('scheme_pk')
     is_absence = filter_dict.get('is_absence', False)
     is_singleshift = filter_dict.get('is_singleshift', False)
 
     crit = Q(scheme__order__customer__company=company)
-    if order_pk:
+    if scheme_pk:
+        crit.add(Q(scheme_id=scheme_pk), crit.connector)
+    elif order_pk:
         crit.add(Q(scheme__order_id=order_pk), crit.connector)
     elif customer_pk:
             crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
@@ -824,9 +828,12 @@ def create_shift_list(filter_dict, company, user_lang):
 
     customer_pk = filter_dict.get('customer_pk')
     order_pk = filter_dict.get('order_pk')
+    scheme_pk = filter_dict.get('scheme_pk')
 
     crit = Q(scheme__order__customer__company=company)
-    if order_pk:
+    if scheme_pk:
+        crit.add(Q(scheme_id=scheme_pk), crit.connector)
+    elif order_pk:
         crit.add(Q(scheme__order_id=order_pk), crit.connector)
     elif customer_pk:
         crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
@@ -948,12 +955,15 @@ def create_team_list(filter_dict, company):
 
     customer_pk = filter_dict.get('customer_pk')
     order_pk = filter_dict.get('order_pk')
+    scheme_pk = filter_dict.get('scheme_pk')
     is_singleshift = filter_dict.get('is_singleshift', False)
 
     crit = Q(scheme__order__customer__company=company)
     if is_singleshift:
         crit.add(Q(issingleshift=is_singleshift), crit.connector)
-    if order_pk:
+    if scheme_pk:
+        crit.add(Q(scheme_id=scheme_pk), crit.connector)
+    elif order_pk:
         crit.add(Q(scheme__order_id=order_pk), crit.connector)
     elif customer_pk:
         crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
@@ -1022,9 +1032,9 @@ def create_team_dict(team, item_dict):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, request):   # PR2019-11-16
-    logger.debug(' ============== period_get_and_save ================ ')
-    logger.debug(' key: ' + str(key))
-    logger.debug(' period_dict: ' + str(period_dict))
+    #logger.debug(' ============== period_get_and_save ================ ')
+    #logger.debug(' key: ' + str(key))
+    #logger.debug(' period_dict: ' + str(period_dict))
     # period_dict: {'get': True, 'now': [2019, 11, 17, 7, 9]}
     # period_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
     # period_dict: {'get': True, 'customer_pk': 695, 'order_pk': 1422}
@@ -1211,6 +1221,8 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
             periodstart_datetimelocal = now_usercomp_dtm - timedelta(minutes=extend_offset)
             periodend_datetimelocal = now_usercomp_dtm + timedelta(minutes=extend_offset)
 
+    # Note: periodstart_datetimelocal is the local time, stored as a timezone naive datetime
+    #       periodstart_datetimelocal: 2020-01-30 18:30:00 <class 'datetime.datetime'>
     if periodstart_datetimelocal:
         update_dict['periodstart'] = periodstart_datetimelocal
     if periodend_datetimelocal:
@@ -1247,15 +1259,10 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
     if extend_offset:
         setting_tobe_saved['extend_offset'] = extend_offset
 
-    logger.debug('=================save_selected_pk key: ' + str(save_selected_pk))
     if save_selected_pk:
         setting_tobe_saved['customer_pk'] = customer_pk
         setting_tobe_saved['order_pk'] = order_pk
         setting_tobe_saved['employee_pk'] = employee_pk
-        setting_tobe_saved['isabsence'] = is_absence
-
-    logger.debug('=============set_jsonsetting key: ' + str(key))
-    logger.debug('=============setting_tobe_saved: ' + str(setting_tobe_saved))
     Usersetting.set_jsonsetting(key, setting_tobe_saved, request.user)
 
 #logger.debug('update_dict: ' + str(update_dict))
@@ -1266,6 +1273,7 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
     # 'rosterdatefirst': '2020-02-01',  'rosterdatelast': '2020-02-29',
     # 'rosterdatefirst_minus1': '2020-01-31',  'rosterdatelast_plus1': '2020-03-01'}
 
+    #logger.debug('============= : ' + str(update_dict))
     return update_dict
 
 
@@ -1324,17 +1332,41 @@ def get_ispublicholiday_iscompanyholiday(rosterdate_dte, request):
 # ========================
 
 def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, request): # PR2019-11-16
-    #logger.debug(' ============= create_emplhour_list ============= ')
-    #logger.debug('period_dict: ' + str(period_dict))
+    logger.debug(' ============= create_emplhour_list ============= ')
+    logger.debug('period_dict: ' + str(period_dict))
 
-    periodstart_datetimelocal = period_dict.get('periodstart')
-    periodend_datetimelocal = period_dict.get('periodend')
+    periodstart_local_withtimezone = period_dict.get('periodstart')
+    periodend_local_withtimezone = period_dict.get('periodend')
+    #logger.debug('periodstart_datetimelocal_withouttimezone: ' + str(periodstart_datetimelocal_withouttimezone) + ' ' + str(type(periodstart_datetimelocal_withouttimezone)))
+    # periodstart_datetimelocal_withouttimezone: 2020-01-30 19:29:00 <class 'datetime.datetime'>
+
+    # how to convert local datetime without timezone to utc datetime without timezone
+    # step 1: add comp_timezone to datetiem, using localize Can be skipped, periodstart already has comp_timezone
+    # this one is correct: localize converts a local naive datetime to a local datetime with company timezone
+    # localize can only be used with naive datetime objects. It does not change the datetime, only adds tzinfo
+    #timezone = pytz.timezone(comp_timezone)
+    #periodstart_local_withtimezone = timezone.localize(periodstart_datetimelocal_withouttimezone)
+    #periodend_local_withtimezone = timezone.localize(periodend_datetimelocal_withouttimezone)
+    logger.debug('periodstart_local_withtimezone: ' + str(periodstart_local_withtimezone) + ' ' + str(type(periodstart_local_withtimezone)))
+    # periodstart_local_withtimezone: 2020-01-30 19:29:00+01:00 <class 'datetime.datetime'>
+
+    # step 2: convert timezone from comp_timezone to utc
+    timezone = pytz.utc
+    periodstart_datetime_utc_withtimezone = periodstart_local_withtimezone.astimezone(timezone)
+    periodend_datetime_utc_withtimezone = periodend_local_withtimezone.astimezone(timezone)
+    logger.debug('periodstart_datetime_utc_withtimezone: ' + str(periodstart_datetime_utc_withtimezone) + ' ' + str(type(periodstart_datetime_utc_withtimezone)))
+    # periodstart_datetime_utc_withtimezone: 2020-01-30 18:29:00+00:00 <class 'datetime.datetime'>
+
+    # step 3: strip timezone from datetime (maybe this is not necessary) Can also be skipped: sqp accepts dattime with utc timezone
+    #periodstart_datetime_utc_naive = periodstart_datetime_utc_withtimezone.replace(tzinfo=None)
+    periodend_datetime_utc_naive = periodend_datetime_utc_withtimezone.replace(tzinfo=None)
+    #logger.debug('periodstart_datetime_utc_naive: ' + str(periodstart_datetime_utc_naive) + ' ' + str(type(periodstart_datetime_utc_naive)))
+    # periodstart_datetime_utc_naive: 2020-01-30 18:29:00 <class 'datetime.datetime'>
+
     rosterdatefirst = period_dict.get('rosterdatefirst')
     rosterdatelast = period_dict.get('rosterdatelast')
     rosterdatefirst_minus1 = period_dict.get('rosterdatefirst_minus1')
     rosterdatelast_plus1 = period_dict.get('rosterdatelast_plus1')
-
-
 
     starttime = timer()
 
@@ -1416,8 +1448,8 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
                 'rdl': rosterdatelast,
                 'rdfm1': rosterdatefirst_minus1,
                 'rdlp1': rosterdatelast_plus1,
-                'pts': periodstart_datetimelocal,
-                'pte': periodend_datetimelocal
+                'pts': periodstart_datetime_utc_withtimezone,
+                'pte': periodend_datetime_utc_withtimezone
                 })
         #             AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
 #             AND (eh.isabsence = %(eh_absence)s OR %(eh_absence)s IS NULL)
@@ -2672,3 +2704,153 @@ def get_team_code(team):
         suffix = ' (' + str(count) + ')'
 
     return team.code, suffix, team_title
+
+
+# #####################################################################
+
+def create_schemes_extended_dict(filter_dict, company, comp_timezone, user_lang):
+    # PR2020-05-06 to be used in calendar
+    #logger.debug(' --- create_schemes_extended_dict --- ')
+    #logger.debug('filter_dict: ' + str(filter_dict))
+
+    customer_pk = filter_dict.get('customer_pk')
+    order_pk = filter_dict.get('order_pk')
+    is_absence = filter_dict.get('is_absence')
+    is_template = filter_dict.get('is_template')
+    inactive = filter_dict.get('inactive')
+
+# --- create list of schemes of this company, absence=false PR2019-11-22
+    crit = Q(order__customer__company=company)
+
+    if is_absence is not None:
+        crit.add(Q(isabsence=is_absence), crit.connector)
+    if is_template is not None:
+        crit.add(Q(istemplate=is_template), crit.connector)
+    if inactive is not None:
+        crit.add(Q(inactive=inactive), crit.connector)
+    if order_pk:
+        crit.add(Q(order_id=order_pk), crit.connector)
+    elif customer_pk:
+        crit.add(Q(order__customer_id=customer_pk), crit.connector)
+
+    schemes = m.Scheme.objects.filter(crit)
+    # logger.debug('schemes SQL: ' + str(schemes.query))
+
+    schemes_dict = {}
+    for scheme in schemes:
+        item_dict = {}
+        create_scheme_dict_extended(scheme, item_dict, user_lang)
+
+        if item_dict:
+        # add shiftlist to scheme_dict:
+            shift_list = create_shift_list(
+                filter_dict={'scheme_pk': scheme.pk},
+                company=company,
+                user_lang=user_lang)
+            if shift_list:
+                item_dict['shift_list'] = shift_list
+        # add teamlist to scheme_dict:
+            team_list = create_team_list(
+                filter_dict={'scheme_pk': scheme.pk},
+                company=company)
+            if team_list:
+                item_dict['team_list'] = team_list
+        # add schemeitem_list to scheme_dict:
+            schemeitem_list = create_schemeitem_list(
+                filter_dict={'scheme_pk': scheme.pk},
+                company=company,
+                comp_timezone=comp_timezone,
+                user_lang=user_lang)
+            if schemeitem_list:
+                item_dict['schemeitem_list'] = schemeitem_list
+
+            schemes_dict[scheme.pk] = item_dict
+
+    return schemes_dict
+
+
+def create_scheme_dict_extended(scheme, item_dict, user_lang):
+    # --- create dict of this order PR2019-09-28
+    # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
+
+    if scheme:
+        # FIELDS_SCHEME = ('id', 'order', 'cat', 'cycle', 'excludecompanyholiday', 'excludepublicholiday', 'inactive')
+
+        # ---  get min max date from scheme and order
+        scheme_datefirst = getattr(scheme, 'datefirst')
+        order_datefirst = getattr(scheme.order, 'datefirst')
+        mindate = f.date_latest_of_two(scheme_datefirst, order_datefirst)  # PR2019-09-12
+
+        scheme_datelast = getattr(scheme, 'datelast')
+        order_datelast = getattr(scheme.order, 'datelast')
+        maxdate = f.date_earliest_of_two(scheme_datelast, order_datelast)  # PR2019-09-12
+
+        table = 'scheme'
+        for field in c.FIELDS_SCHEME:
+
+# --- get field_dict from  item_dict if it exists
+            field_dict = item_dict[field] if field in item_dict else {}
+
+            if field == 'id':
+                field_dict['pk'] = scheme.pk
+                field_dict['ppk'] = scheme.order.pk
+                field_dict['table'] = table
+                if scheme.isabsence:
+                    field_dict['isabsence'] = True
+                if scheme.istemplate:
+                    field_dict['istemplate'] = True
+
+                item_dict['pk'] = scheme.pk
+
+            elif field in ['order']:
+                pass
+
+            elif field in ['cat']:
+                cat_sum = getattr(scheme, field, 0)
+                field_dict['value'] = cat_sum
+
+                is_override, is_billable = f.get_billable_scheme(scheme)
+                if 'billable' not in item_dict:
+                    item_dict['billable'] = {}
+                item_dict['billable']['override'] = is_override
+                item_dict['billable']['billable'] = is_billable
+
+            elif field in ['cycle']:
+                field_dict['value'] = getattr(scheme, field, 0)
+
+            # also add date when empty, to add min max date
+            elif field == 'datefirst':
+                f.set_fielddict_date(
+                    field_dict=field_dict,
+                    date_value=scheme_datefirst,
+                    mindate=order_datefirst,
+                    maxdate=maxdate)
+            elif field == 'datelast':
+                f.set_fielddict_date(
+                    field_dict=field_dict,
+                    date_value=scheme_datelast,
+                    mindate=mindate,
+                    maxdate=order_datelast)
+
+            elif field in ['priceratejson']:
+                f.get_fielddict_pricerate(
+                    table=table,
+                    instance=scheme,
+                    field_dict=field_dict,
+                    user_lang=user_lang)
+
+            elif field in ['isabsence', 'istemplate']:
+                pass
+
+            else:
+                value = getattr(scheme, field)
+                if value:
+                    field_dict['value'] = value
+
+            if field_dict:
+                item_dict[field] = field_dict
+
+    f.remove_empty_attr_from_dict(item_dict)
+
+
+

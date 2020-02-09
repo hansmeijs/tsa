@@ -17,7 +17,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
     # ====== PAGE CUSTOMER =========================
     if page == 'customer':
 
-        dict['menubtn_export_excel'] = TXT_Export_to_Excel
+        dict['Export_to_Excel'] = TXT_Export_to_Excel
 
         # print planning
         dict['Company'] = TXT_Company
@@ -119,9 +119,20 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Yes_delete'] = TXT_Yes_delete # 'Yes, delete'
         dict['Yes_make_inactive'] = TXT_Yes_make_inactive # 'Yes, make inactive'
         dict['No_cancel'] = TXT_No_cancel
+        dict['OK'] = TXT_OK
 
 # ====== PAGE EMPLOYEE =========================
-    if page == 'employee':
+    elif page == 'employee':
+
+        # submenu
+        dict['Upload_employees'] = TXT_Upload_employees
+        dict['Print_planning'] = TXT_Print_planning
+        dict['Add_employee'] = TXT_Add_employee
+        dict['Delete_employee'] = TXT_Delete_employee
+        dict['Print_planning'] = TXT_Print_planning
+        dict['Preview_planning'] = TXT_Preview_planning
+        dict['Export_to_Excel'] = TXT_Export_to_Excel
+
         dict['Employee'] = TXT_Employee
         dict['Select_employee'] = TXT_Select_employee
         dict['No_employees'] = TXT_No_employees
@@ -143,6 +154,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Select_order'] = TXT_Select_order
         dict['No_orders'] = TXT_No_orders
 
+        dict['Team'] = TXT_Team
+
         dict['Shift'] = TXT_Shift
         dict['Start_Endtime'] = TXT_Start_Endtime
 
@@ -160,6 +173,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Full_day'] = TXT_Full_day
 
         dict['As_of'] = TXT_As_of
+        dict['Close'] = TXT_Close
 
         # ModTimepicker
         dict['Break'] = TXT_Break
@@ -191,6 +205,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['err_msg_number_between'] = TXT_err_msg_number_between
         dict['err_msg_and'] = TXT_err_msg_and
 
+        dict['err_open_calendar_01'] = TXT_err_open_calendar_01
 
         # print planning
         dict['Company'] = TXT_Company
@@ -201,7 +216,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Total_hours'] = TXT_Total_hours
 
 # ====== PAGE SCHEME =========================
-    if page == 'scheme':
+    elif page == 'scheme':
         dict['weekdays_long'] = c.WEEKDAYS_LONG[user_lang]
         dict['months_long'] = c.MONTHS_LONG[user_lang]
 
@@ -265,12 +280,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Yes_make_inactive'] = TXT_Yes_make_inactive # 'Yes, make inactive'
 
         dict['No_cancel'] = TXT_No_cancel # ''No, cancel'
-        dict['close'] = TXT_btn_close # 'Close'
-
-        dict['btn_close'] = TXT_btn_close  # 'Close'
-        dict['btn_cancel'] = TXT_btn_cancel  # 'Cancel'
-        dict['btn_create'] = TXT_btn_create  # 'Create'
-        dict['btn_delete'] = TXT_btn_delete  # 'Delete'
+        dict['Close'] = TXT_Close
+        dict['Cancel'] = TXT_Cancel  # 'Cancel'
+        dict['Create'] = TXT_Create  # 'Create'
+        dict['Delete'] = TXT_Delete  # 'Delete'
 
         dict['Customer'] = TXT_Customer
         dict['Select_customer'] = TXT_Select_customer
@@ -314,7 +327,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
         dict['menubtn_print_roster'] = TXT_Print_roster
         dict['menubtn_print_report'] = TXT_Print_report
-        dict['menubtn_export_excel'] = TXT_Export_to_Excel
+        dict['Export_to_Excel'] = TXT_Export_to_Excel
 
         dict['period_select_list'] = (
             ('now', TXT_now),
@@ -390,12 +403,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Yes_make_inactive'] = TXT_Yes_make_inactive # 'Yes, make inactive'
 
         dict['No_cancel'] = TXT_No_cancel # ''No, cancel'
-        dict['close'] = TXT_btn_close # 'Close'
 
-        dict['btn_close'] = TXT_btn_close  # 'Close'
-        dict['btn_cancel'] = TXT_btn_cancel  # 'Cancel'
-        dict['btn_create'] = TXT_btn_create  # 'Create'
-        dict['btn_delete'] = TXT_btn_delete  # 'Delete'
+        dict['Close'] = TXT_Close
+        dict['Cancel'] = TXT_Cancel
+        dict['Create'] = TXT_Create  # 'Create'
+        dict['Delete'] = TXT_Delete  # 'Delete'
 
         dict['Period'] = TXT_Period
         dict['Date'] = TXT_Date
@@ -438,7 +450,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['menubtn_collaps_all'] = _('Collaps all')
 
         dict['menubtn_print_report'] = TXT_Print_report
-        dict['menubtn_export_excel'] = TXT_Export_to_Excel
+        dict['Export_to_Excel'] = TXT_Export_to_Excel
 
 
         dict['col_headers'] = (
@@ -491,16 +503,15 @@ TXT_Export_to_Excel = _('Export to Excel')
 
 TXT_Short_name = _('Short name')
 
-TXT_btn_close = _('Close')
-TXT_btn_cancel = _('Cancel')
+TXT_Close = _('Close')
+TXT_Cancel = _('Cancel')
 
 TXT_btn_save = _('Save')
 TXT_Quick_save = _('Quick save')
 TXT_Exit_Quicksave = _('Exit Quick save')
 
-
-TXT_btn_create = _('Create')
-TXT_btn_delete = _('Delete')
+TXT_Create = _('Create')
+TXT_Delete = _('Delete')
 
 TXT_Roster = _('Roster')
 TXT_Rosterdate = _('Rosterdate')
@@ -560,9 +571,11 @@ TXT_New_team = _('New team')
 TXT_Add_teammember = _('Add teammember')
 TXT_Delete_teammember  = _('Delete teammember')
 
+TXT_Upload_employees = _('Upload employees')
 TXT_Employee = _('Employee')
 TXT_Select_employee = _('Select employee')
 TXT_Add_employee = _('Add employee')
+TXT_Delete_employee = _('Delete employee')
 TXT_No_employees = _('No employees')
 TXT_Replacement_employee = _('Replacement employee')
 TXT_Select_replacement_employee = _('Select replacement employee')
@@ -600,6 +613,7 @@ TXT_Yes_create = _('Yes, create')
 TXT_Yes_delete = _('Yes, delete')
 TXT_Yes_make_inactive = _('Yes, make inactive')
 TXT_No_cancel = _('No, cancel')
+TXT_OK = _('OK')
 
 TXT_This_customer = _('This customer')
 TXT_This_order = _('This order')
@@ -643,7 +657,7 @@ TXT_err_msg_name_blank = _('Name cannot be blank. Please enter a name.')
 TXT_err_msg_is_invalid_number = _('is an invalid number.')
 TXT_err_msg_number_between = _('Number must be between')
 TXT_err_msg_and = _('and')
-
+TXT_err_open_calendar_01 = _('You must first select an employee, before you can add a calendar item.')
 
 # get weekdays translated
 TXT_weekdays_abbrev = ('', _('Mon'), _('Tue'), _('Wed'), _('Thu'), _('Fri'), _('Sat'), _('Sun'))
@@ -699,17 +713,6 @@ data-txt_taxcode= "{% trans 'Tax code' %}"
 
 data-txt_orderschemeshift = "{% trans 'Order / Scheme / Shift' %}"
 data-txt_cust_code_enter = "{% trans 'Enter a short name of the customer' %}..."
-
-data-txt_customer_data = "{% trans 'Customer data' %}"
-
-data-txt_planning_preview = "{% trans 'Preview planning' %}"
-data-txt_planning_download = "{% trans 'Download planning' %}"
-
-data-txt_order_code = "{% trans 'Order code' %}"
-data-txt_order_name = "{% trans 'Order name' %}"
-data-txt_order_add = "{% trans 'Add new order' %}"
-data-txt_order_delete = "{% trans 'Delete order' %}"
-
 
 
 """

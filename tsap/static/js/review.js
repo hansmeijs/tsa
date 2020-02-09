@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
             AddSubmenuButton(el_submenu, loc.menubtn_expand_all, function() {HandleExpandAll()});
             AddSubmenuButton(el_submenu, loc.menubtn_collaps_all, function() {HandleCollapsAll()}, "mx-2");
             AddSubmenuButton(el_submenu, loc.menubtn_print_report, function() {printPDF()}, "mx-2");
-            AddSubmenuButton(el_submenu, loc.menubtn_export_excel, function() {ExportToExcel()}, "mx-2");
+            AddSubmenuButton(el_submenu, loc.Export_to_Excel, function() {ExportToExcel()}, "mx-2");
         el_submenu.classList.remove(cls_hide);
     };//function CreateSubmenu
 

@@ -53,7 +53,7 @@ def get_dateobj_from_dateISOstring(date_ISOstring):  # PR2019-10-25
             arr = get_datetimearray_from_dateISO(date_ISOstring)
             dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
         except:
-            logger.debug('Error get_dateobj_from_dateISOstring: date_ISOstring' +
+            logger.debug('ERROR: get_dateobj_from_dateISOstring: date_ISOstring' +
                          str(date_ISOstring) + ' ' + str(type(date_ISOstring)))
     return dte
 
@@ -68,7 +68,7 @@ def get_dateISO_from_dateOBJ(date_obj):  # PR2019-12-22
             date_iso = '-'.join([year_str, month_str, date_str])
             # today_iso: 2019-11-17 <class 'str'>
         except:
-            logger.debug('Error get_dateISO_from_dateOBJ: date_obj' +
+            logger.debug('ERROR: get_dateISO_from_dateOBJ: date_obj' +
                          str(date_obj) + ' ' + str(type(date_obj)))
     return date_iso
 
@@ -81,7 +81,7 @@ def get_datetime_naive_from_ISOstring(date_ISOstring):  # PR2019-10-25
             if date_obj:
                 datetime_naive = get_datetime_naive_from_dateobject(date_obj)
         except:
-            logger.debug('Error get_datetime_naive_from_ISOstring: date_ISOstring' +
+            logger.debug('ERROR: get_datetime_naive_from_ISOstring: date_ISOstring' +
                          str(date_ISOstring) + ' ' + str(type(date_ISOstring)))
     return datetime_naive
 
@@ -98,7 +98,7 @@ def get_datetime_naive_from_dateobject(date_obj):
         #logger.debug('datetime_naive: ' + str(datetime_naive) + ' type: ' + str(type(datetime_naive)))
         # datetime_naive: 2019-07-27 00:00:00 type: <class 'datetime.datetime'>
     except:
-        logger.debug('Error get_datetime_naive_from_dateobject: date_ISOstring' +
+        logger.debug('ERROR: get_datetime_naive_from_dateobject: date_ISOstring' +
                      str(date_obj) + ' ' + str(type(date_obj)))
     return datetime_naive
 
@@ -139,7 +139,7 @@ def get_datetime_naive_from_offset(rosterdate, offset_int):
                 #logger.debug('datetime_naive: ' + str(datetime_naive) + ' ' + str(type(datetime_naive)))
                 # datetime_naive: 2019-03-30 12:00:00 <class 'datetime.datetime'>
         except:
-            logger.debug('Error get_datetime_naive_from_offset:' +
+            logger.debug('ERROR: get_datetime_naive_from_offset:' +
                             ' rosterdate' + str(rosterdate) + ' ' + str(type(rosterdate)) +
                             ' offset_int' + str(offset_int) + ' ' + str(type(offset_int)))
 
@@ -731,7 +731,7 @@ def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
 
                     new_dat_str = '-'.join([year_str, month_str, day_str])
         except:
-            logger.debug('get_dateISO_from_string error: ' + str(date_string) + ' new_dat_str: ' + str(new_dat_str))
+            logger.debug('ERROR: get_dateISO_from_string: ' + str(date_string) + ' new_dat_str: ' + str(new_dat_str))
     return new_dat_str
 
 
@@ -1019,14 +1019,12 @@ def format_HM_from_dt_local(datetime_local, use24insteadof00, use_suffix, timefo
             hours_int = 24
             is24insteadof00 = True
 
-
         hour_str = ''.join(['00', str(hours_int)])[-2:]
         minutes_str = ''.join(['00', str(minutes_int)])[-2:]
 
         separator = '.' if user_lang == 'nl' else ':'
         display_txt = separator.join([hour_str, minutes_str])
 
-        logger.debug('suffix ???????????????????????:  ' + str(suffix))
         if suffix:
             display_txt = ' '.join([display_txt, suffix])
 
@@ -1641,26 +1639,41 @@ def get_iddict_variables(id_dict):
     return pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode
 
 
-def get_fielddict_variable(upload_dict, field, key):
-# - get dict from upload_dict PR2019-06-12
-    # 'rosterdate': {'update': True, 'value': '2019-06-12'}
-    value = None
-    #logger.debug('get_fielddict_variables upload_dict: ' + str(upload_dict) + ' field' + str(field))
-    if field:
-        if field in upload_dict:
-            dict = upload_dict[field]
-            if dict:
-                if key in dict:
-                    value = dict.get(key)
+def get_dict_value(dictionay, key_tuple, default_value=None):
+    # PR2020-02-04 like in base.js Iterate through keylist till value found
+    if key_tuple and dictionay:
+        for key in key_tuple:
+            if isinstance(dictionay, dict) and key in dictionay:
+                dictionay = dictionay.get(key)
+            else:
+                dictionay = None
+                break
+    if dictionay is None and default_value is not None:
+        dictionay = default_value
+    return dictionay
 
-    return value
+
+def get_dict_valueOLD(dictionay, key_tuple, default_value=None):
+    # PR2020-02-04 like in base.js Iterate through keylist till value found
+    if key_tuple and dictionay:
+        if isinstance(dictionay, dict):
+            for key in key_tuple:
+                if key in dictionay:
+                    if isinstance(dictionay, dict):
+                        dictionay = dictionay[key]
+                    else:
+                        dictionay = None
+                        break
+                else:
+                    dictionay = None
+                    break
+        else:
+            dictionay = None
+    if dictionay is None and default_value is not None:
+        dictionay = default_value
+    return dictionay
 
 
-def fielddict_str(value):
-    dict = {}
-    if value:
-        dict = {'value': value}
-    return dict
 
 
 def set_fielddict_date(field_dict, date_value, rosterdate=None, mindate=None, maxdate=None):
@@ -2259,43 +2272,6 @@ def format_time_range(timestart_local, timeend_local, timeformat, user_lang):
 
     return display_txt
 
-def display_offset_time (offset, timeformat, user_lang, blank_when_zero, skip_prefix_suffix, is_offsetend):
-
-    days_offset = offset // 1440  # - 90 (1.5 h)
-    remainder = offset - days_offset * 1440
-    curHours = remainder // 60
-    curMinutes = remainder - curHours * 60
-
-    isAmPm = (timeformat == 'AmPm')
-    isEN = (user_lang == 'en')
-    ampm_list = [' am', ' pm']
-    curAmPm = 1 if (curHours >= 12) else  0
-
-    # check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
-    if isAmPm and is_offsetend:
-        if curHours >= 12 :
-            curHours -= 12
-    else:
-        if days_offset == 1 and curHours == 0 and curMinutes == 0:
-            days_offset = 0
-            curHours = 24
-
-    hour_str = '00' + str(curHours)
-    hour_text = hour_str[-2:]
-    minute_str = '00' + str(curMinutes)
-    minute_text = minute_str[-2:]
-
-    delim = ':' if isEN else '.'
-    prefix = '<- ' if (not skip_prefix_suffix and days_offset < 0) else ''
-    suffix = ' u' if (not skip_prefix_suffix and not isEN) else ''
-    if isAmPm:
-        suffix += ampm_list[curAmPm]
-    if (days_offset > 0):
-        suffix += ' ->'
-
-    return prefix + hour_text + delim + minute_text + suffix
-
-
 def display_duration(value_int, user_lang, skip_prefix_suffix):
     #logger.debug(' ========= display_duration  ======== ')  # PR2020-01-24
 
@@ -2326,6 +2302,59 @@ def display_duration(value_int, user_lang, skip_prefix_suffix):
         return minus_sign + hour_text + decimal_separator + minute_text + suffix
 
     return time_format
+
+
+def display_offset_time(offset, timeformat, user_lang,
+                        skip_prefix_suffix=False, is_offsetend=False, blank_when_zero=True):
+    # PR2020-02-07
+    display_txt = ''
+    if not blank_when_zero or offset:
+        # // 'floor division' rounds down to the nearest integer. -7 // 3 = -3
+        days_offset = offset // 1440  # 22.30 u prev day: offset -90 -> days_offset -1
+        remainder = offset - days_offset * 1440  # remainder = -90 - -1440 = 1350
+        curHours = remainder // 60  # curHours = 1350 // 60 = 22
+        curMinutes = remainder - curHours * 60  # curMinutes = 1350 - 1320 = 30
+
+        isAmPm = (timeformat == 'AmPm')
+        isEN = (user_lang == 'en')
+        ampm_list = [' am', ' pm']
+        curAmPm = 1 if (curHours >= 12) else 0
+
+        # check if 'za 24.00 u' must be shown, only if timeend and time = 00.00
+        if isAmPm and is_offsetend:
+            if curHours >= 12:
+                curHours -= 12
+        else:
+            if days_offset == 1 and curHours == 0 and curMinutes == 0:
+                days_offset = 0
+                curHours = 24
+
+        hour_str = '00' + str(curHours)
+        hour_text = hour_str[-2:]
+        minute_str = '00' + str(curMinutes)
+        minute_text = minute_str[-2:]
+
+        delim = ':' if isEN else '.'
+        prefix = '<- ' if (not skip_prefix_suffix and days_offset < 0) else ''
+        suffix = ' u' if (not skip_prefix_suffix and not isEN) else ''
+        if isAmPm:
+            suffix += ampm_list[curAmPm]
+        if (days_offset > 0):
+            suffix += ' ->'
+
+        display_txt = prefix + hour_text + delim + minute_text + suffix
+    return display_txt
+
+
+def display_offset_range(offset_start, offset_end, timeformat, user_lang, skip_prefix_suffix=False):
+    display_text = ''
+    if offset_start is not None or offset_end is not None:
+        offsetstart_formatted = display_offset_time(offset_start, timeformat, user_lang, skip_prefix_suffix)
+        offsetend_formatted = display_offset_time(offset_end, timeformat, user_lang, False, True,)
+
+        display_text = ' - '.join((offsetstart_formatted, offsetend_formatted)).strip()
+
+    return display_text
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

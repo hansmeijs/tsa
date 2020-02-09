@@ -128,6 +128,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     return true;
 }
+//========= dict_length  ============= PR2020-02-03
+    //PR2020-02-03 https://stackoverflow.com/questions/5223/length-of-a-javascript-object
+    function dict_length(obj) {
+        let size = 0, key;
+        if (!!obj) {
+            for (key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    size++
+        }}};
+        return size;
+    };
+
+//========= get_dict_value  ================= PR2020-02-02
+    function get_dict_value (dict, keylist, default_value) {
+        //console.log(" -----  get_dict_value   ----")
+        if (!!keylist && !!dict) {
+            for (let i = 0, key, len = keylist.length; i < len; i++) {
+                key = keylist[i];
+                if (!!key && !!dict && dict.hasOwnProperty(key)) {
+                    dict = dict[key];
+                } else {
+                    dict = null;
+                    break;
+        }}};
+        // (value == null) equals to (value === undefined || value === null)
+        if (dict == null && default_value != null) {
+            dict = default_value}
+        return dict
+    }  // get_dict_value
 
 //========= get_cat_value  ============= PR2019-10-19
     function get_cat_value(cat_sum, cat_index) {
@@ -649,8 +678,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return [monday_iso, sunday_iso];
     }  // get_thisweek_monday_sunday_iso
 
-
-
 //========= get_nextweek_monday_sunday_dateobj ========== PR2019-12-05
     function get_nextweek_monday_sunday_dateobj() {
         const today_JS = new Date();
@@ -697,10 +724,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return [nextmonth_firstday_iso, nextmonth_lastday_iso];
     }  // get_nextweek_monday_sunday_iso
 
-
-
-
-//========= get_tomorrow_iso new  ========== PR2019-12=04
+//========= get_dateISO_from_dateJS_vanilla new  ========== PR2019-12=04
     function get_dateISO_from_dateJS_vanilla(date_JS) {
         let date_iso = null
         if (!!date_JS){

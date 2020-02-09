@@ -15,18 +15,19 @@
                             imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                             title_header_btn) {
-        console.log("===== fFill_SelectTable ===== ", tblName);
-        console.log("filter_ppk_int = ", filter_ppk_int)
-        console.log("filter_include_inactive = ", filter_include_inactive)
-        console.log("bc_color_notselected = ", bc_color_notselected)
-        console.log("???????????bc_color_selected = ", bc_color_selected)
+        //console.log("===== fFill_SelectTable ===== ", tblName);
+        //console.log("filter_ppk_int = ", filter_ppk_int)
 
-        console.log("tblHead = ", tblHead)
+        // differendce between filter_include_inactive and filter_show_inactive:
+        // filter_include_inactive works in CreateSelectRow. Row is not created when inactive=true and  filter_include_inactive=false
+        // filter_show_inactive    works in UpdateSelectRow. Row will be hidden when inactive=true and  filter_show_inactive=false
+        // the last one is used when a selected row is made inactive
+
        // select table has button when HandleSelectFilterButton has value
        // select table has inactive button when imgsrc_inactive_lightgrey has value
-        const is_delete = (!!HandleSelectFilterButton && !imgsrc_inactive_lightgrey);
+        const has_sel_btn_delete = (!!HandleSelectFilterButton && !imgsrc_inactive_lightgrey);
         if(!!tblHead){
-            CreateSelectHeader(is_delete, tblName, tblHead, HandleSelect_Filter, HandleSelectFilterButton,
+            CreateSelectHeader(has_sel_btn_delete, tblName, tblHead, HandleSelect_Filter, HandleSelectFilterButton,
                             bc_color_notselected, bc_color_selected,
                             imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, title_header_btn);
@@ -34,12 +35,11 @@
         tblBody_select.innerText = null;
         tblBody_select.setAttribute("data-table", tblName)
 
-        console.log("tblBody_select = ", tblBody_select)
 //--- loop through data_map
         let row_count = {count: 0};
         for (const [map_id, item_dict] of data_map.entries()) {
             const row_index = null // add row at end when no rowindex
-            let selectRow = CreateSelectRow(is_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
+            let selectRow = CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                         HandleSelect_Row, HandleSelectRowButton,
                                         filter_ppk_int, filter_include_inactive, row_count,
                                         bc_color_notselected, bc_color_selected,
@@ -49,15 +49,13 @@
             // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
             UpdateSelectRow(selectRow, item_dict, include_parent_code, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
         }  // for (let cust_key in data_map)
-        console.log("row_count: ", row_count.count, typeof row_count.count)
-
 
         if(!!addall_to_list_txt && row_count.count > 1) {
         // add '<All customers> at beginning of list when tehre are more than 1 rows
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     //--------- insert tblBody_select row
                 let tblRow = tblBody_select.insertRow(0);
-                tblRow.setAttribute("id",  "sel_addall");
+                tblRow.setAttribute("id", "sel_addall");
                 tblRow.setAttribute("data-pk", "addall");
                 tblRow.setAttribute("data-table", tblName);
                 tblRow.setAttribute("data-inactive", false);
@@ -84,18 +82,15 @@
     } // fFill_SelectTable
 
 //========= CreateSelectHeader  ============= PR2019-12-21
-    function CreateSelectHeader(is_delete, tblName, tblHead, HandleSelect_Filter, HandleSelectFilterButton,
+    function CreateSelectHeader(has_sel_btn_delete, tblName, tblHead, HandleSelect_Filter, HandleSelectFilterButton,
                                 bc_color_notselected, bc_color_selected,
                                 imgsrc_default, imgsrc_hover,
                                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
                                 title_header_btn) {
-        console.log(" === CreateSelectHeader === ")
+        //console.log(" === CreateSelectHeader === ")
 
         const has_button = (!!HandleSelectFilterButton);
-        console.log("has_button = ", has_button)
-
         tblHead.innerText = null;
-
         let tblRow = tblHead.insertRow (-1);  // index -1: insert new cell at last position.
 
 // --- add filter td to tblRow.
@@ -111,7 +106,6 @@
                     setTimeout(function() {HandleSelect_Filter()}, 50)});
 
                 const td_width = (has_button) ? "td_width_150" : "td_width_200";
-                console.log("td_width: ", td_width)
                 el_input.classList.add(td_width)
                 el_input.classList.add("tsa_bc_transparent")
                 el_input.classList.add("border_none")
@@ -125,9 +119,13 @@
 
 // --- add filter button tblRow.
         if (has_button){
-            CreateSelectButton(true, is_delete, tblRow, HandleSelectFilterButton, imgsrc_default, imgsrc_hover,
-                            imgsrc_inactive_lightgrey, title_header_btn)
+            const is_header = true;
+            CreateSelectButton(is_header, has_sel_btn_delete, tblRow, HandleSelectFilterButton,
+                            bc_color_notselected, bc_color_selected,
+                            imgsrc_default, imgsrc_hover, imgsrc_inactive_lightgrey,
+                            title_header_btn)
         }
+
 
 // --- add imgsrc_rest_black to shift header, inactive_black toschemeitem
             //AppendChildIcon(el_div, imgsrc_rest_black)
@@ -142,16 +140,14 @@
     }  // CreateSelectHeader
 
 //========= CreateSelectRow  ============= PR2019-10-20
-    function CreateSelectRow(is_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
+    function CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                 HandleSelect_Row, HandleSelectRowButton,
                                 filter_ppk_int, filter_include_inactive, row_count,
                                 bc_color_notselected, bc_color_selected,
                                 imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
                             title_header_btn) {
-        console.log(" === CreateSelectRow === ")
-        //console.log("selected_pk: ", selected_pk);
-        //console.log("row_index: ", row_index);
+        //console.log(" === CreateSelectRow in tables.js === ")
 
 // add row at end when row_index is blank
         if(row_index == null){row_index = -1}
@@ -168,13 +164,9 @@
                 const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
                 const is_inactive = get_subdict_value_by_key(item_dict, "inactive", "value", false);
 
-        //console.log("ppk_int = ", ppk_int)
-        //console.log("filter_ppk_int = ", filter_ppk_int)
-        //console.log("filter_include_inactive = ", filter_include_inactive)
     //--------- filter parent_pk or inactive if filter has value
             let skip_row = (!!filter_ppk_int && ppk_int !== filter_ppk_int) ||
                             (!filter_include_inactive && is_inactive === true );
-        //console.log("skip_row = ", skip_row)
             if (!skip_row){
 
     //--------- insert tblBody_select row
@@ -220,8 +212,9 @@
         // --- add default inactive img to second td in table, only when HandleSelectRowButton exists
         // or grey delete button, gets red on hover
                 if (has_button) {
-                    // CreateSelectButton(is_delete, is_header, tblRow, HandleSelectButton, imgsrc_default, imgsrc_hover, imgsrc_light)
-                    CreateSelectButton(false, is_delete, tblRow, HandleSelectRowButton,
+                    const is_header = false;
+                    CreateSelectButton(is_header, has_sel_btn_delete, tblRow, HandleSelectRowButton,
+                                        bc_color_notselected, bc_color_selected,
                                         imgsrc_default, imgsrc_hover, imgsrc_inactive_lightgrey,
                                         title_header_btn);
                 }  // if (show_button) {
@@ -231,10 +224,11 @@
     } // CreateSelectRow
 
 //=========  CreateSelectButton  ================ PR2019-11-16
-    function CreateSelectButton(is_header, is_delete, tblRow, HandleSelectButton,
+    function CreateSelectButton(is_header, has_sel_btn_delete, tblRow, HandleSelectButton,
                                 bc_color_notselected, bc_color_selected,
                                 imgsrc_default, imgsrc_hover, imgsrc_light, title_header_btn){
-        console.log(" === CreateSelectButton === ")
+        //console.log(" === CreateSelectButton === ")
+
         // SelectButton can be Inactive or Delete
         let td = tblRow.insertCell(-1);
             let el_a = document.createElement("a");
@@ -244,12 +238,12 @@
 
                 if(!!title_header_btn){el_a.title = title_header_btn}
                     //- add hover only on delete button
-                if(!!is_delete && !is_header){
+                if(!!has_sel_btn_delete && !is_header){
                     el_a.addEventListener("mouseenter", function() {el_a.children[0].setAttribute("src", imgsrc_hover)});
                     el_a.addEventListener("mouseleave", function() {el_a.children[0].setAttribute("src", imgsrc_default)});
                 }
                 el_a.classList.add("mx-2")
-            const skip_btn = (is_delete && is_header)
+            const skip_btn = (has_sel_btn_delete && is_header)
             if(!skip_btn) {
                 const img_src = (is_header) ? imgsrc_light :  imgsrc_default;
                 AppendChildIcon(el_a, img_src)
@@ -260,68 +254,67 @@
 
 //========= UpdateSelectRow  ============= PR2019-10-20
     function UpdateSelectRow(selectRow, update_dict, include_parent_code, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey) {
-        console.log("UpdateSelectRow in tables.js");
-        console.log("selectRow:", selectRow);
+        //console.log("UpdateSelectRow in tables.js");
+        //console.log("selectRow:", selectRow);
         // update_dict = { id: {pk: 489, ppk: 2, table: "customer"}, cat: {value: 0}, inactive: {},
         //                 code: {value: "mc"} , name: {value: "mc"}, interval: {value: 0}
 
         // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
+        if(!isEmpty(update_dict)){
+            if(!!selectRow){
+                //const id_dict = get_dict_value_by_key (update_dict, "id");
+                //const is_deleted = ("deleted" in id_dict);
+                const is_deleted = (!!get_subdict_value_by_key (update_dict, "id", "deleted"));
 
-        if(!isEmpty(update_dict) && !!selectRow){
-            //const id_dict = get_dict_value_by_key (update_dict, "id");
-            //const is_deleted = ("deleted" in id_dict);
-            const is_deleted = (!!get_subdict_value_by_key (update_dict, "id", "deleted"));
+    // --- if deleted record: remove row
+                if(!!is_deleted) {
+                    selectRow.parentNode.removeChild(selectRow)
+                } else {
+    // --- put value of select row in tblRow and el_input
+                    let code_value = get_subdict_value_by_key(update_dict, "code", "value", "")
 
-// --- if deleted record: remove row
-            if(!!is_deleted) {
-                selectRow.parentNode.removeChild(selectRow)
-            } else {
-// --- put value of select row in tblRow and el_input
-                let code_value = get_subdict_value_by_key(update_dict, "code", "value", "")
-
-// if include_parent_code: add parent code to code_value . include_parent_code containsname of table: 'customer'
-                if (!!include_parent_code && include_parent_code in update_dict){
-                    const parent_code = get_subdict_value_by_key (update_dict, include_parent_code, "code");
-                    if(!!parent_code) {
-                        code_value = parent_code + " - " + code_value
+    // if include_parent_code: add parent code to code_value . include_parent_code containsname of table: 'customer'
+                    if (!!include_parent_code && include_parent_code in update_dict){
+                        const parent_code = get_subdict_value_by_key (update_dict, include_parent_code, "code");
+                        if(!!parent_code) {
+                            code_value = parent_code + " - " + code_value
+                        }
                     }
-                }
-// --- get first td from selectRow.
-                let el_input = selectRow.cells[0].children[0]
+    // --- get first td from selectRow.
+                    let el_input = selectRow.cells[0].children[0]
+                    el_input.innerText = code_value;
+                    selectRow.setAttribute("data-value", code_value);
 
-                el_input.innerText = code_value;
-                el_input.setAttribute("data-value", code_value);
+    // --- add active img to second td in table
+                    const inactive_dict = get_dict_value_by_key(update_dict, "inactive")
+                    if(!isEmpty(inactive_dict)){
+                        const inactive_value = get_dict_value_by_key(inactive_dict, "value", false);
+                        selectRow.setAttribute("data-inactive", inactive_value);
+                        let selectRow_cell = selectRow.cells[1];
+                        if(!!selectRow_cell){
+                            let el_inactive = selectRow_cell.children[0]
+                            if(!!el_inactive){
+                                format_inactive_element (el_inactive, inactive_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
+            // make el_inactive green for 2 seconds
+                                if("updated" in inactive_dict){
+                                    el_inactive.classList.add("border_valid");
+                                    setTimeout(function (){
+                                        el_inactive.classList.remove("border_valid");
+                                        // let row disappear when inactive and not filter_show_inactive
+                                        if(!filter_show_inactive && inactive_value){
+                                            selectRow.classList.add(cls_hide)
+                                        }
+                                    }, 2000);
+                                }  //  if("updated" in inactive_dict)
+                            }  // if(!!el_inactive)
+                        }  // if(!!selectRow_cell)
+                    }  // if(!isEmpty(inactive_dict))
+                }  //  if(!!is_deleted)
+            } else {
+    // in added row there is no selectRow
 
-// --- add active img to second td in table
-                const inactive_dict = get_dict_value_by_key(update_dict, "inactive")
-                if(!isEmpty(inactive_dict)){
-                    const inactive_value = get_dict_value_by_key(inactive_dict, "value", false);
-                    selectRow.setAttribute("data-inactive", inactive_value);
-                    let selectRow_cell = selectRow.cells[1];
-                    if(!!selectRow_cell){
-
-                        let el_input = selectRow_cell.children[0]
-                        if(!!el_input){
-
-                            format_inactive_element (el_input, inactive_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
-
-        // make el_input green for 2 seconds
-                            if("updated" in inactive_dict){
-                                el_input.classList.add("border_valid");
-                                setTimeout(function (){
-                                    el_input.classList.remove("border_valid");
-                                    // let row disappear when inactive and not filter_show_inactive
-                                    if(!filter_show_inactive && inactive_value){
-                                        selectRow.classList.add(cls_hide)
-                                    }
-                                }, 2000);
-                            }  //  if("updated" in inactive_dict)
-
-                        }  // if(!!el_input)
-                    }  // if(!!selectRow_cell)
-                }  // if(!isEmpty(inactive_dict))
-            }  //  if(!!is_deleted)
-        }  //  if(!!selectRow && !!update_dict){
+            }  //  if(!!selectRow)
+        }  // if(!isEmpty(update_dict))
     } // UpdateSelectRow
 
 // ++++++++++++  END SELECT TABLE +++++++++++++++++++++++++++++++++++++++
@@ -663,7 +656,10 @@
         return key_found
     }
 
+
+
 //========= function get_subsubdict_value_by_key  ================= PR2020-01-04
+    // to be replaced by get_dict_value in base.js
     function get_subsubdict_value_by_key (dict, key, subkey, subsubkey, default_value) {
         let value = null;
         if (!!key && !!dict && dict.hasOwnProperty(key)) {
@@ -679,6 +675,7 @@
         return value
     }
 //========= function get_subdict_value_by_key  ================= PR2019-05-24
+    // to be replaced by get_dict_value in base.js
     function get_subdict_value_by_key (dict, key, subkey, default_value) {
         let value = null;
         let subdict = get_dict_value_by_key (dict, key)
@@ -694,6 +691,7 @@
 
 //========= function get_dict_value_by_key  ====================================
     function get_dict_value_by_key (dict, key, default_value) {
+        // to be replaced by get_dict_value in base.js
         // Function returns value of key in obj PR2019-02-19 PR2019-04-27 PR2019-06-12
         let value = null;
         if (!!key && !!dict){
@@ -872,20 +870,31 @@
             if (!!len){
                 for (let i = 0, tblRow, td, el; i < len; i++) {
                     tblRow = tblBody.rows[i];
-                    td = tblRow.cells[code_colindex];
-                    if(!!td){
-                        el = td.children[0];
-                        if(!!el){
-                            const row_code = get_attr_from_el_str(el,"data-value").toLowerCase()
-                            // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
-                            // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
-                            // row_code 'acu' new_code 'giro' compare = -1
-                            // row_code 'mcb' new_code 'giro' compare =  1
-                            let compare = row_code.localeCompare(new_code, user_lang, { sensitivity: 'base' });
-                            if (compare > 0) {
-                                row_index = tblRow.rowIndex -1;  // -1 because first row is filter row (??)
-                                break;
-                            }}}}}};
+                    // attribute "data-value" will be moved to tblRow instead of el (not everywhere yet
+                    let row_code = "";
+                    if(tblRow.hasAttribute("data-value")){
+                        row_code = get_attr_from_el_str(tblRow,"data-value")
+                    } else {
+                        td = tblRow.cells[code_colindex];
+                        if(!!td){
+                            row_code = get_attr_from_el_str(td.children[0],"data-value")
+                        }
+                    }
+                    if(!!row_code){
+                        const code = row_code.toLowerCase()
+                        // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
+                        // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
+                        // row_code 'acu' new_code 'giro' compare = -1
+                        // row_code 'mcb' new_code 'giro' compare =  1
+                        let compare = code.localeCompare(new_code, user_lang, { sensitivity: 'base' });
+                        if (compare > 0) {
+                            row_index = tblRow.rowIndex -1;  // -1 because first row is filter row (??)
+                            break;
+                        }
+                    }
+                }
+            }
+        };
         return row_index;
     }  // GetNewSelectRowIndex
 
@@ -1100,12 +1109,13 @@
 //========= fFilter_SelectRows  ==================================== PR2020-01-17
     function fFilter_SelectRows(tblBody_select, filter_select, filter_show_inactive, has_ppk_filter, selected_ppk) {
         //console.log( "===== fFilter_SelectRows  ========= ");
-        let has_rows = false;
-        for (let i = 0, len = tblBody_select.rows.length; i < len; i++) {
-            let tblRow = tblBody_select.rows[i];
+        let has_selection = false, has_multiple = false;
+        let selected_value = null, selected_pk = null, selected_parentpk = null;
+        let row_count = 0;
+        for (let i = 0, tblRow, len = tblBody_select.rows.length; i < len; i++) {
+            tblRow = tblBody_select.rows[i];
             if (!!tblRow){
                 let hide_row = false
-
         // show only rows of selected_ppk, only if selected_ppk has value
                 if(has_ppk_filter){
                     const ppk_str = get_attr_from_el(tblRow, "data-ppk")
@@ -1125,8 +1135,8 @@
         // show all rows if filter_select = ""
                 if (!hide_row && !!filter_select){
                     let found = false
-                    if (!!tblRow.cells[0]) {
-                        let el_value = tblRow.cells[0].innerText;
+                    if (!!tblRow.cells[0] && !!tblRow.cells[0].children[0]) {
+                        let el_value = tblRow.cells[0].children[0].innerText;
                         if (!!el_value){
                             el_value = el_value.toLowerCase();
         // show row if filter_select is found in el_value
@@ -1138,22 +1148,37 @@
                 if (hide_row) {
                     tblRow.classList.add(cls_hide)
                 } else {
-                    tblRow.classList.remove(cls_hide)
-                    has_rows = true;
+                    tblRow.classList.remove(cls_hide);
+                    row_count += 1;
+                    // put values from first selected row in select_value
+                    if(!has_selection ) {
+                        selected_pk = get_attr_from_el(tblRow, "data-pk");
+                        selected_parentpk = get_attr_from_el(tblRow, "data-ppk");
+                        selected_value = get_attr_from_el(tblRow, "data-value");
+                    } else {
+                        has_multiple = true;
+                    }
+                    has_selection = true;
                 };
             }  // if (!!tblRow){
         }
-        return has_rows;
+        // set selected values null when multiple items found
+        if (has_multiple){
+            selected_pk = null;
+            selected_parentpk = null;
+            selected_value = null;
+        }
+        return {row_count: row_count, selected_pk: selected_pk, selected_parentpk: selected_parentpk, selected_value: selected_value};
     }; // fFilter_SelectRows
 
 
 //========= f_Filter_TableRows  ==================================== PR2020-01-17
     function f_Filter_TableRows(tblBody, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {  // PR2019-06-24
-        console.log( "===== f_Filter_TableRows  ========= ", tblName);
+        //console.log( "===== f_Filter_TableRows  ========= ", tblName);
         //console.log( "filter_dict", filter_dict);
-        console.log( "filter_show_inactive", filter_show_inactive);
-        console.log( "has_ppk_filter", has_ppk_filter);
-        console.log( "selected_ppk", selected_ppk);
+        //console.log( "filter_show_inactive", filter_show_inactive);
+        //console.log( "has_ppk_filter", has_ppk_filter);
+        //console.log( "selected_ppk", selected_ppk);
 
         let tblRows = tblBody.rows
         //console.log( "tblBody", tblBody);
@@ -1162,8 +1187,7 @@
         if (!!len){
             for (let i = 0, tblRow, show_row; i < len; i++) {
                 tblRow = tblBody.rows[i]
-                show_row = f_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk)
-                //console.log( "show_row", show_row);
+                show_row = f_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, !!has_ppk_filter, selected_ppk)
                 if (show_row) {
                     tblRow.classList.remove(cls_hide)
                 } else {
@@ -1431,8 +1455,8 @@
 //========= FillSelectOption2020  ====================================
     function FillSelectOption2020(el_select, data_map, tblName, is_template_mode, has_selectall, hide_none,
             ppk_str, selected_pk, selectall_text, select_text_none, select_text) {
-        console.log( "=== FillSelectOption2020 ", tblName, "ppk_str:" , ppk_str);
-        console.log( "hide_none", hide_none);
+        //console.log( "=== FillSelectOption2020 ", tblName, "ppk_str:" , ppk_str);
+        //console.log( "hide_none", hide_none);
 
 // ---  fill options of select box
         let option_text = "";
@@ -1816,7 +1840,7 @@
         // get scheme names of this order
         let new_code = "", default_code = "", default_code_len = 0;
         if(!!loc){
-            default_code = get_dict_value_by_key(loc, "Team");
+            default_code = get_dict_value(loc, ["Team"]);
             if(!!default_code){
                 default_code_len = default_code.length;
                 new_code = default_code;
@@ -1869,3 +1893,30 @@
         //console.log('initial: ' , initial)
         return initial;
     } ; // get_teamcode_with_sequence
+
+
+//=========  MSO_BtnShiftTeamClicked  ================ PR2020-01-05
+    function Calendar_BtnWeekdaySetClass(btn, data_value) {
+        // functiuon stores data_value in btn and sets backgroundcolor
+        btn.setAttribute("data-selected", data_value);
+
+        btn.classList.remove("tsa_bc_white")
+        btn.classList.remove("tsa_tr_selected") // Note: tsa_tr_selected is used for not_selected
+        btn.classList.remove("tsa_bc_darkgrey");
+        btn.classList.remove("tsa_bc_mediumred");
+        btn.classList.remove("tsa_bc_medium_green");
+        btn.classList.remove("tsa_color_white");
+
+        if (data_value === "selected"){
+            btn.classList.add("tsa_bc_darkgrey");
+            btn.classList.add("tsa_color_white");
+        } else if (data_value === "not_selected"){
+            btn.classList.add("tsa_tr_selected");
+        } else if (data_value === "create"){
+            btn.classList.add("tsa_bc_medium_green")
+        } else if (data_value === "delete"){
+            btn.classList.add("tsa_bc_mediumred")
+        } else {
+            btn.classList.add("tsa_bc_white")
+        };
+    }

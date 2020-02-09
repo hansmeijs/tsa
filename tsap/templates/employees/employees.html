@@ -78,50 +78,46 @@
 <!-- =================== MODAL CONFIRM  =================== -->
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL PERIOD  =================== -->
-        {% include 'includes/modperiod.html' %}
+        {% include 'includes/modselectperiodandorder.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
         {% include 'includes/modselectemployee.html' %}
 <!-- =================== MODAL EMPLOYEE SHIFT  ===================-->
         {% include 'includes/modemployeeshift.html' %}
+
 <!-- =================== CONTAINER =================== -->
         <div class="container ">
+
 <!-- CONTENT HEADER - LOADER -->
             <div class="tsa_margin_top_48">
     <!-- class content_header -->
-         <!-- header_text -->
                 <div class="content_header">
+         <!-- header_text -->
                     <div class="content_subheader_left mx-2">
                         <h5 id="id_hdr_text"></h5>
                     </div>
-
-                    <!-- loader -->
-                        <div class="content_header_middle mx-4">
-                            <div id="id_loader" class="image_container visibility_hide">
-                                <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
-                            </div>
+         <!-- loader -->
+                    <div class="content_header_middle">
+                        <div id="id_loader" class="image_container visibility_hide">
+                            <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
                         </div>
-
-        <!-- end loader -->
+                    </div>
                 </div>
     <!-- end class content_header -->
-
-            </div>
-<!-- end CONTENT HEADER - LOADER -->
-
-<!-- CONTENT BODY -->
-            <div class="content_body mx-2">
-
-                 <!-- BUTTON GROUP -->
+    <!-- BUTTON GROUP -->
                 <div id="id_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
                     <button id="id_btn_list" type="button" data-mode="employee" class="btn btn-secondary ">{% trans 'Employee list' %}</button>
                     <button id="id_btn_absence" type="button"  data-mode="absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
                     <button id="id_btn_team" type="button"  data-mode="shifts" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
                     <button id="id_btn_calendar" type="button" data-mode="calendar" class="btn btn-secondary ">{% trans 'Calendar' %}</button>
                     <button id="id_btn_planning" type="button" data-mode="planning" class="btn btn-secondary ">{% trans 'Planning' %}</button>
-                    <button id="id_btn_data" type="button" data-mode="employee_form" class="btn btn-secondary ">{% trans 'Data' %}</button>
+                    <button id="id_btn_data" type="button" data-mode="form" class="btn btn-secondary ">{% trans 'Data' %}</button>
                 </div>
     <!-- end BUTTON GROUP -->
+            </div>
+<!-- end CONTENT HEADER - LOADER -->
 
+<!-- CONTENT BODY -->
+            <div class="content_body mx-2">
     <!-- =================== DATA TABLE  =================== -->
                 <div id="id_div_tbl_employee" class="tab_show tab_employee display_hide">
                      <table class="table tsa_tbl ">
@@ -148,7 +144,7 @@
                     <div class="content_subheader_left mx-2">
                         <h5 id="id_hdr_period" title="{% trans 'Click to select a customer, order and period.' %}" class="pointer_show"></h5>
                     </div>
-                     <table  class="table tsa_tbl">
+                     <table class="table tsa_tbl">
                         <thead id="id_thead_planning"></thead>
                         <tbody id="id_tbody_planning"></tbody>
                     </table>
@@ -166,7 +162,6 @@
 <!-- =================== END CONTAINER =================== -->
 
         <div id="id_data"
-
             data-lang ="{{ lang }}"
             data-timezone ="{{ timezone }}"
             data-timeformat ="{{ timeformat }}"
@@ -195,10 +190,6 @@
             data-txt_company = "{% trans 'Company' %}"
             data-txt_employee = "{% trans 'Employee' %}"
             data-txt_employees= "{% trans 'Employees' %}"
-
-            data-txt_employee_import= "{% trans 'Upload employees' %}"
-            data-txt_employee_delete= "{% trans 'Delete employee' %}"
-            data-txt_employee_add= "{% trans 'Add new employee' %}"
 
             data-txt_shift_add= "{% trans 'Add shift' %}"
             data-txt_planning_download = "{% trans 'Download planning' %}"

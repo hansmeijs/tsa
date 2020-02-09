@@ -25,7 +25,7 @@
                                     <h5 id="id_modshift_header_scheme" class="mx-2" ></h5>
                                 </div>
                             <!-- BUTTON GROUP -->
-                            <div id="id_modshift_btn_shift_container" class="btn-group btn-block m-2 pr-2" role="group" aria-label="Choose option" >
+                            <div id="id_modshift_selectbtns_container" class="btn-group btn-block m-2 pr-2" role="group" aria-label="Choose option" >
                                 <button id="id_modshift_btn_shift" type="button" data-mode="mod_shift" class="btn btn-secondary ">{% trans 'Shifts' %}</button>
                                 <button id="id_modshift_btn_employees" type="button"  data-mode="mod_team" class="btn btn-secondary ">{% trans 'Teams' %}</button>
                             </div>
@@ -84,23 +84,23 @@
 
                             <div id="id_modshift_timefields" class="content_header mod_show mod_shift">
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_offsetstart" class="tsa_margin_form_label">{% trans 'Start time' %}:</label>
-                                    <p id="id_modshift_offsetstart" data-toggle="modal" href="#id_mod_timepicker"
+                                    <label for="id_modshift_input_offsetstart" class="tsa_margin_form_label">{% trans 'Start time' %}:</label>
+                                    <p id="id_modshift_input_offsetstart" data-toggle="modal" href="#id_mod_timepicker"
                                        data-field= "offsetstart" tabindex="0" class="form-control pointer_show mb-0"> </p>
                                 </div>
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_offsetend" class="tsa_margin_form_label">{% trans 'End time' %}:</label>
-                                    <p id="id_modshift_offsetend" data-toggle="modal" href="#id_mod_timepicker"
+                                    <label for="id_modshift_input_offsetend" class="tsa_margin_form_label">{% trans 'End time' %}:</label>
+                                    <p id="id_modshift_input_offsetend" data-toggle="modal" href="#id_mod_timepicker"
                                        data-field="offsetend" tabindex="0" class="form-control pointer_show mb-0">  </p>
                                 </div>
                                 <div class="content_subheader_left mx-1 mod_show mod_shift mod_team">
-                                    <label for="id_modshift_breakduration" class="tsa_margin_form_label">{% trans 'Break' %}:</label>
-                                    <p id="id_modshift_breakduration" data-toggle="modal" href="#id_mod_timepicker"
+                                    <label for="id_modshift_input_breakduration" class="tsa_margin_form_label">{% trans 'Break' %}:</label>
+                                    <p id="id_modshift_input_breakduration" data-toggle="modal" href="#id_mod_timepicker"
                                        data-field="breakduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
                                 </div>
                                 <div class="content_subheader_left mx-1">
-                                    <label id="id_modshift_label_timeduration"  for="id_modshift_timeduration" class="tsa_margin_form_label">{% trans 'Working hours' %}:</label>
-                                    <p id="id_modshift_timeduration"  data-toggle="modal" href="#id_mod_timepicker"
+                                    <label id="id_modshift_label_timeduration"  for="id_modshift_input_timeduration" class="tsa_margin_form_label">{% trans 'Working hours' %}:</label>
+                                    <p id="id_modshift_input_timeduration"  data-toggle="modal" href="#id_mod_timepicker"
                                        data-field="timeduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
                                 </div>
 
@@ -110,13 +110,13 @@
                              </div>
                             <div class="content_header mod_show mod_shift">
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
-                                    <input id="id_modshift_datefirst" type="date" data-field= "code"
+                                    <label for="id_modshift_input_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
+                                    <input id="id_modshift_input_datefirst" type="date" data-field= "code"
                                     autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                                 </div>
                                     <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
-                                    <input id="id_modshift_datelast" type="date" data-field="namelast"
+                                    <label for="id_modshift_input_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
+                                    <input id="id_modshift_input_datelast" type="date" data-field="namelast"
                                     autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                                 </div>
                             </div>
