@@ -119,8 +119,8 @@ def create_employee_dict(instance, item_dict, user_lang):
 
 def create_teammember_list(filter_dict, company, user_lang):
     # --- create list of all teammembers of this order PR2019-08-29
-    #logger.debug(' ----- create_teammember_list  -----  ')
-    #logger.debug('filter_dict' + str(filter_dict) )
+    logger.debug(' ----- create_teammember_list  -----  ')
+    logger.debug('filter_dict' + str(filter_dict) )
     # teammember: {customer_pk: selected_customer_pk, order_pk: selected_order_pk},
 
     customer_pk = filter_dict.get('customer_pk')
@@ -150,7 +150,8 @@ def create_teammember_list(filter_dict, company, user_lang):
         # .filter(crit).order_by('employee__code', '-datelast_nonull')  # .filter(crit).order_by('-datelast_nonull')
 
     # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
-    # logger.debug(teammembers.query)
+    logger.debug('teammembers.query')
+    logger.debug(teammembers.query)
 
     teammember_list = []
     for teammember in teammembers:
@@ -245,6 +246,8 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                     field_dict['ppk'] = employee.company_id
                     if employee.code:
                         field_dict['code'] = employee.code
+                    if employee.inactive:
+                        field_dict['inactive'] = employee.inactive
                     if employee.workhours:
                         field_dict['workhours'] = employee.workhours
 

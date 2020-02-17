@@ -15,13 +15,32 @@
         <div class="sidebar_header">
             <h3>{% trans 'Review' %}</h3>
         </div>
-        <div class="td_width_200 mx-2 mt-2 mb-5">
-            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Select period' %}:</h6>
+        <div class="td_width_200 mx-2 mt-2 mb-4">
+            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Period' %}:</h6>
             <input id="id_sidebar_select_period"
                 type="text"
                 class="td_width_200 border_none pointer_show px-2"
                 autocomplete="off"
-                placeholder="{% trans 'Period' %}":
+                placeholder="{% trans 'Select period' %}..."
+                readonly>
+        </div>
+
+        <div class="td_width_200 mx-2 mt-2 mb-4">
+            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Customer and order' %}:</h6>
+            <input id="id_sidebar_select_customer"
+                type="text"
+                class="td_width_200 border_none pointer_show px-2"
+                autocomplete="off"
+                placeholder="{% trans 'Select customer and order' %}..."
+                readonly>
+        </div>
+        <div class="td_width_200 mx-2 mt-2 mb-4">
+            <h6 class="td_width_200 line_height_normal px-2">{% trans 'Absence' %}:</h6>
+            <input id="id_sidebar_select_absence"
+                type="text"
+                class="td_width_200 border_none pointer_show px-2"
+                autocomplete="off"
+                placeholder="{% trans 'Select absence' %}..."
                 readonly>
         </div>
     </nav>
@@ -37,36 +56,50 @@
 {% block content %}
     {% if user.is_authenticated %}
 
-<!-- =================== MODAL PERIOD  =================== -->
-        {% include 'includes/modperiod.html' %}
-
+<!-- =================== id_msgbox  =================== -->
         <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
         </div>
-    <h1 class="mt-4"></h1>
+<!-- =================== MODAL PERIOD  =================== -->
+        {% include 'includes/modselectperiod.html' %}
+<!-- =================== MODAL SELECT ORDER  ===================-->
+        {% include 'includes/modselectorder.html' %}
+<!-- =================== CONTAINER =================== -->
+        <div class="container">
 
-    <div class="image_container">
-        <img id="id_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="cls_visible_hide" >
-    </div>
+<!-- CONTENT HEADER - LOADER -->
+            <div class="tsa_margin_top_48">
+            <!-- content_header -->
+                <div class="content_header ">
+                <!-- header_text -->
+                    <div class="content_subheader_left ml-4">
+                        <h5 id="id_hdr_period"></h5>
+                    </div>
+            <!-- loader -->
+                    <div class="content_header_middle ">
+                        <div id="id_loader" class="image_container visibility_hide">
+                            <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
+                        </div>
+                    </div>
+                </div>
+            <!-- end content_header -->
+            </div>
+<!-- end CONTENT HEADER - LOADER -->
 
-
-
-        <div class="content_body mx-2">
-            <div class="popup-container">
+<!-- CONTENT BODY -->
+            <div class="content_body mx-2">
 
 <!-- =================== DATA TABLE  =================== -->
-                <table id="id_tbl_items" class="table tsa_tbl mx-4 my-1">
+                <table id="id_tbl_items" class="table tsa_tbl mx-2 my-1">
                     <thead id="id_thead_items" class="thead-inverse"></thead>
                     <tbody id="id_tbody_items"></tbody>
                 </table>
 <!-- =================== END DATA TABLE  =================== -->
             </div>
-
+<!-- END CONTENT BODY -->
         </div>
+<!-- =================== END CONTAINER =================== -->
 
-
-        <datalist id="id_datalist_orders"></datalist>
-        <datalist id="id_datalist_shifts"></datalist>
 
         <div id="id_data"
             data-datalist_download_url="{% url 'datalist_download_url' %}"
@@ -82,20 +115,6 @@
             data-imgsrc_stat03="{% static 'img/stat03.png' %}"
             data-imgsrc_stat04="{% static 'img/stat04.png' %}"
             data-imgsrc_stat05="{% static 'img/stat05.png' %}"
-
-            data-lang ="{{ lang }}"
-            data-weekdays ="{{ weekdays }}"
-            data-months ="{{ months }}"
-
-            data-txt_date= "{% trans 'Date' %}"
-            data-txt_orderemployee= "{% trans 'Order / Employee' %}"
-            data-txt_shift= "{% trans 'Shift' %}"
-            data-txt_workedhours = "{% trans 'Worked hours' %}"
-            data-txt_billedhours = "{% trans 'Billed hours' %}"
-            data-txt_difference= "{% trans 'Difference' %}"
-            data-txt_rate= "{% trans 'Rate' %}"
-            data-txt_amount= "{% trans 'Amount' %}"
-
         >
         </div>
 

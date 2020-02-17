@@ -80,26 +80,26 @@ document.addEventListener('DOMContentLoaded', function() {
         let teammember_map = new Map();
         let employee_map = new Map();
 
-        const tbl_col_count = {schemeitem: 8, shift: 5, teammember: 5}
+        const tbl_col_count = {schemeitem: 9, shift: 6, teammember: 5}
         const thead_text = {
-            schemeitem: ["txt_date", "txt_shift", "txt_team", "txt_timestart", "txt_timeend", "txt_break"],
-            shift: ["txt_shift", , "txt_timestart", "txt_timeend", "txt_break"],
+            schemeitem: ["txt_date", "txt_shift", "txt_team", "txt_timestart", "txt_timeend", "txt_break", "txt_hours"],
+            shift: ["txt_shift", , "txt_timestart", "txt_timeend", "txt_break", "txt_hours"],
             teammember: ["txt_employee", "txt_datefirst", "txt_datelast", "txt_replacement",]}
         const field_names = {
-            schemeitem: ["rosterdate", "shift", "team", "offsetstart", "offsetend", "breakduration", "inactive", "delete"],
-            shift: ["code", "isrestshift", "offsetstart", "offsetend", "breakduration"],
+            schemeitem: ["rosterdate", "shift", "team", "offsetstart", "offsetend", "breakduration", "timeduration", "inactive", "delete"],
+            shift: ["code", "isrestshift", "offsetstart", "offsetend", "breakduration", "timeduration"],
             teammember: ["employee", "datefirst", "datelast", "replacement", "delete"]}
         const field_tags = {
-            schemeitem: ["input", "select", "select", "input","input", "input", "a", "a"],
-            shift: ["input", "a", "input", "input", "input"],
+            schemeitem: ["input", "select", "select", "input","input", "input", "input", "a", "a"],
+            shift: ["input", "a", "input", "input", "input", "input"],
             teammember: ["input", "input", "input", "input", "a"]}
         const field_width = {
-            schemeitem: ["120", "120", "180", "090", "090", "090", "032", "032"],
-            shift: ["180", "060", "120", "120", "120"],
+            schemeitem: ["090", "150", "150", "090", "090", "090", "090", "032", "032"],
+            shift: ["180", "060", "120", "120", "120", "120"],
             teammember: ["220", "120", "120", "220", "032"]}
         const field_align = {
-            schemeitem: ["left", "left", "left", "right", "right", "right", "left", "left"],
-            shift: ["left", "left", "right", "right", "right"],
+            schemeitem: ["left", "left", "left", "right", "right", "right", "right", "right", "right"],
+            shift: ["left", "left", "right", "right", "right", "right"],
             teammember: ["left", "left", "left", "left", "right"]}
 
 // --- get data stored in page
@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- Datalist Download
         // TODO for testing, show_absence must be false in production
-        const show_absence = null ;
+        const show_absence = false;  //  const show_absence = null ;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}
@@ -431,10 +431,10 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_div = document.createElement("div");
         // CreateSubmenuButton(el_div, id, btn_text, class_key, function_on_click)
         AddSubmenuButton(el_div, loc.menubtn_copy_from_template, function (){ModCopyfromTemplateOpen()}, null, "id_menubtn_copy_from_template");
-        AddSubmenuButton(el_div, loc.menubtn_copy_to_template, function (){ModCopytoTemplateOpen()}, "mx-2", "id_menubtn_copy_to_template");
-        AddSubmenuButton(el_div, loc.menubtn_show_templates, function (){HandleSubmenubtnTemplateShow()}, "mx-2", "id_menubtn_show_templates");
-        AddSubmenuButton(el_div, loc.menubtn_roster_create, function (){ModRosterdateCreate()}, "mx-2");
-        AddSubmenuButton(el_div, loc.menubtn_roster_delete, function (){ModRosterdateDelete()}, "mx-2");
+        AddSubmenuButton(el_div, loc.menubtn_copy_to_template, function (){ModCopytoTemplateOpen()}, ["mx-2"], "id_menubtn_copy_to_template");
+        AddSubmenuButton(el_div, loc.menubtn_show_templates, function (){HandleSubmenubtnTemplateShow()}, ["mx-2"], "id_menubtn_show_templates");
+        AddSubmenuButton(el_div, loc.menubtn_roster_create, function (){ModRosterdateCreate()}, ["mx-2"]);
+        AddSubmenuButton(el_div, loc.menubtn_roster_delete, function (){ModRosterdateDelete()}, ["mx-2"]);
 
         el_submenu.appendChild(el_div);
         el_submenu.classList.remove(cls_hide);
@@ -814,7 +814,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } else {
             sel_tblName = "scheme";
-
         } // if(!!sel_tr_clicked)
 
         console.log( "sel_tblName ", sel_tblName);
@@ -1356,7 +1355,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= FillSelectTable  ============= PR2019-09-23
     function FillSelectTable(tblName, called_by, selected_pk, is_current_table) {
-        console.log( "=== FillSelectTable === ", tblName, called_by);
+        //console.log( "=== FillSelectTable === ", tblName, called_by);
         //console.log( "tblName: ", tblName, "is_current_table: ", is_current_table);
         //console.log( "selected_pk: ", selected_pk, "selected_order_pk: ", selected_order_pk);
 
@@ -1675,7 +1674,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     AppendChildIcon(el_div, imgsrc_rest_black)
                     el_div.classList.add("ml-4")
                     el_div.title = get_attr_from_el(el_data, "data-txt_shift_rest")
-                } else if (tblName === "schemeitem" && j === 6) {
+                } else if (tblName === "schemeitem" && j === 7) {
                     AppendChildIcon(el_div, imgsrc_inactive_black);
                     el_div.classList.add("ml-4")
                 }
@@ -1719,11 +1718,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ResetAddnewRow === PR2019-12-01
     function ResetAddnewRow(tblName, called_by) {
-        console.log("===  ResetAddnewRow == ", tblName, called_by);
+        //console.log("===  ResetAddnewRow == ", tblName, called_by);
 
         const ppk_int = (tblName === "team") ? selected_team_pk : selected_scheme_pk
-        console.log("ppk_int ", ppk_int);
-        console.log("rosterdate_dict ", rosterdate_dict);
+        //console.log("ppk_int ", ppk_int);
+        //console.log("rosterdate_dict ", rosterdate_dict);
 
     // --- lookup row 'add new' in tFoot
         let tblFoot = document.getElementById("id_tfoot_" + tblName);
@@ -1743,8 +1742,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                         user_lang, comp_timezone, false, true)
                 }
                 if(!!selected_scheme_pk){
-                    tblRow.cells[1].children[0].innerHTML = FillOptionShiftOrTeam(shift_map, ppk_int, null, true)
-                    tblRow.cells[2].children[0].innerHTML = FillOptionShiftOrTeam(team_map, ppk_int)
+                    tblRow.cells[1].children[0].innerHTML = FillOptionShiftOrTeamFromMap(shift_map, ppk_int, null, true)
+                    tblRow.cells[2].children[0].innerHTML = FillOptionShiftOrTeamFromMap(team_map, ppk_int)
                 }
 
         // in schemeitems: disable add teammember when template
@@ -1786,7 +1785,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // add fieldname
             el.setAttribute("data-field", field_names[tblName][j])
 // --- skip inactve and delete row
-             if ([6, 7].indexOf( j ) > -1){
+             if ([7, 8].indexOf( j ) > -1){
                 //el = document.createElement("a");
                 //el.setAttribute("href", "#");
                 //AppendChildIcon(el, imgsrc_inactive_black, "18");
@@ -1817,7 +1816,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= FillTableRows  ====================================
     function FillTableRows(tblName) {
-        console.log( "===== FillTableRows  ========= ", tblName);
+        //console.log( "===== FillTableRows  ========= ", tblName);
         // tblNames are: schemeitem, shift, teammember
 // --- reset tblBody
         let tblBody = document.getElementById("id_tbody_" + tblName);
@@ -1832,7 +1831,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (tblName === "teammember"){
             data_map = teammember_map;
             sel_ppk_int = selected_team_pk
-
         } else if (tblName === "schemeitem"){
             data_map = schemeitem_map;
             sel_ppk_int = selected_scheme_pk
@@ -1871,7 +1869,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (tblName === "schemeitem"){
             if(isEmpty(rosterdate_dict)){rosterdate_dict = today_dict}
-            console.log("rosterdate_dict", rosterdate_dict)
+            //console.log("rosterdate_dict", rosterdate_dict)
             ResetAddnewRow(tblName, "FillTableRows");
         }
     }  // FillTableRows
@@ -1979,7 +1977,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (tblName === "shift"){
                 if ([0, 1].indexOf( j ) > -1){
                      el.addEventListener("change", function() {UploadElChanged(el)}, false)
-                } else if ([2, 3, 4].indexOf( j ) > -1){
+                } else if ([2, 3, 4, 5].indexOf( j ) > -1){
                     el.addEventListener("click", function() {HandleTimepickerOpen(el)}, false)};
             } else if ((tblName === "teammember") && (!template_mode) ){
                 const is_replacement = (j === 3)
@@ -1993,9 +1991,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // called by DatalistDownload, info not downloaded yet when rows are created
             if (tblName === "schemeitem"){
                 if (j === 1) {
-                    el.innerHTML = FillOptionShiftOrTeam(shift_map, ppk_int, null, true)
+                    el.innerHTML = FillOptionShiftOrTeamFromMap(shift_map, ppk_int, null, true)
                 } else if (j === 2) {
-                    el.innerHTML = FillOptionShiftOrTeam(team_map, ppk_int)
+                    el.innerHTML = FillOptionShiftOrTeamFromMap(team_map, ppk_int)
                 }
             } else if (tblName === "teammember"){
                // if (j === 0) {
@@ -2016,7 +2014,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add textalign to el
             el.classList.add("text_align_" + field_align[tblName][j])
 
-
 // --- add other classes to td - Necessary to skip closing popup
             el.classList.add("border_none");
             //el.classList.add("tsa_transparent");
@@ -2032,7 +2029,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 else { el.classList.add("input_text"); }; // makes background transparent
             } else if ( tblName === "shift"){
                 if ([0].indexOf( j ) > -1) { el.classList.add("input_text")} else  // makes background transparent
-                if ([2, 3, 4].indexOf( j ) > -1){ el.classList.add("input_timepicker")}
+                if ([2, 3, 4, 5].indexOf( j ) > -1){ el.classList.add("input_timepicker")}
             } else if ( tblName === "teammember"){
                 if ([0, 3].indexOf( j ) > -1) { el.classList.add("input_text")} else  // makes background transparent
                 if ([1, 2].indexOf( j ) > -1){
@@ -2099,7 +2096,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         el_scheme_btn_delete.disabled = true
-        console.log(">>> el_scheme_btn_delete.disabled = true" );
+        //console.log(">>> el_scheme_btn_delete.disabled = true" );
 
     }
 
@@ -3289,14 +3286,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
                     // not in use
                     format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
-                } else if (["offsetstart", "offsetend", "breakduration"].indexOf( fieldname ) > -1){
+                } else if (["offsetstart", "offsetend"].indexOf( fieldname ) > -1){
                     // in table schemeitem : when there is a shift: offset of shift is displayed, othereise: offset of schemeitem is displayed
                     if (tblName === "schemeitem")
                         if ('shift' in update_dict) {field_dict = get_subdict_value_by_key(update_dict, "shift", fieldname )
                     }
-                    const blank_when_zero = (fieldname === "breakduration") ? true : false;
+                    const blank_when_zero = (["breakduration", "timeduration"].indexOf( fieldname ) > -1) ? true : false;
                     format_offset_element (el_input, el_msg, fieldname, field_dict, [-220, 80], timeformat, user_lang, title_prev, title_next, blank_when_zero)
-                } else if ([ "timeduration"].indexOf( fieldname ) > -1){
+                } else if (["breakduration", "timeduration"].indexOf( fieldname ) > -1){
                     format_duration_element (el_input, el_msg, field_dict, user_lang)
                 } else if (fieldname === "inactive") {
                    if(isEmpty(field_dict)){field_dict = {value: false}}
@@ -5199,7 +5196,6 @@ document.addEventListener('DOMContentLoaded', function() {
             let st_dict = { "interval": interval, "comp_timezone": comp_timezone, "user_lang": user_lang,
                             "show_btn_delete": show_btn_delete, "weekday_list": weekday_list, "month_list": month_list,
                             "url_settings_upload": url_settings_upload};
-
             // only needed in scheme
             const text_curday = get_attr_from_el(el_data, "data-timepicker_curday");
             const text_prevday = get_attr_from_el(el_data, "data-timepicker_prevday");

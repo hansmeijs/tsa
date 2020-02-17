@@ -1873,7 +1873,6 @@ def get_billable_shift(shift):
 def get_billable_schemeitem(schemeitem):
     # PR2019-10-10
     # value 0 = no override, 1= override NotBillable, 2= override Billable
-
     field = 'billable'
     is_billable = False
     is_override = False
@@ -1881,10 +1880,11 @@ def get_billable_schemeitem(schemeitem):
         value = getattr(schemeitem, field, 0)
         is_override = (value > 0)
         if is_override:
-            is_billable = (value == 2)
+            is_billable = (value == 2)  # means when (value == 1) then is_billable = False
         else:
             shift_override = False
             if schemeitem.shift:
+                # restshift has always is_billable = False. Make sure that when restshift is_billable cannot be set to True
                 value = getattr(schemeitem.shift, field, 0)
                 shift_override = (value > 0)
                 if shift_override:
@@ -1892,7 +1892,7 @@ def get_billable_schemeitem(schemeitem):
             if not shift_override:
                 if schemeitem.scheme:
                     value = getattr(schemeitem.scheme, field, 0)
-                    if value > 0: # is_override when value > 0
+                    if value > 0:  # is_override when value > 0
                         is_billable = (value == 2)
                     else:
                         if schemeitem.scheme.order:
@@ -2007,6 +2007,7 @@ def get_rate_from_value(value):
 
 def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
     # function gets rate from pricerate_dict PR2019-10-15
+    # each price_startdate can have multiple rates: one for each wagefactor
     # pricerate_dict = {'2019-10-15': {100: 2500, 150: 3000, 200: 3500}, '2020-01-01': {100: 2600, 150: 3200, 200: 3800}
     # key_startdate is the startdate of the new pricerate
     # from https://realpython.com/iterate-through-dictionary-python/
@@ -2436,16 +2437,16 @@ def calc_timeduration_from_shift(shift):
 
     return is_restshift, offsetstart, offsetend, breakduration, timeduration_minus_break, timeduration
 
+
 # <<<<<<<<<< calc_timestart_time_end_from_offset >>>>>>>>>>>>>>>>>>> PR2019-12-10
-def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, breakduration, is_restshift, comp_timezone):
-    #logger.debug('------------------ calc_schemeitem_timeduration --------------------------')
-    # called by SchemeitemFillView, update_schemeitem and update_shift > recalc_schemeitems
+def calc_timestart_time_end_from_offset(rosterdate_dte,
+                                        offsetstart, offsetend, breakduration, timeduration,
+                                        is_restshift, comp_timezone):
+    #logger.debug('------------------ calc_timestart_time_end_from_offset --------------------------')
+    # called by add_orderhour_emplhour
 
     starttime_local = None
     endtime_local = None
-    timeduration = 0
-    if not breakduration:
-        breakduration = 0
 
     # calculate field 'timestart' 'timeend', based on field rosterdate and offset, also when rosterdate_has_changed
     if rosterdate_dte:
@@ -2470,7 +2471,7 @@ def calc_timestart_time_end_from_offset(rosterdate_dte, offsetstart, offsetend, 
             comp_timezone=comp_timezone)
         #logger.debug(' new_endtime: ' + str(new_endtime) + ' ' + str(type(new_endtime)))
 
-    # d. recalculate timeduration
+    # d. recalculate timeduration, only when both starttime and endtime have value
         if starttime_local and endtime_local:
             datediff = endtime_local - starttime_local
             datediff_minutes = int((datediff.total_seconds() / 60))

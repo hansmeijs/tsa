@@ -126,7 +126,8 @@ class Company(TsaBaseModel):
     cat = PositiveSmallIntegerField(default=0)
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
 
-    invoicedates = JSONField(null=True)  # stores default invoice dates
+    payperiods = JSONField(null=True)  # stores default invoice dates
+    billingperiods = JSONField(null=True)  # stores default invoice dates
 
     class Meta:
         ordering = [Lower('code')]
@@ -145,7 +146,7 @@ class Taxcode(TsaBaseModel):
     objects = TsaManager()
     company = ForeignKey(Company, related_name='taxcodes', on_delete=PROTECT)
 
-    taxrate = IntegerField(default=0)  # /10000 unitless   taxrate 600 = 6%
+    taxrate = IntegerField(default=0)  # /1.000.000 unitless   taxrate 60.000 = 6%
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -215,7 +216,7 @@ class Order(TsaBaseModel):
 
     sequence = IntegerField(null=True) #
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
+    additionjson = JSONField(null=True)  # /1.000.000 unitless   additionrate 250.000 = 25%
 
     invoicedates = JSONField(null=True)  # stores invoice dates for this order
 
@@ -285,7 +286,7 @@ class Wagefactor(TsaBaseModel):
     objects = TsaManager()
     company = ForeignKey(Company, related_name='wagefactors', on_delete=PROTECT)
 
-    wagefactorrate = IntegerField(default=0)  # /10.000
+    wagefactorrate = IntegerField(default=0)  # /1.000.000
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -373,7 +374,7 @@ class Scheme(TsaBaseModel):
     excludepublicholiday = BooleanField(default=False)
 
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
+    additionjson = JSONField(null=True)  # /1.000.000 unitless   additionrate 250.000 = 25%
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     locked = None
@@ -409,7 +410,7 @@ class Shift(TsaBaseModel):
 
     wagefactor = ForeignKey(Wagefactor, related_name='shifts', on_delete=SET_NULL, null=True, blank=True)
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
+    additionjson = JSONField(null=True)  # /1.000.000 unitless   additionrate 250.000 = 25%
 
     def __str__(self):
         return self.code
@@ -459,6 +460,7 @@ class Employee(TsaBaseModel):
     country = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
 
     payrollcode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    paydates = JSONField(null=True)  # stores invoice dates for this order
 
     wagerate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
@@ -467,7 +469,7 @@ class Employee(TsaBaseModel):
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
 
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
+    additionjson = JSONField(null=True)  # /1.000.000 unitless   additionrate 250.000 = 25%
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
@@ -500,10 +502,10 @@ class Teammember(TsaBaseModel):
     issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
-    wagefactor = IntegerField(default=0) # /10000 unitless, 0 = factor 100%  = 10.000)
+    wagefactor = IntegerField(default=0) # /1.000.000 unitless, factor 100%  = 1.000.000)
 
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /10000 unitless additionrate 2500 = 25%
+    additionjson = JSONField(null=True)  # /1.000.000 unitless additionrate 250.000 = 25%
     override = BooleanField(default=True)
 
     @classmethod
@@ -580,7 +582,7 @@ class Schemeitem(TsaBaseModel):
     timeduration = IntegerField(default=0)  # unit is minute >> deprecated
 
     priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /10000 unitless   additionrate 2500 = 25%
+    additionjson = JSONField(null=True)  # /1.000.000 unitless   additionrate 250.000 = 25%
 
     class Meta:
         ordering = ['rosterdate']
@@ -636,28 +638,19 @@ class Orderhour(TsaBaseModel):
     objects = TsaManager()
 
     order = ForeignKey(Order, related_name='orderhours', on_delete=PROTECT)
+    # TODO check if schemeitem is necessary, I dont think so PR2020-02-15
     schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True, blank=True)
 
     rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
-    isabsence = BooleanField(default=False)
 
-    yearindex = PositiveSmallIntegerField(default=0)
-    monthindex = PositiveSmallIntegerField(default=0)
-    weekindex = PositiveSmallIntegerField(default=0)
-    payperiodindex = PositiveSmallIntegerField(default=0)
-
+    billingdate = DateField(db_index=True, null=True)
     isbillable = BooleanField(default=False)
+
+    isabsence = BooleanField(default=False)
     isrestshift = BooleanField(default=False)
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
-    duration = IntegerField(default=0)  # unit is hour * 100
     status = PositiveSmallIntegerField(db_index=True, default=0)
-
-    pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG)
-    additionrate = IntegerField(default=0)  # /10000 unitless   additionrate 2500 = 25%
-    taxrate = IntegerField(default=0)  # /10000 unitless   taxrate 600 = 6%
-    amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
-    tax = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
 
     class Meta:
         ordering = ['rosterdate']
@@ -685,10 +678,7 @@ class Emplhour(TsaBaseModel):
     isabsence = BooleanField(default=False)
     isreplacement = BooleanField(default=False)
 
-    yearindex = PositiveSmallIntegerField(default=0)
-    monthindex = PositiveSmallIntegerField(default=0)
-    weekindex = PositiveSmallIntegerField(default=0)
-    payperiodindex = PositiveSmallIntegerField(default=0)
+    paydate = DateField(db_index=True, null=True)
 
     isrestshift = BooleanField(default=False)
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -697,13 +687,17 @@ class Emplhour(TsaBaseModel):
     timeduration = IntegerField(default=0)
     breakduration = IntegerField(default=0)
     plannedduration = IntegerField(default=0)
+    billingduration = IntegerField(default=0)
 
     wagerate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
-    wagefactor = IntegerField(default=0) # /10000 unitless, 0 = factor 100%  = 10.000)
+    wagefactor = IntegerField(default=0) # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
     wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG)
-    additionrate = IntegerField(default=0)  # /10000 unitless   additionrate 2500 = 25%
+    additionrate = IntegerField(default=0)  # /1.000.000 unitless   additionrate 250.000 = 25%
+    taxrate = IntegerField(default=0)  # /1.000.000 unitless   taxrate 60.000 = 6%
+    amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+    tax = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
     overlap = SmallIntegerField(default=0)  # stores if record has overlapping emplhour records: 1 overlap start, 2 overlap end, 3 full overlap

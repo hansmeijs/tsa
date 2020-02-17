@@ -18,9 +18,9 @@
         //console.log("===== fFill_SelectTable ===== ", tblName);
         //console.log("filter_ppk_int = ", filter_ppk_int)
 
-        // differendce between filter_include_inactive and filter_show_inactive:
-        // filter_include_inactive works in CreateSelectRow. Row is not created when inactive=true and  filter_include_inactive=false
-        // filter_show_inactive    works in UpdateSelectRow. Row will be hidden when inactive=true and  filter_show_inactive=false
+        // difference between filter_include_inactive and filter_show_inactive:
+        // - filter_include_inactive works in CreateSelectRow. Row is not created when inactive=true and filter_include_inactive=false
+        // - filter_show_inactive    works in UpdateSelectRow. Row will be hidden when inactive=true and filter_show_inactive=false
         // the last one is used when a selected row is made inactive
 
        // select table has button when HandleSelectFilterButton has value
@@ -788,6 +788,7 @@
         // show MsgBox with msg_err , offset[0] shifts horizontal position, offset[1] VERTICAL
         //console.log("ShowMsgError")
         //console.log("el_msg", el_msg )
+        //console.log("offset", offset[0], offset[1] )
         //console.log("msg_err", msg_err, typeof msg_err )
         //console.log("set_value", set_value, typeof set_value )
         //console.log("display_value", display_value, typeof display_value )
@@ -808,13 +809,13 @@
         //console.log("docWidth: " + docWidth + " docHeight: " + docHeight  )
 
         // put  msgbox in HTML right below {% if user.is_authenticated %}
-        // el_msg [0,0] pposotions msgbox on left top position of <div id="id_content">
-        // TODO remove offset if not necessary ( turned off for noew)
+        // el_msg [0,0] positions msgbox on left top position of <div id="id_content">
+        // TODO remove offset if not necessary ( turned off for now)
             el_msg.innerHTML = msg_err;
             el_msg.classList.add("show");
                 const elemRect = el_input.getBoundingClientRect();
                 const msgRect = el_msg.getBoundingClientRect();
-                const topPos = elemRect.top - (msgRect.height) - 52  + offset[1]; // - 48 because of title/ menu / submenu, -4 because of arrow onder msgbox
+                const topPos = elemRect.top - (msgRect.height) - 60  + offset[1]; // - 48 because of title/ menu / submenu, -4 because of arrow onder msgbox
                 const leftPos = elemRect.left - 220  + offset[0]; // -220 because of width sidebar
 
                 const msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
@@ -854,7 +855,8 @@
 //=========  AppendIcon  ================ PR2019-08-27
     function IconChange(el, img_src ) {
         if (!!el) {
-            let img = el.firstChild;
+            // debug: dont use el.firstChild, it  also returns text and comment nodes, can give error
+            let img = el.children[0];
             img.setAttribute("src", img_src);
         }
     }
@@ -1200,6 +1202,8 @@
 //========= f_ShowTableRow  ==================================== PR2020-01-17
     function f_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {  // PR2019-09-15
         //console.log( "===== f_ShowTableRow  ========= ", tblName);
+        //console.log("filter_show_inactive", filter_show_inactive);
+        //console.log("tblRow", tblRow);
 
         // function filters by inactive and substring of fields
         // also filters selected customer pk in table order
@@ -1229,6 +1233,7 @@
         // show only rows of selected_ppk, only if selected_ppk has value
                 if(!!has_ppk_filter && !!selected_ppk){
                     const ppk_str = get_attr_from_el(tblRow, "data-ppk")
+        //console.log("ppk_str", ppk_str);
                     if(!!selected_ppk){
                         hide_row = (ppk_str !== selected_ppk.toString())
                     } else {
@@ -1240,17 +1245,20 @@
 // hide inactive rows if filter_show_inactive
                 if(!hide_row && !filter_show_inactive){
                     const inactive_str = get_attr_from_el(tblRow, "data-inactive")
+        //console.log("inactive_str", inactive_str);
                     if (!!inactive_str && (inactive_str.toLowerCase() === "true")) {
                         hide_row = true;
                     }
+       //console.log("hide_row", hide_row);
                 }
+       //console.log( "hide_row after filter_show_inactive: ", filter_show_inactive,  hide_row);
 
         //console.log( "hide_row after filter_show_inactive: ", filter_show_inactive,  hide_row);
 // show all rows if filter_name = ""
                 if (!hide_row && !isEmpty(filter_dict)){
                     Object.keys(filter_dict).forEach(function(key) {
                         const filter_text = filter_dict[key];
-                        //console.log("filter_text", filter_text);
+        //console.log("filter_text", filter_text);
                         const filter_blank = (filter_text === "#")
                         let tbl_cell = tblRow.cells[key];
                         if (!!tbl_cell){
@@ -1271,7 +1279,7 @@
                                         el_value = el.innerText;
                                     }
                                     if (!el_value){el_value = get_attr_from_el(el, "data-value")}
-                                    //console.log("el_tagName", el_tagName, "el_value",  el_value);
+        //console.log("el_tagName", el_tagName, "el_value",  el_value);
                                     if (!!el_value){
                                         if (filter_blank){
                                             hide_row = true
@@ -1570,9 +1578,9 @@
         }
     }  // function FillOptionsAbscat
 
-//========= FillOptionShiftOrTeamFromList  ============= PR2020-01-08
-    function FillOptionShiftOrTeamFromList(data_list, sel_parent_pk_int, selected_pk_int, with_rest_abbrev, firstoption_txt) {
-         //console.log( "===== FillOptionShiftOrTeamFromList  ========= ");
+//========= t_FillOptionShiftOrTeamFromList  ============= PR2020-01-08
+    function t_FillOptionShiftOrTeamFromList(data_list, sel_parent_pk_int, selected_pk_int, with_rest_abbrev, firstoption_txt) {
+         //console.log( "===== t_FillOptionShiftOrTeamFromList  ========= ");
          // add empty option on first row, put firstoption_txt in < > (placed here to escape \< and \>
         if(!firstoption_txt){firstoption_txt = "-"}
         let option_text = "<option value=\"0\" data-ppk=\"0\">" + firstoption_txt + "</option>";
@@ -1582,11 +1590,11 @@
             option_text += item_text;
         }
         return option_text
-    }  // FillOptionShiftOrTeamFromList
+    }  // t_FillOptionShiftOrTeamFromList
 
-//========= FillOptionShiftOrTeam  ============= PR2020-01-08
-    function FillOptionShiftOrTeam(data_map, sel_parent_pk_int, selected_pk_int, with_rest_abbrev, firstoption_txt) {
-         //console.log( "===== FillOptionShiftOrTeam  ========= ");
+//========= FillOptionShiftOrTeamFromMap  ============= PR2020-01-08
+    function FillOptionShiftOrTeamFromMap(data_map, sel_parent_pk_int, selected_pk_int, with_rest_abbrev, firstoption_txt) {
+         //console.log( "===== FillOptionShiftOrTeamFromMap  ========= ");
 // add empty option on first row, put firstoption_txt in < > (placed here to escape \< and \>
         if(!firstoption_txt){firstoption_txt = "-"}
         let option_text = "<option value=\"0\" data-ppk=\"0\">" + firstoption_txt + "</option>";
@@ -1596,7 +1604,7 @@
             option_text += item_text;
         }
         return option_text
-    }  // FillOptionShiftOrTeam
+    }  // FillOptionShiftOrTeamFromMap
 
 //========= FillOptionShiftOrTeam  ============= PR2020-01-08
     function FillOptionFromItemDict(item_dict, sel_parent_pk_int, selected_pk_int, with_rest_abbrev) {
@@ -1625,18 +1633,19 @@
     function Lookup_Same_Shift(shift_list, sel_parent_pk_int,
             offset_start, offset_end, break_duration, time_duration, is_restshift ) {
     // check if this scheme already has a shift with the same values
+        //console.log("=== Lookup_Same_Shift  ====")
+
         const val = "value";
         let same_shift_pk = 0;
         if (!!shift_list && !!sel_parent_pk_int) {
             for (let i = 0, len = shift_list.length; i < len; i++) {
                 const dict = shift_list[i];
                 if (sel_parent_pk_int === get_ppk_from_dict(dict)) {
-                    if (offset_start === get_subdict_value_by_key(dict, "offsetstart", val)) {
-                        if (offset_end === get_subdict_value_by_key(dict, "offsetend", val)) {
-                            if (break_duration === get_subdict_value_by_key(dict, "breakduration", val)) {
-                                const shiftdict_timeduration = get_subdict_value_by_key(dict, "timeduration", val);
-                                if (time_duration === get_subdict_value_by_key(dict, "timeduration", val)) {
-                                    if (is_restshift === get_subdict_value_by_key(dict, "isrestshift", val, false)) {
+                    if (offset_start === get_dict_value(dict, ["offsetstart", val])) {
+                        if (offset_end === get_dict_value(dict, ["offsetend", val])) {
+                            if (break_duration === get_dict_value(dict, ["breakduration", val], 0)) {
+                                if (time_duration === get_dict_value(dict, ["timeduration", val], 0)) {
+                                    if (!!is_restshift === get_dict_value(dict, ["isrestshift", val], false)) {
                                         same_shift_pk = get_pk_from_dict(dict);
                                         break;
         }}}}}}}};
@@ -1831,21 +1840,48 @@
        }}}
     };  // handle_EAL_row_clicked
 
+    function get_schemecode_with_sequence(scheme_map, parent_pk, default_code){
+        "use strict";
+        //console.log(' --- get_schemecode_with_sequence --- ')
+        //console.log('parent_pk: ', parent_pk)
+        // create new code with sequence 1 higher than existing code PR2020-02-10
+        // charCodeAt() converts character at the given index to ASCII number. // 'ABC'.charCodeAt(0)  // returns 65
+        // String.fromCharCode(65) converts ASCII numbers to character A; // String.fromCharCode(65,66,67) returns 'ABC'
+        const default_code_len = default_code.length;
+        let new_code = default_code;
 
-    function get_teamcode_with_sequence(team_map, parent_pk, loc){
+        let count = 0, max_index = 0;
+        // --- loop through scheme_map
+        // lookup teams of this scheme that end woth a character, like 'Team C'
+        for (const [map_id, item_dict] of scheme_map.entries()) {
+            const scheme_ppk = get_dict_value(item_dict, ["id", "ppk"])
+            if(scheme_ppk === parent_pk){
+                count += 1;
+                const code_value = get_dict_value(item_dict, ["code", "value"], "")
+                const index_str = code_value.slice(default_code_len).trim();
+                if(!!index_str && !!Number(index_str)){
+                    const index = Number(index_str);
+                    if (!!index && index > max_index) {
+                        max_index = index
+        }}}};
+
+        // when 4 teans exists, new team must have name 'Team E'
+        let new_index = max_index + 1
+
+        new_code = default_code + " " + new_index.toString();
+        //console.log('new_code: ' , new_code)
+        return new_code;
+    } ; // get_teamcode_with_sequence
+
+
+    function get_teamcode_with_sequence(team_map, parent_pk, default_code){
         "use strict";
         //console.log(' --- get_teamcode_with_sequence --- ')
         //console.log('parent_pk: ', parent_pk)
-        // create new code with sequence 1 higher than existing code PR2019-12-28
-        // get scheme names of this order
-        let new_code = "", default_code = "", default_code_len = 0;
-        if(!!loc){
-            default_code = get_dict_value(loc, ["Team"]);
-            if(!!default_code){
-                default_code_len = default_code.length;
-                new_code = default_code;
-            }
-        }
+        // create new code with sequence character 1 higher than existing code PR2019-12-28
+        if (!default_code) {default_code = "Team" }
+        const default_code_len = default_code.length
+
         let count = 0, max_index = 64;
         // --- loop through team_map
         // lookup teams of this scheme that end woth a character, like 'Team C'
@@ -1863,14 +1899,12 @@
                                 max_index = index
         }}}}}};
 
-        // when 4 teans exists, ne team must have name 'Team E'
+        // when 4 teans exists, new team must have name 'Team E'
         let new_index = max_index + 1
         if (count + 65 > new_index) {
             new_index = count + 65
         }
-        new_code = default_code + " " + String.fromCharCode(new_index);
-        //console.log('new_code: ' , new_code)
-        return new_code;
+        return default_code + " " + String.fromCharCode(new_index);
     } ; // get_teamcode_with_sequence
 
     function get_teamcode_initial(team_code){
@@ -1892,7 +1926,7 @@
 
         //console.log('initial: ' , initial)
         return initial;
-    } ; // get_teamcode_with_sequence
+    } ; // get_teamcode_initial
 
 
 //=========  MSO_BtnShiftTeamClicked  ================ PR2020-01-05
@@ -1920,3 +1954,4 @@
             btn.classList.add("tsa_bc_white")
         };
     }
+

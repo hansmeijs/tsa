@@ -857,24 +857,19 @@
     //========= display_offset_time  ======== PR2019-10-22
     function display_offset_time (offset, timeformat, user_lang, skip_prefix_suffix, blank_when_zero) {
         //console.log("------ display_offset_time --------------")
+        //console.log("offset: ", offset, typeof offset)
 
-        //let do_display = false
-        //if (offset != null) {
-        //    if (offset === 0){
-        //        if (!blank_when_zero){
-        //            do_display = true
-        //        }
-        //    } else {
-        //        do_display = true
-        //    }
-        //}
-        // or short:
-        if(!blank_when_zero){blank_when_zero = false};
-        const do_display = (offset != null) && ((offset === 0 && !blank_when_zero) || (!!offset))
+        let do_display = false
+        if (offset != null && !!Number(offset)) {
+            if (offset === 0){
+                do_display = (!blank_when_zero)
+            } else {
+                do_display = true
+            }
+        }
 
         let display_time = "";
         if(do_display){
-
             let days_offset = Math.floor(offset/1440)  // - 90 (1.5 h)
             const remainder = offset - days_offset * 1440
             let curHours = Math.floor(remainder/60)
@@ -910,6 +905,7 @@
 
             display_time =  prefix + hour_text + delim + minute_text + suffix;
         }
+        //console.log("display_time: ", display_time, typeof display_time)
         return display_time;
     }  // display_offset_time
 
@@ -921,6 +917,10 @@
         // shiftname will be replaced by calculated shiftname if:
          // 1) cur_shift_code is empty 2) starts with '-' 3) starts with '<' or 4) first 2 characters are digits
 
+        //console.log( "offset_start: ", offset_start, typeof offset_start);
+        //console.log( "offset_end: ", offset_end, typeof offset_end);
+        //console.log( "time_duration: ", time_duration, typeof time_duration);
+        //console.log( "cur_shift_code: ", cur_shift_code, typeof cur_shift_code);
         const code_trimmed = (!!cur_shift_code) ? cur_shift_code.trim() : "";
         let may_override = false;
         let new_shift_code = null;

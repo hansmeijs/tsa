@@ -212,15 +212,15 @@
 .td_width_120 {
     width: 120px;
 }
-.td_width_100 {
-    width: 100px;
-}
 .td_width_110 {
     width: 110px;
 }
+.td_width_100 {
+    width: 100px;
+}
 .td_width_090 {
     width: 90px;
-    }
+}
 .td_width_hours {
     padding: 2px;
     width: 60px;

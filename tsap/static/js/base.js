@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }; //function SetMenubuttonActive()
 
 //=========  AddSubmenuButton  === PR2020-01-26
-    function AddSubmenuButton(el_div, a_innerText, a_function, a_mx, a_id, a_href) {
+    function AddSubmenuButton(el_div, a_innerText, a_function, classnames_list, a_id, a_href) {
         // console.log(" ---  AddSubmenuButton --- ");
         let el_a = document.createElement("a");
             if(!!a_id){el_a.setAttribute("id", a_id)};
@@ -87,7 +87,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!!a_href) {el_a.setAttribute("href", a_href)};
             el_a.innerText = a_innerText;
             if(!!a_function){el_a.addEventListener("click", a_function, false)};
-            if(!!a_mx){el_a.classList.add(a_mx)};
+            if (!!classnames_list) {
+                for (let i = 0, len = classnames_list.length; i < len; i++) {
+                    const classname = classnames_list[i];
+                    if(!!classname){
+                        el_a.classList.add(classname);
+                    }
+                }
+            }
             el_div.classList.add("pointer_show")
         el_div.appendChild(el_a);
     };//function AddSubmenuButton
@@ -316,8 +323,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function get_mapid_from_dict (dict) {
         let map_id = null;
         if(!isEmpty(dict)){
-            const pk_str = get_subdict_value_by_key(dict, "id", "pk").toString();
-            const tblName = get_subdict_value_by_key (dict, "id", "table");
+            const pk_str = get_dict_value(dict, ["id", "pk"]).toString();
+            const tblName = get_dict_value(dict, ["id", "table"]);
             map_id = tblName + "_" + pk_str;
         }
         return map_id
@@ -330,14 +337,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!!data_list) {
             for (let i = 0, len = data_list.length; i < len; i++) {
                 const item_dict = data_list[i];
-                const id_dict = get_dict_value_by_key(item_dict, "id");
-                const pk_str = get_dict_value_by_key(id_dict, "pk");
-                const table = get_dict_value_by_key(id_dict, "table");
+                const id_dict = get_dict_value(item_dict, ["id"]);
+                const pk_str = get_dict_value(id_dict, ["pk"]);
+                const table = get_dict_value(id_dict, ["table"]);
                 const map_id = get_map_id(table, pk_str);
                 data_map.set(map_id, item_dict);
                 if (calc_duration_sum){
-                    const duration = get_dict_value_by_key(item_dict, "timeduration");
-                    const teammember_count = get_dict_value_by_key(item_dict, "tm_count");
+                    const duration = get_dict_value(item_dict, ["timeduration"]);
+                    const teammember_count = get_dict_value(item_dict, ["tm_count"]);
                     if(!!duration && !!teammember_count){
                         const total_duration = duration * teammember_count;
                         duration_sum += duration * teammember_count;

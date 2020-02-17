@@ -22,7 +22,7 @@
     function OpenTimepicker(el_input, UploadTimepickerChanged, tp_dict, st_dict) {
         console.log("===  OpenTimepicker  =====");
         console.log( "tp_dict: ", tp_dict);
-        //console.log( "st_dict: ", st_dict);
+        console.log( "st_dict: ", st_dict);
 
         CalcMinMax(tp_dict)
 
@@ -743,6 +743,8 @@ function CalcMinMax(dict) {
         let date_str = null;
         if (fieldname === "breakduration"){
             date_str = st_dict["txt_break"]
+        } else if (fieldname === "timeduration"){
+            date_str = st_dict["txt_workhours"]
         } else {
             if(!!rosterdate){
                 let arr = rosterdate.split("-");

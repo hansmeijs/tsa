@@ -43,8 +43,6 @@
                 placeholder="{% trans 'Select absence' %}..."
                 readonly>
         </div>
-
-
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
@@ -128,6 +126,8 @@
                 </div>
             </div>
         </div>
+<!-- =================== MODAL CONFIRM  =================== -->
+        {% include 'includes/confirm.html' %}
 <!-- =================== MODAL PERIOD  =================== -->
         {% include 'includes/modselectperiod.html' %}
 <!-- =================== MODAL ROSTERDATE  =================== -->
@@ -197,7 +197,6 @@
         </div>
 <!-- =================== MODAL SELECT ORDER  ===================-->
         {% include 'includes/modselectorder.html' %}
-
 <!-- =================== MODAL ROSTER EMPLOYEE  =================== -->
         {% include 'includes/modrosteremployee.html' %}
 
@@ -323,6 +322,7 @@
             data-datalist_download_url="{% url 'datalist_download_url' %}"
             data-emplhour_upload_url="{% url 'emplhour_upload_url' %}"
             data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
+            data-settings_upload_url="{% url 'settings_upload_url' %}"
 
             data-err_msg01= "{% trans 'An error occurred.' %}"
 

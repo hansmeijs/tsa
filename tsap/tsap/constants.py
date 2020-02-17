@@ -371,27 +371,26 @@ COLDEF_ORDER = {LANG_EN: [
                             ]
                     }
 
-FIELDS_COMPANY = ('id', 'code', 'name')
+FIELDS_COMPANY = ('id', 'code', 'name', 'issystem', 'timezone', 'interval', 'timeformat', 'cat', 'billable', 'payperiods', 'billingperiods')
 
-FIELDS_CUSTOMER = ('id', 'company', 'cat', 'isabsence', 'code', 'name', 'identifier',
+FIELDS_CUSTOMER = ('id', 'company', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'identifier',
                     'contactname', 'address', 'zipcode', 'city', 'country',
-                   'email', 'telephone', 'interval', 'inactive')
+                   'email', 'telephone', 'interval', 'invoicedates', 'inactive')
 
-FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'billable', 'code', 'name', 'datefirst', 'datelast',
-                'contactname', 'address', 'zipcode', 'city', 'country',
-                'sequence', 'identifier', 'billable', 'priceratejson', 'invoicedates', 'taxcode', 'locked', 'inactive')
+FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'datefirst', 'datelast',
+                'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',
+                'billable', 'sequence', 'priceratejson', 'additionjson', 'invoicedates', 'taxcode', 'locked', 'inactive')
 
 FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
-                    'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
-                    'isbillable', 'isrestshift', 'shift', 'duration', 'status',
-                    'pricerate', 'additionrate', 'taxrate', 'amount', 'tax', 'locked')
+                    'billingdate', 'isbillable', 'isrestshift', 'shift', 'status', 'locked')
 
 FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence', 'isreplacement',
-                   'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
-                   'isrestshift', 'shift',
-                   'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',
-                   'wagerate', 'wagefactor', 'wage', 'pricerate', 'pricerate',
-                   'status', 'overlap', 'locked')
+                   'paydate', 'isrestshift', 'shift',
+                   'timestart', 'timeend', 'timeduration', 'breakduration',
+                   'plannedduration', 'billingduration',
+                   'wagerate', 'wagefactor', 'wage',
+                   'pricerate', 'additionrate', 'taxrate', 'amount', 'tax',
+                   'status', 'overlap', 'locked') # schemeitemid, teammemberid
 
 FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
                  'code', 'datefirst', 'datelast',
@@ -408,7 +407,7 @@ FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'bil
 FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
                    'namelast', 'namefirst', 'email', 'telephone', 'identifier',
                    'address', 'zipcode', 'city', 'country',
-                   'payrollcode', 'wagerate', 'wagecode', 'workhours', 'workdays', 'leavedays',
+                   'payrollcode', 'paydates', 'wagerate', 'wagecode', 'workhours', 'workdays', 'leavedays',
                    'priceratejson', 'additionjson', 'inactive', 'locked')
 
 # PR2019-12-20 Note: 'scheme' and 'order' are not model fields, but necessary for absence update

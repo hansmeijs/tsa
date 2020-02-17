@@ -304,16 +304,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if ("locale_dict" in response) {
                     loc = response["locale_dict"];
-                console.log("=======================loc: ", loc)
                     CreateSubmenu()
                     CreateTblModSelectPeriod();
                 }
                 if ("roster_period" in response) {
                     selected_roster_period = response["roster_period"];
-                    //console.log("selected_roster_period: ", selected_roster_period)
                     DisplayPeriod(selected_roster_period);
-
-
                 }
                 let fill_table = false, check_status = false;
                 if ("abscat_list" in response) {
@@ -330,14 +326,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if ("customer_list" in response) {
                     get_datamap(response["customer_list"], customer_map)
-
-                    //CreateSelectTableCustomers();
-
                 }
                 if ("order_list" in response) {
                     get_datamap(response["order_list"], order_map)
-                    // FillDatalistOrderXXX()
-                    //CreateSelectTableOrders();
                 }
 
                 if ("emplhour_list" in response) {
@@ -354,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 if ("quicksave" in response) {
-                    quicksave = get_subdict_value_by_key(response, "quicksave", "value", false);
+                    quicksave = get_dict_value(response, ["quicksave", "value"], false);
                     console.log("quicksave", quicksave)
                 }
 
@@ -393,10 +384,10 @@ document.addEventListener('DOMContentLoaded', function() {
         let headerrow = [loc.Date, loc.Customer, loc.Order, loc.Employee, loc.Shift,
                          loc.Start_time, loc.End_time, loc.Break, loc.Working_hours, loc.Status]
 
-        AddSubmenuButton(el_div, loc.menubtn_roster_create, function() {ModRosterdateOpen("create")}, "mx-2");
-        AddSubmenuButton(el_div, loc.menubtn_roster_delete, function() {ModRosterdateOpen("delete")}, "mx-2");
-        AddSubmenuButton( el_div, loc.menubtn_print_roster, function() { PrintReport()}, "mx-2");
-        AddSubmenuButton( el_div, loc.Export_to_Excel, function() { ExportToExcel()}, "mx-2");
+        AddSubmenuButton(el_div, loc.menubtn_roster_create, function() {ModRosterdateOpen("create")}, ["mx-2"]);
+        AddSubmenuButton(el_div, loc.menubtn_roster_delete, function() {ModRosterdateOpen("delete")}, ["mx-2"]);
+        AddSubmenuButton( el_div, loc.menubtn_print_roster, function() { PrintReport()}, ["mx-2"]);
+        AddSubmenuButton( el_div, loc.Export_to_Excel, function() { ExportToExcel()}, ["mx-2"]);
 
         el_submenu.classList.remove(cls_hide);
 
@@ -470,15 +461,9 @@ document.addEventListener('DOMContentLoaded', function() {
     } // FillSelectTable
 
     function HandleSelectTable() {
-
     }
     function HandleBtnClicked() {
-
     }
-
-
-
-
 //????????????????????????????????????????????????????????
 
 //========= FillTableRows  ====================================
@@ -498,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ppk_int = get_ppk_from_dict(item_dict)
 
 // get rosterdate to be used in addnew row
-                previous_rosterdate_dict = get_dict_value_by_key(item_dict, 'rosterdate')
+                previous_rosterdate_dict = get_dict_value(item_dict, ['rosterdate'])
                 // row_index = -1 (add to end),  is_new_item = false
                 tblRow = CreateTblRow(pk_int, ppk_int, -1, false)
                 UpdateTableRow("emplhour", tblRow, item_dict)
@@ -664,10 +649,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (is_new_item){el.addEventListener("change", function() {UploadElChanges(el)}, false )} } else
                 if (j === 3){
                     el.addEventListener("click", function() {ModEmployeeOpen(el)}, false )} else
-                if ([4, 6].indexOf( j ) > -1){
-                    el.addEventListener("click", function() {HandleTimepickerOpen(el)}, false)} else
-                if ([8, 9].indexOf( j ) > -1){
-                    // el.addEventListener("click", function() {OpenPopupHM(el)}, false )
+                if ([4, 6, 8, 9].indexOf( j ) > -1){
+                    el.addEventListener("click", function() {HandleTimepickerOpen(el)}, false)
                 };
 
 // --- add datalist_ to td orders, shifts todo: SHIFTS NOT WORKING YET
@@ -706,13 +689,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // el.classList.add("input_text"); // makes background transparent
                 if (j === 0) {
                     el.classList.add("input_popup_wdy");
-                } else if ([4, 6].indexOf( j ) > -1){
+                } else if ([4, 6, 8, 9].indexOf( j ) > -1){
                     el.classList.add("input_timepicker")
-                } else if ([8, 9].indexOf( j ) > -1){
-                    //el.classList.add("input_popup_hm")
-                    // TODO change class
-                    el.classList.add("input_text"); // makes background transparent
-                    el.classList.add("text_align_right")
                 } else {
                     el.classList.add("input_text"); // makes background transparent
                 };
@@ -737,7 +715,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!!item_dict && !!tblRow) {
 
 // get temp_pk_str and id_pk from item_dict["id"]
-            const id_dict = get_dict_value_by_key (item_dict, "id");
+            const id_dict = get_dict_value (item_dict, ["id"]);
             //console.log("id_dict", id_dict);
 
             let temp_pk_str, msg_err, is_created = false, is_deleted = false;
@@ -763,8 +741,8 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (is_created){
                 let id_str = get_attr_from_el_str(tblRow,"id")
         // if 'created' exists then 'pk' also exists in id_dict
-                const pk_int = get_dict_value_by_key(id_dict, "pk")
-                const ppk_int = get_dict_value_by_key(id_dict, "ppk")
+                const pk_int = get_dict_value(id_dict, ["pk"])
+                const ppk_int = get_dict_value(id_dict, ["ppk"])
                 const map_id = get_map_id("emplhour", pk_int);
 
                //console.log("id_str", id_str, typeof id_str);
@@ -806,7 +784,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- lookup field in item_dict, get data from field_dict
                         fieldname = get_attr_from_el(el_input, "data-field");
                         if (fieldname in item_dict){
-                            field_dict = get_dict_value_by_key (item_dict, fieldname);
+                            field_dict = get_dict_value (item_dict, [fieldname]);
                             //console.log("fieldname: ", fieldname)
                             //console.log("field_dict: ", field_dict)
                             const is_updated = ("updated" in field_dict);
@@ -830,7 +808,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     el_input.disabled = true
                                 }
                             } else if (fieldname === "shift") {
-                                let value = get_dict_value_by_key (field_dict, "code")
+                                let value = get_dict_value (field_dict, ["code"])
                                 if(!!value){el_input.value = value} else {el_input.value = null}
 
                             } else if (["orderhour", "employee"].indexOf( fieldname ) > -1){
@@ -843,7 +821,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                             } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
                                 // format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)
-                                const display_text = get_dict_value_by_key(field_dict, "display")
+                                const display_text = get_dict_value(field_dict, ["display"])
                                 el_input.value = display_text
                                 
                             } else if (["timeduration", "breakduration"].indexOf( fieldname ) > -1){
@@ -855,7 +833,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         "", "", "start time confirmed", "end time confirmed", "start- and endtime confirmed", "locked")
 
                                 // put status also in tblRow
-                                const status_int = parseInt(get_subdict_value_by_key(item_dict, "status", "value"))
+                                const status_int = parseInt(get_dict_value(item_dict, ["status", "value"]))
                                 tblRow.setAttribute("data-status", status_int)
 
                             } else if (fieldname === "overlap"){
@@ -869,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else {
                             // "confirmstart", "confirmend" are not as fieldname in item_dict
                             if (["confirmstart", "confirmend"].indexOf( fieldname ) > -1){
-                                const status_dict = get_dict_value_by_key (item_dict, "status");
+                                const status_dict = get_dict_value (item_dict, ["status"]);
                                 format_confirmation_element (el_input, status_dict, fieldname,
                                     imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_questionmark, imgsrc_warning,
                                     "title_stat00", "please confirm start time", "please confirm end time", "start time confirmation past due", "end time confirmation past due" )
@@ -890,11 +868,11 @@ document.addEventListener('DOMContentLoaded', function() {
         let data_field = get_attr_from_el_str(el, "data-field")
         const fieldname = (data_field === "confirmstart") ? "timestart" : "timeend"
         const img_src = (data_field === "confirmstart") ? imgsrc_stat02 : imgsrc_stat03;
-        const field_dict = get_dict_value_by_key(item_dict, fieldname)
+        const field_dict = get_dict_value(item_dict, [fieldname])
 
         const field_is_locked = ("locked" in field_dict)
         const has_overlap = ("overlap" in field_dict)
-        const has_no_employee = (!get_subdict_value_by_key(item_dict, "employee", "pk"))
+        const has_no_employee = (!get_dict_value(item_dict, ["employee", "pk"]))
         const locked = (field_is_locked || has_overlap || has_no_employee);
 
         if(!locked){
@@ -976,7 +954,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // called when date input changed
 
 // reset mod_upload_dict, keep 'mode'
-        const mode = get_dict_value_by_key(mod_upload_dict, "mode")
+        const mode = get_dict_value(mod_upload_dict, ["mode"])
         const is_delete = (mode === "delete")
         mod_upload_dict = {"mode": mode}
         //console.log("vv mod_upload_dict: ", mod_upload_dict);
@@ -1018,7 +996,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function ModRosterdateSave() {
         console.log("=== ModRosterdateSave =========");
         //console.log("mod_upload_dict", mod_upload_dict);
-        const mode = get_dict_value_by_key(mod_upload_dict, "mode")
+        const mode = get_dict_value(mod_upload_dict, ["mode"])
         const is_delete = (mode === "delete")
         // mod_upload_dict: {mode: "create", rosterdate: "2019-12-20", confirmed: 0, count: 0}
 
@@ -1069,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // remove input field readonly
         let el_input = document.getElementById("id_mod_rosterdate_input");
-        el_input.value = get_dict_value_by_key(response_dict, "rosterdate");
+        el_input.value = get_dict_value(response_dict, ["rosterdate"]);
         el_input.readOnly = false;
 
 // set info textboxes
@@ -1082,13 +1060,13 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("=== ModRosterdateFinished =========" );
         console.log("response_dict", response_dict );
         // rosterdate: {rosterdate: {…}, logfile:
-        const mode = get_dict_value_by_key(response_dict,"mode")
+        const mode = get_dict_value(response_dict,["mode"])
         const is_delete = (mode === "delete")
         console.log("mode", mode );
         console.log("is_delete", is_delete );
-        const msg_01_txt = get_dict_value_by_key(response_dict,"msg_01")
-        const msg_02_txt = get_dict_value_by_key(response_dict, "msg_02")
-        const msg_03_txt = get_dict_value_by_key(response_dict, "msg_03")
+        const msg_01_txt = get_dict_value(response_dict,["msg_01"])
+        const msg_02_txt = get_dict_value(response_dict, ["msg_02"])
+        const msg_03_txt = get_dict_value(response_dict, ["msg_03"])
 // hide loader
         document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
 
@@ -1110,12 +1088,12 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(" -----  set_label_and_infoboxes   ----")
 
 // set info textboxes
-        const mode = get_dict_value_by_key(response_dict, "mode");
+        const mode = get_dict_value(response_dict, ["mode"]);
         const is_delete = (mode === "delete");
 
-        const rosterdate_iso = get_dict_value_by_key(response_dict,"rosterdate");
-        const count = get_dict_value_by_key(response_dict,"count");
-        const confirmed = get_dict_value_by_key(response_dict,"confirmed");
+        const rosterdate_iso = get_dict_value(response_dict, ["rosterdate"]);
+        const count = get_dict_value(response_dict, ["count"]);
+        const confirmed = get_dict_value(response_dict, ["confirmed"]);
 
         let text_list = ["", "", "", ""];
         // set value of input label
@@ -1217,10 +1195,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById("id_mod_employee_filter_employee").removeAttribute("tsa_btn_selected")
 
     // get cur_employee_pk from field employee in emplhour_map
-            const cur_employee_pk =  get_subdict_value_by_key(emplh_dict,"employee", "pk")
+            const cur_employee_pk =  get_dict_value(emplh_dict,["employee", "pk"])
 
     // put values in el_mod_employee_body
-            const pk_int = get_subdict_value_by_key(emplh_dict, "id", "pk")
+            const pk_int = get_dict_value(emplh_dict, ["id", "pk"])
             const table = "emplhour";
             const map_id = get_map_id(table, pk_int);
             //console.log("map_id:", map_id, typeof map_id);
@@ -1278,7 +1256,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log("row_index", row_index);
 
         let emplhour_dict = get_mapdict_from_datamap_by_id(emplhour_map, map_id);
-        let id_dict = get_dict_value_by_key(emplhour_dict, "id")
+        let id_dict = get_dict_value(emplhour_dict, ["id"])
         id_dict["mode"] = btn_name
         id_dict["rowindex"] = row_index
         //console.log("emplhour_dict", emplhour_dict);
@@ -1594,7 +1572,7 @@ document.addEventListener('DOMContentLoaded', function() {
             for (const [map_id, item_dict] of employee_map.entries()) {
                 const pk_int = get_pk_from_dict(item_dict)
                 const ppk_int = get_ppk_from_dict(item_dict)
-                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
+                const code_value = get_dict_value(item_dict, ["code", "value"], "")
 
 //- skip selected employee
                 if (pk_int !== selected_employee_pk){
@@ -1615,7 +1593,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // - add first td to tblRow.
                     // index -1 results in that the new cell will be inserted at the last position.
-                    let code = get_subdict_value_by_key (item_dict, "code", "value", "")
+                    let code = get_dict_value (item_dict, ["code", "value"], "")
                     let td = tblRow.insertCell(-1);
 
 // --- add a element to td., necessary to get same structure as item_table, used for filtering
@@ -1736,13 +1714,13 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- loop through replacement_map
             for (const [map_id, item_dict] of replacement_map.entries()) {
                 const pk_int = get_pk_from_dict(item_dict)
-                const rosterdate = get_dict_value_by_key(item_dict, "rosterdate")
+                const rosterdate = get_dict_value(item_dict, ["rosterdate"])
                 if (rosterdate === selected_rosterdate){
-                    const cust_order_shift = get_dict_value_by_key(item_dict, "cust_order_shift")
-                    const eplh_pk_str = get_dict_value_by_key(item_dict, "eplh_pk")
-                    const reployee_pk_str = get_dict_value_by_key(item_dict, "reployee_pk")
-                    const employee_pk_str = get_dict_value_by_key(item_dict, "employee_pk")
-                    const team_pk_str = get_dict_value_by_key(item_dict, "team_pk")
+                    const cust_order_shift = get_dict_value(item_dict, ["cust_order_shift"])
+                    const eplh_pk_str = get_dict_value(item_dict, ["eplh_pk"])
+                    const reployee_pk_str = get_dict_value(item_dict, ["reployee_pk"])
+                    const employee_pk_str = get_dict_value(item_dict, ["employee_pk"])
+                    const team_pk_str = get_dict_value(item_dict, ["team_pk"])
 
                     option_text += "<option "; //
                     if (!!rosterdate) {option_text += " data-rosterdate=\"" + rosterdate + "\""};
@@ -2005,12 +1983,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const cust_cat = get_cat_from_dict(cust_dict);
 
             if (cust_cat < 512){  // SHIFT_CAT_0512_ABSENCE
-                const cust_code = get_subdict_value_by_key(cust_dict, "code", "value", "")
+                const cust_code = get_dict_value(cust_dict, ["code", "value"], "")
                 for (const [ord_map_id, ord_dict] of order_map.entries()) {
                     const ord_pk_int = get_pk_from_dict(ord_dict)
                     const ord_ppk_int = get_ppk_from_dict(ord_dict)
                     if(ord_ppk_int === cust_pk_int){
-                        const ord_code = get_subdict_value_by_key (ord_dict, "code", "value", "")
+                        const ord_code = get_dict_value (ord_dict, ["code", "value"], "")
                         const order = cust_code + " - " + ord_code;
 
                         let el = document.createElement('option');
@@ -2038,9 +2016,9 @@ document.addEventListener('DOMContentLoaded', function() {
         tBody.removeAttribute("data-value");
         let interval = 0, overlap_prev = 0, overlap_next = 0;
         if (!isEmpty(selected_roster_period)){
-            interval = get_dict_value_by_key(selected_roster_period, "interval", 0)
-            overlap_prev = get_dict_value_by_key(selected_roster_period, "overlap_prev", 0)
-            overlap_next = get_dict_value_by_key(selected_roster_period, "overlap_next", 0)
+            interval = get_dict_value(selected_roster_period, ["interval"], 0)
+            overlap_prev = get_dict_value(selected_roster_period, ["overlap_prev"], 0)
+            overlap_next = get_dict_value(selected_roster_period, ["overlap_next"], 0)
         }  //  if (!isEmpty(selected_roster_period))
 
     // highligh selected period in table, put value in  data-value of tBody
@@ -2125,7 +2103,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  change background of el_input
         // first remove selected color from all imput popups
-        elements = document.getElementsByClassName("el_input");
+        let elements = document.getElementsByClassName("el_input");
          popupbox_removebackground("input_popup_wdy");
         el_input.classList.add("pop_background");
 
@@ -2371,7 +2349,7 @@ console.log("===  function HandlePopupWdySave =========");
 
     // highligh selected period in table, put period_tag in data-tag of tblRow
         let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
-        const period_tag = get_dict_value_by_key(selected_roster_period, "period_tag")
+        const period_tag = get_dict_value(selected_roster_period, ["period_tag"])
         for (let i = 0, tblRow, row_tag; tblRow = tBody.rows[i]; i++) {
             row_tag = get_attr_from_el(tblRow, "data-tag")
             if (period_tag === row_tag){
@@ -2385,8 +2363,8 @@ console.log("===  function HandlePopupWdySave =========");
         const is_custom_period = (period_tag === "other")
         let el_datefirst = document.getElementById("id_mod_period_datefirst")
         let el_datelast = document.getElementById("id_mod_period_datelast")
-        el_datefirst.value = get_dict_value_by_key(selected_roster_period, "rosterdatefirst")
-        el_datelast.value = get_dict_value_by_key(selected_roster_period, "rosterdatelast")
+        el_datefirst.value = get_dict_value(selected_roster_period, ["rosterdatefirst"])
+        el_datelast.value = get_dict_value(selected_roster_period, ["rosterdatelast"])
 
     // set min max of input fields
         ModPeriodDateChanged("datefirst");
@@ -2396,7 +2374,7 @@ console.log("===  function HandlePopupWdySave =========");
         el_datelast.disabled = !is_custom_period
 
     // set value of extend period input box
-        const extend_offset = get_dict_value_by_key(selected_roster_period, "extend_offset", 0)
+        const extend_offset = get_dict_value(selected_roster_period, ["extend_offset"], 0)
         let el_extend = document.getElementById("id_mod_period_extend")
         for (let i = 0, option, value; i < el_extend.options.length; i++) {
             value = Number(el_extend.options[i].value);
@@ -2469,7 +2447,7 @@ console.log("===  function HandlePopupWdySave =========");
     function ModPeriodSave() {
         console.log("===  ModPeriodSave =========");
 
-        const period_tag = get_dict_value_by_key(mod_upload_dict, "period_tag", "today")
+        const period_tag = get_dict_value(mod_upload_dict, ["period_tag"], "today")
         const extend_index = document.getElementById("id_mod_period_extend").selectedIndex
         if(extend_index < 0 ){extend_index = 0}
         // extend_index 0='None ,1='1 hour', 2='2 hours', 3='3 hours', 4='6 hours', 5='12 hours', 6='24 hours'
@@ -2480,21 +2458,25 @@ console.log("===  function HandlePopupWdySave =========");
                        (extend_index=== 5) ? 720 :
                        (extend_index=== 6) ? 1440 : 0;
 
-        mod_upload_dict = {"page": "roster", "period_tag": period_tag, "extend_index": extend_index, "extend_offset": extend_offset};
+        mod_upload_dict = {
+            page: "roster",
+            period_tag: period_tag,
+            extend_index: extend_index,
+            extend_offset: extend_offset};
         //console.log("new mod_upload_dict:", mod_upload_dict);
 
         // only save dates when tag = "other"
         if(period_tag == "other"){
             const datefirst = document.getElementById("id_mod_period_datefirst").value
             const datelast = document.getElementById("id_mod_period_datelast").value
-            if (!!datefirst) {mod_upload_dict["periodstart"] = datefirst};
-            if (!!datelast) {mod_upload_dict["periodend"] = datelast};
+            if (!!datefirst) {mod_upload_dict.periodstart = datefirst};
+            if (!!datelast) {mod_upload_dict.periodend = datelast};
         }
 
         // send 'now' as array to server, so 'now' of local computer will be used
         const now = new Date();
         const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()]
-        mod_upload_dict["now"] = now_arr;
+        mod_upload_dict.now = now_arr;
 
 // ---  upload new setting
         let emplhour_dict = {
@@ -2520,8 +2502,8 @@ console.log("===  function HandlePopupWdySave =========");
         console.log( "===== DisplayPeriod  ========= ");
 
         if (!isEmpty(selected_roster_period)){
-            const period_tag = get_dict_value_by_key(selected_roster_period, "period_tag");
-            const extend_offset = get_dict_value_by_key(selected_roster_period, "extend_offset", 0);
+            const period_tag = get_dict_value(selected_roster_period, ["period_tag"]);
+            const extend_offset = get_dict_value(selected_roster_period, ["extend_offset"], 0);
 
             let period_text = null, default_text = null
             for(let i = 0, item, len = loc.period_select_list.length; i < len; i++){
@@ -2540,8 +2522,8 @@ console.log("===  function HandlePopupWdySave =========");
             if(!extend_text){extend_text = extend_default_text}
 
             if(period_tag === "other"){
-                const rosterdatefirst = get_dict_value_by_key(selected_roster_period, "rosterdatefirst");
-                const rosterdatelast = get_dict_value_by_key(selected_roster_period, "rosterdatelast");
+                const rosterdatefirst = get_dict_value(selected_roster_period, ["rosterdatefirst"]);
+                const rosterdatelast = get_dict_value(selected_roster_period, ["rosterdatelast"]);
                 if(rosterdatefirst === rosterdatelast) {
                     period_text =  format_date_iso (rosterdatefirst, month_list, weekday_list, false, false, user_lang);
                 } else {
@@ -2568,7 +2550,7 @@ console.log("===  function HandlePopupWdySave =========");
             selected_isabsence = get_dict_value(selected_roster_period, ["isabsence"]) //  can have value null, false or true
 
             // put text in header of this page
-            const display_period = get_dict_value_by_key(selected_roster_period, "period_display", "")
+            const display_period = get_dict_value(selected_roster_period, ["period_display"], "")
             document.getElementById("id_hdr_period").innerText = display_period
 
             console.log( "mod_upload_dict");
@@ -2745,7 +2727,6 @@ console.log("===  function HandlePopupWdySave =========");
         }
     }  // ModSelectOrder_SelectCustomer
 
-
 //=========  ModSelectOrder_FillSelectOrder  ================ PR2020-02-07
     function ModSelectOrder_FillSelectOrder() {
         console.log( "===== ModSelectOrder_FillSelectOrder ========= ");
@@ -2906,11 +2887,11 @@ console.log("===  function HandlePopupWdySave =========");
 
         if(!!mod_upload_dict.customer_pk){
             const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", mod_upload_dict.customer_pk)
-            const customer_code = get_subdict_value_by_key(customer_dict, "code", "value", "");
+            const customer_code = get_dict_value(customer_dict, ["code", "value"], "");
             let order_code = null;
             if(!!mod_upload_dict.order_pk){
                 const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", mod_upload_dict.order_pk)
-                order_code = get_subdict_value_by_key(order_dict, "code", "value");
+                order_code = get_dict_value(order_dict, ["code", "value"]);
             } else {
                 order_code = loc.All_orders.toLowerCase()
             }
@@ -2930,9 +2911,9 @@ console.log("===  function HandlePopupWdySave =========");
 
     }  // ModSelectOrder_headertext
 
-    //========= ModSelectOrder_FillOptionsAbsence  ==================================== PR2020-01-29
+//========= ModSelectOrder_FillOptionsAbsence  ==================================== PR2020-01-29
     function ModSelectOrder_FillOptionsAbsence() {
-        //console.log( "=== ModSelectOrder_FillOptionsAbsence  ", option_list);
+        //console.log( "=== ModSelectOrder_FillOptionsAbsence  ");
 
 // ---  fill options of select box
         let curOption = 0
@@ -2946,23 +2927,19 @@ console.log("===  function HandlePopupWdySave =========");
         const option_list = [loc.Also_show_absence,
                              loc.Dont_show_absence,
                              loc.Show_absence_only]
-
         let option_text = "";
         for (let i = 0, len = option_list.length; i < len; i++) {
-            let dict = option_list[i];
             option_text += "<option value=\"" + i.toString() + "\"";
-            if (dict.pk === curOption) {option_text += " selected=true" };
+            if (i === curOption) {option_text += " selected=true" };
             option_text +=  ">" + option_list[i] + "</option>";
         }  // for (let i = 0, len = option_list.length;
         el_modorder_select_absence.innerHTML = option_text;
 
     }  // ModSelectOrder_FillOptionsAbsence
+// +++++++++++++++++ END MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
 
-
-
-// ??????????
 //=========  ModOrderSelectCustomer  ================  PR2019-11-16
-    function ModOrderSelectCustomer(tr_clicked, selected_index) {
+    function ModOrderSelectCustomerXXX(tr_clicked, selected_index) {
         //console.log( "===== ModOrderSelectCustomer ========= ", selected_index);
         if(!!tr_clicked) {
             // ---  deselect all highlighted rows, highlight selected row
@@ -3002,7 +2979,7 @@ console.log("===  function HandlePopupWdySave =========");
     }  // ModOrderSelectCustomer
 
 //=========  ModOrderSave  ================ PR2019-11-16
-    function ModOrderSave() {
+    function ModOrderSaveXXX() {
         //console.log("===  ModOrderSave =========");
 
         selected_roster_period = {}
@@ -3049,7 +3026,7 @@ console.log("===  function HandlePopupWdySave =========");
 
         let item_dict = get_itemdict_from_datamap_by_el(el_input, emplhour_map)
         let id_dict = item_dict["id"];
-        console.log("item_dict", item_dict) ;
+    console.log("item_dict", item_dict) ;
 
 // get tr_selected
         let tr_selected = get_tablerow_selected(el_input)
@@ -3057,11 +3034,10 @@ console.log("===  function HandlePopupWdySave =========");
 // get values from el_input
         const data_field = get_attr_from_el(el_input, "data-field");
 
-// get status from field status, not from confirm satrt/end
-        const status_sum = get_subdict_value_by_key(item_dict,"status", "value")
+// get status from field status, not from confirm start/end
+        const status_sum = get_dict_value(item_dict, ["status", "value"])
         console.log("status_sum", status_sum, typeof status_sum)
 
-        let header_text = "Confirm shift";
         let btn_save_text = "Confirm";
         let time_label = "Time:"
         let time_col_index = 0
@@ -3074,18 +3050,17 @@ console.log("===  function HandlePopupWdySave =========");
         // STATUS_16_QUESTION = 16
 
         const allow_lock_status = (status_sum < 16)  // STATUS_16_QUESTION = 16
-        console.log("allow_lock_status", allow_lock_status)
         const status_locked = status_found_in_statussum(8, status_sum)
-        console.log("status_locked", status_locked)
-
         const fieldname = (data_field === "confirmstart") ? "timestart" : "timeend"
-        const field_dict = get_dict_value_by_key(item_dict, fieldname)
+        const field_dict = get_dict_value(item_dict, [fieldname])
+            const field_is_locked = ("locked" in field_dict)
+            const field_is_confirmed = ("confirmed" in field_dict)
+            const has_overlap = ("overlap" in field_dict)
+        const has_no_employee = (!get_dict_value(item_dict, ["employee", "pk"]))
+        const has_no_order = (!get_dict_value(item_dict, ["orderhour", "ppk"]))
 
-
-        const field_is_locked = ("locked" in field_dict)
-        const field_is_confirmed = ("confirmed" in field_dict)
-        const has_overlap = ("overlap" in field_dict)
-        const has_no_employee = (!get_subdict_value_by_key(item_dict, "employee", "pk"))
+        console.log("allow_lock_status", allow_lock_status)
+        console.log("status_locked", status_locked)
 
         mod_upload_dict = {id: id_dict,
                             fieldname: fieldname,
@@ -3093,14 +3068,15 @@ console.log("===  function HandlePopupWdySave =========");
                             confirmed: field_is_confirmed}
         console.log("mod_upload_dict", mod_upload_dict)
 
+        let header_text = null;
         if (data_field === "confirmstart") {
-            header_text = (field_is_confirmed) ? "Undo confirmation" : "Confirm start of shift";
-            btn_save_text = (field_is_confirmed) ? "Undo" : "Confirm";
+            header_text = (field_is_confirmed) ? loc.Undo_confirmation : loc.Confirm_start_of_shift;
+            btn_save_text = (field_is_confirmed) ? loc.Undo : loc.Confirm;
             time_label = "Start time:"
             time_col_index = 4
         } else if (data_field === "confirmend") {
-            header_text = (field_is_confirmed) ? "Undo confirmation" : "Confirm end of shift";
-            btn_save_text = (field_is_confirmed) ? "Undo" : "Confirm";
+            header_text = (field_is_confirmed) ? loc.Undo_confirmation : loc.Confirm_end_of_shift;
+            btn_save_text = (field_is_confirmed) ? loc.Undo : loc.Confirm;
             time_label = "End time:"
             time_col_index = 6
         } else if (data_field === "status") {
@@ -3116,11 +3092,11 @@ console.log("===  function HandlePopupWdySave =========");
             time_label = ""
             time_col_index = 9
         }
-        console.log(".........................is_field_status", is_field_status)
-        console.log(".........................field_is_locked", field_is_locked)
-        console.log(".........................has_overlap", has_overlap)
-        console.log(".........................has_no_employee", has_no_employee)
-        console.log(".........................field_is_confirmed", field_is_confirmed)
+        console.log("is_field_status", is_field_status)
+        console.log("field_is_locked", field_is_locked)
+        console.log("has_overlap", has_overlap)
+        console.log("has_no_employee", has_no_employee)
+        console.log("field_is_confirmed", field_is_confirmed)
 
 // don't open modal when locked and confirmstart / confirmend
         let allow_open = false;
@@ -3132,7 +3108,7 @@ console.log("===  function HandlePopupWdySave =========");
             if (!field_is_locked){
                 // when field is not confirmed: can only confirm when has employee and has no overlap:
                 //TODO add user permission
-                if (!field_is_confirmed && !has_overlap && !has_no_employee) {
+                if (!field_is_confirmed && !has_overlap) {
                     allow_open = true;
                 } else {
                 // when field is not confirmed: can undo, also when has_overlap or has_no_employee (in case not allowing confirmation has gone wrong)
@@ -3141,15 +3117,12 @@ console.log("===  function HandlePopupWdySave =========");
             }
         }
 
-        console.log(".........................allow_open", allow_open)
-        if(allow_open) {
-
+        if (allow_open) {
 // put values in el_body
             let el_body = document.getElementById("id_mod_status_body")
-            el_body.setAttribute("data-table", get_dict_value_by_key(id_dict, "table"));
-            el_body.setAttribute("data-pk", get_dict_value_by_key(id_dict, "pk"));
-            el_body.setAttribute("data-ppk", get_dict_value_by_key(id_dict, "ppk"));
-
+            el_body.setAttribute("data-table", get_dict_value(id_dict, ["table"]));
+            el_body.setAttribute("data-pk", get_dict_value(id_dict, ["pk"]));
+            el_body.setAttribute("data-ppk", get_dict_value(id_dict, ["ppk"]));
             el_body.setAttribute("data-field", data_field);
             el_body.setAttribute("data-value", status_sum);
             el_body.setAttribute("data-confirmed", field_is_confirmed);
@@ -3157,45 +3130,51 @@ console.log("===  function HandlePopupWdySave =========");
             document.getElementById("id_mod_status_header").innerText = header_text
             document.getElementById("id_mod_status_time_label").innerText = time_label
 
-            let el_order = document.getElementById("id_mod_status_order");
-            const order = get_subdict_value_by_key(item_dict,"orderhour", "value")
-            if(!!order){el_order.innerText = order} else {el_order.innerText = null};
+            const customer_order_code = get_dict_value(item_dict, ["orderhour", "code"])
+            document.getElementById("id_mod_status_order").innerText = customer_order_code;
 
-            let el_shift = document.getElementById("id_mod_status_shift");
-
-            let el_employee = document.getElementById("id_mod_status_employee");
-            el_employee.innerText = get_subdict_value_by_key(item_dict, "employee", "value")
-
-            let el_time = document.getElementById("id_mod_status_time");
+            const employee_code = get_dict_value(item_dict, ["employee", "code"])
+            document.getElementById("id_mod_status_employee").innerText = employee_code;
 
             const shift = tr_selected.cells[2].firstChild.value
+            let el_shift = document.getElementById("id_mod_status_shift");
             if(!!shift){el_shift.innerText = shift} else {el_shift.innerText = null};
-            const employee = tr_selected.cells[3].firstChild.value
-            const time = tr_selected.cells[time_col_index].firstChild.title
-            if(!!time){el_time.innerText = time} else {el_time.innerText = null};
 
-            let el_msg = document.getElementById("id_mod_status_ftr_msg")
-            if(!order){
-                el_msg.innerText = "Please enter an order"
-            } else if(!employee && !is_field_status){
-                el_msg.innerText = "Please enter an employee"
-            } else if(!time && !is_field_status){
-                el_msg.innerText = "Please enter a time"
-            } else  {
-                el_msg.innerText = null
+            const el_time_col = tr_selected.cells[time_col_index].firstChild
+            const time_display =el_time_col.value;
+
+            let el_mod_status_time = document.getElementById("id_mod_status_time");
+            el_mod_status_time.innerText = (!!time_display) ? time_display : null;
+
+            let field_text = null;
+            if(has_no_order){
+                field_text = loc.an_order;
+            } else if(has_no_employee && !is_field_status){
+                field_text = loc.an_employee;
+            } else if(!time_display && !is_field_status){
+                field_text = (fieldname === "timestart") ? loc.a_starttime : loc.an_endtime;
             }
-            let btn_save = document.getElementById("id_mod_status_btn_save")
-            const enabled = (allow_lock_status) || (!!order && !!employee && !!time)
 
-            btn_save.disabled = !enabled
-            btn_save.innerText = btn_save_text
-
-            let el_mod_status_note = document.getElementById("id_mod_status_note")
-
+            if (allow_lock_status && !field_text) {
     // ---  show modal
-            $("#id_mod_status").modal({backdrop: true});
-        }
-}; // function ModalStatusOpen
+                $("#id_mod_status").modal({backdrop: true});
+            } else {
+// ---  show modal confirm with message 'First select employee'
+                document.getElementById("id_confirm_header").innerText = loc.Confirm + " " + loc.Shift.toLowerCase();
+                document.getElementById("id_confirm_msg01").innerText = loc.err_confirm_01 + field_text + loc.err_confirm_02;
+                document.getElementById("id_confirm_msg02").innerText = null;
+                document.getElementById("id_confirm_msg03").innerText = null;
+
+                let el_btn_cancel = document.getElementById("id_confirm_btn_cancel");
+                el_btn_cancel.classList.add(cls_hide)
+                let el_btn_save = document.getElementById("id_confirm_btn_save");
+                el_btn_save.innerText = loc.Close;
+                setTimeout(function() {el_btn_save.focus()}, 50);
+
+                 $("#id_mod_confirm").modal({backdrop: true});
+             }  // if (allow_lock_status) || (!field_text) {
+        };  // if (allow_open) {
+    }; // function ModalStatusOpen
 
 //=========  ModalStatusSave  ================ PR2019-07-11
     function ModalStatusSave() {
@@ -3206,8 +3185,12 @@ console.log("===  function HandlePopupWdySave =========");
         const tblName = get_attr_from_el(el_body, "data-table")
         const data_ppk = get_attr_from_el(el_body, "data-ppk")
         const data_field = get_attr_from_el(el_body, "data-field")
-        const field_is_confirmed = get_attr_from_el(el_body, "data-confirmed", false)
+        const field_is_confirmed = (get_attr_from_el(el_body, "data-confirmed", false) === "true")
         const status_value = get_attr_from_el_int(el_body, "data-value")
+
+        console.log("el_body: ", el_body);
+        console.log("field_is_confirmed: ", field_is_confirmed);
+        console.log("data_field: ", data_field);
 
         const data_pk = get_attr_from_el(el_body, "data-pk")
         let tr_changed = document.getElementById(data_pk)
@@ -3215,26 +3198,36 @@ console.log("===  function HandlePopupWdySave =========");
         const id_dict = get_iddict_from_element(el_body);;
         let upload_dict = {"id": id_dict}
 
+        console.log("---------------status_value: ", status_value);
+        console.log("---------------data_field: ", data_field);
+        console.log("---------------field_is_confirmed: ", field_is_confirmed, typeof field_is_confirmed);
         let status_dict = {};
         if(data_field === "confirmstart"){
             if (field_is_confirmed) {
                 status_dict = {"value": 2, "remove": true, "update": true}  // STATUS_02_START_CONFIRMED = 2
+                console.log("confirmstart field_is_confirmed ", status_dict);
             } else {
                 status_dict = {"value": 2, "update": true}  // STATUS_02_START_CONFIRMED = 2
+                console.log("confirmstart field_is_NOT confirmed ", status_dict);
             }
         } else if(data_field === "confirmend"){
             if (field_is_confirmed) {
                  status_dict = {"value": 4, "remove": true, "update": true}  // STATUS_04_END_CONFIRMED = 4
+                console.log("confirmend field_is_confirmed ", status_dict);
             } else {
                  status_dict = {"value": 4, "update": true}  // STATUS_04_END_CONFIRMED = 4
+                console.log("confirmend field_is_NOT_confirmed ", status_dict);
             }
         } else if(data_field === "status"){
             if(status_value >= 8){
                 status_dict = {"value": 8, "remove": true, "update": true}  // STATUS_08_LOCKED = 8
+                console.log("status status_value >= 8 ", status_dict);
             } else {
                 status_dict = {"value": 8, "update": true}   // STATUS_08_LOCKED = 8
+                console.log("status status_value < 8 ", status_dict);
             }
         }
+        console.log("---------------status_dict: ", status_dict);
         upload_dict["status"] = status_dict
 
         $("#id_mod_status").modal("hide");
@@ -3261,14 +3254,13 @@ console.log("===  function HandlePopupWdySave =========");
 
                     if ("item_update" in response) {
                         let item_dict =response["item_update"]
-                        const tblName = get_subdict_value_by_key (item_dict, "id", "table", "")
+                        const tblName = get_dict_value (item_dict, ["id", "table"], "")
 
-                        console.log("ooo UpdateTableRow ooo");
                         UpdateTableRow("emplhour", tr_changed, item_dict)
                         // item_update: {employee: {pk: 152, value: "Chrousjeanda", updated: true},
                         //id: {parent_pk: 126, table: "teammembers", created: true, pk: 57, temp_pk: "new_4"}
                         //team: {pk: 126, value: "A", updated: true}
-                        const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
+                        const is_created = get_dict_value (item_dict, ["id", "created"], false)
                         if (is_created){
 // add new empty row
                     console.log( "UploadTblrowChanged >>> add new empty row");
@@ -3280,7 +3272,7 @@ console.log("===  function HandlePopupWdySave =========");
                             new_dict["id"] = {"pk": pk_new, "ppk": parent_pk, "temp_pk": pk_new}
 
                             if (tblName === "teammembers"){
-                                const team_code = get_subdict_value_by_key (item_dict, "team", "value")
+                                const team_code = get_dict_value (item_dict, ["team", "value"])
                                 new_dict["team"] = {"pk": parent_pk, "value": team_code}
                             }
                             // row_index = -1 (add to end), is_new_item = true
@@ -3319,18 +3311,18 @@ console.log("===  function HandlePopupWdySave =========");
 // --- update current period if necessary
         if(!!selected_roster_period){
 
-            let mode = get_dict_value_by_key(selected_roster_period, "mode")
+            let mode = get_dict_value(selected_roster_period, ["mode"])
 
             if(mode === "current"){
                 let update = false;
                 let iso, diff, period_timestart_utc, period_timeend_utc
-                iso = get_dict_value_by_key(selected_roster_period, "periodstart")
+                iso = get_dict_value(selected_roster_period, ["periodstart"])
                 if (!!iso){period_timestart_utc = moment.utc(iso)}
                 diff = now_utc.diff(period_timestart_utc);
                 // console.log("now: ", now_utc.format(), "start ", period_timestart_utc.format(), "diff ", diff);
                 update = (diff < 0)
                 if(!update){
-                    iso = get_dict_value_by_key(selected_roster_period, "periodend")
+                    iso = get_dict_value(selected_roster_period, ["periodend"])
                     if (!!iso){period_timeend_utc = moment.utc(iso)};
                     diff = now_utc.diff(period_timeend_utc);
                     // console.log("now: ", now_utc.format(), "end ", period_timeend_utc.format(), "diff ", diff);
@@ -3349,13 +3341,13 @@ console.log("===  function HandlePopupWdySave =========");
 
                 let item_dict = get_itemdict_from_datamap_by_tblRow(tblRow, emplhour_map);
 
-                const status_sum = get_subdict_value_by_key(item_dict, "status", "value")
+                const status_sum = get_dict_value(item_dict, ["status", "value"])
                 const start_confirmed = status_found_in_statussum(2, status_sum);//STATUS_02_START_CONFIRMED
                 const end_confirmed = status_found_in_statussum(4, status_sum);//STATUS_04_END_CONFIRMED
                 const status_locked = (status_sum >= 8) //STATUS_08_LOCKED = 8
 
                 let img_src = imgsrc_stat00
-                const timestart_iso = get_subdict_value_by_key(item_dict, "timestart", "datetime")
+                const timestart_iso = get_dict_value(item_dict, ["timestart", "datetime"])
                 if (!!timestart_iso){
                     // diff in minutes, rounded down to whole minutes
                     // diff is negative when time not reached yet
@@ -3377,7 +3369,7 @@ console.log("===  function HandlePopupWdySave =========");
 
                 //get timeend
                 img_src = imgsrc_stat00
-                const timeend_iso = get_subdict_value_by_key(item_dict, "timeend", "datetime")
+                const timeend_iso = get_dict_value(item_dict, ["timeend", "datetime"])
                 if (!!timeend_iso){
                     // diff in minutes, round down to minutes
                     // give question mark sign when diff endtime > 0 minutes
@@ -3846,12 +3838,18 @@ console.log("===  function HandlePopupWdySave =========");
 
         // when clicked on 'Exit quicksave' and then 'Cancel' changes must not be saved, but quicksave does
         if("save_changes" in tp_dict) {
-
+            // when timeduration has changed: set timestart an timeend to null,
+            // otherwise recalc timeduration will override new value of timnedurationn
+            if (tp_dict.field === "timeduration") {
+                upload_dict.timestart = {value: null, update: true};
+                upload_dict.timeend = {value: null, update: true};
+                upload_dict.breakduration = {value: 0, update: true};
+            }
             const url_str = url_emplhour_upload;
             upload_dict[tp_dict["field"]] = {"value": tp_dict["offset"], "update": true};
 
             const tblName = "emplhour";
-            const map_id = get_map_id(tblName, get_subdict_value_by_key(tp_dict, "id", "pk").toString());
+            const map_id = get_map_id(tblName, get_dict_value(tp_dict, ["id", "pk"]).toString());
             let tr_changed = document.getElementById(map_id)
 
             console.log ("url_str", url_str);
@@ -3895,7 +3893,7 @@ console.log("===  function HandlePopupWdySave =========");
             console.log(upload_dict);
 
 // if delete: make tblRow red
-            const is_delete = (!!get_subdict_value_by_key(upload_dict, "id","delete"))
+            const is_delete = (!!get_dict_value(upload_dict, ["id","delete"]))
             if(is_delete){
                 const map_id = get_mapid_from_dict (upload_dict);
                 let tr_changed = document.getElementById(map_id);
@@ -3952,9 +3950,9 @@ console.log("===  function HandlePopupWdySave =========");
                 if(!isEmpty(update_dict)){
 
             // get info from update_dict
-                    let id_dict = get_dict_value_by_key(update_dict, "id")
-                    const pk_int = get_dict_value_by_key(id_dict, "pk")
-                    const ppk_int = get_dict_value_by_key(id_dict, "ppk")
+                    let id_dict = get_dict_value(update_dict, ["id"])
+                    const pk_int = get_dict_value(id_dict, ["pk"])
+                    const ppk_int = get_dict_value(id_dict, ["ppk"])
                     if(!!pk_int){
                         const map_id = get_map_id(tblName, pk_int);
                         console.log ("map_id", map_id);
@@ -3968,7 +3966,7 @@ console.log("===  function HandlePopupWdySave =========");
              // add new emplhour_tblRow row if it does not exist
                         if(!emplhour_tblRow){
              // get row_index
-                            let row_index = get_dict_value_by_key(id_dict, "rowindex")
+                            let row_index = get_dict_value(id_dict, ["rowindex"])
                             if(!row_index){row_index = 0}
                             row_index -= 1 // subtract 1 because of filter row (I think)
 
@@ -3993,7 +3991,7 @@ console.log("===  function HandlePopupWdySave =========");
 
         if (!!item_dict) {
             UpdateTableRow(tblName, tr_changed, item_dict)
-            const is_created = get_subdict_value_by_key (item_dict, "id", "created", false)
+            const is_created = get_dict_value (item_dict, ["id", "created"], false)
             if (is_created){
 // add new empty row
                 id_new = id_new + 1
@@ -4013,7 +4011,7 @@ console.log("===  function HandlePopupWdySave =========");
 
 //--- replace updated item in map
         if (tblName === "emplhour"){
-            const map_id = get_map_id(tblName, get_dict_value_by_key(item_dict, "pk"));
+            const map_id = get_map_id(tblName, get_dict_value(item_dict, ["pk"]));
             console.log(">>>>>>>>>>> map_id", map_id);
             emplhour_map.set(map_id, item_dict)
         }
@@ -4042,39 +4040,53 @@ console.log("===  function HandlePopupWdySave =========");
         HandleTableRowClicked(tr_selected);
 
         if(!isEmpty(emplh_dict)){
+            const id_dict = get_dict_value(emplh_dict, ["id"])
+
             const fieldname = get_attr_from_el(el_input, "data-field")
+            const field_key = (["timestart", "timeend"].indexOf(fieldname) > -1) ? "offset" : "value";
 
-            const id_dict = get_dict_value_by_key(emplh_dict, "id")
-            const field_dict = get_dict_value_by_key(emplh_dict, fieldname)
-            const offset = ("offset" in field_dict) ? field_dict["offset"] : null
-            const minoffset = ("minoffset" in field_dict) ? field_dict["minoffset"] : -720
-            const maxoffset = ("maxoffset" in field_dict) ? field_dict["maxoffset"] : 2160
+            const default_minoffset = (fieldname === "timestart") ? -720 : 0;
+            const default_maxoffset = (fieldname === "timeend") ? 2160 : 1440;
 
-            let tp_dict = {"id": id_dict, "field": fieldname, "rosterdate": field_dict["rosterdate"],
+            const rosterdate = get_dict_value(emplh_dict, [fieldname, "rosterdate"]);
+            // offset can have null value, 0 = midnight
+            const offset = get_dict_value(emplh_dict, [fieldname, field_key]) ;
+            const offset_start = get_dict_value(emplh_dict, ["timestart", "offset"]);
+            const offset_end = get_dict_value(emplh_dict, ["timeend", "offset"]);
+            const break_duration = get_dict_value(emplh_dict, ["breakduration", "value"], 0);
+            const time_duration = get_dict_value(emplh_dict, ["timeduration", "value"], 0);
+            let minoffset = 0, maxoffset = 1440;
+            if (fieldname === "timestart") {
+                minoffset = -720;
+                maxoffset = (offset_end != null ) ? offset_end - break_duration : 1440;
+            } else if (fieldname === "timeend") {
+                minoffset = (offset_start != null ) ? offset_start + break_duration : 0;
+                maxoffset = 2160
+            } else if (fieldname === "breakduration") {
+                maxoffset = (offset_start != null && offset_end != null ) ? offset_end - offset_start : 1440;
+            };
+
+            let tp_dict = {"id": id_dict, "field": fieldname, "rosterdate": rosterdate,
                 "offset": offset, "minoffset": minoffset, "maxoffset": maxoffset,
                 "isampm": (timeformat === 'AmPm'), "quicksave": {"value": quicksave}}
 
+// create st_dict with standard values
             const show_btn_delete = true;
+            const url_settings_upload = get_attr_from_el(el_data, "data-settings_upload_url");
             let st_dict = { "interval": interval, "comp_timezone": comp_timezone, "user_lang": user_lang,
-                            "show_btn_delete": show_btn_delete, "weekday_list": weekday_list, "month_list": month_list};
+                            "show_btn_delete": show_btn_delete,
+                            "weekday_list": loc.weekdays_abbrev, "month_list": loc.months_abbrev,
+                            "url_settings_upload": url_settings_upload};
+            if(!!loc.Break){st_dict["txt_break"] = loc.Break};
+            if(!!loc.Working_hours){st_dict["txt_workhours"] = loc.Working_hours};
 
-            // only needed in scheme
-            const text_curday = get_attr_from_el(el_data, "data-timepicker_curday");
-            const text_prevday = get_attr_from_el(el_data, "data-timepicker_prevday");
-            const text_nextday = get_attr_from_el(el_data, "data-timepicker_nextday");
-            if(!!text_curday){st_dict["text_curday"] = text_curday};
-            if(!!text_prevday){st_dict["text_prevday"] = text_prevday};
-            if(!!text_nextday){st_dict["text_nextday"] = text_nextday};
-
-            const txt_save = get_attr_from_el(el_data, "data-txt_save");
-            if(!!txt_save){st_dict["txt_save"] = txt_save};
-            const txt_quicksave = get_attr_from_el(el_data, "data-txt_quicksave");
-            if(!!txt_quicksave){st_dict["txt_quicksave"] = txt_quicksave};
-            const txt_quicksave_remove = get_attr_from_el(el_data, "data-txt_quicksave_remove");
-            if(!!txt_quicksave_remove){st_dict["txt_quicksave_remove"] = txt_quicksave_remove};
+            if(!!loc.btn_save){st_dict["txt_save"] = loc.btn_save};
+            if(!!loc.Quick_save){st_dict["txt_quicksave"] = loc.Quick_save};
+            if(!!loc.Exit_Quicksave){st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave};
 
             const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
             if(!!imgsrc_delete){st_dict["imgsrc_delete"] = imgsrc_delete};
+
 
             OpenTimepicker(el_input, UploadTimepickerChanged, tp_dict, st_dict)
 
@@ -4097,10 +4109,7 @@ console.log("===  function HandlePopupWdySave =========");
 // +++++++++++++++++ PRINT ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= PrintReport  ====================================
     function PrintReport() { // PR2020-01-25
-        console.log("=== PrintReport  =====")
-
-        PrintRoster("preview", selected_roster_period, emplhour_map, loc, imgsrc_warning, timeformat, loc.months_abbrev, loc.weekdays_abbrev, user_lang
-                    )
+        PrintRoster("preview", selected_roster_period, emplhour_map, loc, imgsrc_warning)
         }  // PrintReport
 
 //##################################################################################

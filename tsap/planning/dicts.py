@@ -114,11 +114,11 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
         rosterdate = f.get_dateobj_from_dateISOstring(rosterdate_iso)
     else:
 
-# get last rosterdate of Orderhour
-        max_rosterdate_dict = m.Orderhour.objects.\
-            filter(order__customer__company=request.user.company).\
+# get last rosterdate of Emplhour
+        max_rosterdate_dict = m.Emplhour.objects.\
+            filter(orderhour__order__customer__company=request.user.company).\
             aggregate(Max('rosterdate'))
-        logger.debug(' --- max_rosterdate_dict: ' + str(max_rosterdate_dict))
+        #logger.debug(' --- max_rosterdate_dict: ' + str(max_rosterdate_dict))
         # last_rosterdate_dict: {'rosterdate__max': datetime.date(2019, 12, 19)} <class 'dict'>
         if max_rosterdate_dict:
             rosterdate = max_rosterdate_dict['rosterdate__max'] # datetime.date(2019, 10, 28)
@@ -144,29 +144,15 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
 
 
 def check_rosterdate_confirmed(rosterdate_dte, company):  # PR2019-11-12
-    logger.debug(' ============= check_rosterdate_confirmed ============= ')
+    #logger.debug(' ============= check_rosterdate_confirmed ============= ')
     # logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
     # check if rosterdate has orderhours / emplhours. If so, check if there are lockes  /confirmed shifts
 
-# count orderhour records of this date
-    orderhour_count = m.Orderhour.objects.filter(
-        order__customer__company=company,
-        rosterdate=rosterdate_dte).count()
-    logger.debug('orderhour_count: ' + str(orderhour_count))
-
-    orderhour_confirmed_or_locked = 0
-    if(orderhour_count):
-    # if any: count orderhour records that are confirmed
-        orderhour_confirmed_or_locked = m.Orderhour.objects.filter(
-            order__customer__company=company,
-            rosterdate=rosterdate_dte,
-            status__gte=c.STATUS_02_START_CONFIRMED).count()
-
-# get emplhour records of this date and status less than STATUS_02_START_CONFIRMED, also delete records with rosterdate Null
-    # count emplhour records on this date
+# count Emplhour records of this date
     emplhour_count = m.Emplhour.objects.filter(
         orderhour__order__customer__company=company,
         rosterdate=rosterdate_dte).count()
+    logger.debug('emplhour_count: ' + str(emplhour_count))
 
     emplhour_count_confirmed_or_locked = 0
     if(emplhour_count):
@@ -176,13 +162,7 @@ def check_rosterdate_confirmed(rosterdate_dte, company):  # PR2019-11-12
             rosterdate=rosterdate_dte,
             status__gte=c.STATUS_02_START_CONFIRMED).count()
 
-    logger.debug('orderhour_count: ' + str(orderhour_count) + ' orderhour_confirmed_or_locked: ' + str(orderhour_confirmed_or_locked))
-    logger.debug('emplhour_count: ' + str(emplhour_count) + ' emplhour_count_confirmed_or_locked: ' + str(emplhour_count_confirmed_or_locked))
-    row_count = emplhour_count if emplhour_count > orderhour_count else orderhour_count
-    row_count_confirmed_or_locked = emplhour_count_confirmed_or_locked if emplhour_count_confirmed_or_locked > orderhour_confirmed_or_locked else orderhour_confirmed_or_locked
-
-    logger.debug('emplhour_count: ' + str(emplhour_count) + ' emplhour_count_confirmed_or_locked: ' + str(emplhour_count_confirmed_or_locked))
-    return row_count, row_count_confirmed_or_locked
+    return emplhour_count, emplhour_count_confirmed_or_locked
 
 
 def get_period_dict_and_save(request, get_current):  # PR2019-07-13
@@ -892,6 +872,10 @@ def create_shift_dict(shift, update_dict, user_lang):
             elif field == 'istemplate':
                 pass
 
+            elif field == 'isrestshift':
+                # TODO remove, show when false is only for testing
+                 field_dict['value'] = getattr(shift, field, False)
+
             elif field in ['isrestshift', 'cat', 'code', 'billable']:
                 value = getattr(shift, field)
                 if value:
@@ -1032,8 +1016,8 @@ def create_team_dict(team, item_dict):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, request):   # PR2019-11-16
-    #logger.debug(' ============== period_get_and_save ================ ')
-    #logger.debug(' key: ' + str(key))
+    logger.debug(' ============== period_get_and_save ================ ')
+    logger.debug(' key: ' + str(key))
     #logger.debug(' period_dict: ' + str(period_dict))
     # period_dict: {'get': True, 'now': [2019, 11, 17, 7, 9]}
     # period_dict: {'period_index': 6, 'extend_index': 4, 'extend_offset': 360, 'now': [2019, 11, 17, 7, 41]}
@@ -1047,8 +1031,9 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
 # 1. check if values must be retrieved from Usersetting
     get_saved = period_dict.get('get', False)
 
-# 2. check if it is planning or roster. When planning: default is this week, when roster: default is today
-    default_period = period_dict.get('dflt', 'today')
+# 2. check if it is planning or roster. When planning: default is this month, when roster: default is this week
+    default_default = 'tmonth' if key == 'planning_period' else 'tweek'
+    default_period = period_dict.get('dflt', default_default)
 
 # 2. get now from period_dict
     now_arr = period_dict.get('now')
@@ -1418,7 +1403,8 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
             eh.isrestshift AS eh_rest, 
             eh.isreplacement AS eh_isrpl,
             eh.timestart AS eh_ts, eh.timeend AS eh_te, eh.status AS eh_st, eh.overlap AS eh_ov,
-            eh.breakduration AS eh_bd, eh.timeduration AS eh_td, eh.plannedduration AS eh_pd, 
+            eh.breakduration AS eh_breakdur, eh.timeduration AS eh_timedur, 
+            eh.plannedduration AS eh_plandur, eh.billingduration AS eh_billdur, 
             c.code AS c_code, o.code AS o_code, 
             e.id AS e_id, e.code AS e_code
             
@@ -1522,9 +1508,10 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
     eh_isrpl = row.get('eh_isrpl', False)
 
     eh_sh = row.get('eh_sh')
-    eh_bd = row.get('eh_bd', 0)
-    eh_td = row.get('eh_td', 0)
-    eh_pd = row.get('eh_pd', 0)
+    eh_breakdur = row.get('eh_breakdur', 0)
+    eh_timedur = row.get('eh_timedur', 0)
+    eh_plandur = row.get('eh_plandur', 0)
+    eh_billdur = row.get('eh_billdur', 0)
 
     rosterdate_dte = row.get('eh_rd')  # instance.rosterdate
     rosterdate_iso = rosterdate_dte.isoformat()
@@ -1550,12 +1537,13 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
     if update_dict is None:
         update_dict = {}
 
-    #  FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence',
-    #   'yearindex', 'monthindex', 'weekindex', 'payperiodindex',
-    #   'isrestshift', 'shift',
-    #   'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration',
-    #   'wagerate', 'wagefactor', 'wage', 'pricerate', 'pricerate',
-    #   'status', 'overlap', 'locked')
+    #  FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence', 'isreplacement',
+    #                    'paydate', 'isrestshift', 'shift',
+    #                    'timestart', 'timeend', 'timeduration', 'breakduration',
+    #                    'plannedduration', 'billingduration',
+    #                    'wagerate', 'wagefactor', 'wage',
+    #                    'pricerate', 'additionrate', 'taxrate', 'amount', 'tax',
+    #                    'status', 'overlap', 'locked') # schemeitemid, teammemberid
     for field in c.FIELDS_EMPLHOUR:
 
 # --- get field_dict from update_dict if it exists (only when update)
@@ -1573,7 +1561,7 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
                 field_dict['confirmed'] = True
         elif field == 'timeend':
             if status_conf_end:
-                field_dict['locked'] = True
+                field_dict['confirmed'] = True
 
         if field == 'id':
             field_dict['pk'] = pk_int
@@ -1641,22 +1629,27 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
                 field_dict['code'] = eh_sh
 
         elif field == 'breakduration':
-            if eh_bd:
-                field_dict['value'] = eh_bd
-                field_dict['display'] = f.display_duration(eh_bd, user_lang, False) # False = dont skip_prefix_suffix
+            if eh_breakdur:
+                field_dict['value'] = eh_breakdur
+                field_dict['display'] = f.display_duration(eh_breakdur, user_lang, False) # False = dont skip_prefix_suffix
 
         elif field == 'timeduration':
-            if eh_td:
-                field_dict['value'] = eh_td
-                field_dict['display'] = f.display_duration(eh_td, user_lang, False)  # False = dont skip_prefix_suffix
+            #if eh_timedur:
+            field_dict['value'] = eh_timedur
+            field_dict['display'] = f.display_duration(eh_timedur, user_lang, False)  # False = dont skip_prefix_suffix
             if dst_warning:
                 field_dict['dst_warning'] = True
                 field_dict['title'] = _('Daylight saving time has changed. This has been taken into account.')
 
         elif field == 'plannedduration':
-            if eh_pd:
-                field_dict['value'] = eh_pd
-                field_dict['display'] = f.display_duration(eh_pd, user_lang, False)  # False = dont skip_prefix_suffix
+            if eh_plandur:
+                field_dict['value'] = eh_plandur
+                field_dict['display'] = f.display_duration(eh_plandur, user_lang, False)  # False = dont skip_prefix_suffix
+
+        elif field == 'billingduration':
+            if eh_billdur:
+                field_dict['value'] = eh_billdur
+                field_dict['display'] = f.display_duration(eh_billdur, user_lang, False)  # False = dont skip_prefix_suffix
 
         elif field == 'status':
             field_dict['value'] = status_sum
@@ -1705,9 +1698,10 @@ def create_emplhour_itemdict(emplhour, update_dict, comp_timezone, timeformat, u
             row['e_code'] = emplhour.employee.code if emplhour.employee.code else ''
 
         row['eh_sh'] = emplhour.shift if emplhour.shift else ''
-        row['eh_bd'] = emplhour.breakduration
-        row['eh_td'] = emplhour.timeduration
-        row['eh_pd'] = emplhour.plannedduration
+        row['eh_breakdur'] = emplhour.breakduration
+        row['eh_timedur'] = emplhour.timeduration
+        row['eh_plandur'] = emplhour.plannedduration
+        row['eh_billdur'] = emplhour.billingduration
         if emplhour.rosterdate:
             row['eh_rd'] = emplhour.rosterdate
         if emplhour.timestart:
@@ -2000,18 +1994,32 @@ def create_replacementshift_list(dict, company):
     return return_dict
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def create_review_list(period_dict, company, comp_timezone):  # PR2019-08-20
+def create_review_list(period_dict, comp_timezone, request):  # PR2019-08-20
     # create list of shifts of this order PR2019-08-08
-    #logger.debug(' --- create_review_list --- ')
-    #logger.debug('datefirst:  ' + str(datefirst) + ' datelast:  ' + str(datelast))
-
 
     review_list = []
-    if company:
-        #logger.debug(' ============= create_emplhour_list ============= ')
+    if request.user.company:
+        logger.debug(' ============= create_review_list ============= ')
+        logger.debug('period_dict:  ' + str(period_dict))
 
         rosterdatefirst = period_dict.get('rosterdatefirst')
         rosterdatelast = period_dict.get('rosterdatelast')
+        customer_pk = period_dict.get('customer_pk')
+        order_pk = period_dict.get('order_pk')
+        # change customer_pk = 0 to None, otherwise no records will be retrieved
+        customer_pk = customer_pk if customer_pk else None
+        order_pk = order_pk if order_pk else None
+
+        #  no filter on employee, because employee is in subquery.
+        #  TODO Create separate SQL for employee
+        is_absence = period_dict.get('isabsence')  # isabsence = None: both absence and not absence
+
+        company_id = request.user.company.id
+        logger.debug('rosterdatefirst: ' + str(rosterdatefirst) + ' ' + str(type(rosterdatefirst)))
+        logger.debug('rosterdatelast: ' + str(rosterdatelast) + ' ' + str(type(rosterdatelast)))
+        logger.debug('customer_pk: ' + str(customer_pk) + ' ' + str(type(customer_pk)))
+        logger.debug('order_pk: ' + str(order_pk) + ' ' + str(type(order_pk)))
+        logger.debug('is_absence: ' + str(is_absence) + ' ' + str(type(is_absence)))
 
         #logger.debug(emplhours.query)
         # from django.db import connection
@@ -2022,7 +2030,7 @@ def create_review_list(period_dict, company, comp_timezone):  # PR2019-08-20
             rosterdatelast = '2500-01-01'
         cursor = connection.cursor()
         # fields in review_list:
-        #  0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json, 4: yearindex, 5: monthindex 6: weekindex, 7: payperiodindex,
+        #  0: oh.id, 1: o.id, 2: c.id, 3: rosterdate_json,
         #  8: cust_code, 9: order_code, 10: order_cat, 11: shift
         #  12: oh_duration, 13: oh.billable, 14: oh.pricerate, 15: oh.amount, 16: oh.tax,
         #  17: eh_id_arr, 18: eh_dur_sum, 19: eh_wage_sum,
@@ -2041,26 +2049,32 @@ def create_review_list(period_dict, company, comp_timezone):  # PR2019-08-20
                                                 ARRAY_AGG(eh.id) AS eh_id,
                                                 ARRAY_AGG(eh.employee_id) AS e_id,
                                                 COALESCE(STRING_AGG(DISTINCT e.code, '; '),'-') AS e_code,
+                                                ARRAY_AGG(DISTINCT e.code) AS e_code_arr,
                                                 ARRAY_AGG(eh.timeduration) AS e_dur,
                                                 ARRAY_AGG(eh.wage) AS e_wage,
                                                 ARRAY_AGG(eh.wagerate) AS e_wr,
                                                 ARRAY_AGG(eh.wagefactor) AS e_wf,
-                                                SUM(eh.timeduration) AS eh_dur, 
+                                                SUM(eh.timeduration) AS eh_timedur, 
+                                                SUM(eh.plannedduration) AS eh_plandur, 
+                                                SUM(eh.billingduration) AS eh_billdur, 
                                                 SUM(eh.wage) AS eh_wage  
                                                 FROM companies_emplhour AS eh
                                                 LEFT OUTER JOIN companies_employee AS e ON (eh.employee_id=e.id) 
                                                 GROUP BY oh_id) 
                                        SELECT COALESCE(c.code,'-') AS cust_code,  COALESCE(o.code,'-') AS ord_code,
-                                       eh_sub.e_code AS e_code_arr, oh.rosterdate AS oh_rd, to_json(oh.rosterdate) AS rosterdate, 
-                                       oh.id AS oh_id, o.id AS ord_id, c.id AS cust_id, 
-                                       oh.yearindex AS yi, oh.monthindex AS mi, oh.weekindex AS wi, oh.payperiodindex AS pi,              
-                                       o.isabsence as o_isabs, COALESCE(oh.shift,'-') AS oh_shift, 
-                                       oh.duration AS oh_dur, oh.isbillable AS oh_bill, oh.pricerate AS oh_prrate, 
-                                       oh.amount AS oh_amount, oh.tax AS oh_tax, 
-                                       eh_sub.eh_id AS eh_id_arr, eh_sub.eh_dur AS eh_dur, eh_sub.eh_wage AS eh_wage, 
+                                       eh_sub.e_code AS e_code, oh.rosterdate AS oh_rd, to_json(oh.rosterdate) AS rosterdate, 
+                                       oh.id AS oh_id, o.id AS ord_id, c.id AS cust_id,            
+                                       o.isabsence as o_isabs, 
+                                       eh_sub.e_code_arr AS e_code_arr,
+                                       COALESCE(oh.shift,'-') AS oh_shift, 
+                                       oh.isbillable AS oh_bill, 
+                                       eh_sub.eh_id AS eh_id_arr, 
+                                       eh_sub.eh_timedur, eh_sub.eh_plandur, eh_sub.eh_billdur, 
+                                       eh_sub.eh_wage AS eh_wage, 
                                        eh_sub.e_id AS e_id, eh_sub.e_dur AS e_dur, 
                                        eh_sub.e_wage AS e_wage, eh_sub.e_wr AS e_wr, eh_sub.e_wf AS e_wf, 
-                                       case when o.isabsence = FALSE then oh.duration-eh_sub.eh_dur else 0 end as dur_diff  
+                                       0 AS oh_prrate,  0 AS oh_amount, 0 AS oh_tax, 
+                                       eh_sub.eh_billdur - eh_sub.eh_timedur as dur_diff  
                                        FROM companies_orderhour AS oh
                                        INNER JOIN eh_sub ON (eh_sub.oh_id=oh.id)
                                        INNER JOIN companies_order AS o ON (oh.order_id=o.id)
@@ -2069,10 +2083,16 @@ def create_review_list(period_dict, company, comp_timezone):  # PR2019-08-20
                                        AND (oh.rosterdate IS NOT NULL) 
                                        AND (oh.rosterdate >= %(df)s)
                                        AND (oh.rosterdate <= %(dl)s)
-                                       AND (oh.isrestshift = FALSE) 
-                                        ORDER BY %(order1)s ASC, %(order2)s ASC, %(order3)s ASC, %(order4)s ASC""",
+                                       AND (oh.rosterdate <= %(dl)s)
+                                       AND (c.id = %(custid)s OR %(custid)s IS NULL)
+                                       AND (o.id = %(ordid)s OR %(ordid)s IS NULL)
+                                       AND (o.isabsence = %(isabs)s OR %(isabs)s IS NULL)
+                                       ORDER BY %(order1)s ASC, %(order2)s ASC, %(order3)s ASC, %(order4)s ASC""",
                                        {'cat': c.SHIFT_CAT_0512_ABSENCE,
-                                        'cid': company.id,
+                                        'cid': company_id,
+                                        'custid': customer_pk,
+                                        'ordid': order_pk,
+                                        'isabs': is_absence,
                                         'df': rosterdatefirst,
                                         'dl': rosterdatelast,
                                         'order1': orderby_cust_code,
@@ -2086,6 +2106,10 @@ def create_review_list(period_dict, company, comp_timezone):  # PR2019-08-20
         #                                        AND (oh.rosterdate >= %s)
         #                                        AND (oh.rosterdate <= %s)
 
+# PR2020-02-14 removed: oh.yearindex AS yi, oh.monthindex AS mi, oh.weekindex AS wi, oh.payperiodindex AS pi,
+# PR2020-02-14 removed: case when o.isabsence = FALSE then oh.duration - eh_sub.eh_dur else 0 end as dur_diff
+
+# string aggregate:  COALESCE(STRING_AGG(DISTINCT e.code, '; '),'-') AS e_code,
 
         # WITH td2_sub AS (
         #                   SELECT t1_id, MAX(date) as max_date, count(*) as total

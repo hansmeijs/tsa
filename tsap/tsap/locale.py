@@ -1,6 +1,7 @@
 # PR2019-11-12
 
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import pgettext_lazy
 import json
 
 from tsap import constants as c
@@ -14,8 +15,102 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
     page = table_dict.get('page')
 
+    # ====== PAGE EMPLOYEE =========================
+    if page == 'employee':
+        # submenu
+        dict['Upload_employees'] = TXT_Upload_employees
+        dict['Print_planning'] = TXT_Print_planning
+        dict['Add_employee'] = TXT_Add_employee
+        dict['Delete_employee'] = TXT_Delete_employee
+        dict['Print_planning'] = TXT_Print_planning
+        dict['Preview_planning'] = TXT_Preview_planning
+        dict['Export_to_Excel'] = TXT_Export_to_Excel
+
+        dict['Employee'] = TXT_Employee
+        dict['Select_employee'] = TXT_Select_employee
+        dict['No_employees'] = TXT_No_employees
+        dict['Replacement_employee'] = TXT_Replacement_employee
+        dict['Select_replacement_employee'] = TXT_Select_replacement_employee
+        dict['Add_employee'] = TXT_Add_employee
+        dict['Employee_list'] = TXT_Employee_list
+        dict['Employee_data'] = TXT_Employee_data
+
+        dict['Hours_per_week'] = TXT_Hours_per_week
+        dict['Days_per_week'] = TXT_Days_per_week
+        dict['Vacation_days'] = TXT_Vacation_days
+        dict['Identifier'] = TXT_Identifier
+        dict['Hourly_rate'] = TXT_Hourly_rate
+        dict['Wage_rate'] = TXT_Wage_rate
+
+        dict['Customer'] = TXT_Customer
+        dict['Order'] = TXT_Order
+        dict['Select_order'] = TXT_Select_order
+        dict['No_orders'] = TXT_No_orders
+
+        dict['Team'] = TXT_Team
+
+        dict['Shift'] = TXT_Shift
+        dict['Start_Endtime'] = TXT_Start_Endtime
+
+        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
+        dict['weekdays_long'] = TXT_weekdays_long
+        dict['months_abbrev'] = TXT_months_abbrev
+        dict['months_long'] = TXT_months_long
+
+        dict['Weekdays'] = TXT_Weekdays
+        dict['Start_time'] = TXT_Start_time
+        dict['End_time'] = TXT_End_time
+
+        dict['Hours'] = TXT_Hours
+        dict['Hour'] = TXT_Hour
+        dict['Full_day'] = TXT_Full_day
+
+        dict['As_of'] = TXT_As_of
+        dict['Close'] = TXT_Close
+
+        # ModTimepicker
+        dict['Break'] = TXT_Break
+        dict['Working_hours'] = TXT_Working_hours
+        dict['Current_day'] = TXT_Current_day
+        dict['Previous_day'] = TXT_Previous_day
+        dict['Next_day'] = TXT_Next_day
+        dict['Previous_day_title'] = TXT_Previous_day_title
+        dict['Next_day_title'] = TXT_Next_day_title
+
+        dict['btn_save'] = TXT_btn_save
+        dict['Quick_save'] = TXT_Quick_save
+        dict['Exit_Quicksave'] = TXT_Exit_Quicksave
+
+        dict['Absence'] = TXT_Absence
+        dict['Absence_category'] = TXT_Absence_category
+        dict['Select_abscat'] = TXT_Select_abscat
+        dict['No_abscat'] = TXT_No_abscat
+
+        dict['Period'] = TXT_Period
+        dict['Select_period'] = TXT_Select_period
+        dict['period_select_list'] = TXT_Period_planning_list
+
+        dict['First_date'] = TXT_First_date
+        dict['Last_date'] = TXT_Last_date
+
+        dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
+        dict['err_msg_number_between'] = TXT_err_msg_number_between
+        dict['err_msg_and'] = TXT_err_msg_and
+
+        dict['err_open_calendar_01'] = TXT_err_open_calendar_01
+        dict['err_open_calendar_02'] = TXT_err_open_calendar_02
+        dict['an_employee'] = TXT_an_employee
+
+        # print planning
+        dict['Company'] = TXT_Company
+        dict['Planning'] = TXT_Planning
+        dict['of'] = TXT_of
+        dict['Date'] = TXT_Date
+        dict['Print_date'] = TXT_Print_date
+        dict['Total_hours'] = TXT_Total_hours
+
     # ====== PAGE CUSTOMER =========================
-    if page == 'customer':
+    elif page == 'customer':
 
         dict['Export_to_Excel'] = TXT_Export_to_Excel
 
@@ -73,7 +168,14 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
         dict['Select_order'] = TXT_Select_order
         dict['No_orders'] = TXT_No_orders
+        dict['Scheme'] = TXT_Scheme
         dict['New_scheme'] = TXT_New_scheme
+
+        dict['Cycle'] = TXT_Cycle
+        dict['Weekly_cycle'] = TXT_Weekly_cycle
+        dict['Daily_cycle'] = TXT_Daily_cycle
+        dict['days_cycle'] = TXT_days_cycle
+
         dict['New_shift'] = TXT_New_shift
         dict['New_team'] = TXT_New_team
         dict['Team'] = TXT_Team
@@ -120,100 +222,14 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Yes_make_inactive'] = TXT_Yes_make_inactive # 'Yes, make inactive'
         dict['No_cancel'] = TXT_No_cancel
         dict['OK'] = TXT_OK
-
-# ====== PAGE EMPLOYEE =========================
-    elif page == 'employee':
-
-        # submenu
-        dict['Upload_employees'] = TXT_Upload_employees
-        dict['Print_planning'] = TXT_Print_planning
-        dict['Add_employee'] = TXT_Add_employee
-        dict['Delete_employee'] = TXT_Delete_employee
-        dict['Print_planning'] = TXT_Print_planning
-        dict['Preview_planning'] = TXT_Preview_planning
-        dict['Export_to_Excel'] = TXT_Export_to_Excel
-
-        dict['Employee'] = TXT_Employee
-        dict['Select_employee'] = TXT_Select_employee
-        dict['No_employees'] = TXT_No_employees
-        dict['Replacement_employee'] = TXT_Replacement_employee
-        dict['Select_replacement_employee'] = TXT_Select_replacement_employee
-        dict['Add_employee'] = TXT_Add_employee
-        dict['Employee_list'] = TXT_Employee_list
-        dict['Employee_data'] = TXT_Employee_data
-
-        dict['Hours_per_day'] = TXT_Hours_per_day
-        dict['Days_per_week'] = TXT_Days_per_week
-        dict['Vacation_days'] = TXT_Vacation_days
-        dict['Identifier'] = TXT_Identifier
-        dict['Hourly_rate'] = TXT_Hourly_rate
-        dict['Wage_rate'] = TXT_Wage_rate
-
-        dict['Customer'] = TXT_Customer
-        dict['Order'] = TXT_Order
-        dict['Select_order'] = TXT_Select_order
-        dict['No_orders'] = TXT_No_orders
-
-        dict['Team'] = TXT_Team
-
-        dict['Shift'] = TXT_Shift
-        dict['Start_Endtime'] = TXT_Start_Endtime
-
-        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
-        dict['weekdays_long'] = TXT_weekdays_long
-        dict['months_abbrev'] = TXT_months_abbrev
-        dict['months_long'] = TXT_months_long
-
-        dict['Weekdays'] = TXT_Weekdays
-        dict['Start_time'] = TXT_Start_time
-        dict['End_time'] = TXT_End_time
-
-        dict['Hours'] = TXT_Hours
-        dict['Hour'] = TXT_Hour
-        dict['Full_day'] = TXT_Full_day
-
-        dict['As_of'] = TXT_As_of
         dict['Close'] = TXT_Close
 
-        # ModTimepicker
-        dict['Break'] = TXT_Break
-        dict['Working_hours'] = TXT_Working_hours
-        dict['Current_day'] = TXT_Current_day
-        dict['Previous_day'] = TXT_Previous_day
-        dict['Next_day'] = TXT_Next_day
-        dict['Previous_day_title'] = TXT_Previous_day_title
-        dict['Next_day_title'] = TXT_Next_day_title
-
-        dict['btn_save'] = TXT_btn_save
-        dict['Quick_save'] = TXT_Quick_save
-        dict['Exit_Quicksave'] = TXT_Exit_Quicksave
-
-        dict['Absence'] = TXT_Absence
-        dict['Absence_category'] = TXT_Absence_category
-        dict['Select_abscat'] = TXT_Select_abscat
-        dict['No_abscat'] = TXT_No_abscat
-
-        dict['Period'] = TXT_Period
-        dict['Select_period'] = TXT_Select_period
-        dict['period_select_list'] = TXT_Period_planning_list
-
-
-        dict['First_date'] = TXT_First_date
-        dict['Last_date'] = TXT_Last_date
-
-        dict['err_msg_is_invalid_number'] = TXT_err_msg_is_invalid_number
-        dict['err_msg_number_between'] = TXT_err_msg_number_between
-        dict['err_msg_and'] = TXT_err_msg_and
 
         dict['err_open_calendar_01'] = TXT_err_open_calendar_01
+        dict['err_open_calendar_02'] = TXT_err_open_calendar_02
+        dict['err_open_planning_preview_02'] = TXT_err_open_planning_preview_02
 
-        # print planning
-        dict['Company'] = TXT_Company
-        dict['Planning'] = TXT_Planning
-        dict['of'] = TXT_of
-        dict['Date'] = TXT_Date
-        dict['Print_date'] = TXT_Print_date
-        dict['Total_hours'] = TXT_Total_hours
+        dict['an_order'] = TXT_an_order
 
 # ====== PAGE SCHEME =========================
     elif page == 'scheme':
@@ -261,6 +277,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['confirmed'] = TXT_confirmed
         dict['one'] = TXT_one
 
+
         dict['rosterdate_confirmed_one'] = _('1 of them is a confirmed shift.')
         dict['rosterdate_confirmed_multiple'] = _(' of them are confirmed shifts.')
 
@@ -301,6 +318,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Select_template'] = _('Select template')
         dict['No_templates'] = _('No templates')
         dict['Template'] = _('Template')
+
+        dict['Cycle'] = TXT_Cycle
+        dict['Weekly_cycle'] = TXT_Weekly_cycle
+        dict['Daily_cycle'] = TXT_Daily_cycle
+        dict['days_cycle'] = TXT_days_cycle
 
         dict['Shift'] = TXT_Shift
         dict['Shifts'] = TXT_Shifts
@@ -406,8 +428,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
         dict['Close'] = TXT_Close
         dict['Cancel'] = TXT_Cancel
-        dict['Create'] = TXT_Create  # 'Create'
-        dict['Delete'] = TXT_Delete  # 'Delete'
+        dict['Create'] = TXT_Create
+        dict['Delete'] = TXT_Delete
+        dict['Confirm'] = TXT_Confirm
+        dict['Undo'] = TXT_Undo
 
         dict['Period'] = TXT_Period
         dict['Date'] = TXT_Date
@@ -441,8 +465,34 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Without_absence'] = TXT_Without_absence
         dict['Show_absence_only'] = TXT_Show_absence_only
 
+        dict['err_confirm_01'] = TXT_err_confirm_01
+        dict['err_confirm_02'] = TXT_err_confirm_02
+        dict['an_order'] = TXT_an_order
+        dict['an_employee'] = TXT_an_employee
+        dict['a_starttime'] = TXT_a_starttime
+        dict['an_endtime'] = TXT_an_endtime
 
-# ====== PAGE REVIEW ========================= PR2019-11-19
+        dict['Confirm'] = TXT_Confirm
+        dict['Undo_confirmation'] = TXT_Undo_confirmation
+        dict['Confirm_start_of_shift'] = TXT_Confirm_start_of_shift
+        dict['Confirm_end_of_shift'] = TXT_Confirm_end_of_shift
+
+        dict['Lock_confirmation'] = TXT_Lock_confirmation
+        dict['Unlock_confirmation'] = TXT_Unlock_confirmation
+
+        # ModTimepicker
+        dict['Break'] = TXT_Break
+        dict['Working_hours'] = TXT_Working_hours
+        dict['Previous_day_title'] = TXT_Previous_day_title
+        dict['Next_day_title'] = TXT_Next_day_title
+        dict['btn_save'] = TXT_btn_save
+        dict['Quick_save'] = TXT_Quick_save
+        dict['Exit_Quicksave'] = TXT_Exit_Quicksave
+
+
+
+
+    # ====== PAGE REVIEW ========================= PR2019-11-19
     elif page == 'review':
 
         # submenu
@@ -457,9 +507,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
             TXT_Date,
             _('Order / Employee'),
             TXT_Shift,
+            TXT_Planned_hours,
             TXT_Worked_hours,
-            '',
-            TXT_Billed_hours,
+            TXT_Billing_hours,
             TXT_Difference,
             '',
             TXT_Rate,
@@ -477,18 +527,43 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
             ('other', TXT_customperiod)
         )
 
+        dict['Also_show_absence'] = TXT_Also_show_absence
+        dict['Absence_included'] = TXT_Absence_included
+        dict['Dont_show_absence'] = TXT_Dont_show_absence
+        dict['Without_absence'] = TXT_Without_absence
+        dict['Show_absence_only'] = TXT_Show_absence_only
+
         dict['Period'] = TXT_Period
         dict['Date'] = TXT_Date
         dict['Customer'] = TXT_Customer
+        dict['All_customers'] = TXT_All_customers
+        dict['No_customers'] = TXT_No_customers
         dict['Order'] = TXT_Order
+        dict['All_orders'] = TXT_All_orders
+        dict['No_orders'] = TXT_No_orders
+
         dict['Employee'] = TXT_Employee
         dict['Shift'] = TXT_Shift
         dict['Worked_hours'] = TXT_Worked_hours
-        dict['Billed_hours'] = TXT_Billed_hours
+        dict['Billing_hours'] = TXT_Billing_hours
         dict['Difference'] = TXT_Difference
         dict['Billable'] = TXT_Billable
         dict['Rate'] = TXT_Rate
         dict['Amount'] = TXT_Amount
+
+        # for report
+        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
+        dict['weekdays_long'] = TXT_weekdays_long
+        dict['months_abbrev'] = TXT_months_abbrev
+        dict['months_long'] = TXT_months_long
+        dict['Time'] = TXT_Time
+        dict['Review'] = TXT_Review
+        dict['of'] = TXT_of
+
+        dict['Planned_hours'] = TXT_Planned_hours
+        dict['Worked_hours'] = TXT_Worked_hours
+        dict['Billing_hours'] = TXT_Billing_hours
+
     return dict
 
 
@@ -503,8 +578,10 @@ TXT_Export_to_Excel = _('Export to Excel')
 
 TXT_Short_name = _('Short name')
 
-TXT_Close = _('Close')
+TXT_OK = _('OK')
 TXT_Cancel = _('Cancel')
+TXT_Close = _('Close')
+TXT_Undo = _('Undo')
 
 TXT_btn_save = _('Save')
 TXT_Quick_save = _('Quick save')
@@ -520,7 +597,7 @@ TXT_Select_period = _('Select period')
 
 TXT_Planned_hours = _('Planned hours')
 TXT_Worked_hours = _('Worked hours')
-TXT_Billed_hours = _('Billed hours')
+TXT_Billing_hours = _('Billing hours')
 TXT_Difference = _('Difference')
 TXT_Billable = _('Billable')
 TXT_Rate = _('Rate')
@@ -555,7 +632,13 @@ TXT_No_orders = _('No orders')
 TXT_Add_order = _('Add order')
 TXT_Delete_order = _('Delete order')
 
+TXT_Scheme = _('Scheme')
 TXT_New_scheme = _('New scheme')
+
+TXT_Cycle = _('Cycle')
+TXT_Weekly_cycle = _('Weekly cycle')
+TXT_Daily_cycle = _('Daily cycle')
+TXT_days_cycle = _('days cycle')
 
 TXT_Shift = _('Shift')
 TXT_Shifts = _('Shifts')
@@ -583,7 +666,7 @@ TXT_Select_replacement_employee = _('Select replacement employee')
 TXT_Employee_list = _('Employee list')
 TXT_Employee_data = _('Employee data')
 
-TXT_Hours_per_day = _('Hours per day')
+TXT_Hours_per_week = _('Hours per week')
 TXT_Days_per_week = _('Days per week')
 TXT_Vacation_days = _('Vacation days')
 TXT_Hourly_rate = _('Hourly rate')
@@ -613,7 +696,6 @@ TXT_Yes_create = _('Yes, create')
 TXT_Yes_delete = _('Yes, delete')
 TXT_Yes_make_inactive = _('Yes, make inactive')
 TXT_No_cancel = _('No, cancel')
-TXT_OK = _('OK')
 
 TXT_This_customer = _('This customer')
 TXT_This_order = _('This order')
@@ -622,6 +704,7 @@ TXT_will_be_made_inactive = _('will be made inactive.')
 
 # print planning
 TXT_Planning = _('Planning')
+TXT_Review = _('Review')
 TXT_of = _('of')
 TXT_Date = _('Date')
 TXT_Print_date = _('Print date')
@@ -657,7 +740,23 @@ TXT_err_msg_name_blank = _('Name cannot be blank. Please enter a name.')
 TXT_err_msg_is_invalid_number = _('is an invalid number.')
 TXT_err_msg_number_between = _('Number must be between')
 TXT_err_msg_and = _('and')
-TXT_err_open_calendar_01 = _('You must first select an employee, before you can add a calendar item.')
+
+TXT_err_open_calendar_01 = _('You must first select ')
+TXT_err_open_calendar_02 = _(', before you can add a calendar item.')
+TXT_err_open_planning_preview_02 = _(', before you can print a planning.')
+TXT_an_order = _('an order')
+TXT_an_employee = _('an employee')
+TXT_a_starttime = _('a start time')
+TXT_an_endtime = _('an end time')
+
+TXT_Confirm = _('Confirm')
+TXT_Undo_confirmation = _('Undo confirmation')
+TXT_Confirm_start_of_shift = _('Confirm start of shift')
+TXT_Confirm_end_of_shift = _('Confirm end of shift')
+TXT_Lock_confirmation = _('Lock confirmation')
+TXT_Unlock_confirmation = _('Unlock confirmation')
+TXT_err_confirm_01 = _('You must first select ')
+TXT_err_confirm_02 = _(', before you can confirm a shift.')
 
 # get weekdays translated
 TXT_weekdays_abbrev = ('', _('Mon'), _('Tue'), _('Wed'), _('Thu'), _('Fri'), _('Sat'), _('Sun'))
