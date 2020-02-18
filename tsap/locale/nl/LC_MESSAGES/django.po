@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-02-16 21:28-0400\n"
+"POT-Creation-Date: 2020-02-18 07:53-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -24,7 +24,7 @@ msgstr ""
 #: .\templates\companies\company_list.html:15
 #: .\templates\employees\employees.html:190
 #: .\templates\includes\header.html:107 .\tsap\constants.py:19
-#: .\tsap\constants.py:25 .\tsap\locale.py:607
+#: .\tsap\constants.py:25 .\tsap\locale.py:593
 msgid "Company"
 msgstr "Bedrijf"
 
@@ -117,7 +117,7 @@ msgstr "Gebruiker heeft geen organisatie."
 #: .\templates\includes\modemployeeshift.html:108
 #: .\templates\includes\modeordershift.html:118
 #: .\templates\planning\roster.html:379 .\templates\planning\schemes.html:374
-#: .\templates\planning\schemes.html:489 .\tsap\locale.py:771
+#: .\templates\planning\schemes.html:489 .\tsap\locale.py:757
 msgid "Start date"
 msgstr "Begindatum"
 
@@ -133,11 +133,11 @@ msgid "Name"
 msgstr "Naam"
 
 #: .\companies\forms.py:66 .\employees\forms.py:17 .\employees\forms.py:33
-#: .\tsap\locale.py:778
+#: .\tsap\locale.py:764
 msgid "First date"
 msgstr "Begindatum"
 
-#: .\companies\forms.py:67 .\employees\forms.py:34 .\tsap\locale.py:779
+#: .\companies\forms.py:67 .\employees\forms.py:34 .\tsap\locale.py:765
 msgid "Last date"
 msgstr "Einddatum"
 
@@ -276,7 +276,7 @@ msgstr "Deze medewerker kon niet worden aangemaakt."
 msgid "This employee could not be updated."
 msgstr "Deze medewerker kon niet worden bijgewerkt."
 
-#: .\planning\dicts.py:1642
+#: .\planning\dicts.py:1721
 msgid "Daylight saving time has changed. This has been taken into account."
 msgstr "Er is rekening gehouden met de wijziging van zomer / wintertijd."
 
@@ -400,7 +400,7 @@ msgstr "Gebruikers"
 #: .\templates\accounts\TODOuser_confirm_delete.html:11
 #: .\templates\accounts\user_edit.html:17 .\templates\includes\confirm.html:10
 #: .\templates\includes\confirm_delete.html:10
-#: .\templates\includes\modemployeeshift.html:171 .\tsap\locale.py:591
+#: .\templates\includes\modemployeeshift.html:171 .\tsap\locale.py:577
 msgid "Delete"
 msgstr "Wissen"
 
@@ -416,13 +416,13 @@ msgstr "Weet u zeker dat u deze gebruiker wilt verwijderen?"
 #: .\templates\employees\employees.html:220
 #: .\templates\includes\confirm.html:27
 #: .\templates\includes\confirm_delete.html:26
-#: .\templates\planning\schemes.html:522 .\tsap\locale.py:696
+#: .\templates\planning\schemes.html:522 .\tsap\locale.py:682
 msgid "Yes, delete"
 msgstr "Ja, verwijder"
 
 #: .\templates\accounts\TODOuser_confirm_delete.html:23
 #: .\templates\includes\confirm.html:26
-#: .\templates\includes\confirm_delete.html:25 .\tsap\locale.py:698
+#: .\templates\includes\confirm_delete.html:25 .\tsap\locale.py:684
 msgid "No, cancel"
 msgstr "Nee, annuleer"
 
@@ -455,7 +455,7 @@ msgstr "Nee, annuleer"
 #: .\templates\planning\realization.html:224
 #: .\templates\planning\review.html:123 .\templates\planning\roster.html:192
 #: .\templates\planning\roster.html:393 .\templates\planning\schemes.html:114
-#: .\templates\planning\schemes.html:536 .\tsap\locale.py:582
+#: .\templates\planning\schemes.html:536 .\tsap\locale.py:568
 msgid "Cancel"
 msgstr "Annuleren"
 
@@ -521,7 +521,7 @@ msgstr "Je account is niet geactiveerd."
 
 #: .\templates\accounts\account_activation_invalid.html:18
 #: .\templates\includes\modselectperiod.html:57
-#: .\templates\includes\modselectperiodandorder.html:84 .\tsap\locale.py:581
+#: .\templates\includes\modselectperiodandorder.html:84 .\tsap\locale.py:567
 msgid "OK"
 msgstr ""
 
@@ -545,7 +545,7 @@ msgstr ""
 "voltooien."
 
 #: .\templates\accounts\account_activation_sent.html:18
-#: .\templates\accounts\password_change_done.html:27 .\tsap\locale.py:583
+#: .\templates\accounts\password_change_done.html:27 .\tsap\locale.py:569
 msgid "Close"
 msgstr "Sluiten"
 
@@ -809,7 +809,7 @@ msgstr "Bedrijf toevoegen"
 #: .\templates\planning\roster.html:193 .\templates\planning\roster.html:252
 #: .\templates\planning\roster.html:329 .\templates\planning\schemes.html:115
 #: .\templates\planning\schemes.html:220 .\templates\planning\schemes.html:304
-#: .\templates\planning\schemes.html:439 .\tsap\locale.py:586
+#: .\templates\planning\schemes.html:439 .\tsap\locale.py:572
 msgid "Save"
 msgstr "Opslaan"
 
@@ -831,7 +831,7 @@ msgstr "Bedrijfsnaam"
 #: .\templates\includes\modemployeeshift.html:112
 #: .\templates\includes\modeordershift.html:123
 #: .\templates\planning\roster.html:380 .\templates\planning\schemes.html:379
-#: .\templates\planning\schemes.html:490 .\tsap\locale.py:772
+#: .\templates\planning\schemes.html:490 .\tsap\locale.py:758
 msgid "End date"
 msgstr "Einddatum"
 
@@ -851,7 +851,7 @@ msgstr "Rekening toevoegen"
 
 #: .\templates\customers\customer_add.html:7
 #: .\templates\customers\customers.html:5
-#: .\templates\customers\customers.html:16 .\tsap\locale.py:609
+#: .\templates\customers\customers.html:16 .\tsap\locale.py:595
 msgid "Customers"
 msgstr "Klanten"
 
@@ -869,7 +869,7 @@ msgstr "Nieuwe klant"
 #: .\templates\includes\modselectperiodandorder.html:22
 #: .\templates\planning\roster.html:150 .\templates\planning\roster.html:334
 #: .\templates\planning\schemes.html:21 .\templates\planning\schemes.html:24
-#: .\templates\planning\schemes.html:443 .\tsap\locale.py:611
+#: .\templates\planning\schemes.html:443 .\tsap\locale.py:597
 msgid "Select customer"
 msgstr "Selecteer klant"
 
@@ -880,11 +880,11 @@ msgstr "Selecteer klant"
 #: .\templates\includes\modselectperiodandorder.html:33
 #: .\templates\planning\roster.html:171 .\templates\planning\roster.html:337
 #: .\templates\planning\schemes.html:26 .\templates\planning\schemes.html:445
-#: .\tsap\locale.py:630
+#: .\tsap\locale.py:616
 msgid "Select order"
 msgstr "Selecteer locatie"
 
-#: .\templates\customers\customers.html:78 .\tsap\locale.py:612
+#: .\templates\customers\customers.html:78 .\tsap\locale.py:598
 msgid "Customer list"
 msgstr "Klanten lijst"
 
@@ -902,7 +902,7 @@ msgstr "Kalender"
 #: .\templates\employees\employees.html:112
 #: .\templates\employees\employees.html:210
 #: .\templates\includes\header.html:110 .\templates\planning\schemes.html:5
-#: .\templates\planning\schemes.html:16 .\tsap\locale.py:706
+#: .\templates\planning\schemes.html:16 .\tsap\locale.py:692
 msgid "Planning"
 msgstr ""
 
@@ -920,15 +920,15 @@ msgstr "Klik om een klant, locatie en periode te selecteren."
 msgid "Short name of customer"
 msgstr "Korte naam van klant"
 
-#: .\templates\customers\customers.html:128 .\tsap\locale.py:610
+#: .\templates\customers\customers.html:128 .\tsap\locale.py:596
 msgid "Customer name"
 msgstr "Naam klant"
 
-#: .\templates\customers\customers.html:133 .\tsap\locale.py:616
+#: .\templates\customers\customers.html:133 .\tsap\locale.py:602
 msgid "Add customer"
 msgstr "Klant toevoegen"
 
-#: .\templates\customers\customers.html:134 .\tsap\locale.py:617
+#: .\templates\customers\customers.html:134 .\tsap\locale.py:603
 msgid "Delete customer"
 msgstr "Klant wissen"
 
@@ -943,7 +943,7 @@ msgstr "Fout"
 
 #: .\templates\customers\order_import.html:23
 #: .\templates\customers\order_import.html:36
-#: .\templates\customers\order_import.html:96 .\tsap\locale.py:620
+#: .\templates\customers\order_import.html:96 .\tsap\locale.py:606
 msgid "Upload customers and orders"
 msgstr "Upload klanten en locaties"
 
@@ -1081,7 +1081,7 @@ msgid "Day"
 msgstr "Dag"
 
 #: .\templates\employees\emplhoursXXX.html:54
-#: .\templates\planning\realization.html:51 .\tsap\locale.py:786
+#: .\templates\planning\realization.html:51 .\tsap\locale.py:772
 msgid "Hour"
 msgstr "Uur"
 
@@ -1102,7 +1102,7 @@ msgstr ""
 #: .\templates\employees\employees.html:215
 #: .\templates\planning\realization.html:78
 #: .\templates\planning\roster.html:262 .\templates\planning\roster.html:344
-#: .\templates\planning\schemes.html:455 .\tsap\locale.py:709
+#: .\templates\planning\schemes.html:455 .\tsap\locale.py:695
 msgid "Date"
 msgstr "Datum"
 
@@ -1112,7 +1112,7 @@ msgstr "Datum"
 #: .\templates\planning\realization.html:79 .\templates\planning\roster.html:71
 #: .\templates\planning\roster.html:263 .\templates\planning\roster.html:336
 #: .\templates\planning\schemes.html:85 .\templates\planning\schemes.html:167
-#: .\tsap\locale.py:627
+#: .\tsap\locale.py:613
 msgid "Order"
 msgstr "Locatie"
 
@@ -1124,7 +1124,7 @@ msgstr "Locatie"
 #: .\templates\planning\realization.html:80 .\templates\planning\roster.html:79
 #: .\templates\planning\roster.html:265 .\templates\planning\roster.html:369
 #: .\templates\planning\schemes.html:480 .\tsap\constants.py:18
-#: .\tsap\constants.py:24 .\tsap\constants.py:42 .\tsap\locale.py:658
+#: .\tsap\constants.py:24 .\tsap\constants.py:42 .\tsap\locale.py:644
 msgid "Employee"
 msgstr "Medewerker"
 
@@ -1132,7 +1132,7 @@ msgstr "Medewerker"
 #: .\templates\employees\employees.html:201
 #: .\templates\planning\realization.html:81 .\templates\planning\roster.html:87
 #: .\templates\planning\roster.html:264 .\templates\planning\roster.html:362
-#: .\templates\planning\schemes.html:466 .\tsap\locale.py:643
+#: .\templates\planning\schemes.html:466 .\tsap\locale.py:629
 msgid "Shift"
 msgstr "Dienst"
 
@@ -1141,7 +1141,7 @@ msgstr "Dienst"
 #: .\templates\includes\modeordershift.html:92
 #: .\templates\planning\realization.html:82
 #: .\templates\planning\roster.html:364 .\templates\planning\schemes.html:494
-#: .\tsap\locale.py:773
+#: .\tsap\locale.py:759
 msgid "Start time"
 msgstr "Begintijd"
 
@@ -1150,7 +1150,7 @@ msgstr "Begintijd"
 #: .\templates\includes\modeordershift.html:97
 #: .\templates\planning\realization.html:83
 #: .\templates\planning\roster.html:365 .\templates\planning\schemes.html:495
-#: .\tsap\locale.py:774
+#: .\tsap\locale.py:760
 msgid "End time"
 msgstr "Eindtijd"
 
@@ -1164,21 +1164,21 @@ msgstr "Pauze uren"
 #: .\templates\includes\modemployeeshift.html:98
 #: .\templates\includes\modeordershift.html:107
 #: .\templates\planning\realization.html:85
-#: .\templates\planning\roster.html:367 .\tsap\locale.py:784
+#: .\templates\planning\roster.html:367 .\tsap\locale.py:770
 msgid "Working hours"
 msgstr "Werkuren"
 
-#: .\templates\employees\emplhoursXXX.html:90 .\tsap\locale.py:600
+#: .\templates\employees\emplhoursXXX.html:90 .\tsap\locale.py:586
 msgid "Billing hours"
 msgstr "Factuur uren"
 
 #: .\templates\employees\emplhoursXXX.html:254
 #: .\templates\planning\realization.html:214
-#: .\templates\planning\roster.html:327 .\tsap\locale.py:734
+#: .\templates\planning\roster.html:327 .\tsap\locale.py:720
 msgid "An error occurred."
 msgstr "Er is een fout opgetreden"
 
-#: .\templates\employees\employee_form.html:7 .\tsap\locale.py:579
+#: .\templates\employees\employee_form.html:7 .\tsap\locale.py:565
 msgid "Short name"
 msgstr "Korte naam"
 
@@ -1249,17 +1249,17 @@ msgstr "Looncode"
 #: .\templates\employees\employee_form.html:115
 #: .\templates\employees\employees.html:39
 #: .\templates\employees\employees.html:48
-#: .\templates\planning\schemes.html:484 .\tsap\locale.py:660
+#: .\templates\planning\schemes.html:484 .\tsap\locale.py:646
 msgid "Add employee"
 msgstr "Medewerker toevoegen"
 
-#: .\templates\employees\employee_form.html:116 .\tsap\locale.py:661
+#: .\templates\employees\employee_form.html:116 .\tsap\locale.py:647
 msgid "Delete employee"
 msgstr "Medewerker wissen"
 
 #: .\templates\employees\employee_import.html:23
 #: .\templates\employees\employee_import.html:35
-#: .\templates\employees\employee_import.html:122 .\tsap\locale.py:657
+#: .\templates\employees\employee_import.html:122 .\tsap\locale.py:643
 msgid "Upload employees"
 msgstr "Medewerkers uploaden"
 
@@ -1340,11 +1340,11 @@ msgstr "Medewerkers"
 #: .\templates\includes\modrosteremployee.html:23
 #: .\templates\includes\modselectemployee.html:34
 #: .\templates\planning\roster.html:370 .\templates\planning\schemes.html:482
-#: .\tsap\locale.py:659
+#: .\tsap\locale.py:645
 msgid "Select employee"
 msgstr "Selecteer medewerker"
 
-#: .\templates\employees\employees.html:108 .\tsap\locale.py:666
+#: .\templates\employees\employees.html:108 .\tsap\locale.py:652
 msgid "Employee list"
 msgstr "Medewerker lijst"
 
@@ -1353,63 +1353,63 @@ msgstr "Medewerker lijst"
 #: .\templates\includes\modemployeeshift.html:51
 #: .\templates\includes\modrosteremployee.html:48
 #: .\templates\planning\review.html:38 .\templates\planning\roster.html:38
-#: .\tsap\locale.py:675
+#: .\tsap\locale.py:661
 msgid "Absence"
 msgstr "Afwezigheid"
 
 #: .\templates\employees\employees.html:110
 #: .\templates\includes\modeordershift.html:34
 #: .\templates\planning\schemes.html:269 .\templates\planning\schemes.html:467
-#: .\tsap\locale.py:644
+#: .\tsap\locale.py:630
 msgid "Shifts"
 msgstr "Diensten"
 
-#: .\templates\employees\employees.html:195 .\tsap\locale.py:625
+#: .\templates\employees\employees.html:195 .\tsap\locale.py:611
 msgid "Download planning"
 msgstr ""
 
-#: .\templates\employees\employees.html:196 .\tsap\locale.py:624
+#: .\templates\employees\employees.html:196 .\tsap\locale.py:610
 msgid "Preview planning"
 msgstr "Toon planning"
 
 #: .\templates\employees\employees.html:198
 #: .\templates\planning\roster.html:333 .\templates\planning\schemes.html:80
-#: .\templates\planning\schemes.html:162 .\tsap\locale.py:608
+#: .\templates\planning\schemes.html:162 .\tsap\locale.py:594
 msgid "Customer"
 msgstr "Klant"
 
 #: .\templates\employees\employees.html:202
 #: .\templates\planning\schemes.html:345 .\templates\planning\schemes.html:474
-#: .\tsap\locale.py:651
+#: .\tsap\locale.py:637
 msgid "Team"
 msgstr "Ploeg"
 
 #: .\templates\employees\employees.html:203
 #: .\templates\planning\roster.html:361 .\templates\planning\schemes.html:465
-#: .\tsap\locale.py:708
+#: .\tsap\locale.py:694
 msgid "of"
 msgstr "van"
 
 #: .\templates\employees\employees.html:205
 #: .\templates\includes\modemployeeshift.html:75
 #: .\templates\includes\modrosteremployee.html:57
-#: .\templates\planning\roster.html:340 .\tsap\locale.py:676
+#: .\templates\planning\roster.html:340 .\tsap\locale.py:662
 msgid "Absence category"
 msgstr "Afwezigheid categorie"
 
 #: .\templates\employees\employees.html:206
-#: .\templates\planning\roster.html:341 .\tsap\locale.py:677
+#: .\templates\planning\roster.html:341 .\tsap\locale.py:663
 msgid "Select absence category"
 msgstr "Selecteer afwezigheid categorie"
 
 #: .\templates\employees\employees.html:207
-#: .\templates\planning\roster.html:342 .\tsap\locale.py:678
+#: .\templates\planning\roster.html:342 .\tsap\locale.py:664
 msgid "No absence categories"
 msgstr "Selecteer afwezigheid categorieën"
 
 #: .\templates\employees\employees.html:208 .\templates\planning\review.html:19
 #: .\templates\planning\roster.html:19 .\templates\planning\roster.html:349
-#: .\tsap\locale.py:595
+#: .\tsap\locale.py:581
 msgid "Period"
 msgstr "Periode"
 
@@ -1419,11 +1419,11 @@ msgstr "Periode"
 #: .\templates\includes\modselectperiodandorder.html:10
 #: .\templates\includes\modselectperiodandorder.html:47
 #: .\templates\planning\review.html:24 .\templates\planning\roster.html:24
-#: .\tsap\locale.py:596
+#: .\tsap\locale.py:582
 msgid "Select period"
 msgstr "Selecteer periode"
 
-#: .\templates\employees\employees.html:211 .\tsap\locale.py:710
+#: .\templates\employees\employees.html:211 .\tsap\locale.py:696
 msgid "Print date"
 msgstr "Printdatum"
 
@@ -1437,12 +1437,12 @@ msgstr "Maak medewerker aktief"
 
 #: .\templates\employees\employees.html:216
 #: .\templates\planning\roster.html:358 .\templates\planning\schemes.html:463
-#: .\tsap\locale.py:594
+#: .\tsap\locale.py:580
 msgid "Rosterdate"
 msgstr "Roosterdatum"
 
 #: .\templates\employees\employees.html:218
-#: .\templates\planning\schemes.html:519 .\tsap\locale.py:702
+#: .\templates\planning\schemes.html:519 .\tsap\locale.py:688
 msgid "will be deleted."
 msgstr "wordt gewist."
 
@@ -1455,7 +1455,7 @@ msgid "This employee will be made inactive."
 msgstr "Deze werknemer wordt niet-aktief gemaakt."
 
 #: .\templates\employees\employees.html:222
-#: .\templates\planning\schemes.html:523 .\tsap\locale.py:697
+#: .\templates\planning\schemes.html:523 .\tsap\locale.py:683
 msgid "Yes, make inactive"
 msgstr "Ja, maak niet-aktief"
 
@@ -1479,7 +1479,7 @@ msgstr "Ga naar vorige week."
 msgid "Go one day back."
 msgstr "Ga een dag terug."
 
-#: .\templates\includes\calendar.html:14 .\tsap\locale.py:724
+#: .\templates\includes\calendar.html:14 .\tsap\locale.py:710
 msgid "This week"
 msgstr "Deze week"
 
@@ -1497,7 +1497,7 @@ msgid "This item will be deleted."
 msgstr "Dit item wordt gewist."
 
 #: .\templates\includes\confirm.html:21
-#: .\templates\includes\confirm_delete.html:20 .\tsap\locale.py:693
+#: .\templates\includes\confirm_delete.html:20 .\tsap\locale.py:679
 msgid "Do you want to continue?"
 msgstr "Wilt u doorgaan?"
 
@@ -1518,12 +1518,12 @@ msgid "Customers and orders"
 msgstr "Klanten en locaties"
 
 #: .\templates\includes\header.html:111 .\templates\planning\roster.html:5
-#: .\templates\planning\roster.html:16 .\tsap\locale.py:593
+#: .\templates\planning\roster.html:16 .\tsap\locale.py:579
 msgid "Roster"
 msgstr "Rooster"
 
 #: .\templates\includes\header.html:112 .\templates\planning\review.html:5
-#: .\templates\planning\review.html:16 .\tsap\locale.py:707
+#: .\templates\planning\review.html:16 .\tsap\locale.py:693
 msgid "Review"
 msgstr "Overzicht"
 
@@ -1543,7 +1543,7 @@ msgstr "Ploegendienst"
 #: .\templates\includes\modemployeeshift.html:93
 #: .\templates\includes\modeordershift.html:102
 #: .\templates\planning\roster.html:279 .\templates\planning\schemes.html:496
-#: .\tsap\locale.py:783
+#: .\tsap\locale.py:769
 msgid "Break"
 msgstr "Pauze"
 
@@ -1577,37 +1577,37 @@ msgid "Weekdays of this shift"
 msgstr "Weekdagen van deze dienst"
 
 #: .\templates\includes\modemployeeshift.html:141
-#: .\templates\includes\modeordershift.html:151 .\tsap\locale.py:762
+#: .\templates\includes\modeordershift.html:151 .\tsap\locale.py:748
 msgid "Mon"
 msgstr "ma"
 
 #: .\templates\includes\modemployeeshift.html:142
-#: .\templates\includes\modeordershift.html:152 .\tsap\locale.py:762
+#: .\templates\includes\modeordershift.html:152 .\tsap\locale.py:748
 msgid "Tue"
 msgstr "di"
 
 #: .\templates\includes\modemployeeshift.html:143
-#: .\templates\includes\modeordershift.html:153 .\tsap\locale.py:762
+#: .\templates\includes\modeordershift.html:153 .\tsap\locale.py:748
 msgid "Wed"
 msgstr "wo"
 
 #: .\templates\includes\modemployeeshift.html:144
-#: .\templates\includes\modeordershift.html:154 .\tsap\locale.py:762
+#: .\templates\includes\modeordershift.html:154 .\tsap\locale.py:748
 msgid "Thu"
 msgstr "do"
 
 #: .\templates\includes\modemployeeshift.html:145
-#: .\templates\includes\modeordershift.html:155 .\tsap\locale.py:762
+#: .\templates\includes\modeordershift.html:155 .\tsap\locale.py:748
 msgid "Fri"
 msgstr "vr"
 
 #: .\templates\includes\modemployeeshift.html:146
-#: .\templates\includes\modeordershift.html:156 .\tsap\locale.py:762
+#: .\templates\includes\modeordershift.html:156 .\tsap\locale.py:748
 msgid "Sat"
 msgstr "za"
 
 #: .\templates\includes\modemployeeshift.html:147
-#: .\templates\includes\modeordershift.html:157 .\tsap\locale.py:762
+#: .\templates\includes\modeordershift.html:157 .\tsap\locale.py:748
 msgid "Sun"
 msgstr "zo"
 
@@ -1635,13 +1635,13 @@ msgstr "Niet tijdens bedrijfsvakantie"
 #: .\templates\includes\modemployeeshift.html:197
 #: .\templates\includes\modeordershift.html:206
 #: .\templates\includes\timepicker.html:11 .\templates\planning\roster.html:280
-#: .\templates\planning\schemes.html:497 .\tsap\locale.py:785
+#: .\templates\planning\schemes.html:497 .\tsap\locale.py:771
 msgid "Hours"
 msgstr "Uren"
 
 #: .\templates\includes\modeordershift.html:35
 #: .\templates\planning\schemes.html:270 .\templates\planning\schemes.html:475
-#: .\tsap\locale.py:652
+#: .\tsap\locale.py:638
 msgid "Teams"
 msgstr "Ploegen"
 
@@ -1707,7 +1707,7 @@ msgstr "Dienst splitsen"
 
 #: .\templates\includes\modrosteremployee.html:70
 #: .\templates\planning\roster.html:372 .\templates\planning\schemes.html:486
-#: .\tsap\locale.py:663
+#: .\tsap\locale.py:649
 msgid "Replacement employee"
 msgstr "Vervanger"
 
@@ -1775,11 +1775,11 @@ msgstr "Realisatie"
 msgid "Customer and order"
 msgstr "Klant en locatie"
 
-#: .\templates\planning\roster.html:62 .\tsap\locale.py:605
+#: .\templates\planning\roster.html:62 .\tsap\locale.py:591
 msgid "Status"
 msgstr ""
 
-#: .\templates\planning\roster.html:95 .\tsap\locale.py:775
+#: .\templates\planning\roster.html:95 .\tsap\locale.py:761
 msgid "Time"
 msgstr "Tijd"
 
@@ -1787,7 +1787,7 @@ msgstr "Tijd"
 msgid "Notes"
 msgstr "Opmerking"
 
-#: .\templates\planning\roster.html:123 .\tsap\locale.py:752
+#: .\templates\planning\roster.html:123 .\tsap\locale.py:738
 msgid "Confirm"
 msgstr "Bevestig"
 
@@ -1800,22 +1800,22 @@ msgid "Previous month"
 msgstr "Vorige maand"
 
 #: .\templates\planning\roster.html:245 .\templates\planning\schemes.html:298
-#: .\templates\planning\schemes.html:500 .\tsap\locale.py:790
+#: .\templates\planning\schemes.html:500 .\tsap\locale.py:776
 msgid "Previous day"
 msgstr "Vorige dag"
 
 #: .\templates\planning\roster.html:246 .\templates\planning\schemes.html:299
-#: .\tsap\locale.py:721
+#: .\tsap\locale.py:707
 msgid "Today"
 msgstr "Vandaag"
 
 #: .\templates\planning\roster.html:247 .\templates\planning\schemes.html:300
-#: .\templates\planning\schemes.html:501 .\tsap\locale.py:791
+#: .\templates\planning\schemes.html:501 .\tsap\locale.py:777
 msgid "Next day"
 msgstr "Volgende dag"
 
 #: .\templates\planning\roster.html:248 .\templates\planning\schemes.html:301
-#: .\tsap\locale.py:729
+#: .\tsap\locale.py:715
 msgid "Next month"
 msgstr "Volgende maand"
 
@@ -1833,28 +1833,28 @@ msgid "End"
 msgstr "Einde"
 
 #: .\templates\planning\roster.html:330 .\templates\planning\schemes.html:440
-#: .\tsap\locale.py:587
+#: .\tsap\locale.py:573
 msgid "Quick save"
 msgstr "Snel opslaan"
 
 #: .\templates\planning\roster.html:331 .\templates\planning\schemes.html:441
-#: .\tsap\locale.py:588
+#: .\tsap\locale.py:574
 msgid "Exit Quick save"
 msgstr "Snel opslaan uitschakelen"
 
 #: .\templates\planning\roster.html:335 .\templates\planning\schemes.html:444
-#: .\tsap\locale.py:613
+#: .\tsap\locale.py:599
 msgid "No customers"
 msgstr "Geen klanten"
 
 #: .\templates\planning\roster.html:338 .\templates\planning\schemes.html:446
-#: .\tsap\locale.py:631
+#: .\tsap\locale.py:617
 msgid "No orders"
 msgstr "Geen locaties"
 
 #: .\templates\planning\roster.html:345 .\templates\planning\schemes.html:90
 #: .\templates\planning\schemes.html:271 .\templates\planning\schemes.html:448
-#: .\tsap\locale.py:314 .\tsap\locale.py:635
+#: .\tsap\locale.py:314 .\tsap\locale.py:621
 msgid "Scheme"
 msgstr "Schema"
 
@@ -1895,7 +1895,7 @@ msgid "Remove roster of"
 msgstr "Verwijder rooster van"
 
 #: .\templates\planning\roster.html:371 .\templates\planning\schemes.html:483
-#: .\tsap\locale.py:662
+#: .\tsap\locale.py:648
 msgid "No employees"
 msgstr "Geen medewerkers"
 
@@ -1947,7 +1947,7 @@ msgstr "Cyclus dagen"
 msgid "Enter the length of the cycle in days, enter zero for once-only."
 msgstr "Voer het aantal dagen van de cyclus in, voer nul in voor eenmalig."
 
-#: .\templates\planning\schemes.html:128 .\tsap\locale.py:241
+#: .\templates\planning\schemes.html:128 .\tsap\locale.py:242
 msgid "Copy from template"
 msgstr "Kopieer van sjabloon"
 
@@ -2017,7 +2017,7 @@ msgid "Cycle length"
 msgstr "Cyclus lengte"
 
 #: .\templates\planning\schemes.html:395 .\templates\planning\schemes.html:449
-#: .\tsap\locale.py:240 .\tsap\locale.py:249 .\tsap\locale.py:315
+#: .\tsap\locale.py:241 .\tsap\locale.py:250 .\tsap\locale.py:315
 msgid "Add scheme"
 msgstr "Schema toevoegen"
 
@@ -2037,11 +2037,11 @@ msgstr "Sjabloon"
 msgid "No templates"
 msgstr "Geen sjablonen"
 
-#: .\templates\planning\schemes.html:460 .\tsap\locale.py:641
+#: .\templates\planning\schemes.html:460 .\tsap\locale.py:627
 msgid "days cycle"
 msgstr "daagse cyclus"
 
-#: .\templates\planning\schemes.html:462 .\tsap\locale.py:245
+#: .\templates\planning\schemes.html:462 .\tsap\locale.py:246
 #: .\tsap\locale.py:347
 msgid "Create roster"
 msgstr "Rooster aanmaken"
@@ -2051,7 +2051,7 @@ msgid "Fill roster"
 msgstr "Rooster vullen"
 
 #: .\templates\planning\schemes.html:468 .\templates\planning\schemes.html:529
-#: .\tsap\locale.py:649
+#: .\tsap\locale.py:635
 msgid "Rest shift"
 msgstr "Rust dienst"
 
@@ -2075,27 +2075,27 @@ msgstr "Ploeg verwijderen"
 msgid "Go to teams"
 msgstr "Ga naar ploegen"
 
-#: .\templates\planning\schemes.html:487 .\tsap\locale.py:664
+#: .\templates\planning\schemes.html:487 .\tsap\locale.py:650
 msgid "Select replacement employee"
 msgstr "Selecteer vervanger"
 
-#: .\templates\planning\schemes.html:491 .\tsap\locale.py:672
+#: .\templates\planning\schemes.html:491 .\tsap\locale.py:658
 msgid "Hourly rate"
 msgstr "Uurtarief"
 
-#: .\templates\planning\schemes.html:492 .\tsap\locale.py:602
+#: .\templates\planning\schemes.html:492 .\tsap\locale.py:588
 msgid "Billable"
 msgstr "Declarabel"
 
-#: .\templates\planning\schemes.html:499 .\tsap\locale.py:789
+#: .\templates\planning\schemes.html:499 .\tsap\locale.py:775
 msgid "Current day"
 msgstr "Huidige dag"
 
-#: .\templates\planning\schemes.html:502 .\tsap\locale.py:792
+#: .\templates\planning\schemes.html:502 .\tsap\locale.py:778
 msgid "Shift starts on the previous day"
 msgstr "Dienst begint op de vorige dag"
 
-#: .\templates\planning\schemes.html:503 .\tsap\locale.py:793
+#: .\templates\planning\schemes.html:503 .\tsap\locale.py:779
 msgid "Shift ends on the next day"
 msgstr "Dienst eindigt op de volgende dag"
 
@@ -2143,7 +2143,7 @@ msgstr "Deze ploeg heeft "
 msgid " employees."
 msgstr " medewerkers"
 
-#: .\templates\planning\schemes.html:518 .\tsap\locale.py:703
+#: .\templates\planning\schemes.html:518 .\tsap\locale.py:689
 msgid "will be made inactive."
 msgstr "wordt niet-aktief gemaakt."
 
@@ -2224,80 +2224,80 @@ msgstr "Datum moet ingevuld zijn."
 msgid "'%(fld)s' is not a valid date."
 msgstr "'%(fld)s' is geen geldige datum."
 
-#: .\tsap\functions.py:1248
+#: .\tsap\functions.py:1310
 msgid "This field must be a number."
 msgstr "Dit veld moet een getal zijn."
 
-#: .\tsap\functions.py:2002
+#: .\tsap\functions.py:2061
 #, python-format
 msgid "'%(value)s' is not a valid number."
 msgstr "'%(value)s' is geen geldig getal."
 
-#: .\tsap\functions.py:2513
+#: .\tsap\functions.py:2573
 msgid "New Year's Day"
 msgstr "Nieuwjaarsdag"
 
-#: .\tsap\functions.py:2518
+#: .\tsap\functions.py:2578
 msgid "Labour Day"
 msgstr "Dag van de Arbeid"
 
-#: .\tsap\functions.py:2523
+#: .\tsap\functions.py:2583
 msgid "Liberation Day"
 msgstr "Bevrijdingsdag"
 
-#: .\tsap\functions.py:2528
+#: .\tsap\functions.py:2588
 msgid "Flag Day"
 msgstr "Dag van de Vlag"
 
-#: .\tsap\functions.py:2533
+#: .\tsap\functions.py:2593
 msgid "Curaçao Day"
 msgstr "Curaçao Dag"
 
-#: .\tsap\functions.py:2537
+#: .\tsap\functions.py:2597
 msgid "Christmas Day"
 msgstr "Kerstmis"
 
-#: .\tsap\functions.py:2541
+#: .\tsap\functions.py:2601
 msgid "2nd Christmas Day"
 msgstr "Tweede Kerstdag"
 
-#: .\tsap\functions.py:2553
+#: .\tsap\functions.py:2613
 msgid "Kings Day"
 msgstr "Koningsdag"
 
-#: .\tsap\functions.py:2566
+#: .\tsap\functions.py:2626
 msgid "Carnaval"
 msgstr "Karnaval"
 
-#: .\tsap\functions.py:2578
+#: .\tsap\functions.py:2638
 msgid "2nd Carnaval Day"
 msgstr "Karnavals maandag"
 
-#: .\tsap\functions.py:2590
+#: .\tsap\functions.py:2650
 msgid "Good Friday"
 msgstr "Goede Vrijdag"
 
-#: .\tsap\functions.py:2602
+#: .\tsap\functions.py:2662
 msgid "Easter"
 msgstr "Pasen"
 
-#: .\tsap\functions.py:2615
+#: .\tsap\functions.py:2675
 msgid "Harvest Festival"
 msgstr "Oogstfeest"
 
-#: .\tsap\functions.py:2618
+#: .\tsap\functions.py:2678
 msgid "Easter Monday"
 msgstr "Tweede Paasdag"
 
-#: .\tsap\functions.py:2631
+#: .\tsap\functions.py:2691
 msgid "Ascension Day"
 msgstr "Hemelvaartsdag"
 
-#: .\tsap\functions.py:2643
+#: .\tsap\functions.py:2703
 msgid "Pentecost"
 msgstr "Pinksteren"
 
-#: .\tsap\functions.py:2656
+#: .\tsap\functions.py:2716
 msgid "2nd Pentecost Day"
 msgstr "Tweede Pinksterdag"
 
@@ -2309,80 +2309,80 @@ msgstr "<Geen bedrijven gevonden>"
 msgid "<Select company>"
 msgstr "<Select bedrijf>"
 
-#: .\tsap\locale.py:242
+#: .\tsap\locale.py:243
 msgid "Copy to template"
 msgstr "Kopieer naar sjabloon"
 
-#: .\tsap\locale.py:243
+#: .\tsap\locale.py:244
 msgid "Show templates"
 msgstr "Sjablonen weergeven"
 
-#: .\tsap\locale.py:244
+#: .\tsap\locale.py:245
 msgid "Hide templates"
 msgstr "Sablonen verbergen"
 
-#: .\tsap\locale.py:246 .\tsap\locale.py:348
+#: .\tsap\locale.py:247 .\tsap\locale.py:348
 msgid "Delete roster"
 msgstr "Rooster wissen"
 
-#: .\tsap\locale.py:253 .\tsap\locale.py:381
+#: .\tsap\locale.py:254 .\tsap\locale.py:381
 msgid "Create shift roster"
 msgstr "Dienstrooster aanmaken"
 
-#: .\tsap\locale.py:254 .\tsap\locale.py:382
+#: .\tsap\locale.py:255 .\tsap\locale.py:382
 msgid "Delete shift roster"
 msgstr "Dienstrooster wissen"
 
-#: .\tsap\locale.py:256 .\tsap\locale.py:384
+#: .\tsap\locale.py:257 .\tsap\locale.py:384
 msgid "Click the button below to add the shifts of this rosterdate."
 msgstr "Klik op de knop hieronder om het dienstrooster aan te maken ."
 
-#: .\tsap\locale.py:257 .\tsap\locale.py:385
+#: .\tsap\locale.py:258 .\tsap\locale.py:385
 msgid "Click the button below to delete the shifts of this rosterdate."
 msgstr "Klik op de knop hieronder om het dienstrooster te wissen."
 
-#: .\tsap\locale.py:258 .\tsap\locale.py:386
+#: .\tsap\locale.py:259 .\tsap\locale.py:386
 msgid "Creating shift roster"
 msgstr "Het dienstrooster wordt aangemaakt"
 
-#: .\tsap\locale.py:259 .\tsap\locale.py:387
+#: .\tsap\locale.py:260 .\tsap\locale.py:387
 msgid "One shift was "
 msgstr "Eén dienst is "
 
-#: .\tsap\locale.py:260 .\tsap\locale.py:388
+#: .\tsap\locale.py:261 .\tsap\locale.py:388
 msgid " shifts were "
 msgstr " diensten zijn "
 
-#: .\tsap\locale.py:261 .\tsap\locale.py:389
+#: .\tsap\locale.py:262 .\tsap\locale.py:389
 msgid "successfully added to this rosterdate."
 msgstr "met succes toegevoegd aan het rooster."
 
-#: .\tsap\locale.py:265 .\tsap\locale.py:393
+#: .\tsap\locale.py:266 .\tsap\locale.py:393
 msgid "Deleting shift roster"
 msgstr "Het dienstrooster wordt gewist"
 
-#: .\tsap\locale.py:266 .\tsap\locale.py:394
+#: .\tsap\locale.py:267 .\tsap\locale.py:394
 msgid "Shift roster was successfully deleted."
 msgstr "Dienstrooster is met succes gewist."
 
-#: .\tsap\locale.py:268 .\tsap\locale.py:396
+#: .\tsap\locale.py:269 .\tsap\locale.py:396
 msgid "Checking shifts of this rosterdate"
 msgstr "Het dienstrooster wordt gecontroleerd"
 
-#: .\tsap\locale.py:269 .\tsap\locale.py:274 .\tsap\locale.py:397
+#: .\tsap\locale.py:270 .\tsap\locale.py:275 .\tsap\locale.py:397
 #: .\tsap\locale.py:402
 msgid "This rosterdate has "
 msgstr "Deze roosterdatum heeft "
 
-#: .\tsap\locale.py:270 .\tsap\locale.py:398
+#: .\tsap\locale.py:271 .\tsap\locale.py:398
 msgid "one shift"
 msgstr "één dienst"
 
-#: .\tsap\locale.py:271 .\tsap\locale.py:399
+#: .\tsap\locale.py:272 .\tsap\locale.py:399
 msgid " shifts"
 msgstr " diensten"
 
-#: .\tsap\locale.py:273 .\tsap\locale.py:401
+#: .\tsap\locale.py:274 .\tsap\locale.py:401
 msgid "This rosterdate has no shifts."
 msgstr "Deze roosterdatum heeft geen diensten."
 
@@ -2414,7 +2414,7 @@ msgstr ", bevestigde diensten worden overgeslagen."
 msgid "The shifts of this rosterdate have been "
 msgstr "De diensten van dit rooster zijn "
 
-#: .\tsap\locale.py:337 .\tsap\locale.py:737
+#: .\tsap\locale.py:337 .\tsap\locale.py:723
 msgid "Please select a template."
 msgstr "Selecteer een sjabloon."
 
@@ -2454,483 +2454,479 @@ msgstr "12 uren"
 msgid "24 hours"
 msgstr "24 uren"
 
-#: .\tsap\locale.py:499
+#: .\tsap\locale.py:498
 msgid "Expand all"
 msgstr "Alles uitklappen"
 
-#: .\tsap\locale.py:500
+#: .\tsap\locale.py:499
 msgid "Collaps all"
 msgstr "Alles inklappen"
 
-#: .\tsap\locale.py:508
-msgid "Order / Employee"
-msgstr "Locatie / Medewerker"
-
-#: .\tsap\locale.py:573
+#: .\tsap\locale.py:559
 msgid "Print roster"
 msgstr "Print rooster"
 
-#: .\tsap\locale.py:574
+#: .\tsap\locale.py:560
 msgid "Print report"
 msgstr "Print rapport"
 
-#: .\tsap\locale.py:575
+#: .\tsap\locale.py:561
 msgid "Export to Excel"
 msgstr "Exporteer naar Excel"
 
-#: .\tsap\locale.py:584
+#: .\tsap\locale.py:570
 msgid "Undo"
 msgstr "Ongedaan maken"
 
-#: .\tsap\locale.py:590
+#: .\tsap\locale.py:576
 msgid "Create"
 msgstr "Aanmaken"
 
-#: .\tsap\locale.py:598
+#: .\tsap\locale.py:584
 msgid "Planned hours"
 msgstr "Geplande uren"
 
-#: .\tsap\locale.py:599
+#: .\tsap\locale.py:585
 msgid "Worked hours"
 msgstr "Gewerkte uren"
 
-#: .\tsap\locale.py:601
+#: .\tsap\locale.py:587
 msgid "Difference"
 msgstr "Verschil"
 
-#: .\tsap\locale.py:603
+#: .\tsap\locale.py:589
 msgid "Rate"
 msgstr "Tarief"
 
-#: .\tsap\locale.py:604
+#: .\tsap\locale.py:590
 msgid "Amount"
 msgstr "Bedrag"
 
-#: .\tsap\locale.py:614
+#: .\tsap\locale.py:600
 msgid "Identifier"
 msgstr "Identificatiecode"
 
-#: .\tsap\locale.py:618
+#: .\tsap\locale.py:604
 msgid "Enter short name of customer"
 msgstr "Vul een korte naam van de klant in."
 
-#: .\tsap\locale.py:621
+#: .\tsap\locale.py:607
 msgid "Click to show or hide inactive customers."
 msgstr ""
 
-#: .\tsap\locale.py:623
+#: .\tsap\locale.py:609
 msgid "Print planning"
 msgstr ""
 
-#: .\tsap\locale.py:628
+#: .\tsap\locale.py:614
 msgid "Order name"
 msgstr "Locatie naam"
 
-#: .\tsap\locale.py:629
+#: .\tsap\locale.py:615
 msgid "Order code"
 msgstr "Locatie code"
 
-#: .\tsap\locale.py:632
+#: .\tsap\locale.py:618
 msgid "Add order"
 msgstr "Locatie toevoegen"
 
-#: .\tsap\locale.py:633
+#: .\tsap\locale.py:619
 msgid "Delete order"
 msgstr "Wis locatie"
 
-#: .\tsap\locale.py:636
+#: .\tsap\locale.py:622
 msgid "New scheme"
 msgstr "Nieuw schema"
 
-#: .\tsap\locale.py:638
+#: .\tsap\locale.py:624
 msgid "Cycle"
 msgstr "Cyclus"
 
-#: .\tsap\locale.py:639
+#: .\tsap\locale.py:625
 msgid "Weekly cycle"
 msgstr "Wekelijkse cyclus"
 
-#: .\tsap\locale.py:640
+#: .\tsap\locale.py:626
 msgid "Daily cycle"
 msgstr "Dagelijkse cyclus"
 
-#: .\tsap\locale.py:645
+#: .\tsap\locale.py:631
 msgid "shift"
 msgstr "dienst"
 
-#: .\tsap\locale.py:646
+#: .\tsap\locale.py:632
 msgid "shifts"
 msgstr "diensten"
 
-#: .\tsap\locale.py:648
+#: .\tsap\locale.py:634
 msgid "New shift"
 msgstr "Nieuwe dienst"
 
-#: .\tsap\locale.py:653
+#: .\tsap\locale.py:639
 msgid "New team"
 msgstr "Nieuwe ploeg"
 
-#: .\tsap\locale.py:654
+#: .\tsap\locale.py:640
 msgid "Add teammember"
 msgstr "Ploeglid toevoegen"
 
-#: .\tsap\locale.py:655
+#: .\tsap\locale.py:641
 msgid "Delete teammember"
 msgstr "Ploeglid verwijderen"
 
-#: .\tsap\locale.py:667
+#: .\tsap\locale.py:653
 msgid "Employee data"
 msgstr "Medewerker gegevens"
 
-#: .\tsap\locale.py:669
+#: .\tsap\locale.py:655
 msgid "Hours per week"
 msgstr "Uren per week"
 
-#: .\tsap\locale.py:670
+#: .\tsap\locale.py:656
 msgid "Days per week"
 msgstr "Dagen per week"
 
-#: .\tsap\locale.py:671
+#: .\tsap\locale.py:657
 msgid "Vacation days"
 msgstr "Vakantiedagen"
 
-#: .\tsap\locale.py:673
+#: .\tsap\locale.py:659
 msgid "Wage rate"
 msgstr "Loonfactor"
 
-#: .\tsap\locale.py:680
+#: .\tsap\locale.py:666
 msgid "Also show absence"
 msgstr "Ook afwezigheid weergeven"
 
-#: .\tsap\locale.py:681
+#: .\tsap\locale.py:667
 msgid "Absence included"
 msgstr "Inclusief afwezigheid"
 
-#: .\tsap\locale.py:682
+#: .\tsap\locale.py:668
 msgid "Don't show absence"
 msgstr "Afwezigheid niet weergeven"
 
-#: .\tsap\locale.py:683
+#: .\tsap\locale.py:669
 msgid "Without absence"
 msgstr "Zonder afwezigheid"
 
-#: .\tsap\locale.py:684
+#: .\tsap\locale.py:670
 msgid "Show absence only"
 msgstr "Alleen afwezigheid"
 
-#: .\tsap\locale.py:686
+#: .\tsap\locale.py:672
 msgid "one"
 msgstr "één"
 
-#: .\tsap\locale.py:687
+#: .\tsap\locale.py:673
 msgid "confirmed"
 msgstr "bevestigd"
 
-#: .\tsap\locale.py:688
+#: .\tsap\locale.py:674
 msgid "updated"
 msgstr "bijgewerkt"
 
-#: .\tsap\locale.py:689
+#: .\tsap\locale.py:675
 msgid "deleted"
 msgstr "gewist"
 
-#: .\tsap\locale.py:690
+#: .\tsap\locale.py:676
 msgid "created"
 msgstr "aangemaakt"
 
-#: .\tsap\locale.py:691
+#: .\tsap\locale.py:677
 msgid "replaced"
 msgstr "vervangen"
 
-#: .\tsap\locale.py:695
+#: .\tsap\locale.py:681
 msgid "Yes, create"
 msgstr "Ja, aanmaken"
 
-#: .\tsap\locale.py:700
+#: .\tsap\locale.py:686
 msgid "This customer"
 msgstr "Deze klant"
 
-#: .\tsap\locale.py:701
+#: .\tsap\locale.py:687
 msgid "This order"
 msgstr "Deze locatie"
 
-#: .\tsap\locale.py:712
+#: .\tsap\locale.py:698
 msgid "Total hours"
 msgstr "Totaal uren"
 
-#: .\tsap\locale.py:714
+#: .\tsap\locale.py:700
 msgid "Now"
 msgstr "Nu"
 
-#: .\tsap\locale.py:715
+#: .\tsap\locale.py:701
 msgid "This night"
 msgstr "Deze nacht"
 
-#: .\tsap\locale.py:716
+#: .\tsap\locale.py:702
 msgid "This morning"
 msgstr "Deze morgen"
 
-#: .\tsap\locale.py:717
+#: .\tsap\locale.py:703
 msgid "This afternoon"
 msgstr "Deze middag"
 
-#: .\tsap\locale.py:718
+#: .\tsap\locale.py:704
 msgid "This evening"
 msgstr "Deze avond"
 
-#: .\tsap\locale.py:722
+#: .\tsap\locale.py:708
 msgid "Tomorrow"
 msgstr "Morgen"
 
-#: .\tsap\locale.py:723
+#: .\tsap\locale.py:709
 msgid "Yesterday"
 msgstr "Gisteren"
 
-#: .\tsap\locale.py:725
+#: .\tsap\locale.py:711
 msgid "Next week"
 msgstr "Volgende week"
 
-#: .\tsap\locale.py:726
+#: .\tsap\locale.py:712
 msgid "Last week"
 msgstr "Vorige week"
 
-#: .\tsap\locale.py:727
+#: .\tsap\locale.py:713
 msgid "This month"
 msgstr "Deze maand"
 
-#: .\tsap\locale.py:728
+#: .\tsap\locale.py:714
 msgid "Last month"
 msgstr "Vorige maand"
 
-#: .\tsap\locale.py:730
+#: .\tsap\locale.py:716
 msgid "Custom period..."
 msgstr "Andere periode..."
 
-#: .\tsap\locale.py:731
+#: .\tsap\locale.py:717
 msgid "All customers"
 msgstr "Alle klanten"
 
-#: .\tsap\locale.py:732
+#: .\tsap\locale.py:718
 msgid "All orders"
 msgstr "Alle locaties"
 
-#: .\tsap\locale.py:735
+#: .\tsap\locale.py:721
 msgid "Please select an order."
 msgstr "Selecteer een locatie."
 
-#: .\tsap\locale.py:736
+#: .\tsap\locale.py:722
 msgid "Please select a customer."
 msgstr "Selecteer een klant."
 
-#: .\tsap\locale.py:738
+#: .\tsap\locale.py:724
 msgid "This name already exists. Please enter a different name."
 msgstr "Deze naam komt al voor. Vul een andere naam in."
 
-#: .\tsap\locale.py:739
+#: .\tsap\locale.py:725
 msgid "Name cannot be blank. Please enter a name."
 msgstr "Naam kan niet blanco zijn. Vul een naam in."
 
-#: .\tsap\locale.py:740
+#: .\tsap\locale.py:726
 msgid "is an invalid number."
 msgstr "is geen geldig getal."
 
-#: .\tsap\locale.py:741
+#: .\tsap\locale.py:727
 msgid "Number must be between"
 msgstr ""
 
-#: .\tsap\locale.py:742
+#: .\tsap\locale.py:728
 msgid "and"
 msgstr "en"
 
-#: .\tsap\locale.py:744 .\tsap\locale.py:758
+#: .\tsap\locale.py:730 .\tsap\locale.py:744
 msgid "You must first select "
 msgstr "Je moet eerst "
 
-#: .\tsap\locale.py:745
+#: .\tsap\locale.py:731
 msgid ", before you can add a calendar item."
 msgstr " selecteren, voordat je een item aan de kalender kunt toevoegen."
 
-#: .\tsap\locale.py:746
+#: .\tsap\locale.py:732
 msgid ", before you can print a planning."
 msgstr " selecteren, voordat je een planning kunt printen."
 
-#: .\tsap\locale.py:747
+#: .\tsap\locale.py:733
 msgid "an order"
 msgstr "een locatie"
 
-#: .\tsap\locale.py:748
+#: .\tsap\locale.py:734
 msgid "an employee"
 msgstr "een medewerker"
 
-#: .\tsap\locale.py:749
+#: .\tsap\locale.py:735
 msgid "a start time"
 msgstr "een begintijd"
 
-#: .\tsap\locale.py:750
+#: .\tsap\locale.py:736
 msgid "an end time"
 msgstr "een eindtijd"
 
-#: .\tsap\locale.py:753
+#: .\tsap\locale.py:739
 msgid "Undo confirmation"
 msgstr "Bevestiging ongedaan maken"
 
-#: .\tsap\locale.py:754
+#: .\tsap\locale.py:740
 msgid "Confirm start of shift"
 msgstr "Bevestig begin van de dienst"
 
-#: .\tsap\locale.py:755
+#: .\tsap\locale.py:741
 msgid "Confirm end of shift"
 msgstr "Bevestig einde van de dienst"
 
-#: .\tsap\locale.py:756
+#: .\tsap\locale.py:742
 msgid "Lock confirmation"
 msgstr "Vergrendel bevestiging"
 
-#: .\tsap\locale.py:757
+#: .\tsap\locale.py:743
 msgid "Unlock confirmation"
 msgstr "Ontgrendel bevestiging"
 
-#: .\tsap\locale.py:759
+#: .\tsap\locale.py:745
 msgid ", before you can confirm a shift."
 msgstr " selecteren, voordat je een dienst kunt bevestigen."
 
-#: .\tsap\locale.py:763
+#: .\tsap\locale.py:749
 msgid "Monday"
 msgstr "maandag"
 
-#: .\tsap\locale.py:763
+#: .\tsap\locale.py:749
 msgid "Tuesday"
 msgstr "dinsdag"
 
-#: .\tsap\locale.py:763
+#: .\tsap\locale.py:749
 msgid "Wednesday"
 msgstr "woensdag"
 
-#: .\tsap\locale.py:764
+#: .\tsap\locale.py:750
 msgid "Thursday"
 msgstr "donderdag"
 
-#: .\tsap\locale.py:764
+#: .\tsap\locale.py:750
 msgid "Friday"
 msgstr "vrijdag"
 
-#: .\tsap\locale.py:764
+#: .\tsap\locale.py:750
 msgid "Saturday"
 msgstr "zaterdag"
 
-#: .\tsap\locale.py:764
+#: .\tsap\locale.py:750
 msgid "Sunday"
 msgstr "zondag"
 
-#: .\tsap\locale.py:765
+#: .\tsap\locale.py:751
 msgid "Jan"
 msgstr "jan"
 
-#: .\tsap\locale.py:765
+#: .\tsap\locale.py:751
 msgid "Feb"
 msgstr "feb"
 
-#: .\tsap\locale.py:765
+#: .\tsap\locale.py:751
 msgid "Mar"
 msgstr "mrt"
 
-#: .\tsap\locale.py:765
+#: .\tsap\locale.py:751
 msgid "Apr"
 msgstr "apr"
 
-#: .\tsap\locale.py:765 .\tsap\locale.py:767
+#: .\tsap\locale.py:751 .\tsap\locale.py:753
 msgid "May"
 msgstr "mei"
 
-#: .\tsap\locale.py:765
+#: .\tsap\locale.py:751
 msgid "Jun"
 msgstr "juni"
 
-#: .\tsap\locale.py:766
+#: .\tsap\locale.py:752
 msgid "Jul"
 msgstr "juli"
 
-#: .\tsap\locale.py:766
+#: .\tsap\locale.py:752
 msgid "Aug"
 msgstr "aug"
 
-#: .\tsap\locale.py:766
+#: .\tsap\locale.py:752
 msgid "Sep"
 msgstr "sept"
 
-#: .\tsap\locale.py:766
+#: .\tsap\locale.py:752
 msgid "Oct"
 msgstr "okt"
 
-#: .\tsap\locale.py:766
+#: .\tsap\locale.py:752
 msgid "Nov"
 msgstr "nov"
 
-#: .\tsap\locale.py:766
+#: .\tsap\locale.py:752
 msgid "Dec"
 msgstr "dec"
 
-#: .\tsap\locale.py:767
+#: .\tsap\locale.py:753
 msgid "January"
 msgstr "januari"
 
-#: .\tsap\locale.py:767
+#: .\tsap\locale.py:753
 msgid "February"
 msgstr "februari"
 
-#: .\tsap\locale.py:767
+#: .\tsap\locale.py:753
 msgid "March"
 msgstr "maart"
 
-#: .\tsap\locale.py:767
+#: .\tsap\locale.py:753
 msgid "April"
 msgstr "april"
 
-#: .\tsap\locale.py:767
+#: .\tsap\locale.py:753
 msgid "June"
 msgstr "juni"
 
-#: .\tsap\locale.py:768
+#: .\tsap\locale.py:754
 msgid "July"
 msgstr "juli"
 
-#: .\tsap\locale.py:768
+#: .\tsap\locale.py:754
 msgid "August"
 msgstr "augustus"
 
-#: .\tsap\locale.py:768
+#: .\tsap\locale.py:754
 msgid "September"
 msgstr "september"
 
-#: .\tsap\locale.py:768
+#: .\tsap\locale.py:754
 msgid "October"
 msgstr "oktober"
 
-#: .\tsap\locale.py:768
+#: .\tsap\locale.py:754
 msgid "November"
 msgstr "november"
 
-#: .\tsap\locale.py:768
+#: .\tsap\locale.py:754
 msgid "December"
 msgstr "december"
 
-#: .\tsap\locale.py:770
+#: .\tsap\locale.py:756
 msgid "Weekdays"
 msgstr "weekdagen"
 
-#: .\tsap\locale.py:776
+#: .\tsap\locale.py:762
 msgid "Start - Endtime"
 msgstr "Begin - Eindtijd"
 
-#: .\tsap\locale.py:781
+#: .\tsap\locale.py:767
 msgid "Duration"
 msgstr "Tijdsduur"
 
-#: .\tsap\locale.py:787
+#: .\tsap\locale.py:773
 msgid "Full day"
 msgstr "Hele dag"
 
-#: .\tsap\locale.py:794
+#: .\tsap\locale.py:780
 msgid "As of"
 msgstr "Met ingang van"
 
@@ -3050,6 +3046,9 @@ msgstr "Dit e-mail adres komt al voor."
 #, python-format
 msgid "Employee '%(tbl)s' has shifts and cannot be deleted."
 msgstr "Medewerker '%(tbl)s' heeft diensten en kan niet worden gewist."
+
+#~ msgid "Order / Employee"
+#~ msgstr "Locatie / Medewerker"
 
 #~ msgid "Billed hours"
 #~ msgstr "Factuur uren"

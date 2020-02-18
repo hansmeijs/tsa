@@ -792,7 +792,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function HandleBtnCalendar(mode) {
         console.log( " ==== HandleBtnCalendar ====", mode);
 
-        const datefirst_iso = get_dict_value(selected_calendar_period, ["rosterdatefirst"])
+        const datefirst_iso = get_dict_value(selected_calendar_period, ["period_datefirst"])
         console.log( "datefirst_iso", datefirst_iso, typeof datefirst_iso);
 
         let calendar_datefirst_JS = get_dateJS_from_dateISO_vanilla(datefirst_iso);
@@ -832,8 +832,8 @@ document.addEventListener('DOMContentLoaded', function() {
             selected_calendar_period["period_tag"] = "tweek"
         } else{
             selected_calendar_period["period_tag"] = "other"
-            selected_calendar_period["rosterdatefirst"] = calendar_datefirst_iso
-            selected_calendar_period["rosterdatelast"] = calendar_datelast_iso
+            selected_calendar_period["period_datefirst"] = calendar_datefirst_iso
+            selected_calendar_period["period_datelast"] = calendar_datelast_iso
         }
         let datalist_request = {employee_calendar: {
                                     employee_pk: selected_employee_pk},
@@ -2604,11 +2604,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // when clicked on delete btn in form tehre is no tr_selected, use selected_employee_pk
 
         if(!isEmpty(selected_planning_period)){
-            if("rosterdatefirst" in selected_planning_period){
-                document.getElementById("id_mod_period_datefirst").value = selected_planning_period["rosterdatefirst"]
+            if("period_datefirst" in selected_planning_period){
+                document.getElementById("id_mod_period_datefirst").value = selected_planning_period["period_datefirst"]
             }
-            if("rosterdatelast" in selected_planning_period){
-                document.getElementById("id_mod_period_datelast").value = selected_planning_period["rosterdatelast"]
+            if("period_datelast" in selected_planning_period){
+                document.getElementById("id_mod_period_datelast").value = selected_planning_period["period_datelast"]
             }
         }
     let el = document.getElementById("id_modperiod_div_selectcustomer")
@@ -2733,8 +2733,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if(period_tag == "other"){
             const datefirst = document.getElementById("id_mod_period_datefirst").value
             const datelast = document.getElementById("id_mod_period_datelast").value
-            if (!!datefirst) {selected_planning_period["rosterdatefirst"] = datefirst};
-            if (!!datelast) {selected_planning_period["rosterdatelast"] = datelast};
+            if (!!datefirst) {selected_planning_period["period_datefirst"] = datefirst};
+            if (!!datelast) {selected_planning_period["period_datelast"] = datelast};
         }
         // send 'now' as array to server, so 'now' of local computer will be used
         selected_planning_period["now"] = get_now_arr_JS();
@@ -2785,9 +2785,9 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "===== UpdateHeaderPeriod  ========= ");
         //console.log( "selected_planning_period: ", selected_planning_period);
 
-        const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatefirst");
-        const datelast_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatelast");
         const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag");
+        const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "period_datefirst");
+        const datelast_ISO = get_dict_value_by_key(selected_planning_period, "period_datelast");
         //console.log( "period_tag: ", period_tag);
         //console.log( "datefirst_ISO: ", datefirst_ISO);
         //console.log( "datelast_ISO: ", datelast_ISO);
@@ -3319,8 +3319,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  calendar_datefirst/last is used to create a new employee_calendar_list
         // calendar_period + {datefirst: "2019-12-09", datelast: "2019-12-15", employee_id: 1456}
-        const calendar_datefirst = get_dict_value_by_key(selected_calendar_period, "rosterdatefirst");
-        const calendar_datelast = get_dict_value_by_key(selected_calendar_period, "rosterdatelast");
+        const calendar_datefirst = get_dict_value_by_key(selected_calendar_period, "period_datefirst");
+        const calendar_datelast = get_dict_value_by_key(selected_calendar_period, "period_datelast");
 
 // ---  get rosterdate and weekday from date_cell
         let tblCell = el_input.parentNode;

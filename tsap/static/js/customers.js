@@ -287,8 +287,8 @@ let planning_list = [] // for export and printing - can replace map?
                       selected_pk: {mode: "get"}},
             locale: {page: "customer"},
             quicksave: {mode: "get"},
-            planning_period: {get: true, now: now_arr},
-            calendar_period: {get: true, now: now_arr},
+            planning_period: {now: now_arr},
+            calendar_period: {now: now_arr},
             company: {value: true},
             customer: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
             order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
@@ -892,7 +892,7 @@ let planning_list = [] // for export and printing - can replace map?
     function HandleBtnCalendar(mode) {
         //console.log( " ==== HandleBtnCalendar ====", mode);
 
-        const datefirst_iso = get_dict_value_by_key(selected_calendar_period, "rosterdatefirst")
+        const datefirst_iso = get_dict_value_by_key(selected_calendar_period, "period_datefirst")
         //console.log( "datefirst_iso", datefirst_iso, typeof datefirst_iso);
 
         let calendar_datefirst_JS = get_dateJS_from_dateISO_vanilla(datefirst_iso);
@@ -931,8 +931,8 @@ let planning_list = [] // for export and printing - can replace map?
             selected_calendar_period =  {period_tag: "tweek", now: now_arr}
         } else{
             selected_calendar_period =  {period_tag: "other",
-                                    rosterdatefirst: calendar_datefirst_iso,
-                                    rosterdatelast: calendar_datelast_iso,
+                                    period_datefirst: calendar_datefirst_iso,
+                                    period_datelast: calendar_datelast_iso,
                                     now: now_arr}
         }
         let datalist_request = {customer_calendar: {
@@ -1643,8 +1643,8 @@ let planning_list = [] // for export and printing - can replace map?
 //========= UpdateField  ============= PR2019-10-09
     function UpdateField(el_input, update_dict, is_addnew_row) {
         const fldName = get_attr_from_el(el_input, "data-field");
-        //console.log("========= UpdateField  ========= ", fldName);
-        //console.log("update_dict ", update_dict);
+        console.log("========= UpdateField  ========= ", fldName);
+        console.log("update_dict ", update_dict);
 
 // --- reset fields when update_dict is empty
         if (isEmpty(update_dict)){
@@ -1660,114 +1660,115 @@ let planning_list = [] // for export and printing - can replace map?
              }
         } else {
     // --- lookup field in update_dict, get data from field_dict
-            if (fldName in update_dict){
-                const tblName = get_subdict_value_by_key (update_dict, "id", "table");
-                const field_dict = get_dict_value_by_key (update_dict, fldName);
-                const value = get_dict_value_by_key (field_dict, "value");
-                const updated = get_dict_value_by_key (field_dict, "updated");
-                const msg_offset = (selected_btn === "form") ? [-260, 210] : msg_offset_default;
+            const tblName = get_dict_value(update_dict, ["id", "table"]);
+            let field_dict = get_dict_value(update_dict, [fldName]);
+            const value = get_dict_value(update_dict, [fldName, "value"]);
+            const updated = get_dict_value(update_dict, [fldName, "updated"]);
+            const msg_offset = (selected_btn === "form") ? [-260, 210] : msg_offset_default;
 
-                if (["code", "name", "identifier"].indexOf( fldName ) > -1){
-                   format_text_element (el_input, "value", el_msg, field_dict, is_addnew_row, msg_offset)
-                } else if (["order", "shift"].indexOf( fldName ) > -1){
-                   format_text_element (el_input, "code", el_msg, field_dict, is_addnew_row, msg_offset)
-                } else if (fldName === "rosterdate"){
-                    const display_str = get_dict_value_by_key (field_dict, "display");
-                    const data_value_str = get_dict_value_by_key (field_dict, "value");
+            if (["code", "name", "identifier"].indexOf( fldName ) > -1){
+               format_text_element (el_input, "value", el_msg, field_dict, is_addnew_row, msg_offset)
+            } else if (["order", "shift"].indexOf( fldName ) > -1){
+               format_text_element (el_input, "code", el_msg, field_dict, is_addnew_row, msg_offset)
+            } else if (fldName === "rosterdate"){
+                const display_str = get_dict_value(field_dict, ["display"]);
+                const data_value_str = get_dict_value(field_dict, ["value"]);
 
-                    el_input.value = display_str;
-                    el_input.setAttribute("data-value", data_value_str);
-                } else if (fldName ===  "customer"){
-                    // fldName "customer") is used in mode order
-                    //console.log("fldName: ", fldName);
-                    //console.log("field_dict: ", field_dict);
-                    // abscat: use team_pk, but display order_code, is stored in 'value, team_code stored in 'code'
-                    const customer_pk = get_dict_value_by_key (field_dict, "pk")
-                    const customer_ppk = get_dict_value_by_key (field_dict, "ppk")
-                    const customer_value = get_dict_value_by_key (field_dict, "code", "")
-                    //console.log("customer_value: ", customer_value);
-                    if (!!customer_value) {
-                        el_input.value = customer_value;
-                        el_input.setAttribute("data-value", customer_value);
-                    } else {
-                        el_input.value = null;
-                        el_input.removeAttribute("data-value");
-                    }
-                    el_input.setAttribute("data-pk", customer_pk);
-                    el_input.setAttribute("data-ppk", customer_ppk);
-                    el_input.setAttribute("data-field", "customer");
-
-                } else if (["priceratejson"].indexOf( fldName ) > -1){
-                   format_price_element (el_input, el_msg, field_dict, msg_offset, user_lang)
-
-                } else if (["datefirst", "datelast"].indexOf( fldName ) > -1){
-                    const hide_weekday = true, hide_year = false;
-                    format_date_element (el_input, el_msg, field_dict, loc.months_abbrev, loc.weekdays_abbrev,
-                                user_lang, comp_timezone, hide_weekday, hide_year)
-
-                } else if (fldName === "offsetstart"){
-                    let display_time = null;
-                    const offset_start = get_dict_value_by_key(update_dict, "offsetstart");
-                    const offset_end = get_dict_value_by_key(update_dict, "offsetend");
-                    if(!!offset_start || offset_end){
-                        const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, true); // true = skip_prefix_suffix
-                        const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, true); // true = skip_prefix_suffix
-                        display_time = offsetstart_formatted + " - " + offsetend_formatted
-                    }
-                    el_input.value = display_time
-
-                } else if (fldName === "timeduration"){
-                   //const tm_count = get_dict_value_by_key (update_dict, "tm_count");
-                   const time_duration = get_dict_value_by_key(update_dict, "timeduration");
-                   //const total_duration = (!!tm_count && time_duration) ? tm_count * time_duration : 0
-
-                   //el_input.value = display_duration (total_duration, user_lang);
-                   //const display_value = display_toFixed (total_duration, user_lang);
-                   //el_input.value = display_toFixed (total_duration, user_lang);
-                   //el_input.setAttribute("data-total_duration", total_duration);
-                    el_input.value = display_toFixed (time_duration, user_lang);
-                    el_input.setAttribute("data-total_duration", time_duration);
-                } else if (fldName === "billable"){
-                    format_billable_element (el_input, field_dict,
-                    imgsrc_billable_black, imgsrc_billable_cross_red, imgsrc_billable_grey, imgsrc_billable_cross_grey,
-                    loc.title_billable, loc.title_notbillable,)
-
-                } else if (["employee", "replacement"].indexOf(fldName )> -1){
-                    //const code_arr = get_dict_value_by_key (field_dict, "code");
-                    //const len = code_arr.length;
-                    //if(len === 0){
-                    //    el_input.value = "---";
-                    //} else if(len === 1){
-                    //    el_input.value = code_arr[0];
-                    //} else {
-                    //    el_input.value = code_arr[0] + " (" + len.toString() + ")";
-                    //    let title_str = "";
-                    //    let data_value_str = ""
-                    //    for (let i = 0; i < len; i++) {
-                    //        let code = code_arr[i]
-                    //        if (!code) {code = "---"};
-                    //        title_str += "\n" + code;
-                    //        data_value_str += ";" + code;
-                    //    el_input.value = code_arr;
-                    //    }
-                    //    if (data_value_str.charAt(0) === ";") {data_value_str = data_value_str.slice(1)};
-                    //    el_input.title = title_str
-                    //    el_input.setAttribute("data-value", data_value_str);
-                    const code_value =  get_dict_value_by_key (field_dict, "code");
-                    el_input.value = get_dict_value_by_key (field_dict, "code", "---");
-
-                } else if (fldName === "inactive") {
-                   if(isEmpty(field_dict)){field_dict = {value: false}}
-                   format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
+                el_input.value = display_str;
+                el_input.setAttribute("data-value", data_value_str);
+            } else if (fldName ===  "customer"){
+                // fldName "customer") is used in mode order
+                //console.log("fldName: ", fldName);
+                //console.log("field_dict: ", field_dict);
+                // abscat: use team_pk, but display order_code, is stored in 'value, team_code stored in 'code'
+                const customer_pk = get_dict_value(field_dict, ["pk"])
+                const customer_ppk = get_dict_value(field_dict, ["ppk"])
+                const customer_value = get_dict_value (field_dict, ["code"], "")
+                //console.log("customer_value: ", customer_value);
+                if (!!customer_value) {
+                    el_input.value = customer_value;
+                    el_input.setAttribute("data-value", customer_value);
                 } else {
-                    el_input.value = value
-                    if(!!value){
-                        el_input.setAttribute("data-value", value);
-                    } else {
-                        el_input.removeAttribute("data-value");
-                    }
-                };
-            }  // if (fldName in update_dict)
+                    el_input.value = null;
+                    el_input.removeAttribute("data-value");
+                }
+                el_input.setAttribute("data-pk", customer_pk);
+                el_input.setAttribute("data-ppk", customer_ppk);
+                el_input.setAttribute("data-field", "customer");
+
+            } else if (["priceratejson"].indexOf( fldName ) > -1){
+               format_price_element (el_input, el_msg, field_dict, msg_offset, user_lang)
+
+            } else if (["datefirst", "datelast"].indexOf( fldName ) > -1){
+                const hide_weekday = true, hide_year = false;
+                format_date_element (el_input, el_msg, field_dict, loc.months_abbrev, loc.weekdays_abbrev,
+                            user_lang, comp_timezone, hide_weekday, hide_year)
+
+            } else if (fldName === "offsetstart"){
+                let display_time = null;
+                const offset_start = get_dict_value(update_dict, ["shift", "offsetstart"]);
+                const offset_end = get_dict_value(update_dict, ["shift", "offsetend"]);
+                if(!!offset_start || offset_end){
+                    const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, true); // true = skip_prefix_suffix
+                    const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, true); // true = skip_prefix_suffix
+                    display_time = offsetstart_formatted + " - " + offsetend_formatted
+                }
+                el_input.value = display_time
+
+            } else if (fldName === "timeduration"){
+                console.log("fldName: ", fldName);
+                console.log("update_dict: ", update_dict);
+                //const tm_count = get_dict_value_by_key (update_dict, "tm_count");
+                const time_duration = get_dict_value(update_dict, ["shift", "timeduration"]);
+                //const total_duration = (!!tm_count && time_duration) ? tm_count * time_duration : 0
+                console.log("time_duration: ", time_duration);
+
+               //el_input.value = display_duration (total_duration, user_lang);
+               //const display_value = display_toFixed (total_duration, user_lang);
+               //el_input.value = display_toFixed (total_duration, user_lang);
+               //el_input.setAttribute("data-total_duration", total_duration);
+                el_input.value = display_toFixed (time_duration, user_lang);
+                el_input.setAttribute("data-total_duration", time_duration);
+            } else if (fldName === "billable"){
+                format_billable_element (el_input, field_dict,
+                imgsrc_billable_black, imgsrc_billable_cross_red, imgsrc_billable_grey, imgsrc_billable_cross_grey,
+                loc.title_billable, loc.title_notbillable,)
+
+            } else if (["employee", "replacement"].indexOf(fldName )> -1){
+                //const code_arr = get_dict_value_by_key (field_dict, "code");
+                //const len = code_arr.length;
+                //if(len === 0){
+                //    el_input.value = "---";
+                //} else if(len === 1){
+                //    el_input.value = code_arr[0];
+                //} else {
+                //    el_input.value = code_arr[0] + " (" + len.toString() + ")";
+                //    let title_str = "";
+                //    let data_value_str = ""
+                //    for (let i = 0; i < len; i++) {
+                //        let code = code_arr[i]
+                //        if (!code) {code = "---"};
+                //        title_str += "\n" + code;
+                //        data_value_str += ";" + code;
+                //    el_input.value = code_arr;
+                //    }
+                //    if (data_value_str.charAt(0) === ";") {data_value_str = data_value_str.slice(1)};
+                //    el_input.title = title_str
+                //    el_input.setAttribute("data-value", data_value_str);
+                //const code_value =  get_dict_value (field_dict, ["code"]);
+                el_input.value = get_dict_value (field_dict, ["code"], "---");
+
+            } else if (fldName === "inactive") {
+               if(isEmpty(field_dict)){field_dict = {value: false}}
+               format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
+            } else {
+                el_input.value = value
+                if(!!value){
+                    el_input.setAttribute("data-value", value);
+                } else {
+                    el_input.removeAttribute("data-value");
+                }
+            };
         } // if (isEmpty(update_dict))
 
    }; // UpdateField
@@ -2230,8 +2231,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 // ---  calendar_datefirst/last is used to create a new employee_calendar_list
         // calendar_period + {datefirst: "2019-12-09", datelast: "2019-12-15", employee_id: 1456}
-        const calendar_datefirst = get_dict_value(selected_calendar_period, ["rosterdatefirst"]);
-        const calendar_datelast = get_dict_value(selected_calendar_period, ["rosterdatelast"]);
+        const calendar_datefirst = get_dict_value(selected_calendar_period, ["period_datefirst"]);
+        const calendar_datelast = get_dict_value(selected_calendar_period, ["period_datelast"]);
 
 // ---  get rosterdate and weekday from date_cell
         let tblCell = el_input.parentNode;
@@ -4274,12 +4275,8 @@ let planning_list = [] // for export and printing - can replace map?
         console.log("selected_planning_period:", selected_planning_period)
         const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag")
         if(!period_tag) { period_tag = "tweek" }
-        const rosterdatefirst_iso = get_dict_value_by_key(selected_planning_period, "rosterdatefirst")
-        const rosterdatelast_iso = get_dict_value_by_key(selected_planning_period, "rosterdatelast")
-
-        console.log("period_tag:", period_tag)
-        console.log("rosterdatefirst_iso:", rosterdatefirst_iso)
-        console.log("rosterdatelast_iso:", rosterdatelast_iso)
+        const period_datefirst_iso = get_dict_value_by_key(selected_planning_period, "period_datefirst")
+        const period_datelast_iso = get_dict_value_by_key(selected_planning_period, "period_datelast")
 
         mod_upload_dict = selected_planning_period;
 
@@ -4296,8 +4293,8 @@ let planning_list = [] // for export and printing - can replace map?
 
     // set value of date imput elements
         const is_custom_period = (period_tag === "other");
-        document.getElementById("id_mod_period_datefirst").value = rosterdatefirst_iso;
-        document.getElementById("id_mod_period_datelast").value = rosterdatelast_iso;
+        document.getElementById("id_mod_period_datefirst").value = period_datefirst_iso;
+        document.getElementById("id_mod_period_datelast").value = period_datelast_iso;
         let el_mod_period_tblbody = document.getElementById("id_modperiod_selectperiod_tblbody");
 
     // set min max of input fields
@@ -4372,8 +4369,8 @@ let planning_list = [] // for export and printing - can replace map?
         if(period_tag == "other"){
             const datefirst = document.getElementById("id_mod_period_datefirst").value
             const datelast = document.getElementById("id_mod_period_datelast").value
-            if (!!datefirst) {selected_planning_period["rosterdatefirst"] = datefirst};
-            if (!!datelast) {selected_planning_period["rosterdatelast"] = datelast};
+            if (!!datefirst) {selected_planning_period["period_datefirst"] = datefirst};
+            if (!!datelast) {selected_planning_period["period_datelast"] = datelast};
         }
         // send 'now' as array to server, so 'now' of local computer will be used
         selected_planning_period["now"] = get_now_arr_JS();
@@ -4742,7 +4739,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= FillExcelRows  ====================================
     function FillExcelRows() {
-        //console.log("=== FillExcelRows  =====")
+        console.log("=== FillExcelRows  =====")
         let ws = {}
 
 // title row
@@ -4766,7 +4763,7 @@ let planning_list = [] // for export and printing - can replace map?
         const last_row = first_row  + row_count;
         for (let i = 0; i < row_count; i++) {
             const row = tBody_planning.rows[i];
-            //console.log ("row: " , row);
+            console.log ("row: " , row);
             for (let j = 0, len = row.cells.length, cell_index, cell_dict; j < len; j++) {
                 const col = row.cells[j];
                 cell_index = String.fromCharCode(65 + j) + (i + first_row).toString()
@@ -4798,10 +4795,10 @@ let planning_list = [] // for export and printing - can replace map?
                 {wch:20},
                 {wch:20},
                 {wch:20},
-                {wch:15},
-                {wch:15},
-                {wch:15},
-                {wch:10}
+                {wch:20},
+                {wch:20},
+                {wch:20},
+                {wch:20}
             ];
 
         return ws;

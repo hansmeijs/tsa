@@ -187,22 +187,21 @@
     overflow-x: hidden;
     overflow-y: auto;
 }
-
 .td_width_360 {
     width: 360px;
 }
-
 .td_width_270 {
     width: 270px;
 }
-
+.td_width_240 {
+    width: 240px;
+}
 .td_width_220 {
     width: 220px;
 }
 .td_width_200 {
     width: 200px;
 }
-
 .td_width_180 {
     width: 180px;
 }

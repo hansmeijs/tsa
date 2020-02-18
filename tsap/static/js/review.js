@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let filter_mod_customer = "";
 
     let loc = {};  // locale_dict
-    let selected_review_period = {};
+    let selected_period = {};
     let mod_upload_dict = {};
 
     let employee_map = new Map();
@@ -55,19 +55,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const imgsrc_stat04 = get_attr_from_el(el_data, "data-imgsrc_stat04");
     const imgsrc_stat05 = get_attr_from_el(el_data, "data-imgsrc_stat05");
 
-    const tbl_col_count = {review: 10};
-    const field_width = {review: ["090", "220", "090", "090", "090", "032", "090", "090", "032", "032"]}
-    const field_align = {review: ["left", "left", "left", "right","right", "right",  "right", "right",  "right",  "right"]};
+    const tbl_col_count = 9;
+    const field_width = ["240", "120", "090", "090", "032", "090", "090", "032", "032"]
+    const field_align = ["left", "left", "right","right", "right",  "right", "right",  "right",  "right"];
 
 // get elements
     let el_loader = document.getElementById("id_loader");
 
 // === EVENT HANDLERS ===
 // ---  side bar - select period
-    let el_flt_period = document.getElementById("id_sidebar_select_period");
-    el_flt_period.addEventListener("click", function() {ModPeriodOpen()}, false );
-    el_flt_period.addEventListener("mouseenter", function() {el_flt_period.classList.add(cls_hover)});
-    el_flt_period.addEventListener("mouseleave", function() {el_flt_period.classList.remove(cls_hover)});
+    let el_sidebar_select_period = document.getElementById("id_sidebar_select_period");
+        el_sidebar_select_period.addEventListener("click", function() {ModPeriodOpen()}, false );
+        el_sidebar_select_period.addEventListener("mouseenter", function() {el_sidebar_select_period.classList.add(cls_hover)});
+        el_sidebar_select_period.addEventListener("mouseleave", function() {el_sidebar_select_period.classList.remove(cls_hover)});
 // ---  side bar - select customer
     let el_sidebar_select_customer = document.getElementById("id_sidebar_select_customer");
         el_sidebar_select_customer.addEventListener("click", function() {ModSelectOrder_Open("customer")}, false );
@@ -106,19 +106,19 @@ document.addEventListener('DOMContentLoaded', function() {
                       selected_pk: {mode: "get"}},
             locale: {page: "review"},
             company: {value: true},
-            review_period: {get: true, now: now_arr},
+            review_period: {now: now_arr},
             review: {get: true, page: "review", now: now_arr},
             customer: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
             order: {isabsence: false, istemplate: false, inactive: null} // inactive=null: both active and inactive,
         };
 
-    DatalistDownload(datalist_request);
+    DatalistDownload(datalist_request, "DOMContentLoaded");
 
 //  #############################################################################################################
 
 //========= DatalistDownload  ====================================
-    function DatalistDownload(datalist_request) {
-        console.log( "=== DatalistDownload ")
+    function DatalistDownload(datalist_request, called_by) {
+        console.log( "=== DatalistDownload ", called_by)
         console.log("request: ", datalist_request)
         // datalist_request: {"schemeitems": {"ppk": pk}, "teams": {"ppk": pk}, "shifts": {"ppk": pk}
 
@@ -155,16 +155,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     review_list = response["review_list"];
                     fill_table = true;
                 }
-                if ("period" in response) {
-                    selected_review_period= response["period"];
-                    //console.log("selected_review_period", selected_review_period)
-                    el_flt_period.value = get_period_text(selected_review_period,
-                                loc.period_select_list, loc.period_extension, loc.months_abbrev, loc.weekdays_abbrev, period_text);
-                    //CreateTblModSelectPeriod();
-                }
                 if ("review_period" in response) {
-                    selected_review_period = response["review_period"];
-                    DisplayPeriod(selected_review_period);
+                    selected_period = response["review_period"];
+                    DisplayPeriod(selected_period);
                 }
                 if ("customer_list" in response) {
                     get_datamap(response["customer_list"], customer_map)
@@ -255,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // create END ROW
         // display_list:  0 = date, 1 = cust /order/employee, 2 = shift,  3 = plan_dur, 4 = time_dur, 5 = billable, 6 = bill_dur, 7 = diff, 8 = show warning, 9=status
-        let display_list =["", "", "", "",  "", "", "", "", "", "", ""]
+        let display_list =["", "", "", "", "", "", "", "", ""]
         tblRow =  CreateTblRow()
         UpdateTableRow(tblRow, 0, 0, 0, 0, display_list,  "grnd")
 
@@ -289,8 +282,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const dte_pricerate_format = (!!dte_oh_amount && !!dte_bill_dur) ? format_amount ((dte_oh_amount / dte_bill_dur * 60), loc.user_lang) : null
                     const dte_amount_format = format_amount (dte_oh_amount, loc.user_lang)
                     const billable_format = (dte_bill_count === 0) ? "" : (dte_bill_count === dte_count) ? ">" : "-";
-
-                    display_list =["TOTAL " + dte_prev, "", dte_count.toString() + " shifts",
+                    const shifts_txt = dte_count.toString() + " " + ((dte_count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
+                    display_list = ["TOTAL " + dte_prev, shifts_txt,
                                     plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning]
 
                     tblRow =  CreateTblRow()
@@ -320,7 +313,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const ord_amount_format = format_amount (ord_oh_amount, loc.user_lang)
                     const billable_format = (ord_bill_count === 0) ? "" : (ord_bill_count === ord_count) ? ">" : "-";
 
-                    display_list =["TOTAL " + ord_code_prev, "",  ord_count.toString() + " shifts",
+                    const shifts_txt = ord_count.toString() + " " + ((ord_count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
+                    display_list =["TOTAL " + ord_code_prev, shifts_txt,
                                     plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning]
 
                     tblRow =  CreateTblRow()
@@ -350,7 +344,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const cust_amount_format = format_amount (cust_oh_amount, loc.user_lang)
                     const billable_format = (cust_bill_count === 0) ? "" : (cust_bill_count === cust_count) ? ">" : "-";
 
-                     display_list = ["TOTAL " + cust_code_prev, "",  cust_count.toString() + " shifts",
+                    const shifts_txt = cust_count.toString() + " " + ((cust_count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
+                    display_list = ["TOTAL " + cust_code_prev, shifts_txt,
                                      plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning]
 
                     tblRow =  CreateTblRow()
@@ -420,9 +415,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const oh_amount_format = format_amount (row_list.oh_amount, loc.user_lang)
                 const billable_format = (!!row_list.oh_bill) ? ">" : "";
 
-                display_list = [dte_curr, row_list.e_code_arr, row_list.oh_shift,
+                display_list = [row_list.e_code, row_list.oh_shift,
                                 plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning, "?"]
-console.log("DETAIL row: ", display_list)
+
                 tblRow =  CreateTblRow()
                 UpdateTableRow(tblRow, row_list.oh_id, row_list.cust_id, row_list.ord_id, row_list.rosterdate, display_list)
 
@@ -451,7 +446,8 @@ console.log("DETAIL row: ", display_list)
             const dte_amount_format = format_amount (dte_oh_amount, loc.user_lang)
             const billable_format = (dte_bill_count === 0) ? "" : (dte_bill_count === dte_count) ? ">" : "-";
 
-            display_list =["TOTAL " + dte_prev, "", dte_count.toString() + " shifts",
+            const shifts_txt = dte_count.toString() + " " + ((dte_count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
+            display_list =["TOTAL " + dte_prev, shifts_txt,
                             plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning]
 
             tblRow =  CreateTblRow()
@@ -472,7 +468,8 @@ console.log("DETAIL row: ", display_list)
             const ord_amount_format = format_amount (ord_oh_amount, loc.user_lang)
             const billable_format = (ord_bill_count === 0) ? "" : (ord_bill_count === ord_count) ? ">" : "-";
 
-            display_list =["TOTAL " + ord_code_prev, "",  ord_count.toString() + " shifts",
+            const shifts_txt = ord_count.toString() + " " + ((ord_count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
+            display_list =["TOTAL " + ord_code_prev, shifts_txt,
                              plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning]
 
             tblRow =  CreateTblRow()
@@ -491,7 +488,8 @@ console.log("DETAIL row: ", display_list)
             const cust_amount_format = format_amount (cust_oh_amount, loc.user_lang)
             const billable_format = (cust_bill_count === 0) ? "" : (cust_bill_count === cust_count) ? ">" : "-";
 
-            display_list = ["TOTAL " + cust_code_prev, "",  cust_count.toString() + " shifts",
+            const shifts_txt = cust_count.toString() + " " + ((cust_count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
+            display_list = ["TOTAL " + cust_code_prev, shifts_txt,
                             plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning]
 
             tblRow =  CreateTblRow()
@@ -509,7 +507,9 @@ console.log("DETAIL row: ", display_list)
         const tot_amount_format = format_amount (tot_oh_amount, loc.user_lang)
         const billable_format = (tot_bill_count === 0) ? "" : (tot_bill_count === tot_count) ? ">" : "-";
 
-        display_list = ["GRAND TOTAL",  "", tot_count.toString() + " shifts",
+        const shifts_txt = tot_count.toString() + " " + ((tot_count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
+        console.log("{shifts_txt: ", shifts_txt)
+        display_list = ["GRAND TOTAL",  shifts_txt,
                         plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning, tot_pricerate_format, tot_amount_format]
 
         tblRow =  CreateTblRow()
@@ -522,7 +522,7 @@ console.log("DETAIL row: ", display_list)
         //console.log("===  CreateTblHeader == ");
         //console.log("loc", loc);
 
-        const thead_text =  [loc.Date, loc.Employee, loc.Shift, loc.Planned_hours, loc.Worked_hours, ">",
+        const thead_text =  [loc.Employee, loc.Shift, loc.Planned_hours, loc.Worked_hours, ">",
                         loc.Billing_hours, loc.Difference, "#", "?"];
 
         console.log("thead_text", thead_text);
@@ -531,10 +531,8 @@ console.log("DETAIL row: ", display_list)
         let tblRow = tblHead_items.insertRow (-1); // index -1: insert new cell at last position.
 
 //--- insert td's to tblHead_items
-        const tblName = "review";
-        const column_count = tbl_col_count[tblName];
 
-        for (let j = 0; j < column_count; j++) {
+        for (let j = 0; j < tbl_col_count; j++) {
 // --- add th to tblRow.
             let th = document.createElement("th");
             tblRow.appendChild(th);
@@ -542,9 +540,9 @@ console.log("DETAIL row: ", display_list)
 // --- add div to th, margin not workign with th
             let el = document.createElement("div");
 
-            if (tblName === "review" && j === 8)  {
+            if (j === tbl_col_count - 2)  {
                 AppendChildIcon(el, imgsrc_warning)
-            } else if (tblName === "review" && j === 9)  {
+            } else if (j === tbl_col_count - 1)  {
                 AppendChildIcon(el, imgsrc_stat04)
             } else {
                 el.innerText =  thead_text[j]
@@ -554,22 +552,21 @@ console.log("DETAIL row: ", display_list)
             if (j === 0 ){el.classList.add("ml-2")}
 
 // --- add width to el
-            el.classList.add("td_width_" + field_width[tblName][j])
+            el.classList.add("td_width_" + field_width[j])
 // --- add text_align
-            el.classList.add("text_align_" + field_align[tblName][j])
+            el.classList.add("text_align_" + field_align[j])
 
             th.appendChild(el)
 
-        }  // for (let j = 0; j < column_count; j++)
-
+        }  // for (let j = 0; j < tbl_col_count; j++)
 
     };  //function CreateTblHeader
+
 //=========  CreateTblRow  ================ PR2019-04-27
     function CreateTblRow() {
         //console.log("=========  CreateTblRow =========");
         //console.log(row_list);
         const tblName = "review";
-        const column_count = tbl_col_count[tblName];
 
 //+++ insert tblRow ino tblBody_items
         let tblRow = tblBody_items.insertRow(0); //index -1 results in that the new row will be inserted at the last position.
@@ -578,23 +575,23 @@ console.log("DETAIL row: ", display_list)
         tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow);}, false )
 
 //+++ insert td's in tblRow
-        for (let j = 0; j < column_count; j++) {
+        for (let j = 0; j < tbl_col_count; j++) {
             // index -1 results in that the new cell will be inserted at the last position.
             let td = tblRow.insertCell(-1);
             let el = document.createElement("a");
             td.appendChild(el);
 
 // --- add width to td
-            td.classList.add("td_width_" + field_width[tblName][j])// --- add text_align
+            td.classList.add("td_width_" + field_width[j])// --- add text_align
 
 // --- add text_align
-            td.classList.add("text_align_" + field_align[tblName][j])
+            td.classList.add("text_align_" + field_align[j])
 
 // --- add img to first and last td, first column not in new_item, first column not in teammembers
-            if ([8, 9].indexOf( j ) > -1){
+            if (j >= tbl_col_count - 2){
                 let img_src;
-                if (j === 8){img_src = imgsrc_stat00} else
-                if (j === 9){img_src = imgsrc_stat00}
+                if (j === tbl_col_count - 2){img_src = imgsrc_stat00} else
+                if (j === tbl_col_count - 1){img_src = imgsrc_stat00}
 
             // --- first add <a> element with EventListener to td
                 el.setAttribute("href", "#");
@@ -679,15 +676,15 @@ console.log("DETAIL row: ", display_list)
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 let el = tblRow.cells[i].children[0];
                 if(!!el){
-                    if (i === 2) {
+                    if (i === 0) {
                         el.innerText = display_list[i]
                         el.classList.add("tsa_ellipsis");
                         //el.classList.add("td_width_090");
-                    } else if (i === 8) {
+                    } else if (i === tbl_col_count - 2) {
                         if (display_list[i]){
                             IconChange(el, imgsrc_warning)
                         }
-                    } else if (i === 9) {
+                    } else if (i === tbl_col_count - 1) {
                         if (display_list[i]){
                             //IconChange(el, imgsrc_stat04)
                         }
@@ -826,14 +823,14 @@ console.log("DETAIL row: ", display_list)
 // +++++++++++++++++ MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
 //========= ModPeriodOpen====================================
     function ModPeriodOpen () {
-        //console.log("===  ModPeriodOpen  =====") ;
-        //console.log("selected_review_period", selected_review_period) ;
+        console.log("===  ModPeriodOpen  =====") ;
+        console.log("selected_period", selected_period) ;
 
-        mod_upload_dict = selected_review_period;
+        mod_upload_dict = selected_period;
 
     // highligh selected period in table, put period_tag in data-tag of tblRow
         let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
-        const period_tag = get_dict_value_by_key(selected_review_period, "period_tag")
+        const period_tag = get_dict_value_by_key(selected_period, "period_tag")
         for (let i = 0, tblRow, row_tag; tblRow = tBody.rows[i]; i++) {
             row_tag = get_attr_from_el(tblRow, "data-tag")
             if (period_tag === row_tag){
@@ -844,15 +841,15 @@ console.log("DETAIL row: ", display_list)
         };
 
     // set value of extend select box
-        const extend_index = get_dict_value_by_key(selected_review_period, "extend_index", 0)
+        const extend_index = get_dict_value_by_key(selected_period, "extend_index", 0)
         document.getElementById("id_mod_period_extend").selectedIndex = extend_index
 
     // set value of date imput elements
         const is_custom_period = (period_tag === "other")
         let el_datefirst = document.getElementById("id_mod_period_datefirst")
         let el_datelast = document.getElementById("id_mod_period_datelast")
-        el_datefirst.value = get_dict_value_by_key(selected_review_period, "rosterdatefirst")
-        el_datelast.value = get_dict_value_by_key(selected_review_period, "rosterdatelast")
+        el_datefirst.value = get_dict_value(selected_period, ["period_datefirst"])
+        el_datelast.value = get_dict_value(selected_period, ["period_datelast"])
 
     // set min max of input fields
         ModPeriodDateChanged("datefirst");
@@ -893,17 +890,13 @@ console.log("DETAIL row: ", display_list)
 
 //=========  ModPeriodDateChanged  ================ PR2019-07-14
     function ModPeriodDateChanged(fldName) {
-        console.log("===  ModPeriodDateChanged =========");
-        console.log("fldName: ", fldName);
-    // set min max of other input field
+        //console.log("===  ModPeriodDateChanged =========");
+        // set min max of other input field
         let attr_key = (fldName === "datefirst") ? "min" : "max";
         let fldName_other = (fldName === "datefirst") ? "datelast" : "datefirst";
-        console.log("fldName_other: ", fldName_other);
         let el_this = document.getElementById("id_mod_period_" + fldName)
         let el_other = document.getElementById("id_mod_period_" + fldName_other)
         if (!!el_this.value){ el_other.setAttribute(attr_key, el_this.value)
-        console.log("el_this: ", el_this);
-        console.log("el_other: ", el_other);
         } else { el_other.removeAttribute(attr_key) };
     }  // ModPeriodDateChanged
 
@@ -922,25 +915,17 @@ console.log("DETAIL row: ", display_list)
                        (extend_index=== 5) ? 720 :
                        (extend_index=== 6) ? 1440 : 0;
 
-        mod_upload_dict = {
-            page: "review",
+        let review_period_dict = {
             period_tag: period_tag,
             extend_index: extend_index,
             extend_offset: extend_offset};
-        //console.log("new mod_upload_dict:", mod_upload_dict);
-
         // only save dates when tag = "other"
         if(period_tag == "other"){
             const datefirst = document.getElementById("id_mod_period_datefirst").value
             const datelast = document.getElementById("id_mod_period_datelast").value
-            if (!!datefirst) {mod_upload_dict.periodstart = datefirst};
-            if (!!datelast) {mod_upload_dict.periodend = datelast};
+            if (!!datefirst) {review_period_dict["period_datefirst"] = datefirst};
+            if (!!datelast) {review_period_dict["period_datelast"]= datelast};
         }
-
-        // send 'now' as array to server, so 'now' of local computer will be used
-        const now = new Date();
-        const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()]
-        mod_upload_dict.now = now_arr;
 
 // ---  upload new setting
         let review_dict = {
@@ -952,23 +937,21 @@ console.log("DETAIL row: ", display_list)
         };
         //NIU document.getElementById("id_hdr_period").innerText = loc.Period + "..."
 
-
 // hide modal
         $("#id_mod_period").modal("hide");
-        let datalist_request = {review_period: mod_upload_dict,
+        let datalist_request = {review_period: review_period_dict,
                                 review: review_dict};
-        DatalistDownload(datalist_request);
+        DatalistDownload(datalist_request, "ModPeriodSave");
 
     }  // ModPeriodSave
 
-
 //========= DisplayPeriod  ====================================
-    function DisplayPeriod(selected_roster_period) {
+    function DisplayPeriod(selected_period) {
         //console.log( "===== DisplayPeriod  ========= ");
+        //console.log( "selected_period: ", selected_period);
 
-        if (!isEmpty(selected_roster_period)){
-            const period_tag = get_dict_value(selected_roster_period, ["period_tag"]);
-            const extend_offset = get_dict_value(selected_roster_period, ["extend_offset"], 0);
+        if (!isEmpty(selected_period)){
+            const period_tag = get_dict_value(selected_period, ["period_tag"]);
 
             let period_text = null, default_text = null
             for(let i = 0, item, len = loc.period_select_list.length; i < len; i++){
@@ -979,8 +962,8 @@ console.log("DETAIL row: ", display_list)
             if(!period_text){period_text = default_text}
 
             if(period_tag === "other"){
-                const rosterdatefirst = get_dict_value(selected_roster_period, ["rosterdatefirst"]);
-                const rosterdatelast = get_dict_value(selected_roster_period, ["rosterdatelast"]);
+                const rosterdatefirst = get_dict_value(selected_period, ["rosterdatefirst"]);
+                const rosterdatelast = get_dict_value(selected_period, ["rosterdatelast"]);
                 if(rosterdatefirst === rosterdatelast) {
                     period_text =  format_date_iso (rosterdatefirst, loc.months_abbrev, loc.weekdays_abbrev, false, false, loc.user_lang);
                 } else {
@@ -995,33 +978,25 @@ console.log("DETAIL row: ", display_list)
                     }
                 }
             }
-            if(!!extend_offset){
-                period_text += " +- " + extend_text;
-            }
             // put period_textx in sidebar id_sidebar_select_period
             document.getElementById("id_sidebar_select_period").value = period_text
 
-            selected_customer_pk = get_dict_value(selected_roster_period, ["customer_pk"], 0)
-            selected_order_pk = get_dict_value(selected_roster_period, ["order_pk"], 0)
-            selected_employee_pk = get_dict_value(selected_roster_period, ["employee_pk"], 0)
-            selected_isabsence = get_dict_value(selected_roster_period, ["isabsence"]) //  can have value null, false or true
+            selected_customer_pk = get_dict_value(selected_period, ["customer_pk"], 0)
+            selected_order_pk = get_dict_value(selected_period, ["order_pk"], 0)
+            selected_employee_pk = get_dict_value(selected_period, ["employee_pk"], 0)
+            selected_isabsence = get_dict_value(selected_period, ["isabsence"]) //  can have value null, false or true
 
             // put text in header of this page
-            const display_period = get_dict_value(selected_roster_period, ["period_display"], "")
-            document.getElementById("id_hdr_period").innerText = display_period
-
-            //console.log( "mod_upload_dict");
-            //console.log(  mod_upload_dict);
-            //el_sidebar_select_absence.value = absence_txt
+            const dates_display = get_dict_value(selected_period, ["dates_display_long"], "")
+            document.getElementById("id_hdr_period").innerText = dates_display
+            el_sidebar_select_period.value = get_dict_value(selected_period, ["dates_display_short"])
 
             let header_text = null, absence_text = null;
             if(!!selected_customer_pk){
-                const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk)
-                const customer_code = get_dict_value(customer_dict, ["code", "value"], "");
-                let order_code = null;
+                const customer_code = get_dict_value(selected_period, ["customer_code"], "");
+                let order_code = "";
                 if(!!selected_order_pk){
-                    const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", selected_order_pk)
-                    order_code = get_dict_value(order_dict, ["code", "value"]);
+                    order_code = get_dict_value(selected_period, ["order_code"]);
                 } else {
                     order_code = loc.All_orders.toLowerCase()
                 }
@@ -1045,16 +1020,14 @@ console.log("DETAIL row: ", display_list)
             }
             el_sidebar_select_customer.value = header_text
             el_sidebar_select_absence.value = absence_text
-
         }  // if (!isEmpty(selected_roster_period))
-
     }; // function DisplayPeriod
 // +++++++++++++++++ END MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
 
 // +++++++++++++++++ MODAL SELECT ORDER +++++++++++++++++++++++++++++++++++++++++++
 //========= ModSelectOrder_Open ====================================  PR2019-11-16
     function ModSelectOrder_Open (mode) {
-        console.log(" ===  ModSelectOrder_Open  =====") ;
+        //console.log(" ===  ModSelectOrder_Open  =====") ;
         //console.log("selected_roster_period", selected_roster_period) ;
         // selected_roster_period = {extend_index: 2, extend_offset: 120, period_index: null, periodend: null,
         //                periodstart: null, rosterdatefirst: "2019-11-15", rosterdatelast: "2019-11-17"
@@ -1113,7 +1086,7 @@ console.log("DETAIL row: ", display_list)
 
 //=========  ModSelectOrder_Save  ================ PR2020-01-29
     function ModSelectOrder_Save() {
-        console.log("===  ModSelectOrder_Save =========");
+        //console.log("===  ModSelectOrder_Save =========");
 
         // mod_upload_dict is reset in ModSelectOrder_Open
 
@@ -1141,7 +1114,7 @@ console.log("DETAIL row: ", display_list)
         };
         console.log("datalist_request: ", datalist_request);
 
-        DatalistDownload(datalist_request);
+        DatalistDownload(datalist_request, "ModSelectOrder_Save");
 // hide modal
         $("#id_modselectorder").modal("hide");
 
@@ -1475,7 +1448,7 @@ function HandleExpand(mode){
 // +++++++++++++++++ PRINT ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= PrintReport  ====================================
     function PrintReport() { // PR2020-01-25
-        PrintReview("preview", selected_review_period, review_list, company_dict, loc, imgsrc_warning)
+        PrintReview("preview", selected_period, review_list, company_dict, loc, imgsrc_warning)
         }  // PrintReport
 
 //##################################################################################

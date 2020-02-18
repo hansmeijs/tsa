@@ -187,6 +187,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['End_date'] = TXT_End_date
         dict['Start_time'] = TXT_Start_time
         dict['End_time'] = TXT_End_time
+        dict['Start_Endtime'] = TXT_Start_Endtime
         dict['Time'] = TXT_Time
         dict['Break'] = TXT_Break
         dict['Working_hours'] = TXT_Working_hours
@@ -272,11 +273,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
         dict['rosterdate_count_none'] = _('This rosterdate has no shifts.')
         dict['rosterdate_count'] = _('This rosterdate has ')
-        dict['shift'] = TXT_shift
-        dict['shifts'] = TXT_shifts
+        dict['Shift'] = TXT_Shift
+        dict['Shifts'] = TXT_Shifts
         dict['confirmed'] = TXT_confirmed
         dict['one'] = TXT_one
-
 
         dict['rosterdate_confirmed_one'] = _('1 of them is a confirmed shift.')
         dict['rosterdate_confirmed_multiple'] = _(' of them are confirmed shifts.')
@@ -400,8 +400,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
         dict['rosterdate_count_none'] = _('This rosterdate has no shifts.')
         dict['rosterdate_count'] = _('This rosterdate has ')
-        dict['shift'] = TXT_shift
-        dict['shifts'] = TXT_shifts
+        dict['Shift'] = TXT_Shift
+        dict['Shifts'] = TXT_Shifts
         dict['confirmed'] = TXT_confirmed
         dict['one'] = TXT_one
 
@@ -442,7 +442,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['All_orders'] = TXT_All_orders
         dict['No_orders'] = TXT_No_orders
         dict['Employee'] = TXT_Employee
-        dict['Shift'] = TXT_Shift
         dict['Start_time'] = TXT_Start_time
         dict['End_time'] = TXT_End_time
         dict['Start_Endtime'] = TXT_Start_Endtime
@@ -502,21 +501,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['menubtn_print_report'] = TXT_Print_report
         dict['Export_to_Excel'] = TXT_Export_to_Excel
 
-
-        dict['col_headers'] = (
-            TXT_Date,
-            _('Order / Employee'),
-            TXT_Shift,
-            TXT_Planned_hours,
-            TXT_Worked_hours,
-            TXT_Billing_hours,
-            TXT_Difference,
-            '',
-            TXT_Rate,
-            TXT_Amount,
-            '',
-        )
-
         dict['period_select_list'] = (
             ('today', TXT_today),
             ('yesterday', TXT_yesterday),
@@ -544,12 +528,14 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
         dict['Employee'] = TXT_Employee
         dict['Shift'] = TXT_Shift
+        dict['Shifts'] = TXT_Shifts
         dict['Worked_hours'] = TXT_Worked_hours
         dict['Billing_hours'] = TXT_Billing_hours
         dict['Difference'] = TXT_Difference
         dict['Billable'] = TXT_Billable
         dict['Rate'] = TXT_Rate
         dict['Amount'] = TXT_Amount
+        dict['Total_hours'] = TXT_Total_hours
 
         # for report
         dict['weekdays_abbrev'] = TXT_weekdays_abbrev

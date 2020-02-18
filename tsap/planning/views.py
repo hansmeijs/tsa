@@ -305,8 +305,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             add_empty_shifts = calendar_period_dict.get('add_empty_shifts', False)
                             skip_absence_and_restshifts = calendar_period_dict.get('skip_absence_and_restshifts', False)
 
-                            datefirst_iso = calendar_period_dict.get('rosterdatefirst')
-                            datelast_iso = calendar_period_dict.get('rosterdatelast')
+                            datefirst_iso = calendar_period_dict.get('period_datefirst')
+                            datelast_iso = calendar_period_dict.get('period_datelast')
 
                             orderby_rosterdate_customer = False
                             dict_list, logfile = r.create_employee_planning(
@@ -343,8 +343,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         if order_pk is None:
                             order_pk = selected_order_pk
 
-                        datefirst_iso = calendar_period_dict.get('rosterdatefirst')
-                        datelast_iso = calendar_period_dict.get('rosterdatelast')
+                        datefirst_iso = calendar_period_dict.get('period_datefirst')
+                        datelast_iso = calendar_period_dict.get('period_datelast')
 
                         dict_list = r.create_customer_planning(
                             datefirst_iso=datefirst_iso,
@@ -381,8 +381,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
                             add_empty_shifts = True if selected_page == 'page_customer' else False
 
-                        datefirst_iso = planning_period_dict.get('rosterdatefirst')
-                        datelast_iso = planning_period_dict.get('rosterdatelast')
+                        datefirst_iso = planning_period_dict.get('period_datefirst')
+                        datelast_iso = planning_period_dict.get('period_datelast')
 
                         logfile = []
                         dict_list, logfile = r.create_employee_planning(
@@ -418,8 +418,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             if order_pk is None:
                                 customer_pk = selected_customer_pk
 
-                        datefirst_iso = planning_period_dict.get('rosterdatefirst')
-                        datelast_iso = planning_period_dict.get('rosterdatelast')
+                        datefirst_iso = planning_period_dict.get('period_datefirst')
+                        datelast_iso = planning_period_dict.get('period_datelast')
 
                         dict_list = r.create_customer_planning(
                             datefirst_iso=datefirst_iso,

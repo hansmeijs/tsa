@@ -1103,8 +1103,8 @@
     function display_planning_period(selected_planning_period, loc, user_lang) {
         //console.log( "===== display_planning_period  ========= ");
         //console.log( "selected_planning_period: ", selected_planning_period);
-        const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatefirst");
-        const datelast_ISO = get_dict_value_by_key(selected_planning_period, "rosterdatelast");
+        const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "period_datefirst");
+        const datelast_ISO = get_dict_value_by_key(selected_planning_period, "period_datelast");
         const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag");
 
         let period_txt = loc.Period + ": "
