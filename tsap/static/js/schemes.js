@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
             shift: ["180", "060", "120", "120", "120", "120"],
             teammember: ["220", "120", "120", "220", "032"]}
         const field_align = {
-            schemeitem: ["left", "left", "left", "right", "right", "right", "right", "right", "right"],
+            schemeitem: ["left", "left", "left", "right", "left", "right", "right", "right", "right"],
             shift: ["left", "left", "right", "right", "right", "right"],
             teammember: ["left", "left", "left", "left", "right"]}
 
@@ -1663,6 +1663,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- add margin to first column
                 if (j === 0 ){el_div.classList.add("ml-2")}
+// --- add left margin to offset end (left outlined, to keep '02.00 >' in line with '22.00'
+                if (tblName === "schemeitem" && j ===  4){el_div.classList.add("ml-4")}
 
 // --- add width to el
                 el_div.classList.add("td_width_" + field_width[tblName][j])
@@ -1923,7 +1925,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 el.addEventListener("click", function() {HandleRestshiftClicked(el, tblName);}, false )
                 AppendChildIcon(el, imgsrc_stat00)
                 el.classList.add("ml-4")
-            } else if (!is_addnew_row && tblName === "schemeitem" && j === 8){
+            } else if (!is_addnew_row && tblName === "schemeitem" && j === column_count - 2){
                 // BtnDeleteInactive , not in addnew_row
             // --- first add <a> element with EventListener to td inactive
                 CreateBtnDeleteInactive("inactive", tblRow, el);
@@ -2003,8 +2005,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- add margin to first column
             if (j === 0 ){el.classList.add("ml-2")}
+
 // --- add margin to last column, only in shift table column
             if (tblName === "shift" && j === column_count - 1 ){el.classList.add("mr-2")}
+
+// --- add left margin to offset end (left outlined, to keep '02.00 >' in line with '22.00'
+            if (tblName === "schemeitem" && j ===  4){el.classList.add("ml-4")}
 
 // --- add textalign to el
             el.classList.add("text_align_" + field_align[tblName][j])
@@ -2119,7 +2125,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         el_input.classList.add("ml-4")
-        const img_src = (mode ==="delete") ? imgsrc_delete : imgsrc_inactive_lightgrey;
+        const img_src = (mode ==="delete") ? imgsrc_delete : imgsrc_inactive_grey;
         AppendChildIcon(el_input, img_src)
     }  // CreateBtnDeleteInactive
 
@@ -2704,28 +2710,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 mod_upload_dict = {"id": map_dict["id"]};
                 if (tblName === "teammember" && !isEmpty(map_dict["employee"])){
                     mod_upload_dict["employee"] = map_dict["employee"]
+                } else if (tblName === "schemeitem" && !isEmpty(map_dict.shift)){
+                    mod_upload_dict.shift = map_dict.shift;
                 };
-
                 if (mode === "delete"){
                     mod_upload_dict["id"]["delete"] = true;
                     ModConfirmOpen("delete", el_input);
                     return false;
                 } else if (mode === "inactive"){
             // get inactive from map_dict
-                    const inactive = get_subdict_value_by_key(map_dict, "inactive", "value", false)
+                    const inactive = get_dict_value(map_dict, ["inactive", "value"], false)
             // toggle inactive
                     const new_inactive = (!inactive);
-                    upload_dict["inactive"] = {"value": new_inactive, "update": true};
+                    upload_dict.inactive = {value: new_inactive, update: true};
             // change inactive icon, before uploading
                     format_inactive_element (el_input, mod_upload_dict, imgsrc_inactive_black, imgsrc_inactive_lightgrey)
             // ---  show modal, only when made inactive
                     if(!!new_inactive){
-                        mod_upload_dict["inactive"] = {"value": new_inactive, "update": true};
+                        mod_upload_dict.inactive = {value: new_inactive, update: true};
                         ModConfirmOpen("inactive", el_input);
                         return false;
                     }
                 }
-                const url_str = (tblName === "teammember") ? url_teammember_upload : url_scheme_shift_team_upload
+                const url_str = (tblName === "teammember") ? url_teammember_upload :
+                                (tblName === "schemeitem") ? url_schemeitem_upload : url_scheme_shift_team_upload
                 UploadChanges(upload_dict, url_str);
             }  // if (!isEmpty(map_dict))
         }  //   if(!!tblRow)
@@ -3247,8 +3255,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateField  =============
     function UpdateField(el_input, update_dict, tblName){
-        //console.log("--- UpdateField  --------------");
-        //console.log(update_dict);
+        console.log("--- UpdateField  -------------- ", tblName);
+        console.log(update_dict);
         if(!!el_input){
 // --- lookup field in update_dict, get data from field_dict
             const fieldname = get_attr_from_el(el_input, "data-field");
@@ -3263,43 +3271,74 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(!pk_int){pk_int = 0}
                 if(!ppk_int){ppk_int = 0}
 
-                if (fieldname === "rosterdate"){
-                    //const hide_weekday = false, hide_year = true;
-                    format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
-                                        user_lang, comp_timezone, false, true)
-                } else if (["code", "employee", "replacement"].indexOf( fieldname ) > -1){
-                   const key_str = (fieldname === "code") ? "value" : "code";
-                   format_text_element (el_input, key_str, el_msg, field_dict, false, [0, 0])
-            // put placeholder in employee field when employee is removed
-                    //if (fieldname === "employee" && !get_dict_value_by_key(field_dict, "pk")){
-                        //el_input.value = get_attr_from_el_str(el_data, "data-txt_employee_select") + "...";
-                    //}
-                } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
-                    const hide_weekday = false, hide_year = false;
-                    format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
-                                user_lang, comp_timezone, hide_weekday, hide_year)
-                } else if (fieldname === "isrestshift"){
-                    format_restshift_element (el_input, field_dict,
-                        imgsrc_rest_black, imgsrc_stat00, title_restshift)
-                } else if (["shift", "team"].indexOf( fieldname ) > -1){
-                    const key_str = "code";
-                    format_select_element (el_input, key_str, field_dict)
-                } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
-                    // not in use
-                    format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
-                } else if (["offsetstart", "offsetend"].indexOf( fieldname ) > -1){
-                    // in table schemeitem : when there is a shift: offset of shift is displayed, othereise: offset of schemeitem is displayed
-                    if (tblName === "schemeitem")
-                        if ('shift' in update_dict) {field_dict = get_subdict_value_by_key(update_dict, "shift", fieldname )
-                    }
-                    const blank_when_zero = (["breakduration", "timeduration"].indexOf( fieldname ) > -1) ? true : false;
-                    format_offset_element (el_input, el_msg, fieldname, field_dict, [-220, 80], timeformat, user_lang, title_prev, title_next, blank_when_zero)
-                } else if (["breakduration", "timeduration"].indexOf( fieldname ) > -1){
-                    format_duration_element (el_input, el_msg, field_dict, user_lang)
-                } else if (fieldname === "inactive") {
-                   if(isEmpty(field_dict)){field_dict = {value: false}}
-                   format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
-                };
+                if (tblName === "schemeitem") {
+                    if (fieldname === "rosterdate"){
+                        //const hide_weekday = false, hide_year = true;
+                        format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
+                                            user_lang, comp_timezone, false, true)
+                    } else if (["shift", "team"].indexOf( fieldname ) > -1){
+                        format_select_element (el_input, "code", field_dict)
+                    } else if (["offsetstart", "offsetend"].indexOf( fieldname ) > -1){
+                        // offset fields are readonly in schemeitem
+                        console.log(">>>>>> fieldname: " , fieldname)
+                        const offset = get_dict_value(update_dict, ["shift", fieldname] )
+
+                    console.log(">>>>>> offset: " , offset)
+                        const blank_when_zero = (["breakduration", "timeduration"].indexOf( fieldname ) > -1) ? true : false;
+                        format_offset_element (el_input, el_msg, fieldname, field_dict, [-220, 80], timeformat, user_lang, title_prev, title_next, blank_when_zero)
+                        const display_text = display_offset_time (offset, timeformat, user_lang, blank_when_zero)
+
+                        console.log(">>>>>> display_text: " , display_text)
+                    } else if (["breakduration", "timeduration"].indexOf( fieldname ) > -1){
+                        format_duration_element (el_input, el_msg, field_dict, user_lang)
+                    } else if (fieldname === "inactive") {
+                       if(isEmpty(field_dict)){field_dict = {value: false}}
+                       format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
+                    };
+
+
+                } else {
+
+                    if (["code", "employee", "replacement"].indexOf( fieldname ) > -1){
+                       const key_str = (fieldname === "code") ? "value" : "code";
+                       format_text_element (el_input, key_str, el_msg, field_dict, false, [0, 0])
+                // put placeholder in employee field when employee is removed
+                        //if (fieldname === "employee" && !get_dict_value_by_key(field_dict, "pk")){
+                            //el_input.value = get_attr_from_el_str(el_data, "data-txt_employee_select") + "...";
+                        //}
+                    } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
+                        const hide_weekday = false, hide_year = false;
+                        format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
+                                    user_lang, comp_timezone, hide_weekday, hide_year)
+                    } else if (fieldname === "isrestshift"){
+                        format_restshift_element (el_input, field_dict,
+                            imgsrc_rest_black, imgsrc_stat00, title_restshift)
+                    } else if (["shift", "team"].indexOf( fieldname ) > -1){
+                        const key_str = "code";
+                        format_select_element (el_input, key_str, field_dict)
+                    } else if (["timestart", "timeend"].indexOf( fieldname ) > -1){
+                        // not in use
+                        format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
+                    } else if (["offsetstart", "offsetend"].indexOf( fieldname ) > -1){
+                        console.log(">>>>>> fieldname: " , fieldname)
+                        // in table schemeitem : when there is a shift: offset of shift is displayed, othereise: offset of schemeitem is displayed
+                        if (tblName === "schemeitem") {
+                            field_dict = get_dict_value(update_dict, ["shift"] )
+                        }
+                    console.log(">>>>>> field_dict: " , field_dict)
+                        const blank_when_zero = (["breakduration", "timeduration"].indexOf( fieldname ) > -1) ? true : false;
+                        format_offset_element (el_input, el_msg, fieldname, field_dict, [-220, 80], timeformat, user_lang, title_prev, title_next, blank_when_zero)
+                    } else if (["breakduration", "timeduration"].indexOf( fieldname ) > -1){
+                        format_duration_element (el_input, el_msg, field_dict, user_lang)
+                    } else if (fieldname === "inactive") {
+                       if(isEmpty(field_dict)){field_dict = {value: false}}
+                       format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
+                    };
+
+
+                }  // if (tblName === "schemeitem") {
+
+
             }  else {
 
 // put placeholder in employee field when empty, except for new row
@@ -3576,6 +3615,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  ModConfirmOpen  ================ PR2019-10-23
     function ModConfirmOpen(mode, el_input) {
         console.log(" -----  ModConfirmOpen   ----", mode)
+        console.log("mod_upload_dict: ", mod_upload_dict)
         // modes are schemeitem_delete, delete, inactive
         const tblRow = get_tablerow_selected(el_input);
 
@@ -3637,10 +3677,11 @@ document.addEventListener('DOMContentLoaded', function() {
              header_text = get_attr_from_el_str(el_data, "data-msg_confdel_si_hdr");
         } else {
             if (tblName === "schemeitem") {
-                const rosterdate = get_subdict_value_by_key(map_dict,"rosterdate", "value" )
-                let rosterdate_text = format_date_iso (rosterdate, month_list, weekday_list, false, false, user_lang);
+                const rosterdate = get_dict_value(map_dict, ["rosterdate", "value"])
+                let rosterdate_text = format_date_iso (rosterdate, month_list, weekday_list, false, true, user_lang);
                 if(!rosterdate_text){ rosterdate_text = "-"}
-                let shift_text = get_subdict_value_by_key(map_dict,"shift", "value" )
+                let shift_text = get_dict_value(mod_upload_dict, ["shift", "code"])
+        console.log("shift_text: ", shift_text)
                 if(!shift_text){ shift_text = "-"}
                 header_text = get_attr_from_el_str(el_data, "data-txt_shift") + " '" + shift_text + "' " +
                               get_attr_from_el_str(el_data, "data-txt_of") + " " + rosterdate_text;
@@ -3927,7 +3968,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // This rosterdate has [count] shifts
             text_list[1] = loc.rosterdate_count
             text_list[1] += ((count === 1) ? loc.one : count.toString()) + " ";
-            text_list[1] += ((count === 1) ? loc.shift : loc.shifts);
+            text_list[1] += ((count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
 
             if(!confirmed){
                 text_list[1] += ".";

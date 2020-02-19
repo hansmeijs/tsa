@@ -737,20 +737,28 @@ class Emplhour(TsaBaseModel):
 class Emplhourlog(TsaBaseModel):
     objects = TsaManager()
 
-    emplhour = ForeignKey(Emplhour, related_name='emplhours', on_delete=CASCADE)
+    emplhour = ForeignKey(Emplhour, related_name='+', on_delete=CASCADE)
 
-    timestart = DateTimeField(db_index=True, null=True, blank=True)
-    timeend = DateTimeField(db_index=True, null=True, blank=True)
+    rosterdate = DateField()
+    order = ForeignKey(Order, related_name='+', on_delete=SET_NULL, null=True)
+    employee = ForeignKey(Employee, related_name='+', on_delete=SET_NULL, null=True)
+    shift = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    timestart = DateTimeField(null=True)
+    timeend = DateTimeField(null=True)
     breakduration = IntegerField(default=0)
-    status = PositiveSmallIntegerField(db_index=True, default=0)
+    timeduration = IntegerField(default=0)
+    status = PositiveSmallIntegerField(default=0)
+    modifiedfields = JSONField(null=True)
     note = CharField(max_length=2048, null=True, blank=True)
 
     class Meta:
         ordering = ['modifiedat']
 
+    code = None
     name = None
     datefirst = None
     datelast = None
+    locked = None
     inactive = None
 
 
@@ -962,6 +970,7 @@ def create_invoice(request, cat, entries=0, entryrate=0, datepayment=None, datee
         invoice.save(request=request)
     return invoice
 
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def get_parent(table, ppk_int, update_dict, request):
     # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-07-30
@@ -1051,7 +1060,7 @@ def delete_instance(instance, update_dict, request, this_text=None):
             update_dict['id']['deleted'] = True
             delete_ok = True
     # instance = None does not work here, it works outside this function
-    #if delete_ok:
+    # if delete_ok:
     #    instance = None
 
     return delete_ok

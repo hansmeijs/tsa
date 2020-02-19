@@ -112,26 +112,32 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
     if 'rosterdate' in upload_dict:
         rosterdate_iso = upload_dict.get('rosterdate')
         rosterdate = f.get_dateobj_from_dateISOstring(rosterdate_iso)
+
+        logger.debug('rosterdate_iso: ' + str(rosterdate_iso))
     else:
 
 # get last rosterdate of Emplhour
         max_rosterdate_dict = m.Emplhour.objects.\
             filter(orderhour__order__customer__company=request.user.company).\
             aggregate(Max('rosterdate'))
-        #logger.debug(' --- max_rosterdate_dict: ' + str(max_rosterdate_dict))
+        logger.debug(' --- max_rosterdate_dict: ' + str(max_rosterdate_dict))
         # last_rosterdate_dict: {'rosterdate__max': datetime.date(2019, 12, 19)} <class 'dict'>
         if max_rosterdate_dict:
             rosterdate = max_rosterdate_dict['rosterdate__max'] # datetime.date(2019, 10, 28)
             if rosterdate:
                 rosterdate_iso = rosterdate.isoformat()
 
+            logger.debug('max rosterdate_iso: ' + str(rosterdate_iso))
 # in create mode: get next rosterdate
             if rosterdate and mode == 'create':
                 # add one day to change rosterdate
                 rosterdate = rosterdate + timedelta(days=1)
                 rosterdate_iso = rosterdate.isoformat()
+            logger.debug('create rosterdate_iso: ' + str(rosterdate_iso))
+
     if rosterdate is None:
         rosterdate = date.today()
+        logger.debug('create rosterdate is None: ' + str(rosterdate_iso))
 
     if 'rosterdate':
         rosterdate_count, rosterdate_confirmed = check_rosterdate_confirmed(rosterdate, request.user.company)
@@ -1132,6 +1138,15 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
     else:
         is_absence = saved_period_dict.get('isabsence')
 
+    is_restshift = None  # None: all records, True: restshift only, False: restshift excluded, None: all records
+    if 'isrestshift' in period_dict:
+        is_restshift = period_dict.get('isrestshift')
+        save_setting = True
+        logger.debug(' >>>>>>>>>>>>>> period_dict is_restshift: ' + str(is_restshift))
+    else:
+        is_restshift = saved_period_dict.get('isrestshift')
+        logger.debug(' >>>>>>>>>>>>>> saved_period_dict is_restshift: ' + str(is_restshift))
+
 # get period tag
     period_datefirst_dte = None
     period_datelast_dte = None
@@ -1278,6 +1293,7 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
                    'employee_pk': employee_pk,
                    'employee_code': employee_code,
                    'isabsence': is_absence,
+                   'isrestshift': is_restshift,
                    'period_tag': period_tag,
                    'extend_offset': extend_offset}
 
@@ -1320,6 +1336,7 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
             'order_pk': order_pk,
             'employee_pk': employee_pk,
             'isabsence': is_absence,
+            'isrestshift': is_restshift,
             'period_tag': period_tag
         }
         if period_tag == 'other':
@@ -1479,6 +1496,12 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
             employee_pk = None
         is_absence = period_dict.get('isabsence')
 
+        # is_restshift is not in use
+        is_restshift = period_dict.get('isrestshift')
+
+        # show_restshift can not be None, show restshift only when is_absence = None ('show all')
+        show_restshift = (is_absence is None)
+
     # show emplhour records with :
         # LEFT JOIN employee (also records without employee are shown)
         # - this company
@@ -1519,7 +1542,8 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
             AND (c.id = %(cust_id)s OR %(cust_id)s IS NULL)
             AND (o.id = %(ord_id)s OR %(ord_id)s IS NULL)
             AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
-            AND (eh.isabsence = %(eh_absence)s OR %(eh_absence)s IS NULL)
+            AND (eh.isabsence = %(eh_absence)s OR eh.isrestshift = %(eh_absence)s OR %(eh_absence)s IS NULL)
+            AND (eh.isrestshift = FALSE OR eh.isrestshift = %(showrest)s)
             
             AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
             AND CASE WHEN eh.timeend   IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
@@ -1532,6 +1556,7 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
                 'ord_id': order_pk,
                 'empl_id': employee_pk,
                 'eh_absence': is_absence,
+                'showrest': show_restshift,
                 'rdf': rosterdatefirst,
                 'rdl': rosterdatelast,
                 'rdfm1': rosterdatefirst_minus1,

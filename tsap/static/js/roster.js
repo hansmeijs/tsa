@@ -775,6 +775,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             //console.log("fieldname: ", fieldname)
                             //console.log("field_dict: ", field_dict)
                             const is_updated = ("updated" in field_dict);
+                            const is_locked = get_dict_value(field_dict,["locked"], false)
+                            el_input.disabled = is_locked
+
                             //console.log("is_updated: ", is_updated)
                             if(is_updated){
                                 el_input.classList.add("border_valid");
@@ -810,7 +813,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 // format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list, title_overlap)
                                 const display_text = get_dict_value(field_dict, ["display"])
                                 el_input.value = display_text
-                                
                             } else if (["timeduration", "breakduration"].indexOf( fieldname ) > -1){
                                 format_duration_element (el_input, el_msg, field_dict, user_lang)
 
@@ -1038,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', function() {
         el_input.readOnly = false;
 
 // set info textboxes
-        set_label_and_infoboxes(response_dict)
+        ModRosterdate_SetLabelAndInfoboxes(response_dict)
 
     }  // function ModRosterdateChecked
 
@@ -1070,9 +1072,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }  // function ModRosterdateFinished
 
-//=========  set_label_and_infoboxes  ================ PR2019-11-13
-    function set_label_and_infoboxes(response_dict) {
-        console.log(" -----  set_label_and_infoboxes   ----")
+//=========  ModRosterdate_SetLabelAndInfoboxes  ================ PR2019-11-13
+    function ModRosterdate_SetLabelAndInfoboxes(response_dict) {
+        console.log(" -----  ModRosterdate_SetLabelAndInfoboxes   ----")
 
 // set info textboxes
         const mode = get_dict_value(response_dict, ["mode"]);
@@ -1094,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // This rosterdate has [count] shifts
             text_list[1] = loc.rosterdate_count
             text_list[1] += ((count === 1) ? loc.one : count.toString()) + " ";
-            text_list[1] += ((count === 1) ? loc.shift : loc.shifts);
+            text_list[1] += ((count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
 
             if(!confirmed){
                 text_list[1] += ".";
@@ -1118,6 +1120,7 @@ document.addEventListener('DOMContentLoaded', function() {
             text_list[3] =  loc.want_to_continue
         }  // if(!count)
 
+        console.log("text_list: ", text_list)
         document.getElementById("id_mod_rosterdate_label").innerText = text_list[0];
         document.getElementById("id_mod_rosterdate_info_01").innerText = text_list[1];
         document.getElementById("id_mod_rosterdate_info_02").innerText = text_list[2];
@@ -1140,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_cancel = document.getElementById("id_mod_rosterdate_btn_cancel");
             el_cancel.innerText = cancel_txt;
 
-    } // function set_label_and_infoboxes
+    } // ModRosterdate_SetLabelAndInfoboxes
 
 // ++++ MOD SELECT ORDER ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -2814,7 +2817,8 @@ console.log("===  function HandlePopupWdySave =========");
             customer_pk: mod_upload_dict.customer_pk,
             order_pk: mod_upload_dict.order_pk,
             employee_pk: mod_upload_dict.employee_pk,
-            isabsence: mod_upload_dict.is_absence
+            isabsence: mod_upload_dict.is_absence,
+            isrestshift: mod_upload_dict.is_absence // also shoiw/hide restshifts with absence
         }
 
         document.getElementById("id_hdr_period").innerText = loc.Period + "..."
@@ -4063,6 +4067,18 @@ console.log("===  function HandlePopupWdySave =========");
                     if ("rosterdate" in response) {
                         ModRosterdateFinished(response["rosterdate"]);
                     };
+                    if ("logfile" in response) {
+                    const new_rosterdate = get_dict_value(response, ["rosterdate", "rosterdate", "rosterdate"], "")
+                    const file_name = "logfile_create_roster_" + new_rosterdate;
+                    console.log("new_rosterdate: ", new_rosterdate)
+                     //--------- print log file
+                    const log_list = response.logfile
+                    console.log("log_list.length: ", log_list.length)
+                    if (!!log_list && log_list.length > 0) {
+                        printPDFlogfile(log_list, file_name)
+                    }
+                };
+
                 },
                 error: function (xhr, msg) {
                     console.log(msg + '\n' + xhr.responseText);
@@ -4168,10 +4184,10 @@ console.log("===  function HandlePopupWdySave =========");
 //=========  HandleTimepickerOpen  ================ PR2019-10-12
     function HandleTimepickerOpen(el_input) {
         console.log("=== HandleTimepickerOpen");
+        console.log(el_input);
 
         let tr_selected = get_tablerow_selected(el_input)
         const emplh_dict = get_itemdict_from_datamap_by_tblRow(tr_selected, emplhour_map);
-
         console.log("emplh_dict");
         console.log(emplh_dict);
 
@@ -4187,47 +4203,51 @@ console.log("===  function HandlePopupWdySave =========");
             const default_maxoffset = (fieldname === "timeend") ? 2160 : 1440;
 
             const rosterdate = get_dict_value(emplh_dict, [fieldname, "rosterdate"]);
-            // offset can have null value, 0 = midnight
-            const offset = get_dict_value(emplh_dict, [fieldname, field_key]) ;
-            const offset_start = get_dict_value(emplh_dict, ["timestart", "offset"]);
-            const offset_end = get_dict_value(emplh_dict, ["timeend", "offset"]);
-            const break_duration = get_dict_value(emplh_dict, ["breakduration", "value"], 0);
-            const time_duration = get_dict_value(emplh_dict, ["timeduration", "value"], 0);
-            let minoffset = 0, maxoffset = 1440;
-            if (fieldname === "timestart") {
-                minoffset = -720;
-                maxoffset = (offset_end != null ) ? offset_end - break_duration : 1440;
-            } else if (fieldname === "timeend") {
-                minoffset = (offset_start != null ) ? offset_start + break_duration : 0;
-                maxoffset = 2160
-            } else if (fieldname === "breakduration") {
-                maxoffset = (offset_start != null && offset_end != null ) ? offset_end - offset_start : 1440;
-            };
 
-            let tp_dict = {"id": id_dict, "field": fieldname, "rosterdate": rosterdate,
-                "offset": offset, "minoffset": minoffset, "maxoffset": maxoffset,
-                "isampm": (timeformat === 'AmPm'), "quicksave": {"value": quicksave}}
+            const is_locked = get_dict_value(emplh_dict, [fieldname, "locked"], false)
+            if(!is_locked){
+                // offset can have null value, 0 = midnight
+                const offset = get_dict_value(emplh_dict, [fieldname, field_key]) ;
+                const offset_start = get_dict_value(emplh_dict, ["timestart", "offset"]);
+                const offset_end = get_dict_value(emplh_dict, ["timeend", "offset"]);
+                const break_duration = get_dict_value(emplh_dict, ["breakduration", "value"], 0);
+                const time_duration = get_dict_value(emplh_dict, ["timeduration", "value"], 0);
+                let minoffset = 0, maxoffset = 1440;
+                if (fieldname === "timestart") {
+                    minoffset = -720;
+                    maxoffset = (offset_end != null ) ? offset_end - break_duration : 1440;
+                } else if (fieldname === "timeend") {
+                    minoffset = (offset_start != null ) ? offset_start + break_duration : 0;
+                    maxoffset = 2160
+                } else if (fieldname === "breakduration") {
+                    maxoffset = (offset_start != null && offset_end != null ) ? offset_end - offset_start : 1440;
+                };
 
-// create st_dict with standard values
-            const show_btn_delete = true;
-            const url_settings_upload = get_attr_from_el(el_data, "data-settings_upload_url");
-            let st_dict = { "interval": interval, "comp_timezone": comp_timezone, "user_lang": user_lang,
-                            "show_btn_delete": show_btn_delete,
-                            "weekday_list": loc.weekdays_abbrev, "month_list": loc.months_abbrev,
-                            "url_settings_upload": url_settings_upload};
-            if(!!loc.Break){st_dict["txt_break"] = loc.Break};
-            if(!!loc.Working_hours){st_dict["txt_workhours"] = loc.Working_hours};
+                let tp_dict = {"id": id_dict, "field": fieldname, "rosterdate": rosterdate,
+                    "offset": offset, "minoffset": minoffset, "maxoffset": maxoffset,
+                    "isampm": (timeformat === 'AmPm'), "quicksave": {"value": quicksave}}
 
-            if(!!loc.btn_save){st_dict["txt_save"] = loc.btn_save};
-            if(!!loc.Quick_save){st_dict["txt_quicksave"] = loc.Quick_save};
-            if(!!loc.Exit_Quicksave){st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave};
+    // create st_dict with standard values
+                const show_btn_delete = true;
+                const url_settings_upload = get_attr_from_el(el_data, "data-settings_upload_url");
+                let st_dict = { "interval": interval, "comp_timezone": comp_timezone, "user_lang": user_lang,
+                                "show_btn_delete": show_btn_delete,
+                                "weekday_list": loc.weekdays_abbrev, "month_list": loc.months_abbrev,
+                                "url_settings_upload": url_settings_upload};
+                if(!!loc.Break){st_dict["txt_break"] = loc.Break};
+                if(!!loc.Working_hours){st_dict["txt_workhours"] = loc.Working_hours};
 
-            const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
-            if(!!imgsrc_delete){st_dict["imgsrc_delete"] = imgsrc_delete};
+                if(!!loc.btn_save){st_dict["txt_save"] = loc.btn_save};
+                if(!!loc.Quick_save){st_dict["txt_quicksave"] = loc.Quick_save};
+                if(!!loc.Exit_Quicksave){st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave};
+
+                const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
+                if(!!imgsrc_delete){st_dict["imgsrc_delete"] = imgsrc_delete};
 
 
-            OpenTimepicker(el_input, UploadTimepickerChanged, tp_dict, st_dict)
+                OpenTimepicker(el_input, UploadTimepickerChanged, tp_dict, st_dict)
 
+            }  // if(!is_locked){
         }  //  if(!isEmpty(emplh_dict))
     };
 

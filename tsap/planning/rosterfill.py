@@ -112,12 +112,14 @@ sql_schemeitem_sub00 = """
                 CASE WHEN s.issingleshift THEN 's' ELSE  'n' END 
             END
         END AS si_mod,
+        si.inactive,
 
         CAST(si.rosterdate AS date) - CAST(%(ref)s AS date) AS si_ddif,
         CASE WHEN sh.id IS NULL THEN si.offsetstart ELSE sh.offsetstart END AS si_sh_os,
         CASE WHEN sh.id IS NULL THEN si.offsetend ELSE sh.offsetend END AS si_sh_oe,
         CASE WHEN sh.id IS NULL THEN si.breakduration ELSE sh.breakduration END AS si_sh_bd,
         CASE WHEN sh.id IS NULL THEN si.timeduration ELSE sh.timeduration END AS si_sh_td
+     
         FROM companies_schemeitem AS si 
         LEFT JOIN companies_shift AS sh ON (si.shift_id = sh.id) 
         INNER JOIN companies_scheme AS s ON (si.scheme_id = s.id) 
@@ -458,10 +460,11 @@ sql_teammember_sub08 = """
 
         CASE WHEN o.isabsence = TRUE THEN o.sequence ELSE -1 END AS o_seq,
 
-        CASE WHEN o.isabsence = TRUE THEN 'a' ELSE 
-            CASE WHEN s.issingleshift = TRUE THEN 's' ELSE 
-                CASE WHEN si_sub.si_id IS NULL THEN '-' ELSE si_sub.si_mod 
-        END END END AS tm_mod,
+        CASE WHEN si_sub.inactive = TRUE THEN 'i' ELSE 
+            CASE WHEN o.isabsence = TRUE THEN 'a' ELSE 
+                CASE WHEN s.issingleshift = TRUE THEN 's' ELSE 
+                    CASE WHEN si_sub.si_id IS NULL THEN '-' ELSE si_sub.si_mod 
+        END END END END AS tm_mod,
 
         tm.datefirst AS tm_df,
         tm.datelast AS tm_dl,
@@ -794,9 +797,10 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
 
     count_absent_rest = 0
     count_normal = 0
+    duration_sum = 0
     return_dict = {'mode': 'create'}
     if rosterdate_dte:
-        logfile.append(' ============= Fill roster of: ' + str(rosterdate_dte.isoformat()) + ' ============= ')
+        logfile.append(' ======= Logfile creating roster of: ' + str(rosterdate_dte.isoformat()) + ' ======= ')
 
         # update schemeitem rosterdate.
         absence_dict = {}  # {111: 'Vakantie', 112: 'Ziek'}
@@ -853,7 +857,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             is_companyholiday = calendar_header_dict.get('iscompanyholiday', False)
 
         # 5. create list with all teammembers of this_rosterdate
-                # this functions retrieves a list of tuples with data from the database
+            # this functions retrieves a list of tuples with data from the database
             customer_pk, order_pk, employee_pk = None, None, None
             all_rows = get_employee_calendar_rows(rosterdate_dte, refdate, is_publicholiday, is_companyholiday, customer_pk,
                                               order_pk, employee_pk, company_id)
@@ -879,11 +883,18 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                 if add_row:
                     logger.debug('row: ')
                     logger.debug(str(row))
-                    emplhour_is_added = add_orderhour_emplhour(
+                    emplhour_is_added, linked_emplhours_exist, count_duration = add_orderhour_emplhour(
                         row=row,
                         rosterdate_dte=rosterdate_dte,
                         comp_timezone=comp_timezone,
                         request=request)
+
+                    if linked_emplhours_exist:
+                        logfile.append('--- this shift already exists and is confirmed or locked.')
+                        logfile.append('--> confirmed or locked shift is skipped')
+
+                    if emplhour_is_added:
+                        logfile.append('this shift is added to the roster')
 
                     if emplhour_is_added:
                         is_absence_or_restshift = row[idx_si_mod] in ('a', 'r')
@@ -891,6 +902,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                             count_absent_rest = count_absent_rest + 1
                         else:
                             count_normal = count_normal + 1
+                        duration_sum += count_duration
 
                     logger.debug('-------- count_absent_rest: ' + str(count_absent_rest))
                     logger.debug('-------- count_normal: ' + str(count_normal))
@@ -910,8 +922,11 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                      ' rosterdate_dte: ' + str(rosterdate_iso) + ' ' + str(type(rosterdate_dte)))
             return_dict['msg_01'] = _('An error occurred while creating shifts.')
 
-        logfile.append('-------- count_absent_rest: ' + str(count_absent_rest))
-        logfile.append('-------- count_normal: ' + str(count_normal))
+        logfile.append('------------------------------------------------------- ')
+        logfile.append(' total added absent or rest shifts: ' + str(count_absent_rest))
+        logfile.append(' total added normal shifts        : ' + str(count_normal))
+        logfile.append(' total duration of normal shifts  : ' + str(f.get_date_HM_from_minutes(duration_sum, user_lang)) + ' hours')
+        logfile.append('------------------------------------------------------- ')
 
         if count_normal:
             if count_normal == 1:
@@ -932,6 +947,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
         if msg_skipped:
             return_dict['msg_03'] = msg_skipped
 
+        return_dict['logfile'] = logfile
     return return_dict, logfile
 
 
@@ -939,6 +955,13 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
     logger.debug(' ============= add_orderhour_emplhour ============= ')
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
     #logger.debug('schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
+
+
+    # mode 'i' = inactive
+    # mode 'a' = isabsence
+    # mode 's' = issingleshift
+    # mode 'n' = normal shift
+    # mode '-' = other, no shift found (should not be possible)
 
     mode = row[idx_si_mod]
     is_restshift = (mode == 'r')
@@ -1054,7 +1077,10 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
             comp_timezone=comp_timezone,
             request=request)
 
-    return emplhour_is_added
+    # count_duration counts only duration of normal and single shifts, for invoicing
+    count_duration = timeduration if mode in ('n', 's') else 0
+
+    return emplhour_is_added, linked_emplhours_exist, count_duration
 
 
 def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
@@ -2115,27 +2141,35 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
     # in case an employee is also his replacement...
     is_replacement_employee = (employee_pk) and (employee_pk != row[idx_e_id]) and (employee_pk == row[idx_rpl_id])
 
-    logfile.append(' ')
-    logfile.append('+++++++++++++ calculate shift to be added +++++++++++++ ')
+    logfile.append('------------------------------------------------------- ')
     if row[idx_si_mod] == 'a':
         mode = 'absence'
     elif row[idx_si_mod] == 'r':
-        mode = 'res tshift'
+        mode = 'rest shift'
     elif row[idx_si_mod] == 'n':
         mode = 'normal shift'
+    elif row[idx_si_mod] == 'i':
+        mode = 'inactive shift'
     else:
         mode = 'unknown'
-    logfile.append('rosterdate : ' + str(row[idx_tm_rd].isoformat()))
+    #logfile.append('shift mode : ' + mode)
+    #logfile.append('rosterdate : ' + str(row[idx_tm_rd].isoformat()))
     logfile.append('order      : ' + str(row[idx_c_code]) + ' - ' + str(row[idx_o_code]))
-    logfile.append('shift      : ' + str(row[idx_sh_code]))
-    logfile.append('employee   : ' + str(row[idx_e_code]))
-    logfile.append('replacement: ' + str(row[idx_rpl_code]))
+    if row[idx_sh_code]:
+        logfile.append('shift      : ' + str(row[idx_sh_code]))
+    if row[idx_e_code]:
+        logfile.append('employee   : ' + str(row[idx_e_code]))
+    if row[idx_rpl_code]:
+        logfile.append('replacement: ' + str(row[idx_rpl_code]))
 
     add_row_to_dict = False
 
     # >>>>> SHIFT IS ABSENCE
-    if row[idx_si_mod] == 'a':
-        logfile.append('--- this is an absence')
+    if row[idx_si_mod] == 'i':
+        logfile.append('--- this is an inactive shift')
+        logfile.append('--> inactive shift is skipped')
+    elif row[idx_si_mod] == 'a':
+        logfile.append('--- this is absence')
         if skip_absence_and_restshifts:
             logfile.append('--> absence skipped: skip_absence_and_restshifts')
         elif is_replacement_employee:
@@ -2143,7 +2177,7 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
         elif is_replacement_employee:
             logfile.append('--> absence skipped: is_replacement_employee')
         elif row[idx_e_id]:
-            logfile.append('--> absence has employee:')
+            logfile.append('--> absence has employee')
             logfile.append('--- check absencerow for_doubles: ')
             add_row_to_dict = check_absencerow_for_doubles(row)
             if add_row_to_dict:
@@ -2161,7 +2195,7 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
         elif is_replacement_employee:
             logfile.append('--> skip, dont add rest row when is_replacement_employee')
         elif row[idx_e_id]:
-            logfile.append('--> rest shift has employee:')
+            logfile.append('--- rest shift has an employee')
             # check if employee is absent or has restshift
             # rest row is skipped when:
             #  - it is fully within or equal to absence row
@@ -2169,7 +2203,7 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
             #  - it is equal to lookup rest row and has higher tm_id or si_id
             if no_overlap_with_absence_or_restshift(row, False):  # False = check_normal_employee
                 add_row_to_dict = True
-                logfile.append('--> employee is not absent and has no restshift: add_row_to_dict')
+                logfile.append('--> employee is not absent and has no restshift: add rest shift')
             else:
                 logfile.append('--> employee is absent or has restshift: skip, dont look for replacement')
         else:
@@ -2286,10 +2320,6 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
                         logfile.append('--> no replacement found: add shift without employee')
                     else:
                         logfile.append('--> skip empty shift')
-    if add_row_to_dict:
-        logfile.append('this shift will be added')
-    else:
-        logfile.append('this shift will not be added')
 
     return row, add_row_to_dict
 #######################################################

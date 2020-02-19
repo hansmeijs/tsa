@@ -76,7 +76,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     selected_employee_pk = None
                     table_dict = datalist_dict.get('setting')
 
-                    logger.debug('table_dict setting: ' + str(table_dict))
                     if table_dict:
                         # setting: {page_customer: {mode: "get"},
                         #           selected_pk: {mode: "get"}}
@@ -99,9 +98,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                     if btn:
                                         selected_btn = btn
                         datalists['setting_dict'] = new_setting_dict
-                        logger.debug('selected_page: ' + str(selected_page) + ' ' + str(type(selected_page)))
-                        logger.debug('selected_btn: ' + str(selected_btn) + ' ' + str(type(selected_btn)))
-                        logger.debug('selected_order_pk: ' + str(selected_order_pk) + ' ' + str(type(selected_order_pk)))
+                        #logger.debug('selected_page: ' + str(selected_page) + ' ' + str(type(selected_page)))
+                        #logger.debug('selected_btn: ' + str(selected_btn) + ' ' + str(type(selected_btn)))
+                        #logger.debug('selected_order_pk: ' + str(selected_order_pk) + ' ' + str(type(selected_order_pk)))
                         # page_customer: {btn: "planning"}
 # ----- locale
                     table_dict = datalist_dict.get('locale')

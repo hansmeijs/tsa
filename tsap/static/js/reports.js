@@ -215,7 +215,6 @@
                     }
                     let subtotal_values = [this_customer_code,  "", display_plandur,  display_timedur, display_billdur, show_excl_sign]
 
-
     //console.log("subtotal_values", subtotal_values)
                     pos.top += 4
                     const x1 = pos.left + tab_list[0];
@@ -431,7 +430,7 @@
             const datelast_iso = get_dict_value(selected_period, ["period_datelast"]);
             const datelast_JS = get_dateJS_from_dateISO (datelast_iso)
 
-            let doc = new jsPDF("portrait","mm","A4");
+
 
             const today_JS = new Date();
             const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
@@ -449,7 +448,12 @@
 
             let pos = {left: setting.margin_left, top: setting.margin_top}
 
-//----------  print roster header
+
+// ---  create new PDF document
+            setting.page_height = 265
+            let doc = new jsPDF("portrait","mm","A4");
+
+//----------  print report header
             const colhdr_tabs = [0, 35, 80, 120, 150, 180]; // count from left margin
             const tab_list = [0, 35, 80, 130, 150, 180]; // count from left margin
             const rpthdr_tabs = [0, 30, 35, 120, 145, 150]; // count from left margin
@@ -478,13 +482,13 @@
             doc.line(x1, y1, x2, y1);
             pos.top += setting.line_height + 2;
 
- //======================== loop through planning map
-           //console.log(" ========== loop through rows: ")
+ // +++++++++++++++++++++++++ loop through rows  +++++++++++++++++++++++++
            for (let i = 0; i < len; i++) {
                 let row = data_arr[i][1]; // data_arr is array with [key, value] arrays
+                //console.log("............................ ")
                 //console.log("row: ", row)
-        //console.log("............................ ")
 
+// ---  get row data
                 const this_customer_pk = get_dict_value(row, ["customer", "pk"], 0);
                 const this_order_pk = get_dict_value(row, ["order", "pk"], 0);
                 const this_rosterdate_iso =  get_dict_value(row, ["rosterdate", "value"], "");
@@ -506,15 +510,13 @@
                 const this_td = format_total_duration(get_dict_value(row, ["timeduration", "value"], 0), loc.user_lang)
                 const this_pd = format_total_duration(get_dict_value(row, ["plannedduration", "value"], 0), loc.user_lang)
 
-                let cell_values = [ this_shift_code, display_timerange, this_employee_code, this_pd, this_td];
-
                 //console.log(this_rosterdate_iso , prev_rosterdate_iso)
                 //console.log(this_order_pk , prev_order_pk)
                 //console.log(this_order_code , this_shift_code)
                 //console.log("this_td" , this_td)
                 //console.log("this_pd" , this_pd)
 
-    //======================== change in rosterdate
+//======================== change in rosterdate
     // -------- detect change in rosterdate
                 let rosterdate_dict = get_dict_value(subtotals, [this_rosterdate_iso]);
                 if (this_rosterdate_iso !== prev_rosterdate_iso){
@@ -549,6 +551,7 @@
                     doc.line(x1, y1, x2, y1);
                     pos.top += setting.line_height + 2;
                 }
+//======================== end of change in rosterdate
 
 //======================== change in order
     // -------- detect change in order
@@ -557,8 +560,6 @@
 
         // lookup totals
                     let order_dict = get_dict_value(rosterdate_dict, ["order", this_order_pk]);
-    //console.log("rosterdate_dict: ", rosterdate_dict)
-    //console.log("order_dict: ", order_dict)
                     let display_td = null, display_pd = null, display_diff = null;
                     if(!!order_dict){
                         const td = order_dict[0];
@@ -585,32 +586,53 @@
 
                     pos.top += setting.line_height + 2;
 
-        //---------- skip addPage on first page
-                        //if(is_first_page){
-                        //    is_first_page = false
-                        //} else {
-
-        //---------- print last week of previous order
-                            //PrintWeek(prev_rosterdate_iso, week_list, this_duration_sum, pos, setting, rpthdr_labels, rpthdr_values, colhdr_list, month_list, weekday_list, user_lang, doc)
-                            //printRow(cell_values, pos, setting.fontsize_line, doc, img_warning)
-
-        //---------- print new page
-                            //doc.addPage();
-                       // }
-
-        //---------- reset values
-                    prev_order_pk = this_order_pk;
-                    prev_customer_pk = this_customer_pk;
-                    prev_rosterdate_iso = this_rosterdate_iso;
                 }  // if (order_pk !== this_order_pk){
-// draw grey line under text
-                doc.setDrawColor(204,204,204);
-                doc.line(pos.left + tab_list[0], pos.top + 1, pos.left + tab_list[tab_list.length - 1], pos.top + 1);
-                doc.setDrawColor(0,0,0);
+
+//======================== end of change in order
+        // --- calculate height of the week shifts, to check if it fits on page
+                const padding_top = 2;
+                const height_row = padding_top +setting.line_height;
+                //console.log("height_row", height_row );
+
+        // add new page when total height exceeds page_height, reset pos.top
+                if (pos.top + height_row > setting.page_height){
+                    doc.addPage();
+                    pos.top = setting.margin_top;
+                    PrintReportHeader(rpthdr_tabs, rpthdr_labels, rpthdr_values, pos, setting, doc)
+
+               //----------  print column headers
+                    const x1 = pos.left + tab_list[0];
+                    const x2 = pos.left + tab_list[tab_list.length - 1];
+                    let y1 = pos.top - setting.line_height;
+                    doc.line(x1, y1, x2, y1);
+                    doc.setFontType("bold");
+                    printRow(colhdr_list, colhdr_tabs, pos, setting.fontsize_line, doc, img_warning);
+                    doc.setFontType("normal");
+
+                    y1 = pos.top + 2
+                    doc.line(x1, y1, x2, y1);
+                    pos.top += setting.line_height + 2;
+                }
+
+
+
+//======================== print detail row
+                // pos.top is at the bottom of the printed text
+                let cell_values = [ this_shift_code, display_timerange, this_employee_code, this_pd, this_td];
 
                 printRow(cell_values, tab_list, pos, setting.fontsize_line, doc, img_warning);
+
+// draw grey line under text
+                //doc.setDrawColor(204,204,204);
+               // doc.line(pos.left + tab_list[0], pos.top + 1, pos.left + tab_list[tab_list.length - 1], pos.top + 1);
+                //doc.setDrawColor(0,0,0);
+
                 pos.top += setting.line_height;
 
+//---------- store values of this row in prev_variables
+                prev_order_pk = this_order_pk;
+                prev_customer_pk = this_customer_pk;
+                prev_rosterdate_iso = this_rosterdate_iso;
             }  //   for (let i = 0; i < len; i++)
 
     // ================ print last Week of last employee
@@ -1412,18 +1434,21 @@
 
 //========= function test printPDF  ====  PR2020-01-02
     function printPDFlogfile(log_list, file_name, printtoscreen) {
-        //console.log("printPDF")
+        console.log("printPDFlogfile")
         let doc = new jsPDF();
 
-        doc.setFontSize(10);
+        //doc.addFont('courier', 'courier', 'normal');
+        doc.setFont('courier');
+
+        doc.setFontSize(9);
 
         let startHeight = 25;
-        let noOnFirstPage = 40;
-        let noOfRows = 40;
+        let noOnFirstPage = 60;
+        let noOfRows = 60;
         let z = 1;
 
-        const pos_x = 15
-        const line_height = 6
+        const pos_x = 25
+        const line_height = 4
         if (!!log_list && log_list.length > 0){
             const len = log_list.length;
             for (let i = 0, item; i < len; i++) {
@@ -1432,16 +1457,16 @@
                     if(i <= noOnFirstPage){
                         startHeight = startHeight + line_height;
                         addData(item, pos_x, startHeight, doc);
-                    }else{
-                        if(z ==1 ){
-                            startHeight = 0;
+                    } else {
+                        if(z === 1 ){
+                            startHeight = 25;
                             doc.addPage();
                         }
                         if(z <= noOfRows){
                             startHeight = startHeight + line_height;
                             addData(item, pos_x, startHeight, doc);
-                            z++;
-                        }else{
+                            z += 1;
+                        } else {
                             z = 1;
                         }
                     }
@@ -1452,6 +1477,7 @@
             //     doc.output('datauri');
             // } else {
                 doc.save(file_name);
+                    console.log("doc.save(file_name: ", file_name)
             // }  // if (printtoscreen){
         }  // if (len > 0){
     }  // function printPDFlogfile

@@ -247,11 +247,11 @@
             if(!!is_replacement) {value = "*" + value}
 
             // lock element when locked
-            const locked = get_dict_value_by_key (field_dict, "locked");
-            el_input.disabled = locked
+            const is_locked = get_dict_value(field_dict, ["locked"], false);
+            el_input.disabled = is_locked
 
             // add red border and background when has_overlap, add title_overlap
-            const has_overlap = get_dict_value_by_key (field_dict, "overlap", false);
+            const has_overlap = get_dict_value(field_dict, ["overlap"], false);
             if(has_overlap){
                 el_input.classList.add("border_bg_invalid")
                 el_input.setAttribute("title", title_overlap);
@@ -956,19 +956,23 @@
             let value_int = 0;
             if(!!field_dict){
                 value_int = parseInt(get_dict_value_by_key (field_dict, "value"));
-                const dst_warning = get_dict_value_by_key (field_dict, "dst_warning", false);
-                const title = get_dict_value_by_key (field_dict, "title");
+                const dst_warning = get_dict_value(field_dict, ["dst_warning"], false);
+                const title = get_dict_value(field_dict, ["title"]);
                 if (!!title){el_input.title = title};
                 if (!value_int) {value_int = 0}
         //console.log("value_int: ", value_int)
 
-                let updated = get_dict_value_by_key (field_dict, "updated");
-                let msg_err = get_dict_value_by_key (field_dict, "error");
+                let updated = get_dict_value(field_dict, ["updated"], true);
+                let msg_err = get_dict_value(field_dict, ["error"]);
 
                 let display_value = display_duration (value_int, user_lang);
                 if (dst_warning) {display_value += "*"};
         //console.log("display_value: ", display_value)
                 el_input.value = display_value;
+
+            // lock element when locked
+                const is_locked = get_dict_value(field_dict, ["locked"], false);
+                el_input.disabled = is_locked
 
                 if(!!msg_err){
                     //ShowMsgError(el_input, el_msg, msg_err, offset, set_value, display_value, data_value, display_title)
