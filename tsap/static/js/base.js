@@ -680,8 +680,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const sunday_JS = lst[1];
         // this one returns '2019-11-1' and doesn't work with date input
         //const monday_iso = [monday_JS.getFullYear(), 1 + monday_JS.getMonth(), monday_JS.getDate()].join("-");
-        const monday_iso = get_yyyymmdd_from_ISOstring(monday_JS.toISOString())
-        const sunday_iso = get_yyyymmdd_from_ISOstring(sunday_JS.toISOString())
+
+        // monday_JS.toISOString will convert date to UCT   PR20202-02-18
+        // this is the way to convert JS to local iso string
+
+        let date_str = ("0" + monday_JS.getDate().toString()).slice(-2);
+        let month_int = monday_JS.getMonth() + 1;
+        let month_str = ("0" + month_int.toString()).slice(-2);
+        let year_str = monday_JS.getFullYear().toString();
+        const monday_iso = year_str + "-" + month_str + "-" + date_str;
+
+        date_str = ("0" + sunday_JS.getDate().toString()).slice(-2);
+        month_int = sunday_JS.getMonth() + 1;
+        month_str = ("0" + month_int.toString()).slice(-2);
+        year_str = sunday_JS.getFullYear().toString();
+        const sunday_iso = year_str + "-" + month_str + "-" + date_str;
+
         return [monday_iso, sunday_iso];
     }  // get_thisweek_monday_sunday_iso
 

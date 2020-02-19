@@ -1042,6 +1042,7 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
     # if key exists in dict: use that value (can be null), get saved otherwise
 
     save_setting = False
+    save_period_setting = False
     # first get order_pk, if exists: make customer_pk = parent_pk of order
     # also get code, Dont get from webpage order_map, because period might be retrieved before order_map
 
@@ -1132,20 +1133,14 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
         is_absence = saved_period_dict.get('isabsence')
 
 # get period tag
-    rosterdatefirst = None
-    rosterdatelast = None
-    rosterdatefirst_dte = None
-    rosterdatelast_dte = None
+    period_datefirst_dte = None
+    period_datelast_dte = None
     period_tag = period_dict.get('period_tag')
     if period_tag :
-        rosterdatefirst = period_dict.get('period_datefirst')
-        rosterdatelast = period_dict.get('period_datelast')
-        save_setting = True
+        save_period_setting = True
     else:
-# if not found: get period tag and dates from saved setting
+# if not found: get period tag from saved setting
         period_tag = saved_period_dict.get('period_tag')
-        rosterdatefirst = saved_period_dict.get('period_datefirst')
-        rosterdatelast = saved_period_dict.get('period_datelast')
 # if not found: get default period tag
         if not period_tag:
             period_tag = 'tweek' if key == 'calendar_period' else 'tmonth'
@@ -1158,9 +1153,20 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
     offset_firstdate = 0 - extend_offset
     offset_lastdate = 1440 + extend_offset
 
+# get 'now' and 'today
+    # get now from period_dict
+    now_arr = period_dict.get('now')
+    # if 'now' is not in period_dict: create 'now' (should not be possible)
+    if now_arr is None:
+        now = datetime.now()
+        now_arr = [now.year, now.month, now.day, now.hour, now.minute]
+    # get now_usercomp_dtm from now_arr
+    # now is the time of the computer of the current user. May be different from company local
+    today_dte = f.get_date_from_arr(now_arr)
+    now_usercomp_dtm = f.get_datetime_from_arr(now_arr)
+    # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
+
 # get offset_firstdate / offset_lastdate and periodstart_datetimelocal/periodend_datetimelocal
-    periodstart_datetimelocal = None
-    periodend_datetimelocal = None
     if period_tag == 'now':  # 60: 'Now'
     # a. get now from period_dict
         now_arr = period_dict.get('now')
@@ -1170,80 +1176,97 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
             now_arr = [now.year, now.month, now.day, now.hour, now.minute]
     # c. get now_usercomp_dtm from now_arr
         # now is the time of the computer of the current user. May be different from company local
-        now_usercomp_dtm = f.get_datetime_from_arr(now_arr)
         # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
-        if now_usercomp_dtm:
-            periodstart_datetimelocal = now_usercomp_dtm - timedelta(minutes=extend_offset)
-            periodend_datetimelocal = now_usercomp_dtm + timedelta(minutes=extend_offset)
+        periodstart_datetimelocal = now_usercomp_dtm - timedelta(minutes=extend_offset)
+        periodend_datetimelocal = now_usercomp_dtm + timedelta(minutes=extend_offset)
     else:
-        today_dte = f.get_today_dateobj()
         if period_tag == 'tnight':  # 1: 'This night', offset_firstdate is default:  0 - offset
+            period_datefirst_dte = today_dte
+            period_datelast_dte = period_datefirst_dte
             offset_lastdate = 360 + extend_offset
         elif period_tag == 'tmorning':  #  2: 'This morning'
+            period_datefirst_dte = today_dte
+            period_datelast_dte = period_datefirst_dte
             offset_firstdate = 360 - extend_offset
             offset_lastdate = 720 + extend_offset
         elif period_tag == 'tafternoon':  # 3: 'This afternoon'
+            period_datefirst_dte = today_dte
+            period_datelast_dte = period_datefirst_dte
             offset_firstdate = 720 - extend_offset
             offset_lastdate = 1080 + extend_offset
         elif period_tag == 'tevening':  # 4: 'This evening', , offset_lastdate is default: 1440 + offset
+            period_datefirst_dte = today_dte
+            period_datelast_dte = period_datefirst_dte
             offset_firstdate = 1080 - extend_offset
-        elif period_tag == 'Today':  # 5: 'Today'
-            pass
+        elif period_tag == 'today':
+            period_datefirst_dte = today_dte
+            period_datelast_dte = period_datefirst_dte
         elif period_tag == 'tomorrow':  # 6: 'Tomorrow'
-            rosterdatefirst_dte = f.add_days_to_date(today_dte, 1)
-            rosterdatelast_dte = rosterdatefirst_dte
+            period_datefirst_dte = f.add_days_to_date(today_dte, 1)
+            period_datelast_dte = period_datefirst_dte
         elif period_tag == 'yesterday':  # 7: 'Yesterday'
-            rosterdatefirst_dte = f.add_days_to_date(today_dte, -1)
-            rosterdatelast_dte = rosterdatefirst_dte
+            period_datefirst_dte = f.add_days_to_date(today_dte, -1)
+            period_datelast_dte = period_datefirst_dte
         elif period_tag == 'tweek':  # 8: 'This week'
-            rosterdatefirst_dte = f.get_firstof_week(today_dte, 0)
-            rosterdatelast_dte = f.get_lastof_week(today_dte, 0)
+            period_datefirst_dte = f.get_firstof_week(today_dte, 0)
+            period_datelast_dte = f.get_lastof_week(today_dte, 0)
         elif period_tag == 'lweek':  # 8: 'Last week'
-            rosterdatefirst_dte = f.get_firstof_week(today_dte, -1)
-            rosterdatelast_dte = f.get_lastof_week(today_dte, -1)
+            period_datefirst_dte = f.get_firstof_week(today_dte, -1)
+            period_datelast_dte = f.get_lastof_week(today_dte, -1)
         elif period_tag == 'nweek':  # 8: 'Next week'
-            rosterdatefirst_dte = f.get_firstof_week(today_dte, 1)
-            rosterdatelast_dte = f.get_lastof_week(today_dte, 1)
+            period_datefirst_dte = f.get_firstof_week(today_dte, 1)
+            period_datelast_dte = f.get_lastof_week(today_dte, 1)
         elif period_tag == 'tmonth':  # 9: 'This month'
-            rosterdatefirst_dte = f.get_firstof_month(today_dte)
-            rosterdatelast_dte = f.get_lastof_month(today_dte)
+            period_datefirst_dte = f.get_firstof_month(today_dte)
+            period_datelast_dte = f.get_lastof_month(today_dte)
         elif period_tag == 'lmonth':  # 9: 'This month'
             firstof_thismonth_dte = f.get_firstof_month(today_dte)
             firstof_lastmonth_dte = f.add_month_to_firstof_month(firstof_thismonth_dte, -1)
             lastof_lastmonth_dte = f.get_lastof_month(firstof_lastmonth_dte)
-            rosterdatefirst_dte = firstof_lastmonth_dte
-            rosterdatelast_dte = lastof_lastmonth_dte
+            period_datefirst_dte = firstof_lastmonth_dte
+            period_datelast_dte = lastof_lastmonth_dte
         elif period_tag == 'nmonth':  # 9: 'Next month'
             firstof_thismonth_dte = f.get_firstof_month(today_dte)
             firstof_nextmonth_dte = f.add_month_to_firstof_month(firstof_thismonth_dte, 1)
             lastof_nextmonth_dte = f.get_lastof_month(firstof_nextmonth_dte)
-            rosterdatefirst_dte = firstof_nextmonth_dte
-            rosterdatelast_dte = lastof_nextmonth_dte
+            period_datefirst_dte = firstof_nextmonth_dte
+            period_datelast_dte = lastof_nextmonth_dte
         elif period_tag == 'other':  # 10: 'Custom period'
             # in customer planning  'rosterdatefirst' and 'rosterdatelast' is used (date object)
             # in emplhour 'periodstart' and 'periodend' is used (with time, localized)
 
-            logger.debug('------------- rosterdatefirst: ' + str(rosterdatefirst) + ' ' + str(type(rosterdatefirst)))
-            logger.debug('------------- rosterdatelast: ' + str(rosterdatelast) + ' ' + str(type(rosterdatelast)))
+            # if 'other' in period_dict: get dates from period_dict, (in this case  save_period_setting = True)
+            # if 'other' retrieved from saved_period: get dates from saved_period_dict
+            if save_period_setting:
+                period_datefirst_iso = period_dict.get('period_datefirst')
+                period_datelast_iso = period_dict.get('period_datelast')
+            else:
+                period_datefirst_iso = saved_period_dict.get('period_datefirst')
+                period_datelast_iso = saved_period_dict.get('period_datelast')
 
             # if one date blank: use other date, if both blank: use today. Dont use saved dates when blank
-            if rosterdatefirst is None:
-                if rosterdatelast is None:
-                    rosterdatefirst = today_dte.isoformat()
-                    rosterdatelast = rosterdatefirst
+            if period_datefirst_iso is None:
+                if period_datelast_iso is None:
+                    period_datefirst_iso = today_dte.isoformat()
+                    period_datelast_iso = period_datefirst_iso
                 else:
-                    rosterdatefirst = rosterdatelast
+                    period_datefirst_iso = period_datelast_iso
             else:
-                if rosterdatelast is None:
-                    rosterdatelast = rosterdatefirst
+                if period_datelast_iso is None:
+                    period_datelast_iso = period_datefirst_iso
+            period_datefirst_dte = f.get_dateobj_from_dateISOstring(period_datefirst_iso)
+            period_datelast_dte = f.get_dateobj_from_dateISOstring(period_datelast_iso)
+        else:
+            # in case period_tag not in the list: set to 'tweek'
+            period_tag = 'tweek'
+            period_datefirst_dte = f.get_firstof_week(today_dte, 0)
+            period_datelast_dte = f.get_lastof_week(today_dte, 0)
 
-            rosterdatefirst_dte = f.get_dateobj_from_dateISOstring(rosterdatefirst)
-            rosterdatelast_dte = f.get_dateobj_from_dateISOstring(rosterdatelast)
-            logger.debug('----------- rosterdatefirst_dte: ' + str(rosterdatefirst_dte) + ' ' + str(type(rosterdatefirst_dte)))
-            logger.debug('----------- rosterdatelast_dte: ' + str(rosterdatelast_dte) + ' ' + str(type(rosterdatelast_dte)))
+        #logger.debug('---> period_datefirst_dte: ' + str(period_datefirst_dte) + ' ' + str(type(period_datefirst_dte)))
+        #logger.debug('---> period_datelast_dte: ' + str(period_datelast_dte) + ' ' + str(type(period_datelast_dte)))
 
-        periodstart_datetimelocal = f.get_datetimelocal_from_offset(rosterdatefirst_dte, offset_firstdate, comp_timezone)
-        periodend_datetimelocal = f.get_datetimelocal_from_offset(rosterdatelast_dte, offset_lastdate, comp_timezone)
+        periodstart_datetimelocal = f.get_datetimelocal_from_offset(period_datefirst_dte, offset_firstdate, comp_timezone)
+        periodend_datetimelocal = f.get_datetimelocal_from_offset(period_datelast_dte, offset_lastdate, comp_timezone)
 
 # 4. create update_dict
     update_dict = {'key': key,
@@ -1258,16 +1281,16 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
                    'period_tag': period_tag,
                    'extend_offset': extend_offset}
 
-    if rosterdatefirst_dte:
+    if period_datefirst_dte:
         # period_datefirst_minus1 is used in create_emplhour_list
-        rosterdatefirst_minus1 = rosterdatefirst_dte - timedelta(days=1)
-        update_dict['period_datefirst'] = rosterdatefirst_dte.isoformat()
-        update_dict['period_datefirst_minus1'] = rosterdatefirst_minus1.isoformat()
-    if rosterdatelast_dte:
+        period_datefirst_minus1 = period_datefirst_dte - timedelta(days=1)
+        update_dict['period_datefirst'] = period_datefirst_dte.isoformat()
+        update_dict['period_datefirst_minus1'] = period_datefirst_minus1.isoformat()
+    if period_datelast_dte:
         # rosterdatelast_plus1 is used in create_emplhour_list
-        rosterdatelast_plus1 = rosterdatelast_dte + timedelta(days=1)
-        update_dict['period_datelast'] = rosterdatelast_dte.isoformat()
-        update_dict['period_datelast_plus1'] = rosterdatelast_plus1.isoformat()
+        period_datelast_plus1 = period_datelast_dte + timedelta(days=1)
+        update_dict['period_datelast'] = period_datelast_dte.isoformat()
+        update_dict['period_datelast_plus1'] = period_datelast_plus1.isoformat()
 
     # Note: periodstart_datetimelocal is the local time, stored as a timezone naive datetime
     #       periodstart_datetimelocal: 2020-01-30 18:30:00 <class 'datetime.datetime'>
@@ -1277,21 +1300,21 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
         update_dict['periodend_datetimelocal'] = periodend_datetimelocal
 
 # 5. add calendar header info ( 2020-02-23: {ispublicholiday: true, display: "Karnaval"}
-    if rosterdatefirst_dte and rosterdatelast_dte:
-        calendar_header_dict = create_calendar_header(rosterdatefirst_dte, rosterdatelast_dte, user_lang, request)
+    if period_datefirst_dte and period_datelast_dte:
+        calendar_header_dict = create_calendar_header(period_datefirst_dte, period_datelast_dte, user_lang, request)
         if calendar_header_dict:
             update_dict.update(calendar_header_dict)
-
-    update_dict['period_display'] = f.format_period_from_datetimelocal(periodstart_datetimelocal,
+    if periodstart_datetimelocal and periodend_datetimelocal:
+        update_dict['period_display'] = f.format_period_from_datetimelocal(periodstart_datetimelocal,
                                                                        periodend_datetimelocal, timeformat, user_lang)
-    update_dict['dates_display_long'] = f.format_period_from_date(rosterdatefirst_dte, rosterdatelast_dte, False,
+    update_dict['dates_display_long'] = f.format_period_from_date(period_datefirst_dte, period_datelast_dte, False,
                                                                   user_lang)
-    update_dict['dates_display_short'] = f.format_period_from_date(rosterdatefirst_dte, rosterdatelast_dte, True,
+    update_dict['dates_display_short'] = f.format_period_from_date(period_datefirst_dte, period_datelast_dte, True,
                                                                    user_lang)
 
     # 5. save update_dict
     logger.debug('>>>>>>>>>> save_setting: ' + str(save_setting))
-    if save_setting:
+    if save_setting or save_period_setting:
         setting_tobe_saved = {
             'customer_pk': customer_pk,
             'order_pk': order_pk,
@@ -1300,10 +1323,10 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
             'period_tag': period_tag
         }
         if period_tag == 'other':
-            if rosterdatefirst_dte:
-                setting_tobe_saved['period_datefirst'] = rosterdatefirst_dte.isoformat()
-            if rosterdatelast_dte:
-                setting_tobe_saved['period_datelast'] = rosterdatelast_dte.isoformat()
+            if period_datefirst_dte:
+                setting_tobe_saved['period_datefirst'] = period_datefirst_dte.isoformat()
+            if period_datelast_dte:
+                setting_tobe_saved['period_datelast'] = period_datelast_dte.isoformat()
         if extend_offset:
             setting_tobe_saved['extend_offset'] = extend_offset
         logger.debug(' setting_tobe_saved: ' + str(setting_tobe_saved))

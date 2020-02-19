@@ -910,68 +910,73 @@ def format_period_from_date(datefirst_dte, datelast_dte, short_names, user_lang)
     #logger.debug('periodend_datetimelocal: ' + str(periodend_dtmlocal))
 
     display_text = ''
-    if short_names:
-        months_arr = c.MONTHS_ABBREV[user_lang]
-        weekday_arr = c.WEEKDAYS_ABBREV[user_lang]
-    else:
-        months_arr = c.MONTHS_LONG[user_lang]
-        weekday_arr = c.WEEKDAYS_LONG[user_lang]
-
-    same_year = (datefirst_dte.year == datelast_dte.year)
-    same_month = (datefirst_dte.month == datelast_dte.month)
-    same_day = (datefirst_dte.day == datelast_dte.day)
-
-    end_year_str = str(datelast_dte.year)
-    end_month_str = months_arr[datelast_dte.month]
-    end_isoweekday = datelast_dte.isoweekday()
-    end_day_str = str(datelast_dte.day)
-
-    start_year_str = str(datefirst_dte.year)
-    start_month_str = months_arr[datefirst_dte.month]
-    start_isoweekday = datefirst_dte.isoweekday()
-    start_day_str = str(datefirst_dte.day)
-
-    end_weekday_str = ''
-    if not short_names:
-        end_weekday_str = weekday_arr[end_isoweekday]
-        if user_lang != 'nl':
-            end_weekday_str += ','
-        end_weekday_str += ' '
-    if user_lang == 'nl':
-        end_fulldate_str = ''.join([end_weekday_str, end_day_str, ' ', end_month_str, ' ', end_year_str])
-    else:
-        end_fulldate_str = ''.join([end_weekday_str, end_month_str, ' ', end_day_str, ', ', end_year_str])
-
-    if same_year and same_month and same_day:
-        # start- and end time are on same date
-        display_text = end_fulldate_str
-    else:
-        start_weekday_str = ''
-        if not short_names:
-            start_weekday_str = weekday_arr[start_isoweekday]
-            if user_lang != 'nl':
-                start_weekday_str += ','
-            start_weekday_str += ' '
-
-        if user_lang == 'nl':
-            start_fulldate_str = ''.join( [start_weekday_str, start_day_str, ' ', start_month_str])
+    try:
+        if short_names:
+            months_arr = c.MONTHS_ABBREV[user_lang]
+            weekday_arr = c.WEEKDAYS_ABBREV[user_lang]
         else:
-            start_fulldate_str = ''.join( [start_weekday_str, start_month_str, ' ', start_day_str, ','])
+            months_arr = c.MONTHS_LONG[user_lang]
+            weekday_arr = c.WEEKDAYS_LONG[user_lang]
 
-        if not same_year:
+        same_year = (datefirst_dte.year == datelast_dte.year)
+        same_month = (datefirst_dte.month == datelast_dte.month)
+        same_day = (datefirst_dte.day == datelast_dte.day)
+
+        end_year_str = str(datelast_dte.year)
+        end_month_str = months_arr[datelast_dte.month]
+        end_isoweekday = datelast_dte.isoweekday()
+        end_day_str = str(datelast_dte.day)
+
+        start_year_str = str(datefirst_dte.year)
+        start_month_str = months_arr[datefirst_dte.month]
+        start_isoweekday = datefirst_dte.isoweekday()
+        start_day_str = str(datefirst_dte.day)
+
+        end_weekday_str = ''
+        if not short_names:
+            end_weekday_str = weekday_arr[end_isoweekday]
+            if user_lang != 'nl':
+                end_weekday_str += ','
+            end_weekday_str += ' '
+        if user_lang == 'nl':
+            end_fulldate_str = ''.join([end_weekday_str, end_day_str, ' ', end_month_str, ' ', end_year_str])
+        else:
+            end_fulldate_str = ''.join([end_weekday_str, end_month_str, ' ', end_day_str, ', ', end_year_str])
+
+        if same_year and same_month and same_day:
+            # start- and end time are on same date
+            display_text = end_fulldate_str
+        else:
+            start_weekday_str = ''
+            if not short_names:
+                start_weekday_str = weekday_arr[start_isoweekday]
+                if user_lang != 'nl':
+                    start_weekday_str += ','
+                start_weekday_str += ' '
+
             if user_lang == 'nl':
-                start_fulldate_str += ' ' + start_year_str
+                start_fulldate_str = ''.join( [start_weekday_str, start_day_str, ' ', start_month_str])
             else:
-                start_fulldate_str += ', ' + start_year_str
+                start_fulldate_str = ''.join( [start_weekday_str, start_month_str, ' ', start_day_str, ','])
 
-        display_text = ' - '.join([start_fulldate_str, end_fulldate_str])
+            if not same_year:
+                if user_lang == 'nl':
+                    start_fulldate_str += ' ' + start_year_str
+                else:
+                    start_fulldate_str += ', ' + start_year_str
+
+            display_text = ' - '.join([start_fulldate_str, end_fulldate_str])
+
+    except:
+        logger.debug('ERROR: datefirst_dte' + str(datefirst_dte) + ' ' + str(type(datefirst_dte)) +
+                        ' datelast_dte' + str(datelast_dte) + ' ' + str(type(datelast_dte)))
 
     return display_text
 
 def format_period_from_datetimelocal(periodstart_dtmlocal, periodend_dtmlocal, timeformat, user_lang):
-    #logger.debug(' --- format_period_from_datetimelocal --- ')
-    #logger.debug('periodstart_datetimelocal: ' + str(periodstart_dtmlocal))
-    #logger.debug('periodend_datetimelocal: ' + str(periodend_dtmlocal))
+    logger.debug(' --- format_period_from_datetimelocal --- ')
+    logger.debug('periodstart_datetimelocal: ' + str(periodstart_dtmlocal) + ' ' + str(type(periodstart_dtmlocal)))
+    logger.debug('periodend_datetimelocal: ' + str(periodend_dtmlocal)+ ' ' + str(type(periodend_dtmlocal)))
 
     display_text = ''
     # challenge: when end time is 0:00, display it as 24:00 previous day

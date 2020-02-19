@@ -19,7 +19,7 @@
         //console.log("filter_ppk_int = ", filter_ppk_int)
 
         // difference between filter_include_inactive and filter_show_inactive:
-        // - filter_include_inactive works in CreateSelectRow. Row is not created when inactive=true and filter_include_inactive=false
+        // - filter_include_inactive works in t_CreateSelectRow. Row is not created when inactive=true and filter_include_inactive=false
         // - filter_show_inactive    works in UpdateSelectRow. Row will be hidden when inactive=true and filter_show_inactive=false
         // the last one is used when a selected row is made inactive
 
@@ -39,7 +39,7 @@
         let row_count = {count: 0};
         for (const [map_id, item_dict] of data_map.entries()) {
             const row_index = null // add row at end when no rowindex
-            let selectRow = CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
+            let selectRow = t_CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                         HandleSelect_Row, HandleSelectRowButton,
                                         filter_ppk_int, filter_include_inactive, row_count,
                                         bc_color_notselected, bc_color_selected,
@@ -139,15 +139,15 @@
 
     }  // CreateSelectHeader
 
-//========= CreateSelectRow  ============= PR2019-10-20
-    function CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
+//========= t_CreateSelectRow  ============= PR2019-10-20
+    function t_CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                 HandleSelect_Row, HandleSelectRowButton,
                                 filter_ppk_int, filter_include_inactive, row_count,
                                 bc_color_notselected, bc_color_selected,
                                 imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
                             title_header_btn) {
-        //console.log(" === CreateSelectRow in tables.js === ")
+        //console.log(" === t_CreateSelectRow in tables.js === ")
 
 // add row at end when row_index is blank
         if(row_index == null){row_index = -1}
@@ -221,7 +221,7 @@
             }  // if (!filter_ppk_int || ppk_int === filter_ppk_int)
         }  //  if (!isEmpty(item_dict))
         return tblRow;
-    } // CreateSelectRow
+    } // t_CreateSelectRow
 
 //=========  CreateSelectButton  ================ PR2019-11-16
     function CreateSelectButton(is_header, has_sel_btn_delete, tblRow, HandleSelectButton,

@@ -53,11 +53,11 @@ def create_employee_dict(instance, item_dict, user_lang):
         datefirst = getattr(instance, 'datefirst')
         datelast = getattr(instance, 'datelast')
 
-        workhours = getattr(instance, 'workhours', 0)
-        workdays = getattr(instance, 'workdays', 0)
+        workhours = getattr(instance, 'workhours', 0)  # workhours per week * 60, unit is minute
+        workdays = getattr(instance, 'workdays', 0) # workdays per week * 1440, unit is minute (one day has 1440 minutes)
         workhoursperday = 0
         if workhours and workdays:
-            workhoursperday = workhours / workdays * 1440
+            workhoursperday = round(workhours / workdays * 1440)  # round to whole minutes
 
         for field in c.FIELDS_EMPLOYEE:
 # --- get field_dict from  item_dict if it exists

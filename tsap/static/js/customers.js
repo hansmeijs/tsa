@@ -366,7 +366,6 @@ let planning_list = [] // for export and printing - can replace map?
         if ("customer_list" in response) {
             get_datamap(response["customer_list"], customer_map)
 
-            const title_inactive_btn = loc.TXT_Cick_show_inactive_customers;
             let tblHead = document.getElementById("id_thead_select");
             const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
 
@@ -377,7 +376,7 @@ let planning_list = [] // for export and printing - can replace map?
                 cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_inactive_grey, imgsrc_inactive_black,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
-                title_inactive_btn);
+                loc.TXT_Cick_show_inactive_customers);
             fFilter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
 
             FillTableRows("customer");
@@ -1486,14 +1485,13 @@ let planning_list = [] // for export and printing - can replace map?
             let selectRow;
             if(is_created){
                 const row_index = GetNewSelectRowIndex(tblBody_select_customer, 0, update_dict, user_lang);
-
-                const title_inactive_btn = loc.TXT_Cick_show_inactive_customers;
                 const imgsrc_default = imgsrc_inactive_grey, imgsrc_hover = imgsrc_inactive_black;
-                console.log(" xxxxxxxxxxxx before CreateSelectRow ")
+
                 selectRow = CreateSelectRow(false, tblBody_select_customer, tblName, row_index, update_dict, selected_customer_pk,
                                             HandleSelect_Row, HandleBtnInactiveDeleteClicked,
                                             imgsrc_default, imgsrc_hover, imgsrc_inactive_black, imgsrc_inactive_grey,
-                                            imgsrc_inactive_lightgrey, title_inactive_btn)
+                                            imgsrc_inactive_lightgrey,
+                                            loc.TXT_Cick_show_inactive_customers)
 
                 HandleSelect_Row(selectRow);
         // imgsrc_inactive_lightgrey
@@ -1643,8 +1641,8 @@ let planning_list = [] // for export and printing - can replace map?
 //========= UpdateField  ============= PR2019-10-09
     function UpdateField(el_input, update_dict, is_addnew_row) {
         const fldName = get_attr_from_el(el_input, "data-field");
-        console.log("========= UpdateField  ========= ", fldName);
-        console.log("update_dict ", update_dict);
+        //console.log("========= UpdateField  ========= ", fldName);
+        //console.log("update_dict ", update_dict);
 
 // --- reset fields when update_dict is empty
         if (isEmpty(update_dict)){
@@ -1716,12 +1714,12 @@ let planning_list = [] // for export and printing - can replace map?
                 el_input.value = display_time
 
             } else if (fldName === "timeduration"){
-                console.log("fldName: ", fldName);
-                console.log("update_dict: ", update_dict);
+                //console.log("fldName: ", fldName);
+                //console.log("update_dict: ", update_dict);
                 //const tm_count = get_dict_value_by_key (update_dict, "tm_count");
                 const time_duration = get_dict_value(update_dict, ["shift", "timeduration"]);
                 //const total_duration = (!!tm_count && time_duration) ? tm_count * time_duration : 0
-                console.log("time_duration: ", time_duration);
+                //console.log("time_duration: ", time_duration);
 
                //el_input.value = display_duration (total_duration, user_lang);
                //const display_value = display_toFixed (total_duration, user_lang);

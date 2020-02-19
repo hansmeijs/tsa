@@ -34,6 +34,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Add_employee'] = TXT_Add_employee
         dict['Employee_list'] = TXT_Employee_list
         dict['Employee_data'] = TXT_Employee_data
+        dict['Click_show_inactive_employees'] = TXT_Click_show_inactive_employees
 
         dict['Hours_per_week'] = TXT_Hours_per_week
         dict['Days_per_week'] = TXT_Days_per_week
@@ -648,6 +649,8 @@ TXT_Delete_employee = _('Delete employee')
 TXT_No_employees = _('No employees')
 TXT_Replacement_employee = _('Replacement employee')
 TXT_Select_replacement_employee = _('Select replacement employee')
+
+TXT_Click_show_inactive_employees = _('Click to show or hide inactive employees')
 
 TXT_Employee_list = _('Employee list')
 TXT_Employee_data = _('Employee data')

@@ -277,7 +277,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
                                                                request=request)
 # ----- employee_calendar
                     table_dict = datalist_dict.get('employee_calendar')
-
+                    # TODO 'employee_calendar' and 'employee_planning' use same function create_employee_planning
+                    # calendar is for one employee / one week, planningcan be for multiple
+                    # TODO merge both
                     # also get employee_calendar at startup of page
                     # empty dict (dict = {} ) is also Falsey
                     if (table_dict is not None) or (selected_page == 'page_employee' and selected_btn == 'calendar'):
@@ -288,10 +290,10 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         customer_pk = None
                         employee_pk = None
                         if table_dict:
+                            employee_pk = table_dict.get('employee_pk')
                             order_pk = table_dict.get('order_pk')
                             if order_pk is None:
                                 customer_pk = table_dict.get('customer_pk')
-                            employee_pk = table_dict.get('employee_pk')
                         else:
                             order_pk = selected_order_pk
                             if order_pk is None:
@@ -327,7 +329,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         if logfile:
                             datalists['logfile'] = logfile
 
-
 # ----- customer_calendar
                     table_dict = datalist_dict.get('customer_calendar')
 
@@ -359,7 +360,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
 # ----- employee_planning
                     table_dict = datalist_dict.get('employee_planning')
-                    # also get employee_planning at startup of page, also for page_customer
+                    # also get employee_planning at startup of page
+                    # employee_planning is also called by page_customer
                     if (table_dict is not None) or (selected_btn == 'planning'):
                         customer_pk = None
                         skip_restshifts = False
@@ -384,7 +386,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datefirst_iso = planning_period_dict.get('period_datefirst')
                         datelast_iso = planning_period_dict.get('period_datelast')
 
-                        logfile = []
                         dict_list, logfile = r.create_employee_planning(
                             datefirst_iso=datefirst_iso,
                             datelast_iso=datelast_iso,

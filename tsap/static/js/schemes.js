@@ -300,8 +300,9 @@ document.addEventListener('DOMContentLoaded', function() {
         CreateTblFooters();
 
 // --- Datalist Download
-        // TODO for testing, show_absence must be false in production
-        const show_absence = false;  //  const show_absence = null ;
+        // show_absence = null is for testing, show_absence must be false in production
+        //const show_absence = null;
+        const show_absence = false;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}

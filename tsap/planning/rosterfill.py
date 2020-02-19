@@ -897,7 +897,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
 
                     has_overlap = False
                     overlap_siid_list = []
-                    planning_dict = create_employee_calendar_dict(row, has_overlap, overlap_siid_list, comp_timezone,
+                    planning_dict = create_planning_dict(row, has_overlap, overlap_siid_list, comp_timezone,
                                                                   timeformat, user_lang)
                     if planning_dict:
                         calendar_dictlist.append(planning_dict)
@@ -2389,7 +2389,7 @@ def create_employee_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                 #if row[idx_si_mod] not in ('a', 'r'):
                 #    has_overlap, overlap_siid_list = check_shiftrow_for_overlap(row)
 
-                planning_dict = create_employee_calendar_dict(row, False, [], comp_timezone, timeformat, user_lang)
+                planning_dict = create_planning_dict(row, False, [], comp_timezone, timeformat, user_lang)
                 # logger.debug('planning_dict : ' + str(planning_dict))
                 if planning_dict:
                     calendar_dictlist.append(planning_dict)
@@ -2824,8 +2824,8 @@ def check_overlapping_shiftrows(employee_rows, employee_dict):
                                             break
 
 
-def create_employee_calendar_dict(row, has_overlap, overlap_siid_list, comp_timezone, timeformat, user_lang): # PR2019-10-27
-    # logger.debug(' --- create_employee_calendar_dict --- ')
+def create_planning_dict(row, has_overlap, overlap_siid_list, comp_timezone, timeformat, user_lang): # PR2019-10-27
+    # logger.debug(' --- create_planning_dict --- ')
     #logger.debug('row: ' + str(row))
     # row: {'rosterdate': '2019-09-28', 'tm_id': 469, 'e_id': 1465, 'e_code': 'Andrea, Johnatan',
     # 'ddif': 0, 'o_cat': 512, 'o_seq': 1, 'osdif': 0, 'oedif': 1440}
@@ -3045,7 +3045,7 @@ def create_weekday_list(scheme_id):
 # Postgresql: remainder is modulo function: MOD(x,y) or:
 # Postgresql remainder is: MOD((CAST(this_rosterdate AS date) - CAST(si_rosterdate AS date)), cycle) = 0
 
-# end of create_employee_calendar_dict
+# end of create_planning_dict
 #######################################################
 
 def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk, comp_timezone, timeformat, user_lang, request):
@@ -3199,7 +3199,7 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
                     #if row[idx_si_mod] not in ('a', 'r'):
                     #    has_overlap, overlap_siid_list = check_shiftrow_for_overlap(row)
 
-                    planning_dict = create_employee_calendar_dict(row_list, has_overlap, overlap_siid_list, comp_timezone, timeformat, user_lang)
+                    planning_dict = create_planning_dict(row_list, has_overlap, overlap_siid_list, comp_timezone, timeformat, user_lang)
                     if planning_dict:
                         calendar_dictlist.append(planning_dict)
                         #logger.debug('=-------------- row added to dict ')

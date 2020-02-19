@@ -104,7 +104,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_timepicker_tbody_hour = document.getElementById("id_timepicker_tbody_hour");
         let el_timepicker_tbody_minute = document.getElementById("id_timepicker_tbody_minute");
 
-        let el_popup_date = document.getElementById("id_popup_date_container")
         let el_popup_wdy = document.getElementById("id_popup_wdy");
 
 // --- get header elements
@@ -138,47 +137,6 @@ document.addEventListener('DOMContentLoaded', function() {
             el_mod_employee_input_employee.addEventListener("keyup", function() {
                 setTimeout(function() {ModEmployeeFilterEmployee("input")}, 50)});
 
-// add EventListener to document to close popup windows
-        document.addEventListener('click', function (event) {
-
-// hide msgbox
-            el_msg.classList.remove("show");
-
- // remove highlighted row when clicked outside tabelrows
-            let tr_selected = get_tablerow_selected(event.target)
-            if(!tr_selected) {
-                DeselectHighlightedRows(tr_selected, cls_selected)};
-
-// close el_popup_date
-            let close_popup = true
-            if (event.target.classList.contains("input_text")) {close_popup = false} else
-            if (event.target.classList.contains("input_text")) {close_popup = false} else
-            if (el_popup_date.contains(event.target) && !event.target.classList.contains("popup_close")) {close_popup = false}
-            if (close_popup) {
-                el_popup_date.classList.add(cls_hide)
-            };
-
-// close el_popup_wdy
-            // event.target identifies the element on which the event occurred, i.e: on which is clicked
-            close_popup = true
-            if (event.target.classList.contains("input_popup_wdy")) {close_popup = false} else
-            if (el_popup_wdy.contains(event.target) && !event.target.classList.contains("popup_close")) {close_popup = false}
-            if (close_popup) {
-                popupbox_removebackground("input_popup_wdy");
-                el_popup_wdy.classList.add(cls_hide)};
-
-// close el_timepicker
-/*
-            close_popup = true
-            // event.target identifies the element on which the event occurred, i.e: on which is clicked
-            if (event.target.classList.contains("input_timepicker")) {close_popup = false} else
-            if (el_timepicker.contains(event.target) && !event.target.classList.contains("timepicker_close")) {close_popup = false}
-            if (close_popup) {
-                popupbox_removebackground("input_timepicker");
-                el_timepicker.classList.add(cls_hide)
-                };
-*/
-        }, false);
 
 // ---  MOD SELECT ORDER ------------------------------
         let el_modorder_input_customer = document.getElementById("id_modorder_input_customer")
@@ -200,6 +158,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  MOD CONFIRM ------------------------------------
 // ---  save button in ModConfirm
+
+// ---  Popup date
+        let el_popup_date_container = document.getElementById("id_popup_date_container");
+        let el_popup_date = document.getElementById("id_popup_date")
+            el_popup_date.addEventListener("change", function() {HandlePopupDateSave()}, false )
 
 // buttons in modal order
         //document.getElementById("id_mod_order_btn_save").addEventListener("click", function() {ModOrderSave()}, false )
@@ -230,8 +193,31 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_popup_wdy_nextmonth").addEventListener("click", function() {HandlePopupBtnWdy();}, false )
         document.getElementById("id_popup_wdy_save").addEventListener("click", function() {HandlePopupWdySave();}, false )
 
-// popup_date
-        el_popup_date.addEventListener("change", function() {HandlePopupDateSave();}, false )
+// ---  DOCUMENT CLICK - to close popup windows ------------------------------
+// add EventListener to document to close popup windows
+        document.addEventListener('click', function (event) {
+// hide msgbox
+            el_msg.classList.remove("show");
+ // remove highlighted row when clicked outside tabelrows
+            let tr_selected = get_tablerow_selected(event.target)
+            if(!tr_selected) {
+                DeselectHighlightedRows(tr_selected, cls_selected)};
+// close el_popup_date
+            let close_popup = true
+            if (event.target.classList.contains("input_text")) {close_popup = false} else
+            if (event.target.classList.contains("input_popup_date")) {close_popup = false} else
+            if (el_popup_date.contains(event.target) && !event.target.classList.contains("popup_close")) {close_popup = false}
+            if (close_popup) { el_popup_date.classList.add(cls_hide) };
+// close el_popup_wdy
+            // event.target identifies the element on which the event occurred, i.e: on which is clicked
+            close_popup = true
+            if (event.target.classList.contains("input_popup_wdy")) {close_popup = false} else
+            if (el_popup_wdy.contains(event.target) && !event.target.classList.contains("popup_close")) {close_popup = false}
+            if (close_popup) {
+                popupbox_removebackground("input_popup_wdy");
+                el_popup_wdy.classList.add(cls_hide)};
+        }, false);
+
 
         // from https://stackoverflow.com/questions/17493309/how-do-i-change-the-language-of-moment-js
         // console.log(moment.locales())
@@ -644,12 +630,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- add EventListener to td
                 if (j === 0) {
-                    if (is_new_item){el.addEventListener("click", function() {OpenPopupWDY(el)}, false )} } else
-                if ([1, 2].indexOf( j ) > -1){
-                    if (is_new_item){el.addEventListener("change", function() {UploadElChanges(el)}, false )} } else
-                if (j === 3){
-                    el.addEventListener("click", function() {ModEmployeeOpen(el)}, false )} else
-                if ([4, 6, 8, 9].indexOf( j ) > -1){
+                    if (is_new_item){
+                        el.classList.add("input_popup_date");
+                        el.addEventListener("click", function() {HandlePopupDateOpen(el)}, false )
+                    }
+                } else if ([1, 2].indexOf( j ) > -1){
+                    if (is_new_item){
+                        el.addEventListener("change", function() {UploadElChanges(el)}, false )
+                    }
+                } else if (j === 3){
+                    el.addEventListener("click", function() {ModEmployeeOpen(el)}, false )
+                } else if ([4, 6, 8, 9].indexOf( j ) > -1){
+                    el.classList.add("input_timepicker")
                     el.addEventListener("click", function() {HandleTimepickerOpen(el)}, false)
                 };
 
@@ -687,13 +679,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add other classes to td
                 // el.classList.add("border_none");
                 // el.classList.add("input_text"); // makes background transparent
-                if (j === 0) {
-                    el.classList.add("input_popup_wdy");
-                } else if ([4, 6, 8, 9].indexOf( j ) > -1){
-                    el.classList.add("input_timepicker")
-                } else {
-                    el.classList.add("input_text"); // makes background transparent
-                };
+                el.classList.add("input_text"); // makes background transparent
+
 
     // --- add other attributes to td
                 el.setAttribute("autocomplete", "off");
@@ -2049,6 +2036,157 @@ document.addEventListener('DOMContentLoaded', function() {
 
 }; // function ModalSettingOpen
 
+//###########################################################################
+// +++++++++++++++++ POPUP ++++++++++++++++++++++++++++++++++++++++++++++++++
+//========= HandlePopupDateOpen  ====================================
+    function HandlePopupDateOpen(el_input) {
+        console.log("===  HandlePopupDateOpen  =====") ;
+        console.log("el_input", el_input) ;
+
+        let el_popup_date = document.getElementById("id_popup_date")
+
+// ---  reset textbox 'date'
+        el_popup_date.value = null
+
+//--- get pk etc from el_input, date can olny be entered in add_new_mode, teherfeore there is no map_item
+
+        const tblRow = get_tablerow_selected(el_input)
+        let pk_str = get_attr_from_el(tblRow, "data-pk");
+        let tblName = get_attr_from_el(tblRow, "data-table") ;
+
+        console.log("pk_str", pk_str, "tblName", tblName) ;
+
+// get values from el_input
+        const data_field = get_attr_from_el(el_input, "data-field");
+        const data_value = get_attr_from_el(el_input, "data-value");
+        const data_mindate = get_attr_from_el(el_input, "data-mindate");
+        const data_maxdate = get_attr_from_el(el_input, "data-maxdate");
+
+// put values in id_popup_date
+        el_popup_date.setAttribute("data-pk", pk_str);
+        el_popup_date.setAttribute("data-field", data_field);
+        el_popup_date.setAttribute("data-value", data_value);
+        el_popup_date.setAttribute("data-table", tblName);
+
+        if (!!data_mindate) {el_popup_date.setAttribute("min", data_mindate);
+        } else {el_popup_date.removeAttribute("min")}
+        if (!!data_maxdate) {el_popup_date.setAttribute("max", data_maxdate);
+        } else {el_popup_date.removeAttribute("max")}
+
+        if (!!data_value){el_popup_date.value = data_value};
+
+// ---  position popup under el_input
+        let popRect = el_popup_date_container.getBoundingClientRect();
+        let inpRect = el_input.getBoundingClientRect();
+        const offset = [-240,-32 ]  // x = -240 because of sidebar, y = -32 because of menubar
+        const pop_width = 0; // to center popup under input box
+        const correction_left = offset[0] - pop_width/2 ;
+        const correction_top =  offset[1];
+        let topPos = inpRect.top + inpRect.height + correction_top;
+        let leftPos = inpRect.left + correction_left; // let leftPos = elemRect.left - 160;
+        let msgAttr = "top:" + topPos + "px;" + "left:" + leftPos + "px;"
+        el_popup_date_container.setAttribute("style", msgAttr)
+
+// ---  show el_popup
+        el_popup_date_container.classList.remove(cls_hide);
+
+    }; // function HandlePopupDateOpen
+
+//=========  HandlePopupDateSave  ================ PR2019-04-14
+    function HandlePopupDateSave() {
+        console.log("===  function HandlePopupDateSave =========");
+        console.log(el_popup_date);
+// ---  get pk_str and fieldname from el_popup
+        const pk_str = el_popup_date.getAttribute("data-pk");
+        const fieldname = el_popup_date.getAttribute("data-field");
+        const data_value = el_popup_date.getAttribute("data-value");
+        const tblName = el_popup_date.getAttribute("data-table");
+        const value = el_popup_date.value;
+
+        console.log("tblName: ", tblName);
+        console.log("fieldname: ", fieldname);
+        console.log("data_value: ", data_value);
+        console.log("value: ", value);
+
+
+// ---  get item_dict from employee_map
+        const data_map = (tblName === "employee") ? employee_map :
+                         (tblName === "teammember") ? teammember_map : null
+        const item_dict = get_mapdict_from_datamap_by_tblName_pk(data_map, tblName, pk_str);
+        const pk_int = get_pk_from_dict(item_dict)
+        const ppk_int = get_ppk_from_dict(item_dict)
+
+        el_popup_date_container.classList.add(cls_hide);
+
+        if(!!pk_int && !! ppk_int){
+            let id_dict = {pk: pk_int, ppk: ppk_int, table: tblName} //  , mode: data_mode}
+
+            const new_value = el_popup_date.value
+            if (new_value !== data_value) {
+                // key "update" triggers update in server, "updated" shows green OK in inputfield,
+                let field_dict = {update: true}
+                if(!!new_value){field_dict["value"] = new_value};
+                let upload_dict = {id: id_dict}
+                upload_dict[fieldname] = field_dict;
+
+// put new value in inputbox before new value is back from server
+                const map_id = get_map_id(tblName, pk_str);
+                console.log("map_id", map_id);
+                let tr_changed = document.getElementById(map_id);
+
+                // --- lookup input field with name: fieldname
+                        //PR2019-03-29 was: let el_input = tr_changed.querySelector("[name=" + CSS.escape(fieldname) + "]");
+                        // CSS.escape not supported by IE, Chrome and Safari,
+                        // CSS.escape is not necessary, there are no special characters in fieldname
+                let el_input = tr_changed.querySelector("[data-field=" + fieldname + "]");
+                if (!!el_input){
+                    console.log("el_input", el_input);
+                    const hide_weekday = true, hide_year = false;
+                    format_date_element (el_input, el_msg, field_dict, month_list, weekday_list,
+                                        user_lang, comp_timezone, hide_weekday, hide_year)
+                }
+
+                const url_str = (["employee", "form"].indexOf(selected_btn) > -1) ?
+                                url_employee_upload : url_teammember_upload;
+                const parameters = {"upload": JSON.stringify (upload_dict)}
+                console.log("url_str: ", url_str);
+                console.log ("upload_dict", upload_dict);
+
+                let response;
+                $.ajax({
+                    type: "POST",
+                    url: url_str,
+                    data: parameters,
+                    dataType:'json',
+                    success: function (response) {
+                        console.log ("response", response);
+                        if ("update_list" in response) {
+                            for (let i = 0, len = response["update_list"].length; i < len; i++) {
+                                const update_dict = response["update_list"][i];
+                                UpdateFromResponse(update_dict);
+                            }
+                        }
+                        if ("teammember_update" in response) {
+                            UpdateFromResponse(response["teammember_update"]);
+                        }
+
+                    },
+                    error: function (xhr, msg) {
+                        console.log(msg + '\n' + xhr.responseText);
+                        alert(msg + '\n' + xhr.responseText);
+                    }
+                });
+            }  // if (new_dhm_str !== old_dhm_str)
+
+            setTimeout(function() {
+                el_popup_date_container.classList.add(cls_hide);
+            }, 2000);
+
+
+        }  // if(!!pk_str && !! parent_pk)
+    }  // HandlePopupDateSave
+
+
 //========= OpenPopupWDY  ====================================
     function OpenPopupWDY(el_input) {
         console.log("===  OpenPopupWDY  =====") ;
@@ -2251,7 +2389,7 @@ console.log("===  function HandlePopupWdySave =========");
 
 
 //=========  HandlePopupDateSave  ================ PR2019-07-08
-    function HandlePopupDateSave() {
+    function HandlePopupDateSaveXXX() {
         console.log("===  function HandlePopupDateSave =========");
 
 // ---  get pk_str from id of el_timepicker
