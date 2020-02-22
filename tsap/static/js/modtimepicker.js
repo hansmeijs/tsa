@@ -417,7 +417,7 @@
             // if old quicksave = true: set quicksave = false, show btn_save, don't exit
             // if old quicksave = false: set quicksave = true, save changes
             is_quicksave = !is_quicksave
-            tp_dict["quicksave"] = is_quicksave;
+            tp_dict.quicksave = is_quicksave;
 
             if(is_quicksave){
                 save_changes = true;
@@ -438,7 +438,7 @@
                 save_changes = true
             };
         } else if (mode === "btn_delete") {
-            tp_dict["offset"] = null;
+            tp_dict.offset = null;
 
             CalcMinMax(tp_dict)
             save_changes = true;
@@ -450,11 +450,8 @@
             // save only when offset is within range or null (when changing date hour/minumtes can go outside min/max range)
             //console.log( "tp_dict: ", tp_dict);
 
-            const within_range = tp_dict["within_range"];
-            //console.log( "within_range = ", within_range);
-            // console.log( "within_range: ", within_range, typeof within_range);
-            if(tp_dict["within_range"]){
-                tp_dict["save_changes"] = true;
+            if(tp_dict.within_range){
+                tp_dict.save_changes = true;
             }
         }
         if(!dont_return) {

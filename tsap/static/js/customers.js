@@ -557,7 +557,7 @@ let planning_list = [] // for export and printing - can replace map?
         }
 // ---  highlight selected button
         let btn_container = document.getElementById("id_btn_container")
-        HighlightBtnSelect(btn_container, selected_btn);
+        t_HighlightBtnSelect(btn_container, selected_btn);
 
 // ---  show orderlist in selecttable when clicked on planning, otherwise: customer_list
 
@@ -603,14 +603,16 @@ let planning_list = [] // for export and printing - can replace map?
             el_submenu_print_planning.classList.add(cls_hide);
             el_submenu_exportExcel.classList.add(cls_hide);
         }
-// ---  show / hide selected table
-        let list = document.getElementsByClassName("tab_show");
-        for (let i=0, len = list.length; i<len; i++) {
-            let el = list[i];
-            const is_show = el.classList.contains("tab_" + selected_btn)
-            show_hide_element(el, is_show)
-            // class 'display_hide' is necessary to prevent showing all tables when page opens
-        }
+
+// ---  show / hide elements of selected button
+        show_hide_selected_btn_elements("tab_show", "tab_" + selected_btn)
+        //let list = document.getElementsByClassName("tab_show");
+        //for (let i=0, len = list.length; i<len; i++) {
+        //    let el = list[i];
+        //    const is_show = el.classList.contains("tab_" + selected_btn)
+        //    show_hide_element(el, is_show)
+        //    // class 'display_hide' is necessary to prevent showing all tables when page opens
+        //}
 
 // ---  update header text -- >  cant update header text until customer- and order_map are filled
         UpdateHeaderText();
@@ -1487,7 +1489,7 @@ let planning_list = [] // for export and printing - can replace map?
                 const row_index = GetNewSelectRowIndex(tblBody_select_customer, 0, update_dict, user_lang);
                 const imgsrc_default = imgsrc_inactive_grey, imgsrc_hover = imgsrc_inactive_black;
 
-                selectRow = CreateSelectRow(false, tblBody_select_customer, tblName, row_index, update_dict, selected_customer_pk,
+                selectRow = t_CreateSelectRow(false, tblBody_select_customer, tblName, row_index, update_dict, selected_customer_pk,
                                             HandleSelect_Row, HandleBtnInactiveDeleteClicked,
                                             imgsrc_default, imgsrc_hover, imgsrc_inactive_black, imgsrc_inactive_grey,
                                             imgsrc_inactive_lightgrey,
@@ -2535,12 +2537,13 @@ let planning_list = [] // for export and printing - can replace map?
             set_element_class("id_modshift_btn_employees", (mod_shift_option === "mod_team"), cls_btn_selected)
 
     // ---  show only the elements that are used in this mod_shift_option
-            let list = document.getElementsByClassName("mod_show");
-            for (let i=0, len = list.length; i<len; i++) {
-                let el = list[i]
-                const is_show = el.classList.contains(mod_shift_option)
-                show_hide_element(el, is_show)
-            }
+            show_hide_selected_btn_elements("mod_show", mod_shift_option)
+            //let list = document.getElementsByClassName("mod_show");
+            //for (let i=0, len = list.length; i<len; i++) {
+            //    let el = list[i]
+            //    const is_show = el.classList.contains(mod_shift_option)
+            //    show_hide_element(el, is_show)
+            //}
 
     // ---  fill shift options, set select shift in selectbox
             let el_select = document.getElementById("id_modshift_selectshift");
@@ -3494,12 +3497,13 @@ let planning_list = [] // for export and printing - can replace map?
     function MSO_ShowElements(mod){
         //console.log( "===  MSO_BtnSaveEnable  =====");
 // ---  show only the elements that are used in this mod
-        let list = document.getElementsByClassName("mod_show");
-        for (let i=0, len = list.length; i<len; i++) {
-            let el = list[i]
-            const is_show = el.classList.contains(mod)
-            show_hide_element(el, is_show)
-        }
+        show_hide_selected_btn_elements("mod_show", mod)
+        //let list = document.getElementsByClassName("mod_show");
+        //for (let i=0, len = list.length; i<len; i++) {
+         //   let el = list[i]
+        //    const is_show = el.classList.contains(mod)
+        //    show_hide_element(el, is_show)
+        //}
 // ---  show select order only when selected order has no value
     }
 

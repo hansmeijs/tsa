@@ -508,7 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  highlight selected button
         let btn_container = document.getElementById("id_btn_container")
-        HighlightBtnSelect(btn_container, selected_btn);
+        t_HighlightBtnSelect(btn_container, selected_btn);
 
 // ---  show / hide selected table
         const div_list = ["id_div_tbl_schemeitem", "id_div_tbl_shift", "id_div_tbl_teammember", "id_div_data_form"];
@@ -1118,6 +1118,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++++++++++ CREATE ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //========= CreateSelectRow  ============= PR2019-10-20
+    // TODO switch to t_CreateSelectRow
     function CreateSelectRow(tblBody_select, item_dict, row_index) {
         console.log("CreateSelectRow");
 
@@ -3079,6 +3080,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let selectRow;
             if(is_created && tblBody_select){
                 const row_index = GetNewSelectRowIndex(tblBody_select, 0, update_dict, user_lang);
+                 // TODO switch to t_CreateSelectRow
                 selectRow = CreateSelectRow(tblBody_select, update_dict, row_index);
                 HandleSelectRow(selectRow);
             } else{
@@ -5208,14 +5210,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("===  HandleTimepickerOpen  =====");
 
         let tr_selected = get_tablerow_selected(el_input);
-        console.log(tr_selected) ;
-        console.log(shift_map) ;
-        const shift_dict = get_itemdict_from_datamap_by_tblRow(tr_selected, shift_map);
-
-        console.log("shift_dict", shift_dict);
-
         HandleTableRowClicked(tr_selected);
 
+        const shift_dict = get_itemdict_from_datamap_by_el(el_input, shift_map);
         if(!isEmpty(shift_dict)){
             const fieldname = get_attr_from_el(el_input, "data-field")
 
@@ -5243,10 +5240,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const text_prevday = get_attr_from_el(el_data, "data-timepicker_prevday");
             const text_nextday = get_attr_from_el(el_data, "data-timepicker_nextday");
             const txt_break = get_attr_from_el(el_data, "data-txt_break");
+            const txt_hours = get_attr_from_el(el_data, "data-txt_hours");
             if(!!text_curday){st_dict["text_curday"] = text_curday};
             if(!!text_prevday){st_dict["text_prevday"] = text_prevday};
             if(!!text_nextday){st_dict["text_nextday"] = text_nextday};
             if(!!txt_break){st_dict["txt_break"] = txt_break};
+            if(!!txt_break){st_dict["txt_workhours"] = txt_hours};
 
             const txt_save = get_attr_from_el(el_data, "data-txt_save");
             if(!!txt_save){st_dict["txt_save"] = txt_save};

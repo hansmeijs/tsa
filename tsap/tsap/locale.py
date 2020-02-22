@@ -489,7 +489,17 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Quick_save'] = TXT_Quick_save
         dict['Exit_Quicksave'] = TXT_Exit_Quicksave
 
-
+        # ModRosterEmployee
+        dict['Delete_employee'] = TXT_Delete_employee
+        dict['Delete_absence'] = TXT_Delete_absence
+        dict['Select_employee'] = TXT_Select_employee
+        dict['Replacement_employee'] = TXT_Replacement_employee
+        dict['No_employees'] = TXT_No_employees
+        dict['Employee_tobe_switched_with'] = _('Employee to be switched with')
+        dict['Select_date'] = _('Select date')
+        dict['Nodates_thatcanbe_switched'] = _('No dates with shifts that can be switched')
+        dict['Select_shift'] = _('Select shift')
+        dict['Noshifts_thatcanbe_switched'] = _('No shifts that can be switched')
 
 
     # ====== PAGE REVIEW ========================= PR2019-11-19
@@ -665,6 +675,7 @@ TXT_Absence = _('Absence')
 TXT_Absence_category = _('Absence category')
 TXT_Select_abscat = _('Select absence category')
 TXT_No_abscat = _('No absence categories')
+TXT_Delete_absence = _('Delete absence')
 
 TXT_Also_show_absence = _('Also show absence')
 TXT_Absence_included  = _('Absence included')

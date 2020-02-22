@@ -478,10 +478,7 @@ class Employee(TsaBaseModel):
         ordering = [Lower('namelast'), Lower('namefirst')]
 
     def __str__(self):
-        self.n_last = str(self.namelast)
-        self.n_first = str(self.namefirst) if self.namefirst else ''
-        self.n_prefix = str(self.prefix) if self.prefix else ''
-        return ' '.join((self.n_first, self.n_prefix, self.n_last))
+        return self.code
 
 
 class Teammember(TsaBaseModel):
@@ -701,6 +698,8 @@ class Emplhour(TsaBaseModel):
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
     overlap = SmallIntegerField(default=0)  # stores if record has overlapping emplhour records: 1 overlap start, 2 overlap end, 3 full overlap
+
+    note = CharField(max_length=2048, null=True, blank=True)
 
     # combination rosterdate + schemeitemid + teammemberid is used to identify schemeitem / teammember that is used to create this emplhour
     schemeitemid = IntegerField(null=True)

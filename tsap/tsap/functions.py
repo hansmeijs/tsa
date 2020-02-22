@@ -1203,21 +1203,14 @@ def get_date_diff_plusone(firstdate, lastdate): # PR2019-06-05
     return date_add
 
 
-def get_time_minutes(timestart, timeend, break_minutes):  # PR2019-06-05
-    # --- calculate working hours
-    new_time_minutes = 0
+def get_timeduration(timestart, timeend, breakduration):  # PR2020-02-22
+    # --- calculate working minutes - duration unit in database is minutes
+    new_timeduration = 0
     if timestart and timeend:
-        # duration unit in database is minutes
         datediff = timeend - timestart
-        #logger.debug('datediff: ' + str(datediff) + str(type(datediff)))
-
         datediff_minutes = int((datediff.total_seconds() / 60))
-        #logger.debug('datediff_minutes: ' + str(datediff_minutes) + str(type(datediff_minutes)))
-
-        new_time_minutes = int(datediff_minutes - break_minutes)
-        #logger.debug('new_time_minutes: ' + str(new_time_minutes) + str(type(new_time_minutes)))
-
-    return new_time_minutes
+        new_timeduration = int(datediff_minutes - breakduration)
+    return new_timeduration
 
 
 def period_within_range(outer_datetime_first, outer_datetime_last, inner_datetime_first, inner_datetime_last):
@@ -1693,17 +1686,17 @@ def get_iddict_variables(id_dict):
     is_create, is_delete, is_absence, is_template = False, False,  False, False
 
     if id_dict:
-        mode = id_dict.get('mode', '')
         table = id_dict.get('table', '')
         pk_int = id_dict.get('pk')
         ppk_int = id_dict.get('ppk')
         temp_pk_str = id_dict.get('temp_pk', '')
         is_create = ('create' in id_dict)
         is_delete = ('delete' in id_dict)
-        # is_absence = ('isabsence' in id_dict)
+        mode = id_dict.get('mode', '')
+        is_absence = ('isabsence' in id_dict)
         # is_template = ('istemplate' in id_dict)
 
-    return pk_int, ppk_int, temp_pk_str, is_create, is_delete, table, mode
+    return pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode
 
 
 def get_dict_value(dictionay, key_tuple, default_value=None):

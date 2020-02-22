@@ -119,7 +119,7 @@
                                     <input id="id_modshift_input_datefirst" type="date" data-field= "code"
                                     autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                                 </div>
-                                    <div class="content_subheader_left mx-1">
+                                <div class="content_subheader_left mx-1">
                                     <label for="id_modshift_input_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
                                     <input id="id_modshift_input_datelast" type="date" data-field="namelast"
                                     autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
@@ -175,7 +175,6 @@
                     </div>  <!-- end modal_container -->
                 </div>
                 <div class="modal-footer pr-4">
-
                     <div class="content_subheader_left mx-1 mod_show mod_shift mod_team">
                         <button id="id_modshift_btn_delete" type="button" data-dismiss="modal" class="btn btn-outline-danger">{% trans 'Delete scheme' %}</button>
                     </div>
@@ -184,41 +183,10 @@
                         <button id="id_modshift_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save' %}</button>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 <!-- =================== END MODAL EMPLOYEE SHIFT  =================== -->
-
 <!-- =================== MODAL TIMEPICKER  =================== -->
-<div class="modal" id="id_mod_timepicker" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm " role="document">
-        <div class="modal-content tsa_bc_lightlightgrey">
-
-            <div id="id_mod_confirm_body"  class="modal-body tsa_bc_lightlightgrey">
-
-                <div id="id_timepicker_header" class="popup_header">
-
-                </div>
-
-                <div class="content_header">
-                    <div class="content_subheader_left m-1 ">
-                        <a>{% trans "Hours" %}</a>
-                        <table class="pop_tbl tbl_border">
-                            <tbody id="id_timepicker_tbody_hour" class="timepicker_tbody_hour"></tbody>
-                        </table>
-                    </div>
-                    <div id="id_timepicker_cont_minute" class="content_subheader_left m-1">
-                        <a>{% trans "Minutes" %}</a>
-                        <table class="pop_tbl tbl_border">
-                            <tbody id="id_timepicker_tbody_minute" class="timepicker_tbody_minute"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div id="id_timepicker_footer" class="content_header tsa_bc_lightlightgrey m-2">
-            </div>
-        </div>
-    </div>
-</div>
-<!-- =================== END MODAL CONFIRM  =================== -->
+    {% include 'includes/modtimepicker.html' %}
+<!-- =================== END MODAL TIMEPICKER  =================== -->

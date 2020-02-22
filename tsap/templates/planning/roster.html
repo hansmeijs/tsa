@@ -6,7 +6,7 @@
 
 {% block script %}
     <script src="{% static 'js/roster.js' %}"></script>
-    <script src="{% static 'js/timepicker.js' %}"></script>
+    <script src="{% static 'js/modtimepicker.js' %}"></script>
 {% endblock %}
 
 <!-- SIDE BAR -->
@@ -205,7 +205,7 @@
         {% include 'includes/modrosteremployee.html' %}
 
 <!-- =================== CONTAINER =================== -->
-        <div class="container">
+        <div id="id_container" class="container">
 
 <!-- CONTENT HEADER - LOADER -->
             <div class="tsa_margin_top_48">
@@ -258,6 +258,7 @@
 <!-- =================== DATA TABLE  =================== -->
                  <div>
                     <table class="table tsa_tbl mx-4X my-1">
+
                         <thead id="id_thead_roster" class="thead-inverse">
                             <tr>
                                 <th class="text_align_left">{% trans 'Date' %}</th>
@@ -266,13 +267,13 @@
                                 <th class="text_align_left">{% trans 'Employee' %}</th>
                                 <th >{% trans 'Start' %}</th>
                                 <th>
-                                    <a id="id_filter_check" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
+                                    <a id="id_filter_check" href="#" data-value="false">
                                         <img id="id_img_filter_check" src="{% static 'img/questionmark.gif' %}" height="18" width="18">
                                     </a>
                                 </th>
                                 <th >{% trans 'End' %}</th>
                                 <th>
-                                    <a id="id_filter_check_end" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
+                                    <a id="id_filter_check_end" href="#" data-value="false">
                                       <img id="id_img_filter_check_end" src="{% static 'img/questionmark.gif' %}" height="18" width="18">
                                     </a>
                                 </th>
@@ -280,7 +281,7 @@
                                 <th class="text_align_right">{% trans 'Break' %}</th>
                                 <th class="text_align_right">{% trans 'Hours' %}</th>
                                 <th>
-                                    <a id="id_filter_status" href="#" data-value="false" title="{% trans 'Show inactive orders' %}">
+                                    <a id="id_filter_status" href="#" data-value="false">
                                         <img id="id_img_filter_status" src="{% static 'img/stat04.png' %}" height="18" width="18">
                                     </a>
                                 </th>
@@ -368,14 +369,6 @@
             data-txt_workinghours= "{% trans 'Working hours' %}"
 
             data-txt_employee = "{% trans 'Employee' %}"
-            data-txt_employee_select= "{% trans 'Select employee' %}"
-            data-txt_employee_select_none= "{% trans 'No employees' %}"
-            data-txt_replacement= "{% trans 'Replacement employee' %}"
-            data-txt_empl_switch_employee= "{% trans 'Employee to be switched with' %}"
-            data-txt_empl_switch_date= "{% trans 'Select date' %}"
-            data-txt_empl_switch_nodates= "{% trans 'No dates with shifts that can be switched' %}"
-            data-txt_empl_switch_shift= "{% trans 'Select shift' %}"
-            data-txt_empl_switch_noshifts= "{% trans 'No shifts that can be switched' %}"
 
             data-txt_datefirst= "{% trans 'Start date' %}"
             data-txt_datelast= "{% trans 'End date' %}"

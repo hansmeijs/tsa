@@ -788,6 +788,8 @@ function CalcMinMax(dict) {
         }
     }
 
+
+
 // PR2019-07-01 before moment.tz it was:
 
     // date_as_ISOstring: "2019-06-25T07:00:00Z"  on screen: 9.00

@@ -962,8 +962,10 @@
                 if (!value_int) {value_int = 0}
         //console.log("value_int: ", value_int)
 
-                let updated = get_dict_value(field_dict, ["updated"], true);
+                let updated = get_dict_value(field_dict, ["updated"], false);
                 let msg_err = get_dict_value(field_dict, ["error"]);
+                //console.log("field_dict: ", field_dict)
+                //console.log("updated: ", updated, typeof updated)
 
                 let display_value = display_duration (value_int, user_lang);
                 if (dst_warning) {display_value += "*"};

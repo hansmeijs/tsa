@@ -2,60 +2,48 @@
 {% load static %}
 
 <!-- =================== MODAL ROSTER EMPLOYEE  =================== -->
-
-    <div class="modal fade" id="id_mod_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+    <div class="modal fade" id="id_modroster_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
             <div class="modal-content">
                 <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_mod_employee_header" class="modal-title mx-2" >{% trans 'Employee' %}</h4>
+                    <h4 id="id_modroster_employee_header" class="modal-title mx-2" >{% trans 'Employee' %}</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
-                <div  id="id_mod_employee_body" class="modal-body">
+                <div id="id_modroster_employee_body" class="modal-body">
                     <div class="modal_container">
 
 <!-- modal_body_left contains employee select table -->
-                        <div class="modal_body_left">
+                        <div id="id_modroster_div_select_employee" class="modal_body_left">
                             <div class="content_subheader_left mx-2 my-1">
-                                <div>
-                                    <h6>{% trans 'Select employee' %}:</h6>
-                                </div>
-
-                                <div >
-                                    <input id="id_mod_employee_filter_employee" type="text"
-                                    class="fieldname pt-0 pb-0" colspan=2 autocomplete="off"
-                                    placeholder="{% trans 'filter name...' %}"
-                                    >
-                                </div>
-                                <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                <div style="overflow-x:hidden;overflow-y:auto;height:385px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
                                     <table class="table table-condensed tsa_tbl mx-1 my-1">
-                                        <tbody id="id_mod_employee_tblbody" data-table="employee">
+                                        <tbody id="id_modroster_employee_tblbody" data-table="employee">
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
 
-                        <div id="id_mod_employee_body_right"  class="modal_body_right mx-2 my-2">
-
-                            <div class="mx-2 my-2 ">
+                        <div id="id_modroster_employee_body_right"  class="modal_body_right mx-2 my-2">
+                            <div id="id_modroster_btn_container_label" class="mx-2">
                                 <h6>{% trans 'Select an option' %}:</h6>
                             </div>
 
-                            <div id="id_div_mod_buttons" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
-                                <button id="id_mod_employee_btn_absent" type="button"  class="btn btn-secondary ">{% trans 'Absence' %}</button>
-                                <button id="id_mod_employee_btn_switch" type="button"  class="btn btn-secondary ">{% trans 'Switch shift' %}</button>
-                                <button id="id_mod_employee_btn_split" type="button"  class="btn btn-secondary ">{% trans 'Split shift' %}</button>
+                            <div id="id_modroster_btn_container" class="btn-group btn-block mx-2 my-2" role="group" aria-label="Choose option" >
+                                <button id="id_modroster_employee_btn_absence" type="button" data-mode="mod_absence" class="btn btn-secondary ">{% trans 'Absence' %}</button>
+                                <button id="id_modroster_employee_btn_split" type="button" data-mode="mod_split" class="btn btn-secondary ">{% trans 'Split shift' %}</button>
+                                <button id="id_modroster_employee_btn_switch" type="button" data-mode="mod_switch" class="btn btn-secondary ">{% trans 'Switch shift' %}</button>
                             </div>
                             <div class="text_align_center">
-                                <img id="id_mod_employee_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="display_hide" >
+                                <img id="id_modroster_employee_loader" src="{% static 'img/loader.gif' %}" height="24" width="24" class="display_hide" >
                             </div>
-                            <div id="id_div_mod_absent" class="mod_flex mx-2 my-2 display_hide">
+                            <div id="id_div_mod_absent" class="mod_flex mx-2 my-2 mod_show mod_absence display_hide">
                                 <div class="form-group">
-                                    <label for="id_mod_employee_abscat" class="mx-2 my-2">{% trans 'Absence category' %}:</label>
-                                    <select id="id_mod_employee_abscat"
+                                    <label for="id_modroster_employee_abscat" class="mx-2 my-2">{% trans 'Absence category' %}:</label>
+                                    <select id="id_modroster_employee_abscat"
                                            data-name="abscat"
                                            autocomplete="off"
                                            ondragstart="return false;"
@@ -65,10 +53,10 @@
                                 </div>
                             </div>
 
-                            <div id="id_div_mod_employee" class="mod_flex mx-2 my-2">
+                            <div id="id_div_modroster_employee" class="mod_flex mx-2 my-2">
                                 <div class="form-group">
-                                    <label  id="id_label_mod_employee" for="id_mod_employee_input_employee" class="mx-2 my-2">{% trans 'Replacement employee' %}:</label>
-                                    <input id="id_mod_employee_input_employee"
+                                    <label  id="id_modroster_employee_label_employee" for="id_modroster_employee_input_employee" class="mx-2 my-2">{% trans 'Replacement employee' %}:</label>
+                                    <input id="id_modroster_employee_input_employee"
                                         type="text"
                                         autocomplete="off"
                                         ondragstart="return false;"
@@ -77,35 +65,47 @@
                                         placeholder="{% trans 'Type a few letters and select employee in the list ...' %}">
                                 </div>
                             </div>
-                            <div id="id_div_mod_switch" class="mod_flex mx-2 my-2 display_hide">
+                            <div id="id_div_mod_switch" class="mod_flex mx-2 my-2 mod_show mod_switch display_hide">
                                 <div class="form-group">
-                                    <label for="id_mod_employee_switch_date" class="mx-2 my-2">{% trans 'Date of the shift to be switched with' %}:</label>
-                                    <select id="id_mod_employee_switch_date" class="form-control">
-                                    </select>
+                                    <label for="id_modroster_employee_switch_date" class="mx-2 my-2">{% trans 'Date of the shift to be switched with' %}:</label>
+                                    <input id="id_modroster_employee_switch_date" type="date"
+                                           autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
 
                                 </div>
                                 <div class="form-group">
-                                    <label for="id_mod_employee_select_shift" class="mx-2 my-2">{% trans 'Select shift' %}:</label>
-                                    <select id="id_mod_employee_select_shift" class="form-control">
+                                    <label for="id_modroster_employee_select_shift" class="mx-2 my-2">{% trans 'Select shift' %}:</label>
+                                    <select id="id_modroster_employee_select_shift" class="form-control">
                                     </select>
                                 </div>
 
                             </div>
-                            <div id="id_div_mod_split" class="mod_flex mx-2 my-2 display_hide">
+                            <div id="id_div_mod_split" class="mod_flex mx-2 my-2 mod_show mod_split display_hide">
                                 <div class="form-group">
-                                    <label for="id_mod_employee_split_time" class="mx-2 my-2">{% trans 'Split time' %}:</label>
-                                    <input id="id_mod_employee_split_time" type="text" class="form-control">
+                                    <label for="id_modroster_employee_split_time" class="mx-2 my-2">{% trans 'Split time' %}:</label>
+                                    <p id="id_modroster_employee_split_time" data-toggle="modal" href="#id_mod_timepicker"
+                                       tabindex="0" class="form-control pointer_show mb-0"> </p>
                                 </div>
                             </div>
 
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <div id="id_mod_ftr_msg"></div>
-                    <button id="id_mod_employee_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                <div class="modal-footer pr-4">
+                    <div class="content_subheader_left mx-1 ">
+                        <button id="id_modroster_employee_btn_delete" type="button" data-dismiss="modal"
+                                class="btn btn-outline-danger mod_show mod_absence mod_switch mod_split">{% trans 'Delete' %}</button>
+                    </div>
+                    <div class="content_subheader_right">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                        <button id="id_modroster_employee_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save' %}</button>
+                    </div>
                 </div>
 
             </div>
         </div>
     </div>
+
+<!-- =================== END MODAL EMPLOYEE SHIFT  =================== -->
+<!-- =================== MODAL TIMEPICKER  =================== -->
+    {% include 'includes/modtimepicker.html' %}
+<!-- =================== END MODAL TIMEPICKER  =================== -->

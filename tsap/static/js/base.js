@@ -1219,6 +1219,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+//========= function show_hide_selected_btn_elements  ====  PR2020-02-19
+    function show_hide_selected_btn_elements(container_classname, contains_classname) {
+        // ---  show / hide elements on page, bases on classnames:
+        // <div class="mod_show mod_shift mod_team display_hide">
+        // where 'mod_show' de class of the container. All elements with this class will be checked
+        // and 'mod_shift' and 'mod_team' are classes of the select button
+        // class 'display_hide' in html is necessary to prevent showing all tables when page opens
+        let list = document.getElementsByClassName(container_classname);
+        for (let i=0, len = list.length; i<len; i++) {
+            let el = list[i];
+            const is_show = el.classList.contains(contains_classname)
+            show_hide_element(el, is_show)
+        }
+    }  // show_hide_selected_btn_elements
+
 //========= function show_hide_element_by_id  ====  PR2019-12-13
     function show_hide_element_by_id(el_id, is_show) {
         if(!!el_id){

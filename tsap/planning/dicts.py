@@ -1142,16 +1142,14 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
     if 'isrestshift' in period_dict:
         is_restshift = period_dict.get('isrestshift')
         save_setting = True
-        logger.debug(' >>>>>>>>>>>>>> period_dict is_restshift: ' + str(is_restshift))
     else:
         is_restshift = saved_period_dict.get('isrestshift')
-        logger.debug(' >>>>>>>>>>>>>> saved_period_dict is_restshift: ' + str(is_restshift))
 
 # get period tag
     period_datefirst_dte = None
     period_datelast_dte = None
     period_tag = period_dict.get('period_tag')
-    if period_tag :
+    if period_tag:
         save_period_setting = True
     else:
 # if not found: get period tag from saved setting
@@ -1252,12 +1250,14 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
 
             # if 'other' in period_dict: get dates from period_dict, (in this case  save_period_setting = True)
             # if 'other' retrieved from saved_period: get dates from saved_period_dict
-            if save_period_setting:
+            logger.debug('>>>>>>>>>> save_period_setting: ' + str(save_period_setting))
+            if save_period_setting:  # save_period_setting is true when period_tag exists
                 period_datefirst_iso = period_dict.get('period_datefirst')
                 period_datelast_iso = period_dict.get('period_datelast')
             else:
                 period_datefirst_iso = saved_period_dict.get('period_datefirst')
                 period_datelast_iso = saved_period_dict.get('period_datelast')
+            logger.debug('---> period_datelast_iso: ' + str(period_datelast_iso) + ' ' + str(type(period_datelast_iso)))
 
             # if one date blank: use other date, if both blank: use today. Dont use saved dates when blank
             if period_datefirst_iso is None:
@@ -1271,17 +1271,19 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
                     period_datelast_iso = period_datefirst_iso
             period_datefirst_dte = f.get_dateobj_from_dateISOstring(period_datefirst_iso)
             period_datelast_dte = f.get_dateobj_from_dateISOstring(period_datelast_iso)
+            logger.debug('---> period_datelast_dte: ' + str(period_datelast_dte) + ' ' + str(type(period_datelast_dte)))
         else:
             # in case period_tag not in the list: set to 'tweek'
             period_tag = 'tweek'
             period_datefirst_dte = f.get_firstof_week(today_dte, 0)
             period_datelast_dte = f.get_lastof_week(today_dte, 0)
 
-        #logger.debug('---> period_datefirst_dte: ' + str(period_datefirst_dte) + ' ' + str(type(period_datefirst_dte)))
-        #logger.debug('---> period_datelast_dte: ' + str(period_datelast_dte) + ' ' + str(type(period_datelast_dte)))
+        logger.debug('---> period_datefirst_dte: ' + str(period_datefirst_dte) + ' ' + str(type(period_datefirst_dte)))
+        logger.debug('---> period_datelast_dte: ' + str(period_datelast_dte) + ' ' + str(type(period_datelast_dte)))
 
         periodstart_datetimelocal = f.get_datetimelocal_from_offset(period_datefirst_dte, offset_firstdate, comp_timezone)
         periodend_datetimelocal = f.get_datetimelocal_from_offset(period_datelast_dte, offset_lastdate, comp_timezone)
+        logger.debug('---> periodend_datetimelocal: ' + str(periodend_datetimelocal) + ' ' + str(type(periodend_datetimelocal)))
 
 # 4. create update_dict
     update_dict = {'key': key,
@@ -1330,6 +1332,7 @@ def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, 
 
     # 5. save update_dict
     logger.debug('>>>>>>>>>> save_setting: ' + str(save_setting))
+    logger.debug('>>>>>>>>>> save_period_setting: ' + str(save_period_setting))
     if save_setting or save_period_setting:
         setting_tobe_saved = {
             'customer_pk': customer_pk,
@@ -2590,14 +2593,14 @@ def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, tim
         days_diff = dt_local_utc_offset.days
         minutes_diff = dt_local_utc_offset.seconds // 60
         field_dict['utcoffset'] = days_diff * 1440 + minutes_diff
-
+        # blank_when_zero must be False, to show midnight in emplhour roster
         field_dict['display'] = f.format_time_element(
                                 rosterdate_dte=rosterdate_dte,
                                 offset=offset_int,
                                 timeformat=timeformat,
                                 user_lang=user_lang,
                                 show_weekday=True,
-                                blank_when_zero=True,
+                                blank_when_zero=False,
                                 skip_prefix_suffix=False)
 
     if min_datetime_utc:

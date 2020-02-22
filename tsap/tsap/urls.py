@@ -170,7 +170,6 @@ urlpatterns = [
     path('roster/', include([
         path('view', planning_views.RosterView.as_view(), name='roster_url'),
         path('emplhour_upload', planning_views.EmplhourUploadView.as_view(), name='emplhour_upload_url'),
-        path('replacement', planning_views.ReplacementUploadView.as_view(), name='replacement_upload_url'),
     ])),
 
     path('review/', include([
