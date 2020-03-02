@@ -382,7 +382,7 @@ FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'nam
                 'billable', 'sequence', 'priceratejson', 'additionjson', 'invoicedates', 'taxcode', 'locked', 'inactive')
 
 FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
-                    'billingdate', 'isbillable', 'isrestshift', 'shift', 'status', 'locked')
+                    'invoicedate', 'isbillable', 'isrestshift', 'shift', 'status', 'locked')
 
 FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence', 'isreplacement',
                    'paydate', 'isrestshift', 'shift',

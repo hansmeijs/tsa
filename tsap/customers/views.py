@@ -78,7 +78,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 # 3. get iddict variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
-                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode = f.get_iddict_variables(id_dict)
+                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode, row_index = f.get_iddict_variables(id_dict)
 
 # TODO check identifier for duplicates and empty
 
@@ -200,7 +200,7 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                 id_dict = upload_dict.get('id')
                 if id_dict:
                     update_dict = {}
-                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode = f.get_iddict_variables(id_dict)
+                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode, row_index = f.get_iddict_variables(id_dict)
                     #logger.debug('table: ' + str(table) + ' ppk_int: ' + str(ppk_int))
 # =====  ORDER  ==========
                     if table == "order":

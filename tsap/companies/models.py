@@ -641,13 +641,18 @@ class Orderhour(TsaBaseModel):
     rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
 
-    billingdate = DateField(db_index=True, null=True)
     isbillable = BooleanField(default=False)
 
     isabsence = BooleanField(default=False)
     isrestshift = BooleanField(default=False)
+    issplitshift = BooleanField(default=False)
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     status = PositiveSmallIntegerField(db_index=True, default=0)
+
+    invoicedate = DateField(db_index=True, null=True)
+    lockedinvoice = BooleanField(default=False)
+
+    hasnote = BooleanField(default=False)
 
     class Meta:
         ordering = ['rosterdate']
@@ -673,11 +678,12 @@ class Emplhour(TsaBaseModel):
     rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
+    isrestshift = BooleanField(default=False)
     isreplacement = BooleanField(default=False)
 
     paydate = DateField(db_index=True, null=True)
+    lockedpaydate = BooleanField(default=False)
 
-    isrestshift = BooleanField(default=False)
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     timestart = DateTimeField(db_index=True, null=True, blank=True)
     timeend = DateTimeField(db_index=True, null=True, blank=True)
@@ -698,8 +704,6 @@ class Emplhour(TsaBaseModel):
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
     overlap = SmallIntegerField(default=0)  # stores if record has overlapping emplhour records: 1 overlap start, 2 overlap end, 3 full overlap
-
-    note = CharField(max_length=2048, null=True, blank=True)
 
     # combination rosterdate + schemeitemid + teammemberid is used to identify schemeitem / teammember that is used to create this emplhour
     schemeitemid = IntegerField(null=True)
@@ -747,11 +751,9 @@ class Emplhourlog(TsaBaseModel):
     breakduration = IntegerField(default=0)
     timeduration = IntegerField(default=0)
     status = PositiveSmallIntegerField(default=0)
-    modifiedfields = JSONField(null=True)
-    note = CharField(max_length=2048, null=True, blank=True)
 
     class Meta:
-        ordering = ['modifiedat']
+        ordering = ['-modifiedat']
 
     code = None
     name = None
@@ -760,6 +762,36 @@ class Emplhourlog(TsaBaseModel):
     locked = None
     inactive = None
 
+
+class Orderhournotes(TsaBaseModel):
+    objects = TsaManager()
+
+    orderhour = ForeignKey(Orderhour, related_name='+', on_delete=CASCADE)
+    note = CharField(max_length=2048, null=True, blank=True)
+    isadminnote = BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-modifiedat']
+
+    code = None
+    name = None
+    datefirst = None
+    datelast = None
+    locked = None
+    inactive = None
+
+
+class Companylist(TsaBaseModel):  # PR2020-02-28
+    objects = TsaManager()
+    company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
+
+    key = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH)
+    list = JSONField(null=True)  # stores invoice dates, payroll dates
+
+    name = None
+    datefirst = None
+    datelast = None
+    locked = None
 
 class Companyinvoice(TsaBaseModel):  # PR2019-04-06
     objects = TsaManager()

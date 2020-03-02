@@ -199,7 +199,7 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
 # 3. get iddict variables
                 id_dict = upload_dict.get('id')
                 if id_dict:
-                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode = f.get_iddict_variables(id_dict)
+                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode, row_index = f.get_iddict_variables(id_dict)
                     update_dict = {}
 # A. check if parent exists  (company is parent of employee)
                     parent = request.user.company
@@ -832,7 +832,7 @@ def calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, 
     logger.debug('employee: ' + str(employee))
     if shift_option in ('issingleshift', 'isabsence'):
         if employee is None:
-            return {}
+            return [], []
 
 # 4. get order - order is required
     order = None
@@ -845,7 +845,7 @@ def calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, 
         )
     logger.debug('order: ' + str(order))
     if order is None:
-        return {}
+        return [], []
 
 # 5. ++++++++++++++++  update scheme from upload_dict ++++++++++++++++
     # only one scheme is used, no need for mapped_schemepk
@@ -854,7 +854,7 @@ def calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, 
     logger.debug('scheme: ' + str(scheme))
 
     if scheme is None:
-        return {}
+        return [], []
 
 # ++++++++++++++++  update team from upload_dict ++++++++++++++++
     team_dict = upload_dict.get('team')
@@ -864,7 +864,7 @@ def calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, 
     logger.debug('team: ' + str(team))
 
     if team is None:
-        return {}
+        return [], []
 
 # ++++++++++++++++  update shifts from upload_dict ++++++++++++++++
     logger.debug('# ++++++++++++++++  update shift from upload_dict ++++++++++++++++')
@@ -1173,7 +1173,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
 # 1. get iddict variables
     id_dict = upload_dict.get('id')
     if id_dict:
-        pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode = f.get_iddict_variables(id_dict)
+        pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode, row_index = f.get_iddict_variables(id_dict)
         logger.debug('is_delete: ' + str(is_delete))
         logger.debug('is_create: ' + str(is_create))
         logger.debug('mode: ' + str(mode))
@@ -1435,7 +1435,7 @@ def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25
 # 1. get iddict variables
     id_dict = upload_dict.get('id')
     if id_dict:
-        pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode = f.get_iddict_variables(id_dict)
+        pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode, row_index = f.get_iddict_variables(id_dict)
 
 # 2. Create empty update_dict with keys for all fields. Unused ones will be removed at the end
         # # teammember wagerate not in use

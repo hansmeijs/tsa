@@ -219,14 +219,14 @@ let planning_list = [] // for export and printing - can replace map?
             el_modshift_companyholiday.addEventListener("change", function() {MSO_PublicholidayChanged("excludecompanyholiday")}, false );
 
 // ---  MOD EMPLOYEE ------------------------------------
-        let el_mod_employee_body = document.getElementById("id_mod_employee_body");
-        document.getElementById("id_mod_employee_input_employee").addEventListener("keyup", function(event){
+        let el_mod_employee_body = document.getElementById("id_mod_select_employee_body");
+        document.getElementById("id_mod_select_employee_input_employee").addEventListener("keyup", function(event){
                 setTimeout(function() {
                     ModEmployeeFilterEmployee("filter", event.key)
                 }, 50)});
 
-        document.getElementById("id_mod_employee_btn_save").addEventListener("click", function() {ModEmployeeSave("update")}, false);
-        document.getElementById("id_mod_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("delete")}, false);
+        document.getElementById("id_mod_select_employee_btn_save").addEventListener("click", function() {ModEmployeeSave("update")}, false);
+        document.getElementById("id_mod_select_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("delete")}, false);
 
 // ---  MOD PERIOD ------------------------------------
 // ---  header select period
@@ -334,13 +334,13 @@ let planning_list = [] // for export and printing - can replace map?
                 }
                 if ("planning_period" in response){
                     selected_planning_period = get_dict_value_by_key(response, "planning_period");
-                    document.getElementById("id_hdr_period").innerText = display_planning_period (selected_planning_period, loc, user_lang);
+                    document.getElementById("id_hdr_period").innerText = display_planning_period (selected_planning_period, loc);
                 }
                 if ("calendar_period" in response){
                     selected_calendar_period = get_dict_value_by_key(response, "calendar_period");
                     selected_calendar_period["calendar_type"] = "customer_calendar";
                     // dont show period in calendar header
-                    // was: document.getElementById("id_calendar_hdr_text").innerText = display_planning_period (selected_calendar_period, loc, user_lang);
+                    // was: document.getElementById("id_calendar_hdr_text").innerText = display_planning_period (selected_calendar_period, loc);
                 }
 // --- refresh maps and fill tables
                 refresh_maps(response);
@@ -367,12 +367,12 @@ let planning_list = [] // for export and printing - can replace map?
             get_datamap(response["customer_list"], customer_map)
 
             let tblHead = document.getElementById("id_thead_select");
-            const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
-
-            fFill_SelectTable(tblBody_select_customer, tblHead, customer_map, "customer", selected_customer_pk, null,
+            const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null, row_count = {};
+            const filter_include_absence = false;
+            t_Fill_SelectTable(tblBody_select_customer, tblHead, customer_map, "customer", selected_customer_pk, null,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row,  HandleSelectRowButton,
-                filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
                 cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_inactive_grey, imgsrc_inactive_black,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
@@ -386,10 +386,11 @@ let planning_list = [] // for export and printing - can replace map?
             get_datamap(response["order_list"], order_map);
             let tblHead = document.getElementById("id_thead_select");
             const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
-            fFill_SelectTable(tblBody_select_order, tblHead, order_map, "order", selected_order_pk, false,
+            const filter_include_absence = false;
+            t_Fill_SelectTable(tblBody_select_order, tblHead, order_map, "order", selected_order_pk, false,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row,  HandleSelectRowButton,
-                filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
                 cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_inactive_grey, imgsrc_inactive_black,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive);
@@ -3920,8 +3921,8 @@ let planning_list = [] // for export and printing - can replace map?
                             sel_teammember: {pk: teammember_pk, ppk: teammember_ppk},
                             sel_employee: {field: data_field, pk: employee_pk, ppk: employee_ppk, code: employee_code}};
 // ---  put employee name in header
-        let el_header = document.getElementById("id_mod_employee_header")
-        let el_div_remove = document.getElementById("id_mod_employee_div_remove")
+        let el_header = document.getElementById("id_mod_select_employee_header")
+        let el_div_remove = document.getElementById("id_mod_select_employee_div_remove")
         if (!!employee_code){
             el_header.innerText = employee_code
             el_div_remove.classList.remove(cls_hide)
@@ -3932,7 +3933,7 @@ let planning_list = [] // for export and printing - can replace map?
         }
 
 // remove values from el_mod_employee_input
-        let el_mod_employee_input = document.getElementById("id_mod_employee_input_employee")
+        let el_mod_employee_input = document.getElementById("id_mod_select_employee_input_employee")
         el_mod_employee_input.value = null
         const employee_pk_int = Number(employee_pk);
         ModEmployeeFillSelectTableEmployee(employee_pk_int);
@@ -3945,7 +3946,7 @@ let planning_list = [] // for export and printing - can replace map?
         }, 500);
 
 // ---  show modal
-        $("#id_mod_employee").modal({backdrop: true});
+        $("#id_mod_select_employee").modal({backdrop: true});
 
     };  // ModEmployeeOpen
 
@@ -3969,7 +3970,7 @@ let planning_list = [] // for export and printing - can replace map?
                 mod_employee_dict["sel_employee"]["code"] = selected_employee_code;
 
 // put code_value in el_input_employee
-                document.getElementById("id_mod_employee_input_employee").value = selected_employee_code
+                document.getElementById("id_mod_select_employee_input_employee").value = selected_employee_code
 // save selected employee
                 ModEmployeeSave("update")
             }
@@ -4034,7 +4035,7 @@ let planning_list = [] // for export and printing - can replace map?
     function ModEmployeeFilterEmployee(option, event_key) {
         console.log( "===== ModEmployeeFilterEmployee  ========= ", option);
 
-        let el_input = document.getElementById("id_mod_employee_input_employee")
+        let el_input = document.getElementById("id_mod_select_employee_input_employee")
         console.log( el_input );
         // saving when only 1 employee found goes in 2 steps:
         // first step is adding "data-quicksave") === "true" to el_input
@@ -4065,7 +4066,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         let has_selection = false, has_multiple = false;
         let select_value, selected_employee_pk, select_parentpk;
-        let tblbody = document.getElementById("id_mod_employee_tblbody");
+        let tblbody = document.getElementById("id_mod_select_employee_tblbody");
         let len = tblbody.rows.length;
         if (!skip_filter && !!len){
             for (let row_index = 0, tblRow, show_row, el, pk_str, code_value; row_index < len; row_index++) {
@@ -4161,7 +4162,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 
 // ---  hide modal
-    $("#id_mod_employee").modal("hide");
+    $("#id_mod_select_employee").modal("hide");
     } // ModEmployeeSave
 
 //=========  ModEmployeeDeleteOpen  ================ PR2019-09-15
@@ -4217,7 +4218,7 @@ let planning_list = [] // for export and printing - can replace map?
         const caption_one = loc.Select_employee + ":";
         const caption_none = loc.No_employees;
 
-        let tblBody = document.getElementById("id_mod_employee_tblbody");
+        let tblBody = document.getElementById("id_mod_select_employee_tblbody");
         tblBody.innerText = null;
 
 //--- when no items found: show 'select_employee_none'
@@ -4745,7 +4746,7 @@ let planning_list = [] // for export and printing - can replace map?
         let ws = {}
 
 // title row
-        let title_value = display_planning_period (selected_planning_period, loc, user_lang); // UpdateHeaderPeriod();
+        let title_value = display_planning_period (selected_planning_period, loc);
         ws["A1"] = {v: title_value, t: "s"};
 // header row
         const header_rowindex = 3

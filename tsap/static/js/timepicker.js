@@ -793,7 +793,7 @@ function CalcMinMax(dict) {
 // PR2019-07-01 before moment.tz it was:
 
     // date_as_ISOstring: "2019-06-25T07:00:00Z"  on screen: 9.00
-    // datetime_utc = get_date_from_ISOstring(datetime_iso)
+    // datetime_utc = get_dateJS_from_dateISO_vanilla(datetime_iso)
     // datetime_utc: Tue Jun 25 2019 03:00:00 GMT-0400 (Bolivia Time) datetime object
     // companyoffset stores offset from UTC to company_timezone in seconds
     // datetime_offset = datetime_utc.setSeconds(companyoffset + useroffset)

@@ -109,6 +109,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Date'] = TXT_Date
         dict['Print_date'] = TXT_Print_date
         dict['Total_hours'] = TXT_Total_hours
+        dict['Page'] = TXT_Page
 
     # ====== PAGE CUSTOMER =========================
     elif page == 'customer':
@@ -122,6 +123,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Date'] = TXT_Date
         dict['Print_date'] = TXT_Print_date
         dict['Total_hours'] = TXT_Total_hours
+        dict['Page'] = TXT_Page
 
         # header
         dict['Short_name'] = TXT_Short_name
@@ -244,8 +246,8 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['menubtn_copy_to_template'] = _('Copy to template')
         dict['menubtn_show_templates'] = _('Show templates')
         dict['menubtn_hide_templates'] = _('Hide templates')
-        dict['menubtn_roster_create'] = _('Create roster')
-        dict['menubtn_roster_delete'] = _('Delete roster')
+        dict['Create_roster'] = TXT_Create_roster
+        dict['Delete_roster'] = TXT_Delete_roster
 
         # select table
         dict['add_scheme'] = _('Add scheme')
@@ -344,13 +346,33 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
 # ====== PAGE ROSTER =========================
     elif page == 'roster':
-
-        dict['menubtn_roster_create'] = _('Create roster')
-        dict['menubtn_roster_delete'] = _('Delete roster')
-
-        dict['menubtn_print_roster'] = TXT_Print_roster
-        dict['menubtn_print_report'] = TXT_Print_report
+        # submenu
+        dict['Add_shift'] = TXT_Add_shift
+        dict['Delete_shift'] = TXT_Delete_shift
+        dict['Show_roster'] = TXT_Show_roster
+        dict['Download_roster'] = TXT_Download_roster
         dict['Export_to_Excel'] = TXT_Export_to_Excel
+        dict['Create_roster'] = TXT_Create_roster
+        dict['Delete_roster'] = TXT_Delete_roster
+
+        # mod rosterdate
+        dict['TXT_Create_another_roster'] = TXT_Create_another_roster
+        dict['TXT_Delete_another_roster'] = TXT_Delete_another_roster
+
+        # mod confirm
+        dict['err_msg_select_shift'] = TXT_err_msg_select_shift
+        dict['err_msg_cannot_delete_shift_01'] = TXT_err_msg_cannot_delete_shift_01
+        dict['err_msg_cannot_delete_shift_02'] = TXT_err_msg_cannot_delete_shift_02
+        dict['err_msg_cannot_delete_shift_planned'] = TXT_err_msg_cannot_delete_shift_planned
+        dict['err_msg_cannot_delete_shift_confirmed'] = TXT_err_msg_cannot_delete_shift_confirmed
+        dict['err_msg_cannot_delete_shift_locked'] = TXT_err_msg_cannot_delete_shift_locked
+        dict['err_msg_set_hours_to_0_instead'] = TXT_err_msg_set_hours_to_0_instead
+        dict['Absence'] = TXT_Absence
+        dict['This_absence'] = TXT_This_absence
+        dict['This_shift'] = TXT_This_shift
+
+        dict['This_order'] = TXT_This_order
+        dict['will_be_deleted'] = TXT_will_be_deleted
 
         dict['period_select_list'] = (
             ('now', TXT_now),
@@ -358,7 +380,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
             ('tmorning', TXT_thismorning),
             ('tafternoon', TXT_thisafternoon),
             ('tevening', TXT_thisevening),
-
             ('today', TXT_today),
             ('tomorrow', TXT_tomorrow),
             ('yesterday', TXT_yesterday),
@@ -440,9 +461,12 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['All_customers'] = TXT_All_customers
         dict['No_customers'] = TXT_No_customers
         dict['Order'] = TXT_Order
+        dict['Select_order'] = TXT_Select_order
         dict['All_orders'] = TXT_All_orders
         dict['No_orders'] = TXT_No_orders
         dict['Employee'] = TXT_Employee
+        dict['This_employee'] = TXT_This_employee
+        dict['All_employees'] = TXT_All_employees
         dict['Start_time'] = TXT_Start_time
         dict['End_time'] = TXT_End_time
         dict['Start_Endtime'] = TXT_Start_Endtime
@@ -453,17 +477,21 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Status'] = TXT_Status
 
         dict['Print_date'] = TXT_Print_date
+        dict['Page'] = TXT_Page
 
         dict['weekdays_abbrev'] = TXT_weekdays_abbrev
         dict['weekdays_long'] = TXT_weekdays_long
         dict['months_abbrev'] = TXT_months_abbrev
         dict['months_long'] = TXT_months_long
 
-        dict['Also_show_absence'] = TXT_Also_show_absence
-        dict['Absence_included'] = TXT_Absence_included
-        dict['Dont_show_absence'] = TXT_Dont_show_absence
+        dict['With_absence'] = TXT_With_absence
         dict['Without_absence'] = TXT_Without_absence
-        dict['Show_absence_only'] = TXT_Show_absence_only
+        dict['Absence_only'] = TXT_Absence_only
+
+        dict['Rest_shifts'] = TXT_Rest_shifts
+        dict['With_restshifts'] = TXT_With_restshifts
+        dict['Without_restshifts'] = TXT_Without_restshifts
+        dict['Restshifts_only'] = TXT_Restshifts_only
 
         dict['err_confirm_01'] = TXT_err_confirm_01
         dict['err_confirm_02'] = TXT_err_confirm_02
@@ -501,16 +529,50 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Select_shift'] = _('Select shift')
         dict['Noshifts_thatcanbe_switched'] = _('No shifts that can be switched')
 
+        # Mod Roster Order
+
+        dict['Select_customer'] = TXT_Select_customer
+
+        # report
+        dict['Break_hours_2lines'] = TXT_Break_hours_2lines
+        dict['Worked_hours_2lines'] = TXT_Worked_hours_2lines
+        dict['Absence_2lines'] = TXT_Absence_2lines
+        dict['Start_time'] = TXT_Start_time
+        dict['End_time'] = TXT_End_time
+        dict['Total'] = TXT_Total
 
     # ====== PAGE REVIEW ========================= PR2019-11-19
     elif page == 'review':
 
         # submenu
-        dict['menubtn_expand_all'] = _('Expand all')
-        dict['menubtn_collaps_all'] = _('Collaps all')
-
-        dict['menubtn_print_report'] = TXT_Print_report
+        dict['Expand_all'] = _('Expand all')
+        dict['Collaps_all'] = _('Collaps all')
+        dict['Print_report'] = TXT_Print_report
+        dict['Show_report'] = TXT_Show_report
+        dict['Download_report'] = TXT_Download_report
         dict['Export_to_Excel'] = TXT_Export_to_Excel
+
+        # sidebar
+        dict['Review_employees'] = _('Review employees')
+        dict['Review_customers'] = _('Review customers')
+
+        dict['Click_to_review_customers'] = _('Click to review customers.')
+        dict['Click_to_review_employees'] = _('Click to review employees.')
+
+        dict['Customer_and_order'] = _('Customer and order')
+        dict['Employee'] = TXT_Employee
+        dict['Select_employee'] = TXT_Select_employee
+        dict['No_employees'] = TXT_No_employees
+
+        dict['With_absence'] = TXT_With_absence
+        dict['Without_absence'] = TXT_Without_absence
+        dict['Absence_only'] = TXT_Absence_only
+
+        dict['Rest_shifts'] = TXT_Rest_shifts
+        dict['With_restshifts'] = TXT_With_restshifts
+        dict['Without_restshifts'] = TXT_Without_restshifts
+        dict['Restshifts_only'] = TXT_Restshifts_only
+
 
         dict['period_select_list'] = (
             ('today', TXT_today),
@@ -522,12 +584,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
             ('other', TXT_customperiod)
         )
 
-        dict['Also_show_absence'] = TXT_Also_show_absence
-        dict['Absence_included'] = TXT_Absence_included
-        dict['Dont_show_absence'] = TXT_Dont_show_absence
-        dict['Without_absence'] = TXT_Without_absence
-        dict['Show_absence_only'] = TXT_Show_absence_only
-
         dict['Period'] = TXT_Period
         dict['Date'] = TXT_Date
         dict['Customer'] = TXT_Customer
@@ -536,17 +592,23 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Order'] = TXT_Order
         dict['All_orders'] = TXT_All_orders
         dict['No_orders'] = TXT_No_orders
+        dict['All_employees'] = TXT_All_employees
 
         dict['Employee'] = TXT_Employee
+
         dict['Shift'] = TXT_Shift
         dict['Shifts'] = TXT_Shifts
         dict['Worked_hours'] = TXT_Worked_hours
         dict['Billing_hours'] = TXT_Billing_hours
+        dict['Absence'] = TXT_Absence
+        dict['Absence_2lines'] = pgettext_lazy('2 lines', 'Absence')
+
         dict['Difference'] = TXT_Difference
         dict['Billable'] = TXT_Billable
         dict['Rate'] = TXT_Rate
         dict['Amount'] = TXT_Amount
         dict['Total_hours'] = TXT_Total_hours
+        dict['Grand_total'] = TXT_Grand_total
 
         # for report
         dict['weekdays_abbrev'] = TXT_weekdays_abbrev
@@ -556,10 +618,21 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Time'] = TXT_Time
         dict['Review'] = TXT_Review
         dict['of'] = TXT_of
+        dict['Print_date'] = TXT_Print_date
+        dict['Page'] = TXT_Page
+
+        dict['Overview_employee_hours'] = _("Overview employee hours")
+        dict['Overview_customer_hours'] = _("Overview customer hours")
+        dict['Overview_hours_per_employee'] = _("Overview of worked hours per employee")
+        dict['Overview_hours_per_customer'] = _("Overview of worked hours per customer")
 
         dict['Planned_hours'] = TXT_Planned_hours
         dict['Worked_hours'] = TXT_Worked_hours
         dict['Billing_hours'] = TXT_Billing_hours
+
+        dict['Planned_hours_2lines'] = TXT_Planned_hours_2lines
+        dict['Worked_hours_2lines'] = TXT_Worked_hours_2lines
+        dict['Billing_hours_2lines'] = TXT_Billing_hours_2lines
 
     return dict
 
@@ -568,7 +641,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
 # submenu
 TXT_Print_roster = _('Print roster')
+TXT_Show_roster = _('Show roster')
+TXT_Download_roster = _('Download roster')
 TXT_Print_report = _('Print report')
+TXT_Show_report = _('Show report')
+TXT_Download_report = _('Download report')
 TXT_Export_to_Excel = _('Export to Excel')
 
 # headers
@@ -593,8 +670,17 @@ TXT_Period = _('Period')
 TXT_Select_period = _('Select period')
 
 TXT_Planned_hours = _('Planned hours')
+TXT_Break_hours = _('Break hours')
 TXT_Worked_hours = _('Worked hours')
 TXT_Billing_hours = _('Billing hours')
+
+TXT_Planned_hours_2lines = _('Planned\nhours')
+TXT_Break_hours_2lines = _('Break\nhours')
+TXT_Worked_hours_2lines = _('Worked\nhours')
+TXT_Absence_2lines = pgettext_lazy('2 lines', 'Absence')
+
+TXT_Billing_hours_2lines = _('Billing\nhours')
+
 TXT_Difference = _('Difference')
 TXT_Billable = _('Billable')
 TXT_Rate = _('Rate')
@@ -632,6 +718,11 @@ TXT_Delete_order = _('Delete order')
 TXT_Scheme = _('Scheme')
 TXT_New_scheme = _('New scheme')
 
+TXT_Create_roster = _('Create roster')
+TXT_Delete_roster = _('Delete roster')
+TXT_Create_another_roster = _('Create another roster')
+TXT_Delete_another_roster = _('Delete another roster')
+
 TXT_Cycle = _('Cycle')
 TXT_Weekly_cycle = _('Weekly cycle')
 TXT_Daily_cycle = _('Daily cycle')
@@ -643,7 +734,11 @@ TXT_shift = _('shift')
 TXT_shifts = _('shifts')
 
 TXT_New_shift = _('New shift')
+TXT_Add_shift = _('Add shift')
+TXT_This_shift = _('This shift')
+TXT_Delete_shift = _('Delete shift')
 TXT_Rest_shift = _('Rest shift')
+TXT_Rest_shifts = _('Rest shifts')
 
 TXT_Team = _('Team')
 TXT_Teams = _('Teams')
@@ -653,10 +748,14 @@ TXT_Delete_teammember  = _('Delete teammember')
 
 TXT_Upload_employees = _('Upload employees')
 TXT_Employee = _('Employee')
+TXT_This_employee = _('This employee')
+
 TXT_Select_employee = _('Select employee')
 TXT_Add_employee = _('Add employee')
 TXT_Delete_employee = _('Delete employee')
 TXT_No_employees = _('No employees')
+TXT_All_employees = _('All employees')
+
 TXT_Replacement_employee = _('Replacement employee')
 TXT_Select_replacement_employee = _('Select replacement employee')
 
@@ -672,16 +771,20 @@ TXT_Hourly_rate = _('Hourly rate')
 TXT_Wage_rate = _('Wage rate')
 
 TXT_Absence = _('Absence')
+TXT_This_absence = _('This absence')
+
 TXT_Absence_category = _('Absence category')
 TXT_Select_abscat = _('Select absence category')
 TXT_No_abscat = _('No absence categories')
 TXT_Delete_absence = _('Delete absence')
 
-TXT_Also_show_absence = _('Also show absence')
-TXT_Absence_included  = _('Absence included')
-TXT_Dont_show_absence = _("Don't show absence")
+TXT_With_absence = _('With absence')
 TXT_Without_absence = _("Without absence")
-TXT_Show_absence_only = _("Show absence only")
+TXT_Absence_only = _("Absence only")
+
+TXT_With_restshifts = _('With restshifts')
+TXT_Without_restshifts = _("Without restshifts")
+TXT_Restshifts_only = _("Restshifts only")
 
 TXT_one = _('one')
 TXT_confirmed = _('confirmed')
@@ -708,8 +811,11 @@ TXT_Review = _('Review')
 TXT_of = _('of')
 TXT_Date = _('Date')
 TXT_Print_date = _('Print date')
+TXT_Page = _('Page')
 
+TXT_Grand_total = _('Grand total')
 TXT_Total_hours = _('Total hours')
+TXT_Total = _('Total')
 
 TXT_now = _('Now')
 TXT_thisnight = _('This night')
@@ -734,6 +840,15 @@ TXT_All_orders = _('All orders')
 TXT_err_msg_error = _('An error occurred.')
 TXT_err_msg_order = _('Please select an order.')
 TXT_err_msg_customer = _('Please select a customer.')
+TXT_err_msg_select_shift = _('Please select a shift.')
+
+TXT_err_msg_cannot_delete_shift_01 = _('This is ')
+TXT_err_msg_cannot_delete_shift_02 = _(', that cannot be deleted.')
+TXT_err_msg_cannot_delete_shift_planned = _('a planned shift')
+TXT_err_msg_cannot_delete_shift_confirmed = _('a confirmed shift')
+TXT_err_msg_cannot_delete_shift_locked = _('a locked shift')
+TXT_err_msg_set_hours_to_0_instead = _('You can set the hours to zero instead.')
+
 TXT_err_msg_template_select = _('Please select a template.')
 TXT_err_msg_name_exists = _('This name already exists. Please enter a different name.')
 TXT_err_msg_name_blank = _('Name cannot be blank. Please enter a name.')

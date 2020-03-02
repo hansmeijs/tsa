@@ -6,16 +6,16 @@
 
 // ++++++++++++  SELECT TABLE in sidebar +++++++++++++++++++++++++++++++++++++++
 
-//========= fFill_SelectTable  ============= PR2019-12-21
-    function fFill_SelectTable(tblBody_select, tblHead, data_map, tblName, selected_pk, include_parent_code,
+//========= t_Fill_SelectTable  ============= PR2019-12-21
+    function t_Fill_SelectTable(tblBody_select, tblHead, data_map, tblName, selected_pk, include_parent_code,
                             HandleSelect_Filter, HandleSelectFilterButton,
                             HandleSelect_Row, HandleSelectRowButton,
-                            filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                            filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
                             bc_color_notselected, bc_color_selected,
                             imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                             title_header_btn) {
-        //console.log("===== fFill_SelectTable ===== ", tblName);
+        //console.log("===== t_Fill_SelectTable ===== ", tblName);
         //console.log("filter_ppk_int = ", filter_ppk_int)
 
         // difference between filter_include_inactive and filter_show_inactive:
@@ -41,7 +41,7 @@
             const row_index = null // add row at end when no rowindex
             let selectRow = t_CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                         HandleSelect_Row, HandleSelectRowButton,
-                                        filter_ppk_int, filter_include_inactive, row_count,
+                                        filter_ppk_int, filter_include_inactive, filter_include_absence, row_count,
                                         bc_color_notselected, bc_color_selected,
                                         imgsrc_default, imgsrc_hover);
 
@@ -53,13 +53,14 @@
         if(!!addall_to_list_txt && row_count.count > 1) {
         // add '<All customers> at beginning of list when tehre are more than 1 rows
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+                const bc_color_all_items = (selected_pk === 0) ?  bc_color_selected : bc_color_notselected;
     //--------- insert tblBody_select row
                 let tblRow = tblBody_select.insertRow(0);
                 tblRow.setAttribute("id", "sel_addall");
                 tblRow.setAttribute("data-pk", "addall");
                 tblRow.setAttribute("data-table", tblName);
                 tblRow.setAttribute("data-inactive", false);
-                tblRow.classList.add(bc_color_notselected);
+                tblRow.classList.add(bc_color_all_items);
         //- add hover to select row
                 tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover)});
                 tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover)});
@@ -79,7 +80,8 @@
 
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         }
-    } // fFill_SelectTable
+        return row_count.count
+    } // t_Fill_SelectTable
 
 //========= CreateSelectHeader  ============= PR2019-12-21
     function CreateSelectHeader(has_sel_btn_delete, tblName, tblHead, HandleSelect_Filter, HandleSelectFilterButton,
@@ -142,7 +144,7 @@
 //========= t_CreateSelectRow  ============= PR2019-10-20
     function t_CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                 HandleSelect_Row, HandleSelectRowButton,
-                                filter_ppk_int, filter_include_inactive, row_count,
+                                filter_ppk_int, filter_include_inactive, filter_include_absence, row_count,
                                 bc_color_notselected, bc_color_selected,
                                 imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
@@ -160,15 +162,16 @@
                 const tblName = get_dict_value_by_key(id_dict, "table");
                 const pk_int = get_dict_value_by_key(id_dict, "pk");
                 const ppk_int = get_dict_value_by_key(id_dict, "ppk");
+                const is_absence = get_dict_value_by_key(id_dict, "isabsence");
                 const map_id = get_map_id(tblName, pk_int);
                 const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
                 const is_inactive = get_subdict_value_by_key(item_dict, "inactive", "value", false);
-
     //--------- filter parent_pk or inactive if filter has value
             let skip_row = (!!filter_ppk_int && ppk_int !== filter_ppk_int) ||
-                            (!filter_include_inactive && is_inactive === true );
-            if (!skip_row){
+                            (!filter_include_inactive && is_inactive === true) ||
+                            (!filter_include_absence && is_absence === true );
 
+            if (!skip_row){
     //--------- insert tblBody_select row
                 const row_id = "sel_" + map_id
                 tblRow = tblBody_select.insertRow(row_index);
@@ -780,6 +783,7 @@
         }
         return found
     }  // function cat_found_in_catsum
+
 
 // +++++++++++++++++ OTHER ++++++++++++++++++++++++++++++++++++++++++++++++++
 

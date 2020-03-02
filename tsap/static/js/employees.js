@@ -184,12 +184,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // === event handlers for MODAL ===
 
 // ---  Modal Employee
-        let el_mod_employee_body = document.getElementById("id_mod_employee_body");
-        let el_mod_employee_input_employee = document.getElementById("id_mod_employee_input_employee");
+        let el_mod_employee_body = document.getElementById("id_mod_select_employee_body");
+        let el_mod_employee_input_employee = document.getElementById("id_mod_select_employee_input_employee");
             el_mod_employee_input_employee.addEventListener("keyup", function(event){
                 setTimeout(function() {ModEmployeeFilterEmployee(el_mod_employee_input_employee, event.key)}, 50)});
-        document.getElementById("id_mod_employee_btn_save").addEventListener("click", function() {ModEmployeeSave("save")}, false )
-        document.getElementById("id_mod_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("remove")}, false )
+        document.getElementById("id_mod_select_employee_btn_save").addEventListener("click", function() {ModEmployeeSave("save")}, false )
+        document.getElementById("id_mod_select_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("remove")}, false )
 
 // ---  MODAL SHIFT EMPLOYEE ------------------------------------
         let el_modshift_filter_order = document.getElementById("id_modshift_filter_order")
@@ -256,7 +256,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_popup_date = document.getElementById("id_popup_date")
              el_popup_date.addEventListener("change", function() {HandlePopupDateSave(el_popup_date);}, false )
 
-
 // === close windows ===
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
         document.addEventListener('click', function (event) {
@@ -312,7 +311,6 @@ document.addEventListener('DOMContentLoaded', function() {
             scheme: {isabsence: false, istemplate: false, inactive: null, issingleshift: null},
             shift: {customer_pk: null},
             team: {customer_pk: null, isabsence: false},
-            teammember: {customer_pk: null, isabsence: false},
             teammember: {employee_nonull: false, is_template: false},
             schemeitem: {customer_pk: null, isabsence: false}
             };
@@ -368,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if ("planning_period" in response){
                     selected_planning_period = get_dict_value(response, ["planning_period"]);
-                    document.getElementById("id_hdr_period").innerText = display_planning_period (selected_planning_period, loc, user_lang);
+                    document.getElementById("id_hdr_period").innerText = display_planning_period (selected_planning_period, loc);
                 }
                 if ("calendar_period" in response){
                     selected_calendar_period = get_dict_value(response, ["calendar_period"]);
@@ -387,7 +385,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     scheme: {isabsence: false, istemplate: false, inactive: null, issingleshift: null},
                     shift: {customer_pk: null},
                     team: {customer_pk: null, isabsence: false},
-                    teammember: {customer_pk: null, isabsence: false},
                     schemeitem: {customer_pk: null, isabsence: false}
                     };
                     DatalistDownload(datalist_request, true );  // true = dont_show_loader
@@ -420,11 +417,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const imgsrc_hover = imgsrc_inactive_black;
             const include_parent_code = null;
             let tblHead = document.getElementById("id_thead_select");
-            const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
-            fFill_SelectTable(tblBody_select, tblHead, employee_map, tblName, null, include_parent_code,
+            const filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = false, addall_to_list_txt = null;
+            t_Fill_SelectTable(tblBody_select, tblHead, employee_map, tblName, null, include_parent_code,
                 HandleSelect_Filter, HandleFilterInactive,
                 HandleSelect_Row,  HandleSelectRowButton,
-                filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
                 cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_default, imgsrc_hover,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
@@ -598,12 +595,14 @@ document.addEventListener('DOMContentLoaded', function() {
             UpdateHeaderText();
 
 // ---  update employee form
-            if(selected_btn === "form"){
+            // always update employee form when selected changed
+            //if(selected_btn === "form"){
                 UpdateForm("HandleSelect_Row");
 // ---  enable delete button
                 document.getElementById("id_form_btn_delete").disabled = (!selected_employee_pk)
 
-            } else if(selected_btn === "calendar"){
+            //} else
+            if(selected_btn === "calendar"){
                 let datalist_request = {employee_calendar: {
                                             employee_pk: selected_employee_pk},
                                             calendar_period: selected_calendar_period
@@ -1330,16 +1329,14 @@ document.addEventListener('DOMContentLoaded', function() {
     } //tblName_from_selectedbtn
 
     function tblBody_from_selectedbtn(sel_btn) {
-    // selected_btns are:   employee, absence, shifts, calendar, planning, form
-    // tblBodies are:       id_tbody_employee, id_tbody_absence,  id_tbody_shifts, id_tbody_planning,
-        //console.log(" --- tblBody_from_selectedbtn  ---");
-        //console.log("sel_btn", sel_btn);
-        let tblBody = null;
+        // selected_btns are:   employee, absence, shifts, calendar, planning, form
+        // tblBodies are:       id_tbody_employee, id_tbody_absence,  id_tbody_shifts, id_tbody_planning,
+        // default = id_tbody_employee
         const id_tblBody = (sel_btn === "employee") ? "id_tbody_employee" :
                             (sel_btn === "absence") ? "id_tbody_absence" :
                             (sel_btn === "shifts") ? "id_tbody_shifts" :
-                            (sel_btn === "planning") ? "id_tbody_planning" : null
-        if(!!id_tblBody) {tblBody = document.getElementById(id_tblBody)};
+                            (sel_btn === "planning") ? "id_tbody_planning" : "id_tbody_employee"
+        let tblBody = document.getElementById(id_tblBody);
         //console.log("tblBody", tblBody);
         return tblBody;
     } //tblBody_from_selectedbtn
@@ -2319,11 +2316,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         const imgsrc_hover = imgsrc_inactive_black;
                         const include_parent_code = null;
                         let tblHead = document.getElementById("id_thead_select");
-                        const filter_ppk_int = null, filter_include_inactive = true, addall_to_list_txt = null;
-                        fFill_SelectTable(tblBody_select, tblHead, employee_map, tblName, null, include_parent_code,
+                        const filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = false, addall_to_list_txt = null;
+                        t_Fill_SelectTable(tblBody_select, tblHead, employee_map, tblName, null, include_parent_code,
                             HandleSelect_Filter, HandleFilterInactive,
                             HandleSelect_Row,  HandleSelectRowButton,
-                            filter_ppk_int, filter_include_inactive, addall_to_list_txt,
+                            filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
                             cls_bc_lightlightgrey, cls_bc_yellow,
                             imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
@@ -2621,7 +2618,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     };  // ModPeriodOpen
 
-
 //=========  ModPeriodSelectCustomer  ================ PR2020-01-09
     function ModPeriodSelectCustomer(selected_pk_str) {
         console.log( "===== ModPeriodSelectCustomer ========= ");
@@ -2644,7 +2640,6 @@ document.addEventListener('DOMContentLoaded', function() {
         FillSelectOption2020(el_select, order_map, "order",is_template_mode, has_selectall, hide_none,
                     selected_customer_pk, selected_order_pk, selectall_text, select_text_none)
     }  // ModPeriodSelectCustomer
-
 
 //=========  ModPeriodSelectOrder  ================ PR2020-01-09
     function ModPeriodSelectOrder(selected_pk_str) {
@@ -2983,8 +2978,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("mod_upload_dict", mod_upload_dict)
 
 // ---  put employee name in header
-        let el_header = document.getElementById("id_mod_employee_header")
-        let el_div_remove = document.getElementById("id_mod_employee_div_remove")
+        let el_header = document.getElementById("id_mod_select_employee_header")
+        let el_div_remove = document.getElementById("id_mod_select_employee_div_remove")
         if (!!employee_code){
             el_header.innerText = employee_code
             el_div_remove.classList.remove(cls_hide)
@@ -2998,7 +2993,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 // remove values from el_mod_employee_input
-        let el_mod_employee_input = document.getElementById("id_mod_employee_input_employee")
+        let el_mod_employee_input = document.getElementById("id_mod_select_employee_input_employee")
         el_mod_employee_input.value = null
 
         ModEmployeeFillSelectTableEmployee(Number(employee_pk))
@@ -3010,7 +3005,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
 
 // ---  show modal
-        $("#id_mod_employee").modal({backdrop: true});
+        $("#id_mod_select_employee").modal({backdrop: true});
 
     };  // ModEmployeeOpen
 
@@ -3035,7 +3030,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     code: employee_code,
                     update: true};
 // put code_value in el_input_employee
-                document.getElementById("id_mod_employee_input_employee").value = employee_code
+                document.getElementById("id_mod_select_employee_input_employee").value = employee_code
 // save selected employee
                 ModEmployeeSave("save");
             }  // if(!isEmpty(employee_dict))
@@ -3046,7 +3041,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function ModEmployeeFilterEmployee(option, event_key) {
         //console.log( "===== ModEmployeeFilterEmployee  ========= ", option);
 
-        let el_input = document.getElementById("id_mod_employee_input_employee")
+        let el_input = document.getElementById("id_mod_select_employee_input_employee")
 // save when clicked 'Enter', TODO only if quicksave === true
         if(event_key === "Enter" && get_attr_from_el_str(el_input, "data-quicksave") === "true") {
             ModEmployeeSave("save");
@@ -3075,7 +3070,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let has_selection = false, has_multiple = false;
         let select_value, select_pk, select_parentpk;
-        let tblbody = document.getElementById("id_mod_employee_tblbody");
+        let tblbody = document.getElementById("id_mod_select_employee_tblbody");
         let len = tblbody.rows.length;
         if (!skip_filter && !!len){
             for (let row_index = 0, tblRow, show_row, el, pk_str, code_value; row_index < len; row_index++) {
@@ -3196,7 +3191,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }  // if(!!el_input)
         }  // if(!!tblRow)
 // ---  hide modal
-    $("#id_mod_employee").modal("hide");
+    $("#id_mod_select_employee").modal("hide");
     } // ModEmployeeSave
 
 //=========  ModEmployeeDeleteOpen  ================ PR2019-09-15
@@ -3251,7 +3246,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const caption_one = get_attr_from_el(el_data, "data-txt_employee_select") + ":";
         const caption_none = loc.No_employees + ":";
 
-        let tblBody = document.getElementById("id_mod_employee_tblbody");
+        let tblBody = document.getElementById("id_mod_select_employee_tblbody");
         tblBody.innerText = null;
 
 //--- when no items found: show 'select_employee_none'
@@ -3296,7 +3291,6 @@ document.addEventListener('DOMContentLoaded', function() {
             } // for (const [map_id, item_dict] of employee_map.entries())
         }  //  if (employee_map.size === 0)
     } // ModEmployeeFillSelectTableEmployee
-
 
 // +++++++++++++++++ MODAL SHIFT EMPLOYEE +++++++++++++++++++++++++++++++++++++++++++
 //=========  MSE_Open  ================ PR2019-10-28
@@ -3851,7 +3845,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // also rename shift_code
         let offset_start = null, time_duration = 0
         if (shift_option === "isabsence") {
-            time_duration = get_dict_value(mod_upload_dict, ["employee", "workhoursperday", "value"], 0);
+            // when absence: time_duration = workhoursperweek / 5. and not workhoursperday,
+            // because absence days are always enterd 5 days per week.
+            const workhours =  get_dict_value(mod_upload_dict, ["employee", "workhours", "value"], 0);
+            time_duration = workhours / 5
         } else{
             offset_start =  60 * mod_upload_dict.calendar.rowindex;
         }
@@ -4502,12 +4499,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // Filter TableRows
         const tblName = tblName_from_selectedbtn(selected_btn);
         const has_ppk_filter = (tblName !== "employee");
-        f_Filter_TableRows(tblBody_from_selectedbtn(selected_btn),
-                            tblName,
-                            filter_dict,
-                            filter_show_inactive,
-                            has_ppk_filter,
-                            selected_employee_pk);
+        let tblBody = tblBody_from_selectedbtn(selected_btn);
+        console.log("selected_btn", selected_btn )
+        console.log("tblName", tblName )
+        console.log("tblBody", tblBody )
+        f_Filter_TableRows(tblBody, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_employee_pk);
 
         FilterSelectRows(tblBody_select, filter_select);
     }  // function HandleFilterInactive
@@ -4749,7 +4745,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let tBody_planning = document.getElementById("id_tbody_planning");
 
 // title row
-        let title_value = display_planning_period (selected_planning_period, loc, user_lang); // UpdateHeaderPeriod();
+        let title_value = display_planning_period (selected_planning_period, loc); // UpdateHeaderPeriod();
         ws["A1"] = {v: title_value, t: "s"};
 // header row
         const header_rowindex = 3

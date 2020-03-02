@@ -2,17 +2,17 @@
 {% load static %}
 
  <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
-    <div class="modal fade" id="id_mod_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+    <div class="modal fade" id="id_mod_select_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
             <div class="modal-content">
                 <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_mod_employee_header" class="modal-title mx-2" >{% trans 'Employee' %}</h4>
+                    <h4 id="id_mod_select_employee_header" class="modal-title mx-2" >{% trans 'Employee' %}</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
-                <div  id="id_mod_employee_body" class="modal-body">
+                <div  id="id_mod_select_employee_body" class="modal-body">
                     <div class="modal_container">
 
 <!-- modal_body_left contains employee select table -->
@@ -22,18 +22,18 @@
                                 <!-- <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> -->
                                 <div class="tbl_div_400_220">
                                     <table class="table tsa_tbl mx-1 my-1">
-                                        <tbody id="id_mod_employee_tblbody" data-table="employee">
+                                        <tbody id="id_mod_select_employee_tblbody" data-table="employee">
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
-                        <div id="id_mod_employee_body_right"  class="modal_body_right mx-2 my-2">
+                        <div id="id_mod_select_employee_body_right"  class="modal_body_right mx-2 my-2">
 
                             <div class="mx-2 my-2">
                                 <h6>{% trans 'Select employee' %}:</h6>
                                 <div class="form-group">
-                                    <input id="id_mod_employee_input_employee"
+                                    <input id="id_mod_select_employee_input_employee"
                                         type="text"
                                         autocomplete="off"
                                         ondragstart="return false;"
@@ -41,9 +41,9 @@
                                         class="form-control"
                                         placeholder="{% trans 'Type a few letters and select employee in the list ...' %}">
                                 </div>
-                                <div id="id_mod_employee_div_remove">
+                                <div id="id_mod_select_employee_div_remove">
                                     <h6>{% trans 'or remove the current employee' %}...</h6>
-                                    <button id="id_mod_employee_btn_remove" type="button" class="btn btn-secondary">{% trans 'Remove' %}</button>
+                                    <button id="id_mod_select_employee_btn_remove" type="button" class="btn btn-secondary">{% trans 'Remove' %}</button>
                                 </div>
                             </div>
                                   </div>
@@ -52,7 +52,7 @@
                 <div class="modal-footer">
                     <div class="content_subheader_right">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                        <button id="id_mod_employee_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                        <button id="id_mod_select_employee_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
                     </div>
                 </div>
 

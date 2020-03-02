@@ -1034,6 +1034,15 @@
     }  // format_total_duration
 
 
+//========= format_shift_count ======== PR2020-02-28
+    function format_shift_count (shift_count, loc) {
+        let formatted_text = "";
+        if (!!shift_count){
+            formatted_text = shift_count.toString() + " " + ((shift_count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
+        }
+        return formatted_text
+    } // format_shift_count
+
 //========= display_toFixed  ======== PR2020-01-08
     function display_toFixed (minutes, user_lang) {
         // display minutes as decimal hours
@@ -1106,7 +1115,7 @@
 
 
 //========= display_planning_period  ======== PR2020-01-21
-    function display_planning_period(selected_planning_period, loc, user_lang) {
+    function display_planning_period(selected_planning_period, loc) {
         //console.log( "===== display_planning_period  ========= ");
         //console.log( "selected_planning_period: ", selected_planning_period);
         const datefirst_ISO = get_dict_value_by_key(selected_planning_period, "period_datefirst");
@@ -1122,7 +1131,7 @@
                 }
             }
         }
-        period_txt += format_period(datefirst_ISO, datelast_ISO, loc.months_abbrev, loc.weekdays_abbrev, user_lang)
+        period_txt += format_period(datefirst_ISO, datelast_ISO, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang)
 
         let display_text = "";
         if (!!period_txt) {

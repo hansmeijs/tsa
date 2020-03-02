@@ -153,7 +153,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!!keylist && !!dict) {
             for (let i = 0, key, len = keylist.length; i < len; i++) {
                 key = keylist[i];
-                if (!!key && !!dict && dict.hasOwnProperty(key)) {
+                // key == 0 is valid value
+                if (key != null && !!dict && dict.hasOwnProperty(key)) {
                     dict = dict[key];
                 } else {
                     dict = null;
@@ -165,23 +166,23 @@ document.addEventListener('DOMContentLoaded', function() {
         return dict
     }  // get_dict_value
 
-//========= get_cat_value  ============= PR2019-10-19
-    function get_cat_value(cat_sum, cat_index) {
-        //console.log(" --- get_cat_value --- cat_sum: ", cat_sum, "cat_index", cat_index);
+//========= get_status_value  ============= PR2019-10-19
+    function get_status_value(status_sum, status_index) {
+        //console.log(" --- get_status_value --- status_sum: ", status_sum, "status_index", status_index);
         let reversed = '';
-        // 27 = get_cat_str 11011
-        // 512 = get_cat_str 0000000001 =  2^9
-        cat_value = false;
-        if(!!cat_sum){
+        // 27 = get_status_str 11011
+        // 512 = get_status_str 0000000001 =  2^9
+        status_value = false;
+        if(!!status_sum){
             // absence = 512 = 2^9 > index = 9
-            const binary = (cat_sum).toString(2); // "11111111" (radix 2, i.e. binary)
+            const binary = (status_sum).toString(2); // "11111111" (radix 2, i.e. binary)
             for (const character of binary) {
                 reversed = character + reversed
             }
-            const char = reversed.charAt(cat_index); // charAt returns '' when index not found
-            cat_value = (char === "1")
+            const char = reversed.charAt(status_index); // charAt returns '' when index not found
+            status_value = (char === "1")
         }
-        return cat_value
+        return status_value
 }
 // NOT IN USE
 //========= get_absence_from_catsum  ============= PR2019-08-30
@@ -627,7 +628,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let date_JS = null;
         if (!!date_iso){
             let arr_int = get_array_from_ISOstring(date_iso);
-            arr_int[1] = arr_int[1] -1;// Month 4 april has index 3
+            arr_int[1] = arr_int[1] -1;  // Month 4 april has index 3
             date_JS = new Date(arr_int[0], arr_int[1], arr_int[2], arr_int[3], arr_int[4], arr_int[5]);
         }
         return date_JS
@@ -828,13 +829,14 @@ document.addEventListener('DOMContentLoaded', function() {
         "use strict";
         // date_as_ISOstring = "2019-03-30T19:05:00"
         // Note: getDay Sunday = 0 , isoweekday Sunday = 7
-        let date = get_date_from_ISOstring(date_as_ISOstring);
+        let date = get_dateJS_from_dateISO_vanilla(date_as_ISOstring);
         let weekday_index = date.getDay();
         return weekday_index
     }
 
 //========= function get_date_from_ISOstring  ==================================== PR2019-04-15
-    function get_date_from_ISOstring(date_as_ISOstring) {
+    function get_date_from_ISOstringXXX(date_as_ISOstring) {
+    // NIU, replaced by get_dateJS_from_dateISO_vanilla
         "use strict";
         // date_as_ISOstring: 2019-06-25T07:00:00Z
 
@@ -894,7 +896,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!!datetimeUTCiso){
 
             // console.log("datetimeUTCiso: ", datetimeUTCiso)
-            let datUTC = get_date_from_ISOstring(datetimeUTCiso)
+            let datUTC = get_dateJS_from_dateISO_vanilla(datetimeUTCiso)
             // console.log("datUTC: ", datUTC, typeof datUTC)
 
             let arr = get_array_from_ISOstring(datetimeUTCiso)
@@ -1018,6 +1020,36 @@ document.addEventListener('DOMContentLoaded', function() {
         const now_arr = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes()];
         return now_arr;
     }
+
+//========= get_Exceldate_from_date  ====================================
+    function get_Exceldate_from_date(date_iso) {
+        console.log (' --- get_Exceldate_from_datetime --- ')
+        // PR2020-01-23 function convert date_object to number, representing Excel date
+        //console.log ('date_obj: ' + str(date_obj) + ' type: ' + str(type(date_obj)))
+
+        let excel_date = null
+        if (!!date_iso) {
+            const datetime_JS = get_dateJS_from_dateISO_vanilla(date_iso)
+            if (!!datetime_JS) {
+                // from: https://www.myonlinetraininghub.com/excel-date-and-time
+                // Caution! Excel dates after 28th February 1900 are actually one day out.
+                //          Excel behaves as though the date 29th February 1900 existed, which it didn't.
+                // Therefore 'zero' date = 31-12-1899, minus 1 day correction
+                const excel_zero_date_naive = get_dateJS_from_dateISO_vanilla('1899-12-30');
+                const diff_in_ms = datetime_JS.getTime() - excel_zero_date_naive.getTime();
+
+// To calculate the no. of days between two dates
+                excel_date = Math.floor(diff_in_ms / (1000 * 3600 * 24));
+            }
+        }
+        return excel_date
+
+    }  // get_Exceldate_from_date
+
+
+
+
+
 
 //###########################################################
 

@@ -964,21 +964,21 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
     # mode '-' = other, no shift found (should not be possible)
 
     mode = row[idx_si_mod]
-    is_restshift = (mode == 'r')
     is_absence = (mode == 'a')
+    is_restshift = (mode == 'r')
 
     # calculate timestart, timeend and timeduration from shift offset and rosterdtae info from shift
-    # timeduration is nly calculated when both start and edtime are filled in. Otherwise saved value is used (shift '6:00 hours')
-    offsetstart = row[idx_si_sh_os]
-    offsetend = row[idx_si_sh_oe]
-    breakduration = row[idx_si_sh_bd]
-    timeduration = row[idx_si_sh_td]
-    timestart, timeend, timeduration = f.calc_timestart_time_end_from_offset(
+    # timeduration is only calculated when both start and edtime are filled in. Otherwise saved value is used (shift '6:00 hours')
+    row_offsetstart = row[idx_si_sh_os]
+    row_offsetend = row[idx_si_sh_oe]
+    row_breakduration = row[idx_si_sh_bd]
+    row_timeduration = row[idx_si_sh_td]
+    timestart, timeend, time_duration = f.calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
-        offsetstart=offsetstart,
-        offsetend=offsetend,
-        breakduration=breakduration,
-        timeduration=timeduration,
+        offsetstart=row_offsetstart,
+        offsetend=row_offsetend,
+        breakduration=row_breakduration,
+        timeduration=row_timeduration,
         is_restshift=is_restshift,
         comp_timezone=comp_timezone
     )
@@ -1042,12 +1042,12 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
             status=c.STATUS_01_CREATED
         )
 
-        # TODO get billingdate from order settings, make it end of this month for now
-        billing_date = f.get_lastof_month(rosterdate_dte)
+        # TODO get invoicedate from order settings, make it end of this month for now
+        invoice_date = f.get_lastof_month(rosterdate_dte)
         pay_date = f.get_lastof_month(rosterdate_dte)
 
 # 4. add values to new record
-        orderhour.billingdate = billing_date
+        orderhour.invoicedate = invoice_date
         orderhour.isbillable = is_billable
         orderhour.isabsence = is_absence
         orderhour.isrestshift = is_restshift
@@ -1069,24 +1069,25 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
             tax_rate=tax_rate,
             shift_code=shift_code,
             shift_wagefactor=None,
-            shift_isrestshift=is_restshift,
+            is_absence=is_absence,
+            is_restshift=is_restshift,
             timestart=timestart,
             timeend=timeend,
-            breakduration=breakduration,
-            timeduration=timeduration,
+            break_duration=row_breakduration,
+            time_duration=time_duration,
             comp_timezone=comp_timezone,
             request=request)
 
     # count_duration counts only duration of normal and single shifts, for invoicing
-    count_duration = timeduration if mode in ('n', 's') else 0
+    count_duration = time_duration if mode in ('n', 's') else 0
 
     return emplhour_is_added, linked_emplhours_exist, count_duration
 
 
 def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
                     is_override, is_billable, pay_date, tax_rate,
-                    shift_code, shift_wagefactor, shift_isrestshift,
-                    timestart, timeend, breakduration, timeduration,
+                    shift_code, shift_wagefactor, is_absence, is_restshift,
+                    timestart, timeend, break_duration, time_duration,
                     comp_timezone, request):
     logger.debug(' ============= add_emplhour ============= ')
     logger.debug('orderhour: ' + str(orderhour))
@@ -1113,13 +1114,22 @@ def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
             addition_rate = get_schemeitem_pricerate('additionjson', schemeitem)
 
             # with restshift: amount = 0, pricerate = 0, additionrate  = 0, billable = false
-            if shift_isrestshift:
+            if is_absence or is_restshift:
                 # not necessary, bit let is stay. Prevent this at input
                 price_rate = 0
                 addition_rate = 0
                 is_billable = False
+                time_duration = 0
+                break_duration = 0
+# calculate time_duration when absencce
+                if is_absence:
+                    #  when absence: time_duration = workhoursperweek / 5. and not workhoursperday,
+                    #  because absence days are always enterd 5 days per week.
+                    if employee:
+                        if employee.workhours:
+                            time_duration = employee.workhours / 5
 
-            amount = (timeduration / 60) * (price_rate) * (1 + addition_rate / 1000000)
+            amount = (time_duration / 60) * (price_rate) * (1 + addition_rate / 1000000)
             tax = amount * tax_rate / 1000000  # taxrate 60.000 = 6%
 
             # TODO check if wagefactor calculation is correct
@@ -1134,15 +1144,15 @@ def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
                 rosterdate=orderhour.rosterdate,
                 paydate=pay_date,
                 isabsence=orderhour.isabsence,
-                isrestshift=shift_isrestshift,
+                isrestshift=is_restshift,
                 isreplacement=is_replacement,
                 shift=shift_code,
                 timestart=timestart,
                 timeend=timeend,
-                breakduration=breakduration,
-                timeduration=timeduration,
-                plannedduration=timeduration,
-                billingduration=timeduration,
+                breakduration=break_duration,
+                timeduration=time_duration,
+                plannedduration=time_duration,
+                billingduration=time_duration,
                 wagerate=wagerate,
                 wagefactor=wagefactor,
                 wage=wage,
@@ -1181,7 +1191,7 @@ def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
                 # - put info in id_dict
                 id_dict = {'pk': new_emplhour.pk, 'ppk': new_emplhour.orderhour.pk, 'created': True}
                 update_dict = {'id': id_dict}
-                # pd.create_emplhour_itemdict(new_emplhour, update_dict, comp_timezone)
+                # pd.create_emplhour_itemdict_from_row(new_emplhour, update_dict, comp_timezone)
                 # update_list.append(update_dict)
 
         #except:

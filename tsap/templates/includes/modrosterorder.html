@@ -1,0 +1,111 @@
+ {% load i18n %}
+{% load static %}
+
+ <!-- =================== MODAL ROSTER ORDER  =================== -->'
+
+    <div class="modal fade" id="id_modrosterorder" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 class="modal-title mx-2" >{% trans 'Add shift' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div  id="id_modrosterorder_body" class="modal-body">
+
+
+                    <div class="modal_container">
+
+<!-- modal_body_left contains customer select table -->
+                        <div class="modal_body_left">
+                            <div class="mx-2 my-2">
+                                <h6 id="id_MRO_tblbody_select_header" class="mx-2 my-1">{% trans 'Customers' %}:</h6>
+                            </div>
+                            <div class="mx-2 my-1">
+                                 <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                <!-- <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> -->
+                                <div style="overflow-x:hidden;overflow-y:auto;height:360px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                    <table class="table tsa_tbl mx-1 my-1">
+                                        <tbody id="id_MRO_tblbody_select" data-table="customer">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="id_modrosterorder_body_right"  class="modal_body_right mx-2 my-2">
+                            <div class="mx-2 my-2">
+                                <h5 id="id_modrosterorder_header">{% trans 'Select customer' %}</h5>
+                            </div>
+                            <div class="mx-2 my-2">
+                                <h6 class="mx-2 my-1">{% trans 'Date' %}:</h6>
+                                <div class="form-group">
+                                    <input id="id_MRO_input_date" type="date" class="form-control">
+                                </div>
+                            </div>
+                            <div class="mx-2 my-2">
+                                <h6 class="mx-2 my-1">{% trans 'Customer' %}:</h6>
+                                <div class="form-group">
+                                    <input id="id_MRO_input_customer"
+                                        type="text"
+                                        autocomplete="off"
+                                        ondragstart="return false;"
+                                        ondrop="return false;"
+                                        class="form-control"
+                                        placeholder="{% trans 'Type a few letters and select a customer in the list ...' %}">
+                                </div>
+                            </div>
+                            <div class="mx-2 my-2">
+                                <h6 class="mx-2 my-1">{% trans 'Order' %}:</h6>
+                                <div class="form-group">
+                                    <input id="id_MRO_input_order"
+                                        type="text"
+                                        autocomplete="off"
+                                        ondragstart="return false;"
+                                        ondrop="return false;"
+                                        class="form-control"
+                                        placeholder="{% trans 'Type a few letters and select an order in the list ...' %}">
+                                </div>
+                            </div>
+                            <div class="mx-2 my-2">
+                                <h6 class="mx-2 my-1">{% trans 'Employee' %}:</h6>
+                                <div class="form-group">
+                                    <input id="id_MRO_input_employee"
+                                        type="text"
+                                        autocomplete="off"
+                                        ondragstart="return false;"
+                                        ondrop="return false;"
+                                        class="form-control"
+                                        placeholder="{% trans 'Type a few letters and select an employee in the list ...' %}">
+                                </div>
+                            </div>
+                            <div id="id_modrosterorder_timefields" class="content_header">
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MRO_input_offsetstart" class="tsa_margin_form_label">{% trans 'Start time' %}:</label>
+                                    <p id="id_MRO_input_offsetstart" data-toggle="modal" href="#id_mod_timepicker"
+                                       data-field= "offsetstart" tabindex="0" class="form-control pointer_show mb-0"> </p>
+                                </div>
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MRO_input_offsetend" class="tsa_margin_form_label">{% trans 'End time' %}:</label>
+                                    <p id="id_MRO_input_offsetend" data-toggle="modal" href="#id_mod_timepicker"
+                                       data-field="offsetend" tabindex="0" class="form-control pointer_show mb-0">  </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="content_subheader_right">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                        <button id="id_modrosterorder_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL ORDER  =================== -->
+<!-- =================== MODAL TIMEPICKER  =================== -->
+    {% include 'includes/modtimepicker.html' %}
+<!-- =================== END MODAL TIMEPICKER  =================== -->

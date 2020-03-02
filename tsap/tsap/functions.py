@@ -1309,7 +1309,6 @@ def get_float_from_string(value_str):  # PR2019-09-01
 
     return number, msg_err
 
-
 def get_status_value(status_sum, index):
     # PR2019-11-14 functions checks if index is in binary status_sum
     has_status_value = False
@@ -1658,7 +1657,7 @@ def slice_firstlast_delim(list_str):  # PR2018-11-22
     return list_str
 
 
-def create_update_dict(field_list, table, pk, ppk, temp_pk):
+def create_update_dict(field_list, table, pk, ppk, temp_pk, row_index):
 # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
     update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
     for field in field_list:
@@ -1673,6 +1672,8 @@ def create_update_dict(field_list, table, pk, ppk, temp_pk):
                 update_dict['id']['ppk'] = ppk
             if temp_pk:
                 update_dict['id']['temp_pk'] = temp_pk
+            if row_index:
+                update_dict['id']['rowindex'] = row_index
 
     return update_dict
 
@@ -1683,6 +1684,7 @@ def get_iddict_variables(id_dict):
 
     mode, table, temp_pk_str = '', '', ''
     pk_int, ppk_int = 0, 0
+    row_index = None
     is_create, is_delete, is_absence, is_template = False, False,  False, False
 
     if id_dict:
@@ -1690,13 +1692,14 @@ def get_iddict_variables(id_dict):
         pk_int = id_dict.get('pk')
         ppk_int = id_dict.get('ppk')
         temp_pk_str = id_dict.get('temp_pk', '')
+        row_index = id_dict.get('rowindex', '')
         is_create = ('create' in id_dict)
         is_delete = ('delete' in id_dict)
         mode = id_dict.get('mode', '')
         is_absence = ('isabsence' in id_dict)
         # is_template = ('istemplate' in id_dict)
 
-    return pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode
+    return pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode, row_index
 
 
 def get_dict_value(dictionay, key_tuple, default_value=None):
@@ -2520,6 +2523,7 @@ def calc_timestart_time_end_from_offset(rosterdate_dte,
             rosterdate=rosterdatetime_naive,
             offset_int=offsetstart,
             comp_timezone=comp_timezone)
+        #logger.debug(' starttime_local: ' + str(starttime_local) + ' ' + str(type(starttime_local)))
 
     # c. get endtime from rosterdate and offsetstart
         #logger.debug('c. get endtime from rosterdate and offsetstart ')
@@ -2527,17 +2531,18 @@ def calc_timestart_time_end_from_offset(rosterdate_dte,
             rosterdate=rosterdatetime_naive,
             offset_int=offsetend,
             comp_timezone=comp_timezone)
-        #logger.debug(' new_endtime: ' + str(new_endtime) + ' ' + str(type(new_endtime)))
+        #logger.debug(' endtime_local: ' + str(endtime_local) + ' ' + str(type(endtime_local)))
 
     # d. recalculate timeduration, only when both starttime and endtime have value
         if starttime_local and endtime_local:
             datediff = endtime_local - starttime_local
             datediff_minutes = int((datediff.total_seconds() / 60))
             timeduration = int(datediff_minutes - breakduration)
-
+            logger.debug('new  timeduration:  ' + str(timeduration))
             # when rest shift : timeduration = 0
             if is_restshift:
                 timeduration = 0
+            #logger.debug('is_restshift  timeduration:  ' + str(timeduration))
     return starttime_local, endtime_local, timeduration
 
 

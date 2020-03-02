@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def create_employee_list(company, user_lang, inactive=None, rangemin=None, rangemax=None):
     # --- create list of all active employees of this company PR2019-06-16
-    # logger.debug(' --- create_employee_list   ')
+    #logger.debug(' --- create_employee_list   ')
     crit = Q(company=company)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
@@ -144,14 +144,14 @@ def create_teammember_list(filter_dict, company, user_lang):
         .select_related('team__scheme')\
         .select_related('team__scheme__order')\
         .select_related('team__scheme__order__customer') \
-        .filter(crit).order_by('employee__code')
+        .filter(crit).order_by(Lower('employee__code'))
     # was:
         # .annotate(datelast_nonull=Coalesce('datelast', Value(datetime(2500, 1, 1)))) \
         # .filter(crit).order_by('employee__code', '-datelast_nonull')  # .filter(crit).order_by('-datelast_nonull')
 
     # iterator: from https://medium.com/@hansonkd/performance-problems-in-the-django-orm-1f62b3d04785
-    logger.debug('teammembers.query')
-    logger.debug(teammembers.query)
+    #logger.debug('teammembers.query')
+    #logger.debug(teammembers.query)
 
     teammember_list = []
     for teammember in teammembers:
@@ -328,7 +328,7 @@ def create_teammember_dict(teammember, item_dict, user_lang):
 
 
 def create_employee_pricerate_list(company, user_lang):
-    # logger.debug(' --- create_employee_pricerate_list --- ')
+    #logger.debug(' --- create_employee_pricerate_list --- ')
 
     pricerate_list = []
 
@@ -356,7 +356,7 @@ def create_employee_pricerate_list(company, user_lang):
               'cid': company.pk,
               'cat': c.SHIFT_CAT_0512_ABSENCE})
     teammember_rows = newcursor.fetchall()
-    # logger.debug('++++++++++ teammember_rows >' + str(teammember_rows))
+    #logger.debug('++++++++++ teammember_rows >' + str(teammember_rows))
 
     # (395, 1456, 'Abienso, Curvin', 'MCB', 'Punda', 'dag', None, None, False, 'abienso, curvin', 'mcb', 'punda', 'dag')
 

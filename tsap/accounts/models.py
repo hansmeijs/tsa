@@ -340,7 +340,9 @@ class Usersetting(Model):
     setting = CharField(max_length=2048, null=True, blank=True)
 
     jsonsetting = JSONField(null=True)  # stores invoice dates for this customer
-#===========  Classmethod
+
+
+# ===========  Classmethod
     @classmethod
     def get_setting(cls, key_str, user): #PR2019-07-02
         # function returns value of setting row that matches the filter

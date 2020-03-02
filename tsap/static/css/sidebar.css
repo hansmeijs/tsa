@@ -115,6 +115,18 @@ a[aria-expanded="true"] {
     background-color: #a5a5a5; /* medium grey; 165 165 165*/
 }
 
+
+.tsa_sidebar_hover {
+   background-color: #e0e0e0; /* licht grijs; tsa_tr_selected*/
+   color: #a5a5a5; /* dark grey */
+    /*color: #000000;*/
+    -moz-box-shadow: 3px 3px 5px 6px rgba(68, 68, 68, 0.6);
+    -webkit-box-shadow: 3px 3px 5px 6px rgba(68, 68, 68, 0.6);  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */  /* Firefox 3.5 - 3.6 */
+    /* box-shadow: [horizontal offset] [vertical offset] [blur radius] [optional spread radius] [color]; */
+    box-shadow:         3px 3px 5px 6px rgba(68, 68, 68, 0.6);  /* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */
+}
+
+
 a[data-toggle="collapse"] {
     position: relative;
 }

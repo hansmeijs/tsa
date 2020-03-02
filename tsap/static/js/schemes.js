@@ -163,11 +163,11 @@ document.addEventListener('DOMContentLoaded', function() {
         ShowButtonsTableSchemeitem(false);
 
 // ---  Modal Employee
-        let el_mod_employee_body = document.getElementById("id_mod_employee_body");
-        document.getElementById("id_mod_employee_input_employee").addEventListener("keyup", function(event){
+        let el_mod_employee_body = document.getElementById("id_mod_select_employee_body");
+        document.getElementById("id_mod_select_employee_input_employee").addEventListener("keyup", function(event){
                 setTimeout(function() {ModEmployeeFilterEmployee("filter", event.key)}, 50)});
-        document.getElementById("id_mod_employee_btn_save").addEventListener("click", function() {ModEmployeeSave("save")}, false )
-        document.getElementById("id_mod_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("remove")}, false )
+        document.getElementById("id_mod_select_employee_btn_save").addEventListener("click", function() {ModEmployeeSave("save")}, false )
+        document.getElementById("id_mod_select_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("remove")}, false )
 
 // ---  Modal Addnew
         let el_mod_cust = document.getElementById("id_mod_scheme_customer")
@@ -301,8 +301,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- Datalist Download
         // show_absence = null is for testing, show_absence must be false in production
-        //const show_absence = null;
-        const show_absence = false;
+        const show_absence = null;
+        //const show_absence = false;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}
@@ -434,8 +434,8 @@ document.addEventListener('DOMContentLoaded', function() {
         AddSubmenuButton(el_div, loc.menubtn_copy_from_template, function (){ModCopyfromTemplateOpen()}, null, "id_menubtn_copy_from_template");
         AddSubmenuButton(el_div, loc.menubtn_copy_to_template, function (){ModCopytoTemplateOpen()}, ["mx-2"], "id_menubtn_copy_to_template");
         AddSubmenuButton(el_div, loc.menubtn_show_templates, function (){HandleSubmenubtnTemplateShow()}, ["mx-2"], "id_menubtn_show_templates");
-        AddSubmenuButton(el_div, loc.menubtn_roster_create, function (){ModRosterdateCreate()}, ["mx-2"]);
-        AddSubmenuButton(el_div, loc.menubtn_roster_delete, function (){ModRosterdateDelete()}, ["mx-2"]);
+        AddSubmenuButton(el_div, loc.Create_roster, function (){ModRosterdateCreate()}, ["mx-2"]);
+        AddSubmenuButton(el_div, loc.Delete_roster, function (){ModRosterdateDelete()}, ["mx-2"]);
 
         el_submenu.appendChild(el_div);
         el_submenu.classList.remove(cls_hide);
@@ -4044,8 +4044,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const code_value = get_subdict_value_by_key(cur_employee_dict, "code", "value");
 
 // ---  put employee name in header
-            let el_header = document.getElementById("id_mod_employee_header")
-            let el_div_remove = document.getElementById("id_mod_employee_div_remove")
+            let el_header = document.getElementById("id_mod_select_employee_header")
+            let el_div_remove = document.getElementById("id_mod_select_employee_div_remove")
             if (!!pk_int){
                 el_header.innerText = code_value
                 el_div_remove.classList.remove(cls_hide)
@@ -4062,7 +4062,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
 // remove values from el_mod_employee_input
-            let el_mod_employee_input = document.getElementById("id_mod_employee_input_employee")
+            let el_mod_employee_input = document.getElementById("id_mod_select_employee_input_employee")
             el_mod_employee_input.value = null
 
 // ---  fill selecttable employee
@@ -4073,7 +4073,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function (){el_mod_employee_input.focus()}, 500);
 
 // ---  show modal
-            $("#id_mod_employee").modal({backdrop: true});
+            $("#id_mod_select_employee").modal({backdrop: true});
 
         }  //  if(!template_mode)
     };  // ModEmployeeOpen
@@ -4100,7 +4100,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const code_value = get_subdict_value_by_key(employee_dict, "code", "value")
                 mod_upload_dict["employee"] = employee_dict;
 // ---  put code_value in el_input_employee
-                document.getElementById("id_mod_employee_input_employee").value = code_value
+                document.getElementById("id_mod_select_employee_input_employee").value = code_value
 
 // save selected employee
                  ModEmployeeSave()
@@ -4113,7 +4113,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "===== ModEmployeeFilterEmployee  ========= ", option);
         //console.log( "event_key", event_key);
 
-        let el_input = document.getElementById("id_mod_employee_input_employee")
+        let el_input = document.getElementById("id_mod_select_employee_input_employee")
 
 // save when clicked 'Enter', TODO  vonly if quicksave === true
         if(event_key === "Enter" && get_attr_from_el_str(el_input, "data-quicksave") === "true") {
@@ -4143,7 +4143,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let has_selection = false, has_multiple = false;
         let select_value, select_pk, select_parentpk;
-        let tblbody = document.getElementById("id_mod_employee_tblbody");
+        let tblbody = document.getElementById("id_mod_select_employee_tblbody");
         let len = tblbody.rows.length;
         if (!skip_filter && !!len){
             for (let row_index = 0, tblRow, show_row, el, pk_str, code_value; row_index < len; row_index++) {
@@ -4222,7 +4222,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 // ---  hide modal
-    $("#id_mod_employee").modal("hide");
+    $("#id_mod_select_employee").modal("hide");
     UploadChanges(upload_dict, url_teammember_upload);
     } // ModEmployeeSave
 
@@ -4234,7 +4234,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const caption_one = get_attr_from_el(el_data, "data-" + data_key) + ":";
         const caption_none = get_attr_from_el(el_data, "data-txt_employee_select_none") + ":";
 
-        let tableBody = document.getElementById("id_mod_employee_tblbody");
+        let tableBody = document.getElementById("id_mod_select_employee_tblbody");
         tableBody.innerText = null;
 
 //--- when no items found: show 'select_employee_none'
@@ -4283,6 +4283,9 @@ document.addEventListener('DOMContentLoaded', function() {
             } // for (const [pk_int, item_dict] of employee_map.entries())
         }  //  if (employee_map.size === 0)
     } // ModEmployeeFillSelectTableEmployee
+
+// +++++++++ END MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 
 //=========  ModSchemeOpen  ================ PR2019-07-20
     function ModSchemeOpen() {
@@ -5089,7 +5092,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log("===  function HandlePopupBtnWdy ");
         // set date to midday to prevent timezone shifts ( I dont know if this works or is neecessary)
         const o_value = el_popup_wdy.getAttribute("data-value") + "T12:0:0"
-        const o_date = get_date_from_ISOstring(o_value)
+        const o_date = get_dateJS_from_dateISO_vanilla(o_value)
         //console.log("o_date: ", o_date, "o_value: ", o_value)
 
         const id = event.target.id
