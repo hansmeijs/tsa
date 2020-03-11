@@ -1029,7 +1029,7 @@
     }  // format_total_duration
 
 //========= format_pricerate ======== PR2019-08-22
-    function format_pricerate (value_int, is_percentage, user_lang) {
+    function format_pricerate (value_int, is_percentage, show_zero, user_lang) {
         //console.log(" --- format_pricerate", fldname, value_int)
         let display_text = "";
 
@@ -1066,12 +1066,14 @@
             }
             display_text = minus_sign + dollar_text + cent_text;
             if (is_percentage) { display_text += " %" }
+        } else {
+            display_text = "0"
         }  // if (!!value_int)
+
+        if (!!display_text && is_percentage) { display_text += " %" }
+
         return display_text
     }  // format_pricerate
-
-
-
 
 //========= format_shift_count ======== PR2020-02-28
     function format_shift_count (shift_count, loc) {

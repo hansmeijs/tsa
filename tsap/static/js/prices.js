@@ -722,7 +722,8 @@ selected_btn = "customer"
                             if (!!pat_id) {
                                 const map_dict = pricecode_map.get(pat_id);
                                 const is_percentage = ([3, 4].indexOf(i) > -1) ? true : false;
-                                pricerate_display = format_pricerate (map_dict.pci_pricerate, is_percentage, loc.user_lang);
+                                const show_zero = true;
+                                pricerate_display = format_pricerate (map_dict.pci_pricerate, is_percentage, show_zero, loc.user_lang);
                                 //if (!!map_dict.pc_note) {pricerate_display += " " + map_dict.pc_note}
 
                                 datefirst_display = format_date_vanillaJS (map_dict.shft_pricerate_df,
@@ -865,7 +866,8 @@ selected_btn = "customer"
                             td.removeAttribute("data-pk")
                         }
                         const is_percentage = (["additioncode", "taxcode", "wagefactorcode"].indexOf(fldName) > -1);
-                        let pricerate_display = format_pricerate (pci_pricerate, is_percentage, loc.user_lang);
+                        const show_zero = true;
+                        let pricerate_display = format_pricerate (pci_pricerate, is_percentage, show_zero, loc.user_lang);
                         // if (!!pc_note) {pricerate_display += " " + pc_note}
                         const datefirst_JS = get_dateJS_from_dateISO (pci_datefirst)
                         const datefirst_display = format_date_vanillaJS (datefirst_JS,
@@ -2143,7 +2145,9 @@ selected_btn = "customer"
 
         //--- get info from dict
                     const is_percentage = (["additioncode", "taxcode", "wagefactorcode"].indexOf(fldName) > -1);
-                    const pricerate_display = format_pricerate (dict.pci_pricerate, is_percentage, loc.user_lang)
+
+                    const show_zero = true;
+                    const pricerate_display = format_pricerate (dict.pci_pricerate, is_percentage, show_zero, loc.user_lang)
                     const datefirst_JS = get_dateJS_from_dateISO (dict.pci_datefirst)
         //--------- insert tblBody row
                     let tblRow = tblBody.insertRow(-1);

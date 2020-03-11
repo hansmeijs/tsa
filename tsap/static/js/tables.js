@@ -15,8 +15,8 @@
                             imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                             title_header_btn) {
-        //console.log("===== t_Fill_SelectTable ===== ", tblName);
-        //console.log("filter_ppk_int = ", filter_ppk_int)
+        console.log("===== t_Fill_SelectTable ===== ", tblName);
+        console.log("filter_ppk_int = ", filter_ppk_int)
 
         // difference between filter_include_inactive and filter_show_inactive:
         // - filter_include_inactive works in t_CreateSelectRow. Row is not created when inactive=true and filter_include_inactive=false
@@ -35,9 +35,11 @@
         tblBody_select.innerText = null;
         tblBody_select.setAttribute("data-table", tblName)
 
+        console.log("data_map = ", data_map)
 //--- loop through data_map
         let row_count = {count: 0};
         for (const [map_id, item_dict] of data_map.entries()) {
+        console.log("item_dict = ", item_dict)
             const row_index = null // add row at end when no rowindex
             let selectRow = t_CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                         HandleSelect_Row, HandleSelectRowButton,

@@ -178,7 +178,7 @@
                 const absence_format = format_total_duration (abs_dur, loc.user_lang)
                 //const show_warning = (dur_diff < 0);
 
-                const cust_ordr_code = row.cust_code + " - " + row.ord_code;
+                const cust_ordr_code = row.cust_code + " - " + row.ordr_code;
                 const cell_values = [this_employee_code, this_shift_code,
                                     time_start, time_end, break_format, worked_format, absence_format];
                 PrintRow(cell_values, tab_list, pos, setting.fontsize_line, doc, img_warning);
@@ -211,7 +211,7 @@
 
 // ++++++++++++  PRINT REVIEW CUSTOMER+++++++++++++++++++++++++++++++
     function PrintReviewCustomer(option, selected_period, review_list, subtotals, company_dict, loc, imgsrc_warning) {
-        //console.log("++++++++++++  PRINT REVIEW CUSTOMER+++++++++++++++++++++++++++++++++++++++")
+        console.log("++++++++++++  PRINT REVIEW CUSTOMER+++++++++++++++++++++++++++++++++++++++")
 
         let img_warning = new Image();
         img_warning.src = imgsrc_warning;
@@ -270,23 +270,29 @@
 
 //--------  print grand total
             const subtotal_arr = get_dict_value(subtotals, ["total"]);
-            PrintSubtotalHeader("rpt_cust", "grand_total", loc.Total_hours + "???", tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
+            PrintSubtotalHeader("rpt_cust", "grand_total", loc.Total_hours, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
 
  // +++++++++++++++++++++++++ loop through rows  +++++++++++++++++++++++++
            for (let i = 0; i < len; i++) {
                 let row = review_list[i];
 // ---  get row data
                 const this_customer_pk = row.cust_id;
-                const this_order_pk = row.ord_id;
+                const this_order_pk = row.ordr_id;
                 const this_rosterdate_iso =  get_dict_value(row, ["rosterdate"], "");
                 const rosterdate_formatted_long = format_date_iso (this_rosterdate_iso, loc.months_long, loc.weekdays_long, false, false, loc.user_lang);
                 const rosterdate_formatted = format_date_iso (this_rosterdate_iso, loc.months_abbrev, loc.weekdays_abbrev, false, true, loc.user_lang);
                 // format_date_iso (date_iso, month_list, weekday_list, hide_weekday, hide_year, user_lang) {
                 const this_employee_code = get_dict_value(row, ["e_code"], "")
                 const this_customer_code = get_dict_value(row, ["cust_code"], "")
-                const this_order_code = get_dict_value(row, ["ord_code"], "")
+                const this_order_code = get_dict_value(row, ["ordr_code"], "")
                 const this_shift_code = get_dict_value(row, ["oh_shift"], "")
+
+                const cust_key = (!!this_customer_pk) ? "cust_" + this_customer_pk.toString() : "cust_0000"
+                const ordr_key = (!!this_order_pk) ? "ordr_" + this_order_pk.toString() : "ordr_0000"
+                const date_key = (!!this_rosterdate_iso) ? "date_" + this_rosterdate_iso : "date_0000"
+
 // ======== change in customer ========
+
                 if (this_customer_pk !== prev_customer_pk){
                     prev_customer_pk = this_customer_pk;
                     prev_order_pk = 0
@@ -301,7 +307,7 @@
                         AddNewPage("rpt_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
                     }
 //--------- print customer total row
-                    const subtotal_arr = get_dict_value(subtotals, [this_customer_pk, "total"]);
+                    const subtotal_arr = get_dict_value(subtotals, [cust_key, "total"]);
                     PrintSubtotalHeader("rpt_cust", "customer", this_customer_code, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
                 }
 
@@ -319,7 +325,7 @@
                         AddNewPage("rpt_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
                     }
 //--------- print order total row
-                    const subtotal_arr = get_dict_value(subtotals, [this_customer_pk, this_order_pk, "total"]);
+                    const subtotal_arr = get_dict_value(subtotals, [cust_key, ordr_key, "total"]);
                     PrintSubtotalHeader("rpt_cust", "order", this_order_code, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
                 }
 
@@ -336,8 +342,8 @@
                     if (pos.top + total_height_needed > setting.page_height){
                         AddNewPage("rpt_cust", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
                     }
-//--------- print order total row
-                    const subtotal_arr = get_dict_value(subtotals, [this_customer_pk, this_order_pk, this_rosterdate_iso, "total"]);
+//--------- print total row
+                    const subtotal_arr = get_dict_value(subtotals, [cust_key, ordr_key, date_key, "total"]);
                     PrintSubtotalHeader("rpt_cust", "rosterdate", rosterdate_formatted_long, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
                 }
 //========= print detail row
@@ -457,15 +463,19 @@
 // ---  get row data
                 const this_employee_pk = (!!row.e_id) ? row.e_id : 0;
                 const this_customer_pk = row.cust_id;
-                const this_order_pk = row.ord_id;
+                const this_order_pk = row.ordr_id;
                 const this_rosterdate_iso =  get_dict_value(row, ["rosterdate"], "");
                 const rosterdate_formatted_long = format_date_iso (this_rosterdate_iso, loc.months_long, loc.weekdays_long, false, false, loc.user_lang);
                 const rosterdate_formatted = format_date_iso (this_rosterdate_iso, loc.months_abbrev, loc.weekdays_abbrev, false, true, loc.user_lang);
                 // format_date_iso (date_iso, month_list, weekday_list, hide_weekday, hide_year, user_lang) {
                 const this_employee_code = get_dict_value(row, ["e_code"], "")
                 const this_customer_code = get_dict_value(row, ["cust_code"], "")
-                const this_order_code = get_dict_value(row, ["ord_code"], "")
+                const this_order_code = get_dict_value(row, ["ordr_code"], "")
                 const this_shift_code = get_dict_value(row, ["oh_shift"], "")
+
+
+                const empl_key = (!!this_employee_pk) ? "empl_" + this_employee_pk.toString() : "empl_0000"
+
 
                 const offset_start = get_dict_value(row, ["timestart", "offset"]);
                 const offset_end = get_dict_value(row, ["timeend", "offset"]);
@@ -485,7 +495,7 @@
                         AddNewPage("rpt_empl", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
                     }
 //--------- print employee total row
-                    const subtotal_arr = get_dict_value(subtotals, [this_employee_pk, "total"]);
+                    const subtotal_arr = get_dict_value(subtotals, [empl_key, "total"]);
                     PrintSubtotalHeader("rpt_empl", "employee", this_employee_code, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
                 }
 //========= print detail row
@@ -505,7 +515,7 @@
                 const diff_format = format_total_duration (row.eh_timedur - row.eh_plandur, loc.user_lang)
                 const abs_dur_format = format_total_duration (row.eh_absdur, loc.user_lang)
                 const show_warning = (row.eh_timedur - row.eh_plandur < 0);
-                const cust_ordr_code = row.cust_code + " - " + row.ord_code;
+                const cust_ordr_code = row.cust_code + " - " + row.ordr_code;
 
                 let cell_values = [rosterdate_formatted, cust_ordr_code, this_shift_code, plan_dur_format, time_dur_format, diff_format, abs_dur_format];
                 PrintRow(cell_values, tab_list, pos, setting.fontsize_line, doc, img_warning);
@@ -1071,7 +1081,8 @@
 
 //========= PrintSubtotalHeader  ====================================
     function PrintSubtotalHeader(rptName, fldName, this_item_code, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc){
-        //console.log("-----  PrintSubtotalHeader -----")
+        console.log("-----  PrintSubtotalHeader -----")
+
         let subtotal_values = [];
         if (!!subtotal_arr){
             if (rptName === "rpt_empl"){

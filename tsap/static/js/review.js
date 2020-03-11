@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
             review_period: {now: now_arr},
             review: true,
             customer: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            //order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
             employee: {inactive: false}
         };
 
@@ -347,17 +347,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     empl_id_curr = (!!row_dict.e_id) ? row_dict.e_id : 0;
                     dte_flt_curr = empl_id_curr.toString() + "_" + row_dict.rosterdate;
     // create EMPLOYEE subtotal row when id changes, then reset subotal
-        console.log("empl_id_curr", empl_id_curr, "empl_id_prev", empl_id_prev)
                     if(empl_id_curr !== empl_id_prev){
-        console.log("empl_id_curr !== empl_id_prev > CreateEmployeeTotal", row_dict.e_code)
                         empl_id_prev = empl_id_curr
                         dte_flt_prev = null
                         CreateEmployeeTotal(rptName, row_dict);
                     }
     // create DATE subtotal row when id changes or when order_id changes,, then reset subotal
-        console.log("dte_flt_curr", dte_flt_curr, "dte_flt_prev", dte_flt_prev)
                     if(dte_flt_curr !== dte_flt_prev){
-        console.log("dte_flt_curr !== dte_flt_prev > CreateDateTotal")
                         dte_flt_prev = dte_flt_curr
                         CreateDateTotal(rptName, row_dict)
                     }
@@ -385,31 +381,26 @@ document.addEventListener('DOMContentLoaded', function() {
         const time_dur = total_arr[2];
         const bill_dur = total_arr[3];
         const abs_dur = total_arr[4];
+        const billable_count = total_arr[5];
+        const tot_amount = total_arr[6];
+        const tot_addition = total_arr[7];
+        const tot_tax = total_arr[8];
 
-        const plan_dur_format = format_total_duration (plan_dur, loc.user_lang);
-        const time_dur_format = format_total_duration (time_dur, loc.user_lang);
-        const bill_dur_format = format_total_duration (bill_dur, loc.user_lang);
-        const abs_dur_format = format_total_duration (abs_dur, loc.user_lang)
-
-        const shifts_format = format_shift_count (count, loc);
-
+        const shifts_count = format_shift_count (count, loc);
 
         let display_dict = {report: rptName,
                             table: "comp",
                             code: loc.Grand_total.toUpperCase(),
-                                shift: shifts_format,
+                                shift: shifts_count,
                                 plan_dur: plan_dur,
                                 time_dur: time_dur,
                                 bill_dur: bill_dur,
                                 abs_dur: abs_dur,
+                                amount: tot_amount + tot_addition,
                                 status: 0
                                 }
 
         if (rptName === "customer"){
-            const billable_count = total_arr[5];
-            const tot_amount = total_arr[6];
-            const tot_addition = total_arr[7];
-            const tot_tax = total_arr[8];
             const avg_pricerate = 0 // (!!bill_dur) ? tot_amount / bill_dur * 60 : 0;
             const avg_addition = 0 // (!!bill_dur) ? tot_addition / bill_dur * 60 : 0;
             const avg_tax = 0 // (tot_amount + tot_addition !== 0) ? tot_tax / (tot_amount + tot_addition ) : 0;
@@ -417,37 +408,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // when customer: show warning when bill_dur < time_dur
             const show_warning = (bill_dur < time_dur);
-
+            display_dict.show_warning = show_warning;
 
             display_dict.billable_012 = billable_012;
-            display_dict.show_warning = show_warning;
             display_dict.pricerate = avg_pricerate;
             display_dict.additionrate = avg_addition;
-            display_dict.amount = tot_amount + tot_addition;
-            display_dict.status = 0;
-
         } else {
-            const abs_dur = total_arr[4];
-            const dur_diff = time_dur - plan_dur;
-            const abs_dur_format = format_total_duration (abs_dur, loc.user_lang)
-            const diff_format = format_total_duration (dur_diff, loc.user_lang)
-
-            const time_diff = time_dur - plan_dur;
             // when employee: show warning when time_dur > plan_dur
+            const time_diff = time_dur - plan_dur;
             const show_warning = (time_diff > 0);
-
-
-            const tot_amount = total_arr[6];
-            const tot_addition = total_arr[7];
-
-        console.log(" === tot_amount === ", tot_amount)
-        console.log(" === tot_addition === ", tot_addition)
-
-            display_dict.abs_dur = abs_dur;
             display_dict.time_diff = time_diff;
-            display_dict.amount = tot_amount + tot_addition;
-
-
         }  // if (rptName === "customer")
         const row_dict = {};
         const tblRow = CreateTblRow(rptName, tblName, row_dict)
@@ -909,11 +879,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     const imgsrc = (rptName === "customer" && dict.show_warning) ? imgsrc_warning : imgsrc_stat00;
                     IconChange(el, imgsrc);
                 } else if (i === 7) {
-                   el.innerText = format_pricerate (dict.pricerate, false, loc.user_lang);
+                   el.innerText = format_pricerate (dict.pricerate, false, false, loc.user_lang); // show_zero = false
                 } else if (i === 8) {
-                   el.innerText = format_pricerate (dict.additionrate, true, loc.user_lang);
+                   el.innerText = format_pricerate (dict.additionrate, true, false, loc.user_lang);// show_zero = false
                 } else if (i === 9) {
-                   el.innerText = format_pricerate (dict.amount, false, loc.user_lang);
+                   el.innerText = format_pricerate (dict.amount, false, false, loc.user_lang);// show_zero = false
                 } else if (i === 10) {
                     //if (dict.status){
                         //IconChange(el, imgsrc_stat04)
@@ -1394,7 +1364,7 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
 
 //=========  MSO_FillSelectTableCustomer  ================ PR2020-02-07
     function MSO_FillSelectTableCustomer() {
-        //console.log( "===== MSO_FillSelectTableCustomer ========= ");
+        console.log( "===== MSO_FillSelectTableCustomer ========= ");
 
         let tblBody_select_customer = document.getElementById("id_modorder_tblbody_customer");
 
@@ -1410,7 +1380,8 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
 
 //=========  MSO_FillSelectOrder  ================ PR2020-02-07
     function MSO_FillSelectOrder() {
-        //console.log( "===== MSO_FillSelectOrder ========= ");
+        console.log( "===== MSO_FillSelectOrder ========= ");
+        console.log( "mod_upload_dict: ", mod_upload_dict);
 
         let el_div_order = document.getElementById("id_modorder_div_tblbody_order")
         let tblBody_select_order = document.getElementById("id_modorder_tblbody_order");
@@ -1959,10 +1930,12 @@ function HandleExpand(mode){
         let headerrow = "";
         if (selected_btn === "employee") {
             headerrow = [loc.Employee, loc.Date, loc.Customer, loc.Order, loc.Shift,
-                                loc.Planned_hours, loc.Worked_hours, loc.Difference, loc.Absence]
+                                loc.Planned_hours, loc.Worked_hours, loc.Difference, loc.Absence,
+                                loc.Hourly_rate, loc.Addition, loc.Amount]
         } else {
             headerrow = [loc.Customer, loc.Order, loc.Date, loc.Shift, loc.Employee,
-                                loc.Planned_hours, loc.Worked_hours, loc.Billing_hours, loc.Difference]
+                                loc.Planned_hours, loc.Worked_hours, loc.Billing_hours, loc.Difference,
+                                loc.Hourly_rate, loc.Addition, loc.Amount]
         }
         for (let j = 0, len = headerrow.length, cell_index, cell_dict; j < len; j++) {
             const cell_value = headerrow[j];
@@ -1975,9 +1948,9 @@ function HandleExpand(mode){
         if(!!review_list){
             let cell_types;
             if (selected_btn === "employee") {
-                cell_types = ["s", "n", "s", "s", "s", "n", "n", "n", "n"]
+                cell_types = ["s", "n", "s", "s", "s", "n", "n", "n", "n", "n", "n", "n"]
             } else {
-                cell_types = ["s", "s", "n", "s", "s", "n", "n", "n", "n"]
+                cell_types = ["s", "s", "n", "s", "s", "n", "n", "n", "n", "n", "n", "n"]
             }
             const col_count = cell_types.length;
 
@@ -1992,20 +1965,32 @@ function HandleExpand(mode){
                 const excel_date = get_Exceldate_from_date(dict.rosterdate);
                 const plan_duration = (!!dict.eh_plandur) ? dict.eh_plandur / 60 : "";
                 const time_duration = (!!dict.eh_timedur) ? dict.eh_timedur / 60 : "";
+
+
                 let cell_values = [];
                 if (selected_btn === "employee") {
                     const abs_duration = (!!dict.eh_absdur) ? dict.eh_absdur / 60 : "";
                     const diff = (time_duration !== plan_duration) ? (time_duration - plan_duration) : "";
 
-                    cell_values = [dict.e_code, excel_date, dict.cust_code, dict.ord_code, dict.oh_shift,
-                                       plan_duration, time_duration, diff, abs_duration]
+                    const price_rate = (!!dict.eh_pr_rate) ? dict.eh_pr_rate / 100 : "";
+                    const addition_rate = (!!dict.eh_add_rate) ? dict.eh_add_rate / 10000 : "";
+                    const amount = (dict.eh_amount + dict.eh_addition !== 0) ? (dict.eh_amount + dict.eh_addition) / 100 : "";
+
+                    cell_values = [dict.e_code, excel_date, dict.cust_code, dict.ordr_code, dict.oh_shift,
+                                       plan_duration, time_duration, diff, abs_duration,
+                                       price_rate, addition_rate, amount]
 
                 } else {
                     const bill_duration = (!!dict.eh_billdur) ? dict.eh_billdur / 60 : "";
                     const diff = (bill_duration !== time_duration) ? (bill_duration - time_duration) : "";
 
-                    cell_values = [dict.cust_code, dict.ord_code, excel_date, dict.oh_shift, dict.e_code,
-                                       plan_duration, time_duration, bill_duration, diff]
+                    const price_rate = (!!dict.eh_pr_arr[0]) ? dict.eh_pr_arr[0] / 100 : "";
+                    const addition_rate = (!!dict.eh_add_arr[0]) ? dict.eh_add_arr[0] / 10000 : "";
+                    const amount = (dict.eh_amount + dict.eh_addition !== 0) ? (dict.eh_amount + dict.eh_addition) / 100 : "";
+
+                    cell_values = [dict.cust_code, dict.ordr_code, excel_date, dict.oh_shift, dict.e_code,
+                                       plan_duration, time_duration, bill_duration, diff,
+                                       price_rate, addition_rate, amount]
                 }
                 //console.log(cell_values)
                 for (let j = 0; j < col_count; j++) {
@@ -2013,11 +1998,16 @@ function HandleExpand(mode){
                     ws[cell_index] = {v: cell_values[j], t: cell_types[j]};
                     if ((selected_btn === "employee" && j === 1) || (selected_btn !== "employee" && j === 2)){
                         ws[cell_index]["z"] = "dd mmm yyyy"
-                    } else if ([5, 6, 7, 8].indexOf(j) > -1){
+                    } else if ([5, 6, 7, 8, 9, 11].indexOf(j) > -1){
                         if(!!cell_values[j]){
                             ws[cell_index]["z"] = "0.00"
                         }
+                    } else if (j === 10){
+                        if(!!cell_values[j]){
+                            ws[cell_index]["z"] = "#.00%"
+                        }
                     }
+
                 }
                 row_index += 1;
             }  //  for (const [pk_int, item_dict] of emplhour_map.entries())
