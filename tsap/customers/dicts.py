@@ -62,10 +62,11 @@ def create_customer_dict(customer, item_dict):
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     if customer:
-        # FIELDS_CUSTOMER = ('id', 'company', 'cat', 'code', 'name', 'identifier', 'email', 'telephone',
-        # 'interval', 'inactive')
-        for field in c.FIELDS_CUSTOMER:
+        # FIELDS_CUSTOMER = id', 'company', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'identifier',
+        #                   'contactname', 'address', 'zipcode', 'city', 'country', 'email', 'telephone', 'interval',
+        #                   'billable', 'pricecode', 'additioncode', 'taxcode', 'invoicecode', 'inactive', 'locked')
 
+        for field in c.FIELDS_CUSTOMER:
 # --- get field_dict from  item_dict  if it exists
             field_dict = item_dict[field] if field in item_dict else {}
 
@@ -84,6 +85,24 @@ def create_customer_dict(customer, item_dict):
 
             elif field in ['cat', 'interval']:
                 field_dict['value'] = getattr(customer, field, 0)
+
+            elif field in ['billable']:
+                value = getattr(customer, field, 0)
+                if not value:
+                    comp_billable = getattr(customer.company, field, 0)
+                    if comp_billable:
+                        value = comp_billable * -1  # inherited value gets negative sign
+                if value:
+                    field_dict['value'] = value
+
+            elif field in ['pricecode', 'additioncode', 'taxcode', 'invoicecode']:
+                pass
+                #pati = getattr(customer, field)
+                #if pati:
+                #    field_dict['pk'] = pati.pk
+                #    field_dict['ppk'] = pati.company_id
+                #    if pati.code:
+                #        field_dict['note'] = pati.note
 
             else:
                 value = getattr(customer, field)
@@ -168,12 +187,19 @@ def create_order_dict(order, item_dict, user_lang):
                 if cat_sum:
                     field_dict['value'] = cat_sum
 
-            elif field in ['billable']:
-                is_override, is_billable = f.get_billable_order(order)
-                field_dict['override'] = is_override
-                field_dict['billable'] = is_billable
+            elif field == 'billable':
+                value = getattr(order, field, 0)
+                if not value:
+                    cust_billable = getattr(order.customer, field, 0)
+                    if cust_billable:
+                        value = cust_billable * -1  # inherited value gets negative sign
+                    else:
+                        comp_billable = getattr(order.customer.company, field, 0)
+                        if comp_billable:
+                            value = comp_billable * -1  # inherited value gets negative sign
+                if value:
+                    field_dict['value'] = value
 
-                field_dict['value'] = getattr(order, field, 0)
 
             elif field in ['datefirst', 'datelast']:
                 # also add date when empty, to add min max date
@@ -188,22 +214,16 @@ def create_order_dict(order, item_dict, user_lang):
                             field_dict=field_dict,
                             date_value=datelast,
                             mindate=datefirst)
-
-            elif field in ['priceratejson']:
-                # TODO add cur_rosterdate, cur_wagefactor
-                pricerate = None
-                pricerate_json = getattr(order, 'priceratejson')
-                #logger.debug('>>  pricerate_json: ' + str(pricerate_json))
-                if pricerate_json:
-                    pricerate_dict = json.loads(pricerate_json)
-                    #logger.debug('pricerate_dict: ' + str(pricerate_dict))
-                    pricerate = f.get_pricerate_from_dict(pricerate_dict, None, None)
-                    #logger.debug('>>> pricerate: ' + str(pricerate))
-                    if pricerate is not None:
-                        field_dict['value'] = pricerate
-                field_dict['display'] = f.get_rate_display(pricerate, user_lang)
-                #logger.debug('field_dict: ' + str(field_dict))
-
+            elif field in [ 'pricecode', 'additioncode', 'taxcode', 'invoicecode']:
+                pass
+                """
+                                instance = getattr(order, field)
+                                if instance:
+                                    field_dict['pk'] = instance.pk
+                                    field_dict['ppk'] = instance.company_id
+                                    if instance.code:
+                                        field_dict['code'] = instance.code
+                """
             else:
                 value = getattr(order, field)
                 if value:

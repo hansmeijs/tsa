@@ -497,8 +497,6 @@
         let display_value = "";
         if(!!date_iso) {
             let arr = date_iso.split("-");
-            //console.log("arr.length", arr.length);
-
             if (arr.length === 3) {
                 let dte = moment(date_iso);
                 //console.log ("dte: ", dte.format(), typeof dte)
@@ -525,14 +523,11 @@
                 }
                 if (!hide_year) {display_value += comma_space + this_year};
                 if (!hide_weekday) {display_value = weekday_str + comma_space  + display_value;};
-
                 //console.log ("display_value: ", display_value)
             }  // if (arr.length === 2) {
         }  // if(!!date_iso)
         return display_value
     }  // function format_date_iso
-
-
 
 //========= format_date without moment.js  ======== PR2019-10-12
     function format_date_vanillaJS (date_JS, month_list, weekday_list, user_lang, hide_weekday, hide_year) {
@@ -1032,6 +1027,50 @@
         }  // if (!!value_int)
         return time_format
     }  // format_total_duration
+
+//========= format_pricerate ======== PR2019-08-22
+    function format_pricerate (value_int, is_percentage, user_lang) {
+        //console.log(" --- format_pricerate", fldname, value_int)
+        let display_text = "";
+
+        if (!!value_int) {
+            let minus_sign = "";
+            if (value_int < 0 ){
+                value_int = value_int * -1
+                minus_sign = "-";
+            }
+            const decimal_separator = (user_lang === "en") ? "." : ",";
+            const thousand_separator = (user_lang === "en") ? "," : ".";
+            const divisor = 100; // is_percentage ? 10000 : 100;
+
+            // PR2019-08-22 debug: dont use Math.floor, gives wrong value when negative. Was: const hours = Math.floor(value_int/60);
+              // The Math.floor() function returns the largest integer less than or equal to a given number.
+            const dollars_int = Math.trunc(value_int/divisor);
+            let dollar_text = dollars_int.toString()
+            if (dollars_int >= 1000000) {
+                const pos = dollar_text.length - 6 ;
+                dollar_text = [dollar_text.slice(0, pos), dollar_text.slice(pos)].join(thousand_separator);
+            }
+            if (dollars_int >= 1000) {
+                const pos = dollar_text.length - 3 ;
+                dollar_text = [dollar_text.slice(0, pos), dollar_text.slice(pos)].join(thousand_separator);
+            }
+
+            const cents_int = value_int - dollars_int * divisor  // % is remainder operator
+            let cent_text = "";
+            const cents_str = "00" + cents_int.toString()
+            // dont show decimals '00' when percentage
+            if ((is_percentage && !!cents_int) || (!is_percentage)){
+                const cents_str = "00" + cents_int.toString()
+                cent_text = decimal_separator + cents_str.slice(-2);
+            }
+            display_text = minus_sign + dollar_text + cent_text;
+            if (is_percentage) { display_text += " %" }
+        }  // if (!!value_int)
+        return display_text
+    }  // format_pricerate
+
+
 
 
 //========= format_shift_count ======== PR2020-02-28

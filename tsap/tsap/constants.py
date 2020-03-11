@@ -371,15 +371,16 @@ COLDEF_ORDER = {LANG_EN: [
                             ]
                     }
 
-FIELDS_COMPANY = ('id', 'code', 'name', 'issystem', 'timezone', 'interval', 'timeformat', 'cat', 'billable', 'payperiods', 'billingperiods')
+FIELDS_COMPANY = ('id', 'code', 'name', 'issystem', 'timezone', 'interval', 'timeformat', 'cat', 'billable')
 
 FIELDS_CUSTOMER = ('id', 'company', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'identifier',
                     'contactname', 'address', 'zipcode', 'city', 'country',
-                   'email', 'telephone', 'interval', 'invoicedates', 'inactive')
+                   'email', 'telephone', 'interval',
+                   'billable', 'pricecode', 'additioncode', 'taxcode', 'invoicecode', 'inactive', 'locked')
 
 FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'datefirst', 'datelast',
                 'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',
-                'billable', 'sequence', 'priceratejson', 'additionjson', 'invoicedates', 'taxcode', 'locked', 'inactive')
+                'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode', 'inactive', 'locked')
 
 FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
                     'invoicedate', 'isbillable', 'isrestshift', 'shift', 'status', 'locked')
@@ -395,33 +396,31 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsenc
 FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
                  'code', 'datefirst', 'datelast',
                  'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday',
-                 'priceratejson', 'additionjson', 'inactive')
+                 'pricecode', 'additioncode', 'taxcode' , 'inactive')
 
-FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')
 
 FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
                 'offsetstart', 'offsetend', 'breakduration', 'timeduration',
-                'wagefactor', 'priceratejson', 'additionjson')
+                'wagefactorcode', 'pricecode', 'additioncode', 'taxcode')
 
+FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')
 
 FIELDS_EMPLOYEE = ('id', 'company', 'code', 'datefirst', 'datelast',
                    'namelast', 'namefirst', 'email', 'telephone', 'identifier',
                    'address', 'zipcode', 'city', 'country',
-                   'payrollcode', 'paydates', 'wagerate', 'wagecode', 'workhours', 'workdays', 'leavedays',
-                   'priceratejson', 'additionjson', 'inactive', 'locked')
+                   'functioncode', 'wagecode', 'paydatecode', 'workhours', 'workdays', 'leavedays',
+                   'pricecode', 'additioncode', 'inactive', 'locked')
 
 # PR2019-12-20 Note: 'scheme' and 'order' are not model fields, but necessary for absence update
-FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'replacement', 'datefirst', 'datelast',
+FIELDS_TEAMMEMBER = ('id', 'team', 'employee', 'replacement', 'datefirst', 'datelast',
                      'scheme', 'order',
-                     'isabsence', 'issingleshift', 'istemplate',
-                     'wagefactor', 'priceratejson', 'additionjson', 'override')
+                     'cat', 'isabsence', 'issingleshift', 'istemplate',
+                     'wagefactorcode', 'pricecode', 'additioncode', 'override')
 
 # teammember wagerate not in use
 FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team',
-                     'cat', 'istemplate', 'billable',
-                     'rosterdate', 'iscyclestart',
-                     'offsetstart', 'offsetend', 'breakduration', 'timeduration',
-                     'priceratejson', 'additionjson', 'inactive')
+                     'cat', 'isabsence', 'issingleshift', 'istemplate', 'billable',
+                     'rosterdate', 'iscyclestart', 'inactive')
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
 

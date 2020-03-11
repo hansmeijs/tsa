@@ -10,6 +10,7 @@ from companies import views as company_views
 from customers import views as customer_views
 from employees import views as employee_views
 from planning import views as planning_views
+from planning import prices as prices_views
 from planning import rosterfill as rosterfill_views
 
 from accounts.forms import CompanyAuthenticationForm
@@ -165,6 +166,9 @@ urlpatterns = [
         path('schemeorshiftorteam_upload', planning_views.SchemeOrShiftOrTeamUploadView.as_view(), name='schemeorshiftorteam_upload_url'),
 
         path('scheme_template_upload', planning_views.SchemeTemplateUploadView.as_view(), name='scheme_template_upload_url'),
+
+        path('prices', planning_views.PricesView.as_view(), name='prices_url'),
+        path('prices_upload', prices_views.PricesUploadView.as_view(), name='prices_upload_url'),
 
     ])),
     path('roster/', include([

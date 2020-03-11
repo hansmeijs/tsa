@@ -377,10 +377,10 @@ let planning_list = [] // for export and printing - can replace map?
                 imgsrc_inactive_grey, imgsrc_inactive_black,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                 loc.TXT_Cick_show_inactive_customers);
-            fFilter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
+            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
 
             FillTableRows("customer");
-            f_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);  // false = no ppk_filter
+            t_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);  // false = no ppk_filter
         }
         if ("order_list" in response) {
             get_datamap(response["order_list"], order_map);
@@ -394,7 +394,7 @@ let planning_list = [] // for export and printing - can replace map?
                 cls_bc_lightlightgrey, cls_bc_yellow,
                 imgsrc_inactive_grey, imgsrc_inactive_black,
                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive);
-            const has_rows_arr = fFilter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk);
+            const has_rows_arr = t_Filter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk);
 
             if ( !!has_rows_arr[0] && ["calendar", "planning"].indexOf(selected_btn) > -1){
                 document.getElementById("id_div_tbody_select_order").classList.remove(cls_hide)
@@ -403,7 +403,7 @@ let planning_list = [] // for export and printing - can replace map?
             };
 
             FillTableRows("order");
-            f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk)  // true = has_ppk_filter
+            t_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk)  // true = has_ppk_filter
 
             UpdateHeaderText();
         }
@@ -431,7 +431,7 @@ let planning_list = [] // for export and printing - can replace map?
             get_datamap(response["employee_planning_list"], planning_employee_map, true)
             FillTableRows("planning");
 
-            f_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
+            t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
         }
 
         if ("customer_calendar_list" in response) {
@@ -713,7 +713,7 @@ let planning_list = [] // for export and printing - can replace map?
             // ---  highlight row in tblBody
                     if(selected_btn === "customer"){
                     // reset filter tBody_customer
-                        f_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
+                        t_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
 
                         let tblRow = HighlightSelectedTblRowByPk(tBody_customer, selected_customer_pk)
                         // ---  scrollIntoView, only in tblBody customer
@@ -722,7 +722,7 @@ let planning_list = [] // for export and printing - can replace map?
                         };
                     } else if(selected_btn === "order"){
             // reset filter tBody_order (show all orders, therefore dont filter on selected_customer_pk
-                        f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
+                        t_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
 
             // ---  update addnew row: put pk and ppk of selected customer in addnew row of tBody_order
                         //UpdateAddnewRow(selected_customer_pk, sel_cust_ppk, sel_cust_code)
@@ -753,7 +753,7 @@ let planning_list = [] // for export and printing - can replace map?
                     UploadSettings (upload_dict, url_settings_upload);
     // ---  filter selectrows of tbody_select_order
                     // has_rows_dict: {row_count: 2, selected_pk: null, selected_parentpk: null, selected_value: null}
-                    const has_rows_dict = fFilter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk)
+                    const has_rows_dict = t_Filter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk)
 
 
         console.log( "has_rows_dict: ", has_rows_dict);
@@ -1490,10 +1490,15 @@ let planning_list = [] // for export and printing - can replace map?
                 const row_index = GetNewSelectRowIndex(tblBody_select_customer, 0, update_dict, user_lang);
                 const imgsrc_default = imgsrc_inactive_grey, imgsrc_hover = imgsrc_inactive_black;
 
+                let row_count = {count: 0};  // NIU
+                const filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = true;
                 selectRow = t_CreateSelectRow(false, tblBody_select_customer, tblName, row_index, update_dict, selected_customer_pk,
                                             HandleSelect_Row, HandleBtnInactiveDeleteClicked,
-                                            imgsrc_default, imgsrc_hover, imgsrc_inactive_black, imgsrc_inactive_grey,
-                                            imgsrc_inactive_lightgrey,
+
+                                            filter_ppk_int, filter_include_inactive, filter_include_absence, row_count,
+                                            cls_bc_lightlightgrey, cls_bc_yellow_light,
+                                            imgsrc_default, imgsrc_hover,
+                                            imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
                                             loc.TXT_Cick_show_inactive_customers)
 
                 HandleSelect_Row(selectRow);
@@ -1514,7 +1519,7 @@ let planning_list = [] // for export and printing - can replace map?
             // let row disappear when inactive and not filter_show_inactive
             console.log (" ++++ update table filter when inactive changed ++++")
             setTimeout(function (){
-                f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk)  // true = has_ppk_filter
+                t_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk)  // true = has_ppk_filter
             }, 2000);
           }
 
@@ -2077,7 +2082,7 @@ let planning_list = [] // for export and printing - can replace map?
                 }
             });
         }  //  if(!!new_item)
-    };  // UploadChangesDict
+    };  // UploadChanges
 
 //###########################################################################
 // +++++++++++++++++ POPUP ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3041,7 +3046,7 @@ let planning_list = [] // for export and printing - can replace map?
         //console.log( "===== MSO_FilterEmployee  ========= ");
         let tblBody =  document.getElementById("id_modshift_select_order_tblBody")
         const filter_str = el_filter.value;
-        fFilter_SelectRows(tblBody, filter_str, filter_show_inactive);
+        t_Filter_SelectRows(tblBody, filter_str, filter_show_inactive);
     }; // function MSO_FilterEmployee
 
 //=========  MSO_OnceOnly  ================ PR2019-12-06
@@ -4513,15 +4518,15 @@ let planning_list = [] // for export and printing - can replace map?
         if (!skip_filter) {
 // filter table customer and order
     // reset filter tBody_customer
-            f_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
+            t_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
     // reset filter tBody_order (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
+            t_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
     // reset filter tBody_planning (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
+            t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
 
 // filter selecttable customer and order
-            fFilter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive, false)
-            fFilter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
+            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive, false)
+            t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
 
         } //  if (!skip_filter) {
     }; // function HandleSelect_Filter
@@ -4578,13 +4583,13 @@ let planning_list = [] // for export and printing - can replace map?
 
         if (!skip_filter) {
     // reset filter tBody_customer
-            f_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
+            t_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
     // reset filter tBody_order (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
+            t_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
     // reset filter tBody_planning (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
+            t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
 
-            fFilter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
+            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
         } //  if (!skip_filter) {
 
 
@@ -4601,21 +4606,21 @@ let planning_list = [] // for export and printing - can replace map?
         // debug: dont use el.firstChild, it  also returns text and comment nodes, can give error
         el.children[0].setAttribute("src", img_src);
 // Filter SelectRows
-        fFilter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
-        const has_rows_arr = fFilter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk);
+        t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive);
+        const has_rows_arr = t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk);
         if(!!has_rows_arr[0]){
             tblBody_select_order.classList.remove(cls_hide)
         } else {
             tblBody_select_order.classList.add(cls_hide)
         };
 // Filter TableRows
-    //f_Filter_TableRows(tblBody, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk)
+    //t_Filter_TableRows(tblBody, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk)
     // reset filter tBody_customer
-            f_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
+            t_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
     // reset filter tBody_order (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, false );
+            t_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, false );
     // reset filter tBody_planning (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, false);
+            t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, false);
 
 
 
@@ -4641,11 +4646,11 @@ let planning_list = [] // for export and printing - can replace map?
 
 // reset filter tBody_customer
     // reset filter tBody_customer
-            f_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
+            t_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
     // reset filter tBody_order (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, false );
+            t_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, false );
     // reset filter tBody_planning (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, false);
+            t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, false);
 
         if (!!tblName){
 
@@ -4656,8 +4661,8 @@ let planning_list = [] // for export and printing - can replace map?
 //--- reset filter of select table
             f_reset_tblSelect_filter ("id_filter_select_input", "id_filter_select_btn", imgsrc_inactive_lightgrey)
 
-            fFilter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive)
-            fFilter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
+            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive)
+            t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
 
 // --- save selected_customer_pk in Usersettings
             const setting_dict = {"selected_pk": { "sel_cust_pk": selected_customer_pk, "sel_order_pk": selected_order_pk}};

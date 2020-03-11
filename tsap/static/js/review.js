@@ -60,11 +60,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const imgsrc_stat04 = get_attr_from_el(el_data, "data-imgsrc_stat04");
     const imgsrc_stat05 = get_attr_from_el(el_data, "data-imgsrc_stat05");
 
-    const tbl_col_count = 9;
-    const field_width = { employee: ["240", "120", "120", "120", "120", "032", "032", "120", "032"],
-                          customer: ["240", "120", "090", "090", "032", "090", "090", "032", "032"]};
-    const field_align = { employee: ["left", "left", "right","right", "right", "right", "right", "right", "right"],
-                          customer: ["left", "left", "right","right", "right", "right", "right", "right", "right"]};
+    const imgsrc_bill01 = get_attr_from_el(el_data, "data-imgsrc_bill01");
+    const imgsrc_bill01_lightgrey = get_attr_from_el(el_data, "data-imgsrc_bill01_lightgrey");
+    const imgsrc_bill01_lightlightgrey = get_attr_from_el(el_data, "data-imgsrc_bill01_lightlightgrey")
+    const imgsrc_bill03 = get_attr_from_el(el_data, "data-imgsrc_bill03");
+
+    const tbl_col_count = 11;
+
+    const field_width = ["180", "120", "090", "090", "032", "090", "032", "090", "060", "150", "032"];
+    const field_align = ["left", "left", "right","right", "right", "right", "right", "right", "right", "right",  "right"];
 
 // get elements
     let el_loader = document.getElementById("id_loader");
@@ -137,8 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
             review_period: {now: now_arr},
             review: true,
             customer: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive
-            order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
-            order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
+            //order: {isabsence: false, istemplate: false, inactive: null}, // inactive=null: both active and inactive,
             employee: {inactive: false}
         };
 
@@ -289,399 +292,425 @@ document.addEventListener('DOMContentLoaded', function() {
     function FillTableRows() {
         console.log("===  FillTableRows == ");
 
-        const tblName = selected_btn
+        const rptName = selected_btn
 // --- reset tblBody_items
         tblBody_items.innerText = null;
 
 // --- get  item_list
         let tblRow;
-        let oh_id_curr = 0, eh_id_curr = 0;  // not in use yet, for clicking on detail row en open modal with details
-        let empl_id_prev = null, empl_id_curr = null, empl_code_curr = null;
-        let cust_id_prev = null, cust_id_curr = null, cust_code_curr = null;
-        let ord_id_prev = null, ord_id_curr = null, ord_code_curr = null;
-        let dte_id_prev, dte_id_curr, dte_format, dte_flt_prev, dte_flt_curr;
+        //let oh_id_curr = 0, eh_id_curr = 0;  // not in use yet, for clicking on detail row en open modal with details
+        let cust_id_curr = null, cust_id_prev = null, ord_id_curr = null, ord_id_prev = null;
+        let empl_id_curr = null, empl_id_prev = null, dte_flt_curr= null, dte_flt_prev= null;
 
 // create TABLE HEADER
-        CreateTblHeader(tblName);
+        CreateTblHeader(rptName);
 
 // create GRAND TOTAL
-        CreateGrandTotal(tblName);
-
-        if (selected_btn === "employee"){
-
-// ============ EMPLOYEE  =========================
-            let employee_id = null, employee_code = null
+        CreateGrandTotal(rptName);
 
     // --- loop through review_list
-            const len = review_list.length;
-            if (!!len) {
-                for (let i = 0; i < len; i++) {
-                    const row_list = review_list[i];
-
-                    eh_id_curr = row_list.eh_id;
-
-                    empl_id_curr = (!!row_list.e_id) ? row_list.e_id : 0;
-                    empl_code_curr = row_list.e_code;
-                    cust_id_curr = row_list.cust_id;
-                    cust_code_curr = row_list.cust_code;
-                    ord_id_curr = row_list.ord_id;
-                    ord_code_curr = row_list.ord_code;
-
-                    dte_id_curr = row_list.rosterdate;
-                    dte_flt_curr = dte_id_curr + "_" + ord_id_curr;
-                    //dte_format = format_date_iso (dte_id_curr, loc.months_abbrev, loc.weekdays_abbrev, false, true, loc.user_lang);
-
-    // create EMPLOYEE subtotal row when id changes, then reset subotal
-                    if(empl_id_curr !== empl_id_prev){
-                        CreateEmployeeTotal(tblName, eh_id_curr, empl_id_curr, cust_id_curr, ord_id_curr, dte_id_curr, empl_code_curr);
-                        dte_id_prev = null
-                        dte_flt_prev = null
-                    }
-    // create DATE subtotal row when id changes or when order_id changes,, then reset subotal
-                    if(dte_id_curr !== dte_id_prev){
-                        CreateDateTotal("employee", tblName, eh_id_curr, oh_id_curr, empl_id_curr, cust_id_curr, ord_id_curr, dte_id_curr)
-                    }
-    // --- create DETAIL row
-                    CreateDetailRow(tblName, row_list)
-    // --- update prev variables
-                    empl_id_prev= empl_id_curr;
-                    dte_id_prev = dte_id_curr
-                    dte_flt_prev = dte_flt_curr
-                }  // for (let i = len - 1; i >= 0; i--)
-            }  // if (!!len)
-
-    // create END ROW
-            // display_list:  0 = date, 1 = cust /order/employee, 2 = shift,  3 = plan_dur, 4 = time_dur, 5 = billable, 6 = bill_dur, 7 = diff, 8 = show warning, 9=status
-            const display_list =["", "", "", "", "", "", "", "", ""]
-            tblRow =  CreateTblRow(tblName)
-            UpdateTableRow(tblName, tblRow, 0, 0, 0, 0, 0, display_list,  "grnd")
-
-        } else {
-
+        const len = review_list.length;
+        if (!!len) {
+            for (let i = 0; i < len; i++) {
+                const row_dict = review_list[i];
+                if (rptName === "customer"){
 // ============  CUSTOMER  =========================
-    // --- loop through review_list
-            const len = review_list.length;
-            if (!!len) {
-                for (let i = 0; i < len; i++) {
-                    const row_list = review_list[i];
-
-                    oh_id_curr = row_list.oh_id;
-
-                    cust_id_curr = row_list.cust_id;
-                    cust_code_curr = row_list.cust_code;
-                    ord_id_curr = row_list.ord_id;
-                    ord_code_curr = row_list.ord_code;
-
-                    dte_id_curr = row_list.rosterdate;
-                    dte_flt_curr = dte_id_curr + "_" + ord_id_curr;
-                    //dte_format = format_date_iso (dte_id_curr, loc.months_abbrev, loc.weekdays_abbrev, false, true, loc.user_lang);
-
+                    //oh_id_curr = row_dict.oh_id;
+                    cust_id_curr = row_dict.cust_id;
+                    ord_id_curr = row_dict.ordr_id;
+                    dte_flt_curr = ord_id_curr.toString() + "_" + row_dict.rosterdate;
     // create CUSTOMER subtotal row when id changes, then reset subotal
+        console.log("cust_id_curr: ", cust_id_curr, "cust_id_prev", cust_id_prev);
                     if(cust_id_curr !== cust_id_prev){
-                        CreateCustomerTotal(tblName, oh_id_curr, cust_id_curr, ord_id_curr, dte_id_curr, cust_code_curr);
-                        ord_id_prev = null
-                        dte_id_prev = null
-                        dte_flt_prev = null
+                        cust_id_prev = cust_id_curr;
+                        ord_id_prev = null;
+                        dte_flt_prev = null;
+                        CreateCustomerTotal(rptName, row_dict);
                     }
     // create ORDER subsubtotal row when ord_id changes, then reset subotal
                     // use prev variables for subtotals, prev variables are updated after comparison with current value
                     if(ord_id_curr !== ord_id_prev){
-                        CreateOrderTotal(tblName, oh_id_curr, cust_id_curr, ord_id_curr, dte_id_curr, ord_code_curr)
-                        dte_id_prev = null
-                        dte_flt_prev = null
+                        ord_id_prev = ord_id_curr;
+                        dte_flt_prev = null;
+                        CreateOrderTotal(rptName, row_dict);
                     }
     // create DATE subtotal row when id changes or when order_id changes,, then reset subotal
                     // use prev variables for subtotals, prev variables are updated after comparison with current value
                     if(dte_flt_curr !== dte_flt_prev){
-                        CreateDateTotal("customer", tblName, eh_id_curr, oh_id_curr, empl_id_curr, cust_id_curr, ord_id_curr, dte_id_curr)
+                        dte_flt_prev = dte_flt_curr;
+                        CreateDateTotal(rptName, row_dict);
                     }
+
+// ============ EMPLOYEE  =========================
+                } else if (rptName === "employee"){
+                    //eh_id_curr = row_dict.eh_id;
+                    empl_id_curr = (!!row_dict.e_id) ? row_dict.e_id : 0;
+                    dte_flt_curr = empl_id_curr.toString() + "_" + row_dict.rosterdate;
+    // create EMPLOYEE subtotal row when id changes, then reset subotal
+        console.log("empl_id_curr", empl_id_curr, "empl_id_prev", empl_id_prev)
+                    if(empl_id_curr !== empl_id_prev){
+        console.log("empl_id_curr !== empl_id_prev > CreateEmployeeTotal", row_dict.e_code)
+                        empl_id_prev = empl_id_curr
+                        dte_flt_prev = null
+                        CreateEmployeeTotal(rptName, row_dict);
+                    }
+    // create DATE subtotal row when id changes or when order_id changes,, then reset subotal
+        console.log("dte_flt_curr", dte_flt_curr, "dte_flt_prev", dte_flt_prev)
+                    if(dte_flt_curr !== dte_flt_prev){
+        console.log("dte_flt_curr !== dte_flt_prev > CreateDateTotal")
+                        dte_flt_prev = dte_flt_curr
+                        CreateDateTotal(rptName, row_dict)
+                    }
+                }  // if (rptName ==="customer"){
     // --- create DETAIL row
-                    CreateDetailRow(tblName, row_list)
-    // --- update prev variables
-                    cust_id_prev = cust_id_curr
-                    ord_id_prev = ord_id_curr
-                    dte_id_prev = dte_id_curr
-                    dte_flt_prev = dte_flt_curr
-                }  // for (let i = len - 1; i >= 0; i--)
-            }  // if (!!len)
-
+                CreateDetailRow(rptName, row_dict)
+            }  // for (let i = len - 1; i >= 0; i--)
+        }  // if (!!len)
     // create END ROW
-            // display_list:  0 = date, 1 = cust /order/employee, 2 = shift,  3 = plan_dur, 4 = time_dur, 5 = billable, 6 = bill_dur, 7 = diff, 8 = show warning, 9=status
-            const display_list =["", "", "", "", "", "", "", "", ""]
-            tblRow =  CreateTblRow(tblName)
-            UpdateTableRow(tblName, tblRow, 0, 0, 0, 0, 0, display_list,  "grnd")
-        }  // if (tblName ==="employee"){
-
+        const display_dict = {report: rptName, table: "comp"}
+        tblRow =  CreateTblRow(rptName, "comp", {})
+        UpdateTableRow(tblRow, display_dict)
     }  // FillTableRows
 
 //=========  CreateGrandTotal  === PR2020-02-23
-    function CreateGrandTotal(tblName){
-        console.log(" === CreateGrandTotal === ", tblName)
-    // create GRAND TOTAL first row
+    function CreateGrandTotal(rptName){
+        console.log(" === CreateGrandTotal === ", rptName)
+        const tblName = "comp"
 
-        // array 'total' contains [time_dur, plan_dur, bill_dur]
-        const tot_plan_dur = review_list_totals.total[0];
-        const tot_time_dur = review_list_totals.total[1];
-        const tot_count = review_list_totals.total[3];
+        console.log(" === review_list_totals === ", review_list_totals)
+        const total_arr = review_list_totals.total;
+        console.log(" === total_arr === ", total_arr)
+        const count = total_arr[0];
+        const plan_dur = total_arr[1];
+        const time_dur = total_arr[2];
+        const bill_dur = total_arr[3];
+        const abs_dur = total_arr[4];
 
-        const plan_dur_format = format_total_duration (tot_plan_dur, loc.user_lang);
-        const time_dur_format = format_total_duration (tot_time_dur, loc.user_lang);
-        const shifts_format = format_shift_count (tot_count, loc);
+        const plan_dur_format = format_total_duration (plan_dur, loc.user_lang);
+        const time_dur_format = format_total_duration (time_dur, loc.user_lang);
+        const bill_dur_format = format_total_duration (bill_dur, loc.user_lang);
+        const abs_dur_format = format_total_duration (abs_dur, loc.user_lang)
 
-        let display_list = [];
+        const shifts_format = format_shift_count (count, loc);
 
-        if (tblName === "employee"){
-            // employee_totals = 0: shift_count, 1: eh_plandur, 2: eh_timedur, 3: eh_billdur, 4: eh_absdur
 
-            const tot_count = review_list_totals.total[0];
-            const tot_plan_dur = review_list_totals.total[1];
-            const tot_time_dur = review_list_totals.total[2];
-            const tot_abs_dur = review_list_totals.total[4];
+        let display_dict = {report: rptName,
+                            table: "comp",
+                            code: loc.Grand_total.toUpperCase(),
+                                shift: shifts_format,
+                                plan_dur: plan_dur,
+                                time_dur: time_dur,
+                                bill_dur: bill_dur,
+                                abs_dur: abs_dur,
+                                status: 0
+                                }
 
-            const shifts_format = format_shift_count (tot_count, loc);
-            const plan_dur_format = format_total_duration (tot_plan_dur, loc.user_lang);
-            const time_dur_format = format_total_duration (tot_time_dur, loc.user_lang);
-            const abs_dur_format = format_total_duration (tot_abs_dur, loc.user_lang)
+        if (rptName === "customer"){
+            const billable_count = total_arr[5];
+            const tot_amount = total_arr[6];
+            const tot_addition = total_arr[7];
+            const tot_tax = total_arr[8];
+            const avg_pricerate = 0 // (!!bill_dur) ? tot_amount / bill_dur * 60 : 0;
+            const avg_addition = 0 // (!!bill_dur) ? tot_addition / bill_dur * 60 : 0;
+            const avg_tax = 0 // (tot_amount + tot_addition !== 0) ? tot_tax / (tot_amount + tot_addition ) : 0;
+            const billable_012 = (billable_count === 0) ? 0 : (billable_count === count) ? 2 : 1;
 
-            const tot_dur_diff = tot_time_dur - tot_plan_dur;
-            const diff_format = format_total_duration (tot_dur_diff, loc.user_lang)
-            const show_warning = (tot_dur_diff > 0);
+            // when customer: show warning when bill_dur < time_dur
+            const show_warning = (bill_dur < time_dur);
 
-            display_list = [loc.Grand_total.toUpperCase(), shifts_format, plan_dur_format,
-                            time_dur_format, diff_format, show_warning,
-                            "", abs_dur_format, ""]
 
-        } else {        // array 'total' contains [time_dur, plan_dur, bill_dur]
-            const tot_plan_dur = review_list_totals.total[0];
-            const tot_time_dur = review_list_totals.total[1];
-            const tot_count = review_list_totals.total[3];
+            display_dict.billable_012 = billable_012;
+            display_dict.show_warning = show_warning;
+            display_dict.pricerate = avg_pricerate;
+            display_dict.additionrate = avg_addition;
+            display_dict.amount = tot_amount + tot_addition;
+            display_dict.status = 0;
 
-            const plan_dur_format = format_total_duration (tot_plan_dur, loc.user_lang);
-            const time_dur_format = format_total_duration (tot_time_dur, loc.user_lang);
-            const shifts_format = format_shift_count (tot_count, loc);
-            // array 'total' contains [plan_dur, time_dur, bill_dur, count, billable_count]
-            const tot_bill_dur = review_list_totals.total[2];
-            const tot_dur_diff = tot_bill_dur - tot_time_dur;
-            const tot_bill_count = review_list_totals.total[4];
+        } else {
+            const abs_dur = total_arr[4];
+            const dur_diff = time_dur - plan_dur;
+            const abs_dur_format = format_total_duration (abs_dur, loc.user_lang)
+            const diff_format = format_total_duration (dur_diff, loc.user_lang)
 
-            const bill_dur_format = format_total_duration (tot_bill_dur, loc.user_lang)
-            const diff_format = format_total_duration (tot_dur_diff, loc.user_lang)
-            const show_warning = (tot_dur_diff < 0);
+            const time_diff = time_dur - plan_dur;
+            // when employee: show warning when time_dur > plan_dur
+            const show_warning = (time_diff > 0);
 
-            // TODO add tot_oh_amount to totals or remove
-            const tot_oh_amount = 0
-            const tot_pricerate_format = (!!tot_oh_amount && !!tot_bill_dur) ? format_amount ((tot_oh_amount / tot_bill_dur * 60), loc.user_lang) : null
-            const tot_amount_format = format_amount (tot_oh_amount, loc.user_lang)
-            const billable_format = (tot_bill_count === 0) ? "" : (tot_bill_count === tot_count) ? ">" : "-";
 
-            display_list = [loc.Grand_total.toUpperCase(), shifts_format,
-                            plan_dur_format, time_dur_format, billable_format, bill_dur_format,
-                            diff_format, show_warning, tot_pricerate_format, tot_amount_format]
+            const tot_amount = total_arr[6];
+            const tot_addition = total_arr[7];
 
-        }  // if (tblName === "employee")
+        console.log(" === tot_amount === ", tot_amount)
+        console.log(" === tot_addition === ", tot_addition)
 
-        const tblRow =  CreateTblRow(tblName)
-        UpdateTableRow(tblName, tblRow, 0, 0, 0, 0, 0, display_list, "grnd")
+            display_dict.abs_dur = abs_dur;
+            display_dict.time_diff = time_diff;
+            display_dict.amount = tot_amount + tot_addition;
+
+
+        }  // if (rptName === "customer")
+        const row_dict = {};
+        const tblRow = CreateTblRow(rptName, tblName, row_dict)
+        UpdateTableRow(tblRow, display_dict)
     }
 
 //=========  CreateEmployeeTotal  === PR2020-02-23
-    function CreateEmployeeTotal(tblName, oh_id_curr, empl_id_curr, cust_id_curr, ord_id_curr, dte_id_curr, code) {
+    function CreateEmployeeTotal(rptName, row_dict) {
+        console.log(" === CreateEmployeeTotal === ")
+        //console.log("row_dict: ", row_dict)
+        const tblName = "empl"
+        const empl_key = (!!row_dict.e_id) ? tblName + "_" + row_dict.e_id.toString() : tblName + "_0000";
+        const total_arr = review_list_totals[empl_key]["total"]
+        console.log(" === total_arr === ", total_arr)
+            const count = total_arr[0];
+            const plan_dur = total_arr[1];
+            const time_dur = total_arr[2];
+            const bill_dur = total_arr[3];
+            const time_diff = time_dur - plan_dur;
+            const show_warning = (time_diff > 0);
+            const billable_count = total_arr[5];
+            const tot_amount = total_arr[6];
+            const tot_addition = total_arr[7];
+            const tot_tax = total_arr[8];
+        console.log("time_dur: ", time_dur)
 
-        // array 'total' contains [plan_dur, time_dur, bill_dur, count, abs_dur]
-        //console.log("selected_btn", selected_btn)
-        //console.log("empl_id_curr", empl_id_curr)
-        //console.log("review_list_totals", review_list_totals)
-        let plan_dur = 0, time_dur = 0, count = 0, abs_dur = 0, dur_diff = 0;
-        if(!!review_list_totals[empl_id_curr]){
-            // employee_totals = 0: shift_count, 1: eh_plandur, 2: eh_timedur, 3: eh_billdur, 4: eh_absdur
-            const total_arr = review_list_totals[empl_id_curr]["total"]
-                count = total_arr[0];
-                plan_dur = total_arr[1];
-                time_dur = total_arr[2];
-                abs_dur = total_arr[4];
-                dur_diff = time_dur - plan_dur;
-        }
-        const plan_dur_format = format_total_duration (plan_dur, loc.user_lang)
-        const time_dur_format = format_total_duration (time_dur, loc.user_lang)
-        const abs_dur_format = format_total_duration (abs_dur, loc.user_lang)
-        const diff_format = format_total_duration (dur_diff, loc.user_lang)
-        const show_warning = (dur_diff > 0);
+            const avg_pricerate = 0 // (!!bill_dur) ? tot_amount / bill_dur * 60 : 0;
+        console.log("tot_amount: ", tot_amount)
+        console.log("avg_pricerate: ", avg_pricerate)
+            const avg_addition = 0 // (!!bill_dur) ? tot_addition / bill_dur * 60 : 0;
+        console.log("tot_addition: ", tot_addition)
+        console.log("avg_addition: ", avg_addition)
+            const avg_tax = 0 // (tot_amount + tot_addition !== 0) ? tot_tax / (tot_amount + tot_addition ) : 0;
+            const billable_012 = (billable_count === 0) ? 0 : (billable_count === count) ? 2 : 1;
 
-        const shifts_txt = format_shift_count (count, loc);
-        const display_list = [code, shifts_txt, plan_dur_format,
-                              time_dur_format, diff_format, show_warning,
-                              "", abs_dur_format, ""]
+        const shifts_count = format_shift_count (count, loc);
+        let display_dict = {report: rptName,
+                            table: tblName,
+                            code: row_dict.e_code,
+                            shift: shifts_count,
+                            plan_dur: plan_dur,
+                            time_dur: time_dur,
+                            time_diff: time_diff,
+                            bill_dur: bill_dur,
+                            billable_012: billable_012,
+                            show_warning: show_warning,
+                            pricerate: avg_pricerate,
+                            additionrate: avg_addition,
+                            amount: tot_amount + tot_addition,
+                            status: 0
+                            }
 
-        let tblRow =  CreateTblRow(tblName)
-        UpdateTableRow(tblName, tblRow, oh_id_curr, empl_id_curr, cust_id_curr, ord_id_curr, dte_id_curr, display_list, "empl")
+        let tblRow =  CreateTblRow(rptName, "empl", row_dict)
+        UpdateTableRow(tblRow, display_dict)
     }
 
 //=========  CreateCustomerTotal  === PR2020-02-22
-    function CreateCustomerTotal(tblName, oh_id_curr, cust_id_curr, ord_id_curr, dte_id_curr, code) {
-        const total_arr = review_list_totals[cust_id_curr]["total"]
-            const count = total_arr[0];
-            const bill_dur = total_arr[3];
-            const billable_count = total_arr[4];
-        // TODO give value
-        const oh_amount = 0;
-
-        const plan_dur_format = format_total_duration (total_arr[1], loc.user_lang)
-        const time_dur_format = format_total_duration (total_arr[2], loc.user_lang)
-        const bill_dur_format = format_total_duration (bill_dur, loc.user_lang)
-        const diff_format = format_total_duration (total_arr[3] - total_arr[2], loc.user_lang)
-        const show_warning = (total_arr[3] - total_arr[2] < 0);
-
-        const cust_pricerate_format = (!!oh_amount && !!bill_dur) ? format_amount ((oh_amount / bill_dur * 60), loc.user_lang) : null
-        const cust_amount_format = format_amount (oh_amount, loc.user_lang)
-        const billable_format = (billable_count === 0) ? "" : (billable_count === count) ? ">" : "-";
-
-        const shifts_txt = format_shift_count (count, loc);
-        const display_list = [code, shifts_txt,
-                         plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning]
-
-        let tblRow =  CreateTblRow(tblName)
-
-        UpdateTableRow("customer", tblRow, oh_id_curr, 0, cust_id_curr, ord_id_curr, dte_id_curr, display_list, "cust")
-    }
-
-//=========  CreateOrderTotal  === PR2020-02-23
-    function CreateOrderTotal(tblName, oh_id_curr, cust_id_curr, ord_id_curr, dte_id_curr, code) {
-        // use prev variables for subtotals, prev variables are updated after comparison with current value
-        const total_arr = review_list_totals[cust_id_curr][ord_id_curr]["total"]
+    function CreateCustomerTotal(rptName, row_dict) {
+        //console.log(" === CreateCustomerTotal === ")
+        const tblName = "cust"
+        const cust_key = tblName + "_" + row_dict.cust_id.toString()
+        const total_arr = review_list_totals[cust_key]["total"]
             const count = total_arr[0];
             const plan_dur = total_arr[1];
             const time_dur = total_arr[2];
             const bill_dur = total_arr[3];
             const dur_diff = bill_dur - time_dur;
-            const billable_count = total_arr[4];
+            const show_warning = (dur_diff < 0);
+            const billable_count = total_arr[5];
+            const tot_amount = total_arr[6];
+            const tot_addition = total_arr[7];
+            const tot_tax = total_arr[8];
+            const avg_pricerate = 0 // (!!bill_dur) ? tot_amount / bill_dur * 60 : 0;
+            const avg_addition = 0 // (!!bill_dur) ? tot_addition / bill_dur * 60 : 0;
+            const avg_tax = 0 // (tot_amount + tot_addition !== 0) ? tot_tax / (tot_amount + tot_addition ) : 0;
+            const billable_012 = (billable_count === 0) ? 0 : (billable_count === count) ? 2 : 1;
+        console.log("dur_diff: ", dur_diff)
+        console.log("show_warning: ", show_warning)
+        const shifts_count = format_shift_count (count, loc);
+        let display_dict = {report: rptName,
+                            table: tblName,
+                            code: row_dict.cust_code,
+                            shift: shifts_count,
+                            plan_dur: plan_dur,
+                            time_dur: time_dur,
+                            bill_dur: bill_dur,
+                            billable_012: billable_012,
+                            show_warning: show_warning,
+                            pricerate: avg_pricerate,
+                            additionrate: avg_addition,
+                            amount: tot_amount + tot_addition,
+                            status: 0
+                            }
+        let tblRow =  CreateTblRow(rptName, tblName, row_dict)
+        UpdateTableRow(tblRow, display_dict)
+    }
 
-        const plan_dur_format = format_total_duration (plan_dur, loc.user_lang)
-        const time_dur_format = format_total_duration (time_dur, loc.user_lang)
-        const bill_dur_format = format_total_duration (bill_dur, loc.user_lang)
-        const diff_format = format_total_duration (dur_diff, loc.user_lang)
-        const show_warning = (dur_diff < 0);
-
-        // TODO give value
-        const oh_amount = 0;
-        const pricerate_format = (!!oh_amount && !!bill_dur) ? format_amount ((oh_amount / bill_dur * 60), loc.user_lang) : null
-        const amount_format = format_amount (oh_amount, loc.user_lang)
-        const billable_format = (billable_count === 0) ? "" : (billable_count === count) ? ">" : "-";
+//=========  CreateOrderTotal  === PR2020-02-23
+    function CreateOrderTotal(rptName, row_dict) {
+        // use prev variables for subtotals, prev variables are updated after comparison with current value
+        const tblName = "ordr";
+        const cust_key = "cust_" + row_dict.cust_id.toString()
+        const order_key = tblName + "_" + row_dict.ordr_id.toString()
+        const total_arr = review_list_totals[cust_key][order_key]["total"]
+            const count = total_arr[0];
+            const plan_dur = total_arr[1];
+            const time_dur = total_arr[2];
+            const bill_dur = total_arr[3];
+            const dur_diff = bill_dur - time_dur;
+            const show_warning = (dur_diff < 0);
+            const billable_count = total_arr[5];
+            const tot_amount = total_arr[6];
+            const tot_addition = total_arr[7];
+            const tot_tax = total_arr[8];
+            const avg_pricerate = 0 // (!!bill_dur) ? tot_amount / bill_dur * 60 : 0;
+            const avg_addition = 0 // (!!bill_dur) ? tot_addition / bill_dur * 60 : 0;
+            const avg_tax = 0 // (tot_amount + tot_addition !== 0) ? tot_tax / (tot_amount + tot_addition ) : 0;
+            const billable_012 = (billable_count === 0) ? 0 : (billable_count === count) ? 2 : 1;
 
         const shifts_count = format_shift_count (count, loc);
-        const display_list =[code, shifts_count,
-                        plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning]
-
-        let tblRow =  CreateTblRow(tblName)
-        UpdateTableRow(tblName, tblRow, oh_id_curr, 0, cust_id_curr, ord_id_curr, dte_id_curr, display_list, "ordr")
-
+        let display_dict = {report: rptName,
+                            table: tblName,
+                            code: row_dict.ordr_code,
+                            shift: shifts_count,
+                            plan_dur: plan_dur,
+                            time_dur: time_dur,
+                            bill_dur: bill_dur,
+                            billable_012: billable_012,
+                            show_warning: show_warning,
+                            pricerate: avg_pricerate,
+                            additionrate: avg_addition,
+                            amount: tot_amount + tot_addition,
+                            status: 0
+                            }
+        let tblRow =  CreateTblRow(rptName, tblName, row_dict)
+        UpdateTableRow(tblRow, display_dict)
     }
 
 //=========  CreateDateTotal  === PR2020-02-23
-    function CreateDateTotal(rptName, tblName, eh_id_curr, oh_id_curr, empl_id_curr, cust_id_curr, ord_id_curr, dte_id_curr){
+    function CreateDateTotal(rptName, row_dict){
+        const tblName = "date";
+        let display_dict = {}, total_arr = [];
 
+        const rosterdate_key = (!!row_dict.rosterdate) ?  tblName + "_" + row_dict.rosterdate : tblName + "_0000";
         if (rptName === "customer"){
-            const total_arr = review_list_totals[cust_id_curr][ord_id_curr][dte_id_curr]["total"]
-                const shifts_count = format_shift_count (total_arr[0], loc);
-                const plan_dur_format = format_total_duration (total_arr[1], loc.user_lang)
-                const time_dur_format = format_total_duration (total_arr[2], loc.user_lang)
-                const bill_dur_format = format_total_duration (total_arr[3], loc.user_lang)
-                const diff_format = format_total_duration (total_arr[3] - total_arr[2], loc.user_lang)
-                const billable_count = total_arr[4];
-                const show_warning = (total_arr[3] - total_arr[2] < 0);
-
-                // TODO give value
-                const oh_amount = 0;
-                const pricerate_format = (!!oh_amount && !!bill_dur) ? format_amount ((oh_amount / bill_dur * 60), loc.user_lang) : null
-                const amount_format = format_amount (oh_amount, loc.user_lang)
-                const billable_format = (billable_count === 0) ? "" : (billable_count === count) ? ">" : "-";
-
-            const dte_curr = format_date_iso (dte_id_curr, loc.months_long, loc.weekdays_long, false, true, loc.user_lang);
-            const display_list = [dte_curr, shifts_count,
-                            plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning]
-
-            let tblRow =  CreateTblRow(tblName)
-            UpdateTableRow(tblName, tblRow, oh_id_curr, 0, cust_id_curr, ord_id_curr, dte_id_curr, display_list, "date")
-
-
+            const cust_key = (!!row_dict.cust_id) ? "cust_" + row_dict.cust_id.toString() : "cust_0000";
+            const order_key = (!!row_dict.ordr_id) ? "ordr_" + row_dict.ordr_id.toString() : "ordr_0000";
+            total_arr = review_list_totals[cust_key][order_key][rosterdate_key]["total"];
         } else if (rptName === "employee"){
-            // employee_totals = 0: shift_count, 1: eh_plandur, 2: eh_timedur, 3: eh_billdur, 4: eh_absdur
-            const total_arr = review_list_totals[empl_id_curr][dte_id_curr]["total"]
-                const shifts_count = format_shift_count (total_arr[0], loc);
-                const plan_dur_format = format_total_duration (total_arr[1], loc.user_lang)
-                const time_dur_format = format_total_duration (total_arr[2], loc.user_lang)
-                const diff_format = format_total_duration (total_arr[2] - total_arr[1], loc.user_lang)
-                const show_warning = (total_arr[2] - total_arr[1] > 0);
-                const abs_dur_format = format_total_duration (total_arr[4], loc.user_lang)
-            const dte_curr = format_date_iso (dte_id_curr, loc.months_long, loc.weekdays_long, false, true, loc.user_lang);
-
-            const display_list = [dte_curr, shifts_count, plan_dur_format,
-                                  time_dur_format, diff_format, show_warning,
-                                  "", abs_dur_format, ""]
-
-            let tblRow =  CreateTblRow(tblName)
-            UpdateTableRow(tblName, tblRow, eh_id_curr, empl_id_curr, null, null, dte_id_curr, display_list, "date")
-
+            const empl_key = (!!row_dict.e_id) ? "empl_" + row_dict.e_id.toString() : "empl_0000";
+            total_arr = review_list_totals[empl_key][rosterdate_key]["total"];
         }
+        const count = total_arr[0];
+        const shifts_count = format_shift_count (count, loc);
+        const plan_dur = total_arr[1];
+        const time_dur = total_arr[2];
+        const bill_dur = total_arr[3];
+        const abs_dur = total_arr[4];
+        const show_warning = (bill_dur - time_dur < 0);
+        const billable_count = total_arr[5];
+        const tot_amount = total_arr[6];
+        const tot_addition = total_arr[7];
+        const tot_tax = total_arr[8];
+        const avg_pricerate = 0 // (!!bill_dur) ? tot_amount / bill_dur * 60 : 0;
+        const avg_addition = 0 // (!!bill_dur) ? tot_addition / bill_dur * 60 : 0;
+        const avg_tax =0 //  (tot_amount + tot_addition !== 0) ? tot_tax / (tot_amount + tot_addition ) : 0;
+        const billable_012 = (billable_count === 0) ? 0 : (billable_count === count) ? 2 : 1;
+
+        const rosterdate_iso = row_dict.rosterdate;
+        const dte_curr = format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_long, false, true, loc.user_lang);
+        display_dict = {report: rptName,
+                            table: "date",
+                            code: dte_curr,
+                            shift: shifts_count,
+                            plan_dur: plan_dur,
+                            time_dur: time_dur,
+                            bill_dur: bill_dur,
+                            billable_012: billable_012,
+                            show_warning: show_warning,
+                            pricerate: avg_pricerate,
+                            additionrate: avg_addition,
+                            amount: tot_amount + tot_addition,
+                            status: 0
+                            }
+        let tblRow =  CreateTblRow(rptName, tblName, row_dict)
+        UpdateTableRow(tblRow, display_dict)
     }  // CreateDateTotal
 
 //=========  CreateDetailRow  === PR2020-02-23
-    function CreateDetailRow(tblName, row_list){
+    function CreateDetailRow(rptName, row_dict){
+        //console.log("===  CreateDetailRow  ===")
+        //console.log("row_dict: ", row_dict)
 
-        if (tblName === "employee"){
-            const dur_diff = row_list.eh_timedur - row_list.eh_plandur;
-            const show_warning = (dur_diff > 0);
+        const status = 0  // TODO give value
+        let display_dict = {report: rptName,
+                            shift: row_dict.oh_shift,
+                            plan_dur: row_dict.eh_plandur,
+                            time_dur: row_dict.eh_timedur,
+                            bill_dur: row_dict.eh_billdur,
+                            abs_dur: row_dict.eh_absdur,
+                            billable: row_dict.oh_bill,
+                            billable_012: (row_dict.oh_bill) ? 2 : 0,
+                            amount: row_dict.eh_amount + row_dict.eh_addition,
+                            status: status
+                            }
 
-            const plan_dur_format = format_total_duration (row_list.eh_plandur, loc.user_lang)
-            const time_dur_format = format_total_duration (row_list.eh_timedur, loc.user_lang)
-            const diff_format = format_total_duration (dur_diff, loc.user_lang)
-            const abs_dur_format = format_total_duration (row_list.eh_absdur, loc.user_lang)
+        if (rptName === "customer"){
+            const dur_diff = row_dict.eh_billdur - row_dict.eh_timedur;
 
-            const cust_ordr_code = row_list.cust_code + " - " + row_list.ord_code;
+            // field_name "additioncode", "taxcode", "wagefactorcode" give percentage
+            // TODO can have multiple pricerate when split shift: eh_pr_arr is array, use first one for no
+            const pricerate = row_dict.eh_pr_arr[0];
+            const additionrate = row_dict.eh_add_arr[0];
 
-            let display_list = [cust_ordr_code, row_list.oh_shift,  plan_dur_format,
-                                time_dur_format, diff_format, show_warning,
-                                "", abs_dur_format, show_warning, ""]
-
-            let tblRow =  CreateTblRow(tblName)
-            //console.log("-------CreateDetailRow_Employee--- CreateDetailRow ")
-            UpdateTableRow(tblName, tblRow, row_list.eh_id, row_list.e_id, row_list.cust_id, row_list.ord_id, row_list.rosterdate, display_list, null)
+            display_dict.code = row_dict.e_code;
+            display_dict.show_warning = (dur_diff < 0);
+            display_dict.pricerate = pricerate;
+            display_dict.additionrate = additionrate;
 
         } else {
-            const dur_diff = row_list.eh_timedur - row_list.eh_plandur;
-            const show_warning = (dur_diff < 0);
+            const dur_diff = row_dict.eh_timedur - row_dict.eh_plandur;
 
-            const plan_dur_format = format_total_duration (row_list.eh_plandur, loc.user_lang)
-            const time_dur_format = format_total_duration (row_list.eh_timedur, loc.user_lang)
-            const bill_dur_format = format_total_duration (row_list.eh_billdur, loc.user_lang)
-            const diff_format = format_total_duration (dur_diff, loc.user_lang)
-            const oh_pricerate_format = format_amount (row_list.oh_prrate, loc.user_lang)
-            const oh_amount_format = format_amount (row_list.oh_amount, loc.user_lang)
-            const billable_format = (!!row_list.oh_bill) ? ">" : "";
+            display_dict.code = row_dict.cust_code + " - " + row_dict.ordr_code;
+            display_dict.show_warning = (dur_diff > 0);
+            display_dict.pricerate = row_dict.eh_pr_rate;
+            display_dict.additionrate = row_dict.eh_add_rate;
+            display_dict.eh_taxrate = row_dict.eh_tax_rate;
+        }  // if (rptName === "employee")
 
-            let display_list = [row_list.e_code, row_list.oh_shift,
-                            plan_dur_format, time_dur_format, billable_format, bill_dur_format, diff_format, show_warning, "?"]
+        let tblRow =  CreateTblRow(rptName, "ehoh", row_dict)
+        UpdateTableRow(tblRow, display_dict)
 
-            let tblRow =  CreateTblRow(tblName)
-            //console.log("-------CreateDetailRow--- CreateDetailRow ")
-            UpdateTableRow(tblName, tblRow, row_list.oh_id, row_list.e_id, row_list.cust_id, row_list.ord_id, row_list.rosterdate, display_list, null)
-
-        }  // if (tblName === "employee")
     }
 
 //=========  CreateTblHeader  === PR2019-05-27
-    function CreateTblHeader(tblName) {
-        //console.log("===  CreateTblHeader == ", tblName);
-        //console.log("loc", loc);
-        let thead_text = [];
-        if (tblName ==="employee"){
-             thead_text =  [loc.Employee, loc.Shift, loc.Planned_hours,
-                            loc.Worked_hours, loc.Difference, "",
-                            "", loc.Absence, ""];
-        } else {
-            thead_text =  [loc.Customer_and_order, loc.Shift, loc.Planned_hours,
-                           loc.Worked_hours, ">", loc.Billing_hours,
-                           loc.Difference, "", ""];
-        }
+    function CreateTblHeader(rptName) {
+       // console.log("===  CreateTblHeader == ", rptName);
+
+        const field_names = { employee: [
+                                loc.Employee,
+                                loc.Shift,
+                                loc.Planned_hours,
+                                loc.Worked_hours,
+                                "",
+                                loc.Absence_2lines,
+                                "",
+                                loc.Hourly_rate,
+                                loc.Addition,
+                                loc.Amount,
+                                ""],
+                            customer: [
+                                loc.Customer_and_order,
+                                loc.Shift,
+                                loc.Planned_hours,
+                                loc.Worked_hours,
+                                "",
+                                loc.Billing_hours,
+                                "",
+                                loc.Hourly_rate,
+                                loc.Addition,
+                                loc.Amount,
+                                ""]};
+        const thead_text = field_names[rptName];
         tblHead_items.innerText = null
 
         let tblRow = tblHead_items.insertRow (-1); // index -1: insert new cell at last position.
@@ -695,10 +724,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // --- add div to th, margin not workign with th
             let el = document.createElement("div");
-
-            if ((tblName === "customer" && j === tbl_col_count - 2) || (tblName === "employee" && j === 5)) {
-                AppendChildIcon(el, imgsrc_warning)
-            } else if (j === tbl_col_count - 1)  {
+            if ( j === 4) {
+                AppendChildIcon(el, (rptName === "customer" ) ? imgsrc_bill01 : imgsrc_warning)
+            } else if ( j === 6) {
+                AppendChildIcon(el, (rptName === "customer" ) ? imgsrc_warning : imgsrc_stat00)
+            } else if (j === 10) {
                 AppendChildIcon(el, imgsrc_stat04)
             } else {
                 el.innerText =  thead_text[j]
@@ -708,9 +738,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (j === 0 ){el.classList.add("ml-2")}
 
 // --- add width to el
-            el.classList.add("td_width_" + field_width[tblName][j])
+            el.classList.add("td_width_" + field_width[j])
 // --- add text_align
-            el.classList.add("text_align_" + field_align[tblName][j])
+            el.classList.add("text_align_" + field_align[j])
 
             th.appendChild(el)
 
@@ -718,17 +748,25 @@ document.addEventListener('DOMContentLoaded', function() {
     };  //function CreateTblHeader
 
 //=========  CreateTblRow  ================ PR2019-04-27
-    function CreateTblRow(tblName) {
-        //console.log("=========  CreateTblRow =========");
-        //console.log(row_list);
+    function CreateTblRow(rptName, tblName, row_dict) {
+        //console.log("=========  CreateTblRow =========", rptName, tblName);
+       // console.log("row_dict",  row_dict);
 
-//+++ insert tblRow ino tblBody_items
-        //let tblRow = tblBody_items.insertRow(0); //index -1 results in that the new row will be inserted at the last position.
+// ---  insert tblRow ino tblBody_items
         let tblRow = tblBody_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
-// --- add EventListener to tblRow.
-        //tblRow.addEventListener("click", function() {HandleTableRowClicked(tblRow)}, false )
-        tblRow.addEventListener("click", function(event) {HandleTableRowClickedOrDoubleClicked(tblRow, event)}, false)
+        tblRow.setAttribute("data-table", tblName )
+        const pk_str = (tblName === "cust" && !!row_dict.cust_id) ? row_dict.cust_id.toString() :
+                     (tblName === "ordr" && !!row_dict.ordr_id) ? row_dict.ordr_id.toString() :
+                     (tblName === "date" && !!row_dict.ordr_id && !!row_dict.rosterdate) ?
+                                        row_dict.ordr_id.toString() + "_" + row_dict.rosterdate :
+                     (tblName === "oh" && !!row_dict.oh_id) ? row_dict.oh_id : null;
+        if(!!pk_str) {
+            const row_id = tblName + "_" + pk_str;
+            tblRow.setAttribute("id", row_id)
+        };
+// ---  add EventListener to tblRow.
+        // dont add this EventListener to tblRow - to td's except last one instead
 
 //+++ insert td's in tblRowe
         for (let j = 0; j < tbl_col_count; j++) {
@@ -737,240 +775,153 @@ document.addEventListener('DOMContentLoaded', function() {
             let el = document.createElement("a");
             td.appendChild(el);
 
-// --- add width to td
-            td.classList.add("td_width_" + field_width[tblName][j])// --- add text_align
-
-// --- add text_align
-            td.classList.add("text_align_" + field_align[tblName][j])
+// --- add width and text_align
+            td.classList.add("td_width_" + field_width[j]);
+            td.classList.add("text_align_" + field_align[j]);
 
 // --- add margin to first column
             if ( j === 0) {
                 el.classList.add("ml-2")
             }
-
+// --- add EventListener to td
+            if (j === 10)  {
+                // TODO open editor
+            } else {
+                td.addEventListener("click", function(event) {HandleTableRowClickedOrDoubleClicked(tblRow, event)}, false)
+            }
 // --- add img to first and last td, first column not in new_item, first column not in teammembers
-            if ((tblName === "customer" && j >= tbl_col_count - 2) || (tblName === "employee" && j === 5)) {
+            if ([4, 6].indexOf(j) > -1) {
+                //dont show pointer. Was: el.setAttribute("href", "#");
+                AppendChildIcon(el, imgsrc_stat00, "18")
+                td.classList.add("pt-0")
+            } else if (j === 10) {
             // --- first add <a> element with EventListener to td
                 el.setAttribute("href", "#");
                 AppendChildIcon(el, imgsrc_stat00, "18")
                 td.classList.add("pt-0")
             }  //if (j === 0)
 
-        }  // for (let j = 0; j < 8; j++)
+// add classlists for collapsing and expanding
+            // row_id: cust_678 is set as tblRow.id
+            // subrow must collapse and expand:
+            //   add x_cust_678 and c_cust_678 to order row, add c_cust_678 to scheme and shift row
+            if(tblName === "cust"){
+                if(!!row_dict.comp_id) {
+                    tblRow.classList.add("c_cust_" + row_dict.comp_id.toString());
+                    tblRow.classList.add("x_cust_" + row_dict.comp_id.toString());
+                }
+            } else if(tblName === "ordr"){
+                if(!!row_dict.cust_id) {
+                    tblRow.classList.add("c_cust_" + row_dict.cust_id.toString());
+                    tblRow.classList.add("x_cust_" + row_dict.cust_id.toString());
+                }
+            } else if(tblName === "date"){
+                if(!!row_dict.ordr_id) {
+                    tblRow.classList.add("c_ordr_" + row_dict.ordr_id.toString());
+                    tblRow.classList.add("x_ordr_" + row_dict.ordr_id.toString());
+                }
+                if(!!row_dict.cust_id) {
+                    tblRow.classList.add("c_cust_" + row_dict.cust_id.toString());
+                }
+            } else if(tblName === "oh"){
+                 if(!!row_dict.rosterdate) {
+                    const pk = row_dict.ordr_id.toString() + "_" + row_dict.rosterdate
+                    tblRow.classList.add("c_date_" + pk);
+                    tblRow.classList.add("x_date_" + pk);
+                }
+                if(!!row_dict.ordr_id) {
+                    tblRow.classList.add("c_ordr_" + row_dict.ordr_id.toString());
+                    tblRow.classList.add("x_ordr_" + row_dict.ordr_id.toString());
+                }
+                if(!!row_dict.cust_id) {
+                    tblRow.classList.add("c_cust_" + row_dict.cust_id.toString());
+                }
 
+            }
+// set color of total rows
+            if(tblName === "comp"){
+                tblRow.classList.add("tsa_bc_darkgrey");
+                tblRow.classList.add("tsa_color_white");
+            } else if(["empl", "cust"].indexOf(tblName)  > -1){
+                tblRow.classList.add("tsa_bc_mediumgrey");
+                //tblRow.classList.add("tsa_color_white");
+            } else if(tblName === "ordr"){
+                tblRow.classList.add("tsa_bc_lightgrey");
+            } else if(tblName === "date"){
+                tblRow.classList.add("tsa_bc_lightlightgrey");
+            }
+
+// when creating table: add 'subrows_hidden' to all totals except "comp". It keeps track if  subrows are hidden
+            const subrows_hidden = (["empl", "cust", "ordr", "date"].indexOf(tblName) > -1)
+            if(subrows_hidden) {tblRow.setAttribute("data-subrows_hidden", true)};
+
+// when creating table: hide rows except Grand Total and customer total / employee total
+            const is_show = (["comp", "empl", "cust"].indexOf(tblName) > -1);
+            show_hide_element(tblRow, is_show);
+
+        }  // for (let j = 0; j < 8; j++)
         return tblRow
     };// CreateTblRow
 
 //========= UpdateTableRow  =============
-    function UpdateTableRow(tblName, tblRow, eh_oh_id_int, empl_id_int, cust_id_int, ord_id_int, dte_id, display_list, tot_name){
-        //console.log(" ---- UpdateTableRow ---- ", tot_name);
-        //console.log("empl_id_int: ", empl_id_int);
-        //console.log("display_list", display_list);
-        //console.log("cust_id_int", cust_id_int, typeof cust_id_int);
-
-        // each totalrow has a class: 'totalrow', 'tot_grnd'
-        // each tot_cust has a class: 'totalrow', 'tot_cust', 'cust694'
-        // each tot_ordr has a class: 'totalrow', 'tot_ordr', 'sub_cust' 'sub_cust694' 'ordr1420_cust694'
-        // each tot_date has a class: 'totalrow', 'tot_ordr', 'sub_cust', 'date2020-03-30_ordr1420_cust694' 'subsub_cust694'
-        // each detail e has a class: 'detailrow'
-        // the tag 'subrows_hidden on tot_name indicates if the subrows are collapsed
+    function UpdateTableRow(tblRow, dict){
+        //console.log(" ---- UpdateTableRow ---- ");
+        //console.log("dict:", dict );
 
         if (!!tblRow){
-            const empl_id_str = (!!empl_id_int) ? "empl" + empl_id_int.toString() : "empl000";
-            const cust_id_str = (!!cust_id_int) ? "cust" + cust_id_int.toString() : "cust000";
-            const ord_id_str = (!!ord_id_int) ? "ordr" + ord_id_int.toString() : "ordr000";
-            const dte_id_str = (!!dte_id) ? "date" + dte_id : "date000";
+            const rptName = dict.report;
+            const tblName = dict.table;
 
-            //console.log("empl_id_str: ", empl_id_str);
-            if(!!tot_name){
-                tblRow.classList.add("totalrow")
-                tblRow.classList.add("tot_" + tot_name);
-            } else {
-            // add eh_oh_id_int, only on detail rows  // not in use yet, for clicking on detail row en open modal with details
-                if (!!eh_oh_id_int){
-                    tblRow.setAttribute("data-pk", eh_oh_id_int.toString())
-                }
-                tblRow.classList.add("detailrow")
-            }
-            if(tot_name !== "grnd"){ // skip grand total
-                if ( tblName === "employee") {
-                    if(tot_name === "empl"){
-                        tblRow.classList.add(empl_id_str);
-                    } else if(tot_name === "date"){
-                        //tblRow.classList.add("sub_empl");
-                        tblRow.classList.add("sub_" + empl_id_str);
-                        tblRow.classList.add(dte_id_str + "_" + empl_id_str);
-
-                    } else {
-                        // tblRow is detail row when tot_name is blank
-                        tblRow.classList.add("sub_" + dte_id_str + "_" + empl_id_str);
-                        //tblRow.classList.add("subsub_" + ord_id_str + "_" + cust_id_str);
-                        tblRow.classList.add("subsub_" + empl_id_str);
-                    }
-                } else {
-                    if(tot_name === "empl"){
-                        tblRow.classList.add(empl_id_str);
-                    } else if(tot_name === "cust"){
-                        tblRow.classList.add(cust_id_str);
-                    } else if(tot_name === "ordr"){
-                        tblRow.classList.add("sub_cust");
-                        tblRow.classList.add("sub_" + cust_id_str);
-                        tblRow.classList.add(ord_id_str + "_" + cust_id_str);
-                    } else if(tot_name === "date"){
-                        tblRow.classList.add(dte_id_str + "_" + ord_id_str);
-                        tblRow.classList.add("sub_" + ord_id_str + "_" + cust_id_str);
-                        tblRow.classList.add("subsub_" + cust_id_str);
-                    } else {
-                        // tblRow is detail row when tot_name is blank
-                        tblRow.classList.add("sub_" + dte_id_str + "_" + ord_id_str);
-                        tblRow.classList.add("subsub_" + ord_id_str + "_" + cust_id_str);
-                        tblRow.classList.add("subsub_" + cust_id_str);
-                    }
-
-                }  //  if ( tblName === "employee")
-            }
-// set color of total rows
-            if(tot_name === "grnd"){
-                tblRow.classList.add("tsa_bc_darkgrey");
-                tblRow.classList.add("tsa_color_white");
-            } else if(["empl", "cust"].indexOf(tot_name)  > -1){
-                tblRow.classList.add("tsa_bc_mediumgrey");
-                tblRow.classList.add("tsa_color_white");
-        //console.log("indexOf(tot_name: ", tot_name);
-            } else if(tot_name === "ordr"){
-                tblRow.classList.add("tsa_bc_lightgrey");
-            } else if(tot_name === "date"){
-                tblRow.classList.add("tsa_bc_lightlightgrey");
-            }
-
-// when creating table: collapse all totals except Grand Total
-            if (["empl", "cust", "ordr", "date"].indexOf(tot_name) > -1){
-                tblRow.classList.add("subrows_hidden");
-            }
-// when creating table: hide rows except Grand Total and customer total / employee total
-            if (["grnd", "cust", "empl"].indexOf(tot_name) === -1){
-                tblRow.classList.add(cls_hide);
-            }
 // --- loop through cells of tablerow
             for (let i = 0, len = tblRow.cells.length; i < len; i++) {
                 let el = tblRow.cells[i].children[0];
-                if(!!el){
-                    if (tblName === "employee"){
-                        if (i === 0) {
-                            el.innerText = display_list[i]
-                            el.classList.add("tsa_ellipsis");
-                            //el.classList.add("td_width_090");
-                        } else if (i === 5) {
-                            if (display_list[i]){
-                                IconChange(el, imgsrc_warning)
+                if (i === 0) {
+                    el.innerText = (!!dict.code) ? dict.code : "";
+                } else if (i === 1) {
+                    el.innerText =  (!!dict.shift) ? dict.shift : "";
+                } else if (i === 2) {
+                    el.innerText = format_total_duration (dict.plan_dur, loc.user_lang)
+                } else if (i === 3) {
+                    el.innerText = format_total_duration (dict.time_dur, loc.user_lang)
+                } else if (i === 4) {
+                    let imgsrc = imgsrc_stat00;
+                    if (rptName === "customer"){
+                        if (dict.billable_012 === 2) {
+                            imgsrc = imgsrc_bill03
+                        } else if (dict.billable_012 === 1) {
+                            if (tblName === "comp" || tblName === "cust") {
+                                imgsrc = imgsrc_bill01_lightlightgrey
+                            } else {
+                                imgsrc = imgsrc_bill01_lightgrey
                             }
-                        } else if (i === tbl_col_count - 1) {
-                            if (display_list[i]){
-                                //IconChange(el, imgsrc_stat04)
-                            }
-                        } else {
-                            el.innerText = display_list[i]
                         }
-                    } else {
-                        if (i === 0) {
-                            el.innerText = display_list[i]
-                            el.classList.add("tsa_ellipsis");
-                            //el.classList.add("td_width_090");
-                        } else if (i === tbl_col_count - 2) {
-                            if (display_list[i]){
-                                IconChange(el, imgsrc_warning)
-                            }
-                        } else if (i === tbl_col_count - 1) {
-                            if (display_list[i]){
-                                //IconChange(el, imgsrc_stat04)
-                            }
-                        } else {
-                            el.innerText = display_list[i]
-                        }
+                    } else if (rptName === "employee" && dict.show_warning){
+                        imgsrc = imgsrc_warning;
                     }
-                };  // if(!!el)
+                    IconChange(el, imgsrc);
+                } else if (i === 5) {
+                    if (rptName === "customer"){
+                        el.innerText = format_total_duration (dict.bill_dur, loc.user_lang)
+                    } else  if (rptName === "employee"){
+                        el.innerText = format_total_duration (dict.abs_dur, loc.user_lang)
+                    }
+                } else if (i === 6) {
+                    const imgsrc = (rptName === "customer" && dict.show_warning) ? imgsrc_warning : imgsrc_stat00;
+                    IconChange(el, imgsrc);
+                } else if (i === 7) {
+                   el.innerText = format_pricerate (dict.pricerate, false, loc.user_lang);
+                } else if (i === 8) {
+                   el.innerText = format_pricerate (dict.additionrate, true, loc.user_lang);
+                } else if (i === 9) {
+                   el.innerText = format_pricerate (dict.amount, false, loc.user_lang);
+                } else if (i === 10) {
+                    //if (dict.status){
+                        //IconChange(el, imgsrc_stat04)
+                    //}
+                }
             }  //  for (let j = 0; j < 8; j++)
         } // if (!!tblRow)
     }  // function UpdateTableRow
-
-// ++++ REVIEW EMPLOYEES  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-// ++++ TABLE ROWS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//=========  HandleTableRowClicked  ================ PR2019-03-30
-    function HandleTableRowClicked(tblRow) {
-        //console.log("=== HandleTableRowClicked");
-        //console.log( "tblRow: ", tblRow, typeof tblRow);
-
-// ---  deselect all highlighted rows
-        // not necessary: : DeselectHighlightedRows(tblRow, cls_selected)
-
-// ---  get clicked tablerow
-        if(!!tblRow) {
-// check if this is a totalrow
-            const is_totalrow = tblRow.classList.contains("totalrow");
-            let subrows_hidden =  tblRow.classList.contains("subrows_hidden");
-
-            //console.log( "subrows_hidden: ", subrows_hidden);
-
-// ---  highlight clicked row
-            // Dont highlight: tblRow.classList.add(cls_selected)
-
-// ---  get selected_item_pk, only in detail rows
-            selected_item_pk = (!is_totalrow) ? get_datapk_from_element(tblRow) : 0
-
-// if is_totalrow
-            if (is_totalrow){
-// check which totalrow level: cust, ord, dte
-                let is_tot_ord = false, is_tot_dte = false;
-                let is_tot_empl = tblRow.classList.contains("tot_empl");
-                let is_tot_cust = tblRow.classList.contains("tot_cust");
-                if(!is_tot_empl && !is_tot_cust) {is_tot_ord = tblRow.classList.contains("tot_ordr")};
-                if(!is_tot_empl && !is_tot_ord) {is_tot_dte = tblRow.classList.contains("tot_date")};
-
-// get id of cust, ord, dte 'cust_477'
-                const prefix = (is_tot_empl) ? "empl" :
-                                (is_tot_cust) ? "cust" :
-                                (is_tot_ord) ? "ordr" :
-                                (is_tot_dte) ? "date" : null;
-                let tot_id_str = null;
-
-                if(!!prefix){
-                    for (let i = 0, len = tblRow.classList.length; i < len; i++) {
-                        const classitem = tblRow.classList.item(i);
-                        if(classitem.slice(0,4) === prefix) {
-                            tot_id_str = classitem;
-                            break;
-                        }}
-                };
-                //console.log( "tot_id_str: ", tot_id_str, typeof tot_id_str);
-
-// toggle class 'subrows_hidden' of clicked tblRow
-                subrows_hidden = !subrows_hidden
-                if(subrows_hidden){
-                    tblRow.classList.add("subrows_hidden")
-                } else {
-                    tblRow.classList.remove("subrows_hidden")
-                };
-
-// also set sub total rows 'subrows_hidden', rows with class: sub_empl2625
-                if(subrows_hidden){
-                    //  toggle_class(classname, is_add, filter_class)
-                    toggle_class("subrows_hidden", subrows_hidden, "sub_" + tot_id_str);
-                }
-
-                //show sub_ord only, adding sub_cust takes care of that
-                toggle_class(cls_hide, subrows_hidden, "sub_" + tot_id_str);
-
-                // if hide: hide sub_ord, sub_dte and detail rows, if show: show sub_ord only
-                if(subrows_hidden){
-                    toggle_class(cls_hide, subrows_hidden, "subsub_" + tot_id_str);
-                }
-
-            }  //  if (is_totalrow)
-        }  //  if(!!tblRow) {
-    }  // function HandleTableRowClicked
-
 
 function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
     //console.log("=== HandleTableRowClickedOrDoubleClicked");
@@ -985,10 +936,42 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
             HandleTableRowDoubleClicked(tblRow)
     }
 }
+//=========  HandleTableRowClicked  ================ PR2020-03-10
+    function HandleTableRowClicked(tblRow) {
+        console.log("=== HandleTableRowClicked");
+        console.log( "tblRow: ", tblRow, typeof tblRow);
+        if(!!tblRow) {
+            const tblName = get_attr_from_el(tblRow, "data-table")
+        console.log( "tblName: ", tblName);
+            const is_totalrow = (["empl", "cust", "ordr", "date"].indexOf(tblName) > -1)
+        console.log( "is_totalrow: ", is_totalrow);
+            if (is_totalrow){
+                const row_id = tblRow.id //  id = 'cust_694'
+        console.log( "row_id: ", row_id);
+                let subrows_hidden = get_attr_from_el(tblRow, "data-subrows_hidden", false)
+                //console.log( "tblName: ", tblName);
+                //console.log( "row_id: ", row_id);
+                //console.log( "subrows_hidden: ", subrows_hidden);
+                if (subrows_hidden){
+                    // expand first level below this one, i.e. the rows with class = 'x_cust_694'
+                    //  toggle_class(tblBody, classname, is_add, filter_class){
+                    toggle_class(tblBody_items, cls_hide, false, "x_" + row_id);
+                    // remove attribute 'subrows_hidden' from this tblRow
+                    tblRow.removeAttribute("data-subrows_hidden")
+                } else {
+                    // collaps all levels below this one, i.e. the rows with class = 'c_cust_694
+                    //  toggle_class(tblBody, classname, is_add, filter_class){
+                    toggle_class(tblBody_items, cls_hide, true, "c_" + row_id);
+                    // add attribute 'subrows_hidden' from this tblRow
+                    tblRow.setAttribute("data-subrows_hidden", true)
+                }
+            }
+        }
+    }  // HandleTableRowClicked
 
 //=========  HandleTableRowDoubleClicked  ================ PR2019-03-30
     function HandleTableRowDoubleClicked(tblRow) {
-       //("=== HandleTableRowDoubleClicked");
+    console.log("=== HandleTableRowDoubleClicked");
         //console.log( "tblRow: ", tblRow, typeof tblRow);
         // second click expands also the subrows
 // ---  deselect all highlighted rows
@@ -1024,16 +1007,16 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
 
 // also set sub total rows 'subrows_hidden', rows with class: sub_empl2625
                 if(!subrows_hidden){
-                    //  toggle_class(classname, is_add, filter_class)
-                    toggle_class("subrows_hidden", subrows_hidden, "sub_" + tot_id_str);
+                    //  toggle_class(tblBody, classname, is_add, filter_class)
+                    toggle_class(tblBody_items, "subrows_hidden", subrows_hidden, "sub_" + tot_id_str);
                 }
 
                 //show sub_ord only, adding sub_cust takes care of that
-                toggle_class(cls_hide, subrows_hidden, "sub_" + tot_id_str);
+                toggle_class(tblBody_items, cls_hide, subrows_hidden, "sub_" + tot_id_str);
 
                 // if hide: hide sub_ord, sub_dte and detail rows, if show: show sub_ord only
                 if(!subrows_hidden){
-                    toggle_class(cls_hide, subrows_hidden, "subsub_" + tot_id_str);
+                    toggle_class(tblBody_items, cls_hide, subrows_hidden, "subsub_" + tot_id_str);
                 }
 
             }  //  if (is_totalrow)
@@ -1041,66 +1024,9 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
     }  // function HandleTableRowClicked
 
 
-// ++++  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-//========= function toggle_class  ====================================
-    function toggle_class(classname, is_add, filter_class){
-        // add or remove selected cls_hide from all elements with class 'filter_class'
-        //console.log("toggle_class", is_add, filter_class)
-        // from https://stackoverflow.com/questions/34001917/queryselectorall-with-multiple-conditions
-        // document.querySelectorAll("form, p, legend") means filter: class = (form OR p OR legend)
-        // document.querySelectorAll("form.p.legend") means filter: class = (form AND p AND legend)
-
-         // multipe filter: document.querySelectorAll(".filter1.filter2")
-        //let elements =  document.querySelectorAll("." + filter_class)
-        let elements =  tblBody_items.querySelectorAll("." + filter_class)
-        for (let i = 0, el, len = elements.length; i < len; i++) {
-            el =  elements[i];
-            if(!!el){
-                if (is_add){
-                    el.classList.add(classname);
-                } else {
-                    el.classList.remove(classname);
-                }}};
-    }
-
-//========= function remove_class_hide  ====================================
-    function remove_class_hide(filter_class){
-        // remove selected class_name from all elements with class 'filter_class
-        //console.log("remove_class_hide", filter_class)
-
-         // multipe filter: document.querySelectorAll(".filter1.filter2")
-        //let elements =  document.querySelectorAll("." + filter_class)
-        let elements =  tblBody_items.querySelectorAll("." + filter_class)
-
-        for (let i = 0, el, len = elements.length; i < len; i++) {
-            el =  elements[i];
-            if(!!el){
-                el.classList.remove(cls_hide);
-        //console.log("remove cls_hide")
-            }
-        }
-    }
-//========= function add_class_hide  ====================================
-    function add_class_hide(filter_class){
-        // add selected class_name to all elements with class 'filter_class'
-        //console.log("add_class_hide", filter_class)
-
-        // multipe filter: document.querySelectorAll(".filter1.filter2")
-        //let elements =  document.querySelectorAll("." + filter_class)
-        let elements =  tblBody_items.querySelectorAll("." + filter_class)
-        for (let i = 0, el, len = elements.length; i < len; i++) {
-            el =  elements[i];
-            if(!!el){
-                el.classList.add(cls_hide)
-        //console.log("add cls_hide")
-            }
-        }
-    }
-
 //========= HandleSidebarHeader====================================
     function HandleSidebarHeader () {
-        console.log("===  HandleSidebarHeader  =====") ;
+        //console.log("===  HandleSidebarHeader  =====") ;
         if (selected_btn === "customer"){
             selected_btn = "employee"
         } else {
@@ -1580,7 +1506,7 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
         const len = tblBody_select_customer.rows.length;
         if (!skip_filter && !!len){
 // ---  filter select_customer rows
-            const filter_dict = fFilter_SelectRows(tblBody_select_customer, filter_mod_customer);
+            const filter_dict = t_Filter_SelectRows(tblBody_select_customer, filter_mod_customer);
 
 // ---  if filter results have only one customer: put selected customer in el_modorder_input_customer
             const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
@@ -1927,15 +1853,15 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
         if (!skip_filter) {
 // filter table customer and order
     // reset filter tBody_customer
-            f_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
+            t_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
     // reset filter tBody_order (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
+            t_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
     // reset filter tBody_planning (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
+            t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
 
 // filter selecttable customer and order
-            fFilter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive, false)
-            fFilter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
+            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive, false)
+            t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
 
         } //  if (!skip_filter) {
     }; // function HandleSelect_Filter

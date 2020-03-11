@@ -19,6 +19,7 @@ from tsap import constants as c
 from tsap import functions as f
 from tsap import locale as loc
 from planning import dicts as d
+from planning import prices as p
 from planning import rosterfill as r
 from employees import dicts as ed
 
@@ -215,6 +216,17 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             user_lang=user_lang)
                         datalists['schemeitem_list'] = dict_list
 
+# ----- price -- used in page price
+                    table_dict = datalist_dict.get('price')
+                    if table_dict:
+                        datalists['price_list'] = p.create_price_list( filter_dict=table_dict, request=request)
+
+# ----- pricecode
+                    table_dict = datalist_dict.get('pricecode')
+                    if table_dict:
+                        rosterdate = f.get_dict_value(table_dict, 'rosterdate')
+                        datalists['pricecode_list'] = p.create_pricecode_list(rosterdate, request=request)
+
 # ----- 'planning_period', 'calendar_period', 'roster_period', 'review_period'
                     for key in ('planning_period', 'calendar_period', 'roster_period', 'review_period'):
                         table_dict = datalist_dict.get(key)
@@ -298,6 +310,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             datefirst_iso = calendar_period_dict.get('period_datefirst')
                             datelast_iso = calendar_period_dict.get('period_datelast')
 
+                            logger.debug('skip_absence_and_restshifts' + str(skip_absence_and_restshifts))
                             orderby_rosterdate_customer = False
                             dict_list, logfile = r.create_employee_planning(
                                 datefirst_iso=datefirst_iso,
@@ -325,6 +338,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         # selected order is retrieved table_dict 'customer_calendar'.
                         # iF not provided: use selected_order_pk
                         # order_pk cannot be blank
+                        logger.debug('table_dict: customer_calendar' + str(table_dict))
 
                         order_pk = None
                         if table_dict:
@@ -356,6 +370,8 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         customer_pk = None
                         skip_restshifts = False
                         orderby_rosterdate_customer = False
+
+                        logger.debug('table_dict: employee_planning' + str(table_dict))
                         if table_dict:
                             employee_pk = table_dict.get('employee_pk')
                             customer_pk = None
@@ -398,6 +414,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     if (table_dict is not None and planning_period_dict) or \
                             (selected_page == 'page_customer' and selected_btn == 'planning' and planning_period_dict):
                         customer_pk = None
+                        logger.debug('table_dict: customer_planning' + str(table_dict))
                         if table_dict:
                             customer_pk = None
                             order_pk = table_dict.get('order_pk')
@@ -430,25 +447,99 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         datalists['rosterdate_check'] = d.get_rosterdate_check(table_dict, request)
 
 # 9. return datalists
-        datalists_json = json.dumps(datalists, cls=LazyEncoder)
+        datalists_json = ""
+        if datalists:
+            datalists_json = json.dumps(datalists, cls=LazyEncoder)
 
         return HttpResponse(datalists_json)
 
-"""
-NIU ???
-                        elif table == 'order_pricerate':
-                            dict_list = cust_dicts.create_order_pricerate_list(
-                                company=request.user.company,
-                                user_lang=user_lang)
 
-                        elif table == 'employee_pricerate':
-                            dict_list = ed.create_employee_pricerate_list(company=request.user.company, user_lang=user_lang)
+# === PricesView ===================================== PR2019-05-26
+@method_decorator([login_required], name='dispatch')
+class PricesView(View):
 
-                        elif table == 'replacement':
-                            dict_list = d.create_replacementshift_list(table_dict, request.user.company)
+    def get(self, request):
+        param = {}
+        # logger.debug(' ============= RosterView ============= ')
+        if request.user.company is not None:
+            # datefirst = None
+            # datelast = None
+            # crit = (Q(orderhour__order__customer__company=request.user.company) | Q(employee__company=request.user.company))
+            # if datefirst:
+            #     crit.add(Q(rosterdate__gte=datefirst), crit.connector)
+            # if datelast:
+            #     crit.add(Q(rosterdate__lte=datelast), crit.connector)
+            #emplhours = m.Emplhour.objects.filter(crit)
+            # emplhours = m.Emplhour.objects.all()
+
+            # for emplhour in emplhours:
+            #     string = str(emplhour.id)
+            #     if emplhour.rosterdate:
+            #          string += ' - rosterdate: ' + str(emplhour.rosterdate)
+            #      if emplhour.orderhour:
+            #         string += ' - order: ' + str(emplhour.orderhour.order.code)
+
+            # b. get comp_timezone PR2019-06-14
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+
+    # get user_lang
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+
+    # get weekdays translated
+            lang = user_lang if user_lang in c.WEEKDAYS_ABBREV else c.LANG_DEFAULT
+            weekdays_json = json.dumps(c.WEEKDAYS_ABBREV[lang])
+
+    # get months translated
+            lang = user_lang if user_lang in c.MONTHS_ABBREV else c.LANG_DEFAULT
+            months_json = json.dumps(c.MONTHS_ABBREV[lang])
+
+            # get interval
+            interval = 1
+            if request.user.company.interval:
+                interval = request.user.company.interval
+
+            # get timeformat
+            timeformat = 'AmPm'
+            if request.user.company.timeformat:
+                timeformat = request.user.company.timeformat
+            if not timeformat in c.TIMEFORMATS:
+                timeformat = '24h'
+
+            # get quicksave from Usersetting
+            quicksave = 0
+            quicksave_str = Usersetting.get_setting(c.KEY_USER_QUICKSAVE, request.user)
+            if quicksave_str:
+                quicksave = int(quicksave_str)
+
+            # get_current = False
+            # period_dict = d.get_period_dict_and_save(request, get_current)
+            # period_json = json.dumps(period_dict)
 
 
-"""
+            # TODO change to today in period_dict  today =  get_today(request)
+
+            # --- get today
+            today_dict = {'value': str(date.today()),
+                          'wdm': f.get_date_WDM_from_dte(date.today(), user_lang),
+                          'wdmy': f.format_WDMY_from_dte(date.today(), user_lang),
+                          'dmy': f.format_DMY_from_dte(date.today(), user_lang),
+                          'offset': f.get_weekdaylist_for_DHM(date.today(), user_lang)}
+            today_json = json.dumps(today_dict)
+
+            param = get_headerbar_param(request, {
+                'lang': user_lang,
+                'timezone': comp_timezone,
+                'timeformat': timeformat,
+                'interval': interval,
+                'weekdays': weekdays_json,
+                'months': months_json,
+                'today': today_json,
+                'quicksave': quicksave
+            })
+
+        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
+        return render(request, 'prices.html', param)
+
 
 # === RosterView ===================================== PR2019-05-26
 @method_decorator([login_required], name='dispatch')
@@ -633,8 +724,7 @@ class SchemeUploadView_MAYBE_NOT_IN_USE(UpdateView):  # PR2019-07-21
                             pk=pk_int,
                             ppk=parent.pk,
                             temp_pk=temp_pk_str,
-                            row_index=row_index
-                        )
+                            row_index=row_index)
 
 # C. Delete instance
                         if is_delete:
@@ -1256,8 +1346,7 @@ def scheme_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-
             pk=pk_int,
             ppk=ppk_int,
             temp_pk=temp_pk_str,
-            row_index=row_index
-        )
+            row_index=row_index)
 
 # 5. check if parent exists (order is parent of scheme)
         parent = m.Order.objects.get_or_none(id=ppk_int, customer__company=request.user.company)
@@ -1330,8 +1419,7 @@ def shift_upload(request, upload_dict, user_lang):  # PR2019-08-08
         pk=pk_int,
         ppk=ppk_int,
         temp_pk=temp_pk_str,
-        row_index=row_index
-    )
+        row_index=row_index)
 
 # 3. check if parent exists (customer is parent of order)
     parent = m.Scheme.objects.get_or_none(
@@ -1393,8 +1481,7 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
         pk=pk_int,
         ppk=ppk_int,
         temp_pk=temp_pk_str,
-        row_index=row_index
-    )
+        row_index=row_index)
 
 # 3. check if parent exists (scheme is parent of team)
     parent = m.Scheme.objects.get_or_none(
@@ -1810,8 +1897,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                                 pk=schemeitem.id,
                                 ppk=schemeitem.scheme.id,
                                 temp_pk=None,
-                                row_index=None
-                            )
+                                row_index=None)
 
                 # d. update and save schemeitem
                             update_schemeitem(schemeitem, upload_dict, item_update, request, comp_timezone)
@@ -1913,8 +1999,7 @@ class SchemeItemUploadView(UpdateView):  # PR2019-07-22
                     pk=pk_int,
                     ppk=ppk_int,
                     temp_pk=temp_pk_str,
-                    row_index=row_index
-                )
+                    row_index=row_index)
 
 # 4. check if parent exists (scheme is parent of schemeitem)
                 # get_parent adds 'ppk' and 'table' to id_dict
@@ -2233,9 +2318,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                         pk=pk_int,
                         ppk=ppk_int,
                         temp_pk=temp_pk_str,
-                        row_index=row_index
-                    )
-                    logger.debug('>>>>>>>>>> new update_dict: ' + str(update_dict))
+                        row_index=row_index)
 
 # B. Delete instance if is_delete:
                     if is_delete:
@@ -2628,19 +2711,9 @@ def update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_
 # a. get new_value
                     new_value = field_dict.get('value')
 
-# 2. save changes in field 'rosterdate' (should not be possible)
-                    if field in ['rosterdate']:  # new_value: '2019-04-12'
-                        new_date, msg_err = f.get_date_from_ISOstring(new_value, True)  # True = blank_not_allowed
-# b. validate new_date
-                # field 'rosterdate' is required
-                        if msg_err is not None:
-                            update_dict[field]['error'] = msg_err
-                        else:
-                # c. save field if changed and no_error
-                            old_date = getattr(instance, field)
-                            if new_date != old_date:
-                                setattr(instance, field, new_date)
-                                is_updated = True
+# 2. save changes in field 'rosterdate'
+                    if field == 'rosterdate':
+                        pass  # change rosterdate in emplhour not allowed
 
 # 3. save changes in field 'employee'
                     # 'employee': {'field': 'employee', 'update': True, 'pk': 1675, 'ppk': 2, 'code': 'Wilson, Jose'}}
@@ -2680,23 +2753,20 @@ def update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_
 # 4. save changes in field 'timestart', 'timeend'
                     if field in ('timestart', 'timeend'):
                         # 'timestart': {'value': -560, 'update': True}}
-                        # use saved_rosterdate
+                        # use saved_rosterdate to calculate time from offset
                         saved_rosterdate_dte = getattr(instance, 'rosterdate')
                         if saved_rosterdate_dte:
-            # a. get offset of this emplhour
+                    # a. get offset of this emplhour
                             # value = 0 means midnight, value = null means blank
                             new_offset_int = field_dict.get('value')
-                            logger.debug('.................. new_offset_int: ' + str(new_offset_int))
-            # b. convert rosterdate '2019-08-09' to datetime object
+                    # b. convert rosterdate '2019-08-09' to datetime object
                             rosterdatetime = f.get_datetime_naive_from_dateobject(saved_rosterdate_dte)
-                            logger.debug('................ rosterdatetime: ' + str(rosterdatetime))
                             # rosterdatetime: 2020-02-16 00:00:00
-            # c. get timestart/timeend from rosterdate and offsetstart
+                    # c. get timestart/timeend from rosterdate and offsetstart
                             new_datetimelocal = f.get_datetimelocal_from_offset(
                                 rosterdate=rosterdatetime,
                                 offset_int=new_offset_int,
                                 comp_timezone=comp_timezone)
-                            logger.debug('................... new_datetimelocal: ' + str(new_datetimelocal))
                             #  new_datetimelocal: 2020-02-15 14:40:00+01:00
                             # must be stored als utc??
                             # No, tzinfo is mot stored in database, therefore both local and utc are stored as the same datetime
@@ -2706,14 +2776,12 @@ def update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_
 
 # --- save changes in breakduration field
                     if field in ('breakduration', 'timeduration'):
-                        logger.debug('....... field: ' + str(field))
-                        logger.debug('....... field_dict: ' + str(field_dict))
                         new_minutes = field_dict.get('value', 0)
                         # PR2020-02-22 debug. Default '0' not working. breakduration = None gives error, Not null
                         if new_minutes is None:
                             new_minutes = 0
-                        logger.debug('....... new_minutes: ' + str(new_minutes))
                         # duration unit in database is minutes
+                        # value of timeduration will be recalculated if 'timestart' and 'timeend' both are not None
                         old_minutes = getattr(instance, field, 0)
                         if new_minutes != old_minutes:
                             setattr(instance, field, new_minutes)
@@ -2745,26 +2813,47 @@ def update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_
                         save_changes = True
 # --- end of for loop ---
 
-# --- recalculate timeduration
+# --- recalculate timeduration and amount, addition, tax, wage
         # logger.debug('calculate working hours')
         if recalc_duration:
             field = 'timeduration'
             if instance.timestart and instance.timeend:
                 saved_breakduration = getattr(instance, 'breakduration', 0)
-                # calculta new_minutes from timestart and timeend, returns 0 when timestart or timeend is None
-
-                logger.debug('....... saved_breakduration: ' + str(saved_breakduration))
+                # calculate new_minutes from timestart and timeend, returns 0 when timestart or timeend is None
                 time_duration = f.get_timeduration(
                     timestart=instance.timestart,
                     timeend=instance.timeend,
                     breakduration=saved_breakduration)
-
-                logger.debug('>>>>>>>>> recalculated time_duration: ' + str(time_duration))
                 setattr(instance, field, time_duration)
-                save_changes = True
                 update_dict[field]['updated'] = True
+            else:
+                # use saved timeduration when timestart or timeend is blank
+                time_duration = instance.timeduration
 
-                logger.debug('>>>>>>>>> recalculated timeduration: ' + str(instance.timeduration))
+            # also recalculate billingduration when isbillable
+            if instance.orderhour.isbillable:
+                billing_duration = time_duration
+                setattr(instance, 'billingduration', billing_duration)
+            else:
+                # use saved billing_duration when not billable
+                billing_duration = instance.billingduration
+            # calculate amount, addition and tax
+            is_billable = False
+            if instance.orderhour:
+                is_billable = instance.orderhour.isbillable
+            amount, addition, tax = f.calc_amount_addition_tax_rounded(
+                time_duration=time_duration,
+                billing_duration=billing_duration,
+                is_absence=instance.isabsence,
+                is_restshift=instance.isrestshift,
+                is_billable=is_billable,
+                price_rate=instance.pricerate,
+                addition_rate=instance.additionrate,
+                tax_rate=instance.taxrate)
+            instance.amount = amount
+            instance.addition = addition
+            instance.tax = tax
+            save_changes = True
 
 # 6. save changes
         if save_changes:
@@ -2939,11 +3028,11 @@ def update_scheme(instance, upload_dict, update_dict, request):
                         rosterdate = None
                         wagefactor = None
 
-                        pricerate_is_updated = f.save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field)
+                        # TODO was: pricerate_is_updated = f.save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field)
 
-                        logger.debug('>>>>>>>>>>>>>>>>> instance.priceratejson: ' + str(instance.priceratejson))
-                        if pricerate_is_updated:
-                            is_updated = True
+                        #logger.debug('>>>>>>>>>>>>>>>>> instance.priceratejson: ' + str(instance.priceratejson))
+                        #if pricerate_is_updated:
+                        #    is_updated = True
 
 # 3. save changes in field 'cycle'
                     elif field in ['cycle']:
@@ -3554,19 +3643,21 @@ def update_shift(instance, parent, upload_dict, update_dict, user_lang, request)
                         logger.debug('is_updated: ' + str(instance.breakduration))
 
 # 4. save changes in fields 'priceratejson'
+                    """
+                    TODO
                     elif field in ['priceratejson']:
                         logger.debug('field: ' + str(field))
                         # TODO save pricerate with date and wagefactor
                         rosterdate = None
                         wagefactor = None
 
-                        pricerate_is_updated = f.save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field)
-                        if pricerate_is_updated:
-                            is_updated = True
+                        # TODO was: pricerate_is_updated = f.save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field)
+                        #if pricerate_is_updated:
+                        #    is_updated = True
 
                         logger.debug('instance.priceratejson: ' + str(instance.priceratejson))
                         logger.debug('is_updated: ' + str(is_updated))
-
+                    """
     # 5. add 'updated' to field_dict'
                     if is_updated:
                         save_changes = True

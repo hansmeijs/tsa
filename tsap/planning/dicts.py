@@ -94,7 +94,7 @@ def remove_status_from_statussum(status, old_status_sum):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
-    logger.debug(' --- get_rosterdate_check --- ')
+    #logger.debug(' --- get_rosterdate_check --- ')
     # function gets rosterdate from upload_dict. If None: lookup last roserdate in orderhour and add one day to it.
     # Generates a "SELECT MAX..." query, return value is a dict
     # # upload_dict: (input) {rosterdate: "2019-11-14"} or (create) {next: True} or (delete) {last: True}
@@ -106,14 +106,14 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
 
     mode = upload_dict.get('mode')
     rosterdate_dict = {'mode': mode}
-    logger.debug('mode: ' + str(mode))
+    #logger.debug('mode: ' + str(mode))
 
 # if rosterdate in dict: check this rosterdate, otherwise check last rosterdate or next
     if 'rosterdate' in upload_dict:
         rosterdate_iso = upload_dict.get('rosterdate')
         rosterdate = f.get_dateobj_from_dateISOstring(rosterdate_iso)
 
-        logger.debug('rosterdate_iso: ' + str(rosterdate_iso))
+        #logger.debug('rosterdate_iso: ' + str(rosterdate_iso))
     else:
 # get last rosterdate of Emplhour
         # in SQL:
@@ -154,11 +154,17 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
     if rosterdate is None:
         rosterdate = date.today()
 
+    rosterdate_count = 0
     if 'rosterdate':
         rosterdate_count, rosterdate_confirmed = check_rosterdate_confirmed(rosterdate, request.user.company)
         rosterdate_dict['rosterdate'] = rosterdate_iso
         rosterdate_dict['count'] = rosterdate_count
         rosterdate_dict['confirmed'] = rosterdate_confirmed
+
+    if rosterdate_count == 0:
+        emplhours_exist = m.Emplhour.objects.filter(orderhour__order__customer__company=request.user.company).exists()
+        if not emplhours_exist:
+            rosterdate_dict['no_emplhours'] = True
 
     return rosterdate_dict
 
@@ -620,12 +626,26 @@ def create_scheme_dict(scheme, item_dict, user_lang):
                     mindate=mindate,
                     maxdate=order_datelast)
 
-            elif field in ['priceratejson']:
-                f.get_fielddict_pricerate(
-                    table=table,
-                    instance=scheme,
-                    field_dict=field_dict,
-                    user_lang=user_lang)
+            elif field == 'billable':
+                value = getattr(scheme, field, 0)
+                if not value:
+                    ordr_billable = getattr(scheme.order, field, 0)
+                    if ordr_billable:
+                        value = ordr_billable * -1  # inherited value gets negative sign
+                    else:
+                        cust_billable = getattr(scheme.order.customer, field, 0)
+                        if cust_billable:
+                            value = cust_billable * -1  # inherited value gets negative sign
+                        else:
+                            comp_billable = getattr(scheme.order.customer.company, field, 0)
+                            if comp_billable:
+                                value = comp_billable * -1  # inherited value gets negative sign
+                if value:
+                    field_dict['value'] = value
+
+            elif field in ['pricecode', 'additioncode', 'taxcode']:
+                pass
+                #TODO
 
             elif field in ['isabsence', 'istemplate']:
                 pass
@@ -686,21 +706,11 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
 
     if schemeitem:
 
-# calculate timeduration from values in shift, if no shift: get from schemeitem
+# calculate timeduration from values in shift
         is_restshift, offsetstart, offsetend, breakduration, \
-            timeduration_minus_break, timeduration = f.calc_timeduration_from_schemitem(schemeitem)
-
-        is_override, is_billable = f.get_billable_schemeitem(schemeitem)
-        if is_override or is_billable:
-            if 'billable' not in item_dict:
-                item_dict['billable'] = {}
-            if is_override:
-                item_dict['billable']['override'] = is_override
-            if is_billable:
-                item_dict['billable']['billable'] = is_billable
+            timeduration_minus_break, timeduration = f.calc_timeduration_from_shift(schemeitem.shift)
 
         for field in c.FIELDS_SCHEMEITEM:
-
  # --- get field_dict from  item_dict if it exists
             field_dict = item_dict[field] if field in item_dict else {}
 
@@ -937,12 +947,27 @@ def create_shift_dict(shift, update_dict, user_lang):
                 if timeduration_minus_break:
                     field_dict['value'] = timeduration_minus_break
 
-            elif field in ['priceratejson']:
-                f.get_fielddict_pricerate(
-                    table='shift',
-                    instance=shift,
-                    field_dict=field_dict,
-                    user_lang=user_lang)
+            elif field == 'billable':
+                value = getattr(shift, field, 0)
+                if not value:
+                    schm_billable = getattr(shift.scheme, field, 0)
+                    if schm_billable:
+                        value = schm_billable * -1  # inherited value gets negative sign
+                    else:
+                        ordr_billable = getattr(shift.scheme.order, field, 0)
+                        if ordr_billable:
+                            value = ordr_billable * -1  # inherited value gets negative sign
+                        else:
+                            cust_billable = getattr(shift.scheme.order.customer, field, 0)
+                            if cust_billable:
+                                value = cust_billable * -1  # inherited value gets negative sign
+                            else:
+                                comp_billable = getattr(shift.scheme.order.customer.company, field, 0)
+                                if comp_billable:
+                                    value = comp_billable * -1  # inherited value gets negative sign
+                if value:
+                    field_dict['value'] = value
+
 
             if field_dict:
                 update_dict[field] = field_dict
@@ -1440,8 +1465,8 @@ def get_ispublicholiday_iscompanyholiday(rosterdate_dte, request):
 # ========================
 
 def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, request): # PR2019-11-16
-    logger.debug(' ============= create_emplhour_list ============= ')
-    logger.debug('period_dict: ' + str(period_dict))
+    #logger.debug(' ============= create_emplhour_list ============= ')
+    #logger.debug('period_dict: ' + str(period_dict))
 
     periodstart_local_withtimezone = period_dict.get('periodstart_datetimelocal')
     periodend_local_withtimezone = period_dict.get('periodend_datetimelocal')
@@ -1453,14 +1478,14 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
     #timezone = pytz.timezone(comp_timezone)
     #periodstart_local_withtimezone = timezone.localize(periodstart_datetimelocal_withouttimezone)
     #periodend_local_withtimezone = timezone.localize(periodend_datetimelocal_withouttimezone)
-    logger.debug('periodstart_local_withtimezone: ' + str(periodstart_local_withtimezone) + ' ' + str(type(periodstart_local_withtimezone)))
+    #logger.debug('periodstart_local_withtimezone: ' + str(periodstart_local_withtimezone) + ' ' + str(type(periodstart_local_withtimezone)))
     # periodstart_local_withtimezone: 2020-01-30 19:29:00+01:00 <class 'datetime.datetime'>
 
     # step 2: convert timezone from comp_timezone to utc
     timezone = pytz.utc
     periodstart_datetime_utc_withtimezone = periodstart_local_withtimezone.astimezone(timezone)
     periodend_datetime_utc_withtimezone = periodend_local_withtimezone.astimezone(timezone)
-    logger.debug('periodstart_datetime_utc_withtimezone: ' + str(periodstart_datetime_utc_withtimezone) + ' ' + str(type(periodstart_datetime_utc_withtimezone)))
+    #logger.debug('periodstart_datetime_utc_withtimezone: ' + str(periodstart_datetime_utc_withtimezone) + ' ' + str(type(periodstart_datetime_utc_withtimezone)))
     # periodstart_datetime_utc_withtimezone: 2020-01-30 18:29:00+00:00 <class 'datetime.datetime'>
 
     # step 3: strip timezone from datetime (maybe this is not necessary) Can also be skipped: sqp accepts dattime with utc timezone
@@ -2136,24 +2161,29 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
                                                 ARRAY_AGG(eh.wage) AS e_wage,
                                                 ARRAY_AGG(eh.wagerate) AS e_wr,
                                                 ARRAY_AGG(eh.wagefactor) AS e_wf,
-                                                SUM(eh.timeduration) AS eh_timedur, 
                                                 SUM(eh.plannedduration) AS eh_plandur, 
+                                                SUM(eh.timeduration) AS eh_timedur, 
                                                 SUM(eh.billingduration) AS eh_billdur, 
-                                                SUM(eh.wage) AS eh_wage  
+                                                ARRAY_AGG(DISTINCT eh.pricerate) AS eh_pr_arr,
+                                                ARRAY_AGG(DISTINCT eh.additionrate) AS eh_add_arr,
+                                                ARRAY_AGG(DISTINCT eh.taxrate) AS eh_tax_arr,
+                                                SUM(eh.amount) AS eh_amount,
+                                                SUM(eh.addition) AS eh_addition,
+                                                SUM(eh.tax) AS eh_tax,
+                                                SUM(eh.wage) AS eh_wage 
                                                 FROM companies_emplhour AS eh
                                                 LEFT OUTER JOIN companies_employee AS e ON (eh.employee_id=e.id) 
                                                 GROUP BY oh_id) 
-                                       SELECT COALESCE(c.code,'-') AS cust_code,  COALESCE(o.code,'-') AS ord_code,
+                                       SELECT COALESCE(c.code,'-') AS cust_code,  COALESCE(o.code,'-') AS ordr_code,
                                        eh_sub.e_code AS e_code, 
                                        oh.rosterdate AS oh_rd, 
                                        to_json(oh.rosterdate) AS rosterdate, 
-                                       oh.id AS oh_id, o.id AS ord_id, c.id AS cust_id, 
+                                       oh.id AS oh_id, o.id AS ordr_id, c.id AS cust_id, 
                                        eh_sub.e_code_arr AS e_code_arr,
                                        COALESCE(oh.shift,'-') AS oh_shift, 
                                        oh.isbillable AS oh_bill, 
                                        eh_sub.eh_id AS eh_id_arr, 
                                        eh_sub.e_id AS e_id_arr, 
-                                       eh_sub.eh_timedur, eh_sub.eh_plandur, eh_sub.eh_billdur, 
 
                                        o.isabsence AS o_isabs,
                                        oh.isrestshift AS oh_isrest, 
@@ -2163,11 +2193,17 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
                                        CASE WHEN o.isabsence THEN eh_sub.eh_timedur ELSE 0 END AS eh_absdur,
                                        CASE WHEN o.isabsence OR oh.isrestshift THEN 0 ELSE eh_sub.eh_billdur END AS eh_billdur,
       
+                                       eh_sub.eh_pr_arr,
+                                       eh_sub.eh_add_arr,
+                                       eh_sub.eh_tax_arr,
+                                       eh_sub.eh_amount,
+                                       eh_sub.eh_addition,
+                                       eh_sub.eh_tax,
+                                       
                                        eh_sub.eh_wage AS eh_wage, 
                                        eh_sub.e_dur AS e_dur, 
-                                       eh_sub.e_wage AS e_wage, eh_sub.e_wr AS e_wr, eh_sub.e_wf AS e_wf, 
-                                       0 AS oh_prrate,  0 AS oh_amount, 0 AS oh_tax
-                                       
+                                       eh_sub.e_wage AS e_wage, eh_sub.e_wr AS e_wr, eh_sub.e_wf AS e_wf
+       
                                        FROM companies_orderhour AS oh
                                        INNER JOIN eh_sub ON (eh_sub.oh_id=oh.id)
                                        INNER JOIN companies_order AS o ON (oh.order_id=o.id)
@@ -2177,14 +2213,13 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
                                        AND (oh.rosterdate IS NOT NULL) 
                                        AND (oh.rosterdate >= %(df)s)
                                        AND (oh.rosterdate <= %(dl)s)
-                                       AND (oh.rosterdate <= %(dl)s)
                                        AND (c.id = %(custid)s OR %(custid)s IS NULL)
                                        AND (o.id = %(ordid)s OR %(ordid)s IS NULL)
                                        AND (o.isabsence = FALSE)
                                        AND (oh.isrestshift = FALSE)
                                        AND ( (%(emplid)s = -1) OR ( ARRAY[ %(emplid)s ] <@ e_id ) )
                                        
-                                       ORDER BY LOWER(c.code), LOWER(o.code), oh.rosterdate, LOWER(eh_sub.e_code)
+                                       ORDER BY LOWER(c.code), c.id, LOWER(o.code), o.id, oh.rosterdate, LOWER(eh_sub.e_code)
                                """,
                                {'cat': c.SHIFT_CAT_0512_ABSENCE,
                                 'cid': company_id,
@@ -2277,22 +2312,31 @@ def create_review_employee_list(period_dict, comp_timezone, request):  # PR2019-
 
         cursor.execute("""SELECT COALESCE(e.code,'-') AS e_code,  
                             COALESCE(c.code,'-') AS cust_code, 
-                            COALESCE(o.code,'-') AS ord_code,
+                            COALESCE(o.code,'-') AS ordr_code,
                            eh.rosterdate AS eh_rd, 
                            to_json(eh.rosterdate) AS rosterdate, 
-                           eh.id AS eh_id, e.id AS e_id, o.id AS ord_id, c.id AS cust_id,
+                           eh.id AS eh_id, e.id AS e_id, o.id AS ordr_id, c.id AS cust_id,
                            COALESCE(oh.shift,'-') AS oh_shift, 
                                
                            o.isabsence AS o_isabs,
                            eh.isrestshift AS eh_isrest, 
+                           oh.isbillable AS oh_bill, 
        
                            CASE WHEN o.isabsence OR eh.isrestshift THEN 0 ELSE eh.plannedduration END AS eh_plandur,
                            CASE WHEN o.isabsence OR eh.isrestshift THEN 0 ELSE eh.timeduration END AS eh_timedur,
                            CASE WHEN o.isabsence THEN eh.timeduration ELSE 0 END AS eh_absdur,
                            CASE WHEN o.isabsence OR eh.isrestshift THEN 0 ELSE eh.billingduration END AS eh_billdur,
 
+                           eh.pricerate AS eh_pr_rate,
+                           eh.additionrate AS eh_add_rate,
+                           eh.taxrate AS eh_tax_rate,
+                           eh.amount AS eh_amount,
+                           eh.addition AS eh_addition,
+                           eh.tax AS eh_tax,
+                           
                            eh.wage AS eh_wage, 
-                           eh.wagerate AS eh_wr, eh.wagefactor AS eh_wf
+                           eh.wagerate AS eh_wr, 
+                           eh.wagefactor AS eh_wf
 
                            FROM companies_emplhour AS eh
                            LEFT JOIN companies_employee AS e ON (eh.employee_id=e.id)
@@ -2303,13 +2347,12 @@ def create_review_employee_list(period_dict, comp_timezone, request):  # PR2019-
                            AND (oh.rosterdate IS NOT NULL) 
                            AND (oh.rosterdate >= %(df)s)
                            AND (oh.rosterdate <= %(dl)s)
-                           AND (oh.rosterdate <= %(dl)s)
                            AND (eh.employee_id = %(emplid)s OR %(emplid)s IS NULL)
                            AND (c.id = %(custid)s OR %(custid)s IS NULL)
                            AND (o.id = %(ordid)s OR %(ordid)s IS NULL)
                            AND (o.isabsence = %(isabs)s OR %(isabs)s IS NULL)
                            AND (eh.isrestshift = %(isrest)s OR %(isrest)s IS NULL)
-                           ORDER BY LOWER(e.code), eh.rosterdate, LOWER(c.code), LOWER(o.code)
+                           ORDER BY LOWER(e.code), e.id, eh.rosterdate, LOWER(c.code), c.id, LOWER(o.code), o.id
                            """,
                            {'cat': c.SHIFT_CAT_0512_ABSENCE,
                             'cid': company_id,

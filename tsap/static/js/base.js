@@ -243,6 +243,70 @@ document.addEventListener('DOMContentLoaded', function() {
         return power_list
     }
 
+
+// ++++++++++++++++ ADD REMOVE CLASS  ++++++++++++++++++++++++++++++++++++
+
+//========= function toggle_class  ====================================
+    function toggle_class(tblBody, classname, is_add, filter_class){
+        // add or remove selected cls_hide from all elements with class 'filter_class'
+        //console.log("toggle_class", is_add, filter_class)
+        // from https://stackoverflow.com/questions/34001917/queryselectorall-with-multiple-conditions
+        // document.querySelectorAll("form, p, legend") means filter: class = (form OR p OR legend)
+        // document.querySelectorAll("form.p.legend") means filter: class = (form AND p AND legend)
+
+         // multipe filter: document.querySelectorAll(".filter1.filter2")
+        //let elements =  document.querySelectorAll("." + filter_class)
+        let elements = tblBody.querySelectorAll("." + filter_class)
+        for (let i = 0, len = elements.length; i < len; i++) {
+            add_or_remove_class (elements[i], classname, is_add)
+        };
+    }
+//========= function add_or_remove_class  ====================================
+    function add_or_remove_class (el, classname, is_add) {
+        if(!!el){
+            if (is_add){
+                el.classList.add(classname);
+            } else {
+                el.classList.remove(classname);
+            }
+        }
+    }
+
+//========= function remove_class_hide  ====================================
+    function remove_class_hide(filter_class){
+        // remove selected class_name from all elements with class 'filter_class
+        //console.log("remove_class_hide", filter_class)
+
+         // multipe filter: document.querySelectorAll(".filter1.filter2")
+        //let elements =  document.querySelectorAll("." + filter_class)
+        let elements =  tblBody_items.querySelectorAll("." + filter_class)
+
+        for (let i = 0, el, len = elements.length; i < len; i++) {
+            el =  elements[i];
+            if(!!el){
+                el.classList.remove(cls_hide);
+        //console.log("remove cls_hide")
+            }
+        }
+    }
+//========= function add_class_hide  ====================================
+    function add_class_hide(filter_class){
+        // add selected class_name to all elements with class 'filter_class'
+        //console.log("add_class_hide", filter_class)
+
+        // multipe filter: document.querySelectorAll(".filter1.filter2")
+        //let elements =  document.querySelectorAll("." + filter_class)
+        let elements =  tblBody_items.querySelectorAll("." + filter_class)
+        for (let i = 0, el, len = elements.length; i < len; i++) {
+            el =  elements[i];
+            if(!!el){
+                el.classList.add(cls_hide)
+        //console.log("add cls_hide")
+            }
+        }
+    }
+
+
 // ================ MAP FUNCTIONS ========================
 
 //========= get_itemdict_from_datamap_by_el  ============= PR2019-10-12
@@ -1159,8 +1223,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 //========= get_number_from_input  ========== PR2020-01-12
-    function get_number_from_input(input_value, old_value, multiplier, min_value, max_value, loc) {
-        //console.log("--------- get_number_from_input ---------")
+    function get_number_from_input(input_value, multiplier, min_value, max_value, loc) {
+        console.log("--------- get_number_from_input ---------")
         let output_value = null, value_int = 0, value_decimal = 0, is_not_valid = false, err_msg = null;
         if(input_value === 0){
             output_value = 0;
@@ -1168,6 +1232,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // replace comma's with dots
             const value_with_dot = input_value.replace(/\,/g,".");
             const index_last_dot = value_with_dot.lastIndexOf(".")
+            console.log("value_with_dot: ", value_with_dot)
             // check if input has dots
             if (index_last_dot === -1){
                 // if input has no dots: convert to integer
@@ -1193,15 +1258,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if(is_not_valid){
                 err_msg = "'" + ((input_value) ? input_value : "") + "' " + loc.err_msg_is_invalid_number;
             } else {
-                // multiply to get minutes instead of hours or days
+                // multiply to get minutes instead of hours or days / "pricecode * 100 / taxcode, addition * 10.000
                 output_value = Math.round(multiplier * (value_int + value_decimal));
                 is_not_valid = (output_value < min_value || output_value > max_value) ;
                 if(is_not_valid){
-                    err_msg = loc.err_msg_number_between + " " + min_value / multiplier + " " + loc.err_msg_and + " " + max_value / multiplier + ".";
+                    err_msg = loc.err_msg_number_between + " " + min_value / multiplier + " " + loc.err_msg_and +
+                    " " + max_value / multiplier + loc.err_msg_endof_sentence;
                 }
             }
         }
-
         return [output_value, err_msg];
     }  // get_number_from_input
 

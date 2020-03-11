@@ -974,9 +974,9 @@ def format_period_from_date(datefirst_dte, datelast_dte, short_names, user_lang)
     return display_text
 
 def format_period_from_datetimelocal(periodstart_dtmlocal, periodend_dtmlocal, timeformat, user_lang):
-    logger.debug(' --- format_period_from_datetimelocal --- ')
-    logger.debug('periodstart_datetimelocal: ' + str(periodstart_dtmlocal) + ' ' + str(type(periodstart_dtmlocal)))
-    logger.debug('periodend_datetimelocal: ' + str(periodend_dtmlocal)+ ' ' + str(type(periodend_dtmlocal)))
+    #logger.debug(' --- format_period_from_datetimelocal --- ')
+    #logger.debug('periodstart_datetimelocal: ' + str(periodstart_dtmlocal) + ' ' + str(type(periodstart_dtmlocal)))
+    #logger.debug('periodend_datetimelocal: ' + str(periodend_dtmlocal)+ ' ' + str(type(periodend_dtmlocal)))
 
     display_text = ''
     # challenge: when end time is 0:00, display it as 24:00 previous day
@@ -1702,39 +1702,18 @@ def get_iddict_variables(id_dict):
     return pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode, row_index
 
 
-def get_dict_value(dictionay, key_tuple, default_value=None):
+def get_dict_value(dictionary, key_tuple, default_value=None):
     # PR2020-02-04 like in base.js Iterate through keylist till value found
-    if key_tuple and dictionay:
+    if key_tuple and dictionary:
         for key in key_tuple:
-            if isinstance(dictionay, dict) and key in dictionay:
-                dictionay = dictionay.get(key)
+            if isinstance(dictionary, dict) and key in dictionary:
+                dictionary = dictionary.get(key)
             else:
-                dictionay = None
+                dictionary = None
                 break
-    if dictionay is None and default_value is not None:
-        dictionay = default_value
-    return dictionay
-
-
-def get_dict_valueOLD(dictionay, key_tuple, default_value=None):
-    # PR2020-02-04 like in base.js Iterate through keylist till value found
-    if key_tuple and dictionay:
-        if isinstance(dictionay, dict):
-            for key in key_tuple:
-                if key in dictionay:
-                    if isinstance(dictionay, dict):
-                        dictionay = dictionay[key]
-                    else:
-                        dictionay = None
-                        break
-                else:
-                    dictionay = None
-                    break
-        else:
-            dictionay = None
-    if dictionay is None and default_value is not None:
-        dictionay = default_value
-    return dictionay
+    if dictionary is None and default_value is not None:
+        dictionary = default_value
+    return dictionary
 
 
 def set_fielddict_date(field_dict, date_value, rosterdate=None, mindate=None, maxdate=None):
@@ -1801,7 +1780,7 @@ def get_fielddict_pricerate(table, instance, field_dict, user_lang):
                 if pricerate is None and instance.scheme.order is not None:
                     pricerate = get_pricerate_from_instance(instance.scheme.order, field, cur_rosterdate, cur_wagefactor)
 
-    display_text = get_rate_display(pricerate, user_lang)
+    display_text = display_pricerate(pricerate, False, user_lang)
     #logger.debug('display_text: ' + str(display_text))
 
     if pricerate is not None:  # 0 is a value, so don't use 'if pricerate:'
@@ -1930,42 +1909,6 @@ def get_billable_shift(shift):
                     is_billable = (value == 2)
     return is_override, is_billable
 
-
-def get_billable_schemeitem(schemeitem):
-    # PR2019-10-10
-    # value 0 = no override, 1= override NotBillable, 2= override Billable
-    field = 'billable'
-    is_billable = False
-    is_override = False
-    if schemeitem:
-        value = getattr(schemeitem, field, 0)
-        is_override = (value > 0)
-        if is_override:
-            is_billable = (value == 2)  # means when (value == 1) then is_billable = False
-        else:
-            shift_override = False
-            if schemeitem.shift:
-                # restshift has always is_billable = False. Make sure that when restshift is_billable cannot be set to True
-                value = getattr(schemeitem.shift, field, 0)
-                shift_override = (value > 0)
-                if shift_override:
-                    is_billable = (value == 2)
-            if not shift_override:
-                if schemeitem.scheme:
-                    value = getattr(schemeitem.scheme, field, 0)
-                    if value > 0:  # is_override when value > 0
-                        is_billable = (value == 2)
-                    else:
-                        if schemeitem.scheme.order:
-                            value = getattr(schemeitem.scheme.order, field, 0)
-                            if value > 0: # is_override when value > 0
-                                is_billable = (value == 2)
-                            else:
-                                # get default company_billable, has no value 'is_override'
-                                value = getattr(schemeitem.scheme.order.customer.company, field, 0)
-                                is_billable = (value == 2)
-    return is_override, is_billable
-
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 def fielddict_duration(duration, user_lang):
@@ -2001,14 +1944,31 @@ def remove_empty_attr_from_dict(dict):
     #logger.debug('dict: ' + str(dict))
 
 
-def get_rate_display(value, user_lang):
-    # PR2019-09-20 returns '35,25' or '35.25'
+def display_pricerate(value, add_percent_sign, user_lang):
+    # returns '35,25' or '35.25' PR2019-09-20 PR2022-03-06
     display_value = ''
     if value is not None:
-        dot_str = ',' if user_lang == 'nl' else '.'
-        dollars =  int (value / 100)
-        cents_str = '00' + str(value - dollars * 100)
-        display_value = str(dollars) + dot_str + cents_str[-2:]
+        decimal_separator = ',' if user_lang == 'nl' else '.'
+        thousand_separator = '.' if user_lang == 'nl' else ','
+        dollars = int (value / 100)
+
+        dollar_text = str(dollars)
+        if dollars >= 1000000:
+            pos = len(dollar_text) - 6
+            dollar_text = thousand_separator.join((dollar_text[0:pos], dollar_text[pos]))
+        if dollars >= 1000:
+            pos = len(dollar_text) - 3
+            dollar_text = thousand_separator.join((dollar_text[0:pos], dollar_text[pos]))
+
+        cents = value - dollars * 100
+        skip_cents = add_percent_sign and not cents
+        if not skip_cents:
+            cents_str = '00' + str(cents)
+            display_value = decimal_separator.join((str(dollars), cents_str[-2:]))
+
+        if add_percent_sign:
+            display_value += '%'
+
     return display_value
 
 
@@ -2107,7 +2067,7 @@ def get_pricerate_from_dict(pricerate_dict, cur_rosterdate, cur_wagefactor):
     return pricerate
 
 
-def save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field):
+def save_pricerate_to_instanceXXX(instance, rosterdate, wagefactor, new_value, update_dict, field):
     #logger.debug('   ')
     #logger.debug(' --- save_pricerate_to_instance --- ' + str(instance) + ' value: ' + str(new_value))
     #logger.debug('field ' + str(field))
@@ -2197,6 +2157,27 @@ def set_pricerate_to_dict(pricerate_dict, rosterdate, wagefactor, new_pricerate)
     return pricerate_dict, is_update
 
 # -- end of save_pricerate_to_dict
+
+def calc_amount_addition_tax_rounded(time_duration, billing_duration,
+                             is_absence, is_restshift, is_billable,
+                             price_rate, addition_rate,tax_rate):  # PR2020-03-10
+    #logger.debug(' ============= get_pricecodeitem ============= ')
+    amount, addition, tax = 0, 0, 0
+    if price_rate and not is_absence and not is_restshift:
+        if is_billable:
+            base_duration = billing_duration
+        else:
+            base_duration = time_duration
+
+        amount_not_rounded = (base_duration / 60) * (price_rate)  # amount 10.000 = 100 US$
+        amount = int(0.5 + amount_not_rounded)  # This rounds to an integer
+        addition_not_rounded = amount * (addition_rate / 10000)  # additionrate 10.000 = 1006%
+        addition = int(0.5 +addition_not_rounded)  # This rounds to an integer
+        tax_not_rounded = (amount + addition) * (tax_rate / 10000)  # taxrate 600 = 6%
+        tax = int(0.5 + tax_not_rounded) # This rounds to an integer
+
+    return amount, addition, tax
+
 
 def dictfetchall(cursor):
     # PR2019-10-25 from https://docs.djangoproject.com/en/2.1/topics/db/sql/#executing-custom-sql-directly
@@ -2438,33 +2419,6 @@ def calc_timeduration_from_values(is_restshift, offsetstart, offsetend, breakdur
 
     return timeduration_minus_break
 
-# <<<<<<<<<< calc_timeduration_from_shift >>>>>>>>>>>>>>>>>>> PR2020-01-04
-def calc_timeduration_from_schemitem(schemeitem):
-    # function calculates timeduration from values in shift, if no shift: get from schemeitem
-    # if both offsetstart and offsetend have value: timeduration is calculated
-    # else: use stored value of timeduration
-    # timeduration = 0 in restshift
-    # timeduration_minus_break is used in field 'timeduration' in shift_dict
-    # timeduration is used for minoffset and maxoffset
-
-    is_restshift = False
-    offsetstart = None
-    offsetend = None
-    breakduration = 0
-    timeduration = 0
-    timeduration_minus_break = 0
-
-    if schemeitem:
-        shift = schemeitem.shift
-        if shift:
-            is_restshift, offsetstart, offsetend, breakduration, \
-            timeduration_minus_break, timeduration = calc_timeduration_from_shift(shift)
-        else:
-            is_restshift, offsetstart, offsetend, breakduration, \
-            timeduration_minus_break, timeduration = calc_timeduration_from_shift(schemeitem)
-
-    return is_restshift, offsetstart, offsetend, breakduration, timeduration_minus_break, timeduration
-
 
 # <<<<<<<<<< calc_timeduration_from_shift >>>>>>>>>>>>>>>>>>> PR2020-01-04
 def calc_timeduration_from_shift(shift):
@@ -2538,7 +2492,7 @@ def calc_timestart_time_end_from_offset(rosterdate_dte,
             datediff = endtime_local - starttime_local
             datediff_minutes = int((datediff.total_seconds() / 60))
             timeduration = int(datediff_minutes - breakduration)
-            logger.debug('new  timeduration:  ' + str(timeduration))
+            #logger.debug('new  timeduration:  ' + str(timeduration))
             # when rest shift : timeduration = 0
             if is_restshift:
                 timeduration = 0

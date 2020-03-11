@@ -251,7 +251,7 @@
 }
 
 .tsa_tr_error {
-    background: #f1b5b5; /* licht rood; */
+   /* background: #f1b5b5; /* licht rood; */
     background: #ffe8e8; /* licht lichtrood; */
 
 }
@@ -311,6 +311,33 @@
 
 .tr_color_disabled {
     color: grey; /* #e0e0e0; /* default light grey */
+}
+
+.tsa_color_lightgrey {
+    /*color: #e0e0e0 !important; /* #e0e0e0; 224 224 224 /* default light grey */
+    color: #a0a0a0 !important; /* bit darker lightgrey 160 160 160 **/
+    /*font-weight: bold !important;*/
+
+   /* background-color: #303024; /* dark dark Panta Rhei grey 48 48 36 */
+    /*background-color: #808080; /* dark grey 128 128 128 */
+   /* background-color: #a5a5a5; /* medium grey; 165 165 165 */
+   /* background-color:  #d8d8d8;  /* light grey 218 218 218 100%  /*  #e0e0e0; light grey 224 224 224 */
+}
+
+.tsa_color_lightlightgrey {
+    color: #d8d8d8 !important;  /* light grey 218 218 218 100%  */
+}
+.tsa_color_mediumgrey {
+    color: #a5a5a5 !important;  /* medium grey; 165 165 165 */
+}
+.tsa_color_darkgrey {
+    color: #808080 !important;  /* dark grey 128 128 128 */
+}
+.tsa_color_darkblue {
+    color: #40487f !important;  /* dark blue   #40487f     64 72 127 */
+}
+.tsa_color_lightblue {
+    color: #969dcd !important;  /*   lightblue    #969dcd    150 157 205 */
 }
 
 .tsa_color_notallowed {

@@ -305,8 +305,8 @@ document.addEventListener('DOMContentLoaded', function() {
             employee: {inactive: false},
             order: {isabsence: false, istemplate: false, inactive: false},
             abscat: {inactive: false},
-            //"employee_planning": {value: true},
-            //employee_pricerate: {value: true}
+                                //"employee_planning": {value: true},
+                                //employee_pricerate: {value: true}
 
             scheme: {isabsence: false, istemplate: false, inactive: null, issingleshift: null},
             shift: {customer_pk: null},
@@ -887,8 +887,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_submenu_employee_planning_preview =  document.getElementById("id_submenu_employee_planning_preview")
         let el_submenu_employee_export_excel =  document.getElementById("id_submenu_employee_export_excel")
 
-        id_submenu_employee_export_excel
-
         if (show_btn_print_planning){
             el_submenu_employee_planning_preview.classList.remove(cls_hide)
             el_submenu_employee_export_excel.classList.remove(cls_hide)
@@ -1412,10 +1410,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const imgsrc_default = imgsrc_inactive_grey, imgsrc_hover = imgsrc_inactive_black;
             const has_sel_btn_delete = false;
             let row_count = {count: 0};  // NIU
-            const filter_ppk_int = null, filter_include_inactive = true;
+            const filter_ppk_int = null, filter_include_inactive = true, filter_include_absence = true;
             selectRow = t_CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, update_dict, selected_employee_pk,
                                 HandleSelect_Row, HandleSelectRowButton,
-                                filter_ppk_int, filter_include_inactive, row_count,
+                                filter_ppk_int, filter_include_inactive, filter_include_absence, row_count,
                                 cls_bc_lightlightgrey, cls_bc_yellow_light,
                                 imgsrc_default, imgsrc_hover,
                                 imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
@@ -1460,7 +1458,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function (){
                 const tblName = tblName_from_selectedbtn(selected_btn);
                 const has_ppk_filter = (tblName !== "employee");
-                f_Filter_TableRows(tblBody_from_selectedbtn(selected_btn),
+                t_Filter_TableRows(tblBody_from_selectedbtn(selected_btn),
                                     tblName,
                                     filter_dict,
                                     filter_show_inactive,
@@ -1986,7 +1984,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const max_value = (fieldname === "workhours") ? 168 * 60 :
                       (fieldname === "workdays") ? 7 * 1440 :
                       (fieldname === "leavedays") ? 365 * 1440 : 0;
-                const arr = get_number_from_input(el_input.value, old_value, multiplier, min_value, max_value, loc);
+                const arr = get_number_from_input(el_input.value, multiplier, min_value, max_value, loc);
                 value = arr[0];
                 err_msg = arr[1];
             } else if (["datefirst", "datelast"].indexOf( fieldname ) > -1){
@@ -2822,6 +2820,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log("tblRow", tblRow)
         console.log(" -----  ModConfirmOpen   ----", mode)
         // when clicked on delete btn in menu or form there is no tblRow, use selected_employee_pk instead
+        mod_upload_dict = {};
 // ---  create id_dict
         let map_id, tblName;
         if(!!tblRow){
@@ -2840,13 +2839,30 @@ document.addEventListener('DOMContentLoaded', function() {
         const data_map = (is_tbl_teammember) ? teammember_map : employee_map;
         const map_dict = get_mapdict_from_datamap_by_tblName_pk(data_map, tblName, pk_str);
 
-        console.log("map_dict", map_dict)
+        let el_btn_cancel = document.getElementById("id_confirm_btn_cancel");
+        let el_btn_save = document.getElementById("id_confirm_btn_save");
 
-        if(!isEmpty(map_dict)){
+        if(isEmpty(map_dict)){
+            const header_txt = (mode === "delete") ? loc.Delete_employee :
+                               (mode === "inactive") ? loc.Make_inactive : loc.Select_employee + "...";
+            document.getElementById("id_confirm_header").innerText = header_txt
+            document.getElementById("id_confirm_msg01").innerText = loc.TXT_Pease_select_employee_first;
+            document.getElementById("id_confirm_msg02").innerText = null;
+            document.getElementById("id_confirm_msg03").innerText = null;
+
+            // hide save button
+            el_btn_save.classList.add(cls_hide);
+            el_btn_cancel.classList.remove(cls_hide);
+            el_btn_cancel.innerText =  loc.Close
+            setTimeout(function() {el_btn_save.focus()}, 50);
+
+// ---  show modal, set focus on save button
+            $("#id_mod_confirm").modal({backdrop: true});
+        } else {
             //console.log("map_dict", map_dict)
             mod_upload_dict = {mode: mode, id: map_dict.id};
 
-            let data_txt_msg01, msg_01_txt, employee_code;
+            let msg_01_txt, employee_code;
             const dict_key = (is_tbl_teammember) ? "employee" : "code";
             const dict_subkey = (is_tbl_teammember) ? "code" : "value";
             employee_code =  get_subdict_value_by_key(map_dict, dict_key, dict_subkey, "")
@@ -2856,6 +2872,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // only tbl employee has inactive button
                 msg_01_txt = get_attr_from_el(el_data, "data-txt_confirm_msg01_inactive");
             } else if (mode === "delete"){
+                mod_upload_dict.is_delete = true;
                 if (is_tbl_teammember){
                      const absence_code =  get_subdict_value_by_key(map_dict, "order", "code")
                      msg_01_txt = get_attr_from_el(el_data, "data-txt_absence") +
@@ -2867,14 +2884,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             document.getElementById("id_confirm_header").innerText = employee_code;
             document.getElementById("id_confirm_msg01").innerText = msg_01_txt;
-            const data_txt_btn_save = "data-txt_confirm_btn_" + mode
 
-
-            let el_btn_cancel = document.getElementById("id_confirm_btn_cancel");
             // btn_cancel will be hidden in MSE_Open, therefore remove cls_hide
             el_btn_cancel.classList.remove(cls_hide);
-            let el_btn_save = document.getElementById("id_confirm_btn_save");
-            el_btn_save.innerText = get_attr_from_el(el_data, data_txt_btn_save);
+            el_btn_save.classList.remove(cls_hide)
+
+            // make save button red when delete
+            el_btn_save.classList.remove((mode === "delete") ? "btn-primary" : "btn-outline-danger")
+            el_btn_save.classList.add((mode === "delete") ? "btn-outline-danger" : "btn-primary")
+
+            //const btn_text = (is_delete) ? loc.Delete : loc.Create
+            el_btn_save.innerText =  (mode === "delete") ? loc.Yes_delete :
+                                     (mode === "inactive") ? loc.Yes_make_inactive : loc.OK;
+            el_btn_cancel.innerText =  loc.No_cancel
+
             setTimeout(function() {el_btn_save.focus()}, 50);
 
             if(mode === "delete"){
@@ -2910,22 +2933,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const tblName = get_subdict_value_by_key(mod_upload_dict, "id", "table")
         const url_str = (tblName === "teammember") ? url_teammember_upload : url_employee_upload
 
-
-
         const pk_int = get_subdict_value_by_key(mod_upload_dict, "id", "pk");
         const map_id = get_map_id(tblName, pk_int);
         console.log("===================================is_delete");
         console.log("map_id:", map_id);
 
-        let tr_changed = document.getElementById(map_id);
-        console.log("tr_changed:", tr_changed);
-        if(!!tr_changed){
-            tr_changed.classList.add(cls_error);
-        setTimeout(function (){
-            tr_changed.classList.remove(cls_error);
-            }, 2000);
+        const is_delete = get_dict_value(mod_upload_dict, ["is_delete"], false)
+        console.log("mod_upload_dict:", mod_upload_dict);
+        console.log("is_delete:", is_delete);
+        if (is_delete) {
+            let tr_changed = document.getElementById(map_id);
+            if(!!tr_changed){
+                tr_changed.classList.add(cls_error);
+                setTimeout(function (){tr_changed.classList.remove(cls_error)}, 2000);
+            }
         }
-
         UploadChanges(mod_upload_dict, url_str);
     }
 
@@ -4475,7 +4497,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!skip_filter) {
             const tblName = tblName_from_selectedbtn(selected_btn);
             const has_ppk_filter = (tblName !== "employee");
-            f_Filter_TableRows(tblBody_from_selectedbtn(selected_btn),
+            t_Filter_TableRows(tblBody_from_selectedbtn(selected_btn),
                                 tblName,
                                 filter_dict,
                                 filter_show_inactive,
@@ -4503,7 +4525,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("selected_btn", selected_btn )
         console.log("tblName", tblName )
         console.log("tblBody", tblBody )
-        f_Filter_TableRows(tblBody, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_employee_pk);
+        t_Filter_TableRows(tblBody, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_employee_pk);
 
         FilterSelectRows(tblBody_select, filter_select);
     }  // function HandleFilterInactive

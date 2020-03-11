@@ -109,6 +109,7 @@
             <a id="id_hdr_cust" href="{% url 'customer_list_url' %}">{% trans 'Customers and orders' %}</a>
             <a id="id_hdr_schm" href="{% url 'schemes_url' %}">{% trans 'Planning' %}</a>
             <a id="id_hdr_rost" href="{% url 'roster_url' %}">{% trans 'Roster' %}</a>
+            <a id="id_hdr_prices" href="{% url 'prices_url' %}">{% trans 'Prices and invoices' %}</a>
             <a id="id_hdr_revi" href="{% url 'review_url' %}">{% trans 'Reviews' %}</a>
         {% else %}
             <a href="{% url 'home' %}">Home</a>
@@ -127,6 +128,7 @@
             data-employee_list_url="{% url 'employee_list_url' %}"
             data-customer_list_url="{% url 'customer_list_url' %}"
             data-schemes_url="{% url 'schemes_url' %}"
+            data-prices_url="{% url 'prices_url' %}"
             data-roster_url="{% url 'roster_url' %}"
             data-review_url="{% url 'review_url' %}"
         > </div>

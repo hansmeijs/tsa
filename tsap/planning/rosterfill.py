@@ -50,46 +50,73 @@ idx_rpl_code = 15  # is r_code_arr in customer_calendar
 idx_si_id = 16
 idx_sh_id = 17
 idx_sh_code = 18
-idx_o_seq = 19
-idx_si_mod = 20
+idx_sh_isbill = 19
+idx_o_seq = 20
+idx_si_mod = 21
 
-idx_tm_df = 21  # is null in customer_calendar
-idx_tm_dl = 22  # is null in customer_calendar
-idx_s_df = 23
-idx_s_dl = 24
-idx_s_cycle = 25
-idx_s_exph = 26
-idx_s_exch = 27
+idx_tm_df = 22  # is null in customer_calendar
+idx_tm_dl = 23 # is null in customer_calendar
+idx_s_df = 24
+idx_s_dl = 25
+idx_s_cycle = 26
+idx_s_exph = 27
+idx_s_exch = 28
 
-idx_si_sh_os = 28
-idx_si_sh_oe = 29
-idx_si_sh_bd = 30
-idx_si_sh_td = 31
+idx_sh_os = 29
+idx_sh_oe = 30
+idx_sh_bd = 31
+idx_sh_td = 32
 
-idx_tm_rd = 32
-idx_tm_ddif = 33  # tm_ddif = %(rd)s - %(ref)s
-idx_tm_count = 34
+idx_tm_rd = 33
+idx_tm_ddif = 34  # tm_ddif = %(rd)s - %(ref)s
+idx_tm_count = 35
 
-idx_e_tm_id_arr = 35
-idx_e_si_id_arr = 36
-idx_e_mod_arr = 37  # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
-idx_e_ddifref_arr = 38
-idx_e_osref_arr = 39
-idx_e_oeref_arr = 40
-idx_e_o_seq_arr = 41
+idx_e_tm_id_arr = 36
+idx_e_si_id_arr = 37
+idx_e_mod_arr = 38  # shift_modes are: a=absence, r=restshift, s=singleshift, n=normal
+idx_e_ddifref_arr = 39
+idx_e_osref_arr = 40
+idx_e_oeref_arr = 41
+idx_e_o_seq_arr = 42
 
-idx_r_tm_id_arr = 42
-idx_r_si_id_arr = 43
-idx_r_mod_arr = 44
-idx_r_ddifref_arr = 45
-idx_r_osref_arr = 46
-idx_r_oeref_arr = 47
-idx_r_o_seq_arr = 48
+idx_r_tm_id_arr = 43
+idx_r_si_id_arr = 44
+idx_r_mod_arr = 45
+idx_r_ddifref_arr = 46
+idx_r_osref_arr = 47
+idx_r_oeref_arr = 48
+idx_r_o_seq_arr = 49
 
-idx_si_sh_os_nonull = 49 # non zero os for sorting when creating rosterdate
-idx_si_sh_oe_nonull = 50 # non zero os for sorting when creating rosterdate
+idx_sh_os_nonull = 50 # non zero os for sorting when creating rosterdate
+idx_sh_oe_nonull = 51 # non zero os for sorting when creating rosterdate
 
-idx_isreplacement = 51 # not used in sql, but added in calculate_add_row_to_dict
+# idx_e_sub_e_id = 52 # for testing only Necessary to write  idx_isreplacement in this field
+# idx_r_sub_e_id = 53 # for testing
+idx_isreplacement = 52 # not used in sql, but added in calculate_add_row_to_dict. Overwrites idx_e_sub_e_id
+idx_is_notinuse = 53
+
+idx_tm_ovr = 54
+idx_tm_prc_id = 55
+idx_r_prc_id = 56
+idx_e_prc_id = 57
+idx_sh_prc_id = 58
+
+idx_tm_adc_id = 59
+idx_r_adc_id = 60
+idx_e_adc_id = 61
+idx_sh_adc_id = 62
+
+idx_sh_txc_id = 63
+
+idx_o_inv_id = 64
+idx_e_fnc_id = 65
+idx_e_wgc_id = 66
+idx_e_pdc_id = 67
+idx_r_fnc_id = 68
+idx_r_wgc_id = 69
+idx_r_pdc_id = 70
+idx_sh_wfc_id = 71
+
 
 # CASE WHEN si_sub.sh_os IS NULL THEN CASE WHEN tm_sub.tm_os IS NULL THEN 0 ELSE tm_sub.tm_os END ELSE si_sub.sh_os END AS offsetstart,
 #        COALESCE(tm_sub.tm_offsetstart, 0) + 1440 * dte_sub.ddiff AS osref,
@@ -105,7 +132,8 @@ sql_schemeitem_sub00 = """
         CAST(si.rosterdate AS date) AS si_rd, 
         
         si.isabsence AS si_abs,
-        COALESCE(sh.isrestshift, FALSE) AS sh_rs,
+        sh.isrestshift AS sh_rs,
+        CASE WHEN sh.isrestshift THEN 0 ELSE sh.billable END AS sh_bill,
         
         CASE WHEN si.isabsence THEN 'a' ELSE 
             CASE WHEN sh.isrestshift THEN 'r' ELSE 
@@ -115,10 +143,15 @@ sql_schemeitem_sub00 = """
         si.inactive,
 
         CAST(si.rosterdate AS date) - CAST(%(ref)s AS date) AS si_ddif,
-        CASE WHEN sh.id IS NULL THEN si.offsetstart ELSE sh.offsetstart END AS si_sh_os,
-        CASE WHEN sh.id IS NULL THEN si.offsetend ELSE sh.offsetend END AS si_sh_oe,
-        CASE WHEN sh.id IS NULL THEN si.breakduration ELSE sh.breakduration END AS si_sh_bd,
-        CASE WHEN sh.id IS NULL THEN si.timeduration ELSE sh.timeduration END AS si_sh_td
+        sh.offsetstart AS sh_os,
+        sh.offsetend AS sh_oe,
+        COALESCE(sh.breakduration, 0) AS sh_bd, 
+        COALESCE(sh.timeduration, 0) AS sh_td,
+     
+        sh.pricecode_id AS sh_prc_id,
+        sh.additioncode_id AS sh_adc_id,
+        sh.taxcode_id AS sh_txc_id,
+        sh.wagefactorcode_id AS sh_wfc_id
      
         FROM companies_schemeitem AS si 
         LEFT JOIN companies_shift AS sh ON (si.shift_id = sh.id) 
@@ -144,10 +177,10 @@ sql_schemeitem_norest_sub01 = """
         CASE WHEN s.issingleshift THEN 's' ELSE  'n' END AS si_mod,
 
         CAST(si.rosterdate AS date) - CAST(%(ref)s AS date) AS si_ddif,
-        CASE WHEN sh.id IS NULL THEN si.offsetstart ELSE sh.offsetstart END AS si_sh_os,
-        CASE WHEN sh.id IS NULL THEN si.offsetend ELSE sh.offsetend END AS si_sh_oe,
-        CASE WHEN sh.id IS NULL THEN si.breakduration ELSE sh.breakduration END AS si_sh_bd,
-        CASE WHEN sh.id IS NULL THEN si.timeduration ELSE sh.timeduration END AS si_sh_td
+        sh.offsetstart AS sh_os,
+        sh.offsetend AS sh_oe,
+        COALESCE(sh.breakduration, 0) AS sh_bd,
+        COALESCE(sh.timeduration, 0) AS sh_td
         
         FROM companies_schemeitem AS si 
         LEFT JOIN companies_shift AS sh ON (si.shift_id = sh.id) 
@@ -176,10 +209,10 @@ sql_schemeitem_sub02 = """
         
         MOD((CAST(si.rosterdate AS date) - CAST(%(rd)s AS date)), s.cycle) AS si_dif,
 
-        CASE WHEN sh.id IS NULL THEN si.offsetstart ELSE sh.offsetstart END AS si_sh_os,
-        CASE WHEN sh.id IS NULL THEN si.offsetend ELSE sh.offsetend END AS si_sh_oe,
-        CASE WHEN sh.id IS NULL THEN si.breakduration ELSE sh.breakduration END AS si_sh_bd,
-        CASE WHEN sh.id IS NULL THEN si.timeduration ELSE sh.timeduration END AS si_sh_td
+        sh.offsetstart AS sh_os,
+        sh.offsetend AS sh_oe,
+        COALESCE(sh.breakduration, 0) AS sh_bd, 
+        COALESCE(sh.timeduration, 0) AS sh_td
         
         FROM companies_schemeitem AS si 
         LEFT JOIN companies_shift AS sh ON (si.shift_id = sh.id) 
@@ -201,12 +234,12 @@ sql_schemeitem_sub02 = """
 # Normal schemeitem:
 # dictrow: {'si_id': 1713, 't_id': 2044, 'sh_id': 603, 'sh_code': '08.00 - 17.00', 'sh_rest': False,
 #           'si_abs': False, 'si_rd': datetime.date(2020, 1, 6), 's_cycle': 7,
-#           'si_ddif': 1, 'si_mod': 'n', 'si_sh_os': 480, 'si_sh_oe': 1020, 'si_sh_bd': 60, 'si_sh_td': 0}
+#           'si_ddif': 1, 'si_mod': 'n', 'sh_os': 480, 'sh_oe': 1020, 'sh_bd': 60, 'sh_td': 0}
 
 # Absence schemeitem:
 # dictrow: {'si_id': 1722, 't_id': 2045, 'sh_id': None, 'sh_code': None, 'sh_rest': False,
 #           'si_abs': True, 'si_rd': datetime.date(2020, 1, 12), 's_cycle': 7,
-#           'si_ddif': 0, 'si_mod': 'n', 'si_sh_os': None, 'si_sh_oe': None, 'si_sh_bd': 0, 'si_sh_td': 0}
+#           'si_ddif': 0, 'si_mod': 'n', 'sh_os': None, 'sh_oe': None, 'sh_bd': 0, 'sh_td': 0}
 
 sql_schemeitem_triple_sub03 = """
     SELECT si_sub.si_id, 
@@ -237,10 +270,10 @@ sql_schemeitem_triple_sub03 = """
             CASE WHEN si_sub.si_abs = TRUE THEN 'a' ELSE 'n' END
         END AS si_mod, 
 
-        si_sub.si_sh_os,
-        si_sub.si_sh_oe,
-        si_sub.si_sh_bd,
-        si_sub.si_sh_td
+        si_sub.sh_os,
+        si_sub.sh_oe,
+        si_sub.sh_bd,
+        si_sub.sh_td
  
         FROM ( """ + sql_schemeitem_sub02 + """ ) AS si_sub 
         
@@ -266,7 +299,7 @@ sql_schemeitem_triple_sub03 = """
 #           's_id': 1637, 's_code': 'Gomes Bravio NM', 'o_id': 1384, 'o_code': 'Ongeoorloofd', 'o_abs': True, 'o_seq': 5, 'c_id': 651, 'c_code': 'Afwezig', 'comp_id': 3,
 #           'tm_df': None, 'tm_dl': None, 's_df': datetime.date(2020, 1, 8), 's_dl': datetime.date(2020, 1, 8), 's_sng': False,
 #           'si_id': 1742, 'sh_code': '', 'tm_mod': 'a', 'si_rd': datetime.date(2020, 1, 8), 'ddifref': 2,
-#           'si_sh_os': None, 'si_sh_oe': None, 'si_sh_bd': 0, 'si_sh_td': 0}
+#           'sh_os': None, 'sh_oe': None, 'sh_bd': 0, 'sh_td': 0}
 
 sql_teammember_triple_sub04 = """
     SELECT 
@@ -289,6 +322,11 @@ sql_teammember_triple_sub04 = """
         tm.datefirst AS tm_df,
         tm.datelast AS tm_dl,
 
+        tm.pricecode_id AS tm_prc_id,
+        tm.additioncode_id AS tm_adc_id,
+        tm.override AS tm_ovr,
+        tm.wagefactorcode_id AS tm_wfc_id,
+
         s.datefirst AS s_df,
         s.datelast AS s_dl,
         s.issingleshift AS s_sng,
@@ -305,10 +343,10 @@ sql_teammember_triple_sub04 = """
 
         CAST(%(rd)s AS date) - CAST(%(ref)s AS date) + COALESCE(si_sub.si_ddif, 0) AS ddifref,
 
-        si_sub.si_sh_os,
-        si_sub.si_sh_oe,
-        si_sub.si_sh_bd,
-        si_sub.si_sh_td
+        si_sub.sh_os,
+        si_sub.sh_oe,
+        si_sub.sh_bd,
+        si_sub.sh_td
 
     FROM companies_teammember AS tm 
     INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
@@ -344,6 +382,12 @@ sql_teammember_triple_sub04 = """
 sql_teammember_calc_sub05 = """
     SELECT 
         tm_sub.tm_id, 
+        tm_sub.tm_mod,
+        tm_sub.tm_prc_id,
+        tm_sub.tm_adc_id,
+        tm_sub.tm_ovr,
+        tm_sub.tm_wfc_id,
+        
         tm_sub.e_id,
 
         tm_sub.t_id, 
@@ -352,42 +396,48 @@ sql_teammember_calc_sub05 = """
         tm_sub.s_code,
         tm_sub.o_id,
         tm_sub.o_code,
-
         tm_sub.o_seq,
-
         tm_sub.c_id, 
         tm_sub.c_code, 
         tm_sub.comp_id, 
 
         tm_sub.si_id,
         tm_sub.sh_code,
-
-        tm_sub.tm_mod,
-
+        
         tm_sub.si_rd,
         tm_sub.ddifref,
         
-        tm_sub.si_sh_os, 
-        tm_sub.si_sh_oe, 
-        tm_sub.ddifref * 1440 + COALESCE(tm_sub.si_sh_os, 0) AS os_ref,
-        tm_sub.ddifref * 1440 + COALESCE(tm_sub.si_sh_oe, 1440) AS oe_ref,
-        COALESCE(tm_sub.si_sh_bd, 0) AS si_sh_bd,
-        COALESCE(tm_sub.si_sh_td, 0) AS si_sh_td
+        tm_sub.sh_os, 
+        tm_sub.sh_oe, 
+        tm_sub.ddifref * 1440 + COALESCE(tm_sub.sh_os, 0) AS os_ref,
+        tm_sub.ddifref * 1440 + COALESCE(tm_sub.sh_oe, 1440) AS oe_ref,
+        COALESCE(tm_sub.sh_bd, 0) AS sh_bd,
+        COALESCE(tm_sub.sh_td, 0) AS sh_td
 
     FROM  ( """ + sql_teammember_triple_sub04 + """ ) AS tm_sub
 """
 
-# sql_teammember_aggr_sub06 GROUP BY employee_id with aggregate schemitem info of this day, for normal shifts also for previous and next day
-#  is used for checking absence and overlap
-#  rd = '2020-01-08, ref date = '2020-01-06'. e_sub.ddiffref_arr is diff between refdate and si_date. Os ref is offset from refdate midnight
-# dictrow: {'tm_eid': 2585, 'tm_id_arr': [1005, 1006], 'si_id_arr': [1738, 1742], 'mod_arr': ['n', 'a'],
-#            'ddifref_arr': [2, 2], 'osref_arr': [3360, 2880], 'oeref_arr': [3840, 2880], 'o_seq_arr': [-1, 5]}
+# sql_teammember_aggr_sub06 GROUP BY employee_id with aggregate schemitem info of this day,
+# for normal shifts also for previous and next day
+# is used for checking absence and overlap
+#  rd = '2020-01-08, ref date = '2020-01-06'. e_sub.ddiffref_arr is diff between refdate and si_date.
+#  Os ref is offset from refdate midnight
+
+# dictrow: {'tm_eid': 2612, 'tm_id_arr': [1099, 1103], 'si_id_arr': [1926, 2342], 'mod_arr': ['n', 'n'],
+#           'tm_prc_arr_arr': [None, None], 'tm_adc_id_arr': [None, None], 'tm_ovr_arr': [True, True], 'tm_wfc_id_arr': [None, None],
+#           'ddifref_arr': [7, 5], 'osref_arr': [9990, 7445], 'oeref_arr': [11700, 7680], 'o_seq_arr': [-1, -1], 'tm_count': 2}
 
 sql_teammember_aggr_sub06= """
     SELECT sq.e_id  AS tm_eid,
         ARRAY_AGG(sq.tm_id) AS tm_id_arr,
         ARRAY_AGG(sq.si_id) AS si_id_arr,
         ARRAY_AGG(tm_mod) AS mod_arr,
+  
+        ARRAY_AGG(tm_prc_id) AS prc_arr,
+        ARRAY_AGG(tm_adc_id) AS adc_arr,
+        ARRAY_AGG(tm_ovr) AS ovr_arr,
+        ARRAY_AGG(tm_wfc_id) AS wfc_arr,
+
         ARRAY_AGG(sq.ddifref) AS ddifref_arr,
         ARRAY_AGG(sq.os_ref) AS osref_arr,
         ARRAY_AGG(sq.oe_ref) AS oeref_arr,
@@ -405,10 +455,12 @@ sql_teammember_aggr_sub06= """
 # left join with teammember, filter teammember on employee_id and datefirst /datelast of teammember, scheme and order
 # returns employee info plus array of teamemmebers of this employee on this dat +- 1
 
-# sql_employee_with_aggr_sub07 dictrow: {
-# 'e_id': 2625, 'e_code': 'Agata MM', 'e_nl': 'Agata', 'e_nf': 'Milaniek Maria',
-# 'tm_id_arr': [1007, 1008], 'si_id_arr': [1748, 1752], 'mod_arr': ['n', 'a'],
-# 'ddifref_arr': [2, 2], 'osref_arr': [3360, 2880], 'oeref_arr': [3840, 2880], 'o_seq_arr': [-1, 1]}
+# dictrow: {'e_id': 2775, 'e_code': 'Henk', 'e_nl': '', 'e_nf': None,
+# 'e_fnc_id': None, 'e_wgc_id': None, 'e_pdc_id': None, 'e_prc_id': None, 'e_adc_id': None,
+# 'tm_id_arr': [1255, 1222, 1222], 'si_id_arr': [2368, 2288, 2250],
+# 'mod_arr': ['n', 's', 's'], 'prc_arr': [None, None, None], 'adc_arr': [None, None, None],
+# 'ovr_arr': [True, True, True], 'wfc_arr': [None, None, None], 'ddifref_arr': [7, 5, 7],
+# 'osref_arr': [10440, 7320, 10380], 'oeref_arr': [11040, 7560, 10440], 'o_seq_arr': [-1, -1, -1], 'tm_count': 3}
 
 sql_employee_with_aggr_sub07 = """
         SELECT 
@@ -416,14 +468,23 @@ sql_employee_with_aggr_sub07 = """
             e.code AS e_code,
             e.namelast AS e_nl,
             e.namefirst AS e_nf,
+        
+            e.functioncode_id AS e_fnc_id,
+            e.wagecode_id AS e_wgc_id,
+            e.paydatecode_id AS e_pdc_id,
+            e.pricecode_id AS e_prc_id,
+            e.additioncode_id AS e_adc_id,
+   
             tm_sub.tm_id_arr,
             tm_sub.si_id_arr,
             tm_sub.mod_arr,
+
             tm_sub.ddifref_arr,
             tm_sub.osref_arr,
             tm_sub.oeref_arr,
             tm_sub.o_seq_arr,
             tm_sub.tm_count AS tm_count
+            
         FROM companies_employee AS e 
         LEFT JOIN (
             """ + sql_teammember_aggr_sub06 + """
@@ -458,11 +519,31 @@ sql_teammember_sub08 = """
         si_sub.sh_id,
         COALESCE(si_sub.sh_code,'') AS sh_code,
 
-        CASE WHEN o.isabsence = TRUE THEN o.sequence ELSE -1 END AS o_seq,
+        CASE WHEN c.isabsence THEN FALSE ELSE
+            CASE WHEN si_sub.sh_bill = 0 OR si_sub.sh_bill IS NULL THEN
+                CASE WHEN s.billable = 0 OR s.billable IS NULL THEN
+                    CASE WHEN o.billable = 0 OR o.billable IS NULL THEN
+                        CASE WHEN c.billable = 0 OR c.billable IS NULL THEN 
+                            CASE WHEN comp.billable = 2 THEN TRUE ELSE FALSE END 
+                        ELSE 
+                            CASE WHEN c.billable = 2 THEN TRUE ELSE FALSE END
+                        END 
+                    ELSE 
+                        CASE WHEN o.billable = 2 THEN TRUE ELSE FALSE END
+                    END
+                ELSE 
+                    CASE WHEN s.billable = 2 THEN TRUE ELSE FALSE END
+                END 
+            ELSE 
+                CASE WHEN si_sub.sh_bill = 2 THEN TRUE ELSE FALSE END
+            END 
+        END AS sh_isbill,
+        
+        CASE WHEN o.isabsence THEN o.sequence ELSE -1 END AS o_seq,
 
-        CASE WHEN si_sub.inactive = TRUE THEN 'i' ELSE 
-            CASE WHEN o.isabsence = TRUE THEN 'a' ELSE 
-                CASE WHEN s.issingleshift = TRUE THEN 's' ELSE 
+        CASE WHEN si_sub.inactive THEN 'i' ELSE 
+            CASE WHEN c.isabsence THEN 'a' ELSE 
+                CASE WHEN s.issingleshift THEN 's' ELSE 
                     CASE WHEN si_sub.si_id IS NULL THEN '-' ELSE si_sub.si_mod 
         END END END END AS tm_mod,
 
@@ -474,10 +555,10 @@ sql_teammember_sub08 = """
         s.excludepublicholiday AS s_exph,
         s.excludecompanyholiday AS s_exch,
 
-        si_sub.si_sh_os AS si_sh_os,
-        si_sub.si_sh_oe  AS si_sh_oe,
-        COALESCE(si_sub.si_sh_bd, 0) AS si_sh_bd,
-        COALESCE(si_sub.si_sh_td, 0) AS si_sh_td,
+        si_sub.sh_os AS sh_os,
+        si_sub.sh_oe AS sh_oe,
+        COALESCE(si_sub.sh_bd, 0) AS sh_bd,
+        COALESCE(si_sub.sh_td, 0) AS sh_td,
 
         CAST(%(rd)s AS date) AS tm_rd,
         CAST(%(rd)s AS date) - CAST(%(ref)s AS date) AS tm_ddif,
@@ -499,24 +580,80 @@ sql_teammember_sub08 = """
         r_sub.oeref_arr AS r_oeref_arr,
         r_sub.o_seq_arr AS r_o_seq_arr, 
         
-        COALESCE(si_sub.si_sh_os, 0) AS si_sh_os_nonull,
-        COALESCE(si_sub.si_sh_oe, 1440) AS si_sh_oe_nonull, 
+        COALESCE(si_sub.sh_os, 0) AS sh_os_nonull,
+        COALESCE(si_sub.sh_oe, 1440) AS sh_oe_nonull, 
 
-        e_sub.e_id  AS e_sub_e_id,
-        r_sub.e_id  AS r_sub_e_id,
-        %(eid)s AS eid
+        e_sub.e_id AS e_sub_e_id,
+        r_sub.e_id AS r_sub_e_id,
+
+        tm.override AS tm_ovr,
+        tm.pricecode_id AS tm_prc_id,
+        r_sub.e_prc_id AS r_prc_id,
+        e_sub.e_prc_id,
+        CASE WHEN si_sub.sh_prc_id IS NULL THEN 
+            CASE WHEN s.pricecode_id IS NULL THEN 
+                CASE WHEN o.pricecode_id IS NULL THEN 
+                    CASE WHEN c.pricecode_id IS NULL THEN 
+                        comp.pricecode_id 
+                    ELSE c.pricecode_id END
+                ELSE o.pricecode_id END
+            ELSE s.pricecode_id END
+        ELSE si_sub.sh_prc_id END
+        AS sh_prc_id,
+
+        tm.additioncode_id AS tm_adc_id,
+        r_sub.e_adc_id AS r_adc_id,
+        e_sub.e_adc_id,
+        CASE WHEN si_sub.sh_adc_id IS NULL THEN 
+            CASE WHEN s.additioncode_id IS NULL THEN 
+                CASE WHEN o.additioncode_id IS NULL THEN 
+                    CASE WHEN c.additioncode_id IS NULL THEN 
+                        comp.additioncode_id 
+                    ELSE c.additioncode_id END
+                ELSE o.additioncode_id END
+            ELSE s.additioncode_id END
+        ELSE si_sub.sh_adc_id END
+        AS sh_adc_id,
+
+        CASE WHEN si_sub.sh_txc_id IS NULL THEN 
+            CASE WHEN s.taxcode_id IS NULL THEN 
+                CASE WHEN o.taxcode_id IS NULL THEN 
+                    CASE WHEN c.taxcode_id IS NULL THEN 
+                        comp.taxcode_id 
+                    ELSE c.taxcode_id END
+                ELSE o.taxcode_id END
+            ELSE s.taxcode_id END
+        ELSE si_sub.sh_txc_id END
+        AS sh_txc_id,
+
+        CASE WHEN o.invoicecode_id IS NULL THEN 
+            c.invoicecode_id 
+        ELSE o.invoicecode_id END
+        AS o_inv_id,
+  
+        e_sub.e_fnc_id,
+        e_sub.e_wgc_id,
+        e_sub.e_pdc_id,
         
+        r_sub.e_fnc_id AS r_fnc_id,
+        r_sub.e_wgc_id AS r_wgc_id,
+        r_sub.e_pdc_id AS r_pdc_id,
+        
+        si_sub.sh_wfc_id
+
     FROM companies_teammember AS tm 
     INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
     INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
     INNER JOIN companies_order AS o ON (o.id = s.order_id) 
     INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+    INNER JOIN companies_company AS comp ON (comp.id = c.company_id) 
 
     INNER JOIN  ( """ + sql_schemeitem_sub00 + """ ) AS si_sub ON (si_sub.t_id = t.id)
     LEFT JOIN  ( """ + sql_employee_with_aggr_sub07 + """ ) AS e_sub ON (e_sub.e_id = tm.employee_id)
     LEFT JOIN  ( """ + sql_employee_with_aggr_sub07 + """ ) AS r_sub ON (r_sub.e_id = tm.replacement_id)
 
     WHERE (c.company_id = %(cid)s)
+    AND (c.inactive = FALSE) AND (o.inactive = FALSE)
     AND (o.istemplate = FALSE)
     AND (CAST(%(ph)s AS BOOLEAN) = FALSE OR s.excludepublicholiday = FALSE)
     AND (CAST(%(ch)s AS BOOLEAN) = FALSE OR s.excludecompanyholiday = FALSE)
@@ -537,7 +674,7 @@ sql_teammember_sub08 = """
 # PR2-019-11-29 parameters are: rosterdate: %(rd)s, company_id: %(cid)s
 #  {'tm_id': 764, 'tm_eid': 2331, 'tm_df': None, 'tm_dl': None, 's_df': None, 's_dl': None, 'o_df': None, 'o_dl': None,
 #  's_cycle': 7, 'si_id': 1179, 'sh_id': None, 'sh_code': None, 'sh_rs': False,
-#  'si_sh_os': 480, 'si_sh_oe': 960, 'si_sh_bd': 0, 'si_sh_td': 480, 'sh_mod': 'n'},
+#  'sh_os': 480, 'sh_oe': 960, 'sh_bd': 0, 'sh_td': 480, 'sh_mod': 'n'},
 
 sql_teammembers_with_si_sub = """
         SELECT 
@@ -557,10 +694,10 @@ sql_teammembers_with_si_sub = """
         si_sub.sh_code AS sh_code,  
         si_sub.sh_rs as sh_rs,
         
-        si_sub.si_sh_os AS si_sh_os,
-        si_sub.si_sh_oe AS tm_si_sh_oe,
-        si_sub.si_sh_bd AS si_sh_bd,
-        si_sub.si_sh_td AS si_sh_td,
+        si_sub.sh_os AS sh_os,
+        si_sub.sh_oe AS sh_oe,
+        si_sub.sh_bd AS sh_bd,
+        si_sub.sh_td AS sh_td,
 
         CASE WHEN si_sub.sh_rs = TRUE THEN 'r' ELSE 'n' END AS sh_mod  
          
@@ -572,9 +709,7 @@ sql_teammembers_with_si_sub = """
         LEFT JOIN  ( """ + sql_schemeitem_sub00 + """ ) AS si_sub ON (si_sub.t_id = t.id)
         WHERE (c.company_id = %(cid)s) 
         AND (o.istemplate = FALSE)
-  
     """
-
 
 # PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
 sql_absence_offset = """
@@ -815,7 +950,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
         # next_rosterdate = rosterdate_dte + timedelta(days=1)
         # update_schemeitem_rosterdate(schemeitem, next_rosterdate, comp_timezone)
 
-        try:
+        #try:
+        if True:
 # get timeformat
             timeformat = '24h'  # or 'AmPm'
             if request.user.company.timeformat:
@@ -866,8 +1002,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             # from https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
             # PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
             # caused bij idx_e_code = None. Coalesce added in query.
-            #  Idem with idx_si_sh_os_nonull. idx_si_sh_os must stay, may have null value for updating
-            sorted_rows = sorted(all_rows, key=operator.itemgetter(idx_si_sh_os_nonull, idx_c_code, idx_o_code))
+            #  Idem with idx_sh_os_nonull. idx_sh_os must stay, may have null value for updating
+            sorted_rows = sorted(all_rows, key=operator.itemgetter(idx_sh_os_nonull, idx_c_code, idx_o_code))
 
             for i, row_tuple in enumerate(sorted_rows):
                 # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -881,8 +1017,6 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
 
                 # create employee_planning dict
                 if add_row:
-                    logger.debug('row: ')
-                    logger.debug(str(row))
                     emplhour_is_added, linked_emplhours_exist, count_duration = add_orderhour_emplhour(
                         row=row,
                         rosterdate_dte=rosterdate_dte,
@@ -914,7 +1048,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                     if planning_dict:
                         calendar_dictlist.append(planning_dict)
                         # logger.debug('=-------------- row added to dict ')
-        except:
+        #except:
+        else:
             rosterdate_iso = '<no rosterdate>'
             if rosterdate_dte:
                 rosterdate_iso = rosterdate_dte.isoformat()
@@ -956,7 +1091,6 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
     #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
     #logger.debug('schemeitem.rosterdate: ' + str(schemeitem.rosterdate) + ' ' + str(type(schemeitem.rosterdate)))
 
-
     # mode 'i' = inactive
     # mode 'a' = isabsence
     # mode 's' = issingleshift
@@ -969,10 +1103,10 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
 
     # calculate timestart, timeend and timeduration from shift offset and rosterdtae info from shift
     # timeduration is only calculated when both start and edtime are filled in. Otherwise saved value is used (shift '6:00 hours')
-    row_offsetstart = row[idx_si_sh_os]
-    row_offsetend = row[idx_si_sh_oe]
-    row_breakduration = row[idx_si_sh_bd]
-    row_timeduration = row[idx_si_sh_td]
+    row_offsetstart = row[idx_sh_os]
+    row_offsetend = row[idx_sh_oe]
+    row_breakduration = row[idx_sh_bd]
+    row_timeduration = row[idx_sh_td]
     timestart, timeend, time_duration = f.calc_timestart_time_end_from_offset(
         rosterdate_dte=rosterdate_dte,
         offsetstart=row_offsetstart,
@@ -984,20 +1118,13 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
     )
 
 # get info from order
-    tax_rate = 0
     order = m.Order.objects.get_or_none(id=row[idx_o_id], customer__company=request.user.company)
-    if order:
-        if order.taxcode:
-            tax_code = order.taxcode
-            if tax_code.taxrate:
-                tax_rate = tax_code.taxrate
 
-# get pricerate info from schemeitem or shift, scheme, order
+# get schemeitem
     schemeitem = m.Schemeitem.objects.get_or_none(id=row[idx_si_id], scheme__order=order)
 
-# get billable info from schemeitem or shift, scheme, order, company
-    is_override, is_billable = f.get_billable_schemeitem(schemeitem)
-
+# get billable info from shift, scheme, order, customer, company
+    is_billable = (row[idx_sh_isbill] and not is_absence and not is_restshift)
     shift_code = row[idx_sh_code]
 
 # get teammember
@@ -1058,15 +1185,13 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
 # 4. create new emplhour
     # TODO: add shift_wagefactor
         emplhour_is_added = add_emplhour(
+            row=row,
             orderhour=orderhour,
             schemeitem=schemeitem,
             teammember=teammember,
             employee=employee,
             is_replacement=is_replacement,
-            is_override=is_override,
-            is_billable=is_billable,
             pay_date=pay_date,
-            tax_rate=tax_rate,
             shift_code=shift_code,
             shift_wagefactor=None,
             is_absence=is_absence,
@@ -1084,15 +1209,14 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
     return emplhour_is_added, linked_emplhours_exist, count_duration
 
 
-def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
-                    is_override, is_billable, pay_date, tax_rate,
-                    shift_code, shift_wagefactor, is_absence, is_restshift,
+def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacement,
+                    pay_date, shift_code, shift_wagefactor, is_absence, is_restshift,
                     timestart, timeend, break_duration, time_duration,
                     comp_timezone, request):
     logger.debug(' ============= add_emplhour ============= ')
-    logger.debug('orderhour: ' + str(orderhour))
-    logger.debug('schemeitem: ' + str(schemeitem))
-    logger.debug('teammember: ' + str(teammember))
+    logger.debug('row: ')
+    logger.debug(str(row))
+
     emplhour_is_added = False
 
     if orderhour and schemeitem and teammember:
@@ -1106,19 +1230,65 @@ def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
             overlap = 0
             amount = 0
             tax = 0
+            # TODO give value
+            #new_emplhour.wagecode = employee.wagecode
+            #new_emplhour.wagerate = employee.wagerate
 
-            # get pricerate info from schemeitem or shift, scheme, order
-            # pricerate, additionrate and amount can be overwritten by teammember
-            price_rate = get_schemeitem_pricerate('priceratejson', schemeitem)
-            # logger.debug('price_rate: ' + str(price_rate) + ' ' + str(type(price_rate)))
-            addition_rate = get_schemeitem_pricerate('additionjson', schemeitem)
+        # get pricerate, additionrate, taxrate
+            logger.debug('row[idx_tm_prc_id]: ' + str(row[idx_tm_prc_id]))
+            logger.debug('row[idx_tm_ovr]: ' + str(row[idx_tm_ovr]))
+            logger.debug('row[idx_r_prc_id]: ' + str(row[idx_r_prc_id]))
+            logger.debug('row[idx_e_prc_id]: ' + str(row[idx_e_prc_id]))
+            logger.debug('row[idx_sh_prc_id]: ' + str(row[idx_sh_prc_id]))
+
+            # when teammember_pricecode = None and override=True: use employee_pricecode, False: use shift_pricecode
+            # applies also to additioncode
+            # pricerate_shift contains first available rate in shift, scheme, order, customer and company
+            prc_idx = idx_sh_prc_id
+            if row[idx_tm_prc_id]:
+                # if teammember has pricecode: use it
+                prc_idx = idx_tm_prc_id
+            elif row[idx_tm_ovr]:
+                # if teammember 'override=True': use employee or replacement pricerate
+                if is_replacement:
+                    if row[idx_r_prc_id]:
+                        prc_idx = idx_r_prc_id
+                else:
+                    if row[idx_e_prc_id]:
+                        prc_idx = idx_e_prc_id
+            pricecode_pk = row[prc_idx]
+            logger.debug('pricecode_pk: ' + str(pricecode_pk))
+            price_rate = get_pricerate_from_pricecodeitem('pricecode', pricecode_pk, orderhour.rosterdate)
+            logger.debug('price_rate: ' + str(price_rate))
+
+            adc_idx = idx_sh_adc_id
+            if row[idx_tm_prc_id]:
+                # if teammember has pricecode: use it
+                adc_idx = idx_tm_adc_id
+            elif row[idx_tm_ovr]:
+                # if teammember 'override=True': use employee or replacement pricerate
+                if is_replacement:
+                    if row[idx_r_adc_id]:
+                        adc_idx = idx_r_adc_id
+                else:
+                    if row[idx_e_adc_id]:
+                        adc_idx = idx_e_adc_id
+            pricecode_pk = row[adc_idx]
+            logger.debug('pricecode_pk: ' + str(pricecode_pk))
+            addition_rate = get_pricerate_from_pricecodeitem('additioncode', pricecode_pk, orderhour.rosterdate)
+            logger.debug('addition_rate: ' + str(addition_rate))
+
+            # search of first available taxrate is part of query
+            tax_rate = get_pricerate_from_pricecodeitem('taxcode', row[idx_sh_txc_id], orderhour.rosterdate)
+
+            logger.debug('taxnrate_index: ' + str(row[idx_sh_txc_id]))
+            logger.debug('tax_rate: ' + str(tax_rate))
 
             # with restshift: amount = 0, pricerate = 0, additionrate  = 0, billable = false
             if is_absence or is_restshift:
-                # not necessary, bit let is stay. Prevent this at input
+                # not necessary, but let is stay. Prevent this at input
                 price_rate = 0
                 addition_rate = 0
-                is_billable = False
                 time_duration = 0
                 break_duration = 0
 # calculate time_duration when absencce
@@ -1129,15 +1299,21 @@ def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
                         if employee.workhours:
                             time_duration = employee.workhours / 5
 
-            amount = (time_duration / 60) * (price_rate) * (1 + addition_rate / 1000000)
-            tax = amount * tax_rate / 1000000  # taxrate 60.000 = 6%
+# calculate amount, addition and tax
+            billing_duration = time_duration
+            is_billable = False
+            amount, addition, tax = f.calc_amount_addition_tax_rounded(time_duration, billing_duration,
+                                             is_absence, is_restshift, is_billable,
+                                             price_rate, addition_rate, tax_rate)
+            logger.debug('amount: ' + str(amount))
+            logger.debug('addition: ' + str(addition))
+            logger.debug('tax: ' + str(tax))
 
-            # TODO check if wagefactor calculation is correct
-            wagefactor = 0
-            if teammember.wagefactor:
-                wagefactor = teammember.wagefactor
-            elif shift_wagefactor:
-                wagefactor = shift_wagefactor
+            # TODO instead of  wagefactor use wagefactorcode
+            #if teammember.wagefactor:
+            #    wagefactor = teammember.wagefactor
+            #elif shift_wagefactor:
+            #    wagefactor = shift_wagefactor
 
             new_emplhour = m.Emplhour(
                 orderhour=orderhour,
@@ -1160,6 +1336,7 @@ def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
                 additionrate=addition_rate,
                 taxrate=tax_rate,
                 amount=amount,
+                addition=addition,
                 tax=tax,
                 overlap=overlap,
                 schemeitemid=schemeitem.id,
@@ -1171,8 +1348,8 @@ def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
             logger.debug('employee: ' + str(employee))
             if employee:
                 new_emplhour.employee = employee
-                new_emplhour.wagecode = employee.wagecode
-                new_emplhour.wagerate = employee.wagerate
+                #new_emplhour.wagecode = employee.wagecode
+                #new_emplhour.wagerate = employee.wagerate
 
                 # if teammember.override if override=TRue: use teammember/employee pricerate, else: use orderhour pricerate
                 # if teammember.override:
@@ -1205,6 +1382,44 @@ def add_emplhour(orderhour, schemeitem, teammember, employee, is_replacement,
 
         logger.debug(' ----------- emplhour is added: ' + str(emplhour_is_added))
     return emplhour_is_added
+
+
+
+
+def get_pricerate_from_pricecodeitem(field, pricecode_pk, rosterdate):  # PR2020-03-9
+    logger.debug(' ============= get_pricecodeitem ============= ')
+    logger.debug('field: ' + field + ' pricecode_pk: ' + str(pricecode_pk) + ' rosterdate: ' + str(rosterdate ))
+
+    pricerate = 0
+    if pricecode_pk:
+        sql_01 = """SELECT pci.pricerate FROM companies_pricecodeitem AS pci WHERE (pci.pricecode_id = %(pcid)s) 
+        AND (pci.datefirst <= CAST(%(rd)s AS DATE) OR pci.datefirst IS NULL OR CAST(%(rd)s AS DATE) IS NULL)  
+        """
+        sqlfilter = 'AND (FALSE)'
+        if field == 'pricecode':
+            sqlfilter = 'AND (pci.isprice)'
+        elif field == 'additioncode':
+            sqlfilter = 'AND (pci.isaddition)'
+        elif field == 'taxcode':
+            sqlfilter = 'AND (pci.istaxcode)'
+
+        sql_02 = 'ORDER BY pci.datefirst DESC NULLS LAST LIMIT 1'
+
+        sql = ' '.join([sql_01, sqlfilter, sql_02])
+
+        logger.debug('sql: ' + str(sql))
+        cursor = connection.cursor()
+        cursor.execute(sql, {
+            'pcid': pricecode_pk,
+            'rd': rosterdate
+        })
+        row = cursor.fetchone()
+        if row :
+            if row[0]:
+                pricerate = row[0]
+            logger.debug('row: ' + str(row))
+        logger.debug('pricerate: ' + str(pricerate))
+    return pricerate
 
 
 def get_teammember_on_rosterdate_with_logfile(teammember, schemeitem, rosterdate_dte, absence_dict, rest_dict, logfile):
@@ -2472,7 +2687,7 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
     # 'tm_id': 1008, 't_id': 2051, 't_code': 'Agata MM', 's_id': 1639, 's_code': 'Agata MM', 'o_id': 1387, 'o_code': 'Ziek', 'c_id': 653, 'c_code': 'Afwezig', 'comp_id': 3,
     # 'e_id': 2625, 'e_code': 'Agata MM', 'e_nl': 'Agata', 'e_nf': 'Milaniek Maria', 'rpl_id': None, 'rpl_code': '',
     # 'si_id': 1752, 'sh_id': None, 'sh_code': '', 'o_seq': 1, 'tm_mod': 'a', 'tm_df': None, 'tm_dl': None, 's_df': datetime.date(2020, 1, 15), 's_dl': datetime.date(2020, 1, 15), 's_cycle': 7,
-    # 'si_sh_os': None, 'si_sh_oe': None, 'si_sh_bd': 0, 'si_sh_td': 0, 'tm_rd': datetime.date(2020, 1, 15), 'tm_ddif': 2,
+    # 'sh_os': None, 'sh_oe': None, 'sh_bd': 0, 'sh_td': 0, 'tm_rd': datetime.date(2020, 1, 15), 'tm_ddif': 2,
     # 'tm_id_arr': [1007, 1008], 'si_id_arr': [1748, 1752], 'mod_arr': ['n', 'a'], 'ddifref_arr': [2, 2], 'osref_arr': [3360, 2880], 'oeref_arr': [3840, 2880], 'o_seq_arr': [-1, 1]}
 
 
@@ -2481,7 +2696,7 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
     # 'e_id': 2625, 'e_code': 'Agata MM', 'e_nl': 'Agata', 'e_nf': 'Milaniek Maria',
     # 'rpl_id': 2622, 'rpl_code': 'Francois L',
     # 'si_id': 1748, 'sh_id': 605, 'sh_code': '08.00 - 16.00', 'o_seq': -1, 'tm_mod': 'n', 'tm_df': None, 'tm_dl': None, 's_df': None, 's_dl': None, 's_cycle': 7,
-    # 'si_sh_os': 480, 'si_sh_oe': 960, 'si_sh_bd': 0, 'si_sh_td': 0, 'tm_rd': datetime.date(2020, 1, 15), 'tm_ddif': 2,
+    # 'sh_os': 480, 'sh_oe': 960, 'sh_bd': 0, 'sh_td': 0, 'tm_rd': datetime.date(2020, 1, 15), 'tm_ddif': 2,
     # 'tm_id_arr': [1007, 1008], 'si_id_arr': [1748, 1752], 'mod_arr': ['n', 'a'], 'ddifref_arr': [2, 2], 'osref_arr': [3360, 2880], 'oeref_arr': [3840, 2880], 'o_seq_arr': [-1, 1]}
 
     # dictrows is for logging only
@@ -2499,8 +2714,8 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
     # })
     #dictrows = f.dictfetchall(newcursor)
     #for dictrow in dictrows:
-        #logger.debug('...................................')
-        #logger.debug('dictrow' + str(dictrow))
+    #    logger.debug('...................................')
+    #    logger.debug('dictrow' + str(dictrow))
 
     newcursor.execute(sql_teammember_sub08, {
         'cid': company_id,
@@ -2528,8 +2743,8 @@ def get_employee_calendar_rows(rosterdate, refdate, is_publicholiday, is_company
     #{'orderid': order_pk, 'eid': employee_pk})
     #dictrows = f.dictfetchall(newcursor)
     #for dictrow in dictrows:
-       #logger.debug('---------------------' + str(rosterdate.isoformat()))
-       #logger.debug('dictrow' + str(dictrow))
+    #   logger.debug('---------------------' + str(rosterdate.isoformat()))
+    #   logger.debug('dictrow' + str(dictrow))
     return rows
 
 
@@ -2573,12 +2788,12 @@ def check_absencerow_for_doubles(row):
     if row[idx_si_mod] == 'a':
 
         #logger.debug("row is alway absence row: " + str(row[idx_si_mod]))
-        si_sh_os = row[idx_si_sh_os] if row[idx_si_sh_os] else 0
-        si_sh_oe = row[idx_si_sh_oe] if row[idx_si_sh_oe] else 1440
+        sh_os = row[idx_sh_os] if row[idx_sh_os] else 0
+        sh_oe = row[idx_sh_oe] if row[idx_sh_oe] else 1440
         row_tm_id = row[idx_tm_id]
         row_tm_ddif = row[idx_tm_ddif]
-        row_os_ref = row_tm_ddif * 1440 + si_sh_os
-        row_oe_ref = row_tm_ddif * 1440 + si_sh_oe
+        row_os_ref = row_tm_ddif * 1440 + sh_os
+        row_oe_ref = row_tm_ddif * 1440 + sh_oe
 
         #logger.debug("idx_e_mod_arr mode: " + str(row[idx_e_mod_arr]))
         if row[idx_e_mod_arr]:
@@ -2661,8 +2876,8 @@ def no_overlap_with_absence_or_restshift(row, check_replacement):
         row_si_id = row[idx_si_id]
         row_tm_ddif = row[idx_tm_ddif]
 
-        row_os = row[idx_si_sh_os_nonull]
-        row_oe = row[idx_si_sh_oe_nonull]
+        row_os = row[idx_sh_os_nonull]
+        row_oe = row[idx_sh_oe_nonull]
 
         # PR2019-12-17 debug: arr can be empty, when employee is not in service
         if row[idx_mod_arr]:
@@ -2771,9 +2986,9 @@ def check_shiftrow_for_overlap(row):
     siid_list = None
     has_overlap = False
     # PR2019-12-17 debug: arr can be empty, when employee is not in service
-    if row[idx_e_mod_arr] and row[idx_si_sh_os] is not None and row[idx_si_sh_oe] is not None:
-        row_os_ref = row[idx_tm_ddif] * 1440 + row[idx_si_sh_os]
-        row_oe_ref = row[idx_tm_ddif] * 1440 + row[idx_si_sh_oe]
+    if row[idx_e_mod_arr] and row[idx_sh_os] is not None and row[idx_sh_oe] is not None:
+        row_os_ref = row[idx_tm_ddif] * 1440 + row[idx_sh_os]
+        row_oe_ref = row[idx_tm_ddif] * 1440 + row[idx_sh_oe]
 
         siid_list = []
         for i, lookup_mode in enumerate(row[idx_e_mod_arr]):
@@ -2900,8 +3115,8 @@ def create_planning_dict(row, has_overlap, overlap_siid_list, comp_timezone, tim
         rosterdatetime_naive = f.get_datetime_naive_from_dateobject(rosterdate_dte)
         # logger.debug(' rosterdatetime_naive: ' + str(rosterdatetime_naive) + ' ' + str(type(rosterdatetime_naive)))
 
-        # offset_start = row[idx_si_sh_os]
-        # offset_end = row[idx_si_sh_oe]
+        # offset_start = row[idx_sh_os]
+        # offset_end = row[idx_sh_oe]
 
         # timestart = f.get_datetimelocal_from_offset( rosterdate=rosterdatetime_naive, offset_int=offset_start, comp_timezone=comp_timezone)
         # logger.debug(' timestart: ' + str(timestart) + ' ' + str(type(timestart)))
@@ -2991,19 +3206,19 @@ def create_planning_dict(row, has_overlap, overlap_siid_list, comp_timezone, tim
                 'code': row[idx_sh_code]
             }
             # Note: offsetstart = 0 is midnight, None is not entered
-            if row[idx_si_sh_os] is not None:
-                planning_dict['shift'].update({'offsetstart': row[idx_si_sh_os]})
-            if row[idx_si_sh_oe] is not None:
-                planning_dict['shift'].update({'offsetend': row[idx_si_sh_oe]})
-            if row[idx_si_sh_bd]:
-                planning_dict['shift'].update({'breakduration': row[idx_si_sh_bd]})
+            if row[idx_sh_os] is not None:
+                planning_dict['shift'].update({'offsetstart': row[idx_sh_os]})
+            if row[idx_sh_oe] is not None:
+                planning_dict['shift'].update({'offsetend': row[idx_sh_oe]})
+            if row[idx_sh_bd]:
+                planning_dict['shift'].update({'breakduration': row[idx_sh_bd]})
             # calculate timeduration
-            # si_sh_os etc returns value of shift if si has shift, returns si values if si has no shift
+            # sh_os etc returns value of shift if si has shift, returns si values if si has no shift
             planning_dict['shift'].update({'timeduration':  f.calc_timeduration_from_values(
-                is_restshift, row[idx_si_sh_os], row[idx_si_sh_oe], row[idx_si_sh_bd], row[idx_si_sh_td])})
+                is_restshift, row[idx_sh_os], row[idx_sh_oe], row[idx_sh_bd], row[idx_sh_td])})
 
-            # si_sh_os etc returns value of shift if si has shift, returns si values if si has no shift
-            planning_dict['shift'].update({'display': f.display_offset_range(row[idx_si_sh_os], row[idx_si_sh_oe], timeformat, user_lang)})
+            # sh_os etc returns value of shift if si has shift, returns si values if si has no shift
+            planning_dict['shift'].update({'display': f.display_offset_range(row[idx_sh_os], row[idx_sh_oe], timeformat, user_lang)})
 
             #if is_restshift:
                 # The update() method adds element(s) to the dictionary if the key is not in the dictionary.
@@ -3153,7 +3368,7 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
             #logger.debug(' ')
             #logger.debug('+++++++++++++ idx_rosterdate: ' + str(row[idx_tm_rd]))
             #logger.debug('idx_si_mod: ' + str(row[idx_si_mod]) )
-            #logger.debug('idx_si_sh_os: ' + str(row[idx_si_sh_os]))
+            #logger.debug('idx_sh_os: ' + str(row[idx_sh_os]))
 
             # PR2019-12-22 Note: sql filter inservice: only filters employee that are in service any day in range. WHen cretaing dict filter in service on correct date
             add_row_to_dict = True
@@ -3279,10 +3494,10 @@ sql_customer_calendar_schemeitem_triple_sub03 = """
             CASE WHEN si_sub.si_abs = TRUE THEN 'a' ELSE 'n' END
         END AS si_mod, 
 
-        si_sub.si_sh_os,
-        si_sub.si_sh_oe,
-        si_sub.si_sh_bd,
-        si_sub.si_sh_td
+        si_sub.sh_os,
+        si_sub.sh_oe,
+        si_sub.sh_bd,
+        si_sub.sh_td
 
         FROM ( """ + sql_schemeitem_sub02 + """ ) AS si_sub 
         WHERE (si_sub.si_dif = 0)
@@ -3329,10 +3544,10 @@ sql_customer_calendar_teammember_triple_sub04 = """
         CAST(%(rd)s AS date) - CAST(%(ref)s AS date) + 
         CASE WHEN o.isabsence = TRUE THEN 0 ELSE COALESCE(si_sub.si_ddif, 0) END AS ddifref,
 
-        si_sub.si_sh_os AS si_sh_os,
-        si_sub.si_sh_oe AS si_sh_oe,
-        COALESCE(si_sub.si_sh_bd, 0) AS si_sh_bd,
-        COALESCE(si_sub.si_sh_td, 0) AS si_sh_td
+        si_sub.sh_os AS sh_os,
+        si_sub.sh_oe AS sh_oe,
+        COALESCE(si_sub.sh_bd, 0) AS sh_bd,
+        COALESCE(si_sub.sh_td, 0) AS sh_td
 
     FROM companies_teammember AS tm 
     INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
@@ -3382,12 +3597,12 @@ sql_customer_calendar_teammember_calc_sub05 = """
         tm_sub.si_rd,
         tm_sub.ddifref,
 
-        tm_sub.si_sh_os, 
-        tm_sub.si_sh_oe, 
-        tm_sub.ddifref * 1440 + COALESCE(tm_sub.si_sh_os, 0) AS os_ref,
-        tm_sub.ddifref * 1440 + COALESCE(tm_sub.si_sh_oe, 1440) AS oe_ref,
-        tm_sub.si_sh_bd,
-        tm_sub.si_sh_td
+        tm_sub.sh_os, 
+        tm_sub.sh_oe, 
+        tm_sub.ddifref * 1440 + COALESCE(tm_sub.sh_os, 0) AS os_ref,
+        tm_sub.ddifref * 1440 + COALESCE(tm_sub.sh_oe, 1440) AS oe_ref,
+        tm_sub.sh_bd,
+        tm_sub.sh_td
 
     FROM  ( """ + sql_customer_calendar_teammember_triple_sub04 + """ ) AS tm_sub
 """
@@ -3486,10 +3701,10 @@ sql_calendar_order_sub08XXX = """
         s.datelast AS s_dl,
         s.cycle AS s_cycle,
 
-        si_sub.si_sh_os AS si_sh_os,
-        si_sub.si_sh_oe AS si_sh_oe,
-        COALESCE(si_sub.si_sh_bd, 0) AS si_sh_bd,
-        COALESCE(si_sub.si_sh_td, 0) AS si_sh_td,
+        si_sub.sh_os AS sh_os,
+        si_sub.sh_oe AS sh_oe,
+        COALESCE(si_sub.sh_bd, 0) AS sh_bd,
+        COALESCE(si_sub.sh_td, 0) AS sh_td,
 
         CAST(%(rd)s AS date) AS tm_rd,
         CAST(%(rd)s AS date) - CAST(%(ref)s AS date) AS tm_ddif,
@@ -3633,7 +3848,7 @@ sql_customer_calendar_teammember_aggr_sub10 = """
 
 # 'si_id': 1747, 'sh_id': 605, 'sh_code': '08.00 - 16.00', 'o_seq': None, 'si_mod': 'n',
 # 'tm_df': None, 'tm_dl': None, 's_df': None, 's_dl': None, 's_cycle': 7,
-# 'si_sh_os': 480, 'si_sh_oe': 960, 'si_sh_bd': 0, 'si_sh_td': 0, 'tm_rd': datetime.date(2020, 1, 13), 'tm_ddif': 0, 'tm_count': 1,
+# 'sh_os': 480, 'sh_oe': 960, 'sh_bd': 0, 'sh_td': 0, 'tm_rd': datetime.date(2020, 1, 13), 'tm_ddif': 0, 'tm_count': 1,
 
 # 'e_id': [2625], 'e_code': ['Agata MM'], 'e_n': None, 'e_nf': None,
 # 'e_tm_id_arr': ['1007;1007;1007;1008'], 'e_si_id_arr': ['1761;1747;1757;1750'], 'e_mod_arr': ['n;n;n;a'], 'e_ddifref_arr': ['-1;0;1;0'], 'e_osref_arr': ['-960;480;1920;0'], 'e_oeref_arr': ['-480;960;2400;1440'], 'e_o_seq_arr': None,
@@ -3666,6 +3881,9 @@ sql_customer_calendar_team_sub11 = """
         si_sub.si_id,
         si_sub.sh_id,
         si_sub.sh_code,
+        
+        NULL AS sh_isbill,
+        
         NULL AS o_seq,
         si_sub.si_mod,
         
@@ -3677,10 +3895,10 @@ sql_customer_calendar_team_sub11 = """
         si_sub.s_exph,
         si_sub.s_exch,
         
-        si_sub.si_sh_os,
-        si_sub.si_sh_oe,
-        si_sub.si_sh_bd,
-        si_sub.si_sh_td,
+        si_sub.sh_os,
+        si_sub.sh_oe,
+        si_sub.sh_bd,
+        si_sub.sh_td,
 
         CAST(%(rd)s AS date) AS tm_rd,
         CAST(%(rd)s AS date) - CAST(%(ref)s AS date) AS tm_ddif,
@@ -3702,8 +3920,8 @@ sql_customer_calendar_team_sub11 = """
         tm_sub.r_oeref_arr2 AS r_oeref_arr,
         NULL AS r_o_seq_arr,
         
-        COALESCE(si_sub.si_sh_os, 0) AS si_sh_os_nonull,
-        COALESCE(si_sub.si_sh_oe, 1440) AS si_sh_oe_nonull
+        COALESCE(si_sub.sh_os, 0) AS sh_os_nonull,
+        COALESCE(si_sub.sh_oe, 1440) AS sh_oe_nonull
 
     FROM companies_team AS t 
     INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 

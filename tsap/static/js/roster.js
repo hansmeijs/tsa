@@ -172,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  MOD CONFIRM ------------------------------------
         let el_confirm_btn_save = document.getElementById("id_confirm_btn_save")
             el_confirm_btn_save.addEventListener("click", function() {DeleteShift_ConfirmSave()}, false )
+        let el_confirm_btn_cancel = document.getElementById("id_confirm_btn_cancel")
 
 // ---  Popup date
         let el_popup_date_container = document.getElementById("id_popup_date_container");
@@ -185,6 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_MRD_btn_ok.addEventListener("click", function() {ModRosterdateSave("ok")}, false)
         let el_MRD_btn_another = document.getElementById("id_mod_rosterdate_btn_another")
             el_MRD_btn_another.addEventListener("click", function() {ModRosterdateSave("another")}, false)
+        let el_MRD_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
 
 // ---  MOD ROSTER ORDER ------------------------------------
         let el_MRO_input_date = document.getElementById("id_MRO_input_date")
@@ -930,7 +932,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             } else if (["status"].indexOf(fieldname ) > -1){
                                 format_status_element (el_input, field_dict,
                                         imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_stat04, imgsrc_stat05,
-                                        "", "", "start time confirmed", "end time confirmed", "start- and endtime confirmed", "locked")
+                                        "", loc.This_isa_planned_shift, loc.Starttime_confirmed, loc.Endtime_confirmed,
+                                        loc.Start_and_endtime_confirmed, loc.This_shift_is_locked)
 
                                 // put status also in tblRow
                                 const status_int = parseInt(get_dict_value(item_dict, ["status", "value"]))
@@ -2179,7 +2182,7 @@ console.log("===  function HandlePopupWdySave =========");
         const len = tblBody_select_customer.rows.length;
         if (!skip_filter && !!len){
 // ---  filter select_customer rows
-            const filter_dict = fFilter_SelectRows(tblBody_select_customer, filter_mod_customer);
+            const filter_dict = t_Filter_SelectRows(tblBody_select_customer, filter_mod_customer);
 
 // ---  if filter results have only one customer: put selected customer in el_modorder_input_customer
             const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
@@ -2417,7 +2420,7 @@ console.log("===  function HandlePopupWdySave =========");
         const len = tblBody_select_employee.rows.length;
         if (!skip_filter && !!len){
 // ---  filter select_employee rows
-            const filter_dict = fFilter_SelectRows(tblBody_select_employee, filter_mod_employee);
+            const filter_dict = t_Filter_SelectRows(tblBody_select_employee, filter_mod_employee);
 
 // ---  if filter results have only one employee: put selected employee in el_modemployee_input_employee
             const selected_pk = get_dict_value(filter_dict, ["selected_pk"])
@@ -2527,7 +2530,7 @@ console.log("===  function HandlePopupWdySave =========");
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //========= ModalStatusOpen====================================
     function ModalStatusOpen (el_input) {
-        //console.log("===  ModalStatusOpen  =====") ;
+        console.log("===  ModalStatusOpen  =====") ;
 
         let item_dict = get_itemdict_from_datamap_by_el(el_input, emplhour_map)
         let id_dict = item_dict["id"];
@@ -2588,20 +2591,15 @@ console.log("===  function HandlePopupWdySave =========");
             is_field_status = true;
 
             if (status_locked) {  // STATUS_08_LOCKED
-                header_text = "Unlock confirmation"
-                btn_save_text = "Unlock";
+                header_text = loc.Unlock + " " + loc.Shift.toLowerCase();
+                btn_save_text = loc.Unlock;
             } else { // STATUS_08_LOCKED
-                header_text = "Lock confirmation"
-                btn_save_text = "Lock";
+                header_text = loc.Lock + " " + loc.Shift.toLowerCase();
+                btn_save_text = loc.Lock;
             }
             time_label = ""
             time_col_index = 9
         }
-        //console.log("is_field_status", is_field_status)
-        //console.log("field_is_locked", field_is_locked)
-        //console.log("has_overlap", has_overlap)
-        //console.log("has_no_employee", has_no_employee)
-        //console.log("field_is_confirmed", field_is_confirmed)
 
 // don't open modal when locked and confirmstart / confirmend
         let allow_open = false;
@@ -2667,13 +2665,13 @@ console.log("===  function HandlePopupWdySave =========");
 
 // ---  show modal confirm with message 'First select employee'
                 document.getElementById("id_confirm_header").innerText = loc.Confirm + " " + loc.Shift.toLowerCase();
-                document.getElementById("id_confirm_msg01").innerText = loc.err_confirm_01 + field_text + loc.err_confirm_02;
+                document.getElementById("id_confirm_msg01").innerText = loc.You_must_first_select + field_text + loc.before_confirm_shift;
                 document.getElementById("id_confirm_msg02").innerText = null;
                 document.getElementById("id_confirm_msg03").innerText = null;
 
-                document.getElementById("id_confirm_btn_cancel").classList.add(cls_hide)
-                el_confirm_btn_save.innerText = loc.Close;
-                setTimeout(function() {el_confirm_btn_save.focus()}, 50);
+                add_or_remove_class (el_confirm_btn_save, cls_hide, true) // args: el, classname, is_add
+                el_confirm_btn_cancel.innerText = loc.Close;
+                setTimeout(function() {el_confirm_btn_cancel.focus()}, 50);
 
                  $("#id_mod_confirm").modal({backdrop: true});
              }  // if (allow_lock_status) || (!field_text) {
@@ -3114,15 +3112,15 @@ console.log("===  function HandlePopupWdySave =========");
         if (!skip_filter) {
 // filter table customer and order
     // reset filter tBody_customer
-            f_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
+            t_Filter_TableRows(tBody_customer, "customer", filter_dict, filter_show_inactive, false);
     // reset filter tBody_order (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
+            t_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk );
     // reset filter tBody_planning (show all orders, therefore dont filter on selected_customer_pk
-            f_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
+            t_Filter_TableRows(tBody_planning, "planning", filter_dict, filter_show_inactive, true, selected_customer_pk);
 
 // filter selecttable customer and order
-            fFilter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive, false)
-            fFilter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
+            t_Filter_SelectRows(tblBody_select_customer, filter_select, filter_show_inactive, false)
+            t_Filter_SelectRows(tblBody_select_order, filter_select, filter_show_inactive, true, selected_customer_pk)
 
         } //  if (!skip_filter) {
     }; // function HandleSelect_Filter
@@ -3708,8 +3706,7 @@ console.log("===  function HandlePopupWdySave =========");
         el_MRD_btn_ok.classList.remove(cls_hide)
         el_MRD_btn_ok.disabled = true;
 
-        let el_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
-            el_btn_cancel.innerText = loc.Cancel;
+        el_MRD_btn_cancel.innerText = loc.Cancel;
 
 // ---  show modal
         $("#id_mod_rosterdate").modal({backdrop: true});
@@ -3756,7 +3753,7 @@ console.log("===  function HandlePopupWdySave =========");
         el_MRD_btn_ok.classList.add(btn_add_class)
         el_MRD_btn_ok.disabled = true;
 
-        document.getElementById("id_mod_rosterdate_btn_cancel").innerText = loc.Cancel;
+        el_MRD_btn_cancel.innerText = loc.Cancel;
 
     }  // ModRosterdateEdit
 
@@ -3826,6 +3823,17 @@ console.log("===  function HandlePopupWdySave =========");
         el_MRD_rosterdate_input.value = get_dict_value(response_dict, ["rosterdate"]);
         el_MRD_rosterdate_input.readOnly = false;
 
+// change button color
+        const mode = get_dict_value(response_dict,["mode"])
+        el_MRD_btn_ok.classList.remove("btn-secondary")
+        if (mode === "delete") {
+            el_MRD_btn_ok.classList.add("btn-outline-danger");
+        } else {
+            el_MRD_btn_ok.classList.add("btn-primary");
+        }
+        //el_MRD_btn_ok.disabled = false;
+
+
 // set info textboxes
         ModRosterdate_SetLabelAndInfoboxes(response_dict)
 
@@ -3859,11 +3867,24 @@ console.log("===  function HandlePopupWdySave =========");
         document.getElementById("id_mod_rosterdate_info_03").innerText = msg_03_txt;
 
     // put 'another' on ok button, put 'Close' on cancel button
-        el_MRD_btn_ok.innerText = (is_delete) ? loc.TXT_Delete_another_roster : loc.TXT_Create_another_roster;
+        if (is_delete) {
+            el_MRD_btn_ok.innerText = loc.TXT_Delete_another_roster;
+            el_MRD_btn_ok.classList.remove("btn-outline-danger");
+        } else {
+            el_MRD_btn_ok.innerText = loc.TXT_Create_another_roster;
+            el_MRD_btn_ok.classList.remove("btn-primary");
+        }
         el_MRD_btn_ok.disabled = false;
+        el_MRD_btn_ok.classList.add("btn-secondary")
+
+        // make 'another' button grey, not red
+        // "btn-outline-danger" : "btn-primary"
+
+        //el_MRD_btn_ok.classList.remove("btn-outline-danger")
+        //el_MRD_btn_ok.classList.add("btn-secondary")
+        el_MRD_btn_cancel.innerText = loc.Close;
 
         mod_upload_dict = {another: true, mode: mode}
-        document.getElementById("id_mod_rosterdate_btn_cancel").innerText = loc.Close;
 
     }  // function ModRosterdateFinished
 
@@ -3876,17 +3897,42 @@ console.log("===  function HandlePopupWdySave =========");
         const is_delete = (mode === "delete");
 
         const rosterdate_iso = get_dict_value(response_dict, ["rosterdate"]);
-        const count = get_dict_value(response_dict, ["count"]);
-        const confirmed = get_dict_value(response_dict, ["confirmed"]);
+        const count = get_dict_value(response_dict, ["count"], 0);
+        const confirmed = get_dict_value(response_dict, ["confirmed"], false);
+        const no_emplhours =  get_dict_value(response_dict, ["no_emplhours"], false);
+
+        const confirmed_only = (count === confirmed);
 
         let text_list = ["", "", "", ""];
+        let hide_ok_btn = false, ok_txt = loc.OK, cancel_txt = loc.Cancel;
         // set value of input label
         text_list[0] = loc.Rosterdate + ": " +
             format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_long, false, false, user_lang);
 
-        if(!count){
-    // This rosterdate has no shifts
-             text_list[1] = loc.rosterdate_count_none;
+        // hide rosterdate input when is-delete and no emplhours
+        const hide_input_rosterdate = (is_delete && no_emplhours)
+        console.log("is_delete: ", is_delete)
+        console.log("no_emplhours: ", no_emplhours)
+        console.log("hide_input_rosterdate: ", hide_input_rosterdate)
+        add_or_remove_class(document.getElementById("id_mod_rosterdate_input_div"), cls_hide, hide_input_rosterdate )
+
+        if (no_emplhours){
+            text_list[1] = loc.No_rosters;
+            if (is_delete) {
+                hide_ok_btn = true;
+                cancel_txt = loc.Close;
+            } else {
+                ok_txt = loc.Create;
+            }
+        } else if(!count){
+            // This rosterdate has no shifts
+            text_list[1] = loc.rosterdate_count_none;
+            if (is_delete) {
+                hide_ok_btn = true;
+                cancel_txt = loc.Close;
+            } else {
+                ok_txt = loc.Create;
+            }
         } else {
     // This rosterdate has [count] shifts
             text_list[1] = loc.rosterdate_count
@@ -3895,51 +3941,55 @@ console.log("===  function HandlePopupWdySave =========");
 
             if(!confirmed){
                 text_list[1] += ".";
-            } else {
-    // [confirmed] of them are confirmed shifts.
-                text_list[1] += ((confirmed === 1) ?
-                                    (", " + loc.rosterdate_confirmed_one) :
-                                    (", " + confirmed.toString()) + " " + loc.rosterdate_confirmed_multiple);
-            }
-
-            if(!confirmed){
-    // 'These shifts will be replaced.' / deleted
-                 text_list[2] = ((count === 1) ? loc.rosterdate_shift_willbe : loc.rosterdate_shifts_willbe) +
+                // 'These shifts will be replaced.' / deleted
+                text_list[2] = ((count === 1) ? loc.rosterdate_shift_willbe : loc.rosterdate_shifts_willbe) +
                                 ((is_delete) ? loc.deleted : loc.replaced) + ".";
+                text_list[3] =  loc.want_to_continue;
+                ok_txt = (is_delete) ? loc.Yes_delete :loc.Yes_create;
+                cancel_txt = loc.No_cancel;
+            } else if(confirmed_only){
+                text_list[1] += (confirmed === 1) ? loc.it_is_confirmed_shift : loc.rosterdate_confirmed_all;
+                if (is_delete) {
+                    text_list[2] = (confirmed === 1) ? loc.It_cannot_be_deleted : loc.They_cannot_be_deleted;
+                    hide_ok_btn = true;
+                    cancel_txt = loc.Close;
+                } else {
+                    text_list[2] = (confirmed === 1) ? loc.This_confirmed_shift_willbe_skipped : loc.These_confirmed_shifts_willbe_skipped;
+                    text_list[3] =  loc.want_to_continue;
+                    ok_txt = (is_delete) ? loc.Yes_delete : loc.Yes_create;
+                    cancel_txt = loc.No_cancel;
+                }
             } else {
+                if(confirmed === 1){
+                    text_list[1] += ", " + loc.rosterdate_confirmed_one;
+                } else {
+                    // [confirmed] of them are confirmed shifts.
+                    text_list[1] += ", " + confirmed.toString() + " " + loc.rosterdate_confirmed_multiple;
+                }
     // 'Shifts that are not confirmed will be replaced/deleted, confirmed shifts will be skipped.')
                 text_list[2] = loc.rosterdate_skip01 +
                                ((is_delete) ? loc.deleted : loc.replaced) +
                                loc.rosterdate_skip02;
+                text_list[3] =  loc.want_to_continue
+                ok_txt = (is_delete) ? loc.Yes_delete : loc.Yes_create;
+                cancel_txt = loc.No_cancel;
             }
-            text_list[3] =  loc.want_to_continue
         }  // if(!count)
 
-        console.log("text_list: ", text_list)
         document.getElementById("id_mod_rosterdate_label").innerText = text_list[0];
         document.getElementById("id_mod_rosterdate_info_01").innerText = text_list[1];
         document.getElementById("id_mod_rosterdate_info_02").innerText = text_list[2];
         document.getElementById("id_mod_rosterdate_info_03").innerText = text_list[3];
 
 // set buttons
-        // no record te be deleted, disable ok button
-        // all records are confirmed, disable ok button
-        // also disable when no rosterdate
-        const is_disabled = ((!rosterdate_iso) || ((is_delete) && (!count || count === confirmed)))
+        el_MRD_btn_ok.innerText = ok_txt;
+        el_MRD_btn_ok.disabled = false;
+        add_or_remove_class (el_MRD_btn_ok, cls_hide, hide_ok_btn) // args: el, classname, is_add
 
-        const ok_txt = (is_delete) ? ((!!count) ? loc.Yes_delete : loc.Delete) :
-                                     ((!!count) ? loc.Yes_create : loc.Create);
-        const cancel_txt = (!!count) ? loc.No_cancel : loc.Cancel
-
-        let el_ok = document.getElementById("id_mod_rosterdate_btn_ok");
-            el_ok.innerText = ok_txt;
-            el_ok.disabled = is_disabled;
-
-        let el_cancel = document.getElementById("id_mod_rosterdate_btn_cancel");
-            el_cancel.innerText = cancel_txt;
-
+        el_MRD_btn_cancel.innerText = cancel_txt;
     } // ModRosterdate_SetLabelAndInfoboxes
 
+//=========  DeleteShift_ConfirmOpen  ================
     function DeleteShift_ConfirmOpen () {
         console.log(" ===  DeleteShift_ConfirmOpen  =====") ;
         let msg01_txt = null, msg02_txt = null, cancel_delete = false, is_absence = false;
@@ -4008,9 +4058,9 @@ console.log("===  function HandlePopupWdySave =========");
 
         $("#id_mod_confirm").modal({backdrop: true});
 
-
     }  // DeleteShift_ConfirmOpen
-//=========  ModConfirmSave  ================ PR2019-06-23
+
+//=========  DeleteShift_ConfirmSave  ================ PR2019-06-23
     function DeleteShift_ConfirmSave() {
         // console.log(" --- ModConfirmSave --- ");
         // onsole.log("mod_upload_dict: ", mod_upload_dict);
@@ -4038,10 +4088,7 @@ console.log("===  function HandlePopupWdySave =========");
 
 // ---  hide modal
         $("#id_mod_confirm").modal("hide");
-
-
-    }
-
+    }  // DeleteShift_ConfirmSave
 
 // ++++ MOD ROSTER ORDER ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++++++++++++++++ MODAL ROSTER ORDER +++++++++++++++++++++++++++++++++++++++++++
@@ -4280,7 +4327,7 @@ console.log("===  function HandlePopupWdySave =========");
 // ---  if filter results have only one customer: put selected customer in el_MRO_input_customer
             // filter_dict = {row_count: 4, selected_pk: 4677, selected_parentpk: 555, selected_value: 'MCB''};
             // selected_pk only gets value when there is one row
-            const filter_dict = fFilter_SelectRows(tblBody_select, filter_mod);
+            const filter_dict = t_Filter_SelectRows(tblBody_select, filter_mod);
             const only_one_selected_pk = get_dict_value(filter_dict, ["selected_pk"])
             if (!!only_one_selected_pk) {
                 el_input.value = get_dict_value(filter_dict, ["selected_value"])

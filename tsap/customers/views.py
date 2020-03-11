@@ -96,7 +96,8 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 table=table,
                                 pk=pk_int,
                                 ppk=parent.pk,
-                                temp_pk=temp_pk_str)
+                                temp_pk=temp_pk_str,
+                                row_index=row_index)
 
 # C. Delete customer
                             if is_delete:
@@ -136,7 +137,8 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 table=table,
                                 pk=pk_int,
                                 ppk=parent.pk,
-                                temp_pk=temp_pk_str)
+                                temp_pk=temp_pk_str,
+                                row_index=row_index)
 
 # C. Delete instance
                             if is_delete:
@@ -209,7 +211,8 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             table=table,
                             pk=pk_int,
                             ppk=ppk_int,
-                            temp_pk=temp_pk_str)
+                            temp_pk=temp_pk_str,
+                            row_index=row_index)
 
                         parent = m.Customer.objects.get_or_none(id=ppk_int, company=request.user.company)
                         #logger.debug('parent: ' + str(parent))
@@ -226,7 +229,8 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             table=table,
                             pk=pk_int,
                             ppk=ppk_int,
-                            temp_pk=temp_pk_str)
+                            temp_pk=temp_pk_str,
+                            row_index=row_index)
 
                         parent = m.Order.objects.get_or_none(id=ppk_int, customer__company=request.user.company)
                         #logger.debug('SCHEME parent: ' + str(parent))
@@ -243,7 +247,8 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             table=table,
                             pk=pk_int,
                             ppk=ppk_int,
-                            temp_pk=temp_pk_str)
+                            temp_pk=temp_pk_str,
+                            row_index=row_index)
                         parent = m.Scheme.objects.get_or_none(id=ppk_int, order__customer__company=request.user.company)
                         #logger.debug('SHIFT parent: ' + str(parent))
                         if parent:
@@ -539,9 +544,9 @@ def update_order(instance, parent, upload_dict, update_dict, user_lang, request)
                         rosterdate = None
                         wagefactor = None
 
-                        pricerate_is_updated = f.save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field)
-                        if pricerate_is_updated:
-                            is_updated = True
+                        # TODO was: pricerate_is_updated = f.save_pricerate_to_instance(instance, rosterdate, wagefactor, new_value, update_dict, field)
+                        #if pricerate_is_updated:
+                        #    is_updated = True
 
                         #logger.debug('instance.priceratejson: ' + str(instance.priceratejson))
                         #logger.debug('is_updated: ' + str(is_updated))

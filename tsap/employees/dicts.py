@@ -97,7 +97,7 @@ def create_employee_dict(instance, item_dict, user_lang):
                 pricerate = getattr(instance, field)
                 if pricerate is not None:
                     field_dict['value'] = pricerate
-                field_dict['display'] = f.get_rate_display(pricerate, user_lang)
+                field_dict['display'] = f.display_pricerate(pricerate, False, user_lang)
 
             else:
                 value = getattr(instance, field)
@@ -295,11 +295,11 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                             mindate=mindate,
                             maxdate=maxdate)
 
-            elif field in ['priceratejson']:
-                pricerate = getattr(teammember, field)
-                if pricerate is not None:
-                    field_dict['value'] = pricerate
-                field_dict['display'] = f.get_rate_display(pricerate, user_lang)
+            #elif field in ['priceratejson']:
+            #    pricerate = getattr(teammember, field)
+            #    if pricerate is not None:
+            #        field_dict['value'] = pricerate
+            #    field_dict['display'] = f.display_pricerate(pricerate, False, user_lang)
 
             elif field == 'workhoursperday':
                 workhoursperday = getattr(teammember, field, 0)
@@ -386,7 +386,7 @@ def create_employee_pricerate_list(company, user_lang):
                 item_dict['employee_pk'] = employee_pk
                 item_dict['id'] = {'pk': employee_pk, 'ppk': employee_ppk, 'table': 'employee'}
                 item_dict['employee'] = {'value': employee_code}
-                display_text = f.get_rate_display(employee_pricerate, user_lang)
+                display_text = f.display_pricerate(employee_pricerate, False, user_lang)
                 item_dict['priceratejson'] = {'value': employee_pricerate, 'display': display_text}
                 pricerate_list.append(item_dict)
 
@@ -398,7 +398,7 @@ def create_employee_pricerate_list(company, user_lang):
                 if order_code:
                     teammmember_code += ' - ' + order_code
                 item_dict['order'] = {'value': teammmember_code}
-                display_text = f.get_rate_display(teammember_pricerate, user_lang)
+                display_text = f.display_pricerate(teammember_pricerate, False, user_lang)
                 item_dict['priceratejson'] = {'value': teammember_pricerate, 'display': display_text}
                 item_dict['override'] = {'value': teammember_override}
                 pricerate_list.append(item_dict)

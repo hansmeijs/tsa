@@ -126,8 +126,11 @@ class Company(TsaBaseModel):
     cat = PositiveSmallIntegerField(default=0)
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
 
-    payperiods = JSONField(null=True)  # stores default invoice dates
-    billingperiods = JSONField(null=True)  # stores default invoice dates
+    # cannot use Foreignkey, because Pricecode has field company_id
+    pricecode_id = IntegerField(null=True)
+    additioncode_id = IntegerField(null=True)
+    taxcode_id = IntegerField(null=True)
+    invoicecode_id = IntegerField(null=True)
 
     class Meta:
         ordering = [Lower('code')]
@@ -142,29 +145,59 @@ class Company(TsaBaseModel):
         return id_str[-6:]
 
 
-class Taxcode(TsaBaseModel):
+class Pricecode(TsaBaseModel):
     objects = TsaManager()
-    company = ForeignKey(Company, related_name='taxcodes', on_delete=PROTECT)
-
-    taxrate = IntegerField(default=0)  # /1.000.000 unitless   taxrate 60.000 = 6%
+    company = ForeignKey(Company, related_name='+', on_delete=PROTECT)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
+    code = None
+    name = None
     datefirst = None
     datelast = None
+    inactive = None
     locked = None
 
+    note = CharField(max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    sequence = PositiveSmallIntegerField(default=0)
+
+    isdefault = BooleanField(default=False)
+    isprice = BooleanField(default=False)
+    isaddition = BooleanField(default=False)  # additionrate = /10.000 unitless additionrate 10.000 = 100%
+    istaxcode = BooleanField(default=False)  # taxrate = /10.000 unitless taxrate 600 = 6%
+    isinvoicedate = BooleanField(default=False)
+
     class Meta:
-        ordering = [Lower('code')]
+        ordering = ['sequence']
 
     def __str__(self):
         return self.code
+
+class Pricecodeitem(TsaBaseModel):
+    objects = TsaManager()
+    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=CASCADE)
+
+    # order on datefirst, descending: ORDER BY last_updated DESC NULLS LAST
+    code = None
+    name = None
+    datelast = None
+    inactive = None
+    locked = None
+
+    isprice = BooleanField(default=False)
+    isaddition = BooleanField(default=False)  # additionrate = /10.000 unitless additionrate 10.000 = 100%
+    istaxcode = BooleanField(default=False)  # taxrate = /10.000 unitless taxrate 600 = 6%
+
+    pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG) EUR 100 = 10.000
+
+    class Meta:
+        ordering = ['-datefirst']
 
 
 class Customer(TsaBaseModel):
     objects = TsaManager()
 
     company = ForeignKey(Company, related_name='customers', on_delete=PROTECT)
-    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
+
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
     istemplate = BooleanField(default=False)
@@ -182,7 +215,12 @@ class Customer(TsaBaseModel):
 
     interval = PositiveSmallIntegerField(default=0)
 
-    invoicedates = JSONField(null=True)  # stores invoice dates for this customer
+    billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
+
+    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -193,6 +231,20 @@ class Customer(TsaBaseModel):
 
     def __str__(self):
         return self.code
+
+
+class Customerlog(TsaBaseModel):
+    objects = TsaManager()
+
+    customer = ForeignKey(Customer, related_name='+', on_delete=CASCADE)
+
+    datefirst = None
+    datelast = None
+    inactive = None
+    locked = None
+
+    class Meta:
+        ordering = ['-modifiedat']
 
 
 class Order(TsaBaseModel):
@@ -215,12 +267,11 @@ class Order(TsaBaseModel):
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
 
     sequence = IntegerField(null=True) #
-    priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /1.000.000 unitless   additionrate 250.000 = 25%
 
-    invoicedates = JSONField(null=True)  # stores invoice dates for this order
-
-    taxcode = ForeignKey(Taxcode, related_name='orders', on_delete=PROTECT, null=True, blank=True)
+    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    invoicecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
     class Meta:
         ordering = [Lower('code')]
@@ -231,6 +282,20 @@ class Order(TsaBaseModel):
     @property
     def id_str(self):
         return 'id_ord_' + self.pk
+
+
+class Orderlog(TsaBaseModel):
+    objects = TsaManager()
+
+    order = ForeignKey(Order, related_name='+', on_delete=CASCADE)
+
+    datefirst = None
+    datelast = None
+    inactive = None
+    locked = None
+
+    class Meta:
+        ordering = ['-modifiedat']
 
 
 class Object(TsaBaseModel):
@@ -275,36 +340,46 @@ class Wagecode(TsaBaseModel):
     datelast = None
     locked = None
 
+    sequence = PositiveSmallIntegerField(default=0)
+    rate = JSONField(null=True)  # stores price plus startdate
+    iswage = BooleanField(default=False)
+    iswagefactor = BooleanField(default=False)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
+    isfunctioncode = BooleanField(default=False)
+    ispaydate = BooleanField(default=False)
+    isdefault = BooleanField(default=False)
+
     class Meta:
-        ordering = [Lower('code')]
+        ordering = ['sequence']
+
 
     def __str__(self):
         return self.code
 
 
-class Wagefactor(TsaBaseModel):
+class Wagecodeitem(TsaBaseModel):
     objects = TsaManager()
-    company = ForeignKey(Company, related_name='wagefactors', on_delete=PROTECT)
+    wagecode = ForeignKey(Wagecode, related_name='+', on_delete=CASCADE)
 
-    wagefactorrate = IntegerField(default=0)  # /1.000.000
-
-    # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
-    datefirst = None
+    # order on datefirst, descending: ORDER BY last_updated DESC NULLS LAST
+    code = None
+    name = None
     datelast = None
+    inactive = None
     locked = None
 
-    class Meta:
-        ordering = [Lower('code')]
+    iswage = BooleanField(default=False)
+    iswagefactor = BooleanField(default=False)  # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
 
-    def __str__(self):
-        return self.code
+    wagerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG)
+
+    class Meta:
+        ordering = ['-datefirst']
 
 
 class Timecode(TsaBaseModel): # Workingday, Saturday, SUnday, Public Holiday, general holiday, + wagefactor
     objects = TsaManager()
     company = ForeignKey(Company, related_name='timecodes', on_delete=PROTECT)
-    wagefactor = ForeignKey(Wagefactor, related_name='timecodes', on_delete=SET_NULL, null=True, blank=True)
-
+    wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
@@ -373,8 +448,9 @@ class Scheme(TsaBaseModel):
     excludecompanyholiday = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
 
-    priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /1.000.000 unitless   additionrate 250.000 = 25%
+    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     locked = None
@@ -408,9 +484,10 @@ class Shift(TsaBaseModel):
     breakduration = IntegerField(default=0) # unit is minute
     timeduration = IntegerField(default=0)  # unit is minute
 
-    wagefactor = ForeignKey(Wagefactor, related_name='shifts', on_delete=SET_NULL, null=True, blank=True)
-    priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /1.000.000 unitless   additionrate 250.000 = 25%
+    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
 
     def __str__(self):
         return self.code
@@ -446,8 +523,6 @@ class Employee(TsaBaseModel):
 
     namelast = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH)
     namefirst = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
-    # deprecated
-    prefix = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     email = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
@@ -459,17 +534,16 @@ class Employee(TsaBaseModel):
     city = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     country = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
 
-    payrollcode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
-    paydates = JSONField(null=True)  # stores invoice dates for this order
-
-    wagerate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
-    wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
     workhours = IntegerField(default=0)  # working hours per week * 60, unit is minute
     workdays = IntegerField(default=0)  # workdays per week * 1440, unit is minute (one day has 1440 minutes)
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
 
-    priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /1.000.000 unitless   additionrate 250.000 = 25%
+    functioncode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
+    wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
+    paydatecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
+
+    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     name = None
@@ -479,6 +553,23 @@ class Employee(TsaBaseModel):
 
     def __str__(self):
         return self.code
+
+class Employeelog(TsaBaseModel):
+    objects = TsaManager()
+
+    employee = ForeignKey(Employee, related_name='+', on_delete=CASCADE)
+
+    namelast = CharField(max_length=c.NAME_MAX_LENGTH)
+    namefirst = CharField(max_length=c.NAME_MAX_LENGTH, null=True)
+
+    name = None
+    datefirst = None
+    datelast = None
+    inactive = None
+    locked = None
+
+    class Meta:
+        ordering = ['-modifiedat']
 
 
 class Teammember(TsaBaseModel):
@@ -499,10 +590,12 @@ class Teammember(TsaBaseModel):
     issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
-    wagefactor = IntegerField(default=0) # /1.000.000 unitless, factor 100%  = 1.000.000)
+    wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
 
-    priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /1.000.000 unitless additionrate 250.000 = 25%
+    pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
+    # when teammember_pricecode = None and override=True: use employee_pricecode, False: use shift_pricecode
+    # applies also to additioncode
     override = BooleanField(default=True)
 
     @classmethod
@@ -532,18 +625,6 @@ class Teammember(TsaBaseModel):
             # a date far after any non-null values of last_active.  Then it will
             # naturally sort behind instances of Box with a non-null last_active value.
 
-            # order_by datelast, null comes last (with Coalesce changes to '2500-01-01'
-            # - get employee with earliest endatlookup employee in teammembers
-
-            # for testing:
-            # teammembers = cls.objects.annotate(
-            #     new_datelast=Coalesce('datelast', Value(datetime(2500, 1, 1))
-            #                           )).filter(crit).order_by('new_datelast')
-            # for member in teammembers:
-            #     employee = getattr(member, 'employee')
-            #     if employee:
-            #        logger.debug('test employee: ' + str(employee) + ' datefirst: ' + str(member.datefirst) + ' datelast: ' + str(member.datelast))
-
             teammember = cls.objects.annotate(
                 new_datelast=Coalesce('datelast', Value(datetime(2500, 1, 1))
                                       )).filter(crit).order_by('new_datelast').first()
@@ -569,17 +650,8 @@ class Schemeitem(TsaBaseModel):
     isabsence = BooleanField(default=False)
     issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
-    billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
     rosterdate = DateField(db_index=True)
     iscyclestart = BooleanField(default=False)
-
-    offsetstart = SmallIntegerField(null=True)  # only for absence >> deprecated
-    offsetend = SmallIntegerField(null=True)  # only for absence>> deprecated
-    breakduration = IntegerField(default=0) # unit is minut >> deprecated
-    timeduration = IntegerField(default=0)  # unit is minute >> deprecated
-
-    priceratejson = JSONField(null=True) # /100 unit is currency (US$, EUR, ANG) per hour
-    additionjson = JSONField(null=True)  # /1.000.000 unitless   additionrate 250.000 = 25%
 
     class Meta:
         ordering = ['rosterdate']
@@ -635,17 +707,21 @@ class Orderhour(TsaBaseModel):
     objects = TsaManager()
 
     order = ForeignKey(Order, related_name='orderhours', on_delete=PROTECT)
+
+    customerlog = ForeignKey(Customerlog, related_name='+', on_delete=SET_NULL, null=True)
+    orderlog = ForeignKey(Orderlog, related_name='+', on_delete=SET_NULL, null=True)
+
     # TODO check if schemeitem is necessary, I dont think so PR2020-02-15
-    schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True, blank=True)
+    schemeitem = ForeignKey(Schemeitem, related_name='+', on_delete=SET_NULL, null=True)
 
     rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
 
-    isbillable = BooleanField(default=False)
-
     isabsence = BooleanField(default=False)
     isrestshift = BooleanField(default=False)
     issplitshift = BooleanField(default=False)
+    isbillable = BooleanField(default=False)
+
     shift = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     status = PositiveSmallIntegerField(db_index=True, default=0)
 
@@ -673,7 +749,8 @@ class Emplhour(TsaBaseModel):
     objects = TsaManager()
 
     orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=PROTECT)
-    employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True, blank=True)
+    employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True)
+    employeelog = ForeignKey(Employeelog, related_name='+', on_delete=SET_NULL, null=True)
 
     rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
@@ -697,9 +774,10 @@ class Emplhour(TsaBaseModel):
     wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
     pricerate = IntegerField(null=True) # /100 unit is currency (US$, EUR, ANG)
-    additionrate = IntegerField(default=0)  # /1.000.000 unitless   additionrate 250.000 = 25%
-    taxrate = IntegerField(default=0)  # /1.000.000 unitless   taxrate 60.000 = 6%
+    additionrate = IntegerField(default=0)  # additionrate = /10.000 unitless additionrate 10.000 = 100%
+    taxrate = IntegerField(default=0)  # taxrate = /10.000 unitless taxrate 600 = 6%
     amount = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
+    addition = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     tax = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
 
     status = PositiveSmallIntegerField(db_index=True, default=0)
@@ -792,6 +870,7 @@ class Companylist(TsaBaseModel):  # PR2020-02-28
     datefirst = None
     datelast = None
     locked = None
+
 
 class Companyinvoice(TsaBaseModel):  # PR2019-04-06
     objects = TsaManager()

@@ -147,8 +147,8 @@
                                 filter_ppk_int, filter_include_inactive, filter_include_absence, row_count,
                                 bc_color_notselected, bc_color_selected,
                                 imgsrc_default, imgsrc_hover,
-                            imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
-                            title_header_btn) {
+                                imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey,
+                                title_header_btn) {
         //console.log(" === t_CreateSelectRow in tables.js === ")
 
 // add row at end when row_index is blank
@@ -433,7 +433,30 @@
         }
         return tr_selected;
     };
-
+//========= get_tablerow_selected  =============
+    function get_TD_selected(el_selected){
+        // PR2020-03-03 function 'bubbles up' till tablerow element is found
+        // currentTarget refers to the element to which the event handler has been attached
+        // event.target identifies the element on which the event occurred.
+        let tr_selected;
+        let el = el_selected
+        let break_it = false
+        while(!break_it){
+            if (!!el){
+                if (el.nodeName === "TD"){
+                    tr_selected = el;
+                    break_it = true
+                } else if (!!el.parentNode){
+                    el =  el.parentNode;
+                } else {
+                    break_it = true
+                }
+            } else {
+                break_it = true
+            }
+        }
+        return tr_selected;
+    };
 //========= get_tablerow_id  ============= PR2019-04-28
     function get_tablerow_id(el_clicked){
         let dict = {};
@@ -1116,11 +1139,11 @@
 
 // +++++++++++++++++ FILTER ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//========= fFilter_SelectRows  ==================================== PR2020-01-17
-    function fFilter_SelectRows(tblBody_select, filter_select, filter_show_inactive, has_ppk_filter, selected_ppk) {
-        //console.log( "===== fFilter_SelectRows  ========= ");
+//========= t_Filter_SelectRows  ==================================== PR2020-01-17
+    function t_Filter_SelectRows(tblBody_select, filter_select, filter_show_inactive, has_ppk_filter, selected_ppk) {
+        //console.log( "===== t_Filter_SelectRows  ========= ");
         let has_selection = false, has_multiple = false;
-        let selected_value = null, selected_pk = null, selected_parentpk = null;
+        let selected_value = null, selected_pk = null, selected_parentpk = null, selected_display = null;
         let row_count = 0;
         for (let i = 0, tblRow, len = tblBody_select.rows.length; i < len; i++) {
             tblRow = tblBody_select.rows[i];
@@ -1165,6 +1188,7 @@
                         selected_pk = get_attr_from_el(tblRow, "data-pk");
                         selected_parentpk = get_attr_from_el(tblRow, "data-ppk");
                         selected_value = get_attr_from_el(tblRow, "data-value");
+                        selected_display = get_attr_from_el(tblRow, "data-display");
                     } else {
                         has_multiple = true;
                     }
@@ -1176,15 +1200,17 @@
         if (has_multiple){
             selected_pk = null;
             selected_parentpk = null;
-            selected_value = null;
+            selected_value = null,
+            selected_display = null;
         }
-        return {row_count: row_count, selected_pk: selected_pk, selected_parentpk: selected_parentpk, selected_value: selected_value};
-    }; // fFilter_SelectRows
+        return {row_count: row_count, selected_pk: selected_pk, selected_parentpk: selected_parentpk,
+                selected_value: selected_value, selected_display: selected_display};
+    }; // t_Filter_SelectRows
 
 
-//========= f_Filter_TableRows  ==================================== PR2020-01-17
-    function f_Filter_TableRows(tblBody, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {  // PR2019-06-24
-        //console.log( "===== f_Filter_TableRows  ========= ", tblName);
+//========= t_Filter_TableRows  ==================================== PR2020-01-17
+    function t_Filter_TableRows(tblBody, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {  // PR2019-06-24
+        //console.log( "===== t_Filter_TableRows  ========= ", tblName);
         //console.log( "filter_dict", filter_dict);
         //console.log( "filter_show_inactive", filter_show_inactive);
         //console.log( "has_ppk_filter", has_ppk_filter);
@@ -1205,7 +1231,7 @@
                 };
             }
         } //  if (!!len){
-    }; // f_Filter_TableRows
+    }; // t_Filter_TableRows
 
 //========= f_ShowTableRow  ==================================== PR2020-01-17
     function f_ShowTableRow(tblRow, tblName, filter_dict, filter_show_inactive, has_ppk_filter, selected_ppk) {  // PR2019-09-15

@@ -1,0 +1,85 @@
+ {% load i18n %}
+{% load static %}
+
+ <!-- =================== MODAL SELECT PRICE  =================== -->
+    <div class="modal" id="id_mod_select_price" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_MSP_header" class="modal-title mx-2" >{% trans 'Price' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div  id="id_MSP_body" class="modal-body">
+                    <div class="modal_container">
+
+<!-- modal_body_left contains price select table -->
+                        <div class="modal_body_left">
+                            <div class="content_subheader_left mx-1 my-1">
+                                 <!-- this div is necessary to get standard structure for FilterTableRows -->
+                                <!-- <div style="overflow-x:hidden;overflow-y:auto;height:400px;width:220px"> -->
+                                <div class="tbl_div_400_220">
+                                    <table class="table tsa_tbl mx-1 my-1">
+                                        <tbody id="id_MSP_tblbody" data-table="price">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="id_MSP_body_right"  class="modal_body_right mx-2 my-2">
+
+                            <div class="mx-2 my-2">
+                                <h6 id="id_MSP_hdr_input_price">{% trans 'Select price' %}:</h6>
+                                <div class="form-group">
+                                    <input id="id_MSP_input_price"
+                                        type="text"
+                                        autocomplete="off"
+                                        ondragstart="return false;"
+                                        ondrop="return false;"
+                                        class="form-control">
+                                    <small id="id_MSP_error_price" class="tsa_color_red mx-2 p-0"></small>
+                                </div>
+                            </div>
+                            <div class="mx-2 my-2">
+                                <h6 id="id_MSP_hdr_remove">{% trans 'or remove the current price' %}...</h6>
+                                <div class="form-group">
+                                    <button id="id_MSP_btn_remove" type="button" class="btn btn-outline-danger">{% trans 'Remove' %}</button>
+                                </div>
+                            </div>
+
+                            <div class="mx-2 my-2">
+                                <div id="id_MSP_div_remove_all">
+                                    <span>
+                                        <input id="id_MSP_remove_all" type="checkbox" class="td_width_032 mx-2">
+                                        <label for="id_MSP_remove_all" class="mx-2 my-1">{% trans 'Also remove from the lower-level items' %}</label>
+                                    </span>
+                                 </div>
+                            </div>
+                            <div class="mx-2 mt-4">
+                                <h6>{% trans 'Note' %}:</h6>
+                                    <input id="id_MSP_input_note"
+                                        type="text"
+                                        autocomplete="off"
+                                        ondragstart="return false;"
+                                        ondrop="return false;"
+                                        class="form-control">
+                                <small id="id_MSP_footer_note" class="m-0 p-0">{% trans 'The note will only be displayed in the list.' %}</small>
+                            </div>
+
+
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="content_subheader_right">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                        <button id="id_MSP_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL PRICE  =================== -->

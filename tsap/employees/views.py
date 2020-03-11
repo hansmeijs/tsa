@@ -211,7 +211,8 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
                             table=table,
                             pk=pk_int,
                             ppk=parent.pk,
-                            temp_pk=temp_pk_str)
+                            temp_pk=temp_pk_str,
+                            row_index=row_index)
 
 # C. Delete employee
                         if is_delete:
@@ -1185,7 +1186,8 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
             table=table,
             pk=pk_int,
             ppk=ppk_int,
-            temp_pk=temp_pk_str)
+            temp_pk=temp_pk_str,
+            row_index=row_index)
 
 # A. Delete teammember and its schemeitems, team and scheme
         if is_delete:
@@ -1445,7 +1447,8 @@ def teammember_upload(request, upload_dict, user_lang): # PR2019-12-25
             table=table,
             pk=pk_int,
             ppk=ppk_int,
-            temp_pk=temp_pk_str)
+            temp_pk=temp_pk_str,
+            row_index=row_index)
 
 # A. new absence has no parent, get ppk_int from team_dict and put it back in upload_dict
         # absence is handled bij absence_upload
