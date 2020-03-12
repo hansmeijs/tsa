@@ -1702,18 +1702,18 @@ def get_iddict_variables(id_dict):
     return pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode, row_index
 
 
-def get_dict_value(dictionary, key_tuple, default_value=None):
+def get_dict_value(dictionry, key_tuple, default_value=None):
     # PR2020-02-04 like in base.js Iterate through keylist till value found
-    if key_tuple and dictionary:
+    if key_tuple and dictionry:  # don't use 'dictionary' - is PyCharm reserved word
         for key in key_tuple:
-            if isinstance(dictionary, dict) and key in dictionary:
-                dictionary = dictionary.get(key)
+            if isinstance(dictionry, dict) and key in dictionry:
+                dictionry = dictionry.get(key)
             else:
-                dictionary = None
+                dictionry = None
                 break
-    if dictionary is None and default_value is not None:
-        dictionary = default_value
-    return dictionary
+    if dictionry is None and default_value is not None:
+        dictionry = default_value
+    return dictionry
 
 
 def set_fielddict_date(field_dict, date_value, rosterdate=None, mindate=None, maxdate=None):

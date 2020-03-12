@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let template_mode = false;
         let rosterdate_dict = {};
 
+        // setting_cust_pk contains saved pk. Remains when switched to template mode.
+        // selected_cust_pk can have value of template_cust, is not stored in settings
         let setting_cust_pk = 0;
         let setting_order_pk = 0;
         let setting_scheme_pk = 0;
@@ -56,12 +58,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  Select Scheme
         // EventHandler HandleSelectRow is added in FillSelectTable
-        let tblBody_scheme_select = document.getElementById("id_select_tbody_scheme")
-        let tblBody_shift_select = document.getElementById("id_select_tbody_shift")
-        let tblBody_team_select = document.getElementById("id_select_tbody_team")
+        let sidebar_tblBody_scheme = document.getElementById("id_select_tbody_scheme")
+        let sidebar_tblBody_shift = document.getElementById("id_select_tbody_shift")
+        let sidebar_tblBody_team = document.getElementById("id_select_tbody_team")
 
         let tblBody_schemeitem = document.getElementById("id_tbody_schemeitem");
-        let tbody_teammember = document.getElementById("id_tbody_teammember");
+        let tblBody_shift = document.getElementById("id_tbody_shift");
+        let tblBody_teammember = document.getElementById("id_tbody_teammember");
 
         let el_timepicker = document.getElementById("id_timepicker")
 
@@ -175,8 +178,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_mod_order = document.getElementById("id_mod_scheme_order")
         el_mod_order.addEventListener("change", function() {ModSchemeEdit("order")}, false)
         let el_mod_code = document.getElementById("id_mod_scheme_code")
-        el_mod_code.addEventListener("change", function() {
-            setTimeout(function() {ModSchemeEdit("code")}, 250)}, false )
+        el_mod_code.addEventListener("keyup", function(event) {
+            setTimeout(function() {ModSchemeEdit("code", event.key)}, 250)}, false )
         let el_mod_cycle = document.getElementById("id_mod_scheme_cycle")
              el_mod_cycle.addEventListener("change", function() {
                 setTimeout(function() {ModSchemeEdit("cycle")}, 250)}, false )
@@ -229,14 +232,9 @@ document.addEventListener('DOMContentLoaded', function() {
             el.addEventListener(event_type, function() {Upload_Scheme(el)}, false);
         }
 
-        let el_scheme_btn_add = document.getElementById("id_form_btn_add");
-            el_scheme_btn_add.addEventListener("click", function() {ModSchemeOpen()}, false);
-        let el_scheme_btn_delete = document.getElementById("id_form_btn_delete");
-            el_scheme_btn_delete.addEventListener("click", function() {UploadDeleteSchemeFromForm()}, false);
-
 // ---  Input elements in teamcode box
-        let el_team_code = document.getElementById("id_team_code")
-            el_team_code.addEventListener("change", function() {Upload_Team()}, false)
+        let el_input_team_code = document.getElementById("id_team_code")
+            el_input_team_code.addEventListener("change", function() {Upload_Team()}, false)
 
 // --- close windows
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
@@ -291,18 +289,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  set selected menu button active
         SetMenubuttonActive(document.getElementById("id_hdr_schm"));
 
-// --- create header row and addnew rows
-        CreateSelectHeaderRows();
-        CreateSelectAddnewRows();
-
 // --- create header row and footer
         CreateTblHeaders();
         CreateTblFooters();
 
 // --- Datalist Download
         // show_absence = null is for testing, show_absence must be false in production
-        const show_absence = null;
-        //const show_absence = false;
+        // const show_absence = null;
+        const show_absence = false;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}
@@ -318,7 +312,6 @@ document.addEventListener('DOMContentLoaded', function() {
             schemeitem: {customer_pk: null, isabsence: false},
             employee: {inactive: null}};
         DatalistDownload(datalist_request);
-
 
 //  #############################################################################################################
 
@@ -347,6 +340,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     loc = response["locale_dict"];
                     // --- create Submenu after downloading locale
                     CreateSubmenu()
+
+                    // --- create header row and addnew rows after downloading locale
+                    CreateSelectHeaderRows();
+                    CreateSelectAddnewRows();
                 }
                // if ("period" in response) {
                 //    period_dict= response["period"];
@@ -364,12 +361,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ("quicksave" in response) {
                     quicksave = get_subdict_value_by_key(response, "quicksave", "value", false)
                     //console.log( "quicksave", quicksave, typeof quicksave)
-
                 }
 
     // after select customer the following lists will be downloaded, filtered by selected_cust_pk:
                   // datalist_request = "scheme" "schemeitem" "shift" "team" "teammember"
-                //FillSelectTable fills selecttable and makes visible
+                //SBR_FillSelectTable fills selecttable and makes visible
 
 // --- refresh maps and fill tables
                 refresh_maps(response);
@@ -396,21 +392,20 @@ document.addEventListener('DOMContentLoaded', function() {
             get_datamap(response["customer_list"], customer_map)
 
     // fill the three select customer elements
-            FillSelectOptionDict("customer", "customer_list response");
+            SBR_FillOptionCustomerOrder("customer", "customer_list response");
             HandleSelectCustomer(el_select_customer, "customer_list response")
         }
-
         if ("scheme_list" in response) {
             get_datamap(response["scheme_list"], scheme_map)
-            FillSelectTable("scheme", "refresh_maps scheme_list", selected_scheme_pk);
+            SBR_FillSelectTable("scheme", "refresh_maps scheme_list", selected_scheme_pk);
         }
         if ("shift_list" in response) {
             get_datamap(response["shift_list"], shift_map)
-            FillSelectTable("shift", "refresh_maps shift_list", selected_shift_pk);
+            SBR_FillSelectTable("shift", "refresh_maps shift_list", selected_shift_pk);
         }
         if ("team_list" in response) {
             get_datamap(response["team_list"], team_map)
-            FillSelectTable("team", "refresh_maps team_list", selected_team_pk, true);
+            SBR_FillSelectTable("team", "refresh_maps team_list", selected_team_pk, true);
         }
         if ("teammember_list" in response) {
             get_datamap(response["teammember_list"], teammember_map)
@@ -431,11 +426,11 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_submenu = document.getElementById("id_submenu")
         let el_div = document.createElement("div");
         // CreateSubmenuButton(el_div, id, btn_text, class_key, function_on_click)
-        AddSubmenuButton(el_div, loc.menubtn_copy_from_template, function (){ModCopyfromTemplateOpen()}, null, "id_menubtn_copy_from_template");
+        AddSubmenuButton(el_div, loc.Add_scheme, function (){ModSchemeOpen()}, null, "id_menubtn_add_scheme");
+        AddSubmenuButton(el_div, loc.Delete_scheme, function (){HandleDeleteScheme()}, ["mx-2"], "id_menubtn_delete_scheme");
+        AddSubmenuButton(el_div, loc.menubtn_copy_from_template, function (){ModCopyfromTemplateOpen()}, ["mx-2"], "id_menubtn_copy_from_template");
         AddSubmenuButton(el_div, loc.menubtn_copy_to_template, function (){ModCopytoTemplateOpen()}, ["mx-2"], "id_menubtn_copy_to_template");
         AddSubmenuButton(el_div, loc.menubtn_show_templates, function (){HandleSubmenubtnTemplateShow()}, ["mx-2"], "id_menubtn_show_templates");
-        AddSubmenuButton(el_div, loc.Create_roster, function (){ModRosterdateCreate()}, ["mx-2"]);
-        AddSubmenuButton(el_div, loc.Delete_roster, function (){ModRosterdateDelete()}, ["mx-2"]);
 
         el_submenu.appendChild(el_div);
         el_submenu.classList.remove(cls_hide);
@@ -444,6 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  HandleSubmenubtnTemplateShow  ================ PR2019-09-15
     function HandleSubmenubtnTemplateShow(el) {
         //console.log("--- HandleSubmenubtnTemplateShow")
+
         template_mode = !template_mode
         //console.log("new template_mode: ", template_mode)
 
@@ -455,7 +451,12 @@ document.addEventListener('DOMContentLoaded', function() {
         selected_order_pk = (!template_mode) ? setting_order_pk : 0;
         selected_scheme_pk =  (!template_mode) ? setting_scheme_pk : 0;
 
-        FillSelectOptionDict("customer", "HandleSubmenubtnTemplateShow");
+// reset scheme, team, shift
+        sidebar_tblBody_scheme.innerText = null;
+        sidebar_tblBody_shift.innerText = null;
+        sidebar_tblBody_team.innerText = null;
+
+        SBR_FillOptionCustomerOrder("customer", "HandleSubmenubtnTemplateShow");
         HandleSelectCustomer(el_select_customer, "HandleSubmenubtnTemplateShow")
 
         if(template_mode){
@@ -466,29 +467,41 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById("id_select_template_div").classList.add(cls_hide)
         }
 
-        DisableSubmenubtnTemplate();
+        DisableSubmenuButtons();
     }
 
-//=========  DisableSubmenubtnTemplate  ================ PR2019-12-02
-    function DisableSubmenubtnTemplate() {
+//=========  DisableSubmenuButtons  ================ PR2020-03-12
+    function DisableSubmenuButtons() {
         let btn_copyfrom = document.getElementById("id_menubtn_copy_from_template");
         let btn_copyto = document.getElementById("id_menubtn_copy_to_template");
-        console.log("btn_copyfrom", btn_copyfrom)
-        console.log("btn_copyto", btn_copyto)
+        let btn_delete = document.getElementById("id_menubtn_delete_scheme");
         if(template_mode){
-            btn_copyfrom.setAttribute("aria-disabled", true)
-            btn_copyto.setAttribute("aria-disabled", true)
+            btn_copyfrom.setAttribute("aria-disabled", true);
+            btn_copyfrom.classList.add("tsa_color_mediumgrey");
 
-            btn_copyfrom.classList.add("tsa_color_mediumgrey")
-            btn_copyto.classList.add("tsa_color_mediumgrey")
+            btn_copyto.setAttribute("aria-disabled", true);
+            btn_copyto.classList.add("tsa_color_mediumgrey");
         } else {
-            btn_copyfrom.removeAttribute("aria-disabled")
-            btn_copyto.removeAttribute("aria-disabled")
-            btn_copyfrom.classList.remove("tsa_color_mediumgrey")
-            btn_copyto.classList.remove("tsa_color_mediumgrey")
+            btn_copyfrom.removeAttribute("aria-disabled");
+            btn_copyfrom.classList.remove("tsa_color_mediumgrey");
+
+            if(!!selected_scheme_pk){
+                btn_copyto.removeAttribute("aria-disabled");
+                btn_copyto.classList.remove("tsa_color_mediumgrey");
+            } else {
+                btn_copyto.setAttribute("aria-disabled", true);
+                btn_copyto.classList.add("tsa_color_mediumgrey");
+            }
+        }
+
+        if(!!selected_scheme_pk){
+            btn_delete.removeAttribute("aria-disabled");
+            btn_delete.classList.remove("tsa_color_mediumgrey");
+        } else {
+            btn_delete.setAttribute("aria-disabled", true);
+            btn_delete.classList.add("tsa_color_mediumgrey");
         }
     }
-
 
 //###########################################################################
 // +++++++++++++++++ EVENT HANDLERS +++++++++++++++++++++++++++++++++++++++++
@@ -537,13 +550,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HandleSelectCustomer  ================ PR2019-03-23
     function HandleSelectCustomer(el, called_by) {
-        console.log("--- HandleSelectCustomer --- ", called_by)
+        console.log("--- HandleSelectCustomer --- called by: ", called_by)
         // called by DatalistDownload , select_customer.Event.Change,  ModSchemeEdit
 
-        // in FillSelectOptionDict the first row is set selected=true when there is only one row
+        // in SBR_FillOptionCustomerOrder the first row is set selected=true when there is only one row
 
 // reset lists
-        // don't reset, all items are already downloaded
+        // don't reset lists, all items are already downloaded
 
 // reset selected customer
         selected_cust_pk = 0
@@ -556,14 +569,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // reset tables scheme_select, schemeitems, teammember and team input box
         selected_scheme_pk = 0;
-        tblBody_scheme_select.innerText = null;
+        sidebar_tblBody_scheme.innerText = null;
+        sidebar_tblBody_shift.innerText = null;
+        sidebar_tblBody_team.innerText = null;
+
         tblBody_schemeitem.innerText = null;
-        tbody_teammember.innerText = null;
-        document.getElementById("id_team_code").value = null
-        ResetSchemeInputElements()
+        tblBody_shift.innerText = null;
+        tblBody_teammember.innerText = null;
+        el_input_team_code.value = null
 
-
-
+        ResetSchemeInputElements();
+        DisableSubmenuButtons();
 
 // get selected customer, put name in header
         //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
@@ -582,7 +598,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const upload_dict = {"selected_pk": { "sel_cust_pk": selected_cust_pk, "sel_order_pk": selected_order_pk}};
                     UploadSettings (upload_dict, url_settings_upload);
                 }
-            // if there is only 1 customer, that one is selected (selected_cust_pk gets value in FillSelectOptionDict)
+            // if there is only 1 customer, that one is selected (selected_cust_pk gets value in SBR_FillOptionCustomerOrder)
             // else: use settings_customer if there is one
 
             } else if (!!setting_cust_pk){
@@ -613,9 +629,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
         // fill the three select order elements
-                FillSelectOptionDict("order", "HandleSelectCustomer", selected_cust_pk)
+                SBR_FillOptionCustomerOrder("order", "HandleSelectCustomer", selected_cust_pk)
 
-         // if there is only 1 order, that one is selected (selected_order_pk gets value in FillSelectOptionDict)
+         // if there is only 1 order, that one is selected (selected_order_pk gets value in SBR_FillOptionCustomerOrder)
         // else: use setting_order_pk if there is one
 
                 const sel_order_value = parseInt(el_select_order.value);
@@ -648,22 +664,27 @@ document.addEventListener('DOMContentLoaded', function() {
 // reset lists
         // don't reset, all items from this customer are already downloaded
 
-// reset selected order, scheme, shift, team and schemeitem
+// reset selected_order_pk order, selected_scheme_pk
         selected_order_pk = 0
-
-// reset tables scheme_select, schemeitems, teammember and team input box
         selected_scheme_pk = 0;
-        tblBody_scheme_select.innerText = null;
+// reset select tables
+        sidebar_tblBody_scheme.innerText = null;
+        sidebar_tblBody_shift.innerText = null;
+        sidebar_tblBody_team.innerText = null;
+// reset tables scheme_select, schemeitems, teammember and team input box
         tblBody_schemeitem.innerText = null;
-        tbody_teammember.innerText = null;
-        document.getElementById("id_team_code").value = null
-        ResetSchemeInputElements()
+        tblBody_shift.innerText = null;
+        tblBody_teammember.innerText = null;
+        el_input_team_code.value = null;
+
+        ResetSchemeInputElements();
+        DisableSubmenuButtons();
 
 // get selected order
         //  parseInt returns NaN if value is None or "", in that case !!parseInt returns false
 
         // after first DatalistDownload, when there is only 1 customer, selected_cust_pk gets this value
-        //  HandleSelectOrder has then no parameter 'el' and selected_order_pk has valeu
+        //  in that case HandleSelectOrder has no parameter 'el' and selected_order_pk has value
         if(!!el){
             const sel_order_value = parseInt(el.value);
             if (!sel_order_value){
@@ -684,7 +705,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     UploadSettings (upload_dict, url_settings_upload);
                 }
             }
-
             UpdateHeaderText();
 
             if (!!selected_order_pk){
@@ -698,14 +718,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     el_select_order.selectedIndex = el.selectedIndex
                     el_mod_order.selectedIndex = el.selectedIndex
                 }
-
-                FillSelectTable("scheme", "HandleSelectOrder", selected_scheme_pk, true);
-
+                SBR_FillSelectTable("scheme", "HandleSelectOrder", selected_scheme_pk, true);
             } //  if (!!pk_int)
         }  // if(!!el){
 
-
-// select table 'scheme' is filled by FillSelectTable("scheme"). This function is called in DatalistDownload
+// select table 'scheme' is filled by SBR_FillSelectTable("scheme"). This function is called in DatalistDownload
 
     }  // HandleSelectOrder
 
@@ -769,8 +786,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById("sel_team_addnew").setAttribute("data-ppk", selected_scheme_pk)
 
 // --- Fill select table Shift and Teams
-                    FillSelectTable("shift", "HandleSelectRow", selected_shift_pk, false); // false = is not curremt select table
-                    FillSelectTable("team", "HandleSelectRow" , selected_team_pk, false); // false = is not curremt select table
+                    SBR_FillSelectTable("shift", "HandleSelectRow", selected_shift_pk, false); // false = is not curremt select table
+                    SBR_FillSelectTable("team", "HandleSelectRow" , selected_team_pk, false); // false = is not curremt select table
 
 // --- fill data table schemeitems
                     FillTableRows("schemeitem");
@@ -780,6 +797,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // reset addnew row, fill options shifts and team
                     // dont, already called by FillTableRows
                     //ResetAddnewRow("schemeitem", "HandleSelectRow")
+// disable/enable menubutton delete scheme
+                    DisableSubmenuButtons()
 
                 } else if (sel_tblName === "shift"){
 // ---  update selected_shift_pk
@@ -788,7 +807,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 // ---  set focus to selected shift row
                         // --- lookup row 'add new' in tFoot
                         const tblName = (sel_tblName === "shift") ? "shift" : "teammember";
-                        let tblBody_shift = document.getElementById("id_tbody_shift");
                         const len = tblBody_shift.rows.length;
                         if (!!len){
                             for (let i = 0; i < len; i++) {
@@ -823,13 +841,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // make all rows of this select_table light yellow
         // ChangeBackgroundRows(tableBody, new_background, keep_old_hightlighted, tr_selected, sel_background)
         if (sel_tblName === "scheme"){
-            ChangeBackgroundRows(tblBody_scheme_select, cls_bc_yellow_lightlight, false, sel_tr_clicked, cls_bc_yellow)
-            ChangeBackgroundRows(tblBody_shift_select, cls_bc_lightlightgrey, false)
-            ChangeBackgroundRows(tblBody_team_select, cls_bc_lightlightgrey, false)
+            ChangeBackgroundRows(sidebar_tblBody_scheme, cls_bc_yellow_lightlight, false, sel_tr_clicked, cls_bc_yellow)
+            ChangeBackgroundRows(sidebar_tblBody_shift, cls_bc_lightlightgrey, false)
+            ChangeBackgroundRows(sidebar_tblBody_team, cls_bc_lightlightgrey, false)
         } else if (sel_tblName === "shift" || sel_tblName === "team"){
-            ChangeBackgroundRows(tblBody_scheme_select, cls_bc_lightlightgrey, true)
-            let tblBody_this = (sel_tblName === "shift") ? tblBody_shift_select : tblBody_team_select;
-            let tblBody_other1 = (sel_tblName === "shift") ? tblBody_team_select : tblBody_shift_select;
+            ChangeBackgroundRows(sidebar_tblBody_scheme, cls_bc_lightlightgrey, true)
+            let tblBody_this = (sel_tblName === "shift") ? sidebar_tblBody_shift : sidebar_tblBody_team;
+            let tblBody_other1 = (sel_tblName === "shift") ? sidebar_tblBody_team : sidebar_tblBody_shift;
             ChangeBackgroundRows(tblBody_this, cls_bc_yellow_lightlight, false, sel_tr_clicked, cls_bc_yellow)
             ChangeBackgroundRows(tblBody_other1, cls_bc_lightlightgrey, false)
         }
@@ -840,9 +858,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // reset input fields and tables
         //ResetSchemeInputElements()
 
-// put selected team_code in el_team_code
+// put selected team_code in el_input_team_code
         const team_code = (sel_tblName === "team" && !!sel_code_value) ? sel_code_value : null
-        el_team_code.value = team_code
+        el_input_team_code.value = team_code
 
 // hide or show tables
         // don't change selected_btn when other scheme is selected
@@ -893,11 +911,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             selected_item_pk = get_datapk_from_element(tr_clicked)
 
-// ---  highlight row in selecttable, now when called by handleselectrow
+// ---  highlight row in selecttable, not when called by handleselectrow
             if(!!skip_highlight_selectrow){
                 const tblName = get_attr_from_el(tr_clicked, "data-table")
                 if (["shift", "team"].indexOf( tblName ) > -1){
-                    let tblBody_select = (tblName === "shift") ? tblBody_shift_select : tblBody_team_select;
+                    let tblBody_select = (tblName === "shift") ? sidebar_tblBody_shift : sidebar_tblBody_team;
                     //  params: tableBody, cls_selected, cls_background
                     HighlightSelectRowByPk(tblBody_select, selected_item_pk, cls_bc_yellow, cls_bc_yellow_lightlight);
                 }
@@ -960,43 +978,46 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // HandleInactiveClicked
 
 // +++++++++  HandleBtnSchemeitems  ++++++++++++++++++++++++++++++ PR2019-03-16 PR2019-06-14
-    function HandleBtnSchemeitems(param_name) {
+    function HandleBtnSchemeitems(param_name, skip_confirm) {
         console.log("=== HandleBtnSchemeitems =========", param_name);
 
-        // params are: prev, next, dayup, daydown, autofill, delete
         if (!!selected_scheme_pk){
-            let parameters = {"upload": JSON.stringify ({"mode": param_name, "scheme_pk": selected_scheme_pk})};
-            //console.log("parameters ", parameters);
+        // params are: prev, next, dayup, daydown, autofill, delete
+            if (param_name === "delete" && !skip_confirm) {
+                ModConfirmOpen("schemeitem_delete");
+            } else {
+                let parameters = {"upload": JSON.stringify ({"mode": param_name, "scheme_pk": selected_scheme_pk})};
+                //console.log("parameters ", parameters);
 
-            // show loader
-            el_loader.classList.remove(cls_hide)
+                // show loader
+                el_loader.classList.remove(cls_hide)
 
-            let response = "";
-            $.ajax({
-                type: "POST",
-                url: url_schemeitem_fill,
-                data: parameters,
-                dataType:'json',
-                success: function (response) {
-                console.log( "response");
-                console.log( response);
-                    // hide loader
-                    el_loader.classList.add(cls_hide)
-                    if ("schemeitem_list" in response) {
-                        get_datamap(response["schemeitem_list"], schemeitem_map)
-                        console.log( "schemeitem_list selected_scheme_pk", selected_scheme_pk, typeof selected_scheme_pk);
-                        FillTableRows("schemeitem")
+                let response = "";
+                $.ajax({
+                    type: "POST",
+                    url: url_schemeitem_fill,
+                    data: parameters,
+                    dataType:'json',
+                    success: function (response) {
+                    console.log( "response");
+                    console.log( response);
+                        // hide loader
+                        el_loader.classList.add(cls_hide)
+                        if ("schemeitem_list" in response) {
+                            get_datamap(response["schemeitem_list"], schemeitem_map)
+                            console.log( "schemeitem_list selected_scheme_pk", selected_scheme_pk, typeof selected_scheme_pk);
+                            FillTableRows("schemeitem")
+                        }
+                    },
+                    error: function (xhr, msg) {
+                        console.log(msg + '\n' + xhr.responseText);
+                        // hide loader
+                        el_loader.classList.add(cls_hide)
+                        alert(msg + '\n' + xhr.responseText);
                     }
-                },
-                error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
-                    // hide loader
-                    el_loader.classList.add(cls_hide)
-                    alert(msg + '\n' + xhr.responseText);
-                }
-            });
+                });
+            }
         }
-
     } // function HandleBtnSchemeitems
 //=========  HandleTemplateSelect  ================ PR2019-05-24
     function HandleTemplateSelect(tblRow) {
@@ -1110,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(filter_hide_inactive) {img_src = imgsrc_inactive_grey} else {img_src = imgsrc_inactive_black}
         el.firstChild.setAttribute("src", img_src);
 
-        FilterTableRows(tblBody_scheme_select, "", 1, filter_hide_inactive)
+        FilterTableRows(sidebar_tblBody_scheme, "", 1, filter_hide_inactive)
     }  // function HandleFilterInactive
 
 //##################################################################################
@@ -1121,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // TODO switch to t_CreateSelectRow
     function CreateSelectRow(tblBody_select, item_dict, row_index) {
         console.log("CreateSelectRow");
-
+        // creates selectrow in tbody in sidebar
         if(row_index == null){row_index = -1}
 
         let tblRow;
@@ -1220,9 +1241,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }  //  if (!!tblRow)
     }  // HandleSelectAddnewRow
 
-//========= FillSelectOptionDict  ====================================
-    function FillSelectOptionDict(tblName, called_by, ppk_str) {
-        console.log( "=== FillSelectOptionDict ", tblName, called_by, "ppk_str:" , ppk_str);
+//========= SBR_FillOptionCustomerOrder  ====================================
+    function SBR_FillOptionCustomerOrder(tblName, called_by, ppk_str) {
+        console.log( "=== SBR_FillOptionCustomerOrder called by: ", called_by);
 
 // ---  fill options of select box
         let option_text = "";
@@ -1232,28 +1253,30 @@ document.addEventListener('DOMContentLoaded', function() {
         // customer list has no ppk_str
         if (!!ppk_str){ppk_int = parseInt(ppk_str)};
 
-        let select_text = get_attr_from_el(el_data, "data-txt_select_" + tblName);
-        let select_text_none = get_attr_from_el(el_data, "data-txt_select_" + tblName + "_none");
+        let select_text = (tblName === "customer") ? loc.Select_customer : (tblName === "order") ? loc.Select_order : null;
+        let select_text_none = (tblName === "customer") ? loc.No_customes : (tblName === "order") ? loc.No_orders : null;
 
         const data_map = (tblName === "customer") ? customer_map :
-                      (tblName === "order") ? order_map : null
+                         (tblName === "order") ? order_map : null
 
         const selected_pk = (tblName === "customer") ? selected_cust_pk :
-                                (tblName === "order") ? selected_order_pk : null
-        //console.log( "selected_pk", selected_pk);
+                            (tblName === "order") ? selected_order_pk : null
+
+        console.log( "selected_pk", selected_pk);
+        console.log( "ppk_int", ppk_int);
+        console.log( "select_text_none", select_text_none);
 //--- loop through option dict
 
 // --- loop through data_map
         for (const [map_id, item_dict] of data_map.entries()) {
             const pk_int = get_pk_from_dict(item_dict);
             const ppk_in_dict = get_ppk_from_dict(item_dict);
-            const is_template = get_subdict_value_by_key(item_dict, "id", "istemplate", false);
-            const code_value = get_subdict_value_by_key(item_dict, "code", "value", "-");
-
-        //console.log( "code_value  ", code_value, pk_int, ppk_in_dict, is_template);
+            const is_template = get_dict_value(item_dict, ["id", "istemplate"], false);
+            const code_value = get_dict_value(item_dict, ["code", "value"], "-");
+            //console.log( "code_value  ", code_value, pk_int, ppk_in_dict, is_template);
     // filter is_template
             if (is_template === template_mode) {
-    // skip if ppk_int exists and does not match ppk_in_dict (not in tbl customer)
+                // skip if ppk_int exists and does not match ppk_in_dict (not in tbl customer)
                 if ((!!ppk_int && ppk_int === ppk_in_dict) || (tblName === "customer")) {
                     option_text += "<option value=\"" + pk_int + "\"";
                     option_text += " data-ppk=\"" + ppk_in_dict + "\"";
@@ -1288,78 +1311,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         //console.log("el_select.selectedIndex", el_select.selectedIndex);
-    }  //function FillSelectOptionDict
+    }  //function SBR_FillOptionCustomerOrder
 
 
-//========= FillSelectOptions  ====================================
-    // TODO replace by FillSelectOptionDict
-    function FillSelectOptions(el_select, option_list, select_text, select_text_none, parent_pk_str) {
-        //console.log( "=== FillSelectOptions  ", option_list);
-        // option_list: {id: {pk: 29, parent_pk: 2}, code: {value: "aa"} }
-        //console.log("option_list", option_list);
-        //console.log(select_text, select_text_none);
-        //console.log("parent_pk_str", parent_pk_str);
-
-// ---  fill options of select box
-        let curOption;
-        let option_text = "";
-        let row_count = 0
-        let parent_pk = 0
-
-        // customer list has no parent_pk_str
-        if (!!parent_pk_str){parent_pk = parseInt(parent_pk_str)};
-
-        el_select.innerText = null
-
-// --- loop through option list
-        for (let i = 0, len = option_list.length; i < len; i++) {
-            let dict = option_list[i];
-            let pk = get_pk_from_dict(dict);
-            let ppk_in_dict = get_ppk_from_dict(dict)
-
-// skip if parent_pk exists and does not match ppk_in_dict
-            let addrow = false;
-            if (!!parent_pk){
-                addrow = (ppk_in_dict === parent_pk)
-            } else {
-                addrow = true
-            }
-            if (addrow) {
-                const field = "code";
-                let value = "-";
-                if (field in dict) {if ("value" in dict[field]) {value = dict[field]["value"]}}
-                option_text += "<option value=\"" + pk + "\"";
-                option_text += " data-ppk=\"" + ppk_in_dict + "\"";
-                if (value === curOption) {option_text += " selected=true" };
-                option_text +=  ">" + value + "</option>";
-                row_count += 1
-            }
-        }  // for (let i = 0, len = option_list.length;
-
-        // from: https://stackoverflow.com/questions/5805059/how-do-i-make-a-placeholder-for-a-select-box
-        let select_first_option = false
-        if (!row_count){
-            option_text = "<option value=\"\" disabled selected hidden>" + select_text_none + "...</option>"
-        } else if (row_count === 1) {
-            select_first_option = true
-        } else if (row_count > 1){
-            option_text = "<option value=\"\" disabled selected hidden>" + select_text + "...</option>" + option_text
-        }
-        el_select.innerHTML = option_text;
-
-// if there is only 1 option: select first option
-        if (select_first_option){
-            el_select.selectedIndex = 0
-        }
-
-    }  //function FillSelectOptions
-
-
-//========= FillSelectTable  ============= PR2019-09-23
-    function FillSelectTable(tblName, called_by, selected_pk, is_current_table) {
-        //console.log( "=== FillSelectTable === ", tblName, called_by);
-        //console.log( "tblName: ", tblName, "is_current_table: ", is_current_table);
-        //console.log( "selected_pk: ", selected_pk, "selected_order_pk: ", selected_order_pk);
+//========= SBR_FillSelectTable  ============= PR2019-09-23
+    function SBR_FillSelectTable(tblName, called_by, selected_pk, is_current_table) {
+        console.log( "=== SBR_FillSelectTable === ", tblName, called_by);
+        console.log( "tblName: ", tblName, "is_current_table: ", is_current_table);
+        console.log( "selected_pk: ", selected_pk, "selected_order_pk: ", selected_order_pk);
 
         let selected_ppk_int = 0;
         const selected_map_id = get_map_id(tblName, selected_pk.toString());
@@ -1377,11 +1336,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } else if (tblName === "scheme"){
             data_map = scheme_map;
-            tblBody = tblBody_scheme_select
+            tblBody = sidebar_tblBody_scheme
 
-            // always delete innerText of tblBody_shift_select and of tblBody_team_select
-            tblBody_shift_select.innerText = null;
-            tblBody_team_select.innerText = null;
+            // always delete innerText of sidebar_tblBody_shift and of sidebar_tblBody_team
+            sidebar_tblBody_shift.innerText = null;
+            sidebar_tblBody_team.innerText = null;
 
             selected_ppk_int = selected_order_pk;
 
@@ -1391,7 +1350,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (tblName === "shift"){
             selected_ppk_int =  selected_scheme_pk;
             data_map = shift_map
-            tblBody = tblBody_shift_select
+            tblBody = sidebar_tblBody_shift
 
             caption_one = loc.Shifts + ":";
             caption_multiple = caption_one
@@ -1399,7 +1358,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (tblName === "team"){
             selected_ppk_int =  selected_scheme_pk;
             data_map = team_map
-            tblBody = tblBody_team_select
+            tblBody = sidebar_tblBody_team
 
             caption_one = loc.Teams + ":";
             caption_multiple = caption_one
@@ -1409,16 +1368,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let row_count = 0;
 // --- loop through data_map
+        console.log( "data_map: ", data_map);
         for (const [map_id, item_dict] of data_map.entries()) {
-            const pk_int = get_pk_from_dict(item_dict);
-            const ppk_int = get_ppk_from_dict(item_dict);
-            const code_value = get_subdict_value_by_key(item_dict, "code", "value", "");
-            const code_suffix = get_subdict_value_by_key(item_dict, "code", "suffix", "");
-            const title_str = get_subdict_value_by_key(item_dict, "code", "title", "");
-            const offsetstart = get_subdict_value_by_key(item_dict, "offsetstart", "offset");
-            const offsetend = get_subdict_value_by_key(item_dict, "offsetend", "offset");
-            const isrestshift = get_subdict_value_by_key(item_dict, "isrestshift", "value", false);
-            const is_template = get_subdict_value_by_key(item_dict, "id", "istemplate", false);
+            const pk_int = get_dict_value(item_dict, ["id", "pk"], 0);
+            const ppk_int = get_dict_value(item_dict, ["id", "ppk"], 0);
+            const code_value = get_dict_value(item_dict, ["code", "value"], "");
+            const code_suffix = get_dict_value(item_dict, ["code", "suffix"], "");
+            const title_str = get_dict_value(item_dict, ["code", "title"], "");
+            const offsetstart = get_dict_value(item_dict,["offsetstart", "offset"]);
+            const offsetend = get_dict_value(item_dict, ["offsetend", "offset"]);
+            const isrestshift = get_dict_value(item_dict, ["isrestshift", "value"], false);
+            const is_template = get_dict_value(item_dict, ["id", "istemplate"], false);
 //--- set title
             let title = ""
             if (tblName === "shift"){
@@ -1431,7 +1391,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!!title) {title += "\n"};
                     title += loc.Rest_shift;
                 }
-
             } else if (tblName === "team"){
             // put line breaks instead of ";" "&#10" not working)
                 title = title_str.replace(/; /g, "\n")
@@ -1447,6 +1406,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 add_row = (ppk_int === selected_ppk_int)
             }
             if (add_row){
+        console.log( "item_dict: ", item_dict);
 //--------- insert tblBody row
                 let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
                 const row_id = "sel_" + map_id;
@@ -1455,21 +1415,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 tblRow.setAttribute("data-ppk", ppk_int);
                 tblRow.setAttribute("data-map_id", map_id);
                 tblRow.setAttribute("data-table", tblName);
-
 //- set background color of table and selected row
                 const class_bg_color = ((tblName === "template")) ? "tsa_bc_transparent" :
                                (!!is_current_table) ? cls_bc_yellow_lightlight : cls_bc_lightlightgrey;
                 const cls_bc = (selected_map_id === map_id) ? cls_bc_yellow : class_bg_color;
                 tblRow.classList.add(cls_bc);
-
 //- add hover to select row
                 tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover)});
                 tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover)});
-
 // --- add first td to tblRow.
                 // index -1 results in that the new cell will be inserted at the last position.
                 let td = tblRow.insertCell(-1);
-
                 let inner_text = code_value
                 if (tblName === "shift"){
                     const is_restshift = get_subdict_value_by_key(item_dict, "isrestshift", "value", false)
@@ -1477,7 +1433,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (tblName === "team"){
                     if (!!code_suffix) { inner_text += code_suffix}
                 }
-
 // --- create div element
                 el_a = document.createElement("div");
                     el_a.innerText = inner_text;
@@ -1486,18 +1441,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     el_a.setAttribute("data-value", code_value);
                 td.appendChild(el_a);
                 td.classList.add("px-2")
-
 // --- add EventListener
                 if (tblName === "scheme"){
                     tblRow.addEventListener("click", function() {HandleSelectRow(tblRow, "event")}, false )
-                } else if (tblName === "shift"){
-                    td.addEventListener("click", function() {HandleSelectRow(tblRow, "event")}, false )
-                } else if (tblName === "team"){
+                } else if(["shift","team"].indexOf(tblName) > -1) {
                     td.addEventListener("click", function() {HandleSelectRow(tblRow, "event")}, false )
                 } else if (tblName === "template"){
                     td.addEventListener("click", function() {ModCopyfromSelect(tblRow)}, false )
                 }
-
 //--------- set width of template
                 if (tblName === "template") {
                     td.classList.add("td_width_200")
@@ -1509,17 +1460,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     td.appendChild(el_a);
                     td.classList.add("td_width_032")
                 }
-
 // --- remember first row
                 if(!firstRow){firstRow = tblRow}
 // --- count tblRow
                 row_count += 1
-
 // --- check if selected_scheme exists
                 if (tblName === "scheme" && !selectedRow && pk_int === selected_scheme_pk){
                     selectedRow = tblRow;
                 }
-
             } //  if (add_row)
         } // for (const [pk_int, item_dict] of data_map.entries())
 
@@ -1539,9 +1487,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 // ++++++ select scheme if only 1 exists or when setting_scheme_pk has value and selectedRow exists ++++++
-        // TODO see if code is correct
-        // Dont highlight yet, scheme info is not downoloaded yet so teams and shift are nit yet filled
-
+        // Dont highlight yet, scheme info is not downoloaded yet so teams and shift are not yet filled
         if (tblName === "scheme"){
             if (row_count === 1 && !!firstRow){
                //HandleSelectRow(firstRow, "firstRow");
@@ -1549,20 +1495,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 HandleSelectRow(selectedRow, "selectedRow");
             }
         }
-    } // FillSelectTable
+    } // SBR_FillSelectTable
 
 //========= CreateSelectHeaderRows  ============= PR2019-11-02
     function CreateSelectHeaderRows() {
-        //console.log("CreateSelectHeaderRows tblName: " , tblName)
+        console.log(">>>>>>>>>>> CreateSelectHeaderRows ")
 
         const tblList = ["scheme", "shift", "team"]
         for (let i = 0; i < 3; i++) {
             const tblName = (tblList[i]);
 
-            const caption = (tblName === "scheme") ? get_attr_from_el(el_data, "data-txt_select_scheme") + ":" :
-                            (tblName === "shift") ?  get_attr_from_el(el_data, "data-txt_shifts") + ":" :
-                            (tblName === "team") ? get_attr_from_el(el_data, "data-txt_teams") + ":" : "-"
+            const caption = (tblName === "scheme") ? loc.Select_scheme + ":" :
+                            (tblName === "shift") ? loc.Shifts + ":" :
+                            (tblName === "team") ? loc.Teams + ":" : "-"
 
+        console.log("caption: " , caption)
         // ++++++ add tHeadRow  ++++++
             let tblHead = document.getElementById("id_select_thead_" + tblName)
             tblHead.innerText = null
@@ -2089,7 +2036,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ResetSchemeInputElements  ================ PR2019-12-01
     function ResetSchemeInputElements() {
-
         // reset el_input in scheme_form
         const el_list = ["id_scheme_code", "id_scheme_cycle", "id_scheme_datefirst", "id_scheme_datelast"];
         el_list.forEach(function (id_str, index) {
@@ -2102,10 +2048,7 @@ document.addEventListener('DOMContentLoaded', function() {
             //    el_input.classList.remove("tsa_color_mediumgrey")
             //}
         });
-
-        el_scheme_btn_delete.disabled = true
-        //console.log(">>> el_scheme_btn_delete.disabled = true" );
-
+        document.getElementById("id_menubtn_delete_scheme").disabled = true
     }
 
 //=========  CreateBtnDeleteInactive  ================ PR2019-10-23
@@ -2298,7 +2241,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isEmpty(id_dict)){
             let upload_dict = {"id": id_dict};
 
-            const new_value = el_team_code.value;
+            const new_value = el_input_team_code.value;
             let field_dict = {"update": true};
             if (!!new_value){
                 field_dict["value"] = new_value;
@@ -2510,15 +2453,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     if ("scheme_list" in response) {
                         get_datamap(response["scheme_list"], scheme_map)
-                        FillSelectTable("scheme", "UploadSchemeOrShiftOrTeam scheme_list", selected_scheme_pk);
+                        SBR_FillSelectTable("scheme", "UploadSchemeOrShiftOrTeam scheme_list", selected_scheme_pk);
                     }
                     if ("shift_list" in response) {
                         get_datamap(response["shift_list"], shift_map)
-                        FillSelectTable("shift", "UploadSchemeOrShiftOrTeam shift_list", selected_shift_pk);
+                        SBR_FillSelectTable("shift", "UploadSchemeOrShiftOrTeam shift_list", selected_shift_pk);
                     }
                     if ("team_list" in response) {
                         get_datamap(response["team_list"], team_map)
-                        FillSelectTable("team", "UploadSchemeOrShiftOrTeam team_list", selected_team_pk, true);
+                        SBR_FillSelectTable("team", "UploadSchemeOrShiftOrTeam team_list", selected_team_pk, true);
                     }
                     if ("schemeitem_list" in response) {
                         get_datamap(response["schemeitem_list"], schemeitem_map)
@@ -2668,9 +2611,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
  }  //UploadTimepickerChanged
 
-//========= UploadDeleteSchemeFromForm  ============= PR2019-12-03
-    function UploadDeleteSchemeFromForm() {
-        console.log( " ==== UploadDeleteSchemeFromForm ====");
+//========= HandleDeleteScheme  ============= PR2020-03-12
+    function HandleDeleteScheme() {
+        console.log( " ==== HandleDeleteScheme ====");
         console.log( "selected_scheme_pk: ", selected_scheme_pk);
 
         if(!!selected_scheme_pk){
@@ -2686,7 +2629,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }  // if (selected_scheme_pk)
         }  //   if(!!tblRow)
 
-    }  // UploadDeleteSchemeFromForm
+    }  // HandleDeleteScheme
 
 
 //========= UploadDeleteInactive  ============= PR2019-09-23
@@ -2999,12 +2942,19 @@ document.addEventListener('DOMContentLoaded', function() {
 //----- delete tblRow
             if (!!tblRow) {tblRow.parentNode.removeChild(tblRow)}
             if (tblName === "scheme"){
+                // reset id_table_schemeitem id_table_shift  el_input_team_code tblBody_teammember  when scheme is deleted
+
+                tblBody_schemeitem.innerText = null;
+                tblBody_shift.innerText = null;
+                tblBody_teammember.innerText = null;
+                el_input_team_code.value = null;
+
             // reset select tablesshift and team when scheme is deleted
                 document.getElementById("id_select_table_shift").classList.add(cls_hide)
                 document.getElementById("id_select_table_team").classList.add(cls_hide)
-            // delete innerText of tblBody_shift_select and of tblBody_team_select
-                tblBody_shift_select.innerText = null;
-                tblBody_team_select.innerText = null;
+            // delete innerText of sidebar_tblBody_shift and of sidebar_tblBody_team
+                sidebar_tblBody_shift.innerText = null;
+                sidebar_tblBody_team.innerText = null;
                 selected_scheme_pk = 0
                 ResetSchemeInputElements();
             }
@@ -3055,7 +3005,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tblName === "team"){
             const field_dict = get_dict_value_by_key(update_dict, "code")
             const key_str = "value";
-            format_text_element (el_team_code, key_str, el_msg, field_dict, false, [-220, 60])
+            format_text_element (el_input_team_code, key_str, el_msg, field_dict, false, [-220, 60])
         } else if (tblName === "scheme"){
             // skip scheme, it has no table
         } else {
@@ -3074,14 +3024,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // ++++ update selectRow ++++
 //--- insert new selectRow if is_created, highlight selected row
         if (["scheme", "shift", "team"].indexOf( tblName ) > -1){
-            let tblBody_select = (tblName === "scheme") ? tblBody_scheme_select :
-                                 (tblName === "shift") ? tblBody_shift_select :
-                                 (tblName === "team") ? tblBody_team_select : null;
+            let sidebar_tblBody = (tblName === "scheme") ? sidebar_tblBody_scheme :
+                                 (tblName === "shift") ? sidebar_tblBody_shift :
+                                 (tblName === "team") ? sidebar_tblBody_team : null;
             let selectRow;
-            if(is_created && tblBody_select){
-                const row_index = GetNewSelectRowIndex(tblBody_select, 0, update_dict, user_lang);
+            if(is_created && !!sidebar_tblBody){
+                const row_index = GetNewSelectRowIndex(sidebar_tblBody, 0, update_dict, user_lang);
                  // TODO switch to t_CreateSelectRow
-                selectRow = CreateSelectRow(tblBody_select, update_dict, row_index);
+                selectRow = CreateSelectRow(sidebar_tblBody, update_dict, row_index);
                 HandleSelectRow(selectRow);
             } else{
         //--- get existing  selectRow
@@ -3131,7 +3081,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= UpdateTablesAfterResponse  =============
     function UpdateTablesAfterResponse(response){
         console.log("--- UpdateTablesAfterResponse  --------------");
-        //FillSelectTable fills selecttable and makes visible
+        //SBR_FillSelectTable fills selecttable and makes visible
 
         console.log("response[refresh_tables: ", response["refresh_tables"]);
         const new_scheme_pk = get_subdict_value_by_key(response, "refresh_tables", 'new_scheme_pk', 0)
@@ -3140,17 +3090,17 @@ document.addEventListener('DOMContentLoaded', function() {
         let fill_rows = false;
         if ("scheme_list" in response) {
             get_datamap(response["scheme_list"], scheme_map)
-            FillSelectTable("scheme", "UpdateTablesAfterResponse", new_scheme_pk, true)
+            SBR_FillSelectTable("scheme", "UpdateTablesAfterResponse", new_scheme_pk, true)
             fill_rows = true
         }
         if ("shift_list" in response) {
             get_datamap(response["shift_list"], shift_map)
-            FillSelectTable("shift", "UpdateTablesAfterResponse", 0, false)
+            SBR_FillSelectTable("shift", "UpdateTablesAfterResponse", 0, false)
             fill_rows = true
             }
         if ("team_list" in response){
             get_datamap(response["team_list"], team_map);
-            FillSelectTable("team", "UpdateTablesAfterResponse", 0, false)
+            SBR_FillSelectTable("team", "UpdateTablesAfterResponse", 0, false)
             fill_rows = true
             }
         if ("teammember_list" in response){
@@ -3257,19 +3207,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateField  =============
     function UpdateField(el_input, update_dict, tblName){
-        console.log("--- UpdateField  -------------- ", tblName);
-        console.log(update_dict);
+        //console.log("--- UpdateField  -------------- ", tblName);
+        //console.log(update_dict);
         if(!!el_input){
 // --- lookup field in update_dict, get data from field_dict
             const fieldname = get_attr_from_el(el_input, "data-field");
-            //console.log("fieldname: ", fieldname);
-
             if (fieldname in update_dict){
-                let field_dict = get_dict_value_by_key (update_dict, fieldname);
+                let field_dict = get_dict_value (update_dict, [fieldname]);
 
-                const value = get_dict_value_by_key (field_dict, "value");
-                let pk_int = parseInt(get_dict_value_by_key (field_dict, "pk"))
-                let ppk_int = parseInt(get_dict_value_by_key (field_dict, "ppk"))
+                const value = get_dict_value (field_dict, ["value"]);
+                let pk_int = parseInt(get_dict_value (field_dict, ["pk"]), 0)
+                let ppk_int = parseInt(get_dict_value (field_dict, ["ppk"]), 0)
                 if(!pk_int){pk_int = 0}
                 if(!ppk_int){ppk_int = 0}
 
@@ -3282,25 +3230,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         format_select_element (el_input, "code", field_dict)
                     } else if (["offsetstart", "offsetend"].indexOf( fieldname ) > -1){
                         // offset fields are readonly in schemeitem
-                        console.log(">>>>>> fieldname: " , fieldname)
                         const offset = get_dict_value(update_dict, ["shift", fieldname] )
-
-                    console.log(">>>>>> offset: " , offset)
                         const blank_when_zero = (["breakduration", "timeduration"].indexOf( fieldname ) > -1) ? true : false;
                         format_offset_element (el_input, el_msg, fieldname, field_dict, [-220, 80], timeformat, user_lang, title_prev, title_next, blank_when_zero)
                         const display_text = display_offset_time (offset, timeformat, user_lang, blank_when_zero)
 
-                        console.log(">>>>>> display_text: " , display_text)
                     } else if (["breakduration", "timeduration"].indexOf( fieldname ) > -1){
                         format_duration_element (el_input, el_msg, field_dict, user_lang)
                     } else if (fieldname === "inactive") {
                        if(isEmpty(field_dict)){field_dict = {value: false}}
                        format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
                     };
-
-
                 } else {
-
                     if (["code", "employee", "replacement"].indexOf( fieldname ) > -1){
                        const key_str = (fieldname === "code") ? "value" : "code";
                        format_text_element (el_input, key_str, el_msg, field_dict, false, [0, 0])
@@ -3322,12 +3263,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         // not in use
                         format_datetime_element (el_input, el_msg, field_dict, comp_timezone, timeformat, month_list, weekday_list)
                     } else if (["offsetstart", "offsetend"].indexOf( fieldname ) > -1){
-                        console.log(">>>>>> fieldname: " , fieldname)
                         // in table schemeitem : when there is a shift: offset of shift is displayed, othereise: offset of schemeitem is displayed
                         if (tblName === "schemeitem") {
                             field_dict = get_dict_value(update_dict, ["shift"] )
                         }
-                    console.log(">>>>>> field_dict: " , field_dict)
                         const blank_when_zero = (["breakduration", "timeduration"].indexOf( fieldname ) > -1) ? true : false;
                         format_offset_element (el_input, el_msg, fieldname, field_dict, [-220, 80], timeformat, user_lang, title_prev, title_next, blank_when_zero)
                     } else if (["breakduration", "timeduration"].indexOf( fieldname ) > -1){
@@ -3336,11 +3275,7 @@ document.addEventListener('DOMContentLoaded', function() {
                        if(isEmpty(field_dict)){field_dict = {value: false}}
                        format_inactive_element (el_input, field_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
                     };
-
-
                 }  // if (tblName === "schemeitem") {
-
-
             }  else {
 
 // put placeholder in employee field when empty, except for new row
@@ -3404,8 +3339,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     tblRow.classList.add("tsa_tr_ok");
                     setTimeout(function (){
                         tblRow.classList.remove("tsa_tr_ok");
-                //console.log("F FillSelectTable tblName", tblName)
-                        FillSelectTable(tblName, "UpdateSchemeOrTeam")
+                //console.log("SBR_FillSelectTable tblName", tblName)
+                        SBR_FillSelectTable(tblName, "UpdateSchemeOrTeam")
 
                         const row_id = tblName + pk.toString();
                         //console.log("row_id: ", row_id);
@@ -3500,7 +3435,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const msg_err = get_dict_value_by_key (item_dict, "error");
             //console.log("id_dict", id_dict);
             //console.log("is_created", is_created, typeof is_created);
-            el_scheme_btn_delete.disabled = false
+            document.getElementById("id_menubtn_delete_scheme").disabled = false
 
 // --- error
             if (!!msg_err){
@@ -3616,8 +3551,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // +++++++++ MOD CONFRIM ++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  ModConfirmOpen  ================ PR2019-10-23
     function ModConfirmOpen(mode, el_input) {
-        console.log(" -----  ModConfirmOpen   ----", mode)
-        console.log("mod_upload_dict: ", mod_upload_dict)
+        //console.log(" -----  ModConfirmOpen   ----", mode)
+        //console.log("mod_upload_dict: ", mod_upload_dict)
         // modes are schemeitem_delete, delete, inactive
         const tblRow = get_tablerow_selected(el_input);
 
@@ -3630,23 +3565,22 @@ document.addEventListener('DOMContentLoaded', function() {
             map_dict = get_mapdict_from_tblRow(tblRow)
 
         } else if(mode === "schemeitem_delete"){
-            tblName === "schemeitem";
-            mod_upload_dict = {"schemeitem_delete": true};
+            tblName = "schemeitem";
+            mod_upload_dict = {id: {table: tblName}, schemeitem_delete: true};
         } else {
             // get info from mod_upload_dict
-            tblName = get_subdict_value_by_key(mod_upload_dict, "id", "table")
+            tblName = get_dict_value(mod_upload_dict, ["id", "table"])
         }
 
-        let data_key = (tblName === "scheme") ? "data-txt_conf_scheme" :
-                       (tblName === "schemeitem") ? "data-txt_conf_shift" :
-                       (tblName === "shift") ? "data-txt_conf_shift" :
-                       (tblName === "teammember") ? "data-txt_conf_teammember" :
-                       (tblName === "team") ? "data-txt_conf_team" : null
-        let msg_01_txt = get_attr_from_el(el_data, data_key);
+        let msg_01_txt = (tblName === "scheme") ? loc.This_scheme :
+                       (tblName === "schemeitem") ? loc.This_shift :
+                       (tblName === "shift") ? loc.This_shift :
+                       (tblName === "teammember") ? loc.This_teammember :
+                       (tblName === "team") ? loc.This_team : null
         let msg_02_txt = null;
 
         if (mode === "schemeitem_delete"){
-            msg_01_txt = get_attr_from_el(el_data, "data-msg_confdel_si_01");
+            msg_01_txt = loc.All_schemeitems_willbe_deleted;
         } else if (mode === "inactive"){
             msg_01_txt = msg_01_txt + " " + get_attr_from_el(el_data, "data-txt_conf_inactive");
         } else if (mode === "delete"){
@@ -3683,13 +3617,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 let rosterdate_text = format_date_iso (rosterdate, month_list, weekday_list, false, true, user_lang);
                 if(!rosterdate_text){ rosterdate_text = "-"}
                 let shift_text = get_dict_value(mod_upload_dict, ["shift", "code"])
-        console.log("shift_text: ", shift_text)
                 if(!shift_text){ shift_text = "-"}
                 header_text = get_attr_from_el_str(el_data, "data-txt_shift") + " '" + shift_text + "' " +
                               get_attr_from_el_str(el_data, "data-txt_of") + " " + rosterdate_text;
                 //msg_01_txt = get_attr_from_el(el_data, "data-txt_conf_shift") +
                 //             get_attr_from_el(el_data, "data-txt_conf_remove")    +
-                //             get_attr_from_el(el_data, "data-txt_conf_scheme").toLowerCase() + "."
+                //             get_attr_from_el(el_data, "data-txt_conf_XXscheme").toLowerCase() + "."
 
             } else if(tblName === "teammember"){
                 // mod_upload_dict got its value in UploadDeleteInactive
@@ -3697,7 +3630,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 //                  employee: { pk: 2620. ppk: 3, code: "Merenciana TV", workhours: 2400}
                 header_text = get_dict_value(mod_upload_dict, ["employee", "code"], "")
             } else {
-            // TODO get all infro from mod_upload_dict
+            // TODO get all info from mod_upload_dict
                 let code_value = get_subdict_value_by_key(mod_upload_dict, "code", "value");
                 if(!code_value) {code_value = get_subdict_value_by_key(map_dict, "code", "value")};
                 header_text = code_value;
@@ -3708,7 +3641,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById("id_confirm_msg01").innerText = msg_01_txt;
         // TODO document.getElementById("id_confirm_msg02").innerText = msg_02_txt;
 
-        data_key = (mode === "inactive") ? "data-txt_conf_btn_inactive" : "data-txt_conf_btn_delete";
+        const data_key = (mode === "inactive") ? "data-txt_conf_btn_inactive" : "data-txt_conf_btn_delete";
         let el_btn_save = document.getElementById("id_confirm_btn_save")
         el_btn_save.innerText = get_attr_from_el(el_data, data_key);
 
@@ -3717,9 +3650,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // set focus to cancel button (when delete) or save (when inactive), delay 500ms because of modal fade
         let id_str = (mode === "inactive") ? "id_confirm_btn_save" : "id_confirm_btn_cancel";
         setTimeout(function (){document.getElementById(id_str).focus();}, 500);
-
-        let btn_class_add =  (mode === "delete") ? "btn-outline-danger" : "btn-primary";
-        let btn_class_remove =  (mode === "delete") ? "btn-primary" : "btn-outline-danger";
+        const is_delete = (["delete", "schemeitem_delete"].indexOf(mode) > -1)
+        let btn_class_add =  (is_delete) ? "btn-outline-danger" : "btn-primary";
+        let btn_class_remove = (is_delete) ? "btn-primary" : "btn-outline-danger";
         document.getElementById("id_confirm_btn_save").classList.remove(btn_class_remove)
         document.getElementById("id_confirm_btn_save").classList.add(btn_class_add)
 
@@ -3729,17 +3662,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  ModConfirmSave  ================ PR2019-09-20
     function ModConfirmSave() {
-        //console.log("========= ModConfirmSave ===" );
-        //console.log("mod_upload_dict: ", mod_upload_dict );
+        console.log("========= ModConfirmSave ===" );
+        console.log("mod_upload_dict: ", mod_upload_dict );
 
 // ---  hide modal
         $('#id_mod_confirm').modal('hide');
 
 // ---  Upload Changes
-        const tblName = get_subdict_value_by_key(mod_upload_dict,"id", "table")
+        const tblName = get_dict_value(mod_upload_dict,["id", "table"])
+        console.log("tblName: ", tblName );
         if(tblName === "schemeitem"){
             if ("schemeitem_delete" in mod_upload_dict) {
-
+                const skip_confirm = true;
+                HandleBtnSchemeitems("delete", skip_confirm);
             } else if ("delete" in mod_upload_dict) {
                 UploadSchemeitem (mod_upload_dict, "delete")
             } else {
@@ -3748,275 +3683,10 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if(tblName === "teammember"){
             UploadTeammember(mod_upload_dict, url_teammember_upload)
         } else {
+            // tblName: scheme, shift, team
             UploadChanges(mod_upload_dict, url_scheme_shift_team_upload)
         }
     } // ModConfirmSave
-
-// +++++++++ MOD ROSTERDATE ++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-    function ModRosterdateCreate() {
-        ModRosterdateOpen("create")
-    };
-    function ModRosterdateDelete() {
-        ModRosterdateOpen("delete")
-    };
-
-//=========  ModRosterdateOpen  ================ PR2019-11-11
-    function ModRosterdateOpen(mode) {
-        //console.log(" -----  ModRosterdateOpen   ----")
-        //console.log("rosterdate_dict", rosterdate_dict)
-
-        const is_delete = (mode === "delete")
-
-// hide loader
-        document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
-
-// reset mod_upload_dict
-        mod_upload_dict = {};
-
-// --- check if rosterdate has emplhour records and confirmed records
-        const datalist_request = {"rosterdate_check": {"mode": mode}};
-        DatalistDownload(datalist_request);
-        // returns function ModRosterdateChecked
-
-// set header
-        const hdr_text = (is_delete) ? loc.rosterdate_hdr_delete : loc.rosterdate_hdr_create
-        document.getElementById("id_mod_rosterdate_header").innerText = hdr_text;
-
-// set value of input label
-        document.getElementById("id_mod_rosterdate_label").innerText = loc.Rosterdate + ": "
-
-// set value of input element blank, set readOnly = true
-        let el_input = document.getElementById("id_mod_rosterdate_input")
-        el_input.value = null
-        el_input.readOnly = true;
-
-// Set focus to el_mod_employee_input
-        //Timeout function necessary, otherwise focus wont work because of fade(300)
-        setTimeout(function (){
-            el_input.focus()
-        }, 500);
-
-// set info textboxes
-        const info01_txt = loc.rosterdate_checking + "..."
-        document.getElementById("id_mod_rosterdate_info_01").innerText = info01_txt
-        document.getElementById("id_mod_rosterdate_info_02").innerText = ""
-        document.getElementById("id_mod_rosterdate_info_03").innerText = ""
-
-// reset buttons
-        const btn_class_add = (is_delete) ? "btn-outline-danger" : "btn-primary"
-        const btn_class_remove = (is_delete) ? "btn-primary" :  "btn-outline-danger";
-        const btn_text = (is_delete) ? loc.Delete : loc.Create
-        let el_btn_ok = document.getElementById("id_mod_rosterdate_btn_ok")
-            el_btn_ok.innerText = btn_text;
-            el_btn_ok.classList.remove(btn_class_remove)
-            el_btn_ok.classList.add(btn_class_add)
-            el_btn_ok.classList.remove(cls_hide)
-            el_btn_ok.disabled = true;
-        let el_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
-            el_btn_cancel.innerText = loc.Cancel;
-
-// ---  show modal
-        $("#id_mod_rosterdate").modal({backdrop: true});
-    };  // ModRosterdateOpen
-
-// +++++++++  ModRosterdateEdit  ++++++++++++++++++++++++++++++ PR2019-11-12
-    function ModRosterdateEdit() {
-        //console.log("=== ModRosterdateEdit =========");
-        //console.log("mod_upload_dict: ", mod_upload_dict);
-        // called when date input changed
-
-// reset mod_upload_dict, keep 'mode'
-        const mode = get_dict_value_by_key(mod_upload_dict, "mode")
-        const is_delete = (mode === "delete")
-        mod_upload_dict = {"mode": mode}
-        //console.log("vv mod_upload_dict: ", mod_upload_dict);
-
-// get value from input element
-        const new_value = document.getElementById("id_mod_rosterdate_input").value;
-
-// update value of input label
-        const label_txt = loc.Rosterdate + ": " +
-            format_date_iso (new_value, loc.months_long, loc.weekdays_long, false, false, user_lang);
-        document.getElementById("id_mod_rosterdate_label").innerText = label_txt
-
-// --- check if new rosterdate has emplhour records and confirmed records
-        const datalist_request = {"rosterdate_check": {"mode": mode, "rosterdate": new_value}}
-        DatalistDownload(datalist_request);
-        // returns function ModRosterdateChecked
-
-// set info textboxes
-        const info01_txt = loc.rosterdate_checking + "..."
-        document.getElementById("id_mod_rosterdate_info_01").innerText = info01_txt
-        document.getElementById("id_mod_rosterdate_info_02").innerText = ""
-        document.getElementById("id_mod_rosterdate_info_03").innerText = ""
-
-// reset buttons
-        const btn_add_class = (is_delete) ? "btn-outline-danger" : "btn-primary"
-        const btn_remove_class = (is_delete) ? "btn-primary" :  "btn-outline-danger";
-        const btn_text = (is_delete) ? loc.Delete : loc.Create
-        let el_btn_ok = document.getElementById("id_mod_rosterdate_btn_ok")
-            el_btn_ok.innerText = btn_text;
-            el_btn_ok.classList.remove(btn_remove_class)
-            el_btn_ok.classList.add(btn_add_class)
-            el_btn_ok.disabled = true;
-        let el_btn_cancel = document.getElementById("id_mod_rosterdate_btn_cancel")
-            el_btn_cancel.innerText = loc.Cancel;
-
-    }  // ModRosterdateEdit
-
-// +++++++++  ModRosterdateSave  ++++++++++++++++++++++++++++++ PR2019-11-14
-    function ModRosterdateSave() {
-        //console.log("=== ModRosterdateSave =========");
-        //console.log("mod_upload_dict", mod_upload_dict);
-        const mode = get_dict_value_by_key(mod_upload_dict, "mode")
-        const is_delete = (mode === "delete")
-        // mod_upload_dict: {mode: "create", rosterdate: "2019-12-20", confirmed: 0, count: 0}
-
-    // make input field readonly
-            document.getElementById("id_mod_rosterdate_input").readOnly = true;
-
-    // show loader
-            document.getElementById("id_mod_rosterdate_loader").classList.remove(cls_hide);
-
-    // set info textboxes
-            const info_txt = (is_delete) ? loc.rosterdate_deleting : loc.rosterdate_adding;
-            document.getElementById("id_mod_rosterdate_info_01").innerText = info_txt + "...";
-            document.getElementById("id_mod_rosterdate_info_02").innerText = null;
-            document.getElementById("id_mod_rosterdate_info_03").innerText = null;
-
-    // set buttons
-            document.getElementById("id_mod_rosterdate_btn_ok").disabled = true;
-
-    // Upload Changes:
-           UploadChanges(mod_upload_dict, url_emplhour_fill_rosterdate);
-
-    }  // function ModRosterdateSave
-
-// +++++++++  ModRosterdateChecked  ++++++++++++++++++++++++++++++ PR2019-11-13
-    function ModRosterdateChecked(response_dict) {
-        //console.log("=== ModRosterdateChecked =========" );
-        //console.log("response_dict:", response_dict );
-        // response_dict: {mode: "last", value: "2019-12-19", count: 10, confirmed: 0}
-
-        // when create: count is always > 0, otherwise this function is not called
-        // hide loader in modal form
-
-// add 'checked' to mod_upload_dict, so left button will know it must cancel
-        mod_upload_dict = response_dict
-
-// hide loader
-        document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
-
-// remove input field readonly
-        let el_input = document.getElementById("id_mod_rosterdate_input");
-        el_input.value = get_dict_value_by_key(response_dict, "rosterdate");
-        el_input.readOnly = false;
-
-// set info textboxes
-        set_label_and_infoboxes(response_dict)
-
-    }  // function ModRosterdateChecked
-
-// +++++++++  ModRosterdateFinished  ++++++++++++++++++++++++++++++ PR2019-11-13
-    function ModRosterdateFinished(response_dict) {
-        console.log("=== ModRosterdateFinished =========" );
-        console.log("response_dict", response_dict );
-        // rosterdate: {rosterdate: {…}, logfile:
-        const mode = get_dict_value_by_key(response_dict,"mode")
-        const is_delete = (mode === "delete")
-        console.log("mode", mode );
-        console.log("is_delete", is_delete );
-        const msg_01_txt = get_dict_value_by_key(response_dict,"msg_01")
-        const msg_02_txt = get_dict_value_by_key(response_dict, "msg_02")
-        const msg_03_txt = get_dict_value_by_key(response_dict, "msg_03")
-// hide loader
-        document.getElementById("id_mod_rosterdate_loader").classList.add(cls_hide)
-
-    // set info textboxes
-        const info01_txt = loc.rosterdate_finished + ((is_delete) ? loc.deleted : loc.created) + ".";
-
-        document.getElementById("id_mod_rosterdate_info_01").innerText = msg_01_txt;
-        document.getElementById("id_mod_rosterdate_info_02").innerText = msg_02_txt;
-        document.getElementById("id_mod_rosterdate_info_03").innerText = msg_03_txt;
-
-    // hide ok button, put 'Close' on cancel button
-        document.getElementById("id_mod_rosterdate_btn_ok").classList.add(cls_hide);
-        document.getElementById("id_mod_rosterdate_btn_cancel").innerText = loc.Close;
-
-    }  // function ModRosterdateFinished
-
-//=========  set_label_and_infoboxes  ================ PR2019-11-13
-    function set_label_and_infoboxes(response_dict) {
-        //console.log(" -----  set_label_and_infoboxes   ----")
-
-// set info textboxes
-        const mode = get_dict_value_by_key(response_dict, "mode");
-        const is_delete = (mode === "delete");
-
-        const rosterdate_iso = get_dict_value_by_key(response_dict,"rosterdate");
-        const count = get_dict_value_by_key(response_dict,"count");
-        const confirmed = get_dict_value_by_key(response_dict,"confirmed");
-
-        let text_list = ["", "", "", ""];
-        // set value of input label
-        text_list[0] = loc.Rosterdate + ": " +
-            format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_long, false, false, user_lang);
-
-        if(!count){
-    // This rosterdate has no shifts
-             text_list[1] = loc.rosterdate_count_none;
-        } else {
-    // This rosterdate has [count] shifts
-            text_list[1] = loc.rosterdate_count
-            text_list[1] += ((count === 1) ? loc.one : count.toString()) + " ";
-            text_list[1] += ((count === 1) ? loc.Shift.toLowerCase() : loc.Shifts.toLowerCase());
-
-            if(!confirmed){
-                text_list[1] += ".";
-            } else {
-    // [confirmed] of them are confirmed shifts.
-                text_list[1] += ((confirmed === 1) ?
-                                    (", " + loc.rosterdate_confirmed_one) :
-                                    (", " + confirmed.toString()) + " " + loc.rosterdate_confirmed_multiple);
-            }
-
-            if(!confirmed){
-    // 'These shifts will be updated.' / deleted
-                 text_list[2] = ((count === 1) ? loc.rosterdate_shift_willbe : loc.rosterdate_shifts_willbe) +
-                                ((is_delete) ? loc.deleted : loc.updated) + ".";
-            } else {
-    // 'Shifts that are not confirmed will be updated/deleted, confirmed shifts will be skipped.')
-                text_list[2] = loc.rosterdate_skip01 +
-                               ((is_delete) ? loc.deleted : loc.updated) +
-                               loc.rosterdate_skip02;
-            }
-            text_list[3] =  loc.want_to_continue
-        }  // if(!count)
-
-        document.getElementById("id_mod_rosterdate_label").innerText = text_list[0];
-        document.getElementById("id_mod_rosterdate_info_01").innerText = text_list[1];
-        document.getElementById("id_mod_rosterdate_info_02").innerText = text_list[2];
-        document.getElementById("id_mod_rosterdate_info_03").innerText = text_list[3];
-
-// set buttons
-        // no record te be deleted, disable ok button
-        // all records are confirmed, disable ok button
-        // also disable when no rosterdate
-        const is_disabled = ((!rosterdate_iso) || ((is_delete) && (!count || count === confirmed)))
-
-        const ok_txt = (is_delete) ? ((!!count) ? loc.Yes_delete : loc.Delete) :
-                                     ((!!count) ? loc.Yes_create : loc.Create);
-        const cancel_txt = (!!count) ? loc.no_cancel : loc.Cancel
-
-        let el_ok = document.getElementById("id_mod_rosterdate_btn_ok");
-            el_ok.innerText = ok_txt;
-            el_ok.disabled = is_disabled;
-
-        let el_cancel = document.getElementById("id_mod_rosterdate_btn_cancel");
-            el_cancel.innerText = cancel_txt;
-
-    } // function set_label_and_infoboxes
 
 // +++++++++ MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 //=========  ModEmployeeOpen  ================ PR2019-08-23
@@ -4066,7 +3736,7 @@ document.addEventListener('DOMContentLoaded', function() {
             el_mod_employee_input.value = null
 
 // ---  fill selecttable employee
-            ModEmployeeFillSelectTableEmployee(pk_int, is_replacement)
+            MSE_FillSelectTableEmployee(pk_int, is_replacement)
 
 // ---  set focus to el_mod_employee_input
             //Timeout function necessary, otherwise focus wont work because of fade(300)
@@ -4154,7 +3824,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- show all rows if filter_text = ""
                      show_row = true;
                 } else if (!!el){
-// hide current employee -> is already filtered out in ModEmployeeFillSelectTableEmployee
+// hide current employee -> is already filtered out in MSE_FillSelectTableEmployee
                     code_value = get_attr_from_el_str(tblRow, "data-value")
                     if (!!code_value){
 // check if code_value contains filter_mod_employee
@@ -4226,9 +3896,9 @@ document.addEventListener('DOMContentLoaded', function() {
     UploadChanges(upload_dict, url_teammember_upload);
     } // ModEmployeeSave
 
-//========= ModEmployeeFillSelectTableEmployee  ============= PR2019-08-18
-    function ModEmployeeFillSelectTableEmployee(cur_employee_pk, is_replacement) {
-        console.log( "=== ModEmployeeFillSelectTableEmployee ");
+//========= MSE_FillSelectTableEmployee  ============= PR2019-08-18
+    function MSE_FillSelectTableEmployee(cur_employee_pk, is_replacement) {
+        console.log( "=== MSE_FillSelectTableEmployee ");
 
         const data_key = (is_replacement) ? "txt_replacement_select" : "txt_employee_select"
         const caption_one = get_attr_from_el(el_data, "data-" + data_key) + ":";
@@ -4282,14 +3952,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 } //  if (pk_int !== selected_employee_pk)
             } // for (const [pk_int, item_dict] of employee_map.entries())
         }  //  if (employee_map.size === 0)
-    } // ModEmployeeFillSelectTableEmployee
+    } // MSE_FillSelectTableEmployee
 
 // +++++++++ END MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 //=========  ModSchemeOpen  ================ PR2019-07-20
     function ModSchemeOpen() {
-        //console.log("=========  ModSchemeOpen =========");
+        console.log("=========  ModSchemeOpen =========");
+
+        // hide input box customer and order when in template_mode
+        add_or_remove_class (document.getElementById("id_mod_scheme_div_customer_order"), cls_hide, template_mode)
+        document.getElementById("id_mod_scheme_header").innerText = (template_mode) ? loc.Add_template : loc.Add_scheme;
 
         el_mod_code.value = null
         el_mod_cycle.value = 7
@@ -4299,15 +3973,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         $("#id_mod_scheme").modal({backdrop: true});
 
-
-
     }  // ModSchemeEOpen
 
 //=========  ModSchemeEdit  ================ PR2019-07-20
-    function ModSchemeEdit(mode) {
-        //console.log("=========  ModSchemeEdit =========");
-        //console.log("mode", mode);
-
+    function ModSchemeEdit(mode, event_key) {
+        console.log("=========  ModSchemeEdit =========");
+        console.log("mode", mode);
+        console.log("event_key", event_key);
+        // event_key only ued when mode = code
         if(mode === "customer"){
             //console.log("el_mod_cust", el_mod_cust);
             //console.log("el_mod_cust.value", el_mod_cust.value, typeof el_mod_cust.value);
@@ -4330,11 +4003,15 @@ document.addEventListener('DOMContentLoaded', function() {
             formcontrol_err_msg(el_mod_order, el_err, msg_err)
         }
         if(mode === "code"){
-            let msg_err, el_err = document.getElementById("id_mod_scheme_code_err")
-            if(!el_mod_code.value){
-                msg_err = get_attr_from_el(el_data, "data-err_msg_code");
+            if(event_key === "Enter") {
+                ModSchemeSave()
+            } else {
+                let msg_err, el_err = document.getElementById("id_mod_scheme_code_err")
+                if(!el_mod_code.value){
+                    msg_err = get_attr_from_el(el_data, "data-err_msg_code");
+                }
+                formcontrol_err_msg(el_mod_code, el_err, msg_err)
             }
-            formcontrol_err_msg(el_mod_code, el_err, msg_err)
         }
         if(mode === "cycle"){
             let msg_err, el_err = document.getElementById("id_mod_scheme_cycle_err")
@@ -4421,7 +4098,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     if ("scheme_list" in response) {
                         get_datamap(response["scheme_list"], scheme_map)
-                        // FillSelectTable("scheme", "ModSchemeSave scheme_list", selected_scheme_pk);
+                        // SBR_FillSelectTable("scheme", "ModSchemeSave scheme_list", selected_scheme_pk);
                     }
                     if ("scheme_update" in response) {
                         UpdateFromResponse(response["scheme_update"]);
@@ -4470,7 +4147,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // get ppk from scheme template ( = order 'Sjabloon')
                 let template_scheme_ppk = null;
 
-                FillSelectTable("template", "ModCopyfromTemplateOpen", 0, false)
+                SBR_FillSelectTable("template", "ModCopyfromTemplateOpen", 0, false)
 
                   // selected_order_pk is the order to which de template scheme will be copied.
             // cannot copy if selected_order_pk is blank
@@ -4812,14 +4489,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function ModalCopytoTemplateSave() {
         console.log("=========  ModalCopytoTemplateSave =========");
 
-        const dict ={"id": {"pk": selected_scheme_pk, "ppk": selected_order_pk,
-                        "istemplate": true, "table": "scheme", "mode": "copyto"}}
+        const dict ={id: {pk: selected_scheme_pk, ppk: selected_order_pk,
+                        istemplate: true, table: "scheme", mode: "copyto"}}
 
         let template_code = document.getElementById("id_mod_copyto_code").value
         if (!!template_code){
-            dict["code"] = {"value": template_code, "update": true}
+            dict["code"] = {value: template_code, update: true}
         }
-        let mod_upload_dict = {"copytotemplate": dict};
+        let mod_upload_dict = {copytotemplate: dict};
 
         $("#id_mod_copyto").modal("hide");
 
@@ -4996,7 +4673,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                         if ("team_list" in response){
                             get_datamap(response["team_list"], team_map)
-                            //FillSelectTable("team", "HandlePopupDateSave", selected_team_pk, true)
+                            //SBR_FillSelectTable("team", "HandlePopupDateSave", selected_team_pk, true)
                         }
                         if ("teammember_update" in response){
                             UpdateFromResponse(response["teammember_update"]);
@@ -5164,18 +4841,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  HighlightSelectShiftTeam  ================ PR2019-08-25
     function HighlightSelectShiftTeam(tblName, tr_selected) {
-        console.log( " --- HighlightSelectShiftTeam ---");
+        //console.log( " --- HighlightSelectShiftTeam ---");
 
-// ---  remove highlights from tblBody_scheme_select
-        console.log("?????????? ChangeBackgroundRows")
-        ChangeBackgroundRows(tblBody_scheme_select, cls_bc_yellow_lightlight, cls_bc_lightlightgrey);
+// ---  remove highlights from sidebar_tblBody_scheme
+        ChangeBackgroundRows(sidebar_tblBody_scheme, cls_bc_yellow_lightlight, cls_bc_lightlightgrey);
 
 // ---  remove highlights from other select table
-        let tblBody_other = (tblName === "shift") ? tblBody_team_select : tblBody_shift_select;
+        let tblBody_other = (tblName === "shift") ? sidebar_tblBody_team : sidebar_tblBody_shift;
         ChangeBackgroundRows(tblBody_other, cls_bc_yellow_lightlight, cls_bc_lightlightgrey);
 
 // ---  make background of this tblBody light yellow
-        let tblBody_this = (tblName === "shift") ? tblBody_shift_select : tblBody_team_select;
+        let tblBody_this = (tblName === "shift") ? sidebar_tblBody_shift : sidebar_tblBody_team;
         ChangeBackgroundRows(tblBody_this, cls_bc_lightlightgrey, cls_bc_yellow_lightlight)
 
         if (!!tr_selected){
@@ -5453,6 +5129,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function UpdateSettings(setting_dict){
         //console.log(" --- UpdateSettings ---")
         //console.log("setting_dict", setting_dict)
+        // only called at openign op page
 
         let key = "selected_pk";
         if (key in setting_dict){
@@ -5465,6 +5142,11 @@ document.addEventListener('DOMContentLoaded', function() {
             setting_cust_pk = get_dict_value_by_key(sel_dict, "sel_cust_pk", 0);
             setting_order_pk = get_dict_value_by_key(sel_dict, "sel_order_pk", 0);
             setting_scheme_pk = get_dict_value_by_key(sel_dict, "sel_scheme_pk", 0);
+
+            // selected_cust_pk can also contain pk of template customer
+            selected_cust_pk = setting_cust_pk;
+            selected_order_pk = setting_order_pk;
+            selected_scheme_pk = setting_scheme_pk;
         }
         key = "quicksave";
         if (key in setting_dict){
@@ -5478,6 +5160,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 HandleBtnSelect(selected_btn, true);
             }
         }
+
+        console.log("setting_cust_pk", setting_cust_pk)
+        console.log("selected_cust_pk", selected_cust_pk)
+
+
     }  // UpdateSettings
 
 
@@ -5497,7 +5184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //}
 
         if(!!template_mode){
-            header_text = get_attr_from_el(el_data, "data-txt_template") + ":  "
+            header_text = loc.Template + ":  "
         } else {
             if(!!selected_cust_pk){
                 const map_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map,"customer", selected_cust_pk)

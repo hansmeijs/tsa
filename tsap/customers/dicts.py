@@ -361,8 +361,7 @@ def get_or_create_template_order(request):
     # get user_lang
     user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
 
-    # get locale text
-
+# get locale text
     lang = user_lang if user_lang in c.TEMPLATE_TEXT else c.LANG_DEFAULT
     template_locale = c.TEMPLATE_TEXT[lang]
 
@@ -373,6 +372,7 @@ def get_or_create_template_order(request):
         istemplate=True).first()
     if customer is None:
         if template_locale:
+
 # 2. create 'template' customer if not exists
             customer = m.Customer(
                 company=request.user.company,
@@ -383,7 +383,6 @@ def get_or_create_template_order(request):
             customer.save(request=request)
 
 # 3. check if 'template' customer has order - only one 'template' order allowed
-    #logger.debug('customer: ' + str(customer))
     if customer:
          # don't use get_or_none, it wil return None when multiple customers exist
         order = m.Order.objects.filter(
@@ -398,8 +397,6 @@ def get_or_create_template_order(request):
                 istemplate=True
             )
             order.save(request=request)
-            #logger.debug("order.save: " + str(order.pk) + ' ' + str(order.code))
-    #logger.debug('order: ' + str(order))
     return order
 
 

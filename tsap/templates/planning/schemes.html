@@ -76,12 +76,11 @@
                         <div class="modal_body_left">
                             <div class="mod_flex mx-2 my-2">
 
-                                <div class="form-group">
+                                <div id="id_mod_scheme_div_customer_order" class="form-group">
                                     <label for="id_mod_scheme_customer" class="mx-2 my-2">{% trans 'Customer' %}:</label>
                                     <select id="id_mod_scheme_customer" class="form-control"></select>
                                     <small id="id_mod_scheme_customer_err" class="color_invalid mx-2 display_hide"></small>
-                                </div>
-                                <div class="form-group">
+
                                     <label for="id_mod_scheme_order" class="mx-2 my-2">{% trans 'Order' %}:</label>
                                     <select id="id_mod_scheme_order" class="form-control"></select>
                                     <small id="id_mod_scheme_order_err" class="color_invalid mx-2 display_hide"></small>
@@ -390,15 +389,9 @@
                         <label for="id_scheme_excludecompanyholiday" class="frm_input mt-1">{% trans 'Not on company holidays' %}</label>
                     </div>
                 </div>
-
-
-                <button id="id_form_btn_add" type="button" class="btn btn-outline-primary mt-4">{% trans 'Add scheme' %}</button>
-                <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger mt-4">{% trans 'Delete scheme' %}</button>
-
-
             </div>
 
-    </div>
+        </div>
 <!--</div> flex_container -->
 
         <div id="id_data"
@@ -440,22 +433,11 @@
             data-txt_quicksave = "{% trans 'Quick save' %}"
             data-txt_quicksave_remove = "{% trans 'Exit Quick save' %}"
 
-            data-txt_select_customer= "{% trans 'Select customer' %}"
-            data-txt_select_customer_none= "{% trans 'No customers' %}"
-            data-txt_select_order= "{% trans 'Select order' %}"
-            data-txt_select_order_none= "{% trans 'No orders' %}"
-
             data-txt_scheme= "{% trans 'Scheme' %}"
             data-txt_scheme_add= "{% trans 'Add scheme' %}"
             data-txt_select_scheme= "{% trans 'Select scheme' %}"
-            data-txt_select_scheme_none= "{% trans 'No schemes' %}"
-            data-txt_select_shift = "{% trans 'Select shift' %}"
-            data-txt_select_team= "{% trans 'Select team' %}"
 
             data-txt_date= "{% trans 'Date' %}"
-            data-txt_template = "{% trans 'Template' %}"
-            data-txt_copyfrom_select_template= "{% trans 'Select template' %}"
-            data-txt_copyfrom_select_none= "{% trans 'No templates' %}"
 
             data-txt_days_cycle= "{% trans 'days cycle' %}"
             data-txt_cycle_once= "{% trans 'Once only' %}"
@@ -503,15 +485,9 @@
             data-timepicker_nextday_info= "{% trans 'Shift ends on the next day' %}"
 
             data-msg_confdel_si_hdr= "{% trans 'Delete scheme shifts' %}"
-            data-msg_confdel_si_01= "{% trans 'All shifts of this scheme will be deleted.' %}"
             data-msg_confdel_team= "{% trans 'This team will be deleted.' %}"
             data-msg_confdel_shift= "{% trans 'This shift will be deleted.' %}"
 
-            data-txt_conf_scheme = "{% trans 'This scheme' %}"
-            data-txt_conf_schemeitem = "{% trans 'This scheme shift' %}"
-            data-txt_conf_shift = "{% trans 'This shift' %}"
-            data-txt_conf_team = "{% trans 'This team' %}"
-            data-txt_conf_teammember = "{% trans 'This teammember' %}"
             data-txt_conf_team_hasteammember = "{% trans 'This team has one employee.' %}"
             data-txt_conf_team_hasteammembers01 = "{% trans 'This team has ' %}"
             data-txt_conf_team_hasteammembers02 = "{% trans ' employees.' %}"
@@ -521,8 +497,6 @@
 
             data-txt_conf_btn_delete = "{% trans 'Yes, delete' %}"
             data-txt_conf_btn_inactive = "{% trans 'Yes, make inactive' %}"
-
-
 
             data-title_billable= "{% trans 'Billable hours. Changes in worked hours will be passed on to the invoice.' %}"
             data-title_notbillable=  "{% trans 'Fixed billing hours. Changes in worked hours will not be passed on to the invoice.' %}"

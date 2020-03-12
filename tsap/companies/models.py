@@ -591,7 +591,6 @@ class Teammember(TsaBaseModel):
     istemplate = BooleanField(default=False)
 
     wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
-
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     # when teammember_pricecode = None and override=True: use employee_pricecode, False: use shift_pricecode
@@ -646,12 +645,12 @@ class Schemeitem(TsaBaseModel):
 
     locked = None
 
+    rosterdate = DateField(db_index=True)
     cat = PositiveSmallIntegerField(default=0)
+    iscyclestart = BooleanField(default=False)
     isabsence = BooleanField(default=False)
     issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
-    rosterdate = DateField(db_index=True)
-    iscyclestart = BooleanField(default=False)
 
     class Meta:
         ordering = ['rosterdate']

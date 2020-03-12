@@ -29,9 +29,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
     dict['Lock'] = _('Lock')
     # field names
     dict['Shift'] = _('Shift')
-    dict['Shifts'] = _('Shifts')
+    dict['Shifts'] = TXT_Shifts
     dict['Team'] = _('Team')
-    dict['Teams'] = _('Teams')
+    dict['Teams'] = TXT_Teams
 
 
     # ====== PAGE EMPLOYEE =========================
@@ -251,17 +251,12 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['months_long'] = c.MONTHS_LONG[user_lang]
 
         # submenu
-        dict['menubtn_add_scheme'] = _('Add scheme')
         dict['menubtn_copy_from_template'] = _('Copy from template')
         dict['menubtn_copy_to_template'] = _('Copy to template')
         dict['menubtn_show_templates'] = _('Show templates')
         dict['menubtn_hide_templates'] = _('Hide templates')
-        dict['Create_roster'] = TXT_Create_roster
-        dict['Delete_roster'] = TXT_Delete_roster
 
         # select table
-        dict['add_scheme'] = _('Add scheme')
-
         dict['want_to_continue'] = TXT_want_to_continue  # 'Do you want to continue?'
         dict['Yes_create'] = TXT_Yes_create  # 'Yes, create'
         dict['Yes_delete'] = TXT_Yes_delete # 'Yes, delete'
@@ -278,12 +273,17 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Select_order'] = TXT_Select_order
         dict['No_orders'] = TXT_No_orders
 
-        dict['Scheme'] = _('Scheme')
-        dict['Add_scheme'] = _('Add scheme')
+        dict['Scheme'] = TXT_Scheme
+        dict['This_scheme'] = TXT_This_scheme
+        dict['Select_scheme'] = TXT_Select_scheme
+
+        dict['Add_scheme'] = TXT_Add_scheme
+        dict['Delete_scheme'] = TXT_Delete_scheme
         dict['Select_scheme'] = _('Select scheme')
         dict['No_schemes'] = _('No schemes')
         dict['Select_template'] = _('Select template')
         dict['No_templates'] = _('No templates')
+        dict['Add_template'] = _('Add template')
         dict['Template'] = _('Template')
 
         dict['Cycle'] = TXT_Cycle
@@ -291,7 +291,13 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Daily_cycle'] = TXT_Daily_cycle
         dict['days_cycle'] = TXT_days_cycle
 
+        dict['This_shift'] = TXT_This_shift
         dict['Rest_shift'] = TXT_Rest_shift
+
+        dict['This_team'] = TXT_This_team
+        dict['This_teammember'] = TXT_This_teammember
+
+        dict['All_schemeitems_willbe_deleted'] = _('All shifts of this scheme will be deleted.')
 
         dict['err_msg_error'] = TXT_err_msg_error
         dict['err_msg_order'] = TXT_err_msg_order
@@ -737,6 +743,10 @@ TXT_Delete_order = _('Delete order')
 
 TXT_Scheme = _('Scheme')
 TXT_New_scheme = _('New scheme')
+TXT_Add_scheme = _('Add scheme')
+TXT_Select_scheme = _('Select scheme')
+TXT_This_scheme = _('This scheme')
+TXT_Delete_scheme = _('Delete scheme')
 
 TXT_Create_roster = _('Create roster')
 TXT_Delete_roster = _('Delete roster')
@@ -748,6 +758,7 @@ TXT_Weekly_cycle = _('Weekly cycle')
 TXT_Daily_cycle = _('Daily cycle')
 TXT_days_cycle = _('days cycle')
 
+TXT_Shifts = _('Shifts')
 TXT_New_shift = _('New shift')
 TXT_Add_shift = _('Add shift')
 TXT_This_shift = _('This shift')
@@ -755,7 +766,10 @@ TXT_Delete_shift = _('Delete shift')
 TXT_Rest_shift = _('Rest shift')
 TXT_Rest_shifts = _('Rest shifts')
 
+TXT_Teams = _('Teams')
 TXT_New_team = _('New team')
+TXT_This_team = _('This team')
+TXT_This_teammember = _('This teammember')
 TXT_Add_teammember = _('Add teammember')
 TXT_Delete_teammember  = _('Delete teammember')
 

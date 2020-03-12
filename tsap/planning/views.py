@@ -824,7 +824,7 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
                 # 'copyto_order': {'pk': 1238, 'ppk': 597},
                 # 'code': {'value': 'grgrgrg=========', 'update': True}}
 
-# - get emplate_custome, needed to refresh scheme_list after update
+# - get template_custome, needed to refresh scheme_list after update
                 customer = None
                 if template_customer_pk:
                     customer = m.Customer.objects.get_or_none(
@@ -834,10 +834,11 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
 
                 if customer:
 # 8. update scheme_list
+                    # templates and normal schemes are in one table, so dont filter on customer_pk
                     # filters by customer, therefore no need for istemplate or inactve filter
                     # dont show singleshifts
                     scheme_list = d.create_scheme_list(
-                        filter_dict={'customer_pk': customer.id, 'is_singleshift': False},
+                        filter_dict={'customer_pk': None, 'is_singleshift': None},
                         company=request.user.company,
                         comp_timezone=comp_timezone,
                         user_lang=user_lang)
@@ -845,27 +846,27 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
                         update_wrap['scheme_list'] = scheme_list
 
                     shift_list = d.create_shift_list(
-                        filter_dict={'customer_pk': customer.id},
+                        filter_dict={'customer_pk': None},
                         company=request.user.company,
                         user_lang=user_lang)
                     if shift_list:
                         update_wrap['shift_list'] = shift_list
 
                     team_list = d.create_team_list(
-                        filter_dict={'customer_pk': customer.id},
+                        filter_dict={'customer_pk': None},
                         company=request.user.company)
                     if team_list:
                         update_wrap['team_list'] = team_list
 
                     teammember_list = ed.create_teammember_list(
-                        filter_dict={'isabsence': False},
+                        filter_dict={'isabsence': None},
                         company=request.user.company,
                         user_lang=user_lang)
                     if teammember_list:
                         update_wrap['teammember_list'] = teammember_list
 
                     schemeitem_list = d.create_schemeitem_list(
-                        filter_dict={'customer_pk': customer.id},
+                        filter_dict={'customer_pk': None},
                         company=request.user.company,
                         comp_timezone=comp_timezone,
                         user_lang=user_lang)
@@ -877,140 +878,155 @@ class SchemeTemplateUploadView(View):  # PR2019-07-20
         update_dict_json = json.dumps(update_wrap, cls=LazyEncoder)
         return HttpResponse(update_dict_json)
 
-def copy_to_template(upload_dict, request):  # PR2019-08-24
+
+def copy_to_template(upload_dict, request):  # PR2019-08-24  # PR2020-03-11
     logger.debug(' ====== copy_to_template ============= ')
     logger.debug(upload_dict)
 
-# - get iddict variables. This contains pk and ppk of 'copyfrom' scheme
-    id_dict = upload_dict.get('id')
+    newtemplate_customer_pk, copyfrom_scheme, newtemplate_order = None, None, None
 
-    template_code = None
-    template_customer_pk = None
+# - get pk_int ppk_int and newtemplate_code
+    copyfrom_scheme_pk = int(f.get_dict_value(upload_dict, ('id', 'pk'), 0))
+    copyfrom_scheme_ppk = int(f.get_dict_value(upload_dict, ('id', 'ppk'), 0))
+    newtemplate_code = f.get_dict_value(upload_dict, ('code','value'))
 
-    code_dict = upload_dict.get('code')
-    if code_dict:
-        if 'value' in code_dict:
-            template_code = code_dict['value']
-
-    if id_dict and template_code:
+    if copyfrom_scheme_pk and copyfrom_scheme_ppk and newtemplate_code:
         table = 'scheme'
-        pk_int = int(id_dict.get('pk', 0))
-        ppk_int = int(id_dict.get('ppk', 0))
-        # logger.debug('pk_int: ' + str(pk_int) + ' ppk_int: ' + str(ppk_int))
-
-# - check if copyfrom parent exists (scheme is parent of schemeitem, team is parent of teammember (and scheme is parent of team)
-        # parent_instance adds 'parent_pk' and 'table' to update_dict['id']
-        update_dict = {}
-        parent = m.get_parent(table, ppk_int, update_dict, request)
-        # logger.debug('parent_instance: ' + str(parent))
-
+# - check if copyfrom_order exists (order is parent of scheme)
+        copyfrom_order = m.Order.objects.get_or_none(id=copyfrom_scheme_ppk, customer__company=request.user.company)
+        if copyfrom_order:
 # - get scheme
-        instance = m.get_instance(table, pk_int, parent, update_dict)
-        logger.debug('instance: ' + str(instance))
+            copyfrom_scheme = m.Scheme.objects.get_or_none(id=copyfrom_scheme_pk, order=copyfrom_order)
+# - check if newtemplate_order exists, create if not exists
+            newtemplate_order = cust_dicts.get_or_create_template_order(request)
+# - return newtemplate_customer_pk, needed to refresh scheme_list after update
+            newtemplate_customer_pk = newtemplate_order.customer_id
 
-# - check if template_order exists, create if not exists
-        template_order = cust_dicts.get_or_create_template_order(request)
-        logger.debug('template_order: ' + str(template_order))
-
-# return template_customer_pk, needed to refresh scheme_list after update
-        template_customer_pk = template_order.customer_id
-
+    is_ok = False
 # - copy scheme to template  (don't copy datefirst, datelast)
-        template_scheme = m.Scheme(
-            order=template_order,
-            code=template_code,
-            cycle=instance.cycle,
-            istemplate=True,
-            excludecompanyholiday=instance.excludecompanyholiday,
-            excludepublicholiday=instance.excludepublicholiday)
-        template_scheme.save(request=request)
-
-# - copy shifts to template
-        shifts = m.Shift.objects.filter(scheme=instance)
-        mapping_shifts = {}
-        for shift in shifts:
-            template_shift = m.Shift(
-                scheme=template_scheme,
+    newtemplate_scheme = None
+    if copyfrom_scheme and newtemplate_order:
+        try:
+            newtemplate_scheme = m.Scheme(
+                order=newtemplate_order,
+                code=newtemplate_code,
+                # dont copy: cat=template_cat,
+                # dont copy: isabsence=template_isabsence,
                 istemplate=True,
-                code=shift.code,
-                offsetstart=shift.offsetstart,
-                offsetend=shift.offsetend,
-                breakduration=shift.breakduration,
-                wagefactor=shift.wagefactor
+                cycle=copyfrom_scheme.cycle,
+                # dont copy: billable=template_billable,
+                excludecompanyholiday=copyfrom_scheme.excludecompanyholiday,
+                excludepublicholiday=copyfrom_scheme.excludepublicholiday,
+                # dont copy: pricecode=template_pricecode,
+                # dont copy: additioncode=template_additioncode,
+                # dont copy: taxcode=template_taxcode
             )
-            template_shift.save(request=request)
-            # make dict with mapping of old and new shift_id
-            mapping_shifts[shift.pk] = template_shift.pk
-        # logger.debug('mapping_shifts: ' + str(mapping_shifts))
+            newtemplate_scheme.save(request=request)
+            is_ok = True
+        except:
+           logger.debug('Error copy_to_template create newtemplate_scheme: upload_dict: ' + str(upload_dict))
+
+    mapping_shifts = {}
+    if is_ok and newtemplate_scheme:
+# - copy shifts to template
+        try:
+            for shift in m.Shift.objects.filter(scheme=copyfrom_scheme):
+                newtemplate_shift = m.Shift(
+                    scheme=newtemplate_scheme,
+                    code=shift.code,
+                    isrestshift=shift.isrestshift,
+                    istemplate=True,
+                    offsetstart=shift.offsetstart,
+                    offsetend=shift.offsetend,
+                    breakduration=shift.breakduration,
+                    timeduration=shift.timeduration,
+                    # dont copy: cat=shift.cat,
+                    # dont copy: billable=shift.billable,
+                    # dont copy: pricecode=shift.pricecode,
+                    # dont copy: additioncode=shift.additioncode,
+                    # dont copy: taxcode=shift.taxcode,
+                    # dont copy: wagefactorcode=shift.wagefactorcode
+                )
+                newtemplate_shift.save(request=request)
+                # make dict with mapping of old and new shift_id
+                mapping_shifts[shift.pk] = newtemplate_shift.pk
+        except:
+            is_ok = False
+            logger.debug('Error copy_to_template create newtemplate_shift: newtemplate_scheme: ' +
+                     str(newtemplate_scheme) + ' ' +str(type(newtemplate_scheme)))
 
 # - copy teams to template
-        teams = m.Team.objects.filter(scheme=instance)
-        count = 0
-        mapping_teams = {}
-        for team in teams:
-            count += 1
-            this_text = _("Team %(suffix)s") % {'suffix': str(count)}
-            # logger.debug('this_text: ' + str(this_text))
-
-            template_team = m.Team(
-                scheme=template_scheme,
-                code=team.code,
-                istemplate=True
-            )
-            template_team.save(request=request)
-            # make dict with mapping of old and new team_id
-            mapping_teams[team.pk] = template_team.pk
-            # logger.debug('mapping_teams: ' + str(mapping_teams))
+    mapping_teams = {}
+    if is_ok:
+        try:
+            for team in m.Team.objects.filter(scheme=copyfrom_scheme):
+                newtemplate_team = m.Team(
+                    scheme=newtemplate_scheme,
+                    code=team.code,
+                    issingleshift=team.issingleshift,
+                    istemplate=True
+                    # dont copy: cat=team.cat,
+                    # dont copy: isabsence=team.isabsence,
+                )
+                newtemplate_team.save(request=request)
+                # make dict with mapping of old and new team_id
+                mapping_teams[team.pk] = newtemplate_team.pk
 
 # - copy teammembers of this team to template
-            teammembers = m.Teammember.objects.filter(team=team)
-            for teammember in teammembers:
-                # dont copy employee, replacement and datfirst datelast
-                template_teammember = m.Teammember(
-                    team=template_team,
-                    istemplate=True
-                )
-                template_teammember.save(request=request)
-
+                teammembers = m.Teammember.objects.filter(team=team)
+                for teammember in teammembers:
+                    # dont copy employee, replacement and datfirst datelast
+                    newtemplate_teammember = m.Teammember(
+                        team=newtemplate_team,
+                        issingleshift=teammember.issingleshift,
+                        istemplate=True
+                        # dont copy: cat=teammember.cat,
+                        # dont copy: isabsence=teammember.isabsence,
+                        # dont copy: wagefactorcode=teammember.wagefactorcode,
+                        # dont copy: pricecode=teammember._pricecode,
+                        # dont copy: additioncode=teammember.additioncode,
+                        # dont copy: override=teammember.override
+                    )
+                    newtemplate_teammember.save(request=request)
+        except:
+            is_ok = False
+            logger.debug('Error copy_to_template create newtemplate_team: newtemplate_scheme: ' +
+                         str(newtemplate_scheme) + ' ' + str(type(newtemplate_scheme)))
 # - copy schemeitems to template
-        # Schemeitem ordering = ['rosterdate', 'timestart']
-        schemeitems = m.Schemeitem.objects.filter(scheme=instance)
-        # first item has cyclestart = True (needed for startdate of copied scheme, set False after first item
-        is_cyclestart = True
-        for schemeitem in schemeitems:
-
-        # loopkup shift
-            template_shift = None
-            if schemeitem.shift:
-                template_shift_pk = mapping_shifts.get(schemeitem.shift.pk)
-                if template_shift_pk:
-                    template_shift = m.Shift.objects.get_or_none(pk=template_shift_pk)
-
-        # loopkup team
-            template_team = None
-            if schemeitem.team:
-                template_team_pk = mapping_teams.get(schemeitem.team.pk)
-                if template_team_pk:
-                    template_team = m.Team.objects.get_or_none(pk=template_team_pk)
-
-            # logger.debug('schemeitem: ' + str(schemeitem))
-            template_schemeitem = m.Schemeitem(
-                scheme=template_scheme,
-                shift=template_shift,
-                team=template_team,
-                rosterdate=schemeitem.rosterdate,
-                istemplate=True,
-                iscyclestart=is_cyclestart,
-                offsetstart=schemeitem.offsetstart,
-                offsetend=schemeitem.offsetend,
-                breakduration=schemeitem.breakduration,
-                timeduration=schemeitem.timeduration,
-            )
-            is_cyclestart = False
-
-            template_schemeitem.save(request=request)
-            # logger.debug('template_schemeitem.shift: ' + str(template_schemeitem.shift))
-    return template_customer_pk
+    if is_ok:
+        try:
+            for schemeitem in m.Schemeitem.objects.filter(scheme=copyfrom_scheme):
+             # loopkup shift
+                template_shift = None
+                if schemeitem.shift:
+                    template_shift_pk = mapping_shifts.get(schemeitem.shift.pk)
+                    if template_shift_pk:
+                        template_shift = m.Shift.objects.get_or_none(pk=template_shift_pk)
+            # loopkup team
+                template_team = None
+                if schemeitem.team:
+                    template_team_pk = mapping_teams.get(schemeitem.team.pk)
+                    if template_team_pk:
+                        template_team = m.Team.objects.get_or_none(pk=template_team_pk)
+                newtemplate_schemeitem = m.Schemeitem(
+                    scheme=newtemplate_scheme,
+                    shift=template_shift,
+                    team=template_team,
+                    rosterdate=schemeitem.rosterdate,
+                    iscyclestart=schemeitem.iscyclestart,
+                    issingleshift=schemeitem.issingleshift,
+                    istemplate=True
+                    # dont copy: cat=schemeitem.cat,
+                    # dont copy: isabsence=schemeitem.isabsence,
+                )
+                newtemplate_schemeitem.save(request=request)
+        except:
+            is_ok = False
+            logger.debug('Error copy_to_template create newtemplate_schemeitem: newtemplate_scheme: ' +
+                     str(newtemplate_scheme) + ' ' + str(type(newtemplate_scheme)))
+    if not is_ok:
+        newtemplate_customer_pk = None
+    return newtemplate_customer_pk
 
 def copyfrom_template(upload_dict, request):  # PR2019-07-26
     # logger.debug(' ====== copyfrom_template ============= ')
@@ -1024,141 +1040,155 @@ def copyfrom_template(upload_dict, request):  # PR2019-07-26
 
     item_update_dict = {}
     new_scheme_pk = 0
-# - get iddict variables
-    id_dict = upload_dict.get('id')
-    # "id":{"pk":44,"ppk":2,"table":"scheme"}
 
-# - get pk of order to which the template must be copied
-    order_pk = None
-    order_dict = upload_dict.get('copyto_order')
-    if order_dict:
-        order_pk = order_dict.get('pk')
-
-# - get new scheme_code
-    scheme_code = None
-    code_dict = upload_dict.get('code')
-    if code_dict:
-        scheme_code = code_dict.get('value')
-
-    if id_dict and order_pk and scheme_code:
 # get scheme_pk and ppk of the template from which will be copied
-        table = 'scheme'
-        template_scheme_pk = id_dict.get('pk', 0)  # int not necessary. Was: int(id_dict.get('pk', 0))
-        template_scheme_ppk = id_dict.get('ppk', 0) # int not necessary. Was: int(id_dict.get('ppk', 0))
+    table = 'scheme'
+    template_scheme_pk = f.get_dict_value(upload_dict, ('id','pk'), 0)
+    template_order_pk = f.get_dict_value(upload_dict, ('id','ppk'), 0)
+# - get new scheme_code
+    scheme_code = f.get_dict_value(upload_dict, ('code','value'))
+# - get pk of order to which the template must be copied
+    copyto_order_pk = f.get_dict_value(upload_dict, ('copyto_order','pk'))
 
-    # - check if scheme parent exists (order is parent of scheme)
-        template_order = m.Order.objects.get_or_none(id=template_scheme_ppk, customer__company=request.user.company)
-    # update_dict['id']['pk'] and update_dict['pk']  are added in get_instance
+    template_scheme, new_scheme_order, new_scheme, is_ok = None, None, None, False
+    if template_scheme_pk and template_order_pk and copyto_order_pk and scheme_code:
+# - check if template_scheme and template_scheme exist (order is parent of scheme)
+        template_order = m.Order.objects.get_or_none(id=template_order_pk, customer__company=request.user.company)
         template_scheme = m.Scheme.objects.get_or_none(id=template_scheme_pk, order=template_order)
 
 # - check if scheme parent exists (order is parent of scheme)
         #   update_dict['id']['ppk'] and ['id']['table'] are added in get_parent
         update_dict = {}
-        new_scheme_order = m.get_parent(table, order_pk, update_dict, request)
+        new_scheme_order = m.Order.objects.get_or_none(id=copyto_order_pk, customer__company=request.user.company)
 
-        if template_scheme and new_scheme_order:
-
+    if template_scheme and new_scheme_order:
+        try:
 # - copy template_scheme to new_scheme (don't copy datefirst, datelast)
             new_scheme = m.Scheme(
                 order=new_scheme_order,
                 code=scheme_code,
-                cat=template_scheme.cat,
-                isabsence=template_scheme.isabsence,
                 istemplate=False,
                 cycle=template_scheme.cycle,
+                # dont copy: billable=template_scheme.billable,
                 excludecompanyholiday=template_scheme.excludecompanyholiday,
-                excludepublicholiday=template_scheme.excludepublicholiday
-                # don't copy these fields: billable, pricerate, priceratejson, additionjson
+                excludepublicholiday=template_scheme.excludepublicholiday,
+
+                # dont copy: cat=template_scheme.cat,
+                # dont copy: isabsence=template_scheme.isabsence,
+                # dont copy: pricecode=template_scheme.pricecode,
+                # dont copy: additioncode=template_scheme.additioncode,
+                # dont copy: taxcode=template_scheme.taxcode
+
             )
             new_scheme.save(request=request)
+        except:
+            logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) +
+                         ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
 
-            if new_scheme:
-                new_scheme_pk = new_scheme.pk
-    # - copy template_shifts to scheme
-                template_shifts = m.Shift.objects.filter(scheme=template_scheme)
-                shift_mapping = {}
-                for template_shift in template_shifts:
-                    new_shift = m.Shift(
-                        scheme=new_scheme,
-                        code=template_shift.code,
-                        cat=template_shift.cat,
-                        isrestshift=template_shift.isrestshift,
-                        istemplate=False,
-                        offsetstart=template_shift.offsetstart,
-                        offsetend=template_shift.offsetend,
-                        breakduration=template_shift.breakduration,
-                        billable=template_shift.billable
-                        # don't copy these fields:
-                        #wagefactor=template_shift.wagefactor,
-                        #pricerate=template_shift.pricerate,
-                        #priceratejson=template_shift.priceratejson,
-                        #additionjson=template_shift.additionjson
-                    )
-                    new_shift.save(request=request)
-                    # make dict with mapping of old and new team_id
-                    shift_mapping[template_shift.pk] = new_shift.pk
-                # logger.debug('template_shifts mapping: ' + str(shift_mapping))
+    is_ok = True
+    shift_mapping = {}
+    if new_scheme:
+        try:
+            new_scheme_pk = new_scheme.pk
+# - copy template_shifts to scheme
+            template_shifts = m.Shift.objects.filter(scheme=template_scheme)
+            for template_shift in template_shifts:
+                new_shift = m.Shift(
+                    scheme=new_scheme,
+                    code=template_shift.code,
+                    cat=template_shift.cat,
+                    isrestshift=template_shift.isrestshift,
+                    istemplate=False,
+                    billable=template_shift.billable,
 
-    # - copy template_teams to scheme
-                template_teams = m.Team.objects.filter(scheme=template_scheme)
-                team_mapping = {}
-                for template_team in template_teams:
-                    new_team = m.Team(
-                        scheme=new_scheme,
-                        code=template_team.code,
-                        cat=template_team.cat,
-                        isabsence=template_team.isabsence,
+                    offsetstart=template_shift.offsetstart,
+                    offsetend=template_shift.offsetend,
+                    breakduration=template_shift.breakduration,
+                    timeduration=template_shift.timeduration,
+
+                    pricecode=template_shift.pricecode,
+                    additioncode=template_shift.additioncode,
+                    taxcode=template_shift.taxcode,
+                    wagefactorcode=template_shift.wagefactorcode
+                )
+                new_shift.save(request=request)
+                # make dict with mapping of old and new team_id
+                shift_mapping[template_shift.pk] = new_shift.pk
+            # logger.debug('template_shifts mapping: ' + str(shift_mapping))
+        except:
+            is_ok = False
+            logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) +
+                         ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
+
+# - copy template_teams to scheme
+    team_mapping = {}
+    if is_ok:
+        try:
+            template_teams = m.Team.objects.filter(scheme=template_scheme)
+            for template_team in template_teams:
+                new_team = m.Team(
+                    scheme=new_scheme,
+                    code=template_team.code,
+                    cat=template_team.cat,
+                    isabsence=template_team.isabsence,
+                    istemplate=False
+                )
+                new_team.save(request=request)
+                # make dict with mapping of old and new team_id
+                team_mapping[template_team.pk] = new_team.pk
+
+# - copy teammembers of this team to template
+                template_teammembers = m.Teammember.objects.filter(team=template_team)
+                for template_teammember in template_teammembers:
+                    # dont copy employee, replacement and datfirst datelast
+                    new_teammember = m.Teammember(
+                        team=new_team,
                         istemplate=False
                     )
-                    new_team.save(request=request)
-                    # make dict with mapping of old and new team_id
-                    team_mapping[template_team.pk] = new_team.pk
+                    new_teammember.save(request=request)
+        except:
+            is_ok = False
+            logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) +
+                         ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
 
-    # - copy teammembers of this team to template
-                    template_teammembers = m.Teammember.objects.filter(team=template_team)
-                    for template_teammember in template_teammembers:
-                        # dont copy employee, replacement and datfirst datelast
-                        new_teammember = m.Teammember(
-                            team=new_team,
-                            istemplate=False
-                        )
-                        new_teammember.save(request=request)
+# - copy template_schemeitems to schemeitems
+    if is_ok:
+        try:
+            template_schemeitems = m.Schemeitem.objects.filter(scheme=template_scheme)
+            for template_schemeitem in template_schemeitems:
 
-    # - copy template_schemeitems to schemeitems
-                template_schemeitems = m.Schemeitem.objects.filter(scheme=template_scheme)
-                for template_schemeitem in template_schemeitems:
+            # - lookup shift, add to new_schemeitem when found
+                new_shift = None
+                if template_schemeitem.shift:
+                    lookup_shift_pk = shift_mapping[template_schemeitem.shift_id]
+                    new_shift = m.Shift.objects.get_or_none(pk=lookup_shift_pk)
 
-                # - lookup shift, add to new_schemeitem when found
-                    new_shift = None
-                    if template_schemeitem.shift:
-                        lookup_shift_pk = shift_mapping[template_schemeitem.shift_id]
-                        new_shift = m.Shift.objects.get_or_none(pk=lookup_shift_pk)
+            # - lookup team, add to new_schemeitem when found
+                new_team = None
+                if template_schemeitem.team:
+                    lookup_team_pk = team_mapping[template_schemeitem.team_id]
+                    new_team = m.Team.objects.get_or_none(pk=lookup_team_pk)
 
-                # - lookup team, add to new_schemeitem when found
-                    new_team = None
-                    if template_schemeitem.team:
-                        lookup_team_pk = team_mapping[template_schemeitem.team_id]
-                        new_team = m.Team.objects.get_or_none(pk=lookup_team_pk)
-
-                    # logger.debug('template_schemeitem: ' + str(template_schemeitem))
-                    new_schemeitem = m.Schemeitem(
-                        scheme=new_scheme,
-                        shift=new_shift,
-                        team=new_team,
-                        rosterdate=template_schemeitem.rosterdate,
-                        cat=template_schemeitem.cat,
-                        iscyclestart=template_schemeitem.iscyclestart,
-                        istemplate=False,
-                        offsetstart=template_schemeitem.offsetstart,
-                        offsetend=template_schemeitem.offsetend,
-                        breakduration=template_schemeitem.breakduration,
-                        timeduration=template_schemeitem.timeduration
-                        # don't copy these fields: billable, pricerate, priceratejson, additionjson
-                    )
-
-    # - save new_schemeitem
-                    new_schemeitem.save(request=request)
-
+                # logger.debug('template_schemeitem: ' + str(template_schemeitem))
+                new_schemeitem = m.Schemeitem(
+                    scheme=new_scheme,
+                    shift=new_shift,
+                    team=new_team,
+                    rosterdate=template_schemeitem.rosterdate,
+                    cat=template_schemeitem.cat,
+                    iscyclestart=template_schemeitem.iscyclestart,
+                    isabsence=template_schemeitem.iscyclestart,
+                    issingleshift=template_schemeitem.issingleshift,
+                    istemplate=False
+                    # don't copy these fields: billable, pricerate, priceratejson, additionjson
+                )
+                new_schemeitem.save(request=request)
+        except:
+            is_ok = False
+            logger.debug('Error copyfrom_template create new_scheme: scheme_code: ' + str(scheme_code) +
+                         ' new_scheme_order: ' + str(new_scheme_order) + ' ' + str(type(new_scheme_order)))
+    if not is_ok:
+        new_scheme_pk = None
     return new_scheme_pk
 
 def create_deafult_templates(request, user_lang):  # PR2019-08-24
@@ -1242,7 +1272,15 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
 
 # - copy schemeitems to template
         # fields: scheme, shift, team, wagefactor, rosterdate , iscyclestart, timestart, timeend, timeduration
-
+        # TODO add  scheme=newtemplate_scheme,
+        #           shift=template_shift,
+        #           team=template_team,
+        #           rosterdate=schemeitem.rosterdate,
+        #           iscyclestart=schemeitem.iscyclestart,
+        #           issingleshift=schemeitem.issingleshift,
+        #           istemplate=True
+        #           # dont copy: cat=schemeitem.cat,
+        #           # dont copy: isabsence=schemeitem.isabsence,
         template_schemeitem = m.Schemeitem(
             scheme=template_scheme,
             rosterdate=rosterdate,
@@ -1845,15 +1883,18 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                                         in_range = f.date_within_range(scheme_datefirst, scheme_datelast, new_rosterdate)
                                         if in_range:
                                             if new_rosterdate < enddate_plusone:
-
-                         # create new schemeitem
+                                    # iscyclestart=False is correct?
                                                 new_schemeitem = m.Schemeitem(
                                                     scheme=schemeitem.scheme,
-                                                    rosterdate=new_rosterdate,
-                                                    team=schemeitem.team,
                                                     shift=schemeitem.shift,
-                                                    timeduration=0
-                                                )   # timeduration cannot be blank
+                                                    team=schemeitem.team,
+                                                    rosterdate=new_rosterdate,
+                                                    iscyclestart=False,
+                                                    issingleshift=schemeitem.issingleshift,
+                                                    istemplate=schemeitem.istemplate
+                                                    # dont copy: cat=schemeitem.cat,
+                                                    # dont copy: isabsence=schemeitem.isabsence,
+                                                )
 
                          # calculate 'timestart, 'timeend', timeduration
                                                 calc_schemeitem_timeduration(new_schemeitem, {}, comp_timezone)
@@ -3798,7 +3839,7 @@ def create_schemeitem (parent, upload_dict, update_dict, request, temp_pk_str=No
         if msg_err is not None:
             update_dict['rosterdate']['error'] = msg_err
         else:
-            instance = m.Schemeitem(scheme=parent, rosterdate=rosterdate, timeduration=0)
+            instance = m.Schemeitem(scheme=parent, rosterdate=rosterdate)
             instance.save(request=request)
 
 # 3. return msg_err when instance not created
