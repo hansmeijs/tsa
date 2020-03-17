@@ -119,6 +119,46 @@
 
     }; // function get_period_text
 
+
+//========= get_period_text  ==================================== PR 2020-03-13
+    function get_periodtext_sidebar(rosterdatefirst, rosterdatelast, prefix, suffix, month_list, weekday_list, user_lang) {
+        //console.log( " --- get_periodtext_sidebar --- ", rosterdatefirst, rosterdatelast, prefix, suffix);
+        let period_text = "";
+        if(!!rosterdatefirst) {
+            if(!!rosterdatelast) {
+                const datelast_formatted = format_date_iso (rosterdatelast, month_list, weekday_list, true, false, user_lang)
+                const is_same_date = (rosterdatefirst === rosterdatelast);
+                const is_same_year = (rosterdatefirst.slice(0,4) === rosterdatelast.slice(0,4));
+                const is_same_year_and_month = (rosterdatefirst.slice(0,7) === rosterdatelast.slice(0,7));
+                let datefirst_formatted = "";
+                if (is_same_date) {
+                // display: '20 feb 2020'
+                } else if (is_same_year_and_month) {
+                // display: '20 - 28 feb 2020'
+                    datefirst_formatted = Number(rosterdatefirst.slice(8)).toString() + " - "
+                } else if (is_same_year) {
+                // display: '20 jan - 28 feb 2020'
+                    datefirst_formatted = format_date_iso (rosterdatefirst, month_list, weekday_list, true, true, user_lang) + " - "
+                } else {
+                    // format_date_iso (date_iso, month_list, weekday_list, hide_weekday, hide_year, user_lang)
+                    datefirst_formatted = format_date_iso (rosterdatefirst, month_list, weekday_list, true, false, user_lang) + " - "
+                }
+                period_text = datefirst_formatted + datelast_formatted
+            }  else {
+                period_text = format_date_iso (rosterdatefirst, month_list, weekday_list, true, false, user_lang)
+            }
+        } else if(!!rosterdatelast) {
+                period_text = format_date_iso (rosterdatelast, month_list, weekday_list, true, false, user_lang)
+        }
+        if(!!prefix){
+            period_text = prefix + " " + period_text;
+        }
+        if(!!suffix){
+            period_text += " " + suffix;
+        }
+        return period_text;
+    }  // get_periodtext_sidebar
+
   //========= format_period_from_datetimelocal  ========== PR2019-07-09
     function format_period_from_datetimelocal(periodstart_local, periodend_local, month_list, weekday_list, timeformat) {
         "use strict";
@@ -1065,8 +1105,7 @@
                 cent_text = decimal_separator + cents_str.slice(-2);
             }
             display_text = minus_sign + dollar_text + cent_text;
-            if (is_percentage) { display_text += " %" }
-        } else {
+        } else if(show_zero) {
             display_text = "0"
         }  // if (!!value_int)
 

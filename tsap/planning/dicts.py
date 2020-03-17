@@ -1,6 +1,6 @@
 from django.db import connection
-from django.db.models import Q, Value, Max
-from django.db.models.functions import Coalesce
+from django.db.models import Q, Value
+from django.db.models.functions import  Coalesce
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -662,7 +662,7 @@ def create_scheme_dict(scheme, item_dict, user_lang):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-def create_schemeitem_list(filter_dict, company, comp_timezone, user_lang):
+def create_schemeitem_list(filter_dict, company):
     # create list of schemeitems of this scheme PR2019-09-28
     # --- create list of all schemeitems of this cujstomere / order PR2019-08-29
     #logger.debug(' ----- create_teammember_list  -----  ')
@@ -690,7 +690,7 @@ def create_schemeitem_list(filter_dict, company, comp_timezone, user_lang):
     schemeitem_list = []
     for schemeitem in schemeitems:
         item_dict = {}
-        create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang)
+        create_schemeitem_dict(schemeitem, item_dict)
 
         if item_dict:
             schemeitem_list.append(item_dict)
@@ -698,17 +698,16 @@ def create_schemeitem_list(filter_dict, company, comp_timezone, user_lang):
     return schemeitem_list
 
 
-def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
+def create_schemeitem_dict(schemeitem, item_dict):
     # --- create dict of this schemeitem PR2019-07-22
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    # logger.debug ('--- create_schemeitem_dict ---')
-    # logger.debug ('item_dict' + str(item_dict))
+    #logger.debug ('--- create_schemeitem_dict ---')
+    #logger.debug ('item_dict' + str(item_dict))
 
     if schemeitem:
 
-# calculate timeduration from values in shift
-        is_restshift, offsetstart, offsetend, breakduration, \
-            timeduration_minus_break, timeduration = f.calc_timeduration_from_shift(schemeitem.shift)
+        # FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate',
+        #                      'cat', 'iscyclestart', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
 
         for field in c.FIELDS_SCHEMEITEM:
  # --- get field_dict from  item_dict if it exists
@@ -760,47 +759,6 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
                     mindate=cycle_startdate,
                     maxdate=cycle_enddate)
 
-            elif field == 'offsetstart':
-                # Note: value '0' is a valid value, so don't use 'if value:'
-                if offsetstart is not None:
-                    field_dict['value'] = offsetstart
-                field_dict["minoffset"] = -720
-
-                maxoffset = 1440
-                if offsetend is not None:
-                    maxoffset = offsetend - breakduration
-                    if maxoffset > 1440:
-                        maxoffset = 1440
-                field_dict["maxoffset"] = maxoffset
-
-            elif field == 'offsetend':
-                # Note: value '0' is a valid value, so don't use 'if value:'
-                if offsetend is not None:
-                    field_dict['value'] = offsetend
-                field_dict["maxoffset"] = 2160
-
-                minoffset = 0
-                if offsetstart is not None:
-                    minoffset = offsetstart + breakduration
-                    if minoffset < 0:
-                        minoffset = 0
-                field_dict["minoffset"] = minoffset
-
-            elif field == 'breakduration':
-                field_dict['value'] = breakduration
-                field_dict["minoffset"] = 0
-                field_dict["maxoffset"] = timeduration if timeduration < 1440 else 1440
-
-            elif field == 'timeduration':
-                field_dict['value'] = timeduration_minus_break
-
-            elif field in ['priceratejson']:
-                f.get_fielddict_pricerate(
-                    table='schemeitem',
-                    instance=schemeitem,
-                    field_dict=field_dict,
-                    user_lang=user_lang)
-
             elif field == 'shift':
                 shift = getattr(schemeitem, field)
                 if shift:
@@ -824,17 +782,20 @@ def create_schemeitem_dict(schemeitem, item_dict, comp_timezone, user_lang):
                 team = getattr(schemeitem, field)
                 if team:
                     field_dict['pk'] = team.id
-                    field_dict['code'] = team.code
+                    if team.code:
+                        field_dict['code'] = team.code
+                        field_dict['abbrev'] = get_teamcode_abbrev(team.code)
 
             if field_dict:
                 item_dict[field] = field_dict
 
     f.remove_empty_attr_from_dict(item_dict)
+    #logger.debug ('---------------- item_dict' + str(item_dict))
 
 
 def create_shift_list(filter_dict, company, user_lang):
     # create list of shifts of this order PR2019-08-08
-    # logger.debug(' --- create_shift_list --- ')
+    #logger.debug(' --- create_shift_list --- ')
 
     customer_pk = filter_dict.get('customer_pk')
     order_pk = filter_dict.get('order_pk')
@@ -862,7 +823,7 @@ def create_shift_list(filter_dict, company, user_lang):
 
 
 def create_shift_dict(shift, update_dict, user_lang):
-    # logger.debug(' ----- create_shift_dict ----- ')
+    logger.debug(' ----- create_shift_dict ----- ')
     # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     # FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
@@ -972,7 +933,7 @@ def create_shift_dict(shift, update_dict, user_lang):
             if field_dict:
                 update_dict[field] = field_dict
 
-    # logger.debug('update_dict: ' + str(update_dict))
+    #logger.debug('update_dict: ' + str(update_dict))
     # 7. remove empty attributes from update_dict
     f.remove_empty_attr_from_dict(update_dict)
 # --- end of create_shift_dict
@@ -980,7 +941,7 @@ def create_shift_dict(shift, update_dict, user_lang):
 
 def create_team_list(filter_dict, company):
     # create list of teams of this order PR2019-09-02
-    # logger.debug(' ----- create_team_list  -----  ')
+    #logger.debug(' ----- create_team_list  -----  ')
 
     customer_pk = filter_dict.get('customer_pk')
     order_pk = filter_dict.get('order_pk')
@@ -1013,8 +974,8 @@ def create_team_list(filter_dict, company):
 def create_team_dict(team, item_dict):
     # --- create dict of this team PR2019-08-08
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-    # logger.debug(' --- create_team_dict ---')
-    # logger.debug('item_dict: ' + str(item_dict))
+    #logger.debug(' --- create_team_dict ---')
+    #logger.debug('item_dict: ' + str(item_dict))
     # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code')
     if team:
         for field in c.FIELDS_TEAM:
@@ -1046,6 +1007,7 @@ def create_team_dict(team, item_dict):
                 code, suffix, title = get_team_code(team)
                 if code:
                     field_dict['value'] = code
+                    field_dict['abbrev'] = get_teamcode_abbrev(code)
                 if suffix:
                     field_dict['suffix'] = suffix
                 if title:
@@ -1058,7 +1020,32 @@ def create_team_dict(team, item_dict):
 # 6. remove empty attributes from item_dict
     f.remove_empty_attr_from_dict(item_dict)
 # --- end of create_team_dict
+
+# =========  get_teamcode_abbrev  === PR2020-03-15
+def get_teamcode_abbrev(team_code):
+    #logger.debug('get_teamcode_abbrev: ' + str(team_code))
+
+    abbrev = ""
+#  ---  Check if team_code starts with 'team ' (include space after 'team')
+    team_not_translated_plus_space = 'team '
+    length = len(team_not_translated_plus_space)
+    sliced = team_code[0:length].lower()
+
+    if sliced == team_not_translated_plus_space:
+        abbrev = team_code[length:length + 3]
+#  ---  if not, check if team_code starts with 'ploeg ' (include space after 'ploeg'
+    if not abbrev:
+        ploeg_not_translated_plus_space = 'ploeg '
+        length = len(ploeg_not_translated_plus_space)
+        sliced = team_code[0:length].lower()
+        if sliced == ploeg_not_translated_plus_space:
+            abbrev = team_code[length:length + 3]
+#  ---  if not, take abbrev from start of 'team_code
+    if not abbrev:
+        abbrev = team_code[0:3]
+    return abbrev
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 
 def period_get_and_save(key, period_dict, comp_timezone, timeformat, user_lang, request):   # PR2019-11-16
     #logger.debug(' ============== period_get_and_save ================ ')
@@ -1974,7 +1961,7 @@ def create_replacementshift_list(dict, company):
             for emplhour in emplhours:
                 eplh_dict = {}
 
-                # create_schemeitem_dict(table_dict, company, comp_timezone, user_lang)
+                # create_schemeitem_dict(table_dict, company)
                 eplh_dict['rosterdate'] = rosterdate_cur_str
                 eplh_dict['eplh_pk'] = emplhour.pk
                 eplh_dict['eplh_ppk'] = emplhour.orderhour_id
@@ -2041,7 +2028,7 @@ def create_replacementshift_list(dict, company):
 
                             # if si_rosterdate_within_cycle is same as rosterdate_cur_dtm: c
                             if datediff_days == 0:
-                                # create_schemeitem_dict(table_dict, company, comp_timezone, user_lang)
+                                # create_schemeitem_dict(table_dict, company)
 
                                 si_dict = {'rosterdate': rosterdate_cur_str,
                                             'si_pk': schemeitem.pk,
@@ -3045,11 +3032,7 @@ def create_schemes_extended_dict(filter_dict, company, comp_timezone, user_lang)
             if team_list:
                 item_dict['team_list'] = team_list
         # add schemeitem_list to scheme_dict:
-            schemeitem_list = create_schemeitem_list(
-                filter_dict={'scheme_pk': scheme.pk},
-                company=company,
-                comp_timezone=comp_timezone,
-                user_lang=user_lang)
+            schemeitem_list = create_schemeitem_list( filter_dict={'scheme_pk': scheme.pk}, company=company)
             if schemeitem_list:
                 item_dict['schemeitem_list'] = schemeitem_list
 

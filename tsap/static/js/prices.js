@@ -722,7 +722,7 @@ selected_btn = "customer"
                             if (!!pat_id) {
                                 const map_dict = pricecode_map.get(pat_id);
                                 const is_percentage = ([3, 4].indexOf(i) > -1) ? true : false;
-                                const show_zero = true;
+                                const show_zero = true; // show_zero = true necessary to show difference between 0 and null
                                 pricerate_display = format_pricerate (map_dict.pci_pricerate, is_percentage, show_zero, loc.user_lang);
                                 //if (!!map_dict.pc_note) {pricerate_display += " " + map_dict.pc_note}
 

@@ -1657,7 +1657,7 @@ def slice_firstlast_delim(list_str):  # PR2018-11-22
     return list_str
 
 
-def create_update_dict(field_list, table, pk, ppk, temp_pk, row_index):
+def create_update_dict(field_list, table, pk, ppk, temp_pk=None, row_index=None):
 # - Create empty update_dict with keys for all fields. Unused ones will be removed at the end
     update_dict = {}  # this one is not working: update_dict = dict.fromkeys(field_list, {})
     for field in field_list:
@@ -2422,6 +2422,7 @@ def calc_timeduration_from_values(is_restshift, offsetstart, offsetend, breakdur
 
 # <<<<<<<<<< calc_timeduration_from_shift >>>>>>>>>>>>>>>>>>> PR2020-01-04
 def calc_timeduration_from_shift(shift):
+    logger.debug(' ----- calc_timeduration_from_shift ----- ')
     # function calculates timeduration from values in shift
     # if both offsetstart and offsetend have value: timeduration is calculated
     # else: use stored value of timeduration
@@ -2445,6 +2446,7 @@ def calc_timeduration_from_shift(shift):
 
         if not is_restshift:
             if offsetstart is not None and offsetend is not None:
+                logger.debug('offsetstart is not None and offsetend is not None ')
                 timeduration = offsetend - offsetstart
             else:
                 timeduration = saved_timeduration

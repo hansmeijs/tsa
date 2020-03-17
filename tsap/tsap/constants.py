@@ -416,14 +416,11 @@ FIELDS_TEAMMEMBER = ('id', 'team', 'employee', 'replacement', 'datefirst', 'date
                      'scheme', 'order',
                      'cat', 'isabsence', 'issingleshift', 'istemplate',
                      'wagefactorcode', 'pricecode', 'additioncode', 'override')
-
 # teammember wagerate not in use
-FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team',
-                     'cat', 'isabsence', 'issingleshift', 'istemplate', 'billable',
-                     'rosterdate', 'iscyclestart', 'inactive')
+
+FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate',
+                     'cat', 'iscyclestart', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
-
-
 
 WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, default is 40 hours per week = 2.400 minutes
 WORKDAYS_DEFAULT = 7200  # workdays per week * 1440, unit is minute (one day has 1440 minutes) , default is 5 days per week = 7200 minutes

@@ -1888,6 +1888,7 @@ console.log("===  function HandlePopupWdySave =========");
             if(period_tag === "other"){
                 const rosterdatefirst = get_dict_value(selected_period, ["period_datefirst"]);
                 const rosterdatelast = get_dict_value(selected_period, ["period_datelast"]);
+                // TODO use get_periodtext_sidebar in format.js
                 const is_same_date = (rosterdatefirst === rosterdatelast);
                 const is_same_year = (rosterdatefirst.slice(0,4) === rosterdatelast.slice(0,4));
                 const is_same_year_and_month = (rosterdatefirst.slice(0,7) === rosterdatelast.slice(0,7));

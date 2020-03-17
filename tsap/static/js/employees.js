@@ -1907,7 +1907,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UploadDeleteInactive  ============= PR2019-09-23
     function UploadDeleteInactive(mode, el_input) {
-        //console.log( " ==== UploadDeleteInactive ====", mode);
+        console.log( " ==== UploadDeleteInactive ====", mode);
 
         let tblRow = get_tablerow_selected(el_input)
         if(!!tblRow){

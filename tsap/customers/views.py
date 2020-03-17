@@ -19,7 +19,7 @@ from planning import dicts as pld
 from tsap.headerbar import get_headerbar_param
 from tsap.settings import TIME_ZONE
 from tsap import locale as loc
-from planning.views import update_scheme, update_shift
+from planning.views import update_scheme, update_shift_instance
 
 from tsap import constants as c
 from tsap import functions as f
@@ -255,7 +255,7 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
                             instance = m.get_instance(table, pk_int, parent, update_dict)
                             #logger.debug('SHIFT instance: ' + str(instance))
                             if instance:
-                                update_shift(instance, parent, upload_dict, update_dict, user_lang, request)
+                                update_shift_instance(instance, parent, upload_dict, update_dict, user_lang, request)
                         f.remove_empty_attr_from_dict(update_dict)
                     if update_dict:
                         update_wrap['update_dict'] = update_dict

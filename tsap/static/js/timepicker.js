@@ -626,11 +626,8 @@ function CalcMinMax(dict) {
         //console.log(" --- CalcMinMax ---")
 
         const curOffset = dict["offset"];
-        const minOffset = dict["minoffset"];
-        const maxOffset = dict["maxoffset"];
-
-        if(minOffset == null){minOffset = 0};
-        if(maxOffset == null){maxOffset = 1440};
+        const minOffset = (!!dict.minoffset == null) ? dict.minoffset : 0;
+        const maxOffset = (!!dict.maxoffset == null) ? dict.maxoffset : 1440;
 
         let curDayOffset = null, curRemainder = null, curHours = null, curMinutes = null, curHoursAmpm = null;
         let prevday_disabled = false, nextday_disabled = false;

@@ -1101,8 +1101,11 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
     is_absence = (mode == 'a')
     is_restshift = (mode == 'r')
 
-    # calculate timestart, timeend and timeduration from shift offset and rosterdtae info from shift
-    # timeduration is only calculated when both start and edtime are filled in. Otherwise saved value is used (shift '6:00 hours')
+    # calc_timestart_time_end_from_offset:
+    # - calculates timestart, timeend from shift offset and shift rosterdate
+    # - calculates timeduration, only when both start- and endtime have value.
+    # - otherwise saved value of timedurationis used (shift '6:00 hours')
+    # - when rest shift: timeduration is set to 0
     row_offsetstart = row[idx_sh_os]
     row_offsetend = row[idx_sh_oe]
     row_breakduration = row[idx_sh_bd]
@@ -1289,15 +1292,17 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
                 # not necessary, but let is stay. Prevent this at input
                 price_rate = 0
                 addition_rate = 0
-                time_duration = 0
-                break_duration = 0
+                # - don't set absence time_duration = 0 when absence, time_duration is set or calculated from workhours
+                # - restshift time_duration already set 0 in calc_timestart_time_end_from_offset
+                # - don't set break_duration = 0
 # calculate time_duration when absencce
-                if is_absence:
-                    #  when absence: time_duration = workhoursperweek / 5. and not workhoursperday,
-                    #  because absence days are always enterd 5 days per week.
-                    if employee:
-                        if employee.workhours:
-                            time_duration = employee.workhours / 5
+                # TODO get absence hours from timeduration
+                #if is_absence:
+                #    #  when absence: time_duration = workhoursperweek / 5. and not workhoursperday,
+                #    #  because absence days are always enterd 5 days per week.
+                #    if employee:
+                #        if employee.workhours:
+                #            time_duration = employee.workhours / 5
 
 # calculate amount, addition and tax
             billing_duration = time_duration
