@@ -117,12 +117,12 @@ document.addEventListener('DOMContentLoaded', function() {
         el_modorder_btn_save.addEventListener("click", function() {MSO_Save()}, false )
 
 // ---  MOD SELECT EMPLOYEE ------------------------------
-    let el_modemployee_input_employee = document.getElementById("id_mod_select_employee_input_employee")
+    let el_modemployee_input_employee = document.getElementById("id_MSE_input_employee")
         el_modemployee_input_employee.addEventListener("keyup", function(event){
             setTimeout(function() {MSE_FilterEmployee(el_modemployee_input_employee, event.key)}, 50)});
-    let el_modemployee_btn_save = document.getElementById("id_mod_select_employee_btn_save")
+    let el_modemployee_btn_save = document.getElementById("id_MSE_btn_save")
         el_modemployee_btn_save.addEventListener("click", function() {MSE_Save("save")}, false )
-    let el_modemployee_btn_remove = document.getElementById("id_mod_select_employee_btn_remove")
+    let el_modemployee_btn_remove = document.getElementById("id_MSE_btn_remove_employee")
         el_modemployee_btn_remove.addEventListener("click", function() {MSE_Save("delete")}, false )
 
 // ---  set selected menu button active
@@ -1545,8 +1545,8 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
         };
 
 // ---  put employee name in header
-        let el_header = document.getElementById("id_mod_select_employee_header")
-        let el_div_remove = document.getElementById("id_mod_select_employee_div_remove")
+        let el_header = document.getElementById("id_MSE_header_employee")
+        let el_div_remove = document.getElementById("id_MSE_div_remove_employee")
         let header_text = null;
         if (!!selected_employee_pk){
             const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk)
@@ -1559,7 +1559,7 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
         el_header.innerText = header_text
 
 // remove values from el_mod_employee_input
-        let el_mod_employee_input = document.getElementById("id_mod_select_employee_input_employee")
+        let el_mod_employee_input = document.getElementById("id_MSE_input_employee")
         el_mod_employee_input.value = null
 
 // ---  fill selecttable employee
@@ -1611,7 +1611,7 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
             const code_value = get_attr_from_el_str(tblRow, "data-value")
             mod_upload_dict.employee_pk = selected_employee_pk;
 // ---  put code_value in el_input_employee
-            document.getElementById("id_mod_select_employee_input_employee").value = code_value
+            document.getElementById("id_MSE_input_employee").value = code_value
 // save selected employee
             MSE_Save()
         }  // if(!!tblRow)
@@ -1651,7 +1651,7 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
 
         let has_selection = false, has_multiple = false;
         let select_value, selected_pk;
-        let tblbody = document.getElementById("id_mod_select_employee_tblbody");
+        let tblbody = document.getElementById("id_MSE_tbody_employee");
         let len = tblbody.rows.length;
         if (!skip_filter && !!len){
             for (let row_index = 0, tblRow, show_row, el, pk_str, code_value; row_index < len; row_index++) {
@@ -1705,7 +1705,7 @@ function HandleTableRowClickedOrDoubleClicked(tblRow, event) {
     function MSE_FillSelectTableEmployee() {
         console.log( "=== MSE_FillSelectTableEmployee ");
 
-        let tableBody = document.getElementById("id_mod_select_employee_tblbody");
+        let tableBody = document.getElementById("id_MSE_tbody_employee");
         tableBody.innerText = null;
 
 //--- when no items found: show 'select_employee_none'

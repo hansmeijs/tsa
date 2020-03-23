@@ -42,8 +42,8 @@ logger = logging.getLogger(__name__)
 class DatalistDownloadView(View):  # PR2019-05-23
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ++++++++++++++++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++++++++++++++++ ')
+        #logger.debug(' ')
+        #logger.debug(' ++++++++++++++++++++++++++++++++++ DatalistDownloadView ++++++++++++++++++++++++++++++++++ ')
         #logger.debug('request.POST' + str(request.POST))
         # {'download': ['{"period":{"period_index":5,"datefirst":"2019-11-16","datelast":"2019-11-16","extend_index":3}}']}
 
@@ -59,7 +59,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
 
 # - get comp_timezone PR2019-06-14
                     comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
-                    # logger.debug('request.user.company.timezone: ' + str(request.user.company.timezone))
+                    #logger.debug('request.user.company.timezone: ' + str(request.user.company.timezone))
                     timeformat = request.user.company.timeformat if request.user.company.timeformat else c.TIMEFORMAT_24h
 # ---  get interval
                     interval = 15
@@ -67,7 +67,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         interval = request.user.company.interval
 
                     datalist_dict = json.loads(request.POST['download'])
-                    logger.debug('datalist_dict: ' + str(datalist_dict) + ' ' + str(type(datalist_dict)))
+                    #logger.debug('datalist_dict: ' + str(datalist_dict) + ' ' + str(type(datalist_dict)))
 
 # ----- settings -- first get settings, to be used in other downlaods
                     selected_page = None
@@ -107,14 +107,13 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     table_dict = datalist_dict.get('locale')
                     if table_dict:
                         # table_dict: {page: "employee"}
-                        datalists['locale_dict'] = loc.get_locale_dict(table_dict, user_lang, comp_timezone, timeformat)
+                        datalists['locale_dict'] = loc.get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval)
 
 # ----- quicksave
                     table_dict = datalist_dict.get('quicksave')
                     if table_dict:
                         # get quicksave from Usersetting
                         quicksave_dict = Usersetting.get_jsonsetting(c.KEY_USER_QUICKSAVE, request.user)
-                        logger.debug(' quicksave_dict: ' + str(quicksave_dict))
                         datalists['quicksave'] = quicksave_dict
 # ----- submenu
                     table_dict = datalist_dict.get('submenu')
@@ -295,9 +294,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             if order_pk is None:
                                 customer_pk = selected_customer_pk
 
-                        logger.debug('employee_pk: ' + str(employee_pk))
-                        logger.debug('customer_pk: ' + str(customer_pk))
-                        logger.debug('order_pk: ' + str(order_pk))
+                        #logger.debug('employee_pk: ' + str(employee_pk))
+                        #logger.debug('customer_pk: ' + str(customer_pk))
+                        #logger.debug('order_pk: ' + str(order_pk))
                         # calendar must have customer_pk, order_pk or employee_pk
                         if customer_pk or order_pk or employee_pk:
                             add_empty_shifts = calendar_period_dict.get('add_empty_shifts', False)
@@ -306,7 +305,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                             datefirst_iso = calendar_period_dict.get('period_datefirst')
                             datelast_iso = calendar_period_dict.get('period_datelast')
 
-                            logger.debug('skip_absence_and_restshifts' + str(skip_absence_and_restshifts))
+                            #logger.debug('skip_absence_and_restshifts' + str(skip_absence_and_restshifts))
                             orderby_rosterdate_customer = False
                             dict_list, logfile = r.create_employee_planning(
                                 datefirst_iso=datefirst_iso,
@@ -334,7 +333,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         # selected order is retrieved table_dict 'customer_calendar'.
                         # iF not provided: use selected_order_pk
                         # order_pk cannot be blank
-                        logger.debug('table_dict: customer_calendar' + str(table_dict))
+                        #logger.debug('table_dict: customer_calendar' + str(table_dict))
 
                         order_pk = None
                         if table_dict:
@@ -367,7 +366,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                         skip_restshifts = False
                         orderby_rosterdate_customer = False
 
-                        logger.debug('table_dict: employee_planning' + str(table_dict))
+                        #logger.debug('table_dict: employee_planning' + str(table_dict))
                         if table_dict:
                             employee_pk = table_dict.get('employee_pk')
                             customer_pk = None
@@ -410,7 +409,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     if (table_dict is not None and planning_period_dict) or \
                             (selected_page == 'page_customer' and selected_btn == 'planning' and planning_period_dict):
                         customer_pk = None
-                        logger.debug('table_dict: customer_planning' + str(table_dict))
+                        #logger.debug('table_dict: customer_planning' + str(table_dict))
                         if table_dict:
                             customer_pk = None
                             order_pk = table_dict.get('order_pk')
@@ -1292,6 +1291,42 @@ def create_deafult_templates(request, user_lang):  # PR2019-08-24
         is_cyclestart = False
 
 
+
+# === GridUploadView ===================================== PR2020-03-18
+@method_decorator([login_required], name='dispatch')
+class GridUploadView(UpdateView):  #PR2020-03-18
+
+    def post(self, request, *args, **kwargs):
+        logger.debug(' ')
+        logger.debug(' ============= GridUploadView ============= ')
+
+        update_wrap = {}
+        if request.user is not None and request.user.company is not None:
+
+# 1. Reset language
+            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+            activate(user_lang)
+
+# b. get comp_timezone
+            comp_timezone = request.user.company.timezone if request.user.company.timezone else TIME_ZONE
+
+# 2. get upload_dict from request.POST
+            upload_json = request.POST.get('upload', None)
+            if upload_json:
+                upload_dict = json.loads(upload_json)
+                logger.debug('upload_dict: ' + str(upload_dict))
+                eplh_update_list = []
+
+# 3. get iddict variables
+                table = f.get_dict_value(upload_dict, ('id', 'table'))
+                if table == 'team':
+                    update_wrap = team_upload(request, upload_dict, comp_timezone, user_lang)
+
+        return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
+
+
+
 @method_decorator([login_required], name='dispatch')
 class SchemeOrShiftOrTeamUploadView(UpdateView):  # PR2019-05-25
 
@@ -1504,8 +1539,8 @@ def shift_upload(request, upload_dict, user_lang):  # PR2019-08-08 PR2020-03-16
 
 
 def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
-    # logger.debug(' --- team_upload --- ')
-    # logger.debug(upload_dict)
+    logger.debug(' --- team_upload --- ')
+    logger.debug(upload_dict)
 
     update_wrap = {}
     deleted_or_created_ok = False
@@ -1528,7 +1563,7 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
         id=ppk_int,
         order__customer__company=request.user.company)
     if parent:
-        instance = None
+        logger.debug('parent' + str(parent))
 
 # 4. Delete instance
         if is_delete:
@@ -1539,20 +1574,19 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
                 deleted_or_created_ok = m.delete_instance(instance, update_dict, request, this_text)
                 if deleted_or_created_ok:
                     instance = None
-        else:
-
 # 5. Create new team
-            if is_create:
-                # create_team adds 'temp_pk', 'created' to id_dict, and 'error' to code_dict
-                instance = create_team(upload_dict, update_dict, user_lang, request)
-                if instance:
-                    deleted_or_created_ok = True
+        elif is_create:
+            # create_team adds 'temp_pk', 'created' to id_dict, and 'error' to code_dict
+            instance = create_team(upload_dict, update_dict, user_lang, request)
+            if instance:
+                deleted_or_created_ok = True
 
 # 6. Get existing team
-            else:
-                 instance = m.Team.objects.get_or_none(id=pk_int, scheme=parent)
+        else:
+             instance = m.Team.objects.get_or_none(id=pk_int, scheme=parent)
 
 # 7. update team, also when it is created
+        logger.debug('instance' + str(instance))
         if instance:
             update_team(instance, parent, upload_dict, update_dict, request)
 
@@ -1576,6 +1610,7 @@ def team_upload(request, upload_dict, comp_timezone, user_lang):  # PR2019-05-31
 
         # logger.debug('teammember_list: ' + str(teammember_list))
 # 4 return update_wrap
+    logger.debug('update_wrap' + str(update_wrap))
     return update_wrap
 
 
@@ -1939,8 +1974,7 @@ class SchemeitemFillView(UpdateView):  # PR2019-06-05
                                 row_index=None)
 
                 # d. update and save schemeitem
-                            update_schemeitem(schemeitem, upload_dict, item_update, request)
-
+                            update_schemeitem_instance(schemeitem, upload_dict, item_update, request)
 
 # --- Previous Next cycle
                     elif mode in ['prev', 'next']:
@@ -2848,6 +2882,8 @@ def update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_
 # --- recalculate timeduration and amount, addition, tax, wage
         # logger.debug('calculate working hours')
         if recalc_duration:
+            save_changes = True
+
             field = 'timeduration'
             if instance.timestart and instance.timeend:
                 saved_breakduration = getattr(instance, 'breakduration', 0)
@@ -2859,10 +2895,10 @@ def update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_
                 setattr(instance, field, time_duration)
                 update_dict[field]['updated'] = True
             else:
-                # use saved timeduration when timestart or timeend is blank
+        # use saved timeduration when timestart or timeend is blank
                 time_duration = instance.timeduration
 
-            # also recalculate billingduration when isbillable
+        # also recalculate billingduration when isbillable
             if instance.orderhour.isbillable:
                 billing_duration = time_duration
                 setattr(instance, 'billingduration', billing_duration)
@@ -2885,7 +2921,14 @@ def update_emplhour_orderhour(instance, upload_dict, update_dict, request, comp_
             instance.amount = amount
             instance.addition = addition
             instance.tax = tax
-            save_changes = True
+
+        # also recalculate datepart when start- and endtime are given # PR2020-03-23
+            date_part = 0
+            if instance.rosterdate and instance.timestart and instance.timeend:
+                offset_start = f.get_offset_from_datetimelocal(instance.rosterdate, instance.timestart)
+                offset_end = f.get_offset_from_datetimelocal(instance.rosterdate, instance.timeend)
+                date_part = f.calc_datepart(offset_start, offset_end)
+            setattr(instance, 'datepart', date_part)
 
 # 6. save changes
         if save_changes:

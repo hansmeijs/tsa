@@ -171,14 +171,14 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
 
 def check_rosterdate_confirmed(rosterdate_dte, company):  # PR2019-11-12
     #logger.debug(' ============= check_rosterdate_confirmed ============= ')
-    # logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+    #logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
     # check if rosterdate has orderhours / emplhours. If so, check if there are lockes  /confirmed shifts
 
 # count Emplhour records of this date
     emplhour_count = m.Emplhour.objects.filter(
         orderhour__order__customer__company=company,
         rosterdate=rosterdate_dte).count()
-    logger.debug('emplhour_count: ' + str(emplhour_count))
+    #logger.debug('emplhour_count: ' + str(emplhour_count))
 
     emplhour_count_confirmed_or_locked = 0
     if(emplhour_count):
@@ -192,7 +192,7 @@ def check_rosterdate_confirmed(rosterdate_dte, company):  # PR2019-11-12
 
 
 def get_period_dict_and_save(request, get_current):  # PR2019-07-13
-    # logger.debug(' --- get_period_dict_and_save --- ')
+    #logger.debug(' --- get_period_dict_and_save --- ')
     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
     # default mode is 'current'
     new_period_dict = {'mode': 'current'}
@@ -200,7 +200,7 @@ def get_period_dict_and_save(request, get_current):  # PR2019-07-13
 
 # 1. get saved period_dict
         saved_period_dict = get_period_from_settings(request)
-        # logger.debug('saved_period_dict ' + str(saved_period_dict))
+        #logger.debug('saved_period_dict ' + str(saved_period_dict))
 
 # 2. copy key values from saved_period_dict in new_period_dict (don't copy dict, the loop skips keys that are not in use)
         if saved_period_dict:
@@ -215,7 +215,7 @@ def get_period_dict_and_save(request, get_current):  # PR2019-07-13
             new_period_dict['mode'] = 'current'
         elif new_period_dict['mode'] == 'current':
             get_current = True
-        # logger.debug('new_period_dict ' + str(new_period_dict))
+        #logger.debug('new_period_dict ' + str(new_period_dict))
 
         interval_int = int(new_period_dict['interval'])
         overlap_prev_int = int(new_period_dict['overlap_prev'])
@@ -228,7 +228,7 @@ def get_period_dict_and_save(request, get_current):  # PR2019-07-13
                 period_starttime_iso = new_period_dict['periodstart']
             else:
                 get_current = True
-        # logger.debug('>>>> period_starttime_iso: ' + str(period_starttime_iso))
+        #logger.debug('>>>> period_starttime_iso: ' + str(period_starttime_iso))
         # period_starttime_iso: 2019-07-29T22:00:00+00:00
 
         if get_current:
@@ -256,12 +256,12 @@ def get_period_dict_and_save(request, get_current):  # PR2019-07-13
         period_dict_json = json.dumps(new_period_dict)  # dumps takes an object and produces a string:
         Usersetting.set_setting(c.KEY_USER_PERIOD_EMPLHOUR, period_dict_json, request.user)
 
-    # logger.debug('new_period_dict: ' + str(new_period_dict))
+    #logger.debug('new_period_dict: ' + str(new_period_dict))
     return new_period_dict
 
 
 def get_current_period(interval_int, overlap_prev_int, overlap_next_int, request):  # PR2019-07-12
-    # logger.debug(' ============= get_current_period ============= ')
+    #logger.debug(' ============= get_current_period ============= ')
      # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
 
     period_starttime_utc = None
@@ -293,43 +293,43 @@ def get_current_period(interval_int, overlap_prev_int, overlap_next_int, request
         interval_index = 0
         if interval_int:
             interval_index = int(hour_int / interval_int)
-        # logger.debug('interval_int: ' + str(interval_int) + ' interval_index: ' + str(interval_index))
+        #logger.debug('interval_int: ' + str(interval_int) + ' interval_index: ' + str(interval_index))
 
 # get local start hour of current interval
         period_starthour = interval_int * interval_index
-        # logger.debug('period_starthour: ' + str(period_starthour))
+        #logger.debug('period_starthour: ' + str(period_starthour))
 
 # get local start time of current interval without timezone
         interval_starttime_naive = datetime(year_int, month_int, date_int, period_starthour, 0)
-        # logger.debug('interval_starttime_naive: ' + str(interval_starttime_naive))
+        #logger.debug('interval_starttime_naive: ' + str(interval_starttime_naive))
 
 # get local start time of current interval in local timezone ( = company timezone)
         # localize can only be used with naive datetime objects. It does not change the datetime, olny adds tzinfo
         interval_starttime_local = timezone.localize(interval_starttime_naive)
-        # logger.debug('interval_starttime_local: ' + str(interval_starttime_local))
+        #logger.debug('interval_starttime_local: ' + str(interval_starttime_local))
 
 # get local start time of current period (is interval_start_local minus overlap_prev_int)
         period_starttime_local = interval_starttime_local - timedelta(hours=overlap_prev_int)
-        # logger.debug('overlap_prev_int: ' + str(overlap_prev_int) + ' period_starttime_local: ' + str(period_starttime_local))
+        #logger.debug('overlap_prev_int: ' + str(overlap_prev_int) + ' period_starttime_local: ' + str(period_starttime_local))
 
 # get start time of current period in UTC
         period_starttime_utc = period_starttime_local.astimezone(pytz.UTC)
-        # logger.debug('period_starttime_utc: ' + str(period_starttime_utc))
+        #logger.debug('period_starttime_utc: ' + str(period_starttime_utc))
 
 # get utc end time of current period ( = utc start time of current period plus overlap_prev_int + interval + overlap_next_int
         period_int = overlap_prev_int + interval_int + overlap_next_int
         period_endtime_utc = period_starttime_utc + timedelta(hours=period_int)
-        # logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
+        #logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
 
     return period_starttime_utc, period_endtime_utc
 
 
 def get_prevnext_period(prevnext, period_timestart_iso, interval_int, overlap_prev_int,  overlap_next_int, comp_timezone):  # PR2019-07-13
-    # logger.debug(' ============= get_prevnext_period ============= ')
+    #logger.debug(' ============= get_prevnext_period ============= ')
     # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
 
-    # logger.debug('period_timestart_iso: ' + str(period_timestart_iso) + ' ' + str(type(period_timestart_iso)))
-    # logger.debug('interval_int: ' + str(interval_int) + ' ' + str(type(interval_int)))
+    #logger.debug('period_timestart_iso: ' + str(period_timestart_iso) + ' ' + str(type(period_timestart_iso)))
+    #logger.debug('interval_int: ' + str(interval_int) + ' ' + str(type(interval_int)))
 
     hour_add = 0
     if prevnext == 'next':
@@ -342,30 +342,29 @@ def get_prevnext_period(prevnext, period_timestart_iso, interval_int, overlap_pr
 
     # convert period_timestart_iso into period_timestart_local
     period_timestart_local = f.get_datetime_LOCAL_from_ISOstring(period_timestart_iso, comp_timezone)
-    # logger.debug('period_timestart_local: ' + str(period_timestart_local) + ' ' + str(type(period_timestart_local)))
+    #logger.debug('period_timestart_local: ' + str(period_timestart_local) + ' ' + str(type(period_timestart_local)))
 
     # get local start time of new period ( = local start time of current period plus interval)
     prevnext_timestart_local = period_timestart_local + timedelta(hours=hour_add)
-    # logger.debug('prevnext_timestart_local: ' + str(prevnext_timestart_local))
+    #logger.debug('prevnext_timestart_local: ' + str(prevnext_timestart_local))
 
     # get start time of new period in UTC
     prevnext_timestart_utc = prevnext_timestart_local.astimezone(pytz.UTC)
-    # logger.debug('prevnext_timestart_utc: ' + str(prevnext_timestart_utc))
+    #logger.debug('prevnext_timestart_utc: ' + str(prevnext_timestart_utc))
 
     # get local end time of new period ( = local start time of new period plus interval + overlap_prev + overlap_next
     prevnext_timeend_local = prevnext_timestart_local + timedelta(hours=period_int)
-    # logger.debug('prevnext_timeend_local: ' + str(prevnext_timeend_local))
+    #logger.debug('prevnext_timeend_local: ' + str(prevnext_timeend_local))
 
     # get end time of new period in UTC
     prevnext_timeend_utc = prevnext_timeend_local.astimezone(pytz.UTC)
-    # logger.debug('prevnext_timeend_utc: ' + str(prevnext_timeend_utc))
-
+    #logger.debug('prevnext_timeend_utc: ' + str(prevnext_timeend_utc))
 
     return prevnext_timestart_utc, prevnext_timeend_utc
 
 
 def get_timesstartend_from_perioddict(period_dict, request):  # PR2019-07-15
-    # logger.debug(' ============= get_timesstartend_from_perioddict ============= ')
+    #logger.debug(' ============= get_timesstartend_from_perioddict ============= ')
 
     period_timestart_utc = None
     period_timeend_utc = None
@@ -404,15 +403,15 @@ def get_timesstartend_from_perioddict(period_dict, request):  # PR2019-07-15
             if period_timeend_iso:
                 period_timeend_utc = f.get_datetime_UTC_from_ISOstring(period_timeend_iso)
 
-    # logger.debug('period_timestart_utc: ' + str(period_timestart_utc))
-    # logger.debug('period_timeend_utc: ' + str(period_timeend_utc))
+    #logger.debug('period_timestart_utc: ' + str(period_timestart_utc))
+    #logger.debug('period_timeend_utc: ' + str(period_timeend_utc))
 
     return period_timestart_utc, period_timeend_utc
 
 
 def get_range_enddate_iso(range, range_startdate_iso, comp_timezone):  # PR2019-08-01
-    logger.debug(' ============= get_range_enddate_iso ============= ')
-    logger.debug(' range_startdate_iso: ' + str(range_startdate_iso) + ' rang: ' + str(range))
+    #logger.debug(' ============= get_range_enddate_iso ============= ')
+    #logger.debug(' range_startdate_iso: ' + str(range_startdate_iso) + ' rang: ' + str(range))
      # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
 
 # split range
@@ -456,7 +455,7 @@ def get_range_enddate_iso(range, range_startdate_iso, comp_timezone):  # PR2019-
         # convert range_timestart_utc to range_timestart_local
         date_start = f.get_date_from_ISOstring(range_startdate_iso)
         datetime_start = f.get_datetimenaive_from_ISOstring(range_startdate_iso)
-        logger.debug(' datetime_start: ' + str(datetime_start) + ' rang: ' + str(type(datetime_start)))
+        #logger.debug(' datetime_start: ' + str(datetime_start) + ' rang: ' + str(type(datetime_start)))
         # previous day is end date
         day_add -= 1
         datetime_end = datetime_start + timedelta(days=day_add)
@@ -469,7 +468,7 @@ def get_range_enddate_iso(range, range_startdate_iso, comp_timezone):  # PR2019-
 
 
 def get_period_from_settings(request):  # PR2019-07-09
-    # logger.debug(' ============= get_period_from_settings ============= ')
+    #logger.debug(' ============= get_period_from_settings ============= ')
 
     period_dict = {}
     if request.user is not None and request.user.company is not None:
@@ -512,13 +511,13 @@ def get_period_from_settings(request):  # PR2019-07-09
 
 
 def get_period_endtime(period_starttime_utc, interval_int, overlap_prev_int, overlap_next_int):  # PR2019-07-13
-    # logger.debug(' ============= get_period_endtime ============= ')
+    #logger.debug(' ============= get_period_endtime ============= ')
      # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
 
     # utc end time of period = local start time of period plus overlap_prev_int + interval + overlap_next_int
     period_int = overlap_prev_int + interval_int + overlap_next_int
     period_endtime_utc = period_starttime_utc + timedelta(hours=period_int)
-    # logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
+    #logger.debug('period: ' + str(period_int) + 'period_endtime_utc' + str(period_endtime_utc))
 
     return period_endtime_utc
 
@@ -536,12 +535,13 @@ def create_scheme_list(filter_dict, company, comp_timezone, user_lang):
     inactive = filter_dict.get('inactive')
 
 # --- create list of schemes of this company, absence=false PR2019-11-22
+    # filter on order__isabsence and order__is_template PR2020-03-22
     crit = Q(order__customer__company=company)
 
     if is_absence is not None:
-        crit.add(Q(isabsence=is_absence), crit.connector)
+        crit.add(Q(order__isabsence=is_absence), crit.connector)
     if is_template is not None:
-        crit.add(Q(istemplate=is_template), crit.connector)
+        crit.add(Q(order__istemplate=is_template), crit.connector)
     if inactive is not None:
         crit.add(Q(inactive=inactive), crit.connector)
     if order_pk:
@@ -550,7 +550,7 @@ def create_scheme_list(filter_dict, company, comp_timezone, user_lang):
         crit.add(Q(order__customer_id=customer_pk), crit.connector)
 
     schemes = m.Scheme.objects.filter(crit)
-    # logger.debug('schemes SQL: ' + str(schemes.query))
+    #logger.debug('schemes SQL: ' + str(schemes.query))
 
     scheme_list = []
     for scheme in schemes:
@@ -589,9 +589,10 @@ def create_scheme_dict(scheme, item_dict, user_lang):
                 field_dict['pk'] = scheme.pk
                 field_dict['ppk'] = scheme.order.pk
                 field_dict['table'] = table
-                if scheme.isabsence:
+                # get order.isabsence and scheme.order PR2020-03-22
+                if scheme.order.isabsence:
                     field_dict['isabsence'] = True
-                if scheme.istemplate:
+                if scheme.order.istemplate:
                     field_dict['istemplate'] = True
 
                 item_dict['pk'] = scheme.pk
@@ -616,13 +617,13 @@ def create_scheme_dict(scheme, item_dict, user_lang):
             elif field == 'datefirst':
                 f.set_fielddict_date(
                     field_dict=field_dict,
-                    date_value=scheme_datefirst,
+                    date_obj=scheme_datefirst,
                     mindate=order_datefirst,
                     maxdate=maxdate)
             elif field == 'datelast':
                 f.set_fielddict_date(
                     field_dict=field_dict,
-                    date_value=scheme_datelast,
+                    date_obj=scheme_datelast,
                     mindate=mindate,
                     maxdate=order_datelast)
 
@@ -755,7 +756,7 @@ def create_schemeitem_dict(schemeitem, item_dict):
 
                 f.set_fielddict_date(
                     field_dict=field_dict,
-                    date_value=rosterdate,
+                    date_obj=rosterdate,
                     mindate=cycle_startdate,
                     maxdate=cycle_enddate)
 
@@ -823,7 +824,7 @@ def create_shift_list(filter_dict, company, user_lang):
 
 
 def create_shift_dict(shift, update_dict, user_lang):
-    logger.debug(' ----- create_shift_dict ----- ')
+    #logger.debug(' ----- create_shift_dict ----- ')
     # update_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
     # FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',
@@ -933,9 +934,12 @@ def create_shift_dict(shift, update_dict, user_lang):
             if field_dict:
                 update_dict[field] = field_dict
 
-    #logger.debug('update_dict: ' + str(update_dict))
+    #logger.debug('------------- update_dict: ' + str(update_dict))
     # 7. remove empty attributes from update_dict
     f.remove_empty_attr_from_dict(update_dict)
+
+    shift_update = update_dict
+    return shift_update
 # --- end of create_shift_dict
 
 
@@ -976,7 +980,9 @@ def create_team_dict(team, item_dict):
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
     #logger.debug(' --- create_team_dict ---')
     #logger.debug('item_dict: ' + str(item_dict))
-    # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code')
+
+    team_update = {}
+    # FIELDS_TEAM = ('id', 'scheme', 'cat', 'code', 'isabsence', 'issingleshift', 'istemplate')
     if team:
         for field in c.FIELDS_TEAM:
 
@@ -1019,6 +1025,9 @@ def create_team_dict(team, item_dict):
 
 # 6. remove empty attributes from item_dict
     f.remove_empty_attr_from_dict(item_dict)
+
+    team_update = item_dict
+    return team_update
 # --- end of create_team_dict
 
 # =========  get_teamcode_abbrev  === PR2020-03-15
@@ -1030,7 +1039,6 @@ def get_teamcode_abbrev(team_code):
     team_not_translated_plus_space = 'team '
     length = len(team_not_translated_plus_space)
     sliced = team_code[0:length].lower()
-
     if sliced == team_not_translated_plus_space:
         abbrev = team_code[length:length + 3]
 #  ---  if not, check if team_code starts with 'ploeg ' (include space after 'ploeg'
@@ -1039,6 +1047,20 @@ def get_teamcode_abbrev(team_code):
         length = len(ploeg_not_translated_plus_space)
         sliced = team_code[0:length].lower()
         if sliced == ploeg_not_translated_plus_space:
+            abbrev = team_code[length:length + 3]
+#  ---  if not, check if team_code starts with 'employee ' (include space after 'employee'
+    if not abbrev:
+        employee_not_translated_plus_space = 'employee '
+        length = len(employee_not_translated_plus_space)
+        sliced = team_code[0:length].lower()
+        if sliced == employee_not_translated_plus_space:
+            abbrev = team_code[length:length + 3]
+#  ---  if not, check if team_code starts with 'medewerker ' (include space after 'medewerker'
+    if not abbrev:
+        medewerker_not_translated_plus_space = 'medewerker '
+        length = len(medewerker_not_translated_plus_space)
+        sliced = team_code[0:length].lower()
+        if sliced == medewerker_not_translated_plus_space:
             abbrev = team_code[length:length + 3]
 #  ---  if not, take abbrev from start of 'team_code
     if not abbrev:
@@ -1511,7 +1533,9 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
 
         is_absence = period_dict.get('isabsence')
         is_restshift = period_dict.get('isrestshift')
+        date_part = period_dict.get('datepart')
 
+        #logger.debug('is_restshift: ' + str(is_restshift))
     # show emplhour records with :
         # LEFT JOIN employee (also records without employee are shown)
         # - this company
@@ -1537,6 +1561,7 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
             c.isabsence AS c_abs, 
             eh.isrestshift AS eh_rest, 
             eh.isreplacement AS eh_isrpl,
+            eh.datepart AS eh_datepart,
             eh.timestart AS eh_ts, eh.timeend AS eh_te, eh.status AS eh_st, eh.overlap AS eh_ov,
             eh.breakduration AS eh_breakdur, eh.timeduration AS eh_timedur, 
             eh.plannedduration AS eh_plandur, eh.billingduration AS eh_billdur, 
@@ -1554,12 +1579,13 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
             AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
             AND (c.isabsence = %(isabs)s OR %(isabs)s IS NULL)
             AND (eh.isrestshift = %(isrest)s OR %(isrest)s IS NULL)
+            AND (eh.datepart = %(dp)s OR %(dp)s IS NULL)
 
             AND CASE WHEN eh.timestart IS NULL THEN (eh.rosterdate >= %(rdf)s) ELSE (eh.rosterdate >= %(rdfm1)s) END
             AND CASE WHEN eh.timeend   IS NULL THEN (eh.rosterdate <= %(rdl)s) ELSE (eh.rosterdate <= %(rdlp1)s) END
             AND (eh.timestart < %(pte)s OR eh.timestart IS NULL OR %(pte)s IS NULL)
             AND (eh.timeend   > %(pts)s OR eh.timeend   IS NULL OR %(pts)s IS NULL)
-            ORDER BY eh.rosterdate ASC, c.isabsence ASC, LOWER(c.code) ASC, LOWER(o.code) ASC, eh.isrestshift ASC, eh.timestart ASC
+            ORDER BY eh.rosterdate ASC, c.isabsence ASC, LOWER(o.code) ASC, o.id, eh.isrestshift ASC, eh.timestart ASC
             """, {
                 'comp_id': company_pk,
                 'cust_id': customer_pk,
@@ -1567,6 +1593,7 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
                 'empl_id': employee_pk,
                 'isabs': is_absence,
                 'isrest': is_restshift,
+                'dp': date_part,
                 'rdf': rosterdatefirst,
                 'rdl': rosterdatelast,
                 'rdfm1': rosterdatefirst_minus1,
@@ -1574,6 +1601,8 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
                 'pts': periodstart_datetime_utc_withtimezone,
                 'pte': periodend_datetime_utc_withtimezone
                 })
+#  PR2020-03-22 was order by customer, order: ORDER BY eh.rosterdate ASC, c.isabsence ASC, LOWER(c.code) ASC, LOWER(o.code) ASC, eh.isrestshift ASC, eh.timestart ASC
+
         #             AND (eh.employee_id = %(empl_id)s OR %(empl_id)s IS NULL)
 #             AND (eh.isabsence = %(eh_absence)s OR %(eh_absence)s IS NULL)
         #logger.debug("rosterdatefirst_minus1: " + str(rosterdatefirst_minus1))
@@ -1604,7 +1633,7 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
     # --- end of create_NEWemplhour_itemdict
      # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-            # logger.debug('create_NEWemplhour_itemdict: ' + str(item_dict))
+            #logger.debug('create_NEWemplhour_itemdict: ' + str(item_dict))
             if item_dict:
                 emplhour_list.append(item_dict)
 
@@ -2102,8 +2131,8 @@ def create_review_customer_list(period_dict, comp_timezone, request):  # PR2019-
 
     review_list = []
     if request.user.company:
-        logger.debug(' ============= create_review_customer_list ============= ')
-        logger.debug('period_dict:  ' + str(period_dict))
+        #logger.debug(' ============= create_review_customer_list ============= ')
+        #logger.debug('period_dict:  ' + str(period_dict))
 
         period_datefirst = period_dict.get('period_datefirst')
         period_datelast = period_dict.get('period_datelast')
@@ -2240,8 +2269,8 @@ def create_review_employee_list(period_dict, comp_timezone, request):  # PR2019-
 
     review_list = []
     if request.user.company:
-        logger.debug(' ============= create_review_list ============= ')
-        logger.debug('period_dict:  ' + str(period_dict))
+        #logger.debug(' ============= create_review_list ============= ')
+        #logger.debug('period_dict:  ' + str(period_dict))
 
         period_datefirst = period_dict.get('period_datefirst')
         period_datelast = period_dict.get('period_datelast')
@@ -2253,9 +2282,6 @@ def create_review_employee_list(period_dict, comp_timezone, request):  # PR2019-
         employee_pk = period_dict.get('employee_pk')
         customer_pk = period_dict.get('customer_pk')
         order_pk = period_dict.get('order_pk')
-        logger.debug('=============employee_pk:  ' + str(employee_pk))
-        logger.debug('=============customer_pk:  ' + str(customer_pk))
-        logger.debug('===========order_pk:  ' + str(order_pk))
 
         # change employee_pk = 0 to None, otherwise no records will be retrieved
         employee_pk = employee_pk if employee_pk else None
@@ -2273,12 +2299,12 @@ def create_review_employee_list(period_dict, comp_timezone, request):  # PR2019-
         # from django.db import connection
         #logger.debug(connection.queries)
 
-        logger.debug('period_datefirst: ' + str(period_datefirst) + ' ' + str(type(period_datefirst)))
-        logger.debug('period_datelast: ' + str(period_datelast) + ' ' + str(type(period_datelast)))
-        logger.debug('customer_pk: ' + str(customer_pk) + ' ' + str(type(customer_pk)))
-        logger.debug('order_pk: ' + str(order_pk) + ' ' + str(type(order_pk)))
-        logger.debug('is_absence: ' + str(is_absence) + ' ' + str(type(is_absence)))
-        logger.debug('is_restshift: ' + str(is_restshift) + ' ' + str(type(is_restshift)))
+        #logger.debug('period_datefirst: ' + str(period_datefirst) + ' ' + str(type(period_datefirst)))
+        #logger.debug('period_datelast: ' + str(period_datelast) + ' ' + str(type(period_datelast)))
+        #logger.debug('customer_pk: ' + str(customer_pk) + ' ' + str(type(customer_pk)))
+        #logger.debug('order_pk: ' + str(order_pk) + ' ' + str(type(order_pk)))
+        #logger.debug('is_absence: ' + str(is_absence) + ' ' + str(type(is_absence)))
+        #logger.debug('is_restshift: ' + str(is_restshift) + ' ' + str(type(is_restshift)))
 
         cursor = connection.cursor()
         # fields in review_list:
@@ -2732,7 +2758,7 @@ def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, tim
     if has_overlap:
         field_dict['overlap'] = True
 
-    # logger.debug('field_dict: '+ str(field_dict))
+    #logger.debug('field_dict: '+ str(field_dict))
 
 def get_minmax_datetime_utc(field, rosterdate, timestart_utc, timeend_utc, comp_timezone):  # PR2019-08-07
     #logger.debug(" ------- get_minmax_datetime_utc ---------- ")
@@ -3010,7 +3036,7 @@ def create_schemes_extended_dict(filter_dict, company, comp_timezone, user_lang)
         crit.add(Q(order__customer_id=customer_pk), crit.connector)
 
     schemes = m.Scheme.objects.filter(crit)
-    # logger.debug('schemes SQL: ' + str(schemes.query))
+    #logger.debug('schemes SQL: ' + str(schemes.query))
 
     schemes_dict = {}
     for scheme in schemes:
@@ -3094,13 +3120,13 @@ def create_scheme_dict_extended(scheme, item_dict, user_lang):
             elif field == 'datefirst':
                 f.set_fielddict_date(
                     field_dict=field_dict,
-                    date_value=scheme_datefirst,
+                    date_obj=scheme_datefirst,
                     mindate=order_datefirst,
                     maxdate=maxdate)
             elif field == 'datelast':
                 f.set_fielddict_date(
                     field_dict=field_dict,
-                    date_value=scheme_datelast,
+                    date_obj=scheme_datelast,
                     mindate=mindate,
                     maxdate=order_datelast)
 

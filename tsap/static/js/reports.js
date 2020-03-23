@@ -96,8 +96,11 @@
                 // format_date_iso (date_iso, month_list, weekday_list, hide_weekday, hide_year, user_lang) {
                 const this_employee_code = get_dict_value(row, ["employee", "code"], "---")
                 const this_customer_code = get_dict_value(row, ["customer", "code"], "")
-                const this_order_code = get_dict_value(row, ["order", "code"], "")
+                let this_order_code = get_dict_value(row, ["order", "code"], "") + " " + this_customer_code
+
                 const this_shift_code = get_dict_value(row, ["shift", "code"], "")
+
+                
 // ======== change in rosterdate ========
                 if (this_rosterdate_iso !== prev_rosterdate_iso){
                     prev_rosterdate_iso = this_rosterdate_iso;
@@ -117,6 +120,8 @@
                     PrintSubtotalHeader("rpt_roster", "rosterdate", rosterdate_formatted_long, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
                 }
 //========= change in customer
+/*
+
                 if (this_customer_pk !== prev_customer_pk){
                     prev_customer_pk = this_customer_pk;
                     prev_order_pk = 0;
@@ -133,6 +138,7 @@
                     const subtotal_arr = get_dict_value(subtotals, [this_rosterdate_iso, this_customer_pk, "total"]);
                     PrintSubtotalHeader("rpt_roster", "customer", this_customer_code, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
                 }
+  */
 //========= change in order
                 if (this_order_pk !== prev_order_pk){
                     prev_order_pk = this_order_pk;
@@ -211,7 +217,7 @@
 
 // ++++++++++++  PRINT REVIEW CUSTOMER+++++++++++++++++++++++++++++++
     function PrintReviewCustomer(option, selected_period, review_list, subtotals, company_dict, loc, imgsrc_warning) {
-        console.log("++++++++++++  PRINT REVIEW CUSTOMER+++++++++++++++++++++++++++++++++++++++")
+        //console.log("++++++++++++  PRINT REVIEW CUSTOMER+++++++++++++++++++++++++++++++++++++++")
 
         let img_warning = new Image();
         img_warning.src = imgsrc_warning;
@@ -549,7 +555,7 @@
 
 // ++++++++++++  PRINT ORDER PLANNING +++++++++++++++++++++++++++++++++++++++
     function PrintOrderPlanning(option, selected_period, planning_map, display_duration_total, loc) {
-        console.log("PrintOrderPlanning")
+        //console.log("PrintOrderPlanning")
         //console.log("month_list", month_list)
         //console.log("selected_period", selected_period)
 
@@ -780,8 +786,8 @@
 
 // ++++++++++++  PRINT EMPLOYEE PLANNING +++++++++++++++++++++++++++++++++++++++
     function PrintEmployeePlanning(option, selected_period, planning_map, company_dict, loc) {
-        console.log("PrintEmployeePlanning")
-        console.log("selected_period", selected_period)
+        //console.log("PrintEmployeePlanning")
+        //console.log("selected_period", selected_period)
 
         const today_JS = new Date();
         const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
@@ -998,9 +1004,9 @@
 // ++++++++++++  END OF PRINT EMPLOYEE PLANNING +++++++++++++++++++++++++++++++++++++++
 
     function PrintReportHeader(tab_list, txt_list, pos, setting, doc){
-        console.log(" --- PrintReportHeader --- ")
-        console.log("tab_list: ", tab_list)
-        console.log("txt_list: ", txt_list)
+        //console.log(" --- PrintReportHeader --- ")
+        //console.log("tab_list: ", tab_list)
+        //console.log("txt_list: ", txt_list)
         //Landscape: const tab_list = [0, 30, 40, 160, 185, 195];
         const pad_left =  0 ; // was: 2;
         const lineheight = 6;
@@ -1066,8 +1072,8 @@
 
 //========= PrintFooter  ====================================
     function PrintFooter(pos, doc, setting, loc){
-        console.log("-----  PrintFooter -----")
-        console.log("pos: ", pos)
+        //console.log("-----  PrintFooter -----")
+        //console.log("pos: ", pos)
         const tab_list = ["0", "185r"];
         const values = [ loc.Print_date + ":  " + pos.today, loc.Page + "  " + pos.page.toString()]
         pos.top = setting.page_height
@@ -1081,7 +1087,7 @@
 
 //========= PrintSubtotalHeader  ====================================
     function PrintSubtotalHeader(rptName, fldName, this_item_code, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc){
-        console.log("-----  PrintSubtotalHeader -----")
+        //console.log("-----  PrintSubtotalHeader -----")
 
         let subtotal_values = [];
         if (!!subtotal_arr){
@@ -1415,7 +1421,7 @@
 
 //========= function test printPDF  ====  PR2020-01-02
     function printPDFlogfile(log_list, file_name, printtoscreen) {
-        console.log("printPDFlogfile")
+        //console.log("printPDFlogfile")
         let doc = new jsPDF();
 
         //doc.addFont('courier', 'courier', 'normal');
@@ -1458,7 +1464,7 @@
             //     doc.output('datauri');
             // } else {
                 doc.save(file_name);
-                    console.log("doc.save(file_name: ", file_name)
+                    //console.log("doc.save(file_name: ", file_name)
             // }  // if (printtoscreen){
         }  // if (len > 0){
     }  // function printPDFlogfile
@@ -1472,7 +1478,7 @@
 //========================================================================
 
     function calc_review_customer_totals(review_list){
-        console.log(" --- calc_review_customer_totals ---: ")
+        //console.log(" --- calc_review_customer_totals ---: ")
         // calculate subtotals PR2020-02-17
         //  customer_totals contains [count, eh_plandur, eh_timedur, eh_billdur, billable_count]
         // subtotals = {total: [11170, 10330, 10330]
@@ -1558,7 +1564,7 @@
                 }  // if(!!customer_pk && order_pk && rosterdate_iso)
             }  // for (let i = 0; i < len; i++)
         }  // if (len > 0)
-        console.log(" --- subtotals: ", subtotals)
+        //console.log(" --- subtotals: ", subtotals)
         return subtotals;
     }  // calc_review_customer_totals
 
@@ -1629,12 +1635,12 @@
 
             }  // for (let i = 0; i < len; i++)
         }  // if (len > 0)
-        console.log(" --- subtotals: ", subtotals)
+        //console.log(" --- subtotals: ", subtotals)
         return subtotals;
     }  // calc_review_employee_totals
 
     function calc_roster_totals(roster_list){
-        console.log(" --- calc_review_customer_totals ---: ")
+        //console.log(" --- calc_review_customer_totals ---: ")
         // calculate subtotals PR2020-02-17
         //  array contains [plan_dur, time_dur, bill_dur, row_count, bill_count]
         // subtotals = {total: [11170, 10330, 10330]
@@ -1702,7 +1708,7 @@
                 }  // if(!!customer_pk && order_pk && rosterdate_iso)
             }  // for (let i = 0; i < len; i++)
         }  // if (len > 0)
-        console.log(" --- subtotals: ", subtotals)
+        //console.log(" --- subtotals: ", subtotals)
         return subtotals;
     }  // calc_roster_totals
 

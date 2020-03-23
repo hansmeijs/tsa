@@ -1,4 +1,5 @@
 # PR2018-05-28
+import datetime
 from datetime import date, time, datetime, timedelta
 from django.db.models.functions import  Lower
 from django.utils.translation import ugettext_lazy as _
@@ -45,6 +46,17 @@ class ForgivingManifestStaticFilesStorage(ManifestStaticFilesStorage):
     # >>> datetime.datetime(2016, 9, 20, 23, 43, 45, tzinfo=<UTC>)
 
 # >>>>>> This is the right way, I think >>>>>>>>>>>>>
+
+
+def get_date_from_ISO(date_string):  # PR2019-09-18 PR2020-03-20
+    # this is the simple way, it works though
+    #logger.debug('... get_date_from_ISO ...')
+    #logger.debug('date_string: ' + str(date_string))
+    dte = None
+    if date_string:
+        arr = date_string.split('-')
+        dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
+    return dte
 
 def get_dateobj_from_dateISOstring(date_ISOstring):  # PR2019-10-25
     dte = None
@@ -216,7 +228,7 @@ def get_offset_from_datetimelocal(rosterdate, dt_local):  # PR2019-09-17
         #logger.debug('dt_naive: ' + str(dt_naive) + ' ' + str(type(dt_naive)))
         # dt_naive: 2019-04-02 16:30:00 <class 'datetime.datetime'>
 
-    # c. get time differenece between dt_naive and add rosterdatetime_naive
+    # c. get time difference between dt_naive and add rosterdatetime_naive
         # from https://stackoverflow.com/questions/2119472/convert-a-timedelta-to-days-hours-and-minutes
         timedelta_diff = dt_naive - rosterdatetime_naive
         offset_int = timedelta_diff.days * 1440 + timedelta_diff.seconds // 60
@@ -362,20 +374,20 @@ def get_datetimearray_from_dateISO(datetime_ISOstring):  # PR2019-07-10
     #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
     #  split string into array  ["2019", "03", "30", "19", "05", "00"]
     #  regex \d+ - matches one or more numeric digits
-    #logger.debug('............. get_datetimearray_from_dateISO: ' + str(datetime_ISOstring))
-    #logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' ' + str(type(datetime_ISOstring)))
+    logger.debug('............. get_datetimearray_from_dateISO: ' + str(datetime_ISOstring))
+    logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' ' + str(type(datetime_ISOstring)))
 
     regex = re.compile('\D+')
 
-    #logger.debug(' regex: ' + str(regex))
+    logger.debug(' regex: ' + str(regex) + ' ' + str(type(regex)))
     arr = regex.split(datetime_ISOstring)
-    #logger.debug(' arr: ' + str(arr))
     length = len(arr)
 
     while length < 5:
         arr.append('0')
         length += 1
 
+    #logger.debug(' arr: ' + str(arr))
     return arr
 
 
@@ -504,7 +516,7 @@ def get_datetimelocal_from_datetimeUTC(date_timeUTC, comp_timezone):  # PR2019-0
     return datetime_local
 
 
-def XXXXget_today_local_iso(request):  # PR2019-07-14
+def get_today_local_iso(request):  # PR2019-07-14
     #logger.debug(' ============= get_today_local_iso ============= ')
      # period: {datetimestart: "2019-07-09T00:00:00+02:00", range: "0;0;1;0", interval: 6, offset: 0, auto: true}
     #PR2019-11-15 used in roster form selectperiod,
@@ -666,15 +678,6 @@ def get_minutes_from_offset(offset_str):  #PR2019-06-13
 
 
 # ################### DATE STRING  FUNCTIONS ###################
-
-def get_date_from_ISO(date_string):  # PR2019-09-18
-    #logger.debug('... get_date_from_ISO ...')
-    #logger.debug('date_string: ' + str(date_string))
-    dte = None
-    if date_string:
-        arr = date_string.split('-')
-        dte = date(int(arr[0]), int(arr[1]), int(arr[2]))
-    return dte
 
 
 def get_dateISO_from_string(date_string, format=None):  # PR2019-08-06
@@ -1716,10 +1719,11 @@ def get_dict_value(dictionry, key_tuple, default_value=None):
     return dictionry
 
 
-def set_fielddict_date(field_dict, date_value, rosterdate=None, mindate=None, maxdate=None):
+def set_fielddict_date(field_dict, date_obj, rosterdate=None, mindate=None, maxdate=None):
     # PR2019-07-18
-    if date_value:
-        field_dict['value'] = date_value.isoformat()
+    if date_obj:
+        date_iso = date_obj.isoformat()
+        field_dict['value'] = date_iso
 
     # return rosterdate and min max date also when date is empty
     if rosterdate:
@@ -2422,7 +2426,7 @@ def calc_timeduration_from_values(is_restshift, offsetstart, offsetend, breakdur
 
 # <<<<<<<<<< calc_timeduration_from_shift >>>>>>>>>>>>>>>>>>> PR2020-01-04
 def calc_timeduration_from_shift(shift):
-    logger.debug(' ----- calc_timeduration_from_shift ----- ')
+    #logger.debug(' ----- calc_timeduration_from_shift ----- ')
     # function calculates timeduration from values in shift
     # if both offsetstart and offsetend have value: timeduration is calculated
     # else: use stored value of timeduration
@@ -2446,7 +2450,7 @@ def calc_timeduration_from_shift(shift):
 
         if not is_restshift:
             if offsetstart is not None and offsetend is not None:
-                logger.debug('offsetstart is not None and offsetend is not None ')
+                #logger.debug('offsetstart is not None and offsetend is not None ')
                 timeduration = offsetend - offsetstart
             else:
                 timeduration = saved_timeduration
@@ -2499,9 +2503,25 @@ def calc_timestart_time_end_from_offset(rosterdate_dte,
             if is_restshift:
                 timeduration = 0
             #logger.debug('is_restshift  timeduration:  ' + str(timeduration))
+
     return starttime_local, endtime_local, timeduration
 
-
+def calc_datepart(offsetstart, offsetend):  # PR2020-03-23
+    # e. calculate datepart, only when start- and enddate are filled in
+    # avg is halfway offsetstart and offsetend
+    #  when avg < 360: night,
+    offset_avg = (offsetstart + offsetend) / 2
+    date_part = 0
+    if offsetstart or offsetend:
+        if offset_avg < 360:  # night shift'
+            date_part = 1
+        elif offset_avg < 720:  # morning shift'
+            date_part = 2
+        elif offset_avg < 1080:  # afternoon shift'
+            date_part = 3
+        else:  # evening shift'
+            date_part = 4
+    return date_part
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 def check_and_fill_calendar(datefirst, datelast, request):  # PR2019-12-21

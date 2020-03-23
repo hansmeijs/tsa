@@ -207,12 +207,12 @@ def create_order_dict(order, item_dict, user_lang):
                     if field == 'datefirst':
                         f.set_fielddict_date(
                             field_dict=field_dict,
-                            date_value=datefirst,
+                            date_obj=datefirst,
                             maxdate=datelast)
                     elif field == 'datelast':
                         f.set_fielddict_date(
                             field_dict=field_dict,
-                            date_value=datelast,
+                            date_obj=datelast,
                             mindate=datefirst)
             elif field in [ 'pricecode', 'additioncode', 'taxcode', 'invoicecode']:
                 pass

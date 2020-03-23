@@ -185,11 +185,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  Modal Employee
         let el_mod_employee_body = document.getElementById("id_mod_select_employee_body");
-        let el_mod_employee_input_employee = document.getElementById("id_mod_select_employee_input_employee");
+        let el_mod_employee_input_employee = document.getElementById("id_MSE_input_employee");
             el_mod_employee_input_employee.addEventListener("keyup", function(event){
                 setTimeout(function() {ModEmployeeFilterEmployee(el_mod_employee_input_employee, event.key)}, 50)});
-        document.getElementById("id_mod_select_employee_btn_save").addEventListener("click", function() {ModEmployeeSave("save")}, false )
-        document.getElementById("id_mod_select_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("remove")}, false )
+        document.getElementById("id_MSE_btn_save").addEventListener("click", function() {ModEmployeeSave("save")}, false )
+        document.getElementById("id_MSE_btn_remove_employee").addEventListener("click", function() {ModEmployeeSave("remove")}, false )
 
 // ---  MODAL SHIFT EMPLOYEE ------------------------------------
         let el_modshift_filter_order = document.getElementById("id_modshift_filter_order")
@@ -1203,7 +1203,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- add placeholder, // only when is_new_row.
             if (j === 0 && is_new_row ){ // only when is_new_row
                 if (tblName === "employee"){
-                    el.setAttribute("placeholder", get_attr_from_el(el_data, "data-txt_employee_add") + "...")
+                    el.setAttribute("placeholder", loc.Add_employee + "...")
                  }
             }
 
@@ -2527,15 +2527,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         "show_btn_delete": show_btn_delete, "weekday_list": weekday_list, "month_list": month_list        ,
                     "url_settings_upload": url_settings_upload};
         // only needed in scheme
-        if(!!loc.Current_day){st_dict["text_curday"] = loc.Current_day};
-        if(!!loc.Previous_day){st_dict["text_prevday"] = loc.Previous_day};
-        if(!!loc.Next_day){st_dict["text_nextday"] = loc.Next_day};
-        if(!!loc.Break){st_dict["txt_break"] = loc.Break};
-        if(!!loc.Working_hours){st_dict["txt_workhours"] = loc.Working_hours};
+        st_dict["text_curday"] = loc.Current_day;
+        st_dict["text_prevday"] = loc.Previous_day;
+        st_dict["text_nextday"] = loc.Next_day;
+        st_dict["txt_break"] = loc.Break;
+        st_dict["txt_workhours"] = loc.Working_hours;
 
-        if(!!loc.btn_save){st_dict["txt_save"] = loc.btn_save};
-        if(!!loc.Quick_save){st_dict["txt_quicksave"] = loc.Quick_save};
-        if(!!loc.Exit_Quicksave){st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave};
+        st_dict["txt_save"] = loc.Save;
+        st_dict["txt_quicksave"] = loc.Quick_save;
+        st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave;
 
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
         if(!!imgsrc_delete){st_dict["imgsrc_delete"] = imgsrc_delete};
@@ -3000,8 +3000,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("mod_upload_dict", mod_upload_dict)
 
 // ---  put employee name in header
-        let el_header = document.getElementById("id_mod_select_employee_header")
-        let el_div_remove = document.getElementById("id_mod_select_employee_div_remove")
+        let el_header = document.getElementById("id_MSE_header_employee")
+        let el_div_remove = document.getElementById("id_MSE_div_remove_employee")
         if (!!employee_code){
             el_header.innerText = employee_code
             el_div_remove.classList.remove(cls_hide)
@@ -3015,7 +3015,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 // remove values from el_mod_employee_input
-        let el_mod_employee_input = document.getElementById("id_mod_select_employee_input_employee")
+        let el_mod_employee_input = document.getElementById("id_MSE_input_employee")
         el_mod_employee_input.value = null
 
         ModEmployeeFillSelectTableEmployee(Number(employee_pk))
@@ -3052,7 +3052,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     code: employee_code,
                     update: true};
 // put code_value in el_input_employee
-                document.getElementById("id_mod_select_employee_input_employee").value = employee_code
+                document.getElementById("id_MSE_input_employee").value = employee_code
 // save selected employee
                 ModEmployeeSave("save");
             }  // if(!isEmpty(employee_dict))
@@ -3063,7 +3063,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function ModEmployeeFilterEmployee(option, event_key) {
         //console.log( "===== ModEmployeeFilterEmployee  ========= ", option);
 
-        let el_input = document.getElementById("id_mod_select_employee_input_employee")
+        let el_input = document.getElementById("id_MSE_input_employee")
 // save when clicked 'Enter', TODO only if quicksave === true
         if(event_key === "Enter" && get_attr_from_el_str(el_input, "data-quicksave") === "true") {
             ModEmployeeSave("save");
@@ -3092,7 +3092,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let has_selection = false, has_multiple = false;
         let select_value, select_pk, select_parentpk;
-        let tblbody = document.getElementById("id_mod_select_employee_tblbody");
+        let tblbody = document.getElementById("id_MSE_tbody_employee");
         let len = tblbody.rows.length;
         if (!skip_filter && !!len){
             for (let row_index = 0, tblRow, show_row, el, pk_str, code_value; row_index < len; row_index++) {
@@ -3268,7 +3268,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const caption_one = get_attr_from_el(el_data, "data-txt_employee_select") + ":";
         const caption_none = loc.No_employees + ":";
 
-        let tblBody = document.getElementById("id_mod_select_employee_tblbody");
+        let tblBody = document.getElementById("id_MSE_tbody_employee");
         tblBody.innerText = null;
 
 //--- when no items found: show 'select_employee_none'
@@ -3710,7 +3710,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (btnshift_option === "issingleshift" || btnshift_option === "isabsence"){
 
- // ++++ SAVE SCHEME ++++++++++++ put scheme info in upload_dict - only in singleshift
+// =========== SAVE SCHEME =====================
+            // - only in singleshift
             // in add_new_mode scheme_pk has value 'new4', scheme_ppk has value of order_pk. Done in MSE_Open
 
             // keep structure of scheme in calendar_map:
@@ -3720,58 +3721,45 @@ document.addEventListener('DOMContentLoaded', function() {
             const scheme_code = get_dict_value(mod_upload_dict.scheme, ["code"]);
             const scheme_mode =  (crud_mode === "delete") ? "delete" : (!scheme_pk || !Number(scheme_pk)) ? "create" : "none";
 
-            console.log( "scheme_pk: ", scheme_pk);
-            console.log( "scheme_ppk: ", scheme_ppk);
-            console.log( "scheme_code: ", scheme_code);
-            console.log( "scheme_mode: ", scheme_mode);
+            // empty input date value = "", convert to null
+            const datefirst = (!!el_modshift_datefirst.value) ? el_modshift_datefirst.value : null;
+            const datelast =(!!el_modshift_datelast.value) ? el_modshift_datelast.value : null;
 
-            // get the following info from input elements
-            let datefirst = el_modshift_datefirst.value;
-            let datelast = el_modshift_datelast.value;
-            if (!datefirst) { datefirst = null}; // empty input date value = "", convert to null
-            if (!datelast) { datelast = null};
             const excl_ph = document.getElementById("id_modshift_publicholiday").checked;
             const excl_ch = document.getElementById("id_modshift_companyholiday").checked;
 
             const scheme_cycle = (btnshift_option === "isabsence") ? 1 : 7
 
- // ++++ SAVE SCHEME team info in upload_dict  ++++++++++++++++
             upload_dict["scheme"] =  {id: {pk: scheme_pk,
                                         ppk: scheme_ppk,
                                         table: "scheme",
                                         mode: scheme_mode,
-                                        shiftoption: btnshift_option,
-                                        cycle: scheme_cycle},
-                                    code: scheme_code,
-                                    datefirst: datefirst,
-                                    datelast: datelast,
-                                    excludepublicholiday: excl_ph,
-                                    excludecompanyholiday: excl_ch,
+                                        shiftoption: btnshift_option},
+                                    cycle: {value: scheme_cycle},
+                                    code: {value: scheme_code},
+                                    datefirst: {value: datefirst},
+                                    datelast: {value: datelast},
+                                    excludepublicholiday: {value: excl_ph},
+                                    excludecompanyholiday: {value: excl_ch}
                                     }
 
- // ++++ SAVE TEAM team info in upload_dict  ++++++++++++++++
-            const team_pk = get_dict_value(mod_upload_dict.team, ["pk"]);
-            const team_ppk = get_dict_value(mod_upload_dict.team, ["ppk"]);
+// =========== SAVE TEAM =====================
+            const team_pk = get_dict_value(mod_upload_dict.team, ["pk"]);;
             const team_code = get_dict_value(mod_upload_dict.team, ["code"]);
-            const team_mode = (!team_pk || !Number(team_pk)) ? "create" : "none";
-
-            console.log( "team_pk: ", team_pk);
-            console.log( "team_ppk: ", team_ppk);
-            console.log( "team_code: ", team_code);
-            console.log( "team_mode: ", team_mode);
+            const team_mode = (!team_pk || !Number(team_pk)) ? "create" : "unchanged";
 
             upload_dict["team"] = { id: {pk: team_pk,
-                                         ppk: team_ppk,
+                                         ppk: scheme_ppk,
                                          table: "team",
                                          mode: team_mode,
                                          shiftoption: btnshift_option},
-                                     code: team_code};
+                                     code: {value: team_code}
+                                   };
 
- // ++++ SAVE SHIFT info in upload_dict  ++++++++++++++++
+// =========== SAVE SHIFT =====================
  // put offset info in upload_dict - in schemeitem when singleshift, in teammember when absenceshif
         // prepared for multiple shifts, add one for now
             const shift_pk = get_dict_value(mod_upload_dict.shift, ["pk"]);
-            const shift_ppk = get_dict_value(mod_upload_dict.shift, ["ppk"]);
             const shift_mode = (!shift_pk || !Number(shift_pk)) ? "create" : "update";
             const shift_offset_start = get_dict_value(mod_upload_dict.shift, ["offsetstart"]);
             const shift_offset_end = get_dict_value(mod_upload_dict.shift, ["offsetend"]);
@@ -3783,20 +3771,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const new_shift_code = Create_Shift_code(loc, shift_offset_start, shift_offset_end, shift_time_duration, shift_code);
             if(!!new_shift_code && new_shift_code !== shift_code) { shift_code = new_shift_code}
 
-            console.log("shift_pk: ", shift_pk)
-            console.log("shift_ppk: ", shift_ppk)
-            console.log("shift_code: ", shift_code)
             upload_dict["shift"] = { id: {pk: shift_pk,
-                                            ppk: shift_ppk,
+                                            ppk: scheme_ppk,
                                             table: "shift",
                                             mode: shift_mode,
                                             shiftoption: btnshift_option},
-                                         code: shift_code,
-                                         offsetstart: shift_offset_start,
-                                         offsetend: shift_offset_end,
-                                         breakduration: shift_break_duration,
-                                         timeduration: shift_time_duration};
-
+                                         code: {value: shift_code},
+                                         offsetstart: {value: shift_offset_start},
+                                         offsetend: {value: shift_offset_end},
+                                         breakduration: {value: shift_break_duration},
+                                         timeduration: {value: shift_time_duration}
+                                     };
 
 // ++++ SAVE EMPLOYEE info in upload_dict  ++++++++++++++++
              // put employee info in upload_dict

@@ -166,6 +166,7 @@ urlpatterns = [
         path('schemeorshiftorteam_upload', planning_views.SchemeOrShiftOrTeamUploadView.as_view(), name='schemeorshiftorteam_upload_url'),
 
         path('scheme_template_upload', planning_views.SchemeTemplateUploadView.as_view(), name='scheme_template_upload_url'),
+        path('grid_upload', planning_views.GridUploadView.as_view(), name='grid_upload_url'),
 
         path('prices', planning_views.PricesView.as_view(), name='prices_url'),
         path('prices_upload', prices_views.PricesUploadView.as_view(), name='prices_upload_url'),

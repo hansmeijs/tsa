@@ -756,6 +756,7 @@ class Emplhour(TsaBaseModel):
     isabsence = BooleanField(default=False)
     isrestshift = BooleanField(default=False)
     isreplacement = BooleanField(default=False)
+    datepart = PositiveSmallIntegerField(default=0) # 1=night, 2 = morning, 3 = afternoon, 4 = evening, 0 = undefined
 
     paydate = DateField(db_index=True, null=True)
     lockedpaydate = BooleanField(default=False)

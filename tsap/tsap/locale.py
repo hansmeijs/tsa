@@ -8,10 +8,10 @@ from tsap import constants as c
 
 
 # === get_locale_dict ===================================== PR2019-11-12
-def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
+def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
     # PR2019-11-12
 
-    dict = {'user_lang': user_lang, 'comp_timezone': comp_timezone, 'timeformat': timeformat}
+    dict = {'user_lang': user_lang, 'comp_timezone': comp_timezone, 'timeformat': timeformat, 'interval': interval}
 
     page = table_dict.get('page')
     # button text
@@ -70,8 +70,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         # submenu
         dict['Upload_employees'] = TXT_Upload_employees
         dict['Print_planning'] = TXT_Print_planning
-        dict['Add_employee'] = TXT_Add_employee
-        dict['Delete_employee'] = TXT_Delete_employee
         dict['Print_planning'] = TXT_Print_planning
         dict['Preview_planning'] = TXT_Preview_planning
         dict['Export_to_Excel'] = TXT_Export_to_Excel
@@ -81,6 +79,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Replacement_employee'] = TXT_Replacement_employee
         dict['Select_replacement_employee'] = TXT_Select_replacement_employee
         dict['Add_employee'] = TXT_Add_employee
+        dict['Delete_employee'] = TXT_Delete_employee
         dict['Employee_list'] = TXT_Employee_list
         dict['Employee_data'] = TXT_Employee_data
         dict['Click_show_inactive_employees'] = TXT_Click_show_inactive_employees
@@ -212,7 +211,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
 
         # table headers
         dict['Replacement_employee'] = TXT_Replacement_employee
-        # ModShift
+
+        # Mod
+        dict['Add_team'] = TXT_Add_team
+        dict['Save_and_add_team'] = TXT_Save_and_add_team
+
         dict['Add_teammember'] = TXT_Add_teammember
         dict['Delete_teammember'] = TXT_Delete_teammember
         dict['Select_employee'] = TXT_Select_employee
@@ -300,14 +303,25 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat):
         dict['Add'] = TXT_Add
 
         dict['This_shift'] = TXT_This_shift
+        dict['Add_shift'] = TXT_Add_shift
 
+        dict['Add_team'] = TXT_Add_team
+        dict['Save_and_add_team'] = TXT_Save_and_add_team
         dict['This_team'] = TXT_This_team
+        dict['has'] = TXT_has
         dict['This_teammember'] = TXT_This_teammember
+        dict['Add_employee'] = TXT_Add_employee
 
         dict['All_schemeitems_willbe_deleted'] = _('All shifts of this scheme will be deleted.')
         dict['Delete_scheme_shifts'] = _('Delete scheme shifts.')
 
         # grid
+
+        dict['Select_employee'] = TXT_Select_employee
+        dict['No_employees'] = TXT_No_employees
+        #dict['Replacement_employee'] = TXT_Replacement_employee
+        dict['Select_replacement_employee'] = TXT_Select_replacement_employee
+
         dict['Select_team_first'] = _('You must select a team first,')
         dict['before_add_or_remove'] = _('before you can add or remove it.')
         dict['Click'] = _('Click')
@@ -776,6 +790,9 @@ TXT_Rest_shifts = _('Rest shifts')
 TXT_Teams = _('Teams')
 TXT_New_team = _('New team')
 TXT_This_team = _('This team')
+TXT_has = _(' has ')
+TXT_Add_team = _('Add team')
+TXT_Save_and_add_team = _('Save and add team')
 TXT_This_teammember = _('This teammember')
 TXT_Add_teammember = _('Add teammember')
 TXT_Delete_teammember  = _('Delete teammember')

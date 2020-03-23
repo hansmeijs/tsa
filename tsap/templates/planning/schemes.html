@@ -8,7 +8,7 @@
 {% endblock %}
 {% block script %}
     <script src="{% static 'js/schemes.js' %}"></script>
-    <script src="{% static 'js/timepicker.js' %}"></script>
+    <script src="{% static 'js/modtimepicker.js' %}"></script>
 {% endblock %}
 
 <!-- SIDE BAR -->
@@ -58,8 +58,15 @@
 {% endblock %}
 <!-- END SIDE BAR -->
 
-<!-- MODAL -->
-{% block modal %}
+
+{% block content %}
+    {% if user.is_authenticated %}
+
+<!-- =================== msgbox  =================== -->
+        <div class="popup display_hide" >
+            <span class="popuptext" id="id_msgbox"></span>
+        </div>
+
 <!-- =================== MODAL SCHEME  =================== -->
     <div class="modal fade" id="id_mod_scheme" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md " role="document">
@@ -215,21 +222,20 @@
         </div>
     </div>
 
-<!-- =================== MODAL SELECT EMPLOYEE  =================== -->
-    {% include 'includes/modselectemployee.html' %}
 <!-- =================== CONFIRM =================== -->
     {% include 'includes/confirm.html' %}
-<!-- =================== MODAL ROSTERDATE  =================== -->
-        {% include 'includes/modrosterdate.html' %}
-{% endblock %}
-<!-- END MODAL -->
 
-{% block content %}
-    {% if user.is_authenticated %}
+<!-- =================== MODAL GRID TEAM  =================== -->
+    {% include 'includes/modgridteam.html' %}
+<!-- =================== MODAL GRID SHIFT  =================== -->
+    {% include 'includes/modgridshift.html' %}
+<!-- =================== MODAL SELECT EMPLOYEE  =================== -->
+    {% include 'includes/modselectemployee.html' %}
+<!-- =================== POPUP DATE  =================== -->
+     <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
+         <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" >
+     </div>
 
-        <div class="popup display_hide" >
-            <span class="popuptext" id="id_msgbox"></span>
-        </div>
 
     <!-- =================== CONTAINER =================== -->
         <div class="container">
@@ -270,40 +276,11 @@
         <!-- end class content_subheader mt-5 -->
         <!-- class content body mx-2 -->
         <div class="content_body mx-2">
-<!-- =================== POPUP DATE  =================== -->
-                 <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
-                     <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" ></input>
-                 </div>
-<!-- =================== POPUP WDY  =================== -->
-                 <div id="id_popup_wdy" class="popup_box display_hide">
-                     <div class="popup_header">
-                        <label id="id_popup_wdy_header" class="mx-4 my-1" >{% trans 'Roster date' %}</label>
-                        <button id="id_popup_wdy_close" type="button" class="close my-1" aria-label="Close">
-                            <span class="popup_close" aria-hidden="true">&times;</span>
-                        </button>
-                     </div>
-                     <div class="content_header_middle">
-                        <input id="id_popup_wdy_rosterdate" class="input_text mx-4 my-1" ></input>
-                     </div>
-                     <div class="content_header_middle" >
-                         <button id="id_popup_wdy_prev_month"  class=" btn btn-add" title="{% trans 'Previous month' %}">&#171;</button>
-                         <button id="id_popup_wdy_prev_day" class="btn btn-add" title="{% trans 'Previous day' %}">&#8249;</button>
-                         <button id="id_popup_wdy_today" class="btn btn-add" >{% trans 'Today' %}</button>
-                         <button id="id_popup_wdy_nextday" class="btn btn-add" title="{% trans 'Next day' %}">&#8250;</button>
-                         <button id="id_popup_wdy_nextmonth" class="btn btn-add" title="{% trans 'Next month' %}">&#187;</button>
-                     </div>
-                     <div class="content_subheader_right">
-                         <button id="id_popup_wdy_save" class="btn btn-add">{% trans 'Save' %}</button>
-                     </div>
-                 </div>
-
-<!-- =================== TIMEPICKER  =================== -->
-                {% include 'includes/timepicker.html' %}
 
 <!-- =================== DATA TABLE  =================== -->
 
             <div id="id_div_tbl_newlayout" data-mode="btn_gridlayout" class="display_hide">
-                <div class="tsa_main_container tbl_border m-4">
+                <div class="tsa_main_container m-4">
                     <div class="tsa_team_container">
                         <div class="grid_scheme tbl_border tsa_bc_lightlightgrey">
                             <div class="m-2">
@@ -312,9 +289,15 @@
                             <div class=" m-1">
                                 <button id="id_grid_scheme_btn_code" type="button" data-table="scheme" data-field="cycle" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Name' %}: schemes</button>
                                 <button id="id_grid_scheme_btn_cycle" type="button" data-table="scheme" data-field="cycle" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Cycle' %}: 7 days</button>
-                                <button id="id_grid_scheme_btn_datefirstlast" type="button" data-table="scheme" data-field="cycle" class="btn-smallfont td_width_180 tsa_bc_transparent mx-2 my-1">{% trans 'Period' %}: 11-30 okt</button>
-                                <button id="id_grid_scheme_btn_exph" type="button" data-table="scheme" data-field="excludepublicholiday" class="btn-smallfont td_width_180 mx-2 my-1">{% trans 'Not on public holidays' %}</button>
-                                <button id="id_grid_scheme_btn_exch" type="button" data-table="scheme" data-field="excludecompanyholiday" class="btn-smallfont td_width_180 mx-2 my-1">{% trans 'Also on company holidays' %}</button>
+                            </div>
+                            <div class=" m-1">
+                                <a id="id_grid_scheme_btn_datefirstlast" data-table="scheme" data-field="cycle" class="btn-smallfont td_width_180 tsa_bc_transparent mx-2 my-1">{% trans 'Period' %}: 11-30 okt</a>
+                            </div>
+                            <div class=" m-1">
+                                <a id="id_grid_scheme_btn_exph" class="btn-smallfont td_width_180 mx-2 my-0"></a>
+                                                            </div>
+                            <div class=" m-1">
+                                <a id="id_grid_scheme_btn_exch" class="btn-smallfont td_width_180 mx-2 my-0">{% trans 'Also on company holidays' %}</a>
                             </div>
                         </div>
                         <div class="grid_teams tbl_border">
@@ -326,11 +309,11 @@
                         </div>
 
                     </div>
-                    <div class="tsa_shift_container tbl_border">
-                        <h6 class="grid_schemeitems_hdr tbl_border m-0 px-2 py-1">
+                    <div class="tsa_shift_container tbl_XXborder">
+                        <h6 class="grid_schemeitems_hdr m-0 px-2 py-1">
                             Schedule
                         </h6>
-                        <div class="grid_schemeitems tbl_border">
+                        <div class="grid_schemeitems tbl_XXborder">
                             <div class=" tbl_border">
                                 <table class="grd_tbl">
                                     <tbody id="id_grid_tbody_shift">
@@ -436,7 +419,8 @@
             data-schemeitems_download_url= "{% url 'schemeitems_download_url' %}"
             data-schemeorshiftorteam_upload_url="{% url 'schemeorshiftorteam_upload_url' %}"
             data-teammember_upload_url="{% url 'teammember_upload_url' %}"
-            data-emplhour_fill_rosterdate_url="{% url 'emplhour_fill_rosterdate_url' %}"
+
+            data-grid_upload_url="{% url 'grid_upload_url' %}"
 
             data-imgsrc_inactive_black = "{% static 'img/inactive_black.png' %}"
             data-imgsrc_inactive_grey = "{% static 'img/inactive_grey.png' %}"
@@ -460,7 +444,6 @@
             data-weekdays ="{{ weekdays }}"
             data-months ="{{ months }}"
             data-today ="{{ today }}"
-            data-locale ="{{ locale }}"
 
             data-txt_save = "{% trans 'Save' %}"
             data-txt_quicksave = "{% trans 'Quick save' %}"
@@ -491,12 +474,6 @@
 
             data-txt_employee = "{% trans 'Employee' %}"
             data-txt_employees= "{% trans 'Employees' %}"
-            data-txt_employee_select= "{% trans 'Select employee' %}"
-            data-txt_employee_select_none= "{% trans 'No employees' %}"
-            data-txt_employee_add= "{% trans 'Add employee' %}"
-            data-txt_employee_enter= "{% trans 'Enter employee' %}"
-            data-txt_replacement= "{% trans 'Replacement employee' %}"
-            data-txt_replacement_select= "{% trans 'Select replacement employee' %}"
 
             data-txt_datefirst= "{% trans 'Start date' %}"
             data-txt_datelast= "{% trans 'End date' %}"

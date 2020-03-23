@@ -119,7 +119,7 @@ let planning_list = [] // for export and printing - can replace map?
         const field_align = {
             customer: ["left", "left", "left", "right"],
             order: ["left", "left","left", "left", "left", "left", "right", "right"],
-            planning: ["left", "left", "left", "left", "left", "right", "right"]}
+            planning: ["left", "left", "left", "left", "left", "left", "right"]}
 
         const fieldsettings_teammember = {tblName: "teammember", colcount: 5,
                                 caption: ["Employee", "Start_date", "End_date", "Replacement_employee"],
@@ -220,13 +220,11 @@ let planning_list = [] // for export and printing - can replace map?
 
 // ---  MOD EMPLOYEE ------------------------------------
         let el_mod_employee_body = document.getElementById("id_mod_select_employee_body");
-        document.getElementById("id_mod_select_employee_input_employee").addEventListener("keyup", function(event){
-                setTimeout(function() {
-                    ModEmployeeFilterEmployee("filter", event.key)
-                }, 50)});
+        document.getElementById("id_MSE_input_employee").addEventListener("keyup", function(event){
+                setTimeout(function() { MSE_FilterEmployee("filter", event.key)}, 50)});
 
-        document.getElementById("id_mod_select_employee_btn_save").addEventListener("click", function() {ModEmployeeSave("update")}, false);
-        document.getElementById("id_mod_select_employee_btn_remove").addEventListener("click", function() {ModEmployeeSave("delete")}, false);
+        document.getElementById("id_MSE_btn_save").addEventListener("click", function() {MSE_Save("update")}, false);
+        document.getElementById("id_MSE_btn_remove_employee").addEventListener("click", function() {MSE_Save("delete")}, false);
 
 // ---  MOD PERIOD ------------------------------------
 // ---  header select period
@@ -1270,8 +1268,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  CreateTblRow  ================ PR2019-09-04
     function CreateTblRow(tblBody_or_tFoot, tblName, pk_str, ppk_str, is_addnew_row, data_customer_pk) {
-       //console.log("=========  CreateTblRow =========");
-       //console.log("tblName: ", tblName);
+       console.log("=========  CreateTblRow =========");
+       console.log("tblName: ", tblName);
 
 // --- insert tblRow ino tblBody or tFoot
         let tblRow = tblBody_or_tFoot.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
@@ -2668,39 +2666,47 @@ let planning_list = [] // for export and printing - can replace map?
 // =========== SAVE SCHEME =====================
         // in add_new_mode scheme_pk has value 'new4', scheme_ppk has value of order_pk. Done in MSE_Open
         const scheme_pk = get_dict_value(mod_upload_dict, ["scheme", "id", "pk"]);
+        const scheme_ppk = get_dict_value(mod_upload_dict, ["scheme", "id", "ppk"]);
         const scheme_mode =  (crud_mode === "delete") ? "delete" : (!scheme_pk || !Number(scheme_pk)) ? "create" : "none";
+        const scheme_code =  get_dict_value(mod_upload_dict, ["scheme", "code", "value"]);
+        const scheme_cycle = get_dict_value(mod_upload_dict, ["scheme", "cycle", "value"]);
 
-        // save in upload_dict
+        // empty input date value = "", convert to null
+        const datefirst = (!!el_modshift_datefirst.value) ? el_modshift_datefirst.value : null;
+        const datelast =(!!el_modshift_datelast.value) ? el_modshift_datelast.value : null;
+
+        const excl_ph = document.getElementById("id_modshift_publicholiday").checked;
+        const excl_ch = document.getElementById("id_modshift_companyholiday").checked;
+
         upload_dict.scheme =  {id: {pk: scheme_pk,
-                                    ppk: get_dict_value(mod_upload_dict, ["scheme", "id", "ppk"]),
+                                    ppk: scheme_ppk,
                                     table: "scheme",
                                     mode: scheme_mode,
                                     shiftoption: btnshift_option},
-                                cycle: get_dict_value(mod_upload_dict, ["scheme", "cycle", "value"]),
-                                code:  get_dict_value(mod_upload_dict, ["scheme", "code", "value"]),
-                                datefirst: (!!el_modshift_datefirst.value) ? el_modshift_datefirst.value : null,
-                                datelast: (!!el_modshift_datelast.value) ? el_modshift_datelast.value : null,
-                                excludepublicholiday: document.getElementById("id_modshift_publicholiday").checked,
-                                excludecompanyholiday: document.getElementById("id_modshift_companyholiday").checked,
+                                cycle: {value: scheme_cycle},
+                                code: {value: scheme_code},
+                                datefirst: {value: datefirst},
+                                datelast: {value: datelast},
+                                excludepublicholiday: {value: excl_ph},
+                                excludecompanyholiday: {value: excl_ch}
                                 };
 
 // =========== SAVE TEAM =====================
         const team_pk = get_dict_value(mod_upload_dict.team, ["id", "pk"]);
         const team_code = get_dict_value(mod_upload_dict.team, ["code", "value"]);
-        const team_mode = (!team_pk || !Number(team_pk)) ? "create" : "none";
+        const team_mode = (!team_pk || !Number(team_pk)) ? "create" : "unchanged";
 
         upload_dict.team = { id: {pk: team_pk,
                                      ppk: scheme_pk,
                                      table: "team",
                                      mode: team_mode,
                                      shiftoption: btnshift_option},
-                            code: team_code
+                              code: {value: team_code}
                             };
 
 // =========== SAVE SHIFT =====================
         // prepared for multiple shifts, add one for now
             const shift_pk = get_dict_value(mod_upload_dict.shift, ["id", "pk"]);
-            const shift_ppk = get_dict_value(mod_upload_dict.shift, ["id", "ppk"]);
             const shift_code = get_dict_value(mod_upload_dict.shift, ["code", "value"], "");
             const shift_offset_start = get_dict_value(mod_upload_dict.shift, ["offsetstart", "value"]);
             const shift_offset_end = get_dict_value(mod_upload_dict.shift, ["offsetend", "value"]);
@@ -2714,15 +2720,16 @@ let planning_list = [] // for export and printing - can replace map?
             //if(!!new_shift_code && new_shift_code !== shift_code) { shift_code = new_shift_code}
 
             upload_dict["shift"] = { id: {pk: shift_pk,
-                                            ppk: shift_ppk,
+                                            ppk: scheme_pk,
                                             table: "shift",
                                             mode: shift_mode,
                                             shiftoption: btnshift_option},
-                                         code: shift_code,
-                                         offsetstart: shift_offset_start,
-                                         offsetend: shift_offset_end,
-                                         breakduration: shift_break_duration,
-                                         timeduration: shift_time_duration};
+                                         code: {value: shift_code},
+                                         offsetstart: {value: shift_offset_start},
+                                         offsetend: {value: shift_offset_end},
+                                         breakduration: {value: shift_break_duration},
+                                         timeduration: {value: shift_time_duration}
+                                     };
 
 // =========== SAVE TEAMMEMBERS =====================
 // ---  get changed teammembers - mod_upload_dict.teammembers_list contains pk's of changed, created, deleted teammembers
@@ -2735,6 +2742,7 @@ let planning_list = [] // for export and printing - can replace map?
             const tm_dict = mod_upload_dict.teammembers_list[i];
             console.log(">>>>>>>>>>>>tm_dict: ", tm_dict)
             const tm_mode = get_dict_value(tm_dict, ["id", "mode"]);
+            console.log(">>>>>>>>>>>>tm_mode: ", tm_mode)
 
             if(["create", "update", "delete"].indexOf(tm_mode) > -1 ){
                 const tm_pk = get_dict_value(tm_dict, ["id", "pk"]);
@@ -2749,8 +2757,8 @@ let planning_list = [] // for export and printing - can replace map?
                 let teammember_dict = {id: {pk: tm_pk, ppk: tm_ppk, table: 'teammember', mode: tm_mode, shiftoption: tm_shiftoption}};
 
                 // value may also be null, when value is removed
-                teammember_dict.datefirst = tm_datefirst; //dont use  {value: tm_datefirst}}
-                teammember_dict.datelast = tm_datelast;
+                teammember_dict.datefirst = {value: tm_datefirst};
+                teammember_dict.datelast = {value: tm_datelast};
                 teammember_dict.employee = {pk: tm_employee_pk};
                 teammember_dict.replacement = {pk: tm_replacement_pk};
 
@@ -2797,15 +2805,15 @@ let planning_list = [] // for export and printing - can replace map?
                         "weekday_list": loc.weekdays_abbrev, "month_list": loc.months_abbrev,
                         "url_settings_upload": url_settings_upload};
         // only needed in scheme
-        if(!!loc.Current_day){st_dict["text_curday"] = loc.Current_day};
-        if(!!loc.Previous_day){st_dict["text_prevday"] = loc.Previous_day};
-        if(!!loc.Next_day){st_dict["text_nextday"] = loc.Next_day};
-        if(!!loc.Break){st_dict["txt_break"] = loc.Break};
-        if(!!loc.Working_hours){st_dict["txt_workhours"] = loc.Working_hours};
+        st_dict["text_curday"] = loc.Current_day;
+        st_dict["text_prevday"] = loc.Previous_day;
+        st_dict["text_nextday"] = loc.Next_day;
+        st_dict["txt_break"] = loc.Break;
+        st_dict["txt_workhours"] = loc.Working_hours;
 
-        if(!!loc.btn_save){st_dict["txt_save"] = loc.btn_save};
-        if(!!loc.Quick_save){st_dict["txt_quicksave"] = loc.Quick_save};
-        if(!!loc.Exit_Quicksave){st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave};
+        st_dict["txt_save"] = loc.Save;
+        st_dict["txt_quicksave"] = loc.Quick_save;
+        st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave;
 
         const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
         if(!!imgsrc_delete){st_dict["imgsrc_delete"] = imgsrc_delete};
@@ -2937,7 +2945,9 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  TEMP_MSO_CalcMinMaxOffset  ================ PR2019-12-09
     function TEMP_MSO_CalcMinMaxOffset(shift_dict, is_absence){
-        //console.log( "=== TEMP_MSO_CalcMinMaxOffset ");
+        console.log( "=== TEMP_MSO_CalcMinMaxOffset ");
+        console.log( "shift_dict ");
+        console.log( shift_dict);
         // back to {id: {pk etc. TODO: change in employee calenda
         if (!!shift_dict){
             if (!("offsetstart" in shift_dict)){ shift_dict.offsetstart = {} };
@@ -2983,8 +2993,8 @@ let planning_list = [] // for export and printing - can replace map?
 
         el_modshift_offsetstart.innerText = display_offset_time (offset_start, timeformat, user_lang, false, false)
         el_modshift_offsetend.innerText = display_offset_time (offset_end, timeformat, user_lang, false, false)
-        el_modshift_breakduration.innerText = display_offset_time (break_duration, timeformat, user_lang, false, true)
-        el_modshift_timeduration.innerText = display_offset_time (time_duration, timeformat, user_lang, false, true)
+        el_modshift_breakduration.innerText = display_duration (break_duration, user_lang)
+        el_modshift_timeduration.innerText = display_duration (time_duration, user_lang)
 
     }  // MSO_UpdateShiftInputboxes
 
@@ -3515,7 +3525,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= MSO_FillTableTeammember  ====================================
     function MSO_FillTableTeammember(){
-        //console.log( "===== MSO_FillTableTeammember  ========= ");
+        console.log( "===== MSO_FillTableTeammember  ========= ");
 
 // --- reset tblBody
         // id_tbody_teammember is on modeordershift.html
@@ -3636,7 +3646,7 @@ let planning_list = [] // for export and printing - can replace map?
                 if ([0, 3].indexOf( j ) > -1){
                     el.setAttribute("type", "text")
                     el.addEventListener("click", function() {
-                        ModEmployeeOpen(el, ModEmployeeChanged)
+                        MSE_Open(el, ModEmployeeChanged)
                     }, false);
                     el.setAttribute("tabindex", "0")
                     el.classList.add("pointer_show")
@@ -3898,10 +3908,10 @@ let planning_list = [] // for export and printing - can replace map?
     }  // MSO_BtnDeleteClicked
 
 //############################################################################
-// +++++++++ MOD EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++ PR2019-12-29
-//=========  ModEmployeeOpen  ================ PR2019-11-06
-    function ModEmployeeOpen(el_input, ModEmployeeChanged) {
-        console.log(" -----  ModEmployeeOpen   ----")
+// +++++++++ MOD SELECT EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++ PR2019-12-29
+//=========  MSE_Open  ================ PR2019-11-06
+    function MSE_Open(el_input, ModEmployeeChanged) {
+        console.log(" -----  MSE_Open   ----")
 
         mod_employee_dict = {};
 
@@ -3926,8 +3936,8 @@ let planning_list = [] // for export and printing - can replace map?
                             sel_teammember: {pk: teammember_pk, ppk: teammember_ppk},
                             sel_employee: {field: data_field, pk: employee_pk, ppk: employee_ppk, code: employee_code}};
 // ---  put employee name in header
-        let el_header = document.getElementById("id_mod_select_employee_header")
-        let el_div_remove = document.getElementById("id_mod_select_employee_div_remove")
+        let el_header = document.getElementById("id_MSE_header_employee")
+        let el_div_remove = document.getElementById("id_MSE_div_remove_employee")
         if (!!employee_code){
             el_header.innerText = employee_code
             el_div_remove.classList.remove(cls_hide)
@@ -3938,10 +3948,10 @@ let planning_list = [] // for export and printing - can replace map?
         }
 
 // remove values from el_mod_employee_input
-        let el_mod_employee_input = document.getElementById("id_mod_select_employee_input_employee")
+        let el_mod_employee_input = document.getElementById("id_MSE_input_employee")
         el_mod_employee_input.value = null
         const employee_pk_int = Number(employee_pk);
-        ModEmployeeFillSelectTableEmployee(employee_pk_int);
+        MSE_FillSelectTableEmployee(employee_pk_int);
 
         console.log("employee_pk_int: ", employee_pk_int)
 // Set focus to el_mod_employee_input
@@ -3953,12 +3963,12 @@ let planning_list = [] // for export and printing - can replace map?
 // ---  show modal
         $("#id_mod_select_employee").modal({backdrop: true});
 
-    };  // ModEmployeeOpen
+    };  // MSE_Open
 
 //=========  ModEmployeeSelect  ================ PR2019-05-24
     function ModEmployeeSelect(tblRow) {
         console.log( "===== ModEmployeeSelect ========= ");
-        // called by ModEmployeeFillSelectTableEmployee in this js
+        // called by MSE_FillSelectTableEmployee in this js
 
         if(!!tblRow) {
 // get employee_dict from employee_map
@@ -3975,9 +3985,9 @@ let planning_list = [] // for export and printing - can replace map?
                 mod_employee_dict["sel_employee"]["code"] = selected_employee_code;
 
 // put code_value in el_input_employee
-                document.getElementById("id_mod_select_employee_input_employee").value = selected_employee_code
+                document.getElementById("id_MSE_input_employee").value = selected_employee_code
 // save selected employee
-                ModEmployeeSave("update")
+                MSE_Save("update")
             }
         }  // if(!!tblRow) {
     }  // ModEmployeeSelect
@@ -4036,18 +4046,18 @@ let planning_list = [] // for export and printing - can replace map?
     }  // if("save_changes" in tp_dict) {
  }  // ModEmployeeChanged
 
-//=========  ModEmployeeFilterEmployee  ================ PR2019-11-06
-    function ModEmployeeFilterEmployee(option, event_key) {
-        console.log( "===== ModEmployeeFilterEmployee  ========= ", option);
+//=========  MSE_FilterEmployee  ================ PR2019-11-06
+    function MSE_FilterEmployee(option, event_key) {
+        console.log( "===== MSE_FilterEmployee  ========= ", option);
 
-        let el_input = document.getElementById("id_mod_select_employee_input_employee")
+        let el_input = document.getElementById("id_MSE_input_employee")
         console.log( el_input );
         // saving when only 1 employee found goes in 2 steps:
         // first step is adding "data-quicksave") === "true" to el_input
         // second step: if then ENTER is clicked the employee will be saved
 
         if(event_key === "Enter" && get_attr_from_el_str(el_input, "data-quicksave") === "true") {
-            ModEmployeeSave("update")
+            MSE_Save("update")
         } else {
             el_input.removeAttribute("data-quicksave")
         }
@@ -4071,7 +4081,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         let has_selection = false, has_multiple = false;
         let select_value, selected_employee_pk, select_parentpk;
-        let tblbody = document.getElementById("id_mod_select_employee_tblbody");
+        let tblbody = document.getElementById("id_MSE_tbody_employee");
         let len = tblbody.rows.length;
         if (!skip_filter && !!len){
             for (let row_index = 0, tblRow, show_row, el, pk_str, code_value; row_index < len; row_index++) {
@@ -4082,7 +4092,7 @@ let planning_list = [] // for export and printing - can replace map?
 // --- show all rows if filter_text = ""
                      show_row = true;
                 } else if (!!el){
-// hide current employee -> is already filtered out in ModEmployeeFillSelectTableEmployee
+// hide current employee -> is already filtered out in MSE_FillSelectTableEmployee
                     code_value = get_attr_from_el_str(tblRow, "data-value")
                     if (!!code_value){
 // check if code_value contains filter_mod_employee
@@ -4122,14 +4132,14 @@ let planning_list = [] // for export and printing - can replace map?
 // data-quicksave = true enables saving by clicking 'Enter'
                 el_input.setAttribute("data-quicksave", "true")
 // save selected employee .. not here, but at beginning of this function when data-quicksave = true
-                //ModEmployeeSave("update")
+                //MSE_Save("update")
             }
         }
-    }; // function ModEmployeeFilterEmployee
+    }; // function MSE_FilterEmployee
 
-//=========  ModEmployeeSave  ================ PR2019-12-30
-    function ModEmployeeSave(mode) {
-        console.log("========= ModEmployeeSave ===", mode );
+//=========  MSE_Save  ================ PR2019-12-30
+    function MSE_Save(mode) {
+        console.log("========= MSE_Save ===", mode );
         console.log("mod_employee_dict: ", JSON.stringify(mod_employee_dict) );
         // mode = 'delete' when clicked on 'remove' in ModEmployee
 
@@ -4165,10 +4175,9 @@ let planning_list = [] // for export and printing - can replace map?
 
         MSO_FillTableTeammember();
 
-
 // ---  hide modal
     $("#id_mod_select_employee").modal("hide");
-    } // ModEmployeeSave
+    } // MSE_Save
 
 //=========  ModEmployeeDeleteOpen  ================ PR2019-09-15
     function ModXXXEmployeeDeleteOpen(tr_clicked, mode) {
@@ -4215,15 +4224,15 @@ let planning_list = [] // for export and printing - can replace map?
         }  // if (!isEmpty(id_dict))
     } // ModEmployeeDeleteSave
 
-//========= ModEmployeeFillSelectTableEmployee  ============= PR2019-08-18
-    function ModEmployeeFillSelectTableEmployee(selected_employee_pk) {
-        //console.log( "=== ModEmployeeFillSelectTableEmployee ");
-        // called by ModEmployeeOpen in this modemployee.js
+//========= MSE_FillSelectTableEmployee  ============= PR2019-08-18
+    function MSE_FillSelectTableEmployee(selected_employee_pk) {
+        //console.log( "=== MSE_FillSelectTableEmployee ");
+        // called by MSE_Open in this modemployee.js
 
         const caption_one = loc.Select_employee + ":";
         const caption_none = loc.No_employees;
 
-        let tblBody = document.getElementById("id_mod_select_employee_tblbody");
+        let tblBody = document.getElementById("id_MSE_tbody_employee");
         tblBody.innerText = null;
 
 //--- when no items found: show 'select_employee_none'
@@ -4270,7 +4279,7 @@ let planning_list = [] // for export and printing - can replace map?
                 } //  if (pk_int !== selected_employee_pk){
             } // for (const [map_id, item_dict] of employee_map.entries())
         }  //  if (employee_map.size === 0)
-    } // ModEmployeeFillSelectTableEmployee
+    } // MSE_FillSelectTableEmployee
 
 //>>>>>>>>>>> MOD PERIOD >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // +++++++++++++++++ MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++

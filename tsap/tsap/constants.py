@@ -385,7 +385,7 @@ FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'nam
 FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
                     'invoicedate', 'isbillable', 'isrestshift', 'shift', 'status', 'locked')
 
-FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence', 'isreplacement',
+FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence', 'isreplacement', 'datepart',
                    'paydate', 'isrestshift', 'shift',
                    'timestart', 'timeend', 'timeduration', 'breakduration',
                    'plannedduration', 'billingduration',
@@ -416,7 +416,7 @@ FIELDS_TEAMMEMBER = ('id', 'team', 'employee', 'replacement', 'datefirst', 'date
                      'scheme', 'order',
                      'cat', 'isabsence', 'issingleshift', 'istemplate',
                      'wagefactorcode', 'pricecode', 'additioncode', 'override')
-# teammember wagerate not in use
+
 
 FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate',
                      'cat', 'iscyclestart', 'isabsence', 'issingleshift', 'istemplate', 'inactive')

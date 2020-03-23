@@ -250,9 +250,11 @@
 .tsa_tr_error {
    /* background: #f1b5b5; /* licht rood; */
     background: #ffe8e8; /* licht lichtrood; */
-
 }
-
+.tsa_tr_error_darker {
+    background: #f1b5b5; /* licht rood; */
+    /*background: #ffe8e8; /* licht lichtrood; */
+}
 .tsa_tr_ok {
     background: #d7f4de; /* licht groen; */
 }

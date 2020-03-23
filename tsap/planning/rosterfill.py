@@ -950,8 +950,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
         # next_rosterdate = rosterdate_dte + timedelta(days=1)
         # update_schemeitem_rosterdate(schemeitem, next_rosterdate, comp_timezone)
 
-        #try:
-        if True:
+        try:
 # get timeformat
             timeformat = '24h'  # or 'AmPm'
             if request.user.company.timeformat:
@@ -1015,7 +1014,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                     add_empty_shifts=True)
                 # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-                # create employee_planning dict
+                # create orderhour_emplhour record
                 if add_row:
                     emplhour_is_added, linked_emplhours_exist, count_duration = add_orderhour_emplhour(
                         row=row,
@@ -1048,8 +1047,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                     if planning_dict:
                         calendar_dictlist.append(planning_dict)
                         # logger.debug('=-------------- row added to dict ')
-        #except:
-        else:
+        except:
             rosterdate_iso = '<no rosterdate>'
             if rosterdate_dte:
                 rosterdate_iso = rosterdate_dte.isoformat()
@@ -1119,6 +1117,11 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
         is_restshift=is_restshift,
         comp_timezone=comp_timezone
     )
+
+# calculate datepart
+    date_part = 0
+    if timestart and timeend:
+        date_part = f.calc_datepart(row_offsetstart, row_offsetend)
 
 # get info from order
     order = m.Order.objects.get_or_none(id=row[idx_o_id], customer__company=request.user.company)
@@ -1203,6 +1206,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
             timeend=timeend,
             break_duration=row_breakduration,
             time_duration=time_duration,
+            date_part=date_part,
             comp_timezone=comp_timezone,
             request=request)
 
@@ -1214,7 +1218,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
 
 def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacement,
                     pay_date, shift_code, shift_wagefactor, is_absence, is_restshift,
-                    timestart, timeend, break_duration, time_duration,
+                    timestart, timeend, break_duration, time_duration, date_part,
                     comp_timezone, request):
     logger.debug(' ============= add_emplhour ============= ')
     logger.debug('row: ')
@@ -1327,6 +1331,7 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
                 isabsence=orderhour.isabsence,
                 isrestshift=is_restshift,
                 isreplacement=is_replacement,
+                datepart=date_part,
                 shift=shift_code,
                 timestart=timestart,
                 timeend=timeend,
@@ -3956,8 +3961,8 @@ def get_customer_calendar_rows(rosterdate, refdate, company_pk, customer_pk, ord
 
     newcursor = connection.cursor()
 
-    logger.debug('============================================  ')
-    logger.debug('sql_customer_calendar_team_sub11 rd: ' + str(rosterdate) + ' refdate: ' + str(rosterdate))
+    #logger.debug('============================================  ')
+    #logger.debug('sql_customer_calendar_team_sub11 rd: ' + str(rosterdate) + ' refdate: ' + str(rosterdate))
 
     newcursor.execute(sql_customer_calendar_team_sub11, {
         'cid': company_pk,
@@ -3968,10 +3973,10 @@ def get_customer_calendar_rows(rosterdate, refdate, company_pk, customer_pk, ord
         'ph': is_publicholiday,
         'ch': is_companyholiday
      })
-    dictrows = f.dictfetchall(newcursor)
-    for dictrow in dictrows:
-        logger.debug('...................................')
-        logger.debug('dictrow' + str(dictrow))
+    #dictrows = f.dictfetchall(newcursor)
+    #for dictrow in dictrows:
+    #    logger.debug('...................................')
+    #    logger.debug('dictrow' + str(dictrow))
 
     # ============================================
     newcursor.execute(sql_customer_calendar_team_sub11, {

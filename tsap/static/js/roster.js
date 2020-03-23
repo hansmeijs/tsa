@@ -163,10 +163,10 @@ document.addEventListener('DOMContentLoaded', function() {
             el_modorder_btn_save.addEventListener("click", function() {MSO_Save()}, false )
 
 // ---  MOD SELECT EMPLOYEE ------------------------------
-        let el_modemployee_input_employee = document.getElementById("id_mod_select_employee_input_employee")
+        let el_modemployee_input_employee = document.getElementById("id_MSE_input_employee")
             el_modemployee_input_employee.addEventListener("keyup", function(event){
                 setTimeout(function() {MSE_FilterEmployee()}, 50)});
-        let el_modemployee_btn_save = document.getElementById("id_mod_select_employee_btn_save")
+        let el_modemployee_btn_save = document.getElementById("id_MSE_btn_save")
             el_modemployee_btn_save.addEventListener("click", function() {MSE_Save()}, false )
 
 // ---  MOD CONFIRM ------------------------------------
@@ -2309,7 +2309,7 @@ console.log("===  function HandlePopupWdySave =========");
 
         mod_upload_dict = {employee_pk: employee_pk};
 
-        let tblBody = document.getElementById("id_mod_select_employee_tblbody");
+        let tblBody = document.getElementById("id_MSE_tbody_employee");
 
 
         // reset el_MRO_input_customer and filter_customer
@@ -2328,7 +2328,7 @@ console.log("===  function HandlePopupWdySave =========");
         MSE_headertext();
 
 // hide button /remove employee'
-        document.getElementById("id_mod_select_employee_div_remove").classList.add(cls_hide)
+        document.getElementById("id_MSE_div_remove_employee").classList.add(cls_hide)
 // Set focus to el_mod_employee_input
         //Timeout function necessary, otherwise focus wont work because of fade(300)
         setTimeout(function (){
@@ -2417,7 +2417,7 @@ console.log("===  function HandlePopupWdySave =========");
             }
         }
 
-        let tblBody_select_employee = document.getElementById("id_mod_select_employee_tblbody");
+        let tblBody_select_employee = document.getElementById("id_MSE_tbody_employee");
         const len = tblBody_select_employee.rows.length;
         if (!skip_filter && !!len){
 // ---  filter select_employee rows
@@ -2461,7 +2461,7 @@ console.log("===  function HandlePopupWdySave =========");
             header_text = loc.Select_employee
         }
 
-        document.getElementById("id_mod_select_employee_header").innerText = header_text
+        document.getElementById("id_MSE_header_employee").innerText = header_text
 
     }  // MSE_headertext
 
@@ -3637,9 +3637,9 @@ console.log("===  function HandlePopupWdySave =========");
                 if(!!loc.Break){st_dict["txt_break"] = loc.Break};
                 if(!!loc.Working_hours){st_dict["txt_workhours"] = loc.Working_hours};
 
-                if(!!loc.btn_save){st_dict["txt_save"] = loc.btn_save};
-                if(!!loc.Quick_save){st_dict["txt_quicksave"] = loc.Quick_save};
-                if(!!loc.Exit_Quicksave){st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave};
+                st_dict["txt_save"] = loc.Save;
+                st_dict["txt_quicksave"] = loc.Quick_save;
+                st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave;
 
                 console.log("st_dict: ", st_dict)
                 console.log("tp_dict: ", tp_dict)
@@ -4939,9 +4939,9 @@ console.log("===  function HandlePopupWdySave =========");
                         weekday_list: loc.weekdays_abbrev, month_list: loc.months_abbrev,
                         url_settings_upload: url_settings_upload};
 
-        if(!!loc.btn_save){st_dict["txt_save"] = loc.btn_save};
-        if(!!loc.Quick_save){st_dict["txt_quicksave"] = loc.Quick_save};
-        if(!!loc.Exit_Quicksave){st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave};
+        st_dict["txt_save"] = loc.Save;
+        st_dict["txt_quicksave"] = loc.Quick_save;
+        st_dict["txt_quicksave_remove"] = loc.Exit_Quicksave;
 
 // ---  create tp_dict
         // minoffset = timestart_offset + breakduration

@@ -4,16 +4,12 @@
 
 //========= ModTimepickerOpen  ====================================
     function ModTimepickerOpen(el_input, ModTimepickerChanged, tp_dict, st_dict) {
-       // console.log("=== MODAL  ModTimepickerOpen  =====");
+        //console.log("=== MODAL  ModTimepickerOpen  =====");
+        //console.log(document.getElementById("id_mod_confirm_body"));
         //console.log( "tp_dict: ", tp_dict);
         //console.log( "st_dict: ", st_dict);
 
         CalcMinMax(tp_dict)
-
-        //console.log( "offset: ", tp_dict["offset"]);
-        //console.log( "minoffset: ", tp_dict["minoffset"]);
-        //console.log( "maxoffset: ", tp_dict["maxoffset"]);
-        //console.log( "quicksave: ", tp_dict["quicksave"]["value"]);
 
 // display cur_datetime_local in header
         CreateHeader(tp_dict, st_dict);
@@ -74,7 +70,7 @@
             div_left.classList.add("content_subheader_left")
             //div_left.classList.add("m-2")
             div_left.classList.add("p-1")
-            let btn_quicksave = document.createElement("a");
+            let btn_quicksave = document.createElement("div");
                 btn_quicksave.setAttribute("id", "id_timepicker_quicksave")
                 btn_quicksave.classList.add("p-1")
                 btn_quicksave.classList.add("pointer_show")
@@ -194,7 +190,7 @@
         let tbody = document.getElementById("id_timepicker_tbody_minute");
         tbody.innerText = null
 
-        // hide minutes tables when interval = 60
+// ---  hide minutes tables when interval = 60
         let el_cont_minute = document.getElementById("id_timepicker_cont_minute");
         const interval = st_dict["interval"];
         if(interval === 60) {
@@ -210,7 +206,7 @@
             if ([12, 20, 30].indexOf( interval ) > -1){rows = 1}
             columns = (60 / interval / rows)
 
-    // --- add '00' on separate row
+// ---  add '00' on separate row
             let tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
             for (let j = 0, td; j < columns; j++) {
                 td = tblRow.insertCell(-1);
@@ -222,10 +218,9 @@
                 }
             }
 
-    // --- loop through option list
+// ---  loop through option list
             for (let i = 0; i < rows; i++) {
-                tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-
+                tblRow = tbody.insertRow(-1);
                 for (let j = 0, td, el_a ; j < columns; j++) {
                     minutes = minutes + interval
                     if (minutes === 60) {minutes = 0}
@@ -233,10 +228,9 @@
                     minutes_text = minutes_text.slice(-2);
 
                     td = tblRow.insertCell(-1);
-
                     td.setAttribute("data-minute", minutes);
 
-                    // skip last 00
+// ---  skip last 00
                     if (minutes !== 0) {
                         CreateTimepickerCell(tbody, td, ModTimepickerChanged, tp_dict, st_dict,
                                             "minute", minutes, minutes_text)}
@@ -267,13 +261,14 @@
             td.addEventListener("click", function() {
                 SetMinute(tbody, td, ModTimepickerChanged, tp_dict, st_dict)
             }, false)
+
         } else if (data_name === "ampm"){
             td.addEventListener("click", function() {
                 SetAmPm(tbody, td, ModTimepickerChanged, tp_dict, st_dict)
             }, false)
         }
 
-        // add hover EventListener
+// ---  add hover EventListener
         td.addEventListener("mouseenter", function(event) {ShowHover(td, event, "tr_hover")}, false)
         td.addEventListener("mouseleave", function() {ShowHover(td, event, "tr_hover")}, false)
 
@@ -347,8 +342,6 @@
             const curMinutes = tp_dict["curMinutes"], minMinutes = tp_dict["minMinutes"], maxMinutes = tp_dict["maxMinutes"];
             HighlightAndDisableHours(tp_dict, "SetAmPm");
             HighlightAndDisableMinutes(tp_dict)
-
-
         }  // if (!disabled)
     }  // SetAmPm
 
@@ -445,7 +438,7 @@
         }
 
         if(save_changes){
-           // console.log( " --- save_changes ---");
+           //console.log( " --- save_changes ---");
 
             // save only when offset is within range or null (when changing date hour/minumtes can go outside min/max range)
             //console.log( "tp_dict: ", tp_dict);
@@ -519,41 +512,34 @@
         //console.log( "called_by: ", called_by);
         CalcMinMax(tp_dict)
 
-        const curHours = tp_dict["curHours"]
-        const minHours = tp_dict["minHours"]
-        const maxHours = tp_dict["maxHours"]
-        //console.log( "curHours", curHours,  "minHours", minHours,  "maxHours", maxHours);
-
-        let curHourDisabled = false;
         let tbody = document.getElementById("id_timepicker_tbody_hour");
         let tds = tbody.getElementsByClassName("timepicker_hour")
-        for (let i=0, td, cell_value, cell_value_ampm, highlighted, disabled; td = tds[i]; i++) {
+        for (let i=0, td, cell_value, cell_value_ampm, is_highlighted, is_disabled; td = tds[i]; i++) {
             cell_value = get_attr_from_el_int(td, "data-hour");
-            highlighted = (curHours === cell_value);
-            disabled = (cell_value < minHours || cell_value > maxHours)
-            if (highlighted){curHourDisabled = disabled}
-            HighlightAndDisableCell(td, disabled, highlighted);
-        }
+
+            is_highlighted = (tp_dict.curHours === cell_value);
+            is_disabled = (cell_value < tp_dict.minHours || cell_value > tp_dict.maxHours)
+
+            HighlightAndDisableCell(td, is_disabled, is_highlighted);
+        };
     }  // HighlightAndDisableHours
 
 //========= HighlightAndDisableMinutes  ====================================
     function HighlightAndDisableMinutes(tp_dict) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
         //console.log( "--------->>>>=== HighlightAndDisableMinutes  ");
-        //console.log( "tp_dict[curMinutes]", tp_dict["curMinutes"]);
         //console.log( tp_dict);
 
-        const curHourDisabled = (tp_dict["curHours"] < tp_dict["minHours"] || tp_dict["curHours"] > tp_dict["maxHours"]);
-       //console.log("curHourDisabled", curHourDisabled);
-       //console.log("curMinutes", tp_dict["curMinutes"], "minMinutes", tp_dict["minMinutes"], "maxMinutes", tp_dict["maxMinutes"]);
+        // enable minutes when tp_dict.curHours == null PR2020-03-22
+        const curHour_is_disabled = ((tp_dict.curHours != null) && ( tp_dict.curHours < tp_dict.minHours ||tp_dict.curHours > tp_dict.maxHours));
 
         let tbody = document.getElementById("id_timepicker_tbody_minute");
         let tds = tbody.getElementsByClassName("timepicker_minute")
-        for (let i=0, td, cell_value, highlighted, disabled; td = tds[i]; i++) {
+        for (let i=0, td, cell_value, is_highlighted, is_disabled; td = tds[i]; i++) {
             cell_value = get_attr_from_el_int(td, "data-minute");
-            disabled = (curHourDisabled || cell_value < tp_dict["minMinutes"] || cell_value > tp_dict["maxMinutes"])
-            highlighted = (tp_dict["curMinutes"] === cell_value);
-            HighlightAndDisableCell(td, disabled, highlighted);
+            is_disabled =  ((curHour_is_disabled) || ((tp_dict.curMinutes != null) && ( cell_value < tp_dict.minMinutes || cell_value > tp_dict.maxMinutes)))
+            is_highlighted = (tp_dict.curMinutes === cell_value);
+            HighlightAndDisableCell(td, is_disabled, is_highlighted);
         }
     }  // HighlightAndDisableMinutes
 
@@ -579,7 +565,6 @@
                 td.classList.remove("tr_highlighted")
             }
         }
-
     }  // HighlightAndDisableCell
 
 //========= CalcMinMax  ==================================== PR2018-11-08
@@ -705,6 +690,41 @@ function CalcMinMax(dict) {
         dict["within_range"] = ((curOffset == null) || (curOffset >= minOffset && curOffset <= maxOffset));
     }  // CalcMinMax
 
+
+//=========  mtp_calc_minmax_offset  ================ PR2020-03-22
+    function mtp_calc_minmax_offset(shift_dict, is_absence){
+        //console.log( "=== mtp_calc_minmax_offset ");
+        // function calculates min and max offeset before opening timepicker
+        if (!!shift_dict){
+            if (!("offsetstart" in shift_dict)){ shift_dict.offsetstart = {} };
+            if (!("offsetend" in shift_dict)){ shift_dict.offsetend = {} };
+            if (!("breakduration" in shift_dict)){ shift_dict.breakduration = {} };
+            if (!("timeduration" in shift_dict)){ shift_dict.timeduration = {} };
+
+            // calculate min max of timefields, store in upload_dict,
+            // (offset_start != null) is added to change undefined into null, 0 stays 0 (0.00 u is dfferent from null)
+            const offset_start = get_dict_value(shift_dict, ["offsetstart", "value"]);
+            const offset_end = get_dict_value(shift_dict, ["offsetend", "value"]);
+            const break_duration = get_dict_value(shift_dict, ["breakduration", "value"], 0);
+
+            shift_dict.offsetstart.minoffset = (is_absence) ? 0 : -720;
+            shift_dict.offsetstart.maxoffset = (!!offset_end && offset_end - break_duration <= 1440) ?
+                                            offset_end - break_duration : 1440;
+
+            shift_dict.offsetend.minoffset = (!!offset_start && offset_start + break_duration >= 0) ?
+                                            offset_start + break_duration : 0;
+            shift_dict.offsetend.maxoffset = (is_absence) ? 1440 : 2160;
+
+            shift_dict.breakduration.minoffset = 0;
+            shift_dict.breakduration.maxoffset = (is_absence) ? 0 :
+                                              (!!offset_start && !!offset_end && offset_end - offset_start <= 1440) ?
+                                              offset_end - offset_start : 1440;
+            shift_dict.timeduration.minoffset = 0;
+            shift_dict.timeduration.maxoffset = 1440;
+        }  //  if (!!shift_dict)
+    }  // mtp_calc_minmax_offset
+
+
 //========= HideSaveButtonOnQuicksave  ====================================
     function HideSaveButtonOnQuicksave(tp_dict, st_dict) {
         //console.log( "--- HideSaveButtonOnQuicksave  ");
@@ -730,13 +750,9 @@ function CalcMinMax(dict) {
         //console.log( "tp_dict ", tp_dict);
         //console.log( "st_dict ", st_dict);
 
-        const fieldname = tp_dict["field"];
-        const rosterdate = tp_dict["rosterdate"];
-        let curDayOffset = tp_dict["curDayOffset"];
-
-        //console.log( "fieldname ", fieldname);
-        //console.log( "rosterdate ", rosterdate);
-        //console.log( "curDayOffset ", curDayOffset);
+        const fieldname = tp_dict.field;
+        const rosterdate = tp_dict.rosterdate;
+        let curDayOffset = tp_dict.curDayOffset;
 
         let date_text = "";
         if (fieldname === "breakduration"){

@@ -564,7 +564,6 @@ def create_pricecode_dict(pricecode, item_dict, request):
     f.remove_empty_attr_from_dict(item_dict)
 # --- end of create_team_dict
 
-
 # === PricesUploadView ===================================== PR2019-05-26
 @method_decorator([login_required], name='dispatch')
 class PricesUploadView(UpdateView):  # PR2019-06-23

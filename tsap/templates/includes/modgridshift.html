@@ -1,0 +1,93 @@
+{% load i18n %}
+{% load l10n %}
+{% load static %}
+
+<!-- =================== MODAL GRID SHIFT  =================== -->
+    <div class="modal fade" id="id_modgrid_shift" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content" style="overflow:hidden;">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_MGS_header" class="modal-title mx-2" >{% trans 'Shift' %}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div id="id_modshift_body" class="modal-body">
+
+                    <div class="modal_container">
+
+<!-- modal_body_left contains order select table -->
+
+                        <div id="id_modshift_body_right" class="modal_body_flex3">
+                            <div class="content_header">
+                                <div class="content_subheader_left">
+                                    <h5 id="id_modshift_header_scheme" class="mx-2" ></h5>
+                                </div>
+                                <div class="content_subheader_right">
+                                    <h5 id="id_modshift_header_cycle" class="mx-2" ></h5>
+                                </div>
+                            </div>
+
+                            <div class="content_header">
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MGS_shiftcode" class="tsa_margin_form_label">{% trans 'Shift name' %}:</label>
+                                    <input id="id_MGS_shiftcode" type="text" data-field="shift"
+                                    autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                    class="form-control mb-0">
+                                </div>
+                            </div>
+                            <div class="content_subheader_left mx-1">
+                                <small class="tsa_margin_form_label">{% trans "You can leave the shift name blank. TSA will enter it automatically." %}</small>
+                             </div>
+                            <div id="id_MGS_timefields" class="content_header">
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MGS_offsetstart" class="tsa_margin_form_label">{% trans 'Start time' %}:</label>
+                                    <p id="id_MGS_offsetstart" data-toggle="modal" href="#id_mod_timepicker"
+                                       data-field= "offsetstart" tabindex="0" class="form-control pointer_show mb-0"> </p>
+                                </div>
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MGS_offsetend" class="tsa_margin_form_label">{% trans 'End time' %}:</label>
+                                    <p id="id_MGS_offsetend" data-toggle="modal" href="#id_mod_timepicker"
+                                       data-field="offsetend" tabindex="0" class="form-control pointer_show mb-0">  </p>
+                                </div>
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MGS_breakduration" class="tsa_margin_form_label">{% trans 'Break' %}:</label>
+                                    <p id="id_MGS_breakduration" data-toggle="modal" href="#id_mod_timepicker"
+                                       data-field="breakduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
+                                </div>
+                                <div class="content_subheader_left mx-1">
+                                    <label for="id_MGS_timeduration" class="tsa_margin_form_label">{% trans 'Working hours' %}:</label>
+                                    <p id="id_MGS_timeduration"  data-toggle="modal" href="#id_mod_timepicker"
+                                       data-field="timeduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
+                                </div>
+                            </div>
+                            <div class="content_subheader_left mx-1">
+                                <small class="tsa_margin_form_label">{% trans "Instead of the start- and endtime you can also enter the hours." %}</small>
+                             </div>
+                            <div class="content_subheader_left mx-1">
+                                <span>
+                                    <input id="id_MGS_restshift" type="checkbox" class="td_width_032 mx-2">
+                                    <label for="id_MGS_restshift" class="mx-2 my-2">{% trans 'This is a rest shift' %}</label>
+                                </span>
+
+                             </div>
+                        </div>  <!-- end id_modshift_body_right -->
+                    </div>  <!-- end modal_container -->
+                </div>
+                <div class="modal-footer pr-4">
+                    <div class="content_subheader_left_flex2 mx-1">
+                        <button id="id_MGS_btn_delete" type="button" data-dismiss="modal" class="btn btn-outline-danger">{% trans 'Delete this shift' %}</button>
+                    </div>
+                    <div class="content_subheader_right">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                        <button id="id_MGS_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save' %}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL GRID SHIFT  =================== -->
+<!-- =================== MODAL TIMEPICKER  =================== -->
+    {% include 'includes/modtimepicker.html' %}
+<!-- =================== END MODAL TIMEPICKER  =================== -->

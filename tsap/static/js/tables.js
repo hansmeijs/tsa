@@ -896,7 +896,7 @@
         // function gets code from item_dict and searches sorted position of this code in selecttable, returns index
         let row_index = -1
         if (!!tblBody && !!item_dict){
-            const new_code = get_subdict_value_by_key(item_dict, "code", "value", "").toLowerCase()
+            const new_code = get_dict_value(item_dict, ["code", "value"], "").toLowerCase()
              const len = tblBody.rows.length;
             if (!!len){
                 for (let i = 0, tblRow, td, el; i < len; i++) {

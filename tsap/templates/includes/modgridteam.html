@@ -1,0 +1,69 @@
+{% load i18n %}
+{% load l10n %}
+{% load static %}
+
+
+<!-- =================== MODAL GRID TEAM  =================== -->
+    <div class="modal fade" id="id_modgrid_team" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
+            <div class="modal-content" style="overflow:hidden;">
+                <div class="modal-header tsa_bc_lightlightgrey">
+                    <h4 id="id_MGT_header" class="modal-title mx-2" ></h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div id="id_modshift_body" class="modal-body">
+                    <div class="modal_container">
+                        <div id="id_modshift_body_right" class="modal_body_flex3">
+                            <div class="content_header mod_show mod_team">
+                                <div class="content_subheader_left mx-1">
+                                        <label for="id_MGT_teamcode" class="tsa_margin_form_label">{% trans 'Team name' %}:</label>
+                                        <input id="id_MGT_teamcode" type="text" data-field="team"
+                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
+                                        class="form-control mb-0">
+                                </div>
+                            </div>
+                            <div class="mod_show mod_team">
+                                <div>
+                                    <small class="mx-2 mt-0">
+                                        {% trans "A team contains employees that work on a shift at the same time and order." %}
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="content_header mod_show mod_team">
+                                <div class="content_subheader_left mx-1 my-2">
+                                    <div style="overflow-x:hidden;overflow-y:auto;width:740px;height:240px">
+                                        <table  class="table tsa_tbl mb-0">
+                                            <thead id="id_MGT_thead_teammember"></thead>
+                                            <tbody id="id_MGT_tbody_teammember"></tbody>
+                                            <tfoot id="id_MGT_tfoot_teammember"></tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                          <div class="mod_show mod_team">
+                                <div>
+                                    <small class="tsa_Xmargin_form_label mx-2 mt-0">
+                                        {% trans "You can add a teammember without employee. The employee can be added later." %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>  <!-- end id_modshift_body_right -->
+                    </div>  <!-- end modal_container -->
+                </div>
+                <div class="modal-footer pr-4">
+                    <div class="content_subheader_left mx-1 mod_show mod_shift mod_team">
+                        <button id="id_MGT_btn_delete" type="button" data-dismiss="modal" class="btn btn-outline-danger">{% trans 'Delete this team' %}</button>
+                    </div>
+                    <div class="content_subheader_right mod_show mod_shift mod_team">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                        <button id="id_MGT_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save' %}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- =================== END MODAL TEAM  =================== -->

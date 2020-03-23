@@ -78,12 +78,12 @@ def create_employee_dict(instance, item_dict, user_lang):
                     if field == 'datefirst':
                         f.set_fielddict_date(
                             field_dict=field_dict,
-                            date_value=datefirst,
+                            date_obj=datefirst,
                             maxdate=datelast)
                     elif field == 'datelast':
                         f.set_fielddict_date(
                             field_dict=field_dict,
-                            date_value=datelast,
+                            date_obj=datelast,
                             mindate=datefirst)
 
             elif field == 'workhours':
@@ -170,14 +170,19 @@ def create_teammember_dict(teammember, item_dict, user_lang):
     #logger.debug ('--- create_teammember_dict ---')
     #logger.debug ('item_dict' + str(item_dict))
 
-    # c.FIELDS_TEAMMEMBER = ('id', 'team', 'cat', 'employee', 'datefirst', 'datelast',
-    #                       'workhoursperday', 'wagerate', 'wagefactor', 'scheme', 'order', 'customer')
+    # PR2019-12-20 Note: 'scheme' and 'order' are not model fields, but necessary for absence update
+    # FIELDS_TEAMMEMBER = ('id', 'team', 'employee', 'replacement', 'datefirst', 'datelast',
+    #                      'scheme', 'order',
+    #                      'cat', 'isabsence', 'issingleshift', 'istemplate',
+    #                      'wagefactorcode', 'pricecode', 'additioncode', 'override')
 
     if teammember:
         is_singleshift = teammember.issingleshift
         is_absence = teammember.isabsence
-        is_template = teammember.istemplate
 
+        #logger.debug('teammember ' + str(teammember) + str(type(teammember)))
+        #logger.debug('teammember.datefirst ' + str(teammember.datefirst) + str(type(teammember.datefirst)))
+        #logger.debug('teammember.datelast ' + str(teammember.datelast) + str(type(teammember.datelast)))
 # ---  get datefirst/ datelast of scheme, order and employee
         team = teammember.team
         scheme = team.scheme
@@ -259,7 +264,6 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                     if replacement.code:
                         field_dict['code'] = replacement.code
 
-
             elif field in ['datefirst', 'datelast']:
                 # if is_absence or is_singleshift: get datefirst / datelast from scheme
                 # is restshift or schemshift: get datefirst / datelast from teammember
@@ -274,6 +278,7 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                     outer_maxdate = f.date_earliest_of_three(scheme.datelast, order.datelast, employee_datelast)
 
                 value = getattr(instance, field)
+
                 if field == 'datefirst':
                     mindate = outer_mindate
                     maxdate = f.date_earliest_of_two(instance.datelast, outer_maxdate)
@@ -285,32 +290,15 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                     if field == 'datefirst':
                         f.set_fielddict_date(
                             field_dict=field_dict,
-                            date_value=value,
+                            date_obj=value,
                             mindate=mindate,
                             maxdate=maxdate)
                     elif field == 'datelast':
                         f.set_fielddict_date(
                             field_dict=field_dict,
-                            date_value=value,
+                            date_obj=value,
                             mindate=mindate,
                             maxdate=maxdate)
-
-            #elif field in ['priceratejson']:
-            #    pricerate = getattr(teammember, field)
-            #    if pricerate is not None:
-            #        field_dict['value'] = pricerate
-            #    field_dict['display'] = f.display_pricerate(pricerate, False, user_lang)
-
-            elif field == 'workhoursperday':
-                workhoursperday = getattr(teammember, field, 0)
-                if workhoursperday == 0:
-                    employee= teammember.employee
-                    if employee:
-                        workhours = getattr(employee, 'workhours', c.WORKHOURS_DEFAULT)
-                        workdays = getattr(employee, 'workdays', c.WORKHOURS_DEFAULT)
-                        if workhours and workdays:
-                            workhoursperday = workhours / workdays * 1440
-                field_dict['value'] = workhoursperday
 
             elif field in ('isabsence', 'issingleshift', 'istemplate'):
                 pass
@@ -324,7 +312,8 @@ def create_teammember_dict(teammember, item_dict, user_lang):
 
 # 7. remove empty attributes from item_update
         f.remove_empty_attr_from_dict(item_dict)
-# >>>>>>>>>>>>>>>>>>>
+    return item_dict
+# === end of create_teammember_dict
 
 
 def create_employee_pricerate_list(company, user_lang):
