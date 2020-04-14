@@ -9,6 +9,9 @@
     <script src="{% static 'js/modtimepicker.js' %}"></script>
 {% endblock %}
 
+<!-- =================== MODAL TIMEPICKER  =================== -->
+{% include 'includes/modtimepicker.html' %}
+
 <!-- SIDE BAR -->
 {% block sidebar %}
     <nav id="id_sidebar" class="tsa_sidebar">
@@ -63,7 +66,9 @@
 <!-- END SIDE BAR -->
 
 {% block content %}
+
     {% if user.is_authenticated %}
+
 <!-- =================== id_msgbox  =================== -->
         <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
@@ -185,37 +190,11 @@
 <!-- CONTENT BODY -->
             <div class="content_body mx-2">
 
-<!-- =================== POPUP WDY  =================== -->
-                 <div id="id_popup_wdy" class="popup_box display_hide td_width_220">
-                     <div class="popup_header">
-                        <label id="id_popup_wdy_header" class="mx-4 my-1" >{% trans 'Roster date' %}</label>
-                        <button id="id_popup_wdy_close" type="button" class="close my-1" aria-label="Close">
-                            <span class="popup_close" aria-hidden="true">&times;</span>
-                        </button>
-                     </div>
-                     <div class="content_header_middle">
-                        <input id="id_popup_wdy_rosterdate" class="input_text mx-4 my-1" >
-                     </div>
-                     <div class="content_header_middle" >
-
-                         <button id="id_popup_wdy_prev_month"  class=" btn btn-add" title="{% trans 'Previous month' %}">&#171;</button>
-                         <button id="id_popup_wdy_prev_day" class="btn btn-add" title="{% trans 'Previous day' %}">&#8249;</button>
-                         <button id="id_popup_wdy_today" class="btn btn-add" >{% trans 'Today' %}</button>
-                         <button id="id_popup_wdy_nextday" class="btn btn-add" title="{% trans 'Next day' %}">&#8250;</button>
-                         <button id="id_popup_wdy_nextmonth" class="btn btn-add" title="{% trans 'Next month' %}">&#187;</button>
-
-                     </div>
-                     <div class="content_subheader_right">
-                         <button id="id_popup_wdy_save" class="btn btn-add">{% trans 'Save' %}</button>
-                     </div>
-                 </div>
-<!-- =================== TIMEPICKER  =================== -->
-                {% include 'includes/timepicker.html' %}
 <!-- =================== DATA TABLE  =================== -->
                  <div>
                     <table class="table tsa_tbl mx-4X my-1">
 
-                        <thead id="id_thead_roster" class="thead-inverse">
+                        <thead id="id_thead_roster" class="thead-inversXXXe">
                             <tr>
                                 <th class="text_align_left">{% trans 'Date' %}</th>
                                 <th class="text_align_left">{% trans 'Order' %}</th>
@@ -246,6 +225,8 @@
 
                         <tbody id="id_tbody_roster">
                         </tbody>
+                        <tfoot id="id_tfoot_roster">
+                        </tfoot>
                     </table>
                 </div>
   <!-- =================== END DATA TABLE  =================== -->

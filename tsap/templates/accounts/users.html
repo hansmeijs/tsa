@@ -1,39 +1,49 @@
 {% extends 'base.html' %}
 {% load i18n %}
-
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar" class="tsa_sidebar">
+        <div class="sidebar_header">
+            <h3>{% trans 'Users' %}</h3>
+        </div>
+    </nav>
+{% endblock %}
+<!-- END SIDE BAR -->
 {% block content %}
   {% if user.permit_user_modify %}
-      <div class="mb-3">
-        <a  href="{% url 'user_add_url' %}" class="btn btn-primary">{% trans 'Add user' %}</a>
-      </div>
-      <table class="table table table-condensed">
-        <thead class="thead-inverse">
-          <tr>
-            <th>{% trans 'Username' %}</th>
-            <th>{% trans 'Full name' %}</th>
-            <th>{% trans 'Email' %}</th>
-            <th>{% trans 'Activated' %}</th>
-            <th>{% trans 'Active' %}</th>
-            <th>{% trans 'Company' %}</th>
-            <th>{% trans 'Organization' %}</th>
-            <th>{% trans 'Permissions' %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for usr in users.all %}
+
+      <div class="tsa_margin_top_48 ml-2 mb-3">
+          <a  href="{% url 'user_add_url' %}" class="btn btn-primary">{% trans 'Add user' %}</a>
+
+        <table class="table table-condensed mt-2">
+          <thead class="thead-inverse">
             <tr>
-              <td><a href="{% url 'user_edit_url' usr.pk %}">{{ usr.username_sliced }}</a></td>
-              <td>{{ usr.last_name }}</td>
-              <td>{{ usr.email }}</td>
-              <td>{{ usr.activated }}</td>
-              <td>{{ usr.is_active_str }}</td>
-              <td>{{ usr.company }}</td>
-              <td>{{ usr.role_str }}</td>
-              <td>{{ usr.permits_str }}</td>
+              <th>{% trans 'Username' %}</th>
+              <th>{% trans 'Full name' %}</th>
+              <th>{% trans 'Email' %}</th>
+              <th>{% trans 'Activated' %}</th>
+              <th>{% trans 'Active' %}</th>
+              <th>{% trans 'Company' %}</th>
+              <th>{% trans 'Organization' %}</th>
+              <th>{% trans 'Permissions' %}</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for usr in users.all %}
+              <tr>
+                <td><a href="{% url 'user_edit_url' usr.pk %}">{{ usr.username_sliced }}</a></td>
+                <td>{{ usr.last_name }}</td>
+                <td>{{ usr.email }}</td>
+                <td>{{ usr.activated }}</td>
+                <td>{{ usr.is_active_str }}</td>
+                <td>{{ usr.company }}</td>
+                <td>{{ usr.role_str }}</td>
+                <td>{{ usr.permits_str }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    </div>
   {% else %}
     <div class="alert alert-danger">{{ user.message_user_modify }}</div>
     <a href="{% url 'home' %}" class="btn btn-outline-primary">{% trans 'Cancel' %}</a>

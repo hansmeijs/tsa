@@ -1,8 +1,9 @@
 # PR2018-05-28
 import datetime
 from datetime import date, time, datetime, timedelta
-from django.db.models.functions import  Lower
+from django.db.models.functions import Lower
 from django.utils.translation import ugettext_lazy as _
+
 
 from tsap.settings import TIME_ZONE
 from tsap import constants as c
@@ -189,6 +190,7 @@ def get_datetimelocal_from_offset(rosterdate, offset_int, comp_timezone):
         #logger.debug('dt with offset: ' + str(dt) + ' ' + str(type(dt)))
             # dt with offset: 2019-11-22 12:00:00 <class 'datetime.datetime'>
         #logger.debug('dt.tzinfo: ' + str(dt.tzinfo) + ' ' + str(type(dt.tzinfo)))
+            # datetime_naive has no tzinfo
             # dt.tzinfo: None <class 'NoneType'>
 
     # b. add timezone to naive datetime object
@@ -261,6 +263,7 @@ def get_today_dateobj():
     now_arr = [now.year, now.month, now.day, now.hour, now.minute]
     # today_iso: 2019-11-17 <class 'str'>
     today_dte = get_date_from_arr(now_arr)
+
     # today_dte: 2019-11-17 <class 'datetime.date'>
     # NIU now_usercomp_dtm = get_datetime_from_arr(now_arr)
     # now: 2019-11-17 07:41:00 <class 'datetime.datetime'>
@@ -374,12 +377,12 @@ def get_datetimearray_from_dateISO(datetime_ISOstring):  # PR2019-07-10
     #  datetime_aware_iso = "2019-03-30T04:00:00-04:00"
     #  split string into array  ["2019", "03", "30", "19", "05", "00"]
     #  regex \d+ - matches one or more numeric digits
-    logger.debug('............. get_datetimearray_from_dateISO: ' + str(datetime_ISOstring))
-    logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' ' + str(type(datetime_ISOstring)))
+    #logger.debug('............. get_datetimearray_from_dateISO: ' + str(datetime_ISOstring))
+    #logger.debug('datetime_ISOstring: ' + str(datetime_ISOstring) + ' ' + str(type(datetime_ISOstring)))
 
     regex = re.compile('\D+')
 
-    logger.debug(' regex: ' + str(regex) + ' ' + str(type(regex)))
+    #logger.debug(' regex: ' + str(regex) + ' ' + str(type(regex)))
     arr = regex.split(datetime_ISOstring)
     length = len(arr)
 
@@ -627,6 +630,43 @@ def add_month_to_firstof_month(date_obj, month_add_int):
             new_date = date_obj
     return new_date
 
+
+def add_months_to_date(date_obj, months_add_int):  # PR2020-04-07
+    # function adds / subtracts months from date. Converts Feb 31 to Feb 28 or feb 29
+    # input is datetime.date object, convert to a datetime.datetime object
+    #logger.debug('date_obj: ' + str(date_obj.isoformat()) + ' ' + str(type(date_obj)))
+
+    datetime_obj = get_datetime_naive_from_dateobject(date_obj)
+    #logger.debug('datetime_obj: ' + str(datetime_obj.isoformat()) + ' ' + str(type(datetime_obj)))
+
+    # Exception Value: descriptor 'date' requires a 'datetime.datetime' object but received a 'datetime.date'
+    # date_obj = datetime.date(datetime_obj)
+
+    year_int = datetime_obj.year
+    month_int = datetime_obj.month
+    day_int = datetime_obj.day
+    new_month_int = month_int + months_add_int
+    if new_month_int > 12:
+        year_int += 1
+        new_month_int -= 12
+    elif new_month_int < 1:
+        year_int -= 1
+        new_month_int += 12
+
+    new_dateobj = None
+    is_ok = False
+    # when new date is not valid, subtract one day till it gets a valid day.
+    # Add condition day_int < 28 to prevent infinite loop
+    while not is_ok:
+        try:
+            new_dateobj = date(year_int, new_month_int, day_int)
+            is_ok = True
+        except:
+            day_int -= 1
+        if day_int < 28:
+            is_ok = True
+
+    return new_dateobj
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -1706,11 +1746,11 @@ def get_iddict_variables(id_dict):
 
 
 def get_dict_value(dictionry, key_tuple, default_value=None):
-    # PR2020-02-04 like in base.js Iterate through keylist till value found
+    # PR2020-02-04 like in base.js Iterate through key_tuple till value found
     if key_tuple and dictionry:  # don't use 'dictionary' - is PyCharm reserved word
         for key in key_tuple:
             if isinstance(dictionry, dict) and key in dictionry:
-                dictionry = dictionry.get(key)
+                dictionry = dictionry[key]
             else:
                 dictionry = None
                 break
@@ -2351,8 +2391,8 @@ def display_duration(value_int, user_lang, skip_prefix_suffix):
     return time_format
 
 
-def display_offset_time(offset, timeformat, user_lang,
-                        skip_prefix_suffix=False, is_offsetend=False, blank_when_zero=True):
+def display_offset_time(offset, timeformat, user_lang, skip_prefix_suffix=False, is_offsetend=False, blank_when_zero=True):
+
     # PR2020-02-07
     display_txt = ''
     if not blank_when_zero or offset:
@@ -2396,6 +2436,7 @@ def display_offset_time(offset, timeformat, user_lang,
 def display_offset_range(offset_start, offset_end, timeformat, user_lang, skip_prefix_suffix=False):
     display_text = ''
     if offset_start is not None or offset_end is not None:
+        # display_offset_time(offset, timeformat, user_lang, skip_prefix_suffix=False, is_offsetend=False, blank_when_zero=True)
         offsetstart_formatted = display_offset_time(offset_start, timeformat, user_lang, skip_prefix_suffix)
         offsetend_formatted = display_offset_time(offset_end, timeformat, user_lang, False, True,)
 
@@ -2510,17 +2551,27 @@ def calc_datepart(offsetstart, offsetend):  # PR2020-03-23
     # e. calculate datepart, only when start- and enddate are filled in
     # avg is halfway offsetstart and offsetend
     #  when avg < 360: night,
-    offset_avg = (offsetstart + offsetend) / 2
+    # when offsetstart or offsetend is blank: give it date_part = 0
     date_part = 0
-    if offsetstart or offsetend:
-        if offset_avg < 360:  # night shift'
+    if offsetstart is not None and offsetend is not None:
+        offset_avg = (offsetstart + offsetend) / 2
+        if offset_avg < c.DATEPART01_NIGHTSHIFT_END:  # 360 end of night shift 6.00 u
             date_part = 1
-        elif offset_avg < 720:  # morning shift'
+        elif offset_avg < c.DATEPART02_MORNINGSHIFT_END:  # 720 end of morning shift 12.00 u
             date_part = 2
-        elif offset_avg < 1080:  # afternoon shift'
+        elif offset_avg < c.DATEPART03_AFTERNOONSHIFT_END:  # 1080 end of afternoon shift 18.00 u
             date_part = 3
         else:  # evening shift'
             date_part = 4
+    return date_part
+
+
+def calc_datepart_from_datetimelocal(rosterdate, datetimestart_local, datetimeend_local):  # PR2020-04-09
+    date_part = 0
+    if rosterdate and datetimestart_local and datetimeend_local:
+        offsetstart = get_offset_from_datetimelocal(rosterdate, datetimestart_local)
+        offsetend = get_offset_from_datetimelocal(rosterdate, datetimeend_local)
+        date_part = calc_datepart(offsetstart, offsetend)
     return date_part
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

@@ -52,16 +52,13 @@
                 <tfoot id="id_select_tfoot_team"></tfoot>
             </table>
 
-
         </div>
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
 
-
 {% block content %}
     {% if user.is_authenticated %}
-
 <!-- =================== msgbox  =================== -->
         <div class="popup display_hide" >
             <span class="popuptext" id="id_msgbox"></span>
@@ -106,7 +103,7 @@
 
                                 <div class="form-group">
                                     <label for="id_mod_scheme_cycle" class="mx-2 my-2">{% trans 'Cycle days' %}:</label>
-                                    <input id="id_mod_scheme_cycle" type="number" value="7" min="0" max="366"
+                                    <input id="id_mod_scheme_cycle" type="number" min="1" max="28"
                                         autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                         class="form-control">
                                     <div><small class="mx-2">{% trans 'Enter the length of the cycle in days, enter zero for once-only.' %}</small></div>
@@ -224,7 +221,6 @@
 
 <!-- =================== CONFIRM =================== -->
     {% include 'includes/confirm.html' %}
-
 <!-- =================== MODAL GRID TEAM  =================== -->
     {% include 'includes/modgridteam.html' %}
 <!-- =================== MODAL GRID SHIFT  =================== -->
@@ -235,7 +231,6 @@
      <div id="id_popup_date_container" class="popup_box tsa_bc_lightlightgrey display_hide">
          <input id="id_popup_date" type="date" class="tsa_transparent mx-4 my-1" >
      </div>
-
 
     <!-- =================== CONTAINER =================== -->
         <div class="container">
@@ -287,7 +282,7 @@
                                 <h6 class="mx-1 my-0">{% trans 'Scheme' %}:</h6>
                             </div>
                             <div class=" m-1">
-                                <button id="id_grid_scheme_btn_code" type="button" data-table="scheme" data-field="cycle" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Name' %}: schemes</button>
+                                <button id="id_grid_scheme_btn_code" type="button" data-table="scheme" data-field="code" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Name' %}: schemes</button>
                                 <button id="id_grid_scheme_btn_cycle" type="button" data-table="scheme" data-field="cycle" class="td_width_180 tsa_bc_yellow_lightlight mx-2 my-1">{% trans 'Cycle' %}: 7 days</button>
                             </div>
                             <div class=" m-1">
@@ -295,7 +290,7 @@
                             </div>
                             <div class=" m-1">
                                 <a id="id_grid_scheme_btn_exph" class="btn-smallfont td_width_180 mx-2 my-0"></a>
-                                                            </div>
+                            </div>
                             <div class=" m-1">
                                 <a id="id_grid_scheme_btn_exch" class="btn-smallfont td_width_180 mx-2 my-0">{% trans 'Also on company holidays' %}</a>
                             </div>
@@ -305,15 +300,14 @@
                                 <tbody id="id_grid_tbody_team">
                                  </tbody>
                             </table>
-
                         </div>
-
                     </div>
+
                     <div class="tsa_shift_container tbl_XXborder">
-                        <h6 class="grid_schemeitems_hdr m-0 px-2 py-1">
+                        <h6 class="grid_schemeitem_hdr m-0 px-2 py-1">
                             Schedule
                         </h6>
-                        <div class="grid_schemeitems tbl_XXborder">
+                        <div class="grid_schemeitem tbl_XXborder">
                             <div class=" tbl_border">
                                 <table class="grd_tbl">
                                     <tbody id="id_grid_tbody_shift">
@@ -379,7 +373,7 @@
                     </div>
                     <div class="content_subheader_left mx-1">
                         <label for="id_scheme_cycle" class="tsa_margin_form_label">{% trans 'Cycle length' %}:</label>
-                        <input id="id_scheme_cycle" type="number" data-table="scheme" data-field="cycle"
+                        <input id="id_scheme_cycle" type="number" min="1" max="28" data-table="scheme" data-field="cycle"
                             autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                class="form-control frm_input px-2">
                     </div>
@@ -398,11 +392,11 @@
                 </div>
                 <div class=" content_header">
                     <div class="content_subheader_left mx-1 mt-4">
-                        <input id="id_scheme_excludepublicholiday" type="checkbox" class="td_width_032">
-                        <label for="id_scheme_excludepublicholiday" class="frm_input mt-1">{% trans 'Not on public holidays' %}</label>
+                        <input id="id_scheme_excludepublicholiday" type="checkbox" class="frm_input td_width_032">
+                        <label for="id_scheme_excludepublicholiday" class="mt-1">{% trans 'Not on holidays' %}</label>
 
-                        <input id="id_scheme_excludecompanyholiday" type="checkbox" class="td_width_032">
-                        <label for="id_scheme_excludecompanyholiday" class="frm_input mt-1">{% trans 'Not on company holidays' %}</label>
+                        <input id="id_scheme_excludecompanyholiday" type="checkbox" class="frm_input td_width_032">
+                        <label for="id_scheme_excludecompanyholiday" class="mt-1">{% trans 'Not on company holidays' %}</label>
                     </div>
                 </div>
             </div>

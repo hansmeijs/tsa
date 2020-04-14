@@ -485,8 +485,8 @@
 
                 const offset_start = get_dict_value(row, ["timestart", "offset"]);
                 const offset_end = get_dict_value(row, ["timeend", "offset"]);
-                const skip_prefix_suffix = false;
-                const display_timerange = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, skip_prefix_suffix)
+                const skip_hour_suffix = false;
+                const display_timerange = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, skip_hour_suffix)
 // ======== change in employee ========
                 //let rosterdate_dict = get_dict_value(subtotals, [this_employee_pk]);
                 if (this_employee_pk !== prev_employee_pk){
@@ -725,8 +725,8 @@
         //console.log("offset_start: ", offset_start)
         //console.log("offset_end: ", offset_end)
             if(!!offset_start || !!offset_end){
-                const offsetstart_formatted = display_offset_time (offset_start, loc.timeformat, loc.user_lang, true); // true = skip_prefix_suffix
-                const offsetend_formatted = display_offset_time (offset_end, loc.timeformat, loc.user_lang, true); // true = skip_prefix_suffix
+                const offsetstart_formatted = display_offset_time (loc. offset_start, true); // true = skip_prefix_suffix
+                const offsetend_formatted = display_offset_time (loc, offset_end, true); // true = skip_prefix_suffix
                 display_time = offsetstart_formatted + " - " + offsetend_formatted
             }
             const time_duration = get_dict_value(item_dict, ["shift", "timeduration"]);

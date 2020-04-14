@@ -153,17 +153,19 @@ h4 h5 {
     color: #dc3545;    /*  red like in django is-invalid */
 }
 
-.border_valid {
+.border_bg_valid {
     border: 1px solid  #4cbd67;  /*  #28a745; is green like in django is-valid */
     border-radius: .25rem;
     background-color: #d7f4de; /*#ade8bb;*/
 }
-
+.border_bg_transparent {
+    border: 1px solid #303024; /* dark dark Panta Rhei grey 48 48 36 */
+    border-radius: .25rem;
+    background-color: transparent;
+}
 .border_calendarshift {
     border: 1px solid #808080 !important; /* Dark grey; */
-
 }
-
 
 .display_show {
   display: block;
@@ -187,6 +189,56 @@ h4 h5 {
     cursor: pointer;
 }
 
+/* PR2020-04-07 to get second moadl on top of first one */
+/* from https://stackoverflow.com/questions/32634488/second-modal-doesnt-put-backdrop-on-first-one */
+.z_index_1099 {
+    z-index: 1099;
+}
+
+/* ============== mtp-modal ================= PR2020-04-13 */
+.mtp_modal {
+  /*background-color: rgba(0,0,0,0.02); /* Transparent dimmed overlay */
+  background-color: transparent;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: table;
+  z-index: 2099;
+}
+
+.mtp_modal.hidden {
+  display: none;
+}
+
+.mtp_modal .mtp_container {
+ display: table-cell;
+ text-align: center;
+ vertical-align: middle;
+ width: 200px;
+
+}
+
+.mtp_modal .mtp_body {
+  box-shadow: 5px 10px #888888;
+  display: inline-block;
+  /*background-color: #f5f5f5; /* #f5f5f5 = 245 245 245  licht licht licht grijs;*/
+  border: 1px solid #808080; /* dark grey 128 128 128 */
+
+  border-radius: .25rem;
+  padding: 10px;
+}
+.mtp_header {
+    display: flex;
+    align-items: flex-start; /* so the close btn always stays on the upper right corner */
+    justify-content: space-between; /* Put modal header elements (title and dismiss) on opposite ends */
+    /*border-bottom: 1px solid purple /*#808080; /* grijs; */
+
+    background-color: #808080;
+    color: #ffffff;
+    /*font-weight: bold;*/
+  }
 
 /* from https://stackoverflow.com/questions/32459337/how-to-remove-bootstrap-modal-overlay*/
 /* remove grey background from modal  PR2019-04-12 */
@@ -207,7 +259,7 @@ h4 h5 {
 }
 /*
 .modal {
-  background-color: rgba(0,0,0,0.4); /* Transparent dimmed overlay */
+  background-color: rgba(0,0,0,0.4);  Transparent dimmed overlay
   position: fixed;
   top: 0;
   left: 0;
@@ -340,7 +392,6 @@ h4 h5 {
 .tsa_fontweight_bold {
     font-weight: bold;
 }
-
 
 
 /*==================================================*/

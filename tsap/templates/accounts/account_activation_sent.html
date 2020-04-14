@@ -11,11 +11,15 @@
 {% endblock %}
 <!-- END SIDE BAR -->
 {% block content %}
-  <h4>{% trans 'User added' %}</h4>
-    {% csrf_token %}
-    <p>{% trans "We have sent an email to user" %} '{{ new_user.username_sliced }}' {% trans "to verify the email address and enter a password." %}</p>
-    <p>{% trans "The user must click on the link in that email to complete the registration." %}</p>
-    <a href="{% url 'user_list_url' %}" class="btn btn-primary btn_minwidth">{% trans "Close" %}</a>
-  </form>
+    <div class="tsa_margin_top_48 ml-2 mb-3">
+        <h4>{% trans 'User added' %}</h4>
+
+        <form>
+            {% csrf_token %}
+            <p>{% trans "We have sent an email to user" %} '{{ new_user.username_sliced }}' {% trans "to verify the email address and enter a password." %}</p>
+            <p>{% trans "The user must click on the link in that email to complete the registration." %}</p>
+            <a href="{% url 'user_list_url' %}" class="btn btn-primary btn_minwidth">{% trans "Close" %}</a>
+        </form>
+    </div>
 {% endblock %}
 

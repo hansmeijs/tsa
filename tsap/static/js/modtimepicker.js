@@ -1,17 +1,32 @@
 
-// ++++++++++++  MOD TIMEPICKER +++++++++++++++++++++++++++++++++++++++
+// ++++++++++++  MOD TIMEPICKER +++++++++++++++++++++++++++++++++++++++ PR2020-04-13
+// from https://stackoverflow.com/questions/53594423/how-to-open-a-bootstrap-modal-without-jquery-or-bootstrap-js-javascript%20*/
     "use strict";
+
+    let mod_quicksave = false;
+    let mod_quicksave_initialized = false;
+
+
+
 
 //========= ModTimepickerOpen  ====================================
     function ModTimepickerOpen(el_input, ModTimepickerChanged, tp_dict, st_dict) {
-        //console.log("=== MODAL  ModTimepickerOpen  =====");
-        //console.log(document.getElementById("id_mod_confirm_body"));
+        console.log("=== MODAL  ModTimepickerOpen  =====");
         //console.log( "tp_dict: ", tp_dict);
         //console.log( "st_dict: ", st_dict);
 
+        document.getElementById("id_mtp_modal").classList.remove("hidden");
+
+        // only retrieve is_quicksave from roster page when starting up page.
+        // changed value is saved in mod_quicksave, and from here sent to server
+        if(!mod_quicksave_initialized){
+            mod_quicksave = tp_dict.quicksave;
+            mod_quicksave_initialized = true;
+        }
+
         CalcMinMax(tp_dict)
 
-// display cur_datetime_local in header
+// ---  display cur_datetime_local in header
         CreateHeader(tp_dict, st_dict);
 
         document.getElementById("id_timepicker_date").innerText = get_header_date(tp_dict, st_dict)
@@ -24,7 +39,7 @@
         HighlightAndDisableHours(tp_dict, "ModTimepickerOpen");
         HighlightAndDisableMinutes(tp_dict)
 
-// hide save button on quicksave
+// ---  hide save button on quicksave
         HideSaveButtonOnQuicksave(tp_dict, st_dict);
 
     }; // function ModTimepickerOpen
@@ -62,7 +77,7 @@
         //console.log( "--- CreateFooter  ");
 
         // btn_quicksave.innerText is set in HideSaveButtonOnQuicksave
-        const is_quicksave = tp_dict.quicksave;
+        // const is_quicksave = tp_dict.quicksave;
 
         let el_footer = document.getElementById("id_timepicker_footer")
         el_footer.innerText = null
@@ -79,9 +94,9 @@
                 btn_quicksave.addEventListener("mouseenter", function() {btn_quicksave.classList.add("tr_hover")});
                 btn_quicksave.addEventListener("mouseleave", function() {btn_quicksave.classList.remove("tr_hover")});
 
-                if(!is_quicksave) {
-                   btn_quicksave.setAttribute("data-toggle", "modal");
-                   btn_quicksave.setAttribute("href", "#id_mod_timepicker");
+                if(!mod_quicksave) {
+                   //btn_quicksave.setAttribute("data-toggle", "modal");
+                   //btn_quicksave.setAttribute("href", "#id_mod_timepicker");
                 }
 
             div_left.appendChild(btn_quicksave);
@@ -93,8 +108,8 @@
                 // timepicker_close to close normal popup: btn_delete.classList.add("timepicker_close")
 
                 // both data-toggle and href needed for toggle popup and modal form
-                btn_delete.setAttribute("data-toggle", "modal");
-                btn_delete.setAttribute("href", "#id_mod_timepicker");
+                //btn_delete.setAttribute("data-toggle", "modal");
+                //btn_delete.setAttribute("href", "#id_mod_timepicker");
 
                 btn_delete.addEventListener("click", function() {
                     ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, "btn_delete")}, false )
@@ -107,8 +122,8 @@
             btn_save.setAttribute("type", "button")
             btn_save.innerText = st_dict["txt_save"];
 
-            btn_save.setAttribute("data-toggle", "modal");
-            btn_save.setAttribute("href", "#id_mod_timepicker");
+            //btn_save.setAttribute("data-toggle", "modal");
+            //btn_save.setAttribute("href", "#id_mod_timepicker");
 
             btn_save.addEventListener("click", function() {
                 ModTimepickerSave( tp_dict, st_dict, ModTimepickerChanged, "btn_save")}, false )
@@ -126,14 +141,12 @@
 
         let maxAllowedHours = 24;
         let hourRows = 4;
-
         if (isampm) {
             hourRows = 2
             maxAllowedHours = 12;
         }
 
         let tblRow, td, el_a, hours, hour_text, disabled = false;
-
 // --- add '00'/'12' on separate row ( '00'when 24h, '12' when ampm)
         tblRow = tbody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
         for (let j = 0; j < 6; j++) {
@@ -242,7 +255,6 @@
 //========= CreateTimepickerCell  ====================================
     function CreateTimepickerCell(tbody, td, ModTimepickerChanged, tp_dict, st_dict,
                                   data_name, value, value_text) {
-        const is_quicksave = tp_dict.quicksave;
 
         if (value !== -1){td.setAttribute("data-" + data_name, value)}
         td.classList.add("timepicker_" + data_name);
@@ -252,16 +264,14 @@
                 SetHour(tbody, td, ModTimepickerChanged, tp_dict, st_dict)
             }, false)
 
-            if(is_quicksave) {
-               td.setAttribute("data-toggle", "modal");
-               td.setAttribute("href", "#id_mod_timepicker");
+            if(mod_quicksave) {
+               //td.setAttribute("data-toggle", "modal");
+               //td.setAttribute("href", "#id_mod_timepicker");
             }
-
         } else if (data_name === "minute"){
             td.addEventListener("click", function() {
                 SetMinute(tbody, td, ModTimepickerChanged, tp_dict, st_dict)
             }, false)
-
         } else if (data_name === "ampm"){
             td.addEventListener("click", function() {
                 SetAmPm(tbody, td, ModTimepickerChanged, tp_dict, st_dict)
@@ -275,14 +285,13 @@
         let el_a = document.createElement("a");
         el_a.innerText = value_text
         td.appendChild(el_a);
-
     }  // CreateTimepickerCell
 
 //========= SetPrevNextDay  ====================================
     function SetPrevNextDay(type_str, tp_dict, st_dict) {
         //console.log("==== SetPrevNextDay  ===== ", type_str);
 
-    // make offset 0 when null
+// ---  make offset 0 when null
         if(tp_dict["offset"] == null ){
             tp_dict["offset"] = 0
             CalcMinMax(tp_dict)
@@ -292,7 +301,7 @@
         const minDayOffset =  tp_dict["minDayOffset"]
         const maxDayOffset =  tp_dict["maxDayOffset"]
 
-    // set  day_add to 1 or -1
+// ---  set  day_add to 1 or -1
         let day_add = (type_str === "prevday") ? -1 : 1;
 
         const curRemainder = tp_dict["offset"] - curDayOffset * 1440;
@@ -304,7 +313,7 @@
 
         CalcMinMax_with_newValues(tp_dict, new_day_offset, null, null)
 
-    // show new date, also when not in range
+// ---  show new date, also when not in range
         document.getElementById("id_timepicker_date").innerText = get_header_date(tp_dict, st_dict)
 
         HighlightAndDisableHours(tp_dict, "SetPrevNextDay");
@@ -315,7 +324,7 @@
     function SetAmPm(tbody, td, ModTimepickerChanged, tp_dict, st_dict) {
         //console.log("==== SetAmPm  =====");
 
-    // check if cell is disabeld
+// ---  check if cell is disabeld
         const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
         if (!disabled){
 
@@ -328,7 +337,7 @@
             const arr = cur_offset.split(";")
             let new_offset = arr[0] + ";" + arr[1] + ";" + new_minutes.toString()
 
-    // put new offset back in el_timepicker data-offset
+// ---  put new offset back in el_timepicker data-offset
             // TODO correct
             let within_range = true;
             if (within_range){
@@ -349,11 +358,9 @@
     function SetHour(tbody, td, ModTimepickerChanged, tp_dict, st_dict) {
         //console.log("==== SetHour  =====");
         //console.log("tp_dict", tp_dict);
-        const is_quicksave = tp_dict.quicksave;
-    // check if cell is disabeld
-        const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
-        //console.log("disabled", disabled);
 
+// ---  check if cell is disabeld
+        const disabled = (td.classList.contains("tr_color_disabled") || td.classList.contains("tsa_color_notallowed"))
         if (!disabled){
         // get new hour from data-hour of td
             const newHours = get_attr_from_el_int(td, "data-hour");
@@ -361,8 +368,10 @@
     // recalculate values of tp_dict
             CalcMinMax_with_newValues(tp_dict, null, newHours, null);
 
+        //console.log("SetHour mod_quicksave", mod_quicksave);
     // save when in quicksave mode
-            if (is_quicksave){
+            if (mod_quicksave){
+
                 ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, "btn_hour")
             }
 
@@ -371,6 +380,7 @@
             HighlightAndDisableHours(tp_dict, "SetHour");
             HighlightAndDisableMinutes(tp_dict);
 
+        //console.log("end of SetHour mod_quicksave", mod_quicksave);
         }  // if (!disabled)
     }  // SetHour
 
@@ -392,27 +402,40 @@
         }  // if (!disabled)
     }  // SetMinute
 
-//=========  ModTimepickerSave  ================ PR2019-11-24
+//=========  ModTimepickerSave  ================ PR2019-11-24 PR2020-04-10
     function ModTimepickerSave(tp_dict, st_dict, ModTimepickerChanged, mode) {
         //console.log("===  ModTimepickerSave =========", mode);
         // close timepicker, except when clicked on quicksave off
 
-// ---  change quicksave when clicked on button 'Quicksave'
-        let is_quicksave = tp_dict.quicksave;
-        //console.log("is_quicksave", is_quicksave);
-
         let save_changes = false, dont_return = false;
+
 // close timepicker, except when clicked on quicksave off
         if (mode === "btn_save") {
             save_changes = true;
         } else if (mode === "btn_qs") {
+
 // ---  toggle quicksave
             // if old quicksave = true: set quicksave = false, show btn_save, don't exit
             // if old quicksave = false: set quicksave = true, save changes
-            is_quicksave = !is_quicksave
-            tp_dict.quicksave = is_quicksave;
+            mod_quicksave = !mod_quicksave
+            tp_dict.quicksave = mod_quicksave;  // not necessary, but let it stay
 
-            if(is_quicksave){
+//////////////////////
+// ---  add or remove data-toggle from hour cells - so closing form will work properly PR2020-04-12
+            let tbody = document.getElementById("id_timepicker_tbody_hour");
+            let tds = tbody.getElementsByClassName("timepicker_hour")
+            for (let i=0, td; td = tds[i]; i++) {
+                if(mod_quicksave) {
+                   //td.setAttribute("data-toggle", "modal");
+                   //td.setAttribute("href", "#id_mod_timepicker");
+                } else {
+                   //td.removeAttribute("data-toggle", "modal");
+                   //td.removeAttribute("href", "#id_mod_timepicker");
+                }
+            };
+//////////////////
+
+            if(mod_quicksave){
                 save_changes = true;
             } else {
                 HideSaveButtonOnQuicksave(tp_dict, st_dict);
@@ -421,13 +444,12 @@
 
 // ---  upload quicksave in Usersettings
             const url_settings_upload = get_dict_value_by_key(st_dict, "url_settings_upload")
-            const setting_dict = {"quicksave": {"value": is_quicksave}};
+            const setting_dict = {quicksave: {value: mod_quicksave}};
             UploadSettings (setting_dict, url_settings_upload);
 
-            // go back without 'save_changes'
 
         } else if (mode === "btn_hour") {
-            if(is_quicksave){
+            if(mod_quicksave){
                 save_changes = true
             };
         } else if (mode === "btn_delete") {
@@ -438,46 +460,53 @@
         }
 
         if(save_changes){
-           //console.log( " --- save_changes ---");
-
-            // save only when offset is within range or null (when changing date hour/minumtes can go outside min/max range)
-            //console.log( "tp_dict: ", tp_dict);
-
+// ---  save only when offset is within range or null (when changing date hour/minumtes can go outside min/max range)
             if(tp_dict.within_range){
                 tp_dict.save_changes = true;
+            } else {
+                dont_return = true
             }
         }
         if(!dont_return) {
-            //console.log( " --- goto  ModTimepickerChanged ---");
+            // hide modal PR2020-04-12 debug: struggle to let quicksave work.
+            // added set/remove attribute toggle helped, but now quicksave button doesnt close form. This solved it
+            if (mode === "btn_qs") {
+            //console.log("FORCE SLOSE id_mod_timepicker");
+                //let el_mod_timepicker = document.getElementById("id_mod_timepicker")
+                // use vanilla JS, this didnt work:  $("#id_mod_timepicker").modal("hide");
+                //el_mod_timepicker.classList.remove("show")
+                //el_mod_timepicker.setAttribute("style", "display: none;")
+            };
+
             ModTimepickerChanged(tp_dict)
+            document.getElementById("id_mtp_modal").classList.add("hidden")
         }
     }  // ModTimepickerSave
-
 
 //========= HighlightAndDisableAmpm  ====================================
     function HighlightAndDisableAmpm(ModTimepickerChanged, tp_dict, st_dict) {
         // from https://stackoverflow.com/questions/157260/whats-the-best-way-to-loop-through-a-set-of-elements-in-javascript
         //console.log( ">>>>=== HighlightAndDisableAmpm  ");
-
-        const curDate_is_rosterdate = dict["curDate_is_rosterdate"];
-        const prevday_disabled = dict["prevday_disabled"];
-        const nextday_disabled = dict["nextday_disabled"];
-
+        //console.log( "tp_dict: ", tp_dict);
+        const curDate_is_rosterdate = tp_dict["curDate_is_rosterdate"];
+        const prevday_disabled = tp_dict["prevday_disabled"];
+        const nextday_disabled = tp_dict["nextday_disabled"];
+        // TODO fix, get rid of moment.js
         const comp_timezone = ''; // get_attr_from_el(el_timepicker, "data-timezone");
 
-        const curDate = dict["curDate"]
+        const curDate = tp_dict["curDate"]
         const curDateMidnight = curDate.clone()
         const curDateMidday = curDate.clone().hour(12);
         const curDateEndOfDay = curDate.clone().add(1, 'days');
 
-        const range_min = dict["min_datetime_local"];
-        const range_max = dict["max_datetime_local"];
+        const range_min = tp_dict["min_datetime_local"];
+        const range_max = tp_dict["max_datetime_local"];
 
-        let curAmPm = dict["curAmpm"];
-        let curHoursAmpm = dict["curHoursAmpm"];
+        let curAmPm = tp_dict["curAmpm"];
+        let curHoursAmpm = tp_dict["curHoursAmpm"];
         //console.log("curAmPm", curAmPm, "curHoursAmpm", curHoursAmpm);
 
-        if (dict["isampm"]) {
+        if (tp_dict["isampm"]) {
             const tbody = document.getElementById("id_timepicker_tbody_hour");
             let tds = tbody.getElementsByClassName("timepicker_ampm")
             for (let i=0, td, cell_value, highlighted, period_within_range, disabled; td = tds[i]; i++) {
@@ -493,7 +522,7 @@
                     period_min =  curDateMidday;
                     period_max =  curDateEndOfDay;
                 }
-                period_within_range = PeriodWithinRange(period_min, period_max, range_min, range_max)
+                period_within_range = PeriodWithinRangeMOMENTJS(period_min, period_max, range_min, range_max)
                 //console.log("period_min", period_min.format(), "period_max", period_max.format())
                 //console.log("range_min", range_min.format(), "range_max", range_max.format())
                 //console.log("period_within_range", period_within_range)
@@ -729,33 +758,122 @@ function CalcMinMax(dict) {
     function HideSaveButtonOnQuicksave(tp_dict, st_dict) {
         //console.log( "--- HideSaveButtonOnQuicksave  ");
 
-        const is_quicksave = tp_dict["quicksave"]
+        //const is_quicksave = tp_dict["quicksave"]
 
-        let qs_txt = (is_quicksave) ? st_dict["txt_quicksave_remove"] : st_dict["txt_quicksave"];
+        let qs_txt = (mod_quicksave) ? st_dict["txt_quicksave_remove"] : st_dict["txt_quicksave"];
         document.getElementById("id_timepicker_quicksave").innerText = qs_txt
 
         let btn_save = document.getElementById("id_timepicker_save")
-        if (is_quicksave){
+        if (mod_quicksave){
             btn_save.classList.add("display_hide");
         } else {
             btn_save.classList.remove("display_hide");
         }
     }  //  HideSaveButtonOnQuicksave
 
+//========= mtp_calc_timeduration_minmax  ============= PR2019-10-12
+    function mtp_calc_timeduration_minmax(loc, fldName, new_value, shift_code, offset_start, offset_end, break_duration, time_duration) {
+        //console.log(" === mtp_calc_timeduration_minmax ===" );
+        //console.log("shift_code: ", shift_code );
+
+        if(!break_duration) {break_duration = 0};
+        if(!time_duration) {time_duration = 0};
+
+// ---  put new value in variable
+        if (fldName === "offsetstart") {
+            offset_start = new_value;
+        } else if (fldName === "offsetend") {
+            offset_end = new_value;
+        } else if (fldName === "breakduration") {
+            break_duration = (!!new_value) ? new_value : 0;
+        }
+        if(fldName === "timeduration"){
+            time_duration = (!!new_value) ? new_value : 0
+            if(!!time_duration){
+                offset_start = null;
+                offset_end = null;
+                break_duration = 0
+            }
+        } else {
+            time_duration = (offset_start != null && offset_end != null) ? offset_end - offset_start - break_duration : 0;
+        }
+
+        const new_shift_code = create_shift_code(loc, offset_start, offset_end, time_duration, shift_code);
+
+        //console.log("new_shift_code: ", new_shift_code );
+        let shift_dict = {code: {value: new_shift_code},
+                  offsetstart: {value: offset_start},
+                  offsetend: {value: offset_end},
+                  breakduration: {value: break_duration},
+                  timeduration: {value: time_duration}
+                  }
+
+        // calculate min max of timefields, store in upload_dict,
+        // (offset_start != null) is added to change undefined into null, 0 stays 0 (0.00 u is dfferent from null)
+
+        shift_dict.offsetstart.minoffset = get_minoffset("offsetstart", offset_start, break_duration)
+        shift_dict.offsetstart.maxoffset = get_maxoffset("offsetstart", offset_start, offset_end, break_duration)
+
+        shift_dict.offsetend.minoffset = get_minoffset("offsetend", offset_start, break_duration)
+        shift_dict.offsetend.maxoffset = get_maxoffset("offsetend", offset_start, offset_end, break_duration)
+
+        shift_dict.breakduration.minoffset = get_minoffset("breakduration", offset_start, break_duration)
+        shift_dict.breakduration.maxoffset =get_maxoffset("breakduration", offset_start, offset_end, break_duration)
+
+        shift_dict.timeduration.minoffset = get_minoffset("timeduration", offset_start, break_duration)
+        shift_dict.timeduration.maxoffset = get_maxoffset("timeduration", offset_start, offset_end, break_duration)
+
+        return shift_dict
+     }  // mtp_calc_timeduration_minmax
+
+//========= get_minoffset  ========================= PR2020-04-12
+    function get_minoffset(fldName, offset_start, break_duration) {
+        //console.log( "--- get_minoffset  ");
+        //console.log( "fldName: ", fldName);
+        //console.log( "offset_start: ", offset_start);
+        //console.log( "break_duration: ", break_duration);
+        let minoffset = 0;
+        if(!break_duration) {break_duration = 0};
+        if (["offsetstart", "timestart"].indexOf(fldName) > -1) {
+            minoffset = -720;
+        } else if (["offsetend", "timeend", "offsetsplit"].indexOf(fldName) > -1) {
+            if (!!offset_start && offset_start + break_duration >= 0) { minoffset = offset_start + break_duration };
+        }
+        //console.log( "minoffset: ", minoffset);
+        return minoffset
+    }  // get_minoffset
+//========= get_maxoffset  ========================= PR2020-04-12
+    function get_maxoffset(fldName, offset_start, offset_end, break_duration) {
+        //console.log( "--- get_minmax_offset  ");
+        let maxoffset = 1440;
+        if(!break_duration) {break_duration = 0};
+        if (["offsetstart", "timestart", "offsetsplit"].indexOf(fldName) > -1) {
+            if (!!offset_end && offset_end - break_duration <= 1440) {
+                maxoffset = offset_end - break_duration
+            };
+        } else if (["offsetend", "timeend"].indexOf(fldName) > -1) {
+            maxoffset = 2160;
+        } else if (fldName === "breakduration") {
+            if (!!offset_start && !!offset_end && offset_end - offset_start <= 1440) {
+                maxoffset = offset_end - offset_start
+            }
+        }
+        return maxoffset
+    }
+
 //========= get_header_date  ========================= PR2019-10-13
     function get_header_date(tp_dict, st_dict) {
         //console.log( "--- get_header_date  ");
         // Using vanlla JS instead of moment.js.
-
-        //console.log( "tp_dict ", tp_dict);
-        //console.log( "st_dict ", st_dict);
 
         const fieldname = tp_dict.field;
         const rosterdate = tp_dict.rosterdate;
         let curDayOffset = tp_dict.curDayOffset;
 
         let date_text = "";
-        if (fieldname === "breakduration"){
+        if (!!st_dict.txt_dateheader){
+            date_text = st_dict.txt_dateheader;
+        } else if (st_dict["txt_break"] === "breakduration"){
             date_text = st_dict["txt_break"]
         } else if (fieldname === "timeduration"){
             date_text = st_dict["txt_workhours"]
@@ -781,7 +899,6 @@ function CalcMinMax(dict) {
             };
         }  // if (tp_dict["field"] === "breakduration"){
 
-        //console.log( "date_text ", date_text);
         return date_text;
     }  // get_header_date
 
@@ -794,5 +911,22 @@ function CalcMinMax(dict) {
             } else {
                 td.classList.remove("tr_hover")}}
     }
+
+//========= PeriodWithinRangeMOMENTJS  ====================================
+    function PeriodWithinRangeMOMENTJS(period_min, period_max, range_min, range_max) {
+    // PR2019-08-04 Note: period is also out of range when diff === 0
+
+        let out_of_range = false;
+        if (!!range_min && !!period_max){
+            out_of_range = (period_max.diff(range_min) <= 0)  // out_of_range when period_max <= range_min
+        }
+        if (!out_of_range) {
+            if (!!range_max && !!period_min){
+                out_of_range = (period_min.diff(range_max) >= 0) // period_min >= range_max
+            }
+        }
+        const within_range = !out_of_range;
+        return within_range
+    }  // PeriodWithinRangeMOMENTJS
 
 

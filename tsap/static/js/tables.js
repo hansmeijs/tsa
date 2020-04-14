@@ -15,8 +15,8 @@
                             imgsrc_default, imgsrc_hover,
                             imgsrc_inactive_black, imgsrc_inactive_grey, imgsrc_inactive_lightgrey, filter_show_inactive,
                             title_header_btn) {
-        console.log("===== t_Fill_SelectTable ===== ", tblName);
-        console.log("filter_ppk_int = ", filter_ppk_int)
+        //console.log("===== t_Fill_SelectTable ===== ", tblName);
+        //console.log("filter_ppk_int = ", filter_ppk_int)
 
         // difference between filter_include_inactive and filter_show_inactive:
         // - filter_include_inactive works in t_CreateSelectRow. Row is not created when inactive=true and filter_include_inactive=false
@@ -35,11 +35,11 @@
         tblBody_select.innerText = null;
         tblBody_select.setAttribute("data-table", tblName)
 
-        console.log("data_map = ", data_map)
+        //console.log("data_map = ", data_map)
 //--- loop through data_map
         let row_count = {count: 0};
         for (const [map_id, item_dict] of data_map.entries()) {
-        console.log("item_dict = ", item_dict)
+        //console.log("item_dict = ", item_dict)
             const row_index = null // add row at end when no rowindex
             let selectRow = t_CreateSelectRow(has_sel_btn_delete, tblBody_select, tblName, row_index, item_dict, selected_pk,
                                         HandleSelect_Row, HandleSelectRowButton,
@@ -237,7 +237,11 @@
         // SelectButton can be Inactive or Delete
         let td = tblRow.insertCell(-1);
             let el_a = document.createElement("a");
-                el_a.setAttribute("id", "id_filter_select_btn")
+                // add id to select btn
+                const el_id = (is_header) ? "id_filter_select_btn" :
+                                            (has_sel_btn_delete) ? tblRow.id + "_btn_delete" :
+                                                                    tblRow.id + "_btn_inactive";
+                el_a.setAttribute("id", el_id)
                 el_a.setAttribute("href", "#");
                 el_a.addEventListener("click", function() {HandleSelectButton(el_a)}, false )
 
@@ -302,9 +306,9 @@
                                 format_inactive_element (el_inactive, inactive_dict, imgsrc_inactive_black, imgsrc_inactive_grey)
             // make el_inactive green for 2 seconds
                                 if("updated" in inactive_dict){
-                                    el_inactive.classList.add("border_valid");
+                                    el_inactive.classList.add("border_bg_valid");
                                     setTimeout(function (){
-                                        el_inactive.classList.remove("border_valid");
+                                        el_inactive.classList.remove("border_bg_valid");
                                         // let row disappear when inactive and not filter_show_inactive
                                         if(!filter_show_inactive && inactive_value){
                                             selectRow.classList.add(cls_hide)
@@ -1079,8 +1083,8 @@
         for (let i = 0, btn, len = btns.length; i < len; i++) {
             btn = btns[i]
             const data_mode = get_attr_from_el(btn, "data-mode")
-            const is_highlighted =(data_mode === selected_btn)
-            btn.disabled = btns_disabled;
+            const is_highlighted = (data_mode === selected_btn)
+            btn.disabled = (!!btns_disabled);
             if (is_highlighted){
                 btn.disabled = false;
                 btn.classList.add("tsa_btn_selected")
@@ -1143,7 +1147,7 @@
 
 //========= t_Filter_SelectRows  ==================================== PR2020-01-17
     function t_Filter_SelectRows(tblBody_select, filter_select, filter_show_inactive, has_ppk_filter, selected_ppk) {
-        //console.log( "===== t_Filter_SelectRows  ========= ");
+        console.log( "===== t_Filter_SelectRows  ========= ");
         let has_selection = false, has_multiple = false;
         let selected_value = null, selected_pk = null, selected_parentpk = null, selected_display = null;
         let row_count = 0;
@@ -1151,7 +1155,7 @@
             tblRow = tblBody_select.rows[i];
             if (!!tblRow){
                 let hide_row = false
-        // show only rows of selected_ppk, only if selected_ppk has value
+// ---  show only rows of selected_ppk, only if has_ppk_filter = true
                 if(has_ppk_filter){
                     const ppk_str = get_attr_from_el(tblRow, "data-ppk")
                     if(!!selected_ppk){
@@ -1160,21 +1164,21 @@
                         hide_row = true;
                     }
                 }
-        // hide inactive rows when filter_show_inactive = false
+// ---  hide inactive rows when filter_show_inactive = false
                 if(!hide_row && !filter_show_inactive){
                     const inactive_str = get_attr_from_el(tblRow, "data-inactive")
                     if (!!inactive_str) {
                         hide_row = (inactive_str.toLowerCase() === "true")
                     }
                 }
-        // show all rows if filter_select = ""
+// ---  show all rows if filter_select = ""
                 if (!hide_row && !!filter_select){
                     let found = false
                     if (!!tblRow.cells[0] && !!tblRow.cells[0].children[0]) {
                         let el_value = tblRow.cells[0].children[0].innerText;
                         if (!!el_value){
                             el_value = el_value.toLowerCase();
-        // show row if filter_select is found in el_value
+// ---  show row if filter_select is found in el_value
                             found = (el_value.indexOf(filter_select) !== -1)
                         }
                     }
@@ -1185,12 +1189,18 @@
                 } else {
                     tblRow.classList.remove(cls_hide);
                     row_count += 1;
-                    // put values from first selected row in select_value
+// ---  put values from first row that is shown in select_value etc
                     if(!has_selection ) {
                         selected_pk = get_attr_from_el(tblRow, "data-pk");
                         selected_parentpk = get_attr_from_el(tblRow, "data-ppk");
                         selected_value = get_attr_from_el(tblRow, "data-value");
                         selected_display = get_attr_from_el(tblRow, "data-display");
+
+        console.log( "tblRow: ", tblRow);
+        console.log( "selected_pk: ", selected_pk);
+        console.log( "selected_parentpk: ", selected_parentpk);
+        console.log( "selected_value: ", selected_value);
+
                     } else {
                         has_multiple = true;
                     }
@@ -1198,7 +1208,7 @@
                 };
             }  // if (!!tblRow){
         }
-        // set selected values null when multiple items found
+// ---  set select_value etc null when multiple items found
         if (has_multiple){
             selected_pk = null;
             selected_parentpk = null;
@@ -1615,55 +1625,96 @@
     }  // function FillOptionsAbscat
 
 //========= t_FillOptionShiftOrTeamFromList  ============= PR2020-01-08
-    function t_FillOptionShiftOrTeamFromList(data_list, sel_parent_pk_int, selected_pk_int, with_rest_abbrev, firstoption_txt) {
+    function t_FillOptionShiftOrTeamFromList(data_list, sel_parent_pk, selected_pk, with_rest_abbrev, firstoption_txt) {
          //console.log( "===== t_FillOptionShiftOrTeamFromList  ========= ");
          // add empty option on first row, put firstoption_txt in < > (placed here to escape \< and \>
-        if(!firstoption_txt){firstoption_txt = "-"}
-        let option_text = "<option value=\"0\" data-ppk=\"0\">" + firstoption_txt + "</option>";
+         // used in page customers
+        let option_text = "";
+        if(!!firstoption_txt){
+            option_text = "<option value=\"0\" data-ppk=\"0\">" + firstoption_txt + "</option>";
+        }
         for (let i = 0, len = data_list.length; i < len; i++) {
             const item_dict = data_list[i];
-            const item_text = FillOptionFromItemDict(item_dict, sel_parent_pk_int, selected_pk_int, with_rest_abbrev);
+            const item_text = FillOptionFromItemDict(item_dict, sel_parent_pk, selected_pk, with_rest_abbrev);
             option_text += item_text;
         }
         return option_text
     }  // t_FillOptionShiftOrTeamFromList
 
 //========= FillOptionShiftOrTeamFromMap  ============= PR2020-01-08
-    function FillOptionShiftOrTeamFromMap(data_map, sel_parent_pk_int, selected_pk_int, with_rest_abbrev, firstoption_txt) {
+    function FillOptionShiftOrTeamFromMap(data_map, selected_parent_pk, selected_pk, with_rest_abbrev, firstoption_txt) {
          //console.log( "===== FillOptionShiftOrTeamFromMap  ========= ");
+         // used in page schemes
 // add empty option on first row, put firstoption_txt in < > (placed here to escape \< and \>
         if(!firstoption_txt){firstoption_txt = "-"}
         let option_text = "<option value=\"0\" data-ppk=\"0\">" + firstoption_txt + "</option>";
 // --- loop through shift_map
         for (const [map_id, item_dict] of data_map.entries()) {
-            const item_text = FillOptionFromItemDict(item_dict, sel_parent_pk_int, selected_pk_int, with_rest_abbrev);
+            const item_text = FillOptionFromItemDict(item_dict, selected_parent_pk, selected_pk, with_rest_abbrev);
             option_text += item_text;
         }
         return option_text
     }  // FillOptionShiftOrTeamFromMap
 
-//========= FillOptionShiftOrTeam  ============= PR2020-01-08
-    function FillOptionFromItemDict(item_dict, sel_parent_pk_int, selected_pk_int, with_rest_abbrev) {
-         //console.log( "===== FillOptionShiftOrTeam  ========= ");
-        const pk_int = get_pk_from_dict(item_dict);
-        const ppk_int = get_ppk_from_dict(item_dict);
+//========= FillOptionFromItemDict  ============= PR2020-01-08
+    function FillOptionFromItemDict(item_dict, selected_parent_pk, selected_pk, with_rest_abbrev) {
+        //console.log( "===== FillOptionFromItemDict  ========= ");
+        const pk_int = get_dict_value(item_dict, ["id", "pk"]);
+        const pk_str = (pk_int != null) ? pk_int.toString() : "";
+        const ppk_int = get_dict_value(item_dict, ["id", "ppk"]);
+        const ppk_str = (ppk_int != null) ? ppk_int.toString() : "";
+        const selected_pk_str = (selected_pk != null) ? selected_pk.toString() : "";
+        const selected_ppk_str = (selected_parent_pk != null)  ? selected_parent_pk.toString() : "";
+        const is_mod_delete = (get_dict_value(item_dict, ["id", "mode"]) === "delete");
+
         let item_text = "";
-        // skip if selected_scheme_pk exists and does not match ppk_int
-        if (!!sel_parent_pk_int && ppk_int === sel_parent_pk_int) {
-            let code_value = get_subdict_value_by_key(item_dict, "code", "value", "-")
+        // skip if selected_scheme_pk exists and does not match ppk_str
+        if (!is_mod_delete && !!selected_ppk_str && ppk_str === selected_ppk_str) {
+            let code_value = get_dict_value(item_dict, ["code", "value"], "-")
             if (with_rest_abbrev){
-                const is_restshift = get_subdict_value_by_key(item_dict, "isrestshift", "value")
+                const is_restshift = get_dict_value(item_dict, ["isrestshift", "value"], false)
                 if (is_restshift) { code_value += " (R)"}
             }
-            item_text = "<option value=\"" + pk_int + "\"";
-            item_text += " data-ppk=\"" + ppk_int + "\"";
-// --- add selected if selected_pk_int has value
-            if (!!selected_pk_int && pk_int === selected_pk_int) {item_text += " selected=true" };
+            item_text = "<option value=\"" + pk_str + "\"";
+            item_text += " data-ppk=\"" + ppk_str + "\"";
+// --- add selected if selected_pk_str has value
+            if (!!selected_pk_str && pk_str === selected_pk_str) {item_text += " selected=true" };
             item_text +=  ">" + code_value + "</option>";
         }
         return item_text
-    }  // FillOptionShiftOrTeam
+    }  // FillOptionFromItemDict
 
+//========= lookup_dict_in_list  ============= PR2020-03-25
+    function lookup_dict_in_list(lookup_list, lookup_pk) {
+        //console.log("=== lookup_dict_in_list  ====")
+        //console.log("lookup_pk", lookup_pk)
+        let lookup_dict = null;
+        if(!!lookup_pk && !!lookup_list){
+            for (let i=0, len = lookup_list.length; i<len; i++) {
+                let row_dict = lookup_list[i];
+                const row_pk = get_dict_value(row_dict, ["id", "pk"])
+                if(!!row_pk && row_pk.toString() === lookup_pk.toString()){
+                    lookup_dict = row_dict;
+                    break
+        }}};
+        return lookup_dict;
+    }  //  lookup_dict_in_list
+
+//========= lookup_dictindex_in_list  ============= PR2020-04-05
+    function lookup_dictindex_in_list(lookup_list, lookup_pk) {
+        //console.log("=== lookup_dictindex_in_list  ====")
+        let lookup_index = -1;
+        const len = lookup_list.length;
+        if(!!len && !!lookup_pk){
+            for (let i=0; i<len; i++) {
+                let row_dict = lookup_list[i];
+                const row_pk = get_dict_value(row_dict, ["id", "pk"])
+                if(!!row_pk && row_pk.toString() === lookup_pk.toString()){
+                    lookup_index = i;
+                    break;
+        }}};
+        return lookup_index;
+    }  //  lookup_dictindex_in_list
 
 //========= Lookup_Same_Shift  ============= PR2020-01-08
     function Lookup_Same_Shift(shift_list, sel_parent_pk_int,
@@ -1687,6 +1738,40 @@
         }}}}}}}};
         return same_shift_pk
     }  // Lookup_Same_Shift
+
+
+//========= t_set_mode_delete_in_si_tm  ============= PR2020-03-27
+    function t_set_mode_delete_in_si_tm(data_list, parent_tblName, parent_pk) {
+         console.log( "===== t_set_mode_delete_in_si_tm  ========= ");
+         console.log( "data_list.length ", data_list.length);
+         // set mode = 'delete; in schemeitems or teammebers when shift or team is set delete in ModShiftOrder
+        for (let i = 0, len = data_list.length; i < len; i++) {
+            const item_dict = data_list[i];
+         console.log( "item_dict", item_dict);
+            const pk_int = get_dict_value(item_dict, [parent_tblName, "pk"]);
+         console.log( "pk_int", pk_int, typeof pk_int,"parent_pk", parent_pk, typeof parent_pk);
+            if(pk_int === parent_pk) {
+                item_dict.id.mode = "delete";
+         console.log( "item_dict.id.mode", item_dict.id.mode);
+            }
+        }
+    }  // t_set_mode_delete_in_si_tm
+
+//========= t_remove_team_from_si  ============= PR2020-03-29
+    function t_remove_team_from_si(data_list, lookup_team_pk_str) {
+         console.log( "===== t_remove_team_from_si  ========= ");
+         // set mode = 'update; in schemeitem  when team is removed
+        for (let i = 0, len = data_list.length; i < len; i++) {
+            const item_dict = data_list[i];
+         console.log( "item_dict", item_dict);
+            const row_team_pk_str = get_dict_value(item_dict, ["team", "pk"], "").toString();
+            if(row_team_pk_str === lookup_team_pk_str) {
+                item_dict.id.mode = "update";
+                item_dict.team.pk = {pk: null}
+         console.log( "item_dict.id.mode", item_dict.id.mode);
+            }
+        }
+    }  // t_remove_team_from_si
 
 //>>>>>>>>>>> MOD SHIFT CALENDAR >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -1917,15 +2002,14 @@
         // create new code with sequence character 1 higher than existing code PR2019-12-28
         if (!default_code) {default_code = "Team" }
         const default_code_len = default_code.length
-
         let count = 0, max_index = 64;
         // --- loop through team_map
-        // lookup teams of this scheme that end woth a character, like 'Team C'
+        // lookup teams of this scheme that end with a character, like 'Team C'
         for (const [map_id, item_dict] of team_map.entries()) {
-            const team_ppk = get_subdict_value_by_key(item_dict, "id", "ppk")
-            if(team_ppk === parent_pk){
+            const team_ppk = get_dict_value(item_dict, ["id", "ppk"])
+            if(!!team_ppk && team_ppk === parent_pk){
                 count += 1;
-                const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
+                const code_value = get_dict_value(item_dict, ["code", "value"], "")
                 const index_str = code_value.slice(default_code_len).trim()
                 if(!!index_str && index_str.length === 1){
                     const index = Number(index_str);
@@ -1935,7 +2019,7 @@
                                 max_index = index
         }}}}}};
 
-        // when 4 teans exists, new team must have name 'Team E'
+        // when 4 teams exists, new team must have name 'Team E'
         let new_index = max_index + 1
         if (count + 65 > new_index) {
             new_index = count + 65
@@ -1943,27 +2027,40 @@
         return default_code + " " + String.fromCharCode(new_index);
     } ; // get_teamcode_with_sequence
 
-    function get_teamcode_initial(team_code){
+
+    function get_teamcode_with_sequence_from_list(teams_list, parent_pk, default_code){
         "use strict";
-        //console.log(' --- get_teamcode_initial --- ')
-        // from 'Team D', get D, from 'Team' get 'T', from "Other Name" get 'O'
-        // get last character only if length of last word = 1, otherwise get first character of team_code
-        let initial = "";
-        if(!!team_code){
-            const arr = team_code.split(' ');
-            if (!!arr.length){
-                const last_chunk = arr[arr.length - 1]
-                if(last_chunk.length === 1){
-                    initial = last_chunk;
-                }
-            }
-            if (!initial){ initial = team_code.charAt(0)}
-        }  // if(!!team_code){
+        //console.log(' --- get_teamcode_with_sequence --- ')
+        //console.log('parent_pk: ', parent_pk)
+        // create new code with sequence character 1 higher than existing code PR2019-12-28
+        if (!default_code) {default_code = "Team" }
+        const default_code_len = default_code.length
+        let count = 0, max_index = 64;
+        // --- loop through team_map
+        // lookup teams of this scheme that end with a character, like 'Team C'
+        const len = teams_list.length;
+        if(!!len){
+            for (let i = 0; i < len; i++) {
+                let item_dict = teams_list[i];
+                if(!isEmpty(item_dict)){
+                    count += 1;
+                    const code_value = get_dict_value(item_dict, ["code", "value"], "")
+                    const index_str = code_value.slice(default_code_len).trim()
+                    if(!!index_str && index_str.length === 1){
+                        const index = Number(index_str);
+                        if (!!index){
+                            if ((index >= 65 && index < 90) || (index >= 97 && index < 122)){
+                                if (index > max_index) {
+                                    max_index = index
+        }}}}}}};
 
-        //console.log('initial: ' , initial)
-        return initial;
-    } ; // get_teamcode_initial
-
+        // when 4 teams exists, new team must have name 'Team E'
+        let new_index = max_index + 1
+        if (count + 65 > new_index) {
+            new_index = count + 65
+        }
+        return default_code + " " + String.fromCharCode(new_index);
+    } ; // get_teamcode_with_sequence
 
 //=========  MSO_BtnShiftTeamClicked  ================ PR2020-01-05
     function Calendar_BtnWeekdaySetClass(btn, data_value) {

@@ -1,29 +1,102 @@
 {% extends 'base.html' %}
 {% load i18n %}
+{% load static %}
+
+{% block title %}{{ block.super }}{% endblock %}
+<meta name="description" content="Manage your shifts with this easy and affordable planning program.">
+{% block script %}
+    <script src="{% static 'js/home.js' %}"></script>
+{% endblock %}
+
 <!-- SIDE BAR -->
 {% block sidebar %}
     <nav id="id_sidebar" class="tsa_sidebar">
-        <div class="sidebar_header">
-            <h3>{% trans 'Welcome' %}</h3>
-        </div>
+        {% if not user.is_authenticated %}
+            <div class="content_subheader_left tab_show tab_init mx-2 my-4">
+                <label id="id_language" for="id_btn_container" class="m-2"></label>
+                <br>
+                <div id="id_btn_container" class="btn-group btn-block" role="group" aria-label="Choose your language">
+                    <button type="button" data-lang ="nl" class="btn btn-outline-secondary tsa_btn_selected">Nederlands</button>
+                    <button type="button" data-lang ="en" class="btn btn-outline-secondary">English</button>
+                </div>
+            </div>
+        {% endif %}
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
 {% block content %}
+
     {% if not user.is_authenticated %}
-        <div class="row justify-content-center">
-            <div class="col-lg-4 col-md-6 col-sm-8">
-              <div class="card mt-5">
-                <div class="card-body">
-                  <h2 class="card-title"><b>{% trans 'Welcome at' %}</b></h2>
-                  <h2 class="card-title">{% trans 'TSA' %}</h2>
-                  <h5 >{% trans 'Please log in' %}</h5>
+        <div id="carouselIndicators" class="carousel slide" data-ride="carousel">
+          <ol class="carousel-indicators">
+            <li data-target="#carouselIndicators" data-slide-to="0" class="active"></li>
+            <li data-target="#carouselIndicators" data-slide-to="1"></li>
+            <li data-target="#carouselIndicators" data-slide-to="2"></li>
+            <li data-target="#carouselIndicators" data-slide-to="3"></li>
+            <li data-target="#carouselIndicators" data-slide-to="4"></li>
+            <li data-target="#carouselIndicators" data-slide-to="5"></li>
+          </ol>
+          <div class="carousel-inner">
+            <div class="carousel-item tsa_carousel_item active">
+              <img class="d-block" src="{% static 'img/background_grey.png' %}">
+                 <div class="carousel-caption d-none d-md-block mb-5">
+                    <h2 id="id_sl00_ft01"></h2>
+                    <h1 id="id_sl00_ft02"></h1>
+                    <h1 id="id_sl00_ft03" class="m-5">---</h1>
+                    <h2 id="id_sl00_ft04"></h2>
+                    <h2 id="id_sl00_ft05"></h2>
+                    <h2 id="id_sl00_ft06"></h2>
+                    <h1 id="id_sl00_ft07" class="m-5">---</h1>
                 </div>
-              </div>
             </div>
+            <div class="carousel-item tsa_carousel_item">
+              <img class="d-block" src="{% static 'img/slide01_calendar.png' %}">
+              <div class="carousel-caption d-none d-md-block mb-2">
+                    <h2 id="id_sl01_ft01"></h2>
+                </div>
+            </div>
+            <div class="carousel-item tsa_carousel_item">
+              <img class="d-block" src="{% static 'img/slide02_planning.png' %}">
+                <div class="carousel-caption d-none d-md-block mb-2">
+                    <h2 id="id_sl02_ft01"></h2>
+                </div>
+            </div>
+            <div class="carousel-item tsa_carousel_item">
+              <img class="d-block" src="{% static 'img/slide03_roster.png' %}">
+                <div class="carousel-caption d-none d-md-block mb-2">
+                    <h2 id="id_sl03_ft01"></h2>
+                </div>
+            </div>
+            <div class="carousel-item tsa_carousel_item">
+              <img class="d-block" src="{% static 'img/slide04_review.png' %}">
+                <div class="carousel-caption d-none d-md-block">
+                    <h2 id="id_sl04_ft01"></h2>
+                </div>
+            </div>
+            <div class="carousel-item tsa_carousel_item">
+              <img class="d-block" src="{% static 'img/background_grey.png' %}">
+
+                <div class="carousel-caption d-none d-md-block">
+                    <a id="id_btn_signup" href="{% url 'signup' %}" class="btn btn-warning btn-lg btn-block m-5"></a>
+                    <h2 id="id_sl05_ft01" class="m-5" ></h2>
+                </div>
+            </div>
+
+          </div>
+          <a class="carousel-control-prev" href="#carouselIndicators" role="button" data-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="sr-only">{% trans "Previous" %}</span>
+          </a>
+          <a class="carousel-control-next" href="#carouselIndicators" role="button" data-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="sr-only">{% trans "Next" %}</span>
+          </a>
         </div>
 
-
+    {% else %}
+        <div class="tsa_margin_top_48 m-5">
+            {% include 'includes/messages.html' %}
+        </div>
     {% endif %}
 
 {% endblock %}

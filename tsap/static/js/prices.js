@@ -119,12 +119,12 @@ document.addEventListener('DOMContentLoaded', function() {
         el_modorder_btn_save.addEventListener("click", function() {MSO_Save()}, false )
 
 // ---  MOD SELECT EMPLOYEE ------------------------------
-    let el_modemployee_input_employee = document.getElementById("id_MSE_input_employee")
+    let el_modemployee_input_employee = document.getElementById("id_ModSelEmp_input_employee")
         el_modemployee_input_employee.addEventListener("keyup", function(event){
             setTimeout(function() {MSE_FilterEmployee(el_modemployee_input_employee, event.key)}, 50)});
-    let el_modemployee_btn_save = document.getElementById("id_MSE_btn_save")
+    let el_modemployee_btn_save = document.getElementById("id_ModSelEmp_btn_save")
         el_modemployee_btn_save.addEventListener("click", function() {MSE_Save("save")}, false )
-    let el_modemployee_btn_remove = document.getElementById("id_MSE_btn_remove_employee")
+    let el_modemployee_btn_remove = document.getElementById("id_ModSelEmp_btn_remove_employee")
         el_modemployee_btn_remove.addEventListener("click", function() {MSE_Save("delete")}, false )
 
 // ---  MOD SELECT PRICE ------------------------------
@@ -1165,12 +1165,12 @@ selected_btn = "customer"
 
 // ---  upload new setting
         let review_period_dict = {
-                customer_pk: mod_upload_dict.customer_pk,
-                order_pk: mod_upload_dict.order_pk
+                customer_pk: mod_upload_dict.customer.pk,
+                order_pk: mod_upload_dict.order.pk
             };
 
         // if customer_pk or order_pk has value: set absence to 'without absence
-        if(!!mod_upload_dict.customer_pk || !!mod_upload_dict.order_pk) {
+        if(!!mod_upload_dict.customer.pk || !!mod_upload_dict.order.pk) {
             review_period_dict.isabsence = false;
         }
         const datalist_request = {
@@ -1198,16 +1198,16 @@ selected_btn = "customer"
             let data__pk = get_attr_from_el(tblRow, "data-pk")
             if(!Number(data__pk)){
                 if(data__pk === "addall" ) {
-                    mod_upload_dict.customer_pk = 0;
-                    mod_upload_dict.order_pk = 0;
+                    mod_upload_dict.customer.pk = 0;
+                    mod_upload_dict.order.pk = 0;
                     selected_customer_pk = 0;
                     selected_order_pk = 0;
                 }
             } else {
                 const pk_int = Number(data__pk)
                 if (pk_int !== selected_customer_pk){
-                    mod_upload_dict.customer_pk = pk_int;
-                    mod_upload_dict.order_pk = 0;
+                    mod_upload_dict.customer.pk = pk_int;
+                    mod_upload_dict.order.pk = 0;
                     selected_customer_pk = pk_int;
                     selected_order_pk = 0;
                 }
@@ -1230,7 +1230,7 @@ selected_btn = "customer"
         let tblHead = null;
         const filter_ppk_int = null, filter_include_inactive = false, filter_include_absence = false;
         const addall_to_list_txt = "<" + loc.All_orders + ">";
-        t_Fill_SelectTable(tblBody_select_customer, null, customer_map, "customer", mod_upload_dict.customer_pk, null,
+        t_Fill_SelectTable(tblBody_select_customer, null, customer_map, "customer", mod_upload_dict.customer.pk, null,
             HandleSelect_Filter, null,
             MSO_SelectCustomer, null,
             filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
@@ -1244,15 +1244,15 @@ selected_btn = "customer"
         let el_div_order = document.getElementById("id_modorder_div_tblbody_order")
         let tblBody_select_order = document.getElementById("id_modorder_tblbody_order");
 
-        if (!mod_upload_dict.customer_pk){
+        if (!mod_upload_dict.customer.pk){
             el_div_order.classList.add(cls_hide)
             tblBody_select_order.innerText = null;
         } else {
             el_div_order.classList.remove(cls_hide)
             let tblHead = null;
-            const filter_ppk_int = mod_upload_dict.customer_pk, filter_include_inactive = true, filter_include_absence = false;
+            const filter_ppk_int = mod_upload_dict.customer.pk, filter_include_inactive = true, filter_include_absence = false;
             const addall_to_list_txt = "<" + loc.All_orders + ">";
-            t_Fill_SelectTable(tblBody_select_order, null, order_map, "order", mod_upload_dict.customer_pk, null,
+            t_Fill_SelectTable(tblBody_select_order, null, order_map, "order", mod_upload_dict.customer.pk, null,
                 HandleSelect_Filter, null,
                 MSO_SelectOrder, null,
                 filter_ppk_int, filter_include_inactive, filter_include_absence, addall_to_list_txt,
@@ -1286,19 +1286,19 @@ selected_btn = "customer"
             let order_pk = get_attr_from_el(tblRow, "data-pk")
 
             if(order_pk === "addall"){
-                mod_upload_dict.order_pk = 0;
+                mod_upload_dict.order.pk = 0;
             } else {
-                mod_upload_dict.order_pk = order_pk;
+                mod_upload_dict.order.pk = order_pk;
             }
 
 // ---  get pk from id of select_tblRow
             let data__pk = get_attr_from_el(tblRow, "data-pk")
             if(!Number(data__pk)){
                 if(data__pk === "addall" ) {
-                    mod_upload_dict.order_pk = 0;
+                    mod_upload_dict.order.pk = 0;
                 }
             } else {
-                mod_upload_dict.order_pk = Number(data__pk)
+                mod_upload_dict.order.pk = Number(data__pk)
             }
 
             MSO_headertext();
@@ -1345,14 +1345,14 @@ selected_btn = "customer"
 // ---  put pk of selected customer in mod_upload_dict
                 if(!Number(selected_pk)){
                     if(selected_pk === "addall" ) {
-                        mod_upload_dict.customer_pk = 0;
-                        mod_upload_dict.order_pk = 0;
+                        mod_upload_dict.customer.pk = 0;
+                        mod_upload_dict.order.pk = 0;
                     }
                 } else {
                     const pk_int = Number(selected_pk)
                     if (pk_int !== selected_customer_pk){
-                        mod_upload_dict.customer_pk = pk_int;
-                        mod_upload_dict.order_pk = 0;
+                        mod_upload_dict.customer.pk = pk_int;
+                        mod_upload_dict.order.pk = 0;
                     }
                 }
 
@@ -1370,12 +1370,12 @@ selected_btn = "customer"
         //console.log(  mod_upload_dict);
         let header_text = null;
 
-        if(!!mod_upload_dict.customer_pk){
-            const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", mod_upload_dict.customer_pk)
+        if(!!mod_upload_dict.customer.pk){
+            const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", mod_upload_dict.customer.pk)
             const customer_code = get_dict_value(customer_dict, ["code", "value"], "");
             let order_code = null;
-            if(!!mod_upload_dict.order_pk){
-                const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", mod_upload_dict.order_pk)
+            if(!!mod_upload_dict.order.pk){
+                const order_dict = get_mapdict_from_datamap_by_tblName_pk(order_map, "order", mod_upload_dict.order.pk)
                 order_code = get_dict_value(order_dict, ["code", "value"]);
             } else {
                 order_code = loc.All_orders.toLowerCase()
@@ -1403,8 +1403,8 @@ selected_btn = "customer"
         };
 
 // ---  put employee name in header
-        let el_header = document.getElementById("id_MSE_header_employee")
-        let el_div_remove = document.getElementById("id_MSE_div_remove_employee")
+        let el_header = document.getElementById("id_ModSelEmp_hdr_employee")
+        let el_div_remove = document.getElementById("id_ModSelEmp_div_remove_employee")
         let header_text = null;
         if (!!selected_employee_pk){
             const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", selected_employee_pk)
@@ -1417,7 +1417,7 @@ selected_btn = "customer"
         el_header.innerText = header_text
 
 // remove values from el_mod_employee_input
-        let el_mod_employee_input = document.getElementById("id_MSE_input_employee")
+        let el_mod_employee_input = document.getElementById("id_ModSelEmp_input_employee")
         el_mod_employee_input.value = null
 
 // ---  fill selecttable employee
@@ -1439,12 +1439,12 @@ selected_btn = "customer"
     function MSE_Save(mode) {
         console.log("========= MSE_Save ===" );
         if (mode === "delete") {
-            mod_upload_dict.employee_pk = 0;
+            mod_upload_dict.employee.pk = 0;
             selected_employee_pk = 0;
         }
         const datalist_request = {
             review_period: {
-                employee_pk: mod_upload_dict.employee_pk
+                employee_pk: mod_upload_dict.employee.pk
             },
             review:  true
         };
@@ -1467,9 +1467,9 @@ selected_btn = "customer"
 // ---  get employee_pk and code from selected tblRow
             selected_employee_pk = get_attr_from_el_int(tblRow, "data-pk", 0)
             const code_value = get_attr_from_el_str(tblRow, "data-value")
-            mod_upload_dict.employee_pk = selected_employee_pk;
+            mod_upload_dict.employee.pk = selected_employee_pk;
 // ---  put code_value in el_input_employee
-            document.getElementById("id_MSE_input_employee").value = code_value
+            document.getElementById("id_ModSelEmp_input_employee").value = code_value
 // save selected employee
             MSE_Save()
         }  // if(!!tblRow)
@@ -1509,7 +1509,7 @@ selected_btn = "customer"
 
         let has_selection = false, has_multiple = false;
         let select_value, selected_pk;
-        let tblbody = document.getElementById("id_MSE_tbody_employee");
+        let tblbody = document.getElementById("id_ModSelEmp_tbody_employee");
         let len = tblbody.rows.length;
         if (!skip_filter && !!len){
             for (let row_index = 0, tblRow, show_row, el, pk_str, code_value; row_index < len; row_index++) {
@@ -1546,7 +1546,7 @@ selected_btn = "customer"
 // if only one employee in filtered list: put value in el_input /  mod_upload_dict
         if (has_selection && !has_multiple ) {
                 selected_employee_pk = selected_pk
-                mod_upload_dict.employee_pk = selected_pk
+                mod_upload_dict.employee.pk = selected_pk
 // put code_value of selected employee in el_input
                 el_input.value = select_value
 // instead of enabling save on 'Enter', set focus to save button. Is easier and more obvious
@@ -1563,7 +1563,7 @@ selected_btn = "customer"
     function MSE_FillSelectTableEmployee() {
         console.log( "=== MSE_FillSelectTableEmployee ");
 
-        let tableBody = document.getElementById("id_MSE_tbody_employee");
+        let tableBody = document.getElementById("id_ModSelEmp_tbody_employee");
         tableBody.innerText = null;
 
 //--- when no items found: show 'select_employee_none'
@@ -1621,7 +1621,7 @@ selected_btn = "customer"
 
         mod_upload_dict = {employee_pk: employee_pk};
 
-        let tblBody = document.getElementById("id_MSE_tbody_employee");
+        let tblBody = document.getElementById("id_ModSelEmp_tbody_employee");
 
 
         // reset el_MSP_input_price and filter_customer
@@ -1639,7 +1639,7 @@ selected_btn = "customer"
         MSE_headertext();
 
 // hide button /remove employee'
-        document.getElementById("id_MSE_div_remove_employee").classList.add(cls_hide)
+        document.getElementById("id_ModSelEmp_div_remove_employee").classList.add(cls_hide)
 // Set focus to el_mod_employee_input
         //Timeout function necessary, otherwise focus wont work because of fade(300)
         setTimeout(function (){
@@ -1661,7 +1661,7 @@ selected_btn = "customer"
         // when emplhour exists in datalist_request, it downloads emplhour_list based on filters in roster_period_dict
         const roster_period_dict = {
             now: now_arr,
-            employee_pk: mod_upload_dict.employee_pk
+            employee_pk: mod_upload_dict.employee.pk
         }
         let datalist_request = {roster_period: roster_period_dict, emplhour: true};
         DatalistDownload(datalist_request);
@@ -1686,12 +1686,12 @@ selected_btn = "customer"
             let data__pk = get_attr_from_el(tblRow, "data-pk")
             if(!Number(data__pk)){
                 if(data__pk === "addall" ) {
-                    mod_upload_dict.employee_pk = 0;
+                    mod_upload_dict.employee.pk = 0;
                 }
             } else {
                 const pk_int = Number(data__pk)
                 if (pk_int !== selected_employee_pk){
-                    mod_upload_dict.employee_pk = pk_int;
+                    mod_upload_dict.employee.pk = pk_int;
                 }
             }
 // ---  put value in input box
@@ -1728,7 +1728,7 @@ selected_btn = "customer"
             }
         }
 
-        let tblBody_select_employee = document.getElementById("id_MSE_tbody_employee");
+        let tblBody_select_employee = document.getElementById("id_ModSelEmp_tbody_employee");
         const len = tblBody_select_employee.rows.length;
         if (!skip_filter && !!len){
 // ---  filter select_employee rows
@@ -1742,14 +1742,14 @@ selected_btn = "customer"
 // ---  put pk of selected employee in mod_upload_dict
                 if(!Number(selected_pk)){
                     if(selected_pk === "addall" ) {
-                        mod_upload_dict.employee_pk = 0;
-                        mod_upload_dict.order_pk = 0;
+                        mod_upload_dict.employee.pk = 0;
+                        mod_upload_dict.order.pk = 0;
                     }
                 } else {
                     const pk_int = Number(selected_pk)
                     if (pk_int !== selected_employee_pk){
-                        mod_upload_dict.employee_pk = pk_int;
-                        mod_upload_dict.order_pk = 0;
+                        mod_upload_dict.employee.pk = pk_int;
+                        mod_upload_dict.order.pk = 0;
                     }
                 }
                 MSE_headertext();
@@ -1764,15 +1764,15 @@ selected_btn = "customer"
         //console.log( "=== MSE_headertext  ");
         let header_text = null;
 
-        if(!!mod_upload_dict.employee_pk){
-            const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", mod_upload_dict.employee_pk)
+        if(!!mod_upload_dict.employee.pk){
+            const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", mod_upload_dict.employee.pk)
             const employee_code = get_dict_value(employee_dict, ["code", "value"], "");
             header_text = employee_code
         } else {
             header_text = loc.Select_employee
         }
 
-        document.getElementById("id_MSE_header_employee").innerText = header_text
+        document.getElementById("id_ModSelEmp_hdr_employee").innerText = header_text
 
     }  // MSE_headertext
 //========= MSB_Open  ============= PR2020-03-03

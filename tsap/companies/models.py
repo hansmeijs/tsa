@@ -61,8 +61,8 @@ class TsaBaseModel(Model):
         # skip updating modifiedby and modifiedat when no request (issytem update of schemeitem, maybe other models as well)
         if 'request' in kwargs:
             self.request = kwargs.pop('request', None)
-
-            self.modifiedby = self.request.user
+            if self.request.user:
+                self.modifiedby = self.request.user
             # timezone.now() is timezone aware, based on the
             # datetime.now() is timezone naive. PR2018-06-07
 
@@ -132,6 +132,11 @@ class Company(TsaBaseModel):
     taxcode_id = IntegerField(null=True)
     invoicecode_id = IntegerField(null=True)
 
+    activated = BooleanField(default=False)
+    activatedat = DateTimeField(null=True)
+
+    entryrate = IntegerField(default=0) # /10000 unit is currency (US$, EUR, ANG)
+
     class Meta:
         ordering = [Lower('code')]
 
@@ -147,7 +152,7 @@ class Company(TsaBaseModel):
 
 class Pricecode(TsaBaseModel):
     objects = TsaManager()
-    company = ForeignKey(Company, related_name='+', on_delete=PROTECT)
+    company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
@@ -196,7 +201,7 @@ class Pricecodeitem(TsaBaseModel):
 class Customer(TsaBaseModel):
     objects = TsaManager()
 
-    company = ForeignKey(Company, related_name='customers', on_delete=PROTECT)
+    company = ForeignKey(Company, related_name='customers', on_delete=CASCADE)
 
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
@@ -250,8 +255,7 @@ class Customerlog(TsaBaseModel):
 class Order(TsaBaseModel):
     objects = TsaManager()
 
-    customer = ForeignKey(Customer, related_name='orders', on_delete=PROTECT)
-    # shiftcat: 0=normal, 1=internal, 2=billable, 16=unassigned, 32=replacemenet, 512=absence, 1024=rest, 4096=template
+    customer = ForeignKey(Customer, related_name='orders', on_delete=CASCADE)
     cat = PositiveSmallIntegerField(default=0)
     isabsence = BooleanField(default=False)
     istemplate = BooleanField(default=False)
@@ -261,13 +265,10 @@ class Order(TsaBaseModel):
     zipcode = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     city = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     country = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
-
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, 2= override Billable
-
     sequence = IntegerField(null=True) #
-
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     taxcode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -301,7 +302,7 @@ class Orderlog(TsaBaseModel):
 class Object(TsaBaseModel):
     objects = TsaManager()
 
-    customer = ForeignKey(Customer, related_name='+', on_delete=PROTECT)
+    customer = ForeignKey(Customer, related_name='+', on_delete=CASCADE)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     datefirst = None
@@ -331,7 +332,7 @@ class OrderObject(TsaBaseModel): # PR2019-06-23 added
 
 class Wagecode(TsaBaseModel):
     objects = TsaManager()
-    company = ForeignKey(Company, related_name='wagecodes', on_delete=PROTECT)
+    company = ForeignKey(Company, related_name='wagecodes', on_delete=CASCADE)
 
     wagerate = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
 
@@ -378,7 +379,7 @@ class Wagecodeitem(TsaBaseModel):
 
 class Timecode(TsaBaseModel): # Workingday, Saturday, SUnday, Public Holiday, general holiday, + wagefactor
     objects = TsaManager()
-    company = ForeignKey(Company, related_name='timecodes', on_delete=PROTECT)
+    company = ForeignKey(Company, related_name='timecodes', on_delete=CASCADE)
     wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
 
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
@@ -442,11 +443,12 @@ class Scheme(TsaBaseModel):
     isdefaultweekshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
-    cycle = PositiveSmallIntegerField(default=7)  # default cycle is one week
+    cycle = PositiveSmallIntegerField(default=7)  # default cycle is one week, min="1" max="28"
     billable = SmallIntegerField(default=0)  # 0 = no override, 1= override NotBillable, , 2= override Billable
 
     excludecompanyholiday = BooleanField(default=False)
     excludepublicholiday = BooleanField(default=False)
+    alsoonpublicholiday = BooleanField(default=False)
 
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
     additioncode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -519,7 +521,7 @@ class Team(TsaBaseModel):
 class Employee(TsaBaseModel):
     objects = TsaManager()
 
-    company = ForeignKey(Company, related_name='+', on_delete=PROTECT)
+    company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
 
     namelast = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH)
     namefirst = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
@@ -539,7 +541,7 @@ class Employee(TsaBaseModel):
     leavedays = IntegerField(default=0)  # leave days per year, full time, * 1440, unit is minute (one day has 1440 minutes)
 
     functioncode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
-    wagecode = ForeignKey(Wagecode, related_name='eployees', on_delete=PROTECT, null=True, blank=True)
+    wagecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True, blank=True)
     paydatecode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
 
     pricecode = ForeignKey(Pricecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -588,6 +590,7 @@ class Teammember(TsaBaseModel):
     cat = PositiveSmallIntegerField(default=0)  # teammember cat: 0 = normal, 1 = replacement, 512 = absent
     isabsence = BooleanField(default=False)
     issingleshift = BooleanField(default=False)
+    isswitchedshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
 
     wagefactorcode = ForeignKey(Wagecode, related_name='+', on_delete=SET_NULL, null=True)
@@ -646,8 +649,8 @@ class Schemeitem(TsaBaseModel):
     locked = None
 
     rosterdate = DateField(db_index=True)
+    onpublicholiday = BooleanField(default=False)
     cat = PositiveSmallIntegerField(default=0)
-    iscyclestart = BooleanField(default=False)
     isabsence = BooleanField(default=False)
     issingleshift = BooleanField(default=False)
     istemplate = BooleanField(default=False)
@@ -747,8 +750,8 @@ class Orderhour(TsaBaseModel):
 class Emplhour(TsaBaseModel):
     objects = TsaManager()
 
-    orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=PROTECT)
-    employee = ForeignKey(Employee, related_name='emplhours', on_delete=PROTECT, null=True)
+    orderhour = ForeignKey(Orderhour, related_name='emplhours', on_delete=CASCADE)
+    employee = ForeignKey(Employee, related_name='emplhours', on_delete=SET_NULL, null=True)
     employeelog = ForeignKey(Employeelog, related_name='+', on_delete=SET_NULL, null=True)
 
     rosterdate = DateField(db_index=True)
@@ -769,6 +772,9 @@ class Emplhour(TsaBaseModel):
     plannedduration = IntegerField(default=0)
     billingduration = IntegerField(default=0)
 
+    offsetstart = SmallIntegerField(null=True)  # unit is minute, offset from midnight
+    offsetend = SmallIntegerField(null=True)  # unit is minute, offset from midnight
+
     wagerate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
     wagefactor = IntegerField(default=0) # /1.000.000 unitless, 0 = factor 100%  = 1.000.000)
     wage = IntegerField(default=0)  # /100 unit is currency (US$, EUR, ANG)
@@ -784,6 +790,7 @@ class Emplhour(TsaBaseModel):
     overlap = SmallIntegerField(default=0)  # stores if record has overlapping emplhour records: 1 overlap start, 2 overlap end, 3 full overlap
 
     # combination rosterdate + schemeitemid + teammemberid is used to identify schemeitem / teammember that is used to create this emplhour
+    # used in FilRosterdate to skip existing shifts (happens when same rosterdate is created for the second time)
     schemeitemid = IntegerField(null=True)
     teammemberid = IntegerField(null=True)
 
@@ -876,20 +883,20 @@ class Companyinvoice(TsaBaseModel):  # PR2019-04-06
     objects = TsaManager()
     company = ForeignKey(Company, related_name='+', on_delete=CASCADE)
 
-    cat = PositiveSmallIntegerField(default=0)  # 0 = grace-entries, 1 = bonus-entries, 2 = paid-entries
+    cat = PositiveSmallIntegerField(default=0)  # 0 = charged, 1 = paid, 2 = refunds
 
     entries = IntegerField(default=0)
     used = IntegerField(default=0)
-    balance= IntegerField(default=0)
+    balance = IntegerField(default=0)
     entryrate = IntegerField(default=0) # /100 unit is currency (US$, EUR, ANG)
-    datepayment = DateField(null=True, blank=True)
-    dateexpired = DateField(db_index=True, null=True, blank=True)
+    datepayment = DateField(db_index=True, null=True)
+    dateexpired = DateField(db_index=True, null=True)
     expired = BooleanField(default=False)
-    note = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH)
+    note = CharField(null=True, blank=True, max_length=c.NAME_MAX_LENGTH)
 
     class Meta:
-        ordering = ['datepayment']
-
+        # ordering when subtracting: refund first, then paid from oldest expiration date
+        ordering = ['cat', 'dateexpired']
     # PR2019-03-12 from https://docs.djangoproject.com/en/2.2/topics/db/models/#field-name-hiding-is-not-permitted
     code = None
     name = None
@@ -974,10 +981,43 @@ class Companysetting(Model):  # PR2019-03-09
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # company entries
+
+# - add duration_sum to Companyinvoice
+def add_duration_to_companyinvoice(rosterdate_dte, duration_sum, is_subtract, request, comp_timezone):  # PR2020-04-07
+    logger.debug('===========  add_duration_to_companyinvoice  ==================== ')
+    logger.debug('duration_sum: ' + str(duration_sum))
+    logger.debug('is_subtract: ' + str(is_subtract))
+    if duration_sum:
+        msg = None
+        if is_subtract:
+            duration_sum = duration_sum * -1
+            msg = _('Roster of %(fld)s removed.') % {'fld': rosterdate_dte.isoformat()}
+        else:
+            msg = _('Roster of %(fld)s added.') % {'fld': rosterdate_dte.isoformat()}
+        company = request.user.company
+        entry_rate = company.entryrate
+        entry = Companyinvoice(
+            company=request.user.company,
+            cat=c.ENTRY_CAT_00_CHARGED,
+            entries=duration_sum,
+            used=duration_sum,
+            balance=0,
+            entryrate=entry_rate,
+            datepayment=rosterdate_dte,
+            dateexpired=None,
+            expired=False,
+            note=msg
+        )
+        entry.save(request=request)
+
+# subtract entries from balance
+        entry_balance_subtract(duration_sum, request, comp_timezone)
+
 # ===========  get_entry_balance
-def get_entry_balance(request, comp_timezone):  # PR2019-08-01
-    # function returns avalable balance
-    # logger.debug('---  get_entry_balance  ------- ')
+def get_entry_balance(request, comp_timezone):  # PR2019-08-01 PR2020-04-08
+    # function returns avalable balance: sum of balance of paid and refund records
+    # balance will be set to 0 when expired, no need to filter for expiration date
+    logger.debug('---  get_entry_balance  ------- ')
 
     balance = 0
     if request.user.company:
@@ -988,37 +1028,36 @@ def get_entry_balance(request, comp_timezone):  # PR2019-08-01
         # today:2019-08-01 <class 'datetime.date'>
 
         crit = Q(company=request.user.company) & \
-               (Q(dateexpired__gte=today) | Q(dateexpired__isnull=True))
+               Q(expired=False) & \
+               (Q(cat=c.ENTRY_CAT_01_REFUND) | Q(cat=c.ENTRY_CAT_02_PAID))
         balance = Companyinvoice.objects.filter(crit).aggregate(Sum('balance'))
         # from https://simpleisbetterthancomplex.com/tutorial/2016/12/06/how-to-create-group-by-queries.html
     return balance
 
 
-def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # PR2019-08-04
-    # function returns avalable balance
-    # logger.debug('---  entry_balance_subtract  ------- ')
-    # logger.debug('entries_tobe_subtracted ' + str(entries_tobe_subtracted))
+def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # PR2019-08-04  PR2020-04-08
+    # function subtracts entries from balance: refund first, then paid: oldest expiration date first
+    logger.debug('-------------  entry_balance_subtract  ----------------- ')
+    logger.debug('entries_tobe_subtracted ' + str(entries_tobe_subtracted))
 
-    balance = 0
     if request.user.company:
-
-
  # a. get today in comp_timezone
         timezone = pytz.timezone(comp_timezone)
         today = datetime.now(timezone).date()
         # datetime.now(timezone): 2019-08-01 21:24:20.898315+02:00 <class 'datetime.datetime'>
         # today:2019-08-01 <class 'datetime.date'>
+        logger.debug('today: ' + str(today) + ' ' + str(type(today)))
 
-        if entries_tobe_subtracted:
-            subtotal = entries_tobe_subtracted
+        subtotal = entries_tobe_subtracted
+        if subtotal > 0:
             crit = Q(company=request.user.company) & \
-                   Q(expired=False) & \
-                   Q(cat__gt=c.ENTRY_CAT_00_GRACE) # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
-            invoices = Companyinvoice.objects.filter(crit)
-            # TODO check order and filter
+                   (Q(cat=c.ENTRY_CAT_01_REFUND) | Q(cat=c.ENTRY_CAT_02_PAID))
+            invoices = Companyinvoice.objects.filter(crit).order_by('cat', 'dateexpired')
+
             save_changes = False
             for invoice in invoices:
-                # check if invoice is expired. If so: et expired=True and balance=0
+# - check if invoice is expired. If so: et expired=True and balance=0
+                logger.debug('invoice: ' + str(invoice) + ' ' + str(type(invoice)))
                 if invoice.dateexpired and invoice.dateexpired < today:
                     invoice.expired = True
                     invoice.balance = 0
@@ -1027,40 +1066,56 @@ def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # 
                     if subtotal:
                         saved_used = invoice.used
                         saved_balance = invoice.balance
-                        # if balance sufficient: subtract all from balance, else subtract balance
+# - if balance sufficient: subtract all from balance, else subtract balance
+                        # field entries: amount of paid entries, bonus entries or refund entries
+                        # field used: amount of used entries or refund entries
+                        # field balance: entries - used
                         if saved_balance:
                             # subtract subtotal from balance, but never more than balance
                             subtract = subtotal if saved_balance >= subtotal else saved_balance
+                            logger.debug('subtract: ' + str(subtract) + ' ' + str(type(subtract)))
                             invoice.balance = saved_balance - subtract
                             invoice.used = saved_used + subtract
                             subtotal = subtotal - subtract
                             save_changes = True
-                            # logger.debug('invoice.balance ' + str(invoice.balance))
+                            logger.debug('invoice.balance ' + str(invoice.balance))
                 if save_changes:
                     invoice.save(request=request)
-            # if any entries_tobe_subtracted left: subtract from garce entries
-            if subtotal:
-                grace_invoice = get_or_create_grace_invoice(request)
 
-                saved_used = grace_invoice.used
-                saved_balance = grace_invoice.balance
-                grace_invoice.balance = saved_balance - subtotal
-                grace_invoice.used = saved_used + subtotal
-                grace_invoice.save(request=request)
+# - if any entries left: subtract from refund (will be negative). Create refund record if not exists
+# - if subtotal is negative it is a refund. Entries will be added to ENTRY_CAT_REFUND
+        if subtotal:
+            logger.debug('subtotal: ' + str(subtotal) + ' ' + str(type(subtotal)))
+            refund_row = Companyinvoice.objects.filter(
+                company=request.user.company,
+                cat=c.ENTRY_CAT_01_REFUND).first()
+            logger.debug('refund_row: ' + str(refund_row) + ' ' + str(type(refund_row)))
+            if refund_row:
+                saved_entries = getattr(refund_row, 'entries', 0)
+                refund_row.entries = saved_entries - subtotal
+                refund_row.used = saved_entries - subtotal
+                refund_row.datepayment = today
+                refund_row.save(request=request)
+                logger.debug('saved_entries: ' + str(saved_entries) + ' ' + str(type(saved_entries)))
+            else:
+                subtotal_negative = subtotal * -1
+                logger.debug('subtotal_negative: ' + str(subtotal_negative) + ' ' + str(type(subtotal_negative)))
+                refund_row = Companyinvoice(
+                            company=request.user.company,
+                            cat=c.ENTRY_CAT_01_REFUND,
+                            entries=subtotal_negative,
+                            used=subtotal_negative,
+                            balance=0,
+                            entryrate=0,
+                            datepayment=today,
+                            dateexpired=None,
+                            expired=False,
+                            note=None
+                        )
+                refund_row.save(request=request)
+                logger.debug('refund_row.save: ' + str(refund_row) + ' ' + str(type(refund_row)))
 
-                # logger.debug('grace.balance ' + str(grace_invoice.balance))
-
-
-def get_or_create_grace_invoice(request):  # PR2019-08-13
-    # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
-    invoice = None
-    if request.user.company:
-        invoice = Companyinvoice.objects.get_or_none(cat=c.ENTRY_CAT_00_GRACE, company=request.user.company)
-        if invoice is None:
-            invoice = Companyinvoice(cat=c.ENTRY_CAT_00_GRACE, company=request.user.company)
-            invoice.save(request=request)
-    return invoice
-
+            logger.debug('refund_row.entries: ' + str(refund_row.entries) + ' ' + str(type(refund_row.entries)))
 
 def create_invoice(request, cat, entries=0, entryrate=0, datepayment=None, dateexpired=None, note=None):  # PR2019-08-05
     invoice = None

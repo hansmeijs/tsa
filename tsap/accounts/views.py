@@ -1,9 +1,13 @@
 from django.contrib.auth import login, get_user_model
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.decorators import login_required  # PR2018-04-01
+from django.contrib.auth import (get_user_model, login as auth_login, logout as auth_logout, update_session_auth_hash)
 from django.contrib.auth.mixins import UserPassesTestMixin  # PR2018-11-03
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib import messages
 from django.core.mail import send_mail
+from  django.core.validators import URLValidator, ValidationError
+
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
@@ -12,7 +16,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes, force_text
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import activate, ugettext_lazy as _
 from django.views.generic import ListView, View, CreateView, UpdateView, DeleteView
 from django.contrib.auth.views import PasswordResetConfirmView # PR2018-10-14
 from django.contrib.auth.forms import SetPasswordForm # PR2018-10-14
@@ -20,23 +24,33 @@ from django.views.decorators.debug import sensitive_post_parameters # PR2018-10-
 from django.views.decorators.csrf import csrf_protect # PR2018-10-14
 from django.contrib.auth import update_session_auth_hash # PR2018-10-14
 from django.views.decorators.cache import never_cache # PR2018-10-14
+from django.contrib.auth import login, authenticate  # PR2020-03-27
+from django.contrib.auth.forms import UserCreationForm  # PR2020-03-27
 
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.hashers import make_password
+
+
+
+
+
+from datetime import datetime
+import pytz
+import tsap.validators as v
 import json
-from tsap.headerbar import get_headerbar_param
 
+from tsap.headerbar import get_headerbar_param
 from companies.views import LazyEncoder
 
-from django.contrib.auth import (
-    REDIRECT_FIELD_NAME, get_user_model, login as auth_login,
-    logout as auth_logout, update_session_auth_hash,
-)
-
-from .forms import UserAddForm, UserEditForm, UserActivateForm
+from .forms import UserAddForm, UserEditForm, UserActivateForm, SignUpForm, TESTSignUpSetPasswordForm
 from .tokens import account_activation_token
 from .models import User, Usersetting
 
+from accounts import models as am
+from companies import models as m
 from tsap import constants as c
 from tsap import functions as f
+from tsap import settings as s
 
 import logging
 logger = logging.getLogger(__name__)
@@ -528,7 +542,7 @@ class UserDeleteView(DeleteView):
 class UserSettingsUploadView(UpdateView):  # PR2019-10-09
 
     def post(self, request, *args, **kwargs):
-        # logger.debug(' ============= UserSettingsUploadView ============= ')
+        logger.debug(' ============= UserSettingsUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -540,9 +554,11 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                 upload_dict = json.loads(upload_json)
                 #logger.debug('upload_dict: ' + str(upload_dict))
                 # upload_dict: {'selected_pk': {'selected_customer_pk': 392, 'selected_order_pk': 0}}
+                # upload_dict: {'quicksave': {'value': False}}
                 for key in upload_dict:
                     new_setting = upload_dict[key]
                     # logger.debug('new_setting: ' + str(new_setting))
+                    # key: quicksave --> new_setting: {'value': False}
                     if key == 'selected_pk':
                         settings_dict = Usersetting.get_jsonsetting(key, request.user)
                         # logger.debug('settings_dict: ' + str(settings_dict))
@@ -556,12 +572,13 @@ class UserSettingsUploadView(UpdateView):  # PR2019-10-09
                         settings_dict = upload_dict[key]
                     #logger.debug('key: ' + str(key))
                     #logger.debug('settings_dict: ' + str(settings_dict))
+                    # key: quicksave --> settings_dict: {'value': False}
 
                     # new_setting is in json format, no need for json.loads and json.dumps
                     # new_setting = json.loads(request.POST['setting'])
                     # new_setting_json = json.dumps(new_setting)
                     if settings_dict:
-                        #logger.debug('key settings_dict: ' + str(key) + str(settings_dict))
+                        logger.debug('key settings_dict: ' + str(key) + str(settings_dict))
                         Usersetting.set_jsonsetting(key, settings_dict, request.user)
 
 # 2. get iddict variables
@@ -641,25 +658,261 @@ class TransactionImportConfirmView(FormView):
         kwargs = super(TransactionImportConfirmView, self).get_form_kwargs()
         kwargs["user"] = self.request.user
         return kwargs
-
-
-# PR2018-04-13
-class UserAddForm(UserCreationForm):
-    interests = forms.ModelMultipleChoiceField(
-        queryset=Subject.objects.all(),
-        widget=forms.CheckboxSelectMultiple,
-        required=True
-    )
-    class Meta(UserCreationForm.Meta):
-        model = User
-
-    @transaction.atomic
-    def save(self):
-        # save(commit=False) returns an object that hasn't yet been saved to the database.
-        user = super().save(commit=False)
-        user.is_student = True
-        user.save()
-        student = Student.objects.create(user=user)
-        student.interests.add(*self.cleaned_data.get('interests'))
-        return user
 """
+
+# ++++ SIGN UP +++++++++++++++++++++++++++++++++++++++ PR2020-04-01
+
+# === SignupView ===================================== PR2020-03-30
+class SignupView(View):
+    #  SignupView is called when clicked on the 'signup' button in the menu.
+    # it returns the signup page
+    # if user.is_authenticated: reurn to home page with error message
+    def get(self, request):
+        logger.debug(' ========== SignupView ===============')
+        logger.debug('request: ' + str(request))
+        if request.user and request.user.is_authenticated:
+            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+            activate(user_lang)
+            msg_01 = _('You cannot sign up when you are logged in.')
+            messages.error(request, msg_01)
+            return render(request, 'home.html')
+        else:
+            return render(request, 'signup.html')
+
+
+# === SignupUploadView ===================================== PR2020-03-31
+class SignupUploadView(View):
+    #  SignupUploadView is called when the user has filled in companyname, username and email and clicked on 'Submit'
+    #  it returns a HttpResponse, with ok_msg or err-msg
+    #  when ok: it also sends an email to the user
+
+    def post(self, request, *args, **kwargs):
+        logger.debug('  ')
+        logger.debug(' ========== SignupUploadView ===============')
+
+        update_wrap = {}
+        err_dict = {}
+# - get upload_dict from request.POST
+        upload_json = request.POST.get("upload")
+        if upload_json:
+            upload_dict = json.loads(upload_json)
+            logger.debug('upload_dict: ' + str(upload_dict))
+
+# - set language
+            # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+            user_lang = f.get_dict_value(upload_dict, ('lang', 'value'), c.LANG_DEFAULT)
+            activate(user_lang)
+
+# - check if this company already exists
+            has_error = False
+            companycode = f.get_dict_value(upload_dict, ('companycode', 'value'))
+            msg_err = v.validate_unique_company_code(value=companycode, cur_company_id=None)
+            if msg_err:
+                err_dict['companycode'] = msg_err
+                has_error = True
+            # TODO maybe this company is created but not activated, check for it
+
+# - check if this email address already exists
+            email = f.get_dict_value(upload_dict, ('email', 'value'))
+            msg_err = v.validate_unique_useremail(value=email, cur_user_id=None)
+            if msg_err:
+                err_dict['email'] = msg_err
+                has_error = True
+
+# - get now without timezone
+            now_utc_naive = datetime.utcnow()
+            now_utc = now_utc_naive.replace(tzinfo=pytz.utc)
+
+# - create new company when no error
+            new_company = None
+            new_user = None
+            if not has_error:
+                # check if there is already a not-activated compny with this name. If so: use
+                # create new company.
+                new_company = m.Company(code=companycode,
+                                    name=companycode,
+                                    issystem=False,
+                                    locked=False,
+                                    inactive=False,
+                                    activated=False,
+                                    timezone=s.TIME_ZONE,
+                                    interval=c.TIMEINTERVAL_DEFAULT,
+                                    timeformat=c.TIMEFORMAT_24h,
+                                    cat=0,
+                                    billable=0,
+                                    modifiedby=None,
+                                    modifiedat=now_utc)
+                # Save company. Cannot use company.save(request=request), because there is no user yet: modifiedby=None
+                new_company.save()
+
+            if new_company:
+                update_wrap['company'] = {'pk': new_company.pk, 'code': new_company.code}
+                # no need to check if this username already exists - usernames are unique per company
+
+# -  create new user
+                new_username = f.get_dict_value(upload_dict, ('username', 'value'))
+                prefixed_username = new_company.companyprefix + new_username
+                new_user = am.User(
+                    company=new_company,
+                    username=prefixed_username,
+                    first_name=new_username,
+                    email=email,
+                    role=c.ROLE_01_COMPANY,
+                    permits=c.PERMIT_32_ADMIN,
+                    is_active=False,
+                    activated=False,
+                    lang=user_lang,
+                    modifiedby=None,
+                    modifiedat=now_utc)
+                new_user.save()
+
+            if new_user:
+                update_wrap['user'] = {'pk': new_user.pk, 'username': new_user.username}
+                current_site = get_current_site(request)
+
+# -  send email 'Activate your account'
+                subject = 'Activate your TSA-secure account'
+                from_email = 'TSA-secure <noreply@tsasecure.com>'
+                message = render_to_string('signup_activation_email.html', {
+                    'user': new_user,
+                    'domain': current_site.domain,
+                    # PR2018-04-24 debug: In Django 2.0 you should call decode() after base64 encoding the uid, to convert it to a string:
+                    # 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'uid': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
+                    'token': account_activation_token.make_token(new_user),
+                })
+                # PR2018-04-25 arguments: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, connection=None, html_message=None)
+                send_mail(subject, message, from_email, [new_user.email], fail_silently=False)
+
+# - return message 'We have sent an email to user'
+                msg_ok_01 = _('Your company and user name are registered successfully.')
+                msg_ok_02 = _("We have sent an email to user '%(fld)s' with email address '%(email)s'.") % {'fld': new_user.username_sliced, 'email': new_user.email}
+                msg_ok_03 = _('Click the link in that email to verify the email address and create a password.')
+
+                update_wrap['msg_ok'] = {'msg_ok_01': msg_ok_01, 'msg_ok_02': msg_ok_02, 'msg_ok_03': msg_ok_03}
+
+            if err_dict:
+                update_wrap['msg_err'] = err_dict
+
+# - return update_wrap
+        update_wrap_json = json.dumps(update_wrap, cls=LazyEncoder)
+        return HttpResponse(update_wrap_json)
+# === end of SignupUploadView =====================================
+
+# Create Advanced User Sign Up View in Django | Step-by-Step  PR2020-03-29
+# from https://dev.to/coderasha/create-advanced-user-sign-up-view-in-django-step-by-step-k9m
+# from https://simpleisbetterthancomplex.com/tutorial/2017/02/18/how-to-create-user-sign-up-view.html
+
+# === SignupActivateView ===================================== PR2020-04-01
+def SignupActivateView(request, uidb64, token):
+    logger.debug('  === SignupActivateView =====')
+    # logger.debug('request: ' + str(request))
+
+    # SignupActivateView is called when user clicks on link 'Activate your TSA-secure account'
+    # it returns the page 'signup_setpassword'
+    # when error: it sends err_msg to this page
+
+    activation_token_ok = False
+    update_wrap = {'activation_token_ok': activation_token_ok}
+
+# - get user
+    try:
+        uid = force_text(urlsafe_base64_decode(uidb64))
+        user = User.objects.get_or_none(pk=uid)
+    except (TypeError, ValueError, OverflowError):
+        user = None
+
+    if user is None:
+        update_wrap['msg_01'] = _('Sorry, we could not find your account.')
+        update_wrap['msg_02'] = _('Your account cannot be activated.')
+    else:
+        update_wrap['username'] = user.username_sliced
+        update_wrap['companyname'] = user.company.code
+
+# - get language from user
+        # PR2019-03-15 Debug: language gets lost, get request.user.lang again
+        user_lang = user.lang if user.lang else c.LANG_DEFAULT
+        activate(user_lang)
+
+# - check activation_token
+        activation_token_ok = account_activation_token.check_token(user, token)
+        if activation_token_ok:
+            update_wrap['activation_token_ok'] = activation_token_ok
+            # don't activate user and company until user has submitted valid password
+            #update_wrap['uidb64'] = uidb64
+        else:
+            update_wrap['msg_01'] = _('The link to activate your account is not valid.')
+            update_wrap['msg_02'] = _('You cannot activate your account.')
+
+    logger.debug('update_wrap: ' + str(update_wrap))
+
+    if request.method == 'POST':
+        logger.debug('request.POST' + str(request.POST))
+        form = SetPasswordForm(user, request.POST)
+
+        form_is_valid = form.is_valid()
+
+        non_field_errors = f.get_dict_value(form, ('non_field_errors',))
+        field_errors = [(field.label, field.errors) for field in form]
+        logger.debug('non_field_errors' + str(non_field_errors))
+        logger.debug('field_errors' + str(field_errors))
+
+        if form_is_valid:
+            user = form.save()
+            update_session_auth_hash(request, user)  # Important!
+
+# - activate company
+            company = user.company
+            if company:
+                # request has no user, add user to request
+                request.user = user
+                # timezone.now() is timezone aware, based on the USE_TZ setting; datetime.now() is timezone naive. PR2018-06-07
+                datetime_activated = timezone.now()
+                company.activated = True
+                company.activatedat = datetime_activated
+                company.save(request=request)  # don't use request=request, request has no user
+
+# - activate user, after he has submitted valid password
+                user.is_active = True
+                user.activated = True
+                user.activatedat = datetime_activated
+                user.save()
+
+                #login_user = authenticate(username=user.username, password=password1)
+                #login(request, login_user)
+                login(request, user)
+                logger.debug('user.login' + str(user))
+                if request.user:
+                    update_wrap['msg_01'] = _("Congratulations.")
+                    update_wrap['msg_02'] = _("Your account is succesfully activated.")
+                    update_wrap['msg_03'] = _('You are now logged in to TSA-secure.')
+
+# - add bonus to Companyinvoice
+         # a. get today in comp_timezone
+                # bonus is half year valid. Create date half year from today
+                today = f.get_today_dateobj()
+                today_plus_halfyear = f.add_months_to_date(today, 6)
+
+                msg = _('Registration bonus')
+                bonus = m.Companyinvoice(
+                    company=company,
+                    cat=c.ENTRY_CAT_02_PAID,
+                    entries=c.ENTRY_BONUS_SIGNUP,
+                    used=0,
+                    balance=c.ENTRY_BONUS_SIGNUP,
+                    entryrate=150,
+                    datepayment=today,
+                    dateexpired=today_plus_halfyear,
+                    expired=False,
+                    note=msg
+                )
+                bonus.save(request=request)
+
+    else:
+        form = SetPasswordForm(user)
+
+    update_wrap['form'] = form
+
+    # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
+    return render(request, 'signup_setpassword.html', update_wrap)
+# === end of SignupActivateView =====================================

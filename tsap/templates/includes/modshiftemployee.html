@@ -3,29 +3,29 @@
 {% load static %}
 
 
-<!-- =================== MODAL EMPLOYEE SHIFT  =================== -->
-    <div class="modal fade" id="id_modshift" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
+<!-- =================== MODAL SHIFT EMPLOYEE =================== -->
+    <div class="modal fade" id="id_modshift_employee" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg " role="document">
             <div class="modal-content" style="overflow:hidden;">
 
                 <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_modshift_header" class="modal-title mx-2" >{% trans 'Employee' %}</h4>
+                    <h4 id="id_MSE_hdr_employee" class="modal-title mx-2" >{% trans 'Employee' %}</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
-                <div id="id_modshift_body" class="modal-body">
+                <div id="id_ModSftEmp_bodyXXX" class="modal-body">
                     <div class="modal_container">
 
 <!-- modal_body_left contains employee select table -->
-                        <div id="id_modshift_select_order" class="modal_body_left">
+                        <div id="id_ModSftEmp_select_order" class="modal_body_left">
                             <div class="content_subheader_left m-2">
                                 <div>
                                     <h5>{% trans 'Orders' %}:</h5>
                                 </div>
                                 <div >
-                                    <input id="id_modshift_filter_order"
+                                    <input id="id_ModSftEmp_filter_order"
                                         type="text"
                                         class="td_width_150 tsa_bc_transparent border_none px-2"
                                         autocomplete="off"
@@ -34,21 +34,21 @@
                                 </div>
                                 <div style="overflow-x:hidden;overflow-y:auto;height:320px;width:220px"> <!-- this div is necessary to get standard structure for FilterTableRows -->
                                     <table class="table table-condensed tsa_tbl mx-1 my-1">
-                                        <tbody id="id_modshift_tblbody_order" ></tbody>
+                                        <tbody id="id_MSE_tblbody_order" ></tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
 
-                        <div id="id_modshift_body_right"  class="modal_body_flex3 m-2">
+                        <div id="id_ModSftEmp_body_rightXXX" class="modal_flex3 m-2">
                             <div class="mod_show singleshift schemeshift">
-                                <h5 id="id_modshift_order" class="mx-2" >{% trans 'Select order' %}...</h5>
+                                <h5 id="id_MSE_hdr_order" class="mx-2" >{% trans 'Select order' %}...</h5>
                             </div>
                             <!-- BUTTON GROUP -->
-                            <div id="id_modshift_selectbtns_container" class="btn-group btn-block mx-2 my-2 pr-4" role="group" aria-label="Choose option" >
-                                <button type="bXutton" data-mode="singleshift" class="btn btn-secondary">{% trans 'Single shift' %}</button>
-                                <button type="Xbutton"  data-mode="schemeshift" class="btn btn-secondary">{% trans 'Team shift' %}</button>
-                                <button type="buXtton"  data-mode="absenceshift" class="btn btn-secondary">{% trans 'Absence' %}</button>
+                            <div id="id_ModSftEmp_btns_container" class="btn-group btn-block mx-2 my-2 pr-4" role="group" aria-label="Choose option" >
+                                <button data-mode="singleshift" class="btn btn-secondary">{% trans 'Single shift' %}</button>
+                                <button data-mode="schemeshift" class="btn btn-secondary">{% trans 'Team shift' %}</button>
+                                <button data-mode="absenceshift" class="btn btn-secondary">{% trans 'Absence' %}</button>
                             </div>
                             <!-- end BUTTON GROUP -->
 
@@ -67,31 +67,31 @@
 
                             <div class="content_header mod_show absenceshift">
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_input_absence" class="tsa_margin_form_label">{% trans 'Absence category' %}:</label>
-                                    <select id="id_modshift_input_absence" type="text" data-field="absence"
+                                    <label for="id_ModSftEmp_input_absence" class="tsa_margin_form_label">{% trans 'Absence category' %}:</label>
+                                    <select id="id_ModSftEmp_input_absence" type="text" data-field="absence"
                                     autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                     class="form-control mb-0"></select>
                                 </div>
                             </div>
-                            <div id="id_modshift_timefields" class="content_header mod_show singleshift absenceshift">
+                            <div id="id_ModSftEmp_timefields" class="content_header mod_show singleshift absenceshift">
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_input_offsetstart" class="tsa_margin_form_label">{% trans 'Start time' %}:</label>
-                                    <p id="id_modshift_input_offsetstart" data-toggle="modal" href="#id_mod_timepicker"
+                                    <label for="id_ModSftEmp_input_offsetstart" class="tsa_margin_form_label">{% trans 'Start time' %}:</label>
+                                    <p id="id_ModSftEmp_input_offsetstart" data-toggle="modal" href="#id_mod_timepicker"
                                        data-field= "offsetstart" tabindex="0" class="form-control pointer_show mb-0"> </p>
                                 </div>
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_input_offsetend" class="tsa_margin_form_label">{% trans 'End time' %}:</label>
-                                    <p id="id_modshift_input_offsetend" data-toggle="modal" href="#id_mod_timepicker"
+                                    <label for="id_ModSftEmp_input_offsetend" class="tsa_margin_form_label">{% trans 'End time' %}:</label>
+                                    <p id="id_ModSftEmp_input_offsetend" data-toggle="modal" href="#id_mod_timepicker"
                                        data-field="offsetend" tabindex="0" class="form-control pointer_show mb-0">  </p>
                                 </div>
                                 <div class="content_subheader_left mx-1 mod_show singleshift schemeshift">
-                                    <label for="id_modshift_input_breakduration" class="tsa_margin_form_label">{% trans 'Break' %}:</label>
-                                    <p id="id_modshift_input_breakduration" data-toggle="modal" href="#id_mod_timepicker"
+                                    <label for="id_ModSftEmp_input_breakduration" class="tsa_margin_form_label">{% trans 'Break' %}:</label>
+                                    <p id="id_ModSftEmp_input_breakduration" data-toggle="modal" href="#id_mod_timepicker"
                                        data-field="breakduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
                                 </div>
                                 <div class="content_subheader_left mx-1">
-                                    <label id="id_modshift_label_timeduration"  for="id_modshift_input_timeduration" class="tsa_margin_form_label">{% trans 'Working hours' %}:</label>
-                                    <p id="id_modshift_input_timeduration"  data-toggle="modal" href="#id_mod_timepicker"
+                                    <label id="id_ModSftEmp_label_timeduration"  for="id_ModSftEmp_input_timeduration" class="tsa_margin_form_label">{% trans 'Working hours' %}:</label>
+                                    <p id="id_ModSftEmp_input_timeduration"  data-toggle="modal" href="#id_mod_timepicker"
                                        data-field="timeduration" tabindex="0" class="form-control pointer_show mb-0">  </p>
                                 </div>
                             </div>
@@ -100,25 +100,25 @@
                              </div>
                             <div class="content_header mod_show singleshift schemeshift absenceshift">
                                 <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_input_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
-                                    <input id="id_modshift_input_datefirst" type="date" data-field= "datefirst" class="form-control">
+                                    <label for="id_ModSftEmp_input_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
+                                    <input id="id_ModSftEmp_input_datefirst" type="date" data-field= "datefirst" class="form-control">
                                 </div>
                                     <div class="content_subheader_left mx-1">
-                                    <label for="id_modshift_input_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
-                                    <input id="id_modshift_input_datelast" type="date" data-field="datelast"
+                                    <label for="id_ModSftEmp_input_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
+                                    <input id="id_ModSftEmp_input_datelast" type="date" data-field="datelast"
                                     autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control">
                                 </div>
                             </div>
-                            <div id="id_modshift_oneday_container"  class="content_subheader_left mx-1 mod_show absenceshift">
+                            <div id="id_ModSftEmp_oneday_container"  class="content_subheader_left mx-1 mod_show absenceshift">
                                 <span>
-                                    <input id="id_modshift_oneday" type="checkbox" class="td_width_032 mx-2">
-                                    <label for="id_modshift_oneday" class="mx-2 my-1">{% trans 'One day only' %}</label>
+                                    <input id="id_ModSftEmp_oneday" type="checkbox" class="td_width_032 mx-2">
+                                    <label for="id_ModSftEmp_oneday" class="mx-2 my-1">{% trans 'One day only' %}</label>
                                 </span>
                              </div>
-                            <div id="id_modshift_onceonly_container"  class="content_subheader_left mx-1 mod_show singleshift">
+                            <div id="id_ModSftEmp_onceonly_container" class="content_subheader_left mx-1 mod_show singleshift">
                                 <span>
-                                    <input id="id_modshift_onceonly" type="checkbox" class="td_width_032 mx-2">
-                                    <label for="id_modshift_onceonly" class="mx-2 my-1">{% trans 'Once only' %}</label>
+                                    <input id="id_ModSftEmp_onceonly" type="checkbox" class="td_width_032 mx-2">
+                                    <label for="id_ModSftEmp_onceonly" class="mx-2 my-1">{% trans 'Once only' %}</label>
                                 </span>
                                 <div>
                                     <small class="tsa_margin_form_label">
@@ -137,7 +137,7 @@
                                 <label class="tsa_margin_form_label">{% trans 'Weekdays of this shift' %}:</label>
                             </div>
                                 <!-- BUTTON GROUP WEEKDAYS-->
-                            <div id="id_modshift_weekdays" class="content_subheader_left mx-2 mod_show singleshift">
+                            <div id="id_ModSftEmp_weekdays" class="content_subheader_left mx-2 mod_show singleshift">
                                 <button data-weekday="1" class="btn btn-add">{% trans 'Mon' %}</button>
                                 <button data-weekday="2" class="btn btn-add">{% trans 'Tue' %}</button>
                                 <button data-weekday="3" class="btn btn-add">{% trans 'Wed' %}</button>
@@ -151,28 +151,28 @@
                             </div>
                             <div class="mx-2 mt-2 mod_show singleshift schemeshift">
                                 <span>
-                                    <input id="id_modshift_publicholiday" type="checkbox" class="td_width_032 mx-2">
-                                    <label for="id_modshift_publicholiday" class="mx-2 my-1">{% trans 'Not on public holidays' %}</label>
+                                    <input id="id_ModSftEmp_publicholiday" type="checkbox" class="td_width_032 mx-2">
+                                    <label for="id_ModSftEmp_publicholiday" class="mx-2 my-1">{% trans 'Not on holidays' %}</label>
                                 </span>
                             </div>
                             <div class="mx-2 mod_show singleshift schemeshift">
                                 <span>
-                                    <input id="id_modshift_companyholiday" type="checkbox" class="td_width_032 mx-2">
-                                    <label for="id_modshift_companyholiday" class="mx-2 my-1">{% trans 'Not on company holidays' %}</label>
+                                    <input id="id_ModSftEmp_companyholiday" type="checkbox" class="td_width_032 mx-2">
+                                    <label for="id_ModSftEmp_companyholiday" class="mx-2 my-1">{% trans 'Not on company holidays' %}</label>
                                 </span>
                             </div>
 
-                        </div>  <!-- end id_modshift_body_right -->
+                        </div>  <!-- end id_ModSftEmp_body_right -->
                     </div>  <!-- end modal_container -->
                 </div>
                 <div class="modal-footer pr-4">
 
                     <div class="content_subheader_left mx-1 mod_show singleshift absenceshift">
-                        <button id="id_modshift_btn_delete" type="button" data-dismiss="modal" class="btn btn-outline-danger">{% trans 'Delete' %}</button>
+                        <button id="id_ModSftEmp_btn_delete" type="button" data-dismiss="modal" class="btn btn-outline-danger">{% trans 'Delete' %}</button>
                     </div>
                     <div class="content_subheader_right mod_show singleshift schemeshift absenceshift">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                        <button id="id_modshift_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save' %}</button>
+                        <button id="id_ModSftEmp_btn_save" type="button" data-dismiss="modal" class="btn btn-primary">{% trans 'Save' %}</button>
                     </div>
                 </div>
 
@@ -180,36 +180,3 @@
         </div>
     </div>
 <!-- =================== END MODAL EMPLOYEE SHIFT  =================== -->
-
-<!-- =================== MODAL TIMEPICKER  =================== -->
-<div class="modal" id="id_mod_timepicker" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm " role="document">
-        <div class="modal-content tsa_bc_lightlightgrey">
-
-            <div id="id_mod_confirm_body"  class="modal-body tsa_bc_lightlightgrey">
-
-                <div id="id_timepicker_header" class="popup_header">
-
-                </div>
-
-                <div class="content_header">
-                    <div class="content_subheader_left m-1 ">
-                        <a>{% trans "Hours" %}</a>
-                        <table class="pop_tbl tbl_border">
-                            <tbody id="id_timepicker_tbody_hour" class="timepicker_tbody_hour"></tbody>
-                        </table>
-                    </div>
-                    <div id="id_timepicker_cont_minute" class="content_subheader_left m-1">
-                        <a>{% trans "Minutes" %}</a>
-                        <table class="pop_tbl tbl_border">
-                            <tbody id="id_timepicker_tbody_minute" class="timepicker_tbody_minute"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div id="id_timepicker_footer" class="content_header tsa_bc_lightlightgrey m-2">
-            </div>
-        </div>
-    </div>
-</div>
-<!-- =================== END MODAL CONFIRM  =================== -->

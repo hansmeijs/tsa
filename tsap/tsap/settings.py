@@ -36,7 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # 'widget_tweaks',  # PR2019-03-13 removed
+    'widget_tweaks',  # PR2019-03-13 removed PR2019-04-07 added again in signup_setpassword
     'crispy_forms', # PR2019-03-13 added
 
 # PR2019-02-28
@@ -164,7 +164,7 @@ LOGOUT_REDIRECT_URL = 'home'
 
 # In global.settings.py: PR2018-07-30
 # The number of days a password reset link is valid for
-# PASSWORD_RESET_TIMEOUT_DAYS = 3
+PASSWORD_RESET_TIMEOUT_DAYS = 3
 
 
 # was: PR 2018-03-27  EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

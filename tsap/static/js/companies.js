@@ -1,7 +1,6 @@
 // PR2019-6-16
-$(function() {
+document.addEventListener('DOMContentLoaded', function() {
         "use strict";
-        console.log("===  Companies.js == ");
 
 // ---  set selected menu button active
         const cls_active = "active";
@@ -14,7 +13,6 @@ $(function() {
         const col_inactive = 2;
         const col_count = 3;
 
-        SetMenubuttonActive(document.getElementById("id_hdr_comp"));
 
 // ---  id of selected customer
         let selected_customer_pk = 0;
@@ -27,8 +25,12 @@ $(function() {
 
         let company_list = [];
 
-        let el_loader = document.getElementById("id_loader");
+        let el_loader = document.getElementById("id_div_loader");
         let el_msg = document.getElementById("id_msgbox");
+
+
+        console.log("el_msg", el_msg)
+
 
 // --- get data stored in page
         let el_data = document.getElementById("id_data");
@@ -43,6 +45,7 @@ $(function() {
 
         const user_lang = get_attr_from_el(el_data, "data-lang");
 
+        SetMenubuttonActive(document.getElementById("id_hdr_comp"));
 
         DatalistDownload({"submenu": {"value": true}});
 //  #############################################################################################################
@@ -58,9 +61,10 @@ $(function() {
         }
 
 // show loader
-        el_loader.classList.remove(cls_visible_hide)
+        //el_loader.classList.remove(cls_visible_hide)
 
         let param = {"download": JSON.stringify (datalist_request)};
+        console.log( "param", param)
         let response = "";
         $.ajax({
             type: "POST",
@@ -71,7 +75,7 @@ $(function() {
                  console.log("response")
                  console.log(response)
                 // hide loader
-                el_loader.classList.add(cls_visible_hide)
+                //el_loader.classList.add(cls_visible_hide)
 
                 if ("submenu" in response) {
 
@@ -81,10 +85,9 @@ $(function() {
             },
             error: function (xhr, msg) {
                 // hide loader
-                el_loader.classList.add(cls_visible_hide)
-
+                //el_loader.classList.add(cls_visible_hide)
                 console.log(msg + '\n' + xhr.responseText);
-                alert(msg + '\n' + xhr.responseText);
+
             }});
 }
 

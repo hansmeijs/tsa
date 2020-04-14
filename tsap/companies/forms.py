@@ -2,8 +2,8 @@
 from django.forms import ModelForm, DateField, TextInput, ChoiceField, Select
 from django.utils.translation import ugettext_lazy as _
 
-from tsap.constants import CODE_MAX_LENGTH, NAME_MAX_LENGTH, ENTRY_CAT_CHOICES, ENTRY_CAT_02_PAID
-from companies.models import Company, Companyinvoice
+from tsap import constants as c
+from companies import models as m
 #from tsap.validators import validate_unique_code
 
 import logging
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class CompanyAddForm(ModelForm):
 
     class Meta:
-        model = Company
+        model = m.Company
         fields = ('code', 'name', 'datefirst', 'locked', 'inactive')
         # labels = {'name': _('Name'), 'datefirst': _('First date'), 'locked': _('Locked'), 'inactive': _('Inactive')}
 
@@ -25,7 +25,7 @@ class CompanyAddForm(ModelForm):
 
         # ======= field 'code' ============
         #self.fields['code'] = CharField(
-        #    max_length=CODE_MAX_LENGTH,
+        #    max_length=c.CODE_MAX_LENGTH,
         #    required = True,
         #    validators=[validate_unique_code('company', self.this_instance)],
         #    label=_('Code'),
@@ -35,9 +35,9 @@ class CompanyAddForm(ModelForm):
 
         # ======= field 'name' ============
         # PR2019-03-15 debug: This doesn't work with translations:
-        #    help_text=_('Company name is used in reports. Required, %(len)s characters or fewer.') % {'len': NAME_MAX_LENGTH},
+        #    help_text=_('Company name is used in reports. Required, %(len)s characters or fewer.') % {'len': c.NAME_MAX_LENGTH},
         #self.fields['name'] = CharField(
-        #    max_length=NAME_MAX_LENGTH,
+        #    max_length=c.NAME_MAX_LENGTH,
         #    required=True,
         #    validators=[validate_unique_code('company', self.this_instance)],
         #    label=_('Company name'),
@@ -59,7 +59,7 @@ class CompanyAddForm(ModelForm):
 
 class CompanyEditForm(ModelForm):
     class Meta:
-        model = Company
+        model = m.Company
         fields = ('code', 'name', 'datefirst', 'datelast', 'locked', 'inactive', 'timeformat', 'timezone', 'interval')
         labels = {'code': _('Code'),
                   'name': _('Name'),
@@ -80,7 +80,7 @@ class CompanyEditForm(ModelForm):
 class InvoiceAddForm(ModelForm):
 
     class Meta:
-        model = Companyinvoice
+        model = m.Companyinvoice
         fields = ('company', 'cat', 'entries', 'entryrate', 'datepayment', 'dateexpired', 'note')
         labels = {'company': _('Company'),
                   'cat': _('Category'),
@@ -97,17 +97,17 @@ class InvoiceAddForm(ModelForm):
 
         # ======= field 'company' ============
         self.fields['company'].widget.attrs.update({'autofocus': 'autofocus'})
-        self.fields['company'].queryset = Company.objects.filter(inactive=False)
+        self.fields['company'].queryset = m.Company.objects.filter(inactive=False)
 
         # ======= field 'Cat' ============
         # PR2019-08-05
-        self.choices = ENTRY_CAT_CHOICES
+        self.choices = c.ENTRY_CAT_CHOICES
 
         self.fields['cat'] = ChoiceField(
             required=True,
             choices=self.choices,
             label=_('Category'),
-            initial=ENTRY_CAT_02_PAID
+            initial=c.ENTRIES_CAT_00_CHARGED
         )
 
 

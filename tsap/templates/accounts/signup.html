@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{{ block.super }}{% endblock %}
+
+{% block script %}
+    <script src="{% static 'js/signup.js' %}"></script>
+{% endblock %}
+
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar" class="tsa_sidebar">
+        <div class="sidebar_header">
+            <h3 id="id_sbr_hdr"></h3>
+            <h5 id="id_sbr_hdr2"></h5>
+            <h3 id="id_sbr_hdr3"></h3>
+        </div>
+    </nav>
+{% endblock %}
+<!-- END SIDE BAR -->
+{% block content %}
+    {% if not user.is_authenticated %}
+        <div class="container tsa_margin_top_48">
+            <div id="id_card" class="col-lg-10 col-sm-12">
+                <div class="card mt-5">
+                    <div class="card-header tsa_bc_lightlightgrey">
+                        <div class="content_header">
+                            <div class="flex_2 mx-1">
+                                <h4 id="id_signup"></h4>
+                                <h5 id="id_free_trial"></h5>
+                            </div>
+                            <div class="content_subheader_right tab_show tab_init mx-1">
+                                <label id="id_language" for="id_btn_container" class="m-2"></label>
+                                <br>
+                                <div id="id_btn_container" class="btn-group" role="group" aria-label="Select your language">
+                                    <button type="button" data-lang ="nl" class="btn btn-outline-secondary tsa_btn_selected">Nederlands</button>
+                                    <button type="button" data-lang ="en" class="btn btn-outline-secondary">English</button>
+                                </div>
+                            </div>
+                         </div>
+                    </div>
+                    <div class="tab_show tab_ok tsa_tr_ok m-4">
+                        <p id="id_msg_01" class="tsa_margin_form_label mx-4"></p>
+                        <p id="id_msg_02" class="tsa_margin_form_label mx-4"></p>
+                        <p id="id_msg_03" class="tsa_margin_form_label mx-4 mb-4"></p>
+                    </div>
+                    <div class="tab_show tab_init tab_edit mx-4">
+                        <div class="content_subheader_left">
+                            <div id="id_loader" class="image_container mt-2 visibility_hide">
+                                <img  src="{% static 'img/loader.gif' %}" height="24" width="24">
+                            </div>
+                        </div>
+
+                         <div class="content_subheader_left">
+                            <label id="id_lbl_companycode" for="id_input_companycode" class="mx-2 mt-0 mb-1"></label>
+                            <input id="id_input_companycode" type="text" data-field="companycode" tabIndex="1" class="fld_input tab_idx form-control"
+                                ondragstart="return false;" ondrop="return false;" autofocus>
+                            <small id="id_msg_companycode" class="fld_msg tsa_margin_form_label"></small>
+                         </div>
+                        <div class="content_subheader_left">
+                            <label id="id_lbl_companyname"  for="id_input_companyname" class="tsa_margin_form_label"></label>
+                            <input id="id_input_companyname" type="text" data-field="companyname" tabIndex="2" class="fld_input tab_idx form-control"
+                                ondragstart="return false;" ondrop="return false;" >
+                            <small id="id_msg_companyname" class="fld_msg tsa_margin_form_label"></small>
+                        </div>
+                        <div class="content_subheader_left">
+                            <label id="id_lbl_username" for="id_input_username" class="tsa_margin_form_label"></label>
+                            <input id="id_input_username" type="text"  data-field="username" tabIndex="3" class="fld_input tab_idx form-control"
+                                ondragstart="return false;" ondrop="return false;" >
+                            <small id="id_msg_username" class="fld_msg tsa_margin_form_label"></small>
+                        </div>
+                        <div class="content_subheader_left mb-2">
+                            <label id="id_lbl_email" for="id_input_email" class="tsa_margin_form_label"></label>
+                            <input id="id_input_email" type="text"  data-field="email" tabIndex="4" class="fld_input tab_idx form-control"
+                                ondragstart="return false;" ondrop="return false;" >
+                            <small id="id_msg_email" class="fld_msg tsa_margin_form_label"></small>
+                         </div>
+                    </div>
+                </div>
+                <div class="card-footer my-0">
+                    <div class="content_subheader_left tab_show tab_init tab_edit mx-2 my-0">
+                        <small id="id_info_footer01"></small>
+                    </div>
+                    <div class="content_subheader_left tab_show tab_init tab_edit mx-2 my-0">
+                        <small id="id_info_footer02"></small>
+                    </div>
+                    <div class="content_subheader_left mx-1 mt-2">
+                        <button id="id_btn_submit" type="button" tabIndex="5" disabled class="btn btn-primary tab_idx tab_show tab_init tab_edit"></button>
+                        <a id="id_btn_cancel" href="{% url 'home' %}" tabIndex="6" class="btn btn-outline-secondary tab_idx ">Cancel</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="id_data" data-signup_upload_url="{% url 'signup_upload_url' %}">
+        </div>
+
+    {% else %}
+      <div class="tsa_margin_top_48 mx-5">
+            {% include 'includes/messages.html' %}
+      </div>
+      <div class=" m-5">
+
+<a href="{% url 'home' %}" class="btn btn-outline-secondary">{% trans 'Close' %}</a>
+
+      </div>
+    {% endif %}
+
+{% endblock %}

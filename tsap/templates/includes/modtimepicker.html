@@ -1,34 +1,30 @@
 {% load i18n %} {% load l10n %}
 {% load static %}
 <!-- =================== MODAL TIMEPICKER  =================== -->
-<div class="modal" id="id_mod_timepicker" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm " role="document">
-        <div class="modal-content tsa_bc_lightlightgrey">
+<div id="id_mtp_modal" class="mtp_modal hidden">
+    <div id="id_mtp_container" class="mtp_container">
+        <div class="mtp_body tsa_bc_lightlightgrey">
+            <div id="id_timepicker_header" class="mtp_header"></div>
 
-            <div id="id_mod_confirm_body"  class="modal-body tsa_bc_lightlightgrey">
-
-                <div id="id_timepicker_header" class="popup_header">
-
+            <div class="content_header">
+                <div class="content_subheader_left m-1 ">
+                    <div>{% trans "Hours" %}</div>
+                    <table class="pop_tbl tbl_border">
+                        <tbody id="id_timepicker_tbody_hour" class="timepicker_tbody_hour"></tbody>
+                    </table>
                 </div>
-
-                <div class="content_header">
-                    <div class="content_subheader_left m-1 ">
-                        <div>{% trans "Hours" %}</div>
-                        <table class="pop_tbl tbl_border">
-                            <tbody id="id_timepicker_tbody_hour" class="timepicker_tbody_hour"></tbody>
-                        </table>
-                    </div>
-                    <div id="id_timepicker_cont_minute" class="content_subheader_left m-1">
-                        <div>{% trans "Minutes" %}</div>
-                        <table class="pop_tbl tbl_border">
-                            <tbody id="id_timepicker_tbody_minute" class="timepicker_tbody_minute"></tbody>
-                        </table>
-                    </div>
+                <div id="id_timepicker_cont_minute" class="content_subheader_left m-1">
+                    <div>{% trans "Minutes" %}</div>
+                    <table class="pop_tbl tbl_border">
+                        <tbody id="id_timepicker_tbody_minute" class="timepicker_tbody_minute"></tbody>
+                    </table>
                 </div>
             </div>
-            <div id="id_timepicker_footer" class="content_header tsa_bc_lightlightgrey m-2">
-            </div>
+
+            <div id="id_timepicker_footer" class="content_header tsa_bc_lightlightgrey mx-2 mt-1 mb-0"></div>
+
         </div>
     </div>
 </div>
+
 <!-- =================== END MODAL TIMEPICKER  =================== -->

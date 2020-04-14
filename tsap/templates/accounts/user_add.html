@@ -5,11 +5,19 @@
 
 {% block breadcrumb %}
 {% endblock %}
-
+<!-- SIDE BAR -->
+{% block sidebar %}
+    <nav id="id_sidebar" class="tsa_sidebar">
+        <div class="sidebar_header">
+            <h3>{% trans 'Users' %}</h3>
+        </div>
+    </nav>
+{% endblock %}
+<!-- END SIDE BAR -->
 {% block content %}
   <div class="container">
     {% if user.permit_user_modify %}
-      <h4>{% trans 'Add user' %}</h4>
+      <h4 class="tsa_margin_top_48">{% trans 'Add user' %}</h4>
       <form method="post" novalidate>
         {% csrf_token %}
          <input type="hidden" name="next" value="{{ next }}">

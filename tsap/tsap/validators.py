@@ -1,29 +1,58 @@
-
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.db.models.functions import Upper, Lower
 
 from django.utils.translation import ugettext_lazy as _
 
+from accounts import models as am
 from companies import models as m
 from tsap import constants as c
 
-
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)  # __name__ tsap.validators
 
 
-def check_date_overlap(datefirst, datelast, datefirst_is_updated):
-    # PR2019-03-29 check if first date is after last date
-    msg_dont_add = None
-    if datefirst and datelast:
-        if datefirst > datelast:
-            if datefirst_is_updated:
-                msg_dont_add = _("First date cannot be after last date.")
-            else:
-                msg_dont_add = _("Last date cannot be before first date.")
-    return msg_dont_add
+# === validate_unique_username ===================================== PR2020-03-31
+def validate_unique_username(value, cur_user_id=None):
+    logger.debug ('validate_unique_username', value)
+    # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
+    msg_err = None
+    if not value:
+        msg_err = _('Username cannot be blank.')
+    elif len(value) > c.CODE_MAX_LENGTH:
+        msg_err = _('Username must have %(fld)s characters or less.') % {'fld': c.CODE_MAX_LENGTH}
+    else:
+        if cur_user_id:
+            value_exists = am.User.objects.filter(username__iexact=value).exclude(pk=cur_user_id).exists()
+        else:
+            value_exists = am.User.objects.filter(username__iexact=value).exists()
+            logger.debug ('validate_unique_username', value_exists)
 
+            users = am.User.objects.all()
+            for user in users:
+                logger.debug ('user', user.username)
+
+
+        if value_exists:
+            msg_err = _("Username '%(fld)s' already exists.") % {'fld': value}
+    return msg_err
+
+
+# === validate_unique_useremail ===================================== PR2020-03-31
+def validate_unique_useremail(value, cur_user_id=None):
+    logger.debug ('validate_unique_useremail', value)
+    # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
+    msg_err = None
+    if not value:
+        msg_err = _('Email address cannot be blank.')
+    else:
+        if cur_user_id:
+            value_exists = am.User.objects.filter(email__iexact=value).exclude(pk=cur_user_id).exists()
+        else:
+            value_exists = am.User.objects.filter(email__iexact=value).exists()
+        if value_exists:
+            msg_err = _("There is already a user with email address '%(fld)s'.") % {'fld': value}
+    return msg_err
 
 def validate_customer(field, value, company, this_pk = None):
     # validate if customer code_already_exists already exists in this company PR2019-03-04
@@ -51,49 +80,38 @@ def validate_customer(field, value, company, this_pk = None):
                 msg_dont_add = _("This code already exists.")
     return msg_dont_add
 
-
-class validate_unique_company_code(object):  # PR2019-03-15
-    def __init__(self, instance=None):
-        if instance:
-            self.instance_id = instance.id
+def validate_unique_company_code(value, cur_company_id=None):  # PR2019-03-15  # PR2020-03-29
+    logger.debug ('validate_unique_company_code', value)
+    # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
+    # skip companies that are not activated PR2020-04-02
+    msg_err = None
+    if not value:
+        msg_err = _('Company cannot be blank.')
+    else:
+        if cur_company_id:
+            value_exists = m.Company.objects.filter(code__iexact=value, activated=True).exclude(pk=cur_company_id).exists()
         else:
-            self.instance_id = None
+            value_exists = m.Company.objects.filter(code__iexact=value, activated=True).exists()
+        if value_exists:
+            msg_err = _("Company '%(fld)s' already exists.") % {'fld': value}
+    return msg_err
 
-    def __call__(self, value):
-        logger.debug ('validate_unique_company_code', value)
-        # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
-        if value is None:
-            _value_exists = False
-        elif self.instance_id is None:
-            _value_exists = m.Company.objects.filter(code__iexact=value).exists()
+
+def validate_unique_company_name(value, cur_company_id=None):  # PR2019-03-15  # PR2020-03-29
+    logger.debug ('validate_unique_company_name', value)
+    # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
+    msg_err = None
+    if not value:
+        msg_err = _('Company name cannot be blank.')
+    else:
+        value_exists = False
+        if cur_company_id:
+            value_exists = m.Company.objects.filter(name__iexact=value).exclude(pk=cur_company_id).exists()
         else:
-            _value_exists = m.Company.objects.filter(code__iexact=value).exclude(
-                pk=self.instance_id).exists()
-        if _value_exists:
-            raise ValidationError(_('Company code already exists.'))
-        return value
-
-
-class validate_unique_company_name(object):  # PR2019-03-15
-    def __init__(self, instance=None):
-        if instance:
-            self.instance_id = instance.id
-        else:
-            self.instance_id = None
-
-    def __call__(self, value):
-
-        # __iexact looks for the exact string, but case-insensitive. If value is None, it is interpreted as an SQL NULL
-        if value is None:
-            _value_exists = False
-        elif self.instance_id is None:
-            _value_exists = m.Company.objects.filter(name__iexact=value).exists()
-        else:
-            _value_exists = m.Company.objects.filter(name__iexact=value).exclude(
-                pk=self.instance_id).exists()
-        if _value_exists:
-            raise ValidationError(_('Company name already exists.'))
-        return value
+            value_exists = m.Company.objects.filter(name__iexact=value).exists()
+        if value_exists:
+            msg_err = _('Company name already exists.')
+    return msg_err
 
 
 class validate_unique_code(object):  # PR2019-03-16, PR2019-04-25
@@ -366,4 +384,16 @@ def validate_employee_has_emplhours(instance, update_dict):
             msg_err = _("Employee '%(tbl)s' has shifts and cannot be deleted.") % {'tbl': instance.code}
             update_dict['id']['error'] = msg_err
     return has_emplhours
+
+
+def check_date_overlap(datefirst, datelast, datefirst_is_updated):
+    # PR2019-03-29 check if first date is after last date
+    msg_dont_add = None
+    if datefirst and datelast:
+        if datefirst > datelast:
+            if datefirst_is_updated:
+                msg_dont_add = _("First date cannot be after last date.")
+            else:
+                msg_dont_add = _("Last date cannot be before first date.")
+    return msg_dont_add
 

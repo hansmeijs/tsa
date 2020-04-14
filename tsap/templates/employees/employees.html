@@ -9,6 +9,7 @@
     <script src="{% static 'js/calendar.js' %}"></script>
 {% endblock %}
 
+
 <!-- SIDE BAR -->
 {% block sidebar %}
     <nav id="id_sidebar" class="tsa_sidebar">
@@ -81,8 +82,10 @@
         {% include 'includes/modselectperiodandorder.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  =================== -->
         {% include 'includes/modselectemployee.html' %}
-<!-- =================== MODAL EMPLOYEE SHIFT  ===================-->
-        {% include 'includes/modemployeeshift.html' %}
+<!-- =================== MODAL SHIFT EMPLOYEE   ===================-->
+        {% include 'includes/modshiftemployee.html' %}
+<!-- =================== MODAL TIMEPICKER  =================== -->
+        {% include 'includes/modtimepicker.html' %}
 
 <!-- =================== CONTAINER =================== -->
         <div class="container ">

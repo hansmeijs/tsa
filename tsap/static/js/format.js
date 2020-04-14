@@ -2,7 +2,121 @@
 // ++++++++++++  FORMAT +++++++++++++++++++++++++++++++++++++++
     "use strict";
 
+
+// +++++++++++++++++ FORMAT DATE AND TIME WITH JS VANILLA ++++++++++++++++++++++++++ PR2020-04-10
+
+//=========  format_date_from_dateJS_vanilla ================ PR2019-12-04
+    function format_date_from_dateJS_vanilla(date_JS, weekday_list, month_list, user_lang, skip_weekday, skip_year) {
+        //console.log( "===== format_date_from_dateJS_vanilla  ========= ");
+        let display_arr = ["", ""];
+
+        if(!!date_JS){
+            let weekday_index = date_JS.getDay();
+            if (!weekday_index) {weekday_index = 7};
+            const weekday_str = weekday_list[weekday_index];
+            display_arr[0] = weekday_str
+
+            let display_str = "";
+            if (!!date_JS){
+                const isEN = (user_lang === "en")
+                const comma_space = (isEN)  ? ", " :  " "
+                const month_int = date_JS.getMonth() + 1
+                const date_str = date_JS.getDate().toString();
+                if(!skip_weekday){
+                    display_str = weekday_str + comma_space;
+                }
+                if(isEN) {
+                    display_str += month_list[month_int] + " " + date_str;
+                } else {
+                    display_str += date_str + " " + month_list[month_int];
+                }
+                if(!skip_year){
+                    const year_str = date_JS.getFullYear().toString();
+                    display_str += comma_space + year_str;
+                }
+            }
+            display_arr[1] = display_str
+        }  //  if(!!date_JS)
+
+        return display_arr
+    }  // format_date_from_dateJS_vanilla
+
+
+//=========  format_time_from_offset_JSvanilla ================ PR2020-04-10
+    function format_time_from_offset_JSvanilla(rosterdate_iso, offset, timeformat, user_lang, display24, skip_hour_suffix, weekday_list) {
+        //console.log( "===== format_time_from_offset_JSvanilla  ========= ");
+        //  when display24 = true: zo 00.00 u is displayed as 'za 24.00 u'
+        //  format: wo 16.30 u or Sat, 12:00 pm
+        "use strict";
+        // this is only for duration format:
+        // let hide_value = (offset == null) || (blank_when_zero && offset === 0);
+
+        let time_formatted = "";
+        if (offset != null && !!rosterdate_iso){
+            const isEN = (user_lang === "en")
+            const isAmPm = (timeformat === "AmPm")
+
+            let rosterdate_JS = get_dateJS_from_dateISO (rosterdate_iso);
+            //  when display24 = true: zo 00.00 u is displayed as 'za 24.00 u'
+            // on rosterdate 'zo':
+            // timestart: offset = 0 > zo 0:00 u
+            // timestart: offset = 1440 > ma 0:00 u
+            // timeend:   offset = 1440 > zo 24:00 u
+            if (display24 && offset === 1440) {
+                // skip: show zo 24:00 u;  with AmPm: midnight, end of day = Sun, 12:00 pm
+            } else if (offset >= 1440) {
+                // change zo 24:00 u to ma 0:00 u;  with AmPm: midnight, begin of day = Mon, 00:00 am
+                change_dayJS_with_daysadd_vanilla(rosterdate_JS, 1);
+                offset -= 1440;
+            } else if (offset < 0) {
+                // when offset = -120: show za 22:00 u;  with AmPm: Sat, 10:00 pm
+                change_dayJS_with_daysadd_vanilla(rosterdate_JS, -1);
+                offset += 1440;
+            }
+            let weekday_index = rosterdate_JS.getDay()
+            if (!weekday_index) {weekday_index = 7}  // JS sunday = 0, iso sunday = 7
+
+            const weekday_str = weekday_list[weekday_index];
+
+            const curDayOffset = Math.floor(offset/1440);  // - 90 (1.5 h)
+            const curRemainder = offset - curDayOffset * 1440;
+            let curHours = Math.floor(curRemainder/60);
+            const curMinutes = curRemainder - curHours * 60;
+
+            // midnight, begin of day = 00:00 am
+            // noon = 12:00 am
+            // midnight, end of day = 12:00 pmm
+            let is_pm = false;
+            if(isAmPm && curHours > 720) {
+                curHours -= 720
+                is_pm = true;
+            }
+            let hour_str = "00" + curHours.toString()
+            hour_str = hour_str.slice(-2);
+            let minute_str = "00" + curMinutes.toString()
+            minute_str = minute_str.slice(-2);
+
+            const ampm_str = (isAmPm) ? (is_pm ? " am" : " pm") : (isEN || skip_hour_suffix ? "" : " u" )
+            const delim = (isAmPm) ? ":" : ".";
+
+            let prefix = "", suffix = "";
+            if (!!rosterdate_JS){
+                // show weekday when rosterdate_JS has value
+                prefix = weekday_str + " "
+            } else {
+                // show < or > when rosterdate_JS has novalue
+                if (curDayOffset < 0){prefix = "< "};
+                if (curDayOffset > 1440 ){suffix = " >"};
+            }
+            time_formatted = prefix + hour_str + delim + minute_str + ampm_str + suffix
+        }  // if (offset != null && !!rosterdate_iso)
+        return time_formatted
+    }  // format_offset_time
+
+
 // +++++++++++++++++ FORMAT ++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
 //========= format_datelong_from_datetimelocal  ========== PR2019-06-27
     function XXXformat_datelong_from_datetimelocal(datetime_local) {
 // NOT IN USE
@@ -31,7 +145,9 @@
     }
 
 //========= format_datemedium_from_datetimelocal  ========== PR2019-07-09
-    function format_datemedium(dtl, weekday_list, month_list, skip_weekday, skip_year) {
+    function format_datemediumXXX(dtl, weekday_list, month_list, skip_weekday, skip_year) {
+    // PR2020-04-10 probably not in use
+    // used in ModEmployeeFillOptionDates(replacement_dates), format_period_from_datetimelocalXXX
         "use strict";
         //console.log(" -- format_datemedium  -- ")
         //console.log(dtl.format())
@@ -160,7 +276,8 @@
     }  // get_periodtext_sidebar
 
   //========= format_period_from_datetimelocal  ========== PR2019-07-09
-    function format_period_from_datetimelocal(periodstart_local, periodend_local, month_list, weekday_list, timeformat) {
+  // NOT IN USE PR2020-04-10 (uses moment.js)
+    function format_period_from_datetimelocalXXX(periodstart_local, periodend_local, month_list, weekday_list, timeformat) {
         "use strict";
         //console.log(" -- format_period_from_datetimelocal  -- ")
         //console.log("periodstart_local", periodstart_local.format())
@@ -749,7 +866,7 @@
                 //    wdm = weekday_str + ", "  + month_str + " " + display_datetime_local.date();
                 //} else {wdm = weekday_str + " " + display_datetime_local.date() + " " + month_str;}
 
-// show msg_err or border_valid
+// show msg_err or border_bg_valid
                 if(!!msg_err){
                     ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, value)
                 } else if(updated){
@@ -815,7 +932,7 @@
                     }
                     title =  (days_offset < 0) ? title_prev : (days_offset > 0) ? title_next : null
 
-                    display_text = display_offset_time (offset, timeformat, user_lang, blank_when_zero)
+                    display_text = display_offset_time ({timeformat: timeformat, user_lang: user_lang}, offset, blank_when_zero)
                 }  //  if (!hide_value){
 
                 if(!!msg_err){
@@ -865,32 +982,31 @@
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     //========= display_timerange  ======== PR2020-01-26
-    function display_timerange (timestart, timeend, skip_prefix_suffix, timeformat, user_lang) {
+    function display_timerange (timestart, timeend, skip_hour_suffix, timeformat, user_lang) {
         //console.log("------ display_timerange --------------", fieldname)
         let display_time = "";
         if(timestart != null || timeend != null){
-            const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, skip_prefix_suffix); // true = skip_prefix_suffix
-            const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, skip_prefix_suffix); // true = skip_prefix_suffix
+            const offsetstart_formatted = display_offset_time ({timeformat: timeformat, user_lang: user_lang}, user_lang, skip_hour_suffix);
+            const offsetend_formatted = display_offset_time ({timeformat: timeformat, user_lang: user_lang}, offset_end, skip_hour_suffix);
             display_time = offsetstart_formatted + " - " + offsetend_formatted
         }
         return display_time;
     }  // display_timerange
 
     //========= display_offset_timerange  ======== PR2019-12-04
-    function display_offset_timerange (offset_start, offset_end, timeformat, user_lang, skip_prefix_suffix) {
+    function display_offset_timerange (offset_start, offset_end, timeformat, user_lang, skip_hour_suffix) {
         //console.log("------ display_offset_timerange --------------", fieldname)
         let display_time = "";
         if(offset_start != null || offset_end != null){
-            const offsetstart_formatted = display_offset_time (offset_start, timeformat, user_lang, skip_prefix_suffix); // true = skip_prefix_suffix
-            const offsetend_formatted = display_offset_time (offset_end, timeformat, user_lang, skip_prefix_suffix); // true = skip_prefix_suffix
+            const offsetstart_formatted = display_offset_time ({timeformat: timeformat, user_lang: user_lang}, offset_start, skip_hour_suffix);
+            const offsetend_formatted = display_offset_time ({timeformat: timeformat, user_lang: user_lang}, offset_end, skip_hour_suffix);
             display_time = offsetstart_formatted + " - " + offsetend_formatted
         }
         return display_time;
     }  // function display_offset_timerange
 
-
     //========= display_offset_time  ======== PR2019-10-22
-    function display_offset_time (offset, timeformat, user_lang, skip_prefix_suffix, blank_when_zero) {
+    function display_offset_time (loc, offset, skip_hour_suffix, blank_when_zero) {
         //console.log("------ display_offset_time --------------")
         //console.log("offset: ", offset, typeof offset)
 
@@ -910,8 +1026,8 @@
             let curHours = Math.floor(remainder/60)
             const curMinutes = remainder - curHours * 60
 
-            const isAmPm = (timeformat === "AmPm");
-            const isEN = (user_lang === "en")
+            const isAmPm = (loc.timeformat === "AmPm");
+            const isEN = (loc.user_lang === "en")
             const ampm_list = [" am", " pm"]
             let curAmPm = (curHours >= 12) ? 1 : 0
 
@@ -933,10 +1049,10 @@
             let minute_text = minute_str.slice(-2);
 
             const delim = (isEN) ? ":" : ".";
-            const prefix = (!skip_prefix_suffix && days_offset < 0) ? "<- " : "";
-            let suffix = (!skip_prefix_suffix && !isEN) ? " u" : "";
+            const prefix = (days_offset < 0) ? "< " : "";
+            let suffix = (!skip_hour_suffix && !isEN) ? " u" : "";
             if(!!isAmPm) {suffix += ampm_list[curAmPm]};
-            if (days_offset > 0) { suffix += " ->"};
+            if (days_offset > 0) { suffix += " >"};
 
             display_time =  prefix + hour_text + delim + minute_text + suffix;
         }
@@ -944,21 +1060,94 @@
         return display_time;
     }  // display_offset_time
 
-    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-//========= Create_Shift_code  ============= PR2020-02-02
-    function Create_Shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code) {
-        //console.log( "=== Create_Shift_code ");
+    //=========  get_month_year_text  === PR2020-03-14
+    function get_month_year_text(first_year, last_year, first_month_index, last_month_index, loc){
+        let month_year_text = "-"
+        if (first_year === last_year){
+        if (first_month_index === last_month_index){
+            month_year_text = loc.months_long[first_month_index + 1] + " " + first_year.toString()
+        } else {
+            month_year_text = loc.months_abbrev[first_month_index + 1] + " - " +
+            loc.months_abbrev[last_month_index + 1] + " " + first_year.toString();
+        }
+        } else {
+            month_year_text = loc.months_abbrev[first_month_index + 1] + " " + first_year.toString() + " - " +
+            loc.months_abbrev[last_month_index + 1] + " " + last_year.toString();
+        }
+        return month_year_text;
+    }  // get_month_year_text
+
+//=========  set_cell_innertext  === PR2020-03-15
+    function set_cell_innertext(inner_text, team_abbrev, is_remove) {
+        //console.log( "=========================== set_cell_innertext ");
+
+// ---  add team_abbrev to cell.innerText, sort if there are multiple teams in one cell
+        let new_innerText = "";
+        if (is_remove){
+            if(!team_abbrev){
+                new_innerText = inner_text;
+            } else if(!!inner_text){
+                if(inner_text.toLowerCase() === team_abbrev.toLowerCase()){
+                    // new_innerText = "";
+                } else {
+                    const inner_text_arr= inner_text.split("\n")
+                    for (let i = 0, len = inner_text_arr.length; i < len; i++) {
+                        const abbr = inner_text_arr[i];
+                        if(!!abbr && abbr.toLowerCase() === team_abbrev.toLowerCase()){
+                            removeA(inner_text_arr, abbr);
+                        }
+                    }
+                    inner_text_arr.sort()
+                    //new_innerText = inner_text_arr.join("\n")
+                    new_innerText = inner_text_arr.join(" ")
+                }
+            }
+        } else {
+            if(!team_abbrev){
+                new_innerText = inner_text;
+            } else if(!inner_text){
+                new_innerText = team_abbrev;
+            } else {
+                const inner_text_arr = inner_text.split("\n")
+                inner_text_arr.push(team_abbrev);
+                inner_text_arr.sort()
+                //new_innerText = inner_text_arr.join("\n")
+                new_innerText = inner_text_arr.join(" ")
+            }
+        }
+        return new_innerText;
+    }
+
+//========= update_shiftcode_in_shiftdict  ============= PR2020-03-27
+    function update_shiftcode_in_shiftdict(loc, shift_dict) {
+        if(!isEmpty(shift_dict)) {
+        const new_shift_code = create_shift_code(loc,
+                                    get_dict_value(shift_dict, ["offsetstart", "value"]),
+                                    get_dict_value(shift_dict, ["offsetend", "value"], 0),
+                                    get_dict_value(shift_dict, ["timeduration", "value"], 0),
+                                    get_dict_value(shift_dict, ["code", "value"], "")
+                               );
+        shift_dict.code = {value: new_shift_code};
+        }
+    }
+
+//========= create_shift_code  ============= PR2020-02-02
+    function create_shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code) {
+        //console.log( "=== create_shift_code ");
         // shiftname will be replaced by calculated shiftname if:
          // 1) cur_shift_code is empty 2) starts with '-' 3) starts with '<' or 4) first 2 characters are digits
+        // const lastCharCode = shift_code.charCodeAt(shift_code.length - 1);
+        // let shift_code_without_restchar = (lastCharCode === 9790) ? shift_code.slice(0, -1) : shift_code
+        // crescent symbol '(' is ASCII-code 9790, "\u263E";
+        // crescent symbol ')' is "\u263D"};
+        // emoji symbol crescent "\ud83c\udf12"};
 
-        //console.log( "offset_start: ", offset_start, typeof offset_start);
-        //console.log( "offset_end: ", offset_end, typeof offset_end);
-        //console.log( "time_duration: ", time_duration, typeof time_duration);
-        //console.log( "cur_shift_code: ", cur_shift_code, typeof cur_shift_code);
-        const code_trimmed = (!!cur_shift_code) ? cur_shift_code.trim() : "";
+        if(cur_shift_code == null) {cur_shift_code = ""};
+        let code_trimmed = cur_shift_code.trim();
+
         let may_override = false;
-        let new_shift_code = null;
+        let new_shift_code = "-";
         if (!code_trimmed){
             may_override = true;
         } else if (code_trimmed[0] === "-"){
@@ -970,16 +1159,19 @@
             // Number("0") is falsey
             may_override = (!!Number(code_sliced) || code_sliced === "0");
         }
+        //console.log( "-- new_shift_code", new_shift_code);
+        //console.log( "may_override: ", may_override, typeof may_override);
         if (may_override){
             if (offset_start != null || offset_end != null) {
-                new_shift_code = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, true)  // true = skip_prefix_suffix
+                new_shift_code = display_offset_timerange (offset_start, offset_end, loc.timeformat, loc.user_lang, true)  // true = skip_hour_suffix
             } else if (!!time_duration) {
                 new_shift_code = display_duration (time_duration, loc.user_lang, loc.Hour, loc.Hours);
             }
+        } else {
+            new_shift_code = code_trimmed
         }
         return new_shift_code
-    }  // Create_Shift_code
-
+    }  // create_shift_code
 
 //========= format_duration_element  ======== PR2019-07-22
     function format_duration_element (el_input, el_msg, field_dict, user_lang) {
@@ -1300,7 +1492,7 @@
         //console.log("imgsrc_inactive:", imgsrc_inactive)
 
         if(!!el_input){
-            let is_inactive = get_dict_value_by_key (field_dict, "value", false)
+            let is_inactive = get_dict_value(field_dict, ["value"], false)
 
             el_input.setAttribute("data-value", is_inactive);
 
@@ -1448,8 +1640,8 @@
 //=========  ShowOkElement  ================ PR2019-11-27
     function ShowOkElement(el_input) {
         // make element green, green border / --- remove class 'ok' after 2 seconds
-        el_input.classList.add("border_valid");
+        el_input.classList.add("border_bg_valid");
         setTimeout(function (){
-            el_input.classList.remove("border_valid");
+            el_input.classList.remove("border_bg_valid");
         }, 2000);
     }

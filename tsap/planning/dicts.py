@@ -113,7 +113,10 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
         rosterdate_iso = upload_dict.get('rosterdate')
         rosterdate = f.get_dateobj_from_dateISOstring(rosterdate_iso)
 
-        #logger.debug('rosterdate_iso: ' + str(rosterdate_iso))
+        new_rosterdate = f.add_months_to_date(rosterdate, 6)
+        logger.debug('new_rosterdate: ' + str(new_rosterdate.isoformat()) + ' ' + str(type(new_rosterdate)))
+
+
     else:
 # get last rosterdate of Emplhour
         # in SQL:
@@ -708,7 +711,7 @@ def create_schemeitem_dict(schemeitem, item_dict):
     if schemeitem:
 
         # FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate',
-        #                      'cat', 'iscyclestart', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
+        #                      'cat', 'onpublicholiday', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
 
         for field in c.FIELDS_SCHEMEITEM:
  # --- get field_dict from  item_dict if it exists
@@ -731,7 +734,7 @@ def create_schemeitem_dict(schemeitem, item_dict):
                     field_dict['ppk'] = scheme.order_id
                     field_dict['code'] = scheme.code
 
-            elif field in ('iscyclestart', 'cat', 'inactive'):
+            elif field in ('onpublicholiday', 'cat', 'inactive'):
                 value = getattr(schemeitem, field)
                 if value:
                     field_dict['value'] = value
@@ -740,15 +743,12 @@ def create_schemeitem_dict(schemeitem, item_dict):
                 rosterdate = getattr(schemeitem, field)
                 cycle_startdate = None
                 cycle_enddate = None
+
+                # lookup lowest rosterdate
                 schemeitem_cyclestart = m.Schemeitem.objects.filter(
-                    scheme=schemeitem.scheme,
-                    iscyclestart=True
-                ).first()
-                if schemeitem_cyclestart is None:
-                     # lookup lowest rosterdate if iscyclestart is not set
-                    schemeitem_cyclestart = m.Schemeitem.objects.filter(
-                        scheme=schemeitem.scheme
-                    ).order_by('rosterdate').first()
+                    scheme=schemeitem.scheme
+                ).order_by('rosterdate').first()
+
                 if schemeitem_cyclestart:
                     cycle_startdate = schemeitem_cyclestart.rosterdate
                     days = (schemeitem.scheme.cycle - 1)
@@ -810,7 +810,7 @@ def create_shift_list(filter_dict, company, user_lang):
     elif customer_pk:
         crit.add(Q(scheme__order__customer_id=customer_pk), crit.connector)
 
-    shifts = m.Shift.objects.select_related('scheme').filter(crit).order_by('code')
+    shifts = m.Shift.objects.select_related('scheme').filter(crit).order_by('offsetstart')
 
     shift_list = []
     for shift in shifts:
@@ -860,6 +860,7 @@ def create_shift_dict(shift, update_dict, user_lang):
                     field_dict['istemplate'] = True
                 if shift.cat:
                     field_dict['cat'] = shift.cat
+                field_dict['order_pk'] = shift.scheme.order.pk
 
             elif field == 'istemplate':
                 pass
@@ -929,7 +930,6 @@ def create_shift_dict(shift, update_dict, user_lang):
                                     value = comp_billable * -1  # inherited value gets negative sign
                 if value:
                     field_dict['value'] = value
-
 
             if field_dict:
                 update_dict[field] = field_dict
@@ -1793,12 +1793,10 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
         elif field == 'orderhour':
             field_dict['pk'] = ppk_int
             field_dict['ppk'] = o_id
-            field_dict['code'] = ' - '.join([c_code, o_code])
+            cust_order_code = ' - '.join([c_code, o_code])
+            field_dict['code'] = cust_order_code
 
-            if o_code:
-                item_dict['order'] = {'pk': o_id, 'code': o_code}
-            if c_code:
-                item_dict['customer'] = {'pk': cust_id, 'code': c_code}
+            item_dict['order'] = {'pk': o_id, 'ppk': cust_id, 'code': cust_order_code}
 
         elif field == 'employee':
             if e_id is not None:
@@ -1843,6 +1841,8 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
         elif field == 'shift':
             if eh_sh:
                 field_dict['code'] = eh_sh
+            if eh_sh:
+                field_dict['pk'] = e_id  # employee.id
 
         elif field == 'breakduration':
             if eh_breakdur:
@@ -1879,7 +1879,7 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
 # --- remove empty attributes from item_dict
     f.remove_empty_attr_from_dict(item_dict)
 
-    #logger.debug('item_dict: ' + str(item_dict))
+    logger.debug('item_dict: ' + str(item_dict))
     return item_dict
 # --- end of create_NEWemplhour_itemdict
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -2651,15 +2651,16 @@ def update_overlap(employee_id, datefirst, datelast, datefirst_extended, datelas
                 eplh_update_list.append(emplhour.id)
         #logger.debug('eplh_update_list: ' + str(eplh_update_list))
 
-def get_rosterdatefill_dict(rosterdate_fill_dte, company):  # PR2019-11-12
+def get_rosterdatefill_dict(rosterdate_fill_dte, request):  # PR2019-11-12
     rosterdate_dict = {}
     # count added orderhours
-    row_count = m.Orderhour.objects.filter(
-        order__customer__company=company,
-        rosterdate=rosterdate_fill_dte.isoformat()
-    ).count()
-    rosterdate_dict['row_count'] = row_count
-    rosterdate_dict['rosterdate'] = rosterdate_fill_dte.isoformat()
+    if rosterdate_fill_dte:
+        row_count = m.Orderhour.objects.filter(
+            order__customer__company=request.user.company,
+            rosterdate=rosterdate_fill_dte.isoformat()
+        ).count()
+        rosterdate_dict['row_count'] = row_count
+        rosterdate_dict['rosterdate'] = rosterdate_fill_dte.isoformat()
 
     return rosterdate_dict
 
@@ -2670,9 +2671,11 @@ def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, tim
     #logger.debug(" ")
     #logger.debug(" ------- set_fielddict_datetime ---------- ")
     #logger.debug("rosterdate_dte " + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+        # rosterdate_dte 2020-03-29 <class 'datetime.date'>
     #logger.debug("timestart_utc " + str(timestart_utc) + ' ' + str(type(timestart_utc)))
-    #logger.debug("timeend_utc " + str(timeend_utc) + ' ' + str(type(timeend_utc)))
+        # timestart_utc 2020-03-29 16:00:00+00:00 <class 'datetime.datetime'>
     #logger.debug("comp_timezone " + str(comp_timezone) + ' ' + str(type(comp_timezone)))
+        # comp_timezone Europe/Amsterdam <class 'str'>
 
     timezone = pytz.timezone(comp_timezone)
 
@@ -2684,18 +2687,11 @@ def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, tim
     if min_datetime_utc:
         min_datetime_local = min_datetime_utc.astimezone(timezone)
         min_offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, min_datetime_local)
-        #logger.debug("min_datetime_utc " + str(min_datetime_utc) + ' ' + str(type(min_datetime_utc)))
-        #logger.debug("min_datetime_local " + str(min_datetime_local) + ' ' + str(type(min_datetime_local)))
-        #logger.debug("min_offset_int " + str(min_offset_int) + ' ' + str(type(min_offset_int)))
 
     max_offset_int = None
     if max_datetime_utc:
         max_datetime_local = max_datetime_utc.astimezone(timezone)
         max_offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, max_datetime_local)
-        #logger.debug("rosterdate_dte " + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
-        #logger.debug("max_datetime_utc " + str(max_datetime_utc) + ' ' + str(type(max_datetime_utc)))
-        #logger.debug("max_datetime_local " + str(max_datetime_local) + ' ' + str(type(max_datetime_local)))
-        #logger.debug("max_offset_int " + str(max_offset_int) + ' ' + str(type(max_offset_int)))
 
     field_dict['field'] = field
 
@@ -2707,20 +2703,18 @@ def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, tim
         if datetime_utc:
             datetime_local = datetime_utc.astimezone(timezone)
             offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, datetime_local)
-
             #logger.debug("datetime_utc.isoformat() " + str(datetime_utc.isoformat()) + ' ' + str(type(datetime_utc.isoformat())))
+                # datetime_utc.isoformat() 2020-03-29T16:00:00+00:00 <class 'str'>
             #logger.debug("datetime_local " + str(datetime_local) + ' ' + str(type(datetime_local)))
+                # datetime_local 2020-03-29 18:00:00+02:00 <class 'datetime.datetime'>
             #logger.debug("offset_int " + str(offset_int) + ' ' + str(type(offset_int)))
+                # offset_int 1080 <class 'int'>
 
     elif field == "timeend":
         datetime_utc = timeend_utc
         if datetime_utc:
             datetime_local = datetime_utc.astimezone(timezone)
             offset_int = f.get_offset_from_datetimelocal(rosterdate_dte, datetime_local)
-
-            #logger.debug("datetime_utc.isoformat() " + str(datetime_utc.isoformat()) + ' ' + str(type(datetime_utc.isoformat())))
-            #logger.debug("datetime_local " + str(datetime_local) + ' ' + str(type(datetime_local)))
-            #logger.debug("offset_int " + str(offset_int) + ' ' + str(type(offset_int)))
 
     if offset_int is not None:
         field_dict['offset'] = offset_int
@@ -2736,6 +2730,9 @@ def set_fielddict_datetime(field, field_dict, rosterdate_dte, timestart_utc, tim
         field_dict['exceldatetime'] = f.get_Exceldatetime_from_datetime(datetime_local)
 
         dt_local_utc_offset = datetime_local.utcoffset()
+        #logger.debug("dt_local_utc_offset " + str(dt_local_utc_offset) + ' ' + str(type(dt_local_utc_offset)))
+            # dt_local_utc_offset 2:00:00 <class 'datetime.timedelta'>
+
         days_diff = dt_local_utc_offset.days
         minutes_diff = dt_local_utc_offset.seconds // 60
         field_dict['utcoffset'] = days_diff * 1440 + minutes_diff

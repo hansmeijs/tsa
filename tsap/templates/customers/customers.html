@@ -3,6 +3,9 @@
 {% load static %}
 
 {% block title %}{% trans 'Customers' %}{% endblock %}
+{% block stylesheet %}
+    <link rel="stylesheet" href="{% static 'css/grid.css' %}">
+{% endblock %}
 {% block script %}
     <script src="{% static 'js/customers.js' %}"></script>
     <script src="{% static 'js/calendar.js' %}"></script>
@@ -34,6 +37,11 @@
             </div>
         </div>
 
+        <div class="td_width_200 m-2">
+            <h6 id="id_sidebar_showall" class=" pointer_show display_hide px-2 py-1">{% trans 'Show all' %}</h6>
+        </div>
+
+
     </nav>
 {% endblock %}
 <!-- END SIDE BAR -->
@@ -48,6 +56,8 @@
         {% include 'includes/confirm.html' %}
 <!-- =================== MODAL PERIOD  =================== -->
         {% include 'includes/modselectperiod.html' %}
+<!-- =================== MODAL ADD CUSTOMER  ===================-->
+        {% include 'modaddcustomer.html' %}
 <!-- =================== MODAL ORDER SHIFT  ===================-->
         {% include 'includes/modeordershift.html' %}
 <!-- =================== MODAL SELECT EMPLOYEE  ===================-->
@@ -134,7 +144,7 @@
                         <button id="id_form_btn_delete" type="button" disabled class="btn btn-outline-danger">{% trans 'Delete customer' %}</button>
                     </div>
                 </div>
-    <!-- =================== END DATA TABLE  =================== -->
+    <!-- =================== END DATA FORM  =================== -->
             </div>
 <!-- END CONTENT BODY -->
         </div>

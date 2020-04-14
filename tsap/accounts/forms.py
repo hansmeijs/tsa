@@ -1,13 +1,13 @@
-from django.forms import ModelForm, CharField, ChoiceField, MultipleChoiceField, TextInput, SelectMultiple, Select
+from django.forms import ModelForm, CharField, ChoiceField, MultipleChoiceField, EmailField, TextInput, SelectMultiple
 
 from django.contrib.auth import get_user_model, authenticate
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, SetPasswordForm
 from django.contrib.auth import password_validation # PR2018-10-10
 from django.core.validators import RegexValidator
 from django.shortcuts import render
 from django.utils.translation import ugettext_lazy as _
 
-
+from accounts.models import User
 from companies.models import Company
 
 from django.forms.widgets import PasswordInput
@@ -26,6 +26,7 @@ import unicodedata
 # PR2018-05-04
 import logging
 logger = logging.getLogger(__name__)
+
 
 class CompanyAuthenticationForm(AuthenticationForm):
     companycode = CharField(
@@ -140,8 +141,6 @@ class UserAddForm(UserCreationForm):
         #    self.fields.keyOrder = self.fields_keyOrder
         #else:
         #    self.fields = OrderedDict((k, self.fields[k]) for k in self.fields_keyOrder)
-
-
 
 
 # PR2018-04-23
@@ -280,6 +279,67 @@ class UserEditForm(ModelForm):
             label=_('Active'),
             initial=__initial_is_active
         )
+
+
+# Create Advanced User Sign Up View in Django | Step-by-Step  PR2020-03-29
+# from https://dev.to/coderasha/create-advanced-user-sign-up-view-in-django-step-by-step-k9m
+class TESTSignUpSetPasswordForm(PasswordChangeForm):  # PR2020-03-27
+
+    class Meta:
+        User = get_user_model()
+        model = User
+        fields = ('password1', 'password2',)
+
+    def __init__(self, *args, **kwargs):
+        logger.debug('TESTSignUpSetPasswordForm __init__  kwargs: ' + str(kwargs))
+        self.request = kwargs.pop('request', None)  # pop() removes and returns an element from a dictionary, second argument is default when not found
+        logger.debug('TESTSignUpSetPasswordForm __init__ request: ' + str(self.request))
+        super(TESTSignUpSetPasswordForm, self).__init__(*args, **kwargs)
+
+        self.fields['password1'] = CharField(max_length=32, label='Password') # label -='' works, but appears again after formerror
+        self.fields['password2'] = CharField(max_length=32, label='Repeat password')
+
+        self.fields['password1'].widget = PasswordInput # this is not working
+        self.fields['password2'].widget = PasswordInput # this is not working
+        # self.fields['password1'].widget = HiddenInput() # this works, but label stays
+        # self.fields['password2'].widget = HiddenInput() # this works, but label stays
+
+
+
+# Create Advanced User Sign Up View in Django | Step-by-Step  PR2020-03-29
+# from https://dev.to/coderasha/create-advanced-user-sign-up-view-in-django-step-by-step-k9m
+class SignUpForm(UserCreationForm):  # PR2020-03-27
+    companycode = CharField(
+        required=True,
+        label=_("Company"),
+        widget=TextInput(attrs={'autofocus': True})
+    )
+    email = EmailField(max_length=254, help_text='Required. Inform a valid email address.')
+
+    class Meta:
+        User = get_user_model()
+        model = User
+
+        fields = ("companycode", 'username', 'last_name', 'email', 'password1', 'password2', )
+        labels = {
+            'companycode': _('Short company name'),
+            'username': _('Username'),
+            'last_name': _('Full name'),}
+
+
+
+# PR2020-03-23
+# from https://simpleisbetterthancomplex.com/tutorial/2017/02/18/how-to-create-user-sign-up-view.html
+class SignUpXForm(UserCreationForm):
+    first_name = CharField(max_length=30, required=False, help_text='Optional.')
+    last_name = CharField(max_length=30, required=False, help_text='Optional.')
+    email = EmailField(max_length=254, help_text='Required. Inform a valid email address.')
+
+    class Meta:
+        model = User
+        fields = ('username', 'first_name', 'last_name', 'email', 'password1', 'password2', )
+
+
 """
 USED TO FIND PROBLEM THAT PASSWORDS ARE NOT SAVED - problem: forgot 'password_mod' in datahaschanged in model User
 # PR2018-10-13

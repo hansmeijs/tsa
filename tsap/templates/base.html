@@ -16,7 +16,6 @@
   -->
     <link rel="stylesheet" href="https://ajax.aspnetcdn.com/ajax/bootstrap/4.3.1/css/bootstrap.min.css">
 
-
   <!--  PR2019-03-03 from: https://jqueryui.com/datepicker/
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css"> -->
 
@@ -63,8 +62,6 @@
       -->
       <script src="https://ajax.aspnetcdn.com/ajax/bootstrap/4.3.1/bootstrap.min.js"></script>
 
-
-
 <!--  Moment -->
       <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
         <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.25/moment-timezone-with-data-10-year-range.min.js"></script> -->
@@ -84,7 +81,6 @@
       <script src="{% static 'js/headerbar.js' %}"></script>
       <script src="{% static 'js/format.js' %}"></script>
       <script src="{% static 'js/reports.js' %}"></script>
-      <!-- <script src="{% static 'js/timepicker.js' %}"></script> -->
 
      <!-- jQuery Custom Scroller CDN  - for sidebar vertical scrollbar -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.5/jquery.mCustomScrollbar.concat.min.js"></script>
@@ -100,7 +96,7 @@
 
   </head>
   <body><!-- class wrapper -->
-<div class="wrapper">
+<div class="wrapperXXX">
 
     <!-- SIDE BAR -->
         {% block sidebar %}{% endblock %}
@@ -118,7 +114,7 @@
             {% block body %}
                <!--  <div class="container"> -->
                 {% block breadcrumb %}{% endblock %}
-                {% include 'includes/messages.html' %}
+
                 {% block content %}{% endblock %}
                <!--  </div> -->
             {% endblock body %}

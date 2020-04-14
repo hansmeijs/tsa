@@ -137,7 +137,7 @@ WEEKEND_CHOICES = {LANG_EN: ('also on weekends', 'only on weekends', 'not on wee
                    LANG_NL: ('ook in het weekeinde', 'alleen in het weekeinde', 'niet in het weekeinde')}
 
 # PR2019-04-21
-PUBLICHOLIDAY_CHOICES = {LANG_EN: ('also on public holidays', 'only on public holidays', 'not on public holidays'),
+PUBLICHOLIDAY_CHOICES = {LANG_EN: ('also on holidays', 'only on holidays', 'not on holidays'),
                          LANG_NL: ('ook op feestdagen', 'alleen op feestdagen', 'niet op feestdagen')}
 
 # PR2019-08-17
@@ -170,23 +170,22 @@ SHIFT_CAT_0512_ABSENCE = 512 # used in table customer, order, scheme , orderhour
 # SHIFT_CAT_8192_AVAILABLE = 8192
 # SHIFT_CAT_16384_AVAILABLE = 16384
 
+DATEPART01_NIGHTSHIFT_END = 360  # end of night shift 6.00 u
+DATEPART02_MORNINGSHIFT_END = 720  # end of morning shift 12.00 u
+DATEPART03_AFTERNOONSHIFT_END = 1080  # end of afternoon shift 18.00 u
+
 
 # 0 = normal, 10 = replacement
 TEAMMEMBER_CAT_00_NORMAL = 0
 TEAMMEMBER_CAT_10_REPLACEMENT = 10
 TEAMMEMBER_CAT_0512_ABSENCE = 512
 
-#PR2019-08-05 # 0 = grace-entry, 1 = bonus-entries, 2 = paid-entries
-ENTRY_CAT_00_GRACE = 0
-ENTRY_CAT_01_BONUS = 1
+# PR2020-04-07 bonus added upon registering
+ENTRY_CAT_00_CHARGED = 0
+ENTRY_CAT_01_REFUND = 1
 ENTRY_CAT_02_PAID = 2
 
-# PR2018-09-05
-ENTRY_CAT_CHOICES = (
-    (ENTRY_CAT_00_GRACE, 'Grace'),
-    (ENTRY_CAT_01_BONUS, _('Bonus')),
-    (ENTRY_CAT_02_PAID, _('Paid')),
-)
+ENTRY_BONUS_SIGNUP = 15000  # PR2020-04-07 bonus added upon registering
 
 REPLACEMENT_PERIOD_DEFAULT = 14 # days
 
@@ -385,13 +384,14 @@ FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'nam
 FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
                     'invoicedate', 'isbillable', 'isrestshift', 'shift', 'status', 'locked')
 
-FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence', 'isreplacement', 'datepart',
-                   'paydate', 'isrestshift', 'shift',
-                   'timestart', 'timeend', 'timeduration', 'breakduration',
+FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
+                   'rosterdate', 'cat', 'isabsence', 'isrestshift', 'isreplacement', 'datepart',
+                   'paydate', 'lockedpaydate',
+                   'shift', 'timestart', 'timeend', 'timeduration', 'breakduration',
                    'plannedduration', 'billingduration',
                    'wagerate', 'wagefactor', 'wage',
-                   'pricerate', 'additionrate', 'taxrate', 'amount', 'tax',
-                   'status', 'overlap', 'locked') # schemeitemid, teammemberid
+                   'pricerate', 'additionrate', 'taxrate', 'amount', 'addition', 'tax',
+                   'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked')
 
 FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
                  'code', 'datefirst', 'datelast',
@@ -418,8 +418,8 @@ FIELDS_TEAMMEMBER = ('id', 'team', 'employee', 'replacement', 'datefirst', 'date
                      'wagefactorcode', 'pricecode', 'additioncode', 'override')
 
 
-FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate',
-                     'cat', 'iscyclestart', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
+FIELDS_SCHEMEITEM = ('id', 'scheme', 'shift', 'team','rosterdate', 'onpublicholiday',
+                     'cat', 'isabsence', 'issingleshift', 'istemplate', 'inactive')
 # inactive schemeitem needed to skip certain shifts (when customer provides his own people)
 
 WORKHOURS_DEFAULT = 2400   # working hours per week * 60, unit is minute, default is 40 hours per week = 2.400 minutes

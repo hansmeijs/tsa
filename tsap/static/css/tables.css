@@ -1,3 +1,5 @@
+
+
 /* PR2019-05-02 PR2019-07-19*/
 .input_text, .tsa_transparent {
     background: transparent;
@@ -184,6 +186,7 @@
     overflow-x: hidden;
     overflow-y: auto;
 }
+
 .td_width_360 {
     width: 360px;
 }
@@ -356,10 +359,18 @@
     /* margin: <top><right><bottom><left> */
    margin-top: 48px
 }
-
+.tsa_margin_top_24 {
+    /* margin: <top><right><bottom><left> */
+   margin-top: 24px
+}
 .tsa_margin_form_label {
     margin: 16px 8px 4px 8px;; /* mx-2 = .5 rem, mx-1 = .25 rem, 1 rem = 16 px*/
 }
+
+.tsa_carousel_item {
+   height: calc(100vh - 32px);
+}
+
 
 .tsa_flex_1 {
     flex: 1;

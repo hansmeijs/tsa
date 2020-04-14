@@ -381,9 +381,9 @@ console.log("=========  function AddTableRow =========");
                                 console.log("el_datefirst.max", el_datefirst.max);
                             }
 
-                            el_input.classList.add("border_valid");
+                            el_input.classList.add("border_bg_valid");
                             setTimeout(function (){
-                                el_input.classList.remove("border_valid");
+                                el_input.classList.remove("border_bg_valid");
                                 }, 2000);
                         } else {
                             el_input.value = value;

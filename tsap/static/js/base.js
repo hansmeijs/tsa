@@ -645,45 +645,38 @@ document.addEventListener('DOMContentLoaded', function() {
         return arr;
     }
 
+// =========  get_teamcode_abbrev  === PR2020-03-15
+function get_teamcode_abbrev(input_code, loc){
+    //console.log("get_teamcode_abbrev", input_code);
 
+    let abbrev = ""
+    if(!!input_code){
+        let input_code_lcase = input_code.toLowerCase();
+    //  ---  Check if input_code starts with 'team ' (include space after 'team') or 'ploeg'
+        const team_plus_space = loc.Team.toLowerCase() + " ";
+        const len = team_plus_space.length;
+        const input_code_sliced = input_code_lcase.slice(0, len);
+        if (input_code_sliced === team_plus_space) {
+            abbrev = input_code.slice(len, len + 3);
+        }
+    //  ---  Check if team_code starts with 'employee ' (include space after 'employee') or 'medewerker'
+        if (!abbrev){
+            const employee_plus_space = loc.Employee.toLowerCase() + " ";
+            const len = employee_plus_space.length;
+            const input_code_sliced = input_code_lcase.slice(0, len)
+            if (input_code_sliced === employee_plus_space) {
+                abbrev = input_code.slice(len, len + 3);
+            }
+        }
+    //  ---  if not, take abbrev from start of "team_code"
+        if (!abbrev){
+            abbrev = input_code.slice(0, 3);
+        }
+    }  // if(!!input_code)
+    return abbrev;
+}  // get_teamcode_abbrev
 
 // +++++++++++++++++ DATE FUNCTIONS ++++++++++++++++++++++++++++++++++++++++++++++++++
-
-//=========  format_date_from_dateJS_vanilla ================ PR2019-12-04
-    function format_date_from_dateJS_vanilla(date_JS, weekday_list, month_list, user_lang, skip_weekday, skip_year) {
-        //console.log( "===== format_date_from_dateJS_vanilla  ========= ");
-        let display_arr = ["", ""];
-
-        if(!!date_JS){
-            let weekday_index = date_JS.getDay();
-            if (!weekday_index) {weekday_index = 7};
-            const weekday_str = weekday_list[weekday_index];
-            display_arr[0] = weekday_str
-
-            let display_str = "";
-            if (!!date_JS){
-                const isEN = (user_lang === "en")
-                const comma_space = (isEN)  ? ", " :  " "
-                const month_int = date_JS.getMonth() + 1
-                const date_str = date_JS.getDate().toString();
-                if(!skip_weekday){
-                    display_str = weekday_str + comma_space;
-                }
-                if(isEN) {
-                    display_str += month_list[month_int] + " " + date_str;
-                } else {
-                    display_str += date_str + " " + month_list[month_int];
-                }
-                if(!skip_year){
-                    const year_str = date_JS.getFullYear().toString();
-                    display_str += comma_space + year_str;
-                }
-            }
-            display_arr[1] = display_str
-        }  //  if(!!date_JS)
-
-        return display_arr
-    }  // format_date_from_dateJS_vanilla
 
 //=========  change_dayJS_with_daysadd_vanilla ================ PR2019-12-04
     function change_dayJS_with_daysadd_vanilla(date_JS, numberOfDaysToAdd) {
@@ -695,13 +688,55 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // change_dayJS_with_daysadd_vanilla
 
 //========= addDaysJS  ======== PR2019-11-03
-    // from https://codewithhugo.com/add-date-days-js/
-    function addDaysJS(date, days) {
+    function addDaysJS(date_JS, days) {
         // this function returns a new date object, instead of updating the existing one
-      const copy = new Date(Number(date))
-      copy.setDate(date.getDate() + days)
-      return copy
+        // from https://codewithhugo.com/add-date-days-js/
+        // see also: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date
+        let copy_JS = null;
+        if (!!date_JS){
+            copy_JS = new Date(Number(date_JS));
+            if (!!copy_JS){
+                copy_JS.setDate(date_JS.getDate() + days)
+            };
+        };
+        return copy_JS
     }
+
+//========= get_days_diff  ==================================== PR2020-03-25
+    function get_days_diff(date1_iso, date2_iso) {
+        let days_diff = null
+        const datetime1_JS = get_dateJS_from_dateISO_vanilla(date1_iso)
+        const datetime2_JS = get_dateJS_from_dateISO_vanilla(date2_iso)
+        //console.log("datetime1_JS", datetime1_JS)
+        //console.log("datetime2_JS", datetime2_JS)
+        if (!!datetime1_JS && datetime2_JS) {
+            // getTime() returns the number of milliseconds since 1970/01/01
+            const diff_in_ms = datetime1_JS.getTime() - datetime2_JS.getTime();
+            const diff_in_days_notRounded = diff_in_ms / (1000 * 3600 * 24);
+            //console.log("diff_in_ms", diff_in_ms)
+            //console.log("diff_in_days_notRounded", diff_in_days_notRounded)
+            // calculate the number of days between two dates
+            days_diff = Math.floor(diff_in_ms / (1000 * 3600 * 24));
+            //console.log("days_diff", days_diff)
+        }
+        return days_diff
+    }  // get_days_diff
+
+
+//========= get_dateJS_from_dateISO  ======== PR2019-10-28
+    function get_dateJS_from_dateISO (date_iso) {
+        //console.log( "===== get_dateJS_from_dateISO  ========= ");
+        //console.log( "date_iso: ", date_iso);
+        let date_JS = null;
+        if (!!date_iso){
+            let arr = date_iso.split("-");
+            if (arr.length > 2) {
+                // Month 4 april has index 3
+                date_JS = new Date(parseInt(arr[0]), parseInt(arr[1]) - 1, parseInt(arr[2]))
+            }
+        }
+        return date_JS
+    }  //  get_dateJS_from_dateISO
 
 //=========  get_dateJS_from_dateISO_vanilla ================ PR2019-12-04
     function get_dateJS_from_dateISO_vanilla(date_iso) {
@@ -718,8 +753,8 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= get_today_iso new  ========== PR2019-11-15
     function get_today_iso() {
         const today_JS = new Date();
-        // this one returns '2019-11-1' and doesn't work with date input
-        //const arr = [today.getFullYear(), 1 + today.getMonth(), today.getDate()];
+        // new Date() returns '2019-11-1' and doesn't work with date input
+        // const arr = [today.getFullYear(), 1 + today.getMonth(), today.getDate()];
         return get_yyyymmdd_from_ISOstring(today_JS.toISOString())
     }
 
@@ -879,7 +914,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!add_month){add_month = 0}
         if (!add_year){add_year = 0}
 
-        let arr = get_array_from_ISOstring(o_date_iso)
+        let arr = get_array_from_ISOstring(o_date_iso);
 
         // in array: month is index
         arr[1] =  arr[1] -1;
@@ -938,7 +973,8 @@ document.addEventListener('DOMContentLoaded', function() {
         "use strict";
         // datetime_aware_iso = "2019-03-30T04:00:00-04:00"
         // split string into array  ["2019", "03", "30", "19", "05", "00"]
-        // regez \d+ - matches one or more numeric digits
+        // regex "D+" means one or more non-digit chars.
+        // from https://www.dotnetperls.com/split-js
         let arr = datetime_iso.split(/\D+/);
         let arr_int = [];
 
@@ -950,7 +986,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return arr_int;
 
-    } // function get_array_from_ISOstring
+    } // get_array_from_ISOstring
 
 //========= function get_yyyymmdd_from_ISOstring  ========== PR2019-06-21
     function get_yyyymmdd_from_ISOstring(datetime_iso) {
@@ -1046,22 +1082,15 @@ document.addEventListener('DOMContentLoaded', function() {
         return new_datetime_iso;
     }
 
-//========= PeriodWithinRange  ====================================
-    function PeriodWithinRange(period_min, period_max, range_min, range_max) {
-    // PR2019-08-04 Note: period is also out of range when diff === 0
-
-        let out_of_range = false;
-        if (!!range_min && !!period_max){
-            out_of_range = (period_max.diff(range_min) <= 0)  // out_of_range when period_max <= range_min
-        }
-        if (!out_of_range) {
-            if (!!range_max && !!period_min){
-                out_of_range = (period_min.diff(range_max) >= 0) // period_min >= range_max
-            }
-        }
-        const within_range = !out_of_range;
+//========= period_within_range_iso  ================== PR2020-04-14
+    function period_within_range_iso(period_datefirst, period_datelast, range_datefirst, range_datelast) {
+        // NOTE: period is within range when  period_datelast = range_datefirst or period_datefirst = range_datelast
+        //     range:              df |________________| dl
+        //     period       df |_______| dl  or  df |_______| dl
+        const within_range = (!period_datelast || !range_datefirst || period_datelast >= range_datefirst) &&
+                             (!period_datefirst || !range_datelast || period_datefirst <= range_datelast)
         return within_range
-    }  // PeriodWithinRange
+    }
 
 //========= get_now_utc new  ========== PR2019-07-28
     function get_now_utc(comp_timezone) {
@@ -1176,17 +1205,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return formatted_period
     }  // format_period
 
-//========= get_dateJS_from_dateISO  ======== PR2019-10-28
-    function get_dateJS_from_dateISO (date_ISO) {
-        let date_JS = null;
-        if (!!date_ISO){
-            let arr = date_ISO.split("-");
-            if (arr.length > 2) {
-                date_JS = new Date(parseInt(arr[0]), parseInt(arr[1]) - 1, parseInt(arr[2]))
-            }
-        }
-        return date_JS
-    }  //  get_dateJS_from_dateISO
 
 //========= getWeek  ======== PR2019-11-03
     // from https://weeknumber.net/how-to/javascript
@@ -1333,7 +1351,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-//========= function show_hide_selected_btn_elements  ====  PR2020-02-19
+//========= show_hide_selected_btn_elements  ====  PR2020-02-19
     function show_hide_selected_btn_elements(container_classname, contains_classname) {
         // ---  show / hide elements on page, bases on classnames:
         // <div class="mod_show mod_shift mod_team display_hide">
@@ -1380,3 +1398,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }}};
     };
 
+//========= function set_element_class  ====  PR2020-04-13
+    function set_tblrow_error_byID(tr_id) {
+        let tr_changed = document.getElementById(tr_id);
+        set_tblrow_error(tr_changed);
+    }
+//========= function set_element_class  ====  PR2020-04-13
+    function set_tblrow_error(tr_changed) {
+        const cls_error = "tsa_tr_error";
+        if(!!tr_changed){
+            tr_changed.classList.add(cls_error);
+            setTimeout(function (){ tr_changed.classList.remove(cls_error); }, 2000);
+        }
+    }

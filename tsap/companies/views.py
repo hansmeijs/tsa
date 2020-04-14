@@ -59,8 +59,8 @@ def home(request):
     if request.user.is_authenticated:    # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'home.html', _param)
     else:
-        return redirect('login')
-
+        # return redirect('login')
+        return render(request, 'home.html', _param)
 
 # === Company ===================================== PR2019-03-02
 @method_decorator([login_required], name='dispatch')

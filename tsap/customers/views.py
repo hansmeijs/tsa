@@ -60,10 +60,11 @@ class CustomerListView(View):
 class CustomerUploadView(UpdateView):# PR2019-03-04
 
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ============= CustomerUploadView ============= ')
+        logger.debug(' ============= CustomerUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
+            logger.debug('request.POST: ' + str(request.POST))
 
 # 1. Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
@@ -74,21 +75,38 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
+                logger.debug('upload_dict: ' + str(upload_dict))
 
 # 3. get iddict variables
-                id_dict = upload_dict.get('id')
+                id_dict = f.get_dict_value(upload_dict, ('id',))
+                logger.debug('id_dict: ' + str(id_dict) + ' ' + str(type(id_dict)))
                 if id_dict:
-                    pk_int, ppk_int, temp_pk_str, is_create, is_delete, is_absence, table, mode, row_index = f.get_iddict_variables(id_dict)
+                    logger.debug('upload_dict: ' + str(upload_dict))
+                    table = f.get_dict_value(id_dict, ('table',), '')
+                    pk_int = f.get_dict_value(id_dict, ('pk',))
+                    ppk_int = f.get_dict_value(id_dict, ('ppk',))
+                    temp_pk_str = f.get_dict_value(id_dict, ('temp_pk',), '')
+                    row_index = f.get_dict_value(id_dict, ('rowindex',))
+                    mode = f.get_dict_value(id_dict, ('mode',), '')
+                    is_create = ('create' in id_dict)
+                    is_delete = ('delete' in id_dict)
+                    is_absence = ('isabsence' in id_dict)
+                    is_template = ('istemplate' in id_dict)
 
-# TODO check identifier for duplicates and empty
+                    orders_list = f.get_dict_value(upload_dict, ('orders_list',))
+
+                    logger.debug('table: ' + str(table))
+                    logger.debug('is_delete: ' + str(is_delete))
+# TODO check identifier for duplicates
 
 # =====  CUSTOMER  ==========
                     update_dict = {}
                     if table == "customer":
 
-# A. check if parent exists (company is parent of customer)
-                        parent = request.user.company
-                        if parent:
+# A. check if parent with ppk_int exists and is same as request.user.company
+                        parent = m.Company.objects.get_or_none(id=ppk_int)
+                        logger.debug('parent:', parent)
+                        if parent and ppk_int == request.user.company_id:
 
 # B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
                             update_dict = f.create_update_dict(
@@ -111,7 +129,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                             else:
 # D. Create new customer
                                 if is_create:
-                                    instance = create_customer(upload_dict, update_dict, request)
+                                    instance = create_new_customer(parent, upload_dict, update_dict, request)
 # E. Get existing customer
                                 else:
                                     instance = m.Customer.objects.get_or_none(id=pk_int, company=parent)
@@ -124,11 +142,31 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                             if instance:
                                 cd.create_customer_dict(instance, update_dict)
 
+# H. If new customer has orders_list: list contains new orders, add them to orders
+                                logger.debug('orders_list: '+ str(orders_list))
+                                logger.debug('is_create: ' + str(is_create))
+                                if is_create and orders_list:
+                                    update_orders_list = []
+                                    for new_order_dict in orders_list:
+                                        ppk_str = f.get_dict_value(new_order_dict, ('id', 'ppk'))
+                                        if ppk_str == temp_pk_str:
+                                            update_order_dict = {'id': {'pk': '', 'ppk': '', 'table': 'order'}}
+                                            order = create_order(instance, new_order_dict, update_order_dict, request)
+                                            cd.create_order_dict(order, update_order_dict)
+                                            update_orders_list.append(update_order_dict)
+                                    if update_orders_list:
+                                        update_wrap['update_orders_list'] = update_orders_list
+
+
 # =====  ORDER  ==========
                     elif table == "order":
+                        logger.debug('table: ' + str(table))
+                        logger.debug('ppk_int: ' + str(ppk_int))
 
 # A. check if parent exists (customer is parent of order)
                         parent = m.Customer.objects.get_or_none(id=ppk_int, company=request.user.company)
+                        logger.debug('parent: ' + str(parent))
+                        logger.debug('is_delete: ' + str(is_delete))
                         if parent:
 
 # B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
@@ -151,7 +189,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                             else:
 # D. Create new order
                                 if is_create:
-                                    instance = create_order(upload_dict, update_dict, request)
+                                    instance = create_order(parent, upload_dict, update_dict, request)
 # E. Get existing order
                                 else:
                                     instance = m.get_instance(table, pk_int, parent, update_dict)
@@ -162,7 +200,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # G. put updated saved values in update_dict, skip when deleted_ok, needed when delete fails
                             if instance:
-                                cd.create_order_dict(instance, update_dict, user_lang)
+                                cd.create_order_dict(instance, update_dict)
 # =====  END ORDER  ==========
 
 # H. remove empty attributes from update_dict
@@ -268,7 +306,7 @@ class PricerateUploadView(UpdateView):# PR2019-10-02
         return HttpResponse(json.dumps(update_wrap, cls=LazyEncoder))
 
 
-def create_customer(upload_dict, update_dict, request):
+def create_new_customer(parent, upload_dict, update_dict, request):
     # --- create customer or order # PR2019-06-24
     # Note: all keys in update_dict must exist by running create_update_dict first
     #logger.debug(' --- create_customer')
@@ -281,23 +319,13 @@ def create_customer(upload_dict, update_dict, request):
     # id_dict is added in create_update_dict
     id_dict = upload_dict.get('id')
     if id_dict:
-        table = id_dict.get('table')
-        ppk_int = id_dict.get('ppk')
+        table = 'customer'
 
 # 2. get parent instance
-        parent = m.get_parent(table, ppk_int, update_dict, request)
         if parent:
-            #logger.debug('parent: ' + str(parent))
-
 # 3. Get value of 'code' and 'name'
-            code = None
-            name = None
-            code_dict = upload_dict.get('code')
-            if code_dict:
-                code = code_dict.get('value')
-            name_dict = upload_dict.get('name')
-            if name_dict:
-                name = name_dict.get('value')
+            code = f.get_dict_value(upload_dict, ('code', 'value'))
+            name = f.get_dict_value(upload_dict, ('name', 'value'))
 
     # b. copy code to name if name is empty, also vice versa (slice name is necessary)
             if name is None:
@@ -311,7 +339,7 @@ def create_customer(upload_dict, update_dict, request):
                 if not has_error:
                     has_error = v.validate_code_name_identifier(table, 'name', name, parent, update_dict, request)
 
-    # 4. create and save 'customer' or 'order'
+    # 4. create and save customer
                     if not has_error:
                         instance = m.Customer(company=parent, code=code, name=name)
                         instance.save(request=request)
@@ -321,7 +349,7 @@ def create_customer(upload_dict, update_dict, request):
                             msg_err = _('This customer could not be created.')
                             update_dict['code']['error'] = msg_err
                         else:
-            # 6. put info in update_dict
+    # 6. put info in update_dict
                             update_dict['id']['created'] = True
 
     return instance
@@ -407,48 +435,38 @@ def update_customer(instance, parent, upload_dict, update_dict, request):
 
     return has_error
 
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def create_order(upload_dict, update_dict, request):
+def create_order(parent, upload_dict, update_dict, request):
     # --- create customer or order # PR2019-06-24
     # Note: all keys in update_dict must exist by running create_update_dict first
-    #logger.debug(' --- create_customer_or_order')
-    #logger.debug(upload_dict)
-    # {'id': {'temp_pk': 'new_1', 'create': True, 'ppk': 1, 'table': 'customer'}, 'code': {'value': 'nw4', 'update': True}}
+    #logger.debug(' --- create_order')
 
     instance = None
 
 # 1. get iddict variables
     # update_dict already contains key 'id', all keys are added in create_update_dict
     # value of 'id' are filled in
-    table = update_dict['id']['table']
-    ppk_int = update_dict['id']['ppk']
-    temp_pk_str = update_dict['id'].get('temp_pk', '')
+    table = 'order'
 
     if 'create' in update_dict['id']:
         del update_dict['id']['create']
 
 # 2. get parent instance
-    parent = m.get_parent(table, ppk_int, update_dict, request)
     if parent:
-
 # 3. Get value of 'code' and 'name'
-        code = None
-        name = None
-        code_dict = upload_dict.get('code')
-        if code_dict:
-            code = code_dict.get('value')
-        name_dict = upload_dict.get('name')
-        if name_dict:
-            name = name_dict.get('value')
+        code = f.get_dict_value(upload_dict, ('code', 'value'))
+        name = f.get_dict_value(upload_dict, ('name', 'value'))
 
 # b. copy code to name if name is empty, also vice versa (slice name is necessary)
         if name is None:
             name = code
         elif code is None:
             code = name[:c.CODE_MAX_LENGTH]
-        if code and name:
 
 # c. validate code and name
+        if code and name:
+            # validator creates key 'code' or 'name' in update_dict if they don't exist
             has_error = v.validate_code_name_identifier(table, 'code', code, parent, update_dict, request)
             if not has_error:
                 has_error = v.validate_code_name_identifier(table, 'name', name, parent, update_dict, request)
@@ -461,9 +479,10 @@ def create_order(upload_dict, update_dict, request):
 # 5. return msg_err when instance not created
                     if instance.pk is None:
                         msg_err = _('This order could not be created.')
-                        update_dict['code']['error'] = msg_err
+                        update_dict['code'] = {'error': msg_err}
                     else:
 # 6. put info in update_dict
+                        # rest of the info is added in cd.create_order_dict
                         update_dict['id']['created'] = True
 
     return instance

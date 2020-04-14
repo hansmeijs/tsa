@@ -138,7 +138,7 @@ def create_order_list(company, user_lang, is_absence=None, is_template=None, ina
     order_list = []
     for order in orders:
         item_dict = {}
-        create_order_dict(order, item_dict, user_lang)
+        create_order_dict(order, item_dict)
 
         if item_dict:
             order_list.append(item_dict)
@@ -146,14 +146,15 @@ def create_order_list(company, user_lang, is_absence=None, is_template=None, ina
     return order_list
 
 
-def create_order_dict(order, item_dict, user_lang):
+def create_order_dict(order, item_dict):
     # --- create dict of this order PR2019-09-28
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
+    # FIELDS_ORDER = ('id', 'customer', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'datefirst', 'datelast',
+    #                 'contactname', 'address', 'zipcode', 'city', 'country', 'identifier',
+    #                 'billable', 'sequence', 'pricecode', 'additioncode', 'taxcode', 'invoicecode', 'inactive', 'locked')
+
     if order:
-        # FFIELDS_ORDER = ('id', 'customer', 'cat', 'billable', 'code', 'name', 'datefirst', 'datelast',
-        #                 'contactname', 'address', 'zipcode', 'city', 'country',
-        #                 'sequence', 'identifier', 'billable', 'priceratejson', 'invoicedates', 'taxcode', 'locked', 'inactive')
 
 # ---  get min max date
         datefirst = getattr(order, 'datefirst')
@@ -181,6 +182,8 @@ def create_order_dict(order, item_dict, user_lang):
                     field_dict['pk'] = customer.pk
                     if customer.code:
                         field_dict['code'] = customer.code
+                    if customer.inactive:
+                        field_dict['inactive'] = customer.inactive
 
             elif field in ['cat']:
                 cat_sum = getattr(order, field, 0)

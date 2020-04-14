@@ -124,6 +124,9 @@ idx_sh_wfc_id = 71
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # PR2019-12-14 parameter is: rosterdate: %(rd)s
+# PR2020-04-04 Note: here si_mod only gets value 'i', 'r', 'n' or '-' (no shift,should not be possible.
+# Scheme.isabsence is used to determine is_absence, si_absence can be removed from table
+# PR2020-04-04 called by: sql_teammember_sub08  ( and sql_teammembers_with_si_subNIU)
 sql_schemeitem_sub00 = """
     SELECT si.id AS si_id, 
         si.team_id AS t_id, 
@@ -135,11 +138,14 @@ sql_schemeitem_sub00 = """
         sh.isrestshift AS sh_rs,
         CASE WHEN sh.isrestshift THEN 0 ELSE sh.billable END AS sh_bill,
         
-        CASE WHEN si.isabsence THEN 'a' ELSE 
-            CASE WHEN sh.isrestshift THEN 'r' ELSE 
-                CASE WHEN s.issingleshift THEN 's' ELSE  'n' END 
+        CASE WHEN si.inactive THEN 'i' ELSE  
+            CASE WHEN s.isabsence THEN 'a' ELSE 
+                CASE WHEN si.shift_id IS NULL THEN '-' ELSE 
+                    CASE WHEN sh.isrestshift THEN 'r' ELSE 'n' END 
+                END
             END
         END AS si_mod,
+
         si.inactive,
 
         CAST(si.rosterdate AS date) - CAST(%(ref)s AS date) AS si_ddif,
@@ -159,6 +165,8 @@ sql_schemeitem_sub00 = """
         WHERE MOD( ( CAST(si.rosterdate AS date) - CAST(%(rd)s AS date) ) , s.cycle ) = 0 
 """
 # Schemeitems with Filter absence = False, restshift = False, si.rosterdate  = %(rd)s
+# sql uses scheme_isabsence, si_isabsemce is not in use
+# PR2020-04-04 called by: sql_customer_calendar_team_sub11
 sql_schemeitem_norest_sub01 = """
     SELECT si.id AS si_id, 
         si.team_id AS t_id, 
@@ -174,7 +182,10 @@ sql_schemeitem_norest_sub01 = """
 
         FALSE AS si_abs,
         FALSE AS sh_rs,
-        CASE WHEN s.issingleshift THEN 's' ELSE  'n' END AS si_mod,
+        
+        CASE WHEN si.inactive THEN 'i' ELSE  
+            CASE WHEN si.shift_id IS NULL THEN '-' ELSE  'n' END 
+        END AS si_mod,
 
         CAST(si.rosterdate AS date) - CAST(%(ref)s AS date) AS si_ddif,
         sh.offsetstart AS sh_os,
@@ -187,7 +198,7 @@ sql_schemeitem_norest_sub01 = """
         INNER JOIN companies_scheme AS s ON (si.scheme_id = s.id) 
         WHERE MOD( ( CAST(si.rosterdate AS date) - CAST(%(rd)s AS date) ) , s.cycle ) = 0 
         AND ( sh.isrestshift = FALSE OR sh.id IS NULL)
-        AND ( si.isabsence = FALSE)
+        AND ( s.isabsence = FALSE)
 """
 
 # sql_schemeitem_sub02 with schemeitems,
@@ -201,8 +212,15 @@ sql_schemeitem_sub02 = """
         sh.code AS sh_code,  
 
         CASE WHEN sh.id IS NULL THEN FALSE ELSE sh.isrestshift END AS sh_rest,
-        
-        si.isabsence AS si_abs,
+        s.isabsence AS si_abs,
+                
+        CASE WHEN si.inactive THEN 'i' ELSE  
+            CASE WHEN s.isabsence THEN 'a' ELSE 
+                CASE WHEN si.shift_id IS NULL THEN '-' ELSE 
+                    CASE WHEN sh.isrestshift THEN 'r' ELSE 'n' END 
+                END
+            END
+        END AS si_mod,
         
         si.rosterdate AS si_rd, 
         s.cycle AS s_cycle,
@@ -265,10 +283,8 @@ sql_schemeitem_triple_sub03 = """
                 si_sub.si_dif
             END
         END AS si_ddif,
-        
-        CASE WHEN si_sub.sh_rest = TRUE THEN 'r' ELSE 
-            CASE WHEN si_sub.si_abs = TRUE THEN 'a' ELSE 'n' END
-        END AS si_mod, 
+
+        si_sub.si_mod, 
 
         si_sub.sh_os,
         si_sub.sh_oe,
@@ -301,6 +317,7 @@ sql_schemeitem_triple_sub03 = """
 #           'si_id': 1742, 'sh_code': '', 'tm_mod': 'a', 'si_rd': datetime.date(2020, 1, 8), 'ddifref': 2,
 #           'sh_os': None, 'sh_oe': None, 'sh_bd': 0, 'sh_td': 0}
 
+# PR2020-04-04 called by: sql_teammember_calc_sub05
 sql_teammember_triple_sub04 = """
     SELECT 
         tm.id AS tm_id, 
@@ -334,10 +351,7 @@ sql_teammember_triple_sub04 = """
         si_sub.si_id,
         COALESCE(si_sub.sh_code,'') AS sh_code,
 
-        CASE WHEN o.isabsence = TRUE THEN 'a' ELSE 
-            CASE WHEN s.issingleshift = TRUE THEN 's' ELSE 
-                CASE WHEN si_sub.si_id IS NULL THEN '-' ELSE si_sub.si_mod 
-        END END END AS tm_mod,
+        si_sub.si_mod AS tm_mod,
 
         si_sub.si_rd, 
 
@@ -379,6 +393,7 @@ sql_teammember_triple_sub04 = """
 #     AND ( (o.id = %(orderid)s) OR (%(orderid)s IS NULL) )
 #     AND ( (c.id = %(customerid)s) OR (%(customerid)s IS NULL) )
 
+# PR2020-04-04 called by: sql_teammember_aggr_sub06
 sql_teammember_calc_sub05 = """
     SELECT 
         tm_sub.tm_id, 
@@ -427,6 +442,7 @@ sql_teammember_calc_sub05 = """
 #           'tm_prc_arr_arr': [None, None], 'tm_adc_id_arr': [None, None], 'tm_ovr_arr': [True, True], 'tm_wfc_id_arr': [None, None],
 #           'ddifref_arr': [7, 5], 'osref_arr': [9990, 7445], 'oeref_arr': [11700, 7680], 'o_seq_arr': [-1, -1], 'tm_count': 2}
 
+# PR2020-04-04 called by: sql_employee_with_aggr_sub07
 sql_teammember_aggr_sub06= """
     SELECT sq.e_id  AS tm_eid,
         ARRAY_AGG(sq.tm_id) AS tm_id_arr,
@@ -462,6 +478,7 @@ sql_teammember_aggr_sub06= """
 # 'ovr_arr': [True, True, True], 'wfc_arr': [None, None, None], 'ddifref_arr': [7, 5, 7],
 # 'osref_arr': [10440, 7320, 10380], 'oeref_arr': [11040, 7560, 10440], 'o_seq_arr': [-1, -1, -1], 'tm_count': 3}
 
+# PR2020-04-04 called by: sql_teammember_sub08
 sql_employee_with_aggr_sub07 = """
         SELECT 
             e.id AS e_id, 
@@ -494,6 +511,7 @@ sql_employee_with_aggr_sub07 = """
         AND (e.datelast  >= CAST(%(rd)s AS DATE) OR e.datelast IS NULL)
    """
 
+# PR2020-04-04 called by: get_employee_calendar_rows
 sql_teammember_sub08 = """
     SELECT 
         tm.id AS tm_id,
@@ -541,11 +559,7 @@ sql_teammember_sub08 = """
         
         CASE WHEN o.isabsence THEN o.sequence ELSE -1 END AS o_seq,
 
-        CASE WHEN si_sub.inactive THEN 'i' ELSE 
-            CASE WHEN c.isabsence THEN 'a' ELSE 
-                CASE WHEN s.issingleshift THEN 's' ELSE 
-                    CASE WHEN si_sub.si_id IS NULL THEN '-' ELSE si_sub.si_mod 
-        END END END END AS tm_mod,
+        si_sub.si_mod AS tm_mod,
 
         tm.datefirst AS tm_df,
         tm.datelast AS tm_dl,
@@ -669,188 +683,6 @@ sql_teammember_sub08 = """
 """
 
 
-#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-# PR2019-12-14
-# PR2-019-11-29 parameters are: rosterdate: %(rd)s, company_id: %(cid)s
-#  {'tm_id': 764, 'tm_eid': 2331, 'tm_df': None, 'tm_dl': None, 's_df': None, 's_dl': None, 'o_df': None, 'o_dl': None,
-#  's_cycle': 7, 'si_id': 1179, 'sh_id': None, 'sh_code': None, 'sh_rs': False,
-#  'sh_os': 480, 'sh_oe': 960, 'sh_bd': 0, 'sh_td': 480, 'sh_mod': 'n'},
-
-sql_teammembers_with_si_sub = """
-        SELECT 
-        tm.id AS tm_id,
-        tm.employee_id AS tm_eid, 
-        tm.datefirst AS tm_df, 
-        tm.datelast AS tm_dl,
-        
-        s.datefirst AS s_df, 
-        s.datelast AS s_dl,
-        o.datefirst AS o_df,  
-        o.datelast AS o_dl, 
-        s.cycle AS s_cycle, 
-        
-        si_sub.si_id AS si_id,
-        si_sub.sh_id AS sh_id, 
-        si_sub.sh_code AS sh_code,  
-        si_sub.sh_rs as sh_rs,
-        
-        si_sub.sh_os AS sh_os,
-        si_sub.sh_oe AS sh_oe,
-        si_sub.sh_bd AS sh_bd,
-        si_sub.sh_td AS sh_td,
-
-        CASE WHEN si_sub.sh_rs = TRUE THEN 'r' ELSE 'n' END AS sh_mod  
-         
-        FROM companies_teammember AS tm 
-        INNER JOIN companies_team AS t ON (t.id = tm.team_id)  
-        INNER JOIN companies_scheme AS s ON (s.id = t.scheme_id) 
-        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
-        LEFT JOIN  ( """ + sql_schemeitem_sub00 + """ ) AS si_sub ON (si_sub.t_id = t.id)
-        WHERE (c.company_id = %(cid)s) 
-        AND (o.istemplate = FALSE)
-    """
-
-# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
-sql_absence_offset = """
-    SELECT tm_sub.tm_eid,
-        dte_sub.ddiff, 
-        CASE WHEN tm_sub.tm_offsetstart IS NULL THEN NULL ELSE tm_sub.tm_offsetstart + 1440 * dte_sub.ddiff END AS osref,
-        CASE WHEN tm_sub.tm_offsetend IS NULL THEN NULL ELSE tm_sub.tm_offsetend + 1440 * dte_sub.ddiff END AS oeref,      
-        tm_sub.tm_id,
-        NULL AS si_id, 
-        tm_sub.o_abs AS o_abs,
-        FALSE AS sh_rs,  
-        tm_sub.o_seq, 
-        tm_sub.sh_mod
-    FROM (
-        SELECT tm.employee_id AS tm_eid, 
-        tm.id AS tm_id, 
-        tm.datefirst AS tm_datefirst,
-        tm.datelast AS tm_datelast,
-        tm.offsetstart AS tm_offsetstart,
-        tm.offsetend AS tm_offsetend,
-        o.sequence AS o_seq,
-        o.isabsence AS o_abs, 
-        CASE WHEN o.isabsence = TRUE THEN 'a' ELSE CASE WHEN s.issingleshift = TRUE THEN 's' ELSE NULL END END AS sh_mod 
-        FROM companies_teammember AS tm 
-        INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
-        INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
-        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
-        WHERE (c.company_id = %(cid)s) 
-        AND (tm.employee_id IS NOT NULL) 
-        AND (o.isabsence = TRUE) AND (o.istemplate = FALSE)
-    ) AS tm_sub,
-    ( 
-        SELECT CAST(%(rd)s AS date) AS r_dte, (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) ) AS ddiff
-        UNION
-        SELECT CAST(%(rd)s AS date) - 1 AS r_dte, (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) - 1) AS ddiff
-        UNION
-        SELECT CAST(%(rd)s AS date) + 1  AS r_dte , (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) + 1 ) AS ddiff
-    ) AS dte_sub
-    WHERE (tm_datefirst <= dte_sub.r_dte OR tm_datefirst IS NULL) 
-    AND (tm_datelast >= dte_sub.r_dte OR tm_datelast IS NULL)
-    """
-
-#-------------------------------------------------------------------
-
-# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
-sql_restshift_offset = """
-    SELECT tm_sub.tm_eid,
-        dte_sub.ddiff, 
-        CASE WHEN tm_sub.sh_os IS NULL THEN NULL ELSE tm_sub.sh_os + 1440 * dte_sub.ddiff END AS osref,
-        CASE WHEN tm_sub.sh_oe IS NULL THEN NULL ELSE tm_sub.sh_oe + 1440 * dte_sub.ddiff END AS oeref, 
-        tm_sub.tm_id, 
-        tm_sub.si_id, 
-        FALSE AS o_abs,
-        tm_sub.sh_rs AS sh_rs,  
-        -1 AS o_seq, 
-        tm_sub.sh_mod AS sh_mod    
-    FROM 
-    (
-        SELECT tm.employee_id AS tm_eid, tm.id AS tm_id,
-        tm.datefirst AS tm_datefirst, tm.datelast AS tm_datelast,
-        sh.offsetstart AS sh_os, sh.offsetend AS sh_oe,
-        sh.isrestshift as sh_rs,
-        s.datefirst AS s_datefirst,  s.datelast AS s_datelast,
-        o.datefirst AS o_datefirst,  o.datelast AS o_datelast, 
-        s.cycle AS s_cycle, 
-        si.id AS si_id,
-        si.rosterdate AS si_rd, 
-        CASE WHEN sh.isrestshift = TRUE THEN 'r' ELSE 'n' END AS sh_mod   
-        FROM companies_teammember AS tm 
-        INNER JOIN companies_team AS t ON (t.id = tm.team_id)  
-        INNER JOIN companies_scheme AS s ON (s.id = t.scheme_id) 
-        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
-        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
-        INNER JOIN companies_schemeitem AS si ON (si.team_id = t.id)
-        LEFT JOIN companies_shift AS sh ON (sh.id = si.shift_id)           
-        WHERE (c.company_id = %(cid)s) 
-        AND (tm.employee_id IS NOT NULL) 
-        AND (o.istemplate = FALSE)
-    ) AS tm_sub, 
-    ( 
-        SELECT CAST(%(rd)s AS date) AS r_dte, (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) ) AS ddiff
-        UNION
-        SELECT CAST(%(rd)s AS date) - 1 AS r_dte, (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) -1) AS ddiff
-        UNION
-        SELECT CAST(%(rd)s AS date) + 1  AS r_dte , (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) + 1) AS ddiff
-    ) AS dte_sub
-    WHERE MOD((tm_sub.si_rd - dte_sub.r_dte), tm_sub.s_cycle) = 0 
-    AND (tm_sub.tm_datefirst <= dte_sub.r_dte OR tm_sub.tm_datefirst IS NULL) 
-    AND (tm_sub.tm_datelast >= dte_sub.r_dte OR tm_sub.tm_datelast IS NULL)
-    AND (tm_sub.s_datefirst <= dte_sub.r_dte OR tm_sub.s_datefirst IS NULL) 
-    AND (tm_sub.s_datelast >= dte_sub.r_dte OR tm_sub.s_datelast IS NULL) 
-    AND (tm_sub.o_datefirst <= dte_sub.r_dte OR tm_sub.o_datefirst IS NULL) 
-    AND (tm_sub.o_datelast >= dte_sub.r_dte OR tm_sub.o_datelast IS NULL)     
-    """
-
-# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
-sql_employee_absence_restshift_union = """
-    SELECT sq.tm_eid, 
-        ARRAY_AGG(sq.ddiff) AS ddiff_arr,
-        ARRAY_AGG(sq.osref) AS osref_arr,  
-        ARRAY_AGG(sq.oeref) AS oeref_arr, 
-        ARRAY_AGG(sq.tm_id) AS tm_id_arr,  
-        ARRAY_AGG(sq.si_id) AS si_id_arr,  
-        ARRAY_AGG(sq.o_abs) AS o_abs_arr, 
-        ARRAY_AGG(sq.sh_rs) AS sh_rest_arr,
-        ARRAY_AGG(sq.o_seq) AS o_seq_arr,
-        ARRAY_AGG(sq.sh_mod) AS sh_mod_arr
-    FROM (
-    """ + sql_restshift_offset + """
-    UNION
-    """ + sql_absence_offset + """
-    ) AS sq 
-    GROUP BY sq.tm_eid  
-    """
-
-# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
-sql_employees_with_absence_restshift_array = """
-        SELECT 
-            e.id AS e_id, 
-            e.code AS e_code,
-            e.namelast AS e_nl,
-            e.namefirst AS e_nf,
-            tm_sub.ddiff_arr,
-            tm_sub.osref_arr,
-            tm_sub.oeref_arr,
-            tm_sub.tm_id_arr,
-            tm_sub.si_id_arr,
-            tm_sub.o_abs_arr, 
-            tm_sub.sh_rest_arr,
-            tm_sub.o_seq_arr,
-            tm_sub.sh_mod_arr
-        FROM companies_employee AS e
-        LEFT JOIN
-        (""" + sql_employee_absence_restshift_union + """)
-        AS tm_sub ON (tm_sub.tm_eid = e.id)
-        WHERE (e.company_id = %(cid)s) 
-        AND ( (e.datefirst <= (CAST(%(rd)s AS date) - 1) ) OR (e.datefirst IS NULL) ) 
-        AND ( (e.datelast  >= (CAST(%(rd)s AS date) + 1) ) OR (e.datelast IS NULL) )
-
-   """
 
 
 @method_decorator([login_required], name='dispatch')
@@ -887,12 +719,12 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 # add new emplhours, confirmed existing emplhours will be skipped
                     return_dict, logfile = FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request)
 
-                    return_dict['rosterdate'] = pld.get_rosterdatefill_dict(rosterdate_dte, request.user.company)
+                    return_dict['rosterdate'] = pld.get_rosterdatefill_dict(rosterdate_dte, request)
 
                 elif mode == 'delete':
 
 # RemoveRosterdate
-                    return_dict = RemoveRosterdate(rosterdate_iso, request)
+                    return_dict = RemoveRosterdate(rosterdate_iso, comp_timezone, request)
 
 # Remove EMplhour records without rosterdate
                 DeleteRecordsWithoutRosterdateOrWithoutChild(request)
@@ -964,8 +796,9 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                 plv.update_schemeitem_rosterdate(schemeitem, rosterdate_dte, comp_timezone)
 
 # 2 delete existing emplhour
+            # TODO replace by skipping , because of keeping track of entries
             # delete existing emplhour records of this rosterdate if they are not confirmed or locked,
-            # also delete if rosterdate is null
+            # also delete if rosterdate is null (should not be possible)
             deleted_count, deleted_count_oh = delete_emplhours_orderhours(rosterdate_dte, request)
 
             entries_count = 0
@@ -979,7 +812,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             calendar_setting_dict = {'rosterdate': rosterdate_dte.isoformat()}
             calendar_dictlist = []
 
-        # 2. check if calendar contains dates of this year, fill if necessary
+# 2. check if calendar contains dates of this year, fill if necessary
             f.check_and_fill_calendar(rosterdate_dte, rosterdate_dte, request)
 
         # 2. get reference date
@@ -991,13 +824,13 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             is_publicholiday = calendar_header_dict.get('ispublicholiday', False)
             is_companyholiday = calendar_header_dict.get('iscompanyholiday', False)
 
-        # 5. create list with all teammembers of this_rosterdate
+# 5. create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
             customer_pk, order_pk, employee_pk = None, None, None
             all_rows = get_employee_calendar_rows(rosterdate_dte, refdate, is_publicholiday, is_companyholiday, customer_pk,
                                               order_pk, employee_pk, company_id)
 
-        # 8. sort rows
+# 8. sort rows
             # from https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
             # PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
             # caused bij idx_e_code = None. Coalesce added in query.
@@ -1035,7 +868,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                             count_absent_rest = count_absent_rest + 1
                         else:
                             count_normal = count_normal + 1
-                        duration_sum += count_duration
+                            duration_sum += count_duration
 
                     logger.debug('-------- count_absent_rest: ' + str(count_absent_rest))
                     logger.debug('-------- count_normal: ' + str(count_normal))
@@ -1047,6 +880,10 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                     if planning_dict:
                         calendar_dictlist.append(planning_dict)
                         # logger.debug('=-------------- row added to dict ')
+
+# - add duration_sum to Companyinvoice
+            m.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, False, request, comp_timezone)  # PR2020-04-07
+
         except:
             rosterdate_iso = '<no rosterdate>'
             if rosterdate_dte:
@@ -1206,6 +1043,8 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
             timeend=timeend,
             break_duration=row_breakduration,
             time_duration=time_duration,
+            offset_start = row_offsetstart,
+            offset_end=row_offsetend,
             date_part=date_part,
             comp_timezone=comp_timezone,
             request=request)
@@ -1218,8 +1057,8 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
 
 def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacement,
                     pay_date, shift_code, shift_wagefactor, is_absence, is_restshift,
-                    timestart, timeend, break_duration, time_duration, date_part,
-                    comp_timezone, request):
+                    timestart, timeend, break_duration, time_duration,
+                    offset_start, offset_end, date_part, comp_timezone, request):
     logger.debug(' ============= add_emplhour ============= ')
     logger.debug('row: ')
     logger.debug(str(row))
@@ -1242,6 +1081,11 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
             #new_emplhour.wagerate = employee.wagerate
 
         # get pricerate, additionrate, taxrate
+            # sh_prc_id contains price_id of first non-blank value in shift, scheme, order, customer and company
+            # e_prc_id contains price_id of employee
+            # r_prc_id contains price_id of replacement
+            # tm_prc_id contains price_id of teammember
+            logger.debug('-----------  shift: ' + str(row[idx_sh_code]))
             logger.debug('row[idx_tm_prc_id]: ' + str(row[idx_tm_prc_id]))
             logger.debug('row[idx_tm_ovr]: ' + str(row[idx_tm_ovr]))
             logger.debug('row[idx_r_prc_id]: ' + str(row[idx_r_prc_id]))
@@ -1314,6 +1158,9 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
             amount, addition, tax = f.calc_amount_addition_tax_rounded(time_duration, billing_duration,
                                              is_absence, is_restshift, is_billable,
                                              price_rate, addition_rate, tax_rate)
+            logger.debug('time_duration: ' + str(time_duration))
+            logger.debug('billing_duration: ' + str(billing_duration))
+            logger.debug('is_billable: ' + str(is_billable))
             logger.debug('amount: ' + str(amount))
             logger.debug('addition: ' + str(addition))
             logger.debug('tax: ' + str(tax))
@@ -1335,10 +1182,13 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
                 shift=shift_code,
                 timestart=timestart,
                 timeend=timeend,
+                offsetstart=offset_start,
+                offsetend=offset_end,
                 breakduration=break_duration,
                 timeduration=time_duration,
                 plannedduration=time_duration,
                 billingduration=time_duration,
+
                 wagerate=wagerate,
                 wagefactor=wagefactor,
                 wage=wage,
@@ -1397,8 +1247,8 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
 
 
 def get_pricerate_from_pricecodeitem(field, pricecode_pk, rosterdate):  # PR2020-03-9
-    logger.debug(' ============= get_pricecodeitem ============= ')
-    logger.debug('field: ' + field + ' pricecode_pk: ' + str(pricecode_pk) + ' rosterdate: ' + str(rosterdate ))
+    #logger.debug(' ============= get_pricecodeitem ============= ')
+    #logger.debug('field: ' + field + ' pricecode_pk: ' + str(pricecode_pk) + ' rosterdate: ' + str(rosterdate ))
 
     pricerate = 0
     if pricecode_pk:
@@ -1417,7 +1267,7 @@ def get_pricerate_from_pricecodeitem(field, pricecode_pk, rosterdate):  # PR2020
 
         sql = ' '.join([sql_01, sqlfilter, sql_02])
 
-        logger.debug('sql: ' + str(sql))
+        #logger.debug('sql: ' + str(sql))
         cursor = connection.cursor()
         cursor.execute(sql, {
             'pcid': pricecode_pk,
@@ -1427,8 +1277,8 @@ def get_pricerate_from_pricecodeitem(field, pricecode_pk, rosterdate):  # PR2020
         if row :
             if row[0]:
                 pricerate = row[0]
-            logger.debug('row: ' + str(row))
-        logger.debug('pricerate: ' + str(pricerate))
+            #logger.debug('row: ' + str(row))
+        #logger.debug('pricerate: ' + str(pricerate))
     return pricerate
 
 
@@ -1539,7 +1389,7 @@ def create_absent_emplhours(new_rosterdate_dte, absence_dict, logfile, request):
                 INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
                 INNER JOIN companies_order AS o ON (s.order_id = o.id) 
                 INNER JOIN companies_customer AS c ON (o.customer_id = c.id) 
-                WHERE (c.company_id = %(cid)s) AND (o.isabsence = TRUE) 
+                WHERE (c.company_id = %(cid)s) AND (c.isabsence = TRUE) 
                 AND (tm.datefirst <= %(rd)s OR tm.datefirst IS NULL)
                 AND (tm.datelast >= %(rd)s OR tm.datelast IS NULL)
                 AND (e.datefirst <= %(rd)s OR e.datefirst IS NULL)
@@ -1695,20 +1545,21 @@ def get_schemeitem_rosterdate_within_cycle(schemeitem, new_rosterdate):
 
 # 5555555555555555555555555555555555555555555555555555555555555555555555555555
 
-def RemoveRosterdate(rosterdate_current, request):  # PR2019-06-17 PR2020-01-16
-    # logger.debug(' ============= RemoveRosterdate ============= ')
-    # logger.debug(' rosterdate_current:' + str(rosterdate_current))
+def RemoveRosterdate(rosterdate_iso, comp_timezone, request):  # PR2019-06-17 PR2020-01-16
+    logger.debug(' ============= RemoveRosterdate ============= ')
+    logger.debug(' rosterdate_iso:' + str(rosterdate_iso) + ' ' + str(type(rosterdate_iso)))
     count_deleted = 0
     count_confirmed = 0
+    duration_sum = 0
     has_error = False
     return_dict = {'mode': 'delete'}
-    if rosterdate_current:
+    if rosterdate_iso:
 # - create recordset of orderhour records with rosterdate = rosterdate_current
 #   Don't filter on schemeitem Is Not Null (schemeitem Is Not Null when generated by Scheme, schemeitem Is Null when manually added)
         try:
 # get orderhour records of this date and status less than STATUS_02_START_CONFIRMED, also delete records with rosterdate Null
             crit = Q(order__customer__company=request.user.company) & \
-                  (Q(rosterdate=rosterdate_current) | Q(rosterdate__isnull=True))
+                  (Q(rosterdate=rosterdate_iso) | Q(rosterdate__isnull=True))
             orderhours = m.Orderhour.objects.filter(crit)
             for orderhour in orderhours:
                 orderhour_confirmed = False
@@ -1740,6 +1591,9 @@ def RemoveRosterdate(rosterdate_current, request):  # PR2019-06-17 PR2020-01-16
 
                         # check emplhours status:, skip if STATUS_02_START_CONFIRMED or higher
                         if delete_emplhour:
+                            # add plannedduration to duration_sum, not when isabsence or isrestshift
+                            if not emplhour.isabsence and not emplhour.isrestshift:
+                                duration_sum += emplhour.plannedduration
                             emplhour.delete(request=request)
                             count_deleted += 1
                         else:
@@ -1754,7 +1608,7 @@ def RemoveRosterdate(rosterdate_current, request):  # PR2019-06-17 PR2020-01-16
         except:
             has_error = True
             logger.debug('Error RemoveRosterdate:' +
-                     ' rosterdate_current: ' + str(rosterdate_current) + ' ' + str(type(rosterdate_current)))
+                     ' rosterdate_current: ' + str(rosterdate_iso) + ' ' + str(type(rosterdate_iso)))
 
         if has_error:
             return_dict['msg_01'] = _('An error occurred while deleting shifts.')
@@ -1777,6 +1631,10 @@ def RemoveRosterdate(rosterdate_current, request):  # PR2019-06-17 PR2020-01-16
                     msg_skipped = _('%(count)s shifts are confirmed. They have not been deleted.') %{'count': count_confirmed}
             if msg_skipped:
                 return_dict['msg_02'] = msg_skipped
+
+# - subtract duration_sum from Companyinvoice
+        rosterdate_dte = f.get_date_from_ISO(rosterdate_iso)
+        m.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, True, request, comp_timezone)  # PR2020-04-07
 
     return return_dict
 
@@ -2438,7 +2296,7 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
             #  - it is equal to lookup rest row and has higher tm_id or si_id
             if no_overlap_with_absence_or_restshift(row, False):  # False = check_normal_employee
                 add_row_to_dict = True
-                logfile.append('--> employee is not absent and has no restshift: add rest shift')
+                logfile.append('--> employee is not absent and has no other restshift: add rest shift')
             else:
                 logfile.append('--> employee is absent or has restshift: skip, dont look for replacement')
         else:
@@ -3170,6 +3028,9 @@ def create_planning_dict(row, has_overlap, overlap_siid_list, comp_timezone, tim
             if row[idx_sh_id]:
                 planning_dict['schemeitem']['shift_pk'] = row[idx_sh_id]
 
+            if rosterdate_dte:
+                planning_dict['schemeitem']['rosterdate'] = rosterdate_dte.isoformat()
+
         if row[idx_e_id]:
             planning_dict['employee'] = {
                 'pk': row[idx_e_id],
@@ -3348,7 +3209,7 @@ def create_customer_planning(datefirst_iso, datelast_iso, customer_pk, order_pk,
 # 4. get is_publicholiday, is_companyholiday of this date from Calendar
             is_publicholiday, is_companyholiday = pld.get_ispublicholiday_iscompanyholiday(rosterdate_dte, request)
 
-# 5. create list with all sschemitems of this_rosterdate
+# 5. create list with all schemitems of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
             rows = get_customer_calendar_rows(
                 rosterdate=rosterdate_dte,
@@ -3500,9 +3361,7 @@ sql_customer_calendar_schemeitem_triple_sub03 = """
             END
         END AS si_ddif,
 
-        CASE WHEN si_sub.sh_rest = TRUE THEN 'r' ELSE 
-            CASE WHEN si_sub.si_abs = TRUE THEN 'a' ELSE 'n' END
-        END AS si_mod, 
+        si_sub.si_mod, 
 
         si_sub.sh_os,
         si_sub.sh_oe,
@@ -3515,7 +3374,7 @@ sql_customer_calendar_schemeitem_triple_sub03 = """
         OR (si_sub.si_abs = FALSE AND si_sub.sh_rest = FALSE AND ABS(si_sub.si_dif) = si_sub.s_cycle - 1)
 """
 
-
+# PR2020-04-04 called by sql_customer_calendar_teammember_calc_sub05
 sql_customer_calendar_teammember_triple_sub04 = """
     SELECT 
         tm.id AS tm_id, 
@@ -3527,8 +3386,8 @@ sql_customer_calendar_teammember_triple_sub04 = """
         COALESCE(s.code,'') AS s_code,
         o.id AS o_id,
         COALESCE(o.code,'') AS o_code,
-        o.isabsence AS o_abs,
-        CASE WHEN o.isabsence = TRUE THEN o.sequence ELSE -1 END AS o_seq,
+        c.isabsence AS o_abs,
+        CASE WHEN c.isabsence = TRUE THEN o.sequence ELSE -1 END AS o_seq,
 
         c.id AS c_id, 
         COALESCE(c.code,'') AS c_code, 
@@ -3544,10 +3403,7 @@ sql_customer_calendar_teammember_triple_sub04 = """
         si_sub.si_id,
         COALESCE(si_sub.sh_code,'') AS sh_code,
 
-        CASE WHEN o.isabsence = TRUE THEN 'a' ELSE 
-            CASE WHEN s.issingleshift = TRUE THEN 's' ELSE 
-                CASE WHEN si_sub.si_id IS NULL THEN '-' ELSE si_sub.si_mod 
-        END END END AS tm_mod,
+        si_sub.si_mod AS tm_mod,
 
         si_sub.si_rd, 
 
@@ -3581,6 +3437,7 @@ sql_customer_calendar_teammember_triple_sub04 = """
 #     AND ( (c.id = %(customerid)s) OR (%(customerid)s IS NULL) )
 
 
+# PR2020-04-04 called by: sql_customer_calendar_teammember_aggr_sub06
 sql_customer_calendar_teammember_calc_sub05 = """
     SELECT 
         tm_sub.tm_id, 
@@ -3617,6 +3474,7 @@ sql_customer_calendar_teammember_calc_sub05 = """
     FROM  ( """ + sql_customer_calendar_teammember_triple_sub04 + """ ) AS tm_sub
 """
 
+# called by: sql_customer_calendar_employee_sub07
 sql_customer_calendar_teammember_aggr_sub06= """
     SELECT sq.e_id  AS tm_eid,
         ARRAY_AGG(sq.tm_id) AS tm_id_arr,
@@ -3644,6 +3502,7 @@ sql_customer_calendar_teammember_aggr_sub06= """
 # dictrow{'e_id': 2622, 'e_code': 'Francois L', 'e_nl': 'Francois', 'e_nf': 'Livienne',
 # 'tm_id_arr': None, 'si_id_arr': None, 'mod_arr': None, 'ddifref_arr': None, 'osref_arr': None, 'oeref_arr': None, 'o_seq_arr': None}
 
+# PR20202-04-04 called by: sql_customer_calendar_teammember_sub09 (twice: for employee and replacemenet
 sql_customer_calendar_employee_sub07 = """
         SELECT 
             e.id AS e_id, 
@@ -3758,6 +3617,7 @@ sql_calendar_order_sub08XXX = """
 # 'r_id': 2622, 'r_code': 'Francois L', 'r_tm_id_arr': None, 'r_si_id_arr': None, 'r_mod_arr': None, 'r_ddifref_arr': None, 'r_osref_arr': None, 'r_oeref_arr': None}
 
 
+# PR20202-04-04 called by : sql_customer_calendar_teammember_aggr_sub10
 sql_customer_calendar_teammember_sub09 = """
     SELECT 
         tm.team_id AS t_id,
@@ -3802,6 +3662,7 @@ sql_customer_calendar_teammember_sub09 = """
 # 'e_id_arr': [2625], 'e_code_arr': ['Agata MM'], 'e_tm_id_arr2': ['1007;1007;1007;1008'], 'e_si_id_arr2': ['1761;1747;1757;1750'], 'e_mod_arr2': ['n;n;n;a'], 'e_ddifref_arr2': ['-1;0;1;0'], 'e_osref_arr2': ['-960;480;1920;0'], 'e_oeref_arr2': ['-480;960;2400;1440'],
 # 'r_id_arr': [2622], 'r_code_arr': ['Francois L'], 'r_tm_id_arr2': [None], 'r_si_id_arr2': [None], 'r_mod_arr2': [None], 'r_ddifref_arr2': [None], 'r_osref_arr2': [None], 'r_oeref_arr2': [None]}
 
+# PR2020-04-04 called by : sql_customer_calendar_team_sub11
 sql_customer_calendar_teammember_aggr_sub10 = """
     SELECT 
         tm.t_id, 
@@ -3867,6 +3728,7 @@ sql_customer_calendar_teammember_aggr_sub10 = """
 # 'r_tm_id_arr': [None], 'r_si_id_arr': [None], 'r_mod_arr': [None], 'r_ddifref_arr': [None], 'r_osref_arr': [None], 'r_oeref_arr': [None], 'r_o_seq_arr': None}
 
 
+# PR2020-04-04 called by : get_customer_calendar_rows and get_customer_calendar_rows
 sql_customer_calendar_team_sub11 = """
     SELECT 
         tm_sub.tm_id_arr AS tm_id,
@@ -3961,8 +3823,8 @@ def get_customer_calendar_rows(rosterdate, refdate, company_pk, customer_pk, ord
 
     newcursor = connection.cursor()
 
-    #logger.debug('============================================  ')
-    #logger.debug('sql_customer_calendar_team_sub11 rd: ' + str(rosterdate) + ' refdate: ' + str(rosterdate))
+    logger.debug('============================================  ')
+    logger.debug('sql_customer_calendar_team_sub11 rd: ' + str(rosterdate) + ' refdate: ' + str(rosterdate))
 
     newcursor.execute(sql_customer_calendar_team_sub11, {
         'cid': company_pk,
@@ -3991,3 +3853,190 @@ def get_customer_calendar_rows(rosterdate, refdate, company_pk, customer_pk, ord
     rows = newcursor.fetchall()
     return rows
 
+
+# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# PR2019-12-14
+# PR2-019-11-29 parameters are: rosterdate: %(rd)s, company_id: %(cid)s
+#  {'tm_id': 764, 'tm_eid': 2331, 'tm_df': None, 'tm_dl': None, 's_df': None, 's_dl': None, 'o_df': None, 'o_dl': None,
+#  's_cycle': 7, 'si_id': 1179, 'sh_id': None, 'sh_code': None, 'sh_rs': False,
+#  'sh_os': 480, 'sh_oe': 960, 'sh_bd': 0, 'sh_td': 480, 'sh_mod': 'n'},
+# NOT IN USE
+sql_teammembers_with_si_subNIU = """
+        SELECT 
+        tm.id AS tm_id,
+        tm.employee_id AS tm_eid, 
+        tm.datefirst AS tm_df, 
+        tm.datelast AS tm_dl,
+
+        s.datefirst AS s_df, 
+        s.datelast AS s_dl,
+        o.datefirst AS o_df,  
+        o.datelast AS o_dl, 
+        s.cycle AS s_cycle, 
+
+        si_sub.si_id AS si_id,
+        si_sub.sh_id AS sh_id, 
+        si_sub.sh_code AS sh_code,  
+        si_sub.sh_rs as sh_rs,
+
+        si_sub.sh_os AS sh_os,
+        si_sub.sh_oe AS sh_oe,
+        si_sub.sh_bd AS sh_bd,
+        si_sub.sh_td AS sh_td,
+
+        CASE WHEN si_sub.sh_rs = TRUE THEN 'r' ELSE 'n' END AS sh_mod  
+
+        FROM companies_teammember AS tm 
+        INNER JOIN companies_team AS t ON (t.id = tm.team_id)  
+        INNER JOIN companies_scheme AS s ON (s.id = t.scheme_id) 
+        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
+        LEFT JOIN  ( """ + sql_schemeitem_sub00 + """ ) AS si_sub ON (si_sub.t_id = t.id)
+        WHERE (c.company_id = %(cid)s) 
+        AND (o.istemplate = FALSE)
+    """
+
+# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
+# PR2020-04-04 NOT IN USE called by: sql_employee_absence_restshift_unionXXX
+sql_absence_offsetXXX = """
+    SELECT tm_sub.tm_eid,
+        dte_sub.ddiff, 
+        CASE WHEN tm_sub.tm_offsetstart IS NULL THEN NULL ELSE tm_sub.tm_offsetstart + 1440 * dte_sub.ddiff END AS osref,
+        CASE WHEN tm_sub.tm_offsetend IS NULL THEN NULL ELSE tm_sub.tm_offsetend + 1440 * dte_sub.ddiff END AS oeref,      
+        tm_sub.tm_id,
+        NULL AS si_id, 
+        tm_sub.o_abs AS o_abs,
+        FALSE AS sh_rs,  
+        tm_sub.o_seq, 
+        tm_sub.sh_mod
+    FROM (
+        SELECT tm.employee_id AS tm_eid, 
+        tm.id AS tm_id, 
+        tm.datefirst AS tm_datefirst,
+        tm.datelast AS tm_datelast,
+        tm.offsetstart AS tm_offsetstart,
+        tm.offsetend AS tm_offsetend,
+        o.sequence AS o_seq,
+        o.isabsence AS o_abs, 
+        CASE WHEN o.isabsence = TRUE THEN 'a' ELSE CASE WHEN s.issingleshift = TRUE THEN 's' ELSE NULL END END AS sh_mod 
+        FROM companies_teammember AS tm 
+        INNER JOIN companies_team AS t ON (t.id = tm.team_id) 
+        INNER JOIN companies_scheme AS s ON (t.scheme_id = s.id) 
+        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id) 
+        WHERE (c.company_id = %(cid)s) 
+        AND (tm.employee_id IS NOT NULL) 
+        AND (o.isabsence = TRUE) AND (o.istemplate = FALSE)
+    ) AS tm_sub,
+    ( 
+        SELECT CAST(%(rd)s AS date) AS r_dte, (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) ) AS ddiff
+        UNION
+        SELECT CAST(%(rd)s AS date) - 1 AS r_dte, (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) - 1) AS ddiff
+        UNION
+        SELECT CAST(%(rd)s AS date) + 1  AS r_dte , (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) + 1 ) AS ddiff
+    ) AS dte_sub
+    WHERE (tm_datefirst <= dte_sub.r_dte OR tm_datefirst IS NULL) 
+    AND (tm_datelast >= dte_sub.r_dte OR tm_datelast IS NULL)
+    """
+
+# -------------------------------------------------------------------
+
+# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
+# PR2020-04-04 NOT IN USE called by: sql_employee_absence_restshift_unionXXX
+sql_restshift_offsetXXX = """
+    SELECT tm_sub.tm_eid,
+        dte_sub.ddiff, 
+        CASE WHEN tm_sub.sh_os IS NULL THEN NULL ELSE tm_sub.sh_os + 1440 * dte_sub.ddiff END AS osref,
+        CASE WHEN tm_sub.sh_oe IS NULL THEN NULL ELSE tm_sub.sh_oe + 1440 * dte_sub.ddiff END AS oeref, 
+        tm_sub.tm_id, 
+        tm_sub.si_id, 
+        FALSE AS o_abs,
+        tm_sub.sh_rs AS sh_rs,  
+        -1 AS o_seq, 
+        tm_sub.sh_mod AS sh_mod    
+    FROM 
+    (
+        SELECT tm.employee_id AS tm_eid, tm.id AS tm_id,
+        tm.datefirst AS tm_datefirst, tm.datelast AS tm_datelast,
+        sh.offsetstart AS sh_os, sh.offsetend AS sh_oe,
+        sh.isrestshift as sh_rs,
+        s.datefirst AS s_datefirst,  s.datelast AS s_datelast,
+        o.datefirst AS o_datefirst,  o.datelast AS o_datelast, 
+        s.cycle AS s_cycle, 
+        si.id AS si_id,
+        si.rosterdate AS si_rd, 
+        CASE WHEN sh.isrestshift = TRUE THEN 'r' ELSE 'n' END AS sh_mod   
+        FROM companies_teammember AS tm 
+        INNER JOIN companies_team AS t ON (t.id = tm.team_id)  
+        INNER JOIN companies_scheme AS s ON (s.id = t.scheme_id) 
+        INNER JOIN companies_order AS o ON (o.id = s.order_id) 
+        INNER JOIN companies_customer AS c ON (c.id = o.customer_id)
+        INNER JOIN companies_schemeitem AS si ON (si.team_id = t.id)
+        LEFT JOIN companies_shift AS sh ON (sh.id = si.shift_id)           
+        WHERE (c.company_id = %(cid)s) 
+        AND (tm.employee_id IS NOT NULL) 
+        AND (o.istemplate = FALSE)
+    ) AS tm_sub, 
+    ( 
+        SELECT CAST(%(rd)s AS date) AS r_dte, (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) ) AS ddiff
+        UNION
+        SELECT CAST(%(rd)s AS date) - 1 AS r_dte, (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) -1) AS ddiff
+        UNION
+        SELECT CAST(%(rd)s AS date) + 1  AS r_dte , (CAST(%(rd)s AS date) - CAST(%(ref)s AS date) + 1) AS ddiff
+    ) AS dte_sub
+    WHERE MOD((tm_sub.si_rd - dte_sub.r_dte), tm_sub.s_cycle) = 0 
+    AND (tm_sub.tm_datefirst <= dte_sub.r_dte OR tm_sub.tm_datefirst IS NULL) 
+    AND (tm_sub.tm_datelast >= dte_sub.r_dte OR tm_sub.tm_datelast IS NULL)
+    AND (tm_sub.s_datefirst <= dte_sub.r_dte OR tm_sub.s_datefirst IS NULL) 
+    AND (tm_sub.s_datelast >= dte_sub.r_dte OR tm_sub.s_datelast IS NULL) 
+    AND (tm_sub.o_datefirst <= dte_sub.r_dte OR tm_sub.o_datefirst IS NULL) 
+    AND (tm_sub.o_datelast >= dte_sub.r_dte OR tm_sub.o_datelast IS NULL)     
+    """
+
+# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
+# PR2020-04-04 NOT IN USE called by: sql_employees_with_absence_restshift_arrayXXX
+sql_employee_absence_restshift_unionXXX = """
+    SELECT sq.tm_eid, 
+        ARRAY_AGG(sq.ddiff) AS ddiff_arr,
+        ARRAY_AGG(sq.osref) AS osref_arr,  
+        ARRAY_AGG(sq.oeref) AS oeref_arr, 
+        ARRAY_AGG(sq.tm_id) AS tm_id_arr,  
+        ARRAY_AGG(sq.si_id) AS si_id_arr,  
+        ARRAY_AGG(sq.o_abs) AS o_abs_arr, 
+        ARRAY_AGG(sq.sh_rs) AS sh_rest_arr,
+        ARRAY_AGG(sq.o_seq) AS o_seq_arr,
+        ARRAY_AGG(sq.sh_mod) AS sh_mod_arr
+    FROM (
+    """ + sql_restshift_offsetXXX + """
+    UNION
+    """ + sql_absence_offsetXXX + """
+    ) AS sq 
+    GROUP BY sq.tm_eid  
+    """
+
+# PR2-019-11-29 parameters are: rosterdate: %(rd)s, referencedate: %(ref)s, company_id: %(cid)s
+# PR2020-04-04 NOT IN USE
+sql_employees_with_absence_restshift_arrayXXX = """
+        SELECT 
+            e.id AS e_id, 
+            e.code AS e_code,
+            e.namelast AS e_nl,
+            e.namefirst AS e_nf,
+            tm_sub.ddiff_arr,
+            tm_sub.osref_arr,
+            tm_sub.oeref_arr,
+            tm_sub.tm_id_arr,
+            tm_sub.si_id_arr,
+            tm_sub.o_abs_arr, 
+            tm_sub.sh_rest_arr,
+            tm_sub.o_seq_arr,
+            tm_sub.sh_mod_arr
+        FROM companies_employee AS e
+        LEFT JOIN
+        (""" + sql_employee_absence_restshift_unionXXX + """)
+        AS tm_sub ON (tm_sub.tm_eid = e.id)
+        WHERE (e.company_id = %(cid)s) 
+        AND ( (e.datefirst <= (CAST(%(rd)s AS date) - 1) ) OR (e.datefirst IS NULL) ) 
+        AND ( (e.datelast  >= (CAST(%(rd)s AS date) + 1) ) OR (e.datelast IS NULL) )
+
+   """

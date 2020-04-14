@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const cls_visible_show = "visibility_show";
         const cls_bc_lightlightgrey = "tsa_bc_lightlightgrey";
         const cls_bc_yellow_lightlight = "tsa_bc_yellow_lightlight";
+        const cls_bc_yellow_light = "tsa_bc_yellow_light";
         const cls_bc_yellow = "tsa_bc_yellow";
         const cls_selected = "tsa_tr_selected";   // /* light grey; tsa_tr_selected*/
 
@@ -38,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let grid_teams_dict = {};
         let grid_selected_team_pk = 0;
-        let grid_schemeitems_list = [];
+        let grid_schemeitem_list = [];
 
         // setting_cust_pk contains saved pk. Remains when switched to template mode.
         // selected_cust_pk can have value of template_cust, is not stored in settings
@@ -126,11 +127,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const url_teammember_upload = get_attr_from_el(el_data, "data-teammember_upload_url");
         const url_grid_upload = get_attr_from_el(el_data, "data-grid_upload_url");
 
-        //const user_lang = get_attr_from_el(el_data, "data-lang");
-        //const comp_timezone = get_attr_from_el(el_data, "data-timezone");
-        //const interval = get_attr_from_el_int(el_data, "data-interval");
-        //const timeformat = get_attr_from_el(el_data, "data-timeformat");
-
         const imgsrc_inactive_black = get_attr_from_el(el_data, "data-imgsrc_inactive_black");
         const imgsrc_inactive_grey = get_attr_from_el(el_data, "data-imgsrc_inactive_grey");
         const imgsrc_inactive_lightgrey = get_attr_from_el(el_data, "data-imgsrc_inactive_lightgrey");
@@ -193,19 +189,17 @@ document.addEventListener('DOMContentLoaded', function() {
         let el_MGS_restshift = document.getElementById("id_MGS_restshift");
             el_MGS_restshift.addEventListener("change", function() {MGS_RestshiftClicked(el_MGS_restshift)}, false)
 
-
-
         let el_MGS_btn_save = document.getElementById("id_MGS_btn_save");
                 el_MGS_btn_save.addEventListener("click", function() {MGS_Save("update")}, false )
         let el_MGS_btn_delete = document.getElementById("id_MGS_btn_delete");
                 el_MGS_btn_delete.addEventListener("click", function() {MGS_Save("delete")}, false )
 
 // ---  Modal Employee
-        let el_mod_employee_body = document.getElementById("id_mod_select_employee_body");
-        document.getElementById("id_MSE_input_employee").addEventListener("keyup", function(event){
+        let el_mod_employee_body = document.getElementById("id_ModSelEmp_select_employee_body");
+        document.getElementById("id_ModSelEmp_input_employee").addEventListener("keyup", function(event){
                 setTimeout(function() {MSE_filter_employee("filter", event.key)}, 50)});
-        document.getElementById("id_MSE_btn_save").addEventListener("click", function() {MSE_Save("save")}, false )
-        document.getElementById("id_MSE_btn_remove_employee").addEventListener("click", function() {MSE_Save("remove")}, false )
+        document.getElementById("id_ModSelEmp_btn_save").addEventListener("click", function() {MSE_Save("save")}, false )
+        document.getElementById("id_ModSelEmp_btn_remove_employee").addEventListener("click", function() {MSE_Save("remove")}, false )
 
 // ---  Modal Addnew
         let el_mod_cust = document.getElementById("id_mod_scheme_customer")
@@ -265,49 +259,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- close windows
         // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
         document.addEventListener('click', function (event) {
-    // hide msgbox
+
+// ---  hide msgbox
             el_msg.classList.remove("show");
 
-    // close popup_date
-            let close_popup = true
-    /*
-            if (event.target.classList.contains("input_popup_date")) {
-                close_popup = false
-            } else if (el_popup_wdy.contains(event.target) && !event.target.classList.contains("popup_close")) {
-                close_popup = false
-            }
-            if (close_popup) {
-                popupbox_removebackground();
-                el_popup_wdy.classList.add(cls_hide);
-            };
-*/
-// close el_timepicker
-/*
-            close_popup = true
-            if (event.target.classList.contains("input_timepicker")) {close_popup = false} else
-            //if (el_timepicker.contains(event.target) && !event.target.classList.contains("timepicker_close")) {close_popup = false}
-            if (el_timepicker.contains(event.target)) {close_popup = false}
-            if (close_popup) {
-                popupbox_removebackground("input_timepicker");
-                el_timepicker.classList.add(cls_hide)
-            };
-*/
-// close el_popup_date_container
-/*
-            // from https://stackoverflow.com/questions/17773852/check-if-div-is-descendant-of-another
-            close_popup = true
-            // don't close popup_dhm when clicked on row cell with class input_popup_date
-            if (event.target.classList.contains("input_popup_date")) {
-                close_popup = false
-            // don't close popup when clicked on popup box, except for close button
-            } else if (el_popup_date_container.contains(event.target) && !event.target.classList.contains("popup_close")){
-                close_popup = false
-            }
-            if (close_popup) {
-                popupbox_removebackground();
-                el_popup_date_container.classList.add(cls_hide)
-            };
-*/
 // remove highlight from team and schemeites in grid
             const tr_clicked = get_tablerow_selected(event.target);
             let skip_deselect = false
@@ -318,15 +273,47 @@ document.addEventListener('DOMContentLoaded', function() {
             if(event.target === el_confirm_btn_save) {skip_deselect = true}
             if(!skip_deselect){ Grid_SelectTeam("init"); }
 
-        }, false);
+    // close el_popup_date_container
+                // event.currentTarget is the element to which the event handler has been attached (which is #document)
+            // event.target identifies the element on which the event occurred.
+            let close_popup = true
+            //console.log( "document clicked")
+            // don't close popup_dhm when clicked on row cell with class input_popup_date
+            if (event.target.classList.contains("input_popup_date")) {
+                //console.log( "event.target.classList.contains input_popup_date", event.target)
+                close_popup = false
+            // don't close popup when clicked on popup box, except for close button
+            } else if (el_popup_date_container.contains(event.target)){
+                //console.log( "el_popup_date_container contains event.target")
+                if(!event.target.classList.contains("popup_close")){
+                    // console.log( "event.target does not contain popup_close")
+                    close_popup = false
+                }
+            }
+            //console.log( "close_popup", close_popup)
+            if (close_popup) {
+                el_popup_date_container.classList.add(cls_hide)
+            };
+
+        }, false);  // document.addEventListener('click',
 
 // ---  set selected menu button active
         SetMenubuttonActive(document.getElementById("id_hdr_schm"));
 
+//>>>>>>>>>>>>>>> MOD TIMEPICKER >>>>>>>>>>>>>>>>>>> PR2020-04-13
+    let el_mtp_container = document.getElementById("id_mtp_container");
+    let el_mtp_modal = document.getElementById("id_mtp_modal")
+    el_mtp_modal.addEventListener("click", function (e) {
+      if (e.target !== el_mtp_modal && e.target !== el_mtp_container) return;
+      el_mtp_modal.classList.add("hidden");
+    });
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 // --- Datalist Download
+        // TODO set show_absence = false
         // show_absence = null is for testing, show_absence must be false in production
-        // const show_absence = null;
-        const show_absence = false;
+        const show_absence = null;
+        // const show_absence = false;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}
@@ -1015,8 +1002,7 @@ document.addEventListener('DOMContentLoaded', function() {
         el_changed.setAttribute("data-value", is_inactive);
 
         // update icon
-        let imgsrc;
-        if (is_inactive) {imgsrc = imgsrc_inactive_black} else {imgsrc = imgsrc_inactive_grey}
+        let imgsrc = (!!is_inactive) ? imgsrc_inactive_black : imgsrc_inactive_grey
         el_changed.children[0].setAttribute("src", imgsrc);
 
         UploadElChanged(el_changed)
@@ -1172,8 +1158,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filter_hide_inactive = !filter_hide_inactive
 
 // toggle icon
-        let img_src;
-        if(filter_hide_inactive) {img_src = imgsrc_inactive_grey} else {img_src = imgsrc_inactive_black}
+        let imgsrc = (!!is_inactive) ? imgsrc_inactive_black : imgsrc_inactive_grey;
         el.firstChild.setAttribute("src", img_src);
 
         FilterTableRows(sidebar_tblBody_scheme, "", 1, filter_hide_inactive)
@@ -1361,7 +1346,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= SBR_FillSelectTable  ============= PR2019-09-23
     function SBR_FillSelectTable(tblName, called_by, selected_pk, is_current_table) {
-        //console.log( "=== SBR_FillSelectTable === ", tblName, called_by);
+        console.log( "=== SBR_FillSelectTable === ", tblName, called_by);
         //console.log( "tblName: ", tblName, "is_current_table: ", is_current_table);
         //console.log( "selected_pk: ", selected_pk, "selected_order_pk: ", selected_order_pk);
 
@@ -1423,13 +1408,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const offsetstart = get_dict_value(item_dict,["offsetstart", "offset"]);
             const offsetend = get_dict_value(item_dict, ["offsetend", "offset"]);
             const isrestshift = get_dict_value(item_dict, ["isrestshift", "value"], false);
+            const is_inactive = get_dict_value(item_dict, ["inactive", "value"], false);
             const is_template = get_dict_value(item_dict, ["id", "istemplate"], false);
+
 //--- set title
             let title = ""
             if (tblName === "shift"){
                 if (offsetstart != null || offsetend != null) {
-                    const display_offsetstart = (offsetstart != null) ? display_offset_time (offsetstart, loc.timeformat, loc.user_lang) : "";
-                    const display_offsetend =  (offsetend != null) ? display_offset_time (offsetend, loc.timeformat, loc.user_lang, true) : "";
+                    const display_offsetstart = (offsetstart != null) ? display_offset_time (loc, offsetstart) : "";
+                    const display_offsetend =  (offsetend != null) ? display_offset_time (loc, offsetend, true) : "";
                     title = display_offsetstart + " - " + display_offsetend
                 }
                 if(isrestshift){
@@ -1451,7 +1438,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 add_row = (ppk_int === selected_ppk_int)
             }
             if (add_row){
-        //console.log( "item_dict: ", item_dict);
 //--------- insert tblBody row
                 let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
                 const row_id = "sel_" + map_id;
@@ -1460,12 +1446,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 tblRow.setAttribute("data-ppk", ppk_int);
                 tblRow.setAttribute("data-map_id", map_id);
                 tblRow.setAttribute("data-table", tblName);
+                tblRow.setAttribute("data-inactive", is_inactive);
 //- set background color of table and selected row
                 const class_bg_color = ((tblName === "template")) ? "tsa_bc_transparent" :
                                (!!is_current_table) ? cls_bc_yellow_lightlight : cls_bc_lightlightgrey;
                 const cls_bc = (selected_map_id === map_id) ? cls_bc_yellow : class_bg_color;
                 tblRow.classList.add(cls_bc);
-//- add hover to select row
+// --- add hover to select row
                 tblRow.addEventListener("mouseenter", function() {tblRow.classList.add(cls_hover)});
                 tblRow.addEventListener("mouseleave", function() {tblRow.classList.remove(cls_hover)});
 // --- add first td to tblRow.
@@ -1501,7 +1488,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     td = tblRow.insertCell(-1);
                         el_a = document.createElement("a");
-                        CreateBtnDeleteInactive("delete", tblRow, el_a);
+                        const delete_inactive = (tblName === "scheme") ? "inactive" : "delete";
+                        CreateBtnDeleteInactive(delete_inactive, tblRow, el_a, is_inactive);
                     td.appendChild(el_a);
                     td.classList.add("td_width_032")
                 }
@@ -1563,6 +1551,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     th.innerText = caption
                     th.classList.add("px-2")
             tHeadRow.appendChild(th);
+            if(tblName === "scheme"){
+                let td = tHeadRow.insertCell(-1);
+                    let el_a = document.createElement("a");
+                    CreateBtnDeleteInactive("inactive", tHeadRow, el_a, false);
+                td.appendChild(el_a);
+                td.classList.add("td_width_032")
+            }
         }
     }  // CreateSelectHeaderRows
 
@@ -2073,11 +2068,15 @@ document.addEventListener('DOMContentLoaded', function() {
             //    el_input.classList.remove("tsa_color_mediumgrey")
             //}
         });
+
+        document.getElementById("id_scheme_excludepublicholiday").checked = false
+        document.getElementById("id_scheme_excludecompanyholiday").checked = false
+
         document.getElementById("id_menubtn_delete_scheme").disabled = true
     }
 
-//=========  CreateBtnDeleteInactive  ================ PR2019-10-23 PR2020-03-19
-    function CreateBtnDeleteInactive(mode, tblRow, el_input){
+//=========  CreateBtnDeleteInactive  ================ PR2019-10-23 PR2020-03-19 PR2020-04-13
+    function CreateBtnDeleteInactive(mode, tblRow, el_input, is_inactive){
         //console.log(" === CreateBtnDeleteInactive ===", mode)
         el_input.setAttribute("href", "#");
 
@@ -2085,7 +2084,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // const data_id = (tblName === "customer") ? "data-txt_customer_delete" : "data-txt_order_delete"
         // el.setAttribute("title", get_attr_from_el(el_data, data_id));
         const tblName = get_attr_from_el(tblRow, "data-table")
-        if(tblName === "grid_teammember"){
+        // was: if(tblName === "grid_teammember"){
+        if(tblName === "teammember"){
             el_input.addEventListener("click", function() {MGT_DeleteTeammember(tblRow)}, false )
         } else {
             el_input.addEventListener("click", function() {UploadDeleteInactive(mode, el_input)}, false )
@@ -2100,7 +2100,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         el_input.classList.add("ml-4")
-        const img_src = (mode ==="delete") ? imgsrc_delete : imgsrc_inactive_grey;
+
+        const img_src = (mode ==="delete") ? imgsrc_delete : (!!is_inactive) ? imgsrc_inactive_black : imgsrc_inactive_grey;
         AppendChildIcon(el_input, img_src)
     }  // CreateBtnDeleteInactive
 
@@ -2524,11 +2525,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const map_id = get_map_id(tblName, get_dict_value(tp_dict, ["id", "pk"]));
             const map_dict = get_mapdict_from_datamap_by_id(shift_map, map_id)
 
-            const cur_shift_code = get_dict_value(map_dict, ["code", "value"])
+            const cur_shift_code = get_dict_value(map_dict, ["code", "value"], "")
             let offset_start = get_dict_value(map_dict, ["offsetstart", "value"])
             let offset_end = get_dict_value(map_dict, ["offsetend", "value"])
-            let break_duration = get_dict_value(map_dict, ["breakduration", "value"])
-            let time_duration = get_dict_value(map_dict, ["timeduration", "value"])
+            let break_duration = get_dict_value(map_dict, ["breakduration", "value"], 0)
+            let time_duration = get_dict_value(map_dict, ["timeduration", "value"], 0)
+            let is_restshift = get_dict_value(map_dict, ["isrestshift", "value"], false)
             let update_shift_code = false;
             if (tp_dict.field === "offsetstart") {
                 offset_start = tp_dict.offset;
@@ -2546,7 +2548,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 upload_dict[tp_dict.field] = {value: tp_dict.offset, update: true};
             }
             if (update_shift_code) {
-                const new_shift_code = Create_Shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code);
+                const new_shift_code = create_shift_code(loc, offset_start, offset_end, time_duration, cur_shift_code);
                 if (!!new_shift_code && new_shift_code !== cur_shift_code){
                     upload_dict["code"] = {value: new_shift_code, update: true};
                 }
@@ -2906,7 +2908,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function Grid_UpdateFromResponse_si(si_update_list) {
         console.log(" ==== Grid_UpdateFromResponse_si ====");
         console.log("si_update_list", si_update_list);
-        console.log ("-------- grid_schemeitems_list.length", grid_schemeitems_list.length)
+        console.log ("-------- grid_schemeitem_list.length", grid_schemeitem_list.length)
         let cell_id_str = null, ppk_int = null;
 // --- loop through si_update_list
         for (let i = 0, len = si_update_list.length; i < len; i++) {
@@ -2923,18 +2925,18 @@ document.addEventListener('DOMContentLoaded', function() {
 //----- replace updated item in map or remove deleted item from map
                 update_map_item(tblName, map_id, update_dict);
 
-//----- add or remove map_id of this schemeitem to grid_schemeitems_list
+//----- add or remove map_id of this schemeitem to grid_schemeitem_list
                 const id_dict = get_dict_value(update_dict, ["id"]);
-                const exists = grid_schemeitems_list.includes(map_id);
+                const exists = grid_schemeitem_list.includes(map_id);
                 if(("deleted" in id_dict)){
-                // skip if map_id  does not exist in grid_schemeitems_list
+                // skip if map_id  does not exist in grid_schemeitem_list
                     if (exists) {
-                        removeA(grid_schemeitems_list, map_id);
+                        removeA(grid_schemeitem_list, map_id);
                     }
                 } else {
-                // skip if map_id already exists in grid_schemeitems_list
+                // skip if map_id already exists in grid_schemeitem_list
                     if (!exists) {
-                        grid_schemeitems_list.push(map_id)
+                        grid_schemeitem_list.push(map_id)
                     }
                 }
             }  // if (!!map_id){
@@ -3024,11 +3026,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  highlight cell when selected team in cell (after refresh tables
         for (let i = 0, len = pk_list.length; i < len; i++) {
-            let td = document.getElementById("cell_shift_" + pk_list[i].toString())
-            td.classList.add("border_valid");
-            setTimeout(function (){
-                td.classList.remove("border_valid");
-            }, 2000);
+            const cell_id = "cell_shift_" + pk_list[i].toString();
+            let td = document.getElementById(cell_id);
+            // cell might be deleted, must check if exists
+            if(!!td){
+                td.classList.add("border_bg_valid");
+                setTimeout(function (){ td.classList.remove("border_bg_valid");}, 2000);
+            }
         }
 
 // ---  highlight shift cell after update
@@ -3180,7 +3184,8 @@ document.addEventListener('DOMContentLoaded', function() {
 //--- update or delete selectRow, before remove_err_del_cre_updated__from_itemdict
             // selectRow is in SelectTable sidebar, use imgsrc_inactive_grey, not imgsrc_inactive_lightgrey
             const filter_show_inactive = false; // no inactive filtering on this page
-            UpdateSelectRow(selectRow, update_dict, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey);
+            const include_parent_code = false;
+            UpdateSelectRow(selectRow, update_dict, include_parent_code, filter_show_inactive, imgsrc_inactive_black, imgsrc_inactive_grey)
         }  // if( tblName === "scheme"...
 
         if(tblName === "scheme"){
@@ -3378,7 +3383,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const blank_when_zero = (["breakduration", "timeduration"].indexOf( fieldname ) > -1) ? true : false;
                         format_offset_element (el_input, el_msg, fieldname, field_dict, [-220, 80], loc.timeformat, loc.user_lang,
                                                 loc.Previous_day_title, loc.Next_day_title, blank_when_zero)
-                        const display_text = display_offset_time (offset, loc.timeformat, loc.user_lang, blank_when_zero)
+                        const display_text = display_offset_time (loc, offset, blank_when_zero)
 
                     } else if (["breakduration", "timeduration"].indexOf( fieldname ) > -1){
                         format_duration_element (el_input, el_msg, field_dict, loc.user_lang)
@@ -3563,15 +3568,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const field_list = ["code", "cycle", "datefirst", "datelast", "excludepublicholiday", "excludecompanyholiday"];
 
-        //ResetSchemeInputElements()
-        for(let i = 0, el_input, fieldname, el, len = field_list.length; i < len; i++){
-            el = document.getElementById( "id_scheme_" + field_list[i])
-            if (["excludepublicholiday", "excludecompanyholiday"].indexOf( fieldname ) > -1){
-                el.checked = false
-            } else {
-                el.value = null
-            }
-        }
+        ResetSchemeInputElements()
+        //for(let i = 0, el_input, fieldname, el, len = field_list.length; i < len; i++){
+        //    el = document.getElementById( "id_scheme_" + field_list[i])
+        //    if (["excludepublicholiday", "excludecompanyholiday"].indexOf( fieldname ) > -1){
+        //        el.checked = false
+        //    } else {
+        //        el.value = null
+        //    }
+        //}
 
         if(!!item_dict) {
 // get temp_pk_str and id_pk from item_dict["id"]
@@ -3616,11 +3621,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     if(!!msg_err){
                         ShowMsgError(el, el_msg, msg_err, [-160, 80])
                     } else if(updated){
-                        // el must loose focus, otherwise border_valid won't show
+                        // el must loose focus, otherwise border_bg_valid won't show
                         el.blur()
-                        el.classList.add("border_valid");
+                        el.classList.add("border_bg_valid");
                         setTimeout(function (){
-                           el.classList.remove("border_valid");
+                           el.classList.remove("border_bg_valid");
                             }, 2000);
                     }
                     el.setAttribute("data-field", fieldname)
@@ -3653,12 +3658,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else  if (["excludepublicholiday", "excludecompanyholiday"].indexOf( fieldname ) > -1){
                         el.checked = (!!value);
                         el.readOnly = false;
-
                     };
-
-
                 }  // for(let i = 0, fieldname,
-
             }  // if(!!pk_int){
         } // if(!!tr_clicked)
     }  // function UpdateSchemeInputElements
@@ -3783,10 +3784,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const time_duration = get_dict_value(map_dict, ["timeduration", "value"], 0)
         const is_restshift = get_dict_value(map_dict, ["isrestshift", "value"], false)
 
-        const offsetstart_display = display_offset_time (offset_start, loc.timeformat, loc.user_lang, false, false)
-        const offsetend_display = display_offset_time (offset_end, loc.timeformat, loc.user_lang, false, false)
-        const breakduration_display = display_offset_time (break_duration, loc.timeformat, loc.user_lang, false, true)
-        const timeduration_display = display_offset_time (time_duration, loc.timeformat, loc.user_lang, false, true)
+        const offsetstart_display = display_offset_time (loc, offset_start, false, false);
+        const offsetend_display = display_offset_time (loc, offset_end, false, false);
+        const breakduration_display = display_duration (break_duration, loc.user_lang);
+        const timeduration_display = display_duration (time_duration, loc.user_lang);
 
 // --- create mod_MGS_dict with team
         mod_MGS_dict = {shift: {id: {pk: shift_pk, ppk: scheme_pk, table: "shift",
@@ -3828,7 +3829,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log( "===== MGS_RestshiftClicked  ========= ");
         console.log( "mod_MGS_dict: ", mod_MGS_dict);
         if(!!mod_MGS_dict.shift){
-            const new_shift_code = Create_Shift_code( loc,
+            const new_shift_code = create_shift_code( loc,
                                                     mod_MGS_dict.shift.offsetstart.value,
                                                     mod_MGS_dict.shift.offsetend.value,
                                                     mod_MGS_dict.shift.timeduration.value,
@@ -3852,18 +3853,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log("mod_MGS_dict", mod_MGS_dict);
 
-// ---  create st_dict
-        const show_btn_delete = true;
-        const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
-        let st_dict = { interval: loc.interval, comp_timezone: loc.comp_timezone, user_lang: loc.user_lang,
-                        weekday_list: loc.weekdays_abbrev, month_list: loc.months_abbrev,
-                        url_settings_upload: url_settings_upload,
-                        text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
-                        txt_break: loc.Break, txt_workhours: loc.Working_hours,
-                        txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
-                        show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete
-                        };
-        console.log("st_dict", st_dict);
+
 
 // ---  create tp_dict
         const fldName = get_attr_from_el(el_input, "data-field");
@@ -3884,7 +3874,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         quicksave: quicksave
                        };
         //if(!!weekday){tp_dict['weekday'] = weekday}
-
+// ---  create st_dict
+        const show_btn_delete = true;
+        const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
+                const txt_dateheader = (fldName === "breakduration") ? loc.Break :
+                               (fldName === "timeduration") ? loc.Working_hours : null;
+        let st_dict = { interval: loc.interval, comp_timezone: loc.comp_timezone, user_lang: loc.user_lang,
+                        weekday_list: loc.weekdays_abbrev, month_list: loc.months_abbrev,
+                        url_settings_upload: url_settings_upload,
+                        text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
+                        txt_dateheader: txt_dateheader,
+                        txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
+                        show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete
+                        };
+        console.log("st_dict", st_dict);
         ModTimepickerOpen(el_input, MGS_TimepickerResponse, tp_dict, st_dict)
     };  // MGS_TimepickerOpen
 
@@ -3908,6 +3911,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let offset_end = mod_MGS_dict.shift.offsetend.value;
             let break_duration = mod_MGS_dict.shift.breakduration.value;
             let time_duration = mod_MGS_dict.shift.timeduration.value;
+            let is_restshift = mod_MGS_dict.shift.isrestshift.value;
 
      // ---  get new value from tp_dict
             const new_offset = get_dict_value_by_key(tp_dict, "offset")
@@ -3933,7 +3937,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 time_duration = (offset_start != null && offset_end != null) ? offset_end - offset_start - break_duration : 0;
             }
 
-            const new_shift_code = Create_Shift_code(loc, offset_start, offset_end, time_duration, shift_code);
+            const new_shift_code = create_shift_code(loc, offset_start, offset_end, time_duration, shift_code);
             mod_MGS_dict.shift.code.value = new_shift_code
             mod_MGS_dict.shift.offsetstart.value = offset_start;
             mod_MGS_dict.shift.offsetend.value = offset_end;
@@ -3972,8 +3976,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         el_MGS_shiftcode.value = shift_code_display
 
-        el_MGS_offsetstart.innerText = display_offset_time (offset_start, loc.timeformat, loc.user_lang, false, false)
-        el_MGS_offsetend.innerText = display_offset_time (offset_end, loc.timeformat, loc.user_lang, false, false)
+        el_MGS_offsetstart.innerText = display_offset_time (loc, offset_start, false, false)
+        el_MGS_offsetend.innerText = display_offset_time (loc, offset_end, false, false)
         el_MGS_breakduration.innerText = display_duration (break_duration, loc.user_lang)
         el_MGS_timeduration.innerText = display_duration (time_duration, loc.user_lang)
 
@@ -3993,7 +3997,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }  // MGS_BtnSaveDeleteEnable
 
 
-// +++++++++ MODAL GRID TEAM ++++++++++++++++++++++++++++++++++++++++++++++++ PR2020-03-16
+// ################################## MODAL GRID TEAM ################################## PR2020-03-16
 
 //=========  MGT_Open  ================  PR2020-03-16
     function MGT_Open(el_input) {
@@ -4067,7 +4071,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         mod_MGT_dict[teammember_pk] = {
                             id: {pk: teammember_pk,
                                 ppk: get_dict_value(teammember_dict, ["id","ppk"]),
-                                table: "grid_teammember",
+                                table: "teammember", // was:   table: "grid_teammember",
                                 mode: "unchanged"},
                             employee: {pk: get_dict_value(teammember_dict, ["employee","pk"]),
                                        ppk: get_dict_value(teammember_dict, ["employee","ppk"]),
@@ -4086,7 +4090,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return add_new_mode
     }  // MGT_fill_MGT_dict
 
-// ##############################################  MGT_Save  ############################################## PR2019-11-23
+// ++++++++++++++++++++++++++++++++++++ MGT_Save ++++++++++++++++++++++++++++++++++++ PR2019-11-23
     function MGT_Save(crud_mode){
         console.log( "===== MGT_Save  ========= ");
         console.log("mod_MGT_dict: ", mod_MGT_dict)
@@ -4096,7 +4100,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let upload_dict = {id: {shiftoption: 'grid_team'}};
 
         // put mode = 'delete' in id of shift to delete shift
-
 
 // =========== SAVE TEAM =====================
         const team_dict = mod_MGT_dict.team
@@ -4147,7 +4150,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                                         // 'datefirst': None, 'datelast': None,
                                                         // employee: {pk: 2778}, replacement: {pk: None}}},
 
-                let teammembers_dict = {};
+                let teammembers_list = [];
                 for (let key in mod_MGT_dict) {
                     if (mod_MGT_dict.hasOwnProperty(key)) {
                         // keys in mod_MGT_dict are: mode, team and tm_pk's
@@ -4157,21 +4160,25 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const mode = get_dict_value(tm_dict, ["id", "mode"]);
                                 // add only teammembers with mode 'create, 'delete' or 'update'
                                 if(["create", "delete", "update"].indexOf(mode) > -1){
-                                    teammembers_dict[key] = {id: get_dict_value(tm_dict, ["id"])}
+                                    let teammember_dict = {id: get_dict_value(tm_dict, ["id"])}
                                     let fields = ["employee", "replacement", "datefirst", "datelast"];
                                     for(let i = 0, len = fields.length; i < len; i++){
                                         const fldName = fields[i]
                                         if(get_dict_value(tm_dict, [fldName, "update"], false)){
                                             const fld_dict = get_dict_value(tm_dict, [fldName]);
                                             if(!!fld_dict){
-                                                teammembers_dict[key][fldName] = fld_dict;
-                                }}}}
+                                                teammember_dict[fldName] = fld_dict;
+                                            }
+                                        }
+                                    }
+                                    teammembers_list.push(teammember_dict)
+                                }
                             }
                         }
                     }
                 }
-                if(!isEmpty(teammembers_dict)){
-                    upload_dict.teammembers_dict = teammembers_dict;
+                if(!!teammembers_list.length){
+                    upload_dict.teammembers_list = teammembers_list;
                 }
                 console.log("upload_dict: ", upload_dict)
             } // if(is_delete)
@@ -4179,7 +4186,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         }  // if(!isEmpty(team_dict))
     }  // MGT_Save
-
 
 //=========  MGT_CreateTblTeammemberHeader  === PR2020-03-16
     function MGT_CreateTblTeammemberHeader() {
@@ -4248,7 +4254,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const tblName = get_dict_value(tm_dict, ["id", "table"]);
                     const mode = get_dict_value(tm_dict, ["id", "mode"]);
                     // skip rows that have the "delete" mode
-                    if(tblName === "grid_teammember" && mode !== "delete"){
+                    // was:  if(tblName === "grid_teammember" && mode !== "delete"){
+                    if(tblName === "teammember" && mode !== "delete"){
                         // no need to filter on selected_team_pk: mod_MGT_dict only contains tm_pk's of this team
                         let tblRow = MGT_CreateTblTeammemberRow(tblBody, tm_dict);
                         MGT_TeammemberUpdateTableRow(tblRow, tm_dict);
@@ -4291,10 +4298,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ([0, 3].indexOf( j ) > -1){
                     el.setAttribute("type", "text")
                     el.addEventListener("click", function() { ModEmployeeOpen(el)}, false);
+                    el.classList.add("pointer_show");
                 } else if ([1, 2].indexOf( j ) > -1){
                     el.setAttribute("type", "date")
                     el.addEventListener("change", function() {MGT_TeammemberDateChanged(el)}, false);
-                    el.classList.add("input_popup_date") // class input_popup_date is necessary to skip closing popup
+                    //el.classList.add("input_popup_date") // class input_popup_date is necessary to skip closing popup
                 };
 // --- add margin to first column
                 if (j === 0 ){el.classList.add("ml-2")}
@@ -4345,6 +4353,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         const fldName = get_attr_from_el(el_input, "data-field")
                         if (["datefirst", "datelast"].indexOf( fldName ) > -1){
                             el_input.value = get_dict_value(tm_dict, [fldName, "value"]);
+                            // set min or max dat of other date field
+                            MGT_set_datefield_minmax(tblRow, fldName, el_input.value);
                         } else if (["employee", "replacement"].indexOf( fldName ) > -1){
                             el_input.innerText = get_dict_value(tm_dict, [fldName, "code"], "---");
                         }
@@ -4364,7 +4374,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const pk_str = "new" + id_new.toString()
 // ---  createnew tm_dict in mod_MGT_dict
             mod_MGT_dict[pk_str] = {
-                id: {pk: pk_str, ppk: team_pk, table: "grid_teammember", mode: "create"},
+                // was: id: {pk: pk_str, ppk: team_pk, table: "grid_teammember", mode: "create"},
+                id: {pk: pk_str, ppk: team_pk, table: "teammember", mode: "create"},
                 employee: {pk: null, code: "---"},
                 replacement: {pk: null, code: "---"},
                 datefirst: {value: null},
@@ -4451,12 +4462,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  MGT_TeammemberDateChanged  ================ PR2020-03-19
     function MGT_TeammemberDateChanged(el_input) {
-        //console.log( "===== MGT_TeammemberDateChanged  ========= ");
+        console.log( "===== MGT_TeammemberDateChanged  ========= ");
 // --- get info from el_input
         const tblRow = get_tablerow_selected(el_input);
         const teammember_pk = get_attr_from_el(tblRow, "data-pk");
         const fldName = get_attr_from_el_str(el_input, "data-field")
         const new_date = el_input.value;
+        console.log( "fldName: ", fldName);
 
 // --- get teammember_dict in mod_MGT_dict
         let tm_dict = mod_MGT_dict[teammember_pk];
@@ -4471,9 +4483,28 @@ document.addEventListener('DOMContentLoaded', function() {
             tm_dict.id.mode = "update"
         };
         mod_MGT_dict.mode = "update";
+
+// ---  set min max of other date field
+        MGT_set_datefield_minmax(tblRow, fldName, new_date);
+
         MGT_BtnSaveDeleteEnable();
 
     }; // MGT_TeammemberDateChanged
+
+//=========  datefield_minmax  ================ PR2020-04-13
+    function MGT_set_datefield_minmax(tblRow, fldName, new_date ) {
+    // ---  set min max of other date field
+        const other_field = (fldName === "datefirst") ? "datelast" : "datefirst";
+        const min_max = (other_field === "datefirst") ? "max" : "min";
+        let el_other_field = tblRow.querySelector("[data-field=" + other_field + "]");
+        if(!!el_other_field){
+            if (!!new_date){
+                el_other_field.setAttribute(min_max, new_date);
+            } else {
+                el_other_field.removeAttribute(min_max);
+            }
+        }
+    }
 
 //=========  MGT_TeamAdd  ================ PR2020-03-18
     function MGT_TeamAdd() {
@@ -4735,7 +4766,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const is_replacement = (fldName === "replacement")
 // ---  get info from from mod_MGT_dict[tm_pk]
             let pk = null, ppk = null, code = null;
-            if (tblName === "grid_teammember"){
+            // TODO: make difference betrween grid and tbale
+            // was: if (tblName === "grid_teammember")
+            if (tblName === "teammember"){
                 pk = get_dict_value(mod_MGT_dict, [tm_pk, fldName, "pk"]);
                 ppk = get_dict_value(mod_MGT_dict, [tm_pk, fldName, "ppk"]);
                 code = get_dict_value(mod_MGT_dict, [tm_pk, fldName, "code"]);
@@ -4751,9 +4784,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log( ",,,,, mod_MGT_dict[" + tm_pk + "]: " + JSON.stringify( mod_MGT_dict[tm_pk]));
 // ---  put employee name in header
             let label_text = ((is_replacement) ? loc.Select_replacement_employee : loc.Select_employee ) + ":";
-            let el_header = document.getElementById("id_MSE_header_employee")
-            let el_label_input = document.getElementById("id_MSE_label_input_employee")
-            let el_div_remove = document.getElementById("id_MSE_div_remove_employee")
+            let el_header = document.getElementById("id_ModSelEmp_hdr_employee")
+            let el_label_input = document.getElementById("id_ModSelEmp_lbl_input_employee")
+            let el_div_remove = document.getElementById("id_ModSelEmp_div_remove_employee")
             if (!!pk){
                 el_header.innerText = code
                 el_div_remove.classList.remove(cls_hide)
@@ -4762,10 +4795,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 el_header.innerText = label_text;
                 el_div_remove.classList.add(cls_hide)
             }
-            document.getElementById("id_MSE_label_input_employee").innerText = label_text
+            document.getElementById("id_ModSelEmp_lbl_input_employee").innerText = label_text
 
 // remove values from el_mod_employee_input
-            let el_mod_employee_input = document.getElementById("id_MSE_input_employee")
+            let el_mod_employee_input = document.getElementById("id_ModSelEmp_input_employee")
             el_mod_employee_input.value = null
 
 // ---  fill selecttable employee
@@ -4802,7 +4835,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 // when called by ModGridTeam: save in tblRow, When called by table Teammember: uploadchanges
-        if(tblName === "grid_teammember") {
+        //was: if(tblName === "grid_teammember") {
+        if(tblName === "teammember") {
             let tm_dict = mod_MGT_dict[tm_pk]
             if(!isEmpty(tm_dict)){
                 if(!!employee_pk){
@@ -4886,7 +4920,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 mod_employee_dict.employee_ppk = get_dict_value(employee_dict, ["id", "ppk"]);
                 mod_employee_dict.employee_code = employee_code;
 // ---  put code_value in el_input_employee
-                document.getElementById("id_MSE_input_employee").value = employee_code // null value is ok, will show placeholder
+                document.getElementById("id_ModSelEmp_input_employee").value = employee_code // null value is ok, will show placeholder
 // save selected employee
                 MSE_Save("save")
             }  // if (!isEmpty(employee_dict)){
@@ -4898,7 +4932,7 @@ document.addEventListener('DOMContentLoaded', function() {
         //console.log( "===== MSE_filter_employee  ========= ", option);
         //console.log( "event_key", event_key);
 
-        let el_input = document.getElementById("id_MSE_input_employee")
+        let el_input = document.getElementById("id_ModSelEmp_input_employee")
 
 // save when clicked 'Enter', TODO only if quicksave === true
         if(event_key === "Enter" && get_attr_from_el_str(el_input, "data-quicksave") === "true") {
@@ -4928,7 +4962,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let has_selection = false, has_multiple = false;
         let select_value, select_pk, select_parentpk;
-        let tblbody = document.getElementById("id_MSE_tbody_employee");
+        let tblbody = document.getElementById("id_ModSelEmp_tbody_employee");
         let len = tblbody.rows.length;
         if (!skip_filter && !!len){
             for (let row_index = 0, tblRow, show_row, el, pk_str, code_value; row_index < len; row_index++) {
@@ -4987,7 +5021,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const caption_one = (is_replacement) ? loc.Select_replacement_employee : loc.Select_employee;
         const caption_none = loc.No_employees + ":";
 
-        let tableBody = document.getElementById("id_MSE_tbody_employee");
+        let tableBody = document.getElementById("id_ModSelEmp_tbody_employee");
         tableBody.innerText = null;
 
 //--- when no items found: show 'select_employee_none'
@@ -5909,18 +5943,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const shift_dict = get_itemdict_from_datamap_by_el(el_input, shift_map);
         if(!isEmpty(shift_dict)){
 
-// ---  create st_dict
-            const show_btn_delete = true;
-            const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
-            let st_dict = { interval: loc.interval, comp_timezone: loc.comp_timezone, user_lang: loc.user_lang,
-                            weekday_list: loc.weekdays_abbrev, month_list: loc.months_abbrev,
-                            url_settings_upload: url_settings_upload,
-                            text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
-                            txt_break: loc.Break, txt_workhours: loc.Working_hours,
-                            txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
-                            show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete
-                            };
-            console.log("st_dict", st_dict);
 
 // ---  create tp_dict
             const fldName = get_attr_from_el(el_input, "data-field");
@@ -5943,6 +5965,23 @@ document.addEventListener('DOMContentLoaded', function() {
                           };
 
             console.log("tp_dict", tp_dict);
+
+
+// ---  create st_dict
+            const show_btn_delete = true;
+            const imgsrc_delete = get_attr_from_el(el_data, "data-imgsrc_delete");
+                    const txt_dateheader = (fldName === "breakduration") ? loc.Break :
+                               (fldName === "timeduration") ? loc.Working_hours : null
+            let st_dict = { interval: loc.interval, comp_timezone: loc.comp_timezone, user_lang: loc.user_lang,
+                            weekday_list: loc.weekdays_abbrev, month_list: loc.months_abbrev,
+                            url_settings_upload: url_settings_upload,
+                            text_curday: loc.Current_day, text_prevday: loc.Previous_day, text_nextday: loc.Next_day,
+                            txt_dateheader: txt_dateheader,
+                            txt_save: loc.Save, txt_quicksave: loc.Quick_save, txt_quicksave_remove: loc.Exit_Quicksave,
+                            show_btn_delete: show_btn_delete, imgsrc_delete: imgsrc_delete
+                            };
+            console.log("st_dict", st_dict);
+
             ModTimepickerOpen(el_input, UploadTimepickerChanged, tp_dict, st_dict)
 
         }  //  if(!!pk_int)
@@ -6247,7 +6286,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= update_map_item  ====================================
     function update_map_item(tblName, map_id, update_dict){  // PR2019-12-01 PR2020-03-15
-        console.log(" --- update_map_item ---")
+        console.log(" --- update_map_item ---", tblName, map_id)
         console.log("update_dict: ", update_dict)
         // called by UpdateFromResponse, Grid_UpdateFromResponse_si, Grid_UpdateFromResponse_tm
         if(!!tblName && !!map_id && !isEmpty(update_dict)){
@@ -6274,21 +6313,25 @@ document.addEventListener('DOMContentLoaded', function() {
                            (tblName === "teammember") ? teammember_map : null
 
         console.log("data_map.size before: ", data_map.size)
+        console.log("map_id: ", map_id)
             if(is_deleted){
-                data_map.delete(map_id);
-                console.log("is_deleted")
+                if(!!data_map.size){
+                    data_map.delete(map_id);
+                    console.log("is_deleted")
+                }
             } else if(is_created){
 // ---  insert new item in alphabetical order, but no solution found yet
                 data_map.set(map_id, update_dict)
                 console.log("is_created")
             } else {
-                data_map.set(map_id, update_dict)
-                console.log("is_updated")
+                if(!!data_map.size){
+                    data_map.set(map_id, update_dict)
+                    console.log("is_updated")
+                }
             }
-        console.log("data_map.size after: ", data_map.size)
+        console.log("data_map: ", data_map)
         }  // if(!isEmpty(id_dict))
     }  // update_map_item
-
 
 //========= GetDatetimeLocal  ====================================
   //  function GetDatetimeLocalXXX(data_datetime, loc.comp_timezone) {
@@ -6419,7 +6462,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  add th to tblRow_select.
                         let th_select = document.createElement("th");
                         th_select.addEventListener("click", function() {Grid_SelectTeam("th_select", th_select)}, false )
-                        th_select.classList.add("grd_team_th_select");
+                        th_select.classList.add("grd_team_th_selectrow");
                         if (!!row_id) { th_select.setAttribute("id", row_id)};
                         th_select.setAttribute("data-team_pk", pk_int);
                         th_select.innerText = "\u22BB";
@@ -6450,7 +6493,7 @@ document.addEventListener('DOMContentLoaded', function() {
             col_index += 1
 // ---  add th_select to tblRow_select.
             let th = document.createElement("th");
-            th.classList.add("grd_team_th_select");
+            th.classList.add("grd_team_th_selectrow");
             //if (!!row_id) { th_select.setAttribute("id", row_id)};
             //th_select.setAttribute("data-team_pk", pk_new);
             tblRow_select.appendChild(th);
@@ -6552,14 +6595,14 @@ document.addEventListener('DOMContentLoaded', function() {
         tblBody.innerText = null
 
 // --- reset list of map_id's of the schemeitems of the selected scheme
-        grid_schemeitems_list = [];
+        grid_schemeitem_list = [];
 
         let min_rosterdate = null, cycle = null
         if (!!scheme_pk){
             const scheme_dict = get_mapdict_from_datamap_by_tblName_pk(scheme_map, "scheme", scheme_pk)
             cycle = get_dict_value(scheme_dict, ["cycle", "value"])
 
-// +++  loop through schemeitem_map to get first rosterdate and store schemeitems of this scheme in grid_schemeitems_map
+// +++  loop through schemeitem_map to get first rosterdate and store schemeitems of this scheme in grid_schemeitem_map
             for (const [map_id, si_dict] of schemeitem_map.entries()) {
                 const ppk_int = get_dict_value(si_dict, ["id", "ppk"], 0);
 // ---  skip if scheme_pk_in_dict does not exist or does not match ppk_in_dict
@@ -6569,8 +6612,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const shift_pk = get_dict_value(si_dict, ["shift", "pk"]);
                     const team_pk = get_dict_value(si_dict, ["team", "pk"]);
 
-// ---  add map_id of this schemeitem to grid_schemeitems_list
-                    grid_schemeitems_list.push(map_id);
+// ---  add map_id of this schemeitem to grid_schemeitem_list
+                    grid_schemeitem_list.push(map_id);
 
 // ---  get min_rosterdate
                     // localeCompare() returns 0 if both strings are equal,
@@ -6617,22 +6660,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     cell_date = tblRow_date.cells[col_index];
                     cell_date.innerText = date_JS.getDate().toString();
 
-//  these are used in get_mont_year_text
+//  these are used in get_month_year_text
                     const year_int = date_JS.getFullYear();
                     const month_index = date_JS.getMonth();
                     if ( col_index === 1){
-                        first_year = year_int; // used in get_mont_year_text
-                        first_month_index = month_index;// used in get_mont_year_text
+                        first_year = year_int; // used in get_month_year_text
+                        first_month_index = month_index;// used in get_month_year_text
                     }
-                    last_year = year_int;  // used in get_mont_year_text
-                    last_month_index = month_index; // used in get_mont_year_text
+                    last_year = year_int;  // used in get_month_year_text
+                    last_month_index = month_index; // used in get_month_year_text
 
 // go to next date
                     change_dayJS_with_daysadd_vanilla(date_JS, 1);
 
                 }  // if (!!col_index){
 // put month / year in first column
-                tblRow_date.cells[0].innerText = get_mont_year_text(first_year, last_year, first_month_index, last_month_index)
+                tblRow_date.cells[0].innerText = get_month_year_text(first_year, last_year, first_month_index, last_month_index, loc)
 
             }  //  for (let col_index = 0, td; col_index < cycle + 1 ; col_index++) {
 
@@ -6729,11 +6772,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         //console.log("scheme_pk ", scheme_pk)
         //console.log("selected_scheme_pk ", selected_scheme_pk)
-        //console.log("grid_schemeitems_list ", grid_schemeitems_list)
+        //console.log("grid_schemeitem_list ", grid_schemeitem_list)
 
-// ---  loop through grid_schemeitems_list. This contains the map_id's of the schemeitems of selected scheme
-        for (let i = 0, len = grid_schemeitems_list.length; i < len ; i++) {
-            const map_id = grid_schemeitems_list[i];
+// ---  loop through grid_schemeitem_list. This contains the map_id's of the schemeitems of selected scheme
+        for (let i = 0, len = grid_schemeitem_list.length; i < len ; i++) {
+            const map_id = grid_schemeitem_list[i];
             const si_dict = get_mapdict_from_datamap_by_id(schemeitem_map, map_id);
             if (!isEmpty(si_dict)) {
                 //console.log("si_dict", si_dict)
@@ -6800,9 +6843,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 cell.innerText = null;
                 let cell_contains_selected_team = false;
-    // ---  loop through grid_schemeitems_list. This contains the map_id's of the schemeitems of selected scheme
-                for (let i = 0, len = grid_schemeitems_list.length; i < len ; i++) {
-                    const map_id = grid_schemeitems_list[i];
+    // ---  loop through grid_schemeitem_list. This contains the map_id's of the schemeitems of selected scheme
+                for (let i = 0, len = grid_schemeitem_list.length; i < len ; i++) {
+                    const map_id = grid_schemeitem_list[i];
                     const si_dict = get_mapdict_from_datamap_by_id(schemeitem_map, map_id);
                     if (!isEmpty(si_dict)) {
     // ---  get only de schemeitems of this shift and this rosterdate
@@ -6839,13 +6882,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         }  //   if(shift_pk === cell_shift_pk && rosterdate === cell_rosterdate ){
                     }  //  if (!isEmpty(si_dict)) {
-                }  // for (let i = 0, len = grid_schemeitems_list.length; i < len ; i++) {
+                }  // for (let i = 0, len = grid_schemeitem_list.length; i < len ; i++) {
 
     // ---  highlight cell when selected team in cell
                 cell.classList.remove(cls_bc_yellow);
-                cell.classList.add("border_valid");
+                cell.classList.add("border_bg_valid");
                 setTimeout(function (){
-                    cell.classList.remove("border_valid");
+                    cell.classList.remove("border_bg_valid");
                     if (cell_contains_selected_team){ cell.classList.add(cls_bc_yellow)};
                 }, 2000);
 
@@ -6868,7 +6911,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 // ---  highlight cells of this team in tbody_teams
-
         let tbody_teams = document.getElementById("id_grid_tbody_team");
         for (let i = 1, row, len = tbody_teams.rows.length; i < len; i++) {
             row = tbody_teams.rows[i];
@@ -6896,13 +6938,12 @@ document.addEventListener('DOMContentLoaded', function() {
             el = elements[i]
             const is_selected_team = el.classList.contains(team_pk_str)
             if (is_selected_team){
-                el.classList.add(cls_bc_yellow);
+                el.classList.add(cls_bc_yellow_light);
             } else {
-                el.classList.remove(cls_bc_yellow);
+                el.classList.remove(cls_bc_yellow_light);
             }
         };
     }  // Grid_SelectTeam
-
 
 //=========  Grid_SchemitemClicked  === PR2020-03-14
     function Grid_SchemitemClicked(td_clicked, is_shift_cell) {
@@ -7006,57 +7047,5 @@ document.addEventListener('DOMContentLoaded', function() {
             ModConfirmOpen("grid_si", td_clicked)
         }  // if(!!grid_selected_team_pk)
     }  // Grid_SchemitemClicked
-
-//=========  set_cell_innertext  === PR2020-03-15
-    function set_cell_innertext(inner_text, team_abbrev, is_remove) {
-// ---  add team_abbrev to cell.innerText, sort if there are multiple teams in one cell
-        let new_innerText = "";
-        if (is_remove){
-            if(!team_abbrev){
-                new_innerText = inner_text;
-            } else if(!!inner_text){
-                if(inner_text.toLowerCase() === team_abbrev.toLowerCase()){
-                    // new_innerText = "";
-                } else {
-                    const inner_text_arr= inner_text.split("\n")
-                    for (let i = 0, len = inner_text_arr.length; i < len; i++) {
-                        const abbr = inner_text_arr[i];
-                        if(!!abbr && abbr.toLowerCase() === team_abbrev.toLowerCase()){
-                            removeA(inner_text_arr, abbr);
-                        }
-                    }
-                    inner_text_arr.sort()
-                    new_innerText = inner_text_arr.join("\n")
-                }
-            }
-        } else {
-            if(!team_abbrev){
-                new_innerText = inner_text;
-            } else if(!inner_text){
-                new_innerText = team_abbrev;
-            } else {
-                const inner_text_arr = inner_text.split("\n")
-                inner_text_arr.push(team_abbrev);
-                inner_text_arr.sort()
-                new_innerText = inner_text_arr.join("\n")
-            }
-        }
-        return new_innerText;
-    }
-
-//=========  get_mont_year_text  === PR2020-03-14
-    function get_mont_year_text(first_year, last_year, first_month_index, last_month_index){
-        let mont_year_text = "-"
-        if (first_year === last_year){
-        if (first_month_index === last_month_index){
-            mont_year_text = loc.months_long[first_month_index + 1] + " " + first_year.toString()
-        } else {
-            mont_year_text = loc.months_abbrev[first_month_index + 1] + " - " + loc.months_abbrev[last_month_index + 1] + " " + first_year.toString();
-        }
-        } else {
-            mont_year_text = loc.months_abbrev[first_month_index + 1] + " " + first_year.toString() + " - " + loc.months_abbrev[last_month_index + 1] + " " + last_year.toString();
-        }
-        return mont_year_text;
-    }
 
 }); //$(document).ready(function()

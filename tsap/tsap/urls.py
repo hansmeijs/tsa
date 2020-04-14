@@ -56,7 +56,6 @@ urlpatterns = [
          auth_views.PasswordResetDoneView.as_view(template_name='password_create_done.html'),
          name='passwordcreate_done'),
 
-
     # PR2019-03-02 from https://github.com/django/django/blob/2.0/django/contrib/auth/urls.py
     path('reset/<uidb64>/<token>/',
          auth_views.PasswordResetConfirmView.as_view(template_name='password_reset_confirm.html'),
@@ -87,12 +86,21 @@ urlpatterns = [
     # - user clicks on button 'Create password:
     #
 
+# ++++ SIGN UP +++++++++++++++++++++++++++++++++++++++ PR2020-04-01
+    path('signup/', account_views.SignupView.as_view(), name='signup'),
+    path('signup_upload/', account_views.SignupUploadView.as_view(), name='signup_upload_url'),
+    # dont know yet how to do signup_activate with path PR2020-04-01
+   # url(r'^signup_activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+   #     account_views.SignupActivate, name='signup_activate_url'),
+    url(r'^signup_activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+        account_views.SignupActivateView, name='signup_activate_url'),
+
     url(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
         account_views.UserActivate, name='activate_url'),
 
     # UserActivateView doesnt work: goes to login form, user not activated
-    url(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
-        account_views.UserActivateView.as_view(), name='activate_url'),
+    #url(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+    #    account_views.UserActivateView.as_view(), name='activate_url'),
 
     url(r'^users/(?P<pk>\d+)/activated$', account_views.UserActivatedSuccess.as_view(),
         name='account_activation_success_url'),

@@ -174,8 +174,9 @@ a.article:hover {
 
 #id_content {
     width: calc(100% - 220px);
+    height: calc(100vh - 48px);
     padding: 0;
-    min-height: 100vh;
+    /*min-height: 100vh;*/
     transition: all 0.3s;
     position: absolute;
     top: 31px; /* top: 38px; */
@@ -200,6 +201,7 @@ a.article:hover {
     }
     #id_content {
         width: 100%;
+        height: auto;
     }
     #id_content.active {
         width: calc(100% - 220px);

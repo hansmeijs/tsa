@@ -1,0 +1,17 @@
+{% load i18n %}
+
+{% autoescape off %}
+{% trans 'Hello ' %}{{ user.last_name }},
+
+{{ user.company.name }} {% trans 'has made the following TSA-secure account for you:' %}
+
+  - {% trans 'company' %}:  {{ user.company.code }}
+  - {% trans 'username' %}:  {{ user.username_sliced }}
+
+{% trans 'Please click on the link below to activate your TSA-secure account.' %}
+
+http://{{ domain }}{% url 'signup_activate_url' uidb64=uid token=token %}
+
+{% trans 'The TSA-secure team' %}
+
+{% endautoescape %}
