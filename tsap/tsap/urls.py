@@ -131,7 +131,8 @@ urlpatterns = [
     path('session_security', include('session_security.urls')),
 
     path('company/', include([
-        path('', company_views.CompanyListView.as_view(), name='company_list_url'),
+        path('', company_views.CompanyView.as_view(), name='company_url'),
+        # path('', company_views.CompanyListView.as_view(), name='company_list_url'),
         path('add/', company_views.CompanyAddView.as_view(), name='company_add_url'),
         path('<int:pk>/selected/', company_views.CompanySelectView.as_view(), name='company_selected_url'),
         path('<int:pk>/edit/', company_views.CompanyEditView.as_view(), name='company_edit_url'),

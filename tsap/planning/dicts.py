@@ -93,6 +93,8 @@ def remove_status_from_statussum(status, old_status_sum):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+
+
 def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
     #logger.debug(' --- get_rosterdate_check --- ')
     # function gets rosterdate from upload_dict. If None: lookup last roserdate in orderhour and add one day to it.
@@ -1647,8 +1649,8 @@ def create_emplhour_itemdict_from_row(emplhour, update_dict, comp_timezone, time
     # --- create dict of this emplhour PR2019-10-11
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
 
-    #logger.debug(' ============= create_emplhour_dict ============= ')
-    #logger.debug(str(update_dict))
+    logger.debug(' ============= create_emplhour_dict ============= ')
+    logger.debug(str(update_dict))
     item_dict = {}
     if emplhour:
 
@@ -1685,16 +1687,19 @@ def create_emplhour_itemdict_from_row(emplhour, update_dict, comp_timezone, time
             row['eh_ov'] = emplhour.overlap
 
 # replaced by create_NEWemplhour_itemdict
-        item_dict =  create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, user_lang)
+        # item_dict is the new update_dict, gets values from update_dict (updated=True etc) and from database
+        item_dict = create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, user_lang)
 
+        logger.debug(',,,,,,,,,,,,,,,,,,,,,,,,,,,,,,item_dict: ' + str(item_dict))
 # --- remove empty attributes from update_dict
+        # is already done in create_NEWemplhour_itemdict
         #f.remove_empty_attr_from_dict(item_dict)
     return item_dict
 # --- end of create_emplhour_itemdict_from_row
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
-    #logger.debug(' === create_NEWemplhour_itemdict ==')
+    logger.debug(' === create_NEWemplhour_itemdict ==')
     #logger.debug('row: ' + str(row))
 
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1749,17 +1754,20 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
         timeend_utc_offset = timeend_local.utcoffset()
         dst_warning = (timestart_utc_offset != timeend_utc_offset)
 
+    # item_dict is the new update_dict, gets values from update_dict (updated=True etc) and from database
     item_dict = {}
     if update_dict is None:
         update_dict = {}
 
-    #  FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'rosterdate', 'cat', 'isabsence', 'isreplacement',
-    #                    'paydate', 'isrestshift', 'shift',
-    #                    'timestart', 'timeend', 'timeduration', 'breakduration',
+    # FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
+    #                    'rosterdate', 'cat', 'isabsence', 'isrestshift', 'isreplacement', 'datepart',
+    #                    'paydate', 'lockedpaydate',
+    #                    'shift', 'timestart', 'timeend', 'timeduration', 'breakduration',
     #                    'plannedduration', 'billingduration',
     #                    'wagerate', 'wagefactor', 'wage',
-    #                    'pricerate', 'additionrate', 'taxrate', 'amount', 'tax',
-    #                    'status', 'overlap', 'locked') # schemeitemid, teammemberid
+    #                    'pricerate', 'additionrate', 'taxrate', 'amount', 'addition', 'tax',
+    #                    'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked')
+
     for field in c.FIELDS_EMPLHOUR:
 
 # --- get field_dict from update_dict if it exists (only when update)
@@ -1769,15 +1777,26 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
         if status_locked:
             field_dict['locked'] = True
 
+        # cannot change employee when start OR endtime are confirmed
         if field == 'employee':
             if status_conf_start or status_conf_end:
                 field_dict['locked'] = True
+        # cannot change timestart when starttime is confirmed
         elif field == 'timestart':
             if status_conf_start:
                 field_dict['confirmed'] = True
+        # cannot change timeend when endtime is confirmed
         elif field == 'timeend':
             if status_conf_end:
                 field_dict['confirmed'] = True
+        # camnnot change breakduration when start AND endtime are confirmed
+        if field == 'breakduration':
+            if status_conf_start and status_conf_end:
+                field_dict['locked'] = True
+        # camnnot enter timeduration when start OR endtime are confirmed
+        if field == 'timeduration':
+            if status_conf_start or status_conf_end:
+                field_dict['locked'] = True
 
         if field == 'id':
             field_dict['pk'] = pk_int
@@ -1867,8 +1886,14 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
                 field_dict['value'] = eh_billdur
                 field_dict['display'] = f.display_duration(eh_billdur, user_lang, False)  # False = dont skip_prefix_suffix
 
+        elif field in ('confirmstart', 'confirmend'):
+            index = 2 if field == 'confirmend' else 1
+            status_confirmed = f.get_status_value(status_sum, index)
+            field_dict['value'] = status_confirmed
+
         elif field == 'status':
             field_dict['value'] = status_sum
+
         # else:
         # value = getattr(instance, field)
         #  if value:
@@ -1879,7 +1904,8 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
 # --- remove empty attributes from item_dict
     f.remove_empty_attr_from_dict(item_dict)
 
-    logger.debug('item_dict: ' + str(item_dict))
+    logger.debug('????????????  item_dict: ' + str(item_dict))
+
     return item_dict
 # --- end of create_NEWemplhour_itemdict
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

@@ -197,7 +197,6 @@ def create_teammember_dict(teammember, item_dict, user_lang):
             employee_datelast = employee.datelast
 
         for field in c.FIELDS_TEAMMEMBER:
-
 # --- get field_dict from  item_dict if it exists
             field_dict = item_dict[field] if field in item_dict else {}
 
@@ -273,9 +272,10 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                     outer_mindate = f.date_latest_of_two(order.datefirst, employee_datefirst)
                     outer_maxdate = f.date_earliest_of_two(order.datelast, employee_datelast)
                 else:
+                    # dont filter on employee datefirst-last. Teammember of shift can be added to roster, even if employee out of service
                     instance = teammember
-                    outer_mindate = f.date_latest_of_three(scheme.datefirst, order.datefirst, employee_datefirst)
-                    outer_maxdate = f.date_earliest_of_three(scheme.datelast, order.datelast, employee_datelast)
+                    outer_mindate = f.date_latest_of_two(scheme.datefirst, order.datefirst)
+                    outer_maxdate = f.date_earliest_of_two(scheme.datelast, order.datelast)
 
                 value = getattr(instance, field)
 
@@ -286,19 +286,12 @@ def create_teammember_dict(teammember, item_dict, user_lang):
                     mindate = f.date_latest_of_two(instance.datefirst, outer_mindate)
                     maxdate = outer_maxdate
 
-                if value or outer_mindate or outer_maxdate:
-                    if field == 'datefirst':
-                        f.set_fielddict_date(
-                            field_dict=field_dict,
-                            date_obj=value,
-                            mindate=mindate,
-                            maxdate=maxdate)
-                    elif field == 'datelast':
-                        f.set_fielddict_date(
-                            field_dict=field_dict,
-                            date_obj=value,
-                            mindate=mindate,
-                            maxdate=maxdate)
+                if value or mindate or maxdate:
+                    f.set_fielddict_date(
+                        field_dict=field_dict,
+                        date_obj=value,
+                        mindate=mindate,
+                        maxdate=maxdate)
 
             elif field in ('isabsence', 'issingleshift', 'istemplate'):
                 pass

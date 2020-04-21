@@ -470,6 +470,7 @@
     // PR2019-09-20 returns '1.035,25' or '1,035.25'
         let display_value = null;
         if (!!value){
+            // Math.trunc() returns the integer part of a floating-point number
             value = Math.trunc(value)
             const dot_str = (user_lang === "nl") ? "," : "."
             const separator = (user_lang === "nl") ? "." : ","
@@ -492,6 +493,30 @@
         return display_value;
     }  // format_amount
 
+//========= format_entries  ======== PR2020-04-15
+    function format_entries (value, user_lang, blank_when_zero) {
+    // PR2020-04-15 returns '1.035' or '1,035'
+        let display_value = "";
+        if (!!value){
+            const dot_str = (user_lang === "nl") ? "," : "."
+            const separator = (user_lang === "nl") ? "." : ","
+
+            // Math.trunc() returns the integer part of a floating-point number
+            // see https://gideonpyzer.dev/blog/2017/06/06/js-tip-use-parseint-for-strings-not-for-numbers/
+            const value_int = Math.trunc(Number(value));
+            let value_str = value_int.toString();
+            if (value_int > 1000000){
+                value_str = value_str.slice(0,-6) + separator + value_str.slice(-6)
+            }
+            if (value_int > 1000){
+                value_str = value_str.slice(0,-3) + separator + value_str.slice(-3)
+            }
+            display_value = (!!value_int) ? value_str : (!!blank_when_zero) ? "" : "0";
+        } else {
+            display_value = (!!blank_when_zero) ? "" : "0";
+        }
+        return display_value;
+    }  // format_entries
 //========= format_price_element  ======== PR2019-09-29
     function format_price_element (el_input, el_msg, field_dict, msg_offset, user_lang) {
         //console.log("--- format_price_element ---")
@@ -544,7 +569,6 @@
         //console.log("comp_timezone: ", comp_timezone);
         //console.log("hide_weekday: ", hide_weekday);
         //console.log("hide_year: ", hide_year);
-
 
         if(!!el_input && !!field_dict){
         // get datetime_utc_iso from el_timepicker data-value, convert to local (i.e. comp_timezone)
@@ -1180,38 +1204,36 @@
         //console.log(field_dict)
 
         if(!!el_input){
-            let value_int = 0;
-            if(!!field_dict){
-                value_int = parseInt(get_dict_value_by_key (field_dict, "value"));
-                const dst_warning = get_dict_value(field_dict, ["dst_warning"], false);
-                const title = get_dict_value(field_dict, ["title"]);
-                if (!!title){el_input.title = title};
-                if (!value_int) {value_int = 0}
-        //console.log("value_int: ", value_int)
+            const value_int = get_dict_value(field_dict, ["value"], 0);
+            const is_locked = get_dict_value(field_dict, ["locked"], false);
+            const dst_warning = get_dict_value(field_dict, ["dst_warning"], false);
+            const title = get_dict_value(field_dict, ["title"]);
 
-                let updated = get_dict_value(field_dict, ["updated"], false);
-                let msg_err = get_dict_value(field_dict, ["error"]);
-                //console.log("field_dict: ", field_dict)
-                //console.log("updated: ", updated, typeof updated)
+            if (!!title){el_input.title = title};
 
-                let display_value = display_duration (value_int, user_lang);
-                if (dst_warning) {display_value += "*"};
-        //console.log("display_value: ", display_value)
-                el_input.value = display_value;
+    //console.log("value_int: ", value_int)
 
-            // lock element when locked
-                const is_locked = get_dict_value(field_dict, ["locked"], false);
-                el_input.disabled = is_locked
+            let updated = get_dict_value(field_dict, ["updated"], false);
+            let msg_err = get_dict_value(field_dict, ["error"]);
+            //console.log("field_dict: ", field_dict)
+            //console.log("updated: ", updated, typeof updated)
 
-                if(!!msg_err){
-                    //ShowMsgError(el_input, el_msg, msg_err, offset, set_value, display_value, data_value, display_title)
-                    //console.log("+++++++++ ShowMsgError")
-                   ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, display_value,  value_int)
-                } else if(updated){
-                    ShowOkElement(el_input);
-                }
+            let display_value = display_duration (value_int, user_lang);
+            if (dst_warning) {display_value += "*"};
+    //console.log("display_value: ", display_value)
+            el_input.value = display_value;
 
-            }  // if(!!field_dict)
+        // lock element when locked
+            el_input.disabled = is_locked
+            add_or_remove_class (el_input, "pointer_show", !is_locked)
+
+            if(!!msg_err){
+                //ShowMsgError(el_input, el_msg, msg_err, offset, set_value, display_value, data_value, display_title)
+                //console.log("+++++++++ ShowMsgError")
+               ShowMsgError(el_input, el_msg, msg_err, [-160, 80], true, display_value,  value_int)
+            } else if(updated){
+                ShowOkElement(el_input);
+            }
 
             el_input.setAttribute("data-value", value_int);
         } // if(!!el_input){
@@ -1534,29 +1556,26 @@
     }  // format_overlap_element
 
 //========= format_confirmation_element  ======== PR2019-06-09
-    function format_confirmation_element (el_input, field_dict, fieldname,
+    function format_confirmation_element (el_input, fieldname, field_dict,
         imgsrc_stat00, imgsrc_stat01, imgsrc_stat02, imgsrc_stat03, imgsrc_questionmark, imgsrc_warning,
         title_stat00, title_question_start, title_question_end, title_warning_start, title_warning_end ) {
          "use strict";
-        //console.log("+++++++++ format_confirmation_element", fieldname, field_dict)
+        //console.log("==== format_confirmation_element  ====", fieldname, field_dict)
 
         if(!!el_input){
+            const is_confirmed = get_dict_value(field_dict, ["value"], false)
+            const is_locked = get_dict_value(field_dict, ["locked"], false)
+            add_or_remove_class (el_input, "pointer_show", !is_locked)
+
             let el_img = el_input.children[0];
             //console.log ("el_img", el_img)
             if (!!el_img){
-                const status_sum = (!isEmpty(field_dict)) ? parseInt(get_dict_value_by_key(field_dict, "value")) : 0;
-                const start_confirmed = status_found_in_statussum(2, status_sum); //STATUS_02_START_CONFIRMED
-                const end_confirmed = status_found_in_statussum(4, status_sum); //STATUS_04_END_CONFIRMED
-                //console.log("status_sum", status_sum, "start_confirmed", start_confirmed, "end_confirmed", end_confirmed)
-
                 let imgsrc = imgsrc_stat00;
-
                 if (fieldname === "confirmstart"){
-                    imgsrc = start_confirmed ? imgsrc_stat02 : imgsrc_stat00
+                    imgsrc = is_confirmed ? imgsrc_stat02 : imgsrc_stat00
                 } else if (fieldname === "confirmend"){
-                    imgsrc = end_confirmed ? imgsrc_stat03 : imgsrc_stat00
+                    imgsrc = is_confirmed ? imgsrc_stat03 : imgsrc_stat00
                 }
-                //console.log("imgsrc", imgsrc)
                 el_img.setAttribute("src", imgsrc);
                 //el_input.setAttribute("title", title);
             }
@@ -1627,6 +1646,7 @@
             }
         }
     }  // function format_status_element
+
 
 //=========  ShowOkRow  ================ PR2019-05-31
     function ShowOkRow(tblRow ) {

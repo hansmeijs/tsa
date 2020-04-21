@@ -724,7 +724,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                 elif mode == 'delete':
 
 # RemoveRosterdate
-                    return_dict = RemoveRosterdate(rosterdate_iso, comp_timezone, request)
+                    return_dict = RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request)
 
 # Remove EMplhour records without rosterdate
                 DeleteRecordsWithoutRosterdateOrWithoutChild(request)
@@ -759,6 +759,7 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 #######################################################
 
 def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020-01-27
+    logger.debug('FillRosterdatef: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
 
     logfile = []
 
@@ -782,7 +783,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
         # next_rosterdate = rosterdate_dte + timedelta(days=1)
         # update_schemeitem_rosterdate(schemeitem, next_rosterdate, comp_timezone)
 
-        try:
+        #try:
+        if True:
 # get timeformat
             timeformat = '24h'  # or 'AmPm'
             if request.user.company.timeformat:
@@ -790,12 +792,12 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             if not timeformat in c.TIMEFORMATS:
                 timeformat = '24h'
 
-# 2 changerosterdates in schemeitems, to most recent rosterdate (add multiple of cycle days)
+# - change rosterdates in schemeitems, to most recent rosterdate (add multiple of cycle days)
             schemeitems = m.Schemeitem.objects.filter(scheme__order__customer__company=request.user.company)
             for schemeitem in schemeitems:
                 plv.update_schemeitem_rosterdate(schemeitem, rosterdate_dte, comp_timezone)
 
-# 2 delete existing emplhour
+# - delete existing emplhour
             # TODO replace by skipping , because of keeping track of entries
             # delete existing emplhour records of this rosterdate if they are not confirmed or locked,
             # also delete if rosterdate is null (should not be possible)
@@ -812,25 +814,25 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
             calendar_setting_dict = {'rosterdate': rosterdate_dte.isoformat()}
             calendar_dictlist = []
 
-# 2. check if calendar contains dates of this year, fill if necessary
+# - check if calendar contains dates of this year, fill if necessary
             f.check_and_fill_calendar(rosterdate_dte, rosterdate_dte, request)
 
-        # 2. get reference date
+# - get reference date
             # all start- and end times are calculated in minutes from reference date 00:00. Reference date can be any date.
             refdate = rosterdate_dte
 
-        # 4. create calendar_header of this date, get is_publicholiday and is_companyholiday
+# - create calendar_header of this date, get is_publicholiday and is_companyholiday
             calendar_header_dict = pld.create_calendar_header(rosterdate_dte, rosterdate_dte, user_lang, request)
             is_publicholiday = calendar_header_dict.get('ispublicholiday', False)
             is_companyholiday = calendar_header_dict.get('iscompanyholiday', False)
 
-# 5. create list with all teammembers of this_rosterdate
+# - create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
             customer_pk, order_pk, employee_pk = None, None, None
             all_rows = get_employee_calendar_rows(rosterdate_dte, refdate, is_publicholiday, is_companyholiday, customer_pk,
                                               order_pk, employee_pk, company_id)
 
-# 8. sort rows
+# - sort rows
             # from https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
             # PR2019-12-17 debug: sorted gives error ''<' not supported between instances of 'NoneType' and 'str'
             # caused bij idx_e_code = None. Coalesce added in query.
@@ -847,7 +849,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                     add_empty_shifts=True)
                 # &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-                # create orderhour_emplhour record
+# - create orderhour_emplhour record
                 if add_row:
                     emplhour_is_added, linked_emplhours_exist, count_duration = add_orderhour_emplhour(
                         row=row,
@@ -882,9 +884,10 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
                         # logger.debug('=-------------- row added to dict ')
 
 # - add duration_sum to Companyinvoice
-            m.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, False, request, comp_timezone)  # PR2020-04-07
+            m.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, False, request, comp_timezone, user_lang)  # PR2020-04-07
 
-        except:
+        #except:
+        else:
             rosterdate_iso = '<no rosterdate>'
             if rosterdate_dte:
                 rosterdate_iso = rosterdate_dte.isoformat()
@@ -895,7 +898,7 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
         logfile.append('------------------------------------------------------- ')
         logfile.append(' total added absent or rest shifts: ' + str(count_absent_rest))
         logfile.append(' total added normal shifts        : ' + str(count_normal))
-        logfile.append(' total duration of normal shifts  : ' + str(f.get_date_HM_from_minutes(duration_sum, user_lang)) + ' hours')
+        #logfile.append(' total duration of normal shifts  : ' + str(f.get_date_HM_from_minutes(duration_sum, user_lang)) + ' hours')
         logfile.append('------------------------------------------------------- ')
 
         if count_normal:
@@ -1049,8 +1052,14 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
             comp_timezone=comp_timezone,
             request=request)
 
-    # count_duration counts only duration of normal and single shifts, for invoicing
-    count_duration = time_duration if mode in ('n', 's') else 0
+# - count_duration counts only duration of normal and single shifts, for invoicing
+    # when no time provided: fill in 8 hours =480 minutes
+    count_duration = 0
+    if mode in ('n', 's'):
+        if time_duration:
+            count_duration = time_duration
+        else:
+            count_duration = 480
 
     return emplhour_is_added, linked_emplhours_exist, count_duration
 
@@ -1545,7 +1554,7 @@ def get_schemeitem_rosterdate_within_cycle(schemeitem, new_rosterdate):
 
 # 5555555555555555555555555555555555555555555555555555555555555555555555555555
 
-def RemoveRosterdate(rosterdate_iso, comp_timezone, request):  # PR2019-06-17 PR2020-01-16
+def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR2019-06-17 PR2020-01-16
     logger.debug(' ============= RemoveRosterdate ============= ')
     logger.debug(' rosterdate_iso:' + str(rosterdate_iso) + ' ' + str(type(rosterdate_iso)))
     count_deleted = 0
@@ -1573,7 +1582,7 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, request):  # PR2019-06-17 PR
                 if emplhours:
                     for emplhour in emplhours:
                         delete_emplhour = False
-                        # also delete emplhour when orderhour has no rosterdate
+                        # also delete emplhour when emplhour or orderhour has no rosterdate
                         if not emplhour.rosterdate or not orderhour.rosterdate:
                             delete_emplhour = True
                         else:
@@ -1591,11 +1600,17 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, request):  # PR2019-06-17 PR
 
                         # check emplhours status:, skip if STATUS_02_START_CONFIRMED or higher
                         if delete_emplhour:
-                            # add plannedduration to duration_sum, not when isabsence or isrestshift
-                            if not emplhour.isabsence and not emplhour.isrestshift:
-                                duration_sum += emplhour.plannedduration
                             emplhour.delete(request=request)
                             count_deleted += 1
+
+                            # add plannedduration to duration_sum, not when isabsence or isrestshift, only when is planned shift
+                            # - count_duration counts only duration of normal and single shifts, for invoicing
+                            # when no time provided: fill in 8 hours =480 minutes
+                            if not emplhour.isabsence and not emplhour.isrestshift and emplhour.status == c.STATUS_01_CREATED:
+                                if emplhour.plannedduration:
+                                    duration_sum += emplhour.plannedduration
+                                else:
+                                    duration_sum += 480
                         else:
                             delete_orderhour = False
                 else:
@@ -1634,7 +1649,7 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, request):  # PR2019-06-17 PR
 
 # - subtract duration_sum from Companyinvoice
         rosterdate_dte = f.get_date_from_ISO(rosterdate_iso)
-        m.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, True, request, comp_timezone)  # PR2020-04-07
+        m.add_duration_to_companyinvoice(rosterdate_dte, duration_sum, True, request, comp_timezone, user_lang)  # PR2020-04-07
 
     return return_dict
 

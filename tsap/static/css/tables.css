@@ -364,7 +364,7 @@
    margin-top: 24px
 }
 .tsa_margin_form_label {
-    margin: 16px 8px 4px 8px;; /* mx-2 = .5 rem, mx-1 = .25 rem, 1 rem = 16 px*/
+    margin: 16px 8px 4px 8px; /* mx-2 = .5 rem, mx-1 = .25 rem, 1 rem = 16 px  <top><right><bottom><left> */*/
 }
 
 .tsa_carousel_item {

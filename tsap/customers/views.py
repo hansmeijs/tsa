@@ -1,6 +1,7 @@
 
 # PR2019-03-02
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.db.models.functions import Lower
 from django.http import HttpResponse
 
@@ -60,11 +61,11 @@ class CustomerListView(View):
 class CustomerUploadView(UpdateView):# PR2019-03-04
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ============= CustomerUploadView ============= ')
+        #logger.debug(' ============= CustomerUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
-            logger.debug('request.POST: ' + str(request.POST))
+            #logger.debug('request.POST: ' + str(request.POST))
 
 # 1. Reset language
             # PR2019-03-15 Debug: language gets lost, get request.user.lang again
@@ -75,13 +76,13 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
             upload_json = request.POST.get('upload', None)
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                logger.debug('upload_dict: ' + str(upload_dict))
+                #logger.debug('upload_dict: ' + str(upload_dict))
 
 # 3. get iddict variables
                 id_dict = f.get_dict_value(upload_dict, ('id',))
-                logger.debug('id_dict: ' + str(id_dict) + ' ' + str(type(id_dict)))
+                #logger.debug('id_dict: ' + str(id_dict) + ' ' + str(type(id_dict)))
                 if id_dict:
-                    logger.debug('upload_dict: ' + str(upload_dict))
+                    #logger.debug('upload_dict: ' + str(upload_dict))
                     table = f.get_dict_value(id_dict, ('table',), '')
                     pk_int = f.get_dict_value(id_dict, ('pk',))
                     ppk_int = f.get_dict_value(id_dict, ('ppk',))
@@ -95,8 +96,8 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
                     orders_list = f.get_dict_value(upload_dict, ('orders_list',))
 
-                    logger.debug('table: ' + str(table))
-                    logger.debug('is_delete: ' + str(is_delete))
+                    #logger.debug('table: ' + str(table))
+                    #logger.debug('is_delete: ' + str(is_delete))
 # TODO check identifier for duplicates
 
 # =====  CUSTOMER  ==========
@@ -105,7 +106,7 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # A. check if parent with ppk_int exists and is same as request.user.company
                         parent = m.Company.objects.get_or_none(id=ppk_int)
-                        logger.debug('parent:', parent)
+                        #logger.debug('parent:', parent)
                         if parent and ppk_int == request.user.company_id:
 
 # B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
@@ -143,8 +144,8 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
                                 cd.create_customer_dict(instance, update_dict)
 
 # H. If new customer has orders_list: list contains new orders, add them to orders
-                                logger.debug('orders_list: '+ str(orders_list))
-                                logger.debug('is_create: ' + str(is_create))
+                                #logger.debug('orders_list: '+ str(orders_list))
+                                #logger.debug('is_create: ' + str(is_create))
                                 if is_create and orders_list:
                                     update_orders_list = []
                                     for new_order_dict in orders_list:
@@ -160,13 +161,13 @@ class CustomerUploadView(UpdateView):# PR2019-03-04
 
 # =====  ORDER  ==========
                     elif table == "order":
-                        logger.debug('table: ' + str(table))
-                        logger.debug('ppk_int: ' + str(ppk_int))
+                        #logger.debug('table: ' + str(table))
+                        #logger.debug('ppk_int: ' + str(ppk_int))
 
 # A. check if parent exists (customer is parent of order)
                         parent = m.Customer.objects.get_or_none(id=ppk_int, company=request.user.company)
-                        logger.debug('parent: ' + str(parent))
-                        logger.debug('is_delete: ' + str(is_delete))
+                        #logger.debug('parent: ' + str(parent))
+                        #logger.debug('is_delete: ' + str(is_delete))
                         if parent:
 
 # B. create new update_dict with all fields and id_dict. Unused ones will be removed at the end
@@ -626,56 +627,20 @@ class OrderImportView(View):
         param = {}
 
         if request.user.company is not None:
-            # coldef_list = [{'tsaKey': 'employee', 'caption': _('Company name')},
-            #                      {'tsaKey': 'ordername', 'caption': _('Order name')},
-            #                      {'tsaKey': 'orderdatefirst', 'caption': _('First date order')},
-            #                      {'tsaKey': 'orderdatelast', 'caption': _('Last date order')} ]
-# LOCALE #
-    # get user_lang
-            user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
-
-    # get coldef_list order
-            lang = user_lang if user_lang in c.COLDEF_ORDER else c.LANG_DEFAULT
-            coldef_list = c.COLDEF_ORDER[lang]
-
-    # get caption list order
-            lang = user_lang if user_lang in c.CAPTION_IMPORT else c.LANG_DEFAULT
-
-            captions_dict = c.CAPTION_IMPORT[lang]
-
-            self.has_header = True
-            self.worksheetname = ''
-            stored_json = m.Companysetting.get_jsonsetting(c.KEY_ORDER_COLDEFS, request.user.company)
-            if stored_json:
-                stored_setting = json.loads(stored_json)
-                if stored_setting:
-                    self.has_header = stored_setting.get('has_header', True)
-                    self.worksheetname = stored_setting.get('worksheetname', '')
-                    if 'coldefs' in stored_setting:
-                        stored_coldefs = stored_setting['coldefs']
-                        # skip if stored_coldefs does not exist
-                        if stored_coldefs:
-                            # loop through coldef_list
-                            for coldef in coldef_list:
-                                # coldef = {'tsaKey': 'employee', 'caption': 'Cliënt'}
-                                # get fieldname from coldef
-                                fieldname = coldef.get('tsaKey')
-                                if fieldname:  # fieldname should always be present
-                                    # check if fieldname exists in stored_coldefs
-                                    if fieldname in stored_coldefs:
-                                        # if so, add Excel name with key 'excKey' to coldef
-                                        coldef['excKey'] = stored_coldefs[fieldname]
-                                        #logger.debug('stored_coldefs[fieldname]: ' + str(stored_coldefs[fieldname]))
-
-            coldefs_dict = {
-                'worksheetname': self.worksheetname,
-                'has_header': self.has_header,
-                'coldefs': coldef_list
-                }
-            coldefs_json = json.dumps(coldefs_dict, cls=LazyEncoder)
-            captions = json.dumps(captions_dict, cls=LazyEncoder)
-
-            param = get_headerbar_param(request, {'captions': captions, 'setting': coldefs_json})
+            request.user.has_permission = True
+            if not request.user.has_permission:
+                messages.error(request, _("You don't have permission to view this page."))
+            else:
+        # get user_lang
+                user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+        # get caption list order
+                caption_dict = c.CAPTION_IMPORT[user_lang]
+        # get caption list coldefs_dict
+                tblName = 'order'
+                coldefs_dict = {}  # get_stored_coldefs_dict(tblName, user_lang, request)
+                coldefs_json = json.dumps(coldefs_dict, cls=LazyEncoder)
+                caption = json.dumps(caption_dict, cls=LazyEncoder)
+                param = get_headerbar_param(request, {'caption': caption, 'setting': coldefs_json})
 
         # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
         return render(request, 'order_import.html', param)
@@ -690,8 +655,8 @@ class OrderImportUploadSetting(View):   # PR2019-03-10
 
         if request.user is not None :
             if request.user.company is not None:
-                if request.POST['setting']:
-                    new_setting_json = request.POST['setting']
+                if request.POST['upload']:
+                    new_setting_json = request.POST['upload']
                     #logger.debug('new_setting_json' + str(new_setting_json))
                     # new_setting is in json format, no need for json.loads and json.dumps
                     # new_setting = json.loads(request.POST['setting'])
@@ -1029,4 +994,3 @@ def lookup_customer_or_order(modelname, code, identifier, order_parent, request)
             break
     no_value = (has_value_count == 0)
     return instance, no_value, multiple_found, value_too_long, found_in_field
-

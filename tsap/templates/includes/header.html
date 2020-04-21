@@ -105,13 +105,15 @@
 <div class="menubar">
     <div id="id_menubar">
         {% if user.is_authenticated %}
-            <a id="id_hdr_comp" href="{% url 'company_list_url' %}">{% trans 'Company' %}</a>
             <a id="id_hdr_empl" href="{% url 'employee_list_url' %}">{% trans 'Employees' %}</a>
             <a id="id_hdr_cust" href="{% url 'customer_list_url' %}">{% trans 'Customers and orders' %}</a>
             <a id="id_hdr_schm" href="{% url 'schemes_url' %}">{% trans 'Planning' %}</a>
             <a id="id_hdr_rost" href="{% url 'roster_url' %}">{% trans 'Roster' %}</a>
             <a id="id_hdr_prices" href="{% url 'prices_url' %}">{% trans 'Prices and invoices' %}</a>
             <a id="id_hdr_revi" href="{% url 'review_url' %}">{% trans 'Reviews' %}</a>
+            {% if user.is_role_company_and_perm_admin or user.is_role_system_and_perm_admin %}
+                <a id="id_hdr_comp" href="{% url 'company_url' %}">{% trans 'Company' %}</a>
+            {% endif %}
         {% else %}
             <a href="{% url 'home' %}">Home</a>
         {% endif %}
@@ -125,7 +127,7 @@
 
         <div id="id_header_url"
             data-home_url="{% url 'home' %}"
-            data-company_list_url="{% url 'company_list_url' %}"
+            data-company_url="{% url 'company_url' %}"
             data-employee_list_url="{% url 'employee_list_url' %}"
             data-customer_list_url="{% url 'customer_list_url' %}"
             data-schemes_url="{% url 'schemes_url' %}"

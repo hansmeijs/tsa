@@ -1147,12 +1147,11 @@
 
 //========= t_Filter_SelectRows  ==================================== PR2020-01-17
     function t_Filter_SelectRows(tblBody_select, filter_select, filter_show_inactive, has_ppk_filter, selected_ppk) {
-        console.log( "===== t_Filter_SelectRows  ========= ");
+        //console.log( "===== t_Filter_SelectRows  ========= ");
         let has_selection = false, has_multiple = false;
         let selected_value = null, selected_pk = null, selected_parentpk = null, selected_display = null;
         let row_count = 0;
-        for (let i = 0, tblRow, len = tblBody_select.rows.length; i < len; i++) {
-            tblRow = tblBody_select.rows[i];
+        for (let i = 0, tblRow; tblRow = tblBody_select.rows[i]; i++) {
             if (!!tblRow){
                 let hide_row = false
 // ---  show only rows of selected_ppk, only if has_ppk_filter = true
@@ -1195,11 +1194,6 @@
                         selected_parentpk = get_attr_from_el(tblRow, "data-ppk");
                         selected_value = get_attr_from_el(tblRow, "data-value");
                         selected_display = get_attr_from_el(tblRow, "data-display");
-
-        console.log( "tblRow: ", tblRow);
-        console.log( "selected_pk: ", selected_pk);
-        console.log( "selected_parentpk: ", selected_parentpk);
-        console.log( "selected_value: ", selected_value);
 
                     } else {
                         has_multiple = true;
@@ -1742,33 +1736,33 @@
 
 //========= t_set_mode_delete_in_si_tm  ============= PR2020-03-27
     function t_set_mode_delete_in_si_tm(data_list, parent_tblName, parent_pk) {
-         console.log( "===== t_set_mode_delete_in_si_tm  ========= ");
-         console.log( "data_list.length ", data_list.length);
+         //console.log( "===== t_set_mode_delete_in_si_tm  ========= ");
+         //console.log( "data_list.length ", data_list.length);
          // set mode = 'delete; in schemeitems or teammebers when shift or team is set delete in ModShiftOrder
         for (let i = 0, len = data_list.length; i < len; i++) {
             const item_dict = data_list[i];
-         console.log( "item_dict", item_dict);
+         //console.log( "item_dict", item_dict);
             const pk_int = get_dict_value(item_dict, [parent_tblName, "pk"]);
-         console.log( "pk_int", pk_int, typeof pk_int,"parent_pk", parent_pk, typeof parent_pk);
+         //console.log( "pk_int", pk_int, typeof pk_int,"parent_pk", parent_pk, typeof parent_pk);
             if(pk_int === parent_pk) {
                 item_dict.id.mode = "delete";
-         console.log( "item_dict.id.mode", item_dict.id.mode);
+         //console.log( "item_dict.id.mode", item_dict.id.mode);
             }
         }
     }  // t_set_mode_delete_in_si_tm
 
 //========= t_remove_team_from_si  ============= PR2020-03-29
     function t_remove_team_from_si(data_list, lookup_team_pk_str) {
-         console.log( "===== t_remove_team_from_si  ========= ");
+         //console.log( "===== t_remove_team_from_si  ========= ");
          // set mode = 'update; in schemeitem  when team is removed
         for (let i = 0, len = data_list.length; i < len; i++) {
             const item_dict = data_list[i];
-         console.log( "item_dict", item_dict);
+         //console.log( "item_dict", item_dict);
             const row_team_pk_str = get_dict_value(item_dict, ["team", "pk"], "").toString();
             if(row_team_pk_str === lookup_team_pk_str) {
                 item_dict.id.mode = "update";
                 item_dict.team.pk = {pk: null}
-         console.log( "item_dict.id.mode", item_dict.id.mode);
+         //console.log( "item_dict.id.mode", item_dict.id.mode);
             }
         }
     }  // t_remove_team_from_si
@@ -1961,39 +1955,36 @@
        }}}
     };  // handle_EAL_row_clicked
 
-    function get_schemecode_with_sequence(scheme_map, parent_pk, default_code){
+    function get_schemecode_with_sequence(scheme_map, order_pk, default_code){
         "use strict";
         //console.log(' --- get_schemecode_with_sequence --- ')
-        //console.log('parent_pk: ', parent_pk)
         // create new code with sequence 1 higher than existing code PR2020-02-10
-        // charCodeAt() converts character at the given index to ASCII number. // 'ABC'.charCodeAt(0)  // returns 65
-        // String.fromCharCode(65) converts ASCII numbers to character A; // String.fromCharCode(65,66,67) returns 'ABC'
+
         const default_code_len = default_code.length;
         let new_code = default_code;
 
         let count = 0, max_index = 0;
-        // --- loop through scheme_map
-        // lookup teams of this scheme that end woth a character, like 'Team C'
+// --- loop through scheme_map
+        // lookup schemes of this order that end with a character, like 'Team C'
         for (const [map_id, item_dict] of scheme_map.entries()) {
             const scheme_ppk = get_dict_value(item_dict, ["id", "ppk"])
-            if(scheme_ppk === parent_pk){
+            if(scheme_ppk === order_pk){
                 count += 1;
                 const code_value = get_dict_value(item_dict, ["code", "value"], "")
+// ----  get index of scheme (Scheme 2 has index 2)
                 const index_str = code_value.slice(default_code_len).trim();
                 if(!!index_str && !!Number(index_str)){
                     const index = Number(index_str);
-                    if (!!index && index > max_index) {
-                        max_index = index
-        }}}};
-
-        // when 4 teans exists, new team must have name 'Team E'
+// ----  get highest index
+                    if (!!index && index > max_index) { max_index = index }
+        }}};
+// ---  get highest of count and max_index
+        if (count > max_index) { max_index = count }
+// ---  when 4 schemes exists, new scheme must have name 'Scheme 5'
         let new_index = max_index + 1
-
         new_code = default_code + " " + new_index.toString();
-        //console.log('new_code: ' , new_code)
         return new_code;
-    } ; // get_teamcode_with_sequence
-
+    } ; // get_schemecode_with_sequence
 
     function get_teamcode_with_sequence(team_map, parent_pk, default_code){
         "use strict";

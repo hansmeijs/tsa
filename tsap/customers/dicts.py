@@ -31,6 +31,66 @@ def create_company_list(company):
 
     return item_dict
 
+
+# ====== create_companyinvoice_list ======= PR2020-04-14
+def create_companyinvoice_list(company):
+    logger.debug(' --- create_customer_list --- ')
+    # logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))
+
+    # --- create list of customers of this company PR2019-09-03
+    # .order_by(Lower('code')) is in model
+    crit = Q(company=company)
+    #if is_absence is not None:
+    #    crit.add(Q(isabsence=is_absence), crit.connector)
+    #if is_template is not None:
+    #    crit.add(Q(istemplate=is_template), crit.connector)
+    #if inactive is not None:
+    #    crit.add(Q(inactive=inactive), crit.connector)
+    #companyinvoices = m.Companyinvoice.objects.filter(crit)
+    companyinvoices = m.Companyinvoice.objects.all()
+    logger.debug(str(companyinvoices.query))
+
+    companyinvoice_list = []
+    for companyinvoice in companyinvoices:
+        item_dict = create_companyinvoice_dict(companyinvoice)
+        logger.debug('companyinvoice_dict: ' + str(item_dict))
+
+        if item_dict:
+            companyinvoice_list.append(item_dict)
+
+    return companyinvoice_list
+
+# ====== create_companyinvoice_dict ======= PR2020-04-14
+def create_companyinvoice_dict(companyinvoice):
+    logger.debug(' --- create_companyinvoice_dict --- ')
+    item_dict = {}
+    if companyinvoice:
+# FIELDS_COMPANYINVOICE = ('id', 'company', 'cat', 'entries', 'used', 'balance', 'entryrate',
+#                          'datepayment', 'dateexpired', 'expired', 'note', 'locked')
+        for field in c.FIELDS_COMPANYINVOICE:
+            # --- get field_dict from  item_dict if it exists, if not: create empty dict
+            field_dict = {}
+            if field == 'id':
+                field_dict['pk'] = companyinvoice.pk
+                field_dict['ppk'] = companyinvoice.company.pk
+                field_dict['table'] = 'companyinvoice'
+
+            elif field == 'company':
+                field_dict['pk'] = companyinvoice.company.pk
+                field_dict['code'] = companyinvoice.company.code
+
+            elif field == 'cat':
+                field_dict['value'] = getattr(companyinvoice, field, 0)
+
+            else:
+                value = getattr(companyinvoice, field)
+                if value:
+                    field_dict['value'] = value
+            if field_dict:
+                item_dict[field] = field_dict
+    return item_dict
+
+
 def create_customer_list(company, is_absence=None, is_template=None, inactive=None):
     #logger.debug(' --- create_customer_list --- ')
     #logger.debug('is_absence: ' + str(is_absence) + ' is_template: ' + str(is_template) + ' inactive: ' + str(inactive))

@@ -62,7 +62,29 @@ def home(request):
         # return redirect('login')
         return render(request, 'home.html', _param)
 
-# === Company ===================================== PR2019-03-02
+
+
+# === CompanyView ===================================== PR2020-04-14
+@method_decorator([login_required], name='dispatch')
+class CompanyView(View):
+
+    def get(self, request):
+        params = get_headerbar_param(request, {'display_user': True})
+        companies = None
+        if request.user.is_role_system:
+            companies = Company.objects.all()
+        elif request.user.is_role_company:
+            if request.user.company:
+                companies = Company.objects.filter(id=request.user.company.id)
+        # add companies to headerbar parameters PR2018-08-12
+        if companies:
+            params.update({'companies': companies})
+
+        # render(request object, template name, [dictionary optional]) returns an HttpResponse of the template rendered with the given context.
+        return render(request, 'company.html', params)
+
+
+# === CompanyListView ===================================== PR2019-03-02
 @method_decorator([login_required], name='dispatch')
 class CompanyListView(View):
 

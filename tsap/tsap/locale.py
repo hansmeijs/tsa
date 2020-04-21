@@ -42,6 +42,11 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
     dict['Select_employee'] = TXT_Select_employee
     dict['No_employees'] = TXT_No_employees
 
+    dict['weekdays_abbrev'] = TXT_weekdays_abbrev
+    dict['weekdays_long'] = TXT_weekdays_long
+    dict['months_abbrev'] = TXT_months_abbrev
+    dict['months_long'] = TXT_months_long
+
     dict['Date'] = TXT_Date
     dict['Start_date'] = TXT_Start_date
     dict['End_date'] = TXT_End_date
@@ -71,8 +76,50 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
     dict['Previous_day_title'] = TXT_Previous_day_title
     dict['Next_day_title'] = TXT_Next_day_title
 
-    # ====== PAGE EMPLOYEE =========================
-    if page == 'employee':
+# ====== PAGE UPLOAD =========================
+    if page == 'upload':
+        dict['Select_valid_Excelfile'] = _('Please select a valid Excel file.')
+        dict['Not_valid_Excelfile'] = _('This is not a valid Excel file.')
+        dict['Only'] = _('Only ')
+        dict['and'] = _(' and ')
+        dict['are_supported'] = _(' are supported.')
+        dict['No_worksheets'] = _('There are no worksheets.')
+        dict['No_worksheets_with_data'] = _('There are no worksheets with data.')
+        dict['coldef_list'] = [
+            {'tsaKey': 'custcode', 'caption': _('Customer - Short name')},
+            {'tsaKey': 'custname', 'caption': _('Customer - Name')},
+            {'tsaKey': 'custidentifier', 'caption': _('Customer - Identifier')},
+            # {'tsaKey': 'custcontactname', 'caption': _('Customer - Contact name')},
+            # {'tsaKey': 'custaddress', 'caption': _('Customer - Address')},
+            # {'tsaKey': 'custzipcode', 'caption': _('Customer - Zipcode')},
+            # {'tsaKey': 'custcity', 'caption': _('Customer - City')},
+            # {'tsaKey': 'custcountry', 'caption': _('Customer - Country')},
+            # {'tsaKey': 'custemail', 'caption': _('Customer - Email address')},
+            # {'tsaKey': 'custtelephone', 'caption': _('Customer - Telephone')},
+
+            {'tsaKey': 'ordercode', 'caption': _('Order - Short name')},
+            {'tsaKey': 'ordername', 'caption': _('Order - Name')},
+            {'tsaKey': 'orderidentifier', 'caption': _('Order - Identifier')},
+            # {'tsaKey': 'ordercontactname', 'caption': _('Order - Contact name')},
+            # {'tsaKey': 'orderaddress', 'caption': _('Order - Address')},
+            #  {'tsaKey': 'orderzipcode', 'caption': _('Order - Zipcode')},
+            #  {'tsaKey': 'ordercity', 'caption': _('Order - City')},
+            # {'tsaKey': 'ordercountry', 'caption': _('Order - Country')},
+            # {'tsaKey': 'orderemail', 'caption': _('Order - Email address')},
+            # {'tsaKey': 'ordertelephone', 'caption': _('Order - Telephone')},
+            {'tsaKey': 'orderdatefirst', 'caption': _('Order - First date of order')},
+            {'tsaKey': 'orderdatelast', 'caption': _('Order - Last date of order')}]
+
+# ====== PAGE COMPANY =========================
+    elif page == 'company':
+        dict['Description'] = TXT_Description
+        dict['Initial_balance'] = TXT_Initial_balance
+        dict['Used'] = TXT_Used
+        dict['Available'] = TXT_Available
+        dict['Expiration_date'] = TXT_Expiration_date
+
+# ====== PAGE EMPLOYEE =========================
+    elif page == 'employee':
         # submenu
         dict['Upload_employees'] = TXT_Upload_employees
         dict['Print_planning'] = TXT_Print_planning
@@ -101,18 +148,9 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['No_orders'] = TXT_No_orders
 
         dict['Start_Endtime'] = TXT_Start_Endtime
-
-        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
-        dict['weekdays_long'] = TXT_weekdays_long
-        dict['months_abbrev'] = TXT_months_abbrev
-        dict['months_long'] = TXT_months_long
-
         dict['Weekdays'] = TXT_Weekdays
-
         dict['Full_day'] = TXT_Full_day
-
         dict['As_of'] = TXT_As_of
-
 
         dict['Absence'] = TXT_Absence
         dict['Absence_category'] = TXT_Absence_category
@@ -130,7 +168,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['err_msg_number_between'] = TXT_err_msg_number_between
         dict['err_msg_and'] = TXT_err_msg_and
 
-        dict['err_open_calendar_01'] = TXT_err_open_calendar_01
+        dict['err_open_calendar_01'] = TXT_you_must_first_select
         dict['err_open_calendar_02'] = TXT_err_open_calendar_02
         dict['an_employee'] = TXT_an_employee
 
@@ -148,7 +186,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Total_hours'] = TXT_Total_hours
         dict['Page'] = TXT_Page
 
-    # ====== PAGE CUSTOMER =========================
+# ====== PAGE CUSTOMER =========================
     elif page == 'customer':
 
         dict['Export_to_Excel'] = TXT_Export_to_Excel
@@ -198,11 +236,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Rosterdate'] = TXT_Rosterdate
         dict['Identifier'] = TXT_Identifier
 
-        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
-        dict['weekdays_long'] = TXT_weekdays_long
-        dict['months_abbrev'] = TXT_months_abbrev
-        dict['months_long'] = TXT_months_long
-
         dict['Full_day'] = TXT_Full_day
 
         dict['Select_order'] = TXT_Select_order
@@ -242,7 +275,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Make_planned_shifts_inactive'] = TXT_Make_planned_shifts_inactive
 
 
-        dict['err_open_calendar_01'] = TXT_err_open_calendar_01
+        dict['err_open_calendar_01'] = TXT_you_must_first_select
         dict['err_open_calendar_02'] = TXT_err_open_calendar_02
         dict['err_open_planning_preview_02'] = TXT_err_open_planning_preview_02
 
@@ -276,17 +309,25 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Select_order'] = TXT_Select_order
         dict['No_orders'] = TXT_No_orders
 
+        dict['Customers_and_orders']  = _('Customers and orders')
+
         dict['Scheme'] = TXT_Scheme
         dict['This_scheme'] = TXT_This_scheme
         dict['Select_scheme'] = TXT_Select_scheme
 
         dict['Add_scheme'] = TXT_Add_scheme
+        dict['to'] = TXT_to
         dict['Delete_scheme'] = TXT_Delete_scheme
+
+        dict['Edit_scheme'] = TXT_Edit_scheme
         dict['Select_scheme'] = _('Select scheme')
         dict['No_schemes'] = _('No schemes')
         dict['Select_template'] = _('Select template')
         dict['No_templates'] = _('No templates')
         dict['Add_template'] = _('Add template')
+        dict['Edit_template'] = _('Edit template')
+
+        dict['Delete_template'] = _('Delete template')
         dict['Template'] = _('Template')
 
         dict['Cycle'] = TXT_Cycle
@@ -300,10 +341,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Also_on_company_holidays'] = TXT_Also_on_company_holidays
 
         dict['Period'] = TXT_Period
-        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
-        #dict['weekdays_long'] = TXT_weekdays_long
-        dict['months_abbrev'] = TXT_months_abbrev
-        #dict['months_long'] = TXT_months_long
+
         dict['As_of_abbrev'] = pgettext_lazy('abbrev', 'As of')
         dict['All'] = TXT_All
         dict['Through'] = TXT_Through
@@ -314,6 +352,7 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['New'] = TXT_New
         dict['Add'] = TXT_Add
 
+        dict['This_item'] = TXT_This_item
         dict['This_shift'] = TXT_This_shift
         dict['Add_shift'] = TXT_Add_shift
 
@@ -338,15 +377,25 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
         # note: team_not_translated_plus_space = 'team ' in function get_teamcode_abbrev
         # note: ploeg_not_translated_plus_space = 'ploeg ' in function get_teamcode_abbrev
+        dict['err_first_select_team'] = TXT_err_first_select_team
+        dict['err_cannot_enter_teammember_in_template'] = TXT_err_cannot_enter_teammember_in_template
+        dict['err_open_calendar_01'] = TXT_you_must_first_select
+        dict['err_open_calendar_02'] = TXT_err_open_calendar_02
+        dict['an_employee'] = TXT_an_employee
 
         dict['err_msg_error'] = TXT_err_msg_error
-        dict['err_msg_order'] = TXT_err_msg_order
         dict['err_msg_customer'] = TXT_err_msg_customer
+        dict['Please_select_order'] = TXT_Please_select_order
+
+
         dict['err_msg_template_select'] = _('Please select a template.')
         dict['err_msg_name_exists'] = TXT_err_msg_name_exists
         dict['err_msg_name_blank'] = TXT_err_msg_name_blank
-        dict['err_msg_code'] = _('Please enter the name of the scheme.')
-        dict['err_msg_cycle'] = _('Please enter the number of cycle days.')
+        dict['err_msg_Enter_scheme_name'] = _('Please enter the name of the scheme.')
+        dict['err_msg_Enter_cycle_days'] = _('Please enter the number of cycle days.')
+        dict['err_msg_Cycle_outof_range'] = _('The cycle days must be a number between 1 and 28.')
+
+        dict['Enter_cycle_days'] = _('Enter the length of the cycle in days, from 1 day thru 28 days.')
         dict['err_msg_template_blank'] = _('Please enter a template name.')
 
 # ====== PAGE PRICE =========================
@@ -396,10 +445,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
 
         dict['err_msg_endof_sentence'] = TXT_err_msg_endof_sentence
 
-        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
-        #dict['weekdays_long'] = TXT_weekdays_long
-        dict['months_abbrev'] = TXT_months_abbrev
-        #dict['months_long'] = TXT_months_long
         dict['As_of_abbrev'] = TXT_As_of_abbrev
         dict['Through'] = TXT_Through
 
@@ -553,11 +598,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Print_date'] = TXT_Print_date
         dict['Page'] = TXT_Page
 
-        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
-        dict['weekdays_long'] = TXT_weekdays_long
-        dict['months_abbrev'] = TXT_months_abbrev
-        dict['months_long'] = TXT_months_long
-
         dict['With_absence'] = TXT_With_absence
         dict['Without_absence'] = TXT_Without_absence
         dict['Absence_only'] = TXT_Absence_only
@@ -664,10 +704,6 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Grand_total'] = TXT_Grand_total
 
         # for report
-        dict['weekdays_abbrev'] = TXT_weekdays_abbrev
-        dict['weekdays_long'] = TXT_weekdays_long
-        dict['months_abbrev'] = TXT_months_abbrev
-        dict['months_long'] = TXT_months_long
         dict['Time'] = TXT_Time
         dict['Review'] = TXT_Review
         dict['of'] = TXT_of
@@ -768,6 +804,7 @@ TXT_Delete_order = _('Delete order')
 TXT_Scheme = _('Scheme')
 TXT_New_scheme = _('New scheme')
 TXT_Add_scheme = _('Add scheme')
+TXT_Edit_scheme = _('Edit scheme')
 TXT_Select_scheme = _('Select scheme')
 TXT_This_scheme = _('This scheme')
 TXT_Delete_scheme = _('Delete scheme')
@@ -811,6 +848,7 @@ TXT_This_teammember = _('This teammember')
 TXT_Add_teammember = _('Add teammember')
 TXT_Delete_teammember  = _('Delete teammember')
 
+TXT_This_item = _('This item')
 TXT_Upload_employees = _('Upload employees')
 TXT_Employee = _('Employee')
 TXT_Employees = _('Employees')
@@ -906,7 +944,7 @@ TXT_All_customers = _('All customers')
 TXT_All_orders = _('All orders')
 
 TXT_err_msg_error = _('An error occurred.')
-TXT_err_msg_order = _('Please select an order.')
+TXT_Please_select_order = _('Please select an order.')
 TXT_err_msg_customer = _('Please select a customer.')
 TXT_err_msg_select_shift = _('Please select a shift.')
 
@@ -925,9 +963,11 @@ TXT_err_msg_number_between = _('Number must be between')
 TXT_err_msg_and = _('and')
 TXT_err_msg_endof_sentence = pgettext_lazy('End of Number must be between', '.')
 
-TXT_err_open_calendar_01 = _('You must first select ')
+TXT_you_must_first_select = _('You must first select ')
 TXT_err_open_calendar_02 = _(', before you can add a calendar item.')
 TXT_err_open_planning_preview_02 = _(', before you can print a planning.')
+TXT_err_first_select_team = _('You must first select a team, before you can add a teammember.')
+TXT_err_cannot_enter_teammember_in_template = _('You cannot enter a teammember in a template.')
 TXT_an_order = _('an order')
 TXT_an_employee = _('an employee')
 TXT_a_starttime = _('a start time')
@@ -944,8 +984,6 @@ TXT_Endtime_confirmed = _('Endtime confirmed')
 TXT_This_shift_is_locked = _('This shift is locked.')
 TXT_This_isa_planned_shift = _('This is a planned shift.')
 
-
-
 # get weekdays translated
 TXT_weekdays_abbrev = ('', _('Mon'), _('Tue'), _('Wed'), _('Thu'), _('Fri'), _('Sat'), _('Sun'))
 TXT_weekdays_long= ('', _('Monday'), _('Tuesday'), _('Wednesday'),
@@ -954,6 +992,12 @@ TXT_months_abbrev = ('', _('Jan'), _('Feb'), _('Mar'), _('Apr'), _('May'), _( 'J
                            _('Jul'), _('Aug'), _('Sep'), _('Oct'), _('Nov'), _('Dec'))
 TXT_months_long = ('', _('January'), _( 'February'), _( 'March'), _('April'), _('May'), _('June'), _(
                          'July'), _('August'), _('September'), _('October'), _('November'), _('December'))
+
+TXT_Description = _('Description')
+TXT_Initial_balance = _('Initial balance')  # fror company invoice
+TXT_Used = _('Used')  # fror company invoice
+TXT_Available = _('Available')  # fror company invoice
+TXT_Expiration_date = _('Expiration date')  # fror company invoice
 
 TXT_Weekdays = _('Weekdays')
 TXT_Start_date = _('Start date')

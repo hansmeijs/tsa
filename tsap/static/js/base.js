@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //=========  AddSubmenuButton  === PR2020-01-26
     function AddSubmenuButton(el_div, a_innerText, a_function, classnames_list, a_id, a_href) {
-        // console.log(" ---  AddSubmenuButton --- ");
+        //console.log(" ---  AddSubmenuButton --- ");
         let el_a = document.createElement("a");
             if(!!a_id){el_a.setAttribute("id", a_id)};
 
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     //console.log( response);
                 },  // success: function (response) {
                 error: function (xhr, msg) {
-                    console.log(msg + '\n' + xhr.responseText);
+                    //console.log(msg + '\n' + xhr.responseText);
                     //alert(msg + '\n' + xhr.responseText);
                 }  // error: function (xhr, msg) {
             });  // $.ajax({
@@ -424,12 +424,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // from https://stackoverflow.com/questions/53235759/insert-at-specific-index-in-a-map
 
     function insertInMapAtIndex(data_map, map_id, item_dict, code_colindex, user_lang){
-        console.log(("===== insertInMapAtIndex ==== "))
+        //console.log(("===== insertInMapAtIndex ==== "))
         const data_arr = Array.from(data_map);
-        console.log("data_arr: ", data_arr)
+        //console.log("data_arr: ", data_arr)
 
         const row_index = getRowIndex(data_arr, code_colindex, item_dict, user_lang);
-        console.log("row_index: ", row_index)
+        //console.log("row_index: ", row_index)
 
         data_arr.splice(row_index, 0, [map_id, item_dict]);
 
@@ -509,25 +509,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return value_int;
     };
 
-//========= get_attr_from_el_bool  ============= PR2019-09-20
-    // TODO test, seems not to work with mouseenter event
-    function get_attr_from_el_bool(element, key){
-        "use strict";
-        let value_bool = false;
-                console.log(" --- get_attr_from_el_bool --- ")
-                console.log(element)
-
-        if(!!element && !!key){
-                console.log("element", element, typeof element)
-            if(element.hasAttribute(key)){
-                console.log("element.hasAttribute")
-                const value = element.getAttribute(key);
-                value_bool = (value === 'true');
-            };
-        }
-        return value_bool;
-    };
-
 //========= get_attr_from_el_dict  ============= PR2019-06-13
     function get_attr_from_el_dict(element, key){
         "use strict";
@@ -565,11 +546,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // stored_columns[3]: {awpCol: "lastname", caption: "Last name", excCol: "ANAAM" }
         // excel_columns[0]:    {excCol: "ANAAM", awpCol: "lastname", awpCaption: "Achternaam"}
 
-        // used by select scheme PR2019-05-24
-        let row;
-        if (!!arrKey && !!keyValue){
-            for (let i = 0 ; i < objArray.length; i++) {
-                let obj = objArray[i];
+        // used by select scheme PR2019-05-24 and import PR2020-04-17
+        let row = null;
+        if (!!objArray && !!arrKey && !!keyValue){
+            for (let i = 0, obj; obj = objArray[i]; i++) {
                 if (!!obj && !!obj[arrKey] ){
                     let isEqual = false;
                     let obj_value = obj[arrKey]
@@ -903,12 +883,12 @@ function get_teamcode_abbrev(input_code, loc){
 //=========  get_newdate_from_date  ================ PR2019-05-06
     function get_newdate_from_date(o_date, add_day, add_month, add_year) {
         "use strict";
-        // console.log("===  function get_newdate_from_date =========");
-        // console.log("o_date", o_date , typeof o_date)
-        // console.log("add_day", add_day , "add_month", add_month, "add_year", add_year, )
+        //console.log("===  function get_newdate_from_date =========");
+        //console.log("o_date", o_date , typeof o_date)
+        //console.log("add_day", add_day , "add_month", add_month, "add_year", add_year, )
 
         let o_date_iso = o_date.toISOString();
-        // console.log("o_date_iso", o_date_iso , typeof o_date_iso)
+        //console.log("o_date_iso", o_date_iso , typeof o_date_iso)
 
         if (!add_day){add_day = 0}
         if (!add_month){add_month = 0}
@@ -934,9 +914,6 @@ function get_teamcode_abbrev(input_code, loc){
 
         // add midday
         let n_date = new Date(Date.UTC(arr[0], arr[1], arr[2], 12, 0, 0));
-
-        // console.log("n_date", n_date , typeof n_date)
-
         return n_date
     }
 
@@ -955,18 +932,13 @@ function get_teamcode_abbrev(input_code, loc){
     // NIU, replaced by get_dateJS_from_dateISO_vanilla
         "use strict";
         // date_as_ISOstring: 2019-06-25T07:00:00Z
-
         let arr_int = get_array_from_ISOstring(date_as_ISOstring);
-        console.log("arr_int", arr_int)
         // Month 4 april has index 3
         arr_int[1] = arr_int[1] -1;
-
         // datetime_utc: Tue Jun 25 2019 03:00:00 GMT-0400 (Bolivia Time)
         let datetime_utc =  new Date(Date.UTC(arr_int[0], arr_int[1], arr_int[2], arr_int[3], arr_int[4], arr_int[5]));
         return datetime_utc
-
     } // function get_date_from_ISOstring
-
 
 //========= function get_array_from_ISOstring  ==================================== PR2019-04-15
     function get_array_from_ISOstring(datetime_iso) {
@@ -1004,7 +976,7 @@ function get_teamcode_abbrev(input_code, loc){
 //========= function get_datetimearrLOCAL_from_UTCiso  ========== PR2019-06-29
     function get_datetimearrLOCAL_from_UTCiso(datetimeUTCiso, companyoffset, useroffset) {
         "use strict";
-        // console.log("--------- get_datetimearrLOCAL_from_UTCiso -------------")
+        //console.log("--------- get_datetimearrLOCAL_from_UTCiso -------------")
         // this function converts array from local time displayed on screen to utc time in iso-format stored in database
         const offset = companyoffset
 
@@ -1012,9 +984,9 @@ function get_teamcode_abbrev(input_code, loc){
         let datetimearr = [];
         if (!!datetimeUTCiso){
 
-            // console.log("datetimeUTCiso: ", datetimeUTCiso)
+            //console.log("datetimeUTCiso: ", datetimeUTCiso)
             let datUTC = get_dateJS_from_dateISO_vanilla(datetimeUTCiso)
-            // console.log("datUTC: ", datUTC, typeof datUTC)
+            //console.log("datUTC: ", datUTC, typeof datUTC)
 
             let arr = get_array_from_ISOstring(datetimeUTCiso)
             // Month 4 april has index 3
@@ -1023,28 +995,27 @@ function get_teamcode_abbrev(input_code, loc){
             // datetime_local is date as shown on screen: Tue Jun 25 2019  11:39
             const datetime_local = new Date(arr[0], arr[1], arr[2], arr[3], arr[4]);
             // datetime_local:  Tue Jun 25 2019 11:39:00 GMT-0400 (Bolivia Time) object
-            // console.log("datetime_local: ", datetime_local, typeof datetime_local)
+            //console.log("datetime_local: ", datetime_local, typeof datetime_local)
 
-            // console.log("companyoffset: ", companyoffset)
-            // console.log("useroffset: ", useroffset)
+            //console.log("companyoffset: ", companyoffset)
+            //console.log("useroffset: ", useroffset)
 
             // datetime_offset  is the timestamp with correction for local timezone (-4 u) and company timezone (+2 u)
             //companyoffset stores offset from UTC to company_timezone in seconds
             const datetime_offset = datetime_local.setSeconds(offset)
             // datetime_offset:  1561455540000 number
-            // console.log("datetime_offset: ", datetime_offset, typeof datetime_offset)
+            //console.log("datetime_offset: ", datetime_offset, typeof datetime_offset)
 
             const datetime_new = new Date(datetime_offset);
             //  datetime_new:  Tue Jun 25 2019 05:39:00 GMT-0400 (Bolivia Time) object
-            // console.log("datetime_new: ", datetime_new, typeof datetime_new)
+            //console.log("datetime_new: ", datetime_new, typeof datetime_new)
             datetimearr[0] = datetime_new.getFullYear()
             datetimearr[1]  = datetime_new.getMonth()
             datetimearr[2] = datetime_new.getDate()
             datetimearr[3]  = datetime_new.getHours()
             datetimearr[4]  = datetime_new.getMinutes()
 
-            // console.log(datetimearr[0], datetimearr[1], datetimearr[2], datetimearr[3], datetimearr[4])
-
+            //console.log(datetimearr[0], datetimearr[1], datetimearr[2], datetimearr[3], datetimearr[4])
         }
         return datetimearr ;
     }
@@ -1052,7 +1023,7 @@ function get_teamcode_abbrev(input_code, loc){
 //========= function get_datetime_iso_from_ints  ========== PR2019-06-28
     function get_datetime_iso_from_ints(year, month_index, day_int, hours, minutes, companyoffset, useroffset) {
         "use strict";
-        console.log("--------- get_datetime_iso_from_ints -------------")
+        //console.log("--------- get_datetime_iso_from_ints -------------")
         // this function converts array from local time displayed on screen to utc time in iso-format stored in database
         const offset = -companyoffset - useroffset
 
@@ -1062,22 +1033,21 @@ function get_teamcode_abbrev(input_code, loc){
             // datetime_local is date as shown on screen: Tue Jun 25 2019  11:39
             const datetime_local = new Date(year, month_index, day_int, hours, minutes);
             // datetime_local:  Tue Jun 25 2019 11:39:00 GMT-0400 (Bolivia Time) object
-            console.log("datetime_local: ", datetime_local, typeof datetime_local)
+            //console.log("datetime_local: ", datetime_local, typeof datetime_local)
 
             // datetime_offset  is the timestamp with correction for local timezone (-4 u) and company timezone (+2 u)
             //companyoffset stores offset from UTC to company_timezone in seconds
             const datetime_offset = datetime_local.setSeconds(offset)
             // datetime_offset:  1561455540000 number
-            console.log("datetime_offset: ", datetime_offset, typeof datetime_offset)
+            //console.log("datetime_offset: ", datetime_offset, typeof datetime_offset)
 
             const datetime_new = new Date(datetime_offset);
             //  datetime_new:  Tue Jun 25 2019 05:39:00 GMT-0400 (Bolivia Time) object
-            console.log("datetime_new: ", datetime_new, typeof datetime_new)
+            //console.log("datetime_new: ", datetime_new, typeof datetime_new)
 
             new_datetime_iso = datetime_new.toISOString()
             // new_datetime_iso:  2019-06-25T09:39:00.000Z string
-            console.log(">--> new_datetime_iso", new_datetime_iso, typeof new_datetime_iso)
-
+            //console.log(">--> new_datetime_iso", new_datetime_iso, typeof new_datetime_iso)
         }
         return new_datetime_iso;
     }
@@ -1133,7 +1103,7 @@ function get_teamcode_abbrev(input_code, loc){
 
 //========= get_Exceldate_from_date  ====================================
     function get_Exceldate_from_date(date_iso) {
-        console.log (' --- get_Exceldate_from_datetime --- ')
+        //console.log (' --- get_Exceldate_from_datetime --- ')
         // PR2020-01-23 function convert date_object to number, representing Excel date
         //console.log ('date_obj: ' + str(date_obj) + ' type: ' + str(type(date_obj)))
 
@@ -1259,7 +1229,7 @@ function get_teamcode_abbrev(input_code, loc){
 
 //========= get_number_from_input  ========== PR2020-01-12
     function get_number_from_input(input_value, multiplier, min_value, max_value, loc) {
-        console.log("--------- get_number_from_input ---------")
+        //console.log("--------- get_number_from_input ---------")
         let output_value = null, value_int = 0, value_decimal = 0, is_not_valid = false, err_msg = null;
         if(input_value === 0){
             output_value = 0;
@@ -1267,7 +1237,7 @@ function get_teamcode_abbrev(input_code, loc){
             // replace comma's with dots
             const value_with_dot = input_value.replace(/\,/g,".");
             const index_last_dot = value_with_dot.lastIndexOf(".")
-            console.log("value_with_dot: ", value_with_dot)
+            //console.log("value_with_dot: ", value_with_dot)
             // check if input has dots
             if (index_last_dot === -1){
                 // if input has no dots: convert to integer
@@ -1331,22 +1301,40 @@ function get_teamcode_abbrev(input_code, loc){
         return has_changed
     }
 
-//========= function formcontrol_err_msg  ====  PR2019-07-25
-    function formcontrol_err_msg(el_input, el_err, msg_err ) {
+//========= function formcontrol_err_msg  ====  PR2019-07-25 PR2020-04-20
+    function formcontrol_err_msg(el_input, el_err, msg_err, msg_default ) {
+        //console.log (" === formcontrol_err_msg ===")
+        //console.log ("msg_err", msg_err)
+        //console.log ("msg_default", msg_default)
+
+        //console.log ("el_err", el_err)
+        const has_msg_err = (!!msg_err)
+        if(msg_err == null) {msg_err = null} // this also catches undefined
+        if(msg_default == null) {msg_default = null}
+
         if(!!el_input){
-            if (!!msg_err){
-                el_input.classList.add("border_invalid")
-            } else {
-                el_input.classList.remove("border_invalid")
-            };
+            add_or_remove_class (el_input, "border_invalid", has_msg_err);
+            //remove focus from el_input, otherwise red norder doesn't show
+            if(has_msg_err){el_input.blur()};
         }
         if(!!el_err){
-            if (!!msg_err){
-                el_err.innerText = msg_err;
-                el_err.classList.remove("display_hide")
+// ---  when there is a default message, display default instead of hiding, remove class 'color_invalid'
+            const display_text = (has_msg_err) ? msg_err : msg_default;
+            el_err.innerText = display_text
+            if(has_msg_err){
+                //el_err.innerText = msg_err;
+                add_or_remove_class (el_err, "color_invalid", true); // add class 'color_invalid'
+                add_or_remove_class (el_err, "display_hide", false); // remove class 'display_hide'
             } else {
-                el_err.innerText = null;
-                el_err.classList.add("display_hide")
+                if(!!msg_default){
+                    //el_err.innerText = msg_default;
+                    add_or_remove_class (el_err, "color_invalid", false); // remove class 'color_invalid'
+                     add_or_remove_class (el_err, "display_hide", false); // remove class 'display_hide'
+                } else {
+                    //el_err.innerText = null
+                    add_or_remove_class (el_err, "display_hide", true); // add class 'display_hide'
+                    add_or_remove_class (el_err, "color_invalid", false); // remove class 'color_invalid'
+                }
             }
         }
     }
@@ -1377,7 +1365,7 @@ function get_teamcode_abbrev(input_code, loc){
                     el.classList.add("display_hide")
     }}}};
 
-//========= function show_hide_element  ====  PR2019-12-13
+//========= show_hide_element  ====  PR2019-12-13
     function show_hide_element(el, is_show) {
         if(!!el){
             if(is_show){
@@ -1386,7 +1374,7 @@ function get_teamcode_abbrev(input_code, loc){
                 el.classList.add("display_hide")
     }}};
 
-//========= function set_element_class  ====  PR2019-12-13
+//========= set_element_class  ====  PR2019-12-13
     function set_element_class(el_id, is_add_class, clsName) {
         if(!!el_id){
             let el = document.getElementById(el_id);
@@ -1398,12 +1386,12 @@ function get_teamcode_abbrev(input_code, loc){
         }}};
     };
 
-//========= function set_element_class  ====  PR2020-04-13
+//========= set_tblrow_error_byID  ====  PR2020-04-13
     function set_tblrow_error_byID(tr_id) {
         let tr_changed = document.getElementById(tr_id);
         set_tblrow_error(tr_changed);
     }
-//========= function set_element_class  ====  PR2020-04-13
+//========= set_tblrow_error set_element_class  ====  PR2020-04-13
     function set_tblrow_error(tr_changed) {
         const cls_error = "tsa_tr_error";
         if(!!tr_changed){
@@ -1411,3 +1399,33 @@ function get_teamcode_abbrev(input_code, loc){
             setTimeout(function (){ tr_changed.classList.remove(cls_error); }, 2000);
         }
     }
+
+//=========  set_other_datefield_minmax  ================ PR2020-04-13
+    function set_other_datefield_minmax(tblRow, fldName, tm_dict ) {
+        //console.log( "===== set_other_datefield_minmax  ========= ");
+        //console.log( "fldName: ", fldName);
+// ---  set min max of date fields
+        // use min max from tm_dict, except when other datefield has narrower value
+        let el_datefirst = tblRow.querySelector("[data-field=datefirst]");
+        let el_datelast = tblRow.querySelector("[data-field=datelast]");
+        if (fldName === "datefirst") {
+            let datefirst_value = el_datefirst.value
+            let datelast_mindate =  get_dict_value(tm_dict, ["datelast", "mindate"]);
+            if ( (!!datefirst_value) && (!datelast_mindate || datefirst_value > datelast_mindate) ) {
+                datelast_mindate = datefirst_value};
+        //console.log( "datelast_mindate: ", datelast_mindate);
+            el_datelast.min = datelast_mindate
+        //console.log( "el_datelast: ", el_datelast);
+        } else {
+            let datelast_value = el_datelast.value
+            let datefirst_maxdate = get_dict_value(tm_dict, ["datefirst", "maxdate"]);
+        //console.log( "before datefirst_maxdate: ", datefirst_maxdate );
+            if ( (!!datelast_value) && (!datefirst_maxdate || datelast_value < datefirst_maxdate) ) {
+                datefirst_maxdate = datelast_value};
+        //console.log( "after datefirst_maxdate: " , datefirst_maxdate );
+
+        //console.log( "datefirst_maxdate: ", datefirst_maxdate);
+            el_datefirst.max = datefirst_maxdate
+        //console.log( "el_datefirst: ", el_datefirst);
+        }
+    }  // set_other_datefield_minmax

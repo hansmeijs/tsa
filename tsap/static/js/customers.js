@@ -161,7 +161,7 @@ let planning_list = [] // for export and printing - can replace map?
        // let el_sel_inactive = document.getElementById("id_sel_inactive")
        //     el_sel_inactive.addEventListener("click", function() {HandleFilterInactive(el_sel_inactive)});
 
-// --- buttons in btn_container
+// --- create EventListener for buttons in btn_container
         let btns = document.getElementById("id_btn_container").children;
         for (let i = 0; i < btns.length; i++) {
             let btn = btns[i];
@@ -203,7 +203,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         let el_MSO_scheme_cycle = document.getElementById("id_MSO_scheme_cycle")
             el_MSO_scheme_cycle.addEventListener("change", function() {MSO_SchemeCycleChanged()}, false );
-        let el_modshift_datefirst = document.getElementById("id_MSO_scheme_datefirst")
+        let el_modshift_datefirst = document.getElementById("id_MSA_input_datefirst")
             el_modshift_datefirst.addEventListener("change", function() {MSO_SchemeDateChanged("datefirst")}, false );
         let el_modshift_datelast = document.getElementById("id_MSO_scheme_datelast")
             el_modshift_datelast.addEventListener("change", function() {MSO_SchemeDateChanged("datelast")}, false );
@@ -319,7 +319,6 @@ let planning_list = [] // for export and printing - can replace map?
             teammember: {datefirst: null, datelast: null, employee_nonull: false},
             employee: {inactive: null}
         };
-
         DatalistDownload(datalist_request, "DOMContentLoaded");
 
 //###########################################################################
@@ -2093,7 +2092,6 @@ let planning_list = [] // for export and printing - can replace map?
         if(!!upload_dict) {
             console.log("url_str: ", url_str );
             console.log("upload_dict: ", upload_dict);
-
             const parameters = {"upload": JSON.stringify (upload_dict)};
             let response = "";
             $.ajax({

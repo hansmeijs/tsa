@@ -437,6 +437,48 @@ color: #000;
 
 }
 
+.flexcontainer_horizontal {
+    /* PR2020-04-20 */
+    display: flex;
+
+    flex-direction: row; /* flex-direction: row | row-reverse | column | column-reverse; */
+    flex-wrap: wrap; /* flex-wrap: nowrap | wrap | wrap-reverse;  */
+    /*  flex-flow: is a shorthand flex-direction and flex-wrap <‘flex-direction’> || <‘flex-wrap’>  */
+    justify-content: between; /*center space-between; space-around PR2019-01-05 */
+    /*  align-items defines how flex items are laid out along the cross axis on the current line. */
+        align-items: stretch;   /*   align-items: stretch | flex-start | flex-end | center |  */
+    /*  align-content aligns a flex container's lines within when there is extra space in the cross-axis,   */
+    align-content: flex-start;  /* flex-start | flex-end | center | space-between | space-around | stretch; */
+
+    position:relative;
+
+    line-height: 1.15rem;
+    padding: 0px;
+    margin: 0px;
+}
+.flexcontainer_vertical {
+    display: flex;
+
+    flex-direction: column; /* flex-direction: row | row-reverse | column | column-reverse; */
+    flex-wrap: wrap; /* flex-wrap: nowrap | wrap | wrap-reverse;  */
+    /*  flex-flow: is a shorthand flex-direction and flex-wrap <‘flex-direction’> || <‘flex-wrap’>  */
+    justify-content: between; /*center space-between; space-around PR2019-01-05 */
+    /*  align-items defines how flex items are laid out along the cross axis on the current line. */
+        align-items: stretch;   /*   align-items: stretch | flex-start | flex-end | center |  */
+    /*  align-content aligns a flex container's lines within when there is extra space in the cross-axis,   */
+    align-content: flex-start;  /* flex-start | flex-end | center | space-between | space-around | stretch; */
+
+    /*position:relative;*/
+
+    line-height: 1.15rem;
+    padding: 0px;
+    margin: 0px;
+}
+
+.flexitem_1 {
+    flex: 1;
+    width: 100%;
+}
 
 /* xxxxxxxxxxxxxxxxxxx   Modal for roster xxxxxxxxxxxxxxxxxxxxxxxxxxx*/
 

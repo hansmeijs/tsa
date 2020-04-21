@@ -866,9 +866,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const url_employee_import = get_attr_from_el(el_data, "data-employee_import_url");
 
-        AddSubmenuButton(el_div, loc.Upload_employees, null, ["mx-2"], "id_submenu_employee_import", url_employee_import);
         AddSubmenuButton(el_div, loc.Add_employee, function() {HandleButtonEmployeeAdd()}, ["mx-2"], "id_submenu_employee_add")
         AddSubmenuButton(el_div, loc.Delete_employee, function() {ModConfirmOpen("delete")}, ["mx-2"], "id_submenu_employee_delete")
+        AddSubmenuButton(el_div, loc.Upload_employees, null, ["mx-2"], "id_submenu_employee_import", url_employee_import);
 
         AddSubmenuButton(el_div, loc.Print_planning,
             function() { PrintEmployeePlanning("preview", selected_planning_period, planning_map, company_dict, loc)},

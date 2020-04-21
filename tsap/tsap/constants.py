@@ -184,8 +184,14 @@ TEAMMEMBER_CAT_0512_ABSENCE = 512
 ENTRY_CAT_00_CHARGED = 0
 ENTRY_CAT_01_REFUND = 1
 ENTRY_CAT_02_PAID = 2
+ENTRY_CAT_03_BONUS = 3
 
-ENTRY_BONUS_SIGNUP = 15000  # PR2020-04-07 bonus added upon registering
+ENTRY_BONUS_SIGNUP = 25000  # PR2020-04-07 bonus added upon registering
+ENTRY_GRACE_ENTRIES = 10000  # PR2020-04-15 negative balance allowed before account is blocked
+ENTRY_VALID_MONTHS_BONUS = 3 # PR2020-04-15 months that bonus entries are valid
+ENTRY_VALID_MONTHS_PAID = 6 # PR2020-04-15 months that grace entries are valid
+ENTRY_BLOCKED_AFTER_MONTHS = 12 # PR2020-04-15 account will be removed after 12 months
+
 
 REPLACEMENT_PERIOD_DEFAULT = 14 # days
 
@@ -317,9 +323,7 @@ CAPTION_IMPORT = {LANG_EN: {'no_file': 'No file is currently selected',
                     }
 
 
-
-COLDEF_ORDER = {LANG_EN: [
-                                {'tsaKey': 'custcode', 'caption': 'Customer - Short name'},
+COLDEF_ORDER = {LANG_EN: [ {'tsaKey': 'custcode', 'caption': 'Customer - Short name'},
                                 {'tsaKey': 'custname', 'caption': 'Customer - Nname'},
                                 {'tsaKey': 'custidentifier', 'caption': 'Customer - Identifier'},
                                 # {'tsaKey': 'custcontactname', 'caption': 'Customer - Contact name'},
@@ -346,7 +350,7 @@ COLDEF_ORDER = {LANG_EN: [
                     LANG_NL: [
                                 {'tsaKey': 'custcode', 'caption': 'Klant - Korte naam'},
                                 {'tsaKey': 'custname', 'caption': 'Klant - Naam '},
-                                {'tsaKey': 'custidentifier', 'caption': 'Klant - Identificatienummer'},
+                                {'tsaKey': 'custidentifier', 'caption': 'Klant - Identificatiecode'},
                                 # {'tsaKey': 'custcontactname', 'caption': 'Klant - Contactpersoon'},
                                 # {'tsaKey': 'custaddress', 'caption': 'Klant - Adres'},
                                 # {'tsaKey': 'custzipcode', 'caption': 'Klant - Postcode'},
@@ -357,7 +361,7 @@ COLDEF_ORDER = {LANG_EN: [
 
                                 {'tsaKey': 'ordercode', 'caption': 'Locatie - Korte naam'},
                                 {'tsaKey': 'ordername', 'caption': 'Locatie - Naam'},
-                                {'tsaKey': 'orderidentifier', 'caption': 'Locatie - Identificatienummer'},
+                                {'tsaKey': 'orderidentifier', 'caption': 'Locatie - Identificatiecode'},
                                 # {'tsaKey': 'ordercontactname', 'caption': 'Locatie - Contactpersoon'},
                                 # {'tsaKey': 'orderaddress', 'caption': 'Locatie - Adres'},
                                 # {'tsaKey': 'orderzipcode', 'caption': 'Locatie - Postcode'},
@@ -371,6 +375,9 @@ COLDEF_ORDER = {LANG_EN: [
                     }
 
 FIELDS_COMPANY = ('id', 'code', 'name', 'issystem', 'timezone', 'interval', 'timeformat', 'cat', 'billable')
+
+FIELDS_COMPANYINVOICE = ('id', 'company', 'cat', 'entries', 'used', 'balance', 'entryrate',
+                         'datepayment', 'dateexpired', 'expired', 'note', 'locked')
 
 FIELDS_CUSTOMER = ('id', 'company', 'cat', 'isabsence', 'istemplate', 'code', 'name', 'identifier',
                     'contactname', 'address', 'zipcode', 'city', 'country',
@@ -391,12 +398,13 @@ FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
                    'plannedduration', 'billingduration',
                    'wagerate', 'wagefactor', 'wage',
                    'pricerate', 'additionrate', 'taxrate', 'amount', 'addition', 'tax',
+                   'confirmstart', 'confirmend', # confirmstart and confirmend are not model fields
                    'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked')
 
 FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',
                  'code', 'datefirst', 'datelast',
-                 'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday',
-                 'pricecode', 'additioncode', 'taxcode' , 'inactive')
+                 'cycle', 'billable', 'excludecompanyholiday', 'excludepublicholiday', 'alsoonpublicholiday',
+                 'pricecode', 'additioncode', 'taxcode', 'inactive')
 
 
 FIELDS_SHIFT = ('id', 'scheme', 'code', 'cat', 'isrestshift', 'istemplate', 'billable',

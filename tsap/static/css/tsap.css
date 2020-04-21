@@ -194,7 +194,10 @@ h4 h5 {
 .z_index_1099 {
     z-index: 1099;
 }
-
+/* for mod confirm PR2020-04-21 */
+.z_index_2099 {
+    z-index: 2099;
+}
 /* ============== mtp-modal ================= PR2020-04-13 */
 .mtp_modal {
   /*background-color: rgba(0,0,0,0.02); /* Transparent dimmed overlay */

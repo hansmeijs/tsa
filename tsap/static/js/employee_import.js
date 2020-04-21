@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---  set selected menu button active
     const cls_active = "active";
     const cls_hover = "tr_hover";
-    const cls_selected = "c_table_stud_thead_td_selected";
+    const cls_selected = "c_table_stud_thead_td_selectedXX";
 
     const cls_colExcelTsa_tr = "c_colExcelTsa_tr";
     const cls_columns_header = "c_columns_header";
@@ -896,8 +896,6 @@ console.log("==== CreateMapTableWrap  =========> ", tableBase);
                     JustLinkedTsaId, JustUnlinkedTsaId, JustUnlinkedExcId) {
 
     //console.log("==== CreateMapTableRows  =========>> ", tableBase);
-        //const cae_hl = "c_colTsaExcel_highlighted";
-        //const cli_hi = "c_colLinked_highlighted";
 
         const Xid_exc_tbody = "#id_exc_tbody_" + tableBase;
         const Xid_tsa_tbody = "#id_tsa_tbody_" + tableBase;

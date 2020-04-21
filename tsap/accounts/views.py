@@ -23,16 +23,7 @@ from django.contrib.auth.forms import SetPasswordForm # PR2018-10-14
 from django.views.decorators.debug import sensitive_post_parameters # PR2018-10-14
 from django.views.decorators.csrf import csrf_protect # PR2018-10-14
 from django.contrib.auth import update_session_auth_hash # PR2018-10-14
-from django.views.decorators.cache import never_cache # PR2018-10-14
 from django.contrib.auth import login, authenticate  # PR2020-03-27
-from django.contrib.auth.forms import UserCreationForm  # PR2020-03-27
-
-from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth.hashers import make_password
-
-
-
-
 
 from datetime import datetime
 import pytz
@@ -666,7 +657,7 @@ class TransactionImportConfirmView(FormView):
 class SignupView(View):
     #  SignupView is called when clicked on the 'signup' button in the menu.
     # it returns the signup page
-    # if user.is_authenticated: reurn to home page with error message
+    # if user.is_authenticated: return to home page with error message
     def get(self, request):
         logger.debug(' ========== SignupView ===============')
         logger.debug('request: ' + str(request))
@@ -705,12 +696,17 @@ class SignupUploadView(View):
 
 # - check if this company already exists
             has_error = False
-            companycode = f.get_dict_value(upload_dict, ('companycode', 'value'))
-            msg_err = v.validate_unique_company_code(value=companycode, cur_company_id=None)
+            company_code = f.get_dict_value(upload_dict, ('companycode', 'value'))
+            msg_err = v.validate_unique_company_code(value=company_code, cur_company_id=None)
             if msg_err:
                 err_dict['companycode'] = msg_err
                 has_error = True
             # TODO maybe this company is created but not activated, check for it
+
+# - get company name
+            company_name = f.get_dict_value(upload_dict, ('companyname', 'value'))
+            if company_name is None:
+                company_name = company_code
 
 # - check if this email address already exists
             email = f.get_dict_value(upload_dict, ('email', 'value'))
@@ -729,8 +725,8 @@ class SignupUploadView(View):
             if not has_error:
                 # check if there is already a not-activated compny with this name. If so: use
                 # create new company.
-                new_company = m.Company(code=companycode,
-                                    name=companycode,
+                new_company = m.Company(code=company_code,
+                                    name=company_name,
                                     issystem=False,
                                     locked=False,
                                     inactive=False,
@@ -888,26 +884,14 @@ def SignupActivateView(request, uidb64, token):
                     update_wrap['msg_03'] = _('You are now logged in to TSA-secure.')
 
 # - add bonus to Companyinvoice
-         # a. get today in comp_timezone
-                # bonus is half year valid. Create date half year from today
-                today = f.get_today_dateobj()
-                today_plus_halfyear = f.add_months_to_date(today, 6)
-
-                msg = _('Registration bonus')
-                bonus = m.Companyinvoice(
-                    company=company,
-                    cat=c.ENTRY_CAT_02_PAID,
+                comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
+                m.entry_balance_add(
+                    request=request,
                     entries=c.ENTRY_BONUS_SIGNUP,
-                    used=0,
-                    balance=c.ENTRY_BONUS_SIGNUP,
-                    entryrate=150,
-                    datepayment=today,
-                    dateexpired=today_plus_halfyear,
-                    expired=False,
-                    note=msg
+                    valid_months=c.ENTRY_VALID_MONTHS_BONUS,
+                    note=_('Registration bonus'),
+                    comp_timezone=comp_timezone
                 )
-                bonus.save(request=request)
-
     else:
         form = SetPasswordForm(user)
 

@@ -81,6 +81,12 @@ a:focus {
     /*background: #6d7fcc;   kind of pale blue */
     background-color: #a5a5a5; /* medium grey; 165 165 165*/
 }
+.tsa_sidebar .sidebar_btngroup {
+    padding: 20px 0px 12px 0px;  /* top, right, bottom, left:
+    /*background: #6d7fcc;   kind of pale blue */
+    background-color: #a5a5a5; /* medium grey; 165 165 165*/
+}
+
 .tsa_sidebar .sidebar_filter {
     /*padding: 20px 12px 12px 12px;;  /* top, right, bottom, left:*/
     padding: .5rem; /* mx-2 my-2 = 0.5rem (8px if font-size is 16px)*/

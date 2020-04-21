@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("url_str: ", url_str);
 
         const upload_dict = {lang: {value: user_lang},
-                            companycode: {value: el_input_companycode.value},
+                             companycode: {value: el_input_companycode.value},
                              companyname: {value: el_input_companyname.value},
                              username: {value: el_input_username.value},
                              email: {value: el_input_email.value}

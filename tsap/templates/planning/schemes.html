@@ -64,67 +64,9 @@
             <span class="popuptext" id="id_msgbox"></span>
         </div>
 
-<!-- =================== MODAL SCHEME  =================== -->
-    <div class="modal fade" id="id_mod_scheme" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-md " role="document">
-            <div class="modal-content">
-                <div class="modal-header tsa_bc_lightlightgrey">
-                    <h4 id="id_mod_scheme_header" class="modal-title mx-2" >{% trans 'Add new scheme' %}</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
+<!-- =================== MODAL SCHEME ADD  =================== -->
+        {% include 'includes/modschemeadd.html' %}
 
-                <div  id="id_mod_scheme_body" class="modal-body">
-                    <div class="modal_container">
-
-<!-- modal_body_left contains template select table -->
-                        <div class="modal_body_left">
-                            <div class="mod_flex mx-2 my-2">
-
-                                <div id="id_mod_scheme_div_customer_order" class="form-group">
-                                    <label for="id_mod_scheme_customer" class="mx-2 my-2">{% trans 'Customer' %}:</label>
-                                    <select id="id_mod_scheme_customer" class="form-control"></select>
-                                    <small id="id_mod_scheme_customer_err" class="color_invalid mx-2 display_hide"></small>
-
-                                    <label for="id_mod_scheme_order" class="mx-2 my-2">{% trans 'Order' %}:</label>
-                                    <select id="id_mod_scheme_order" class="form-control"></select>
-                                    <small id="id_mod_scheme_order_err" class="color_invalid mx-2 display_hide"></small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="id_mod_scheme_code" class="mx-2 my-2">{% trans 'Scheme' %}:</label>
-                                    <input id="id_mod_scheme_code" type="text"
-                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                                        class="form-control"
-                                        placeholder="{% trans 'Enter scheme name...' %}"
-                                    >
-                                    <small id="id_mod_scheme_code_err" class="color_invalid mx-2 display_hide"></small>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="id_mod_scheme_cycle" class="mx-2 my-2">{% trans 'Cycle days' %}:</label>
-                                    <input id="id_mod_scheme_cycle" type="number" min="1" max="28"
-                                        autocomplete="off" ondragstart="return false;" ondrop="return false;"
-                                        class="form-control">
-                                    <div><small class="mx-2">{% trans 'Enter the length of the cycle in days, enter zero for once-only.' %}</small></div>
-                                    <div><small id="id_mod_scheme_cycle_err" class="color_invalid mx-2 display_hide"></small></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer ">
-                    <div id="id_mod_scheme_msg" class="mod_flex modal_body_left tsa_color_red mx-2"></div>
-                    <div>
-                        <button type="button"  class="btn btn-secondary" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                        <button id="id_mod_scheme_btn_save" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-<!-- =================== END MODAL SCHEME =================== -->
 <!-- =================== MODAL COPYFROM TEMPLATE  =================== -->
     <div class="modal fade" id="id_mod_copyfrom" tabindex="-1" role="dialog" aria-labelledby="id_modal_cont_label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md" role="document">
@@ -266,7 +208,7 @@
     <!-- end BUTTON GROUP -->
 
         </div>
-        <!-- END box with scheme input elements -->
+<!-- END box with scheme input elements -->
 
         <!-- end class content_subheader mt-5 -->
         <!-- class content body mx-2 -->
@@ -362,47 +304,63 @@
                     <tfoot id="id_tfoot_teammember"></tfoot>
                 </table>
             </div>
+
 <!-- =================== DATA FORM  =================== -->
-            <div id="id_div_data_form" data-mode="btn_scheme" class=" content_header tsa_bc_lightlightgrey display_hide m-4 p-4">
-                <div class=" content_header">
-                    <div class="content_subheader_left mx-1">
+            <div id="id_div_data_form" data-mode="btn_scheme"  class="tsa_bc_lightlightgrey display_hide m-4 p-4">
+                <div class="modal_flexcontainer">
+                    <div class="modal_flex1 px-2">
                         <label for="id_scheme_code" class="tsa_margin_form_label">{% trans 'Scheme name' %}:</label>
                         <input id="id_scheme_code" type="text" data-table="scheme" data-field="code"
                             autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                class="form-control frm_input px-2">
+                        <div><small id="id_scheme_msg_code" class="mx-2"></small></div>
                     </div>
-                    <div class="content_subheader_left mx-1">
+                    <div class="modal_flex1 px-2">
                         <label for="id_scheme_cycle" class="tsa_margin_form_label">{% trans 'Cycle length' %}:</label>
                         <input id="id_scheme_cycle" type="number" min="1" max="28" data-table="scheme" data-field="cycle"
                             autocomplete="off" ondragstart="return false;" ondrop="return false;"
                                class="form-control frm_input px-2">
+                        <div><small id="id_scheme_msg_cycle" class="mx-2"></small></div>
                     </div>
                 </div>
-                <div class=" content_header">
-                    <div class="content_subheader_left mx-1">
-                        <label for="id_scheme_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
+
+                <div class="modal_flexcontainer">
+                    <div class="modal_flex1 px-2">
+                                                <label for="id_scheme_datefirst" class="tsa_margin_form_label">{% trans 'Start date' %}:</label>
                         <input id="id_scheme_datefirst" type="date" data-field= "code"
                         autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control frm_input">
                     </div>
-                    <div class="content_subheader_left mx-1">
-                        <label for="id_scheme_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
+                    <div class="modal_flex1 px-2">
+                       <label for="id_scheme_datelast" class="tsa_margin_form_label">{% trans 'End date' %}:</label>
                         <input id="id_scheme_datelast" type="date" data-field="namelast"
                         autocomplete="off" ondragstart="return false;" ondrop="return false;" class="form-control frm_input">
                     </div>
                 </div>
-                <div class=" content_header">
-                    <div class="content_subheader_left mx-1 mt-4">
-                        <input id="id_scheme_excludepublicholiday" type="checkbox" class="frm_input td_width_032">
-                        <label for="id_scheme_excludepublicholiday" class="mt-1">{% trans 'Not on holidays' %}</label>
-
-                        <input id="id_scheme_excludecompanyholiday" type="checkbox" class="frm_input td_width_032">
+                <div class="modal_flexcontainer pt-3">
+                    <div class="modal_flex1 px-2">
+                        <input id="id_scheme_excludepublicholiday" type="checkbox" data-field="excludepublicholiday" class="frm_input td_width_032 ">
+                        <label for="id_scheme_excludepublicholiday" class="mt-1">{% trans 'Not on public holidays' %}</label>
+                    </div>
+                    <div class="modal_flex1 px-2 display_hide">
+                         <input id="id_scheme_excludecompanyholiday" type="checkbox" data-field="excludecompanyholiday" class="frm_input td_width_032">
                         <label for="id_scheme_excludecompanyholiday" class="mt-1">{% trans 'Not on company holidays' %}</label>
                     </div>
                 </div>
+                <div class="modal_flexcontainer display_hide">
+                    <div class="modal_flex1 px-2">
+                        <input id="id_scheme_alsoonpublicholiday" type="checkbox" data-field="alsoonpublicholiday" class="frm_input td_width_032 ">
+                        <label for="id_scheme_alsoonpublicholiday" class="mt-1">{% trans 'Divergent shift on public holidays' %}</label>
+                    </div>
+                    <div class="modal_flex1 px-2">
+                    </div>
+                </div>
+
             </div>
 
+
+
         </div>
-<!--</div> flex_container -->
+<!-- flex_container -->
 
         <div id="id_data"
             data-datalist_download_url="{% url 'datalist_download_url' %}"

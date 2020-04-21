@@ -529,6 +529,7 @@ class Employee(TsaBaseModel):
     email = CharField(db_index=True, max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     telephone = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
     identifier = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
+    payrollcode = CharField(db_index=True, max_length=c.CODE_MAX_LENGTH, null=True, blank=True)
 
     address = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
     zipcode = CharField(max_length=c.NAME_MAX_LENGTH, null=True, blank=True)
@@ -602,7 +603,7 @@ class Teammember(TsaBaseModel):
 
     @classmethod
     def get_first_teammember_on_rosterdate(cls, team, rosterdate_dte):
-        # logger.debug("------ get_first_teammember_on_rosterdate---" + str(rosterdate_dte))
+        #logger.debug("------ get_first_teammember_on_rosterdate---" + str(rosterdate_dte))
 
         teammember = None
         if team and rosterdate_dte:
@@ -613,7 +614,7 @@ class Teammember(TsaBaseModel):
                    (Q(employee__datelast__gte=rosterdate_dte) | Q(employee__datelast__isnull=True)) & \
                    (Q(datefirst__lte=rosterdate_dte) | Q(datefirst__isnull=True)) & \
                    (Q(datelast__gte=rosterdate_dte) | Q(datelast__isnull=True))
-            # logger.debug(teammembers.query)
+            #logger.debug(teammembers.query)
                 # WHERE ("companies_teammember"."team_id" = 13
                 # AND "companies_teammember"."employee_id" IS NOT NULL
                 # AND ("companies_employee"."datefirst" <= 2019-08-14 OR "companies_employee"."datefirst" IS NULL)
@@ -663,44 +664,44 @@ class Schemeitem(TsaBaseModel):
 
     def get_rosterdate_within_cycle(self, new_rosterdate_dte):
         # function returns a new_si_rosterdate of this schemeitem, that falls within the cycle of new_rosterdate PR2019-08-17
-        # logger.debug(' --- get_rosterdate_within_cycle --- ' + str(new_rosterdate_dte) + str(type(new_rosterdate_dte)))
+        #logger.debug(' --- get_rosterdate_within_cycle --- ' + str(new_rosterdate_dte) + str(type(new_rosterdate_dte)))
 
         new_si_rosterdate_naive = None
 
         if new_rosterdate_dte:
             si_rosterdate_naive = f.get_datetime_naive_from_dateobject(self.rosterdate)
             new_rosterdate_naive = f.get_datetime_naive_from_dateobject(new_rosterdate_dte)
-            # logger.debug('si_rosterdate_naive: ' + str(si_rosterdate_naive) + ' ' + str(type(si_rosterdate_naive)))
-            # logger.debug('new_rosterdate_naive: ' + str(new_rosterdate_naive) + ' ' + str(type(new_rosterdate_naive)))
+            #logger.debug('si_rosterdate_naive: ' + str(si_rosterdate_naive) + ' ' + str(type(si_rosterdate_naive)))
+            #logger.debug('new_rosterdate_naive: ' + str(new_rosterdate_naive) + ' ' + str(type(new_rosterdate_naive)))
 
             datediff = si_rosterdate_naive - new_rosterdate_naive  # datediff is class 'datetime.timedelta'
             datediff_days = datediff.days  # <class 'int'>
-            # logger.debug('datediff_days: ' + str(datediff_days))
+            #logger.debug('datediff_days: ' + str(datediff_days))
 
             if datediff_days == 0:
                 new_si_rosterdate_naive = si_rosterdate_naive
             else:
                 scheme = Scheme.objects.get_or_none(pk=self.scheme.id)
                 if scheme:
-                    # logger.debug('scheme: ' + str(scheme.code))
+                    #logger.debug('scheme: ' + str(scheme.code))
                     # skip if cycle = 0 (once-only)
                     if scheme.cycle:
                         cycle_int = scheme.cycle
-                        # logger.debug('cycle_int: ' + str(cycle_int))
+                        #logger.debug('cycle_int: ' + str(cycle_int))
 
                         # cycle starting with new_rosterdate has index 0, previous cycle has index -1, next cycle has index 1 etc
                         # // operator: Floor division - division that results into whole number adjusted to the left in the number line
                         index = datediff_days // cycle_int
-                        # logger.debug('index: ' + str(index) + ' ' + str(type(index)))
+                        #logger.debug('index: ' + str(index) + ' ' + str(type(index)))
                         # adjust si_rosterdate when index <> 0
                         if index == 0:
                             new_si_rosterdate_naive = si_rosterdate_naive
                         else:
                             # negative index adds positive day and vice versa
                             days_add = cycle_int * index * -1
-                            # logger.debug('days_add: ' + str(days_add) + ' ' + str(type(days_add)))
+                            #logger.debug('days_add: ' + str(days_add) + ' ' + str(type(days_add)))
                             new_si_rosterdate_naive = si_rosterdate_naive + timedelta(days=days_add)
-        # logger.debug('new_si_rosterdate_naive: ' + str(new_si_rosterdate_naive) + ' ' + str(type(new_si_rosterdate_naive)))
+        #logger.debug('new_si_rosterdate_naive: ' + str(new_si_rosterdate_naive) + ' ' + str(type(new_si_rosterdate_naive)))
         # new_si_rosterdate_naive: 2019-08-29 00:00:00 <class 'datetime.datetime'>
         return new_si_rosterdate_naive
 
@@ -919,7 +920,7 @@ class Companysetting(Model):  # PR2019-03-09
     @classmethod
     def get_jsonsetting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17
         # function returns value of jsonsetting row that match the filter
-        # logger.debug('---  get jsonsetting  ------- ')
+        #logger.debug('---  get jsonsetting  ------- ')
         setting = None
         if company and key_str:
             row = cls.objects.get_or_none(company=company, key=key_str)
@@ -933,9 +934,9 @@ class Companysetting(Model):  # PR2019-03-09
 
     @classmethod
     def set_jsonsetting(cls, key_str, jsonsetting, company): #PR2019-03-09
-        # logger.debug('---  set_jsonsettingg  ------- ')
-        # logger.debug('key_str: ' + str(key_str) + ' jsonsetting: ' + str(jsonsetting))
-        # get
+        #logger.debug('---  set_jsonsettingg  ------- ')
+        #logger.debug('key_str: ' + str(key_str) + ' jsonsetting: ' + str(jsonsetting))
+
         if company and key_str:
             # don't use get_or_none, gives none when multiple settings exists and will create extra setting.
             row = cls.objects.filter(company=company, key=key_str).first()
@@ -945,12 +946,12 @@ class Companysetting(Model):  # PR2019-03-09
                 if jsonsetting:
                     row = cls(company=company, key=key_str, jsonsetting=jsonsetting)
             row.save()
-        # logger.debug('row.jsonsetting: ' + str(row.jsonsetting))
+            #logger.debug('row.jsonsetting: ' + str(row.jsonsetting))
 
     @classmethod
     def get_setting(cls, key_str, company, default_setting=None): # PR2019-03-09 PR2019-08-17
         # function returns value of setting row that match the filter
-        # logger.debug('---  get_setting  ------- ')
+        #logger.debug('---  get_setting  ------- ')
         setting = None
         if company and key_str:
             row = cls.objects.get_or_none(company=company, key=key_str)
@@ -964,8 +965,8 @@ class Companysetting(Model):  # PR2019-03-09
 
     @classmethod
     def set_setting(cls, key_str, setting, company): #PR2019-03-09
-        # logger.debug('---  set_setting  ------- ')
-        # logger.debug('key_str: ' + str(key_str) + ' setting: ' + str(setting))
+        #logger.debug('---  set_setting  ------- ')
+        #logger.debug('key_str: ' + str(key_str) + ' setting: ' + str(setting))
         # get
         if company and key_str:
             # don't use get_or_none, gives none when multiple settings exists and will create extra setting.
@@ -977,47 +978,64 @@ class Companysetting(Model):  # PR2019-03-09
                     row = cls(company=company, key=key_str, setting=setting)
             row.save()
 
-        # logger.debug('row.setting: ' + str(row.setting))
+        #logger.debug('row.setting: ' + str(row.setting))
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # company entries
 
-# - add duration_sum to Companyinvoice
-def add_duration_to_companyinvoice(rosterdate_dte, duration_sum, is_subtract, request, comp_timezone):  # PR2020-04-07
-    logger.debug('===========  add_duration_to_companyinvoice  ==================== ')
-    logger.debug('duration_sum: ' + str(duration_sum))
-    logger.debug('is_subtract: ' + str(is_subtract))
+
+# =====  add_duration_to_companyinvoice  =====
+def add_duration_to_companyinvoice(rosterdate_dte, duration_sum, is_subtract, request, comp_timezone, user_lang):  # PR2020-04-07
+    #logger.debug('===========  add_duration_to_companyinvoice  ==================== ')
+    #logger.debug('duration_sum: ' + str(duration_sum))
+    #logger.debug('is_subtract: ' + str(is_subtract))
     if duration_sum:
-        msg = None
+        # date_formatted = f.format_date_element(rosterdate_dte, user_lang, True, False, True,  True, False, True)
+        msg = _('Roster removed') if is_subtract else _('Roster created')
+        duration_hours_rounded = int(0.5 + duration_sum / 60)
         if is_subtract:
-            duration_sum = duration_sum * -1
-            msg = _('Roster of %(fld)s removed.') % {'fld': rosterdate_dte.isoformat()}
-        else:
-            msg = _('Roster of %(fld)s added.') % {'fld': rosterdate_dte.isoformat()}
-        company = request.user.company
-        entry_rate = company.entryrate
-        entry = Companyinvoice(
-            company=request.user.company,
-            cat=c.ENTRY_CAT_00_CHARGED,
-            entries=duration_sum,
-            used=duration_sum,
-            balance=0,
-            entryrate=entry_rate,
-            datepayment=rosterdate_dte,
-            dateexpired=None,
-            expired=False,
-            note=msg
-        )
-        entry.save(request=request)
+
+# get today in comp_timezone
+            timezone = pytz.timezone(comp_timezone)
+            today_dte = datetime.now(timezone).date()
+            time_delta = today_dte - rosterdate_dte
+            # rosterdate_dte: 2020-04-21 <class 'datetime.date'>
+            # today_dte: 2020-04-16 <class 'datetime.date'>
+            # datediff: -5 days, 0:00:00 <class 'datetime.timedelta'>
+            days_diff = time_delta.days
+# - only subtract when roster is deleted before the actual rosterdate
+            # - to prevent smart guys to delete roster after the actual date and so deduct entries
+            if days_diff < 0:
+                duration_hours_rounded = duration_hours_rounded * -1
+            else:
+                duration_hours_rounded = 0
+
+        if duration_hours_rounded:
+            company = request.user.company
+            entry_rate = company.entryrate
+            entry = Companyinvoice(
+                company=request.user.company,
+                cat=c.ENTRY_CAT_00_CHARGED,
+                entries=0,
+                used=duration_hours_rounded,
+                balance=0,
+                entryrate=entry_rate,
+                datepayment=rosterdate_dte,
+                dateexpired=None,
+                expired=False,
+                note=msg
+            )
+            entry.save(request=request)
 
 # subtract entries from balance
-        entry_balance_subtract(duration_sum, request, comp_timezone)
+            entry_balance_subtract(duration_sum, request, comp_timezone)
+# =====  end of add_duration_to_companyinvoice
 
 # ===========  get_entry_balance
 def get_entry_balance(request, comp_timezone):  # PR2019-08-01 PR2020-04-08
     # function returns avalable balance: sum of balance of paid and refund records
     # balance will be set to 0 when expired, no need to filter for expiration date
-    logger.debug('---  get_entry_balance  ------- ')
+    #logger.debug('---  get_entry_balance  ------- ')
 
     balance = 0
     if request.user.company:
@@ -1035,10 +1053,39 @@ def get_entry_balance(request, comp_timezone):  # PR2019-08-01 PR2020-04-08
     return balance
 
 
-def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # PR2019-08-04  PR2020-04-08
+def entry_balance_add(request, entries, valid_months, note, comp_timezone, entryrate=0, entrydate=None):  # PR2020-04-15
     # function subtracts entries from balance: refund first, then paid: oldest expiration date first
-    logger.debug('-------------  entry_balance_subtract  ----------------- ')
-    logger.debug('entries_tobe_subtracted ' + str(entries_tobe_subtracted))
+    #logger.debug('-------------  entry_balance_add  ----------------- ')
+
+# - add entry_balance to Companyinvoice
+
+# -. get entrydate = today when blank
+    if entrydate is None:
+        # a. get today in comp_timezone
+        timezone = pytz.timezone(comp_timezone)
+        entrydate = datetime.now(timezone).date()
+
+# - add valid_months to entrydate > dateexpired
+    entrydate_plus_valid_months = f.add_months_to_date(entrydate, valid_months)
+
+    companyinvoice = Companyinvoice(
+        company=request.user.company,
+        cat=c.ENTRY_CAT_03_BONUS,
+        entries=entries,
+        used=0,
+        balance=entries,
+        entryrate=entryrate,
+        datepayment=entrydate,
+        dateexpired=entrydate_plus_valid_months,
+        expired=False,
+        note=note
+    )
+    companyinvoice.save(request=request)
+
+def entry_balance_subtract(duration_sum, request, comp_timezone):  # PR2019-08-04  PR2020-04-08
+    # function subtracts entries from balance: refund first, then paid: oldest expiration date first
+    #logger.debug('-------------  entry_balance_subtract  ----------------- ')
+    #logger.debug('duration_sum ' + str(duration_sum))
 
     if request.user.company:
  # a. get today in comp_timezone
@@ -1046,10 +1093,12 @@ def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # 
         today = datetime.now(timezone).date()
         # datetime.now(timezone): 2019-08-01 21:24:20.898315+02:00 <class 'datetime.datetime'>
         # today:2019-08-01 <class 'datetime.date'>
-        logger.debug('today: ' + str(today) + ' ' + str(type(today)))
+        #logger.debug('today: ' + str(today) + ' ' + str(type(today)))
 
-        subtotal = entries_tobe_subtracted
+        # subtotal is the entries to be subtracted
+        subtotal = int(0.5 + duration_sum / 60)
         if subtotal > 0:
+            # first deduct from categry refurnd, then cat paid, order by expiration date
             crit = Q(company=request.user.company) & \
                    (Q(cat=c.ENTRY_CAT_01_REFUND) | Q(cat=c.ENTRY_CAT_02_PAID))
             invoices = Companyinvoice.objects.filter(crit).order_by('cat', 'dateexpired')
@@ -1057,7 +1106,7 @@ def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # 
             save_changes = False
             for invoice in invoices:
 # - check if invoice is expired. If so: et expired=True and balance=0
-                logger.debug('invoice: ' + str(invoice) + ' ' + str(type(invoice)))
+                #logger.debug('invoice: ' + str(invoice) + ' ' + str(type(invoice)))
                 if invoice.dateexpired and invoice.dateexpired < today:
                     invoice.expired = True
                     invoice.balance = 0
@@ -1073,33 +1122,33 @@ def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # 
                         if saved_balance:
                             # subtract subtotal from balance, but never more than balance
                             subtract = subtotal if saved_balance >= subtotal else saved_balance
-                            logger.debug('subtract: ' + str(subtract) + ' ' + str(type(subtract)))
+                            #logger.debug('subtract: ' + str(subtract) + ' ' + str(type(subtract)))
                             invoice.balance = saved_balance - subtract
                             invoice.used = saved_used + subtract
                             subtotal = subtotal - subtract
                             save_changes = True
-                            logger.debug('invoice.balance ' + str(invoice.balance))
+                            #logger.debug('invoice.balance ' + str(invoice.balance))
                 if save_changes:
                     invoice.save(request=request)
 
 # - if any entries left: subtract from refund (will be negative). Create refund record if not exists
 # - if subtotal is negative it is a refund. Entries will be added to ENTRY_CAT_REFUND
         if subtotal:
-            logger.debug('subtotal: ' + str(subtotal) + ' ' + str(type(subtotal)))
+            #logger.debug('subtotal: ' + str(subtotal) + ' ' + str(type(subtotal)))
             refund_row = Companyinvoice.objects.filter(
                 company=request.user.company,
                 cat=c.ENTRY_CAT_01_REFUND).first()
-            logger.debug('refund_row: ' + str(refund_row) + ' ' + str(type(refund_row)))
+            #logger.debug('refund_row: ' + str(refund_row) + ' ' + str(type(refund_row)))
             if refund_row:
                 saved_entries = getattr(refund_row, 'entries', 0)
                 refund_row.entries = saved_entries - subtotal
                 refund_row.used = saved_entries - subtotal
                 refund_row.datepayment = today
                 refund_row.save(request=request)
-                logger.debug('saved_entries: ' + str(saved_entries) + ' ' + str(type(saved_entries)))
+                #logger.debug('saved_entries: ' + str(saved_entries) + ' ' + str(type(saved_entries)))
             else:
                 subtotal_negative = subtotal * -1
-                logger.debug('subtotal_negative: ' + str(subtotal_negative) + ' ' + str(type(subtotal_negative)))
+                #logger.debug('subtotal_negative: ' + str(subtotal_negative) + ' ' + str(type(subtotal_negative)))
                 refund_row = Companyinvoice(
                             company=request.user.company,
                             cat=c.ENTRY_CAT_01_REFUND,
@@ -1113,9 +1162,9 @@ def entry_balance_subtract(entries_tobe_subtracted, request, comp_timezone):  # 
                             note=None
                         )
                 refund_row.save(request=request)
-                logger.debug('refund_row.save: ' + str(refund_row) + ' ' + str(type(refund_row)))
+                #logger.debug('refund_row.save: ' + str(refund_row) + ' ' + str(type(refund_row)))
 
-            logger.debug('refund_row.entries: ' + str(refund_row.entries) + ' ' + str(type(refund_row.entries)))
+            #logger.debug('refund_row.entries: ' + str(refund_row.entries) + ' ' + str(type(refund_row.entries)))
 
 def create_invoice(request, cat, entries=0, entryrate=0, datepayment=None, dateexpired=None, note=None):  # PR2019-08-05
     invoice = None
@@ -1140,9 +1189,9 @@ def create_invoice(request, cat, entries=0, entryrate=0, datepayment=None, datee
 def get_parent(table, ppk_int, update_dict, request):
     # function checks if parent exists, writes 'parent_pk' and 'table' in update_dict['id'] PR2019-07-30
     parent = None
-    # logger.debug(' --- get_parent --- ')
+    #logger.debug(' --- get_parent --- ')
 
-    # logger.debug('table: ' + str(table))
+    #logger.debug('table: ' + str(table))
     if table:
         if request.user.company:
             company = request.user.company
@@ -1171,7 +1220,7 @@ def get_parent(table, ppk_int, update_dict, request):
 
 def get_instance(table, pk_int, parent, update_dict=None):
     # function returns instance of table PR2019-07-30
-    # logger.debug('====== get_instance: ' + str(table) + ' pk_int: ' + str(pk_int) + ' parent: ' + str(parent))
+    #logger.debug('====== get_instance: ' + str(table) + ' pk_int: ' + str(pk_int) + ' parent: ' + str(parent))
 
     instance = None
 
