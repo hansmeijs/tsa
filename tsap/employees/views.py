@@ -261,8 +261,8 @@ class EmployeeUploadView(UpdateView):  # PR2019-07-30
 class TeammemberUploadView(UpdateView):  # PR2019-12-06
     # this function is called bij employee.js, customer.js and scheme.js
     def post(self, request, *args, **kwargs):
-        #logger.debug('  ')
-        #logger.debug(' ===================== TeammemberUploadView ===================== ')
+        logger.debug('  ')
+        logger.debug(' ===================== TeammemberUploadView ===================== ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -280,7 +280,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
             upload_json = request.POST.get("upload")
             if upload_json:
                 upload_dict = json.loads(upload_json)
-                #logger.debug('upload_dict: ' + str(upload_dict))
+                logger.debug('upload_dict: ' + str(upload_dict))
 
 # 3. save quicksave
             # quicksave is saved in UploadUserSettings
@@ -297,7 +297,7 @@ class TeammemberUploadView(UpdateView):  # PR2019-12-06
 
                 update_dict = {}
                 if shift_option in ('issingleshift', 'isabsence'):
-                    #logger.debug('------------ shift_option: ' + str(shift_option))
+                    logger.debug('------------ shift_option: ' + str(shift_option))
                     # called by employee page, calendar
                     calendar_dictlist, logfile = calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, timeformat, user_lang)
 
@@ -864,8 +864,8 @@ def calendar_order_upload(request, upload_dict, comp_timezone, timeformat, user_
 # 'schemeitems_list': [ {'id': {'pk': 'new8', 'ppk': 'new4', 'table': 'schemeitem', 'mode': 'create', 'shiftoption': 'isabsence'},
 #                       'onpublicholiday': True, 'rosterdate': {'value': '2020-04-06'}, 'team': {'pk': 'new5'}, 'shift': {'pk': 'new6'}}]}
 def calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, timeformat, user_lang): # PR2019-12-06
-    #logger.debug(' ')
-    #logger.debug('============= calendar_employee_upload ============= ')
+    logger.debug(' ')
+    logger.debug('============= calendar_employee_upload ============= ')
     #logger.debug('upload_dict: ' + str(upload_dict))
     # this function is called by TeammemberUploadView option 'issingleshift', 'isabsence', 'schemeshift'
 
@@ -928,8 +928,8 @@ def calendar_employee_upload(shift_option, request, upload_dict, comp_timezone, 
 
 
 def update_scheme_shift_team_tm_si(upload_dict, user_lang, request): # PR2020-04-06
-    #logger.debug(' ')
-    #logger.debug('############### update_scheme_shift_team_tm_si ###############  ')
+    logger.debug(' ')
+    logger.debug('=========== update_scheme_shift_team_tm_si ==========  ')
     #logger.debug('upload_dict: ' + str(upload_dict))
     # this function is called by TeammemberUploadView option 'issingleshift', 'isabsence', 'schemeshift'
 
@@ -941,25 +941,25 @@ def update_scheme_shift_team_tm_si(upload_dict, user_lang, request): # PR2020-04
             customer__company=request.user.company,
             pk=order_pk
         )
-    #logger.debug('order: ' + str(order))
+    logger.debug('order: ' + str(order))
 
     if order:
 # - update scheme from upload_dict
         # only one scheme is used, mapped_schemepk_dict is necessary when it is a new scheme
         scheme_dict = upload_dict.get('scheme')
         scheme, mapped_schemepk_dict = update_instance_from_item_dict('scheme', scheme_dict, order, user_lang, request)
-        #logger.debug('scheme: ' + str(scheme))
+        logger.debug('scheme: ' + str(scheme))
 
         if scheme:
 # - update shifts from upload_dict
             shifts_list = upload_dict.get('shifts_list')
             mapped_shiftpk_dict = update_shifts_from_uploaddict(shifts_list, mapped_schemepk_dict, scheme, user_lang, request)
-            #logger.debug('mapped_shiftpk_dict: ' + str(mapped_shiftpk_dict))
+            logger.debug('mapped_shiftpk_dict: ' + str(mapped_shiftpk_dict))
 
 # - update teams from upload_dict
             teams_list = upload_dict.get('teams_list')
             mapped_teampk_dict = update_teams_from_uploaddict(teams_list, mapped_schemepk_dict, scheme, user_lang, request)
-            #logger.debug('mapped_teampk_dict: ' + str(mapped_teampk_dict))
+            logger.debug('mapped_teampk_dict: ' + str(mapped_teampk_dict))
 
 # - update teammember from upload_dict
             teammembers_list = upload_dict.get('teammembers_list')
@@ -1121,10 +1121,10 @@ def update_schemeitems_from_list (schemeitems_list, mapped_schemepk_dict, mapped
 def update_instance_from_item_dict (table, item_dict, parent, user_lang, request):
     #logging.disable(logging.CRITICAL)  # logging.CRITICAL disables logging calls with levels <= CRITICAL
     logging.disable(logging.NOTSET)  # logging.NOTSET re-enables logging
-    #logger.debug('----------------  update instance from items_dict ------------------ ')
-    #logger.debug('table: ' + str(table))
-    #logger.debug('parent: ' + str(parent) + ' ' + str(type(parent)))
-    #logger.debug('item_dict: ' + str(item_dict))
+    logger.debug('----------------  update instance from items_dict ------------------ ')
+    logger.debug('table: ' + str(table))
+    logger.debug('parent: ' + str(parent) + ' ' + str(type(parent)))
+    logger.debug('item_dict: ' + str(item_dict))
     # item_dict: {'id': {'pk': 'new9', 'ppk': '1424', 'table': 'scheme', 'mode': 'create', 'shiftoption': 'isabsence', 'cycle': 1},
     #       'code': 'Colpa de WH', 'datefirst': '2020-02-05', 'datelast': '2020-02-07', 'excludepublicholiday': False, 'excludecompanyholiday': False}
     instance = None
@@ -1182,14 +1182,14 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                                             inactive=False,
                                             )
 
-            #logger.debug('instance: ' + str(instance) +  ' ' + str(type(instance)))
+            logger.debug('instance: ' + str(instance) +  ' ' + str(type(instance)))
             if instance:
                 instance.save(request=request)
                 mapped_pk_dict[pk] = instance.pk
                 item_dict['id']['pk'] = instance.pk
                 item_dict['id']['mode'] = 'created'
                 is_created = True
-            #logger.debug('is_created: ' + str(is_created))
+            logger.debug('is_created: ' + str(is_created))
 
         elif pk:
             if table == 'scheme':
@@ -1208,7 +1208,7 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                 instance = m.Schemeitem.objects.get_or_none(pk=pk,
                     scheme__order__customer__company=request.user.company)
 
-            #logger.debug('existing instance: ' + str(instance) + ' ' + str(type(instance)))
+            logger.debug('existing instance: ' + str(instance) + ' ' + str(type(instance)))
             if instance and mode == 'delete':
                 has_schemeitems_tobe_deleted = False
                 if table == 'shift':
@@ -1243,7 +1243,7 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                 # field 'rosterdate' only occurs in table 'schemeitem' and cannot be changed in this function
                 # field 'scheme' occurs in table 'shift', 'team' and 'schemeitem', it cannot be changed
                 if field != 'id' and field != 'rosterdate' and field != 'scheme':
-                    #logger.debug('field: ' + str(field) + ' field_dict: ' + str(field_dict) + ' ' + str(type(field_dict)))
+                    logger.debug('field: ' + str(field) + ' field_dict: ' + str(field_dict) + ' ' + str(type(field_dict)))
                     old_value = getattr(instance, field)
                     #logger.debug('old_value: ' + str(old_value) + ' ' + str(type(old_value)))
 
@@ -1288,12 +1288,12 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                         if new_value is None:
                             new_value = 0
 
-                    elif field in ('excludecompanyholiday', 'excludepublicholiday', 'isrestshift', 'inactive'):
+                    elif field in ('excludepublicholiday', 'alsoonpublicholiday', 'excludecompanyholiday', 'isrestshift', 'inactive'):
                         new_value = field_dict.get('value')
                         if new_value is None:
                             new_value = False
 
-                    if field in ('isabsence', 'issingleshift', 'alsoonpublicholiday', 'onpublicholiday'):
+                    elif field in ('isabsence', 'issingleshift'):
                         new_value = item_dict.get(field)
                         if new_value is None:
                             new_value = False

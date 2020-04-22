@@ -777,7 +777,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //========= UpdateTableRow  =============
     function UpdateTableRow(tblName, tblRow, item_dict){
-        console.log(" ------>>  UpdateTableRow", tblName);
+        //console.log(" ------>>  UpdateTableRow", tblName);
 
         if (!!item_dict && !!tblRow) {
 
@@ -790,7 +790,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if ("deleted" in id_dict) {is_deleted = true};
             if ("error" in id_dict) {msg_err = id_dict["error"]};
             if ("temp_pk" in id_dict) {temp_pk_str = id_dict["temp_pk"]};
-            console.log("is_created", is_created, "temp_pk_str", temp_pk_str);
+            //console.log("is_created", is_created, "temp_pk_str", temp_pk_str);
 
 // ---  add exceldatetime to tblRow, for ordering new rows
             let exceldatetime = get_exceldatetime_from_emplhour_dict(item_dict);
@@ -855,8 +855,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         fieldname = get_attr_from_el(el_input, "data-field");
                         if (fieldname in item_dict){
                             field_dict = get_dict_value (item_dict, [fieldname]);
-                            console.log("fieldname: ", fieldname)
-                            console.log("field_dict: ", field_dict)
+                            //console.log("fieldname: ", fieldname)
+                            //console.log("field_dict: ", field_dict)
                             const is_updated = ("updated" in field_dict);
                             const is_locked = get_dict_value(field_dict, ["locked"], false)
 
@@ -2873,7 +2873,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //=========  UpdateFromResponseNEW  ================ PR2019-10-14
     function UpdateFromResponseNEW(tblName, update_list) {
         console.log(" --- UpdateFromResponseNEW  ---", tblName);
-        //console.log("---------------- update_list: ", JSON.stringify(update_list));
+        console.log("---------------- update_list: ", JSON.stringify(update_list));
 
         const len = update_list.length;
         if (len > 0) {
@@ -2893,8 +2893,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         const map_id = get_map_id(tblName, pk_int);
                         console.log ("map_id", map_id);
 
-            // update or add emplhour_dict in emplhour_map
-                        emplhour_map.set(map_id, update_dict);
+// ---  update or add emplhour_dict in emplhour_map
+                        update_map_item(emplhour_map, map_id, update_dict, loc.user_lang);
 
             // lookup tablerow
                         let emplhour_tblRow = document.getElementById(map_id);
@@ -2926,7 +2926,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         }
             // update tablerow
-        console.log(",,,,,,,,,,,,,,, update_dict: ", JSON.stringify(update_dict));
+        //console.log(",,,,,,,,,,,,,,, update_dict: ", JSON.stringify(update_dict));
                         UpdateTableRow(tblName, emplhour_tblRow, update_dict)
                     }  // if(!!pk_int)
                 }  // if(!isEmpty(update_dict))
@@ -4671,7 +4671,15 @@ document.addEventListener('DOMContentLoaded', function() {
 //############################################################################
 // +++++++++++++++++ PRINT ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= PrintReport  ====================================
-    function PrintReport(option) { // PR2020-01-25
+    function PrintReport(option) { // PR2020-01-25 PR2020-04-22
+
+//--- renew emplhour_list
+        emplhour_list = []
+        for (const [map_id, item_dict] of emplhour_map.entries()) {
+            emplhour_list.push(item_dict)
+        }
+        emplhour_totals = calc_roster_totals(emplhour_list);
+
         PrintRoster(option, selected_period, emplhour_list, emplhour_totals, company_dict, loc, imgsrc_warning)
         }  // PrintReport
 

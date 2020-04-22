@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const cls_bc_yellow_light = "tsa_bc_yellow_light";
         const cls_bc_yellow = "tsa_bc_yellow";
         const cls_selected = "tsa_tr_selected";   // /* light grey; tsa_tr_selected*/
+        const cls_error = "tsa_tr_error";   // /* light grey; tsa_tr_selected*/
 
 // ---  id of selected customer and selected order
         const id_sel_prefix = "sel_"
@@ -284,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if(!!tr_clicked && !!tr_clicked.parentNode && tr_clicked.parentNode.id) {
                 skip_deselect = (["id_grid_tbody_team", "id_grid_tbody_shift"].indexOf(tr_clicked.parentNode.id) > -1)
             }
-            // als slip when clicked on el_confirm_btn_save, to show tsa_tr_error whe ndeleting team
+            // als slip when clicked on el_confirm_btn_save, to show cls_error when deleting team
             if(event.target === el_confirm_btn_save) {skip_deselect = true}
             if(!skip_deselect){ Grid_SelectTeam("init"); }
 
@@ -702,16 +703,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // reset lists
         // don't reset, all items from this customer are already downloaded
-
-// reset selected_order_pk order, selected_scheme_pk
+// reset selected_order_pk, selected_scheme_pk
         selected_order_pk = 0
-
         selected_scheme_pk = 0;
 // reset select tables
         sidebar_tblBody_scheme.innerText = null;
         sidebar_tblBody_shift.innerText = null;
         sidebar_tblBody_team.innerText = null;
-// reset tables scheme_select, schemeitems, teammember and team input box
+// reset tables schemeitems, shift and teammember and empty team input box
         tblBody_schemeitem.innerText = null;
         tblBody_shift.innerText = null;
         tblBody_teammember.innerText = null;
@@ -1210,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const msg_err = ("error" in id_dict) ? id_dict["error"] : null;
 
             const code_value = get_subdict_value_by_key(item_dict, "code", "value", "")
-            const inactive_value = get_subdict_value_by_key(item_dict, "inactive", "value", false);
+            const is_inactive = get_subdict_value_by_key(item_dict, "inactive", "value", false);
 
 //--------- insert tableBody row
             const row_id = id_sel_prefix + map_id
@@ -1220,7 +1219,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tblRow.setAttribute("data-map_id", map_id );
             tblRow.setAttribute("data-pk", pk_int);
             tblRow.setAttribute("data-table", tblName);
-            tblRow.setAttribute("data-inactive", inactive_value);
+            tblRow.setAttribute("data-inactive", is_inactive);
 
             tblRow.classList.add(cls_bc_lightlightgrey);
 
@@ -1246,17 +1245,20 @@ document.addEventListener('DOMContentLoaded', function() {
 //--------- add active img to second td in table
             td = tblRow.insertCell(-1);
                 el_a = document.createElement("a");
-                CreateBtnDeleteInactive("delete", tblRow, el_a);
+                const delete_inactive = (tblName === "scheme") ? "inactive" : "delete";
+                // CreateBtnDeleteInactive(mode, tblRow, el_input, is_inactive, is_grid)
+                CreateBtnDeleteInactive(delete_inactive, tblRow, el_a, is_inactive);
 //--------- add hover delete img
-                td.addEventListener("mouseenter", function() {
-                    td.children[0].children[0].setAttribute("src", imgsrc_deletered);
-                });
-                td.addEventListener("mouseleave", function() {
-                    td.children[0].children[0].setAttribute("src", imgsrc_delete);
-                });
+                if(delete_inactive === "delete"){
+                    td.addEventListener("mouseenter", function() {
+                        td.children[0].children[0].setAttribute("src", imgsrc_deletered);
+                    });
+                    td.addEventListener("mouseleave", function() {
+                        td.children[0].children[0].setAttribute("src", imgsrc_delete);
+                    });
+                }
             td.appendChild(el_a);
             td.classList.add("td_width_032");
-
         }  //  if (!isEmpty(item_dict))
         return tblRow;
     } // CreateSelectRow
@@ -2321,7 +2323,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("tblRow ", tblRow );
             if (action === 'delete'){
                 tblRow.classList.remove(cls_selected);
-                tblRow.classList.add("tsa_tr_error");
+                tblRow.classList.add(cls_error);
             }
     // add id_dict to dict
             let upload_dict = {};
@@ -2401,7 +2403,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (action === 'delete'){
                 tblRow.classList.remove(cls_selected);
-                tblRow.classList.add("tsa_tr_error");
+                tblRow.classList.add(cls_error);
             }
 
     // get parent_pk
@@ -2495,9 +2497,9 @@ document.addEventListener('DOMContentLoaded', function() {
             let tr_changed = document.getElementById(map_id);
 
             if(!!tr_changed){
-                tr_changed.classList.add("tsa_tr_error");
+                tr_changed.classList.add(cls_error);
                 setTimeout(function (){
-                    tr_changed.classList.remove("tsa_tr_error");
+                    tr_changed.classList.remove(cls_error);
                     }, 2000);
             }
         }
@@ -2710,7 +2712,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!!fieldname){
                 if (fieldname === "delete"){
                     upload_dict["id"]["delete"] = true;
-                    tblRow.classList.add("tsa_tr_error");
+                    tblRow.classList.add(cls_error);
                 } else {
                     let n_value = null;
                     if (["code", "name", "identifier", "priceratejson"].indexOf( fieldname ) > -1){
@@ -2815,7 +2817,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // if delete: add 'delete' to id_dict and make tblRow red
                 if(fieldname === "delete"){
                     id_dict["delete"] = true
-                    tblRow.classList.add("tsa_tr_error");
+                    tblRow.classList.add(cls_error);
                 }
                 upload_dict["id"] = id_dict;
     // --- dont add fielddict when is_delete
@@ -3077,6 +3079,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (["scheme", "team"].indexOf(tblName) > -1 ){selected_team_pk = 0};
 // ---  delete tblRow
             let tblRow_delete = document.getElementById(map_id);
+
+        console.log("map_id", map_id);
+        console.log("tblRow_delete", tblRow_delete);
+
             if (!!tblRow_delete) {tblRow_delete.parentNode.removeChild(tblRow_delete)}
 // ---  when scheme is deleted:
             if (tblName === "scheme"){
@@ -3088,6 +3094,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // ---  reset select_table shift and team
                 document.getElementById("id_select_table_shift").classList.add(cls_hide)
                 document.getElementById("id_select_table_team").classList.add(cls_hide)
+
+        // ---  delete scheme from select_table
+                let select_row = document.getElementById("sel_" + map_id);
+                if (!!select_row) {select_row.parentNode.removeChild(select_row)}
+
         // ---  delete innerText of sidebar_tblBody_shift and of sidebar_tblBody_team
                 sidebar_tblBody_shift.innerText = null;
                 sidebar_tblBody_team.innerText = null;
@@ -3104,7 +3115,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(tblName === "scheme"){
                     // skip scheme, it has no table. team has table teammembers, is empty after creating new team
                 } else if(tblName === "team"){
-// ---  when team is createdd:
+// ---  when team is created:
                     // set focus to addnew row in table teammember
                     // team has table teammembers, is empty after creating new team
                     let tblFoot = document.getElementById("id_tfoot_teammember");
@@ -3777,7 +3788,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         // make shift row red
             const row_id = "grid_shift_" + mod_upload_dict.shift.id.pk.toString();
             let tblRow = document.getElementById(row_id);
-            tblRow.classList.add("tsa_tr_error");
+            tblRow.classList.add(cls_error);
                 ModConfirmOpen("grid_shift_delete", null)
             } else {
                 UploadChanges(mod_upload_dict, url_teammember_upload);
@@ -4628,6 +4639,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("mod_upload_dict: ", mod_upload_dict)
         console.log("mod_MGS_dict: ", mod_MGS_dict)
         // modes are schemeitem_delete, delete, inactive, 'grid_si', 'grid_team_delete', 'grid_shift_delete'
+
+        mod_upload_dict.mode = mode //used in ModConfirmSave
         const tblRow = get_tablerow_selected(el_input);
 
         let tblName, map_dict, pk_str;
@@ -4748,19 +4761,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ---  Upload Changes
         const tblName = get_dict_value(mod_upload_dict, ["id", "table"])
-        console.log("tblName: ", tblName );
+        const pk_int = get_dict_value(mod_upload_dict,["id", "pk"])
+        const map_id = get_map_id(tblName, pk_int)
+        console.log("map_id: ", map_id );
         if(tblName === "schemeitem"){
             const is_delete_single_si = get_dict_value(mod_upload_dict, ["id", "delete"])
             console.log("is_delete_single_si: ", is_delete_single_si );
             if(is_delete_single_si){
                 // this is called by btn_inactive in tblRow
-                const pk_int = get_dict_value(mod_upload_dict,["id", "pk"])
-                const map_id = get_map_id(tblName, pk_int)
-                console.log("map_id ", map_id );
                 let tblRow = document.getElementById(map_id);
-                console.log("tblRow ", tblRow );
                 tblRow.classList.remove(cls_selected);
-                tblRow.classList.add("tsa_tr_error");
+                tblRow.classList.add(cls_error);
 
                 // ---  upload upload_list, it can contain multiple upload_dicts (list added because of grid PR2020-03-15)
                 let upload_list = [mod_upload_dict];
@@ -4792,6 +4803,19 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // tblName: scheme, shift, team
             UploadChanges(mod_upload_dict, url_scheme_shift_team_upload)
+            if(tblName === "scheme"){
+                let tblRow = document.getElementById("sel_" + map_id);
+                if(!!tblRow){
+                    if( mod_upload_dict.mode === "delete"){
+                        // make selected scheme red in select table
+                console.log("tblRow: ", tblRow );
+                        tblRow.classList.remove(cls_bc_yellow);
+                        tblRow.classList.add(cls_error);
+                    } else {
+                        // make inctive button dark
+                    }
+                }
+            }
         }
     } // ModConfirmSave
 

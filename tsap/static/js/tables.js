@@ -2021,7 +2021,7 @@
 
     function get_teamcode_with_sequence_from_list(teams_list, parent_pk, default_code){
         "use strict";
-        //console.log(' --- get_teamcode_with_sequence --- ')
+        //console.log(' --- get_teamcode_with_sequence_from_list --- ')
         //console.log('parent_pk: ', parent_pk)
         // create new code with sequence character 1 higher than existing code PR2019-12-28
         if (!default_code) {default_code = "Team" }

@@ -93,8 +93,6 @@ def remove_status_from_statussum(status, old_status_sum):
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-
-
 def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
     #logger.debug(' --- get_rosterdate_check --- ')
     # function gets rosterdate from upload_dict. If None: lookup last roserdate in orderhour and add one day to it.
@@ -116,7 +114,7 @@ def get_rosterdate_check(upload_dict, request):  # PR2019-11-11
         rosterdate = f.get_dateobj_from_dateISOstring(rosterdate_iso)
 
         new_rosterdate = f.add_months_to_date(rosterdate, 6)
-        logger.debug('new_rosterdate: ' + str(new_rosterdate.isoformat()) + ' ' + str(type(new_rosterdate)))
+        #logger.debug('new_rosterdate: ' + str(new_rosterdate.isoformat()) + ' ' + str(type(new_rosterdate)))
 
 
     else:
@@ -1615,8 +1613,8 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
         emplhours_rows = f.dictfetchall(newcursor)
 
         #for emplhours_row in emplhours_rows:
-        #    logger.debug('...................................')
-        #    logger.debug('emplhours_row' + str(emplhours_row))
+            #logger.debug('...................................')
+            #logger.debug('emplhours_row' + str(emplhours_row))
 
         # dictfetchall returns a list with dicts for each emplhour row
         # emplhours_rows:  [ {'eh_id': 4504, 'eh_rd': datetime.date(2019, 11, 14), 'c_code': 'MCB', 'o_code': 'Punda', 'e_code': 'Bernardus-Cornelis, Yaha'},
@@ -1648,7 +1646,6 @@ def create_emplhour_list(period_dict, comp_timezone, timeformat, user_lang, requ
 def create_emplhour_itemdict_from_row(emplhour, update_dict, comp_timezone, timeformat, user_lang):  # PR2019-09-21
     # --- create dict of this emplhour PR2019-10-11
     # item_dict can already have values 'msg_err' 'updated' 'deleted' created' and pk, ppk, table
-
     logger.debug(' ============= create_emplhour_dict ============= ')
     logger.debug(str(update_dict))
     item_dict = {}
@@ -1690,7 +1687,6 @@ def create_emplhour_itemdict_from_row(emplhour, update_dict, comp_timezone, time
         # item_dict is the new update_dict, gets values from update_dict (updated=True etc) and from database
         item_dict = create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, user_lang)
 
-        logger.debug(',,,,,,,,,,,,,,,,,,,,,,,,,,,,,,item_dict: ' + str(item_dict))
 # --- remove empty attributes from update_dict
         # is already done in create_NEWemplhour_itemdict
         #f.remove_empty_attr_from_dict(item_dict)
@@ -1699,7 +1695,7 @@ def create_emplhour_itemdict_from_row(emplhour, update_dict, comp_timezone, time
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, user_lang):  # PR2020-01-24
-    logger.debug(' === create_NEWemplhour_itemdict ==')
+    #logger.debug(' === create_NEWemplhour_itemdict ==')
     #logger.debug('row: ' + str(row))
 
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1903,8 +1899,6 @@ def create_NEWemplhour_itemdict(row, update_dict, comp_timezone, timeformat, use
 
 # --- remove empty attributes from item_dict
     f.remove_empty_attr_from_dict(item_dict)
-
-    logger.debug('????????????  item_dict: ' + str(item_dict))
 
     return item_dict
 # --- end of create_NEWemplhour_itemdict

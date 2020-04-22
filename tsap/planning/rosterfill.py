@@ -708,7 +708,6 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                 mode = upload_dict.get('mode')
                 rosterdate_iso = upload_dict.get('rosterdate')
                 rosterdate_dte, msg_txt = f.get_date_from_ISOstring(rosterdate_iso)
-
                 logger.debug('rosterdate_dte: ' + str(rosterdate_dte))
 
                 update_list = []
@@ -759,7 +758,8 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 #######################################################
 
 def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020-01-27
-    logger.debug('FillRosterdatef: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
+    logger.debug(' ###################### FillRosterdate ###################### ')
+    logger.debug('rosterdate_dte: ' + str(rosterdate_dte) + ' ' + str(type(rosterdate_dte)))
 
     logfile = []
 
@@ -768,7 +768,8 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
     duration_sum = 0
     return_dict = {'mode': 'create'}
     if rosterdate_dte:
-        logfile.append(' ======= Logfile creating roster of: ' + str(rosterdate_dte.isoformat()) + ' ======= ')
+        rosterdate_iso = rosterdate_dte.isoformat()
+        logfile.append('======= Logfile creating roster of: ' + str(rosterdate_iso) + ' ======= ')
 
         # update schemeitem rosterdate.
         absence_dict = {}  # {111: 'Vakantie', 112: 'Ziek'}
@@ -823,8 +824,20 @@ def FillRosterdate(rosterdate_dte, comp_timezone, user_lang, request):  # PR2020
 
 # - create calendar_header of this date, get is_publicholiday and is_companyholiday
             calendar_header_dict = pld.create_calendar_header(rosterdate_dte, rosterdate_dte, user_lang, request)
-            is_publicholiday = calendar_header_dict.get('ispublicholiday', False)
-            is_companyholiday = calendar_header_dict.get('iscompanyholiday', False)
+            rosterdate_dict = f.get_dict_value(calendar_header_dict, (rosterdate_iso,))
+            logger.debug('calendar_header_dict: ' + str(calendar_header_dict))
+            logger.debug('rosterdate_dict: ' + str(rosterdate_dict))
+
+            is_publicholiday = rosterdate_dict.get('ispublicholiday', False)
+            is_companyholiday = rosterdate_dict.get('iscompanyholiday', False)
+            publicholiday_text = rosterdate_dict.get('display', '-')
+            logger.debug('publicholiday_text: ' + str(publicholiday_text) + ' ' + str(type(publicholiday_text)))
+            if is_publicholiday:
+                logfile.append('--- this is a public holiday (' + str(publicholiday_text) + ')')
+                logfile.append("    schemes with 'not on public holidays' set will be skipped.")
+            if is_companyholiday:
+                logfile.append('--- this is a company holiday.')
+                logfile.append("    schemes with 'not on company holidays' set will be skipped.")
 
 # - create list with all teammembers of this_rosterdate
             # this functions retrieves a list of tuples with data from the database
@@ -2272,7 +2285,7 @@ def calculate_add_row_to_dict(row_tuple, logfile, employee_pk, skip_absence_and_
 
     add_row_to_dict = False
 
-    # >>>>> SHIFT IS ABSENCE
+# >>>>> SHIFT IS ABSENCE
     if row[idx_si_mod] == 'i':
         logfile.append('--- this is an inactive shift')
         logfile.append('--> inactive shift is skipped')

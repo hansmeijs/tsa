@@ -201,12 +201,12 @@ let planning_list = [] // for export and printing - can replace map?
             el_MSO_btn_teamdelete.addEventListener("click", function() {MSO_TeamDelete()}, false );
 
 
-        let el_MSO_scheme_cycle = document.getElementById("id_MSO_scheme_cycle")
-            el_MSO_scheme_cycle.addEventListener("change", function() {MSO_SchemeCycleChanged()}, false );
-        let el_modshift_datefirst = document.getElementById("id_MSA_input_datefirst")
-            el_modshift_datefirst.addEventListener("change", function() {MSO_SchemeDateChanged("datefirst")}, false );
-        let el_modshift_datelast = document.getElementById("id_MSO_scheme_datelast")
-            el_modshift_datelast.addEventListener("change", function() {MSO_SchemeDateChanged("datelast")}, false );
+        let el_MSO_cycle = document.getElementById("id_MSO_scheme_cycle")
+            el_MSO_cycle.addEventListener("change", function() {MSO_SchemeCycleChanged()}, false );
+        let el_MSO_scheme_datefirst = document.getElementById("id_MSO_scheme_datefirst")
+            el_MSO_scheme_datefirst.addEventListener("change", function() {MSO_SchemeDateChanged("datefirst")}, false );
+        let el_MSO_scheme_datelast = document.getElementById("id_MSO_scheme_datelast")
+            el_MSO_scheme_datelast.addEventListener("change", function() {MSO_SchemeDateChanged("datelast")}, false );
         // select buttons
         document.getElementById("id_MSO_btn_shift").addEventListener("click", function() {MSO_BtnSelectClicked("mod_shift")}, false );
         document.getElementById("id_MSO_btn_team").addEventListener("click", function() {MSO_BtnSelectClicked("mod_team")}, false );
@@ -1466,12 +1466,12 @@ let planning_list = [] // for export and printing - can replace map?
             // parameters: tblName, pk_str, ppk_str, is_addnew, customer_pk
             //console.log("------------------ tblName", tblName);
 
-    // --- insert tblRow in tblBody
+// --- insert tblRow in tblBody
             let tblBody = document.getElementById("id_tbody_" + tblName);
             tblRow = CreateTblRow(tblBody, tblName, pk_int, ppk_int)
             UpdateTableRow(tblRow, update_dict)
 
-    // set focus to code input of added row
+// set focus to code input of added row
             const index = (tblName === "customer") ? 0 : 1;
             let el_input = tblRow.cells[index].children[0];
             //console.log("focus el_input", el_input)
@@ -1481,12 +1481,12 @@ let planning_list = [] // for export and printing - can replace map?
 
             HandleTableRowClicked(tblRow);
 
-    // ---  scrollIntoView, only in tblBody customer
+// ---  scrollIntoView, only in tblBody customer
             if (selected_btn === "customer"){
                 tblRow.scrollIntoView({ block: 'center',  behavior: 'smooth' })
             };
 
-    //--- save pk in settings when changed
+//--- save pk in settings when changed
             let sel_cust_pk = 0, sel_order_pk = 0
             if (tblName === "customer"){
                 sel_cust_pk = pk_int;
@@ -1569,7 +1569,11 @@ let planning_list = [] // for export and printing - can replace map?
 
 // ++++ replace updated item in map or remove deleted item from map
         // must come after remove_err_del_cre_updated__from_itemdict, otherwise row will be made green all the time
-         update_map_item(map_id, update_dict);
+                //--- replace updated item in map or remove deleted item from map
+        let data_map = (tblName === "customer") ? customer_map :
+                       (tblName === "order") ? order_map :
+                       (tblName === "teammember") ? teammember_map : null
+         update_map_item(data_map, map_id, update_dict, loc.user_lang);
 
     }  // UpdateFromResponse
 
@@ -1941,40 +1945,6 @@ let planning_list = [] // for export and printing - can replace map?
         }
         return map_dict
     }  // get_mapdict_from_tblRow
-
-//========= update_map_item  ====================================
-    function update_map_item(map_id, update_dict){
-        //console.log(" --- update_map_item ---") // PR2019-11-26
-
-        const id_dict = get_dict_value_by_key (update_dict, "id");
-        if(!isEmpty(id_dict)){
-            const tblName = get_dict_value_by_key(id_dict, "table");
-            const pk_int = get_dict_value_by_key(id_dict, "pk");
-            const map_id = get_map_id(tblName, pk_int);
-            const is_created = ("created" in id_dict);
-            const is_deleted = ("deleted" in id_dict);
-
-        //--- replace updated item in map or remove deleted item from map
-            let data_map = (tblName === "customer") ? customer_map :
-                           (tblName === "order") ? order_map :
-                           (tblName === "teammember") ? teammember_map : null
-            if(is_deleted){
-                data_map.delete(map_id);
-            } else if(is_created){
-        // insert new item in alphabetical order,
-                if (!!data_map.size){
-                    insertInMapAtIndex(data_map, map_id, update_dict, 0, user_lang)
-                } else {
-                    data_map.set(map_id, update_dict)
-                }
-            } else {
-                data_map.set(map_id, update_dict)
-            }
-
-        }  // if(!isEmpty(id_dict))
-        //console.log(data_map) // PR2019-11-26
-    }  // update_map_item
-
 
 //###########################################################################
 // +++++++++++++++++ UPLOAD +++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2733,7 +2703,7 @@ let planning_list = [] // for export and printing - can replace map?
             document.getElementById("id_modshift_header_scheme").innerText = scheme_code;
 
     // ---  put scheme cycle in input element and in right subheader
-            el_MSO_scheme_cycle.value = scheme_cycle;
+            el_MSO_cycle.value = scheme_cycle;
             MSO_SetSchemeCycleText(scheme_cycle);
 
     // ---  fill team options, set select team in selectbox
@@ -2747,7 +2717,7 @@ let planning_list = [] // for export and printing - can replace map?
     // ---  fill tabe teammembers
             MSO_CreateTblTeammemberHeader();
             MSO_CreateTblTeammemberFooter()
-            MSO_FillTableTeammember();
+            MSO_FillTableTeammember("MSO_Open");
 
     // ---  fill shift options, set select shift in selectbox
             el_MSO_selectshift.innerHTML = t_FillOptionShiftOrTeamFromList( mod_upload_dict.shifts_list,scheme_pk,
@@ -2757,18 +2727,18 @@ let planning_list = [] // for export and printing - can replace map?
             MSO_UpdateShiftInputboxes();
 
     // ---  put datefirst datelast in input boxes
-            el_modshift_datefirst.value = get_dict_value(mod_upload_dict, ["scheme", "datefirst", "value"]);
-            el_modshift_datelast.value = get_dict_value(mod_upload_dict, ["scheme", "datelast", "value"]);
-            MSO_MSE_DateSetMinMax(el_modshift_datefirst, el_modshift_datelast);
-            el_modshift_datefirst.readOnly = false;
-            el_modshift_datelast.readOnly = false;
+            el_MSO_scheme_datefirst.value = get_dict_value(mod_upload_dict, ["scheme", "datefirst", "value"]);
+            el_MSO_scheme_datelast.value = get_dict_value(mod_upload_dict, ["scheme", "datelast", "value"]);
+            MSO_MSE_DateSetMinMax(el_MSO_scheme_datefirst, el_MSO_scheme_datelast);
+            el_MSO_scheme_datefirst.readOnly = false;
+            el_MSO_scheme_datelast.readOnly = false;
 
     // ---  show onceonly only in new shifts, reset checkbox, enable datefirst datelast
             //document.getElementById("id_modshift_onceonly").checked = false
             //const is_add = (!isEmpty(calendar_map_dict))
             //add_or_remove_class (document.getElementById("id_modshift_onceonly_container"), cls_hide, is_add);
-            el_modshift_datefirst.readOnly = false;
-            el_modshift_datelast.readOnly = false;
+            el_MSO_scheme_datefirst.readOnly = false;
+            el_MSO_scheme_datelast.readOnly = false;
 
 // ---  fill shifts table
             MSO_Grid_CreateTblShifts(scheme_pk);
@@ -2850,8 +2820,8 @@ let planning_list = [] // for export and printing - can replace map?
         const scheme_cycle = get_dict_value(mod_upload_dict, ["scheme", "cycle", "value"]);
 
         // empty input date value = "", convert to null
-        const datefirst = (!!el_modshift_datefirst.value) ? el_modshift_datefirst.value : null;
-        const datelast =(!!el_modshift_datelast.value) ? el_modshift_datelast.value : null;
+        const datefirst = (!!el_MSO_scheme_datefirst.value) ? el_MSO_scheme_datefirst.value : null;
+        const datelast =(!!el_MSO_scheme_datelast.value) ? el_MSO_scheme_datelast.value : null;
 
         const excl_ph = el_MSO_excl_ph.checked;
         const also_ph = el_MSO_also_ph.checked;
@@ -2998,9 +2968,57 @@ let planning_list = [] // for export and printing - can replace map?
         }  //   if(!!shift_dict)
     }  // MSO_ShiftDelete
 
-//=========  MSO_TeamAdd  ================ PR2020-03-29
+//=========  MSO_TeamAdd  ================ PR2020-04-21
     function MSO_TeamAdd() {
         console.log("=== MSO_TeamAdd ===");
+// ---  create new team
+        // get selected scheme_pk from mod_upload_dict
+        const scheme_pk = get_dict_value(mod_upload_dict, ["scheme", "id", "pk"])
+// ---  get new team_pk_str
+        id_new = id_new + 1
+        const team_pk_str = "new" + id_new.toString()
+        const new_map_id = get_map_id("shift", team_pk_str);
+// ---  create new_team_dict
+        const new_team_code = get_teamcode_with_sequence_from_list(mod_upload_dict.teams_list, scheme_pk, loc.Team);
+        const new_team_dict = {id: {pk: team_pk_str,
+                                    ppk: scheme_pk,
+                                    table: "team",
+                                    mode: "create"
+                                    },
+                               code: {value: new_team_code}
+                               };
+
+// ---  put values in mod_upload_dict.team and add to mod_upload_dict.teams_list
+        mod_upload_dict.selected_team_pk_str = team_pk_str
+        mod_upload_dict.teams_list.push(new_team_dict)
+
+// ---  fill team options, set selected team in selectbox
+        const selected_team_pk_str = (!!team_pk_str) ? team_pk_str : "0";
+        el_MSO_selectteam.innerHTML = t_FillOptionShiftOrTeamFromList( mod_upload_dict.teams_list, scheme_pk,
+                                            selected_team_pk_str, false); // false = without restabbrev ( is N.A.)
+// ---  put team name of selected_team in el_MSO_teamcode
+        el_MSO_teamcode.value = new_team_code;
+
+// --- create new teammember_dict
+        id_new = id_new + 1
+        const teammember_pk = "new" + id_new.toString();
+        const new_tm_dict = {id: {pk: teammember_pk,
+                        ppk: team_pk_str,
+                        table: "teammember",
+                        mode: "create"}
+                  };
+        console.log("new_tm_dict: ", new_tm_dict);
+        mod_upload_dict.teammembers_list.push(new_tm_dict);
+        console.log("mod_upload_dict.teammembers_list: ", mod_upload_dict.teammembers_list);
+
+// ---  fill tabe teammembers
+       // MSO_CreateTblTeammemberHeader();
+        //MSO_CreateTblTeammemberFooter()
+        MSO_FillTableTeammember("MSO_TeamAdd");
+
+// ---  set focus to offsetstart
+        //el_MSO_offsetstart.focus()
+
     }  // MSO_TeamAdd
 
 //=========  MSO_TeamDelete  ================ PR2020-03-29
@@ -3035,7 +3053,7 @@ let planning_list = [] // for export and printing - can replace map?
     // ---  fill tabe teammembers
             MSO_CreateTblTeammemberHeader();
             MSO_CreateTblTeammemberFooter()
-            MSO_FillTableTeammember();
+            MSO_FillTableTeammember("MSO_TeamDelete");
 
     // ---  fill shifts table
                MSO_Grid_CreateTblShifts(scheme_pk);
@@ -3258,7 +3276,7 @@ let planning_list = [] // for export and printing - can replace map?
 //=========  MSO_SchemeCycleChanged  ================ PR2020-01-03
     function MSO_SchemeCycleChanged(fldName) {
         console.log( "===== MSO_SchemeCycleChanged  ========= ");
-        const cycle_int = Number(el_MSO_scheme_cycle.value);
+        const cycle_int = Number(el_MSO_cycle.value);
         const cycle_value = (!!cycle_int) ? cycle_int : null
         mod_upload_dict.scheme.cycle = {value: cycle_value, update: true}
 
@@ -3270,9 +3288,9 @@ let planning_list = [] // for export and printing - can replace map?
         console.log( "===== MSO_SchemeDateChanged  ========= ");
         //console.log( "===== MSO_SchemeDateChanged  ========= ");
         if (fldName === "datefirst") {
-            mod_upload_dict.scheme.datefirst = {value: el_modshift_datefirst.value, update: true}
+            mod_upload_dict.scheme.datefirst = {value: el_MSO_scheme_datefirst.value, update: true}
         } else if (fldName === "datelast") {
-            mod_upload_dict.scheme.datelast = {value: el_modshift_datelast.value, update: true}
+            mod_upload_dict.scheme.datelast = {value: el_MSO_scheme_datelast.value, update: true}
         }
 
     }; // MSO_SchemeDateChanged
@@ -3418,11 +3436,11 @@ let planning_list = [] // for export and printing - can replace map?
 // ---  put team_code in inout box
         MSO_UpdateTeamInputboxes();
 // ---  refresh table with teammembers
-        MSO_FillTableTeammember();
+        MSO_FillTableTeammember("MSO_SelectTeamChanged");
 // ---  highlight selected shift_row and team_cells
         MSO_Grid_HighlightTblShifts();
 
-    }; // function MSO_SelectTeamChanged
+    }; //  MSO_SelectTeamChanged
 
 //=========  MSO_RestshiftClicked  ================ PR2020-03-27
     function MSO_RestshiftClicked() {
@@ -3573,8 +3591,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 
 //========= MSO_FillTableTeammember  ====================================
-    function MSO_FillTableTeammember(){
-        console.log( "===== MSO_FillTableTeammember  ========= ");
+    function MSO_FillTableTeammember(calledby){
+        console.log( "===== MSO_FillTableTeammember  ========= ", calledby);
 
 // --- reset tblBody
         // id_tbody_teammember is on modeordershift.html
@@ -3923,7 +3941,7 @@ let planning_list = [] // for export and printing - can replace map?
             mod_upload_dict.teammembers_list.push(new_teammember_dict);
 
             console.log( "mod_upload_dict: ", mod_upload_dict);
-            MSO_FillTableTeammember()
+            MSO_FillTableTeammember("MSO_AddTeammember")
         }  //   if(!isEmpty(team_dict)) {
     }  // MSO_AddTeammember
 
@@ -3966,7 +3984,7 @@ let planning_list = [] // for export and printing - can replace map?
             console.log("mod_upload_dict: ");
             console.log(mod_upload_dict);
 
-            MSO_FillTableTeammember();
+            MSO_FillTableTeammember("MSO_BtnDeleteClicked");
 
         }  // if(!!tblRow)
     }  // MSO_BtnDeleteClicked
@@ -4306,23 +4324,23 @@ let planning_list = [] // for export and printing - can replace map?
                 MSO_SelectShiftPkChanged(shift_pk)
             }
         } else {
-        // ---  go to button team
+// ---  go to button team
             if( mod_upload_dict.mode === "mod_shift") {
                 mod_upload_dict.mode = "mod_team";
                 MSO_BtnSelectClicked("mod_team")
-                // don't add team yet, jsut change to button team
+                // don't add team yet, just change to button team
             } else {
-
+// ---  if there is a selected team:
                 if(!!mod_upload_dict.selected_team_pk_str) {
-        // ---  get team_abbrev from mod_upload_dict.teams_list
+// ---  get team_abbrev from mod_upload_dict.teams_list
                     const team_dict = lookup_dict_in_list(mod_upload_dict.teams_list, mod_upload_dict.selected_team_pk_str);
                     const team_code = get_dict_value(team_dict, ["code", "value"]);
                     const team_abbrev = get_teamcode_abbrev(team_code, loc);
-        // ---  get info from tr_clicked
+// ---  get info from tr_clicked
                     const tr_clicked = td_clicked.parentNode
                     const shift_pk_str = get_attr_from_el(tr_clicked, "data-shift_pk");
                     const scheme_pk_str = get_attr_from_el(tr_clicked, "data-shift_ppk");
-        // ---  get cell_id_str and rosterdate from cell td_clicked
+// ---  get cell_id_str and rosterdate from cell td_clicked
                     const cell_id_str = get_attr_from_el(td_clicked, "id", "");
                     const rosterdate = get_attr_from_el(td_clicked, "data-rosterdate")
                 console.log("shift_pk_str ", shift_pk_str);
@@ -4332,13 +4350,12 @@ let planning_list = [] // for export and printing - can replace map?
                     // only if there is a rosterdate and shift_pk selected (must be always the case)
                     if(!!rosterdate && !!shift_pk_str && !!scheme_pk_str) {
                        let upload_list = [];
-        // ---  get si_pk_arr from td_clicked. It can be array string: '2132;2128;2128', may contain si's without team
+// ---  get si_pk_arr from td_clicked. It can be array string: '2132;2128;2128', may contain si's without team
                         const data_si_pk = get_attr_from_el(td_clicked, "data-si_pk", "");
                         console.log("data_si_pk ", data_si_pk, typeof data_si_pk);
                         const si_pk_arr = data_si_pk.split(";");
                         console.log("si_pk_arr ", si_pk_arr, typeof si_pk_arr);
-
-        // ---  loop through si_pk_arr, get info from mod_upload_dict.schemeitems_list and check if team_pk = selected_team_pk_str
+// ---  loop through si_pk_arr, get info from mod_upload_dict.schemeitems_list and check if team_pk = selected_team_pk_str
                         // schemeitem can have team = null. Remember first si_pk with team = null
                         let si_pk_without_team = null;  // when team is added: store team_pk in si_without_team, if any
                         let has_si_with_sel_team = false; // checks is selected team is in any of the schemeitems
@@ -4348,7 +4365,7 @@ let planning_list = [] // for export and printing - can replace map?
                                 si_pk_str = si_pk_arr[i];
                             //console.log("si_pk_str ", si_pk_str, typeof si_pk_str);
                                 if(!!si_pk_str){
-            // ---  get info from schemitem_map and check if team_pk_str = selected_team_pk_str
+// ---  get info from schemitem_map and check if team_pk_str = selected_team_pk_str
                                     const lookup_si_dict = lookup_dict_in_list(mod_upload_dict.schemeitems_list, si_pk_str);
                             //console.log("lookup_si_dict ", lookup_si_dict, typeof lookup_si_dict);
                                     if(!isEmpty(lookup_si_dict)){
@@ -4360,17 +4377,17 @@ let planning_list = [] // for export and printing - can replace map?
                                         // if no team_pk: put si_pk in si_pk_without_team, only if si_pk_without_team has no value yet
                                         if (!team_pk_str && !si_pk_without_team) {si_pk_without_team = si_pk_str};
                             //console.log("si_pk_without_team ", si_pk_without_team, typeof si_pk_without_team);
-            // ---  check if team_pk_str = selected_team_pk_str
+// ---  check if team_pk_str = selected_team_pk_str
                                         if(!!team_pk_str && team_pk_str === mod_upload_dict.selected_team_pk_str){
                             //console.log("team_pk_str === selected_team_pk_str ");
                                             if (!has_si_with_sel_team){
                                                 has_si_with_sel_team = true
-                // ---  remove team_pk from first schemeitem, make inactive false
+// ---  remove team_pk from first schemeitem, make inactive false
                                                 lookup_si_dict.id.mode = "update";
                                                 lookup_si_dict.team = {pk: null};
                                                 lookup_si_dict.inactive = {value: false}
                                             } else {
-                //if there are multiple schemeitems with this team: delete other schemeitems with this team
+//if there are multiple schemeitems with this team: delete other schemeitems with this team
                                                 lookup_si_dict.id.mode = "delete";
                                                 lookup_si_dict.team = {pk: null};
                                                 lookup_si_dict.inactive = {value: false}
@@ -4382,22 +4399,21 @@ let planning_list = [] // for export and printing - can replace map?
                         }  //    if(!!si_pk_arr_len)
 
                 //console.log("has_si_with_sel_team: ", has_si_with_sel_team);
-        // ---  when there are no schemeitems with this team in his cell: add schemeitem with selected_team_pk_str
+// ---  when there are no schemeitems with this team in his cell: add schemeitem with selected_team_pk_str
                         if(!has_si_with_sel_team) {
                 //console.log("si_pk_without_team: ", si_pk_without_team);
                             // if there is a schemeitem without team: add team to that schemeitem
                             if(!!si_pk_without_team){
-            // ---  get info from schemeitem_map and add selected_team_pk_str
+// ---  get info from schemeitem_map and add selected_team_pk_str
                                 const lookup_si_dict = lookup_dict_in_list(mod_upload_dict.schemeitems_list, si_pk_without_team);
                                 lookup_si_dict.id.mode = "update";
                                 lookup_si_dict.team = {pk: mod_upload_dict.selected_team_pk_str,
                                                        ppk: scheme_pk_str,
                                                        code: team_code}
                                 lookup_si_dict.inactive = {value: false}
-
                 //console.log("lookup_si_dict: ", lookup_si_dict);
                             } else {
-            // otherwise: create new schemeitm
+// otherwise: create new schemeitm
                                 id_new = id_new + 1
                                 const pk_new = "new" + id_new.toString()
                                 const shift_option ="schemeshift";
@@ -4414,13 +4430,11 @@ let planning_list = [] // for export and printing - can replace map?
                                                                 ppk: scheme_pk_str},
                                                         inactive: {value: false}
                                                         };
-
                 //console.log("schemeitem_dict: ", schemeitem_dict);
                                 mod_upload_dict.schemeitems_list.push( schemeitem_dict);
                             }
                         }
-
-        // ---  fill shifts table
+// ---  fill shifts table
                         MSO_Grid_CreateTblShifts(scheme_pk_str);
                         MSO_Grid_FillTblShifts(scheme_pk_str);
                         MSO_Grid_HighlightTblShifts();
@@ -4690,7 +4704,7 @@ let planning_list = [] // for export and printing - can replace map?
 
         console.log( "mod_upload_dict: ", mod_upload_dict);
 // --- refresh teammember table
-        MSO_FillTableTeammember();
+        MSO_FillTableTeammember("MSE_Save");
 
 // ---  hide modal
         $("#id_mod_select_employee").modal("hide");

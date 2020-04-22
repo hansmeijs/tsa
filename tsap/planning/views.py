@@ -2361,8 +2361,8 @@ def upload_period(interval_upload, request):  # PR2019-07-10
 class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
     def post(self, request, *args, **kwargs):
-        logger.debug(' ')
-        logger.debug(' ============= EmplhourUploadView ============= ')
+        #logger.debug(' ')
+        #logger.debug(' ============= EmplhourUploadView ============= ')
 
         update_wrap = {}
         if request.user is not None and request.user.company is not None:
@@ -2409,8 +2409,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
 # 4. Create empty update_dict with keys for all fields if not exist. Unused ones will be removed at the end
                     # in create_emplhour_itemdict_from_row info will be taken from update_dict and database
-                    # and is put in new_update_dict
-                    new_update_dict = {}
+                    # and is put in updatedict_final
+                    updatedict_final = {}
                     update_dict = f.create_update_dict(
                         c.FIELDS_EMPLHOUR,
                         table=table,
@@ -2431,6 +2431,8 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                                 deleted_ok = m.delete_instance(emplhour, update_dict, request, this_text)
                                 if deleted_ok:
                                     emplhour = None
+                                    f.remove_empty_attr_from_dict(update_dict)
+                                    updatedict_final = update_dict
                                 # TODO also delete parent orderhour when it has no more children
                     else:
                         emplhour = None
@@ -2475,16 +2477,15 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                             update_emplhour(emplhour, upload_dict, update_dict,
                                                       request, comp_timezone, timeformat, user_lang, eplh_update_list)
 # 6. put updated saved values in update_dict
-                            new_update_dict = d.create_emplhour_itemdict_from_row(emplhour, update_dict, comp_timezone, timeformat, user_lang)
+                            updatedict_final = d.create_emplhour_itemdict_from_row(emplhour, update_dict, comp_timezone, timeformat, user_lang)
 
 # 6. remove empty attributes from update_dict
                     # is already done in create_NEWemplhour_itemdict
                     #f.remove_empty_attr_from_dict(update_dict)
 
 # 7. add update_dict to update_wrap
-                    #logger.debug('update_dict: ' + str(update_dict))
-                    if new_update_dict:
-                        eplh_update_list.append(new_update_dict)
+                    if updatedict_final:
+                        eplh_update_list.append(updatedict_final)
 
  # eplh_update_list stores eplh.id's of records that are updated because of overlap, add them to
                         """

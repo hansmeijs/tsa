@@ -21,7 +21,8 @@
 
 // ++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++
     function PrintRoster(option, selected_period, review_list, subtotals, company_dict, loc, imgsrc_warning) {
-        //console.log("++++++++++++  PRINT REVIEW CUSTOMER+++++++++++++++++++++++++++++++++++++++")
+        //console.log("++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++")
+        //console.log("subtotals: ", subtotals)
 
         let img_warning = new Image();
         img_warning.src = imgsrc_warning;
@@ -88,7 +89,7 @@
            for (let i = 0; i < len; i++) {
                 let row = review_list[i];
 //--------  get row data
-                const this_customer_pk = get_dict_value(row, ["customer", "pk"], 0);
+                const this_customer_pk = get_dict_value(row, ["order", "ppk"], 0);
                 const this_order_pk = get_dict_value(row, ["order", "pk"], 0);
                 const this_rosterdate_iso = get_dict_value(row, ["rosterdate", "value"], "");
                 const rosterdate_formatted_long = format_date_iso (this_rosterdate_iso, loc.months_long, loc.weekdays_abbrev, false, false, loc.user_lang);
@@ -97,10 +98,8 @@
                 const this_employee_code = get_dict_value(row, ["employee", "code"], "---")
                 const this_customer_code = get_dict_value(row, ["customer", "code"], "")
                 let this_order_code = get_dict_value(row, ["order", "code"], "") + " " + this_customer_code
-
                 const this_shift_code = get_dict_value(row, ["shift", "code"], "")
 
-                
 // ======== change in rosterdate ========
                 if (this_rosterdate_iso !== prev_rosterdate_iso){
                     prev_rosterdate_iso = this_rosterdate_iso;
@@ -121,7 +120,6 @@
                 }
 //========= change in customer
 /*
-
                 if (this_customer_pk !== prev_customer_pk){
                     prev_customer_pk = this_customer_pk;
                     prev_order_pk = 0;
@@ -153,6 +151,11 @@
                     }
 //--------- print order total row
                     const subtotal_arr = get_dict_value(subtotals, [this_rosterdate_iso, this_customer_pk, this_order_pk, "total"]);
+
+//console.log("this_order_code: ", this_order_code )
+//console.log("subtotals: ", subtotals )
+
+
                     PrintSubtotalHeader("rpt_roster", "order", this_order_code, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
                 }
 //========= print detail row
@@ -1089,6 +1092,8 @@
     function PrintSubtotalHeader(rptName, fldName, this_item_code, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc){
         //console.log("-----  PrintSubtotalHeader -----")
 
+        //console.log("this_item_code: ", this_item_code)
+        //console.log("subtotal_arr: ", subtotal_arr)
         let subtotal_values = [];
         if (!!subtotal_arr){
             if (rptName === "rpt_empl"){
@@ -1640,7 +1645,8 @@
     }  // calc_review_employee_totals
 
     function calc_roster_totals(roster_list){
-        //console.log(" --- calc_review_customer_totals ---: ")
+        //console.log(" --- calc_roster_totals ---: ")
+        //console.log("roster_list: ", roster_list)
         // calculate subtotals PR2020-02-17
         //  array contains [plan_dur, time_dur, bill_dur, row_count, bill_count]
         // subtotals = {total: [11170, 10330, 10330]
@@ -1652,11 +1658,11 @@
         let subtotals = {total: [0, 0, 0, 0]}
         const len = roster_list.length;
         if (len > 0) {
-            for (let i = 0; i < len; i++) {
-                let row = roster_list[i];
+            for (let i = 0, row; row = roster_list[i]; i++) {
+        //console.log("row: ", row)
 
                 const rosterdate_iso =  get_dict_value(row, ["rosterdate", "value"]);
-                const customer_pk = get_dict_value(row, ["customer", "pk"]);
+                const customer_pk = get_dict_value(row, ["order", "ppk"]);
                 const order_pk = get_dict_value(row, ["order", "pk"]);
                 const timedur = get_dict_value(row, ["timeduration", "value"], 0);
                 const breakdur = get_dict_value(row, ["breakduration", "value"], 0);
@@ -1666,6 +1672,8 @@
                 const break_hours = (!is_absence && !is_restshift) ? breakdur : 0;
                 const absence_hours = (is_absence) ? timedur : 0;
                 const shift_count = (!is_absence && !is_restshift) ? 1 : 0;
+
+        //console.log("rosterdate_iso: ", rosterdate_iso)
 
                 if(!!rosterdate_iso && !!customer_pk && !!order_pk) {
         // lookup rosterdate_iso in subtotals, create if not found

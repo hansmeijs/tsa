@@ -420,6 +420,36 @@ document.addEventListener('DOMContentLoaded', function() {
         return duration_sum
     };
 
+
+//========= update_map_item  ================== PR2020-04-22
+    function update_map_item(data_map, map_id, update_dict, user_lang){
+        console.log(" --- update_map_item ---")
+        const id_dict = get_dict_value_by_key (update_dict, "id");
+        if(!!data_map && !isEmpty(id_dict)){
+            const tblName = get_dict_value_by_key(id_dict, "table");
+            const pk_int = get_dict_value_by_key(id_dict, "pk");
+            const map_id = get_map_id(tblName, pk_int);
+            const is_created = ("created" in id_dict);
+            const is_deleted = ("deleted" in id_dict);
+//--- replace updated item in map or remove deleted item from map
+            if(is_deleted){
+                data_map.delete(map_id);
+            } else if(is_created){
+//--- insert new item in alphabetical order,
+                if (!!data_map.size){
+                    insertInMapAtIndex(data_map, map_id, update_dict, 0, user_lang)
+                } else {
+                    data_map.set(map_id, update_dict)
+                }
+            } else {
+                data_map.set(map_id, update_dict)
+            }
+        }  // if(!isEmpty(id_dict))
+        console.log(data_map) // PR2019-11-26
+    }  // update_map_item
+
+
+
 //========= insertAtIndex  ================== PR2020-01-20
 // from https://stackoverflow.com/questions/53235759/insert-at-specific-index-in-a-map
 
