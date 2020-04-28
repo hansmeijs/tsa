@@ -328,8 +328,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // --- Datalist Download
         // TODO set show_absence = false
         // show_absence = null is for testing, show_absence must be false in production
-        //const show_absence = null;
-        const show_absence = false;
+        const show_absence = null;
+        //const show_absence = false;
         const datalist_request = {
             setting: {page_scheme: {mode: "get"},
                       selected_pk: {mode: "get"}
@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
             locale: {page: "scheme"},
             customer: {isabsence: show_absence, istemplate: null, inactive: false},
             order: {isabsence: show_absence, istemplate: null, inactive: false},
-            scheme: {isabsence: show_absence, istemplate: null, inactive: false, issingleshift: null},
+            scheme: {isabsence: show_absence, istemplate: null, inactive: null, issingleshift: null},
             shift: {customer_pk: null},
             team: {customer_pk: null, isabsence: show_absence},
             teammember: {customer_pk: null, isabsence: show_absence},
@@ -1377,7 +1377,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let selected_ppk_int = 0;
         const selected_map_id = get_map_id(tblName, selected_pk.toString());
 
-        let caption_one, caption_multiple ;
+        let caption_one, caption_multiple;
         let tblBody, data_map, el_a, firstRow, selectedRow;
 
         if (tblName === "template"){
@@ -1422,7 +1422,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let row_count = 0;
 // --- loop through data_map
-        //console.log( "data_map: ", data_map);
         for (const [map_id, item_dict] of data_map.entries()) {
             const pk_int = get_dict_value(item_dict, ["id", "pk"], 0);
             const ppk_int = get_dict_value(item_dict, ["id", "ppk"], 0);

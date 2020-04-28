@@ -46,8 +46,7 @@ def create_companyinvoice_list(company):
     #    crit.add(Q(istemplate=is_template), crit.connector)
     #if inactive is not None:
     #    crit.add(Q(inactive=inactive), crit.connector)
-    #companyinvoices = m.Companyinvoice.objects.filter(crit)
-    companyinvoices = m.Companyinvoice.objects.all()
+    companyinvoices = m.Companyinvoice.objects.filter(crit)
     logger.debug(str(companyinvoices.query))
 
     companyinvoice_list = []

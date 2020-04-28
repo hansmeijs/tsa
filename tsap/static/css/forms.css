@@ -267,6 +267,10 @@
     flex: 1;
     text-align: right;
 }
+.content_subheader_right_flex2 {
+    flex: 2;
+    text-align: right;
+}
 
 .btn-add {
     padding: 0rem 0.5rem 0rem 0.5rem;

@@ -182,12 +182,12 @@ TEAMMEMBER_CAT_0512_ABSENCE = 512
 
 # PR2020-04-07 bonus added upon registering
 ENTRY_CAT_00_CHARGED = 0
-ENTRY_CAT_01_REFUND = 1
+ENTRY_CAT_01_SPARE = 1
 ENTRY_CAT_02_PAID = 2
 ENTRY_CAT_03_BONUS = 3
 
-ENTRY_BONUS_SIGNUP = 25000  # PR2020-04-07 bonus added upon registering
-ENTRY_GRACE_ENTRIES = 10000  # PR2020-04-15 negative balance allowed before account is blocked
+ENTRY_BONUS_SIGNUP = 15000  # PR2020-04-07 bonus added upon registering
+ENTRY_NEGATIVE_ALLOWED = 10000  # PR2020-04-15 negative balance allowed before account is blocked
 ENTRY_VALID_MONTHS_BONUS = 3 # PR2020-04-15 months that bonus entries are valid
 ENTRY_VALID_MONTHS_PAID = 6 # PR2020-04-15 months that grace entries are valid
 ENTRY_BLOCKED_AFTER_MONTHS = 12 # PR2020-04-15 account will be removed after 12 months
@@ -322,33 +322,34 @@ CAPTION_IMPORT = {LANG_EN: {'no_file': 'No file is currently selected',
                                  'linked_columns': 'Gekoppelde kolommen'}
                     }
 
+COLDEF_ORDER = ( {'tsaKey': 'custcode', 'caption': _('Customer - Short name')},
+                {'tsaKey': 'custname', 'caption': _('Customer - Name')},
+                {'tsaKey': 'custidentifier', 'caption': _('Customer - Identifier')},
+                # {'tsaKey': 'custcontactname', 'caption': _('Customer - Contact name')},
+                # {'tsaKey': 'custaddress', 'caption': _('Customer - Address')},
+                # {'tsaKey': 'custzipcode', 'caption': _('Customer - Zipcode')},
+                # {'tsaKey': 'custcity', 'caption': _('Customer - City')},
+                # {'tsaKey': 'custcountry', 'caption': _('Customer - Country')},
+                # {'tsaKey': 'custemail', 'caption': _('Customer - Email address')},
+                # {'tsaKey': 'custtelephone', 'caption': _('Customer - Telephone')},
 
-COLDEF_ORDER = {LANG_EN: [ {'tsaKey': 'custcode', 'caption': 'Customer - Short name'},
-                                {'tsaKey': 'custname', 'caption': 'Customer - Nname'},
-                                {'tsaKey': 'custidentifier', 'caption': 'Customer - Identifier'},
-                                # {'tsaKey': 'custcontactname', 'caption': 'Customer - Contact name'},
-                                # {'tsaKey': 'custaddress', 'caption': 'Customer - Address'},
-                                # {'tsaKey': 'custzipcode', 'caption': 'Customer - Zipcode'},
-                                # {'tsaKey': 'custcity', 'caption': 'Customer - City'},
-                                # {'tsaKey': 'custcountry', 'caption': 'Customer - Country'},
-                                # {'tsaKey': 'custemail', 'caption': 'Customer - Email address'},
-                                # {'tsaKey': 'custtelephone', 'caption': 'Customer - Telephone'},
+                {'tsaKey': 'ordercode', 'caption': _('Order - Short name')},
+                {'tsaKey': 'ordername', 'caption': _('Order - Name')},
+                {'tsaKey': 'orderidentifier', 'caption': _('Order - Identifier')},
+                # {'tsaKey': 'ordercontactname', 'caption': _('Order - Contact name')},
+                # {'tsaKey': 'orderaddress', 'caption': _('Order - Address')},
+#  {'tsaKey': 'orderzipcode', 'caption': _('Order - Zipcode')},
+#  {'tsaKey': 'ordercity', 'caption': _('Order - City')},
+                # {'tsaKey': 'ordercountry', 'caption': _('Order - Country')},
+                # {'tsaKey': 'orderemail', 'caption': _('Order - Email address')},
+                # {'tsaKey': 'ordertelephone', 'caption': 'Order - Telephone')},
+                {'tsaKey': 'orderdatefirst', 'caption': _('Order - First date of order')},
+                {'tsaKey': 'orderdatelast', 'caption': _('Order - Last date of order')}
+                 )
 
-                                {'tsaKey': 'ordercode', 'caption': 'Order - Short name'},
-                                {'tsaKey': 'ordername', 'caption': 'Order - Name'},
-                                {'tsaKey': 'orderidentifier', 'caption': 'Order - Identifier'},
-                                # {'tsaKey': 'ordercontactname', 'caption': 'Order - Contact name'},
-                                # {'tsaKey': 'orderaddress', 'caption': 'Order - Address'},
-    #  {'tsaKey': 'orderzipcode', 'caption': 'Order - Zipcode'},
-    #  {'tsaKey': 'ordercity', 'caption': 'Order - City'},
-                                # {'tsaKey': 'ordercountry', 'caption': 'Order - Country'},
-                                # {'tsaKey': 'orderemail', 'caption': 'Order - Email address'},
-                                # {'tsaKey': 'ordertelephone', 'caption': 'Order - Telephone'},
-                                {'tsaKey': 'orderdatefirst', 'caption': 'Order - First date of order'},
-                                {'tsaKey': 'orderdatelast', 'caption': 'Order - Last date of order'},
-                            ],
+"""
                     LANG_NL: [
-                                {'tsaKey': 'custcode', 'caption': 'Klant - Korte naam'},
+                                {'tsaKey': 'custcode', 'caption':  _('Customer - Short name')},  #  'Klant - Korte naam'},
                                 {'tsaKey': 'custname', 'caption': 'Klant - Naam '},
                                 {'tsaKey': 'custidentifier', 'caption': 'Klant - Identificatiecode'},
                                 # {'tsaKey': 'custcontactname', 'caption': 'Klant - Contactpersoon'},
@@ -373,7 +374,7 @@ COLDEF_ORDER = {LANG_EN: [ {'tsaKey': 'custcode', 'caption': 'Customer - Short n
                                 {'tsaKey': 'orderdatelast', 'caption': 'Locatie - Einddatum opdracht'},
                             ]
                     }
-
+"""
 FIELDS_COMPANY = ('id', 'code', 'name', 'issystem', 'timezone', 'interval', 'timeformat', 'cat', 'billable')
 
 FIELDS_COMPANYINVOICE = ('id', 'company', 'cat', 'entries', 'used', 'balance', 'entryrate',
@@ -392,13 +393,13 @@ FIELDS_ORDERHOUR = ('id', 'order', 'schemeitem', 'rosterdate', 'cat',
                     'invoicedate', 'isbillable', 'isrestshift', 'shift', 'status', 'locked')
 
 FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
-                   'rosterdate', 'cat', 'isabsence', 'isrestshift', 'isreplacement', 'datepart',
-                   'paydate', 'lockedpaydate',
-                   'shift', 'timestart', 'timeend', 'timeduration', 'breakduration',
-                   'plannedduration', 'billingduration',
+                   'rosterdate', 'cat', 'isreplacement', 'datepart', 'paydate', 'lockedpaydate',
+                   'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration', 'billingduration',
                    'wagerate', 'wagefactor', 'wage',
                    'pricerate', 'additionrate', 'taxrate', 'amount', 'addition', 'tax',
-                   'confirmstart', 'confirmend', # confirmstart and confirmend are not model fields
+                    # fields: order, shift, confirmstart and confirmend are not model fields,
+                   # but necessary to update abssence_category, shift_code and status
+                   'order', 'shift', 'confirmstart', 'confirmend',
                    'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked')
 
 FIELDS_SCHEME = ('id', 'order', 'cat', 'isabsence', 'issingleshift', 'isdefaultweekshift', 'istemplate',

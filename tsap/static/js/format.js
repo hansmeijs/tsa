@@ -1084,7 +1084,6 @@
         return display_time;
     }  // display_offset_time
 
-
     //=========  get_month_year_text  === PR2020-03-14
     function get_month_year_text(first_year, last_year, first_month_index, last_month_index, loc){
         let month_year_text = "-"
@@ -1250,8 +1249,8 @@
                 value_int = value_int * -1
                 minus_sign = "-";
             }
-            let dotcomma = "."
-            if(user_lang === "en") {dotcomma = ","}
+            const thousand_separator = (user_lang === "en") ? "," :  ".";
+            const decimal_separator =  ":"; // cannot use '.' in dutch because of thousand_separator
 
             let hour_text;
             // PR2019-08-22 debug: dont use Math.floor, gives wrong hours when negative. Was: const hours = Math.floor(value_int/60);
@@ -1260,11 +1259,11 @@
             hour_text =  hours.toString()
             if (hours >= 1000000) {
                 const pos = hour_text.length - 6 ;
-                hour_text = [hour_text.slice(0, pos), hour_text.slice(pos)].join(dotcomma);
+                hour_text = [hour_text.slice(0, pos), hour_text.slice(pos)].join(thousand_separator);
             }
             if (hours >= 1000) {
                 const pos = hour_text.length - 3 ;
-                hour_text = [hour_text.slice(0, pos), hour_text.slice(pos)].join(dotcomma);
+                hour_text = [hour_text.slice(0, pos), hour_text.slice(pos)].join(thousand_separator);
             }
 
             const minutes = value_int - hours * 60  // % is remainder operator
@@ -1275,7 +1274,7 @@
             //console.log("value_int/60: ", value_int/60)
             //console.log("hours: ", hours, "minutes: ", minutes, "minute_text: ", minute_text)
 
-            time_format = minus_sign + hour_text + ":" + minute_text;
+            time_format = minus_sign + hour_text + decimal_separator + minute_text;
 
 
         }  // if (!!value_int)
@@ -1664,4 +1663,11 @@
         setTimeout(function (){
             el_input.classList.remove("border_bg_valid");
         }, 2000);
+    }
+
+//=========  ShowOkElement  ================ PR2020-04-26
+    function ShowClassWithTimeout(el, className, timeout) {
+        // show class, remove it after timeout milliseconds
+        el.classList.add(className);
+        setTimeout(function (){el.classList.remove(className)}, timeout);
     }

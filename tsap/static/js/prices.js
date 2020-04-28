@@ -553,7 +553,7 @@ selected_btn = "customer"
 //=========  CreateTblRow  ================ PR2019-04-27
     function CreateTblRow(rptName, tblName, map_id, pk_int, p1pk_int, p2pk_int, p3pk_int) {
         //console.log("=========  CreateTblRow ========= ", rptName, tblName, pk_int);
-
+        // p1pk_int = parent_pk, p2pk_int = parent_parent_pk, p3pk_int = parent_parent_parent_pk
 // ---  insert tblRow ino tblBody_items
         let tblRow = tblBody_items.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
 
@@ -575,7 +575,7 @@ selected_btn = "customer"
             td.setAttribute("data-field", fldName )
 
 // --- add width and text_align
-            td.classList.add("td_width_" + field_width[rptName][j])// --- add text_align
+            td.classList.add("td_width_" + field_width[rptName][j])
             td.classList.add("text_align_" + field_align[rptName][j])
 
 // --- add margin to first column
@@ -594,7 +594,9 @@ selected_btn = "customer"
 // --- add img to first and last td, first column not in new_item, first column not in teammembers
             if ( j === 1)  {
             // --- first add <a> element with EventListener to td
-                el.setAttribute("href", "#");
+                // don't use href. It  will cause the screen to go to the top when clicked
+                //el.setAttribute("href", "#");
+                el.classList.add("pointer_show")
                 AppendChildIcon(el, imgsrc_bill03, "18")
                 td.classList.add("pt-0")
             }
@@ -625,6 +627,7 @@ selected_btn = "customer"
                 }
                 if(!!p2pk_int) {
                     tblRow.classList.add("c_ordr_" + p2pk_int.toString());
+                    tblRow.classList.add("x_ordr_" + p2pk_int.toString());
                 }
                 if(!!p3pk_int) {
                     tblRow.classList.add("c_cust_" + p3pk_int.toString());
@@ -2298,12 +2301,13 @@ selected_btn = "customer"
         //console.log("=== HandleTableRowClickedOrDoubleClicked");
         //console.log("event.target", event.target);
         //console.log("event.detail", event.detail);
-        // PR2020-02-24 dont use doubelckick event, wil also trigger clcik twice. Use this function instead
+        // PR2020-02-24 dont use doubelckick event, wil also trigger click twice. Use this function instead
         // from https://stackoverflow.com/questions/880608/prevent-click-event-from-firing-when-dblclick-event-fires#comment95729771_29993141
 
         // currentTarget refers to the element to which the event handler has been attached
         // event.target which identifies the element on which the event occurred.
 
+        // event.detail: for mouse click events: returns the number of clicks.
         switch (event.detail) {
             case 1:
                 HandleTableRowClicked(tblRow)
@@ -2315,7 +2319,7 @@ selected_btn = "customer"
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
     function HandleTableRowClicked(tblRow) {
-        //console.log("=== HandleTableRowClicked");
+        console.log("=== HandleTableRowClicked");
         //console.log( "tblRow: ", tblRow, typeof tblRow);
         if(!!tblRow) {
             const tblName = get_attr_from_el(tblRow, "data-table")
@@ -2323,9 +2327,9 @@ selected_btn = "customer"
             if (is_totalrow){
                 const row_id = tblRow.id //  id = 'cust_694'
                 let subrows_hidden = get_attr_from_el(tblRow, "data-subrows_hidden", false)
-                //console.log( "tblName: ", tblName);
-                //console.log( "row_id: ", row_id);
-                //console.log( "subrows_hidden: ", subrows_hidden);
+                console.log( "tblName: ", tblName);
+                console.log( "row_id: ", row_id);
+                console.log( "subrows_hidden: ", subrows_hidden);
                 if (subrows_hidden){
                     // expand first level below this one, i.e. the rows with class = 'x_cust_694'
                     //  toggle_class(tblBody, classname, is_add, filter_class){
@@ -2345,7 +2349,7 @@ selected_btn = "customer"
 
 //=========  HandleTableRowDoubleClicked  ================ PR2019-03-30
     function HandleTableRowDoubleClicked(tblRow) {
-       //("=== HandleTableRowDoubleClicked");
+       console.log("=== HandleTableRowDoubleClicked");
         if(!!tblRow) {
             const tblName = get_attr_from_el(tblRow, "data-table")
             const is_totalrow = (["empl", "cust", "ordr", "schm"].indexOf(tblName) > -1)
@@ -2497,9 +2501,5 @@ selected_btn = "customer"
         }  // if(!!emplhour_map){
         return ws;
     }  // FillExcelRows
-
-    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 }); // document.addEventListener('DOMContentLoaded', function()

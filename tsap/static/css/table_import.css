@@ -442,26 +442,41 @@ a:hover{
 .tsa_td_linked {
         color: #800000;  /*dark red*/
         background-color: #f9f2f2; /* #f9f2f2 lightlight reddish*/
-        width: 50%;
+        /*width: 50%;*/
         padding: 2px 8px; /* top right bottom left*/
+            transition: all 150ms ease;
+     -webkit-transition: all 150ms ease;
+     -o-transition: all 150ms ease;
 }
 .tsa_td_unlinked {
         color: #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
         background-color: #d7e4f3; /*#d7e4f3 is even lighter blueish  #B8CCE4; /* 'TextboxBackColor Default Schema Blauw lichtblauw */
-        width: 100%;
         padding: 2px 8px; /* top right bottom left*/
+            transition: all 150ms ease;
+     -webkit-transition: all 150ms ease;
+     -o-transition: all 150ms ease;
 }
 .tsa_td_linked_selected {
-        color: #ffffff; /*white*/
-        background-color: #800000; /*dark red*/
-        width: 50%;
+        color: #ffffff; /*!important; /*white*/
+        background-color: #800000;  /*!important; /*dark red*/
         padding: 2px 8px; /* top right bottom left*/
+    transition: all 150ms ease;
+     -webkit-transition: all 150ms ease;
+     -o-transition: all 150ms ease;
+}
+.tsa_td_width_100 {
+        width: 100%;
+}
+.tsa_td_width_50 {
+        width: 50%;
 }
 .tsa_td_unlinked_selected {
-        color: #ffffff; /*white*/
-        background-color: #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
-        width: 100%;
+        color: #ffffff; /*!important; /*white*/
+        background-color: #2D4E77; /*!important; /* HeaderBackColor Default Schema Blauw donkerblauw */
         padding: 2px 8px; /* top right bottom left*/
+            transition: all 150ms ease;
+     -webkit-transition: all 150ms ease;
+     -o-transition: all 150 ease;
 }
 
 .tsa_td_linked_hover {
@@ -472,17 +487,17 @@ a:hover{
     /*background-color: #c54040; /* #c54040 rgba: 197-64-64-1 medium red*/
 
     /*background-color: #800000; /*!important; /* rgba: 128-64-64-1 dark red*/
-    transition: all 100ms linear;
-     -webkit-transition: all 100ms linear;
-     -o-transition: all 100ms linear;
+    transition: all 150ms ease;
+     -webkit-transition: all 150ms ease;
+     -o-transition: all 150ms ease;
 }
 .tsa_td_unlinked_hover {
     color: #ffffff; /*!important;*/
     /*background-color: #2D4E77; /* HeaderBackColor Default Schema Blauw donkerblauw */
     background-color: #4c74a7; /* #4c74a7 rgba: 76-116-167-1 medium blue*/
-    transition: all 100ms linear;
-     -webkit-transition: all 100ms linear;
-     -o-transition: all 100ms linear;
+    transition: all 150ms ease;
+     -webkit-transition: all 150ms ease;
+     -o-transition: all 150ms ease;
 }
 
 /* Table Body */

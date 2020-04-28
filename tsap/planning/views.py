@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.generic import UpdateView, View
 
 from datetime import date, time, datetime, timedelta
+from timeit import default_timer as timer
 
 from accounts.models import Usersetting
 from companies.views import LazyEncoder
@@ -48,6 +49,7 @@ class DatalistDownloadView(View):  # PR2019-05-23
         #logger.debug('request.POST' + str(request.POST))
         # {'download': ['{"period":{"period_index":5,"datefirst":"2019-11-16","datelast":"2019-11-16","extend_index":3}}']}
 
+        starttime = timer()
         datalists = {}
         if request.user is not None:
             if request.user.company is not None:
@@ -109,7 +111,6 @@ class DatalistDownloadView(View):  # PR2019-05-23
                     table_dict = datalist_dict.get('companysetting')
                     if table_dict:
                         companysetting_dict = cd.get_companysetting(table_dict, user_lang, request)
-                        logger.debug('companysetting_dict: ' + str(companysetting_dict) + ' ' + str(type(companysetting_dict)))
                         datalists['companysetting_dict'] = companysetting_dict
 # ----- locale
                     table_dict = datalist_dict.get('locale')
@@ -459,6 +460,9 @@ class DatalistDownloadView(View):  # PR2019-05-23
 # 9. return datalists
         datalists_json = ""
         if datalists:
+            elapsed_seconds = int(1000 * (timer() - starttime) ) /1000
+            datalists['elapsed_seconds'] = elapsed_seconds
+
             datalists_json = json.dumps(datalists, cls=LazyEncoder)
 
         return HttpResponse(datalists_json)
@@ -2408,7 +2412,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                     #logger.debug(' shift_option: ' + str(shift_option))
 
 # 4. Create empty update_dict with keys for all fields if not exist. Unused ones will be removed at the end
-                    # in create_emplhour_itemdict_from_row info will be taken from update_dict and database
+                    # in create_emplhour_itemdict_from_instance info will be taken from update_dict and database
                     # and is put in updatedict_final
                     updatedict_final = {}
                     update_dict = f.create_update_dict(
@@ -2477,10 +2481,10 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                             update_emplhour(emplhour, upload_dict, update_dict,
                                                       request, comp_timezone, timeformat, user_lang, eplh_update_list)
 # 6. put updated saved values in update_dict
-                            updatedict_final = d.create_emplhour_itemdict_from_row(emplhour, update_dict, comp_timezone, timeformat, user_lang)
+                            updatedict_final = d.create_emplhour_itemdict_from_instance(emplhour, update_dict, comp_timezone, timeformat, user_lang)
 
 # 6. remove empty attributes from update_dict
-                    # is already done in create_NEWemplhour_itemdict
+                    # is already done in create_emplhour_itemdict_from_row
                     #f.remove_empty_attr_from_dict(update_dict)
 
 # 7. add update_dict to update_wrap
@@ -2496,7 +2500,7 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
                                     emplhour = m.Emplhour.objects.get_or_none(id=eplh_id)
                                     if emplhour:
                                         row_dict = {}
-                                        d.create_emplhour_itemdict_from_row(emplhour, row_dict, comp_timezone)
+                                        d.create_emplhour_itemdict_from_instance(emplhour, row_dict, comp_timezone)
                                         if dict:
                                             update_list.append(row_dict)
                         """
@@ -2508,22 +2512,19 @@ class EmplhourUploadView(UpdateView):  # PR2019-06-23
 
 
 def create_orderhour_emplhour(upload_dict, update_dict, request):
-    #logger.debug(' --- create_orderhour_emplhour --- ')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug(' --- create_orderhour_emplhour --- ')
+    logger.debug('upload_dict: ' + str(upload_dict))
     #logger.debug('update_dict: ' + str(update_dict))
-
-    #  'rosterdate': {'value': '2019-06-26', 'update': True},
-    #               'orderhour': {'value': 'UTS - UTS', 'order_pk': 59, 'update': True}}
 
     id_dict = upload_dict.get('id')
     if id_dict:
-    # this attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
+        # attribute 'temp_pk': 'new_1' is necessary to lookup request row on page
         temp_pk_str = id_dict.get('temp_pk', '')
         if temp_pk_str:
             update_dict['id']['temp_pk'] = temp_pk_str
 
 # - get rosterdate
-    rosterdate = None
+    rosterdate_dte = None
     order = None
     orderhour = None
     emplhour = None
@@ -2534,7 +2535,7 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
         field_dict = upload_dict.get(field)   # 'rosterdate': {'value': '2019-06-26', 'update': True},
 
         new_value = field_dict.get('value')  # new_value: '2019-04-12'
-        rosterdate, msg_err = f.get_date_from_ISOstring(new_value, True)  # True = blank_not_allowed
+        rosterdate_dte, msg_err = f.get_date_from_ISOstring(new_value, True)  # True = blank_not_allowed
         # b. validate new_date
         # field 'rosterdate' is required
         if msg_err is not None:
@@ -2550,14 +2551,37 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
         if order_pk:
             order = m.Order.objects.get_or_none(customer__company=request.user.company, pk=order_pk)
 
+    if rosterdate_dte and order:
+        is_restshift = False
+        is_absence = order.isabsence
+
+# - get billable from shift and scheme (if a shift is selected), and from order, customer and company
+        # get shift (may be blank)
+        shift = None
+        if 'shift' in upload_dict:
+            shift_pk = f.get_dict_value(upload_dict, ('shift', 'pk'))
+            if shift_pk:
+                shift = m.Shift.objects.get_or_none(scheme__order= order, pk=shift_pk)
+                if shift:
+                    is_restshift = shift.isrestshift
+        is_billable = f.get_billable_from_order_shift(order, shift)
+
+# - get invoicedate
+        # TODO get invoicedate from order settings, make it end of this month for now
+        invoice_date = f.get_lastof_month(rosterdate_dte)
+
 # - create orderhour
-    if rosterdate and order:
+        # shift_code will be saved in update_emplhour
         orderhour = m.Orderhour(
             order=order,
-            rosterdate=rosterdate
-            # TODO add invoicedate
+            rosterdate=rosterdate_dte,
+            isabsence=is_absence,
+            isrestshift=is_restshift,
+            isbillable=is_billable,
+            invoicedate=invoice_date
         )
         orderhour.save(request=request)
+
 # - create error when orderhour not created
     if orderhour is None:
         msg_err = _('This item could not be created.')
@@ -2573,7 +2597,6 @@ def create_orderhour_emplhour(upload_dict, update_dict, request):
             rosterdate=orderhour.rosterdate
         )
         emplhour.save(request=request)
-
     if emplhour is None:
         msg_err = _('This item could not be created.')
         update_dict['id']['error'] = msg_err
@@ -2646,12 +2669,21 @@ def make_absence_shift(emplhour, upload_dict, comp_timezone, timeformat, user_la
 # - calculate absent_duration: this is workhours per day, in minutes
             # timestart and timeend cannot be entered when creating absence record.
             # it can be entered when editing an existing absence record
-            #logger.debug('absent_employee: ' + str(absent_employee))
-            #logger.debug('absent_employee.workhours: ' + str(absent_employee.workhours))
-            #logger.debug('absent_employee.workdays: ' + str(absent_employee.workdays))
-            if absent_employee.workhours and absent_employee.workdays:
-                absent_duration = absent_employee.workhours / absent_employee.workdays * 1440
-            #logger.debug('absent_duration: ' + str(absent_duration))
+            # set absence to zero on public holidays and weekends TODO is this a correct approach??
+
+# 4. get is_publicholiday, is_companyholiday of this date from Calendar
+            # TODO is this a correct approach??
+            # set absence to zero on public holidays and weekends
+            rosterdate_dte = parent_orderhour.rosterdate
+            is_weekend = (rosterdate_dte.isoweekday() > 5) # saturday = 6, sunday = 7
+            is_publicholiday, is_companyholiday = d.get_ispublicholiday_iscompanyholiday(rosterdate_dte, request)
+            if not is_weekend and not is_publicholiday:
+                #logger.debug('absent_employee: ' + str(absent_employee))
+                #logger.debug('absent_employee.workhours: ' + str(absent_employee.workhours))
+                #logger.debug('absent_employee.workdays: ' + str(absent_employee.workdays))
+                if absent_employee.workhours and absent_employee.workdays:
+                    absent_duration = absent_employee.workhours / absent_employee.workdays * 1440
+                #logger.debug('absent_duration: ' + str(absent_duration))
 
 # create new abscat_orderhour
             new_orderhour = m.Orderhour(
@@ -2675,7 +2707,6 @@ def make_absence_shift(emplhour, upload_dict, comp_timezone, timeformat, user_la
                     orderhour=new_orderhour,
                     employee=absent_employee,
                     rosterdate=parent_orderhour.rosterdate,
-                    isabsence=True,
                     # dont copy shift, is confusing. Was: shift=parent_orderhour.shift,
                     # leave timestart, timeend, breakduration, offsetstart, offsetend blank
                     # plannedduration = 0, billingduration = 0
@@ -2687,7 +2718,7 @@ def make_absence_shift(emplhour, upload_dict, comp_timezone, timeformat, user_la
                 if new_emplhour:
                     row_index = f.get_dict_value(upload_dict, ('id','rowindex'), -1)
                     item_dict = {'id': {'created': True, 'rowindex': row_index}}
-                    update_dict = d.create_emplhour_itemdict_from_row(new_emplhour, item_dict, comp_timezone, timeformat, user_lang)
+                    update_dict = d.create_emplhour_itemdict_from_instance(new_emplhour, item_dict, comp_timezone, timeformat, user_lang)
 
                     #logger.debug('================> update_dict: ' + str(update_dict))
     return update_dict
@@ -2695,8 +2726,8 @@ def make_absence_shift(emplhour, upload_dict, comp_timezone, timeformat, user_la
 
 
 def change_absence_shift(emplhour, upload_dict, update_dict, request):  # PR2020-04-13
-    #logger.debug(' --- change_absence_shift --- ')
-    #logger.debug('upload_dict: ' + str(upload_dict))
+    logger.debug(' --- change_absence_shift --- ')
+    logger.debug('upload_dict: ' + str(upload_dict))
     # this function changes the absence order in the orderhour.
 
 #  upload_dict: {
@@ -2725,8 +2756,8 @@ def change_absence_shift(emplhour, upload_dict, update_dict, request):  # PR2020
             orderhour.save(request=request)
             cust_order_code = ' - '.join([abscat_order.customer.code, abscat_order.code])
             update_dict['order'] = {'pk': abscat_order.pk, 'code': cust_order_code, 'updated': True}
-
-# --- end of make_absence_shift
+    logger.debug('update_dict: ' + str(update_dict))
+# --- end of change_absence_shift
 
 
 def make_split_shift(emplhour, upload_dict, comp_timezone, timeformat, user_lang, request):
@@ -2807,8 +2838,8 @@ def make_split_shift(emplhour, upload_dict, comp_timezone, timeformat, user_lang
     amount, addition, tax = f.calc_amount_addition_tax_rounded(
                 time_duration=emplhour.timeduration,
                 billing_duration=billing_duration,
-                is_absence=emplhour.isabsence,
-                is_restshift=emplhour.isrestshift,
+                is_absence=orderhour.isabsence,
+                is_restshift=orderhour.isrestshift,
                 is_billable=orderhour.isbillable,
                 price_rate=emplhour.pricerate,
                 addition_rate=emplhour.additionrate,
@@ -2824,25 +2855,23 @@ def make_split_shift(emplhour, upload_dict, comp_timezone, timeformat, user_lang
             orderhour=orderhour,
             employee=new_employee,
             rosterdate=orderhour.rosterdate,
-            paydate=emplhour.paydate,
-            isabsence=emplhour.isabsence,
-            isrestshift=emplhour.isrestshift,
             isreplacement=emplhour.isreplacement,
+            paydate=emplhour.paydate,
             datepart=date_part,
-            shift=emplhour.shift,
             timestart=time_start,
             timeend=time_end,
-            offsetstart=offset_start,
-            offsetend=offset_end,
             breakduration=break_duration,
             timeduration=time_duration,
             plannedduration=0,
             billingduration=billing_duration,
+            offsetstart=offset_start,
+            offsetend=offset_end,
             wagerate=emplhour.wagerate,
             wagefactor=emplhour.wagefactor,
             wage=new_wage,
             pricerate=emplhour.pricerate,
             additionrate=emplhour.additionrate,
+            additionisamount=emplhour.additionisamount,
             taxrate=emplhour.taxrate,
             amount=amount,
             addition=addition,
@@ -2859,7 +2888,7 @@ def make_split_shift(emplhour, upload_dict, comp_timezone, timeformat, user_lang
             item_dict = {'id': {'created': True}}
             if 'rowindex' in upload_dict['id']:
                 item_dict['id']['rowindex'] = upload_dict['id']['rowindex']
-            update_dict = d.create_emplhour_itemdict_from_row(new_emplhour, item_dict, comp_timezone, timeformat, user_lang)
+            update_dict = d.create_emplhour_itemdict_from_instance(new_emplhour, item_dict, comp_timezone, timeformat, user_lang)
 
         #logger.debug('>>>>>>>>>>> update_dict: ' + str(update_dict))
     return update_dict
@@ -2874,18 +2903,17 @@ def update_emplhour(emplhour, upload_dict, update_dict, request, comp_timezone, 
     logger.debug('upload_dict: ' + str(upload_dict))
 
     # FIELDS_EMPLHOUR = ('id', 'orderhour', 'employee', 'employeelog',
-    #                    'rosterdate', 'cat', 'isabsence', 'isrestshift', 'isreplacement', 'datepart',
-    #                    'paydate', 'lockedpaydate',
-    #                    'shift', 'timestart', 'timeend', 'timeduration', 'breakduration',
-    #                    'plannedduration', 'billingduration',
+    #                    'rosterdate', 'cat', 'isreplacement', 'datepart', 'paydate', 'lockedpaydate',
+    #                    'timestart', 'timeend', 'timeduration', 'breakduration', 'plannedduration', 'billingduration',
     #                    'wagerate', 'wagefactor', 'wage',
     #                    'pricerate', 'additionrate', 'taxrate', 'amount', 'addition', 'tax',
+    #                    'shift', 'confirmstart', 'confirmend', # shift, confirmstart and confirmend are not model fields
     #                    'status', 'overlap', 'schemeitemid', 'teammemberid', 'locked')
 
     has_error = False
     if emplhour:
+        save_orderhour = False
         save_changes = False
-        old_employee_pk = None
         recalc_duration = False
 
         for field in c.FIELDS_EMPLHOUR:
@@ -2899,6 +2927,10 @@ def update_emplhour(emplhour, upload_dict, update_dict, request, comp_timezone, 
 # 2. save changes in field 'rosterdate'
                     if field == 'rosterdate':
                         pass  # change rosterdate in emplhour not allowed
+
+# 2. save changes in field 'order'
+                    if field == 'order':
+                        pass  # change order only possible in change_absence_shift
 
 # 3. save changes in field 'employee'
                     # 'employee': {'field': 'employee', 'update': True, 'pk': 1675, 'ppk': 2, 'code': 'Wilson, Jose'}}
@@ -2927,11 +2959,13 @@ def update_emplhour(emplhour, upload_dict, update_dict, request, comp_timezone, 
                             is_updated = True
                             #logger.debug('save new_employee')
 
-# 3. save changes in field 'shift'
-                    # 'shift': {'value': '08:00 - 1:00', 'update': True}
+# 3. save changes in field 'shift'Note: fiels 'shift' is in orderhour, not emplhour!!
+                    # 'shift': {'code': '08:00 - 1:00', 'update': True}
                     if field == 'shift':
-                        new_value = field_dict.get('value')
-                        setattr(emplhour, field, new_value)
+                        new_value = field_dict.get('code')
+                        orderhour = emplhour.orderhour
+                        setattr(orderhour, field, new_value)
+                        save_orderhour = True
                         is_updated = True
 
 # 4. save changes in field 'timestart', 'timeend'
@@ -3043,15 +3077,12 @@ def update_emplhour(emplhour, upload_dict, update_dict, request, comp_timezone, 
                 # use saved billing_duration when not billable
                 billing_duration = emplhour.billingduration
             # calculate amount, addition and tax
-            is_billable = False
-            if emplhour.orderhour:
-                is_billable = emplhour.orderhour.isbillable
             amount, addition, tax = f.calc_amount_addition_tax_rounded(
                 time_duration=time_duration,
                 billing_duration=billing_duration,
-                is_absence=emplhour.isabsence,
-                is_restshift=emplhour.isrestshift,
-                is_billable=is_billable,
+                is_absence=emplhour.orderhour.isabsence,
+                is_restshift=emplhour.orderhour.isrestshift,
+                is_billable=emplhour.orderhour.isbillable,
                 price_rate=emplhour.pricerate,
                 addition_rate=emplhour.additionrate,
                 tax_rate=emplhour.taxrate)
@@ -3069,6 +3100,10 @@ def update_emplhour(emplhour, upload_dict, update_dict, request, comp_timezone, 
 
 # 6. save changes
         if save_changes:
+            if save_orderhour:
+                orderhour = emplhour.orderhour
+                orderhour.save(request=request)
+
             emplhour.save(request=request)
             try:
                 pass
@@ -3986,5 +4021,4 @@ def update_schemeitem_rosterdate(schemeitem, new_rosterdate_dte, comp_timezone):
             # save without (request=request) keeps modifiedby and modifieddate
             schemeitem.save()
             # logger.debug('schemeitem.saved rosterdate: ' + str(schemeitem.rosterdate))
-
 

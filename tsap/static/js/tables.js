@@ -20,8 +20,8 @@
 
         // difference between filter_include_inactive and filter_show_inactive:
         // - filter_include_inactive works in t_CreateSelectRow. Row is not created when inactive=true and filter_include_inactive=false
-        // - filter_show_inactive    works in UpdateSelectRow. Row will be hidden when inactive=true and filter_show_inactive=false
-        // the last one is used when a selected row is made inactive
+        // - filter_show_inactive    works in   UpdateSelectRow. Row will be hidden when inactive=true and filter_show_inactive=false
+        //   the last one is used when a selected row is made inactive
 
        // select table has button when HandleSelectFilterButton has value
        // select table has inactive button when imgsrc_inactive_lightgrey has value
@@ -53,12 +53,12 @@
         }  // for (let cust_key in data_map)
 
         if(!!addall_to_list_txt && row_count.count > 1) {
-        // add '<All customers> at beginning of list when tehre are more than 1 rows
+        // add '<All customers> at beginning of list when there are more than 1 rows
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 const bc_color_all_items = (selected_pk === 0) ?  bc_color_selected : bc_color_notselected;
     //--------- insert tblBody_select row
                 let tblRow = tblBody_select.insertRow(0);
-                tblRow.setAttribute("id", "sel_addall");
+                tblRow.setAttribute("id", "sel_" + tblName + "_addall");
                 tblRow.setAttribute("data-pk", "addall");
                 tblRow.setAttribute("data-table", tblName);
                 tblRow.setAttribute("data-inactive", false);
@@ -1148,6 +1148,9 @@
 //========= t_Filter_SelectRows  ==================================== PR2020-01-17
     function t_Filter_SelectRows(tblBody_select, filter_select, filter_show_inactive, has_ppk_filter, selected_ppk) {
         //console.log( "===== t_Filter_SelectRows  ========= ");
+        //console.log( "filter_select: <" + filter_select + ">");
+
+        const filter_select_lower = (!!filter_select) ? filter_select.toLowerCase() : "";
         let has_selection = false, has_multiple = false;
         let selected_value = null, selected_pk = null, selected_parentpk = null, selected_display = null;
         let row_count = 0;
@@ -1161,28 +1164,25 @@
                         hide_row = (ppk_str !== selected_ppk.toString())
                     } else {
                         hide_row = true;
-                    }
-                }
+                }};
 // ---  hide inactive rows when filter_show_inactive = false
                 if(!hide_row && !filter_show_inactive){
                     const inactive_str = get_attr_from_el(tblRow, "data-inactive")
                     if (!!inactive_str) {
                         hide_row = (inactive_str.toLowerCase() === "true")
-                    }
-                }
+                }};
 // ---  show all rows if filter_select = ""
-                if (!hide_row && !!filter_select){
+                if (!hide_row && !!filter_select_lower){
                     let found = false
                     if (!!tblRow.cells[0] && !!tblRow.cells[0].children[0]) {
                         let el_value = tblRow.cells[0].children[0].innerText;
                         if (!!el_value){
                             el_value = el_value.toLowerCase();
 // ---  show row if filter_select is found in el_value
-                            found = (el_value.indexOf(filter_select) !== -1)
-                        }
-                    }
+                            found = (el_value.indexOf(filter_select_lower) !== -1)
+                    }};
                     hide_row = (!found)
-                }  // if (!!filter_select)
+                };
                 if (hide_row) {
                     tblRow.classList.add(cls_hide)
                 } else {
@@ -1194,14 +1194,11 @@
                         selected_parentpk = get_attr_from_el(tblRow, "data-ppk");
                         selected_value = get_attr_from_el(tblRow, "data-value");
                         selected_display = get_attr_from_el(tblRow, "data-display");
-
                     } else {
                         has_multiple = true;
                     }
                     has_selection = true;
-                };
-            }  // if (!!tblRow){
-        }
+        }}};
 // ---  set select_value etc null when multiple items found
         if (has_multiple){
             selected_pk = null;

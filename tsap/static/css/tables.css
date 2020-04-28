@@ -160,6 +160,8 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    vertical-align: top;/* from bootstrap table td */
+    border-top: 1px solid #dee2e6; /* from bootstrap table td */
 }
 
 .text_align_left {
@@ -189,6 +191,9 @@
 
 .td_width_360 {
     width: 360px;
+}
+.td_width_300 {
+    width: 300px;
 }
 .td_width_270 {
     width: 270px;

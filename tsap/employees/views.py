@@ -958,6 +958,7 @@ def update_scheme_shift_team_tm_si(upload_dict, user_lang, request): # PR2020-04
 
 # - update teams from upload_dict
             teams_list = upload_dict.get('teams_list')
+            logger.debug('teams_list: ' + str(teams_list))
             mapped_teampk_dict = update_teams_from_uploaddict(teams_list, mapped_schemepk_dict, scheme, user_lang, request)
             logger.debug('mapped_teampk_dict: ' + str(mapped_teampk_dict))
 
@@ -1005,19 +1006,21 @@ def update_shifts_from_uploaddict (shifts_list, mapped_schemepk_dict, scheme, us
                 shift_dict['id']['ppk'] = mapped_schemepk
                 #logger.debug('new shift_dict[id]: ' + str(shift_dict['id']))
 
-            instance, mapped_pk_dict = update_instance_from_item_dict(table, shift_dict, scheme, user_lang, request)
+            instance, mapped_pk = update_instance_from_item_dict(table, shift_dict, scheme, user_lang, request)
+            # update adds dict 'mapped_pk' to dict 'mapped_pk_dict'
+            mapped_pk_dict.update(mapped_pk)
     return mapped_pk_dict
 
 
 def update_teams_from_uploaddict (teams_list, mapped_schemepk_dict, scheme, user_lang, request):
-    #logger.debug(' ')
-    #logger.debug('++++++++++++++++  update_teams_from_uploaddict ++++++++++++++++ ')
+    logger.debug(' ')
+    logger.debug('++++++++++++++++  update_teams_from_uploaddict ++++++++++++++++ ')
 
     mapped_pk_dict = {}
     if teams_list:
         table = 'team'
         for team_dict in teams_list:
-            #logger.debug('team_dict: ' + str(team_dict))
+            logger.debug('team_dict: ' + str(team_dict))
 
 # - replace scheme_pk 'new7' by pk of saved scheme, using mapped_schemepk_dict
             # not necessary, parent = scheme, there is only one scheme
@@ -1030,28 +1033,30 @@ def update_teams_from_uploaddict (teams_list, mapped_schemepk_dict, scheme, user
                 team_dict['id']['ppk'] = mapped_schemepk
                 #logger.debug('new team_dict[id]: ' + str(team_dict['id']))
 
-            instance, mapped_pk_dict = update_instance_from_item_dict(table, team_dict, scheme, user_lang, request)
+            instance, mapped_pk = update_instance_from_item_dict(table, team_dict, scheme, user_lang, request)
+            # update adds dict 'mapped_pk' to dict 'mapped_pk_dict'
+            mapped_pk_dict.update(mapped_pk)
     return mapped_pk_dict
 
 
 def update_teammembers_from_uploaddict (teammembers_list, mapped_teampks, user_lang, request):
-    #logger.debug(' ')
-    #logger.debug(' ++++++++++++++++  update_teammembers_from_uploaddict ++++++++++++++++ ')
+    logger.debug(' ')
+    logger.debug(' ++++++++++++++++  update_teammembers_from_uploaddict ++++++++++++++++ ')
 
     teammember_updates = []
     if teammembers_list:
         table = 'teammember'
         for item_dict in teammembers_list:
-            #logger.debug('item_dict: ' + str(item_dict))
+            logger.debug('item_dict: ' + str(item_dict))
 
     # replace parent 'team_pk' = 'new7' by pk of saved item, using mapped_pks
             team_pk = f.get_dict_value(item_dict, ('id', 'ppk'))
-            #logger.debug('team_pk: ' + str(team_pk) + ' ' + str(type(team_pk)))
-            #logger.debug('mapped_teampks: ' + str(mapped_teampks))
+            logger.debug('team_pk: ' + str(team_pk) + ' ' + str(type(team_pk)))
+            logger.debug('mapped_teampks: ' + str(mapped_teampks))
             if mapped_teampks and team_pk in mapped_teampks:
                 team_pk = mapped_teampks.get(team_pk)
     # get parent 'team'
-            #logger.debug('new team_pk: ' + str(team_pk) + ' ' + str(type(team_pk)))
+            logger.debug('new team_pk: ' + str(team_pk) + ' ' + str(type(team_pk)))
             if team_pk:
                 team = m.Team.objects.get_or_none(pk=team_pk,
                     scheme__order__customer__company=request.user.company)
@@ -1061,8 +1066,9 @@ def update_teammembers_from_uploaddict (teammembers_list, mapped_teampks, user_l
 
     # return teammember_dict when row is updated, created or deleted
                     teammember_update = d.create_teammember_dict(teammember, item_dict, user_lang)
-                    #logger.debug('.......... item_dict: ' + str(item_dict))
+                    logger.debug('.......... item_dict: ' + str(item_dict))
                     teammember_updates.append(teammember_update)
+    logger.debug('teammember_updates: ' + str(teammember_updates))
     return teammember_updates
 # === end of update_teammembers_from_uploaddict
 
@@ -1243,7 +1249,7 @@ def update_instance_from_item_dict (table, item_dict, parent, user_lang, request
                 # field 'rosterdate' only occurs in table 'schemeitem' and cannot be changed in this function
                 # field 'scheme' occurs in table 'shift', 'team' and 'schemeitem', it cannot be changed
                 if field != 'id' and field != 'rosterdate' and field != 'scheme':
-                    logger.debug('field: ' + str(field) + ' field_dict: ' + str(field_dict) + ' ' + str(type(field_dict)))
+                    #logger.debug('field: ' + str(field) + ' field_dict: ' + str(field_dict) + ' ' + str(type(field_dict)))
                     old_value = getattr(instance, field)
                     #logger.debug('old_value: ' + str(old_value) + ' ' + str(type(old_value)))
 
@@ -1479,6 +1485,7 @@ def absence_upload(request, upload_dict, user_lang): # PR2019-12-13
 
                     if employee is not None:
         # - create new scheme with cycle = 7
+                        # TODO Note: do not set excludepublicholiday=True, set timeduration=0 instead PR2020-04-26
                         scheme_code = employee.code if employee.code else c.SCHEME_TEXT[user_lang]
                         scheme = m.Scheme(
                             order=new_order,

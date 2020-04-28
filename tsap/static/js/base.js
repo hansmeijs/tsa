@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //========= function toggle_class  ====================================
     function toggle_class(tblBody, classname, is_add, filter_class){
         // add or remove selected cls_hide from all elements with class 'filter_class'
-        //console.log("toggle_class", is_add, filter_class)
+        console.log("toggle_class", is_add, filter_class)
         // from https://stackoverflow.com/questions/34001917/queryselectorall-with-multiple-conditions
         // document.querySelectorAll("form, p, legend") means filter: class = (form OR p OR legend)
         // document.querySelectorAll("form.p.legend") means filter: class = (form AND p AND legend)
@@ -495,6 +495,17 @@ document.addEventListener('DOMContentLoaded', function() {
         return row_index;
     }  // getRowIndex
 
+
+
+//========= sort_localeCompare  =============  PR2020-04-22
+    function sort_localeCompare(row_code, new_code, user_lang) {
+        // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
+        // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
+        // row_code 'acu' new_code 'giro' --> compare = -1
+        // row_code 'mcb' new_code 'giro' --> compare =  1
+        const compare = row_code.localeCompare(new_code, user_lang, { sensitivity: 'base' });
+        return compare;
+    }  // sort_localeCompare
 
 
 

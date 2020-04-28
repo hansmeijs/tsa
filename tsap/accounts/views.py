@@ -883,9 +883,12 @@ def SignupActivateView(request, uidb64, token):
                     update_wrap['msg_02'] = _("Your account is succesfully activated.")
                     update_wrap['msg_03'] = _('You are now logged in to TSA-secure.')
 
+# - add spare row to Companyinvoice
+                m.entry_create_spare_row(request)
+
 # - add bonus to Companyinvoice
                 comp_timezone = request.user.company.timezone if request.user.company.timezone else s.TIME_ZONE
-                m.entry_balance_add(
+                m.entry_create_bonus(
                     request=request,
                     entries=c.ENTRY_BONUS_SIGNUP,
                     valid_months=c.ENTRY_VALID_MONTHS_BONUS,

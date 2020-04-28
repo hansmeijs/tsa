@@ -151,7 +151,7 @@ let planning_list = [] // for export and printing - can replace map?
         document.addEventListener("keydown", function (event) {
              if (event.key === "Escape") {ResetFilterRows()}
         });
-        document.getElementById("id_sidebar_showall").addEventListener("click", function() {ResetFilterRows()}, false)
+        document.getElementById("id_sidebar_showall").addEventListener("click", function() {HandleSidebarShowall()}, false)
 
 // ---  add 'keyup' event handler to filter orders and customers
         //let el_filter_select = document.getElementById("id_filter_select_input")
@@ -448,7 +448,7 @@ let planning_list = [] // for export and printing - can replace map?
         }
 
         if ("employee_planning_list" in response) {
-            console.log ("...................===== employee_planning_list in response ==== ")
+            //console.log ("...................===== employee_planning_list in response ==== ")
             // employee_planning_list is used in table and Excel (each teammember on a separate row)
             get_datamap(response["employee_planning_list"], planning_employee_map, true)
             FillTableRows("planning");
@@ -487,7 +487,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  HandleTableRowClicked  ================ PR2019-03-30
     function HandleTableRowClicked(tr_clicked) {
-        console.log("=== HandleTableRowClicked");
+        //console.log("=== HandleTableRowClicked");
         //console.log( "tr_clicked: ", tr_clicked, typeof tr_clicked);
 
 // ---  deselect all highlighted rows, highlight selected row
@@ -521,8 +521,8 @@ let planning_list = [] // for export and printing - can replace map?
             const row_id = id_sel_prefix + tblName + "_" + selected_customer_pk.toString();
             let selectRow = document.getElementById(row_id);
 
-        console.log("row_id:", row_id);
-        console.log("selectRow: ", selectRow);
+        //console.log("row_id:", row_id);
+        //console.log("selectRow: ", selectRow);
 
             HighlightSelectRow(tblBody_select_customer, selectRow, cls_bc_yellow, cls_bc_lightlightgrey);
 
@@ -644,7 +644,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  DatalistDownload_Planning ================ PR2020-01-20
     function DatalistDownload_Planning(called_by) {
-        console.log( "===== DatalistDownload_Planning  ========= ", called_by);
+        //console.log( "===== DatalistDownload_Planning  ========= ", called_by);
 
         const now_arr = get_now_arr_JS();
         const planning_period = {mode: "get", now: now_arr};
@@ -673,8 +673,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  HandleSelect_Row ================ PR2019-08-28
     function HandleSelect_Row(sel_tr_clicked, event_target) {
-        console.log( "===== HandleSelect_Row  ========= ");
-
+        //console.log( "===== HandleSelect_Row  ========= ");
+        //console.log( "sel_tr_clicked: ", sel_tr_clicked);
         // event_target is the element that triggered this event:
         // selectRow contains customers, in calendar mod it contains orders
 
@@ -701,7 +701,6 @@ let planning_list = [] // for export and printing - can replace map?
                         selected_customer_pk = sel_cust_pk
                         selected_order_pk = 0;
                         update_needed = true;
-
                     }
                 } else{
                     sel_cust_pk = get_dict_value(map_dict, ["id", "ppk"], 0);
@@ -728,7 +727,6 @@ let planning_list = [] // for export and printing - can replace map?
                 ChangeBackgroundRows(tblBody_select, cls_bc_lightlightgrey, false, sel_tr_clicked, cls_bc_yellow);
                 ChangeBackgroundRows(tblBody_select, cls_bc_lightlightgrey, false, sel_tr_clicked, cls_bc_yellow);
 
-        console.log( "update_needed: ", update_needed);
                 if(update_needed){
 
     // ---  update customer_calendar
@@ -752,7 +750,6 @@ let planning_list = [] // for export and printing - can replace map?
                     } else  if(selected_btn === "calendar"){
                         let datalist_request = {calendar_period: selected_calendar_period,
                                                 customer_calendar: {order_pk: selected_order_pk}};
-                        console.log( "=== HandleSelect_Row DatalistDownload calendar")
                         DatalistDownload(datalist_request, "HandleSelect_Row calendar");
 
                     } else if(selected_btn === "planning"){
@@ -775,10 +772,6 @@ let planning_list = [] // for export and printing - can replace map?
     // ---  filter selectrows of tbody_select_order
                     // has_rows_dict: {row_count: 2, selected_pk: null, selected_parentpk: null, selected_value: null}
                     const has_rows_dict = t_Filter_SelectRows(tblBody_select_order, null, filter_show_inactive, true, selected_customer_pk)
-
-
-        console.log( "has_rows_dict: ", has_rows_dict);
-
                     if ( !!has_rows_dict.row_count && ["calendar", "planning"].indexOf(selected_btn) > -1){
                         document.getElementById("id_div_tbody_select_order").classList.remove(cls_hide)
                     } else {
@@ -786,21 +779,17 @@ let planning_list = [] // for export and printing - can replace map?
                     };
 
                 } // if(update_needed){
-
             }  //  if (["IMG", "A"].indexOf(event_target.nodeName) > -1)
         }  // if(!!sel_tr_clicked)
-
 // ---  enable add button, also when no customer selected
         document.getElementById("id_form_btn_add").disabled = false;
     }  // HandleSelect_Row
 
-
 //========= HandleSidebarShowall  ============= PR2020-04-05
     function HandleSidebarShowall() {
+        //console.log("======== HandleSidebarShowall  ========");
         ResetFilterRows()
     }
-
-
 
 //========= HandleBillableClicked  ============= PR2019-09-27
     function HandleBillableClicked(el_changed) {
@@ -872,8 +861,8 @@ let planning_list = [] // for export and printing - can replace map?
     }
 //========= HandleBtnInactiveDeleteClicked  ============= PR2019-09-23
     function HandleBtnInactiveDeleteClicked(mode, el_input) {
-        console.log( " ==== HandleBtnInactiveDeleteClicked ====");
-        console.log( "el_input", el_input);
+        //console.log( " ==== HandleBtnInactiveDeleteClicked ====");
+        //console.log( "el_input", el_input);
         // values of mode are: "delete", "inactive"
 
         let tblRow = get_tablerow_selected(el_input)
@@ -1136,13 +1125,12 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  CreateTblFooter_Order  === PR2019-11-26
     function CreateTblFooter_Order() {
-        console.log("===  CreateTblFooter_Order == ");
+        //console.log("===  CreateTblFooter_Order == ");
 // --- function adds row 'add new' in tFoot
         id_new += 1;
         const pk_new = "new" + id_new.toString()
 
         let tblFoot = document.getElementById("id_tfoot_order");
-        console.log("tblFoot ", tblFoot);
         if(!!tblFoot){
             const ppk_int = selected_customer_pk
             const customer_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", ppk_int);
@@ -1150,7 +1138,7 @@ let planning_list = [] // for export and printing - can replace map?
             const tblName = "order";
 // --- insert tblRow into tFoot
             let tblRow = tblFoot.insertRow(-1);
-            console.log("tblRow ", tblRow);
+            //console.log("tblRow ", tblRow);
 
             tblRow.setAttribute("data-pk", pk_new);
             tblRow.setAttribute("data-ppk", ppk_int);
@@ -1161,7 +1149,7 @@ let planning_list = [] // for export and printing - can replace map?
 
     //+++ insert td's into tblRow
             const column_count = tbl_col_count[tblName];
-            console.log("column_count ", column_count);
+            //console.log("column_count ", column_count);
             for (let j = 0; j < column_count; j++) {
                 // index -1 results in that the new cell will be inserted at the last position.
                 let td = tblRow.insertCell(-1);
@@ -1200,8 +1188,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  UpdateAddnewRow_Order  === PR2019-11-26
     function UpdateAddnewRow_Order() {
-        console.log("===  UpdateAddnewRow_Order == ");
-        console.log("selected_customer_pk ", selected_customer_pk);
+        //console.log("===  UpdateAddnewRow_Order == ");
+        //console.log("selected_customer_pk ", selected_customer_pk);
 
 // --- lookup row 'add new' in tFoot
         let tblFoot = document.getElementById("id_tfoot_order");
@@ -1213,10 +1201,10 @@ let planning_list = [] // for export and printing - can replace map?
                 const customer_ppk = get_dict_value(map_dict, ["id", "ppk"]);
                 const customer_value = get_dict_value(map_dict, ["code", "value"])
                 const customer_cell = tblRow.cells[0];
-        console.log("customer_cell ", customer_cell);
+        //console.log("customer_cell ", customer_cell);
                 if(!!customer_cell){
                     let el_input_customer = customer_cell.children[0];
-        console.log("el_input_customer ", el_input_customer);
+        //console.log("el_input_customer ", el_input_customer);
                     if(!!el_input_customer){
                         el_input_customer.setAttribute("data-pk", selected_customer_pk)
                         el_input_customer.setAttribute("data-ppk", customer_ppk)
@@ -1228,10 +1216,8 @@ let planning_list = [] // for export and printing - can replace map?
                     }
                 }
                 const order_cell = tblRow.cells[1];
-        console.log("order_cell ", order_cell);
                 if(!!order_cell){
                     let el_input_order = order_cell.children[0];
-        console.log("el_input_order ", el_input_order);
                     if(!!el_input_order){
                         el_input_order.value = null
                         el_input_order.readOnly = (!selected_customer_pk);
@@ -1425,9 +1411,9 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  UpdateFromResponse  ================ PR2019-10-20
     function UpdateFromResponse(update_dict) {
-        console.log("==== UpdateFromResponse ====");
-        console.log("update_dict", update_dict);
-        console.log("selected_btn", selected_btn);
+        //.log("==== UpdateFromResponse ====");
+        //.log("update_dict", update_dict);
+        //console.log("selected_btn", selected_btn);
 
 //--- get info from update_dict["id"]
         const id_dict = get_dict_value(update_dict, ["id"]);
@@ -1440,8 +1426,8 @@ let planning_list = [] // for export and printing - can replace map?
         const map_id = get_map_id(tblName, pk_int);
         const inactive_changed = get_dict_value(update_dict, ["inactive", "updated"])
 
-        console.log("is_created", is_created);
-        console.log("inactive_changed", inactive_changed);
+        //console.log("is_created", is_created);
+        //console.log("inactive_changed", inactive_changed);
 
         let tblRow;
         if (!!map_id){
@@ -1555,7 +1541,7 @@ let planning_list = [] // for export and printing - can replace map?
 // ++++ update table filter when inactive changed ++++
         if (inactive_changed && !filter_show_inactive){
             // let row disappear when inactive and not filter_show_inactive
-            console.log (" ++++ update table filter when inactive changed ++++")
+            //console.log (" ++++ update table filter when inactive changed ++++")
             setTimeout(function (){
                 t_Filter_TableRows(tBody_order, "order", filter_dict, filter_show_inactive, true, selected_customer_pk)  // true = has_ppk_filter
             }, 2000);
@@ -1579,7 +1565,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= UpdateForm  ============= PR2019-10-05
     function UpdateForm(){
-        console.log("========= UpdateForm  =========");
+        //console.log("========= UpdateForm  =========");
         const map_dict = get_mapdict_from_datamap_by_tblName_pk(customer_map, "customer", selected_customer_pk)
         const pk_int = Number(get_dict_value(map_dict, ["id", "pk"], 0));
         const readonly = (!pk_int);
@@ -1689,10 +1675,10 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= UpdateField  ============= PR2019-10-09
     function UpdateField(el_input, update_dict, is_addnew_row) {
-        const fldName = get_attr_from_el(el_input, "data-field");
         //console.log("========= UpdateField  ========= ", fldName);
         //console.log("update_dict ", update_dict);
 
+        const fldName = get_attr_from_el(el_input, "data-field");
 // --- reset fields when update_dict is empty
         if (isEmpty(update_dict)){
             if (fldName === "inactive") {
@@ -1951,19 +1937,19 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= UploadDeleteChanges  ============= PR2019-10-23
     function UploadDeleteChanges(upload_dict, url_str) {
-         console.log("--- UploadDeleteChanges  --------------");
-        // console.log("upload_dict");
+         //console.log("--- UploadDeleteChanges  --------------");
+        //console.log("upload_dict");
         // called by HandleBtnInactiveDeleteClicked and ModConfirmSave
 
 // if delete: add 'delete' to id_dict and make tblRow red
     const is_delete = (!!get_dict_value(upload_dict, ["id","delete"]), false)
-        // console.log("is_delete:", is_delete, typeof is_delete);
+        //console.log("is_delete:", is_delete, typeof is_delete);
 
     if(is_delete){
         const pk_int = get_dict_value(upload_dict, ["id", "pk"]);
         const tblName = get_dict_value(upload_dict, ["id", "table"]);
         const map_id = get_map_id(tblName, pk_int);
-        // console.log("is_delete:", is_delete, typeof is_delete);
+        //console.log("is_delete:", is_delete, typeof is_delete);
 
         let tr_changed = document.getElementById(map_id);
         if(!!tr_changed){
@@ -1978,7 +1964,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= UploadFormChanges  ============= PR2019-09-23
     function UploadFormChanges(el_input) {
-        // console.log( " ==== UploadFormChanges ====");
+        //console.log( " ==== UploadFormChanges ====");
         let id_dict = {}, upload_dict = {};
         if(!!el_input){
             if(!selected_customer_pk){
@@ -2011,7 +1997,7 @@ let planning_list = [] // for export and printing - can replace map?
 //========= UploadElChanges  ============= PR2019-09-23
     function UploadElChanges(el_input) {
         //console.log( " ==== UploadElChanges ====");
-        // console.log(el_input);
+        //console.log(el_input);
 
         let tblRow = get_tablerow_selected(el_input)
         if(!!tblRow){
@@ -2022,7 +2008,7 @@ let planning_list = [] // for export and printing - can replace map?
             // id_dict = {'temp_pk': 'new_4', 'create': True, 'ppk': 120}
             let id_dict = get_iddict_from_element(tblRow);
             const tblName = get_dict_value_by_key(id_dict, "table")
-            console.log( "id_dict", id_dict);
+            //console.log( "id_dict", id_dict);
 
             let upload_dict = {"id": id_dict};
 
@@ -2102,7 +2088,7 @@ let planning_list = [] // for export and printing - can replace map?
 // +++++++++++++++++ POPUP ++++++++++++++++++++++++++++++++++++++++++++++++++
 //========= HandlePopupDateOpen  ====================================
     function HandlePopupDateOpen(el_input) {
-        // console.log("===  HandlePopupDateOpen  =====") ;
+        //console.log("===  HandlePopupDateOpen  =====") ;
 
         let el_popup_date = document.getElementById("id_popup_date")
 
@@ -2172,7 +2158,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  HandlePopupDateSave  ================ PR2019-04-14
     function HandlePopupDateSave() {
-        // console.log("===  function HandlePopupDateSave =========");
+        //console.log("===  function HandlePopupDateSave =========");
 
 // ---  get pk_str from id of el_popup
         const row_id = get_attr_from_el(el_popup_date_container, "data-row_id");
@@ -2210,7 +2196,7 @@ let planning_list = [] // for export and printing - can replace map?
                 let tr_selected = document.getElementById(row_id)
 
                 const parameters = {"upload": JSON.stringify (upload_dict)}
-                // console.log (">>> upload_dict: ", upload_dict);
+                //console.log (">>> upload_dict: ", upload_dict);
 
                 let response;
                 $.ajax({
@@ -2219,7 +2205,7 @@ let planning_list = [] // for export and printing - can replace map?
                     data: parameters,
                     dataType:'json',
                     success: function (response) {
-                        // console.log (">>> response", response);
+                        //console.log (">>> response", response);
                         if ("update_list" in response) {
                             const update_dict = response["update_list"]
                 //--- loop through update_dict
@@ -2244,9 +2230,9 @@ let planning_list = [] // for export and printing - can replace map?
 // +++++++++++++++++ MODAL ADD CUSTOMER +++++++++++++++++++++++++++++++++++++++++++
 //========= MAC_Open ======================= PR2020-04-05
     function MAC_Open (event_key) {
-        console.log(" ===  MAC_Open  =====") ;
+       //.log(" ===  MAC_Open  =====") ;
 // --- open modal when clicked on el or when pressed 'Enter'
-        console.log("event_key: ", event_key)
+        //console.log("event_key: ", event_key)
         const skip_add_row = (!!event_key && event_key !== "Enter")
 // --- disable btn_save when input_custome has no value
         if (!skip_add_row){
@@ -2270,8 +2256,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MAC_Save  ================ PR2020-04-05
     function MAC_Save() {
-        console.log("===  MAC_Save =========");
-        console.log( "mod_upload_dict: ", mod_upload_dict);
+        //console.log("===  MAC_Save =========");
+        //console.log( "mod_upload_dict: ", mod_upload_dict);
 // ---  get new customer pk_str, get ppk_int
         id_new = id_new + 1
         const customer_pk_str = "new" + id_new.toString()
@@ -2408,8 +2394,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MAC_AddOrder  ================ PR2020-04-05
     function MAC_AddOrder(event_key){
-        console.log(" ======  MAC_AddOrder  =======")
-        console.log("event_key: ", event_key)
+        //console.log(" ======  MAC_AddOrder  =======")
+        //console.log("event_key: ", event_key)
         let add_row = false
         if(!!event_key){
             add_row = (event_key === "Enter")
@@ -2426,7 +2412,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MAC_DeleteOrder  ================ PR2020-04-05
     function MAC_DeleteOrder(el_input) {
-        console.log(" ======  MAC_DeleteOrder  =======")
+        //console.log(" ======  MAC_DeleteOrder  =======")
         let tblRow = get_tablerow_selected(el_input)
         if(!!tblRow){
             tblRow.parentNode.removeChild(tblRow);
@@ -2691,7 +2677,7 @@ let planning_list = [] // for export and printing - can replace map?
                         const row_si_pk = get_dict_value(si_dict, ["id", "pk"]);
                          mod_upload_dict.schemeitems_list.push(Deepcopy_Dict("schemeitem", si_dict));
             }}};
-            console.log("mod_upload_dict: ", mod_upload_dict)
+            //console.log("mod_upload_dict: ", mod_upload_dict)
 
 // ++++++++++++++++ ++++++++++++++++ ++++++++++++++++ ++++++++++++++++ ++++++++++++++++ ++++++++++++++++
 
@@ -2850,21 +2836,20 @@ let planning_list = [] // for export and printing - can replace map?
                 upload_dict.teams_list.push(team_dict)
             }
         }
-        console.log(">>>>>>>>>>>> upload_dict.teams_list: ", upload_dict.teams_list)
+        //console.log(">>>>>>>>>>>> upload_dict.teams_list: ", upload_dict.teams_list)
 
 // =========== SAVE SHIFT =====================
         // get shifts that must be uploaded from mod_upload_dict.shifts_list
         upload_dict.shifts_list = [];
-        console.log(">>>>>>>>>>>> mod_upload_dict.shifts_list: ", mod_upload_dict.shifts_list)
+        //console.log(">>>>>>>>>>>> mod_upload_dict.shifts_list: ", mod_upload_dict.shifts_list)
         for (let i=0, len = mod_upload_dict.shifts_list.length; i<len; i++) {
             const shift_dict = mod_upload_dict.shifts_list[i];
-        console.log("shift_dict", shift_dict)
+        //console.log("shift_dict", shift_dict)
             const mode = get_dict_value(shift_dict, ["id", "mode"]);
             if(["create", "update", "delete"].indexOf(mode) > -1 ){
                 upload_dict.shifts_list.push(shift_dict)
             }
         }
-        console.log(">>>>>>>>>>>> upload_dict: ", upload_dict)
 
 // =========== SAVE TEAMMEMBERS =====================
         // get teammembers that must be uploaded from mod_upload_dict.teammembers_list
@@ -2888,6 +2873,7 @@ let planning_list = [] // for export and printing - can replace map?
             }
         }
 // =========== UploadChanges =====================
+        console.log(">>>>>>>>>>>> upload_dict: ", upload_dict)
         UploadChanges(upload_dict, url_teammember_upload);
     }  // MSO_Save
 
@@ -2896,7 +2882,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_ShiftAdd  ================ PR2020-03-29
     function MSO_ShiftAdd() {
-        console.log("=== MSO_ShiftAdd ===");
+        //console.log("=== MSO_ShiftAdd ===");
 
 // ---  create new shift
         // ---  get selected scheme_pk from mod_upload_dict
@@ -2939,7 +2925,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_ShiftDelete  ================ PR2020-03-27
     function MSO_ShiftDelete() {
-        console.log("=== MSO_ShiftDelete ===");
+        //console.log("=== MSO_ShiftDelete ===");
 // ---  get shift_dict from mod_upload_dict.shifts_list
         const shift_dict = lookup_dict_in_list(mod_upload_dict.shifts_list, mod_upload_dict.selected_shift_pk_str);
         if(!!shift_dict){
@@ -2952,7 +2938,7 @@ let planning_list = [] // for export and printing - can replace map?
             mod_upload_dict.selected_shift_pk_str = "";
     // ---  set mode = 'delete' in schemeitems of this shift
             t_set_mode_delete_in_si_tm(mod_upload_dict.schemeitems_list, "shift", shift_pk);
-            console.log( "mod_upload_dict", mod_upload_dict);
+            //console.log( "mod_upload_dict", mod_upload_dict);
 
     // ---  fill shift options, set select shift in selectbox
             el_MSO_selectshift.innerHTML = t_FillOptionShiftOrTeamFromList( mod_upload_dict.shifts_list, scheme_pk,
@@ -2970,7 +2956,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_TeamAdd  ================ PR2020-04-21
     function MSO_TeamAdd() {
-        console.log("=== MSO_TeamAdd ===");
+        //console.log("=== MSO_TeamAdd ===");
 // ---  create new team
         // get selected scheme_pk from mod_upload_dict
         const scheme_pk = get_dict_value(mod_upload_dict, ["scheme", "id", "pk"])
@@ -3007,9 +2993,9 @@ let planning_list = [] // for export and printing - can replace map?
                         table: "teammember",
                         mode: "create"}
                   };
-        console.log("new_tm_dict: ", new_tm_dict);
+        //console.log("new_tm_dict: ", new_tm_dict);
         mod_upload_dict.teammembers_list.push(new_tm_dict);
-        console.log("mod_upload_dict.teammembers_list: ", mod_upload_dict.teammembers_list);
+        //console.log("mod_upload_dict.teammembers_list: ", mod_upload_dict.teammembers_list);
 
 // ---  fill tabe teammembers
        // MSO_CreateTblTeammemberHeader();
@@ -3023,7 +3009,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_TeamDelete  ================ PR2020-03-29
     function MSO_TeamDelete() {
-        console.log("=== MSO_TeamDelete ===");
+        //console.log("=== MSO_TeamDelete ===");
 // ---  get team_dict from mod_upload_dict.teams_list
         const team_dict = lookup_dict_in_list(mod_upload_dict.teams_list, mod_upload_dict.selected_team_pk_str);
         if(!!team_dict){
@@ -3038,7 +3024,7 @@ let planning_list = [] // for export and printing - can replace map?
 
     // ---  remmove team from schemeitems, set mode = 'update' in those schemeitems
             t_remove_team_from_si(mod_upload_dict.schemeitems_list, team_pk_str);
-            console.log( "mod_upload_dict", mod_upload_dict);
+            //console.log( "mod_upload_dict", mod_upload_dict);
 
     // ---  set mode = 'delete' in teammembers
             t_set_mode_delete_in_si_tm(mod_upload_dict.teammembers_list, "team", team_pk_str)
@@ -3063,8 +3049,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_TimepickerOpen  ================ PR2020-03-26
     function MSO_TimepickerOpen(el_input, calledby) {
-        console.log("=== MSO_TimepickerOpen ===", calledby);
-        console.log("mod_upload_dict", mod_upload_dict);
+        //console.log("=== MSO_TimepickerOpen ===", calledby);
+        //console.log("mod_upload_dict", mod_upload_dict);
 
 // ---  create tp_dict
         let tp_dict = {}
@@ -3113,8 +3099,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= MSO_TimepickerResponse  ============= PR2019-10-12
     function MSO_TimepickerResponse(tp_dict) {
-        console.log(" === MSO_TimepickerResponse ===" );
-        console.log("tp_dict", tp_dict);
+        //console.log(" === MSO_TimepickerResponse ===" );
+        //console.log("tp_dict", tp_dict);
 
         let upload_dict = {"id": tp_dict["id"]};
         if("quicksave" in tp_dict) {quicksave = tp_dict["quicksave"]};
@@ -3128,11 +3114,11 @@ let planning_list = [] // for export and printing - can replace map?
 
 // ---  get new value from tp_dict
             const new_offset = get_dict_value_by_key(tp_dict, "offset")
-            console.log( "new_offset: ", new_offset);
+            //console.log( "new_offset: ", new_offset);
 
 // ---  get current values from mod_upload_dict.shifts_list
             let shift_dict = lookup_dict_in_list(mod_upload_dict.shifts_list, shift_pk);
-            console.log("shift_dict", shift_dict);
+            //console.log("shift_dict", shift_dict);
             let shift_code = get_dict_value(shift_dict, ["code", "value"], "");
             let offset_start = get_dict_value(shift_dict, ["offsetstart", "value"]);
             let offset_end = get_dict_value(shift_dict, ["offsetend", "value"]);
@@ -3264,8 +3250,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_SetSchemeCycleText  ================ PR2020-04-12
     function MSO_SetSchemeCycleText(scheme_cycle) {
-        console.log( "===== MSO_SchemeCycleChanged  ========= ");
-        console.log( "scheme_cycle", scheme_cycle, typeof scheme_cycle);
+        //console.log( "===== MSO_SchemeCycleChanged  ========= ");
+        //console.log( "scheme_cycle", scheme_cycle, typeof scheme_cycle);
         const cycle_text = (!scheme_cycle ) ? "-" :
                             (scheme_cycle === 1) ? loc.Daily_cycle :
                             (scheme_cycle === 7) ? loc.Weekly_cycle :
@@ -3275,7 +3261,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_SchemeCycleChanged  ================ PR2020-01-03
     function MSO_SchemeCycleChanged(fldName) {
-        console.log( "===== MSO_SchemeCycleChanged  ========= ");
+        //console.log( "===== MSO_SchemeCycleChanged  ========= ");
         const cycle_int = Number(el_MSO_cycle.value);
         const cycle_value = (!!cycle_int) ? cycle_int : null
         mod_upload_dict.scheme.cycle = {value: cycle_value, update: true}
@@ -3285,7 +3271,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_SchemeDateChanged  ================ PR2020-01-03
     function MSO_SchemeDateChanged(fldName) {
-        console.log( "===== MSO_SchemeDateChanged  ========= ");
+        //console.log( "===== MSO_SchemeDateChanged  ========= ");
         //console.log( "===== MSO_SchemeDateChanged  ========= ");
         if (fldName === "datefirst") {
             mod_upload_dict.scheme.datefirst = {value: el_MSO_scheme_datefirst.value, update: true}
@@ -3309,7 +3295,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_BtnSelectClicked  ================ PR2019-12-06
     function MSO_BtnSelectClicked(selected_btn) {
-        console.log( "===== MSO_BtnSelectClicked  ========= ");
+        //console.log( "===== MSO_BtnSelectClicked  ========= ");
 
 // ---  select btn_singleshift / btn_schemeshift
         // mod = 'mod_shift' or 'mod_team', 'mod_scheme'
@@ -3389,9 +3375,9 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_SelectTeamChanged  ================ PR2019-12-24
     function MSO_SelectTeamChanged(el_input) {
-        console.log( "===== MSO_SelectTeamChanged  ========= ");
+        //console.log( "===== MSO_SelectTeamChanged  ========= ");
         const pk_str = (!!el_input) ? el_input.value.toString() : "0";
-        console.log( "pk_str: ", pk_str, typeof pk_str);
+        //console.log( "pk_str: ", pk_str, typeof pk_str);
 
         // also new teams can be selected , with pk 'new3', only when pk = 0 a new team must be created
         let team_code = null
@@ -3411,7 +3397,7 @@ let planning_list = [] // for export and printing - can replace map?
             const pk_str = "new" + id_new.toString()
     // ---  create new_team_dict, put values in mod_upload_dict.team
             team_code = get_teamcode_with_sequence_from_list(mod_upload_dict.teams_list, scheme_pk, loc.Team)
-        console.log( "team_code: ", team_code, typeof team_code);
+        //console.log( "team_code: ", team_code, typeof team_code);
 
 // ---  update  selected_team_pk_str
             mod_upload_dict.selected_team_pk_str = pk_str;
@@ -3444,7 +3430,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_RestshiftClicked  ================ PR2020-03-27
     function MSO_RestshiftClicked() {
-        console.log( "===== MSO_RestshiftClicked  ========= ");
+        //console.log( "===== MSO_RestshiftClicked  ========= ");
 
         const new_value = el_MSO_isrestshift.checked;
 
@@ -3480,12 +3466,12 @@ let planning_list = [] // for export and printing - can replace map?
 //========= MSO_UpdateShiftInputboxes  ============= PR2020-03-26
     function MSO_UpdateShiftInputboxes() {
         console.log( "=== MSO_UpdateShiftInputboxes ");
-        console.log( "mod_upload_dict", mod_upload_dict);
+        //console.log( "mod_upload_dict", mod_upload_dict);
 
         let shift_pk = null, shift_code = "", offset_start = null, offset_end = null;
         let break_duration = 0, time_duration = 0, is_restshift = false;
         const shift_dict = lookup_dict_in_list(mod_upload_dict.shifts_list, mod_upload_dict.selected_shift_pk_str)
-        console.log( "shift_dict", shift_dict);
+        //console.log( "shift_dict", shift_dict);
 
         if(!isEmpty(shift_dict)){
             shift_pk = get_dict_value(shift_dict, ["id", "pk"])
@@ -3498,8 +3484,8 @@ let planning_list = [] // for export and printing - can replace map?
         }
         if(is_restshift){shift_code += " (R)"}
 
-        console.log( "offset_start", offset_start);
-        console.log( "offset_end", offset_end);
+        //console.log( "offset_start", offset_start);
+        //console.log( "offset_end", offset_end);
         el_MSO_shiftcode.value = shift_code
         el_MSO_offsetstart.innerText = display_offset_time ({timeformat: timeformat, user_lang: user_lang}, offset_start, false, false)
         el_MSO_offsetend.innerText = display_offset_time ({timeformat: timeformat, user_lang: user_lang}, offset_end, false, false)
@@ -3510,9 +3496,9 @@ let planning_list = [] // for export and printing - can replace map?
         // also update shift_code in shifts_table
         if(!!shift_pk){
             const cell_id = "cell_shift_" + shift_pk.toString()
-        console.log( "cell_id", cell_id);
+        //console.log( "cell_id", cell_id);
             let shift_cell = document.getElementById(cell_id);
-        console.log( "shift_cell", shift_cell);
+        //console.log( "shift_cell", shift_cell);
             if(!!shift_cell) { shift_cell.innerText = shift_code};
         }
     }  // MSO_UpdateShiftInputboxes
@@ -3528,11 +3514,11 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_ShiftcodeOrTeamcodeChanged  ================ PR2020-01-03
     function MSO_ShiftcodeOrTeamcodeChanged(el_input) {
-        console.log( "===== MSO_ShiftcodeOrTeamcodeChanged  ========= ");
+        //console.log( "===== MSO_ShiftcodeOrTeamcodeChanged  ========= ");
 
         const field = get_attr_from_el_str(el_input, "data-field")
         const new_code = el_input.value;
-        console.log( "new_code: ", new_code);
+        //console.log( "new_code: ", new_code);
 
 // ---  lookup shift or team in list in mod_upload_dict
         const selected_pk = (field === "shift") ? mod_upload_dict.selected_shift_pk_str : mod_upload_dict.selected_team_pk_str;
@@ -3592,7 +3578,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= MSO_FillTableTeammember  ====================================
     function MSO_FillTableTeammember(calledby){
-        console.log( "===== MSO_FillTableTeammember  ========= ", calledby);
+        //console.log( "===== MSO_FillTableTeammember  ========= ", calledby);
 
 // --- reset tblBody
         // id_tbody_teammember is on modeordershift.html
@@ -3910,12 +3896,12 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= MSO_AddTeammember  ============= PR2019-12-31
     function MSO_AddTeammember() {
-        console.log( " ==== MSO_AddTeammember ====");
-        console.log( "mod_upload_dict: ", mod_upload_dict);
+        //console.log( " ==== MSO_AddTeammember ====");
+        //console.log( "mod_upload_dict: ", mod_upload_dict);
 
 // ---  get selected team_dict from mod_upload_dict.teams_list
         const team_dict = lookup_dict_in_list(mod_upload_dict.teams_list, mod_upload_dict.selected_team_pk_str)
-        console.log( "mod_upload_dict: ", mod_upload_dict);
+        //console.log( "mod_upload_dict: ", mod_upload_dict);
         if(!isEmpty(team_dict)) {
         // TODO correct 2020-03-28
             //console.log( "team_dict: ", team_dict);
@@ -3927,8 +3913,8 @@ let planning_list = [] // for export and printing - can replace map?
             id_new = id_new + 1
             const pk_str = "new" + id_new.toString()
 
-            console.log("mod_upload_dict.")
-            console.log(mod_upload_dict)
+            //console.log("mod_upload_dict.")
+            //console.log(mod_upload_dict)
     // ---  create new_teammember_dict
             let new_teammember_dict = { id: {pk: pk_str,
                                              ppk: team_pk,
@@ -3940,14 +3926,14 @@ let planning_list = [] // for export and printing - can replace map?
                                         };
             mod_upload_dict.teammembers_list.push(new_teammember_dict);
 
-            console.log( "mod_upload_dict: ", mod_upload_dict);
+            //console.log( "mod_upload_dict: ", mod_upload_dict);
             MSO_FillTableTeammember("MSO_AddTeammember")
         }  //   if(!isEmpty(team_dict)) {
     }  // MSO_AddTeammember
 
 //========= MSO_BtnDeleteClicked  ============= PR2019-09-23
     function MSO_BtnDeleteClicked(el_input) {
-        console.log( " ==== MSO_BtnDeleteClicked ====");
+        //console.log( " ==== MSO_BtnDeleteClicked ====");
         // when clicked on delete button in table teammembers of MSO
         //console.log(el_input);
 
@@ -3981,8 +3967,8 @@ let planning_list = [] // for export and printing - can replace map?
                     teammember_dict.id.mode = "delete";
                 }
             }
-            console.log("mod_upload_dict: ");
-            console.log(mod_upload_dict);
+            //console.log("mod_upload_dict: ");
+            //console.log(mod_upload_dict);
 
             MSO_FillTableTeammember("MSO_BtnDeleteClicked");
 
@@ -4196,16 +4182,16 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_Grid_FillTblShifts  === PR2020-03-23
     function MSO_Grid_FillTblShifts(scheme_pk) {
-        console.log("===  MSO_Grid_FillTblShifts == ")
+        //console.log("===  MSO_Grid_FillTblShifts == ")
         let tblBody = document.getElementById("id_MSO_grid_tbody_shift");
 
         const first_rosterdate_iso = mod_upload_dict.calendar.first_rosterdate_iso;
         const cycle = get_dict_value(mod_upload_dict, ["scheme", "cycle", "value"], 0);
 
-        console.log("first_rosterdate_iso: ", first_rosterdate_iso)
-        console.log("cycle: ", cycle)
-        console.log("scheme_pk: ", scheme_pk)
-        console.log("mod_upload_dict.scheme: ", mod_upload_dict.scheme)
+        //console.log("first_rosterdate_iso: ", first_rosterdate_iso)
+        //console.log("cycle: ", cycle)
+        //console.log("scheme_pk: ", scheme_pk)
+        //console.log("mod_upload_dict.scheme: ", mod_upload_dict.scheme)
 // ---  loop through mod_upload_dict.schemeitems_list. This contains the dicts of the schemeitems of selected scheme
         for (let i = 0, len = mod_upload_dict.schemeitems_list.length; i < len ; i++) {
             const si_dict = mod_upload_dict.schemeitems_list[i];
@@ -4305,10 +4291,10 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSO_Grid_SchemitemClicked  ================ PR2020-03-26
     function MSO_Grid_SchemitemClicked(td_clicked, is_shift_cell) {
-        console.log("===  MSO_Grid_SchemitemClicked == ");
-        console.log("td_clicked ", td_clicked);
-        console.log("is_shift_cell ", is_shift_cell);
-        console.log("mod_upload_dict.mode ", mod_upload_dict.mode);
+        //console.log("===  MSO_Grid_SchemitemClicked == ");
+        //console.log("td_clicked ", td_clicked);
+        //console.log("is_shift_cell ", is_shift_cell);
+        //console.log("mod_upload_dict.mode ", mod_upload_dict.mode);
 
 // ---  if clicked on shift column: change selected shift (only when mod_upload_dict.mode = selected_btn = 'mod_shift'
         if(!!is_shift_cell) {
@@ -4343,18 +4329,18 @@ let planning_list = [] // for export and printing - can replace map?
 // ---  get cell_id_str and rosterdate from cell td_clicked
                     const cell_id_str = get_attr_from_el(td_clicked, "id", "");
                     const rosterdate = get_attr_from_el(td_clicked, "data-rosterdate")
-                console.log("shift_pk_str ", shift_pk_str);
-                console.log("scheme_pk_str ", scheme_pk_str);
-                console.log("cell_id_str ", cell_id_str);
-                console.log("rosterdate ", rosterdate);
+                //console.log("shift_pk_str ", shift_pk_str);
+                //console.log("scheme_pk_str ", scheme_pk_str);
+                //console.log("cell_id_str ", cell_id_str);
+                //console.log("rosterdate ", rosterdate);
                     // only if there is a rosterdate and shift_pk selected (must be always the case)
                     if(!!rosterdate && !!shift_pk_str && !!scheme_pk_str) {
                        let upload_list = [];
 // ---  get si_pk_arr from td_clicked. It can be array string: '2132;2128;2128', may contain si's without team
                         const data_si_pk = get_attr_from_el(td_clicked, "data-si_pk", "");
-                        console.log("data_si_pk ", data_si_pk, typeof data_si_pk);
+                        //console.log("data_si_pk ", data_si_pk, typeof data_si_pk);
                         const si_pk_arr = data_si_pk.split(";");
-                        console.log("si_pk_arr ", si_pk_arr, typeof si_pk_arr);
+                        //console.log("si_pk_arr ", si_pk_arr, typeof si_pk_arr);
 // ---  loop through si_pk_arr, get info from mod_upload_dict.schemeitems_list and check if team_pk = selected_team_pk_str
                         // schemeitem can have team = null. Remember first si_pk with team = null
                         let si_pk_without_team = null;  // when team is added: store team_pk in si_without_team, if any
@@ -4450,7 +4436,7 @@ let planning_list = [] // for export and printing - can replace map?
 // +++++++++ MOD SELECT EMPLOYEE ++++++++++++++++++++++++++++++++++++++++++++++++++++ PR2019-12-29
 //=========  MSE_Open  ================ PR2019-11-06
     function MSE_Open(el_input, ModEmployeeChanged) {
-        console.log(" -----  MSE_Open   ----")
+        //console.log(" -----  MSE_Open   ----")
 
         mod_employee_dict = {};
 
@@ -4466,8 +4452,8 @@ let planning_list = [] // for export and printing - can replace map?
         const employee_pk = get_attr_from_el(el_input, "data-pk");
         const employee_ppk = get_attr_from_el(el_input, "data-ppk");
 
-        console.log("employee_map: ", employee_map)
-        console.log("employee_pk: ", employee_pk)
+        //console.log("employee_map: ", employee_map)
+        //console.log("employee_pk: ", employee_pk)
         const employee_dict = get_mapdict_from_datamap_by_tblName_pk(employee_map, "employee", employee_pk)
         const employee_code = get_dict_value(employee_dict, ["code", "value"]);
 
@@ -4492,7 +4478,7 @@ let planning_list = [] // for export and printing - can replace map?
         const employee_pk_int = Number(employee_pk);
         MSE_FillSelectTableEmployee(employee_pk_int);
 
-        console.log("employee_pk_int: ", employee_pk_int)
+       //.log("employee_pk_int: ", employee_pk_int)
 // Set focus to el_mod_employee_input
         //Timeout function necessary, otherwise focus wont work because of fade(300)
         setTimeout(function (){
@@ -4506,7 +4492,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  ModEmployeeSelect  ================ PR2019-05-24
     function ModEmployeeSelect(tblRow) {
-        console.log( "===== ModEmployeeSelect ========= ");
+        //console.log( "===== ModEmployeeSelect ========= ");
         // called by MSE_FillSelectTableEmployee in this js
 
         if(!!tblRow) {
@@ -4533,15 +4519,15 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= ModEmployeeChanged  ============= PR2019-12-29
     function ModEmployeeChanged(tp_dict) {
-        console.log("XXXXXXXXXXXXXXXXX === ModEmployeeChanged ===" );
-        console.log("tp_dict", tp_dict);
+        //console.log("XXXXXXXXXXXXXXXXX === ModEmployeeChanged ===" );
+        //console.log("tp_dict", tp_dict);
 
         const mode = get_dict_value_by_key(tp_dict, "mod")
-        console.log("mode", mode);
+        //console.log("mode", mode);
 
         let upload_dict = {"id": tp_dict["id"]};
         if("quicksave" in tp_dict) {quicksave = tp_dict["quicksave"]};
-        console.log("quicksave", quicksave);
+        //console.log("quicksave", quicksave);
 
         // when clicked on 'Exit quicksave' and then 'Cancel' changes must not be saved, but quicksave does
         if("save_changes" in tp_dict) {
@@ -4587,10 +4573,10 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSE_FilterEmployee  ================ PR2019-11-06
     function MSE_FilterEmployee(option, event_key) {
-        console.log( "===== MSE_FilterEmployee  ========= ", option);
+        //console.log( "===== MSE_FilterEmployee  ========= ", option);
 
         let el_input = document.getElementById("id_ModSelEmp_input_employee")
-        console.log( el_input );
+        //console.log( el_input );
         // saving when only 1 employee found goes in 2 steps:
         // first step is adding "data-quicksave") === "true" to el_input
         // second step: if then ENTER is clicked the employee will be saved
@@ -4678,8 +4664,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  MSE_Save  ================ PR2019-12-30
     function MSE_Save(mode) {
-        console.log("========= MSE_Save ===", mode );
-        console.log("mod_employee_dict: ", mod_employee_dict);
+        //console.log("========= MSE_Save ===", mode );
+        //console.log("mod_employee_dict: ", mod_employee_dict);
         // mode = 'delete' when clicked on 'remove' in ModEmployee, otherwise mode = 'update'
 
     // --- lookup teammember_dict in mod_upload_dict.teammembers_list
@@ -4702,7 +4688,7 @@ let planning_list = [] // for export and printing - can replace map?
             if(!skip_mode_update) {tm_dict.id.mode = "update"};
         }  // if(!isEmpty(tm_dict))
 
-        console.log( "mod_upload_dict: ", mod_upload_dict);
+        //console.log( "mod_upload_dict: ", mod_upload_dict);
 // --- refresh teammember table
         MSO_FillTableTeammember("MSE_Save");
 
@@ -4816,11 +4802,11 @@ let planning_list = [] // for export and printing - can replace map?
 // +++++++++++++++++ MODAL PERIOD +++++++++++++++++++++++++++++++++++++++++++
 //=========  ModPeriodOpen  ================ PR2019-10-28
     function ModPeriodOpen() {
-        console.log(" -----  ModPeriodOpen   ----")
+        //console.log(" -----  ModPeriodOpen   ----")
         // when clicked on delete btn in form tehre is no tr_selected, use selected_customer_pk
         // https://stackoverflow.com/questions/7972446/is-there-a-not-in-operator-in-javascript-for-checking-object-properties/12573605#12573605
 
-        console.log("selected_planning_period:", selected_planning_period)
+        //console.log("selected_planning_period:", selected_planning_period)
         const period_tag = get_dict_value_by_key(selected_planning_period, "period_tag")
         if(!period_tag) { period_tag = "tweek" }
         const period_datefirst_iso = get_dict_value_by_key(selected_planning_period, "period_datefirst")
@@ -4858,7 +4844,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  ModPeriodSelectPeriod  ================ PR2020-01-09
     function ModPeriodSelectPeriod(tr_clicked, selected_index) {
-        console.log( "===== ModPeriodSelectPeriod ========= ", selected_index);
+        //console.log( "===== ModPeriodSelectPeriod ========= ", selected_index);
         if(!!tr_clicked) {
     // ---  deselect all highlighted rows, highlight selected row
             DeselectHighlightedRows(tr_clicked, cls_selected);
@@ -4908,7 +4894,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  ModPeriodSave  ================ PR2020-01-09
     function ModPeriodSave() {
-        console.log("===  ModPeriodSave  =====") ;
+        //console.log("===  ModPeriodSave  =====") ;
 
         const period_tag = get_dict_value_by_key(mod_upload_dict, "period_tag", "tweek");
 
@@ -4951,8 +4937,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  CreateTblModSelectPeriod  ================ PR2019-11-16
     function CreateTblModSelectPeriod() {
-        // console.log("===  CreateTblModSelectPeriod == ");
-        // console.log(period_dict);
+        //console.log("===  CreateTblModSelectPeriod == ");
+        //console.log(period_dict);
         let tBody = document.getElementById("id_modperiod_selectperiod_tblbody");
 //+++ insert td's ino tblRow
         const len = loc.period_select_list.length
@@ -4976,8 +4962,8 @@ let planning_list = [] // for export and printing - can replace map?
 // +++++++++++++++++ MODAL CONFIRM +++++++++++++++++++++++++++++++++++++++++++
 //=========  ModConfirmOpen  ================ PR2019-06-23
     function ModConfirmOpen(mode, tblName, el_input) {
-        console.log(" -----  ModConfirmOpen   ----")
-        console.log("mode", mode)
+        //console.log(" -----  ModConfirmOpen   ----")
+        //console.log("mode", mode)
         // values of mode are : "delete", "inactive"
 
         let selected_pk = null
@@ -5057,8 +5043,8 @@ let planning_list = [] // for export and printing - can replace map?
 
 //=========  ModConfirmSave  ================ PR2019-06-23
     function ModConfirmSave() {
-        console.log(" --- ModConfirmSave --- ");
-        console.log("mod_upload_dict: ", mod_upload_dict);
+        //console.log(" --- ModConfirmSave --- ");
+        //console.log("mod_upload_dict: ", mod_upload_dict);
 
 // ---  when delete: make tblRow red, before uploading
         const is_delete = get_dict_value(mod_upload_dict, ["id", "delete"], false)
@@ -5070,9 +5056,9 @@ let planning_list = [] // for export and printing - can replace map?
             if (!!tr_selected) {tr_selected.classList.add(cls_error)}
         } else {
             // change inactive icon, before uploading, not when new_inactive = true
-        console.log("mod_upload_dict.el_id: ", mod_upload_dict.el_id);
+        //console.log("mod_upload_dict.el_id: ", mod_upload_dict.el_id);
             const el_input = document.getElementById(mod_upload_dict.el_id)
-        console.log("el_input: ", el_input);
+        //console.log("el_input: ", el_input);
             // modconfirm is only calles when inactive = true
             const is_inactive = true
             format_inactive_element (el_input, {value: is_inactive}, imgsrc_inactive_black, imgsrc_inactive_grey)
@@ -5223,7 +5209,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= ResetFilterRows  ====================================
     function ResetFilterRows() {  // PR2019-10-26
-        console.log( "===== ResetFilterRows  ========= ");
+        //console.log( "===== ResetFilterRows  ========= ");
 
         filter_select = "";
         filter_show_inactive = false;
@@ -5235,9 +5221,9 @@ let planning_list = [] // for export and printing - can replace map?
         const tblName = (selected_btn === "customer") ? "customer" :
                         (selected_btn === "order") ? "order" : null;
                         (selected_btn === "order") ? "order" : null;
-        console.log( "tblName: ", tblName);
-        console.log( "selected_customer_pk: ", selected_customer_pk);
-        console.log( "selected_order_pk: ", selected_order_pk);
+        //console.log( "tblName: ", tblName);
+        //console.log( "selected_customer_pk: ", selected_customer_pk);
+        //console.log( "selected_order_pk: ", selected_order_pk);
 
 // reset filter tBody_customer
     // reset filter tBody_customer
@@ -5287,7 +5273,7 @@ let planning_list = [] // for export and printing - can replace map?
 //##################################################################################
 // +++++++++++++++++ PRINT PLANNING ++++++++++++++++++++++++++++++++++++++++++++++++++
     function PrintPlanning(dont_download){
-        console.log(" === PrintPlanning ===")
+        //console.log(" === PrintPlanning ===")
         if(selected_order_pk) {
 
             if (!planning_customer_map.size){
@@ -5319,7 +5305,7 @@ let planning_list = [] // for export and printing - can replace map?
 //##################################################################################
 // +++++++++++++++++ EXPORT TO EXCEL ++++++++++++++++++++++++++++++++++++++++++++++++++
     function ExportToExcel(){
-        console.log(" === ExportToExcel ===")
+        //console.log(" === ExportToExcel ===")
 
             /* File Name */
             let filename = "Planning.xlsx";
@@ -5330,7 +5316,7 @@ let planning_list = [] // for export and printing - can replace map?
             let wb = XLSX.utils.book_new()
             let ws = FillExcelRows();
 
-        console.log("ws", ws)
+        //console.log("ws", ws)
 
             /* Add worksheet to workbook */
             XLSX.utils.book_append_sheet(wb, ws, ws_name);
@@ -5341,7 +5327,7 @@ let planning_list = [] // for export and printing - can replace map?
 
 //========= FillExcelRows  ====================================
     function FillExcelRows() {
-        console.log("=== FillExcelRows  =====")
+        //console.log("=== FillExcelRows  =====")
         let ws = {}
 
 // title row
@@ -5365,7 +5351,7 @@ let planning_list = [] // for export and printing - can replace map?
         const last_row = first_row  + row_count;
         for (let i = 0; i < row_count; i++) {
             const row = tBody_planning.rows[i];
-            console.log ("row: " , row);
+            //console.log ("row: " , row);
             for (let j = 0, len = row.cells.length, cell_index, cell_dict; j < len; j++) {
                 const col = row.cells[j];
                 cell_index = String.fromCharCode(65 + j) + (i + first_row).toString()

@@ -701,7 +701,10 @@ def get_locale_dict(table_dict, user_lang, comp_timezone, timeformat, interval):
         dict['Rate'] = TXT_Rate
         dict['Amount'] = TXT_Amount
         dict['Total_hours'] = TXT_Total_hours
-        dict['Grand_total'] = TXT_Grand_total
+        #dict['Grand_total'] = TXT_Grand_total
+
+        dict['Total'] = TXT_Total
+
 
         # for report
         dict['Time'] = TXT_Time
@@ -876,6 +879,7 @@ TXT_Vacation_days = _('Vacation days')
 TXT_Hourly_rate = _('Hourly rate')
 TXT_Wage_rate = _('Wage rate')
 
+# Note: absence/afwezig/afwezigheid translations is hardcoded in calc_roster_totals PR2020-04-23
 TXT_Absence = _('Absence')
 TXT_This_absence = _('This absence')
 

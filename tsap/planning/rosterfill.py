@@ -733,7 +733,6 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
                 if logfile:
                     update_dict['logfile'] = logfile
 
-
                 # save new period and retrieve saved period
                 period_dict = None  # period_dict = None means" get saved period
                 roster_period_dict = pld.period_get_and_save('roster_period', period_dict,
@@ -747,7 +746,6 @@ class FillRosterdateView(UpdateView):  # PR2019-05-26
 
                 # PR2019-11-18 debug don't use 'if emplhour_list:, blank lists must also be returned
                 update_dict['emplhour_list'] = emplhour_list
-
 
                 # debug: also update table in window when list is empty, Was: if list:
                 # update_dict['emplhour_list'] = list
@@ -1038,7 +1036,6 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
         orderhour.isabsence = is_absence
         orderhour.isrestshift = is_restshift
         orderhour.shift = shift_code
-
         orderhour.save(request=request)
 
 # 4. create new emplhour
@@ -1051,10 +1048,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
             employee=employee,
             is_replacement=is_replacement,
             pay_date=pay_date,
-            shift_code=shift_code,
             shift_wagefactor=None,
-            is_absence=is_absence,
-            is_restshift=is_restshift,
             timestart=timestart,
             timeend=timeend,
             break_duration=row_breakduration,
@@ -1078,7 +1072,7 @@ def add_orderhour_emplhour(row, rosterdate_dte, comp_timezone, request):  # PR20
 
 
 def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacement,
-                    pay_date, shift_code, shift_wagefactor, is_absence, is_restshift,
+                    pay_date, shift_wagefactor,
                     timestart, timeend, break_duration, time_duration,
                     offset_start, offset_end, date_part, comp_timezone, request):
     logger.debug(' ============= add_emplhour ============= ')
@@ -1158,7 +1152,7 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
             logger.debug('tax_rate: ' + str(tax_rate))
 
             # with restshift: amount = 0, pricerate = 0, additionrate  = 0, billable = false
-            if is_absence or is_restshift:
+            if orderhour.isabsence or orderhour.isrestshift:
                 # not necessary, but let is stay. Prevent this at input
                 price_rate = 0
                 addition_rate = 0
@@ -1178,7 +1172,7 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
             billing_duration = time_duration
             is_billable = False
             amount, addition, tax = f.calc_amount_addition_tax_rounded(time_duration, billing_duration,
-                                             is_absence, is_restshift, is_billable,
+                                             orderhour.isabsence, orderhour.isrestshift, is_billable,
                                              price_rate, addition_rate, tax_rate)
             logger.debug('time_duration: ' + str(time_duration))
             logger.debug('billing_duration: ' + str(billing_duration))
@@ -1197,11 +1191,8 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
                 orderhour=orderhour,
                 rosterdate=orderhour.rosterdate,
                 paydate=pay_date,
-                isabsence=orderhour.isabsence,
-                isrestshift=is_restshift,
                 isreplacement=is_replacement,
                 datepart=date_part,
-                shift=shift_code,
                 timestart=timestart,
                 timeend=timeend,
                 offsetstart=offset_start,
@@ -1250,7 +1241,7 @@ def add_emplhour(row, orderhour, schemeitem, teammember, employee, is_replacemen
                 # - put info in id_dict
                 id_dict = {'pk': new_emplhour.pk, 'ppk': new_emplhour.orderhour.pk, 'created': True}
                 update_dict = {'id': id_dict}
-                # pd.create_emplhour_itemdict_from_row(new_emplhour, update_dict, comp_timezone)
+                # pd.create_emplhour_itemdict_from_instance(new_emplhour, update_dict, comp_timezone)
                 # update_list.append(update_dict)
 
         #except:
@@ -1619,7 +1610,7 @@ def RemoveRosterdate(rosterdate_iso, comp_timezone, user_lang, request):  # PR20
                             # add plannedduration to duration_sum, not when isabsence or isrestshift, only when is planned shift
                             # - count_duration counts only duration of normal and single shifts, for invoicing
                             # when no time provided: fill in 8 hours =480 minutes
-                            if not emplhour.isabsence and not emplhour.isrestshift and emplhour.status == c.STATUS_01_CREATED:
+                            if not orderhour.isabsence and not orderhour.isrestshift and emplhour.status == c.STATUS_01_CREATED:
                                 if emplhour.plannedduration:
                                     duration_sum += emplhour.plannedduration
                                 else:

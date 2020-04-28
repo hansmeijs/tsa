@@ -20,38 +20,44 @@
 
 
 // ++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++
-    function PrintRoster(option, selected_period, review_list, subtotals, company_dict, loc, imgsrc_warning) {
+    function PrintRoster(option, selected_period, emplhour_list, company_dict, loc, imgsrc_warning) {
         //console.log("++++++++++++  PRINT ROSTER +++++++++++++++++++++++++++++++++++++++")
         //console.log("subtotals: ", subtotals)
 
+// ---  calculate subtotals and display values of subtotal rows and detail rows
+        const subtotals = calc_roster_totals(emplhour_list, loc);
+
+        // structure: [header, [row1, row2, ...]
+        // row can be nested:  [header,  [header, [header, [row1, row2, ...]
+        // rows are sorted
+        // row has following structure: [sort_key, display_code, count, ....  ]
+        // row can have different values in different reports
+
+// sort rows by sort_key and store them in nested arrayall information is stored in this nested array 'subtotals'
+        // all information is stored in this nested array 'subtotals'
+        const sorted_rows = get_sorted_rows_from_totals(subtotals, loc.user_lang)
+        //console.log( sorted_rows)
+
+// ---  loop recursively through sorted_rows
         let img_warning = new Image();
         img_warning.src = imgsrc_warning;
 
-        const len = review_list.length;
-        if (len > 0) {
+        if (sorted_rows.length > 0) {
 
 // ---  collect general data
             const is_preview = (option === "preview");
             const company = get_dict_value(company_dict,["name", "value"], "");
             const period_txt = get_period_formatted(selected_period, loc);
 
-            const datefirst_iso = get_dict_value(selected_period, ["period_datefirst"]);
-            const datefirst_JS = get_dateJS_from_dateISO (datefirst_iso)
+            //const datefirst_iso = get_dict_value(selected_period, ["period_datefirst"]);
+            //const datefirst_JS = get_dateJS_from_dateISO (datefirst_iso)
 
-            const datelast_iso = get_dict_value(selected_period, ["period_datelast"]);
-            const datelast_JS = get_dateJS_from_dateISO (datelast_iso)
-
-            const today_JS = new Date();
-            const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
+            //const datelast_iso = get_dict_value(selected_period, ["period_datelast"]);
+            //const datelast_JS = get_dateJS_from_dateISO (datelast_iso)
 
 // --- create variables
-            let this_rosterdate_iso = null
-            let this_rosterdate_JS = null
-
-            let prev_customer_pk = 0
-            let prev_order_pk = 0
-            let prev_rosterdate_iso = null
-
+            const today_JS = new Date();
+            const today_str = format_date_vanillaJS (today_JS, loc.months_abbrev, loc.weekdays_abbrev, loc.user_lang, true, false)
             let pos = {left: setting.margin_left,
                        top: setting.margin_top,
                        today: today_str,
@@ -81,130 +87,111 @@
             PrintColumnHeader("roster", tab_list, colhdr_list, pos, doc, loc, setting, img_warning)
 
 //--------  print grand total
-            const subtotal_arr = get_dict_value(subtotals, ["total"]);
+            const subtotal_arr = sorted_rows[0];
+            console.log("subtotal_arr: ", subtotal_arr)
             PrintSubtotalHeader("rpt_roster", "grand_total", loc.Total, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
 //--------  end of print grand total
 
 // +++++++ loop through rows  +++++++++++++++++++++++++
-           for (let i = 0; i < len; i++) {
-                let row = review_list[i];
-//--------  get row data
-                const this_customer_pk = get_dict_value(row, ["order", "ppk"], 0);
-                const this_order_pk = get_dict_value(row, ["order", "pk"], 0);
-                const this_rosterdate_iso = get_dict_value(row, ["rosterdate", "value"], "");
-                const rosterdate_formatted_long = format_date_iso (this_rosterdate_iso, loc.months_long, loc.weekdays_abbrev, false, false, loc.user_lang);
-                const rosterdate_formatted = format_date_iso (this_rosterdate_iso, loc.months_abbrev, loc.weekdays_abbrev, false, true, loc.user_lang);
-                // format_date_iso (date_iso, month_list, weekday_list, hide_weekday, hide_year, user_lang) {
-                const this_employee_code = get_dict_value(row, ["employee", "code"], "---")
-                const this_customer_code = get_dict_value(row, ["customer", "code"], "")
-                let this_order_code = get_dict_value(row, ["order", "code"], "") + " " + this_customer_code
-                const this_shift_code = get_dict_value(row, ["shift", "code"], "")
+           const rosterdate_rows = sorted_rows[1];
+           for (let i = 0, len = rosterdate_rows.length; i < len; i++) {
+                const rosterdate_header_row = rosterdate_rows[i][0];
+                const customer_rows = rosterdate_rows[i][1]
 
-// ======== change in rosterdate ========
-                if (this_rosterdate_iso !== prev_rosterdate_iso){
-                    prev_rosterdate_iso = this_rosterdate_iso;
-                    prev_customer_pk = 0;
-                    prev_order_pk = 0;
 //--------- print on new page if necessary
-                    // height of subtotalrow = 8
-                    // keep together: rosterdate_total + first customer_total + first order_total + first detail
-                    // means there msut be 3 x 8 + 5 mm  = 29 mm space > 30 mm available. If not: add page
+                // height of subtotalrow = 8
+                // keep together: rosterdate_total + first customer_total + first order_total + first detail
+                // means there msut be 3 x 8 + 5 mm  = 29 mm space > 30 mm available. If not: add page
 //--------- add new page when total height exceeds page_height, reset pos.top
-                    const total_height_needed = 30;
-                    if (pos.top + total_height_needed > setting.page_height){
-                        AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
-                    }
-//--------- print rosterdate total row
-                    const subtotal_arr = get_dict_value(subtotals, [this_rosterdate_iso, "total"]);
-                    PrintSubtotalHeader("rpt_roster", "rosterdate", rosterdate_formatted_long, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
+                let total_height_needed = 30;
+                if (pos.top + total_height_needed > setting.page_height){
+                    AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
                 }
+//--------- print rosterdate total row
+                PrintSubtotalHeader("rpt_roster", "rosterdate", "NIU", tab_list, pos, doc, img_warning, rosterdate_header_row, setting, loc)
+
+               console.log("customer_rows: ", customer_rows)
+               for (let i = 0, len = customer_rows.length; i < len; i++) {
+                    const customer_header_row = customer_rows[i][0];
+                    const order_rows = customer_rows[i][1]
 //========= change in customer
-/*
-                if (this_customer_pk !== prev_customer_pk){
-                    prev_customer_pk = this_customer_pk;
-                    prev_order_pk = 0;
 //--------- print on new page if necessary
                     // height of subtotalrow = 8
                     // keep together: customer_total + first order_total + first detail
                     // means there must be 2 x 8 + 5 mm  = 21 mm space > 22 mm available. If not: add page
 //--------- add new page when total height exceeds page_height, reset pos.top
-                    const total_height_needed = 22;
+                    total_height_needed = 22;
                     if (pos.top + total_height_needed > setting.page_height){
                         AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
                     }
 //--------- print customer total row
-                    const subtotal_arr = get_dict_value(subtotals, [this_rosterdate_iso, this_customer_pk, "total"]);
-                    PrintSubtotalHeader("rpt_roster", "customer", this_customer_code, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
-                }
-  */
+                    //const subtotal_arr = get_dict_value(subtotals, [this_rosterdate_iso, this_customer_pk, "total"]);
+                    PrintSubtotalHeader("rpt_roster", "customer", "NIU", tab_list, pos, doc, img_warning, customer_header_row, setting, loc)
+
+                    console.log("order_rows: ", order_rows)
+                    for (let i = 0, len = order_rows.length; i < len; i++) {
+                        const order_header_row = order_rows[i][0];
+                        const employee_rows = order_rows[i][1]
+
 //========= change in order
-                if (this_order_pk !== prev_order_pk){
-                    prev_order_pk = this_order_pk;
+
 //====== print on new page if necessary
-                    // height of subtotalrow = 8
-                    // keep together: order_total + first detail
-                    // means there must be 1 x 8 + 5 mm  = 13 mm space > 14 mm available. If not: add page
-                    const total_height_needed = 14;
+                        // height of subtotalrow = 8
+                        // keep together: order_total + first detail
+                        // means there must be 1 x 8 + 5 mm  = 13 mm space > 14 mm available. If not: add page
+                        total_height_needed = 14;
 //--------- add new page when total height exceeds page_height, reset pos.top
-                    if (pos.top + total_height_needed > setting.page_height){
-                        AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
-                    }
-//--------- print order total row
-                    const subtotal_arr = get_dict_value(subtotals, [this_rosterdate_iso, this_customer_pk, this_order_pk, "total"]);
+                        if (pos.top + total_height_needed > setting.page_height){
+                            AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                        }
 
-//console.log("this_order_code: ", this_order_code )
-//console.log("subtotals: ", subtotals )
+                        PrintSubtotalHeader("rpt_roster", "order", "NIU", tab_list, pos, doc, img_warning, order_header_row, setting, loc)
 
+                        console.log("employee_rows: ", employee_rows)
+                        for (let i = 0, len = employee_rows.length; i < len; i++) {
+                            const employee_header_row = employee_rows[i][0];
 
-                    PrintSubtotalHeader("rpt_roster", "order", this_order_code, tab_list, pos, doc, img_warning, subtotal_arr, setting, loc)
-                }
-//========= print detail row
-                // pos.top is at the bottom of the printed text
+//========= print detail rows
+                            // pos.top is at the bottom of the printed text
 
 //---------  print on new page if necessary
-                // height of detailrow = 5
-                // keep together: none
-                // means there must be 1 x 5 mm  = 5 mm space > 6 mm available. If not: add page
-                const total_height_needed = 6;
+                            // height of detailrow = 5
+                            // keep together: none
+                            // means there must be 1 x 5 mm  = 5 mm space > 6 mm available. If not: add page
+                            total_height_needed = 6;
 //--------- add new page when total height exceeds page_height, reset pos.top
-                if (pos.top + total_height_needed > setting.page_height){
-                    AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
-                }
+                            if (pos.top + total_height_needed > setting.page_height){
+                                AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
+                            }
 
-                const is_absence = get_dict_value(row, ["id", "isabsence"], false)
-                const is_restshift = get_dict_value(row, ["id", "isrestshift"], false)
-                const time_dur = get_dict_value(row, ["timeduration", "value"], 0)
-                const break_dur = get_dict_value(row, ["breakduration", "value"], 0)
-                const time_start = get_dict_value(row, ["timestart", "display"], "")
-                const time_end = get_dict_value(row, ["timeend", "display"], "")
+                            const employee_code = employee_header_row[1];
+                            const shift_code = employee_header_row[2];
+                            const time_start = employee_header_row[3];
+                            const time_end = employee_header_row[4];
+                            const worked_format = employee_header_row[5];
+                            const break_format = employee_header_row[6];
+                            const absence_format = employee_header_row[7];
 
-                const worked_dur = (!is_absence && !is_restshift) ? time_dur : 0;
-                const abs_dur = (is_absence) ? time_dur : 0;
-                //const abs_dur = (row.o_isabs) ? row.eh_timedur : 0;
-
-                const break_format = format_total_duration (break_dur, loc.user_lang)
-                const worked_format = format_total_duration (worked_dur, loc.user_lang)
-                const absence_format = format_total_duration (abs_dur, loc.user_lang)
-                //const show_warning = (dur_diff < 0);
-
-                const cust_ordr_code = row.cust_code + " - " + row.ordr_code;
-                const cell_values = [this_employee_code, this_shift_code,
-                                    time_start, time_end, break_format, worked_format, absence_format];
-                PrintRow(cell_values, tab_list, pos, setting.fontsize_line, doc, img_warning);
+                            const cell_values = [employee_code, shift_code,
+                                                time_start, time_end, break_format, worked_format, absence_format];
+                            PrintRow(cell_values, tab_list, pos, setting.fontsize_line, doc, img_warning);
 
 //======================== print draw grey line 1 mm under detail row
-               // doc.setDrawColor(204,204,204);
-                //doc.line(pos.left + tab_list[0], pos.top + 1, pos.left + tab_list[tab_list.length - 1], pos.top + 1);
-                //doc.setDrawColor(0,0,0);
+                           // doc.setDrawColor(204,204,204);
+                            //doc.line(pos.left + tab_list[0], pos.top + 1, pos.left + tab_list[tab_list.length - 1], pos.top + 1);
+                            //doc.setDrawColor(0,0,0);
 
-                pos.top += setting.line_height;
-            }
+                            pos.top += setting.line_height;
+                        }  // for (let i = 0, len = employee_rows.length; i < len; i++)
+                    }  // for (let i = 0, len = order_rows.length; i < len; i++) {
+                }  // for (let i = 0, len = customer_rows.length; i < len; i++)
+            }  //  for (let i = 0, len = rosterdate_rows.length; i < len; i++)
 // +++++++ end of loop through rows  +++++++++++++++++++++++++
 
 //---------- print footer on last page
                 PrintFooter(pos, doc, setting, loc)
 
-   // ================ print To View  ==================
+// ================ print To View  ==================
             if(is_preview){
                 let string = doc.output('datauristring');
                 let embed = "<embed width='100%' height='100%' src='" + string + "'/>"
@@ -368,7 +355,7 @@
                 }
 
 //======================== print detail row
-                // filter (!row.o_isabs && !row.eh_isrest) is part of SQL
+                // filter (!row.o_isabs && !row.oh_isrest) is part of SQL
                 const plan_dur_format = format_total_duration (row.eh_plandur, loc.user_lang)
                 const time_dur_format = format_total_duration (row.eh_timedur, loc.user_lang)
                 const bill_dur_format = format_total_duration (row.eh_billdur, loc.user_lang)
@@ -482,9 +469,7 @@
                 const this_order_code = get_dict_value(row, ["ordr_code"], "")
                 const this_shift_code = get_dict_value(row, ["oh_shift"], "")
 
-
                 const empl_key = (!!this_employee_pk) ? "empl_" + this_employee_pk.toString() : "empl_0000"
-
 
                 const offset_start = get_dict_value(row, ["timestart", "offset"]);
                 const offset_end = get_dict_value(row, ["timeend", "offset"]);
@@ -518,7 +503,7 @@
                 if (pos.top + total_height_needed > setting.page_height){
                     AddNewPage("rpt_roster", tab_list, rpthdr_tabs, rpthdr_values, colhdr_list, pos, doc, loc, setting, img_warning)
                 }
-                // filter (!row.o_isabs && !row.eh_isrest) is part of SQL
+                // filter (!row.o_isabs && !row.oh_isrest) is part of SQL
                 const plan_dur_format = format_total_duration (row.eh_plandur, loc.user_lang)
                 const time_dur_format = format_total_duration (row.eh_timedur, loc.user_lang)
                 const diff_format = format_total_duration (row.eh_timedur - row.eh_plandur, loc.user_lang)
@@ -717,18 +702,17 @@
             const employee_code_list = get_dict_value(item_dict, ["employee", "code"], "");
             const rosterdate_formatted = format_date_iso (this_rosterdate_iso, loc.months_abbrev, loc.weekdays_abbrev, false, false, loc.user_lang);
 
-        //console.log("............................item_dict: ", item_dict)
-        //console.log("shift_code: ", shift_code)
-        //console.log("employee_code_list: ", employee_code_list)
-        //console.log("rosterdate_formatted: ", rosterdate_formatted)
+            //console.log("............................item_dict: ", item_dict)
+            //console.log("shift_code: ", shift_code)
+            //console.log("employee_code_list: ", employee_code_list)
+            //console.log("rosterdate_formatted: ", rosterdate_formatted)
 
             let display_time = null;
             const offset_start = get_dict_value(item_dict, ["shift", "offsetstart"]);
             const offset_end = get_dict_value(item_dict, ["shift", "offsetend"]);
-        //console.log("offset_start: ", offset_start)
-        //console.log("offset_end: ", offset_end)
+
             if(!!offset_start || !!offset_end){
-                const offsetstart_formatted = display_offset_time (loc. offset_start, true); // true = skip_prefix_suffix
+                const offsetstart_formatted = display_offset_time (loc, offset_start, true); // true = skip_prefix_suffix
                 const offsetend_formatted = display_offset_time (loc, offset_end, true); // true = skip_prefix_suffix
                 display_time = offsetstart_formatted + " - " + offsetend_formatted
             }
@@ -1115,11 +1099,12 @@
                 subtotal_values = [this_item_code,  shifts_format,
                                     tot_plan_format, tot_time_format, tot_bill_format, tot_diff_format]
             } else if (rptName === "rpt_roster"){
-                const shifts_format = format_shift_count (subtotal_arr[0], loc)
-                const tot_worked_format = format_total_duration (subtotal_arr[1], loc.user_lang)
-                const tot_break_format = format_total_duration (subtotal_arr[2], loc.user_lang)
-                const tot_absence_format = format_total_duration (subtotal_arr[3], loc.user_lang)
-                subtotal_values = [this_item_code,  shifts_format, "", "",
+                const item_code = subtotal_arr[1]
+                const shifts_format = format_shift_count (subtotal_arr[2], loc)
+                const tot_worked_format = format_total_duration (subtotal_arr[3], loc.user_lang)
+                const tot_break_format = format_total_duration (subtotal_arr[4], loc.user_lang)
+                const tot_absence_format = format_total_duration (subtotal_arr[5], loc.user_lang)
+                subtotal_values = [item_code,  shifts_format, "", "",
                                     tot_break_format, tot_worked_format, tot_absence_format]
             }
         }
@@ -1480,92 +1465,209 @@
         }  // if(!!tblRow){
     }  // function addData
 
+//========== GET REPORT ARRAY ==============================================================
+//========= get_sorted_rows_from_totals  ============= PR2020-04-23
+// form https://www.javascripttutorial.net/javascript-recursive-function/
+let get_sorted_rows_from_totals = function fnc(data_dict, user_lang) {
+        //console.log("======  get_sorted_rows_from_totals  ==========")
+        //console.log("data_dict")
+        //console.log(data_dict)
+        // function creates report_array recursively from data_dict (emplhour_totals)
+        // structure is [ [ header ] , [ items1, item2, ...] ]
+        // header in roster_report is [key, sort_key, shift_count, worked_hours, break_hours, absence_hours]
+        let header = [], rows = [];
+        let report_array = [];
+        let sorted_rows = [];
+        if(!isEmpty(data_dict)){
+// ---  get header from key 'total' with totals
+            header = get_dict_value(data_dict, ["total"], [])
+            report_array.push(header);
+            for(let key in data_dict) {
+                if(data_dict.hasOwnProperty(key)){
+        //console.log("key:", key)
+
+                    if (key === "total"){
+                        // skip
+                    } else if (key === "row"){
+                        // add data_row in detail row
+                        if(!!data_dict[key]){
+
+                        //console.log("data_dict[key]:", data_dict[key])
+                            report_array.push(data_dict[key]);
+                        //console.log("report_array:", report_array)
+                        }
+                    } else {
+                        let row_index = sorted_rows.length;
+                        const item_dict = data_dict[key]
+                        const itemdict_total_arr = get_dict_value(item_dict, ["total"], [])
+                        if(!!itemdict_total_arr.length){
+                            // sortkey is stored in index 1 of 'total' key in emplhour_totals
+                            const new_code = itemdict_total_arr[0];
+                            row_index = index_sorted_row_for_report(sorted_rows, new_code, user_lang)
+// ---  create item_array from item_dict recursively with this function fnc. It works!!! PR2020-04-23
+                           const item_array = fnc(item_dict, user_lang)
+// ---  insert row at index
+                            if(!!item_array.length){
+                                // Array.splice() modifies an array by removing existing elements and/or adding new elements.
+                                // Syntax: Array.splice( index, remove_count, item_list )
+                                sorted_rows.splice(row_index, 0, item_array);
+                            }
+                        } //  if(!!itemdict_total_arr.length > 1)
+                    }  // if (key !== "total")
+                }  //  if(data_dict.hasOwnProperty(key))
+            }  //  for(let key in data_dict)
+        }  //   if(!isEmpty(data_dict)){
+        if(!!sorted_rows.length){
+            report_array.push(sorted_rows);
+        }
+        return report_array
+    }
+
+//========= index_sorted_row_for_report  =============  PR2020-01-20
+    function index_sorted_row_for_report(sorted_rows, new_code, user_lang) {
+        //console.log(" --- index_sorted_row_for_report --- ")
+        // function gets code from item_dict and searches sorted position of this code in selecttable, returns index
+        // similar to GetNewSelectRowIndex in tables.js
+
+        // structure: {total: ["2020-04-12", "2020-04-12", 5, 1440, 300, 0], 730: {....}, 734: {....}
+        const sorted_rows_len = sorted_rows.length
+        let row_index = sorted_rows_len;
+        // structure of sorted rows: [ [total], [item1, item2] ]
+        if (!!new_code){
+// ---  loop through sorted_rows
+            const sorted_rows_len = sorted_rows.length
+            // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/splice
+            // If index is greater than the length of the array, start will be set to the length of the array.
+            // In this case, no element will be deleted but the method will behave as an adding function,
+            for (let i = 0; i < sorted_rows_len; i++) {
+                const sorted_row = sorted_rows[i]
+                // sortkey is stored in index 1 of sorted_rows. row_code = sorted_rows[0][0]
+                let row_code = null
+                if (!!sorted_row.length){
+                    const sorted_row_header = sorted_row[0]
+                    if (!!sorted_row_header.length){
+                        row_code = sorted_row_header[0]
+                    }
+                }
+                if(!!row_code){
+// ---  compare new_code with row_code
+                    // sort function from https://stackoverflow.com/questions/51165/how-to-sort-strings-in-javascript
+                    // localeCompare from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
+                    // row_code 'acu' new_code 'giro' compare = -1
+                    // row_code 'mcb' new_code 'giro' compare =  1
+                    let compare = sort_localeCompare(row_code, new_code, user_lang);
+                    if (compare > 0) {
+                        row_index = i;
+                        break;
+                    }
+                }
+            }
+        };
+        return row_index;
+    }  // index_sorted_row_for_report
+
 //========================================================================
 
-    function calc_review_customer_totals(review_list){
+    function calc_review_customer_totals(review_list, loc){
         //console.log(" --- calc_review_customer_totals ---: ")
-        // calculate subtotals PR2020-02-17
-        //  customer_totals contains [count, eh_plandur, eh_timedur, eh_billdur, billable_count]
+        //console.log("review_list: ", review_list)
+        // calculate subtotals PR2020-04-24
+        //  customer_totals contains [count, plandur, timedur, billdur, absdur, billable_count, amount, addition, tax]
         // subtotals = {total: [11170, 10330, 10330]
         //              694: { total: [4380, 4380, 4380]  // key 694 is customer_pk
         //                      1437: { total: [4380, 4380, 4380],  // key 1437 is order_pk
         //                              2020-02-17: [780, 780, 780], array contains [plan_dur, time_dur, bill_dur]
         //                              2020-02-18: [960, 960, 960],
 
-
-        let subtotals = {total: [0, 0, 0, 0, 0, 0, 0, 0, 0]}
+        // default zero's are necessary because of '+='. In detail row they are not needed
+        let subtotals = {total: ["grand", loc.Total, "", "", "", "", "", 0, 0, 0, 0, 0, 0, 0, 0, 0]}
         const len = review_list.length;
         if (len > 0) {
-            for (let i = 0; i < len; i++) {
-                let row = review_list[i];
-
+            for (let i = 0, row; row = review_list[i]; i++) {
                 const count = (!row.o_isabs && !row.oh_isrest) ? 1 : 0;
-                const billable_count = (!row.o_isabs && !row.eh_isrest && !!row.oh_bill) ? 1 : 0;
+                const is_billable = (!row.o_isabs && !row.oh_isrest && !!row.oh_bill);
 
-                const customer_pk = get_dict_value(row, ["cust_id"]);
-                const order_pk = get_dict_value(row, ["ordr_id"]);
-                const rosterdate_iso =  get_dict_value(row, ["rosterdate"]);
+                const company_pk = get_dict_value(row, ["comp_id"], "").toString();
+                const customer_pk = get_dict_value(row, ["cust_id"], "").toString();
+                const order_pk = get_dict_value(row, ["ordr_id"], "").toString();
+                const rosterdate_iso =  get_dict_value(row, ["rosterdate"], "");
+                const orderhour_pk = get_dict_value(row, ["oh_id"], "").toString();
+
+                const customer_code = get_dict_value(row, ["cust_code"]);
+                const order_code = get_dict_value(row, ["ordr_code"]);
 
                 if(!!customer_pk && !!order_pk && !!rosterdate_iso) {
         // lookup customer_dict in subtotals, create if not found
                     const cust_key = "cust_" + customer_pk.toString()
                     if(!(cust_key in subtotals)) {
-                        subtotals[cust_key] = {total: [0, 0, 0, 0, 0, 0, 0, 0, 0]}
+                        // put Absence last by making customer_sort_key = "zzzzzz"
+                        let customer_sort_key = customer_code;
+                        if (!!customer_code && ["absence", "afwezig", "afwezigheid"].indexOf(customer_code.toLowerCase()) > -1){
+                            customer_sort_key = "zzzzzz"
+                        }
+                        subtotals[cust_key] = {total: [customer_sort_key, customer_code,
+                                company_pk, customer_pk, order_pk, orderhour_pk, rosterdate_iso,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0]}
                     }
-                    let customer_dict = subtotals[cust_key] ;
+                    let customer_dict = subtotals[cust_key];
         // lookup order_dict in customer_dict, create if not found
                     const order_key = "ordr_" + order_pk.toString()
                     if(!(order_key in customer_dict)) {
-                        customer_dict[order_key] = {total: [0, 0, 0, 0, 0, 0, 0, 0, 0]}
+                        customer_dict[order_key] = {total: [order_code, order_code,
+                                company_pk, customer_pk, order_pk, orderhour_pk, rosterdate_iso,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0]}
                     }
                     let order_dict = customer_dict[order_key];
-        // lookup rosterdate_arr in order_dict, create if not found
+        // lookup rosterdate_dict in order_dict, create if not found
                     const rosterdate_key = "date_" + rosterdate_iso;
                     if(!(rosterdate_key in order_dict)) {
-                        order_dict[rosterdate_key] = {total: [0, 0, 0, 0, 0, 0, 0, 0, 0]};
+                        const rosterdate_formatted_long = format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_abbrev, false, false, loc.user_lang);
+                        order_dict[rosterdate_key] = {total: [rosterdate_iso, rosterdate_formatted_long,
+                                company_pk, customer_pk, order_pk, orderhour_pk, rosterdate_iso,
+                                0, 0, 0, 0, 0, 0, 0, 0, 0]};
                     }
-                    let rosterdate_arr = order_dict[rosterdate_key];
-        // add to grand total
-                    subtotals.total[0] += count;
-                    subtotals.total[1] += row.eh_plandur;
-                    subtotals.total[2] += row.eh_timedur;
-                    subtotals.total[3] += row.eh_billdur;
-                    subtotals.total[4] += row.eh_absdur;
-                    subtotals.total[5] += billable_count;
-                    subtotals.total[6] += row.eh_amount;
-                    subtotals.total[7] += row.eh_addition;
-                    subtotals.total[8] += row.eh_tax;
+                    let rosterdate_dict = order_dict[rosterdate_key];
+        // lookup orderhour_dict in order_dict, create if not found
+                    const orderhour_key = "ehoh_" + orderhour_pk.toString()
+                    if(!(orderhour_key in rosterdate_dict)) {
+                        rosterdate_dict[orderhour_key] = {total: ["order_code", "orderhour_code",
+                                company_pk, customer_pk, order_pk, orderhour_pk, rosterdate_iso]}
+                    }
+                    let orderhour_dict = rosterdate_dict[orderhour_key];
+                    orderhour_dict.row = row;
 
-        // add to customer total
-                    customer_dict.total[0] += count
-                    customer_dict.total[1] += row.eh_plandur
-                    customer_dict.total[2] += row.eh_timedur
-                    customer_dict.total[3] += row.eh_billdur
-                    customer_dict.total[4] += row.eh_absdur
-                    customer_dict.total[5] += billable_count
-                    customer_dict.total[6] += row.eh_amount
-                    customer_dict.total[7] += row.eh_addition
-                    customer_dict.total[8] += row.eh_tax
-        // add to order total
-                    order_dict.total[0] += count
-                    order_dict.total[1] += row.eh_plandur
-                    order_dict.total[2] += row.eh_timedur
-                    order_dict.total[3] += row.eh_billdur
-                    order_dict.total[4] += row.eh_absdur
-                    order_dict.total[5] += billable_count
-                    order_dict.total[6] += row.eh_amount
-                    order_dict.total[7] += row.eh_addition
-                    order_dict.total[8] += row.eh_tax
-        // add to rosterdate total
-                    rosterdate_arr.total[0] += count
-                    rosterdate_arr.total[1] += row.eh_plandur
-                    rosterdate_arr.total[2] += row.eh_timedur
-                    rosterdate_arr.total[3] += row.eh_billdur
-                    rosterdate_arr.total[4] += row.eh_absdur
-                    rosterdate_arr.total[5] += billable_count
-                    rosterdate_arr.total[6] += row.eh_amount
-                    rosterdate_arr.total[7] += row.eh_addition
-                    rosterdate_arr.total[8] += row.eh_tax
+                    orderhour_dict.total[7] = count;
+                    orderhour_dict.total[8] = row.eh_plandur;
+                    orderhour_dict.total[9] = row.eh_timedur;
+                    orderhour_dict.total[10] = row.eh_billdur;
+                    orderhour_dict.total[11] = row.eh_absdur;
+                    orderhour_dict.total[12] = is_billable;
+                    orderhour_dict.total[13] = row.eh_amount_sum;
+                    orderhour_dict.total[14] = row.eh_add_sum;
+                    orderhour_dict.total[15] = row.eh_tax_sum;
+
+                    orderhour_dict.total[16] = row.oh_shift;
+                    orderhour_dict.total[17] = row.eh_prrate_arr;
+                    orderhour_dict.total[18] = row.eh_addrate_arr;
+                    orderhour_dict.total[19] = row.eh_taxrate_arr;
+                    orderhour_dict.total[20] = row.e_code;
+                    orderhour_dict.total[21] = row.cust_code;
+                    orderhour_dict.total[22] = row.ordr_code;
+                    orderhour_dict.total[23] = row;
+
+// ---  add values to subtotals
+                    for (let i = 0; i < 4; i++) {
+                        let dict = (i === 0) ? subtotals : (i === 1) ? customer_dict : (i === 2) ? order_dict : (i === 3) ? rosterdate_dict : null;
+                        dict.total[7] += count;
+                        dict.total[8] += row.eh_plandur;
+                        dict.total[9] += row.eh_timedur;
+                        dict.total[10] += row.eh_billdur;
+                        dict.total[11] += row.eh_absdur;
+                        if (is_billable) {dict.total[12] += 1};
+                        dict.total[13] += row.eh_amount;
+                        dict.total[14] += row.eh_addition;
+                        dict.total[15] += row.eh_tax;
+                    }
                 }  // if(!!customer_pk && order_pk && rosterdate_iso)
             }  // for (let i = 0; i < len; i++)
         }  // if (len > 0)
@@ -1573,146 +1675,188 @@
         return subtotals;
     }  // calc_review_customer_totals
 
-    function calc_review_employee_totals(review_employee_list){
+    function calc_review_employee_totals(review_employee_list, loc){
         //console.log(" --- calc_review_employee_totals ---: ")
-        // calculate subtotals PR2020-02-22
-        //  employee_totals contains [count, eh_plandur, eh_timedur, eh_billdur, eh_absdur]
+        //console.log("review_employee_list: ", review_employee_list)
+        // calculate subtotals PR2020-04-24
+        //  employee_totals contains [count, plandur, timedur, billdur, absdur, billable_count, amount, addition, tax]
+
         // subtotals = {total: [11170, 10330, 10330, 55]
         //              694: { total: [4380, 4380, 4380, 2]  // key 694 is employee_pk
         //                     2020-02-17: [780, 780, 780], array contains [plan_dur, time_dur, bill_dur]
         //                     2020-02-18: [960, 960, 960],
 
-        let subtotals = {total: [0, 0, 0, 0, 0]}
+        let subtotals = {total: ["grand", loc.Total, "", "", "", "", "", 0, 0, 0, 0, 0]}
         const len = review_employee_list.length;
         if (len > 0) {
-            for (let i = 0; i < len; i++) {
-                let row = review_employee_list[i];
+            for (let i = 0, row; row = review_employee_list[i]; i++) {
 
-                const count = (!row.o_isabs && !row.eh_isrest) ? 1 : 0;
-                const billable_count = (!row.o_isabs && !row.eh_isrest && !!row.oh_bill) ? 1 : 0;
-                const employee_pk = get_dict_value(row, ["e_id"], "0000");
-                const rosterdate_iso = get_dict_value(row, ["rosterdate"], "0000");
+
+                const company_pk = get_dict_value(row, ["comp_id"], "").toString();
+                const customer_pk = get_dict_value(row, ["cust_id"], "").toString();
+                const order_pk = get_dict_value(row, ["ordr_id"], "").toString();
+                const rosterdate_iso =  get_dict_value(row, ["rosterdate"], "");
+                const orderhour_pk = get_dict_value(row, ["oh_id"], "").toString();
+
+                const count = (!row.o_isabs && !row.oh_isrest) ? 1 : 0;
+                const billable_count = (!row.o_isabs && !row.oh_isrest && !!row.oh_bill) ? 1 : 0;
+                const employee_pk = get_dict_value(row, ["e_id"], "0000").toString();
+                const emplhour_pk = get_dict_value(row, ["eh_id"], "").toString();
+                const employee_code = get_dict_value(row, ["e_code"]);
 
     // lookup employee_dict in subtotals, create if not found
                 const empl_key = (!!employee_pk) ? "empl_" + employee_pk.toString() : "empl_0000";
                 if(!(empl_key in subtotals)) {
-                    subtotals[empl_key] = {total: [0, 0, 0, 0, 0, 0, 0, 0, 0]}
+                    subtotals[empl_key] = {total: [employee_code, employee_code,
+                                company_pk, customer_pk, order_pk, orderhour_pk, rosterdate_iso, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
                 }
                 let employee_dict = subtotals[empl_key] ;
 
-    // lookup rosterdate_arr in employee_dict, create if not found
+    // lookup rosterdate_dict in employee_dict, create if not found
                 const rosterdate_key = "date_" + rosterdate_iso;
                 if(!(rosterdate_key in employee_dict)) {
-                    employee_dict[rosterdate_key] = {total: [0, 0, 0, 0, 0, 0, 0, 0, 0]};
+                    const rosterdate_formatted_long = format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_abbrev, false, false, loc.user_lang);
+                    employee_dict[rosterdate_key] = {total: [rosterdate_iso, rosterdate_formatted_long,
+                                company_pk, customer_pk, order_pk, orderhour_pk, rosterdate_iso, 0, 0, 0, 0, 0, 0, 0, 0, 0]};
                 }
-                let rosterdate_arr = employee_dict[rosterdate_key];
+                let rosterdate_dict = employee_dict[rosterdate_key];
 
-    // add to grand total
-                subtotals.total[0] += count
-                subtotals.total[1] += row.eh_plandur
-                subtotals.total[2] += row.eh_timedur
-                subtotals.total[3] += row.eh_billdur
-                subtotals.total[4] += row.eh_absdur
-                subtotals.total[5] += billable_count;
-                subtotals.total[6] += row.eh_amount;
-                subtotals.total[7] += row.eh_addition;
-                subtotals.total[8] += row.eh_tax;
-    // add to employee total
-                employee_dict.total[0] += count
-                employee_dict.total[1] += row.eh_plandur
-                employee_dict.total[2] += row.eh_timedur
-                employee_dict.total[3] += row.eh_billdur
-                employee_dict.total[4] += row.eh_absdur
-                employee_dict.total[5] += billable_count;
-                employee_dict.total[6] += row.eh_amount;
-                employee_dict.total[7] += row.eh_addition;
-                employee_dict.total[8] += row.eh_tax;
-    // add to rosterdate total
-                rosterdate_arr.total[0] += count
-                rosterdate_arr.total[1] += row.eh_plandur
-                rosterdate_arr.total[2] += row.eh_timedur
-                rosterdate_arr.total[3] += row.eh_billdur
-                rosterdate_arr.total[4] += row.eh_absdur
-                rosterdate_arr.total[5] += billable_count;
-                rosterdate_arr.total[6] += row.eh_amount;
-                rosterdate_arr.total[7] += row.eh_addition;
-                rosterdate_arr.total[8] += row.eh_tax;
-
+    // lookup emplhour_dict in order_dict, create if not found
+                const emplhour_key = "ehoh_" + emplhour_pk.toString()
+                if(!(emplhour_key in rosterdate_dict)) {
+                    rosterdate_dict[emplhour_key] = {total: ["order_code", "orderhour_code"]}
+                }
+                let emplhour_dict = rosterdate_dict[emplhour_key];
+                emplhour_dict.total[7] = count;
+                emplhour_dict.total[8] = row.eh_plandur;
+                emplhour_dict.total[9] = row.eh_timedur;
+                emplhour_dict.total[10] = row.eh_billdur;
+                emplhour_dict.total[11] = row.eh_absdur;
+                emplhour_dict.total[12] = billable_count;
+                emplhour_dict.total[13] = row.eh_amount;
+                emplhour_dict.total[14] = row.eh_addition;
+                emplhour_dict.total[15] = row.eh_tax;
+// ---  add values to subtotals
+                for (let i = 0; i < 3; i++) {
+                    let dict = (i === 0) ? subtotals : (i === 1) ? employee_dict : (i === 2) ? rosterdate_dict : null;
+                    dict.total[7] += count;
+                    dict.total[8] += row.eh_plandur;
+                    dict.total[9] += row.eh_timedur;
+                    dict.total[10] += row.eh_billdur;
+                    dict.total[11] += row.eh_absdur;
+                    dict.total[12] += billable_count;
+                    dict.total[13] += row.eh_amount;
+                    dict.total[14] += row.eh_addition;
+                    dict.total[15] += row.eh_tax;
+                }
             }  // for (let i = 0; i < len; i++)
         }  // if (len > 0)
         //console.log(" --- subtotals: ", subtotals)
         return subtotals;
     }  // calc_review_employee_totals
 
-    function calc_roster_totals(roster_list){
+    function calc_roster_totals(emplhour_list, loc){
         //console.log(" --- calc_roster_totals ---: ")
-        //console.log("roster_list: ", roster_list)
-        // calculate subtotals PR2020-02-17
-        //  array contains [plan_dur, time_dur, bill_dur, row_count, bill_count]
+        //console.log("emplhour_list: ", emplhour_list)
+        // calculate subtotals PR2020-02-17 PR2020-04-23
+        //  array contains [sort_key, display_code, shift_count, worked_hours, break_hours, absence_hours]
         // subtotals = {total: [11170, 10330, 10330]
         //              694: { total: [4380, 4380, 4380]  // key 694 is customer_pk
         //                      1437: { total: [4380, 4380, 4380],  // key 1437 is order_pk
         //                              2020-02-17: [780, 780, 780], array contains [plan_dur, time_dur, bill_dur]
         //                              2020-02-18: [960, 960, 960],
 
-        let subtotals = {total: [0, 0, 0, 0]}
-        const len = roster_list.length;
+        let subtotals = {total: ["grand", loc.Total, 0, 0, 0, 0]}
+        const len = emplhour_list.length;
         if (len > 0) {
-            for (let i = 0, row; row = roster_list[i]; i++) {
-        //console.log("row: ", row)
-
+            for (let i = 0, row; row = emplhour_list[i]; i++) {
+                //console.log("row: ", row)
                 const rosterdate_iso =  get_dict_value(row, ["rosterdate", "value"]);
-                const customer_pk = get_dict_value(row, ["order", "ppk"]);
+                const customer_pk = get_dict_value(row, ["customer", "pk"]);
+                const customer_code = get_dict_value(row, ["customer", "code"]);
                 const order_pk = get_dict_value(row, ["order", "pk"]);
-                const timedur = get_dict_value(row, ["timeduration", "value"], 0);
-                const breakdur = get_dict_value(row, ["breakduration", "value"], 0);
+                const order_code = get_dict_value(row, ["order", "code"]);
+                const customer_order_code = customer_code + " - " + order_code;
+                const emplhour_pk = get_dict_value(row, ["id", "pk"]);
+                const employee_code = get_dict_value(row, ["employee", "code"]);
+
+                const shift_code  = get_dict_value(row, ["shift", "code"], "");
+                const time_start = get_dict_value(row, ["timestart", "display"], "");
+                const time_end = get_dict_value(row, ["timeend", "display"], "");
+
+                const time_dur = get_dict_value(row, ["timeduration", "value"], 0);
+                const break_dur = get_dict_value(row, ["breakduration", "value"], 0);
                 const is_absence = get_dict_value(row, ["id", "isabsence"], false);
                 const is_restshift = get_dict_value(row, ["id", "isrestshift"], false);
-                const worked_hours = (!is_absence && !is_restshift) ? timedur : 0;
-                const break_hours = (!is_absence && !is_restshift) ? breakdur : 0;
-                const absence_hours = (is_absence) ? timedur : 0;
+                const worked_hours = (!is_absence && !is_restshift) ? time_dur : 0;
+                const break_hours = (!is_absence && !is_restshift) ? break_dur : 0;
+                const absence_hours = (is_absence) ? time_dur : 0;
                 const shift_count = (!is_absence && !is_restshift) ? 1 : 0;
 
-        //console.log("rosterdate_iso: ", rosterdate_iso)
+                const worked_format = format_total_duration (worked_hours, loc.user_lang);
+                const break_format = format_total_duration (break_hours, loc.user_lang);
+                const absence_format = format_total_duration (absence_hours, loc.user_lang)
+                //const show_warning = (dur_diff < 0);
 
-                if(!!rosterdate_iso && !!customer_pk && !!order_pk) {
-        // lookup rosterdate_iso in subtotals, create if not found
+                if(!!rosterdate_iso && !!customer_pk && !!order_pk && !!emplhour_pk) {
+// ---  lookup rosterdate_iso in subtotals, create if not found
                     if(!(rosterdate_iso in subtotals)) {
-                        subtotals[rosterdate_iso] = {total: [0, 0, 0, 0]}
+                        const rosterdate_formatted_long = format_date_iso (rosterdate_iso, loc.months_long, loc.weekdays_abbrev, false, false, loc.user_lang);
+                        // default zero's are necessary because of '+='. In detail row they are not needed
+                        subtotals[rosterdate_iso] = {total: [rosterdate_iso, rosterdate_formatted_long, 0, 0, 0, 0]}
                     }
                     let rosterdate_dict = subtotals[rosterdate_iso];
-
-        // lookup customer_dict in rosterdate_dict, create if not found
+// ---  lookup customer_dict in rosterdate_dict, create if not found
                     if(!(customer_pk in rosterdate_dict)) {
-                        rosterdate_dict[customer_pk] = {total: [0, 0, 0, 0]}
+                        // put Absence last by making customer_sort_key = "zzzzzz"
+                        let customer_sort_key = customer_code;
+                        if (!!customer_code && ["absence", "afwezig", "afwezigheid"].indexOf(customer_code.toLowerCase()) > -1){
+                            customer_sort_key = "zzzzzz"
+                        }
+                        rosterdate_dict[customer_pk] = {total: [customer_sort_key, customer_code, 0, 0, 0, 0]}
                     }
                     let customer_dict = rosterdate_dict[customer_pk];
-
-        // lookup order_dict in customer_dict, create if not found
+// ---  lookup order_dict in customer_dict, create if not found
                     if(!(order_pk in customer_dict)) {
-                        customer_dict[order_pk] = {total: [0, 0, 0, 0]}
+                        customer_dict[order_pk] = {total: [order_code, customer_order_code, 0, 0, 0, 0]}
                     }
                     let order_dict = customer_dict[order_pk];
-        // add to grand total
-                    subtotals.total[0] += shift_count
-                    subtotals.total[1] += worked_hours
-                    subtotals.total[2] += break_hours
-                    subtotals.total[3] += absence_hours
-        // add to rosterdate total
-                    rosterdate_dict.total[0] += shift_count
-                    rosterdate_dict.total[1] += worked_hours
-                    rosterdate_dict.total[2] += break_hours
-                    rosterdate_dict.total[3] += absence_hours
-        // add to customer total
-                    customer_dict.total[0] += shift_count
-                    customer_dict.total[1] += worked_hours
-                    customer_dict.total[2] += break_hours
-                    customer_dict.total[3] += absence_hours
-        // add to order total
-                    order_dict.total[0] += shift_count
-                    order_dict.total[1] += worked_hours
-                    order_dict.total[2] += break_hours
-                    order_dict.total[3] += absence_hours
+
+// ---  lookup emplhour_dict in customer_dict, create if not found
+                    if(!(emplhour_pk in order_dict)) {
+                        order_dict[emplhour_pk] = {total: [employee_code, employee_code]}
+                    }
+                    let emplhour_dict = order_dict[emplhour_pk];
+// ---  lookup add to emplhour total
+// ["Riki JR", "Riki JR", 1, 215, 25, 0, false, false, "08.00 - 12.00", 0, "zo 12.00 u", 215, 25, empty × 96, "zo 08.00 u"]
+                    emplhour_dict.total[2] = shift_code
+                    emplhour_dict.total[3] = time_start;
+                    emplhour_dict.total[4] = time_end;
+                    emplhour_dict.total[5] = worked_format
+                    emplhour_dict.total[6] = break_format
+                    emplhour_dict.total[7] = absence_format
+
+// ---  add to grand total
+                    subtotals.total[2] += shift_count
+                    subtotals.total[3] += worked_hours
+                    subtotals.total[4] += break_hours
+                    subtotals.total[5] += absence_hours
+// ---  add to rosterdate total
+                    rosterdate_dict.total[2] += shift_count
+                    rosterdate_dict.total[3] += worked_hours
+                    rosterdate_dict.total[4] += break_hours
+                    rosterdate_dict.total[5] += absence_hours
+// ---   add to customer total
+                    customer_dict.total[2] += shift_count
+                    customer_dict.total[3] += worked_hours
+                    customer_dict.total[4] += break_hours
+                    customer_dict.total[5] += absence_hours
+// ---  add to order total
+                    order_dict.total[2] += shift_count
+                    order_dict.total[3] += worked_hours
+                    order_dict.total[4] += break_hours
+                    order_dict
+                    .total[5] += absence_hours
                 }  // if(!!customer_pk && order_pk && rosterdate_iso)
             }  // for (let i = 0; i < len; i++)
         }  // if (len > 0)

@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 caption: ["", "", "", "", "", ""],  // filled after loc is downloaded
                                 fldName: ["datepayment", "note", "entries", "used", "balance", "dateexpired"],
                                 tag: ["div", "div", "div", "div", "div", "div"],
-                                width: ["120", "150", "120", "120", "120", "120"],
+                                width: ["120", "300", "120", "120", "120", "120"],
                                 align: ["left", "left", "right", "right", "right", "left"]}
 
         let selected_btn = "company";

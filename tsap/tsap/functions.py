@@ -1883,6 +1883,29 @@ def get_fielddict_pricerate_employee(table, instance, field_dict, user_lang):
                                         #logger.debug(' teammember.employee pricerate: ' + str(saved_value))
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+def get_billable_from_order_shift(order, shift):
+    # used in EmplhourUploadView.create_orderhour_emplhour  when shift is added in rosterpage   # PR2020-04-24
+    #  billable = 0 = no override, 1= override NotBillable, , 2= override Billable
+    # first checkshift and scheme (if there is any), skip restshift
+    # if billable = 0 (no override) check order, customer, company (skip absence)
+    billable = 0
+    if order and not order.customer.isabsence:
+        if shift and not shift.isrestshift:
+            if shift.billable:
+                billable = shift.billable
+            elif shift.scheme.billable:
+                billable = shift.scheme.billable
+        if not billable:
+            if order.billable:
+                billable = order.billable
+            elif order.customer.billable:
+                billable = order.customer.billable
+            elif order.customer.company.billable:
+                billable = order.customer.company.billable
+    is_billable = (billable == 2)
+    return is_billable
+
 def get_billable_order(order):
     # PR2019-10-10
     # value 0 = no override, 1= override NotBillable, 2= override Billable
@@ -1984,7 +2007,6 @@ def remove_empty_attr_from_dict(dict):
             elif field == 'id':
                 if 'create' in dict['id']:
                     del dict['id']['create']
-
     #logger.debug('dict: ' + str(dict))
 
 
@@ -2216,7 +2238,7 @@ def calc_amount_addition_tax_rounded(time_duration, billing_duration,
         amount_not_rounded = (base_duration / 60) * (price_rate)  # amount 10.000 = 100 US$
         amount = int(0.5 + amount_not_rounded)  # This rounds to an integer
         addition_not_rounded = amount * (addition_rate / 10000)  # additionrate 10.000 = 1006%
-        addition = int(0.5 +addition_not_rounded)  # This rounds to an integer
+        addition = int(0.5 + addition_not_rounded)  # This rounds to an integer
         tax_not_rounded = (amount + addition) * (tax_rate / 10000)  # taxrate 600 = 6%
         tax = int(0.5 + tax_not_rounded) # This rounds to an integer
 
@@ -2265,33 +2287,28 @@ def format_date_element(rosterdate_dte, user_lang,
         if show_weekday:
             if show_wd_long:
                 weekday_txt = c.WEEKDAYS_LONG[user_lang][rosterdate_dte.isoweekday()]
-
             else:
                 weekday_txt = c.WEEKDAYS_ABBREV[user_lang][rosterdate_dte.isoweekday()]
-            weekday_txt += ', ' if user_lang == 'en' else ' '
+            if user_lang == 'en':
+                weekday_txt += ','
 
         if show_day:
             day_txt = str(rosterdate_dte.day)
             if user_lang == 'en':
                 if show_year:
-                    day_txt += ', '
-            else:
-                if show_month:
-                    day_txt += ' '
+                    day_txt += ','
 
         if show_month:
             if show_month_long:
                 month_txt = c.MONTHS_LONG[user_lang][rosterdate_dte.month]
             else:
                 month_txt = c.MONTHS_ABBREV[user_lang][rosterdate_dte.month]
-            if user_lang == 'en' or year_txt:
-                month_txt += ' '
         if show_year:
             year_txt = str(rosterdate_dte.year)
         if user_lang == 'en':
-            display_txt = ''.join([weekday_txt, month_txt, day_txt, year_txt])
+            display_txt = ' '.join([weekday_txt, month_txt, day_txt, year_txt])
         else:
-            display_txt = ''.join([weekday_txt, day_txt, month_txt, year_txt])
+            display_txt = ' '.join([weekday_txt, day_txt, month_txt, year_txt])
 
     return display_txt
 

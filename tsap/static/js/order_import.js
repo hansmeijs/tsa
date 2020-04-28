@@ -178,7 +178,6 @@ document.addEventListener('DOMContentLoaded', function() {
         show_hide_element(el_msg_err, (!!msg_err));
 
         GetWorkbook();
-
     }  // HandleFiledialog
 
 //=========  GetWorkbook  ====================================
@@ -235,7 +234,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 el_worksheet_list.appendChild(option);
                             }
                         } //for (let x=0;
-
 // ---  give message when no data in worksheets
                         if (!el_worksheet_list.options.length){
                             msg_err = loc.No_worksheets_with_data;
@@ -264,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     FillDataTable(worksheet_range);
                                     UpdateDatatableHeader();
 // ---  upload new settings tsaCaption
-                                    UploadSettingsImport ();
+                                    UploadSettingsImport ("workbook");
                     }}}}
                     let el_msg_err = document.getElementById("id_msg_worksheet")
                     el_msg_err.innerText = msg_err;
@@ -282,13 +280,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if(!!workbook){
             if(!!el_worksheet_list.value){
                 selected_worksheetname = el_worksheet_list.value;
-
 // ---  get selected worksheet
                 worksheet = workbook.Sheets[selected_worksheetname];
                 if(!!worksheet){
 // ---  get Column and Rownumber of upper left cell and lower right cell of SheetRange
                     worksheet_range = GetSheetRange (worksheet);
-console.log("HandleWorksheetList worksheet_range", worksheet_range )
                     if (!!worksheet_range) {
 // ---  set checkbox_hasheader checked
                         checkbox_hasheader.checked = stored_has_header;
@@ -302,13 +298,12 @@ console.log("HandleWorksheetList worksheet_range", worksheet_range )
 // ---  fill DataTable
                         FillDataTable(worksheet_range);
                         UpdateDatatableHeader();
-                        // upload new settings tsaCaption
-                        UploadSettingsImport ();
+// ---  upload new settings
+                        UploadSettingsImport ("worksheetlist");
             }}}
-        }  // if(!!workbook)
-
+        }
         HighlightAndDisableSelectedButton();
-    }  // function HandleWorksheetList()
+    }  // HandleWorksheetList()
 
 //=========   handle_checkbox_hasheader_changed   ======================
     function handle_checkbox_hasheader_changed() {
@@ -324,21 +319,22 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
             FillDataTable(worksheet_range);
             UpdateDatatableHeader();
             // upload new settings tsaCaption
-            UploadSettingsImport ();
+            UploadSettingsImport ("hasheader");
         }  // if(!!worksheet){
     }; //handle_checkbox_hasheader_changed
 
 //=========   handle_select_code_calc   ======================
     function handle_select_code_calc() {
         // console.log("=========   handle_select_code_calc   ======================") ;
-        UploadSettingsImport ();
+        // NIU used in employee opload, calc employee code
+        UploadSettingsImport ("handle_select_code_calc");
     }  // handle_select_code_calc
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //                 ExcelFile_Read
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-//=========  fill worksheet_data  ========================================================================
+//=========  fill worksheet_data  ===============================
     function FillWorksheetData(work_sheet, sheet_range, has_header) {
     // fills the list 'worksheet_data' with data from 'worksheet'
         let sheet_data = [];
@@ -363,7 +359,6 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
         let colindex;
         let itemlist =[];
         excel_columns = [];
-
 // ---  create array 'excel_columns' with Excel column names, replaces spaces, ", ', /, \ and . with _
         if(!!worksheet && !!worksheet_range) {
 // ---  get headers if Not SelectedSheetHasNoHeader: from first row, otherwise: F01 etc ");
@@ -380,12 +375,10 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
                 excel_columns.push ({index: idx, excKey: colName});
                 idx += 1;
         }}
-
 // =======  Map array 'excel_columns' with 'stored_coldefs' =======
         // function loops through stored_coldefs and excel_columns and add links and caption in these arrays
         // stored_coldefs: [ {tsaKey: "idnumber", caption: "ID nummer", excKey: "ID"}, 1: ...]
         // excel_columns: [ {index: 10, excKey: "ID", tsaKey: "idnumber", tsaCaption: "ID nummer"}} ]
-
 // ---  loop through array stored_coldefs
         if(!!stored_coldefs) {
             for (let i = 0, stored_row; stored_row = stored_coldefs[i]; i++) {
@@ -418,67 +411,51 @@ console.log(" ========== handle_checkbox_hasheader_changed ===========");
 
 //=========  FillDataTable  ========================================================================
     function FillDataTable(sheet_range) {
-        //console.log("=========  function FillDataTable =========");
-
+        console.log("=========  function FillDataTable =========");
 //--------- delete existing rows
-        // was: $("#id_thead, #id_tbody").html("");
         tblHead.innerText = null
         tblBody.innerText = null
         const no_excel_data = (!worksheet_data || !excel_columns);
         if (!no_excel_data){
 //--------- insert tblHead row of datatable
             let tblHeadRow = tblHead.insertRow();
-
             //PR2017-11-21 debug: error when StartColNumber > 1, j must start at 0
             //var EndIndexPlusOne = (sheet_range.EndColNumber) - (sheet_range.StartColNumber -1)
-
             //index j goes from 0 to ColCount-1, excel_columns index starts at 0, last index is ColCount-1
             for (let j = 0 ; j <sheet_range.ColCount; j++) {
                 let cell = tblHeadRow.insertCell(-1);
                 let excKey = excel_columns[j].excKey;
                 cell.innerHTML = excKey;
                 cell.setAttribute("id", "idTblCol_" + excKey);
-            }; //for (let j = 0; j < 2; j++)
-
-//--------- insert DataSet rows
-            //var EndRowIndex = 9;
-            var LastRowIndex = sheet_range.RowCount -1;
+            };
+// ---  insert DataSet rows
+            let LastRowIndex = sheet_range.RowCount -1;
             // worksheet_data has no header row, start allways at 0
             if (stored_has_header) { --LastRowIndex;}
             //if (EndRow-1 < EndRowIndex) { EndRowIndex = EndRow-1;};
+// ---  insert row
             for (let i = 0; i <= LastRowIndex; i++) {
-                let tblRow = tblBody.insertRow(-1); //index -1 results in that the new row will be inserted at the last position.
-
-                if (i%2 === 0) {
-                    class_background = cls_cell_unchanged_even;
-                } else {
-                    class_background = cls_cell_unchanged_odd;
-                }
+                let tblRow = tblBody.insertRow(-1);
+// ---  alternate row background color
+                class_background = (i%2 === 0) ? cls_cell_unchanged_even : cls_cell_unchanged_odd;
                 tblRow.classList.add(class_background);
-
+// ---  insert cells
                 for (let j = 0 ; j < sheet_range.ColCount; j++) {
-//console.log("worksheet_data[" + i + "][" + j + "]: <" + worksheet_data[i][j]) + ">";
-                    let cell = tblRow.insertCell(-1); //index -1 results in that the new cell will be inserted at the last position.
+                    let cell = tblRow.insertCell(-1);
                     if(!!worksheet_data[i][j]){
                         cell.innerHTML = worksheet_data[i][j];
                     };
                 } //for (let j = 0; j < 2; j++)
             } //for (let i = 0; i < 2; i++)
-            // sets the border attribute of tbl to 2;
-            //table.setAttribute("border", "2");
         }; // if(has_data){
-
-    };  //function DataTabel_Set() {
+    };  //  FillDataTable
 
 //=========  FillDataTableAfterUpload  ==============================
     function FillDataTableAfterUpload(response, sheet_range) {
-console.log("=========  function FillDataTableAfterUpload =========");
+        console.log("=========  function FillDataTableAfterUpload =========");
+        console.log(response);
 
 //--------- delete existing rows
-       // $("#id_thead, #id_tbody").html("");
-
-        // let tblBody =$("#id_tbody");
-        // tblBody.html("");
         tblBody.innerText = null
 
         if(!!worksheet_data && !!excel_columns){
@@ -502,7 +479,7 @@ console.log("=========  function FillDataTableAfterUpload =========");
 
 //--------- iterate through response rows
             //var EndRowIndex = 9;
-            var LastRowIndex = sheet_range.RowCount -1;
+            let LastRowIndex = sheet_range.RowCount -1;
             // worksheet_data has no header row, start allways at 0
             if (stored_has_header) { --LastRowIndex;}
             //if (EndRow-1 < EndRowIndex) { EndRowIndex = EndRow-1;};
@@ -757,12 +734,9 @@ console.log("=========  function FillDataTableAfterUpload =========");
 
 //========= FillTsaExcelLinkTables  ====================================
     function FillTsaExcelLinkTables(JustLinkedTsaId, JustUnlinkedTsaId, JustUnlinkedExcId) {
-        console.log("==== FillTsaExcelLinkTables  =========>> ");
-        // stored_coldefs: [ {tsaKey: "custname", caption: "Klant - Naam ", excKey: "datestart"}, ...]
+        //console.log("==== FillTsaExcelLinkTables  =========>> ");
+        // stored_coldefs: [ {custname: {caption: "Klant - Naam ", excKey: "datestart"}, ...]
         // excel_columns: [ {index: 1, excKey: "Order", tsaKey: "custidentifier", tsaCaption: "Klant - Identificatiecode"}, ...]
-
-        console.log("excel_columns:", excel_columns);
-        // excel_columns[1]: {index: 1, excKey: "Order", tsaKey: "orderdatelast", tsaCaption: "Locatie - Einddatum opdracht"}
 
 // ---  reset tables
         el_tbody_tsa.innerText = null
@@ -770,69 +744,78 @@ console.log("=========  function FillDataTableAfterUpload =========");
         el_tbody_lnk.innerText = null
 
 // ---  first loop through array of stored_coldefs, then through array of excel_columns
+        // tblName: 0 = "tsa", 1: "lnk" or "tsa"
         for (let j = 0; j < 2; j++) {
             const items = (!j) ? stored_coldefs : excel_columns
             for (let i = 0, row ; row = items[i]; i++) {
-                const is_tbl_linked = (!j && !!row.excKey)
-                const tblName =  (!j) ? "tsa" : (is_tbl_linked) ? "lnk" : "tsa";
-
-                // row = {tsaKey: "30", caption: "tech", excKey: "cm"}
+                // row = {tsaKey: "custcode", caption: "Klant - Korte naam", excKey: "Customer"}
+                const tblName =  (!j) ? "tsa" : "exc";
                 const row_id = get_TEL_row_id(tblName, i);
-        console.log("............row_id:", row_id);
-                const row_cls = (is_tbl_linked) ? cls_tbl_td_linked : cls_tbl_td_unlinked;
+                // row_id: id_tr_tsa_2
+
+                const is_row_linked = (!j && !!row.excKey)
+                const row_cls = (is_row_linked) ? cls_tbl_td_linked : cls_tbl_td_unlinked;
+                const cls_width = (is_row_linked) ? "tsa_td_width_50" : "tsa_td_width_100";
                 const row_tsaKey = get_dict_value(row, ["tsaKey"])
                 // dont add row when excel_row is linked (has tsaKey)
                 const skip_linked_exc_row = (!!j && !!row_tsaKey);
                 if(!skip_linked_exc_row){
 // ---  if excKey exists: append row to table ColLinked
                     //  append row to table Tsa if excKey does not exist in items
-                    let el_tbody = (is_tbl_linked) ? el_tbody_lnk : (!j) ? el_tbody_tsa : el_tbody_exc
+                    let el_tbody = (is_row_linked) ? el_tbody_lnk : (!j) ? el_tbody_tsa : el_tbody_exc;
 // --- insert tblRow into tbody_lnk
                     let tblRow = el_tbody.insertRow(-1);
                         tblRow.id = row_id;
                         const row_key = (!j) ? row.tsaKey : row.excKey;
-                        tblRow.setAttribute("data-Key", row_key)
+                        tblRow.setAttribute("data-key", row_key)
 
-                        // datatable is stored in tBody, in HTML. was: tblRow.setAttribute("data-table", tblName)
                         tblRow.classList.add(row_cls)
+                        tblRow.classList.add(cls_width)
                         tblRow.addEventListener("click", function(event) {Handle_TEL_row_clicked(event)}, false);
 
 // --- if new appended row: highlight row for 1 second
+                        const cls_just_linked_unlinked = (is_row_linked) ? "tsa_td_linked_selected" : "tsa_td_unlinked_selected";
 
-        console.log("row_id:", row_id);
-        console.log("JustLinkedTsaId:", JustLinkedTsaId);
-        console.log("JustUnlinkedTsaId:", JustUnlinkedTsaId);
-        console.log("JustUnlinkedExcId:", JustUnlinkedExcId);
-                        const cls_just_linked_unlinked = (is_tbl_linked) ? "tsa_td_linked_selected" : "tsa_td_unlinked_selected";
-                        let idExcRow;
                         let show_justLinked = false;
-                        if(is_tbl_linked)  {
+                        if(is_row_linked)  {
                             show_justLinked = (!!JustLinkedTsaId && !!row_id && JustLinkedTsaId === row_id)
                         } else  if (!j) {
                             show_justLinked = (!!JustUnlinkedTsaId && !!row_id && JustUnlinkedTsaId === row_id)
                         } else {
-                            show_justLinked = (!!JustUnlinkedExcId && !!idExcRow && JustUnlinkedExcId === idExcRow)
+                            show_justLinked = (!!JustUnlinkedExcId && !!row_id && JustUnlinkedExcId === row_id)
                         }
                         if (show_justLinked) {
-                           tblRow.classList.add(cls_just_linked_unlinked)
-                           setTimeout(function (){  tblRow.classList.remove(cls_just_linked_unlinked)  }, 1000);
+                            let cell = tblRow.cells[0];
+                            tblRow.classList.add(cls_just_linked_unlinked)
+                            setTimeout(function (){  tblRow.classList.remove(cls_just_linked_unlinked)  }, 1000);
                         }
 // --- append td with row.caption
-                        let td = tblRow.insertCell(-1);
-                        td.classList.add(row_cls)
+                        let td_first = tblRow.insertCell(-1);
+                        td_first.classList.add(row_cls)
                         const text = (!j) ? row.caption : row.excKey;
-                        td.innerText = text;
-// --- if linked row: also append tf with , one td to row tsa
-                         if (is_tbl_linked) {
-                            td = tblRow.insertCell(-1);
-                            td.classList.add(row_cls)
-                            td.innerText = row.excKey;
-                         }
-                         // tblRow.innerHTML works too, instead of tblRow.insertCell
-                        // tblRow.innerHTML = "<td>" + row.caption + "</td><td>"  + row.excKey + "</td>"
+                        td_first.innerText = text;
+// --- if new appended row: highlight row for 1 second
+                        if (show_justLinked) {
+                            //td_first.classList.add(cls_just_linked_unlinked)
+                            //setTimeout(function (){ td_first.classList.remove(cls_just_linked_unlinked)}, 1000);
+                            ShowClassWithTimeout(td_first, cls_just_linked_unlinked, 1000) ;
+                        }
 
+// --- if linked row: also append td with excKey
+                         if (is_row_linked) {
+                            let td_second = tblRow.insertCell(-1);
+                            td_second.classList.add(row_cls)
+                            td_second.innerText = row.excKey;
+
+// --- if new appended row: highlight row for 1 second
+                            if (show_justLinked) {
+                               //td_second.classList.add(cls_just_linked_unlinked)
+                               //setTimeout(function (){  td_second.classList.remove(cls_just_linked_unlinked)  }, 1000);
+                               ShowClassWithTimeout(td_second, cls_just_linked_unlinked, 1000) ;
+                            }
+                         }
 // --- add mouseenter/mouseleave EventListener to tblRow
-                        const cls_linked_hover = (is_tbl_linked) ? "tsa_td_linked_hover" : "tsa_td_unlinked_hover";
+                        const cls_linked_hover = (is_row_linked) ? "tsa_td_linked_hover" : "tsa_td_unlinked_hover";
                             // cannot use pseudo class :hover, because all td's must change color, hover doesn't change children
                         tblRow.addEventListener("mouseenter", function(event) {
                             for (let i = 0, td; td = tblRow.children[i]; i++) {
@@ -847,7 +830,6 @@ console.log("=========  function FillDataTableAfterUpload =========");
         }  // for (let j = 0; j < 2; j++)
      }; // FillTsaExcelLinkTables()
 
-
 //=========   Handle_TEL_row_clicked   ======================
     function Handle_TEL_row_clicked(event) {  //// EAL: Excel Tsa Linked table
         // function gets row_clicked.id, row_other_id, row_clicked_key, row_other_key
@@ -856,44 +838,45 @@ console.log("=========  function FillDataTableAfterUpload =========");
         // currentTarget refers to the element to which the event handler has been attached
         // event.target which identifies the element on which the event occurred.
         console.log("=========   Handle_TEL_row_clicked   ======================") ;
-        console.log("event.currentTarget", event.currentTarget) ;
+        //.log("event.currentTarget", event.currentTarget) ;
 
         if(!!event.currentTarget) {
             let tr_selected = event.currentTarget;
             let table_body_clicked = tr_selected.parentNode;
-            const tblName = get_attr_from_el(table_body_clicked, "data-table");
-            const cls_selected = (tblName === "lnk") ? cls_linked_selected : cls_unlinked_selected;
-            const row_clicked_key = get_attr_from_el(tr_selected, "data-key");
+            const tbodyName = get_attr_from_el(table_body_clicked, "data-tbody");
+            const cls_selected = (tbodyName === "lnk") ? cls_linked_selected : cls_unlinked_selected;
 
-            let link_rows = false;
-            let row_other_id = "";
-            let row_other_key = "";
+            const row_clicked_id = tr_selected.id;
+            const row_clicked_key = get_attr_from_el(tr_selected, "data-key");
+            let row_other_id = null, row_other_key = null;
 
 // ---  check if clicked row is already selected
-            const cls_linked_hover = (tblName === "lnl") ? "tsa_td_linked_hover" : "tsa_td_unlinked_hover";
             const tr_is_not_yet_selected = (!get_attr_from_el(tr_selected, "data-selected", false))
+
 // ---  if tr_is_not_yet_selected: add data-selected and class selected, remove class selected from all other rows in this table
+            const cls_linked_unlinked_hover = (tbodyName === "lnk") ? "tsa_td_linked_hover" : "tsa_td_unlinked_hover";
             for (let i = 0, row; row = table_body_clicked.rows[i]; i++) {
                 if(tr_is_not_yet_selected && row === tr_selected){
                     row.setAttribute("data-selected", true);
                     for (let i = 0, td; td = row.children[i]; i++) {
                         td.classList.add(cls_selected)
-                        td.classList.remove(cls_linked_hover)};
+                        td.classList.remove(cls_linked_unlinked_hover)};
                 } else {
 // ---  remove data-selected and class selected from all other rows in this table, also this row if already selected
                     row.removeAttribute("data-selected");
                     for (let i = 0, td; td = row.children[i]; i++) {
                         td.classList.remove(cls_selected);
-                        td.classList.remove(cls_linked_hover)};
+                        td.classList.remove(cls_linked_unlinked_hover)};
                 }
             }
-
-            if (["tsa", "exc"].indexOf(tblName) > -1) {
+// ---  only if clicked on tsa or exc row:
+            if (["tsa", "exc"].indexOf(tbodyName) > -1) {
 // ---  if clicked row was not yet selected: check if other table has also selected row, if so: link
                 if(tr_is_not_yet_selected) {
 // ---  check if other table has also selected row, if so: link
-                    let table_body_other = (tblName === "exc") ? el_tbody_tsa : el_tbody_exc;
+                    let table_body_other = (tbodyName === "exc") ? el_tbody_tsa : el_tbody_exc;
 // ---  loop through rows of other table
+                    let link_rows = false;
                     for (let j = 0, row_other; row_other = table_body_other.rows[j]; j++) {
                        const other_tr_is_selected = get_attr_from_el(row_other, "data-selected", false)
 // ---  set link_rows = true if selected row is found in other table
@@ -907,44 +890,35 @@ console.log("=========  function FillDataTableAfterUpload =========");
 // ---  link row_clicked with delay of 250ms (to show selected Tsa and Excel row)
                     if (link_rows){
                         setTimeout(function () {
-                            LinkColumns(tblName, row_clicked_key, row_other_key);
+                            LinkColumns(tbodyName, row_clicked_id, row_other_id, row_clicked_key, row_other_key);
                         }, 250);
                     }
                 }
             } else if (tr_is_not_yet_selected) {
 // ---  unlink tr_selected  with delay of 250ms (to show selected Tsa and Excel row)
                 setTimeout(function () {
-                    UnlinkColumns(tblName, tr_selected.id, row_clicked_key);
+                    UnlinkColumns(tbodyName, row_clicked_id, row_clicked_key);
                     }, 250);
             }
        }  // if(!!event.currentTarget) {
     };  // Handle_TEL_row_clicked
 
-
 //========= LinkColumns  ====================================================
-    function LinkColumns(tableName, row_clicked_key, row_other_key) {
+    function LinkColumns(tbodyName, row_clicked_id, row_other_id, row_clicked_key, row_other_key) {
         console.log("==========  LinkColumns ========== ");
         // function adds 'excCol' to stored_coldefs and 'tsaCaption' to excel_columns
 
-        console.log("tableName: ", tableName );
-        console.log("row_clicked_key: ", row_clicked_key );
-        console.log("row_other_key ", row_other_key );
-
         // stored_coldefs: {tsaKey: "custname", caption: "Klant - Naam ", excKey: "datestart"
         // excel_columns: {index: 1, excKey: "Order", tsaKey: "custidentifier", tsaCaption: "Klant - Identificatiecode"
-        console.log("excel_columns ", excel_columns);
-        console.log("stored_coldefs ", excel_columns);
 
-        let row_clicked_id, row_other_id;
-        const stored_row_id = (tableName === "tsa") ? row_clicked_id : (tableName === "exc") ? row_other_id : null;
-        const stored_row_tsaKey = (tableName === "tsa") ? row_clicked_key : (tableName === "exc") ? row_other_key : null;
-        const excel_row_excKey = (tableName === "tsa") ? row_other_key : (tableName === "exc") ? row_clicked_key : null;
+        const stored_row_id = (tbodyName === "tsa") ? row_clicked_id : (tbodyName === "exc") ? row_other_id : null;
+        const stored_row_tsaKey = (tbodyName === "tsa") ? row_clicked_key : (tbodyName === "exc") ? row_other_key : null;
+        const excel_row_excKey = (tbodyName === "tsa") ? row_other_key : (tbodyName === "exc") ? row_clicked_key : null;
 
         let stored_row = get_arrayRow_by_keyValue (stored_coldefs, "tsaKey", stored_row_tsaKey);
         // stored_row = {tsaKey: "ordername", caption: "Opdracht"}
         let excel_row = get_arrayRow_by_keyValue (excel_columns, "excKey", excel_row_excKey);
         // excel_row = {caption: "Opdracht", excKey: "sector_sequence", tsaKey: "ordername"}
-
 
         if(!!stored_row && !!excel_row){
             if(!!excel_row.excKey){
@@ -954,29 +928,20 @@ console.log("=========  function FillDataTableAfterUpload =========");
             if(!!stored_row.caption){
                 excel_row["tsaCaption"] = stored_row.caption;};
         }
-console.log("stored_row: ", stored_row);
-console.log( "excel_row: ", excel_row );
-// stored_row = {tsaKey: "ordername", caption: "Opdracht", excKey: "sector_name"}
-// excel_row = {index: 0, excKey: "sector_name", tsaKey: "ordername", tsaCaption: "Opdracht"}
-//console.log("stored_row: ", stored_row, "excel_row: ", excel_row );
 
-        const JustLinkedTsaId = stored_row_id;
-        // FillTsaExcelLinkTables( JustLinkedTsaId, JustUnlinkedTsaId, JustUnlinkedExcId)
+        UploadSettingsImport("link");
         FillTsaExcelLinkTables(stored_row_id);
-
         UpdateDatatableHeader();
-
-    // upload new settings
-       UploadSettingsImport();
+        HighlightAndDisableSelectedButton();
     };  // LinkColumns
 
 //========= UnlinkColumns =======================================================
-    function UnlinkColumns(tableName, row_clicked_id, row_clicked_key) {
+    function UnlinkColumns(tbodyName, row_clicked_id, row_clicked_key) {
         // function deletes attribute 'excKey' from stored_coldefs
         // and deletes attributes 'tsaKey' and 'tsaCaption' from ExcelDef
         // if type= 'col': UpdateDatatableHeader
         // calls UploadSettingsImport and
-console.log("====== UnlinkColumns =======================");
+        //console.log("====== UnlinkColumns =======================");
 
 // function removes 'excKey' from stored_coldefs and 'tsaKey' from excel_columns
 
@@ -986,12 +951,12 @@ console.log("====== UnlinkColumns =======================");
         // stored_row = {tsaKey: "gender", caption: "Geslacht", excKey: "MV"}
         let excel_row, JustUnlinkedExcId = null;
         let stored_row = get_arrayRow_by_keyValue (stored_coldefs, "tsaKey", row_clicked_key);
-console.log("stored_row", stored_row);
+
         // excel_row =  {index: 8, excKey: "geboorte_land", tsaKey: "birthcountry", tsaCaption: "Geboorteland"}
         if (!!stored_row && !!stored_row.excKey) {
 // ---  look up excKey in excel_columns
             excel_row = get_arrayRow_by_keyValue (excel_columns, "excKey", stored_row.excKey)
-console.log("excel_row", excel_row);
+
 // ---  delete excKey from stored_row
             delete stored_row.excKey;
             if (!!excel_row) {
@@ -1003,53 +968,52 @@ console.log("excel_row", excel_row);
         }  // if (!!stored_row)
 
 // ---  upload new settings
-        UploadSettingsImport();
-        // FillTsaExcelLinkTables( JustLinkedTsaId, JustUnlinkedTsaId, JustUnlinkedExcId)
+        UploadSettingsImport("link");
         FillTsaExcelLinkTables(null, JustUnlinkedTsaId, JustUnlinkedExcId);
-
         UpdateDatatableHeader();
-
+        HighlightAndDisableSelectedButton();
     }  // UnlinkColumns
 
 //========= function UdateDatatableHeader  ====================================================
     function UpdateDatatableHeader() {
-//----- set tsaCaption in linked header colomn of datatable
-//console.log("---------  function UpdateDatatableHeader ---------");
+        //console.log("---------  function UpdateDatatableHeader ---------");
+        //----- set tsaCaption in linked header colomn of datatable
 //----- loop through array excel_columns from row index = 0
         for (let j = 0 ; j <excel_columns.length; j++) {
             // only rows that are not linked are added to tblColExcel
             let ExcCol = excel_columns[j].excKey;
             let TsaCaption = excel_columns[j].tsaCaption;
 
-            let tblColHead = document.getElementById("idTblCol_" + ExcCol);
-            if (!!TsaCaption){
-                tblColHead.innerHTML = TsaCaption;
-                tblColHead.classList.add(cls_unlinked_selected);
-            } else {
-                tblColHead.innerHTML = ExcCol;
-                tblColHead.classList.remove(cls_unlinked_selected);
-            }
+            let theadCol = document.getElementById("idTblCol_" + ExcCol);
+            theadCol.innerHTML =  (!!TsaCaption) ? TsaCaption: ExcCol;
+
+            add_or_remove_class(theadCol, cls_linked_selected, !!TsaCaption);
+            add_or_remove_class(theadCol, cls_unlinked_selected, !TsaCaption);
         }
    } // function UpdateDatatableHeader
 
 
 //========= UPLOAD SETTING COLUMNS =====================================
-    function UploadSettingsImport () {
+    function UploadSettingsImport (calledby) {
         console.log ("==========  UploadSettingsImport");
         console.log ("stored_coldefs: ", stored_coldefs);
-        if(!!stored_coldefs) {
-            let upload_dict = {};
+
+        let upload_dict = {};
+        if (calledby !== "link"){
+// ---  upload worksheetname and has_header when not called by 'link'
             if (!!selected_worksheetname){
                 upload_dict["worksheetname"] = selected_worksheetname;
             }
+            upload_dict["has_header"] = stored_has_header;
+        } else {
+            let linked_coldefs = {};
 
+
+            // NIU only in emplyee upload
             // get value of code_calc
             //let el_select_code_calc = document.getElementById("id_select_code_calc");
             //if (!!el_select_code_calc.value){upload_dict["codecalc"] = el_select_code_calc.value}
 
-            upload_dict["has_header"] = stored_has_header;
-
-            let new_coldefs = {};
             if (!!stored_coldefs){
                 for (let i = 0, coldef; coldef = stored_coldefs[i]; i++) {
 
@@ -1057,19 +1021,21 @@ console.log("excel_row", excel_row);
         //console.log ("coldef: ", coldef);
                     let tsaKey = coldef.tsaKey
         //console.log ("tsaKey: ", tsaKey);
-                        if(!!tsaKey){
+                    if(!!tsaKey){
                         let excKey = coldef.excKey
         //console.log ("excKey: ", excKey);
                         if (!!excKey){
-                            new_coldefs[tsaKey] = excKey;
-        console.log ("new_coldefs[tsaKey]: ", new_coldefs[tsaKey]);
+                            linked_coldefs[tsaKey] = excKey;
+        //console.log ("new_coldefs[tsaKey]: ", new_coldefs[tsaKey]);
                         }
                     }
-            }};
-            if (!isEmpty(new_coldefs)){
-                upload_dict["coldefs"] = new_coldefs;
-            }
-        console.log ("new_coldefs: ", new_coldefs);
+                }
+            }; //  if(!!stored_coldefs)
+            // also upload when linked_coldefs is empty, to delete existing links from database
+            upload_dict["coldefs"] = linked_coldefs;
+        }  // if (calledby !== "link"){
+        if (!isEmpty(upload_dict)){
+            console.log ("upload_dict: ", upload_dict);
 
             // parameters = {setting: "{"worksheetname":"vakquery","has_header":false,
             //                         "coldefs:{"companyname":"code","ordername":"sequence"}}"}
@@ -1089,7 +1055,7 @@ console.log("excel_row", excel_row);
                 console.log(msg + '\n' + xhr.responseText);
                 }
             });  // $.ajax
-        }  //  if(!!stored_coldefs)
+        };
     }; // function (UploadSettingsImport)
 
 //========= has_tsaKeys DATA =====================================
@@ -1189,7 +1155,6 @@ console.log("excel_row", excel_row);
     }; //  UploadData
 //========= END UPLOAD =====================================
 
-
 //=========  HandleBtnSelect  ======= PR2020-04-15
     function HandleBtnSelect(data_btn) {
         console.log("=== HandleBtnSelect ===", data_btn);
@@ -1231,32 +1196,34 @@ console.log("excel_row", excel_row);
 
 //=========  HighlightAndDisableSelectedButton  ================ PR2019-05-25
     function HighlightAndDisableSelectedButton() {
-        //console.log("=== HighlightAndDisableSelectedButton ===");
+        console.log("=== HighlightAndDisableSelectedButton ===");
         // btns don't exists when user has no permission
         if(!!el_btn_mod_prev && el_btn_mod_next) {
-            //console.log("HighlightAndDisableSelectedButton worksheet_range", worksheet_range )
             const no_worksheet = (!worksheet_range);
-            //console.log("no_worksheet: ", no_worksheet);
             const no_worksheet_with_data = (!(!!el_worksheet_list && el_worksheet_list.options.length));
-            //console.log("no_worksheet_with_data: ", no_worksheet_with_data);
             const no_linked_columns = (!excel_columns.length)
-            //console.log("no_linked_columns: ", no_linked_columns);
+
+            let no_identifier_linked = true;
+            if(!!stored_coldefs) {
+                for (let i = 0, stored_row; stored_row = stored_coldefs[i]; i++) {
+                    // stored_row = {tsaKey: "orderdatelast", caption: "Einddatum opdracht"}
+                    const key = stored_row.tsaKey
+                    if (["custidentifier", "orderidentifier", "custcode", "ordercode"].indexOf(key) > -1){
+                        if (!!stored_row.excKey){
+                            no_identifier_linked = false;
+                            break;
+            }}}}
             const no_excel_data = (!worksheet_data || !excel_columns);
-            //console.log("no_excel_data: ", no_excel_data);
 
             const step2_disabled = (no_worksheet || no_worksheet_with_data);
-            const step3_disabled = (step2_disabled || no_linked_columns || no_excel_data);
+            const step3_disabled = (step2_disabled || no_linked_columns || no_identifier_linked || no_excel_data);
 
-            //console.log(">>>>>>>>>>>>> el_worksheet_list.options.length: ", el_worksheet_list.options.length);
-            //console.log("step2_disabled: ", step2_disabled);
-            //console.log("step3_disabled: ", step3_disabled);
             const btn_prev_disabled = (selected_btn === "btn_step1")
             const btn_next_disabled = ( (selected_btn === "btn_step3") ||
                                         (selected_btn === "btn_step2" && step3_disabled) ||
                                         (selected_btn === "btn_step1" && step2_disabled)
                                         )
 
-            //console.log("btn_next_disabled: ", btn_next_disabled);
             el_btn_mod_prev.disabled = btn_prev_disabled;
             el_btn_mod_next.disabled = btn_next_disabled;
 
@@ -1293,6 +1260,8 @@ console.log("excel_row", excel_row);
 // ---  make err_msg visible
             let el_msg_err01 = document.getElementById("id_msg_err01");
             add_or_remove_class (el_msg_err01, cls_hide, !!selected_file);
+            let el_msg_err_no_identifier_linked = document.getElementById("id_msg_err_no_identifier_linked");
+            add_or_remove_class (el_msg_err_no_identifier_linked, cls_hide, !no_identifier_linked);
 
 // ---  focus on next element
             if (selected_btn === "btn_step1"){
@@ -1309,18 +1278,18 @@ console.log("excel_row", excel_row);
 
             show_hide_element(el_table_container, !no_excel_data)
         }
-
     }  // HighlightAndDisableSelectedButton
 
 //========= UpdateSettings  ================ PR2020-04-15
     function UpdateSettings(setting_dict){
-        //console.log("===== UpdateSettings ===== ")
+        console.log("===== UpdateSettings ===== ")
+        // not n use (yet)
     }  // UpdateSettings
 
 //========= UpdateCompanySetting  ================ PR2020-04-17
     function UpdateCompanySetting(companysetting_dict){
-        //console.log("===== UpdateCompanySetting ===== ")
-        //console.log("companysetting_dict", companysetting_dict)
+        console.log("===== UpdateCompanySetting ===== ")
+        console.log("companysetting_dict", companysetting_dict)
         if (!isEmpty(companysetting_dict)){
             const coldefs_dict = get_dict_value(companysetting_dict, ["coldefs"])
             if (!isEmpty(coldefs_dict)){
@@ -1329,6 +1298,7 @@ console.log("excel_row", excel_row);
                 stored_has_header = get_dict_value(coldefs_dict, ["has_header"])
             };
         };
+        console.log("stored_coldefs", stored_coldefs)
     }  // UpdateCompanySetting
 
     //=====import CSV file ===== PR2020-04-16
@@ -1365,10 +1335,6 @@ console.log("excel_row", excel_row);
             alert("Please upload a valid CSV file.");
         }
     }
-
-
-
-
 
 //========= ShowLoadingGif  ================ PR2019-02-19
     function ShowLoadingGif(show) {

@@ -92,7 +92,7 @@
                                         <thead class="tsa_tbl_hdr_unlinked">
                                             <tr><th class="text_align_center">{% trans 'TSA columns' %}</th></tr>
                                         </thead>
-                                        <tbody id="id_tbody_tsa" data-table="tsa">
+                                        <tbody id="id_tbody_tsa" data-tbody="tsa">
                                             <tr><td class="px-2">{% trans 'TSA columns' %}</td></tr>
                                         </tbody>
                                     </table>
@@ -102,7 +102,7 @@
                                         <thead class="tsa_tbl_hdr_unlinked">
                                             <tr><th class="text_align_center">{% trans 'Excel columns' %}</th></tr>
                                         </thead>
-                                        <tbody id="id_tbody_exc" data-table="exc">
+                                        <tbody id="id_tbody_exc" data-tbody="exc">
                                             <tr><td class="px-2">{% trans 'Excel columns' %}</td></tr>
                                         </tbody>
                                     </table>
@@ -114,7 +114,7 @@
                                         <thead class="tsa_tbl_hdr_linked">
                                             <tr><th class="text_align_center" colspan="2">{% trans 'Linked columns' %}</th></tr>
                                         </thead>
-                                        <tbody id="id_tbody_lnk" data-table="lnk">
+                                        <tbody id="id_tbody_lnk" data-tbody="lnk">
                                             <tr>
                                                 <td class="px-2">{% trans 'TSA columns' %}</td>
                                                 <td class="px-2">{% trans 'Excel columns' %}</td>
@@ -124,7 +124,9 @@
                                 </div>
                             </div>
                         </div>
-                        <div><small class="text-danger">{% trans "Click linked names in the lower list to unlink these columns." %}</small></div>
+                        <div id="id_msg_err_no_identifier_linked" class="m-0 px-2 py-0" >
+                            <small class="text-danger">{% trans "One of the fields 'Identifier' or 'Short name' must be linked and contain unique values." %}</small>
+                        </div>
                     </div>
                 </div>
 

@@ -13,6 +13,7 @@ from django.views.generic import UpdateView, View
 from accounts import models as acc_m
 from companies import models as m
 from companies.views import LazyEncoder
+from companies import dicts as compdicts
 
 from customers import dicts as cd
 from planning import dicts as pld
@@ -650,22 +651,54 @@ class OrderImportView(View):
 class OrderImportUploadSetting(View):   # PR2019-03-10
     # function updates mapped fields, has_header and worksheetname in table Companysetting
     def post(self, request, *args, **kwargs):
-        #logger.debug(' ============= OrderImportUploadSetting ============= ')
+        logger.debug(' ============= OrderImportUploadSetting ============= ')
         #logger.debug('request.POST' + str(request.POST) )
-
+        companysetting_dict = {}
         if request.user is not None :
             if request.user.company is not None:
                 if request.POST['upload']:
                     new_setting_json = request.POST['upload']
-                    #logger.debug('new_setting_json' + str(new_setting_json))
-                    # new_setting is in json format, no need for json.loads and json.dumps
-                    # new_setting = json.loads(request.POST['setting'])
-                    # new_setting_json = json.dumps(new_setting)
+                    # new_setting is in json format, json.loads (gets dict from json) and json.dumps (creates json from dict)
+                    logger.debug('new_setting_json' + str(new_setting_json))
 
-                    # m.Companysetting.set_setting(c.KEY_ORDER_COLDEFS, new_setting_json, request.user.company)
+                    new_worksheetname = ''
+                    new_has_header = True
+                    new_coldefs = {}
+                    settings_key = c.KEY_ORDER_COLDEFS
+                    stored_json = m.Companysetting.get_jsonsetting(settings_key, request.user.company)
+                    if stored_json:
+                        stored_setting = json.loads(stored_json)
+                        logger.debug('stored_setting: ' + str(stored_setting))
+                        if stored_setting:
+                            new_has_header = stored_setting.get('has_header', True)
+                            new_worksheetname = stored_setting.get('worksheetname', '')
+                            new_coldefs = stored_setting.get('coldefs', {})
+
+                    if new_setting_json:
+                        new_setting = json.loads(new_setting_json)
+                        if new_setting:
+                            if 'worksheetname' in new_setting:
+                                new_worksheetname = new_setting.get('worksheetname', '')
+                            if 'has_header' in new_setting:
+                                new_has_header = new_setting.get('has_header', True)
+                            if 'coldefs' in new_setting:
+                                new_coldefs = new_setting.get('coldefs', {})
+                    new_setting = {'worksheetname': new_worksheetname, 'has_header': new_has_header, 'coldefs': new_coldefs}
+                    new_setting_json = json.dumps(new_setting)
+                    logger.debug('---  set_jsonsettingg  ------- ')
+                    logger.debug(new_setting_json)
                     m.Companysetting.set_jsonsetting(c.KEY_ORDER_COLDEFS, new_setting_json, request.user.company)
 
-        return HttpResponse(json.dumps("Import settings uploaded", cls=LazyEncoder))
+        # only for testing
+                    # ----- get user_lang
+                    user_lang = request.user.lang if request.user.lang else c.LANG_DEFAULT
+                    tblName = 'order'
+                    coldefs_dict = compdicts.get_stored_coldefs_dict(tblName, user_lang, request)
+                    if coldefs_dict:
+                        companysetting_dict['coldefs'] = coldefs_dict
+                    logger.debug('new_setting from saved ' + str(coldefs_dict))
+
+        return HttpResponse(json.dumps(companysetting_dict, cls=LazyEncoder))
 
 
 @method_decorator([login_required], name='dispatch')
